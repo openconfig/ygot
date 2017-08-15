@@ -132,6 +132,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parentPath []in
 				// This is a keyless list - currently unsupported for mapping since there is
 				// not an explicit path that can be used.
 				errs.Add(fmt.Errorf("unimplemented: keyless list cannot be output: %v", mapPaths[0]))
+				continue
 			}
 			// This is a leaf-list, so add it as though it were a leaf.
 			for _, p := range mapPaths {

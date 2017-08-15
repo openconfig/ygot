@@ -156,6 +156,7 @@ type renderExample struct {
 	EnumList      map[EnumTest]*renderExampleEnumList `path:"enum-list"`
 	UnionVal      renderExampleUnion                  `path:"union-val"`
 	UnionLeafList []renderExampleUnion                `path:"union-list"`
+	KeylessList   []*renderExampleList                `path:"keyless-list"`
 }
 
 // IsYANGGoStruct ensures that the renderExample type implements the GoStruct
@@ -431,6 +432,16 @@ func TestTogNMINotifications(t *testing.T) {
 				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
 			}},
 		}},
+	}, {
+		name:        "keyless list",
+		inTimestamp: 42,
+		inStruct: &renderExample{
+			KeylessList: []*renderExampleList{
+				{String("trillian")},
+				{String("arthur")},
+			},
+		},
+		wantErr: true, //unimplemented.
 	}}
 
 	for _, tt := range tests {
