@@ -230,38 +230,6 @@ func safeGoEnumeratedValueName(name string) string {
 	return replacer.Replace(name)
 }
 
-// instantiatingModule returns the name of the module that instantiates a node within
-// the YANG schema tree. This is defined to be the node that 'uses' a grouping, contains
-// an 'augment', or a module that directly defines the node.
-func instantiatingModule(e *yang.Entry) string {
-	// To be defined within the data tree, a node must either be:
-	//  - Directly defined within a module - in which case, there is no "uses" or "augment"
-	//    in the node hierarchy to it.
-	//  - Defined in a grouping which is instantiated by a "uses" somewhere in the data tree -
-	//    in which case the instantiating module is the module containing the "uses" statement.
-	//  - Added to the schema tree through an augment, in which case the insantiating module is
-	//    the module that contains the augment statement.
-	//  Therefore, to find insantiating module for a particular entry, we walk up the node tree
-	//  and determine the first 'instantiating' node type (uses, augment, module). We then return
-	//  the root node that defined that entry, and use this as the defining module.
-	n := e.Node
-	for ; n.ParentNode() != nil && n.Kind() != "augment" && n.Kind() != "grouping"; n = n.ParentNode() {
-	}
-
-	if n.Kind() == "grouping" {
-		for ; e.Parent != nil; e = e.Parent {
-		}
-		return yang.RootNode(e.Node).Name
-	}
-
-	// In a goyang parsed tree, a node cannot be nil since this is required to produce
-	// the entry. All nodes must have a valid root (i.e., base node) which is the module
-	// that they are defined in, and all nodes must have a name, therefore we can safely
-	// just return the root node's name which corresponds to the name of the module within
-	// which the node was defined.
-	return yang.RootNode(n).Name
-}
-
 // enumeratedUnionTypes recursively searches the set of yang.YangTypes supplied to
 // extract the enumerated types that are within a union.
 func enumeratedUnionTypes(types []*yang.YangType) []*yang.YangType {

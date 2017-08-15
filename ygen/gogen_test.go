@@ -115,8 +115,8 @@ func TestGoCodeStructGeneration(t *testing.T) {
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	F1	*int8	` + "`" + `path:"tstruct/f1" module:"exmod"` + "`" + `
-	F2	[]string	` + "`" + `path:"tstruct/f2" module:"exmod"` + "`" + `
+	F1	*int8	` + "`" + `path:"tstruct/f1"` + "`" + `
+	F2	[]string	` + "`" + `path:"tstruct/f2"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -138,8 +138,8 @@ func (s *Tstruct) Validate() error {
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	F1	*int8	` + "`" + `path:"tstruct/f1" module:"exmod"` + "`" + `
-	F2	[]string	` + "`" + `path:"tstruct/f2" module:"exmod"` + "`" + `
+	F1	*int8	` + "`" + `path:"tstruct/f1"` + "`" + `
+	F2	[]string	` + "`" + `path:"tstruct/f2"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -190,7 +190,7 @@ func (s *Tstruct) Validate() error {
 			structs: `
 // InputStruct represents the /module/input-struct YANG schema element.
 type InputStruct struct {
-	U1	InputStruct_U1_Union	` + "`" + `path:"input-struct/u1" module:"exmod"` + "`" + `
+	U1	InputStruct_U1_Union	` + "`" + `path:"input-struct/u1"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -239,7 +239,7 @@ func (*InputStruct_U1_Union_String) Is_InputStruct_U1_Union() {}
 			structs: `
 // InputStruct represents the /module/input-struct YANG schema element.
 type InputStruct struct {
-	U1	Module_InputStruct_U1_Union	` + "`" + `path:"input-struct/u1" module:"exmod"` + "`" + `
+	U1	Module_InputStruct_U1_Union	` + "`" + `path:"input-struct/u1"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -311,7 +311,7 @@ func (*Module_InputStruct_U1_Union_String) Is_Module_InputStruct_U1_Union() {}
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
 type InputStruct struct {
-	C1	*InputStruct_C1	` + "`" + `path:"input-struct/c1" module:"exmod"` + "`" + `
+	C1	*InputStruct_C1	` + "`" + `path:"input-struct/c1"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -333,7 +333,7 @@ func (s *InputStruct) Validate() error {
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
 type InputStruct struct {
-	C1	*InputStruct_C1	` + "`" + `path:"input-struct/c1" module:"exmod"` + "`" + `
+	C1	*InputStruct_C1	` + "`" + `path:"input-struct/c1"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -435,7 +435,7 @@ func (s *InputStruct) Validate() error {
 			structs: `
 // QStruct represents the /root-module/q-struct YANG schema element.
 type QStruct struct {
-	AList	[]*QStruct_AList	` + "`" + `path:"q-struct/a-list" module:"exmod"` + "`" + `
+	AList	[]*QStruct_AList	` + "`" + `path:"q-struct/a-list"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that QStruct implements the yang.GoStruct
@@ -457,7 +457,7 @@ func (s *QStruct) Validate() error {
 			structs: `
 // QStruct represents the /root-module/q-struct YANG schema element.
 type QStruct struct {
-	AList	[]*QStruct_AList	` + "`" + `path:"q-struct/a-list" module:"exmod"` + "`" + `
+	AList	[]*QStruct_AList	` + "`" + `path:"q-struct/a-list"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that QStruct implements the yang.GoStruct
@@ -527,7 +527,7 @@ func (s *QStruct) Validate() error {
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"tstruct/listWithKey" module:"exmod"` + "`" + `
+	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"tstruct/listWithKey"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -576,7 +576,7 @@ func (s *Tstruct) Validate() error {
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"tstruct/listWithKey" module:"exmod"` + "`" + `
+	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"tstruct/listWithKey"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -673,7 +673,7 @@ func (s *Tstruct) Validate() error {
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"tstruct/listWithKey" module:"exmod"` + "`" + `
+	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"tstruct/listWithKey"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -733,7 +733,7 @@ func (s *Tstruct) Validate() error {
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"tstruct/listWithKey" module:"exmod"` + "`" + `
+	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"tstruct/listWithKey"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct

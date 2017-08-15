@@ -22,6 +22,8 @@ import (
 	"strings"
 	"text/template"
 
+	log "github.com/golang/glog"
+
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 )
@@ -731,8 +733,13 @@ func writeGoStruct(targetStruct *yangStruct, goStructElements map[string]*yangSt
 		}
 
 		// Append a tag indicating the module that instantiates this field.
-		if field.Node != nil {
-			tagBuf.WriteString(fmt.Sprintf(` module:"%s"`, instantiatingModule(field)))
+		im, err := field.InstantiatingModule()
+		if err != nil {
+			// This is a non-fatal error, since it can only occur in testing. All YANG modules
+			// must have a specified namespace.
+			log.Infof("field %s has a nil module, error discarded", field.Path())
+		} else {
+			tagBuf.WriteString(fmt.Sprintf(` module:"%s"`, im))
 		}
 
 		fieldDef.Tags = tagBuf.String()
