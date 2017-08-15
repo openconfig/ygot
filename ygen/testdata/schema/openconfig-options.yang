@@ -1,0 +1,69 @@
+module openconfig-options {
+  prefix "oco";
+  namespace "urn:oco";
+
+  identity AFI;
+  identity IPV4_UNICAST { base AFI; }
+
+  grouping bgp-config {
+    leaf peer-address {
+      type union {
+        type string {
+          pattern "[0-9\.]+";
+        }
+        type string {
+          pattern "[0-9A-F:]+";
+        }
+      }
+    }
+
+    leaf hold-time {
+      type uint32;
+    }
+  }
+
+  grouping bgp-state {
+    leaf session-state {
+      type enumeration {
+        enum ACTIVE;
+        enum OPENSENT;
+        enum OPENCONFIRM;
+        enum ESTABLISHED;
+        enum IDLE;
+        enum IDLE_PFXLIMIT;
+      }
+    }
+
+    leaf-list enabled-address-family {
+      type union {
+        type identityref { base AFI; }
+        type uint32;
+      }
+    }
+  }
+
+
+  container bgp {
+    container neighbors {
+      list neighbor {
+        key "peer-address";
+
+        leaf peer-address {
+          type leafref {
+            path "../config/peer-address";
+          }
+        }
+
+        container config {
+          uses bgp-config;
+        }
+
+        container state {
+          config false;
+          uses bgp-config;
+          uses bgp-state;
+        }
+      }
+    }
+  }
+}

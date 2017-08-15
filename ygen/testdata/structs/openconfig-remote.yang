@@ -1,0 +1,16 @@
+module openconfig-remote {
+  prefix "ocr";
+  namespace "urn:ocr";
+
+  grouping a-grouping {
+    container remote-container {
+      container config {
+        leaf a-leaf { type string; }
+      }
+      container state {
+        config false;
+        leaf a-leaf { type string; }
+      }
+    }
+  }
+}

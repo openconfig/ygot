@@ -1,0 +1,19 @@
+{
+   "info": {
+      "config": {
+         "device-id": "bb01.sql88"
+      }
+   },
+   "interfaces": {
+      "interface": {
+         "eth0": {
+            "config": {
+               "description": "Link to bx01.sql88",
+               "name": "eth0",
+               "type": "ethernetCsmacd"
+            },
+            "name": "eth0"
+         }
+      }
+   }
+}

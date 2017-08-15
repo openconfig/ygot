@@ -1,0 +1,16 @@
+module openconfig-simple-target {
+  prefix "t";
+  namespace "urn:t";
+
+  container target {}
+
+  container native {
+    container config {
+      leaf a { type string; }
+    }
+    container state {
+      config false;
+      leaf a { type string; }
+    }
+  }
+}

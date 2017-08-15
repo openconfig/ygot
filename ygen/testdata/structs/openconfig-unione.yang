@@ -1,0 +1,50 @@
+module openconfig-unione {
+  prefix "oc";
+  namespace "urn:oc";
+
+  identity HARDWARE;
+  identity CARD { base HARDWARE; }
+  identity SOFTWARE;
+  identity OS { base SOFTWARE; }
+
+  typedef enum-one {
+    type enumeration {
+      enum ONE;
+    }
+  }
+
+  typedef enumerated-union-type {
+    type union {
+      type enum-one;
+      type string;
+    }
+  }
+
+  container platform {
+    container component {
+      container state {
+        leaf type {
+          type union {
+            type identityref { base "HARDWARE"; }
+            type identityref { base "SOFTWARE"; }
+          }
+        }
+
+        leaf power {
+          type union {
+            type enumeration {
+              enum ON;
+              enum OFF;
+            }
+            type uint32;
+            type instance-identifier;
+          }
+        }
+
+        leaf enumerated {
+          type enumerated-union-type;
+        }
+      }
+    }
+  }
+}

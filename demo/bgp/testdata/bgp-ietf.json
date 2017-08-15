@@ -1,0 +1,48 @@
+{
+   "openconfig-bgp:bgp": {
+      "global": {
+         "config": {
+            "as": 15169,
+            "router-id": "192.0.2.42"
+         }
+      },
+      "neighbors": {
+         "neighbor": [
+            {
+               "config": {
+                  "description": "BT UK",
+                  "neighbor-address": "192.0.2.1",
+                  "peer-as": 2856
+               },
+               "neighbor-address": "192.0.2.1",
+               "timers": {
+                  "config": {
+                     "hold-time": "30",
+                     "keepalive-interval": "10"
+                  }
+               },
+               "transport": {
+                  "config": {
+                     "passive-mode": true
+                  }
+               }
+            },
+            {
+               "config": {
+                  "description": "catalyst2 Services Ltd",
+                  "neighbor-address": "2001:DB8::1",
+                  "peer-as": 29636,
+                  "peer-type": "INTERNAL"
+               },
+               "neighbor-address": "2001:DB8::1",
+               "timers": {
+                  "config": {
+                     "hold-time": "90",
+                     "keepalive-interval": "30"
+                  }
+               }
+            }
+         ]
+      }
+   }
+}

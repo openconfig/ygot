@@ -1,0 +1,13 @@
+{
+   "c": {
+      "acl-set": {
+         "n56": {
+            "config": {
+               "name": "n56",
+               "second-value": "fifty-six"
+            },
+            "name": "n56"
+         }
+      }
+   }
+}

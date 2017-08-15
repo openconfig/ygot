@@ -1,0 +1,39 @@
+module choice-case-example {
+  prefix "c";
+  namespace "urn:c";
+
+  container simple-choice-case {
+    choice foo {
+      case bar {
+        leaf a { type string; }
+      }
+      case baz {
+        leaf b { type string; }
+      }
+    }
+  }
+
+  container choice-case-anonymous-case {
+    choice foo {
+      leaf a { type string; }
+      leaf b { type string; }
+    }
+  }
+
+  container choice-case-with-leafref {
+    leaf referenced { type string; }
+    choice foo {
+      case bar {
+        leaf ptr {
+          type leafref {
+            // This should work as the choice and case are not
+            // in the schema.
+            path "../referenced";
+          }
+        }
+      }
+    }
+  }
+}
+
+

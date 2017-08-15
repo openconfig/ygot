@@ -1,0 +1,13 @@
+{
+   "c": {
+      "acl-set": {
+         "n42": {
+            "config": {
+               "name": "n42",
+               "second-value": "val"
+            },
+            "name": "n42"
+         }
+      }
+   }
+}

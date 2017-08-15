@@ -1,0 +1,40 @@
+module openconfig-camelcase {
+  prefix "occ";
+  namespace "urn:occ";
+
+  import openconfig-codegen-extensions { prefix "ocgenext"; }
+
+  container bgp {
+    ocgenext:camelcase-name "BGP";
+
+    container neighbors {
+      list neighbor {
+        key "peer-ip";
+
+        leaf peer-ip {
+          type leafref {
+            path "../config/peer-ip";
+          }
+          ocgenext:camelcase-name "PeerIP";
+        }
+
+        container config {
+          uses bgp-neigh-config;
+        }
+
+        container state {
+          config false;
+          uses bgp-neigh-config;
+        }
+      }
+    }
+  }
+
+
+  grouping bgp-neigh-config {
+    leaf peer-ip {
+      type string;
+      ocgenext:camelcase-name "PeerIP";
+    }
+  }
+}

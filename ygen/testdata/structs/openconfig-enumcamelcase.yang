@@ -1,0 +1,28 @@
+module openconfig-enumcamelcase {
+  prefix "occ";
+  namespace "urn:occ";
+
+  ocgenext:camelcase-name "OpenConfigCamelCase";
+
+  container foo {
+    leaf bar {
+      type enumeration {
+        enum BAZ;
+      }
+    }
+
+    leaf baz {
+      type identityref {
+        base "BAT";
+      }
+    }
+  }
+
+  identity BAT;
+  identity BAT1 {
+    base BAT;
+  }
+  identity BAT2 {
+    base BAT;
+  }
+}

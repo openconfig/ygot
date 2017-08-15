@@ -1,0 +1,253 @@
+{
+    "Bgp": {
+        "Name": "bgp",
+        "Kind": 1,
+        "Config": 0,
+        "Prefix": {
+            "Name": "oco",
+            "Source": {
+                "Keyword": "prefix",
+                "HasArgument": true,
+                "Argument": "oco"
+            }
+        },
+        "Dir": {
+            "neighbors": {
+                "Name": "neighbors",
+                "Kind": 1,
+                "Config": 0,
+                "Prefix": {
+                    "Name": "oco",
+                    "Source": {
+                        "Keyword": "prefix",
+                        "HasArgument": true,
+                        "Argument": "oco"
+                    }
+                },
+                "Dir": {
+                    "neighbor": {
+                        "Name": "neighbor",
+                        "Kind": 1,
+                        "Config": 0,
+                        "Prefix": {
+                            "Name": "oco",
+                            "Source": {
+                                "Keyword": "prefix",
+                                "HasArgument": true,
+                                "Argument": "oco"
+                            }
+                        },
+                        "Dir": {
+                            "config": {
+                                "Name": "config",
+                                "Kind": 1,
+                                "Config": 0,
+                                "Prefix": {
+                                    "Name": "oco",
+                                    "Source": {
+                                        "Keyword": "prefix",
+                                        "HasArgument": true,
+                                        "Argument": "oco"
+                                    }
+                                },
+                                "Dir": {
+                                    "hold-time": {
+                                        "Name": "hold-time",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "uint32",
+                                            "Kind": 7,
+                                            "Range": [
+                                                {
+                                                    "Min": {
+                                                        "Kind": 0,
+                                                        "Value": 0,
+                                                        "FractionDigits": 0
+                                                    },
+                                                    "Max": {
+                                                        "Kind": 0,
+                                                        "Value": 4294967295,
+                                                        "FractionDigits": 0
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "peer-address": {
+                                        "Name": "peer-address",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "union",
+                                            "Kind": 19,
+                                            "Type": [
+                                                {
+                                                    "Name": "string",
+                                                    "Kind": 18,
+                                                    "Pattern": [
+                                                        "[0-9\\.]+"
+                                                    ]
+                                                },
+                                                {
+                                                    "Name": "string",
+                                                    "Kind": 18,
+                                                    "Pattern": [
+                                                        "[0-9A-F:]+"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            "peer-address": {
+                                "Name": "peer-address",
+                                "Kind": 0,
+                                "Config": 0,
+                                "Type": {
+                                    "Name": "leafref",
+                                    "Kind": 17,
+                                    "Path": "../config/peer-address"
+                                }
+                            },
+                            "state": {
+                                "Name": "state",
+                                "Kind": 1,
+                                "Config": 2,
+                                "Prefix": {
+                                    "Name": "oco",
+                                    "Source": {
+                                        "Keyword": "prefix",
+                                        "HasArgument": true,
+                                        "Argument": "oco"
+                                    }
+                                },
+                                "Dir": {
+                                    "enabled-address-family": {
+                                        "Name": "enabled-address-family",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "union",
+                                            "Kind": 19,
+                                            "Type": [
+                                                {
+                                                    "Name": "identityref",
+                                                    "Kind": 15,
+                                                    "IdentityBase": {
+                                                        "Name": "AFI",
+                                                        "Values": [
+                                                            {
+                                                                "Name": "IPV4_UNICAST"
+                                                            }
+                                                        ]
+                                                    }
+                                                },
+                                                {
+                                                    "Name": "uint32",
+                                                    "Kind": 7,
+                                                    "Range": [
+                                                        {
+                                                            "Min": {
+                                                                "Kind": 0,
+                                                                "Value": 0,
+                                                                "FractionDigits": 0
+                                                            },
+                                                            "Max": {
+                                                                "Kind": 0,
+                                                                "Value": 4294967295,
+                                                                "FractionDigits": 0
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        },
+                                        "ListAttr": {
+                                            "MinElements": null,
+                                            "MaxElements": null,
+                                            "OrderedBy": null
+                                        }
+                                    },
+                                    "hold-time": {
+                                        "Name": "hold-time",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "uint32",
+                                            "Kind": 7,
+                                            "Range": [
+                                                {
+                                                    "Min": {
+                                                        "Kind": 0,
+                                                        "Value": 0,
+                                                        "FractionDigits": 0
+                                                    },
+                                                    "Max": {
+                                                        "Kind": 0,
+                                                        "Value": 4294967295,
+                                                        "FractionDigits": 0
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "peer-address": {
+                                        "Name": "peer-address",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "union",
+                                            "Kind": 19,
+                                            "Type": [
+                                                {
+                                                    "Name": "string",
+                                                    "Kind": 18,
+                                                    "Pattern": [
+                                                        "[0-9\\.]+"
+                                                    ]
+                                                },
+                                                {
+                                                    "Name": "string",
+                                                    "Kind": 18,
+                                                    "Pattern": [
+                                                        "[0-9A-F:]+"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "session-state": {
+                                        "Name": "session-state",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "enumeration",
+                                            "Kind": 14,
+                                            "Enum": {}
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "Key": "peer-address",
+                        "ListAttr": {
+                            "MinElements": null,
+                            "MaxElements": null,
+                            "OrderedBy": null
+                        },
+                        "Annotation": {
+                            "schemapath": "/openconfig-options/bgp/neighbors/neighbor",
+                            "structname": "Bgp_Neighbor"
+                        }
+                    }
+                }
+            }
+        },
+        "Annotation": {
+            "schemapath": "/openconfig-options/bgp",
+            "structname": "Bgp"
+        }
+    }
+}

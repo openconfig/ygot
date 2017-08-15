@@ -1,0 +1,48 @@
+{
+   "openconfig-interfaces:interfaces": {
+      "interface": [
+         {
+            "config": {
+               "description": "Link to rtr01.pop44",
+               "name": "eth0",
+               "type": "ethernetCsmacd"
+            },
+            "name": "eth0"
+         }
+      ]
+   },
+   "openconfig-network-instance:network-instances": {
+      "network-instance": [
+         {
+            "config": {
+               "name": "DEFAULT"
+            },
+            "name": "DEFAULT",
+            "protocols": {
+               "protocol": [
+                  {
+                     "bgp": {
+                        "global": {
+                           "config": {
+                              "as": 15169
+                           }
+                        }
+                     },
+                     "config": {
+                        "identifier": "BGP",
+                        "name": "15169"
+                     },
+                     "identifier": "BGP",
+                     "name": "15169"
+                  }
+               ]
+            }
+         }
+      ]
+   },
+   "openconfig-system-info:info": {
+      "config": {
+         "device-id": "rtr02.pop44"
+      }
+   }
+}

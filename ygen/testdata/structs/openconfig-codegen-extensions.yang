@@ -1,0 +1,8 @@
+module openconfig-codegen-extensions {
+  prefix "ocgenext";
+  namespace "urn:occge";
+
+  extension camelcase-name {
+    argument "name";
+  }
+}

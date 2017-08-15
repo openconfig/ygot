@@ -1,0 +1,35 @@
+module openconfig-simple {
+  prefix "ocs";
+  namespace "urn:ocs";
+  description
+    "A simple test module with the OpenConfig structure.";
+
+  import openconfig-remote { prefix "ocr"; }
+
+  grouping parent-config {
+    leaf one { type string; }
+    leaf three {
+      type enumeration {
+        enum ONE;
+        enum TWO;
+      }
+    }
+    leaf four {
+      type binary;
+    }
+  }
+
+  container parent {
+    container child {
+      container config {
+        uses parent-config;
+      }
+      container state {
+        uses parent-config;
+        leaf two { type string; }
+      }
+    }
+  }
+
+  uses ocr:a-grouping;
+}

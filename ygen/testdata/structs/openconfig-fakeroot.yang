@@ -1,0 +1,56 @@
+module openconfig-fakeroot {
+  prefix "ocf";
+  namespace "urn:ocf";
+  description
+    "Simple module to test fake root behaviours.";
+
+  container interfaces {
+    list interface {
+      key "name";
+      leaf name {
+        type leafref { path "../config/name"; }
+      }
+
+      container config { uses if-cfg; }
+      container state {
+        config false;
+        uses if-cfg;
+      }
+    }
+  }
+
+  container system {
+    container config { uses system-cfg; }
+    container state{
+      config false;
+      uses system-cfg;
+    }
+
+    container ntp-servers {
+      list ntp-server {
+        key "name";
+        leaf name {
+          type leafref { path "../config/name"; }
+        }
+
+        container config { uses ntp-cfg; }
+        container state {
+          config false;
+          uses ntp-cfg;
+        }
+      }
+    }
+  }
+
+  grouping if-cfg {
+    leaf name { type string; }
+  }
+
+  grouping system-cfg {
+    leaf hostname { type string; }
+  }
+
+  grouping ntp-cfg {
+    leaf name { type uint32; }
+  }
+}
