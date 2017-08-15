@@ -23,6 +23,8 @@ import (
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/value"
 
+	log "github.com/golang/glog"
+
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -222,7 +224,6 @@ func sliceToScalarArray(v []interface{}) (*gnmipb.ScalarArray, error) {
 // in a future implementation. We return a slice to keep the API stable.
 func leavesToNotifications(leaves map[*path]interface{}, ts int64, prefix []interface{}) ([]*gnmipb.Notification, error) {
 	n := &gnmipb.Notification{
-
 		Timestamp: ts,
 	}
 
@@ -233,6 +234,13 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, prefix []inte
 
 	for p, v := range leaves {
 		path, err := stripPrefix(p.p, prefix)
+
+		for _, p := range path {
+			if p == nil {
+				log.Infof("leavesToNotifications got nil in path: %v", path)
+			}
+		}
+
 		if err != nil {
 			return nil, err
 		}
@@ -243,16 +251,23 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, prefix []inte
 
 		switch val := reflect.ValueOf(v); val.Kind() {
 		case reflect.Slice:
-			sval, err := leaflistToSlice(val)
-			if err != nil {
-				return nil, err
-			}
+			switch {
+			case reflect.TypeOf(v).Name() == BinaryTypeName:
+				// This is a binary type which is defined as a []byte, so
+				// we encode it as bytes.
+				u.Val = &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{val.Bytes()}}
+			default:
+				sval, err := leaflistToSlice(val)
+				if err != nil {
+					return nil, err
+				}
 
-			arr, err := sliceToScalarArray(sval)
-			if err != nil {
-				return nil, err
+				arr, err := sliceToScalarArray(sval)
+				if err != nil {
+					return nil, err
+				}
+				u.Val = &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{arr}}
 			}
-			u.Val = &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{arr}}
 		default:
 			val, err := value.FromScalar(v)
 			if err != nil {

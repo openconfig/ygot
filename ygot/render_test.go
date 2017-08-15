@@ -156,6 +156,7 @@ type renderExample struct {
 	EnumList      map[EnumTest]*renderExampleEnumList `path:"enum-list"`
 	UnionVal      renderExampleUnion                  `path:"union-val"`
 	UnionLeafList []renderExampleUnion                `path:"union-list"`
+	Binary        Binary                              `path:"binary"`
 	KeylessList   []*renderExampleList                `path:"keyless-list"`
 }
 
@@ -251,6 +252,19 @@ func TestTogNMINotifications(t *testing.T) {
 			Update: []*gnmipb.Update{{
 				Path: &gnmipb.Path{Element: []string{"str"}},
 				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
+			}},
+		}},
+	}, {
+		name:        "simple binary single leaf example",
+		inTimestamp: 42,
+		inStruct: &renderExample{
+			Binary: Binary([]byte{42}),
+		},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"binary"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte{42}}},
 			}},
 		}},
 	}, {
