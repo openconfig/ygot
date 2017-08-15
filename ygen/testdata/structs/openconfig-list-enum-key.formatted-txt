@@ -13,6 +13,8 @@ package ocstructs
 
 import (
 	"fmt"
+
+	"github.com/openconfig/ygot/ygot"
 )
 
 // Binary is a type that is used for fields that have a YANG type of
@@ -130,7 +132,7 @@ type E_OpenconfigListEnumKey_Ekm_K1 int64
 func (E_OpenconfigListEnumKey_Ekm_K1) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigListEnumKey_Ekm_K1.
-func (E_OpenconfigListEnumKey_Ekm_K1) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_OpenconfigListEnumKey_Ekm_K1) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// OpenconfigListEnumKey_Ekm_K1_UNSET corresponds to the value UNSET of OpenconfigListEnumKey_Ekm_K1
@@ -154,7 +156,7 @@ type E_OpenconfigListEnumKey_Eks_K int64
 func (E_OpenconfigListEnumKey_Eks_K) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigListEnumKey_Eks_K.
-func (E_OpenconfigListEnumKey_Eks_K) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_OpenconfigListEnumKey_Eks_K) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// OpenconfigListEnumKey_Eks_K_UNSET corresponds to the value UNSET of OpenconfigListEnumKey_Eks_K
@@ -178,7 +180,7 @@ type E_OpenconfigListEnumKey_FooIdentity int64
 func (E_OpenconfigListEnumKey_FooIdentity) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigListEnumKey_FooIdentity.
-func (E_OpenconfigListEnumKey_FooIdentity) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_OpenconfigListEnumKey_FooIdentity) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// OpenconfigListEnumKey_FooIdentity_UNSET corresponds to the value UNSET of OpenconfigListEnumKey_FooIdentity
@@ -191,20 +193,20 @@ const (
 
 // ΛEnum is a map, keyed by the name of the type defined for each enum in the
 // generated Go code, which provides a mapping between the constant int64 value
-// of each value of the numeration, and the string that is used to represent it
+// of each value of the enumeration, and the string that is used to represent it
 // in the YANG schema. The map is named ΛEnum in order to avoid clash with any
 // valid YANG identifier.
-var ΛEnum = map[string]map[int64]string{
+var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	"E_OpenconfigListEnumKey_Ekm_K1": {
-		1: "A",
-		2: "B",
+		1: {Name: "A"},
+		2: {Name: "B"},
 	},
 	"E_OpenconfigListEnumKey_Eks_K": {
-		1: "A",
-		2: "B",
+		1: {Name: "A"},
+		2: {Name: "B"},
 	},
 	"E_OpenconfigListEnumKey_FooIdentity": {
-		1: "BAR",
-		2: "BAZ",
+		1: {Name: "BAR", DefiningModule: "openconfig-list-enum-key"},
+		2: {Name: "BAZ", DefiningModule: "openconfig-list-enum-key"},
 	},
 }

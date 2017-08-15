@@ -5,7 +5,7 @@
             "config": {
                "description": "Link to rtr01.pop44",
                "name": "eth0",
-               "type": "ethernetCsmacd"
+               "type": "iana-if-type:ethernetCsmacd"
             },
             "name": "eth0"
          }
@@ -29,10 +29,10 @@
                         }
                      },
                      "config": {
-                        "identifier": "BGP",
+                        "identifier": "openconfig-policy-types:BGP",
                         "name": "15169"
                      },
-                     "identifier": "BGP",
+                     "identifier": "openconfig-policy-types:BGP",
                      "name": "15169"
                   }
                ]

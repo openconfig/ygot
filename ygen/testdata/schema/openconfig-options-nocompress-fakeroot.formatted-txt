@@ -14,9 +14,9 @@ package ocstructs
 import (
 	"fmt"
 
+	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ytypes"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // Binary is a type that is used for fields that have a YANG type of
@@ -216,7 +216,7 @@ type E_OpenconfigOptions_AFI int64
 func (E_OpenconfigOptions_AFI) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigOptions_AFI.
-func (E_OpenconfigOptions_AFI) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_OpenconfigOptions_AFI) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// OpenconfigOptions_AFI_UNSET corresponds to the value UNSET of OpenconfigOptions_AFI
@@ -238,7 +238,7 @@ type E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState int64
 func (E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState.
-func (E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState_UNSET corresponds to the value UNSET of OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState
@@ -259,20 +259,20 @@ const (
 
 // ΛEnum is a map, keyed by the name of the type defined for each enum in the
 // generated Go code, which provides a mapping between the constant int64 value
-// of each value of the numeration, and the string that is used to represent it
+// of each value of the enumeration, and the string that is used to represent it
 // in the YANG schema. The map is named ΛEnum in order to avoid clash with any
 // valid YANG identifier.
-var ΛEnum = map[string]map[int64]string{
+var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	"E_OpenconfigOptions_AFI": {
-		1: "IPV4_UNICAST",
+		1: {Name: "IPV4_UNICAST", DefiningModule: "openconfig-options"},
 	},
 	"E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState": {
-		1: "ACTIVE",
-		2: "OPENSENT",
-		3: "OPENCONFIRM",
-		4: "ESTABLISHED",
-		5: "IDLE",
-		6: "IDLE_PFXLIMIT",
+		1: {Name: "ACTIVE"},
+		2: {Name: "OPENSENT"},
+		3: {Name: "OPENCONFIRM"},
+		4: {Name: "ESTABLISHED"},
+		5: {Name: "IDLE"},
+		6: {Name: "IDLE_PFXLIMIT"},
 	},
 }
 

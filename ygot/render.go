@@ -99,7 +99,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parentPath []in
 				// mapPaths can only be one element long for a YANG list.
 				keyval := k.Interface()
 				if _, isEnum := keyval.(GoEnum); isEnum {
-					name, _, err := enumFieldToString(k)
+					name, _, err := enumFieldToString(k, false)
 					if err != nil {
 						errs.Add(fmt.Errorf("invalid enumerated key for %v: %v", mapPaths[0], err))
 						continue
@@ -141,7 +141,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parentPath []in
 				leaves[&path{p}] = fval.Interface()
 			}
 		case reflect.Int64:
-			name, set, err := enumFieldToString(fval)
+			name, set, err := enumFieldToString(fval, false)
 			if err != nil {
 				errs.Add(err)
 				continue
@@ -257,7 +257,7 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, prefix []inte
 				// we encode it as bytes.
 				u.Val = &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{val.Bytes()}}
 			default:
-				sval, err := leaflistToSlice(val)
+				sval, err := leaflistToSlice(val, false)
 				if err != nil {
 					return nil, err
 				}
@@ -284,8 +284,9 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, prefix []inte
 
 // leaflistToSlice takes a reflect.Value that represents a leaf list in the YANG schema
 // (GoStruct) and outputs a slice of interface{} that corresponds to its contents that
-// should be used within a Notification. Returns an error if one occurs.
-func leaflistToSlice(val reflect.Value) ([]interface{}, error) {
+// should be used within a Notification. If appendModuleName is set to true, then
+// identity names are prepended with the name of the module that defines them.
+func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, error) {
 	sval := []interface{}{}
 	for i := 0; i < val.Len(); i++ {
 		e := val.Index(i)
@@ -317,7 +318,7 @@ func leaflistToSlice(val reflect.Value) ([]interface{}, error) {
 			sval = append(sval, e.Int())
 		case reflect.Int64:
 			if _, ok := e.Interface().(GoEnum); ok {
-				name, _, err := enumFieldToString(e)
+				name, _, err := enumFieldToString(e, appendModuleName)
 				if err != nil {
 					return nil, err
 				}
@@ -341,13 +342,13 @@ func leaflistToSlice(val reflect.Value) ([]interface{}, error) {
 					return nil, err
 				}
 
-				sval, err = appendTypedValue(sval, reflect.ValueOf(uval))
+				sval, err = appendTypedValue(sval, reflect.ValueOf(uval), appendModuleName)
 				if err != nil {
 					return nil, err
 				}
 			default:
 				var err error
-				sval, err = appendTypedValue(sval, e)
+				sval, err = appendTypedValue(sval, e, appendModuleName)
 				if err != nil {
 					return nil, err
 				}
@@ -368,8 +369,10 @@ func leaflistToSlice(val reflect.Value) ([]interface{}, error) {
 }
 
 // appendTypedValue takes an input reflect.Value and typecasts it to
-// be appended the supplied slice of empty interfaces.
-func appendTypedValue(l []interface{}, v reflect.Value) ([]interface{}, error) {
+// be appended the supplied slice of empty interfaces. If appendModuleName
+// is set to true, the module name is prepended to the string value of
+// any identity encountered when appending.
+func appendTypedValue(l []interface{}, v reflect.Value, appendModuleName bool) ([]interface{}, error) {
 	ival := v.Interface()
 	switch reflect.TypeOf(ival).Kind() {
 	case reflect.String:
@@ -384,7 +387,7 @@ func appendTypedValue(l []interface{}, v reflect.Value) ([]interface{}, error) {
 		return append(l, ival.(int)), nil
 	case reflect.Int64:
 		if _, ok := ival.(GoEnum); ok {
-			name, _, err := enumFieldToString(v)
+			name, _, err := enumFieldToString(v, appendModuleName)
 			if err != nil {
 				return nil, err
 			}
@@ -592,11 +595,13 @@ func writeIETFScalarJSON(i interface{}) interface{} {
 // keyValue takes an input reflect.Value and returns its representation when used
 // in a key for a YANG list. If the value is an enumerated type then its string
 // representation is returned, otherwise the value is returned as an interface{}.
-func keyValue(v reflect.Value) (interface{}, error) {
+// If appendModuleName is set to true keys that are identity values in the YANG
+// schema are prepended with the module that defines them.
+func keyValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
 	if _, isEnum := v.Interface().(GoEnum); !isEnum {
 		return v.Interface(), nil
 	}
-	name, _, err := enumFieldToString(v)
+	name, _, err := enumFieldToString(v, appendModuleName)
 	if err != nil {
 		return nil, err
 	}
@@ -632,7 +637,7 @@ func constructMapJSON(field reflect.Value, parentMod string, args jsonOutputConf
 				// Handle the case of a multikey list.
 				var kp []string
 				for j := 0; j < k.NumField(); j++ {
-					keyval, err := keyValue(k.Field(j))
+					keyval, err := keyValue(k.Field(j), false)
 					if err != nil {
 						errs.Add(fmt.Errorf("invalid enumerated key: %v", err))
 						continue
@@ -641,7 +646,7 @@ func constructMapJSON(field reflect.Value, parentMod string, args jsonOutputConf
 				}
 				kn = strings.Join(kp, " ")
 			case reflect.Int64:
-				keyval, err := keyValue(k)
+				keyval, err := keyValue(k, false)
 				if err != nil {
 					errs.Add(fmt.Errorf("invalid enumerated key: %v", err))
 					continue
@@ -758,7 +763,11 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 	case reflect.Int64:
 		// Enumerated values are represented as int64 in the generated Go structures.
 		// For output, we map the enumerated value to the string name of the enum.
-		v, set, err := enumFieldToString(field)
+		appmod := false
+		if args.rfc7951Config != nil {
+			appmod = args.rfc7951Config.AppendModuleName
+		}
+		v, set, err := enumFieldToString(field, appmod)
 		if err != nil {
 			return nil, err
 		}
@@ -802,7 +811,11 @@ func constructJSONSlice(field reflect.Value, args jsonOutputConfig) (interface{}
 
 	// TODO(robjs): Check for the case whereby we have an unkeyed list
 	// and the child is a struct.
-	sl, err := leaflistToSlice(field)
+	appmod := false
+	if args.rfc7951Config != nil {
+		appmod = args.rfc7951Config.AppendModuleName
+	}
+	sl, err := leaflistToSlice(field, appmod)
 	if err != nil {
 		return nil, fmt.Errorf("could not map slice (leaf-list or unkeyed list): %v", err)
 	}

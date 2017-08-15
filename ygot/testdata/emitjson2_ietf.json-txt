@@ -1,0 +1,27 @@
+{
+  "c": {
+    "acl-set": [
+      {
+        "config": {
+          "name": "n42",
+          "second-value": "foo"
+        },
+        "name": "n42"
+      }
+    ],
+    "other-set": [
+      {
+        "config": {
+          "name": "valone-mod:VAL_ONE"
+        },
+        "name": "valone-mod:VAL_ONE"
+      },
+      {
+        "config": {
+          "name": "valtwo-mod:VAL_TWO"
+        },
+        "name": "valtwo-mod:VAL_TWO"
+      }
+    ]
+  }
+}

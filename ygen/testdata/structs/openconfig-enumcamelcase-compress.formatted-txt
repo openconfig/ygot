@@ -13,6 +13,8 @@ package ocstructs
 
 import (
 	"fmt"
+
+	"github.com/openconfig/ygot/ygot"
 )
 
 // Binary is a type that is used for fields that have a YANG type of
@@ -45,7 +47,7 @@ type E_OpenConfigCamelCase_BAT int64
 func (E_OpenConfigCamelCase_BAT) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenConfigCamelCase_BAT.
-func (E_OpenConfigCamelCase_BAT) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_OpenConfigCamelCase_BAT) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// OpenConfigCamelCase_BAT_UNSET corresponds to the value UNSET of OpenConfigCamelCase_BAT
@@ -69,7 +71,7 @@ type E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar int64
 func (E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar.
-func (E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar_UNSET corresponds to the value UNSET of OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar
@@ -80,15 +82,15 @@ const (
 
 // ΛEnum is a map, keyed by the name of the type defined for each enum in the
 // generated Go code, which provides a mapping between the constant int64 value
-// of each value of the numeration, and the string that is used to represent it
+// of each value of the enumeration, and the string that is used to represent it
 // in the YANG schema. The map is named ΛEnum in order to avoid clash with any
 // valid YANG identifier.
-var ΛEnum = map[string]map[int64]string{
+var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	"E_OpenConfigCamelCase_BAT": {
-		1: "BAT1",
-		2: "BAT2",
+		1: {Name: "BAT1", DefiningModule: "openconfig-enumcamelcase"},
+		2: {Name: "BAT2", DefiningModule: "openconfig-enumcamelcase"},
 	},
 	"E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar": {
-		1: "BAZ",
+		1: {Name: "BAZ"},
 	},
 }

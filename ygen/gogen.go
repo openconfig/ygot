@@ -23,6 +23,7 @@ import (
 	"text/template"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 )
 
 const (
@@ -145,10 +146,11 @@ type goEnumCodeSnippet struct {
 	// target YANG node.
 	constDef string
 	// valToString is a map of the int64 value used in the constant definition for
-	// the enumeration to the string value of the enumeration specified in the
-	// YANG schema definition. It allows mapping of the integer back to the
-	// original value.
-	valToString map[int64]string
+	// the enumeration to its definition. The definition consists of the string
+	// name of the enumerated value in the YANG schema. In the case of identities
+	// it also stores the module within which the identity was defined. This map
+	// allows mapping of the enumerated value back to its original name.
+	valToString map[int64]ygot.EnumDefinition
 	// name is the name of the enumerated value, used for mapping purposes.
 	name string
 }
@@ -240,11 +242,12 @@ package {{ .PackageName }}
 
 import (
 	"fmt"
-{{- if .GenerateSchema }}
 
+	"github.com/openconfig/ygot/ygot"
+
+{{- if .GenerateSchema }}
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ytypes"
-	"github.com/openconfig/ygot/ygot"
 {{- end }}
 )
 
@@ -362,7 +365,7 @@ type E_{{ .EnumerationPrefix }} int64
 func (E_{{ .EnumerationPrefix }}) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  {{ .EnumerationPrefix }}.
-func (E_{{ .EnumerationPrefix }}) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_{{ .EnumerationPrefix }}) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 {{ $enumName := .EnumerationPrefix -}}
 const (
@@ -442,14 +445,18 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 	goEnumMapTemplate = `
 // ΛEnum is a map, keyed by the name of the type defined for each enum in the
 // generated Go code, which provides a mapping between the constant int64 value
-// of each value of the numeration, and the string that is used to represent it
+// of each value of the enumeration, and the string that is used to represent it
 // in the YANG schema. The map is named ΛEnum in order to avoid clash with any
 // valid YANG identifier.
-var ΛEnum = map[string]map[int64]string{
+var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	{{- range $enumName, $enumValues := . }}
 	"E_{{ $enumName }}": {
-		{{- range $value, $valueName := $enumValues }}
-		{{ $value }}: "{{ $valueName }}",
+		{{- range $value, $valDef := $enumValues }}
+		{{ $value }}: {Name: "{{ $valDef.Name }}"
+			{{- if ne $valDef.DefiningModule "" -}}
+				, DefiningModule: "{{ $valDef.DefiningModule }}"
+			{{- end -}}
+		},
 		{{- end }}
 	},
 	{{- end }}
@@ -922,8 +929,10 @@ func writeGoEnum(inputEnum *yangGoEnum) (goEnumCodeSnippet, error) {
 	// origValues stores the original set of value names, these are not maintained to be
 	// Go-safe, and are rather used to map back to the original schema values if required.
 	// 0 is not populated within this map, such that the values can be used to check whether
-	// there was a valid entry in the original schema.
-	origValues := map[int64]string{}
+	// there was a valid entry in the original schema. The value is stored as a ygot
+	// EnumDefinition, which stores the name, and in the case of identity values, the
+	// module within which the identity was defined.
+	origValues := map[int64]ygot.EnumDefinition{}
 
 	switch {
 	case inputEnum.entry.Type.IdentityBase != nil:
@@ -932,14 +941,21 @@ func writeGoEnum(inputEnum *yangGoEnum) (goEnumCodeSnippet, error) {
 		// in an identity, then we go through and put the values in alphabetical order in
 		// order to avoid reordering during code generation of the same entity.
 		valNames := []string{}
+		valLookup := map[string]*yang.Identity{}
 		for _, v := range inputEnum.entry.Type.IdentityBase.Values {
 			valNames = append(valNames, v.Name)
+			valLookup[v.Name] = v
 		}
 		sort.Strings(valNames)
 
 		for i, v := range valNames {
 			values[int64(i)+1] = safeGoEnumeratedValueName(v)
-			origValues[int64(i)+1] = v
+			origValues[int64(i)+1] = ygot.EnumDefinition{
+				Name: v,
+				// Append the defining module by looking at the root node of the
+				// identity - i.e., the module that defined it.
+				DefiningModule: yang.RootNode(valLookup[v]).Name,
+			}
 		}
 	default:
 		// The remaining enumerated types are all represented as an Enum type within the
@@ -947,7 +963,7 @@ func writeGoEnum(inputEnum *yangGoEnum) (goEnumCodeSnippet, error) {
 		// and with a value of the name of the enumerated value - retrieved via ValueMap().
 		for i, value := range inputEnum.entry.Type.Enum.ValueMap() {
 			values[i+1] = safeGoEnumeratedValueName(value)
-			origValues[i+1] = value
+			origValues[i+1] = ygot.EnumDefinition{Name: value}
 		}
 	}
 
@@ -1053,7 +1069,7 @@ func findMapPaths(parent *yangStruct, field *yang.Entry, compressOCPaths bool) (
 // schema, keyed by their generating Go name. The values of the map for each key is
 // a map of a int64 value of the enum, and its string name as represented in the
 // original YANG schema,
-func generateEnumMap(enumValues map[string]map[int64]string) (string, error) {
+func generateEnumMap(enumValues map[string]map[int64]ygot.EnumDefinition) (string, error) {
 	if len(enumValues) == 0 {
 		return "", nil
 	}

@@ -25,7 +25,9 @@ import (
 	"strings"
 
 	log "github.com/golang/glog"
+
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 )
 
 // YANGCodeGenerator is a structure that is used to pass arguments as to
@@ -320,7 +322,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// keyed by value number to the string that is used in the YANG schema
 	// for the enumeration. The value number is an int64 which is the value
 	// of the constant that represents the enumeration type.
-	enumValueMap := map[string]map[int64]string{}
+	enumValueMap := map[string]map[int64]ygot.EnumDefinition{}
 	for _, enumName := range orderedEnumNames {
 		enumOut, err := writeGoEnum(enumNameMap[enumName])
 		if err != nil {
@@ -604,7 +606,6 @@ func (cg *YANGCodeGenerator) createFakeRoot(structs map[string]*yang.Entry) erro
 // and the corresponding path within the schema. Both of these elements cannot be reconstructed from
 // the deserialised yang.Entry contents.
 func (cg *YANGCodeGenerator) serialiseStructDefinitions(structs map[string]*yangStruct) ([]byte, error) {
-
 	entries := map[string]*yang.Entry{}
 	for _, e := range structs {
 		entries[e.name] = e.entry

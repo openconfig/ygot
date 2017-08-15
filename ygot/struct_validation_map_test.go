@@ -15,6 +15,7 @@
 package ygot
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
@@ -43,9 +44,17 @@ func generateUnifiedDiff(want, got string) (string, error) {
 	return difflib.GetUnifiedDiffString(diffl)
 }
 
+// errToString returns an error as a string.
+func errToString(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
+
 // mapStructTestOne is the base struct used for the simple-schema test.
 type mapStructTestOne struct {
-	Child *mapStructTestOneChild `path:"child"`
+	Child *mapStructTestOneChild `path:"child" module:"test-one"`
 }
 
 // IsYANGGoStruct makes sure that we implement the GoStruct interface.
@@ -58,10 +67,11 @@ func (*mapStructTestOne) Validate() error {
 // mapStructTestOne_Child is a child structure of the mapStructTestOne test
 // case.
 type mapStructTestOneChild struct {
-	FieldOne   *string  `path:"config/field-one"`
-	FieldTwo   *uint32  `path:"config/field-two"`
-	FieldThree Binary   `path:"config/field-three"`
-	FieldFour  []Binary `path:"config/field-four"`
+	FieldOne   *string  `path:"config/field-one" module:"test-one"`
+	FieldTwo   *uint32  `path:"config/field-two" module:"test-one"`
+	FieldThree Binary   `path:"config/field-three" module:"test-one"`
+	FieldFour  []Binary `path:"config/field-four" module:"test-one"`
+	FieldFive  *uint64  `path:"config/field-five" module:"test-five"`
 }
 
 // IsYANGGoStruct makes sure that we implement the GoStruct interface.
@@ -135,16 +145,47 @@ type ECTest int64
 // the GoEnum interface.
 func (ECTest) IsYANGGoEnum() {}
 
+const (
+	ECTestUNSET  = 0
+	ECTestVALONE = 1
+	ECTestVALTWO = 2
+)
+
 // ΛMap returns the enumeration dictionary associated with the mapStructTestFiveC
 // struct.
-func (ECTest) ΛMap() map[string]map[int64]string {
-	return map[string]map[int64]string{
+func (ECTest) ΛMap() map[string]map[int64]EnumDefinition {
+	return map[string]map[int64]EnumDefinition{
 		"ECTest": {
-			1: "VAL_ONE",
-			2: "VAL_TWO",
+			1: EnumDefinition{Name: "VAL_ONE", DefiningModule: "valone-mod"},
+			2: EnumDefinition{Name: "VAL_TWO", DefiningModule: "valtwo-mod"},
 		},
 	}
 }
+
+// mapStructInvalid is a valid GoStruct whose Validate() method always returns
+// an error.
+type mapStructInvalid struct {
+	Name *string `path:"name"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface.
+func (*mapStructInvalid) IsYANGGoStruct() {}
+
+// Validate implements the ValidatedGoStruct interface.
+func (*mapStructInvalid) Validate() error {
+	return fmt.Errorf("invalid")
+}
+
+// mapStructNoPaths is a valid GoStruct who does not implement path tags.
+type mapStructNoPaths struct {
+	Name *string
+}
+
+// IsYANGGoStruct implements the GoStruct interface.
+func (*mapStructNoPaths) IsYANGGoStruct() {}
+
+// Validate implements the ValidatedGoStruct interface.
+func (*mapStructNoPaths) Validate() error { return nil }
 
 // TestEmitJSON validates that the EmitJSON function outputs the expected JSON
 // for a set of input structs and schema definitions.
@@ -152,7 +193,9 @@ func TestEmitJSON(t *testing.T) {
 	tests := []struct {
 		name         string
 		inStruct     ValidatedGoStruct
+		inConfig     *EmitJSONConfig
 		wantJSONPath string
+		wantErr      string
 	}{{
 		name: "simple schema JSON output",
 		inStruct: &mapStructTestOne{
@@ -172,13 +215,69 @@ func TestEmitJSON(t *testing.T) {
 			},
 		},
 		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_2.json-txt"),
+	}, {
+		name: "simple schema IETF JSON output",
+		inStruct: &mapStructTestOne{
+			Child: &mapStructTestOneChild{
+				FieldOne:  String("bar"),
+				FieldTwo:  Uint32(84),
+				FieldFive: Uint64(42),
+			},
+		},
+		inConfig: &EmitJSONConfig{
+			Format: RFC7951,
+			RFC7951Config: &RFC7951JSONConfig{
+				AppendModuleName: true,
+			},
+			Indent: "  ",
+		},
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson1_ietf.json-txt"),
+	}, {
+		name: "schema with list and enum IETF JSON",
+		inStruct: &mapStructTestFour{
+			C: &mapStructTestFourC{
+				ACLSet: map[string]*mapStructTestFourCACLSet{
+					"n42": {Name: String("n42"), SecondValue: String("foo")},
+				},
+				OtherSet: map[ECTest]*mapStructTestFourCOtherSet{
+					ECTestVALONE: {Name: ECTestVALONE},
+					ECTestVALTWO: {Name: ECTestVALTWO},
+				},
+			},
+		},
+		inConfig: &EmitJSONConfig{
+			Format: RFC7951,
+			RFC7951Config: &RFC7951JSONConfig{
+				AppendModuleName: true,
+			},
+			Indent: "  ",
+		},
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson2_ietf.json-txt"),
+	}, {
+		name:     "invalid struct contents",
+		inStruct: &mapStructInvalid{Name: String("aardvark")},
+		wantErr:  "validation err: invalid",
+	}, {
+		name:     "invalid internal JSON",
+		inStruct: &mapStructNoPaths{Name: String("honey badger")},
+		wantErr:  "ConstructInternalJSON error: Name: field did not specify a path",
+	}, {
+		name:     "invalid RFC7951 JSON",
+		inStruct: &mapStructNoPaths{Name: String("ladybird")},
+		inConfig: &EmitJSONConfig{
+			Format: RFC7951,
+		},
+		wantErr: "ConstructIETFJSON error: Name: field did not specify a path",
 	}}
-	// TODO(robjs): Add test cases for RFC7951 JSON output here.
 
 	for _, tt := range tests {
-		got, err := EmitJSON(tt.inStruct, nil)
-		if err != nil {
-			t.Errorf("%s: EmitJSON(%v, nil): got unexpected error: %v", tt.name, tt.inStruct, err)
+		got, err := EmitJSON(tt.inStruct, tt.inConfig)
+		if errToString(err) != tt.wantErr {
+			t.Errorf("%s: EmitJSON(%v, nil): did not get expected error, got: %v, want: %v", tt.name, tt.inStruct, err, tt.wantErr)
+			continue
+		}
+
+		if tt.wantErr != "" {
 			continue
 		}
 
@@ -305,77 +404,6 @@ func TestInitContainer(t *testing.T) {
 
 		if diff := pretty.Compare(tt.inStruct, tt.want); diff != "" {
 			t.Errorf("%s: InitContainer(...): did not get expected output, diff(-got,+want):\n%s", tt.name, diff)
-		}
-	}
-}
-
-type validKeyStruct struct {
-	KeyOne string `path:"k1"`
-	KeyTwo int64  `path:"k2"`
-}
-
-type emptyKeyStruct struct{}
-
-type invalidKeyStruct struct {
-	KeyOne, KeyTwo string
-}
-
-type longKeyStruct struct {
-	KeyOne string `path:"foobar|foo"`
-}
-
-type multipartKeyStruct struct {
-	KeyOne string `path:"config/foo"`
-}
-
-func TestKeyStructMap(t *testing.T) {
-	tests := []struct {
-		name    string
-		in      interface{}
-		want    map[string]interface{}
-		wantErr bool
-	}{{
-		name: "simple key struct test",
-		in: validKeyStruct{
-			KeyOne: "one",
-			KeyTwo: 42,
-		},
-		want: map[string]interface{}{
-			"k1": "one",
-			"k2": 42,
-		},
-	}, {
-		name:    "empty key struct",
-		in:      emptyKeyStruct{},
-		wantErr: true,
-	}, {
-		name: "invalid key struct",
-		in: invalidKeyStruct{
-			KeyOne: "hello",
-			KeyTwo: "world",
-		},
-		wantErr: true,
-	}, {
-		name:    "multi-path invalid key struct",
-		in:      longKeyStruct{"foo"},
-		wantErr: true,
-	}, {
-		name:    "multi-part single path invalid key",
-		in:      multipartKeyStruct{"foo"},
-		wantErr: true,
-	}}
-
-	for _, tt := range tests {
-		got, err := keyStructMap(tt.in)
-		if err != nil {
-			if !tt.wantErr {
-				t.Errorf("%s: keyStructMap(%v): got unexpected error: %v", tt.name, tt.in, err)
-			}
-			continue
-		}
-
-		if diff := pretty.Compare(got, tt.want); diff != "" {
-			t.Errorf("%s: keyStructMap(%v): did not get expected output, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 		}
 	}
 }

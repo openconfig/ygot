@@ -13,6 +13,8 @@ package ocstructs
 
 import (
 	"fmt"
+
+	"github.com/openconfig/ygot/ygot"
 )
 
 // Binary is a type that is used for fields that have a YANG type of

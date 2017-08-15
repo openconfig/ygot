@@ -1,0 +1,11 @@
+{
+  "test-one:child": {
+    "config": {
+      "field-one": "bar",
+      "field-two": 84
+    },
+    "test-five:config": {
+      "field-five": "42"
+    }
+  }
+}

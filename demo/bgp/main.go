@@ -45,7 +45,7 @@ func main() {
 
 // CreateDemoBGPInstance creates a demo OpenConfig BGP instance using the legacy
 // BGP path at /bgp. It is specifically created as a separate function in order
-// to be used as a regression test in google3 for the chain of Go struct
+// to be used as a regression test for the chain of Go struct
 // generation from the OpenConfig YANG schema. Returns the GoStruct that is constructed
 // rather than the JSON so that different rendering methods can be used.
 func CreateDemoBGPInstance() (*oc.Bgp, error) {

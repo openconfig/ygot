@@ -49,5 +49,20 @@ type GoEnum interface {
 	// map of the enumeration types to values that are associated with a
 	// generated code file. The ygen library generates a static map of
 	// enumeration values that this method returns.
-	ΛMap() map[string]map[int64]string
+	ΛMap() map[string]map[int64]EnumDefinition
+}
+
+// EnumDefinition is used to store the details of an enumerated value. All YANG
+// enumerated values (enumeration, identityref) has a Name which represents the
+// string name used for the enumerated value in the YANG module (which may not
+// be Go safe). Enumerated types that are derived from identity values also
+// have an associated DefiningModule, such that they can be serialised to the
+// correct RFC7951 JSON format (see Section 6.8 of RFC7951),
+// https://tools.ietf.org/html/rfc7951#section-6.8
+type EnumDefinition struct {
+	// Name is the string name of the enumerated value.
+	Name string
+	// DefiningModule specifies the module within which the enumeration was
+	// defined. Only populated for identity values.
+	DefiningModule string
 }

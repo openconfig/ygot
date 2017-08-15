@@ -63,58 +63,13 @@ func structTagToLibPaths(f reflect.StructField, parentPath []interface{}) ([][]i
 	return mapPaths, nil
 }
 
-// keyStructMap takes an input struct that is used as a key of a map within
-// an output YANG schema, and returns a map[string]interface{}, where the string
-// is the YANG name of the field (extracted from the path), and the value is
-// the value of the field.
-func keyStructMap(s interface{}) (map[string]interface{}, error) {
-	sval := reflect.ValueOf(s)
-	stype := sval.Type()
-	if stype.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("did not get a struct as a map key to resolve, got: %v", reflect.TypeOf(s).Kind())
-	}
-
-	if sval.NumField() == 0 {
-		return nil, fmt.Errorf("got a struct with zero fields as a map key: %v", sval)
-	}
-
-	keys := map[string]interface{}{}
-
-	for i := 0; i < sval.NumField(); i++ {
-		f := sval.Field(i)
-		ft := stype.Field(i)
-		path, err := structTagToLibPaths(ft, nil)
-		if err != nil {
-			return nil, fmt.Errorf("did not get a valid tag for field %s, got: %v", ft.Name, err)
-		}
-		if len(path) != 1 {
-			return nil, fmt.Errorf("got an invalid set of paths for struct key field %v, got: %v", ft.Name, path)
-		}
-
-		if len(path[0]) != 1 {
-			return nil, fmt.Errorf("got an invalid path length for the path for struct key field %s, must be a direct child, got: %v", ft.Name, path[0])
-		}
-
-		val := f.Interface()
-		// Check that the key value wasn't actually an enum
-		if _, isEnum := val.(GoEnum); isEnum {
-			name, _, err := enumFieldToString(f)
-			if err != nil {
-				return nil, fmt.Errorf("got an invalid enumeration within a map key as field %s, got: %v", ft.Name, err)
-			}
-			val = interface{}(name)
-		}
-		keys[path[0][0].(string)] = val
-	}
-
-	return keys, nil
-}
-
 // enumFieldToString takes an input reflect.Value, which is type asserted to
 // be a GoEnum, and resolves the string name corresponding to the value within
 // the YANG schema. Returns the string name of the enum, a bool indicating
-// whether the value was set, or an error.
-func enumFieldToString(field reflect.Value) (string, bool, error) {
+// whether the value was set, or an error. The appendModuleName specifies whether
+// the defining module name should be appended to the enumerated value's name in
+// the form "module:name", as per the encoding rules in RFC7951.
+func enumFieldToString(field reflect.Value, appendModuleName bool) (string, bool, error) {
 	// Generated structs can only have fields that are not pointers when they are enumerated
 	// values, since these values have an UNSET value that allows us to determine when they
 	// are not explicitly set by the user.
@@ -143,12 +98,16 @@ func enumFieldToString(field reflect.Value) (string, bool, error) {
 		return "", false, fmt.Errorf("cannot map enumerated value as type %s was unknown", field.Type().Name())
 	}
 
-	name, ok := lookup[e.Int()]
+	def, ok := lookup[e.Int()]
 	if !ok {
 		return "", false, fmt.Errorf("cannot map enumerated value as type %s has unknown value %d", field.Type().Name(), enumVal)
 	}
 
-	return name, true, nil
+	n := def.Name
+	if appendModuleName && def.DefiningModule != "" {
+		n = fmt.Sprintf("%s:%s", def.DefiningModule, def.Name)
+	}
+	return n, true, nil
 }
 
 // BuildEmptyTree initialises the YANG tree starting at the root GoStruct

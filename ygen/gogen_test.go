@@ -21,6 +21,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 	"github.com/pmezard/go-difflib/difflib"
 )
 
@@ -854,7 +855,6 @@ func (s *Tstruct) Validate() error {
 // TestGoCodeEnumGeneration validates the enumerated type code generation from a YANG
 // module.
 func TestGoCodeEnumGeneration(t *testing.T) {
-
 	// In order to create a mock enum within goyang, we must construct it using the
 	// relevant methods, since the field of the EnumType struct (toString) that we
 	// need to set is not publicly exported.
@@ -884,9 +884,9 @@ func TestGoCodeEnumGeneration(t *testing.T) {
 				Type: &yang.YangType{
 					IdentityBase: &yang.Identity{
 						Values: []*yang.Identity{
-							{Name: "VALUE_A"},
-							{Name: "VALUE_C"},
-							{Name: "VALUE_B"},
+							{Name: "VALUE_A", Parent: &yang.Module{Name: "mod"}},
+							{Name: "VALUE_C", Parent: &yang.Module{Name: "mod2"}},
+							{Name: "VALUE_B", Parent: &yang.Module{Name: "mod3"}},
 						},
 					},
 				},
@@ -907,7 +907,7 @@ type E_EnumeratedValue int64
 func (E_EnumeratedValue) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  EnumeratedValue.
-func (E_EnumeratedValue) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_EnumeratedValue) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// EnumeratedValue_UNSET corresponds to the value UNSET of EnumeratedValue
@@ -921,10 +921,10 @@ const (
 )
 `,
 			name: "EnumeratedValue",
-			valToString: map[int64]string{
-				1: "VALUE_A",
-				2: "VALUE_B",
-				3: "VALUE_C",
+			valToString: map[int64]ygot.EnumDefinition{
+				1: {Name: "VALUE_A", DefiningModule: "mod"},
+				2: {Name: "VALUE_B", DefiningModule: "mod3"},
+				3: {Name: "VALUE_C", DefiningModule: "mod2"},
 			},
 		},
 	}, {
@@ -950,7 +950,7 @@ type E_EnumeratedValueTwo int64
 func (E_EnumeratedValueTwo) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  EnumeratedValueTwo.
-func (E_EnumeratedValueTwo) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_EnumeratedValueTwo) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// EnumeratedValueTwo_UNSET corresponds to the value UNSET of EnumeratedValueTwo
@@ -962,9 +962,9 @@ const (
 )
 `,
 			name: "EnumeratedValueTwo",
-			valToString: map[int64]string{
-				1: "SPEED_2.5G",
-				2: "SPEED-40G",
+			valToString: map[int64]ygot.EnumDefinition{
+				1: {Name: "SPEED_2.5G"},
+				2: {Name: "SPEED-40G"},
 			},
 		},
 	}, {
@@ -990,7 +990,7 @@ type E_BaseModule_Enumeration int64
 func (E_BaseModule_Enumeration) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  BaseModule_Enumeration.
-func (E_BaseModule_Enumeration) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_BaseModule_Enumeration) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// BaseModule_Enumeration_UNSET corresponds to the value UNSET of BaseModule_Enumeration
@@ -1006,11 +1006,11 @@ const (
 )
 `,
 			name: "BaseModule_Enumeration",
-			valToString: map[int64]string{
-				1: "VALUE_1",
-				2: "VALUE_2",
-				3: "VALUE_3",
-				4: "VALUE_4",
+			valToString: map[int64]ygot.EnumDefinition{
+				1: {Name: "VALUE_1"},
+				2: {Name: "VALUE_2"},
+				3: {Name: "VALUE_3"},
+				4: {Name: "VALUE_4"},
 			},
 		},
 	}}
@@ -1060,6 +1060,19 @@ func TestFindMapPaths(t *testing.T) {
 			},
 		},
 		wantPaths: [][]string{{"a-container", "field-a"}},
+	}, {
+		name: "invalid parent path",
+		inStruct: &yangStruct{
+			name: "AContainer",
+			path: []string{"", "a-module", "a-container"},
+		},
+		inField: &yang.Entry{
+			Name: "field-q",
+			Parent: &yang.Entry{
+				Name: "q-container",
+			},
+		},
+		wantErr: true,
 	}, {
 		name: "first-level container with path compression on",
 		inStruct: &yangStruct{
@@ -1173,56 +1186,56 @@ func TestFindMapPaths(t *testing.T) {
 func TestGenerateEnumMap(t *testing.T) {
 	tests := []struct {
 		name    string
-		inMap   map[string]map[int64]string
+		inMap   map[string]map[int64]ygot.EnumDefinition
 		wantErr bool
 		wantMap string
 	}{{
 		name: "simple map input",
-		inMap: map[string]map[int64]string{
+		inMap: map[string]map[int64]ygot.EnumDefinition{
 			"EnumOne": {
-				1: "VAL1",
-				2: "VAL2",
+				1: {Name: "VAL1"},
+				2: {Name: "VAL2"},
 			},
 		},
 		wantMap: `
 // ΛEnum is a map, keyed by the name of the type defined for each enum in the
 // generated Go code, which provides a mapping between the constant int64 value
-// of each value of the numeration, and the string that is used to represent it
+// of each value of the enumeration, and the string that is used to represent it
 // in the YANG schema. The map is named ΛEnum in order to avoid clash with any
 // valid YANG identifier.
-var ΛEnum = map[string]map[int64]string{
+var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	"E_EnumOne": {
-		1: "VAL1",
-		2: "VAL2",
+		1: {Name: "VAL1"},
+		2: {Name: "VAL2"},
 	},
 }
 `,
 	}, {
 		name: "multiple enum input",
-		inMap: map[string]map[int64]string{
+		inMap: map[string]map[int64]ygot.EnumDefinition{
 			"EnumOne": {
-				1: "VAL1",
-				2: "VAL2",
+				1: {Name: "VAL1"},
+				2: {Name: "VAL2"},
 			},
 			"EnumTwo": {
-				1: "VAL42",
-				2: "VAL43",
+				1: {Name: "VAL42"},
+				2: {Name: "VAL43"},
 			},
 		},
 		wantMap: `
 // ΛEnum is a map, keyed by the name of the type defined for each enum in the
 // generated Go code, which provides a mapping between the constant int64 value
-// of each value of the numeration, and the string that is used to represent it
+// of each value of the enumeration, and the string that is used to represent it
 // in the YANG schema. The map is named ΛEnum in order to avoid clash with any
 // valid YANG identifier.
-var ΛEnum = map[string]map[int64]string{
+var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	"E_EnumOne": {
-		1: "VAL1",
-		2: "VAL2",
+		1: {Name: "VAL1"},
+		2: {Name: "VAL2"},
 	},
 	"E_EnumTwo": {
-		1: "VAL42",
-		2: "VAL43",
+		1: {Name: "VAL42"},
+		2: {Name: "VAL43"},
 	},
 }
 `,

@@ -13,6 +13,8 @@ package ocstructs
 
 import (
 	"fmt"
+
+	"github.com/openconfig/ygot/ygot"
 )
 
 // Binary is a type that is used for fields that have a YANG type of
@@ -144,7 +146,7 @@ type E_OpenconfigUnione_Component_Power int64
 func (E_OpenconfigUnione_Component_Power) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigUnione_Component_Power.
-func (E_OpenconfigUnione_Component_Power) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_OpenconfigUnione_Component_Power) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// OpenconfigUnione_Component_Power_UNSET corresponds to the value UNSET of OpenconfigUnione_Component_Power
@@ -168,7 +170,7 @@ type E_OpenconfigUnione_EnumOne_Enum int64
 func (E_OpenconfigUnione_EnumOne_Enum) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigUnione_EnumOne_Enum.
-func (E_OpenconfigUnione_EnumOne_Enum) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_OpenconfigUnione_EnumOne_Enum) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// OpenconfigUnione_EnumOne_Enum_UNSET corresponds to the value UNSET of OpenconfigUnione_EnumOne_Enum
@@ -190,7 +192,7 @@ type E_OpenconfigUnione_HARDWARE int64
 func (E_OpenconfigUnione_HARDWARE) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigUnione_HARDWARE.
-func (E_OpenconfigUnione_HARDWARE) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_OpenconfigUnione_HARDWARE) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// OpenconfigUnione_HARDWARE_UNSET corresponds to the value UNSET of OpenconfigUnione_HARDWARE
@@ -212,7 +214,7 @@ type E_OpenconfigUnione_SOFTWARE int64
 func (E_OpenconfigUnione_SOFTWARE) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigUnione_SOFTWARE.
-func (E_OpenconfigUnione_SOFTWARE) ΛMap() map[string]map[int64]string { return ΛEnum; }
+func (E_OpenconfigUnione_SOFTWARE) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
 const (
 	// OpenconfigUnione_SOFTWARE_UNSET corresponds to the value UNSET of OpenconfigUnione_SOFTWARE
@@ -223,21 +225,21 @@ const (
 
 // ΛEnum is a map, keyed by the name of the type defined for each enum in the
 // generated Go code, which provides a mapping between the constant int64 value
-// of each value of the numeration, and the string that is used to represent it
+// of each value of the enumeration, and the string that is used to represent it
 // in the YANG schema. The map is named ΛEnum in order to avoid clash with any
 // valid YANG identifier.
-var ΛEnum = map[string]map[int64]string{
+var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	"E_OpenconfigUnione_Component_Power": {
-		1: "ON",
-		2: "OFF",
+		1: {Name: "ON"},
+		2: {Name: "OFF"},
 	},
 	"E_OpenconfigUnione_EnumOne_Enum": {
-		1: "ONE",
+		1: {Name: "ONE"},
 	},
 	"E_OpenconfigUnione_HARDWARE": {
-		1: "CARD",
+		1: {Name: "CARD", DefiningModule: "openconfig-unione"},
 	},
 	"E_OpenconfigUnione_SOFTWARE": {
-		1: "OS",
+		1: {Name: "OS", DefiningModule: "openconfig-unione"},
 	},
 }

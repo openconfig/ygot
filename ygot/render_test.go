@@ -158,6 +158,8 @@ type renderExample struct {
 	UnionLeafList []renderExampleUnion                `path:"union-list"`
 	Binary        Binary                              `path:"binary"`
 	KeylessList   []*renderExampleList                `path:"keyless-list"`
+	InvalidMap    map[string]*invalidGoStruct         `path:"invalid-gostruct-map"`
+	InvalidPtr    *invalidGoStruct                    `path:"invalid-gostruct"`
 }
 
 // IsYANGGoStruct ensures that the renderExample type implements the GoStruct
@@ -181,6 +183,14 @@ type renderExampleUnionInt8 struct {
 }
 
 func (*renderExampleUnionInt8) IsRenderUnionExample() {}
+
+// renderExampleUnionInvalid is an invalid union struct.
+type renderExampleUnionInvalid struct {
+	String string
+	Int8   int8
+}
+
+func (*renderExampleUnionInvalid) IsRenderUnionExample() {}
 
 // renderExampleChild is a child of the renderExample struct.
 type renderExampleChild struct {
@@ -217,11 +227,11 @@ func (EnumTest) IsYANGGoEnum() {}
 
 // ΛMap returns the enumeration dictionary associated with the mapStructTestFiveC
 // struct.
-func (EnumTest) ΛMap() map[string]map[int64]string {
-	return map[string]map[int64]string{
+func (EnumTest) ΛMap() map[string]map[int64]EnumDefinition {
+	return map[string]map[int64]EnumDefinition{
 		"EnumTest": {
-			1: "VAL_ONE",
-			2: "VAL_TWO",
+			1: EnumDefinition{Name: "VAL_ONE", DefiningModule: "foo"},
+			2: EnumDefinition{Name: "VAL_TWO", DefiningModule: "bar"},
 		},
 	}
 }
@@ -254,6 +264,22 @@ func TestTogNMINotifications(t *testing.T) {
 				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
 			}},
 		}},
+	}, {
+		name:        "struct with invalid GoStruct map",
+		inTimestamp: 42,
+		inStruct: &renderExample{
+			InvalidMap: map[string]*invalidGoStruct{
+				"test": {Value: String("test")},
+			},
+		},
+		wantErr: true,
+	}, {
+		name:        "struct with invalid pointer",
+		inTimestamp: 42,
+		inStruct: &renderExample{
+			InvalidPtr: &invalidGoStruct{Value: String("fish")},
+		},
+		wantErr: true,
 	}, {
 		name:        "simple binary single leaf example",
 		inTimestamp: 42,
@@ -310,6 +336,11 @@ func TestTogNMINotifications(t *testing.T) {
 				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
 			}},
 		}},
+	}, {
+		name:        "invalid union",
+		inTimestamp: 42,
+		inStruct:    &renderExample{UnionVal: &renderExampleUnionInvalid{String: "hello", Int8: 42}},
+		wantErr:     true,
 	}, {
 		name:        "string with leaf-list of union",
 		inTimestamp: 42,
@@ -679,13 +710,13 @@ func (*ietfRenderExampleChild) IsYANGGoStruct() {}
 
 func TestConstructJSON(t *testing.T) {
 	tests := []struct {
-		name        string
-		in          GoStruct
-		inAppendMod bool
-		wantIETF    map[string]interface{}
-		wantJSON    map[string]interface{}
-		wantSame    bool
-		wantErr     bool
+		name         string
+		in           GoStruct
+		inAppendMod  bool
+		wantIETF     map[string]interface{}
+		wantInternal map[string]interface{}
+		wantSame     bool
+		wantErr      bool
 	}{{
 		name: "invalidGoStruct",
 		in: &invalidGoStructChild{
@@ -746,7 +777,7 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantJSON: map[string]interface{}{
+		wantInternal: map[string]interface{}{
 			"foo": map[string]interface{}{
 				"one two": map[string]interface{}{
 					"fOne": "one",
@@ -767,14 +798,15 @@ func TestConstructJSON(t *testing.T) {
 			LeafList:  []string{"hello", "world"},
 			MixedList: []interface{}{uint64(42)},
 		},
+		inAppendMod: true,
 		wantIETF: map[string]interface{}{
 			"str":        "hello",
 			"leaf-list":  []string{"hello", "world"},
 			"int-val":    42,
-			"enum":       "VAL_TWO",
+			"enum":       "bar:VAL_TWO",
 			"mixed-list": []interface{}{"42"},
 		},
-		wantJSON: map[string]interface{}{
+		wantInternal: map[string]interface{}{
 			"str":        "hello",
 			"leaf-list":  []string{"hello", "world"},
 			"int-val":    42,
@@ -792,7 +824,7 @@ func TestConstructJSON(t *testing.T) {
 		wantIETF: map[string]interface{}{
 			"ch": map[string]interface{}{"val": "42"},
 		},
-		wantJSON: map[string]interface{}{
+		wantInternal: map[string]interface{}{
 			"ch": map[string]interface{}{"val": 42},
 		},
 	}, {
@@ -822,14 +854,15 @@ func TestConstructJSON(t *testing.T) {
 				EnumTestVALONE: {Key: EnumTestVALONE},
 			},
 		},
+		inAppendMod: true,
 		wantIETF: map[string]interface{}{
 			"ch": map[string]interface{}{"val": "42"},
 			"enum-list": []interface{}{
 				map[string]interface{}{
 					"config": map[string]interface{}{
-						"key": "VAL_ONE",
+						"key": "foo:VAL_ONE",
 					},
-					"key": "VAL_ONE",
+					"key": "foo:VAL_ONE",
 				},
 			},
 			"list": []interface{}{
@@ -846,9 +879,9 @@ func TestConstructJSON(t *testing.T) {
 					"val": "eighty four",
 				},
 			},
-			"mixed-list": []interface{}{"VAL_ONE", "test", uint32(42)},
+			"mixed-list": []interface{}{"foo:VAL_ONE", "test", uint32(42)},
 		},
-		wantJSON: map[string]interface{}{
+		wantInternal: map[string]interface{}{
 			"ch": map[string]interface{}{"val": 42},
 			"enum-list": map[string]interface{}{
 				"VAL_ONE": map[string]interface{}{
@@ -941,7 +974,7 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
-		wantJSON: map[string]interface{}{
+		wantInternal: map[string]interface{}{
 			"bgp": map[string]interface{}{
 				"neighbors": map[string]interface{}{
 					"neighbor": map[string]interface{}{
@@ -1002,7 +1035,7 @@ func TestConstructJSON(t *testing.T) {
 				"transport-address": "42",
 			},
 		},
-		wantJSON: map[string]interface{}{
+		wantInternal: map[string]interface{}{
 			"state": map[string]interface{}{
 				"transport-address": 42,
 			},
@@ -1020,7 +1053,7 @@ func TestConstructJSON(t *testing.T) {
 				"enabled-address-families": []interface{}{"IPV6", "42"},
 			},
 		},
-		wantJSON: map[string]interface{}{
+		wantInternal: map[string]interface{}{
 			"state": map[string]interface{}{
 				"enabled-address-families": []interface{}{"IPV6", 42},
 			},
@@ -1061,7 +1094,7 @@ func TestConstructJSON(t *testing.T) {
 				"f5": "hat",
 			},
 		},
-		wantJSON: map[string]interface{}{
+		wantInternal: map[string]interface{}{
 			"f1": "foo",
 			"config": map[string]interface{}{
 				"f2": "bar",
@@ -1098,11 +1131,11 @@ func TestConstructJSON(t *testing.T) {
 			continue
 		}
 
-		wantJSON := tt.wantJSON
+		wantInternal := tt.wantInternal
 		if tt.wantSame == true {
-			wantJSON = tt.wantIETF
+			wantInternal = tt.wantIETF
 		}
-		if diff := pretty.Compare(gotjson, wantJSON); diff != "" {
+		if diff := pretty.Compare(gotjson, wantInternal); diff != "" {
 			t.Errorf("%s: ConstructJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.name, tt.in, diff)
 		}
 	}
@@ -1210,6 +1243,100 @@ func TestUnionInterfaceValue(t *testing.T) {
 
 		if got != tt.want {
 			t.Errorf("%s: unionInterfaceValue(%v): did not get expected value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestLeaflistToSlice(t *testing.T) {
+	tests := []struct {
+		name               string
+		inVal              reflect.Value
+		inAppendModuleName bool
+		wantSlice          []interface{}
+		wantErr            bool
+	}{{
+		name:      "string",
+		inVal:     reflect.ValueOf([]string{"one", "two"}),
+		wantSlice: []interface{}{"one", "two"},
+	}, {
+		name:      "uint8",
+		inVal:     reflect.ValueOf([]uint8{1, 2}),
+		wantSlice: []interface{}{uint8(1), uint8(2)},
+	}, {
+		name:      "uint16",
+		inVal:     reflect.ValueOf([]uint16{3, 4}),
+		wantSlice: []interface{}{uint16(3), uint16(4)},
+	}, {
+		name:      "uint32",
+		inVal:     reflect.ValueOf([]uint32{5, 6}),
+		wantSlice: []interface{}{uint32(5), uint32(6)},
+	}, {
+		name:      "uint64",
+		inVal:     reflect.ValueOf([]uint64{7, 8}),
+		wantSlice: []interface{}{uint64(7), uint64(8)},
+	}, {
+		name:      "int8",
+		inVal:     reflect.ValueOf([]int8{1, 2}),
+		wantSlice: []interface{}{int8(1), int8(2)},
+	}, {
+		name:      "int16",
+		inVal:     reflect.ValueOf([]int16{3, 4}),
+		wantSlice: []interface{}{int16(3), int16(4)},
+	}, {
+		name:      "int32",
+		inVal:     reflect.ValueOf([]int32{5, 6}),
+		wantSlice: []interface{}{int32(5), int32(6)},
+	}, {
+		name:      "int64",
+		inVal:     reflect.ValueOf([]int64{7, 8}),
+		wantSlice: []interface{}{int64(7), int64(8)},
+	}, {
+		name:      "enumerated int64",
+		inVal:     reflect.ValueOf([]EnumTest{EnumTestVALONE, EnumTestVALTWO}),
+		wantSlice: []interface{}{"VAL_ONE", "VAL_TWO"},
+	}, {
+		name:               "enumerated int64 with append",
+		inVal:              reflect.ValueOf([]EnumTest{EnumTestVALTWO, EnumTestVALONE}),
+		inAppendModuleName: true,
+		wantSlice:          []interface{}{"bar:VAL_TWO", "foo:VAL_ONE"},
+	}, {
+		name:      "float32",
+		inVal:     reflect.ValueOf([]float32{float32(42)}),
+		wantSlice: []interface{}{float64(42)},
+	}, {
+		name:      "float64",
+		inVal:     reflect.ValueOf([]float64{64.84}),
+		wantSlice: []interface{}{float64(64.84)},
+	}, {
+		name:      "boolean",
+		inVal:     reflect.ValueOf([]bool{true, false}),
+		wantSlice: []interface{}{true, false},
+	}, {
+		name:      "union",
+		inVal:     reflect.ValueOf([]uFieldInterface{&uFieldString{"hello"}}),
+		wantSlice: []interface{}{"hello"},
+	}, {
+		name:      "int",
+		inVal:     reflect.ValueOf([]int{1}),
+		wantSlice: []interface{}{int64(1)},
+	}, {
+		name:      "binary",
+		inVal:     reflect.ValueOf([]Binary{Binary([]byte{1, 2, 3})}),
+		wantSlice: []interface{}{[]byte{1, 2, 3}},
+	}, {
+		name:    "invalid type",
+		inVal:   reflect.ValueOf([]complex128{complex(42.42, 84.84)}),
+		wantErr: true,
+	}}
+
+	for _, tt := range tests {
+		got, err := leaflistToSlice(tt.inVal, tt.inAppendModuleName)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: leaflistToSlice(%v): got unexpected error: %v", tt.name, tt.inVal.Interface(), err)
+		}
+
+		if !reflect.DeepEqual(got, tt.wantSlice) {
+			t.Errorf("%s: leaflistToSlice(%v): did not get expected slice, got: %v, want: %v", tt.name, tt.inVal.Interface(), got, tt.wantSlice)
 		}
 	}
 }
