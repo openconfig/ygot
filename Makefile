@@ -4,8 +4,13 @@
 #
 ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 
-all:
+test:
 	go test ./...
 generate:
 	cd ${ROOT_DIR}/demo/getting_started && go generate
-
+clean:
+	rm -f ${ROOT_DIR}/demo/getting_started/pkg/ocdemo/oc.go
+deps:
+	go get -t ./...
+all:
+	clean generate test
