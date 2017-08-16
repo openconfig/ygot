@@ -12,7 +12,6 @@ clean:
 	rm -f ${ROOT_DIR}/demo/getting_started/pkg/ocdemo/oc.go
 deps:
 	go get -t -d ./...
-install:
-	deps generate
+install: deps generate
 all:
 	clean deps generate test
