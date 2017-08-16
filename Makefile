@@ -13,4 +13,4 @@ clean:
 deps:
 	go get -t ./...
 all:
-	clean generate test
+	clean deps generate test
