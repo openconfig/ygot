@@ -966,17 +966,14 @@ func TestBuildStructDefinitions(t *testing.T) {
 // through Goyang's API, it provides the input set of parameters in a way that
 // can be reused across tests.
 type yangTestCase struct {
-	name                 string   // Name is the identifier for the test.
-	inFiles              []string // inFiles is the set of inputFiles for the test.
-	inIncludePaths       []string // inIncludePaths is the set of paths that should be searched for imports.
-	inExcludeModules     []string // inExcludeModules is the set of modules that should be excluded from code generation.
-	inCompressOCPaths    bool     // inCompressOCPaths specifies whether CompressOCPaths should be set to true/false in the YANGCodeGenerator.
-	inGenerateFakeRoot   bool     // inGenerateGoCode specifies whether GenerateFakeRoot should be set to true/false in YANGCodeGenerator.
-	inGenerateJSONSchema bool     // inGenerateJSONSchema speciifes whether GenerateJSONSchema should be set to true/false in YANGCodeGenerator.
-	inFakeRootName       string   // inFakeRootName specifies what the fake root element's name should be.
-	wantStructsCodeFile  string   // The path of the generated Go code that the output of the test should be compared to.
-	wantErr              bool     // Whether to expect an error.
-	wantSchemaFile       string   // Path of the generated Schema JSON that the output of the test should be compared to.
+	name                string          // Name is the identifier for the test.
+	inFiles             []string        // inFiles is the set of inputFiles for the test.
+	inIncludePaths      []string        // inIncludePaths is the set of paths that should be searched for imports.
+	inExcludeModules    []string        // inExcludeModules is the set of modules that should be excluded from code generation.
+	inConfig            GeneratorConfig // inConfig specifies the configuration that should be used for the generator test case.
+	wantStructsCodeFile string          // The path of the generated Go code that the output of the test should be compared to.
+	wantErr             bool            // Whether to expect an error.
+	wantSchemaFile      string          // Path of the generated Schema JSON that the output of the test should be compared to.
 }
 
 // TestSimpleStructs tests the processModules, GenerateGoCode and writeGoCode
@@ -992,7 +989,7 @@ func TestSimpleStructs(t *testing.T) {
 	tests := []yangTestCase{{
 		name:                "simple openconfig test, with compression",
 		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.yang")},
-		inCompressOCPaths:   true,
+		inConfig:            GeneratorConfig{CompressOCPaths: true},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple.formatted-txt"),
 	}, {
 		name:                "simple openconfig test, with no compression",
@@ -1001,97 +998,135 @@ func TestSimpleStructs(t *testing.T) {
 	}, {
 		name:                "simple openconfig test, with a list",
 		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.yang")},
-		inCompressOCPaths:   true,
+		inConfig:            GeneratorConfig{CompressOCPaths: true},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.formatted-txt"),
 	}, {
 		name:                "simple openconfig test, with a list that has an enumeration key",
 		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-list-enum-key.yang")},
-		inCompressOCPaths:   true,
+		inConfig:            GeneratorConfig{CompressOCPaths: true},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-list-enum-key.formatted-txt"),
 	}, {
 		name:                "openconfig test with a identityref union",
 		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-unione.yang")},
-		inCompressOCPaths:   true,
+		inConfig:            GeneratorConfig{CompressOCPaths: true},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-unione.formatted-txt"),
 	}, {
-		name:                "openconfig tests with fakeroot",
-		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot.yang")},
-		inCompressOCPaths:   true,
-		inGenerateFakeRoot:  true,
+		name:    "openconfig tests with fakeroot",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot.yang")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths:  true,
+			GenerateFakeRoot: true,
+		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot.formatted-txt"),
 	}, {
-		name:                "openconfig noncompressed tests with fakeroot",
-		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot.yang")},
-		inGenerateFakeRoot:  true,
+		name:    "openconfig noncompressed tests with fakeroot",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot: true,
+		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot-nc.formatted-txt"),
 	}, {
-		name:                 "schema test with compression",
-		inFiles:              []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
-		inCompressOCPaths:    true,
-		inGenerateJSONSchema: true,
-		wantStructsCodeFile:  filepath.Join(TestRoot, "testdata/schema/openconfig-options-compress.formatted-txt"),
-		wantSchemaFile:       filepath.Join(TestRoot, "testdata/schema/openconfig-options-compress-schema.json"),
+		name:    "schema test with compression",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths:    true,
+			GenerateJSONSchema: true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/schema/openconfig-options-compress.formatted-txt"),
+		wantSchemaFile:      filepath.Join(TestRoot, "testdata/schema/openconfig-options-compress-schema.json"),
 	}, {
-		name:                 "schema test without compression",
-		inFiles:              []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
-		inGenerateJSONSchema: true,
-		wantStructsCodeFile:  filepath.Join(TestRoot, "testdata/schema/openconfig-options-nocompress.formatted-txt"),
-		wantSchemaFile:       filepath.Join(TestRoot, "testdata/schema/openconfig-options-nocompress-schema.json"),
+		name:    "schema test without compression",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
+		inConfig: GeneratorConfig{
+			GenerateJSONSchema: true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/schema/openconfig-options-nocompress.formatted-txt"),
+		wantSchemaFile:      filepath.Join(TestRoot, "testdata/schema/openconfig-options-nocompress-schema.json"),
 	}, {
-		name:                 "schema test with fakeroot",
-		inFiles:              []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
-		inCompressOCPaths:    true,
-		inGenerateFakeRoot:   true,
-		inGenerateJSONSchema: true,
-		wantStructsCodeFile:  filepath.Join(TestRoot, "testdata/schema/openconfig-options-compress-fakeroot.formatted-txt"),
-		wantSchemaFile:       filepath.Join(TestRoot, "testdata/schema/openconfig-options-compress-fakeroot-schema.json"),
+		name:    "schema test with fakeroot",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths:    true,
+			GenerateFakeRoot:   true,
+			GenerateJSONSchema: true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/schema/openconfig-options-compress-fakeroot.formatted-txt"),
+		wantSchemaFile:      filepath.Join(TestRoot, "testdata/schema/openconfig-options-compress-fakeroot-schema.json"),
 	}, {
-		name:                 "schema test with fakeroot and no compression",
-		inFiles:              []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
-		inGenerateFakeRoot:   true,
-		inGenerateJSONSchema: true,
-		wantStructsCodeFile:  filepath.Join(TestRoot, "testdata/schema/openconfig-options-nocompress-fakeroot.formatted-txt"),
-		wantSchemaFile:       filepath.Join(TestRoot, "testdata/schema/openconfig-options-nocompress-fakeroot-schema.json"),
+		name:    "schema test with fakeroot and no compression",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot:   true,
+			GenerateJSONSchema: true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/schema/openconfig-options-nocompress-fakeroot.formatted-txt"),
+		wantSchemaFile:      filepath.Join(TestRoot, "testdata/schema/openconfig-options-nocompress-fakeroot-schema.json"),
 	}, {
-		name:                "schema test with camelcase annotations",
-		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-camelcase.yang")},
-		inCompressOCPaths:   true,
-		inGenerateFakeRoot:  true,
+		name:    "schema test with camelcase annotations",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-camelcase.yang")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths:  true,
+			GenerateFakeRoot: true,
+		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-camelcase-compress.formatted-txt"),
 	}, {
-		name:                "structs test with camelcase annotations",
-		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-enumcamelcase.yang")},
-		inCompressOCPaths:   true,
+		name:    "structs test with camelcase annotations",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-enumcamelcase.yang")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths: true,
+		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-enumcamelcase-compress.formatted-txt"),
 	}, {
 		name:                "structs test with choices and cases",
 		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/choice-case-example.yang")},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/choice-case-example.formatted-txt"),
 	}, {
-		name:                "module with augments",
-		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple-target.yang"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-augment.yang")},
-		inCompressOCPaths:   true,
-		inGenerateFakeRoot:  true,
+		name: "module with augments",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-target.yang"),
+			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-augment.yang"),
+		},
+		inConfig: GeneratorConfig{
+			CompressOCPaths:  true,
+			GenerateFakeRoot: true,
+		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-augmented.formatted-txt"),
+	}, {
+		name:    "variable and import explicitly specified",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.yang")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths:    true,
+			GenerateFakeRoot:   true,
+			Caller:             "testcase",
+			FakeRootName:       "fakeroot",
+			StoreRawSchema:     true,
+			GenerateJSONSchema: true,
+			GoOptions: GoOpts{
+				SchemaVarName:    "YANGSchema",
+				GoyangImportPath: "foo/goyang",
+				YgotImportPath:   "bar/ygot",
+				YtypesImportPath: "baz/ytypes",
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/schema/openconfig-options-explicit.formatted-txt"),
+		wantSchemaFile:      filepath.Join(TestRoot, "testdata/schema/openconfig-options-explicit-schema.json"),
 	}}
 
 	for _, tt := range tests {
-		cg := NewYANGCodeGenerator(&GeneratorConfig{
-			CompressOCPaths: tt.inCompressOCPaths,
-			PackageName:     "ocstructs",
+		// Set defaults within the supplied configuration for these tests.
+		if tt.inConfig.Caller == "" {
 			// Set the name of the caller explicitly to avoid issues when
-			// the unit tests are called by blaze coverage.
-			Caller:             "codegen-tests",
-			GenerateFakeRoot:   tt.inGenerateFakeRoot,
-			FakeRootName:       tt.inFakeRootName,
-			GenerateJSONSchema: tt.inGenerateJSONSchema,
-			StoreRawSchema:     true,
-		})
+			// the unit tests are called by external test entities.
+			tt.inConfig.Caller = "codegen-tests"
+		}
+		tt.inConfig.StoreRawSchema = true
+
+		cg := NewYANGCodeGenerator(&tt.inConfig)
 
 		gotGeneratedCode, err := cg.GenerateGoCode(tt.inFiles, tt.inIncludePaths)
 		if err != nil && !tt.wantErr {
-			t.Errorf("%s: cg.GenerateCode(%v, %v): Excludes: %v, CompressOCPaths: %v, got unexpected error: %v, want: nil",
-				tt.name, tt.inFiles, tt.inIncludePaths, tt.inExcludeModules, tt.inCompressOCPaths, err)
+			t.Errorf("%s: cg.GenerateCode(%v, %v): Config: %v, got unexpected error: %v, want: nil",
+				tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
 			continue
 		}
 
@@ -1116,7 +1151,7 @@ func TestSimpleStructs(t *testing.T) {
 		// Write generated enumeration map out.
 		fmt.Fprintf(&gotCode, gotGeneratedCode.EnumMap)
 
-		if tt.inGenerateJSONSchema {
+		if tt.inConfig.GenerateJSONSchema {
 			// Write the schema byte array out.
 			fmt.Fprintf(&gotCode, gotGeneratedCode.JSONSchemaCode)
 
@@ -1148,7 +1183,7 @@ func TestSimpleStructs(t *testing.T) {
 					Eol:      "\n",
 				}
 				diffr, _ := difflib.GetUnifiedDiffString(diff)
-				t.Errorf("%s: GenerateGoCode(%v, %v), CompressOCpaths: %v, did not return correct code, diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inCompressOCPaths, diffr)
+				t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diffr)
 			}
 		}
 
@@ -1165,8 +1200,8 @@ func TestSimpleStructs(t *testing.T) {
 				Eol:      "\n",
 			}
 			diffr, _ := difflib.GetUnifiedDiffString(diff)
-			t.Errorf("%s: GenerateGoCode(%v, %v), CompressOCPaths: %v, did not return correct code, diff:\n%s",
-				tt.name, tt.inFiles, tt.inIncludePaths, tt.inCompressOCPaths, diffr)
+			t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct code (file: %v), diff:\n%s",
+				tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diffr)
 		}
 	}
 }

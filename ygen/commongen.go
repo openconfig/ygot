@@ -18,46 +18,17 @@ import (
 	"runtime"
 )
 
-// commonCodeHeaderParams stores common parameters which are included
-// in the header of generated code.
-type commonCodeHeaderParams struct {
-	PackageName      string   // PackgeName is the name of the package to be generated.
-	YANGFiles        []string // YANGFiles contains the list of input YANG source files for code generation.
-	IncludePaths     []string // IncludePaths contains the list of paths that included modules were searched for in.
-	CompressEnabled  bool     // CompressEnabled indicates whether CompressOCPaths was set.
-	GeneratingBinary string   // GeneratingBinary is the name of the binary generating the code.
-	GenerateSchema   bool     // GenerateSchema stores whether the generator requested that the schema was to be stored with the output code.
-}
-
-// buildCommonHeader constructs the commonCodeHeaderParams struct that a caller can use
-// in a template to output a package header. The package name, compress settings, and caller
-// are gleaned from the supplied YANGCodeGenerator struct if they are defined - with the input files,
-// and paths within which includes are found learnt from the yangFiles and includePaths
-// arguments. Returns a commonCodeHeaderParams struct.
-func buildCommonHeader(packageName, caller string, compressPaths bool, yangFiles, includePaths []string, generateSchema bool) *commonCodeHeaderParams {
+// currentBinaryName returns the name of the Go binary that is currently
+// running.
+func callerName() string {
 	// Find out the name of this binary so that it can be included in the
 	// generated code for debug reasons. It is dynamically learnt based on
 	// review suggestions that this code may move in the future.
 	_, currentCodeFile, _, ok := runtime.Caller(0)
-	switch {
-	case caller != "":
-		// If the caller was specifically overridden, then use the specified
-		// value rather than the code name.
-		currentCodeFile = caller
-	case !ok:
-		// This is a non-fatal error, since it simply means we can't
-		// find the current file. At this point, we do not want to abandon
-		// what otherwise would be successful code generation, so give
-		// an identifiable string.
-		currentCodeFile = "codegen"
+	if !ok {
+		// In the case that we cannot determine the current running binary's name
+		// this is non-fatal, so return a default string.
+		return "codegen"
 	}
-
-	return &commonCodeHeaderParams{
-		PackageName:      packageName,
-		YANGFiles:        yangFiles,
-		IncludePaths:     includePaths,
-		CompressEnabled:  compressPaths,
-		GeneratingBinary: currentCodeFile,
-		GenerateSchema:   generateSchema,
-	}
+	return currentCodeFile
 }

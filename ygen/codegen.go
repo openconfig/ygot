@@ -87,6 +87,18 @@ type GoOpts struct {
 	// produced if the GenerateJSONSchema YANGCodeGenerator field is set to
 	// true.
 	SchemaVarName string
+	// GoyangImportPath specifies the path that should be used in the generated
+	// code for importing the goyang/pkg/yang package. If it is not specified
+	// goyang is imported from github.com/openconfig/goyang/pkg/yang.
+	GoyangImportPath string
+	// YgotImportPath specifies the path to the ygot library that should be used
+	// in the generated code. If not specified it is imported from
+	// github.com/openconfig/ygot/ygot.
+	YgotImportPath string
+	// YtypesImportPath specifies the path to ytypes library that should be used
+	// in the generated code. If not specified it is imported from
+	// github.com/openconfig/ygot/ytypes.
+	YtypesImportPath string
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -149,7 +161,6 @@ type yangGoEnum struct {
 // map values being maps of the int64 identifier for each value of the enumeration to the name of
 // the element, as used in the YANG schema.
 type GeneratedGoCode struct {
-	Imports []string // Imports is the Go packages that need to be imported for the generated code.
 	Structs []string // Structs is the generated set of structs representing containers or lists in the input YANG models.
 	Enums   []string // Enums is the generated set of enum definitions corresponding to identities and enumerations in the input YANG models.
 	Header  string   // Header is the package-level header or the generated code.
