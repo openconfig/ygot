@@ -122,7 +122,7 @@ func checkBasicKeyValue(structElems reflect.Value, keyFieldSchemaName string, ke
 		elementKeyValue = structElems.FieldByName(keyFieldName).Interface()
 	}
 	if elementKeyValue != keyValue.Interface() {
-		errors = appendErr(errors, fmt.Errorf("key field %s: element key %v != map key %v",
+		errors = appendErr(errors, fmt.Errorf("key value for field %s in list member (%v) is not equal to the key used in the map (%v)",
 			keyFieldName, elementKeyValue, keyValue))
 	}
 
