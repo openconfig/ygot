@@ -52,6 +52,11 @@ func buildCommonHeader(packageName, caller string, compressPaths bool, yangFiles
 		currentCodeFile = "codegen"
 	}
 
+	// Handle the case of a null package name which produces invalid Go.
+	if packageName == "" {
+		packageName = "ocstructs"
+	}
+
 	return &commonCodeHeaderParams{
 		PackageName:      packageName,
 		YANGFiles:        yangFiles,
