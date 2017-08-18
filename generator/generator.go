@@ -40,9 +40,9 @@ var (
 	generateFakeRoot = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
 	fakeRootName     = flag.String("fakeroot_name", "", "The name of the fake root entity.")
 	generateSchema   = flag.Bool("include_schema", true, "If set to true, the YANG schema will be encoded as JSON and stored in the generated code artefact.")
-	ygotImportPath   = flag.String("ygot_path", "github.com/openconfig/ygot/ygot", "The import path to use for ygot.")
-	ytypesImportPath = flag.String("ytypes_path", "github.com/openconfig/ygot/ytypes", "The import path to use for ytypes.")
-	goyangImportPath = flag.String("goyang_path", "github.com/openconfig/goyang/pkg/yang", "The import path to use for goyang's yang package.")
+	ygotImportPath   = flag.String("ygot_path", ygen.DefaultYgotImportPath, "The import path to use for ygot.")
+	ytypesImportPath = flag.String("ytypes_path", ygen.DefaultYtypesImportPath, "The import path to use for ytypes.")
+	goyangImportPath = flag.String("goyang_path", ygen.DefaultGoyangImportPath, "The import path to use for goyang's yang package.")
 )
 
 // writeGoCode takes a ygen.GeneratedGoCode struct and writes the Go code
