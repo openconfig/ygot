@@ -553,7 +553,11 @@ func makeTemplate(name, src string) *template.Template {
 // comments that is to be included with the generated code. The input set of
 // files (yangFiles) are output to indicate the modules for which code
 // generation was targeted, along with the includePaths indicating where
-// imported modules were sourced from.
+// imported modules were sourced from. If the cfg.GoOptions.YgotImport path
+// is not set, then it is set to the value of DefaultYgotImportPath. In a similar manner
+// an unset cfg.GoOptions.GoyangImportPath results in the goyang path being set to
+// DefaultYgotImportPath, and an unset cfg.GoOptions.YtypesImportPath results in the
+// path for ytypes being set to DefaultYtypesImportPath.
 func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (string, error) {
 
 	// Determine the running binary's name.
