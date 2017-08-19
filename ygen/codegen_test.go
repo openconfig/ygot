@@ -971,9 +971,9 @@ type yangTestCase struct {
 	inIncludePaths      []string        // inIncludePaths is the set of paths that should be searched for imports.
 	inExcludeModules    []string        // inExcludeModules is the set of modules that should be excluded from code generation.
 	inConfig            GeneratorConfig // inConfig specifies the configuration that should be used for the generator test case.
-	wantStructsCodeFile string          // The path of the generated Go code that the output of the test should be compared to.
-	wantErr             bool            // Whether to expect an error.
-	wantSchemaFile      string          // Path of the generated Schema JSON that the output of the test should be compared to.
+	wantStructsCodeFile string          // wantsStructsCodeFile is the path of the generated Go code that the output of the test should be compared to.
+	wantErr             bool            // wantErr specifies whether the test should expect an error.
+	wantSchemaFile      string          // wantSchemaFile is the path to the schema JSON that the output of the test should be compared to.
 }
 
 // TestSimpleStructs tests the processModules, GenerateGoCode and writeGoCode

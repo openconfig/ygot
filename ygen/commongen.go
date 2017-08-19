@@ -26,7 +26,9 @@ func callerName() string {
 	// review suggestions that this code may move in the future.
 	_, currentCodeFile, _, ok := runtime.Caller(0)
 	if !ok {
-		currentCodeFile = "codegen"
+		// In the case that we cannot determine the current running binary's name
+		// this is non-fatal, so return a default string.
+		return "codegen"
 	}
 	return currentCodeFile
 }

@@ -88,16 +88,13 @@ type GoOpts struct {
 	// true.
 	SchemaVarName string
 	// GoyangImportPath specifies the path that should be used in the generated
-	// code for importing the goyang/pkg/yang package. If it is not specified
-	// goyang is imported from github.com/openconfig/goyang/pkg/yang.
+	// code for importing the goyang/pkg/yang package.
 	GoyangImportPath string
 	// YgotImportPath specifies the path to the ygot library that should be used
-	// in the generated code. If not specified it is imported from
-	// github.com/openconfig/ygot/ygot.
+	// in the generated code.
 	YgotImportPath string
 	// YtypesImportPath specifies the path to ytypes library that should be used
-	// in the generated code. If not specified it is imported from
-	// github.com/openconfig/ygot/ytypes.
+	// in the generated code.
 	YtypesImportPath string
 }
 
