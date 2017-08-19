@@ -8,6 +8,7 @@ test:
 	go test ./...
 generate:
 	cd ${ROOT_DIR}/demo/getting_started && go generate
+	cd ${ROOT_DIR}/proto/ywrapper && go generate
 clean:
 	rm -f ${ROOT_DIR}/demo/getting_started/pkg/ocdemo/oc.go
 deps:
