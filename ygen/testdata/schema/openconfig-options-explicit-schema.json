@@ -1,0 +1,214 @@
+{
+    "Fakeroot": {
+        "Name": "fakeroot",
+        "Kind": 1,
+        "Config": 0,
+        "Dir": {
+            "parent": {
+                "Name": "parent",
+                "Kind": 1,
+                "Config": 0,
+                "Prefix": {
+                    "Name": "ocs",
+                    "Source": {
+                        "Keyword": "prefix",
+                        "HasArgument": true,
+                        "Argument": "ocs"
+                    }
+                },
+                "Dir": {
+                    "child": {
+                        "Name": "child",
+                        "Kind": 1,
+                        "Config": 0,
+                        "Prefix": {
+                            "Name": "ocs",
+                            "Source": {
+                                "Keyword": "prefix",
+                                "HasArgument": true,
+                                "Argument": "ocs"
+                            }
+                        },
+                        "Dir": {
+                            "config": {
+                                "Name": "config",
+                                "Kind": 1,
+                                "Config": 0,
+                                "Prefix": {
+                                    "Name": "ocs",
+                                    "Source": {
+                                        "Keyword": "prefix",
+                                        "HasArgument": true,
+                                        "Argument": "ocs"
+                                    }
+                                },
+                                "Dir": {
+                                    "four": {
+                                        "Name": "four",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "binary",
+                                            "Kind": 9
+                                        }
+                                    },
+                                    "one": {
+                                        "Name": "one",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "string",
+                                            "Kind": 18
+                                        }
+                                    },
+                                    "three": {
+                                        "Name": "three",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "enumeration",
+                                            "Kind": 14,
+                                            "Enum": {}
+                                        }
+                                    }
+                                }
+                            },
+                            "state": {
+                                "Name": "state",
+                                "Kind": 1,
+                                "Config": 0,
+                                "Prefix": {
+                                    "Name": "ocs",
+                                    "Source": {
+                                        "Keyword": "prefix",
+                                        "HasArgument": true,
+                                        "Argument": "ocs"
+                                    }
+                                },
+                                "Dir": {
+                                    "four": {
+                                        "Name": "four",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "binary",
+                                            "Kind": 9
+                                        }
+                                    },
+                                    "one": {
+                                        "Name": "one",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "string",
+                                            "Kind": 18
+                                        }
+                                    },
+                                    "three": {
+                                        "Name": "three",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "enumeration",
+                                            "Kind": 14,
+                                            "Enum": {}
+                                        }
+                                    },
+                                    "two": {
+                                        "Name": "two",
+                                        "Kind": 0,
+                                        "Config": 0,
+                                        "Type": {
+                                            "Name": "string",
+                                            "Kind": 18
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "Annotation": {
+                            "schemapath": "/openconfig-simple/parent/child",
+                            "structname": "Parent_Child"
+                        }
+                    }
+                },
+                "Annotation": {
+                    "schemapath": "/openconfig-simple/parent",
+                    "structname": "Parent"
+                }
+            },
+            "remote-container": {
+                "Name": "remote-container",
+                "Kind": 1,
+                "Config": 0,
+                "Prefix": {
+                    "Name": "ocr",
+                    "Source": {
+                        "Keyword": "prefix",
+                        "HasArgument": true,
+                        "Argument": "ocr"
+                    }
+                },
+                "Dir": {
+                    "config": {
+                        "Name": "config",
+                        "Kind": 1,
+                        "Config": 0,
+                        "Prefix": {
+                            "Name": "ocr",
+                            "Source": {
+                                "Keyword": "prefix",
+                                "HasArgument": true,
+                                "Argument": "ocr"
+                            }
+                        },
+                        "Dir": {
+                            "a-leaf": {
+                                "Name": "a-leaf",
+                                "Kind": 0,
+                                "Config": 0,
+                                "Type": {
+                                    "Name": "string",
+                                    "Kind": 18
+                                }
+                            }
+                        }
+                    },
+                    "state": {
+                        "Name": "state",
+                        "Kind": 1,
+                        "Config": 2,
+                        "Prefix": {
+                            "Name": "ocr",
+                            "Source": {
+                                "Keyword": "prefix",
+                                "HasArgument": true,
+                                "Argument": "ocr"
+                            }
+                        },
+                        "Dir": {
+                            "a-leaf": {
+                                "Name": "a-leaf",
+                                "Kind": 0,
+                                "Config": 0,
+                                "Type": {
+                                    "Name": "string",
+                                    "Kind": 18
+                                }
+                            }
+                        }
+                    }
+                },
+                "Annotation": {
+                    "schemapath": "/openconfig-simple/remote-container",
+                    "structname": "RemoteContainer"
+                }
+            }
+        },
+        "Annotation": {
+            "isFakeRoot": true,
+            "schemapath": "/fakeroot",
+            "structname": "Fakeroot"
+        }
+    }
+}
