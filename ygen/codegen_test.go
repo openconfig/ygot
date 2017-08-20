@@ -918,7 +918,7 @@ func TestBuildStructDefinitions(t *testing.T) {
 				cg.findMappableEntities(inc, structs, enums)
 			}
 
-			structDefs, errs := cg.state.buildStructDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot)
+			structDefs, errs := cg.state.buildGoStructDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot)
 			if len(errs) > 0 {
 				t.Errorf("%s buildStructDefinitions(CompressOCPaths: %v): could not build struct defs: %v", tt.name, compress, errs)
 				continue

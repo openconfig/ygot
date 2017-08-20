@@ -135,14 +135,14 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressOCPaths bool) ([]
 	return es, nil
 }
 
-// buildStructDefinitions extracts the yang.Entry instances from a map of
+// buildGoStructDefinitions extracts the yang.Entry instances from a map of
 // entries that need struct definitions built for them. It resolves each
 // yang.Entry to a yangStruct which contains the elements that are needed for
 // subsequent code generation. The name of the struct is calculated based on
 // whether path compression is enabled (via compressOCPaths), and the fake root
 // entity is to be generated (genFakeRoot). If errors are encountered they are
 // returned within an error slice.
-func (s *genState) buildStructDefinitions(entries map[string]*yang.Entry, compressOCPaths, genFakeRoot bool) (map[string]*yangStruct, []error) {
+func (s *genState) buildGoStructDefinitions(entries map[string]*yang.Entry, compressOCPaths, genFakeRoot bool) (map[string]*yangStruct, []error) {
 	var errs []error
 	mappedStructs := make(map[string]*yangStruct)
 
