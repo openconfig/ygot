@@ -265,7 +265,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		}
 	}
 
-	goStructs, errs := cg.state.buildStructDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot)
+	goStructs, errs := cg.state.buildGoStructDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot)
 	if len(errs) > 0 {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}

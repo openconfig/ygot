@@ -492,7 +492,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 	case yang.Yunion:
 		// A YANG Union is a leaf that can take multiple values - its subtypes need
 		// to be extracted.
-		return s.findUnionType(args, compressOCPaths)
+		return s.goUnionType(args, compressOCPaths)
 	case yang.Yenum:
 		// Enumeration types need to be resolved to a particular data path such
 		// that a created enumered Go type can be used to set their value. Hand
@@ -539,7 +539,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 	}
 }
 
-// findUnionType maps a YANG union to a set of Go types that should be used to
+// goUnionType maps a YANG union to a set of Go types that should be used to
 // represent it. In the simple case that the union contains only one
 // subtype - e.g., is a union of string, string then the single type that
 // is contained is returned as the type to be used in the generated Go code.
@@ -568,8 +568,8 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 // The compressOCPaths argument specifies whether OpenConfig path compression
 // is enabled such that the name of enumerated types can be calculated correctly.
 //
-// findUnionTypes returns an error if mapping is not possible.
-func (s *genState) findUnionType(args resolveTypeArgs, compressOCPaths bool) (mappedType, error) {
+// goUnionType returns an error if mapping is not possible.
+func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (mappedType, error) {
 	var errs []error
 	unionTypes := make(map[string]int)
 
@@ -578,7 +578,7 @@ func (s *genState) findUnionType(args resolveTypeArgs, compressOCPaths bool) (ma
 	// whether a particular type is valid when creating mapping code can easily
 	// check, rather than iterating the slice of strings.
 	for _, subtype := range args.yangType.Type {
-		errs = append(errs, s.findUnionSubTypes(subtype, args.contextEntry, unionTypes, compressOCPaths)...)
+		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, compressOCPaths)...)
 	}
 	if len(errs) > 0 {
 		return mappedType{}, fmt.Errorf("errors mapping element: %v", errs)
@@ -597,20 +597,20 @@ func (s *genState) findUnionType(args resolveTypeArgs, compressOCPaths bool) (ma
 	}, nil
 }
 
-// findUnionSubTypes extracts all the possible subtypes of a YANG union leaf,
+// goUnionSubTypes extracts all the possible subtypes of a YANG union leaf,
 // and returns map keyed by the mapped type along with any errors that occur. A
 // map is returned in preference to a slice such that it is easier for calling
 // functions to check whether a particular type is a valid type for a leaf. Since
 // a union itself may contain unions, the supplied union is recursed. The
 // compressOCPaths argument specifies whether OpenConfig path compression is enabled
 // such that the name of enumerated types can be correctly calculated.
-func (s *genState) findUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, compressOCPaths bool) []error {
+func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, compressOCPaths bool) []error {
 	var errs []error
 	// If subtype.Type is not empty then this means that this type is defined to
 	// be a union itself.
 	if subtype.Type != nil {
 		for _, st := range subtype.Type {
-			errs = append(errs, s.findUnionSubTypes(st, ctx, currentTypes, compressOCPaths)...)
+			errs = append(errs, s.goUnionSubTypes(st, ctx, currentTypes, compressOCPaths)...)
 		}
 		return errs
 	}
