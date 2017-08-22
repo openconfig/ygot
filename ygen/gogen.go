@@ -607,7 +607,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (strin
 }
 
 // writeGoStruct generates code snippets for targetStruct. The parameter goStructElements
-// contains other yangStructs for which code is being generated, that may be referenced
+// contains other yangDirectory structs for which code is being generated, that may be referenced
 // during the generation of the code corresponding to targetStruct (e.g., to determine a
 // child container's struct name). writeGoStruct returns a goStructCodeSnippet which contains
 //	1. The generated struct for targetStruct (structDef)
@@ -615,7 +615,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (strin
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *yangStruct, goStructElements map[string]*yangStruct, state *genState, compressOCPaths, generateJSONSchema bool) (goStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yangDirectory, state *genState, compressOCPaths, generateJSONSchema bool) (goStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -892,10 +892,10 @@ func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
 //	  type.
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
-func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *yangStruct, goStructElements map[string]*yangStruct, state *genState) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
+func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *yangDirectory, goStructElements map[string]*yangDirectory, state *genState) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
-	// this from the set of yangStructs for which code is being generated such that
-	// additional details can be used in the code generation.
+	// this from the set of yangDirectory structs for which code (a Go struct) will be
+	//  generated such that additional details can be used in the code generation.
 	listElem, ok := goStructElements[listField.Path()]
 	if !ok {
 		return "", nil, nil, fmt.Errorf("struct for %s did not exist", listField.Path())
@@ -1054,7 +1054,7 @@ func writeGoEnum(inputEnum *yangGoEnum) (goEnumCodeSnippet, error) {
 // then the corresponding target leaf is also returned in the map path as well.
 // as the expanded path of the schema entry. If errors are encountered when
 // mapping the paths, they are returned.
-func findMapPaths(parent *yangStruct, field *yang.Entry, compressOCPaths bool) ([][]string, error) {
+func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths bool) ([][]string, error) {
 	fieldSlicePath := traverseElementSchemaPath(field)
 	var childPath, parentPath []string
 

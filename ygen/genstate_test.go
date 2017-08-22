@@ -16,6 +16,7 @@ package ygen
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -917,6 +918,632 @@ func TestStructName(t *testing.T) {
 			s := newGenState()
 			if out := s.structName(tt.inElement, compress, false); out != expected {
 				t.Errorf("%s (compress: %v): shortName output invalid - got: %s, want: %s", tt.name, compress, out, expected)
+			}
+		}
+	}
+}
+
+// TestBuildGoStructDefinitions tests the struct definition builder to ensure that the relevant
+// entities are extracted from the input YANG.
+func TestBuildGoStructDefinitions(t *testing.T) {
+	tests := []struct {
+		name           string
+		in             []*yang.Entry
+		wantCompress   map[string]yangDirectory
+		wantUncompress map[string]yangDirectory
+	}{{
+		name: "basic struct generation test",
+		in: []*yang.Entry{
+			{
+				Name: "module",
+				Dir: map[string]*yang.Entry{
+					"s1": {
+						Name: "s1",
+						Dir: map[string]*yang.Entry{
+							"config": {
+								Name:   "config",
+								Parent: &yang.Entry{Name: "s1"},
+								Dir: map[string]*yang.Entry{
+									"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+									"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+								},
+							},
+							"state": {
+								Name:   "state",
+								Parent: &yang.Entry{Name: "s1"},
+								Dir: map[string]*yang.Entry{
+									"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}}, // Deliberate type mismatch
+									"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+									"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantCompress: map[string]yangDirectory{
+			"/s1": {
+				name: "s1",
+				fields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+				},
+				path: []string{"", "s1"},
+			},
+		},
+		wantUncompress: map[string]yangDirectory{
+			"/s1": {
+				name: "s1",
+				path: []string{"", "s1"},
+			},
+			"/s1/config": {
+				name: "config",
+				fields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				path: []string{"", "s1", "config"},
+			},
+			"/s1/state": {
+				name: "state",
+				fields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+				},
+				path: []string{"", "s1", "state"},
+			},
+		},
+	}, {
+		name: "nested container struct generation test",
+		in: []*yang.Entry{
+			{
+				Name: "module",
+				Dir: map[string]*yang.Entry{
+					"s1": {
+						Name: "s1",
+						Dir: map[string]*yang.Entry{
+							"config": {
+								Name:   "config",
+								Parent: &yang.Entry{Name: "s1"},
+								Dir: map[string]*yang.Entry{
+									"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+									"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+								},
+							},
+							"state": {
+								Name:   "state",
+								Parent: &yang.Entry{Name: "s1"},
+								Dir: map[string]*yang.Entry{
+									"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}}, // Deliberate type mismatch
+									"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+									"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+								},
+							},
+							"outer-container": {
+								Name:   "outer-container",
+								Parent: &yang.Entry{Name: "s1"},
+								Dir: map[string]*yang.Entry{
+									"inner-container": {
+										Name:   "inner-container",
+										Parent: &yang.Entry{Name: "outer-container", Parent: &yang.Entry{Name: "s1"}},
+										Dir: map[string]*yang.Entry{
+											"config": {
+												Name: "config",
+												Parent: &yang.Entry{
+													Name:   "inner-container",
+													Parent: &yang.Entry{Name: "outer-container", Parent: &yang.Entry{Name: "s1"}},
+												},
+												Dir: map[string]*yang.Entry{
+													"inner-leaf": {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+												},
+											},
+											"state": {
+												Name: "state",
+												Parent: &yang.Entry{
+													Name:   "inner-container",
+													Parent: &yang.Entry{Name: "outer-container", Parent: &yang.Entry{Name: "s1"}},
+												},
+												Dir: map[string]*yang.Entry{
+													"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+													"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantCompress: map[string]yangDirectory{
+			"/s1": {
+				name: "s1",
+				fields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+				},
+				path: []string{"", "s1"},
+			},
+			"/s1/outer-container": {
+				name: "outer-container",
+				fields: map[string]*yang.Entry{
+					"inner-container": {Name: "inner-container"},
+				},
+				path: []string{"", "s1", "outer-container"},
+			},
+			"/s1/outer-container/inner-container": {
+				name: "inner-container",
+				fields: map[string]*yang.Entry{
+					"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				path: []string{"", "s1", "outer-container", "inner-container"},
+			},
+		},
+		wantUncompress: map[string]yangDirectory{
+			"/s1": {
+				name: "s1",
+				fields: map[string]*yang.Entry{
+					"config":          {Name: "config"},
+					"state":           {Name: "state"},
+					"outer-container": {Name: "outer-container"},
+				},
+				path: []string{"", "s1"},
+			},
+			"/s1/config": {
+				name: "config",
+				fields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				path: []string{"", "s1", "config"},
+			},
+			"/s1/state": {
+				name: "state",
+				fields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+				},
+				path: []string{"", "s1", "state"},
+			},
+			"/s1/outer-container": {
+				name:   "outer-container",
+				fields: map[string]*yang.Entry{"inner-container": {Name: "inner-container"}},
+				path:   []string{"", "s1", "outer-container"},
+			},
+			"/s1/outer-container/inner-container": {
+				name: "inner-container",
+				fields: map[string]*yang.Entry{
+					"config": {Name: "config"},
+					"state":  {Name: "state"},
+				},
+				path: []string{"", "s1", "outer-container", "inner-container"},
+			},
+			"/s1/outer-container/inner-container/config": {
+				name: "config",
+				fields: map[string]*yang.Entry{
+					"inner-leaf": {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+				},
+				path: []string{"", "s1", "outer-container", "inner-container", "config"},
+			},
+			"/s1/outer-container/inner-container/state": {
+				name: "state",
+				fields: map[string]*yang.Entry{
+					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				path: []string{"", "s1", "outer-container", "inner-container", "state"},
+			},
+		},
+	}, {
+		name: "container with choice around leaves",
+		in: []*yang.Entry{
+			{
+				Name: "module",
+				Dir: map[string]*yang.Entry{
+					"top-container": {
+						Name: "top-container",
+						Dir: map[string]*yang.Entry{
+							"config": {
+								Name:   "config",
+								Parent: &yang.Entry{Name: "top-container"},
+								Dir: map[string]*yang.Entry{
+									"choice-node": {
+										Name: "choice-node",
+										Kind: yang.ChoiceEntry,
+										Dir: map[string]*yang.Entry{
+											"case-one": {
+												Name: "case-one",
+												Kind: yang.CaseEntry,
+												Parent: &yang.Entry{
+													Name:   "choice-node",
+													Kind:   yang.ChoiceEntry,
+													Parent: &yang.Entry{Name: "config", Parent: &yang.Entry{Name: "top-container"}},
+												},
+												Dir: map[string]*yang.Entry{
+													"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
+												},
+											},
+											"case-two": {
+												Name: "case-two",
+												Kind: yang.CaseEntry,
+												Parent: &yang.Entry{
+													Name:   "choice-node",
+													Kind:   yang.ChoiceEntry,
+													Parent: &yang.Entry{Name: "config", Parent: &yang.Entry{Name: "top-container"}},
+												},
+												Dir: map[string]*yang.Entry{
+													"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
+												},
+											},
+										},
+									},
+								},
+							},
+							"state": {
+								Name:   "state",
+								Parent: &yang.Entry{Name: "top-container"},
+								Dir: map[string]*yang.Entry{
+									"choice-node": {
+										Name: "choice-node",
+										Kind: yang.ChoiceEntry,
+										Dir: map[string]*yang.Entry{
+											"case-one": {
+												Name: "case-one",
+												Kind: yang.CaseEntry,
+												Parent: &yang.Entry{
+													Name:   "choice-node",
+													Kind:   yang.ChoiceEntry,
+													Parent: &yang.Entry{Name: "state", Parent: &yang.Entry{Name: "top-container"}},
+												},
+												Dir: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
+											},
+											"case-two": {
+												Name: "case-two",
+												Kind: yang.CaseEntry,
+												Parent: &yang.Entry{
+													Name:   "choice-node",
+													Kind:   yang.ChoiceEntry,
+													Parent: &yang.Entry{Name: "state", Parent: &yang.Entry{Name: "top-container"}},
+												},
+												Dir: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantCompress: map[string]yangDirectory{
+			"/top-container": {
+				name: "top-container",
+				fields: map[string]*yang.Entry{
+					"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
+					"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				path: []string{"", "top-container"},
+			},
+		},
+		wantUncompress: map[string]yangDirectory{
+			"/top-container": {
+				name: "top-container",
+				fields: map[string]*yang.Entry{
+					"config": {Name: "config"},
+					"state":  {Name: "state"},
+				},
+				path: []string{"", "top-container"},
+			},
+			"/top-container/config": {
+				name: "config",
+				fields: map[string]*yang.Entry{
+					"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
+					"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				path: []string{"", "top-container", "config"},
+			},
+			"/top-container/state": {
+				name: "state",
+				fields: map[string]*yang.Entry{
+					"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
+					"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				path: []string{"", "top-container", "state"},
+			},
+		},
+	}, {
+		name: "schema with list",
+		in: []*yang.Entry{
+			{
+				Name: "container",
+				Dir: map[string]*yang.Entry{
+					"list": {
+						Name:     "list",
+						Parent:   &yang.Entry{Name: "container", Parent: &yang.Entry{Name: "module"}},
+						Key:      "key",
+						ListAttr: &yang.ListAttr{},
+						Dir: map[string]*yang.Entry{
+							"key": {
+								Name: "key",
+								Type: &yang.YangType{Kind: yang.Yleafref, Path: "../config/key"},
+								Parent: &yang.Entry{
+									Name: "list",
+									Parent: &yang.Entry{
+										Name: "container",
+										Parent: &yang.Entry{
+											Name: "module",
+										},
+									},
+								},
+							},
+							"config": {
+								Name:   "config",
+								Parent: &yang.Entry{Name: "list", Parent: &yang.Entry{Name: "container", Parent: &yang.Entry{Name: "module"}}},
+								Dir: map[string]*yang.Entry{
+									"key": {
+										Name: "key",
+										Type: &yang.YangType{Kind: yang.Ystring},
+										Parent: &yang.Entry{
+											Name: "config",
+											Parent: &yang.Entry{
+												Name: "list",
+												Parent: &yang.Entry{
+													Name: "container",
+													Parent: &yang.Entry{
+														Name: "module",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							"state": {
+								Name:   "state",
+								Parent: &yang.Entry{Name: "list", Parent: &yang.Entry{Name: "container", Parent: &yang.Entry{Name: "module"}}},
+
+								Dir: map[string]*yang.Entry{
+									"key": {
+										Name: "key",
+										Type: &yang.YangType{Kind: yang.Ystring},
+										Parent: &yang.Entry{
+											Name: "config",
+											Parent: &yang.Entry{
+												Name: "list",
+												Parent: &yang.Entry{
+													Name: "container",
+													Parent: &yang.Entry{
+														Name: "module",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{Name: "module"},
+			},
+		},
+		wantCompress: map[string]yangDirectory{
+			"/module/container/list": {
+				name: "list",
+				fields: map[string]*yang.Entry{
+					"key": {Name: "key", Type: &yang.YangType{Kind: yang.Ystring}},
+				},
+			},
+		},
+		wantUncompress: map[string]yangDirectory{
+			"/module/container/list": {
+				name: "list",
+				fields: map[string]*yang.Entry{
+					"key":    {Name: "key", Type: &yang.YangType{Kind: yang.Yleafref}},
+					"config": {Name: "config"},
+					"state":  {Name: "state"},
+				},
+			},
+			"/module/container/list/config": {
+				name: "config",
+				fields: map[string]*yang.Entry{
+					"key": {Name: "key", Type: &yang.YangType{Kind: yang.Ystring}},
+				},
+			},
+			"/module/container/list/state": {
+				name: "state",
+				fields: map[string]*yang.Entry{
+					"key": {Name: "key", Type: &yang.YangType{Kind: yang.Ystring}},
+				},
+			},
+		},
+	}, {
+		name: "schema with choice around container",
+		in: []*yang.Entry{
+			{
+				Name: "container",
+				Dir: map[string]*yang.Entry{
+					"choice-node": {
+						Name:   "choice-node",
+						Kind:   yang.ChoiceEntry,
+						Parent: &yang.Entry{Name: "container"},
+						Dir: map[string]*yang.Entry{
+							"case-one": {
+								Name:   "case-one",
+								Kind:   yang.CaseEntry,
+								Parent: &yang.Entry{Name: "choice-node", Parent: &yang.Entry{Name: "container"}},
+								Dir: map[string]*yang.Entry{
+									"second-container": {
+										Name: "second-container",
+										Parent: &yang.Entry{
+											Name: "case-one",
+											Parent: &yang.Entry{
+												Name:   "choice-node",
+												Parent: &yang.Entry{Name: "container"},
+											},
+										},
+										Dir: map[string]*yang.Entry{
+											"config": {
+												Name: "config",
+												Parent: &yang.Entry{
+													Name: "second-container",
+													Parent: &yang.Entry{
+														Name:   "case-one",
+														Parent: &yang.Entry{Name: "choice-node", Parent: &yang.Entry{Name: "container"}},
+													},
+												},
+												Dir: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
+											},
+										},
+									},
+								},
+							},
+							"case-two": {
+								Name:   "case-two",
+								Kind:   yang.CaseEntry,
+								Parent: &yang.Entry{Name: "choice-node", Parent: &yang.Entry{Name: "container"}},
+								Dir: map[string]*yang.Entry{
+									"third-container": {
+										Name: "third-container",
+										Parent: &yang.Entry{
+											Name:   "case-two",
+											Parent: &yang.Entry{Name: "choice-node", Parent: &yang.Entry{Name: "container"}},
+										},
+										Dir: map[string]*yang.Entry{
+											"config": {
+												Name: "config",
+												Parent: &yang.Entry{
+													Name: "third-container",
+													Parent: &yang.Entry{
+														Name:   "case-two",
+														Parent: &yang.Entry{Name: "choice-node", Parent: &yang.Entry{Name: "container"}},
+													},
+												},
+												Dir: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantCompress: map[string]yangDirectory{
+			"/container": {
+				name: "container",
+				fields: map[string]*yang.Entry{
+					"second-container": {Name: "second-container"},
+					"third-container":  {Name: "third-container"},
+				},
+			},
+			// Since these are schema paths then we still have the choice node's name
+			// here, we need to check that the processing recursed correctly into the
+			// container.
+			"/container/choice-node/case-one/second-container": {
+				name:   "second-container",
+				fields: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
+			},
+			"/container/choice-node/case-two/third-container": {
+				name:   "third-container",
+				fields: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
+			},
+		},
+		wantUncompress: map[string]yangDirectory{
+			"/container": {
+				name: "container",
+				fields: map[string]*yang.Entry{
+					"second-container": {Name: "second-container"},
+					"third-container":  {Name: "third-container"},
+				},
+			},
+			"/container/choice-node/case-one/second-container": {
+				name:   "second-container",
+				fields: map[string]*yang.Entry{"config": {Name: "config"}},
+			},
+			"/container/choice-node/case-two/third-container": {
+				name:   "third-container",
+				fields: map[string]*yang.Entry{"config": {Name: "config"}},
+			},
+			"/container/choice-node/case-one/second-container/config": {
+				name:   "config",
+				fields: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
+			},
+			"/container/choice-node/case-two/third-container/config": {
+				name:   "config",
+				fields: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		for compress, expected := range map[bool]map[string]yangDirectory{true: tt.wantCompress, false: tt.wantUncompress} {
+			cg := NewYANGCodeGenerator(&GeneratorConfig{
+				CompressOCPaths: compress,
+			})
+
+			st, err := buildSchemaTree(tt.in)
+			if err != nil {
+				t.Errorf("%s: buildSchemaTree(%v), got unexpected err: %v", tt.name, tt.in, err)
+				continue
+			}
+			cg.state.schematree = st
+
+			structs := make(map[string]*yang.Entry)
+			enums := make(map[string]*yang.Entry)
+
+			for _, inc := range tt.in {
+				cg.findMappableEntities(inc, structs, enums)
+			}
+
+			structDefs, errs := cg.state.buildGoStructDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot)
+			if len(errs) > 0 {
+				t.Errorf("%s buildGoStructDefinitions(CompressOCPaths: %v): could not build struct defs: %v", tt.name, compress, errs)
+				continue
+			}
+
+			for name, gostruct := range structDefs {
+				expstr, ok := expected[name]
+				if !ok {
+					t.Errorf("%s buildGoStructDefinitions(CompressOCPaths: %v): could not find expected struct %s, got: %v, want: %v",
+						tt.name, compress, name, structDefs, expected)
+					continue
+				}
+
+				for fieldk, fieldv := range expstr.fields {
+					cmpfield, ok := gostruct.fields[fieldk]
+					if !ok {
+						t.Errorf("%s buildGoStructDefinitions(CompressOCPaths: %v): could not find expected field %s in %s, got: %v",
+							tt.name, compress, fieldk, name, gostruct.fields)
+						continue
+					}
+
+					if fieldv.Name != cmpfield.Name {
+						t.Errorf("%s buildGoStructDefinitions(CompressOCPaths: %v): field %s of %s did not have expected name, got: %v, want: %v",
+							tt.name, compress, fieldk, name, fieldv.Name, cmpfield.Name)
+					}
+
+					if fieldv.Type != nil && cmpfield.Type != nil {
+						if fieldv.Type.Kind != cmpfield.Type.Kind {
+							t.Errorf("%s buildGoStructDefinitions(CompressOCPaths: %v): field %s of %s did not have expected type got: %s, want: %s",
+								tt.name, compress, fieldk, name, fieldv.Type.Kind, cmpfield.Type.Kind)
+						}
+					}
+
+				}
+
+				if len(expstr.path) > 0 && !reflect.DeepEqual(expstr.path, gostruct.path) {
+					t.Errorf("%s (%v): %s did not have matching path, got: %v, want: %v", tt.name, compress, name, expstr.path, gostruct.path)
+				}
 			}
 		}
 	}
