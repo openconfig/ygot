@@ -54,10 +54,10 @@ type wantGoStructOut struct {
 func TestGoCodeStructGeneration(t *testing.T) {
 	tests := []struct {
 		name          string
-		inStructToMap *yangStruct
+		inStructToMap *yangDirectory
 		// inMappableEntities is the set of other mappable entities that are
 		// in the same module as the struct to map
-		inMappableEntities map[string]*yangStruct
+		inMappableEntities map[string]*yangDirectory
 		// inUniqueStructNames is the set of names of structs that have been
 		// defined during the pre-processing of the module, it is used to
 		// determine the names of referenced lists and structs.
@@ -66,7 +66,7 @@ func TestGoCodeStructGeneration(t *testing.T) {
 		wantUncompressed    wantGoStructOut
 	}{{
 		name: "simple single leaf mapping test",
-		inStructToMap: &yangStruct{
+		inStructToMap: &yangDirectory{
 			name: "Tstruct",
 			fields: map[string]*yang.Entry{
 				"f1": {
@@ -159,7 +159,7 @@ func (s *Tstruct) Validate() error {
 		},
 	}, {
 		name: "struct with a multi-type union",
-		inStructToMap: &yangStruct{
+		inStructToMap: &yangDirectory{
 			name: "InputStruct",
 			fields: map[string]*yang.Entry{
 				"u1": {
@@ -286,7 +286,7 @@ func (*Module_InputStruct_U1_Union_String) Is_Module_InputStruct_U1_Union() {}
 		},
 	}, {
 		name: "nested container in struct",
-		inStructToMap: &yangStruct{
+		inStructToMap: &yangDirectory{
 			name: "InputStruct",
 			fields: map[string]*yang.Entry{
 				"c1": {
@@ -353,7 +353,7 @@ func (s *InputStruct) Validate() error {
 		},
 	}, {
 		name: "struct with missing struct referenced",
-		inStructToMap: &yangStruct{
+		inStructToMap: &yangDirectory{
 			name: "AStruct",
 			fields: map[string]*yang.Entry{
 				"elem": {
@@ -377,7 +377,7 @@ func (s *InputStruct) Validate() error {
 		wantUncompressed: wantGoStructOut{wantErr: true},
 	}, {
 		name: "struct with missing list referenced",
-		inStructToMap: &yangStruct{
+		inStructToMap: &yangDirectory{
 			name: "BStruct",
 			fields: map[string]*yang.Entry{
 				"list": {
@@ -402,7 +402,7 @@ func (s *InputStruct) Validate() error {
 		wantUncompressed: wantGoStructOut{wantErr: true},
 	}, {
 		name: "struct with keyless list",
-		inStructToMap: &yangStruct{
+		inStructToMap: &yangDirectory{
 			name: "QStruct",
 			fields: map[string]*yang.Entry{
 				"a-list": {
@@ -423,7 +423,7 @@ func (s *InputStruct) Validate() error {
 			},
 			path: []string{"", "root-module", "q-struct"},
 		},
-		inMappableEntities: map[string]*yangStruct{
+		inMappableEntities: map[string]*yangDirectory{
 			"/root-module/q-struct/a-list": {
 				name: "QStruct_AList",
 			},
@@ -477,7 +477,7 @@ func (s *QStruct) Validate() error {
 		},
 	}, {
 		name: "struct with single key list",
-		inStructToMap: &yangStruct{
+		inStructToMap: &yangDirectory{
 			name: "Tstruct",
 			fields: map[string]*yang.Entry{
 				"listWithKey": {
@@ -504,7 +504,7 @@ func (s *QStruct) Validate() error {
 			},
 			path: []string{"", "root-module", "tstruct"},
 		},
-		inMappableEntities: map[string]*yangStruct{
+		inMappableEntities: map[string]*yangDirectory{
 			"/root-module/tstruct/listWithKey": {
 				name: "ListWithKey",
 				listAttr: &yangListAttr{
@@ -623,7 +623,7 @@ func (s *Tstruct) Validate() error {
 		},
 	}, {
 		name: "struct with multi-key list",
-		inStructToMap: &yangStruct{
+		inStructToMap: &yangDirectory{
 			name: "Tstruct",
 			fields: map[string]*yang.Entry{
 				"listWithKey": {
@@ -654,7 +654,7 @@ func (s *Tstruct) Validate() error {
 			},
 			path: []string{"", "root-module", "tstruct"},
 		},
-		inMappableEntities: map[string]*yangStruct{
+		inMappableEntities: map[string]*yangDirectory{
 			"/root-module/tstruct/listWithKey": {
 				name: "ListWithKey",
 				listAttr: &yangListAttr{
@@ -1039,14 +1039,14 @@ const (
 func TestFindMapPaths(t *testing.T) {
 	tests := []struct {
 		name              string
-		inStruct          *yangStruct
+		inStruct          *yangDirectory
 		inField           *yang.Entry
 		inCompressOCPaths bool
 		wantPaths         [][]string
 		wantErr           bool
 	}{{
 		name: "first-level container with path compression off",
-		inStruct: &yangStruct{
+		inStruct: &yangDirectory{
 			name: "AContainer",
 			path: []string{"", "a-module", "a-container"},
 		},
@@ -1062,7 +1062,7 @@ func TestFindMapPaths(t *testing.T) {
 		wantPaths: [][]string{{"a-container", "field-a"}},
 	}, {
 		name: "invalid parent path",
-		inStruct: &yangStruct{
+		inStruct: &yangDirectory{
 			name: "AContainer",
 			path: []string{"", "a-module", "a-container"},
 		},
@@ -1075,7 +1075,7 @@ func TestFindMapPaths(t *testing.T) {
 		wantErr: true,
 	}, {
 		name: "first-level container with path compression on",
-		inStruct: &yangStruct{
+		inStruct: &yangDirectory{
 			name: "BContainer",
 			path: []string{"", "a-module", "b-container"},
 		},
@@ -1095,7 +1095,7 @@ func TestFindMapPaths(t *testing.T) {
 		wantPaths:         [][]string{{"b-container", "config", "field-b"}},
 	}, {
 		name: "top-level module - not valid to map",
-		inStruct: &yangStruct{
+		inStruct: &yangDirectory{
 			name: "CContainer",
 			path: []string{"", "c-container"}, // Does not have a valid module.
 		},
@@ -1103,7 +1103,7 @@ func TestFindMapPaths(t *testing.T) {
 		wantErr: true,
 	}, {
 		name: "list with leafref key",
-		inStruct: &yangStruct{
+		inStruct: &yangDirectory{
 			name: "DList",
 			path: []string{"", "d-module", "d-container", "d-list"},
 			listAttr: &yangListAttr{

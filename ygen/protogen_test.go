@@ -23,14 +23,14 @@ import (
 func TestGenProtoMsg(t *testing.T) {
 	tests := []struct {
 		name                string
-		inMsg               *yangStruct
-		inMsgs              map[string]*yangStruct
+		inMsg               *yangDirectory
+		inMsgs              map[string]*yangDirectory
 		inUniqueStructNames map[string]string
 		wantMsg             protoMsg
 		wantErr             bool
 	}{{
 		name: "simple message with only scalar fields",
-		inMsg: &yangStruct{
+		inMsg: &yangDirectory{
 			name: "MessageName",
 			entry: &yang.Entry{
 				Name: "message-name",
@@ -63,7 +63,7 @@ func TestGenProtoMsg(t *testing.T) {
 		},
 	}, {
 		name: "simple message with leaf-list and a message child",
-		inMsg: &yangStruct{
+		inMsg: &yangDirectory{
 			name: "AMessage",
 			entry: &yang.Entry{
 				Name: "a-message",
@@ -107,7 +107,7 @@ func TestGenProtoMsg(t *testing.T) {
 		},
 	}, {
 		name: "message with unimplemented list",
-		inMsg: &yangStruct{
+		inMsg: &yangDirectory{
 			name: "AMessageWithAList",
 			entry: &yang.Entry{
 				Name: "a-message-with-a-list",

@@ -36,11 +36,11 @@ type protoMsg struct {
 	Fields   []*protoMsgField // Fields is a slice of the fields that are within the message.
 }
 
-// genProtoMsg takes an input yangStruct which describes a container or list entry
+// genProtoMsg takes an input yangDirectory which describes a container or list entry
 // within the YANG schema and returns a protoMsg which can be mapped to the protobuf
 // code representing it. It uses the set of messages that have been extracted and the
 // current generator state to map to other messages and ensure uniqueness of names.
-func genProtoMsg(msg *yangStruct, msgs map[string]*yangStruct, state *genState) (protoMsg, []error) {
+func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState) (protoMsg, []error) {
 	var errs []error
 
 	msgDef := protoMsg{
