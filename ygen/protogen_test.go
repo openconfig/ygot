@@ -14,11 +14,37 @@
 package ygen
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 )
+
+func protoMsgEq(a, b protoMsg) bool {
+	if a.Name != b.Name {
+		return false
+	}
+
+	if a.YANGPath != b.YANGPath {
+		return false
+	}
+
+	// Avoid flakes by comparing the fields in an unordered data structure.
+	fieldMap := func(s []*protoMsgField) map[string]*protoMsgField {
+		e := map[string]*protoMsgField{}
+		for _, m := range s {
+			e[m.Name] = m
+		}
+		return e
+	}
+
+	if !reflect.DeepEqual(fieldMap(a.Fields), fieldMap(b.Fields)) {
+		return false
+	}
+
+	return true
+}
 
 func TestGenProtoMsg(t *testing.T) {
 	tests := []struct {
@@ -144,7 +170,8 @@ func TestGenProtoMsg(t *testing.T) {
 			continue
 		}
 
-		if diff := pretty.Compare(got, tt.wantMsg); diff != "" {
+		if !protoMsgEq(got, tt.wantMsg) {
+			diff := pretty.Compare(got, tt.wantMsg)
 			t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): did not get expected protobuf message definition, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, diff)
 		}
 	}
