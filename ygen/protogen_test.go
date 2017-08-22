@@ -167,6 +167,10 @@ func TestSafeProtoName(t *testing.T) {
 		name: "contains forward slash",
 		in:   "with/forwardslash",
 		want: "with_forwardslash",
+	}, {
+		name: "unchanged",
+		in:   "unchanged",
+		want: "unchanged",
 	}}
 
 	for _, tt := range tests {
