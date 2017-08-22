@@ -2,4 +2,7 @@ language: go
 go:
         - 1.8.x
         - master
+before_install:
+        - ./scripts/install_protobuf.sh
+        - export PATH=$PATH:$HOME/protobuf/bin
 install: make install
