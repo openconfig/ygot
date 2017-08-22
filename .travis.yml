@@ -5,4 +5,6 @@ go:
 before_install:
         - ./scripts/install_protobuf.sh
         - export PATH=$PATH:$HOME/protobuf/bin
-install: make install
+install:
+        - go get -u github.com/golang/protobuf/protoc-gen-go
+        - make install

@@ -11,6 +11,6 @@ if [ ! -d "$HOME/protobuf" ]; then
   cd $HOME
   wget $PROTO_URL
   mkdir $HOME/protobuf
-  cd $HOME/protobuf 
+  cd $HOME/protobuf
   unzip $HOME/$PROTO_FILE
 fi
