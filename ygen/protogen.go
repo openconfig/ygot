@@ -14,6 +14,7 @@
 package ygen
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"text/template"
@@ -62,17 +63,20 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 	// protoMessageTemplate is populated for each entity that is mapped to a message
 	// within the output protobuf.
 	protoMessageTemplate = `
-// {{ .MessageName }} represents the {{ .YANGPath }} YANG schema element.
-message {{ .MessageName }} {
+// {{ .Name }} represents the {{ .YANGPath }} YANG schema element.
+message {{ .Name }} {
 {{- range $idx, $field := .Fields }}
   {{ if $field.IsRepeated }}repeated {{ end -}}
-  {{ $field.Type }} {{ $field.Name }} = {{ $field.ID }} [
-  {{- $noOptions := len .Options -}}
-  {{- range $i, $opt := $field.Options -}}
-    {{- $opt -}}
-    {{- if ne (inc $i) $noOptions -}}, {{- end }}
+  {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }}
+  {{- $noExtensions := len .Extensions -}}
+  {{- if ne $noExtensions 0 -}} [
+    {{- range $i, $opt := $field.Extensions -}}
+      {{- $opt -}}
+      {{- if ne (inc $i) $noExtensions -}}, {{- end }}
+   {{- end -}}
+  ]
   {{- end -}}
-  ];
+  ;
 {{- end }}
 }`
 
@@ -92,22 +96,26 @@ message {{ .MessageName }} {
 // the generated code for the protobuf message, and any errors encountered during
 // proto generation.
 func writeProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) (string, string, []error) {
-	d, errs := genProtoMsg(msg, msgs, state)
+	msgDef, errs := genProtoMsg(msg, msgs, state, compressPaths)
 	if len(errs) > 0 {
 		return "", "", errs
 	}
-	_ = d
 
-	// We generate protobufs to be within a package that corresponds to the
-	// YANG directory that they are contained within. For example:
-	//
-	// <module>/interfaces/interface/config -> <module>.interfaces.interface, message Config.
-	// <module>/interfaces/interface -> <module>.interfaces, message Interface.
-	//
-	// Since we do want the path from our parent backwards in the schema tree, then we
-	//
+	if msg.entry.Parent == nil {
+		return "", "", []error{fmt.Errorf("YANG schema element %s does not have a parent, protobuf messages are not generated for modules", msg.entry.Path())}
+	}
 
-	return "", "", nil
+	// pkg is the name of the protobuf package, if the entry's parent has already
+	// been seen in the schema, the same package name as for siblings of this
+	// entry will be returned.
+	pkg := state.protobufPackage(msg.entry, compressPaths)
+
+	var b bytes.Buffer
+	if err := protoTemplates["msg"].Execute(&b, msgDef); err != nil {
+		return "", "", []error{err}
+	}
+
+	return pkg, b.String(), nil
 
 }
 
@@ -115,7 +123,7 @@ func writeProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *ge
 // within the YANG schema and returns a protoMsg which can be mapped to the protobuf
 // code representing it. It uses the set of messages that have been extracted and the
 // current generator state to map to other messages and ensure uniqueness of names.
-func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState) (protoMsg, []error) {
+func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) (protoMsg, []error) {
 	var errs []error
 
 	msgDef := protoMsg{
@@ -143,12 +151,14 @@ func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genS
 			errs = append(errs, fmt.Errorf("proto: list generation unimplemented for %s", field.Path()))
 			continue
 		case field.IsDir():
-			msgName, ok := state.uniqueStructNames[field.Path()]
+			childmsg, ok := msgs[field.Path()]
 			if !ok {
 				errs = append(errs, fmt.Errorf("proto: could not resolve %s into a defined struct", field.Path()))
 				continue
 			}
-			fieldDef.Type = msgName
+
+			childpkg := state.protobufPackage(childmsg.entry, compressPaths)
+			fieldDef.Type = fmt.Sprintf("%s.%s", childpkg, childmsg.name)
 		default:
 			// This is a YANG leaf, or leaf-list.
 			protoType, err := state.yangTypeToProtoType(resolveTypeArgs{yangType: field.Type, contextEntry: field})

@@ -142,7 +142,7 @@ func (s *genState) goStructName(e *yang.Entry, compressOCPaths, genFakeRoot bool
 
 	// Record the name of the struct that was unique such that it can be referenced
 	// by path.
-	s.uniqueStructNames[e.Path()] = uniqName
+	s.uniqueDirectoryNames[e.Path()] = uniqName
 
 	return uniqName
 }

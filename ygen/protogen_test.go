@@ -48,12 +48,13 @@ func protoMsgEq(a, b protoMsg) bool {
 
 func TestGenProtoMsg(t *testing.T) {
 	tests := []struct {
-		name                string
-		inMsg               *yangDirectory
-		inMsgs              map[string]*yangDirectory
-		inUniqueStructNames map[string]string
-		wantMsg             protoMsg
-		wantErr             bool
+		name                   string
+		inMsg                  *yangDirectory
+		inMsgs                 map[string]*yangDirectory
+		inUniqueDirectoryNames map[string]string
+		inCompressPaths        bool
+		wantMsg                protoMsg
+		wantErr                bool
 	}{{
 		name: "simple message with only scalar fields",
 		inMsg: &yangDirectory{
@@ -88,7 +89,7 @@ func TestGenProtoMsg(t *testing.T) {
 			}},
 		},
 	}, {
-		name: "simple message with leaf-list and a message child",
+		name: "simple message with leaf-list and a message child, compression on",
 		inMsg: &yangDirectory{
 			name: "AMessage",
 			entry: &yang.Entry{
@@ -114,8 +115,75 @@ func TestGenProtoMsg(t *testing.T) {
 			},
 			path: []string{"", "root", "a-message"},
 		},
-		inUniqueStructNames: map[string]string{
-			"/root/a-message/container-child": "ContainerChild",
+		inMsgs: map[string]*yangDirectory{
+			"/root/a-message/container-child": {
+				name: "ContainerChild",
+				entry: &yang.Entry{
+					Name: "container-child",
+					Parent: &yang.Entry{
+						Name: "a-message",
+						Parent: &yang.Entry{
+							Name: "root",
+						},
+					},
+				},
+			},
+		},
+		inCompressPaths: true,
+		wantMsg: protoMsg{
+			Name:     "AMessage",
+			YANGPath: "/root/a-message",
+			Fields: []*protoMsgField{{
+				Tag:        1,
+				Name:       "leaf_list",
+				Type:       "ywrapper.StringValue",
+				IsRepeated: true,
+			}, {
+				Tag:  1,
+				Name: "container_child",
+				Type: "a_message.ContainerChild",
+			}},
+		},
+	}, {
+		name: "simple message with leaf-list and a message child, compression off",
+		inMsg: &yangDirectory{
+			name: "AMessage",
+			entry: &yang.Entry{
+				Name: "a-message",
+				Dir:  map[string]*yang.Entry{},
+			},
+			fields: map[string]*yang.Entry{
+				"leaf-list": {
+					Name:     "leaf-list",
+					Type:     &yang.YangType{Kind: yang.Ystring},
+					ListAttr: &yang.ListAttr{},
+				},
+				"container-child": {
+					Name: "container-child",
+					Dir:  map[string]*yang.Entry{},
+					Parent: &yang.Entry{
+						Name: "a-message",
+						Parent: &yang.Entry{
+							Name: "root",
+						},
+					},
+				},
+			},
+			path: []string{"", "root", "a-message"},
+		},
+		inMsgs: map[string]*yangDirectory{
+			"/root/a-message/container-child": {
+				name: "ContainerChild",
+				entry: &yang.Entry{
+					Name: "container-child",
+					Parent: &yang.Entry{
+						Name: "a-message",
+						Parent: &yang.Entry{
+							Name: "root",
+						},
+					},
+				},
+			},
 		},
 		wantMsg: protoMsg{
 			Name:     "AMessage",
@@ -128,7 +196,7 @@ func TestGenProtoMsg(t *testing.T) {
 			}, {
 				Tag:  1,
 				Name: "container_child",
-				Type: "ContainerChild",
+				Type: "root.a_message.ContainerChild",
 			}},
 		},
 	}, {
@@ -159,11 +227,11 @@ func TestGenProtoMsg(t *testing.T) {
 	for _, tt := range tests {
 		s := newGenState()
 		// Seed the state with the supplied message names that have been provided.
-		s.uniqueStructNames = tt.inUniqueStructNames
+		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
-		got, errs := genProtoMsg(tt.inMsg, tt.inMsgs, s)
+		got, errs := genProtoMsg(tt.inMsg, tt.inMsgs, s, tt.inCompressPaths)
 		if (len(errs) > 0) != tt.wantErr {
-			t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, errs, tt.wantErr)
+			t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, errs, tt.wantErr)
 		}
 
 		if tt.wantErr {
@@ -203,6 +271,153 @@ func TestSafeProtoName(t *testing.T) {
 	for _, tt := range tests {
 		if got := safeProtoFieldName(tt.in); got != tt.want {
 			t.Errorf("%s: safeProtoFieldName(%s): did not get expected name, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		}
+	}
+}
+
+// writeProtoTestResult stores the result of a test for writeProtoMsg.
+type writeProtoMsgTestResult struct {
+	pkg string // pkg stores the expected package returned from writeProtoMsg.
+	msg string // msg stores the expected message code returned.
+	err bool   // err stores whether there are expected to be returned errors.
+}
+
+func TestWriteProtoMsg(t *testing.T) {
+	tests := []struct {
+		name           string
+		inMsg          *yangDirectory
+		inMsgs         map[string]*yangDirectory
+		wantCompress   writeProtoMsgTestResult
+		wantUncompress writeProtoMsgTestResult
+	}{{
+		name: "simple message with scalar fields",
+		inMsg: &yangDirectory{
+			name: "MessageName",
+			entry: &yang.Entry{
+				Name: "message-name",
+				Kind: yang.DirectoryEntry,
+				Dir:  map[string]*yang.Entry{},
+				Parent: &yang.Entry{
+					Name: "container",
+					Kind: yang.DirectoryEntry,
+					Dir:  map[string]*yang.Entry{},
+					Parent: &yang.Entry{
+						Name: "module",
+						Kind: yang.DirectoryEntry,
+						Dir:  map[string]*yang.Entry{},
+					},
+				},
+			},
+			fields: map[string]*yang.Entry{
+				"field-one": &yang.Entry{
+					Name: "field-one",
+					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+			},
+			path: []string{"", "module", "container", "message-name"},
+		},
+		wantCompress: writeProtoMsgTestResult{
+			pkg: "container",
+			msg: `
+// MessageName represents the /module/container/message-name YANG schema element.
+message MessageName {
+  ywrapper.StringValue field_one = 1;
+}`,
+		},
+		wantUncompress: writeProtoMsgTestResult{
+			pkg: "module.container",
+			msg: `
+// MessageName represents the /module/container/message-name YANG schema element.
+message MessageName {
+  ywrapper.StringValue field_one = 1;
+}`,
+		},
+	}, {
+		name: "simple message with other messages embedded",
+		inMsg: &yangDirectory{
+			name: "MessageName",
+			entry: &yang.Entry{
+				Name: "message-name",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
+				},
+			},
+			fields: map[string]*yang.Entry{
+				"child": &yang.Entry{
+					Name: "child",
+					Kind: yang.DirectoryEntry,
+					Dir:  map[string]*yang.Entry{},
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "module",
+							Kind: yang.DirectoryEntry,
+						},
+					},
+				},
+			},
+			path: []string{"", "module", "message-name"},
+		},
+		inMsgs: map[string]*yangDirectory{
+			"/module/message-name/child": &yangDirectory{
+				name: "Child",
+				entry: &yang.Entry{
+					Name: "child",
+					Kind: yang.DirectoryEntry,
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "module",
+							Kind: yang.DirectoryEntry,
+						},
+					},
+				},
+			},
+		},
+		wantCompress: writeProtoMsgTestResult{
+			pkg: "",
+			msg: `
+// MessageName represents the /module/message-name YANG schema element.
+message MessageName {
+  message_name.Child child = 1;
+}`,
+		},
+		wantUncompress: writeProtoMsgTestResult{
+			pkg: "module",
+			msg: `
+// MessageName represents the /module/message-name YANG schema element.
+message MessageName {
+  module.message_name.Child child = 1;
+}`,
+		},
+	}}
+
+	for _, tt := range tests {
+		for compress, want := range map[bool]writeProtoMsgTestResult{true: tt.wantCompress, false: tt.wantUncompress} {
+			s := newGenState()
+			gotPkg, gotMsg, errs := writeProtoMsg(tt.inMsg, tt.inMsgs, s, compress)
+			if (len(errs) > 0) != want.err {
+				t.Errorf("%s: writeProtoMsg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, want.err)
+			}
+
+			if len(errs) > 0 {
+				continue
+			}
+
+			if gotPkg != want.pkg {
+				t.Errorf("%s: writeProtoMsg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, gotPkg, want.pkg)
+			}
+
+			if diff := pretty.Compare(gotMsg, want.msg); diff != "" {
+				if diffl, err := generateUnifiedDiff(gotMsg, want.msg); err == nil {
+					diff = diffl
+				}
+				t.Errorf("%s: writeProtoMsg(%v, %v, %v, %v): did not get expected message returned, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+			}
 		}
 	}
 }

@@ -58,12 +58,12 @@ func TestGoCodeStructGeneration(t *testing.T) {
 		// inMappableEntities is the set of other mappable entities that are
 		// in the same module as the struct to map
 		inMappableEntities map[string]*yangDirectory
-		// inUniqueStructNames is the set of names of structs that have been
+		// inUniqueDirectoryNames is the set of names of structs that have been
 		// defined during the pre-processing of the module, it is used to
 		// determine the names of referenced lists and structs.
-		inUniqueStructNames map[string]string
-		wantCompressed      wantGoStructOut
-		wantUncompressed    wantGoStructOut
+		inUniqueDirectoryNames map[string]string
+		wantCompressed         wantGoStructOut
+		wantUncompressed       wantGoStructOut
 	}{{
 		name: "simple single leaf mapping test",
 		inStructToMap: &yangDirectory{
@@ -185,7 +185,7 @@ func (s *Tstruct) Validate() error {
 			},
 			path: []string{"", "module", "input-struct"},
 		},
-		inUniqueStructNames: map[string]string{"/module/input-struct": "InputStruct"},
+		inUniqueDirectoryNames: map[string]string{"/module/input-struct": "InputStruct"},
 		wantCompressed: wantGoStructOut{
 			structs: `
 // InputStruct represents the /module/input-struct YANG schema element.
@@ -306,7 +306,7 @@ func (*Module_InputStruct_U1_Union_String) Is_Module_InputStruct_U1_Union() {}
 			},
 			path: []string{"", "root-module", "input-struct"},
 		},
-		inUniqueStructNames: map[string]string{"/root-module/input-struct/c1": "InputStruct_C1"},
+		inUniqueDirectoryNames: map[string]string{"/root-module/input-struct/c1": "InputStruct_C1"},
 		wantCompressed: wantGoStructOut{
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
@@ -428,7 +428,7 @@ func (s *InputStruct) Validate() error {
 				name: "QStruct_AList",
 			},
 		},
-		inUniqueStructNames: map[string]string{
+		inUniqueDirectoryNames: map[string]string{
 			"/root-module/q-struct/a-list": "QStruct_AList",
 		},
 		wantCompressed: wantGoStructOut{
@@ -520,7 +520,7 @@ func (s *QStruct) Validate() error {
 				path: []string{"", "root-module", "tstruct", "listWithKey"},
 			},
 		},
-		inUniqueStructNames: map[string]string{
+		inUniqueDirectoryNames: map[string]string{
 			"/root-module/tstruct/listWithKey": "ListWithKey",
 		},
 		wantCompressed: wantGoStructOut{
@@ -666,7 +666,7 @@ func (s *Tstruct) Validate() error {
 				path: []string{"", "root-module", "tstruct", "listWithKey"},
 			},
 		},
-		inUniqueStructNames: map[string]string{
+		inUniqueDirectoryNames: map[string]string{
 			"/root-module/tstruct/listWithKey": "ListWithKey",
 		},
 		wantCompressed: wantGoStructOut{
@@ -794,7 +794,7 @@ func (s *Tstruct) Validate() error {
 	for _, tt := range tests {
 		for compressed, want := range map[bool]wantGoStructOut{true: tt.wantCompressed, false: tt.wantUncompressed} {
 			s := newGenState()
-			s.uniqueStructNames = tt.inUniqueStructNames
+			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 			// Always generate the JSON schema for this test.
 			got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true)
