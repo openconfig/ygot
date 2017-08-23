@@ -178,6 +178,20 @@ type GeneratedGoCode struct {
 	RawJSONSchema []byte
 }
 
+// GeneratedProto3 stores a set of generated protobuf3 packages.
+type GeneratedProto3 struct {
+	// Packages stores a map, keyed by the Protobuf package name, and containing the contents of the protobuf3
+	// messages defined within the package. The calling application can write out the defined packages to the
+	// files expected by the protoc tool.
+	Packages map[string]Proto3Package
+}
+
+// Proto3Package stores the code for a generated protobuf3 package.
+type Proto3Package struct {
+	Header   string   // Header is the header text to be used in the package.
+	Messages []string // Messages is a slice of strings containing the set of messages that are within the generated package.
+}
+
 // YANGCodeGeneratorError is a type implementing error that is returned to the
 // caller of the library when errors are encountered during code generation. It
 // implements error such that idiomatic if err != nil testing can be used, and
@@ -365,6 +379,55 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		JSONSchemaCode: jsonSchema,
 		RawJSONSchema:  rawSchema,
 	}, nil
+}
+
+// GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
+// The YANG schemas for which protobufs are to be created is supplied as the
+// yangFiles argument, with included modules being searched for in includePaths.
+// Returns a GeneratedProto3 struct containing the messages that are to be
+// output, along with any associated values (e.g., enumerations).
+func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto3, *YANGCodeGeneratorError) {
+	// TODO(robjs): Handle enumerated types in proto messages.
+	msgs, _, st, errs := langAgnosticDefinitions(yangFiles, includePaths, cg.Config)
+	if len(errs) > 0 {
+		return nil, &YANGCodeGeneratorError{Errors: errs}
+	}
+
+	cg.state.schematree = st
+
+	protoMsgs, errs := cg.state.buildDirectoryDefinitions(msgs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf)
+
+	if len(errs) > 0 {
+		return nil, &YANGCodeGeneratorError{Errors: errs}
+	}
+
+	p := &GeneratedProto3{
+		Packages: map[string]Proto3Package{},
+	}
+	ye := NewYANGCodeGeneratorError()
+	for _, m := range protoMsgs {
+		pkg, msg, errs := writeProtoMsg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)
+
+		if len(errs) > 0 {
+			ye.Errors = append(ye.Errors, errs...)
+		}
+
+		tp, ok := p.Packages[pkg]
+		if !ok {
+			p.Packages[pkg] = Proto3Package{
+				Messages: []string{},
+			}
+			tp = p.Packages[pkg]
+		}
+		tp.Messages = append(tp.Messages, msg)
+		p.Packages[pkg] = tp
+	}
+
+	if len(ye.Errors) > 0 {
+		return nil, ye
+	}
+
+	return p, nil
 }
 
 // processModules takes a list of the filenames of YANG modules (yangFiles),

@@ -16,6 +16,7 @@ package ygen
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -135,7 +136,18 @@ func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genS
 
 	definedFieldNames := map[string]bool{}
 
-	for name, field := range msg.fields {
+	// Traverse the fields in alphabetical order to ensure determinsitic output.
+	// TODO(robjs): Once the field tags are unique then make this sort on the
+	// field tag.
+	fNames := []string{}
+	for name := range msg.fields {
+		fNames = append(fNames, name)
+	}
+	sort.Strings(fNames)
+
+	for _, name := range fNames {
+		field := msg.fields[name]
+
 		fieldDef := &protoMsgField{
 			Name: makeNameUnique(safeProtoFieldName(name), definedFieldNames),
 		}

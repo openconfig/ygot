@@ -1,0 +1,5 @@
+
+// Parent represents the /proto-test-a/parent YANG schema element.
+message Parent {
+  parent.Child child = 1;
+}
