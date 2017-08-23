@@ -90,12 +90,12 @@ type resolveTypeArgs struct {
 // the code such that we do not have genState receivers here, but rather pass in the
 // generated state as a parameter to the function that is being called.
 
-// pathToName takes an input yang.Entry and outputs its name as a Go compatible
+// pathToCamelCaseName takes an input yang.Entry and outputs its name as a Go compatible
 // name in the form PathElement1_PathElement2, performing schema compression
 // if required. The name is not checked for uniqueness. The genFakeRoot boolean
 // specifies whether the fake root exists within the schema such that it can be
 // handled specifically in the path generation.
-func (s *genState) pathToName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
+func (s *genState) pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
 	var pathElements []*yang.Entry
 
 	switch {
@@ -111,7 +111,7 @@ func (s *genState) pathToName(e *yang.Entry, compressOCPaths, genFakeRoot bool) 
 			// element to the path if the element itself would have code generated
 			// for it - this compresses out surrounding containers, config/state
 			// containers and root modules.
-			if (compressOCPaths && isOCCompressedValidElement(element)) || !compressOCPaths {
+			if compressOCPaths && isOCCompressedValidElement(element) || !compressOCPaths && !isChoiceOrCase(element) {
 				pathElements = append(pathElements, element)
 			}
 			element = element.Parent
@@ -132,13 +132,13 @@ func (s *genState) pathToName(e *yang.Entry, compressOCPaths, genFakeRoot bool) 
 	return buf.String()
 }
 
-// structName generates the name to be used for a particular YANG schema element
+// goStructName generates the name to be used for a particular YANG schema element
 // in the generated Go code. If the compressOCPaths boolean is set to true,
 // schemapaths are compressed, otherwise the name is returned simply as camel
 // case. The genFakeRoot boolean specifies whether the fake root is to be generated
 // such that the struct name can consider the fake root entity specifically.
-func (s *genState) structName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
-	uniqName := makeNameUnique(s.pathToName(e, compressOCPaths, genFakeRoot), s.definedGlobals)
+func (s *genState) goStructName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
+	uniqName := makeNameUnique(s.pathToCamelCaseName(e, compressOCPaths, genFakeRoot), s.definedGlobals)
 
 	// Record the name of the struct that was unique such that it can be referenced
 	// by path.
@@ -585,7 +585,7 @@ func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (mapp
 		return mappedType{}, fmt.Errorf("errors mapping element: %v", errs)
 	}
 
-	nativeType := fmt.Sprintf("%s_Union", s.pathToName(args.contextEntry, compressOCPaths, false))
+	nativeType := fmt.Sprintf("%s_Union", s.pathToCamelCaseName(args.contextEntry, compressOCPaths, false))
 	if len(unionTypes) == 1 {
 		for mappedType := range unionTypes {
 			nativeType = mappedType

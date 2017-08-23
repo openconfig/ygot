@@ -15,6 +15,8 @@ package ygen
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
 )
@@ -52,4 +54,42 @@ func (*genState) yangTypeToProtoType(args resolveTypeArgs) (mappedType, error) {
 		// we just throw an error with types that we cannot map.
 		return mappedType{}, fmt.Errorf("unimplemented type: %v", args.yangType.Kind)
 	}
+}
+
+// protoMsgName takes a yang.Entry and converts it to its protobuf message name,
+// ensuring that the name that is returned is unique within the package that it is
+// being contained within.
+func (s *genState) protoMsgName(e *yang.Entry, compressPaths bool) string {
+	pkg := protobufPackage(e, compressPaths)
+	if _, ok := s.uniqueProtoMsgNames[pkg]; !ok {
+		s.uniqueProtoMsgNames[pkg] = map[string]bool{}
+	}
+
+	n := makeNameUnique(yang.CamelCase(e.Name), s.uniqueProtoMsgNames[pkg])
+	s.uniqueProtoMsgNames[pkg][n] = true
+
+	return n
+}
+
+// protobufPackage generates a protobuf package name for a yang.Entry by taking its
+// parent's path and converting it to a protobuf-safe name. i.e., an entry with
+// the path /openconfig-interfaces/interfaces/interface/config/name returns
+// openconfig_interfaces.interfaces.interface.config. If path compression is
+// enabled then entities that would not have messages generated from them
+// are omitted from the path, i.e., /openconfig-interfaces/interfaces/interface/config/name
+// becomes interface (since modules, surrounding containers, and config/state containers
+// are not considered with path compression enabled.
+func protobufPackage(e *yang.Entry, compressPaths bool) string {
+	parts := []string{}
+	for p := e.Parent; p.Parent != nil; p = p.Parent {
+		if compressPaths && !isOCCompressedValidElement(e) {
+			// If compress paths is enabled, and this entity would not
+			// have been included in the generated protobuf output, therefore
+			// we also exclude it from the package name.
+			continue
+		}
+		parts = append(parts, safeProtoFieldName(p.Name))
+	}
+	sort.Reverse(sort.StringSlice(parts))
+	return strings.Join(parts, ".")
 }

@@ -68,6 +68,12 @@ type genState struct {
 	// schema tree. This is used for lookups within the module set where
 	// they are required, e.g., for leafrefs.
 	schematree *ctree.Tree
+	// uniqueProtoMsgNames is a map, keyed by a protobuf package name, that
+	// contains a map keyed by protobuf message name strings that indicates the
+	// names that are used within the generated package's context. It is used
+	// during code generation to ensure uniqueness of the generated names within
+	// the specified package.
+	uniqueProtoMsgNames map[string]map[string]bool
 }
 
 // newGenState creates a new genState instance, initialised with the default state
@@ -135,14 +141,20 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressOCPaths bool) ([]
 	return es, nil
 }
 
-// buildGoStructDefinitions extracts the yang.Entry instances from a map of
-// entries that need struct definitions built for them. It resolves each
+// buildDirectoryDefinitions extracts the yang.Entry instances from a map of
+// entries that need struct or message definitions built for them. It resolves each
 // yang.Entry to a yangDirectory which contains the elements that are needed for
-// subsequent code generation. The name of the struct is calculated based on
+// subsequent code generation.
+//
+// The name returned for the struct is based on the combination of arguments that
+// are supplied. If pathName is set to true, the name of the directory entry returned
+// is mapped to the underscore separated path of the entity -
+//
+// The name of the struct is calculated based on
 // whether path compression is enabled (via compressOCPaths), and the fake root
 // entity is to be generated (genFakeRoot). If errors are encountered they are
 // returned within an error slice.
-func (s *genState) buildGoStructDefinitions(entries map[string]*yang.Entry, compressOCPaths, genFakeRoot bool) (map[string]*yangDirectory, []error) {
+func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compressOCPaths, genFakeRoot bool, lang generatedLanguage) (map[string]*yangDirectory, []error) {
 	var errs []error
 	mappedStructs := make(map[string]*yangDirectory)
 
@@ -154,8 +166,21 @@ func (s *genState) buildGoStructDefinitions(entries map[string]*yang.Entry, comp
 				entry: e,
 			}
 
-			// Encode the name of the element into a golang compatible struct name,
-			elem.name = s.structName(e, compressOCPaths, genFakeRoot)
+			// Encode the name of the struct according to the language specified
+			// within the input arguments.
+			switch lang {
+			case protobuf:
+				// In the case of protobuf the message name is simply the camel
+				// case name that is specified.
+				elem.name = makeNameUnique(yang.CamelCase(e.Name), s.definedGlobals)
+			case golang:
+				// For Go, we map the name of the struct to the path elements
+				// in CamelCase separated by underscores.
+				elem.name = s.goStructName(e, compressOCPaths, genFakeRoot)
+			default:
+				errs = append(errs, fmt.Errorf("unknown generating language specified for %s, got: %v", e.Name, lang))
+				continue
+			}
 
 			// Find the elements that should be rooted on this particular entity.
 			var fieldErr []error
