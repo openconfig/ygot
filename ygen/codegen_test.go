@@ -656,7 +656,7 @@ func TestGenerateProto3(t *testing.T) {
 	for _, tt := range tests {
 		if tt.inConfig.Caller == "" {
 			// Override the caller if it is not set, to ensure that test
-			// output nis deterministic.
+			// output is deterministic.
 			tt.inConfig.Caller = "codegen-tests"
 		}
 

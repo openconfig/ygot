@@ -277,9 +277,10 @@ func TestSafeProtoName(t *testing.T) {
 
 // writeProtoTestResult stores the result of a test for writeProtoMsg.
 type writeProtoMsgTestResult struct {
-	pkg string // pkg stores the expected package returned from writeProtoMsg.
-	msg string // msg stores the expected message code returned.
-	err bool   // err stores whether there are expected to be returned errors.
+	pkg     string   // pkg stores the expected package returned from writeProtoMsg.
+	msg     string   // msg stores the expected message code returned.
+	imports []string // imports stores the expected set of imports for this message.
+	err     bool     // err stores whether there are expected to be returned errors.
 }
 
 func TestWriteProtoMsg(t *testing.T) {
@@ -399,7 +400,7 @@ message MessageName {
 	for _, tt := range tests {
 		for compress, want := range map[bool]writeProtoMsgTestResult{true: tt.wantCompress, false: tt.wantUncompress} {
 			s := newGenState()
-			gotPkg, gotMsg, errs := writeProtoMsg(tt.inMsg, tt.inMsgs, s, compress)
+			gotPkg, gotMsg, gotImports, errs := writeProtoMsg(tt.inMsg, tt.inMsgs, s, compress)
 			if (len(errs) > 0) != want.err {
 				t.Errorf("%s: writeProtoMsg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, want.err)
 			}
@@ -410,6 +411,10 @@ message MessageName {
 
 			if gotPkg != want.pkg {
 				t.Errorf("%s: writeProtoMsg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, gotPkg, want.pkg)
+			}
+
+			if reflect.DeepEqual(gotImports, want.imports) {
+				t.Errorf("%s: writeProtoMsg(%v, %v, 5v, %v): did not get expected set of imports, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, gotImports, want.imports)
 			}
 
 			if diff := pretty.Compare(gotMsg, want.msg); diff != "" {

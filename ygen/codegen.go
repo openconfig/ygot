@@ -106,6 +106,9 @@ type ProtoOpts struct {
 	// BasePackageName stores the root package name that should be used
 	// for all packages that are output.
 	BasePackageName string
+	// BaseImportPath stores the root URL or path for imports that are
+	// relative within the imported protobufs.
+	BaseImportPath string
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -424,9 +427,29 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	}
 	sort.Strings(msgNames)
 
+	// pkgImports lists the imports that are required for the package that is being
+	// written out.
+	pkgImports := map[string][]string{}
+
 	for _, n := range msgNames {
 		m := msgMap[n]
-		pkg, msg, errs := writeProtoMsg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)
+		pkg, msg, reqs, errs := writeProtoMsg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)
+
+		if _, ok := pkgImports[pkg]; !ok {
+			pkgImports[pkg] = []string{}
+		}
+
+		for _, i := range reqs {
+			var found bool
+			for _, e := range pkgImports[pkg] {
+				if i == e {
+					found = true
+				}
+			}
+			if !found {
+				pkgImports[pkg] = append(pkgImports[pkg], i)
+			}
+		}
 
 		if len(errs) > 0 {
 			ye.Errors = append(ye.Errors, errs...)
@@ -434,19 +457,28 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 		tp, ok := p.Packages[pkg]
 		if !ok {
-			h, err := writeProtoHeader(pkg, cg.Config.ProtoOptions.BasePackageName, yangFiles, includePaths, cg.Config.CompressOCPaths, cg.Config.Caller)
-			if err != nil {
-				ye.Errors = append(ye.Errors, errs...)
-			}
-
 			p.Packages[pkg] = Proto3Package{
-				Header:   h,
 				Messages: []string{},
 			}
 			tp = p.Packages[pkg]
 		}
 		tp.Messages = append(tp.Messages, msg)
 		p.Packages[pkg] = tp
+	}
+
+	// Ensure that the base import path is a valid directory.
+	baseImportPath := cg.Config.ProtoOptions.BaseImportPath
+	if baseImportPath != "" && baseImportPath[len(baseImportPath)-1] != '/' {
+		baseImportPath = fmt.Sprintf("%s/", baseImportPath)
+	}
+
+	for n, pkg := range p.Packages {
+		h, err := writeProtoHeader(n, cg.Config.ProtoOptions.BasePackageName, baseImportPath, pkgImports[n], yangFiles, includePaths, cg.Config.CompressOCPaths, cg.Config.Caller)
+		if err != nil {
+			ye.Errors = append(ye.Errors, errs...)
+		}
+		pkg.Header = h
+		p.Packages[n] = pkg
 	}
 
 	if len(ye.Errors) > 0 {

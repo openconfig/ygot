@@ -37,6 +37,7 @@ type protoMsg struct {
 	Name     string           // Name is the name of the protobuf message to be output.
 	YANGPath string           // YANGPath stores the path that the message corresponds to within the YANG schema.
 	Fields   []*protoMsgField // Fields is a slice of the fields that are within the message.
+	Imports  []string         // Imports is a slice of strings that contains the relative import paths that are required by this message.
 }
 
 const (
@@ -66,6 +67,10 @@ package {{ .PackageName }};
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+{{ $publicImport := .BaseImportPath -}}
+{{- range $importedProto := .Imports }}
+import "{{ $publicImport }}{{ $importedProto }}.proto";
+{{ end -}}
 `
 
 	// protoMessageTemplate is populated for each entity that is mapped to a message
@@ -102,7 +107,7 @@ message {{ .Name }} {
 // addition, whether path compression is being performed, and the calling
 // binary name are provided as arguments. Returns a string containing the
 // generated header code.
-func writeProtoHeader(pkg string, basePkg string, yangFiles, includePaths []string, compressPaths bool, caller string) (string, error) {
+func writeProtoHeader(pkg, basePkg, baseImportPath string, imports, yangFiles, includePaths []string, compressPaths bool, caller string) (string, error) {
 
 	if caller == "" {
 		caller = callerName()
@@ -124,11 +129,15 @@ func writeProtoHeader(pkg string, basePkg string, yangFiles, includePaths []stri
 		YANGFiles        []string
 		IncludePaths     []string
 		GeneratingBinary string
+		Imports          []string
+		BaseImportPath   string
 	}{
 		PackageName:      pkg,
 		YANGFiles:        yangFiles,
 		GeneratingBinary: caller,
 		IncludePaths:     includePaths,
+		Imports:          imports,
+		BaseImportPath:   baseImportPath,
 	}
 
 	var b bytes.Buffer
@@ -144,16 +153,17 @@ func writeProtoHeader(pkg string, basePkg string, yangFiles, includePaths []stri
 // state stored in state to determine names of other messages. compressPaths indicates
 // whether path compression should be enabled for the code generation. Returns a string
 // containing the name of the package that the message is within, a string containing
-// the generated code for the protobuf message, and any errors encountered during
+// the generated code for the protobuf message, a slice of strings containing the child
+// packages that are required by this message and any errors encountered during
 // proto generation.
-func writeProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) (string, string, []error) {
+func writeProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) (string, string, []string, []error) {
 	msgDef, errs := genProtoMsg(msg, msgs, state, compressPaths)
 	if len(errs) > 0 {
-		return "", "", errs
+		return "", "", nil, errs
 	}
 
 	if msg.entry.Parent == nil {
-		return "", "", []error{fmt.Errorf("YANG schema element %s does not have a parent, protobuf messages are not generated for modules", msg.entry.Path())}
+		return "", "", nil, []error{fmt.Errorf("YANG schema element %s does not have a parent, protobuf messages are not generated for modules", msg.entry.Path())}
 	}
 
 	// pkg is the name of the protobuf package, if the entry's parent has already
@@ -163,10 +173,10 @@ func writeProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *ge
 
 	var b bytes.Buffer
 	if err := protoTemplates["msg"].Execute(&b, msgDef); err != nil {
-		return "", "", []error{err}
+		return "", "", nil, []error{err}
 	}
 
-	return pkg, b.String(), nil
+	return pkg, b.String(), msgDef.Imports, nil
 
 }
 
@@ -185,6 +195,7 @@ func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genS
 	}
 
 	definedFieldNames := map[string]bool{}
+	imports := []string{}
 
 	// Traverse the fields in alphabetical order to ensure determinsitic output.
 	// TODO(robjs): Once the field tags are unique then make this sort on the
@@ -220,6 +231,20 @@ func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genS
 			}
 
 			childpkg := state.protobufPackage(childmsg.entry, compressPaths)
+
+			// Add the import to the slice of imports if it is not already
+			// there. This allows the message file to import the required
+			// child packages.
+			childpath := strings.Replace(childpkg, ".", "/", -1)
+			var found bool
+			for _, i := range imports {
+				if i == childpath {
+					found = true
+				}
+			}
+			if !found {
+				imports = append(imports, childpath)
+			}
 			fieldDef.Type = fmt.Sprintf("%s.%s", childpkg, childmsg.name)
 		default:
 			// This is a YANG leaf, or leaf-list.
@@ -238,6 +263,11 @@ func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genS
 
 		msgDef.Fields = append(msgDef.Fields, fieldDef)
 	}
+
+	// Append the deduplicated imports to the list of imports required for the
+	// message.
+	msgDef.Imports = imports
+
 	return msgDef, errs
 }
 
