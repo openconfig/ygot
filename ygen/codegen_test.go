@@ -636,12 +636,20 @@ func TestGenerateProto3(t *testing.T) {
 		wantOutputFiles map[string]string
 		wantErr         bool
 	}{{
-		name:     "simple protobuf test",
+		name:     "simple protobuf test with compression",
 		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
 		inConfig: GeneratorConfig{CompressOCPaths: true},
 		wantOutputFiles: map[string]string{
 			"":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.compress.parent.formatted-txt"),
 			"parent": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.compress.parent.child.formatted-txt"),
+		},
+	}, {
+		name:    "simple protobuf test without compression",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
+		wantOutputFiles: map[string]string{
+			"proto_test_a":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.formatted-txt"),
+			"proto_test_a.parent":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.formatted-txt"),
+			"proto_test_a.parent.child": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.child.formatted-txt"),
 		},
 	}}
 
@@ -663,6 +671,11 @@ func TestGenerateProto3(t *testing.T) {
 			continue
 		}
 
+		seenPkg := map[string]bool{}
+		for n := range gotProto.Packages {
+			seenPkg[n] = false
+		}
+
 		for pkg, wantFile := range tt.wantOutputFiles {
 			wantCode, err := ioutil.ReadFile(wantFile)
 			if err != nil {
@@ -675,6 +688,9 @@ func TestGenerateProto3(t *testing.T) {
 				t.Errorf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, gotProto.Packages, pkg)
 				continue
 			}
+
+			// Mark this package as having been seen.
+			seenPkg[pkg] = true
 
 			// Write the returned struct out to a buffer to compare with the
 			// testdata file.
@@ -690,6 +706,12 @@ func TestGenerateProto3(t *testing.T) {
 					diff = diffl
 				}
 				t.Errorf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-got,+want):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
+			}
+		}
+
+		for pkg, seen := range seenPkg {
+			if !seen {
+				t.Errorf("%s: cg.GenerateProto3(%v, %v) did not test received package %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg)
 			}
 		}
 	}

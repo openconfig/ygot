@@ -414,7 +414,18 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		Packages: map[string]Proto3Package{},
 	}
 	ye := NewYANGCodeGeneratorError()
+
+	// Write out the protobuf messages in a determinstic order.
+	msgMap := map[string]*yangDirectory{}
+	msgNames := []string{}
 	for _, m := range protoMsgs {
+		msgNames = append(msgNames, m.name)
+		msgMap[m.name] = m
+	}
+	sort.Strings(msgNames)
+
+	for _, n := range msgNames {
+		m := msgMap[n]
 		pkg, msg, errs := writeProtoMsg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)
 
 		if len(errs) > 0 {
