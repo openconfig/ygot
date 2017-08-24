@@ -29,7 +29,7 @@ import (
 // can be distinguished from one set to the nil value.
 //
 // TODO(robjs): Add a link to the translation specification when published.
-func (*genState) yangTypeToProtoType(args resolveTypeArgs) (mappedType, error) {
+func (s *genState) yangTypeToProtoType(args resolveTypeArgs) (mappedType, error) {
 	switch args.yangType.Kind {
 	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:
 		return mappedType{nativeType: "ywrapper.IntValue"}, nil
@@ -41,6 +41,14 @@ func (*genState) yangTypeToProtoType(args resolveTypeArgs) (mappedType, error) {
 		return mappedType{nativeType: "ywrapper.StringValue"}, nil
 	case yang.Ydecimal64:
 		return mappedType{nativeType: "ywrapper.Decimal64Value"}, nil
+	case yang.Yleafref:
+		// We look up the leafref in the schema tree to be able to
+		// determine what type to map to.
+		target, err := s.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		if err != nil {
+			return mappedType{}, err
+		}
+		return s.yangTypeToProtoType(resolveTypeArgs{yangType: target.Type, contextEntry: target})
 	default:
 		// TODO(robjs): Implement types that are missing within this function.
 		// Missing types are:
