@@ -79,6 +79,8 @@ type GeneratorConfig struct {
 	// GoOptions stores a struct which stores Go code generation specific
 	// options for the code generaton.
 	GoOptions GoOpts
+	// ProtoOptions stores a struct which contains Protobuf specific options.
+	ProtoOptions ProtoOpts
 }
 
 // GoOpts stores Go specific options for the code generation library.
@@ -97,6 +99,13 @@ type GoOpts struct {
 	// YtypesImportPath specifies the path to ytypes library that should be used
 	// in the generated code.
 	YtypesImportPath string
+}
+
+// ProtoOpts sotres Protobuf specific options for the code generation library.
+type ProtoOpts struct {
+	// BasePackageName stores the root package name that should be used
+	// for all packages that are output.
+	BasePackageName string
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -414,7 +423,13 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 		tp, ok := p.Packages[pkg]
 		if !ok {
+			h, err := writeProtoHeader(pkg, cg.Config.ProtoOptions.BasePackageName, yangFiles, includePaths, cg.Config.CompressOCPaths, cg.Config.Caller)
+			if err != nil {
+				ye.Errors = append(ye.Errors, errs...)
+			}
+
 			p.Packages[pkg] = Proto3Package{
+				Header:   h,
 				Messages: []string{},
 			}
 			tp = p.Packages[pkg]
