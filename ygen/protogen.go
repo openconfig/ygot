@@ -93,11 +93,24 @@ message {{ .Name }} {
 {{- end }}
 }`
 
+	// protoListKeyTemplate is generated as a wrapper around each list entry within
+	// a YANG schema that has a key.
+	protoListKeyTemplate = `
+// {{ .Name }} represents the list element {{ .YANGPath }} of the YANG schema. It
+// contains only the keys of the list, and an embedded message containing all entries
+// below this entity in the schema.
+message {{ .Name }} {
+{{- range $idx, $field := .Fields }}
+  {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }}
+{{- end }}
+}`
+
 	// protoTemplates is the set of templates that are referenced during protbuf
 	// code generation.
 	protoTemplates = map[string]*template.Template{
 		"header": makeTemplate("header", protoHeaderTemplate),
 		"msg":    makeTemplate("msg", protoMessageTemplate),
+		"list":   makeTemplate("list", protoListKeyTemplate),
 	}
 )
 
@@ -157,7 +170,7 @@ func writeProtoHeader(pkg, basePkg, baseImportPath string, imports, yangFiles, i
 // packages that are required by this message and any errors encountered during
 // proto generation.
 func writeProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) (string, string, []string, []error) {
-	msgDef, errs := genProtoMsg(msg, msgs, state, compressPaths)
+	msgDefs, errs := genProtoMsg(msg, msgs, state, compressPaths)
 	if len(errs) > 0 {
 		return "", "", nil, errs
 	}
@@ -172,20 +185,31 @@ func writeProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *ge
 	pkg := state.protobufPackage(msg.entry, compressPaths)
 
 	var b bytes.Buffer
-	if err := protoTemplates["msg"].Execute(&b, msgDef); err != nil {
-		return "", "", nil, []error{err}
+	imports := []string{}
+	for _, msgDef := range msgDefs {
+		if err := protoTemplates["msg"].Execute(&b, msgDef); err != nil {
+			return "", "", nil, []error{err}
+		}
+		imports = appendEntriesNotIn(imports, msgDef.Imports)
 	}
 
-	return pkg, b.String(), msgDef.Imports, nil
+	return pkg, b.String(), imports, nil
 
 }
 
 // genProtoMsg takes an input yangDirectory which describes a container or list entry
-// within the YANG schema and returns a protoMsg which can be mapped to the protobuf
-// code representing it. It uses the set of messages that have been extracted and the
-// current generator state to map to other messages and ensure uniqueness of names.
-func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) (protoMsg, []error) {
+// with the generated YANG schema and returns a slice of protoMsgs which represent
+// the protobuf messages associated with it. In the case of a simple container, a
+// single protobuf message is returned. In the case of a container that has list
+// children (that are keyed), the protobuf message represnting the container and
+// the keys of the lists are returned. It takes an input of the slice of messages
+// that are being mapped within this context (to look up child directory entries),
+// the current generator state (to ensure consistent name mapping), and the state
+// of the compressPaths config option.
+func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) ([]protoMsg, []error) {
 	var errs []error
+
+	var msgDefs []protoMsg
 
 	msgDef := protoMsg{
 		// msg.name is already specified to be CamelCase in the form we expect it
@@ -206,7 +230,21 @@ func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genS
 	}
 	sort.Strings(fNames)
 
+	// If the message that we are generating for is a list, then we explicitly
+	// want to skip it keys to ensure that they are not duplicated.
+	skipFields := map[string]bool{}
+	if msg.entry.IsList() && msg.entry.Key != "" {
+		for _, k := range strings.Split(msg.entry.Key, " ") {
+			skipFields[k] = true
+		}
+	}
+
 	for _, name := range fNames {
+		// Skip fields that we are explicitly not asked to include.
+		if _, ok := skipFields[name]; ok {
+			continue
+		}
+
 		field := msg.fields[name]
 
 		fieldDef := &protoMsgField{
@@ -221,12 +259,70 @@ func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genS
 
 		switch {
 		case field.IsList():
-			errs = append(errs, fmt.Errorf("proto: list generation unimplemented for %s", field.Path()))
-			continue
+			listMsg, ok := msgs[field.Path()]
+			if !ok {
+				errs = append(errs, fmt.Errorf("proto: could not resolve list %s into a defined message", field.Path()))
+				continue
+			}
+
+			listMsgName, ok := state.uniqueDirectoryNames[field.Path()]
+			if !ok {
+				errs = append(errs, fmt.Errorf("proto: could not find unique message name for %s", field.Path()))
+				continue
+			}
+
+			childPkg := state.protobufPackage(listMsg.entry, compressPaths)
+
+			switch {
+			case listMsg.listAttr == nil, len(listMsg.listAttr.keys) == 0:
+				// This is a list that does not have a key within the YANG schema. In
+				// Proto3 we represent this as a repeated field of the parent message.
+				fieldDef.Type = fmt.Sprintf("%s.%s", childPkg, listMsgName)
+			default:
+				// In the case that we have a keyed list, then we represent it as a
+				// repeated message hiearchy such that:
+				//
+				// list foo {
+				//	key "bar";
+				//	leaf bar { type string; }
+				//	leaf value { type uint32; }
+				// }
+				//
+				// Is mapped to a "repeated pkg.FooList foo = NN;" in the parent message
+				// and a new Foo message:
+				//
+				// message Foo {
+				//	string bar = NN;
+				//	FooListEntry value = NN;
+				// }
+				//
+				// message FooListEntry {
+				//	ywrapper.UintValue value = 1;
+				// }
+				//
+				// In the case that there is >1 key, then each key that exists for the
+				// foo list is contained within the Foo message. This ensures that there
+				// is consistency for the all different types of maps, and different
+				// types of keys (e.g., those that are enumerations).
+
+				// listKeyMsg is the newly created message that is the interim layer
+				// between this message and the entry that will have code specifically
+				// generated for it (skipping the key fields).
+				listKeyMsg, err := genListKeyProto(listMsg, listMsgName, childPkg, state)
+				if err != nil {
+					errs = append(errs, fmt.Errorf("proto: could not build mapping for list entry %s: %v", field.Path(), err))
+					continue
+				}
+				// The type of this field is just the key message's name, since it
+				// will be in the same package as the field's parent.
+				fieldDef.Type = listKeyMsg.Name
+				msgDefs = append(msgDefs, listKeyMsg)
+			}
+			fieldDef.IsRepeated = true
 		case field.IsDir():
 			childmsg, ok := msgs[field.Path()]
 			if !ok {
-				errs = append(errs, fmt.Errorf("proto: could not resolve %s into a defined struct", field.Path()))
+				errs = append(errs, fmt.Errorf("proto: could not resolve %s into a defined message", field.Path()))
 				continue
 			}
 
@@ -235,16 +331,7 @@ func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genS
 			// Add the import to the slice of imports if it is not already
 			// there. This allows the message file to import the required
 			// child packages.
-			childpath := strings.Replace(childpkg, ".", "/", -1)
-			var found bool
-			for _, i := range imports {
-				if i == childpath {
-					found = true
-				}
-			}
-			if !found {
-				imports = append(imports, childpath)
-			}
+			imports = appendEntriesNotIn(imports, []string{strings.Replace(childpkg, ".", "/", -1)})
 			fieldDef.Type = fmt.Sprintf("%s.%s", childpkg, childmsg.name)
 		default:
 			// This is a YANG leaf, or leaf-list.
@@ -268,7 +355,7 @@ func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genS
 	// message.
 	msgDef.Imports = imports
 
-	return msgDef, errs
+	return append(msgDefs, msgDef), errs
 }
 
 // safeProtoFieldName takes an input string which represents the name of a YANG schema
@@ -289,4 +376,42 @@ func protoTagForEntry(e *yang.Entry) (uint32, error) {
 	// TODO(robjs): Replace this function with the final implementation
 	// once concluded.
 	return 1, nil
+}
+
+// genListKeyProto generates a protoMsg that describes the proto3 message that represents
+// the key of a list for YANG lists. It takes a yangDirectory pointer to the list being
+// described, the name of the list, the package name that the list is within, and the
+// current generator state. Returns the definition of the list key proto.
+func genListKeyProto(list *yangDirectory, listName string, listPackage string, state *genState) (protoMsg, error) {
+	// TODO(robjs): Check whether we need to make sure that this is unique.
+	n := fmt.Sprintf("%s_Key", listName)
+	km := protoMsg{
+		Name:     n,
+		YANGPath: list.entry.Path(),
+	}
+
+	definedFieldNames := map[string]bool{}
+	for _, k := range strings.Split(list.entry.Key, " ") {
+		kf, ok := list.fields[k]
+		if !ok {
+			return protoMsg{}, fmt.Errorf("list %s included a key %s did that did not exist", list.entry.Path(), k)
+		}
+
+		t, err := state.yangTypeToProtoScalarType(resolveTypeArgs{yangType: kf.Type, contextEntry: kf})
+		if err != nil {
+			return protoMsg{}, fmt.Errorf("list %s included a key %s that did not have a valid proto type: %v", list.entry.Path(), k, kf.Type)
+		}
+
+		km.Fields = append(km.Fields, &protoMsgField{
+			Name: makeNameUnique(safeProtoFieldName(k), definedFieldNames),
+			Type: t.nativeType,
+		})
+	}
+
+	km.Fields = append(km.Fields, &protoMsgField{
+		Name: listName,
+		Type: fmt.Sprintf("%s.%s", listPackage, listName),
+	})
+
+	return km, nil
 }

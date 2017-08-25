@@ -63,6 +63,36 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs) (mappedType, error)
 	}
 }
 
+// yangTypeToProtoScalarType takes an input resolveTypeArgs and returns the protobuf
+// in-built type that is used to represent it. It is used within list keys where the
+// value cannot be nil/unset.
+func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs) (mappedType, error) {
+	switch args.yangType.Kind {
+	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:
+		return mappedType{nativeType: "sint64"}, nil
+	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
+		return mappedType{nativeType: "uint64"}, nil
+	case yang.Ybool, yang.Yempty:
+		return mappedType{nativeType: "bool"}, nil
+	case yang.Ystring:
+		return mappedType{nativeType: "string"}, nil
+	case yang.Yleafref:
+		target, err := s.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		if err != nil {
+			return mappedType{}, nil
+		}
+		return s.yangTypeToProtoScalarType(resolveTypeArgs{yangType: target.Type, contextEntry: target})
+	default:
+		// TODO(robjs): implement missing types.
+		//	- enumeration
+		//	- identityref
+		//	- binary
+		//	- bits
+		//	- union
+		return mappedType{}, fmt.Errorf("unimplemented type: %s", args.yangType.Kind)
+	}
+}
+
 // protoMsgName takes a yang.Entry and converts it to its protobuf message name,
 // ensuring that the name that is returned is unique within the package that it is
 // being contained within.

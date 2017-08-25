@@ -53,7 +53,7 @@ func TestGenProtoMsg(t *testing.T) {
 		inMsgs                 map[string]*yangDirectory
 		inUniqueDirectoryNames map[string]string
 		inCompressPaths        bool
-		wantMsg                protoMsg
+		wantMsgs               map[string]protoMsg
 		wantErr                bool
 	}{{
 		name: "simple message with only scalar fields",
@@ -75,18 +75,20 @@ func TestGenProtoMsg(t *testing.T) {
 			},
 			path: []string{"", "root", "message-name"},
 		},
-		wantMsg: protoMsg{
-			Name:     "MessageName",
-			YANGPath: "/root/message-name",
-			Fields: []*protoMsgField{{
-				Tag:  1,
-				Name: "field_one",
-				Type: "ywrapper.StringValue",
-			}, {
-				Tag:  1,
-				Name: "field_two",
-				Type: "ywrapper.IntValue",
-			}},
+		wantMsgs: map[string]protoMsg{
+			"MessageName": {
+				Name:     "MessageName",
+				YANGPath: "/root/message-name",
+				Fields: []*protoMsgField{{
+					Tag:  1,
+					Name: "field_one",
+					Type: "ywrapper.StringValue",
+				}, {
+					Tag:  1,
+					Name: "field_two",
+					Type: "ywrapper.IntValue",
+				}},
+			},
 		},
 	}, {
 		name: "simple message with leaf-list and a message child, compression on",
@@ -130,19 +132,21 @@ func TestGenProtoMsg(t *testing.T) {
 			},
 		},
 		inCompressPaths: true,
-		wantMsg: protoMsg{
-			Name:     "AMessage",
-			YANGPath: "/root/a-message",
-			Fields: []*protoMsgField{{
-				Tag:        1,
-				Name:       "leaf_list",
-				Type:       "ywrapper.StringValue",
-				IsRepeated: true,
-			}, {
-				Tag:  1,
-				Name: "container_child",
-				Type: "a_message.ContainerChild",
-			}},
+		wantMsgs: map[string]protoMsg{
+			"AMessage": {
+				Name:     "AMessage",
+				YANGPath: "/root/a-message",
+				Fields: []*protoMsgField{{
+					Tag:        1,
+					Name:       "leaf_list",
+					Type:       "ywrapper.StringValue",
+					IsRepeated: true,
+				}, {
+					Tag:  1,
+					Name: "container_child",
+					Type: "a_message.ContainerChild",
+				}},
+			},
 		},
 	}, {
 		name: "simple message with leaf-list and a message child, compression off",
@@ -185,19 +189,21 @@ func TestGenProtoMsg(t *testing.T) {
 				},
 			},
 		},
-		wantMsg: protoMsg{
-			Name:     "AMessage",
-			YANGPath: "/root/a-message",
-			Fields: []*protoMsgField{{
-				Tag:        1,
-				Name:       "leaf_list",
-				Type:       "ywrapper.StringValue",
-				IsRepeated: true,
-			}, {
-				Tag:  1,
-				Name: "container_child",
-				Type: "root.a_message.ContainerChild",
-			}},
+		wantMsgs: map[string]protoMsg{
+			"AMessage": {
+				Name:     "AMessage",
+				YANGPath: "/root/a-message",
+				Fields: []*protoMsgField{{
+					Tag:        1,
+					Name:       "leaf_list",
+					Type:       "ywrapper.StringValue",
+					IsRepeated: true,
+				}, {
+					Tag:  1,
+					Name: "container_child",
+					Type: "root.a_message.ContainerChild",
+				}},
+			},
 		},
 	}, {
 		name: "message with unimplemented list",
@@ -229,7 +235,7 @@ func TestGenProtoMsg(t *testing.T) {
 		// Seed the state with the supplied message names that have been provided.
 		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
-		got, errs := genProtoMsg(tt.inMsg, tt.inMsgs, s, tt.inCompressPaths)
+		gotMsgs, errs := genProtoMsg(tt.inMsg, tt.inMsgs, s, tt.inCompressPaths)
 		if (len(errs) > 0) != tt.wantErr {
 			t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, errs, tt.wantErr)
 		}
@@ -238,9 +244,29 @@ func TestGenProtoMsg(t *testing.T) {
 			continue
 		}
 
-		if !protoMsgEq(got, tt.wantMsg) {
-			diff := pretty.Compare(got, tt.wantMsg)
-			t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): did not get expected protobuf message definition, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, diff)
+		seenMsg := map[string]bool{}
+		for _, w := range tt.wantMsgs {
+			seenMsg[w.Name] = false
+		}
+
+		for _, got := range gotMsgs {
+			want, ok := tt.wantMsgs[got.Name]
+			if !ok {
+				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): got unexpected expected message, got: nil, want: %v", tt.name, tt.inMsg, tt.inMsgs, got.Name)
+				continue
+			}
+			seenMsg[got.Name] = true
+
+			if !protoMsgEq(got, want) {
+				diff := pretty.Compare(got, want)
+				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): did not get expected protobuf message definition, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, diff)
+			}
+		}
+
+		for m, s := range seenMsg {
+			if !s {
+				t.Errorf("%s: genProtoMsg(%#v, %#v, *genSTate); did not find expected message %s, got messages: %v, want: %s", tt.name, tt.inMsg, tt.inMsgs, m, gotMsgs, m)
+			}
 		}
 	}
 }

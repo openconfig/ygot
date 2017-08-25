@@ -253,3 +253,20 @@ func appendIfNotEmpty(slice []string, s string) []string {
 	}
 	return slice
 }
+
+// appendEntriesNotIn appends strings that are in the ne slice but not the ee
+// slice to the ee slice and returns it.
+func appendEntriesNotIn(ee []string, ne []string) []string {
+	for _, n := range ne {
+		var f bool
+		for _, e := range ee {
+			if e == n {
+				f = true
+			}
+		}
+		if !f {
+			ee = append(ee, n)
+		}
+	}
+	return ee
+}

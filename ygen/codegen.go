@@ -434,26 +434,15 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	for _, n := range msgNames {
 		m := msgMap[n]
 		pkg, msg, reqs, errs := writeProtoMsg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)
+		if len(errs) > 0 {
+			ye.Errors = append(ye.Errors, errs...)
+		}
 
 		if _, ok := pkgImports[pkg]; !ok {
 			pkgImports[pkg] = []string{}
 		}
 
-		for _, i := range reqs {
-			var found bool
-			for _, e := range pkgImports[pkg] {
-				if i == e {
-					found = true
-				}
-			}
-			if !found {
-				pkgImports[pkg] = append(pkgImports[pkg], i)
-			}
-		}
-
-		if len(errs) > 0 {
-			ye.Errors = append(ye.Errors, errs...)
-		}
+		pkgImports[pkg] = appendEntriesNotIn(pkgImports[pkg], reqs)
 
 		tp, ok := p.Packages[pkg]
 		if !ok {

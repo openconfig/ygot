@@ -652,11 +652,12 @@ func TestGenerateProto3(t *testing.T) {
 			"proto_test_a.parent.child": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.child.formatted-txt"),
 		},
 	}, {
-		name:    "yang schema with a list",
-		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.yang")},
+		name:     "yang schema with a list",
+		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.yang")},
+		inConfig: GeneratorConfig{CompressOCPaths: true},
 		wantOutputFiles: map[string]string{
-			"":          filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.formatted-txt"),
-			"interface": filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.interface.formatted-txt"),
+			"":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.formatted-txt"),
+			"device": filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.device.formatted-txt"),
 		},
 	}}
 
