@@ -184,9 +184,10 @@ type goStructField struct {
 // goUnionInterface contains a definition of an interface that should
 // be generated for a multi-type union in YANG.
 type goUnionInterface struct {
-	Name     string            // Name is the name of the interface
-	Types    map[string]string // Types is a map keyed by the camelcase type name, with values of the Go types in the union.
-	LeafPath string            // LeafPath stores the path for the leaf for which the multi-type union is being generated.
+	Name           string            // Name is the name of the interface
+	Types          map[string]string // Types is a map keyed by the camelcase type name, with values of the Go types in the union.
+	LeafPath       string            // LeafPath stores the path for the leaf for which the multi-type union is being generated.
+	ParentReceiver string            // ParentReceiver is the name of the struct that is a parent of this union field. It is used to allow methods to be created which simplify handling the union in the calling code.
 }
 
 // generatedGoStruct is used to repesent a Go structure to be handed to a template for output.
@@ -515,7 +516,20 @@ type {{ $intfName }}_{{ $typeName }} struct {
 // Is_{{ $intfName }} ensures that {{ $intfName }}_{{ $typeName }}
 // implements the {{ $intfName }} interface.
 func (*{{ $intfName }}_{{ $typeName }}) Is_{{ $intfName }}() {}
-{{ end }}`
+{{ end }}
+
+func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, error) {
+	switch v := i.(type) {
+	{{ range $typeName, $type := .Types -}}
+	case {{ $type }}:
+		return &{{ $intfName }}_{{ $typeName }}{v}
+	{{ end -}}
+	default:
+		return fmt.Errorf("cannot convert %v to {{ .Name }}, unknown union type, got: %T, want: 
+		{{- range $typeName, $type := .Types -}}{{ $type }} {{ end -}}
+		", i, i)
+	}
+}`
 
 	// The set of built templates that are to be referenced during code generation.
 	goTemplates = map[string]*template.Template{
@@ -724,9 +738,10 @@ func writeGoStruct(targetStruct *yangStruct, goStructElements map[string]*yangSt
 				// field type is an interface), and generate the relevant interface.
 				scalarField = false
 				intf := goUnionInterface{
-					Name:     mtype.nativeType,
-					Types:    map[string]string{},
-					LeafPath: field.Path(),
+					Name:           mtype.nativeType,
+					Types:          map[string]string{},
+					LeafPath:       field.Path(),
+					ParentReceiver: targetStruct.name,
 				}
 
 				for t := range mtype.unionTypes {
