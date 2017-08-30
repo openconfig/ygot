@@ -38,7 +38,7 @@ func init() {
 
 // Bgp represents the /openconfig-options/bgp YANG schema element.
 type Bgp struct {
-	Neighbor	map[string]*Bgp_Neighbor	`path:"bgp/neighbors/neighbor" module:"openconfig-options"`
+	Neighbor	map[string]*Bgp_Neighbor	`path:"/bgp/neighbors/neighbor" module:"openconfig-options"`
 }
 
 // IsYANGGoStruct ensures that Bgp implements the yang.GoStruct

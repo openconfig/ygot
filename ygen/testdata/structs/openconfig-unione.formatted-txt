@@ -25,7 +25,7 @@ type Binary []byte
 
 // Platform represents the /openconfig-unione/platform YANG schema element.
 type Platform struct {
-	Component	*Platform_Component	`path:"platform/component" module:"openconfig-unione"`
+	Component	*Platform_Component	`path:"/platform/component" module:"openconfig-unione"`
 }
 
 // IsYANGGoStruct ensures that Platform implements the yang.GoStruct
