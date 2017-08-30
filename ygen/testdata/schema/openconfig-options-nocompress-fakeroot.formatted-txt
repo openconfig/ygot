@@ -56,7 +56,7 @@ func (s *Device) Validate() error {
 
 // OpenconfigOptions_Bgp represents the /openconfig-options/bgp YANG schema element.
 type OpenconfigOptions_Bgp struct {
-	Neighbors	*OpenconfigOptions_Bgp_Neighbors	`path:"bgp/neighbors" module:"openconfig-options"`
+	Neighbors	*OpenconfigOptions_Bgp_Neighbors	`path:"/bgp/neighbors" module:"openconfig-options"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigOptions_Bgp implements the yang.GoStruct
