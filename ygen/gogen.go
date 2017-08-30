@@ -1082,11 +1082,14 @@ func findMapPaths(parent *yangStruct, field *yang.Entry, compressOCPaths bool) (
 			// where the "" represents the root, and "openconfig-bgp" is the module name).
 			return nil, fmt.Errorf("field %v is an invalid mappable entity", parent.path)
 		case len(parentPath) == 3:
-			// This is an element that is at the root - such that the path is of the form
-			// []string{"", MODULENAME, CONTAINER-NAME}, so in this case, we want to return
-			// an absolute path. This allows us to be independent of whether the fake root
-			// was generated or not and always render a top-level entity correctly.
-			// The data tree path never includes the module name, so we skip it.
+			// This is an element that is at the root. Its goyang path is of the form
+			// []string{"", MODULE-NAME, CONTAINER-NAME}. The struct tag should contain
+			// an absolute path, which includes only valid schema path elements. Therefore
+			// we return []string{"", CONTAINER-NAME}. The MODULE-NAME is skipped a it is
+			// not a valid schema path element, and the leading "" ensures that the path
+			// is prefixed with a /.
+			// Absolute paths are used for top-level entities such rendering functions
+			// can be agnostic to whether the fakeroot was created.
 			childPath = append(childPath, []string{"", parentPath[2]}...)
 		}
 
