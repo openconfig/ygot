@@ -522,10 +522,10 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 	switch v := i.(type) {
 	{{ range $typeName, $type := .Types -}}
 	case {{ $type }}:
-		return &{{ $intfName }}_{{ $typeName }}{v}
+		return &{{ $intfName }}_{{ $typeName }}{v}, nil
 	{{ end -}}
 	default:
-		return fmt.Errorf("cannot convert %v to {{ .Name }}, unknown union type, got: %T, want: 
+		return nil, fmt.Errorf("cannot convert %v to {{ .Name }}, unknown union type, got: %T, want: 
 		{{- range $typeName, $type := .Types -}}{{ $type }} {{ end -}}
 		", i, i)
 	}
@@ -737,24 +737,32 @@ func writeGoStruct(targetStruct *yangStruct, goStructElements map[string]*yangSt
 				// to ensure that we do not map this as a pointer type (since its
 				// field type is an interface), and generate the relevant interface.
 				scalarField = false
-				intf := goUnionInterface{
-					Name:           mtype.nativeType,
-					Types:          map[string]string{},
-					LeafPath:       field.Path(),
-					ParentReceiver: targetStruct.name,
-				}
 
-				for t := range mtype.unionTypes {
-					tn := yang.CamelCase(t)
-					// Ensure that we sanitise the type name to be used in the
-					// output struct.
-					if t == "interface{}" {
-						tn = "Interface"
+				if _, ok := state.generatedUnions[mtype.nativeType]; !ok {
+					// If the union type has not already been generated, then create it.
+					// We check for uniqueness based on the union's name, since we know
+					// that this must be made unique during the type mapping. This handles
+					// the case where there is a single union that is referenced in more
+					// than one place - e.g., it is a typedef.
+					intf := goUnionInterface{
+						Name:           mtype.nativeType,
+						Types:          map[string]string{},
+						LeafPath:       field.Path(),
+						ParentReceiver: targetStruct.name,
 					}
-					intf.Types[tn] = t
-				}
 
-				genUnions = append(genUnions, intf)
+					for t := range mtype.unionTypes {
+						tn := yang.CamelCase(t)
+						// Ensure that we sanitise the type name to be used in the
+						// output struct.
+						if t == "interface{}" {
+							tn = "Interface"
+						}
+						intf.Types[tn] = t
+					}
+					genUnions = append(genUnions, intf)
+					state.generatedUnions[mtype.nativeType] = true
+				}
 			}
 
 			switch {

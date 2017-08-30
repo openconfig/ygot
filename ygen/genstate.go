@@ -68,6 +68,11 @@ type genState struct {
 	// schema tree. This is used for lookups within the module set where
 	// they are required, e.g., for leafrefs.
 	schematree *ctree.Tree
+	// generatedUnions stores a map, keyed by the output name for a union,
+	// that has already been output in the generated code. This ensures that
+	// where two entities re-use a union that has already been created (e.g.,
+	// a typedef) then it is output only once in the generated code.
+	generatedUnions map[string]bool
 }
 
 // newGenState creates a new genState instance, initialised with the default state
@@ -81,6 +86,7 @@ func newGenState() *genState {
 		uniqueEnumeratedTypedefNames: make(map[string]string),
 		uniqueIdentityNames:          make(map[string]string),
 		uniqueEnumeratedLeafNames:    make(map[string]string),
+		generatedUnions:              make(map[string]bool),
 	}
 }
 
