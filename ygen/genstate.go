@@ -71,7 +71,7 @@ type genState struct {
 	// generatedUnions stores a map, keyed by the output name for a union,
 	// that has already been output in the generated code. This ensures that
 	// where two entities re-use a union that has already been created (e.g.,
-	// a typedef) then it is output only once in the generated code.
+	// a leafref to a union) then it is output only once in the generated code.
 	generatedUnions map[string]bool
 }
 

@@ -517,7 +517,9 @@ type {{ $intfName }}_{{ $typeName }} struct {
 // implements the {{ $intfName }} interface.
 func (*{{ $intfName }}_{{ $typeName }}) Is_{{ $intfName }}() {}
 {{ end }}
-
+// To_{{ .Name }} takes an input interface{} and attempts to convert it to a struct
+// which implements the {{ .Name }} union. Returns an error if the interface{} supplied
+// cannot be converted to a type within the union.
 func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, error) {
 	switch v := i.(type) {
 	{{ range $typeName, $type := .Types -}}
@@ -529,7 +531,8 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		{{- range $typeName, $type := .Types -}}{{ $type }} {{ end -}}
 		", i, i)
 	}
-}`
+}
+`
 
 	// The set of built templates that are to be referenced during code generation.
 	goTemplates = map[string]*template.Template{
@@ -740,10 +743,9 @@ func writeGoStruct(targetStruct *yangStruct, goStructElements map[string]*yangSt
 
 				if _, ok := state.generatedUnions[mtype.nativeType]; !ok {
 					// If the union type has not already been generated, then create it.
-					// We check for uniqueness based on the union's name, since we know
-					// that this must be made unique during the type mapping. This handles
-					// the case where there is a single union that is referenced in more
-					// than one place - e.g., it is a typedef.
+					// This is to handle cases whereby we can have two types that are
+					// mapped to the same unique name -- such as in the case that we
+					// have a leafref that points to a leaf that is a union.
 					intf := goUnionInterface{
 						Name:           mtype.nativeType,
 						Types:          map[string]string{},

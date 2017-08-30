@@ -203,6 +203,20 @@ type OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union_U
 // implements the OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union interface.
 func (*OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union_Uint32) Is_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union() {}
 
+// To_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union takes an input interface{} and attempts to convert it to a struct
+// which implements the OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union union. Returns an error if the interface{} supplied
+// cannot be converted to a type within the union.
+func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor_State) To_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union(i interface{}) (OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union, error) {
+	switch v := i.(type) {
+	case E_OpenconfigOptions_AFI:
+		return &OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union_E_OpenconfigOptions_AFI{v}, nil
+	case uint32:
+		return &OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union_Uint32{v}, nil
+	default:
+		return nil, fmt.Errorf("cannot convert %!v(MISSING) to OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union, unknown union type, got: %!T(MISSING), want:E_OpenconfigOptions_AFI uint32 ", i, i)
+	}
+}
+
 // E_OpenconfigOptions_AFI is a derived int64 type which is used to represent
 // the enumerated node OpenconfigOptions_AFI. An additional value named
 // OpenconfigOptions_AFI_UNSET is added to the enumeration which is used as
