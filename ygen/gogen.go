@@ -184,9 +184,11 @@ type goStructField struct {
 // goUnionInterface contains a definition of an interface that should
 // be generated for a multi-type union in YANG.
 type goUnionInterface struct {
-	Name     string            // Name is the name of the interface
-	Types    map[string]string // Types is a map keyed by the camelcase type name, with values of the Go types in the union.
-	LeafPath string            // LeafPath stores the path for the leaf for which the multi-type union is being generated.
+	Name           string            // Name is the name of the interface
+	Types          map[string]string // Types is a map keyed by the camelcase type name, with values of the Go types in the union.
+	LeafPath       string            // LeafPath stores the path for the leaf for which the multi-type union is being generated.
+	ParentReceiver string            // ParentReceiver is the name of the struct that is a parent of this union field. It is used to allow methods to be created which simplify handling the union in the calling code.
+	TypeNames      []string          // TypeNames is an list of Go type names within the union.
 }
 
 // generatedGoStruct is used to repesent a Go structure to be handed to a template for output.
@@ -515,7 +517,27 @@ type {{ $intfName }}_{{ $typeName }} struct {
 // Is_{{ $intfName }} ensures that {{ $intfName }}_{{ $typeName }}
 // implements the {{ $intfName }} interface.
 func (*{{ $intfName }}_{{ $typeName }}) Is_{{ $intfName }}() {}
-{{ end }}`
+{{ end }}
+// To_{{ .Name }} takes an input interface{} and attempts to convert it to a struct
+// which implements the {{ .Name }} union. Returns an error if the interface{} supplied
+// cannot be converted to a type within the union.
+func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, error) {
+	switch v := i.(type) {
+	{{ range $typeName, $type := .Types -}}
+	case {{ $type }}:
+		return &{{ $intfName }}_{{ $typeName }}{v}, nil
+	{{ end -}}
+	default:
+		return nil, fmt.Errorf("cannot convert %%v to {{ .Name }}, unknown union type, got: %%T, want any of [
+		{{- $length := len .TypeNames -}}
+		{{- range $i, $type := .TypeNames -}}
+			{{ $type }}
+			{{- if ne (inc $i) $length -}}, {{ end -}}
+		{{- end -}}
+		]", i, i)
+	}
+}
+`
 
 	// The set of built templates that are to be referenced during code generation.
 	goTemplates = map[string]*template.Template{
@@ -723,23 +745,34 @@ func writeGoStruct(targetStruct *yangStruct, goStructElements map[string]*yangSt
 				// to ensure that we do not map this as a pointer type (since its
 				// field type is an interface), and generate the relevant interface.
 				scalarField = false
-				intf := goUnionInterface{
-					Name:     mtype.nativeType,
-					Types:    map[string]string{},
-					LeafPath: field.Path(),
-				}
 
-				for t := range mtype.unionTypes {
-					tn := yang.CamelCase(t)
-					// Ensure that we sanitise the type name to be used in the
-					// output struct.
-					if t == "interface{}" {
-						tn = "Interface"
+				if _, ok := state.generatedUnions[mtype.nativeType]; !ok {
+					// If the union type has not already been generated, then create it.
+					// This is to handle cases whereby we can have two types that are
+					// mapped to the same unique name -- such as in the case that we
+					// have a leafref that points to a leaf that is a union.
+					intf := goUnionInterface{
+						Name:           mtype.nativeType,
+						Types:          map[string]string{},
+						LeafPath:       field.Path(),
+						ParentReceiver: targetStruct.name,
 					}
-					intf.Types[tn] = t
-				}
 
-				genUnions = append(genUnions, intf)
+					for t := range mtype.unionTypes {
+						tn := yang.CamelCase(t)
+						// Ensure that we sanitise the type name to be used in the
+						// output struct.
+						if t == "interface{}" {
+							tn = "Interface"
+						}
+						intf.Types[tn] = t
+						intf.TypeNames = append(intf.TypeNames, t)
+					}
+					// Sort the names of the types into determinstic order.
+					sort.Strings(intf.TypeNames)
+					genUnions = append(genUnions, intf)
+					state.generatedUnions[mtype.nativeType] = true
+				}
 			}
 
 			switch {
