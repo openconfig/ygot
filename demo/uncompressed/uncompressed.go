@@ -56,12 +56,17 @@ func BuildDemo() (*yb.Root, error) {
 		return nil, err
 	}
 	uk.CountryCode = ygot.String("GB")
+	uk.DialCode = ygot.Uint32(44)
 
 	c2, err := d.NewOperator(29636)
 	if err != nil {
 		return nil, err
 	}
 	c2.Name = ygot.String("Catalyst2")
+
+	if err := d.Validate(); err != nil {
+		return nil, err
+	}
 
 	return d, nil
 }

@@ -2,6 +2,7 @@
   "network:country": [
     {
       "country-code": "GB",
+      "dial-code": 44,
       "name": "United Kingdom"
     }
   ],

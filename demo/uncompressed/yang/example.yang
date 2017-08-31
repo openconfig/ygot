@@ -9,6 +9,7 @@ module network {
 
     leaf name { type string; }
     leaf country-code { type string; }
+    leaf dial-code { type uint32 { range "1..492"; } }
   }
 
   list operator {
