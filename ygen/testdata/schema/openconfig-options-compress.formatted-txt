@@ -138,7 +138,7 @@ func (t *Bgp_Neighbor) To_Bgp_Neighbor_EnabledAddressFamily_Union(i interface{})
 	case uint32:
 		return &Bgp_Neighbor_EnabledAddressFamily_Union_Uint32{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %!v(MISSING) to Bgp_Neighbor_EnabledAddressFamily_Union, unknown union type, got: %!T(MISSING), want:E_OpenconfigOptions_AFI uint32 ", i, i)
+		return nil, fmt.Errorf("cannot convert %v to Bgp_Neighbor_EnabledAddressFamily_Union, unknown union type, got: %T, want any of [E_OpenconfigOptions_AFI, uint32]", i, i)
 	}
 }
 

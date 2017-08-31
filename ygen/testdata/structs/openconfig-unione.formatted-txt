@@ -83,7 +83,7 @@ func (t *Platform_Component) To_Platform_Component_E1_Union(i interface{}) (Plat
 	case uint32:
 		return &Platform_Component_E1_Union_Uint32{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %!v(MISSING) to Platform_Component_E1_Union, unknown union type, got: %!T(MISSING), want:string uint32 ", i, i)
+		return nil, fmt.Errorf("cannot convert %v to Platform_Component_E1_Union, unknown union type, got: %T, want any of [string, uint32]", i, i)
 	}
 }
 
@@ -123,7 +123,7 @@ func (t *Platform_Component) To_Platform_Component_Enumerated_Union(i interface{
 	case string:
 		return &Platform_Component_Enumerated_Union_String{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %!v(MISSING) to Platform_Component_Enumerated_Union, unknown union type, got: %!T(MISSING), want:E_OpenconfigUnione_EnumOne_Enum string ", i, i)
+		return nil, fmt.Errorf("cannot convert %v to Platform_Component_Enumerated_Union, unknown union type, got: %T, want any of [E_OpenconfigUnione_EnumOne_Enum, string]", i, i)
 	}
 }
 
@@ -175,7 +175,7 @@ func (t *Platform_Component) To_Platform_Component_Power_Union(i interface{}) (P
 	case uint32:
 		return &Platform_Component_Power_Union_Uint32{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %!v(MISSING) to Platform_Component_Power_Union, unknown union type, got: %!T(MISSING), want:E_OpenconfigUnione_Component_Power interface{} uint32 ", i, i)
+		return nil, fmt.Errorf("cannot convert %v to Platform_Component_Power_Union, unknown union type, got: %T, want any of [E_OpenconfigUnione_Component_Power, interface{}, uint32]", i, i)
 	}
 }
 
@@ -215,7 +215,7 @@ func (t *Platform_Component) To_Platform_Component_Type_Union(i interface{}) (Pl
 	case E_OpenconfigUnione_SOFTWARE:
 		return &Platform_Component_Type_Union_E_OpenconfigUnione_SOFTWARE{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %!v(MISSING) to Platform_Component_Type_Union, unknown union type, got: %!T(MISSING), want:E_OpenconfigUnione_HARDWARE E_OpenconfigUnione_SOFTWARE ", i, i)
+		return nil, fmt.Errorf("cannot convert %v to Platform_Component_Type_Union, unknown union type, got: %T, want any of [E_OpenconfigUnione_HARDWARE, E_OpenconfigUnione_SOFTWARE]", i, i)
 	}
 }
 

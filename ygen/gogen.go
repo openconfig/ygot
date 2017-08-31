@@ -188,6 +188,7 @@ type goUnionInterface struct {
 	Types          map[string]string // Types is a map keyed by the camelcase type name, with values of the Go types in the union.
 	LeafPath       string            // LeafPath stores the path for the leaf for which the multi-type union is being generated.
 	ParentReceiver string            // ParentReceiver is the name of the struct that is a parent of this union field. It is used to allow methods to be created which simplify handling the union in the calling code.
+	TypeNames      []string          // TypeNames is an list of Go type names within the union.
 }
 
 // generatedGoStruct is used to repesent a Go structure to be handed to a template for output.
@@ -527,9 +528,13 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		return &{{ $intfName }}_{{ $typeName }}{v}, nil
 	{{ end -}}
 	default:
-		return nil, fmt.Errorf("cannot convert %v to {{ .Name }}, unknown union type, got: %T, want: 
-		{{- range $typeName, $type := .Types -}}{{ $type }} {{ end -}}
-		", i, i)
+		return nil, fmt.Errorf("cannot convert %%v to {{ .Name }}, unknown union type, got: %%T, want any of [
+		{{- $length := len .TypeNames -}}
+		{{- range $i, $type := .TypeNames -}}
+			{{ $type }}
+			{{- if ne (inc $i) $length -}}, {{ end -}}
+		{{- end -}}
+		]", i, i)
 	}
 }
 `
@@ -761,7 +766,10 @@ func writeGoStruct(targetStruct *yangStruct, goStructElements map[string]*yangSt
 							tn = "Interface"
 						}
 						intf.Types[tn] = t
+						intf.TypeNames = append(intf.TypeNames, t)
 					}
+					// Sort the names of the types into determinstic order.
+					sort.Strings(intf.TypeNames)
 					genUnions = append(genUnions, intf)
 					state.generatedUnions[mtype.nativeType] = true
 				}
