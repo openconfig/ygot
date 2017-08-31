@@ -1,0 +1,20 @@
+module network {
+  prefix "net";
+  namespace "urn:network";
+
+  leaf person { type string; }
+
+  list country {
+    key "name";
+
+    leaf name { type string; }
+    leaf country-code { type string; }
+    leaf dial-code { type uint32 { range "1..492"; } }
+  }
+
+  list operator {
+    key "asn";
+    leaf asn { type uint32; }
+    leaf name { type string; }
+  }
+}

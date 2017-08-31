@@ -1094,12 +1094,16 @@ func findMapPaths(parent *yangStruct, field *yang.Entry, compressOCPaths bool) (
 	if parent.isFakeRoot {
 		parentPath = []string{}
 		// If the length of the fieldSlicePath is 3, then this is an entity at the root
-		// that has been mapped, so we simply give it the empty string as it will have
-		// the mapping path specified correctly. Otherwise, we take all the elements other
-		// than the first.
+		// that has been mapped, if it is a container, then an empty string can be
+		// specified as the container has its own name encoded. In the case that it is
+		// a list or a non-directory entry, then we need to include the name of the entry
+		// in the path.
 		switch len(fieldSlicePath) {
 		case 2:
 			childPath = []string{}
+			if !field.IsContainer() {
+				childPath = []string{fieldSlicePath[1]}
+			}
 		default:
 			childPath = fieldSlicePath[1:]
 		}
@@ -1123,7 +1127,14 @@ func findMapPaths(parent *yangStruct, field *yang.Entry, compressOCPaths bool) (
 			// is prefixed with a /.
 			// Absolute paths are used for top-level entities such rendering functions
 			// can be agnostic to whether the fakeroot was created.
-			childPath = append(childPath, []string{"", parentPath[2]}...)
+			// A special case exists where there are lists at the root, since in this case
+			// we cannot simply have the parent path prepended to the current element's
+			// name, and therefore we do not use absolute paths.
+			if parent.entry != nil && parent.entry.IsList() {
+				childPath = []string{}
+			} else {
+				childPath = append(childPath, []string{"", parentPath[2]}...)
+			}
 		}
 
 		// Append the elements that are not common between the two paths.
