@@ -1,9 +1,8 @@
-# ygot Getting Started Example
+# ygot Uncompressed Example
 
-This example is described in the main README.md of the `ygot` repository.
-You can run it using:
+You can run this example using:
 
 ```
   go generate
-  go run interfaces.go
+  go run uncompressed.go
 ```

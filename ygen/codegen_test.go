@@ -1219,11 +1219,12 @@ func TestFindRootEntries(t *testing.T) {
 	tests := []struct {
 		name                       string
 		inStructs                  map[string]*yang.Entry
+		inRootElems                []*yang.Entry
 		inRootName                 string
 		wantCompressRootChildren   []string
 		wantUncompressRootChildren []string
 	}{{
-		name: "directory at root, compress paths on",
+		name: "directory at root",
 		inStructs: map[string]*yang.Entry{
 			"/foo": {
 				Name: "foo",
@@ -1246,6 +1247,35 @@ func TestFindRootEntries(t *testing.T) {
 		inRootName:                 "fakeroot",
 		wantCompressRootChildren:   []string{"foo"},
 		wantUncompressRootChildren: []string{"foo"},
+	}, {
+		name: "directory and leaf at root",
+		inStructs: map[string]*yang.Entry{
+			"/foo": {
+				Name: "foo",
+				Dir:  map[string]*yang.Entry{},
+				Parent: &yang.Entry{
+					Name: "module",
+				},
+			},
+		},
+		inRootElems: []*yang.Entry{{
+			Name: "foo",
+			Dir:  map[string]*yang.Entry{},
+			Parent: &yang.Entry{
+				Name: "module",
+			},
+		}, {
+			Name: "leaf",
+			Type: &yang.YangType{
+				Kind: yang.Ystring,
+			},
+			Parent: &yang.Entry{
+				Name: "module",
+			},
+		}},
+		inRootName:                 "fakeroot",
+		wantCompressRootChildren:   []string{"foo", "leaf"},
+		wantUncompressRootChildren: []string{"foo", "leaf"},
 	}}
 
 	for _, tt := range tests {
@@ -1255,7 +1285,7 @@ func TestFindRootEntries(t *testing.T) {
 				FakeRootName:    tt.inRootName,
 			})
 
-			if err := cg.createFakeRoot(tt.inStructs); err != nil {
+			if err := cg.createFakeRoot(tt.inStructs, tt.inRootElems); err != nil {
 				t.Errorf("%s: cg.createFakeRoot(%v), CompressOCPaths: %v, got unexpected error: %v", tt.name, tt.inStructs, compress, err)
 				continue
 			}

@@ -48,7 +48,9 @@ func main() {
 // BuildDemo populates a demo instance of the uncompressed GoStructs
 // for the example.yang module.
 func BuildDemo() (*yb.Root, error) {
-	d := &yb.Root{}
+	d := &yb.Root{
+		Person: ygot.String("robjs"),
+	}
 	uk, err := d.NewCountry("United Kingdom")
 	if err != nil {
 		return nil, err

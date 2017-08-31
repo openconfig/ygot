@@ -1096,11 +1096,12 @@ func findMapPaths(parent *yangStruct, field *yang.Entry, compressOCPaths bool) (
 		// If the length of the fieldSlicePath is 3, then this is an entity at the root
 		// that has been mapped, if it is a container, then an empty string can be
 		// specified as the container has its own name encoded. In the case that it is
-		// a list, then we need to include the name of the list in the path.
+		// a list or a non-directory entry, then we need to include the name of the entry
+		// in the path.
 		switch len(fieldSlicePath) {
 		case 2:
 			childPath = []string{}
-			if field.IsList() {
+			if field.IsList() || field.IsLeaf() || field.IsLeafList() {
 				childPath = []string{fieldSlicePath[1]}
 			}
 		default:
