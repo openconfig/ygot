@@ -1110,6 +1110,15 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/schema/openconfig-options-explicit.formatted-txt"),
 		wantSchemaFile:      filepath.Join(TestRoot, "testdata/schema/openconfig-options-explicit-schema.json"),
+	}, {
+		name:    "module with entities at the root",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/root-entities.yang")},
+		inConfig: GeneratorConfig{
+			Caller:           "testcase",
+			FakeRootName:     "fakeroot",
+			GenerateFakeRoot: true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/root-entities.formatted-txt"),
 	}}
 
 	for _, tt := range tests {

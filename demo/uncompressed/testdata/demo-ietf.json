@@ -1,0 +1,14 @@
+{
+  "network:country": [
+    {
+      "country-code": "GB",
+      "name": "United Kingdom"
+    }
+  ],
+  "network:operator": [
+    {
+      "asn": 29636,
+      "name": "Catalyst2"
+    }
+  ]
+}

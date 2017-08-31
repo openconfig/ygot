@@ -1,0 +1,17 @@
+module network {
+  prefix "net";
+  namespace "urn:network";
+
+  list country {
+    key "name";
+
+    leaf name { type string; }
+    leaf country-code { type string; }
+  }
+
+  list operator {
+    key "asn";
+    leaf asn { type uint32; }
+    leaf name { type string; }
+  }
+}
