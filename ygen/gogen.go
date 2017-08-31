@@ -1101,7 +1101,7 @@ func findMapPaths(parent *yangStruct, field *yang.Entry, compressOCPaths bool) (
 		switch len(fieldSlicePath) {
 		case 2:
 			childPath = []string{}
-			if field.IsList() || field.IsLeaf() || field.IsLeafList() {
+			if !field.IsContainer() {
 				childPath = []string{fieldSlicePath[1]}
 			}
 		default:
