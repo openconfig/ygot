@@ -154,6 +154,31 @@ func TestGenProtoMsg(t *testing.T) {
 			path: []string{"", "a-messsage-with-a-list", "list"},
 		},
 		wantErr: true,
+	}, {
+		name: "message with an unimplemented mapping",
+		inMsg: &yangStruct{
+			name: "MessageWithInvalidContents",
+			entry: &yang.Entry{
+				Name: "message-with-invalid-contents",
+				Dir:  map[string]*yang.Entry{},
+			},
+			fields: map[string]*yang.Entry{
+				"unimplemented": {
+					Name: "unimplemented",
+					Type: &yang.YangType{
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{
+							{Kind: yang.Ybinary},
+							{Kind: yang.Yenum},
+							{Kind: yang.Ybits},
+							{Kind: yang.YinstanceIdentifier},
+						},
+					},
+				},
+			},
+			path: []string{"", "mesassge-with-invalid-contents", "unimplemented"},
+		},
+		wantErr: true,
 	}}
 
 	for _, tt := range tests {
