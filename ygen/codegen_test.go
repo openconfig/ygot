@@ -745,7 +745,7 @@ func TestGenerateProto3(t *testing.T) {
 			fmt.Fprintf(&gotCodeBuf, gotPkg.Header)
 
 			for _, gotMsg := range gotPkg.Messages {
-				fmt.Fprintf(&gotCodeBuf, "%v\n", gotMsg)
+				fmt.Fprintf(&gotCodeBuf, "%v", gotMsg)
 			}
 
 			if diff := pretty.Compare(gotCodeBuf.String(), string(wantCode)); diff != "" {
