@@ -156,7 +156,7 @@ func TestGenProtoMsg(t *testing.T) {
 		wantErr: true,
 	}, {
 		name: "message with an unimplemented mapping",
-		inMsg: &yangStruct{
+		inMsg: &yangDirectory{
 			name: "MessageWithInvalidContents",
 			entry: &yang.Entry{
 				Name: "message-with-invalid-contents",
