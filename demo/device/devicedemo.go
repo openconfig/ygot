@@ -50,8 +50,8 @@ func main() {
 func CreateDemoDeviceInstance() (*oc.Device, error) {
 	// Initialize a device.
 	d := &oc.Device{
-		Info: &oc.Info{
-			DeviceId: ygot.String("rtr02.pop44"),
+		System: &oc.System{
+			Hostname: ygot.String("rtr02.pop44"),
 		},
 	}
 

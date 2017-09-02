@@ -216,6 +216,9 @@ func TestGenProtoMsg(t *testing.T) {
 			fields: map[string]*yang.Entry{
 				"list": {
 					Name: "list",
+					Parent: &yang.Entry{
+						Name: "a-message-with-a-list",
+					},
 					Dir: map[string]*yang.Entry{
 						"key": {
 							Name: "key",
@@ -226,6 +229,32 @@ func TestGenProtoMsg(t *testing.T) {
 				},
 			},
 			path: []string{"", "a-messsage-with-a-list", "list"},
+		},
+		wantErr: true,
+	}, {
+		name: "message with an unimplemented mapping",
+		inMsg: &yangDirectory{
+			name: "MessageWithInvalidContents",
+			entry: &yang.Entry{
+				Name: "message-with-invalid-contents",
+				Dir:  map[string]*yang.Entry{},
+			},
+			fields: map[string]*yang.Entry{
+				"unimplemented": {
+					Name: "unimplemented",
+					Kind: yang.LeafEntry,
+					Type: &yang.YangType{
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{
+							{Kind: yang.Ybinary},
+							{Kind: yang.Yenum},
+							{Kind: yang.Ybits},
+							{Kind: yang.YinstanceIdentifier},
+						},
+					},
+				},
+			},
+			path: []string{"", "mesassge-with-invalid-contents", "unimplemented"},
 		},
 		wantErr: true,
 	}}
@@ -284,10 +313,6 @@ func TestSafeProtoName(t *testing.T) {
 		name: "contains period",
 		in:   "with.period",
 		want: "with_period",
-	}, {
-		name: "contains forward slash",
-		in:   "with/forwardslash",
-		want: "with_forwardslash",
 	}, {
 		name: "unchanged",
 		in:   "unchanged",
@@ -349,7 +374,8 @@ func TestWriteProtoMsg(t *testing.T) {
 // MessageName represents the /module/container/message-name YANG schema element.
 message MessageName {
   ywrapper.StringValue field_one = 1;
-}`,
+}
+`,
 		},
 		wantUncompress: writeProtoMsgTestResult{
 			pkg: "module.container",
@@ -357,7 +383,8 @@ message MessageName {
 // MessageName represents the /module/container/message-name YANG schema element.
 message MessageName {
   ywrapper.StringValue field_one = 1;
-}`,
+}
+`,
 		},
 	}, {
 		name: "simple message with other messages embedded",
@@ -411,7 +438,8 @@ message MessageName {
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
   message_name.Child child = 1;
-}`,
+}
+`,
 		},
 		wantUncompress: writeProtoMsgTestResult{
 			pkg: "module",
@@ -419,7 +447,8 @@ message MessageName {
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
   module.message_name.Child child = 1;
-}`,
+}
+`,
 		},
 	}}
 
