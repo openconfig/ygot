@@ -25,7 +25,7 @@ type Binary []byte
 
 // OpenconfigSimple_Parent represents the /openconfig-simple/parent YANG schema element.
 type OpenconfigSimple_Parent struct {
-	Child	*OpenconfigSimple_Parent_Child	`path:"parent/child" module:"openconfig-simple"`
+	Child	*OpenconfigSimple_Parent_Child	`path:"/parent/child" module:"openconfig-simple"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigSimple_Parent implements the yang.GoStruct
@@ -71,8 +71,8 @@ func (*OpenconfigSimple_Parent_Child_State) IsYANGGoStruct() {}
 
 // OpenconfigSimple_RemoteContainer represents the /openconfig-simple/remote-container YANG schema element.
 type OpenconfigSimple_RemoteContainer struct {
-	Config	*OpenconfigSimple_RemoteContainer_Config	`path:"remote-container/config" module:"openconfig-simple"`
-	State	*OpenconfigSimple_RemoteContainer_State	`path:"remote-container/state" module:"openconfig-simple"`
+	Config	*OpenconfigSimple_RemoteContainer_Config	`path:"/remote-container/config" module:"openconfig-simple"`
+	State	*OpenconfigSimple_RemoteContainer_State	`path:"/remote-container/state" module:"openconfig-simple"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigSimple_RemoteContainer implements the yang.GoStruct

@@ -1,9 +1,4 @@
 {
-   "info": {
-      "config": {
-         "device-id": "rtr02.pop44"
-      }
-   },
    "interfaces": {
       "interface": {
          "eth0": {
@@ -43,6 +38,11 @@
                }
             }
          }
+      }
+   },
+   "system": {
+      "config": {
+         "hostname": "rtr02.pop44"
       }
    }
 }

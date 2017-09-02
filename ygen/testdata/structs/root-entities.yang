@@ -1,0 +1,19 @@
+module root-entities {
+  prefix "r";
+  namespace "urn:r";
+
+  description
+    "This module tests code generation for entites at the root. This
+    is generally not allowed in OpenConfig and hence must be tested
+    without path compression enabled.";
+
+  leaf name { type string; }
+
+  list entry {
+    key "key";
+
+    leaf key { type string; }
+  }
+}
+
+

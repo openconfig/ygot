@@ -708,6 +708,18 @@ type ietfRenderExampleChild struct {
 
 func (*ietfRenderExampleChild) IsYANGGoStruct() {}
 
+type listAtRoot struct {
+	Foo map[string]*listAtRootChild `path:"foo" rootname:"foo" module:"m1"`
+}
+
+func (*listAtRoot) IsYANGGoStruct() {}
+
+type listAtRootChild struct {
+	Bar *string `path:"bar" module:"m1"`
+}
+
+func (*listAtRootChild) IsYANGGoStruct() {}
+
 func TestConstructJSON(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -1104,6 +1116,34 @@ func TestConstructJSON(t *testing.T) {
 					"f4": "baz",
 				},
 				"f5": "hat",
+			},
+		},
+	}, {
+		name: "list at root",
+		in: &listAtRoot{
+			Foo: map[string]*listAtRootChild{
+				"bar": {
+					Bar: String("bar"),
+				},
+				"baz": {
+					Bar: String("baz"),
+				},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"foo": []interface{}{
+				map[string]interface{}{"bar": "bar"},
+				map[string]interface{}{"bar": "baz"},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"bar": map[string]interface{}{
+					"bar": "bar",
+				},
+				"baz": map[string]interface{}{
+					"bar": "baz",
+				},
 			},
 		},
 	}}

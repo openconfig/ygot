@@ -1,3 +1,5 @@
+// Package ocdemo is a demonstration package for use in the
+// getting_started ygot demo.
 package ocdemo
 
 // This file is a placeholder in order to ensure that Go does not
