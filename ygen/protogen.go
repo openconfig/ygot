@@ -69,7 +69,7 @@ import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 {{ $publicImport := .BaseImportPath -}}
 {{- range $importedProto := .Imports }}
-import "{{ $publicImport }}{{ $importedProto }}.proto";
+import "{{ filepathJoin $publicImport $importedProto }}.proto";
 {{ end -}}
 `
 
@@ -116,14 +116,21 @@ message {{ .Name }} {
 	}
 )
 
-// writeProtoHeader outputs the header for a proto3 generated file. The package
-// name, base for the generated packages, files for which the protobuf was
-// generated, and the paths used for include are supplied as arguments. In
-// addition, whether path compression is being performed, and the calling
-// binary name are provided as arguments. Returns a string containing the
-// generated header code.
-func writeProtoHeader(pkg, basePkg, baseImportPath string, imports, yangFiles, includePaths []string, compressPaths bool, caller string) (string, error) {
-
+// writeProto3Header outputs the header for a proto3 generated file. Takes
+// the following arguments:
+//  - pkg - the name of the protobuf package being written.
+//  - base - the base for the package, such that the total package name is
+//    represented as base.pkg.
+//  - imports - the other protobuf packages that should be imported by the
+//    protobuf package.
+//  - yangFiles - the set of files that were input to the library.
+//  - includePaths - the set of include paths that were input to the library.
+//  - compressPaths - a bool indicating whether path compression should
+//    be used.
+//  - caller - the name of the calling binary - included in the package
+//    header.
+// It returns a string containing the generated header code.
+func writeProto3Header(pkg, basePkg, baseImportPath string, imports, yangFiles, includePaths []string, compressPaths bool, caller string) (string, error) {
 	if caller == "" {
 		caller = callerName()
 	}
@@ -132,10 +139,9 @@ func writeProtoHeader(pkg, basePkg, baseImportPath string, imports, yangFiles, i
 		basePkg = defaultBasePackageName
 	}
 
-	switch pkg {
-	case "":
+	if pkg == "" {
 		pkg = basePkg
-	default:
+	} else {
 		pkg = fmt.Sprintf("%s.%s", basePkg, pkg)
 	}
 
@@ -163,7 +169,7 @@ func writeProtoHeader(pkg, basePkg, baseImportPath string, imports, yangFiles, i
 	return b.String(), nil
 }
 
-// writeProtoMsg generates a protobuf message for the *yangDirectory described by msg.
+// writeProto3Msg generates a protobuf message for the *yangDirectory described by msg.
 // it uses the context of other messages to be generated (msgs), and the generator
 // state stored in state to determine names of other messages. compressPaths indicates
 // whether path compression should be enabled for the code generation. Returns a string
@@ -171,8 +177,8 @@ func writeProtoHeader(pkg, basePkg, baseImportPath string, imports, yangFiles, i
 // the generated code for the protobuf message, a slice of strings containing the child
 // packages that are required by this message and any errors encountered during
 // proto generation.
-func writeProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) (string, string, []string, []error) {
-	msgDefs, errs := genProtoMsg(msg, msgs, state, compressPaths)
+func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) (string, string, []string, []error) {
+	msgDefs, errs := genProto3Msg(msg, msgs, state, compressPaths)
 	if len(errs) > 0 {
 		return "", "", nil, errs
 	}
@@ -199,16 +205,11 @@ func writeProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *ge
 
 }
 
-// genProtoMsg takes an input yangDirectory which describes a container or list entry
-// with the generated YANG schema and returns a slice of protoMsgs which represent
-// the protobuf messages associated with it. In the case of a simple container, a
-// single protobuf message is returned. In the case of a container that has list
-// children (that are keyed), the protobuf message represnting the container and
-// the keys of the lists are returned. It takes an input of the slice of messages
-// that are being mapped within this context (to look up child directory entries),
-// the current generator state (to ensure consistent name mapping), and the state
-// of the compressPaths config option.
-func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) ([]protoMsg, []error) {
+// genProto3Msg takes an input yangDirectory which describes a container or list entry
+// within the YANG schema and returns a protoMsg which can be mapped to the protobuf
+// code representing it. It uses the set of messages that have been extracted and the
+// current generator state to map to other messages and ensure uniqueness of names.
+func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) ([]protoMsg, []error) {
 	var errs []error
 
 	var msgDefs []protoMsg
