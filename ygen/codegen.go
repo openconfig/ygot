@@ -428,8 +428,9 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 // are to be used to search for includes (includePaths). Returns a map, keyed
 // by a string path to the schema element, of entities that are to be mapped
 // to directories with the output code (structs in the case of Go, messages
-// for proto3), and a map - keyed by schema path - of enumerated entities that
-// are to have code generated for them.
+// for proto3), a map - keyed by schema path - of enumerated entities that
+// are to have code generated for them, a ctree containing the schema tree
+// of the input YANG schemas.
 func langAgnosticDefinitions(yangFiles, includePaths []string, cfg GeneratorConfig) (map[string]*yang.Entry, map[string]*yang.Entry, *ctree.Tree, []error) {
 	modules, errs := processModules(yangFiles, includePaths, cfg.YANGParseOptions)
 	if len(errs) > 0 {
@@ -459,7 +460,7 @@ func langAgnosticDefinitions(yangFiles, includePaths []string, cfg GeneratorConf
 	// If we were asked to generate a fake root entity, then go and find the top-level entities that
 	// we were asked for.
 	if cfg.GenerateFakeRoot {
-		if err := createFakeRoot(dirs, cfg.FakeRootName, cfg.CompressOCPaths); err != nil {
+		if err := createFakeRoot(dirs, rootElems, cfg.FakeRootName, cfg.CompressOCPaths); err != nil {
 			return nil, nil, nil, []error{err}
 		}
 	}
@@ -605,19 +606,22 @@ func findRootEntries(structs map[string]*yang.Entry, compressPaths bool) map[str
 
 // createFakeRoot extracts the entities that are at the root of the YANG schema tree,
 // which otherwise would have no parent in the generated structs, and appends them to
-// a synthesised root element. In the case that the code generation is compressing the
+// a synthesised root element. Such entries are extracted from the supplied structs
+// if they are lists or containers, or from the rootElems supplied if they are leaves
+// or leaf-lists. In the case that the code generation is compressing the
 // YANG schema, list entries that are two levels deep (e.g., /interfaces/interface) are
 // also appended to the synthesised root entity (i.e., in this case the root element
 // has a map entry named 'Interface', and the corresponding NewInterface() method.
-// The synthesised root entry is named according to the fakeRootName argument. The
-// compressPaths argument stores whether path compression should be enabled or disabled.
-func createFakeRoot(structs map[string]*yang.Entry, fakeRootName string, compressPaths bool) error {
-	if fakeRootName == "" {
-		fakeRootName = defaultRootName
+// Takes the directories that are identified at the root (dirs), the elements found
+// at the root (rootElems, such that non-directories can be mapped), and a string
+// indicating the root name.
+func createFakeRoot(structs map[string]*yang.Entry, rootElems []*yang.Entry, rootName string, compressPaths bool) error {
+	if rootName == "" {
+		rootName = defaultRootName
 	}
 
 	fakeRoot := &yang.Entry{
-		Name: fakeRootName,
+		Name: rootName,
 		Kind: yang.DirectoryEntry,
 		Dir:  map[string]*yang.Entry{},
 		// Create a fake node that corresponds to the fake root, this
@@ -632,6 +636,12 @@ func createFakeRoot(structs map[string]*yang.Entry, fakeRootName string, compres
 			return fmt.Errorf("duplicate entry %s at the root: exists: %v, new: %v", s.Name, e.Path(), s.Path())
 		}
 		fakeRoot.Dir[s.Name] = s
+	}
+
+	for _, l := range rootElems {
+		if l.IsLeaf() || l.IsLeafList() {
+			fakeRoot.Dir[l.Name] = l
+		}
 	}
 
 	// Append the synthesised root entry to the list of structs for which
