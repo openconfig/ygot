@@ -191,10 +191,6 @@ func TestSafeProtoName(t *testing.T) {
 		in:   "with.period",
 		want: "with_period",
 	}, {
-		name: "contains forward slash",
-		in:   "with/forwardslash",
-		want: "with_forwardslash",
-	}, {
 		name: "unchanged",
 		in:   "unchanged",
 		want: "unchanged",
