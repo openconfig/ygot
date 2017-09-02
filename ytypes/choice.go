@@ -28,8 +28,8 @@ import (
 // the given schema. It ensures that fields from only one case are selected from
 // the available set. Since a case may contain choice elements that are not
 // named in the data tree, the function recurses until it reaches a named
-// element in such cases. It returns all the field names that were selected in
-// the data tree from the Choice schema.
+// element in such cases. Returns all the field names that were selected in the
+// data tree from the Choice schema.
 func validateChoice(schema *yang.Entry, structValue ygot.GoStruct) (selected []string, errors []error) {
 	dbgPrint("validateChoice with value %s, schema name %s\n", valueStr(structValue), schema.Name)
 	// Validate that multiple cases are not selected. Since choice is always
@@ -55,8 +55,8 @@ func validateChoice(schema *yang.Entry, structValue ygot.GoStruct) (selected []s
 // IsCaseSelected reports whether a case with the given schema has been selected
 // in the given value struct. The top level of the struct is checked, and any
 // choices present in the schema are recursively followed to determine whether
-// any case is selected for that choice schema subtree. It returns a slice with
-// the names of all fields in the case that were selected.
+// any case is selected for that choice schema subtree. Returns a slice with the
+// names of all fields in the case that were selected.
 func IsCaseSelected(schema *yang.Entry, value interface{}) (selected []string, errors []error) {
 	v := reflect.ValueOf(value).Elem()
 	for i := 0; i < v.NumField(); i++ {

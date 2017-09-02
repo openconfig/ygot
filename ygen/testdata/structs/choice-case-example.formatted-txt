@@ -13,7 +13,6 @@ package ocstructs
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/openconfig/ygot/ygot"
 )

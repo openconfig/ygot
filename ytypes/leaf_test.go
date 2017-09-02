@@ -15,42 +15,13 @@
 package ytypes
 
 import (
-	"encoding/json"
-	"fmt"
-	"reflect"
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 )
 
-func typeToLeafSchema(name string, t yang.TypeKind) *yang.Entry {
-	return &yang.Entry{
-		Name: name,
-		Kind: yang.LeafEntry,
-		Type: &yang.YangType{
-			Kind: t,
-		},
-	}
-}
-
-var (
-	validLeafSchema = &yang.Entry{
-		Name: "valid-leaf",
-		Kind: yang.LeafEntry,
-		Type: &yang.YangType{
-			Kind: yang.Ystring,
-		},
-	}
-	enumLeafSchema = &yang.Entry{
-		Name: "enum-leaf",
-		Kind: yang.LeafEntry,
-		Type: &yang.YangType{
-			Kind: yang.Yenum,
-		},
-	}
-)
+var validLeafSchema = &yang.Entry{Name: "valid-leaf-schema", Kind: yang.LeafEntry, Type: &yang.YangType{Kind: yang.Ystring}}
 
 func TestValidateLeafSchema(t *testing.T) {
 	tests := []struct {
@@ -84,6 +55,44 @@ func TestValidateLeafSchema(t *testing.T) {
 }
 
 func TestValidateLeaf(t *testing.T) {
+	strLeafSchema := &yang.Entry{
+		Name: "string-leaf-schema",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Ystring,
+		},
+	}
+	intLeafSchema := &yang.Entry{
+		Name: "int-leaf-schema",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Yint32,
+		},
+	}
+	binaryLeafSchema := &yang.Entry{
+		Name: "binary-leaf-schema",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Ybinary,
+		},
+	}
+	// TODO(mostrowski): restore when representation is decided.
+	//bitsetLeafSchema := mapToBitsetSchema("bitset-leaf-schema", map[string]int64{"name1": 0, "name2": 1, "name3": 2})
+	boolLeafSchema := &yang.Entry{
+		Name: "bool-leaf-schema",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Ybool,
+		},
+	}
+	decimalLeafSchema := &yang.Entry{
+		Name: "decimal-leaf-schema",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Ydecimal64,
+		},
+	}
+
 	tests := []struct {
 		desc    string
 		schema  *yang.Entry
@@ -98,34 +107,34 @@ func TestValidateLeaf(t *testing.T) {
 		},
 		{
 			desc:   "string success",
-			schema: typeToLeafSchema("string", yang.Ystring),
+			schema: strLeafSchema,
 			val:    ygot.String("value"),
 		},
 		{
 			desc:   "string nil value success",
-			schema: typeToLeafSchema("string", yang.Ystring),
+			schema: strLeafSchema,
 			val:    nil,
 		},
 		{
 			desc:    "string bad type",
-			schema:  typeToLeafSchema("string", yang.Ystring),
+			schema:  strLeafSchema,
 			val:     ygot.Int32(1),
 			wantErr: true,
 		},
 		{
 			desc:    "string non ptr type",
-			schema:  typeToLeafSchema("string", yang.Ystring),
+			schema:  strLeafSchema,
 			val:     int(1),
 			wantErr: true,
 		},
 		{
 			desc:   "int success",
-			schema: typeToLeafSchema("int32", yang.Yint32),
+			schema: intLeafSchema,
 			val:    ygot.Int32(1),
 		},
 		{
 			desc:    "int bad type",
-			schema:  typeToLeafSchema("int32", yang.Yint32),
+			schema:  intLeafSchema,
 			val:     ygot.String("value"),
 			wantErr: true,
 		},
@@ -142,34 +151,34 @@ func TestValidateLeaf(t *testing.T) {
 		}, */
 		{
 			desc:   "binary success",
-			schema: typeToLeafSchema("binary", yang.Ybinary),
+			schema: binaryLeafSchema,
 			val:    []byte("value"),
 		},
 		{
 			desc:    "binary bad type",
-			schema:  typeToLeafSchema("binary", yang.Ybinary),
+			schema:  binaryLeafSchema,
 			val:     ygot.Int32(1),
 			wantErr: true,
 		},
 		{
 			desc:   "bool success",
-			schema: typeToLeafSchema("bool", yang.Ybool),
+			schema: boolLeafSchema,
 			val:    ygot.Bool(true),
 		},
 		{
 			desc:    "bool bad type",
-			schema:  typeToLeafSchema("bool", yang.Ybool),
+			schema:  boolLeafSchema,
 			val:     ygot.Int32(1),
 			wantErr: true,
 		},
 		{
 			desc:   "decimal64 success",
-			schema: typeToLeafSchema("decimal", yang.Ydecimal64),
+			schema: decimalLeafSchema,
 			val:    ygot.Float64(42.42),
 		},
 		{
 			desc:    "decimal64 bad type",
-			schema:  typeToLeafSchema("decimal", yang.Ydecimal64),
+			schema:  decimalLeafSchema,
 			val:     ygot.String("four hundred and twenty two point eight"),
 			wantErr: true,
 		},
@@ -753,311 +762,6 @@ func TestRemoveXPATHPredicates(t *testing.T) {
 
 		if got != tt.want {
 			t.Errorf("%s: removePredicate(%v): did not get expected value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
-		}
-	}
-}
-
-type LeafContainerStruct struct {
-	Int8Leaf   *int8         `path:"int8-leaf"`
-	Uint8Leaf  *uint8        `path:"uint8-leaf"`
-	Int16Leaf  *int16        `path:"int16-leaf"`
-	Uint16Leaf *uint16       `path:"uint16-leaf"`
-	Int32Leaf  *int32        `path:"int32-leaf"`
-	Uint32Leaf *uint32       `path:"uint32-leaf"`
-	Int64Leaf  *int64        `path:"int64-leaf"`
-	Uint64Leaf *uint64       `path:"uint64-leaf"`
-	StringLeaf *string       `path:"string-leaf"`
-	BinaryLeaf []byte        `path:"binary-leaf"`
-	BoolLeaf   *bool         `path:"bool-leaf"`
-	EnumLeaf   EnumType      `path:"enum-leaf"`
-	UnionLeaf  UnionLeafType `path:"union-leaf"`
-}
-
-type UnionLeafType interface {
-	Is_UnionLeafType()
-}
-
-type UnionLeafType_String struct {
-	String string
-}
-
-func (*UnionLeafType_String) Is_UnionLeafType() {}
-
-type UnionLeafType_Uint32 struct {
-	Uint32 uint32
-}
-
-func (*UnionLeafType_Uint32) Is_UnionLeafType() {}
-
-func (*LeafContainerStruct) To_UnionLeafType(i interface{}) (UnionLeafType, error) {
-	switch v := i.(type) {
-	case string:
-		return &UnionLeafType_String{v}, nil
-	case uint32:
-		return &UnionLeafType_Uint32{v}, nil
-	default:
-		return nil, fmt.Errorf("cannot convert %v to To_UnionLeafType, unknown union type, got: %T, want any of [string, uint32]", i, i)
-	}
-}
-
-func TestUnmarshalLeaf(t *testing.T) {
-	tests := []struct {
-		desc    string
-		schema  *yang.Entry
-		json    string
-		want    LeafContainerStruct
-		wantErr string
-	}{
-		{
-			desc: "int8 success",
-			json: `{"int8-leaf" : -42}`,
-			want: LeafContainerStruct{Int8Leaf: ygot.Int8(-42)},
-		},
-		{
-			desc: "uint8 success",
-			json: `{"uint8-leaf" : 42}`,
-			want: LeafContainerStruct{Uint8Leaf: ygot.Uint8(42)},
-		},
-		{
-			desc: "int16 success",
-			json: `{"int16-leaf" : -42}`,
-			want: LeafContainerStruct{Int16Leaf: ygot.Int16(-42)},
-		},
-		{
-			desc: "uint16 success",
-			json: `{"uint16-leaf" : 42}`,
-			want: LeafContainerStruct{Uint16Leaf: ygot.Uint16(42)},
-		},
-		{
-			desc: "int32 success",
-			json: `{"int32-leaf" : -42}`,
-			want: LeafContainerStruct{Int32Leaf: ygot.Int32(-42)},
-		},
-		{
-			desc: "uint32 success",
-			json: `{"uint32-leaf" : 42}`,
-			want: LeafContainerStruct{Uint32Leaf: ygot.Uint32(42)},
-		},
-		{
-			desc: "int64 success",
-			json: `{"int64-leaf" : "-42"}`,
-			want: LeafContainerStruct{Int64Leaf: ygot.Int64(-42)},
-		},
-		{
-			desc: "uint64 success",
-			json: `{"uint64-leaf" : "42"}`,
-			want: LeafContainerStruct{Uint64Leaf: ygot.Uint64(42)},
-		},
-		{
-			desc: "enum success",
-			json: `{"enum-leaf" : "E_VALUE_FORTY_TWO"}`,
-			want: LeafContainerStruct{EnumLeaf: 42},
-		},
-		{
-			desc: "union string success",
-			json: `{"union-leaf" : "forty-two"}`,
-			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_String{String: "forty-two"}},
-		},
-		{
-			desc: "union uint32 success",
-			json: `{"union-leaf" : 42}`,
-			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_Uint32{Uint32: 42}},
-		},
-		{
-			desc:    "int32 bad type",
-			json:    `{"int32-leaf" : "-42"}`,
-			wantErr: `got string type for field int32-leaf, expect float64`,
-		},
-		{
-			desc:    "uint32 bad type",
-			json:    `{"uint32-leaf" : "42"}`,
-			wantErr: `got string type for field uint32-leaf, expect float64`,
-		},
-		{
-			desc:    "int64 bad type",
-			json:    `{"int64-leaf" : -42}`,
-			wantErr: `got float64 type for field int64-leaf, expect string`,
-		},
-		{
-			desc:    "int8 out of range",
-			json:    `{"int8-leaf" : -129}`,
-			wantErr: `error parsing -129 for schema int8-leaf: value -129 falls outside the int range [-128, 127]`,
-		},
-		{
-			desc:    "uint8 out of range",
-			json:    `{"uint8-leaf" : -42}`,
-			wantErr: `error parsing -42 for schema uint8-leaf: value -42 falls outside the int range [0, 255]`,
-		},
-		{
-			desc:    "int16 out of range",
-			json:    `{"int16-leaf" : -32769}`,
-			wantErr: `error parsing -32769 for schema int16-leaf: value -32769 falls outside the int range [-32768, 32767]`,
-		},
-		{
-			desc:    "uint16 out of range",
-			json:    `{"uint16-leaf" : -42}`,
-			wantErr: `error parsing -42 for schema uint16-leaf: value -42 falls outside the int range [0, 65535]`,
-		},
-		{
-			desc:    "int32 out of range",
-			json:    `{"int32-leaf" : -2147483649}`,
-			wantErr: `error parsing -2.147483649e+09 for schema int32-leaf: value -2147483649 falls outside the int range [-2147483648, 2147483647]`,
-		},
-		{
-			desc:    "uint32 out of range",
-			json:    `{"uint32-leaf" : -42}`,
-			wantErr: `error parsing -42 for schema uint32-leaf: value -42 falls outside the int range [0, 4294967295]`,
-		},
-		{
-			desc:    "int64 out of range",
-			json:    `{"int64-leaf" : "-9223372036854775809"}`,
-			wantErr: `error parsing -9223372036854775809 for schema int64-leaf: strconv.ParseInt: parsing "-9223372036854775809": value out of range`,
-		},
-		{
-			desc:    "uint64 out of range",
-			json:    `{"uint64-leaf" : "-42"}`,
-			wantErr: `error parsing -42 for schema uint64-leaf: strconv.ParseUint: parsing "-42": invalid syntax`,
-		},
-		{
-			desc:    "enum bad value",
-			json:    `{"enum-leaf" : "E_BAD_VALUE"}`,
-			wantErr: `E_BAD_VALUE is not a valid value for enum field EnumLeaf`,
-		},
-		{
-			desc:    "union bad type",
-			json:    `{"union-leaf" : -42}`,
-			wantErr: `could not find suitable union type to unmarshal value -42 type float64 into parent struct type *ytypes.LeafContainerStruct field UnionLeaf`,
-		},
-	}
-
-	containerSchema := &yang.Entry{
-		Name: "container-schema",
-		Kind: yang.DirectoryEntry,
-		Dir:  make(map[string]*yang.Entry),
-	}
-
-	unionSchema := &yang.Entry{
-		Name: "union-leaf",
-		Kind: yang.LeafEntry,
-		Type: &yang.YangType{
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{
-				{
-					Kind: yang.Ystring,
-				},
-				{
-					Kind: yang.Yuint32,
-				},
-			},
-		},
-	}
-
-	var leafSchemas = []*yang.Entry{
-		typeToLeafSchema("int8-leaf", yang.Yint8),
-		typeToLeafSchema("uint8-leaf", yang.Yuint8),
-		typeToLeafSchema("int16-leaf", yang.Yint16),
-		typeToLeafSchema("uint16-leaf", yang.Yuint16),
-		typeToLeafSchema("int32-leaf", yang.Yint32),
-		typeToLeafSchema("uint32-leaf", yang.Yuint32),
-		typeToLeafSchema("int64-leaf", yang.Yint64),
-		typeToLeafSchema("uint64-leaf", yang.Yuint64),
-		typeToLeafSchema("string-leaf", yang.Ystring),
-		typeToLeafSchema("binary-leaf", yang.Ybinary),
-		typeToLeafSchema("bool-leaf", yang.Ybool),
-		enumLeafSchema,
-		unionSchema,
-	}
-	for _, s := range leafSchemas {
-		containerSchema.Dir[s.Name] = s
-	}
-
-	var jsonTree interface{}
-	for _, test := range tests {
-		var parent LeafContainerStruct
-
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
-		}
-
-		err := Unmarshal(containerSchema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
-			}
-		}
-	}
-}
-
-func TestUnmarshalLeafRef(t *testing.T) {
-	containerSchema := &yang.Entry{
-		Name: "container",
-		Kind: yang.DirectoryEntry,
-	}
-	containerSchema.Dir = map[string]*yang.Entry{
-		"config": {
-			Parent: containerSchema,
-			Dir: map[string]*yang.Entry{
-				"leaf-type": {
-					Kind: yang.LeafEntry,
-					Name: "leaf-type",
-					Type: &yang.YangType{Kind: yang.Yint32},
-				},
-			},
-		},
-		"leaf1": {
-			Parent: containerSchema,
-			Kind:   yang.LeafEntry,
-			Name:   "leaf1",
-			Type: &yang.YangType{
-				Kind: yang.Yleafref,
-				Path: "../config/leaf-type",
-			},
-		},
-	}
-
-	type ContainerStruct struct {
-		Leaf1 *int32 `path:"leaf1"`
-	}
-
-	tests := []struct {
-		desc    string
-		json    string
-		want    ContainerStruct
-		wantErr string
-	}{
-		{
-			desc: "success",
-			json: `{ "leaf1" : 42}`,
-			want: ContainerStruct{Leaf1: ygot.Int32(42)},
-		},
-		{
-			desc:    "bad field name",
-			json:    `{ "bad-field" : 42}`,
-			wantErr: `parent container container (type *ytypes.ContainerStruct): JSON contains unexpected field bad-field`,
-		},
-	}
-
-	var jsonTree interface{}
-	for _, test := range tests {
-		var parent ContainerStruct
-
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
-		}
-
-		err := Unmarshal(containerSchema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
-			}
 		}
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
+
 	"github.com/openconfig/ygot/ygot"
 )
 

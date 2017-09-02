@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -37,7 +37,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) (errors []error)
 	}
 	dbgPrint("validateContainer with value %v, type %T, schema name %s", valueStr(value), value, schema.Name)
 
-	extraFields := make(map[string]interface{})
+	extraFields := make(map[string]bool)
 
 	switch reflect.TypeOf(value).Kind() {
 	case reflect.Ptr:
@@ -65,7 +65,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) (errors []error)
 			case !structElems.Field(i).IsNil():
 				// Either an element in choice schema subtree, or bad field.
 				// If the former, it will be found in the choice check below.
-				extraFields[fieldName] = nil
+				extraFields[fieldName] = true
 			}
 		}
 
@@ -89,106 +89,10 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) (errors []error)
 	}
 
 	if len(extraFields) > 0 {
-		errors = appendErr(errors, fmt.Errorf("fields %v are not found in the container schema %s", stringMapSetToSlice(extraFields), schema.Name))
+		errors = appendErr(errors, fmt.Errorf("fields %v are not found in the container schema %s", mapToStrSlice(extraFields), schema.Name))
 	}
 
 	return
-}
-
-// unmarshalContainer unmarshals a JSON tree into a struct.
-//   schema is the schema of the schema node corresponding to the struct being
-//     unmamshaled into.
-//   parent is the parent struct, which must be a struct ptr.
-//   value is a JSON data tree which must be a map[string]interface{}.
-func unmarshalContainer(schema *yang.Entry, parent interface{}, value interface{}) error {
-	if isNil(value) {
-		return nil
-	}
-
-	dbgPrint("unmarshalContainer value %v, type %T, into parent type %T, schema name %s", valueStr(value), value, parent, schema.Name)
-
-	// Check that the schema itself is valid.
-	if err := validateContainerSchema(schema); err != nil {
-		return err
-	}
-
-	// Since this is a container, the JSON data tree is a map.
-	jsonTree, ok := value.(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("unmarshalContainer for schema %s: value %v: got type %T inside container, expect map[string]interface{}",
-			schema.Name, valueStr(value), value)
-	}
-
-	pvp := reflect.ValueOf(parent)
-	if !IsValueStructPtr(pvp) {
-		return fmt.Errorf("unmarshalContainer got parent type %T, expect struct ptr", parent)
-	}
-	pv := pvp.Elem()
-
-	var allSchemaPaths [][]string
-	// Range over the parent struct fields. For each field, check if the data
-	// is present in the JSON tree and if so unmarshal it into the field.
-	for i := 0; i < pv.NumField(); i++ {
-		f := pv.Field(i)
-		ft := pv.Type().Field(i)
-		cschema, err := childSchema(schema, ft)
-		if err != nil {
-			return err
-		}
-		if cschema == nil {
-			return fmt.Errorf("unmarshalContainer could not find schema for type %T, field name %s", parent, ft.Name)
-		}
-		jsonValue, err := getJSONTreeValForField(schema, cschema, ft, value)
-		if err != nil {
-			return err
-		}
-		// Store the data tree path of the current field. These will be used
-		// at the end to ensure that there are no excess elements in the JSON
-		// tree not covered by any data path.
-		sp, err := dataTreePaths(schema, cschema, ft)
-		if err != nil {
-			return err
-		}
-
-		allSchemaPaths = append(allSchemaPaths, sp...)
-		if jsonValue == nil {
-			dbgPrint("field %s paths %v not present in tree", ft.Name, sp)
-			continue
-		}
-
-		dbgPrint("populating field %s type %s with paths %v.", ft.Name, ft.Type, sp)
-		// Only create a new field if it is nil, otherwise update just the
-		// fields that are in the data tree being passed to unmarshal, and
-		// preserve all other existing values.
-		if IsNilOrInvalidValue(f) {
-			makeField(pv, ft)
-		}
-
-		p := parent
-		switch {
-		case isUnkeyedList(cschema):
-			// For unkeyed list, we must pass in the addr of the slice to be
-			// able to append to it.
-			p = f.Addr().Interface()
-		case cschema.IsContainer() || cschema.IsList():
-			// For list and container, the new parent is the field we just
-			// created. For leaf and leaf-list, the parent is still the
-			// current container.
-			p = f.Interface()
-		}
-		if err := Unmarshal(cschema, p, jsonValue); err != nil {
-			return err
-		}
-	}
-
-	// Go over all JSON fields to make sure that each one is covered
-	// by a data path in the struct.
-	if err := checkDataTreeAgainstPaths(jsonTree, allSchemaPaths); err != nil {
-		return fmt.Errorf("parent container %s (type %T): %s", schema.Name, parent, err)
-	}
-
-	dbgPrint("container after unmarshal:\n%s\n", pretty.Sprint(pv.Interface()))
-	return nil
 }
 
 // validateContainerSchema validates the given container type schema. This is a

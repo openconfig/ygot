@@ -15,12 +15,10 @@
 package ytypes
 
 import (
-	"encoding/json"
-	"fmt"
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -102,120 +100,4 @@ func TestValidateChoice(t *testing.T) {
 		}
 		testErrLog(t, test.desc, errs)
 	}
-}
-
-func TestUnmarshalChoice(t *testing.T) {
-	containerWithChoiceSchema := &yang.Entry{
-		Name: "container-with-choice",
-		Kind: yang.DirectoryEntry,
-		Dir: map[string]*yang.Entry{
-			"choice1": {
-				Kind: yang.ChoiceEntry,
-				Name: "choice1",
-				Dir: map[string]*yang.Entry{
-					"case1": {
-						Kind: yang.CaseEntry,
-						Name: "case1",
-						Dir: map[string]*yang.Entry{
-							"leaf11-field": {
-								Kind: yang.LeafEntry,
-								Name: "leaf11-field",
-								Type: &yang.YangType{Kind: yang.Yint32},
-							},
-						},
-					},
-					"case2": {
-						Kind: yang.CaseEntry,
-						Name: "case2",
-						Dir: map[string]*yang.Entry{
-							"choice1": {
-								Kind: yang.ChoiceEntry,
-								Name: "choice1",
-								Dir: map[string]*yang.Entry{
-									"case1": {
-										Kind: yang.CaseEntry,
-										Name: "case1",
-										Dir: map[string]*yang.Entry{
-											"leaf1211-field": {
-												Kind: yang.LeafEntry,
-												Name: "leaf1211-field",
-												Type: &yang.YangType{Kind: yang.Yint32},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	containerSchema := &yang.Entry{
-		Name: "parent-field",
-		Kind: yang.DirectoryEntry,
-		Dir: map[string]*yang.Entry{
-			"container-with-choice": containerWithChoiceSchema,
-		},
-	}
-
-	populateParentField(nil, containerSchema)
-
-	type ContainerWithChoiceStruct struct {
-		Leaf11Field   *int32 `path:"choice1/case1/leaf11-field"`
-		Leaf1211Field *int32 `path:"choice1/case2/choice1/case1/leaf1211-field"`
-	}
-
-	type ParentContainerStruct struct {
-		ContainerField *ContainerWithChoiceStruct `path:"container-with-choice"`
-	}
-
-	tests := []struct {
-		desc    string
-		schema  *yang.Entry
-		json    string
-		want    interface{}
-		wantErr string
-	}{
-		{
-			desc:   "success",
-			schema: containerSchema,
-			json:   `{ "container-with-choice": { "m2:leaf11-field": 42, "m1:leaf1211-field": 43 } }`,
-			want:   &ParentContainerStruct{ContainerField: &ContainerWithChoiceStruct{Leaf11Field: ygot.Int32(42), Leaf1211Field: ygot.Int32(43)}},
-		},
-		{
-			desc:    "bad field name",
-			schema:  containerSchema,
-			json:    `{ "container-with-choice": { "bad-field": 42 } }`,
-			wantErr: `parent container container-with-choice (type *ytypes.ContainerWithChoiceStruct): JSON contains unexpected field bad-field`,
-		},
-		{
-			desc:    "bad field type",
-			schema:  containerSchema,
-			json:    `{ "container-with-choice": { "m2:leaf11-field":  "forty-two"} }`,
-			wantErr: `got string type for field leaf11-field, expect float64`,
-		},
-	}
-
-	var jsonTree interface{}
-	for _, test := range tests {
-		var parent ParentContainerStruct
-
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("json unmarshal (%s) : %s", test.desc, err))
-		}
-
-		err := Unmarshal(test.schema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: got error: %v, wanted error? %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := &parent, test.want; !areEqual(got, want) {
-				t.Errorf("%s: got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
-			}
-		}
-	}
-
 }

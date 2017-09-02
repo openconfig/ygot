@@ -15,24 +15,12 @@
 package validate
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"path/filepath"
-	"sort"
-	"strings"
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
-	"github.com/pmezard/go-difflib/difflib"
 
 	oc "github.com/openconfig/ygot/exampleoc"
-)
-
-const (
-	// TestRoot is the path to the directory within which the test runs, appended
-	// to any filename that is to be loaded.
-	testRoot string = "."
 )
 
 var (
@@ -50,15 +38,6 @@ func testErrLog(t *testing.T, desc string, err error) {
 	}
 }
 
-// errToString returns the string representation of err and the empty string if
-// err is nil.
-func errToString(err error) string {
-	if err == nil {
-		return ""
-	}
-	return err.Error()
-}
-
 // To debug a schema node subtree, any of the following can be used:
 //
 // 1. Print hierarchy without details (good for viewing large subtrees):
@@ -71,9 +50,6 @@ func errToString(err error) string {
 // 3. Detailed representation in JSON format:
 //      j, _ := json.MarshalIndent(oc.SchemaTree["LocalRoutes_Static"].Dir["next-hops"].Dir["next-hop"].Dir["config"].Dir["next-hop"], "", "  ")
 //      fmt.Println(string(j))
-//
-// 4. Combination of schema and data trees:
-//       fmt.Println(ytypes.DataSchemaTreesString(oc.SchemaTree["Device"], dev))
 
 func TestValidateInterface(t *testing.T) {
 	dev := &oc.Device{}
@@ -364,92 +340,6 @@ func TestValidateRoutingPolicy(t *testing.T) {
 	} else {
 		testErrLog(t, "bad regex", err)
 	}
-}
-
-func TestUnmarshal(t *testing.T) {
-	tests := []struct {
-		desc         string
-		jsonFilePath string
-		parent       ygot.ValidatedGoStruct
-		wantErr      string
-	}{
-		{
-			desc:         "basic test",
-			jsonFilePath: "basic.json",
-			parent:       &oc.Device{},
-		},
-	}
-
-	emitJSONConfig := &ygot.EmitJSONConfig{
-		Format: ygot.RFC7951,
-		RFC7951Config: &ygot.RFC7951JSONConfig{
-			AppendModuleName: true,
-		}}
-
-	for _, tt := range tests {
-		j, err := ioutil.ReadFile(filepath.Join(testRoot, "testdata", tt.jsonFilePath))
-		if err != nil {
-			t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.desc, tt.jsonFilePath, err)
-			continue
-		}
-
-		err = oc.Unmarshal(j, tt.parent)
-		if got, want := errToString(err), tt.wantErr; got != want {
-			t.Errorf("%s: got error: %v, wanted error? %v ", tt.desc, got, want)
-		}
-		testErrLog(t, tt.desc, err)
-		if err == nil {
-			jo, err := ygot.EmitJSON(tt.parent, emitJSONConfig)
-			if err != nil {
-				t.Fatal(err)
-			}
-			d, err := diffJSON(j, []byte(jo))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if d != "" {
-				t.Errorf("%s: diff(-got,+want):\n%s", tt.desc, d)
-			}
-		}
-	}
-}
-
-// generateUnifiedDiff takes two strings and generates a diff that can be
-// shown to the user in a test error message.
-func generateUnifiedDiff(want, got string) (string, error) {
-	diffl := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(got),
-		B:        difflib.SplitLines(want),
-		FromFile: "got",
-		ToFile:   "want",
-		Context:  3,
-		Eol:      "\n",
-	}
-	return difflib.GetUnifiedDiffString(diffl)
-}
-
-func diffJSON(a, b []byte) (string, error) {
-	var aj, bj map[string]interface{}
-	if err := json.Unmarshal(a, &aj); err != nil {
-		return "", err
-	}
-	if err := json.Unmarshal(b, &bj); err != nil {
-		return "", err
-	}
-	as, err := json.MarshalIndent(aj, "", "  ")
-	if err != nil {
-		return "", err
-	}
-	bs, err := json.MarshalIndent(bj, "", "  ")
-	if err != nil {
-		return "", err
-	}
-
-	asv, bsv := strings.Split(string(as), "\n"), strings.Split(string(bs), "\n")
-	sort.Strings(asv)
-	sort.Strings(bsv)
-
-	return generateUnifiedDiff(strings.Join(asv, "\n"), strings.Join(bsv, "\n"))
 }
 
 // TODO(mostrowski): move below funtions into a helper package, or from common

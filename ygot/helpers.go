@@ -14,10 +14,6 @@
 
 package ygot
 
-import (
-	"reflect"
-)
-
 // String takes a string argument and returns a pointer to it.
 func String(s string) *string { return &s }
 
@@ -53,10 +49,3 @@ func Float32(f float32) *float32 { return &f }
 
 // Float64 takes a float64 argument and returns a pointer to it.
 func Float64(f float64) *float64 { return &f }
-
-// ToPtr returns a pointer to v.
-func ToPtr(v interface{}) interface{} {
-	n := reflect.New(reflect.TypeOf(v))
-	n.Elem().Set(reflect.ValueOf(v))
-	return n.Interface()
-}
