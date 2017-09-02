@@ -40,9 +40,9 @@
          }
       ]
    },
-   "openconfig-system-info:info": {
+   "openconfig-system:system": {
       "config": {
-         "device-id": "rtr02.pop44"
+         "hostname": "rtr02.pop44"
       }
    }
 }

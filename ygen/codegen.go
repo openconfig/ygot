@@ -260,7 +260,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// If we were asked to generate a fake root entity, then go and find the top-level entities that
 	// we were asked for.
 	if cg.Config.GenerateFakeRoot {
-		if err := cg.createFakeRoot(structs); err != nil {
+		if err := cg.createFakeRoot(structs, rootElems); err != nil {
 			return nil, &YANGCodeGeneratorError{Errors: []error{err}}
 		}
 	}
@@ -572,11 +572,13 @@ func (cg *YANGCodeGenerator) findRootEntries(structs map[string]*yang.Entry) map
 
 // createFakeRoot extracts the entities that are at the root of the YANG schema tree,
 // which otherwise would have no parent in the generated structs, and appends them to
-// a synthesised root element. In the case that the code generation is compressing the
+// a synthesised root element. Such entries are extracted from the supplied structs
+// if they are lists or containers, or from the rootElems supplied if they are leaves
+// or leaf-lists. In the case that the code generation is compressing the
 // YANG schema, list entries that are two levels deep (e.g., /interfaces/interface) are
 // also appended to the synthesised root entity (i.e., in this case the root element
 // has a map entry named 'Interface', and the corresponding NewInterface() method.
-func (cg *YANGCodeGenerator) createFakeRoot(structs map[string]*yang.Entry) error {
+func (cg *YANGCodeGenerator) createFakeRoot(structs map[string]*yang.Entry, rootElems []*yang.Entry) error {
 	rootName := defaultRootName
 	if cg.Config.FakeRootName != "" {
 		rootName = cg.Config.FakeRootName
@@ -598,6 +600,12 @@ func (cg *YANGCodeGenerator) createFakeRoot(structs map[string]*yang.Entry) erro
 			return fmt.Errorf("duplicate entry %s at the root: exists: %v, new: %v", s.Name, e.Path(), s.Path())
 		}
 		fakeRoot.Dir[s.Name] = s
+	}
+
+	for _, l := range rootElems {
+		if l.IsLeaf() || l.IsLeafList() {
+			fakeRoot.Dir[l.Name] = l
+		}
 	}
 
 	// Append the synthesised root entry to the list of structs for which

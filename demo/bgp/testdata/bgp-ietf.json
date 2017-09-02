@@ -15,6 +15,11 @@
                   "peer-as": 2856
                },
                "neighbor-address": "192.0.2.1",
+               "route-reflector": {
+                  "config": {
+                     "route-reflector-cluster-id": "10.0.1.2"
+                  }
+               },
                "timers": {
                   "config": {
                      "hold-time": "30",

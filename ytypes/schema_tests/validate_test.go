@@ -298,7 +298,7 @@ func TestValidateRoutingPolicy(t *testing.T) {
 	   // RoutingPolicy_DefinedSets_PrefixSet represents the /openconfig-routing-policy/routing-policy/defined-sets/prefix-sets/prefix-set YANG schema element.
 	   type RoutingPolicy_DefinedSets_PrefixSet struct {
 	   	Prefix        map[RoutingPolicy_DefinedSets_PrefixSet_Prefix_Key]*RoutingPolicy_DefinedSets_PrefixSet_Prefix `path:"prefixes/prefix"`
-	   	PrefixSetName *string                                                                                        `path:"config/prefix-set-name|prefix-set-name"`
+	   	Name *string                                                                                        `path:"config/prefix-set-name|prefix-set-name"`
 	   }
 	*/
 
@@ -311,7 +311,7 @@ func TestValidateRoutingPolicy(t *testing.T) {
 			DefinedSets: &oc.RoutingPolicy_DefinedSets{
 				PrefixSet: map[string]*oc.RoutingPolicy_DefinedSets_PrefixSet{
 					"prefix1": {
-						PrefixSetName: ygot.String("prefix1"),
+						Name: ygot.String("prefix1"),
 						Prefix: map[oc.RoutingPolicy_DefinedSets_PrefixSet_Prefix_Key]*oc.RoutingPolicy_DefinedSets_PrefixSet_Prefix{
 							prefixKey1: {
 								IpPrefix:        ygot.String("255.255.255.0/20"),
