@@ -46,10 +46,10 @@ func areEqual(a, b interface{}) bool {
 	}
 	va, vb := reflect.ValueOf(a), reflect.ValueOf(b)
 	if va.Kind() == reflect.Ptr && vb.Kind() == reflect.Ptr {
-		return va.Elem().Interface() == vb.Elem().Interface()
+		return reflect.DeepEqual(va.Elem().Interface(), vb.Elem().Interface())
 	}
 
-	return a == b
+	return reflect.DeepEqual(a, b)
 }
 
 // areEqualWithWildcards compares s against pattern word by word, where any
@@ -95,115 +95,277 @@ func TestUpdateField(t *testing.T) {
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntField",
 			fieldValue:   42,
-			wantVal:      42,
+			wantVal:      &BasicStruct{IntField: 42},
 		},
 		{
 			desc:         "int with nil",
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntField",
 			fieldValue:   nil,
-			wantErr:      "cannot assign value <nil> (type <nil>) to field IntField (type int) in struct BasicStruct",
+			wantErr:      "cannot assign value <nil> (type <nil>) to struct field IntField (type int) in struct *ytypes.BasicStruct",
 		},
 		{
 			desc:         "nil parent",
 			parentStruct: nil,
 			fieldName:    "IntField",
 			fieldValue:   42,
-			wantErr:      "parentStruct is nil in UpdateField for field IntField, value 42",
+			wantErr:      "parent is nil in UpdateField for field IntField",
 		},
 		{
 			desc:         "string",
 			parentStruct: &BasicStruct{},
 			fieldName:    "StringField",
 			fieldValue:   "forty two",
-			wantVal:      "forty two",
+			wantVal:      &BasicStruct{StringField: "forty two"},
 		},
 		{
 			desc:         "nil parent struct",
 			parentStruct: nil,
 			fieldName:    "IntField",
 			fieldValue:   42,
-			wantErr:      "parentStruct is nil in UpdateField for field IntField, value 42",
+			wantErr:      "parent is nil in UpdateField for field IntField",
 		},
 		{
 			desc:         "string to int field error",
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntField",
 			fieldValue:   "forty two",
-			wantErr:      "cannot assign value forty two (type string) to field IntField (type int) in struct BasicStruct",
+			wantErr:      "cannot assign value forty two (type string) to struct field IntField (type int) in struct *ytypes.BasicStruct",
 		},
 		{
 			desc:         "int ptr",
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntPtrField",
 			fieldValue:   ygot.Int8(42),
-			wantVal:      ygot.Int8(42),
+			wantVal:      &BasicStruct{IntPtrField: ygot.Int8(42)},
 		},
 		{
 			desc:         "nil int ptr",
-			parentStruct: &BasicStruct{},
+			parentStruct: &BasicStruct{IntPtrField: ygot.Int8(42)},
 			fieldName:    "IntPtrField",
 			fieldValue:   nil,
-			wantVal:      nil,
+			wantVal:      &BasicStruct{},
 		},
 		{
 			desc:         "string ptr",
 			parentStruct: &BasicStruct{},
 			fieldName:    "StringPtrField",
 			fieldValue:   ygot.String("forty two"),
-			wantVal:      ygot.String("forty two"),
+			wantVal:      &BasicStruct{StringPtrField: ygot.String("forty two")},
 		},
 		{
 			desc:         "int to int ptr field error",
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntPtrField",
 			fieldValue:   42,
-			wantErr:      "cannot assign value 42 (type int) to field IntPtrField (type ptr) in struct BasicStruct",
+			wantErr:      "cannot assign value 42 (type int) to struct field IntPtrField (type *int8) in struct *ytypes.BasicStruct",
 		},
 		{
 			desc:         "int ptr to int field error",
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntField",
 			fieldValue:   ygot.Int8(42),
-			wantErr:      "cannot assign value " + wildcardStr + " (type *int8) to field IntField (type int) in struct BasicStruct",
+			wantErr:      "cannot assign value " + wildcardStr + " (type *int8) to struct field IntField (type int) in struct *ytypes.BasicStruct",
 		},
 		{
 			desc:         "struct",
 			parentStruct: &StructOfStructs{},
 			fieldName:    "BasicStructField",
 			fieldValue:   &BasicStruct{IntField: 42, StringField: "forty two"},
-			wantVal:      &BasicStruct{IntField: 42, StringField: "forty two"},
+			wantVal:      &StructOfStructs{BasicStructField: &BasicStruct{IntField: 42, StringField: "forty two"}},
 		},
 		{
 			desc:         "struct bad field name",
 			parentStruct: &StructOfStructs{},
 			fieldName:    "StructBadField",
 			fieldValue:   &BasicStruct{IntField: 42, StringField: "forty two"},
-			wantErr:      "no field named StructBadField in struct StructOfStructs",
+			wantErr:      "parent type *ytypes.StructOfStructs does not have a field name StructBadField",
 		},
 		{
 			desc:         "struct bad field type",
 			parentStruct: &StructOfStructs{},
 			fieldName:    "BasicStructField",
 			fieldValue:   42,
-			wantErr:      "cannot assign value 42 (type int) to field BasicStructField (type ptr) in struct StructOfStructs",
+			wantErr:      "cannot assign value 42 (type int) to struct field BasicStructField (type *ytypes.BasicStruct) in struct *ytypes.StructOfStructs",
 		},
 	}
 
 	for _, tt := range tests {
-		val, err := UpdateField(tt.parentStruct, tt.fieldName, tt.fieldValue)
+		err := UpdateField(tt.parentStruct, tt.fieldName, tt.fieldValue)
 		if got, want := errToString(err), tt.wantErr; !areEqualWithWildcards(got, want) {
 			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
 		}
 		if err == nil {
-			if got, want := val, tt.wantVal; !areEqual(got, want) {
-				t.Errorf("%s: got value: %v, want value: %v", tt.desc, pretty.Sprint(val), pretty.Sprint(tt.wantVal))
-			}
-		} else {
-			if testErrOutput {
-				t.Logf("%s: %v", tt.desc, err)
+			if got, want := tt.parentStruct, tt.wantVal; !areEqual(got, want) {
+				t.Errorf("%s: got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
 			}
 		}
+		testErrLog(t, tt.desc, err)
+	}
+}
+
+func TestInsertIntoSliceStructField(t *testing.T) {
+	type BasicStruct struct {
+		IntSliceField    []int
+		IntPtrSliceField []*int8
+	}
+
+	tests := []struct {
+		desc         string
+		parentStruct interface{}
+		fieldName    string
+		fieldValue   interface{}
+		wantVal      interface{}
+		wantErr      string
+	}{
+		{
+			desc:         "slice of int",
+			parentStruct: &BasicStruct{},
+			fieldName:    "IntSliceField",
+			fieldValue:   42,
+			wantVal:      &BasicStruct{IntSliceField: []int{42}},
+		},
+		{
+			desc:         "slice of int ptr",
+			parentStruct: &BasicStruct{IntPtrSliceField: []*int8{ygot.Int8(42)}},
+			fieldName:    "IntPtrSliceField",
+			fieldValue:   ygot.Int8(43),
+			wantVal:      &BasicStruct{IntPtrSliceField: []*int8{ygot.Int8(42), ygot.Int8(43)}},
+		},
+		{
+			desc:         "slice of int ptr, nil value",
+			parentStruct: &BasicStruct{},
+			fieldName:    "IntPtrSliceField",
+			fieldValue:   nil,
+			wantVal:      &BasicStruct{IntPtrSliceField: []*int8{nil}},
+		},
+		{
+			desc:         "missing field",
+			parentStruct: &BasicStruct{},
+			fieldName:    "MissingField",
+			fieldValue:   42,
+			wantErr:      "parent type *ytypes.BasicStruct does not have a field name MissingField",
+		},
+		{
+			desc:         "slice of int, bad field type",
+			parentStruct: &BasicStruct{},
+			fieldName:    "IntSliceField",
+			fieldValue:   "forty-two",
+			wantErr:      "cannot assign value forty-two (type string) to struct field IntSliceField (type int) in struct *ytypes.BasicStruct",
+		},
+	}
+
+	for _, tt := range tests {
+		err := UpdateField(tt.parentStruct, tt.fieldName, tt.fieldValue)
+		if got, want := errToString(err), tt.wantErr; !areEqualWithWildcards(got, want) {
+			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+		}
+		if err == nil {
+			if got, want := tt.parentStruct, tt.wantVal; !areEqual(got, want) {
+				t.Errorf("%s: got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+			}
+		}
+		testErrLog(t, tt.desc, err)
+	}
+}
+
+func TestInsertIntoMapStructField(t *testing.T) {
+	type KeyStruct struct {
+		IntField int
+	}
+
+	type BasicStruct struct {
+		StringToIntMapField    map[string]int
+		StringToIntPtrMapField map[string]*int8
+		StructToIntMapField    map[KeyStruct]int
+	}
+
+	tests := []struct {
+		desc         string
+		parentStruct interface{}
+		fieldName    string
+		key          interface{}
+		fieldValue   interface{}
+		wantVal      interface{}
+		wantErr      string
+	}{
+		{
+			desc:         "string to int, create map",
+			parentStruct: &BasicStruct{},
+			fieldName:    "StringToIntMapField",
+			key:          "forty-two",
+			fieldValue:   42,
+			wantVal:      &BasicStruct{StringToIntMapField: map[string]int{"forty-two": 42}},
+		},
+		{
+			desc:         "string to int, map exists",
+			parentStruct: &BasicStruct{StringToIntMapField: map[string]int{"forty-two": 42}},
+			fieldName:    "StringToIntMapField",
+			key:          "forty-three",
+			fieldValue:   43,
+			wantVal:      &BasicStruct{StringToIntMapField: map[string]int{"forty-two": 42, "forty-three": 43}},
+		},
+		{
+			desc:         "string to int, update value",
+			parentStruct: &BasicStruct{StringToIntMapField: map[string]int{"forty-two": 42}},
+			fieldName:    "StringToIntMapField",
+			key:          "forty-two",
+			fieldValue:   43,
+			wantVal:      &BasicStruct{StringToIntMapField: map[string]int{"forty-two": 43}},
+		},
+		{
+			desc:         "string to int ptr",
+			parentStruct: &BasicStruct{},
+			fieldName:    "StringToIntPtrMapField",
+			key:          "forty-two",
+			fieldValue:   ygot.Int8(42),
+			wantVal:      &BasicStruct{StringToIntPtrMapField: map[string]*int8{"forty-two": ygot.Int8(42)}},
+		},
+		{
+			desc:         "string to int ptr, nil value",
+			parentStruct: &BasicStruct{},
+			fieldName:    "StringToIntPtrMapField",
+			key:          "forty-two",
+			fieldValue:   nil,
+			wantVal:      &BasicStruct{StringToIntPtrMapField: map[string]*int8{"forty-two": nil}},
+		},
+		{
+			desc:         "struct to int",
+			parentStruct: &BasicStruct{},
+			fieldName:    "StructToIntMapField",
+			key:          KeyStruct{IntField: 42},
+			fieldValue:   42,
+			wantVal:      &BasicStruct{StructToIntMapField: map[KeyStruct]int{KeyStruct{IntField: 42}: 42}},
+		},
+		{
+			desc:         "missing field",
+			parentStruct: &BasicStruct{},
+			fieldName:    "MissingField",
+			key:          "forty-two",
+			fieldValue:   42,
+			wantErr:      "field MissingField not found in parent type *ytypes.BasicStruct",
+		},
+		{
+			desc:         "string to int, bad value",
+			parentStruct: &BasicStruct{},
+			fieldName:    "StringToIntMapField",
+			key:          "forty-two",
+			fieldValue:   "forty-two",
+			wantErr:      "cannot assign value forty-two (type string) to field StringToIntMapField (type int) in struct BasicStruct",
+		},
+	}
+
+	for _, tt := range tests {
+		err := InsertIntoMapStructField(tt.parentStruct, tt.fieldName, tt.key, tt.fieldValue)
+		if got, want := errToString(err), tt.wantErr; !areEqualWithWildcards(got, want) {
+			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+		}
+		if err == nil {
+			if got, want := tt.parentStruct, tt.wantVal; !areEqual(got, want) {
+				t.Errorf("%s: got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+			}
+		}
+		testErrLog(t, tt.desc, err)
 	}
 }
 
@@ -230,27 +392,27 @@ func TestForEachField(t *testing.T) {
 		BasicStructPtrMapField map[string]*BasicStruct
 	}
 
-	printFieldsIterFunc := func(parentStruct interface{}, fieldType reflect.StructField, fieldValue reflect.Value, fieldKeys []reflect.Value, fieldKey reflect.Value, in, out interface{}) (errs []error) {
+	printFieldsIterFunc := func(ni *NodeInfo, in, out interface{}) (errs []error) {
 		// Only print basic scalar values, skip everything else.
-		if !isValueScalar(fieldValue) || isNil(fieldKey) {
+		if !IsValueScalar(ni.FieldValue) || isNil(ni.FieldKey) {
 			return
 		}
 		outs := out.(*string)
-		*outs += fmt.Sprintf("%v : %v, ", fieldType.Name, pretty.Sprint(fieldValue.Interface()))
+		*outs += fmt.Sprintf("%v : %v, ", ni.FieldType.Name, pretty.Sprint(ni.FieldValue.Interface()))
 		return
 	}
 
-	printMapKeysIterFunc := func(parentStruct interface{}, fieldType reflect.StructField, fieldValue reflect.Value, fieldKeys []reflect.Value, fieldKey reflect.Value, in, out interface{}) (errs []error) {
+	printMapKeysIterFunc := func(ni *NodeInfo, in, out interface{}) (errs []error) {
 		// Only print basic scalar values, skip everything else.
-		if !isValueScalar(fieldValue) || isNilOrInvalidValue(fieldKey) {
+		if !IsValueScalar(ni.FieldValue) || IsNilOrInvalidValue(ni.FieldKey) {
 			return
 		}
 		outs := out.(*string)
 		s := "nil"
-		if !isNilOrInvalidValue(fieldValue) {
-			s = pretty.Sprint(fieldValue.Interface())
+		if !IsNilOrInvalidValue(ni.FieldValue) {
+			s = pretty.Sprint(ni.FieldValue.Interface())
 		}
-		*outs += fmt.Sprintf("%s/%s : %s, ", pretty.Sprint(fieldKey.Interface()), fieldType.Name, s)
+		*outs += fmt.Sprintf("%s/%s : %s, ", pretty.Sprint(ni.FieldKey.Interface()), ni.FieldType.Name, s)
 		return
 	}
 
@@ -323,11 +485,8 @@ func TestForEachField(t *testing.T) {
 			if got, want := outStr, tt.wantOut; got != want {
 				t.Errorf("%s:\ngot:\n(%v)\nwant:\n(%v)", tt.desc, got, want)
 			}
-		} else {
-			if testErrOutput {
-				t.Logf("%s: %s", tt.desc, errs)
-			}
 		}
+		testErrLog(t, tt.desc, errs)
 	}
 }
 
@@ -347,10 +506,9 @@ func TestUpdateFieldUsingForEachField(t *testing.T) {
 
 	// This doesn't work as a general insert because it won't create fields
 	// that are nil, they must already exist. It only works as an update.
-	setFunc := func(parentStruct interface{}, fieldType reflect.StructField, fieldValue reflect.Value, fieldKeys []reflect.Value, fieldKey reflect.Value, in, out interface{}) (errs []error) {
-		if fieldType.Name == "BasicStructField" {
-			_, e := UpdateField(parentStruct, "BasicStructField", &basicStruct1)
-			errs = appendErr(errs, e)
+	setFunc := func(ni *NodeInfo, in, out interface{}) (errs []error) {
+		if ni.FieldType.Name == "BasicStructField" {
+			errs = appendErr(errs, UpdateField(ni.ParentStruct, "BasicStructField", &basicStruct1))
 		}
 		return
 	}
