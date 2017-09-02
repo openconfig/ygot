@@ -15,9 +15,14 @@
 package ytypes
 
 import (
+	"encoding/json"
+	"fmt"
+	"reflect"
 	"testing"
 
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 )
 
 var validLeafListSchema = &yang.Entry{
@@ -96,5 +101,66 @@ func TestValidateLeafList(t *testing.T) {
 			t.Errorf("%s: b.Validate(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
+	}
+}
+
+func TestUnmarshalLeafList(t *testing.T) {
+	containerWithLeafListSchema := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"int32-leaf-list": &yang.Entry{
+				Name:     "int32-leaf-list",
+				Kind:     yang.LeafEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Type:     &yang.YangType{Kind: yang.Yint32},
+			},
+		},
+	}
+	type ContainerStruct struct {
+		Int32LeafList []*int32 `path:"int32-leaf-list"`
+	}
+
+	tests := []struct {
+		desc    string
+		json    string
+		want    ContainerStruct
+		wantErr string
+	}{
+		{
+			desc: "int32 success",
+			json: `{ "int32-leaf-list" : [-42, 0, 42] }`,
+			want: ContainerStruct{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
+		},
+		{
+			desc:    "bad field name",
+			json:    `{ "bad field" : [42] }`,
+			wantErr: `parent container container (type *ytypes.ContainerStruct): JSON contains unexpected field bad field`,
+		},
+		{
+			desc:    "bad array element",
+			json:    `{ "int32-leaf-list" : [42, 4294967296] }`,
+			wantErr: `error parsing 4.294967296e+09 for schema int32-leaf-list: value 4294967296 falls outside the int range [-2147483648, 2147483647]`,
+		},
+	}
+
+	var jsonTree interface{}
+	for _, test := range tests {
+		var parent ContainerStruct
+
+		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
+			t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
+		}
+
+		err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
+		if got, want := errToString(err), test.wantErr; got != want {
+			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
+		}
+		testErrLog(t, test.desc, err)
+		if err == nil {
+			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
+				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+			}
+		}
 	}
 }
