@@ -57,7 +57,7 @@ func (s *Fakeroot) Validate() error {
 
 // Parent represents the /openconfig-simple/parent YANG schema element.
 type Parent struct {
-	Child	*Parent_Child	`path:"parent/child" module:"openconfig-simple"`
+	Child	*Parent_Child	`path:"/parent/child" module:"openconfig-simple"`
 }
 
 // IsYANGGoStruct ensures that Parent implements the yang.GoStruct
@@ -96,7 +96,7 @@ func (s *Parent_Child) Validate() error {
 
 // RemoteContainer represents the /openconfig-simple/remote-container YANG schema element.
 type RemoteContainer struct {
-	ALeaf	*string	`path:"remote-container/config/a-leaf" module:"openconfig-simple"`
+	ALeaf	*string	`path:"/remote-container/config/a-leaf" module:"openconfig-simple"`
 }
 
 // IsYANGGoStruct ensures that RemoteContainer implements the yang.GoStruct

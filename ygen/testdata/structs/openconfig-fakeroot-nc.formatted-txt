@@ -36,7 +36,7 @@ func (*Device) IsYANGGoStruct() {}
 
 // OpenconfigFakeroot_Interfaces represents the /openconfig-fakeroot/interfaces YANG schema element.
 type OpenconfigFakeroot_Interfaces struct {
-	Interface	map[string]*OpenconfigFakeroot_Interfaces_Interface	`path:"interfaces/interface" module:"openconfig-fakeroot"`
+	Interface	map[string]*OpenconfigFakeroot_Interfaces_Interface	`path:"/interfaces/interface" module:"openconfig-fakeroot"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigFakeroot_Interfaces implements the yang.GoStruct
@@ -105,9 +105,9 @@ func (*OpenconfigFakeroot_Interfaces_Interface_State) IsYANGGoStruct() {}
 
 // OpenconfigFakeroot_System represents the /openconfig-fakeroot/system YANG schema element.
 type OpenconfigFakeroot_System struct {
-	Config	*OpenconfigFakeroot_System_Config	`path:"system/config" module:"openconfig-fakeroot"`
-	NtpServers	*OpenconfigFakeroot_System_NtpServers	`path:"system/ntp-servers" module:"openconfig-fakeroot"`
-	State	*OpenconfigFakeroot_System_State	`path:"system/state" module:"openconfig-fakeroot"`
+	Config	*OpenconfigFakeroot_System_Config	`path:"/system/config" module:"openconfig-fakeroot"`
+	NtpServers	*OpenconfigFakeroot_System_NtpServers	`path:"/system/ntp-servers" module:"openconfig-fakeroot"`
+	State	*OpenconfigFakeroot_System_State	`path:"/system/state" module:"openconfig-fakeroot"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigFakeroot_System implements the yang.GoStruct

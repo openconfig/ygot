@@ -216,51 +216,52 @@ func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genS
 		t, err := protoTagForEntry(field)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("proto: could not generate tag for field %s: %v", field.Name, err))
+			continue
 		}
 		fieldDef.Tag = t
 
 		switch {
 		case field.IsList():
-			errs = append(errs, fmt.Errorf("proto: list generation unimplemented for %s", field.Path()))
-			continue
+			err = fmt.Errorf("proto: list generation unimplemented for %s", field.Path())
 		case field.IsDir():
 			childmsg, ok := msgs[field.Path()]
 			if !ok {
-				errs = append(errs, fmt.Errorf("proto: could not resolve %s into a defined struct", field.Path()))
-				continue
-			}
+				err = fmt.Errorf("proto: could not resolve %s into a defined struct", field.Path())
+			} else {
 
-			childpkg := state.protobufPackage(childmsg.entry, compressPaths)
+				childpkg := state.protobufPackage(childmsg.entry, compressPaths)
 
-			// Add the import to the slice of imports if it is not already
-			// there. This allows the message file to import the required
-			// child packages.
-			childpath := strings.Replace(childpkg, ".", "/", -1)
-			var found bool
-			for _, i := range imports {
-				if i == childpath {
-					found = true
+				// Add the import to the slice of imports if it is not already
+				// there. This allows the message file to import the required
+				// child packages.
+				childpath := strings.Replace(childpkg, ".", "/", -1)
+				var found bool
+				for _, i := range imports {
+					if i == childpath {
+						found = true
+					}
 				}
+				if !found {
+					imports = append(imports, childpath)
+				}
+				fieldDef.Type = fmt.Sprintf("%s.%s", childpkg, childmsg.name)
 			}
-			if !found {
-				imports = append(imports, childpath)
-			}
-			fieldDef.Type = fmt.Sprintf("%s.%s", childpkg, childmsg.name)
-		default:
-			// This is a YANG leaf, or leaf-list.
-			protoType, err := state.yangTypeToProtoType(resolveTypeArgs{yangType: field.Type, contextEntry: field})
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-
+		case field.IsLeaf() || field.IsLeafList():
+			var protoType mappedType
+			protoType, err = state.yangTypeToProtoType(resolveTypeArgs{yangType: field.Type, contextEntry: field})
 			fieldDef.Type = protoType.nativeType
 
 			if field.ListAttr != nil {
 				fieldDef.IsRepeated = true
 			}
+		default:
+			err = fmt.Errorf("proto: unknown field type in message %s, field %s", msg.name, field.Name)
 		}
 
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
 		msgDef.Fields = append(msgDef.Fields, fieldDef)
 	}
 
@@ -274,10 +275,18 @@ func genProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genS
 // safeProtoFieldName takes an input string which represents the name of a YANG schema
 // element and sanitises for use as a protobuf field name.
 func safeProtoFieldName(name string) string {
+	// YANG identifiers must match the definition:
+	//    ;; An identifier MUST NOT start with (('X'|'x') ('M'|'m') ('L'|'l'))
+	//       identifier          = (ALPHA / "_")
+	//                                *(ALPHA / DIGIT / "_" / "-" / ".")
+	// For Protobuf they must match:
+	//	ident = letter { letter | decimalDigit | "_" }
+	//
+	// Therefore we need to ensure that the "-", and "." characters that are allowed
+	// in the YANG are replaced.
 	replacer := strings.NewReplacer(
 		".", "_",
 		"-", "_",
-		"/", "_",
 	)
 	return replacer.Replace(name)
 }

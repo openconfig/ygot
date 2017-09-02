@@ -25,7 +25,7 @@ type Binary []byte
 
 // BGP represents the /openconfig-camelcase/bgp YANG schema element.
 type BGP struct {
-	Neighbor	map[string]*BGP_Neighbor	`path:"bgp/neighbors/neighbor" module:"openconfig-camelcase"`
+	Neighbor	map[string]*BGP_Neighbor	`path:"/bgp/neighbors/neighbor" module:"openconfig-camelcase"`
 }
 
 // IsYANGGoStruct ensures that BGP implements the yang.GoStruct

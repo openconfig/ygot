@@ -78,6 +78,11 @@ type genState struct {
 	// a path to be resolved into the calculated Protobuf package name that
 	// is to be used for it.
 	uniqueProtoPackages map[string]string
+	// generatedUnions stores a map, keyed by the output name for a union,
+	// that has already been output in the generated code. This ensures that
+	// where two entities re-use a union that has already been created (e.g.,
+	// a leafref to a union) then it is output only once in the generated code.
+	generatedUnions map[string]bool
 }
 
 // newGenState creates a new genState instance, initialised with the default state
@@ -93,6 +98,7 @@ func newGenState() *genState {
 		uniqueEnumeratedLeafNames:    make(map[string]string),
 		uniqueProtoMsgNames:          make(map[string]map[string]bool),
 		uniqueProtoPackages:          make(map[string]string),
+		generatedUnions:              make(map[string]bool),
 	}
 }
 

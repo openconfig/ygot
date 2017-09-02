@@ -376,9 +376,11 @@ func pathToSchema(f reflect.StructField) ([]string, error) {
 
 	paths := strings.Split(pathAnnotation, "|")
 	if len(paths) == 1 {
+		pathAnnotation = strings.TrimPrefix(pathAnnotation, "/")
 		return strings.Split(pathAnnotation, "/"), nil
 	}
 	for _, pv := range paths {
+		pv = strings.TrimPrefix(pv, "/")
 		pe := strings.Split(pv, "/")
 		if len(pe) > 1 {
 			return pe, nil
