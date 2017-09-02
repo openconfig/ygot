@@ -101,7 +101,7 @@ type GoOpts struct {
 	YtypesImportPath string
 }
 
-// ProtoOpts sotres Protobuf specific options for the code generation library.
+// ProtoOpts stores Protobuf specific options for the code generation library.
 type ProtoOpts struct {
 	// BasePackageName stores the root package name that should be used
 	// for all packages that are output.
@@ -190,8 +190,8 @@ type GeneratedGoCode struct {
 	RawJSONSchema []byte
 }
 
-// GeneratedProto3 stores a set of generated protobuf3 packages.
-type GeneratedProto3 struct {
+// GeneratedProto stores a set of generated Protobuf packages.
+type GeneratedProto struct {
 	// Packages stores a map, keyed by the Protobuf package name, and containing the contents of the protobuf3
 	// messages defined within the package. The calling application can write out the defined packages to the
 	// files expected by the protoc tool.
@@ -272,7 +272,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Go code. Extract the schematree from the modules provided such that it can be
 	// used to reference entities within the tree.
 	structs, enums, st, errs := langAgnosticDefinitions(yangFiles, includePaths, cg.Config)
-	if len(errs) > 0 {
+	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
 
@@ -280,18 +280,18 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	cg.state.schematree = st
 
 	goStructs, errs := cg.state.buildDirectoryDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang)
-	if len(errs) > 0 {
+	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
 
 	codeHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config)
-	if err != nil {
+	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: []error{err}}
 	}
 
 	// orderedStructNames is used to store the structs that have been
 	// identified in alphabetical order, such that they are returned in a
-	// determinstic order to the calling application. This ensures that if
+	// deterministic order to the calling application. This ensures that if
 	// the slice is simply output in order, then the diffs generated are
 	// minimised (i.e., diffs are not generated simply due to reordering of
 	// the maps used).
@@ -396,9 +396,9 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 // GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
 // The YANG schemas for which protobufs are to be created is supplied as the
 // yangFiles argument, with included modules being searched for in includePaths.
-// Returns a GeneratedProto3 struct containing the messages that are to be
+// Returns a GeneratedProto struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
-func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto3, *YANGCodeGeneratorError) {
+func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto, *YANGCodeGeneratorError) {
 	// TODO(robjs): Handle enumerated types in proto messages.
 	msgs, _, st, errs := langAgnosticDefinitions(yangFiles, includePaths, cg.Config)
 	if len(errs) > 0 {
@@ -413,7 +413,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
 
-	p := &GeneratedProto3{
+	genProto := &GeneratedProto{
 		Packages: map[string]Proto3Package{},
 	}
 	ye := NewYANGCodeGeneratorError()
@@ -433,7 +433,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 	for _, n := range msgNames {
 		m := msgMap[n]
-		pkg, msg, reqs, errs := writeProtoMsg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)
+		pkg, msg, reqs, errs := writeProto3Msg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)
 
 		if _, ok := pkgImports[pkg]; !ok {
 			pkgImports[pkg] = []string{}
@@ -451,41 +451,38 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			}
 		}
 
-		if len(errs) > 0 {
+		if errs != nil {
 			ye.Errors = append(ye.Errors, errs...)
 		}
 
-		tp, ok := p.Packages[pkg]
+		// If the package does not already exist within the generated proto3
+		// output, then create it within the package map. This allows different
+		// entries in the msgNames set to fall within the same package.
+		tp, ok := genProto.Packages[pkg]
 		if !ok {
-			p.Packages[pkg] = Proto3Package{
+			genProto.Packages[pkg] = Proto3Package{
 				Messages: []string{},
 			}
-			tp = p.Packages[pkg]
+			tp = genProto.Packages[pkg]
 		}
 		tp.Messages = append(tp.Messages, msg)
-		p.Packages[pkg] = tp
+		genProto.Packages[pkg] = tp
 	}
 
-	// Ensure that the base import path is a valid directory.
-	baseImportPath := cg.Config.ProtoOptions.BaseImportPath
-	if baseImportPath != "" && baseImportPath[len(baseImportPath)-1] != '/' {
-		baseImportPath = fmt.Sprintf("%s/", baseImportPath)
-	}
-
-	for n, pkg := range p.Packages {
-		h, err := writeProtoHeader(n, cg.Config.ProtoOptions.BasePackageName, baseImportPath, pkgImports[n], yangFiles, includePaths, cg.Config.CompressOCPaths, cg.Config.Caller)
+	for n, pkg := range genProto.Packages {
+		h, err := writeProto3Header(n, cg.Config.ProtoOptions.BasePackageName, cg.Config.ProtoOptions.BaseImportPath, pkgImports[n], yangFiles, includePaths, cg.Config.CompressOCPaths, cg.Config.Caller)
 		if err != nil {
 			ye.Errors = append(ye.Errors, errs...)
 		}
 		pkg.Header = h
-		p.Packages[n] = pkg
+		genProto.Packages[n] = pkg
 	}
 
-	if len(ye.Errors) > 0 {
+	if ye.Errors != nil {
 		return nil, ye
 	}
 
-	return p, nil
+	return genProto, nil
 }
 
 // processModules takes a list of the filenames of YANG modules (yangFiles),

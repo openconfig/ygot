@@ -17,6 +17,7 @@ package ygen
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -561,6 +562,9 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		// it with a comma in a list of arguments).
 		"inc": func(i int) int {
 			return i + 1
+		},
+		"filepathJoin": func(root, path string) string {
+			return filepath.Join(append(strings.Split(root, "/"), path)...)
 		},
 	}
 )
