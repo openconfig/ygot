@@ -418,20 +418,23 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	}
 	ye := NewYANGCodeGeneratorError()
 
-	// Write out the protobuf messages in a determinstic order.
-	msgMap := map[string]*yangDirectory{}
-	msgNames := []string{}
-	for _, m := range protoMsgs {
-		msgNames = append(msgNames, m.name)
-		msgMap[m.name] = m
-	}
-	sort.Strings(msgNames)
-
 	// pkgImports lists the imports that are required for the package that is being
 	// written out.
 	pkgImports := map[string][]string{}
 
-	for _, n := range msgNames {
+	// Ensure that the slice of messages returned is in a deterministic order by
+	// sorting the message paths. We use the path rather than the name as the
+	// proto message name may not be unique.
+	msgPaths := []string{}
+	msgMap := map[string]*yangDirectory{}
+	for _, m := range protoMsgs {
+		k := strings.Join(m.path, "/")
+		msgPaths = append(msgPaths, k)
+		msgMap[k] = m
+	}
+	sort.Strings(msgPaths)
+
+	for _, n := range msgPaths {
 		m := msgMap[n]
 
 		pkg, msg, reqs, errs := writeProto3Msg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)

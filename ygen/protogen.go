@@ -34,10 +34,16 @@ type protoMsgField struct {
 
 // protoMsg describes a protobuf message.
 type protoMsg struct {
-	Name     string           // Name is the name of the protobuf message to be output.
-	YANGPath string           // YANGPath stores the path that the message corresponds to within the YANG schema.
-	Fields   []*protoMsgField // Fields is a slice of the fields that are within the message.
-	Imports  []string         // Imports is a slice of strings that contains the relative import paths that are required by this message.
+	Name     string                   // Name is the name of the protobuf message to be output.
+	YANGPath string                   // YANGPath stores the path that the message corresponds to within the YANG schema.
+	Fields   []*protoMsgField         // Fields is a slice of the fields that are within the message.
+	Imports  []string                 // Imports is a slice of strings that contains the relative import paths that are required by this message.
+	Enums    map[string]*protoMsgEnum // Embedded enumerations within the message.
+}
+
+// protoMsgEnum represents an embedded enumeration within a protobuf message.
+type protoMsgEnum struct {
+	Values map[int64]string // The values that the enumerated type can take.
 }
 
 const (
@@ -78,6 +84,13 @@ import "{{ filepathJoin $publicImport $importedProto }}.proto";
 	protoMessageTemplate = `
 // {{ .Name }} represents the {{ .YANGPath }} YANG schema element.
 message {{ .Name }} {
+{{- range $ename, $enum := .Enums }}
+  enum {{ $ename }} {
+    {{- range $i, $val := $enum.Values }}
+    {{ $ename }}_{{ $val }} = {{ $i }};
+    {{- end }}
+  }
+{{- end -}}
 {{- range $idx, $field := .Fields }}
   {{ if $field.IsRepeated }}repeated {{ end -}}
   {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }}
@@ -219,6 +232,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 		// to be for the protobuf message name.
 		Name:     msg.name,
 		YANGPath: slicePathToString(msg.path),
+		Enums:    make(map[string]*protoMsgEnum),
 	}
 
 	definedFieldNames := map[string]bool{}
@@ -349,7 +363,22 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 		case field.IsLeaf() || field.IsLeafList():
 			var protoType mappedType
 			protoType, err = state.yangTypeToProtoType(resolveTypeArgs{yangType: field.Type, contextEntry: field})
-			fieldDef.Type = protoType.nativeType
+			switch {
+			case field.Type.Kind == yang.Yenum && field.Type.Name == "enumeration":
+				// For fields that are enumerations, then we embed an enum within
+				// the Protobuf message. Check for the type of the name to ensure
+				// that this is a simple enumeration leaf, not a typedef.
+				enum, eerr := genProtoEnum(field)
+				if eerr != nil {
+					err = eerr
+				} else {
+					e := makeNameUnique(protoType.nativeType, definedFieldNames)
+					msgDef.Enums[e] = enum
+					fieldDef.Type = e
+				}
+			default:
+				fieldDef.Type = protoType.nativeType
+			}
 
 			if field.ListAttr != nil {
 				fieldDef.IsRepeated = true
@@ -370,6 +399,37 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 	msgDef.Imports = imports
 
 	return append(msgDefs, msgDef), errs
+}
+
+// genProtoEnum takes an input yang.Entry that contains an enumerated type
+// and returns a protoMsgEnum that contains its definition within the proto
+// schema.
+func genProtoEnum(field *yang.Entry) (*protoMsgEnum, error) {
+	eval := map[int64]string{}
+	names := field.Type.Enum.NameMap()
+	eval[0] = "UNSET"
+	if d := field.DefaultValue(); d != "" {
+		if _, ok := names[d]; !ok {
+			return nil, fmt.Errorf("enumeration %s specified a default - %s - that was not a valid value", field.Path(), d)
+		}
+		eval[0] = d
+	}
+
+	for n := range names {
+		if n == field.DefaultValue() {
+			// Can't happen if there was not a default, since "" is not
+			// a valid enumeration name in YANG.
+			continue
+		}
+		// We always add one to the value that is returned to ensure that
+		// we never redefine value 0.
+		eval[field.Type.Enum.Value(n)+1] = n
+	}
+
+	// TODO(robjs): Embed an option into the message such that we can persist
+	// the eval map -- this would allow a consumer to be able to map back to the
+	// string that is in the YANG schema.
+	return &protoMsgEnum{Values: eval}, nil
 }
 
 // safeProtoFieldName takes an input string which represents the name of a YANG schema
@@ -410,9 +470,11 @@ func genListKeyProto(list *yangDirectory, listName string, listPackage string, s
 	km := protoMsg{
 		Name:     n,
 		YANGPath: list.entry.Path(),
+		Enums:    map[string]*protoMsgEnum{},
 	}
 
 	definedFieldNames := map[string]bool{}
+	ctag := uint32(1)
 	for _, k := range strings.Split(list.entry.Key, " ") {
 		kf, ok := list.fields[k]
 		if !ok {
@@ -424,15 +486,32 @@ func genListKeyProto(list *yangDirectory, listName string, listPackage string, s
 			return protoMsg{}, fmt.Errorf("list %s included a key %s that did not have a valid proto type: %v", list.entry.Path(), k, kf.Type)
 		}
 
+		var pt string
+		switch {
+		case kf.Type.Kind == yang.Yenum && kf.Type.Name == "enumeration":
+			enum, err := genProtoEnum(kf)
+			if err != nil {
+				return protoMsg{}, fmt.Errorf("error generating type for list key %s, type %s", list.entry.Path(), k, kf.Type)
+			}
+			pt = makeNameUnique(t.nativeType, definedFieldNames)
+			km.Enums[pt] = enum
+		default:
+			pt = t.nativeType
+		}
+
 		km.Fields = append(km.Fields, &protoMsgField{
 			Name: makeNameUnique(safeProtoFieldName(k), definedFieldNames),
-			Type: t.nativeType,
+			Tag:  ctag,
+			Type: pt,
 		})
+
+		ctag++
 	}
 
 	km.Fields = append(km.Fields, &protoMsgField{
 		Name: listName,
 		Type: fmt.Sprintf("%s.%s", listPackage, listName),
+		Tag:  ctag,
 	})
 
 	return km, nil
