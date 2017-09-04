@@ -715,6 +715,15 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_test_d.test": filepath.Join(TestRoot, "testdata", "proto", "proto-test-d.uncompressed.proto-test-d.test.formatted-txt"),
 			"openconfig.enums":             filepath.Join(TestRoot, "testdata", "proto", "proto-test-d.uncompressed.enums.formatted-txt"),
 		},
+	}, {
+		name:    "yang schema with unions",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.yang")},
+		wantOutputFiles: map[string]string{
+			"openconfig.proto_test_e":          filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.formatted-txt"),
+			"openconfig.proto_test_e.test":     filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.test.formatted-txt"),
+			"openconfig.proto_test_e.foos":     filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.foos.formatted-txt"),
+			"openconfig.proto_test_e.foos.foo": filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.foos.foo.formatted-txt"),
+		},
 	}}
 
 	for _, tt := range tests {

@@ -12,6 +12,13 @@ module proto-test-a {
     leaf uinteger { type uint64; }
     leaf leaf-with-dashes { type string; }
     leaf-list leaf-list { type string; }
+
+    leaf uleaf {
+      type union {
+        type string;
+        type uint32;
+      }
+    }
   }
 
   grouping child-state {

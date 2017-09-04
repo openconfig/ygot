@@ -62,7 +62,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "unmapped types",
 		in: []resolveTypeArgs{
-			{yangType: &yang.YangType{Kind: yang.Yunion}},
 			{yangType: &yang.YangType{Kind: yang.Yenum}},
 			{yangType: &yang.YangType{Kind: yang.Yidentityref}},
 			{yangType: &yang.YangType{Kind: yang.Ybinary}},

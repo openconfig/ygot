@@ -231,7 +231,7 @@ func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *g
 	}
 
 	if msg.entry.Parent == nil {
-		return "", "", nil, []error{fmt.Errorf("YANG schema element %s does not have a parent, protobuf messages are not generated for modules", msg.entry.Path())}
+		return "", "", nil, []error{fmt.Errorf("YANG schema element  does not have a parent, protobuf messages are not generated for modules", msg.entry.Path())}
 	}
 
 	// pkg is the name of the protobuf package, if the entry's parent has already
@@ -307,7 +307,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 
 		t, err := protoTagForEntry(field)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("proto: could not generate tag for field %s: %v", field.Name, err))
+			errs = append(errs, fmt.Errorf("proto: could not generate tag for field : %v", field.Name, err))
 			continue
 		}
 		fieldDef.Tag = t
@@ -316,13 +316,13 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 		case field.IsList():
 			listMsg, ok := msgs[field.Path()]
 			if !ok {
-				errs = append(errs, fmt.Errorf("proto: could not resolve list %s into a defined message", field.Path()))
+				errs = append(errs, fmt.Errorf("proto: could not resolve list  into a defined message", field.Path()))
 				continue
 			}
 
 			listMsgName, ok := state.uniqueDirectoryNames[field.Path()]
 			if !ok {
-				errs = append(errs, fmt.Errorf("proto: could not find unique message name for %s", field.Path()))
+				errs = append(errs, fmt.Errorf("proto: could not find unique message name for ", field.Path()))
 				continue
 			}
 
@@ -332,7 +332,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 			case listMsg.listAttr == nil, len(listMsg.listAttr.keys) == 0:
 				// This is a list that does not have a key within the YANG schema. In
 				// Proto3 we represent this as a repeated field of the parent message.
-				fieldDef.Type = fmt.Sprintf("%s.%s", childPkg, listMsgName)
+				fieldDef.Type = fmt.Sprintf(".%s", childPkg, listMsgName)
 			default:
 				// In the case that we have a keyed list, then we represent it as a
 				// repeated message hiearchy such that:
@@ -365,7 +365,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				// generated for it (skipping the key fields).
 				listKeyMsg, err := genListKeyProto(listMsg, listMsgName, childPkg, state, basePackageName, enumPackageName)
 				if err != nil {
-					errs = append(errs, fmt.Errorf("proto: could not build mapping for list entry %s: %v", field.Path(), err))
+					errs = append(errs, fmt.Errorf("proto: could not build mapping for list entry : %v", field.Path(), err))
 					continue
 				}
 				// The type of this field is just the key message's name, since it
@@ -377,7 +377,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 		case field.IsDir():
 			childmsg, ok := msgs[field.Path()]
 			if !ok {
-				err = fmt.Errorf("proto: could not resolve %s into a defined struct", field.Path())
+				err = fmt.Errorf("proto: could not resolve  into a defined struct", field.Path())
 			} else {
 
 				childpkg := state.protobufPackage(childmsg.entry, compressPaths)
@@ -387,7 +387,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				// child packages.
 				childpath := strings.Replace(childpkg, ".", "/", -1)
 				imports = appendEntriesNotIn(imports, []string{childpath})
-				fieldDef.Type = fmt.Sprintf("%s.%s", childpkg, childmsg.name)
+				fieldDef.Type = fmt.Sprintf(".%s", childpkg, childmsg.name)
 			}
 		case field.IsLeaf() || field.IsLeafList():
 			var protoType mappedType
@@ -409,12 +409,8 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				// TODO(robjs): Handle enumeration within a union.
 				fieldDef.IsOneOf = true
 				for t := range protoType.unionTypes {
-					// Split the type name on "." to ensure that we don't have oneof options
-					// that reference some other package in the type name.
-					tp := strings.Split(t, ".")
-					tn := tp[len(tp)-1]
 					st := protoMsgField{
-						Name: fmt.Sprintf("%s_%s", fieldDef.Name, tn),
+						Name: fmt.Sprintf("_%s", fieldDef.Name, t),
 						Type: t,
 						// TODO(robjs): Determine how best to output tags here.
 						Tag: 42,
@@ -424,7 +420,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 			case field.Type.Kind == yang.Yenum, field.Type.Kind == yang.Yidentityref:
 				// When we have an enumeration that is a typedef, or an identityref then we need
 				// to reference the enumerated package.
-				imports = appendEntriesNotIn(imports, []string{fmt.Sprintf("%s/%s", basePackageName, enumPackageName)})
+				imports = appendEntriesNotIn(imports, []string{fmt.Sprintf("/%s", basePackageName, enumPackageName)})
 				fallthrough
 			default:
 				fieldDef.Type = protoType.nativeType
@@ -434,7 +430,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				fieldDef.IsRepeated = true
 			}
 		default:
-			err = fmt.Errorf("proto: unknown field type in message %s, field %s", msg.name, field.Name)
+			err = fmt.Errorf("proto: unknown field type in message , field %s", msg.name, field.Name)
 		}
 
 		if err != nil {
@@ -486,7 +482,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 				values[int64(i)+1] = n
 			}
 			p.Values = values
-			p.Description = fmt.Sprintf("YANG identity %s", enum.entry.Type.IdentityBase.Name)
+			p.Description = fmt.Sprintf("YANG identity ", enum.entry.Type.IdentityBase.Name)
 		case enum.entry.Type.Kind == yang.Yenum, enum.entry.Type.Kind == yang.Yenum:
 			ge, err := genProtoEnum(enum.entry)
 			if err != nil {
@@ -494,7 +490,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 				continue
 			}
 			p.Values = ge.Values
-			p.Description = fmt.Sprintf("YANG typedef %s", enum.entry.Type.Name)
+			p.Description = fmt.Sprintf("YANG typedef ", enum.entry.Type.Name)
 		case len(enum.entry.Type.Type) != 0:
 			errs = append(errs, fmt.Errorf("unimplemented: support for multiple enumerations within a union for %v", enum.name))
 			continue
@@ -525,7 +521,7 @@ func genProtoEnum(field *yang.Entry) (*protoMsgEnum, error) {
 	eval[0] = "UNSET"
 	if d := field.DefaultValue(); d != "" {
 		if _, ok := names[d]; !ok {
-			return nil, fmt.Errorf("enumeration %s specified a default - %s - that was not a valid value", field.Path(), d)
+			return nil, fmt.Errorf("enumeration  specified a default - %s - that was not a valid value", field.Path(), d)
 		}
 		eval[0] = d
 	}
@@ -592,7 +588,7 @@ func protoTagForEntry(e *yang.Entry) (uint32, error) {
 // current generator state. Returns the definition of the list key proto.
 func genListKeyProto(list *yangDirectory, listName string, listPackage string, state *genState, basePackageName, enumPackageName string) (protoMsg, error) {
 	// TODO(robjs): Check whether we need to make sure that this is unique.
-	n := fmt.Sprintf("%s_Key", listName)
+	n := fmt.Sprintf("_Key", listName)
 	km := protoMsg{
 		Name:     n,
 		YANGPath: list.entry.Path(),
@@ -604,12 +600,12 @@ func genListKeyProto(list *yangDirectory, listName string, listPackage string, s
 	for _, k := range strings.Split(list.entry.Key, " ") {
 		kf, ok := list.fields[k]
 		if !ok {
-			return protoMsg{}, fmt.Errorf("list %s included a key %s did that did not exist", list.entry.Path(), k)
+			return protoMsg{}, fmt.Errorf("list  included a key %s did that did not exist", list.entry.Path(), k)
 		}
 
 		scalarType, err := state.yangTypeToProtoScalarType(resolveTypeArgs{yangType: kf.Type, contextEntry: kf}, basePackageName, enumPackageName)
 		if err != nil {
-			return protoMsg{}, fmt.Errorf("list %s included a key %s that did not have a valid proto type: %v", list.entry.Path(), k, kf.Type)
+			return protoMsg{}, fmt.Errorf("list  included a key %s that did not have a valid proto type: %v", list.entry.Path(), k, kf.Type)
 		}
 
 		// If the key is a leafref, then resolve it suhc that we output the union if required.
@@ -626,7 +622,7 @@ func genListKeyProto(list *yangDirectory, listName string, listPackage string, s
 		case kf.Type.Kind == yang.Yleafref:
 			target, err := state.resolveLeafrefTarget(kf.Type.Path, kf)
 			if err != nil {
-				return protoMsg{}, fmt.Errorf("list %s included a leafref key that did not have a valid proto type: %v", list.entry.Path(), k, kfType)
+				return protoMsg{}, fmt.Errorf("list  included a leafref key that did not have a valid proto type: %v", list.entry.Path(), k, kfType)
 			}
 			if target.Type.Kind == yang.Yenum && target.Type.Name == "enumeration" {
 				enumEntry = target
@@ -639,7 +635,7 @@ func genListKeyProto(list *yangDirectory, listName string, listPackage string, s
 		if enumEntry != nil {
 			enum, err := genProtoEnum(enumEntry)
 			if err != nil {
-				return protoMsg{}, fmt.Errorf("error generating type for list key %s, type %s", list.entry.Path(), k, enumEntry.Type)
+				return protoMsg{}, fmt.Errorf("error generating type for list key , type %s", list.entry.Path(), k, enumEntry.Type)
 			}
 			pt = makeNameUnique(scalarType.nativeType, definedFieldNames)
 			km.Enums[pt] = enum
@@ -658,7 +654,7 @@ func genListKeyProto(list *yangDirectory, listName string, listPackage string, s
 
 	km.Fields = append(km.Fields, &protoMsgField{
 		Name: listName,
-		Type: fmt.Sprintf("%s.%s", listPackage, listName),
+		Type: fmt.Sprintf(".%s", listPackage, listName),
 		Tag:  ctag,
 	})
 

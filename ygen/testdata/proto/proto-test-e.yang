@@ -1,0 +1,74 @@
+module proto-test-e {
+  prefix "e";
+  namespace "urn:e";
+
+  identity ID;
+  identity IDVAL {
+    base ID;
+  }
+
+  grouping test-cfg {
+    leaf a {
+      type enumeration {
+        enum A;
+        enum B;
+        enum C;
+      }
+    }
+
+    leaf b {
+      type union {
+        type identityref {
+          base ID;
+        }
+        type string;
+      }
+    }
+  }
+
+  grouping foo-cfg {
+    leaf bar {
+      type enumeration {
+        enum A;
+        enum B;
+      }
+    }
+
+    leaf baz {
+      type string;
+    }
+  }
+
+  container test {
+    container config {
+      uses test-cfg;
+    }
+
+    container state {
+      config false;
+      uses test-cfg;
+    }
+  }
+
+  container foos {
+    list foo {
+      key "bar";
+
+      leaf bar {
+        type leafref {
+          path "../config/bar";
+        }
+      }
+
+      container config {
+        uses foo-cfg;
+      }
+
+      container state {
+        config false;
+        uses foo-cfg;
+      }
+    }
+  }
+}
+
