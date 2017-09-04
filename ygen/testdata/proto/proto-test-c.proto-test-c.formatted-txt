@@ -15,6 +15,12 @@ import "proto_test_c/entity.proto";
 
 // Elist_Key represents the /proto-test-c/elists/elist YANG schema element.
 message Elist_Key {
+  enum One {
+    One_UNSET = 0;
+    One_E0 = 1;
+    One_E1 = 2;
+    One_E42 = 43;
+  }
   One one = 1;
   string two = 2;
   proto_test_c.elists.Elist Elist = 3;

@@ -714,8 +714,14 @@ func unionFieldToOneOf(name string, e *yang.Entry, mtype mappedType) ([]protoMsg
 		return nil, nil, err
 	}
 
+	typeNames := []string{}
+	for tn := range mtype.unionTypes {
+		typeNames = append(typeNames, tn)
+	}
+	sort.Strings(typeNames)
+
 	oofs := []protoMsgField{}
-	for t := range mtype.unionTypes {
+	for _, t := range typeNames {
 		// Split the type name on "." to ensure that we don't have oneof options
 		// that reference some other package in the type name.
 		tp := strings.Split(t, ".")
