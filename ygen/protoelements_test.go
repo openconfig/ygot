@@ -74,7 +74,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 	for _, tt := range tests {
 		s := newGenState()
 		for _, st := range tt.in {
-			got, err := s.yangTypeToProtoType(st)
+			got, err := s.yangTypeToProtoType(st, "basePackage", "enumPackage")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%s: yangTypeToProtoType(%v): got unexpected error: %v", tt.name, tt.in, err)
 				continue

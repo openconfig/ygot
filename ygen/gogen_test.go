@@ -902,11 +902,11 @@ func TestGoCodeEnumGeneration(t *testing.T) {
 
 	tests := []struct {
 		name string
-		in   *yangGoEnum
+		in   *yangEnum
 		want goEnumCodeSnippet
 	}{{
 		name: "enum from identityref",
-		in: &yangGoEnum{
+		in: &yangEnum{
 			name: "EnumeratedValue",
 			entry: &yang.Entry{
 				Type: &yang.YangType{
@@ -957,7 +957,7 @@ const (
 		},
 	}, {
 		name: "enum from enumeration",
-		in: &yangGoEnum{
+		in: &yangEnum{
 			name: "EnumeratedValueTwo",
 			entry: &yang.Entry{
 				Type: &yang.YangType{Enum: testYangEnums["enumOne"]},
@@ -997,7 +997,7 @@ const (
 		},
 	}, {
 		name: "enum from longer enumeration",
-		in: &yangGoEnum{
+		in: &yangEnum{
 			name: "BaseModule_Enumeration",
 			entry: &yang.Entry{
 				Type: &yang.YangType{Enum: testYangEnums["enumTwo"]},

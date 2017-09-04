@@ -15,6 +15,7 @@ package ygen
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
@@ -53,6 +54,8 @@ func TestGenProtoMsg(t *testing.T) {
 		inMsgs                 map[string]*yangDirectory
 		inUniqueDirectoryNames map[string]string
 		inCompressPaths        bool
+		inBasePackage          string
+		inEnumPackage          string
 		wantMsgs               map[string]protoMsg
 		wantErr                bool
 	}{{
@@ -264,7 +267,7 @@ func TestGenProtoMsg(t *testing.T) {
 		// Seed the state with the supplied message names that have been provided.
 		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
-		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, tt.inCompressPaths)
+		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage)
 		if (len(errs) > 0) != tt.wantErr {
 			t.Errorf("s: genProto3Msg(%#v, %#v, *genState, %v): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, errs, tt.wantErr)
 		}
@@ -519,7 +522,7 @@ message MessageName {
 	for _, tt := range tests {
 		for compress, want := range map[bool]writeProto3MsgTestResult{true: tt.wantCompress, false: tt.wantUncompress} {
 			s := newGenState()
-			gotPkg, gotMsg, gotImports, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, compress)
+			gotPkg, gotMsg, gotImports, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, compress, "", "")
 			if (len(errs) > 0) != want.err {
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, want.err)
 			}
@@ -542,6 +545,133 @@ message MessageName {
 				}
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
 			}
+		}
+	}
+}
+
+func TestWriteProtoEnums(t *testing.T) {
+	// Create mock enumerations within goyang since we cannot create them in-line.
+	testEnums := map[string][]string{
+		"enumOne": {"SPEED_2.5G", "SPEED_40G"},
+		"enumTwo": {"VALUE_1", "VALUE_2"},
+	}
+	testYANGEnums := map[string]*yang.EnumType{}
+
+	for name, values := range testEnums {
+		enum := yang.NewEnumType()
+		for i, v := range values {
+			enum.Set(v, int64(i))
+		}
+		testYANGEnums[name] = enum
+	}
+
+	tests := []struct {
+		name      string
+		inEnums   map[string]*yangEnum
+		wantEnums []string
+		wantErr   bool
+	}{{
+		name: "skipped enumeration type",
+		inEnums: map[string]*yangEnum{
+			"e": &yangEnum{
+				name: "e",
+				entry: &yang.Entry{
+					Name: "e",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Kind: yang.Yenum,
+					},
+				},
+			},
+		},
+		wantEnums: []string{},
+	}, {
+		name: "enum for identityref",
+		inEnums: map[string]*yangEnum{
+			"EnumeratedValue": {
+				name: "EnumeratedValue",
+				entry: &yang.Entry{
+					Type: &yang.YangType{
+						IdentityBase: &yang.Identity{
+							Name: "IdentityValue",
+							Values: []*yang.Identity{
+								{Name: "VALUE_A", Parent: &yang.Module{Name: "mod"}},
+								{Name: "VALUE_B", Parent: &yang.Module{Name: "mod2"}},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantEnums: []string{
+			`
+// EnumeratedValue represents an enumerated type generated for the YANG identity IdentityValue.
+enum EnumeratedValue {
+  EnumeratedValue_UNSET = 0;
+  EnumeratedValue_VALUE_A = 1;
+  EnumeratedValue_VALUE_B = 2;
+}
+`,
+		},
+	}, {
+		name: "enum for typedef enumeration",
+		inEnums: map[string]*yangEnum{
+			"e": &yangEnum{
+				name: "EnumName",
+				entry: &yang.Entry{
+					Name: "e",
+					Type: &yang.YangType{
+						Name: "typedef",
+						Kind: yang.Yenum,
+						Enum: testYANGEnums["enumOne"],
+					},
+				},
+			},
+			"f": &yangEnum{
+				name: "SecondEnum",
+				entry: &yang.Entry{
+					Name: "f",
+					Type: &yang.YangType{
+						Name: "derived",
+						Kind: yang.Yenum,
+						Enum: testYANGEnums["enumTwo"],
+					},
+				},
+			},
+		},
+		wantEnums: []string{
+			`
+// EnumName represents an enumerated type generated for the YANG typedef typedef.
+enum EnumName {
+  EnumName_UNSET = 0;
+  EnumName_SPEED_2_5G = 1;
+  EnumName_SPEED_40G = 2;
+}
+`, `
+// SecondEnum represents an enumerated type generated for the YANG typedef derived.
+enum SecondEnum {
+  SecondEnum_UNSET = 0;
+  SecondEnum_VALUE_1 = 1;
+  SecondEnum_VALUE_2 = 2;
+}
+`,
+		},
+	}}
+
+	for _, tt := range tests {
+		got, err := writeProtoEnums(tt.inEnums)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: writeProtoEnums(%v): did not get expected error, got: %v", tt.name, tt.inEnums, err)
+		}
+
+		if err != nil {
+			continue
+		}
+
+		// Sort the returned output to avoid test flakes.
+		sort.Strings(got)
+		if diff := pretty.Compare(got, tt.wantEnums); diff != "" {
+			t.Errorf("%s: writeProtoEnums(%v): did not get expected output, diff(-got,+want):\n%s", tt.name, tt.inEnums, diff)
 		}
 	}
 }

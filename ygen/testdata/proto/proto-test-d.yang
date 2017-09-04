@@ -1,0 +1,44 @@
+module proto-test-d {
+  prefix "d";
+  namespace "urn:d";
+
+  identity FOO;
+  identity BAR {
+    base FOO;
+  }
+  identity BAZ {
+    base FOO;
+  }
+
+  typedef a-typedef {
+    type enumeration {
+      enum ONE;
+      enum TWO;
+    }
+  }
+
+  grouping test-cfg {
+    leaf id {
+      type identityref {
+        base FOO;
+      }
+    }
+
+    leaf ty {
+      type a-typedef;
+    }
+  }
+
+
+  container test {
+    container config {
+      uses test-cfg;
+    }
+
+    container state {
+      config false;
+       uses test-cfg;
+    }
+  }
+}
+

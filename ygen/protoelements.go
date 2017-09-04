@@ -29,7 +29,20 @@ import (
 // can be distinguished from one set to the nil value.
 //
 // TODO(robjs): Add a link to the translation specification when published.
-func (s *genState) yangTypeToProtoType(args resolveTypeArgs) (mappedType, error) {
+func (s *genState) yangTypeToProtoType(args resolveTypeArgs, basePackageName, enumPackageName string) (mappedType, error) {
+	// Handle typedef cases.
+	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", basePackageName, enumPackageName))
+	switch {
+	case mtype != nil:
+		// mtype is set to non-nil when this was a valid enumeration
+		// within a typedef.
+		return *mtype, nil
+	case err != nil:
+		// err is non-nil when this was a typedef which included an
+		// invalid type.
+		return mappedType{}, err
+	}
+
 	switch args.yangType.Kind {
 	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:
 		return mappedType{nativeType: "ywrapper.IntValue"}, nil
@@ -48,7 +61,7 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs) (mappedType, error)
 		if err != nil {
 			return mappedType{}, err
 		}
-		return s.yangTypeToProtoType(resolveTypeArgs{yangType: target.Type, contextEntry: target})
+		return s.yangTypeToProtoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, basePackageName, enumPackageName)
 	case yang.Yenum:
 		// Return any enumeration simply as the leaf's CamelCase name
 		// since it will be mapped to the correct name at output file to ensure
@@ -58,10 +71,16 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs) (mappedType, error)
 			return mappedType{}, fmt.Errorf("cannot map enumeration without context entry: %v", args)
 		}
 		return mappedType{nativeType: yang.CamelCase(args.contextEntry.Name)}, nil
+	case yang.Yidentityref:
+		if args.contextEntry == nil {
+			return mappedType{}, fmt.Errorf("cannot map identityref without context entry: %v", args)
+		}
+		return mappedType{
+			nativeType: fmt.Sprintf("%s.%s.%s", basePackageName, enumPackageName, s.resolveIdentityRefBaseType(args.contextEntry)),
+		}, nil
 	default:
 		// TODO(robjs): Implement types that are missing within this function.
 		// Missing types are:
-		//  - identityref
 		//  - binary
 		//  - bits
 		//  - union

@@ -34,13 +34,13 @@ type goCodeElements struct {
 	// struct.
 	structs map[string]*yangDirectory
 	// enums is a map of the enumerated values that are to be written out
-	// in the Go code from the YANG schema. Each is described by a yangGoEnum
+	// in the Go code from the YANG schema. Each is described by a yangEnum
 	// struct, and the map is keyed by the enumerated value identifier. For
 	// an in-line enumeration in the YANG, this identifier is the enumeration
 	// leaf's path; for a typedef it is the name of the typedef (which
 	// represents an enumeration or identityref); and for an identitref it
 	// is the name of the base of the identityref.
-	enums map[string]*yangGoEnum
+	enums map[string]*yangEnum
 }
 
 // mappedType is used to store the Go type that a leaf entity in YANG is
@@ -453,7 +453,7 @@ func addNewChild(m map[string]*yang.Entry, k string, v *yang.Entry, errs []error
 // OpenConfig paths is to be enabled.
 func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) (mappedType, error) {
 	// Handle the case of a typedef which is actually an enumeration.
-	mtype, err := s.enumeratedTypedefTypeName(args)
+	mtype, err := s.enumeratedTypedefTypeName(args, "E_")
 	switch {
 	case mtype != nil:
 		// mtype is set to non-nil when this was a valid enumeration
@@ -461,6 +461,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		return *mtype, nil
 	case err != nil:
 		// err is non nil when this was a typedef which included
+		// an invalid enumerated type.
 		return mappedType{}, err
 	}
 
