@@ -144,8 +144,16 @@ message {{ .Name }} {
   }
 {{- end -}}
 {{- range $idx, $field := .Fields }}
-  {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }}
-{{- end }}
+  {{ if $field.IsOneOf -}}
+  oneof {{ $field.Name }} {
+    {{- range $ooField := .OneOfFields }}
+    {{ $ooField.Type }} {{ $ooField.Name }} = {{ $ooField.Tag }};
+    {{- end }}
+  }
+  {{- else -}}
+  {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }};
+  {{- end }}
+{{- end -}}
 }
 `
 
@@ -334,32 +342,6 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				// Proto3 we represent this as a repeated field of the parent message.
 				fieldDef.Type = fmt.Sprintf("%s.%s", childPkg, listMsgName)
 			default:
-				// In the case that we have a keyed list, then we represent it as a
-				// repeated message hiearchy such that:
-				//
-				// list foo {
-				//	key "bar";
-				//	leaf bar { type string; }
-				//	leaf value { type uint32; }
-				// }
-				//
-				// Is mapped to a "repeated pkg.FooList foo = NN;" in the parent message
-				// and a new Foo message:
-				//
-				// message Foo {
-				//	string bar = NN;
-				//	FooListEntry value = NN;
-				// }
-				//
-				// message FooListEntry {
-				//	ywrapper.UintValue value = 1;
-				// }
-				//
-				// In the case that there is >1 key, then each key that exists for the
-				// foo list is contained within the Foo message. This ensures that there
-				// is consistency for the all different types of maps, and different
-				// types of keys (e.g., those that are enumerations).
-
 				// listKeyMsg is the newly created message that is the interim layer
 				// between this message and the entry that will have code specifically
 				// generated for it (skipping the key fields).
@@ -406,21 +388,17 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 					fieldDef.Type = e
 				}
 			case field.Type.Kind == yang.Yunion:
-				// TODO(robjs): Handle enumeration within a union.
-				fieldDef.IsOneOf = true
-				for t := range protoType.unionTypes {
-					// Split the type name on "." to ensure that we don't have oneof options
-					// that reference some other package in the type name.
-					tp := strings.Split(t, ".")
-					tn := tp[len(tp)-1]
-					st := protoMsgField{
-						Name: fmt.Sprintf("%s_%s", fieldDef.Name, tn),
-						Type: t,
-						// TODO(robjs): Determine how best to output tags here.
-						Tag: 42,
-					}
-					fieldDef.OneOfFields = append(fieldDef.OneOfFields, st)
+				oofs, enums, eerr := unionFieldToOneOf(fieldDef.Name, field, protoType)
+				if eerr != nil {
+					err = eerr
 				}
+
+				for n, e := range enums {
+					msgDef.Enums[n] = e
+				}
+
+				fieldDef.IsOneOf = true
+				fieldDef.OneOfFields = append(fieldDef.OneOfFields, oofs...)
 			case field.Type.Kind == yang.Yenum, field.Type.Kind == yang.Yidentityref:
 				// When we have an enumeration that is a typedef, or an identityref then we need
 				// to reference the enumerated package.
@@ -460,8 +438,8 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 	var errs []error
 	var genEnums []string
 	for _, enum := range enums {
-		if enum.entry.Type.Kind == yang.Yenum && enum.entry.Type.Name == "enumeration" {
-			// Skip simple enumerations.
+		if enum.entry.Type.Kind == yang.Yenum && enum.entry.Type.Name == "enumeration" || enum.entry.Type.Kind == yang.Yunion {
+			// Skip simple enumerations and those within unions.
 			continue
 		}
 
@@ -590,6 +568,31 @@ func protoTagForEntry(e *yang.Entry) (uint32, error) {
 // the key of a list for YANG lists. It takes a yangDirectory pointer to the list being
 // described, the name of the list, the package name that the list is within, and the
 // current generator state. Returns the definition of the list key proto.
+// In the case that we have a keyed list, then we represent it as a
+// repeated message hiearchy such that:
+//
+// list foo {
+//      key "bar";
+//      leaf bar { type string; }
+//      leaf value { type uint32; }
+// }
+//
+// Is mapped to a "repeated pkg.FooList foo = NN;" in the parent message
+// and a new Foo message:
+//
+// message Foo {
+//      string bar = NN;
+//      FooListEntry value = NN;
+// }
+//
+// message FooListEntry {
+//      ywrapper.UintValue value = 1;
+// }
+//
+// In the case that there is >1 key, then each key that exists for the
+// foo list is contained within the Foo message. This ensures that there
+// is consistency for the all different types of maps, and different
+// types of keys (e.g., those that are enumerations).
 func genListKeyProto(list *yangDirectory, listName string, listPackage string, state *genState, basePackageName, enumPackageName string) (protoMsg, error) {
 	// TODO(robjs): Check whether we need to make sure that this is unique.
 	n := fmt.Sprintf("%s_Key", listName)
@@ -622,37 +625,53 @@ func genListKeyProto(list *yangDirectory, listName string, listPackage string, s
 		}
 
 		var enumEntry *yang.Entry
+		var unionEntry *yang.Entry
 		switch {
 		case kf.Type.Kind == yang.Yleafref:
 			target, err := state.resolveLeafrefTarget(kf.Type.Path, kf)
 			if err != nil {
 				return protoMsg{}, fmt.Errorf("list %s included a leafref key that did not have a valid proto type: %v", list.entry.Path(), k, kfType)
 			}
-			if target.Type.Kind == yang.Yenum && target.Type.Name == "enumeration" {
+			switch {
+			case target.Type.Kind == yang.Yenum && target.Type.Name == "enumeration":
 				enumEntry = target
+			case target.Type.Kind == yang.Yunion:
+				unionEntry = target
 			}
 		case kf.Type.Kind == yang.Yenum && kf.Type.Name == "enumeration":
 			enumEntry = kf
+		case kf.Type.Kind == yang.Yunion:
+			unionEntry = kf
 		}
 
-		var pt string
-		if enumEntry != nil {
+		fd := &protoMsgField{
+			Name: makeNameUnique(safeProtoFieldName(k), definedFieldNames),
+			Tag:  ctag,
+		}
+		switch {
+		case enumEntry != nil:
 			enum, err := genProtoEnum(enumEntry)
 			if err != nil {
 				return protoMsg{}, fmt.Errorf("error generating type for list key %s, type %s", list.entry.Path(), k, enumEntry.Type)
 			}
-			pt = makeNameUnique(scalarType.nativeType, definedFieldNames)
-			km.Enums[pt] = enum
-		} else {
-			pt = scalarType.nativeType
+			tn := makeNameUnique(scalarType.nativeType, definedFieldNames)
+			fd.Type = tn
+			km.Enums[tn] = enum
+		case unionEntry != nil:
+			fd.IsOneOf = true
+			oofs, enums, err := unionFieldToOneOf(fd.Name, kf, scalarType)
+			if err != nil {
+				return protoMsg{}, fmt.Errorf("error generating type for union list key %s in list %s", k, list.entry.Path())
+			}
+			fd.OneOfFields = append(fd.OneOfFields, oofs...)
+			for n, e := range enums {
+				km.Enums[n] = e
+			}
+		default:
+			fd.Type = scalarType.nativeType
 		}
 
-		km.Fields = append(km.Fields, &protoMsgField{
-			Name: makeNameUnique(safeProtoFieldName(k), definedFieldNames),
-			Tag:  ctag,
-			Type: pt,
-		})
-
+		km.Fields = append(km.Fields, fd)
 		ctag++
 	}
 
@@ -663,4 +682,52 @@ func genListKeyProto(list *yangDirectory, listName string, listPackage string, s
 	})
 
 	return km, nil
+}
+
+// enumInProtoUnionField parses an enum that is within a union and returns the generated
+// enumeration that should be included within a protobuf message for it.
+func enumInProtoUnionField(name string, types []*yang.YangType) (map[string]*protoMsgEnum, error) {
+	enums := map[string]*protoMsgEnum{}
+	for _, t := range types {
+		if t.Kind == yang.Yenum && t.Name == "enumeration" {
+			n := fmt.Sprintf("%s", yang.CamelCase(name))
+			enum, err := genProtoEnum(&yang.Entry{
+				Name: n,
+				Type: t,
+			})
+			if err != nil {
+				return nil, err
+			}
+			enums[n] = enum
+		}
+	}
+
+	return enums, nil
+}
+
+// unionFieldToOneOf takes an input name, a yang.Entry containing a field definition and a mappedType
+// containing the proto type that the entry has been mapped to, and returns the list of fields within
+// the oneof that should be created, along with any enumerations that are contained within the union.
+func unionFieldToOneOf(name string, e *yang.Entry, mtype mappedType) ([]protoMsgField, map[string]*protoMsgEnum, error) {
+	enums, err := enumInProtoUnionField(name, e.Type.Type)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	oofs := []protoMsgField{}
+	for t := range mtype.unionTypes {
+		// Split the type name on "." to ensure that we don't have oneof options
+		// that reference some other package in the type name.
+		tp := strings.Split(t, ".")
+		tn := tp[len(tp)-1]
+		st := protoMsgField{
+			Name: fmt.Sprintf("%s_%s", name, tn),
+			Type: t,
+			// TODO(robjs): Determine how best to output tags here.
+			Tag: 42,
+		}
+		oofs = append(oofs, st)
+	}
+
+	return oofs, enums, nil
 }

@@ -24,6 +24,17 @@ module proto-test-e {
         type string;
       }
     }
+
+    leaf c {
+      type union {
+        type enumeration {
+          enum D;
+          enum E;
+          enum F;
+        }
+        type string;
+      }
+    }
   }
 
   grouping foo-cfg {
@@ -35,6 +46,26 @@ module proto-test-e {
     }
 
     leaf baz {
+      type string;
+    }
+  }
+
+  grouping animal-cfg {
+    leaf species {
+      type union {
+        type enumeration {
+          // Badger
+          enum TAXIDEA_TAXUS;
+          // Elk
+          enum CERVUS_CANADENSIS;
+          // Bighorn sheep
+          enum OVIS_CANADENSIS;
+        }
+        type string;
+      }
+    }
+
+    leaf name {
       type string;
     }
   }
@@ -67,6 +98,48 @@ module proto-test-e {
       container state {
         config false;
         uses foo-cfg;
+      }
+    }
+  }
+
+  container bars {
+    list bar {
+      key "baz";
+
+      leaf baz {
+        type union {
+          type string;
+          type enumeration {
+            enum X;
+            enum Y;
+            enum Z;
+          }
+        }
+      }
+
+      leaf foo {
+        type string;
+      }
+    }
+  }
+
+  container animals {
+    list animal {
+      key "species";
+
+      leaf species {
+        type leafref {
+          path "../config/species";
+        }
+      }
+
+      container config {
+        uses animal-cfg;
+      }
+
+      container state {
+        config false;
+        uses animal-cfg;
       }
     }
   }

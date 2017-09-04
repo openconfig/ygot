@@ -126,9 +126,10 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, basePackageNa
 		return mappedType{
 			nativeType: fmt.Sprintf("%s.%s.%s", basePackageName, enumPackageName, s.resolveIdentityRefBaseType(args.contextEntry)),
 		}, nil
+	case yang.Yunion:
+		return s.protoUnionType(args, basePackageName, enumPackageName)
 	default:
 		// TODO(robjs): implement missing types.
-		//	- union
 		//	- binary
 		//	- bits
 		return mappedType{}, fmt.Errorf("unimplemented type in scalar generation: %s", args.yangType.Kind)
