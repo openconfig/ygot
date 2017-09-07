@@ -189,7 +189,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 	definedFieldNames := map[string]bool{}
 	imports := []string{}
 
-	// Traverse the fields in alphabetical order to ensure determinsitic output.
+	// Traverse the fields in alphabetical order to ensure deterministic output.
 	// TODO(robjs): Once the field tags are unique then make this sort on the
 	// field tag.
 	fNames := []string{}

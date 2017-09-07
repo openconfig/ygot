@@ -399,7 +399,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 // Returns a GeneratedProto struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
 func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto, *YANGCodeGeneratorError) {
-	// TODO(robjs): Handle enumerated types in proto messages.
+	// TODO(github.com/openconfig/ygot/issues/20): Handle enumerated types in proto messages.
 	msgs, _, st, errs := langAgnosticDefinitions(yangFiles, includePaths, cg.Config)
 	if len(errs) > 0 {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
