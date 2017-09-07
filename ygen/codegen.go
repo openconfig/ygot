@@ -399,7 +399,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 // Returns a GeneratedProto struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
 func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto, *YANGCodeGeneratorError) {
-	// TODO(robjs): Handle enumerated types in proto messages.
+	// TODO(github.com/openconfig/ygot/issues/20): Handle enumerated types in proto messages.
 	msgs, _, st, errs := langAgnosticDefinitions(yangFiles, includePaths, cg.Config)
 	if len(errs) > 0 {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
@@ -458,7 +458,15 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	}
 
 	for n, pkg := range genProto.Packages {
-		h, err := writeProto3Header(n, cg.Config.ProtoOptions.BasePackageName, cg.Config.ProtoOptions.BaseImportPath, pkgImports[n], yangFiles, includePaths, cg.Config.CompressOCPaths, cg.Config.Caller)
+		h, err := writeProto3Header(proto3Header{
+			PackageName:            n,
+			BasePackageName:        cg.Config.ProtoOptions.BasePackageName,
+			BaseImportPath:         cg.Config.ProtoOptions.BaseImportPath,
+			Imports:                pkgImports[n],
+			SourceYANGFiles:        yangFiles,
+			SourceYANGIncludePaths: includePaths,
+			CompressPaths:          cg.Config.CompressOCPaths,
+			CallerName:             cg.Config.Caller})
 		if err != nil {
 			ye.Errors = append(ye.Errors, errs...)
 		}
