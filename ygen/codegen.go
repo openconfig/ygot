@@ -495,7 +495,14 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	}
 
 	for n, pkg := range genProto.Packages {
-		h, err := writeProto3Header(n, cg.Config.ProtoOptions.BaseImportPath, pkgImports[n], yangFiles, includePaths, cg.Config.CompressOCPaths, cg.Config.Caller)
+		h, err := writeProto3Header(proto3Header{
+			PackageName:            n,
+			BaseImportPath:         cg.Config.ProtoOptions.BaseImportPath,
+			Imports:                pkgImports[n],
+			SourceYANGFiles:        yangFiles,
+			SourceYANGIncludePaths: includePaths,
+			CompressPaths:          cg.Config.CompressOCPaths,
+			CallerName:             cg.Config.Caller})
 		if err != nil {
 			ye.Errors = append(ye.Errors, errs...)
 		}
