@@ -12,7 +12,9 @@ Imported modules were sourced from:
 package ocstructs
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/openconfig/ygot/ygot"
 )
@@ -73,8 +75,8 @@ func (*Interface) IsYANGGoStruct() {}
 
 // System represents the /openconfig-fakeroot/system YANG schema element.
 type System struct {
-	Hostname	*string	`path:"system/config/hostname" module:"openconfig-fakeroot"`
-	NtpServer	map[uint32]*System_NtpServer	`path:"system/ntp-servers/ntp-server" module:"openconfig-fakeroot"`
+	Hostname	*string	`path:"/system/config/hostname" module:"openconfig-fakeroot"`
+	NtpServer	map[uint32]*System_NtpServer	`path:"/system/ntp-servers/ntp-server" module:"openconfig-fakeroot"`
 }
 
 // IsYANGGoStruct ensures that System implements the yang.GoStruct

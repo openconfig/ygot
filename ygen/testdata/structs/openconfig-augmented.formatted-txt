@@ -13,7 +13,9 @@ Imported modules were sourced from:
 package ocstructs
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/openconfig/ygot/ygot"
 )
@@ -37,7 +39,7 @@ func (*Device) IsYANGGoStruct() {}
 
 // Native represents the /openconfig-simple-target/native YANG schema element.
 type Native struct {
-	A	*string	`path:"native/config/a" module:"openconfig-simple-target"`
+	A	*string	`path:"/native/config/a" module:"openconfig-simple-target"`
 }
 
 // IsYANGGoStruct ensures that Native implements the yang.GoStruct
@@ -47,7 +49,7 @@ func (*Native) IsYANGGoStruct() {}
 
 // Target represents the /openconfig-simple-target/target YANG schema element.
 type Target struct {
-	Foo	*Target_Foo	`path:"target/foo" module:"openconfig-simple-augment"`
+	Foo	*Target_Foo	`path:"/target/foo" module:"openconfig-simple-augment"`
 }
 
 // IsYANGGoStruct ensures that Target implements the yang.GoStruct

@@ -12,7 +12,9 @@ Imported modules were sourced from:
 package ocstructs
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/openconfig/ygot/ygot"
 )
@@ -25,8 +27,8 @@ type Binary []byte
 
 // Foo represents the /openconfig-enumcamelcase/foo YANG schema element.
 type Foo struct {
-	Bar	E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar	`path:"foo/bar" module:"openconfig-enumcamelcase"`
-	Baz	E_OpenConfigCamelCase_BAT	`path:"foo/baz" module:"openconfig-enumcamelcase"`
+	Bar	E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar	`path:"/foo/bar" module:"openconfig-enumcamelcase"`
+	Baz	E_OpenConfigCamelCase_BAT	`path:"/foo/baz" module:"openconfig-enumcamelcase"`
 }
 
 // IsYANGGoStruct ensures that Foo implements the yang.GoStruct

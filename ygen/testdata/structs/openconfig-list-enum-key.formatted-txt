@@ -12,7 +12,9 @@ Imported modules were sourced from:
 package ocstructs
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/openconfig/ygot/ygot"
 )
@@ -25,8 +27,8 @@ type Binary []byte
 
 // Top represents the /openconfig-list-enum-key/top YANG schema element.
 type Top struct {
-	Ekm	map[Top_Ekm_Key]*Top_Ekm	`path:"top/multi-key/ekm" module:"openconfig-list-enum-key"`
-	Eks	map[E_OpenconfigListEnumKey_Eks_K]*Top_Eks	`path:"top/single-key/eks" module:"openconfig-list-enum-key"`
+	Ekm	map[Top_Ekm_Key]*Top_Ekm	`path:"/top/multi-key/ekm" module:"openconfig-list-enum-key"`
+	Eks	map[E_OpenconfigListEnumKey_Eks_K]*Top_Eks	`path:"/top/single-key/eks" module:"openconfig-list-enum-key"`
 }
 
 // IsYANGGoStruct ensures that Top implements the yang.GoStruct

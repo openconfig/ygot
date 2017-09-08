@@ -112,9 +112,9 @@ func NewYANGCodeGenerator(c *GeneratorConfig) *YANGCodeGenerator {
 	return cg
 }
 
-// yangStruct represents a struct that is to be generated. It stores the
+// yangDirectory represents a directory entry that code is to be generated for. It stores the
 // fields that are required to output the relevant code for the entity.
-type yangStruct struct {
+type yangDirectory struct {
 	name       string                 // name is the name of the struct to be generated.
 	entry      *yang.Entry            // entry is the yang.Entry that corresponds to the schema element being converted to a struct.
 	fields     map[string]*yang.Entry // fields is a map, keyed by the YANG node identifier, of the entries that are the struct fields.
@@ -260,7 +260,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// If we were asked to generate a fake root entity, then go and find the top-level entities that
 	// we were asked for.
 	if cg.Config.GenerateFakeRoot {
-		if err := cg.createFakeRoot(structs); err != nil {
+		if err := cg.createFakeRoot(structs, rootElems); err != nil {
 			return nil, &YANGCodeGeneratorError{Errors: []error{err}}
 		}
 	}
@@ -282,7 +282,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// minimised (i.e., diffs are not generated simply due to reordering of
 	// the maps used).
 	var orderedStructNames []string
-	structNameMap := make(map[string]*yangStruct)
+	structNameMap := make(map[string]*yangDirectory)
 	for _, goStruct := range goStructs {
 		orderedStructNames = append(orderedStructNames, goStruct.name)
 		structNameMap[goStruct.name] = goStruct
@@ -572,11 +572,13 @@ func (cg *YANGCodeGenerator) findRootEntries(structs map[string]*yang.Entry) map
 
 // createFakeRoot extracts the entities that are at the root of the YANG schema tree,
 // which otherwise would have no parent in the generated structs, and appends them to
-// a synthesised root element. In the case that the code generation is compressing the
+// a synthesised root element. Such entries are extracted from the supplied structs
+// if they are lists or containers, or from the rootElems supplied if they are leaves
+// or leaf-lists. In the case that the code generation is compressing the
 // YANG schema, list entries that are two levels deep (e.g., /interfaces/interface) are
 // also appended to the synthesised root entity (i.e., in this case the root element
 // has a map entry named 'Interface', and the corresponding NewInterface() method.
-func (cg *YANGCodeGenerator) createFakeRoot(structs map[string]*yang.Entry) error {
+func (cg *YANGCodeGenerator) createFakeRoot(structs map[string]*yang.Entry, rootElems []*yang.Entry) error {
 	rootName := defaultRootName
 	if cg.Config.FakeRootName != "" {
 		rootName = cg.Config.FakeRootName
@@ -600,20 +602,26 @@ func (cg *YANGCodeGenerator) createFakeRoot(structs map[string]*yang.Entry) erro
 		fakeRoot.Dir[s.Name] = s
 	}
 
+	for _, l := range rootElems {
+		if l.IsLeaf() || l.IsLeafList() {
+			fakeRoot.Dir[l.Name] = l
+		}
+	}
+
 	// Append the synthesised root entry to the list of structs for which
 	// code should be generated.
 	structs["/"] = fakeRoot
 	return nil
 }
 
-// serialiseStructDefinitions takes an input set of structs - expressed as a map of yangStructs
+// serialiseStructDefinitions takes an input set of structs - expressed as a map of yangDirectory structs
 // and outputs a byte slice which corresponds to the serialised JSON representation of the schema.
 // The output JSON contains only the root level entities of the schema - such that there is no
 // repetition of definitions of entries. The entries have aditional information appended to the yang.Entry
 // Annotation field - particularly, the name of the struct that was generated for a particular schema element,
 // and the corresponding path within the schema. Both of these elements cannot be reconstructed from
 // the deserialised yang.Entry contents.
-func (cg *YANGCodeGenerator) serialiseStructDefinitions(structs map[string]*yangStruct) ([]byte, error) {
+func (cg *YANGCodeGenerator) serialiseStructDefinitions(structs map[string]*yangDirectory) ([]byte, error) {
 	entries := map[string]*yang.Entry{}
 	for _, e := range structs {
 		entries[e.name] = e.entry

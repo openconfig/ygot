@@ -68,6 +68,11 @@ type genState struct {
 	// schema tree. This is used for lookups within the module set where
 	// they are required, e.g., for leafrefs.
 	schematree *ctree.Tree
+	// generatedUnions stores a map, keyed by the output name for a union,
+	// that has already been output in the generated code. This ensures that
+	// where two entities re-use a union that has already been created (e.g.,
+	// a leafref to a union) then it is output only once in the generated code.
+	generatedUnions map[string]bool
 }
 
 // newGenState creates a new genState instance, initialised with the default state
@@ -81,6 +86,7 @@ func newGenState() *genState {
 		uniqueEnumeratedTypedefNames: make(map[string]string),
 		uniqueIdentityNames:          make(map[string]string),
 		uniqueEnumeratedLeafNames:    make(map[string]string),
+		generatedUnions:              make(map[string]bool),
 	}
 }
 
@@ -137,20 +143,20 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressOCPaths bool) ([]
 
 // buildGoStructDefinitions extracts the yang.Entry instances from a map of
 // entries that need struct definitions built for them. It resolves each
-// yang.Entry to a yangStruct which contains the elements that are needed for
+// yang.Entry to a yangDirectory which contains the elements that are needed for
 // subsequent code generation. The name of the struct is calculated based on
 // whether path compression is enabled (via compressOCPaths), and the fake root
 // entity is to be generated (genFakeRoot). If errors are encountered they are
 // returned within an error slice.
-func (s *genState) buildGoStructDefinitions(entries map[string]*yang.Entry, compressOCPaths, genFakeRoot bool) (map[string]*yangStruct, []error) {
+func (s *genState) buildGoStructDefinitions(entries map[string]*yang.Entry, compressOCPaths, genFakeRoot bool) (map[string]*yangDirectory, []error) {
 	var errs []error
-	mappedStructs := make(map[string]*yangStruct)
+	mappedStructs := make(map[string]*yangDirectory)
 
 	for _, e := range entries {
 		if e.IsList() || e.IsDir() || isRoot(e) {
 			// This should be mapped to a struct in the generated code since it has
 			// child elements in the YANG schema.
-			elem := &yangStruct{
+			elem := &yangDirectory{
 				entry: e,
 			}
 

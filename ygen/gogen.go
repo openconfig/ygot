@@ -184,9 +184,11 @@ type goStructField struct {
 // goUnionInterface contains a definition of an interface that should
 // be generated for a multi-type union in YANG.
 type goUnionInterface struct {
-	Name     string            // Name is the name of the interface
-	Types    map[string]string // Types is a map keyed by the camelcase type name, with values of the Go types in the union.
-	LeafPath string            // LeafPath stores the path for the leaf for which the multi-type union is being generated.
+	Name           string            // Name is the name of the interface
+	Types          map[string]string // Types is a map keyed by the camelcase type name, with values of the Go types in the union.
+	LeafPath       string            // LeafPath stores the path for the leaf for which the multi-type union is being generated.
+	ParentReceiver string            // ParentReceiver is the name of the struct that is a parent of this union field. It is used to allow methods to be created which simplify handling the union in the calling code.
+	TypeNames      []string          // TypeNames is an list of Go type names within the union.
 }
 
 // generatedGoStruct is used to repesent a Go structure to be handed to a template for output.
@@ -255,7 +257,9 @@ Imported modules were sourced from:
 package {{ .PackageName }}
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"{{ .GoOptions.YgotImportPath }}"
 
@@ -283,6 +287,23 @@ func init() {
 		panic("schema error: " +  err.Error())
 	}
 }
+
+// Unmarshal unmarshals data into destStruct, which must be non-nil and the
+// correct GoStruct type. It returns error if the destStruct is not found in the
+// schema or the data cannot be unmarshaled.
+func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
+	tn := reflect.TypeOf(destStruct).Elem().Name()
+	schema, ok := SchemaTree[tn]
+	if !ok {
+		return fmt.Errorf("could not find schema for type %%s", tn )
+	}
+	var jsonTree interface{}
+	if err := json.Unmarshal([]byte(data), &jsonTree); err != nil {
+		return err
+	}
+	return ytypes.Unmarshal(schema, destStruct, jsonTree)
+}
+
 {{- end }}
 `
 	// goStructTemplate takes an input generatedGoStruct, which contains a definition of
@@ -515,7 +536,27 @@ type {{ $intfName }}_{{ $typeName }} struct {
 // Is_{{ $intfName }} ensures that {{ $intfName }}_{{ $typeName }}
 // implements the {{ $intfName }} interface.
 func (*{{ $intfName }}_{{ $typeName }}) Is_{{ $intfName }}() {}
-{{ end }}`
+{{ end }}
+// To_{{ .Name }} takes an input interface{} and attempts to convert it to a struct
+// which implements the {{ .Name }} union. Returns an error if the interface{} supplied
+// cannot be converted to a type within the union.
+func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, error) {
+	switch v := i.(type) {
+	{{ range $typeName, $type := .Types -}}
+	case {{ $type }}:
+		return &{{ $intfName }}_{{ $typeName }}{v}, nil
+	{{ end -}}
+	default:
+		return nil, fmt.Errorf("cannot convert %%v to {{ .Name }}, unknown union type, got: %%T, want any of [
+		{{- $length := len .TypeNames -}}
+		{{- range $i, $type := .TypeNames -}}
+			{{ $type }}
+			{{- if ne (inc $i) $length -}}, {{ end -}}
+		{{- end -}}
+		]", i, i)
+	}
+}
+`
 
 	// The set of built templates that are to be referenced during code generation.
 	goTemplates = map[string]*template.Template{
@@ -607,7 +648,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (strin
 }
 
 // writeGoStruct generates code snippets for targetStruct. The parameter goStructElements
-// contains other yangStructs for which code is being generated, that may be referenced
+// contains other yangDirectory structs for which code is being generated, that may be referenced
 // during the generation of the code corresponding to targetStruct (e.g., to determine a
 // child container's struct name). writeGoStruct returns a goStructCodeSnippet which contains
 //	1. The generated struct for targetStruct (structDef)
@@ -615,7 +656,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (strin
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *yangStruct, goStructElements map[string]*yangStruct, state *genState, compressOCPaths, generateJSONSchema bool) (goStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yangDirectory, state *genState, compressOCPaths, generateJSONSchema bool) (goStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -723,23 +764,34 @@ func writeGoStruct(targetStruct *yangStruct, goStructElements map[string]*yangSt
 				// to ensure that we do not map this as a pointer type (since its
 				// field type is an interface), and generate the relevant interface.
 				scalarField = false
-				intf := goUnionInterface{
-					Name:     mtype.nativeType,
-					Types:    map[string]string{},
-					LeafPath: field.Path(),
-				}
 
-				for t := range mtype.unionTypes {
-					tn := yang.CamelCase(t)
-					// Ensure that we sanitise the type name to be used in the
-					// output struct.
-					if t == "interface{}" {
-						tn = "Interface"
+				if _, ok := state.generatedUnions[mtype.nativeType]; !ok {
+					// If the union type has not already been generated, then create it.
+					// This is to handle cases whereby we can have two types that are
+					// mapped to the same unique name -- such as in the case that we
+					// have a leafref that points to a leaf that is a union.
+					intf := goUnionInterface{
+						Name:           mtype.nativeType,
+						Types:          map[string]string{},
+						LeafPath:       field.Path(),
+						ParentReceiver: targetStruct.name,
 					}
-					intf.Types[tn] = t
-				}
 
-				genUnions = append(genUnions, intf)
+					for t := range mtype.unionTypes {
+						tn := yang.CamelCase(t)
+						// Ensure that we sanitise the type name to be used in the
+						// output struct.
+						if t == "interface{}" {
+							tn = "Interface"
+						}
+						intf.Types[tn] = t
+						intf.TypeNames = append(intf.TypeNames, t)
+					}
+					// Sort the names of the types into determinstic order.
+					sort.Strings(intf.TypeNames)
+					genUnions = append(genUnions, intf)
+					state.generatedUnions[mtype.nativeType] = true
+				}
 			}
 
 			switch {
@@ -892,10 +944,10 @@ func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
 //	  type.
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
-func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *yangStruct, goStructElements map[string]*yangStruct, state *genState) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
+func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *yangDirectory, goStructElements map[string]*yangDirectory, state *genState) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
-	// this from the set of yangStructs for which code is being generated such that
-	// additional details can be used in the code generation.
+	// this from the set of yangDirectory structs for which code (a Go struct) will be
+	//  generated such that additional details can be used in the code generation.
 	listElem, ok := goStructElements[listField.Path()]
 	if !ok {
 		return "", nil, nil, fmt.Errorf("struct for %s did not exist", listField.Path())
@@ -1054,19 +1106,23 @@ func writeGoEnum(inputEnum *yangGoEnum) (goEnumCodeSnippet, error) {
 // then the corresponding target leaf is also returned in the map path as well.
 // as the expanded path of the schema entry. If errors are encountered when
 // mapping the paths, they are returned.
-func findMapPaths(parent *yangStruct, field *yang.Entry, compressOCPaths bool) ([][]string, error) {
+func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths bool) ([][]string, error) {
 	fieldSlicePath := traverseElementSchemaPath(field)
 	var childPath, parentPath []string
 
 	if parent.isFakeRoot {
 		parentPath = []string{}
 		// If the length of the fieldSlicePath is 3, then this is an entity at the root
-		// that has been mapped, so we simply give it the empty string as it will have
-		// the mapping path specified correctly. Otherwise, we take all the elements other
-		// than the first.
+		// that has been mapped, if it is a container, then an empty string can be
+		// specified as the container has its own name encoded. In the case that it is
+		// a list or a non-directory entry, then we need to include the name of the entry
+		// in the path.
 		switch len(fieldSlicePath) {
 		case 2:
 			childPath = []string{}
+			if !field.IsContainer() {
+				childPath = []string{fieldSlicePath[1]}
+			}
 		default:
 			childPath = fieldSlicePath[1:]
 		}
@@ -1082,10 +1138,22 @@ func findMapPaths(parent *yangStruct, field *yang.Entry, compressOCPaths bool) (
 			// where the "" represents the root, and "openconfig-bgp" is the module name).
 			return nil, fmt.Errorf("field %v is an invalid mappable entity", parent.path)
 		case len(parentPath) == 3:
-			// This is an element that is at the root, so we want to make sure that we do
-			// not give the module name or the nil string to the mapping code, since these
-			// are not schema path elements.
-			childPath = append(childPath, parentPath[2])
+			// This is an element that is at the root. Its goyang path is of the form
+			// []string{"", MODULE-NAME, CONTAINER-NAME}. The struct tag should contain
+			// an absolute path, which includes only valid schema path elements. Therefore
+			// we return []string{"", CONTAINER-NAME}. The MODULE-NAME is skipped a it is
+			// not a valid schema path element, and the leading "" ensures that the path
+			// is prefixed with a /.
+			// Absolute paths are used for top-level entities such rendering functions
+			// can be agnostic to whether the fakeroot was created.
+			// A special case exists where there are lists at the root, since in this case
+			// we cannot simply have the parent path prepended to the current element's
+			// name, and therefore we do not use absolute paths.
+			if parent.entry != nil && parent.entry.IsList() {
+				childPath = []string{}
+			} else {
+				childPath = append(childPath, []string{"", parentPath[2]}...)
+			}
 		}
 
 		// Append the elements that are not common between the two paths.

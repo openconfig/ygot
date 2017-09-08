@@ -12,7 +12,9 @@ Imported modules were sourced from:
 package ocstructs
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/openconfig/ygot/ygot"
 )
@@ -25,8 +27,8 @@ type Binary []byte
 
 // Model represents the /openconfig-withlist/model YANG schema element.
 type Model struct {
-	MultiKey	map[Model_MultiKey_Key]*Model_MultiKey	`path:"model/b/multi-key" module:"openconfig-withlist"`
-	SingleKey	map[string]*Model_SingleKey	`path:"model/a/single-key" module:"openconfig-withlist"`
+	MultiKey	map[Model_MultiKey_Key]*Model_MultiKey	`path:"/model/b/multi-key" module:"openconfig-withlist"`
+	SingleKey	map[string]*Model_SingleKey	`path:"/model/a/single-key" module:"openconfig-withlist"`
 }
 
 // IsYANGGoStruct ensures that Model implements the yang.GoStruct

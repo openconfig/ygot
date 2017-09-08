@@ -9,8 +9,10 @@ test:
 generate:
 	cd ${ROOT_DIR}/demo/getting_started && go generate
 	cd ${ROOT_DIR}/proto/ywrapper && go generate
+	cd $(ROOT_DIR)/demo/uncompressed && go generate
 clean:
 	rm -f ${ROOT_DIR}/demo/getting_started/pkg/ocdemo/oc.go
+	rm -f ${ROOT_DIR}/demo/uncompressed/pkg/demo/uncompressed.go
 deps:
 	go get -t -d ./...
 install: deps generate

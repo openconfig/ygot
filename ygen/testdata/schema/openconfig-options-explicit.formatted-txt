@@ -12,7 +12,9 @@ Imported modules were sourced from:
 package ocstructs
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"bar/ygot"
 	"foo/goyang"
@@ -36,6 +38,22 @@ func init() {
 	}
 }
 
+// Unmarshal unmarshals data into destStruct, which must be non-nil and the
+// correct GoStruct type. It returns error if the destStruct is not found in the
+// schema or the data cannot be unmarshaled.
+func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
+	tn := reflect.TypeOf(destStruct).Elem().Name()
+	schema, ok := SchemaTree[tn]
+	if !ok {
+		return fmt.Errorf("could not find schema for type %%s", tn )
+	}
+	var jsonTree interface{}
+	if err := json.Unmarshal([]byte(data), &jsonTree); err != nil {
+		return err
+	}
+	return ytypes.Unmarshal(schema, destStruct, jsonTree)
+}
+
 // Fakeroot represents the /fakeroot YANG schema element.
 type Fakeroot struct {
 	Parent	*Parent	`path:"" rootname:"parent" module:"openconfig-simple"`
@@ -57,7 +75,7 @@ func (s *Fakeroot) Validate() error {
 
 // Parent represents the /openconfig-simple/parent YANG schema element.
 type Parent struct {
-	Child	*Parent_Child	`path:"parent/child" module:"openconfig-simple"`
+	Child	*Parent_Child	`path:"/parent/child" module:"openconfig-simple"`
 }
 
 // IsYANGGoStruct ensures that Parent implements the yang.GoStruct
@@ -96,7 +114,7 @@ func (s *Parent_Child) Validate() error {
 
 // RemoteContainer represents the /openconfig-simple/remote-container YANG schema element.
 type RemoteContainer struct {
-	ALeaf	*string	`path:"remote-container/config/a-leaf" module:"openconfig-simple"`
+	ALeaf	*string	`path:"/remote-container/config/a-leaf" module:"openconfig-simple"`
 }
 
 // IsYANGGoStruct ensures that RemoteContainer implements the yang.GoStruct

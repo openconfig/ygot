@@ -74,3 +74,37 @@ func validateLeafListSchema(schema *yang.Entry) error {
 
 	return nil
 }
+
+// unmarshalLeafList unmarshals a JSON leaf list slice into a Go slice parent.
+//   schema is the schema of the schema node corresponding to the field being
+//     unmamshaled into
+//   value is a JSON array, represented as Go slice
+func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}) error {
+	if isNil(value) {
+		return nil
+	}
+	dbgPrint("unmarshalLeafList value %v, type %T, into parent type %T, schema name %s", valueStr(value), value, parent, schema.Name)
+
+	// Check that the schema itself is valid.
+	if err := validateLeafListSchema(schema); err != nil {
+		return err
+	}
+
+	leafList, ok := value.([]interface{})
+	if !ok {
+		return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect []interface{}",
+			schema.Name, valueStr(value), value)
+	}
+
+	// The leaf schema is just the leaf-list schema without the list attrs.
+	leafSchema := *schema
+	leafSchema.ListAttr = nil
+
+	for _, leaf := range leafList {
+		if err := Unmarshal(&leafSchema, parent, leaf); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

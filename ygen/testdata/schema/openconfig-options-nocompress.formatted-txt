@@ -12,7 +12,9 @@ Imported modules were sourced from:
 package ocstructs
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
@@ -36,9 +38,25 @@ func init() {
 	}
 }
 
+// Unmarshal unmarshals data into destStruct, which must be non-nil and the
+// correct GoStruct type. It returns error if the destStruct is not found in the
+// schema or the data cannot be unmarshaled.
+func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
+	tn := reflect.TypeOf(destStruct).Elem().Name()
+	schema, ok := SchemaTree[tn]
+	if !ok {
+		return fmt.Errorf("could not find schema for type %%s", tn )
+	}
+	var jsonTree interface{}
+	if err := json.Unmarshal([]byte(data), &jsonTree); err != nil {
+		return err
+	}
+	return ytypes.Unmarshal(schema, destStruct, jsonTree)
+}
+
 // OpenconfigOptions_Bgp represents the /openconfig-options/bgp YANG schema element.
 type OpenconfigOptions_Bgp struct {
-	Neighbors	*OpenconfigOptions_Bgp_Neighbors	`path:"bgp/neighbors" module:"openconfig-options"`
+	Neighbors	*OpenconfigOptions_Bgp_Neighbors	`path:"/bgp/neighbors" module:"openconfig-options"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigOptions_Bgp implements the yang.GoStruct
@@ -184,6 +202,20 @@ type OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union_U
 // Is_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union ensures that OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union_Uint32
 // implements the OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union interface.
 func (*OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union_Uint32) Is_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union() {}
+
+// To_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union takes an input interface{} and attempts to convert it to a struct
+// which implements the OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union union. Returns an error if the interface{} supplied
+// cannot be converted to a type within the union.
+func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor_State) To_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union(i interface{}) (OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union, error) {
+	switch v := i.(type) {
+	case E_OpenconfigOptions_AFI:
+		return &OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union_E_OpenconfigOptions_AFI{v}, nil
+	case uint32:
+		return &OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union_Uint32{v}, nil
+	default:
+		return nil, fmt.Errorf("cannot convert %v to OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union, unknown union type, got: %T, want any of [E_OpenconfigOptions_AFI, uint32]", i, i)
+	}
+}
 
 // E_OpenconfigOptions_AFI is a derived int64 type which is used to represent
 // the enumerated node OpenconfigOptions_AFI. An additional value named
