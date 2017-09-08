@@ -766,8 +766,13 @@ func enumStringToIntValue(parent interface{}, fieldName, value string) (int64, e
 	if !field.IsValid() {
 		return 0, fmt.Errorf("%s is not a valid enum field name in %T", fieldName, parent)
 	}
+	ft := field.Type()
+	// leaf-list case
+	if ft.Kind() == reflect.Slice{
+		ft = ft.Elem()
+	}
 
-	mapMethod := reflect.New(field.Type()).Elem().MethodByName("ΛMap")
+	mapMethod := reflect.New(ft).Elem().MethodByName("ΛMap")
 	if !mapMethod.IsValid() {
 		return 0, fmt.Errorf("%s in %T does not have a ΛMap function", fieldName, parent)
 	}
@@ -783,9 +788,9 @@ func enumStringToIntValue(parent interface{}, fieldName, value string) (int64, e
 			fieldName, parent, ei)
 	}
 
-	m, ok := enumMap[field.Type().Name()]
+	m, ok := enumMap[ft.Name()]
 	if !ok {
-		return 0, fmt.Errorf("%s is not a valid enum field name, has type %s", fieldName, field.Type().Name())
+		return 0, fmt.Errorf("%s is not a valid enum field name, has type %s", fieldName, ft.Name())
 	}
 
 	for k, v := range m {

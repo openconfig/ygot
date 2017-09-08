@@ -115,10 +115,17 @@ func TestUnmarshalLeafList(t *testing.T) {
 				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
 				Type:     &yang.YangType{Kind: yang.Yint32},
 			},
+			"enum-leaf-list": &yang.Entry{
+				Name:     "enum-leaf-list",
+				Kind:     yang.LeafEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Type:     &yang.YangType{Kind: yang.Yenum},
+			},
 		},
 	}
 	type ContainerStruct struct {
 		Int32LeafList []*int32 `path:"int32-leaf-list"`
+		EnumLeafList []EnumType `path:"enum-leaf-list"`
 	}
 
 	tests := []struct {
@@ -131,6 +138,11 @@ func TestUnmarshalLeafList(t *testing.T) {
 			desc: "int32 success",
 			json: `{ "int32-leaf-list" : [-42, 0, 42] }`,
 			want: ContainerStruct{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
+		},
+		{
+			desc: "enum success",
+			json: `{ "enum-leaf-list" : ["E_VALUE_FORTY_TWO"] }`,
+			want: ContainerStruct{EnumLeafList: []EnumType{42}},
 		},
 		{
 			desc:    "bad field name",
