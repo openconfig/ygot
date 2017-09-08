@@ -38,9 +38,10 @@ func init() {
 	}
 }
 
-// Unmarshal unmarshals data into destStruct, which must be non-nil and the
-// correct GoStruct type. It returns error if the destStruct is not found in the
-// schema or the data cannot be unmarshaled.
+// Unmarshal unmarshals data, which must be RFC7951 JSON format, into
+// destStruct, which must be non-nil and the correct GoStruct type. It returns
+// an error if the destStruct is not found in the schema or the data cannot be
+// unmarshaled.
 func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
 	tn := reflect.TypeOf(destStruct).Elem().Name()
 	schema, ok := SchemaTree[tn]
