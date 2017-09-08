@@ -112,9 +112,9 @@ func NewYANGCodeGenerator(c *GeneratorConfig) *YANGCodeGenerator {
 	return cg
 }
 
-// yangStruct represents a struct that is to be generated. It stores the
+// yangDirectory represents a directory entry that code is to be generated for. It stores the
 // fields that are required to output the relevant code for the entity.
-type yangStruct struct {
+type yangDirectory struct {
 	name       string                 // name is the name of the struct to be generated.
 	entry      *yang.Entry            // entry is the yang.Entry that corresponds to the schema element being converted to a struct.
 	fields     map[string]*yang.Entry // fields is a map, keyed by the YANG node identifier, of the entries that are the struct fields.
@@ -282,7 +282,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// minimised (i.e., diffs are not generated simply due to reordering of
 	// the maps used).
 	var orderedStructNames []string
-	structNameMap := make(map[string]*yangStruct)
+	structNameMap := make(map[string]*yangDirectory)
 	for _, goStruct := range goStructs {
 		orderedStructNames = append(orderedStructNames, goStruct.name)
 		structNameMap[goStruct.name] = goStruct
@@ -614,14 +614,14 @@ func (cg *YANGCodeGenerator) createFakeRoot(structs map[string]*yang.Entry, root
 	return nil
 }
 
-// serialiseStructDefinitions takes an input set of structs - expressed as a map of yangStructs
+// serialiseStructDefinitions takes an input set of structs - expressed as a map of yangDirectory structs
 // and outputs a byte slice which corresponds to the serialised JSON representation of the schema.
 // The output JSON contains only the root level entities of the schema - such that there is no
 // repetition of definitions of entries. The entries have aditional information appended to the yang.Entry
 // Annotation field - particularly, the name of the struct that was generated for a particular schema element,
 // and the corresponding path within the schema. Both of these elements cannot be reconstructed from
 // the deserialised yang.Entry contents.
-func (cg *YANGCodeGenerator) serialiseStructDefinitions(structs map[string]*yangStruct) ([]byte, error) {
+func (cg *YANGCodeGenerator) serialiseStructDefinitions(structs map[string]*yangDirectory) ([]byte, error) {
 	entries := map[string]*yang.Entry{}
 	for _, e := range structs {
 		entries[e.name] = e.entry
