@@ -147,13 +147,13 @@ func TestSchemaRoundtrip(t *testing.T) {
 
 	tests := []struct {
 		name               string
-		inMap              map[string]*yangStruct
+		inMap              map[string]*yangDirectory
 		inGenerateFakeRoot bool
 		want               map[string]*yang.Entry
 		wantErr            bool
 	}{{
 		name: "simple schema",
-		inMap: map[string]*yangStruct{
+		inMap: map[string]*yangDirectory{
 			"Container": {
 				name:  "Container",
 				entry: containerEntry,
@@ -164,7 +164,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 		},
 	}, {
 		name: "fakeroot",
-		inMap: map[string]*yangStruct{
+		inMap: map[string]*yangDirectory{
 			"Container": {
 				name:  "Container",
 				entry: containerEntry,
