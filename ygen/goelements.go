@@ -28,10 +28,11 @@ import (
 type goCodeElements struct {
 	// packageName is the name of the Go package to be generated
 	packageName string
-	// structs is a map of yangStruct definitions that is keyed by the
+	// structs is a map of yangDirectory definitions that is keyed by the
 	// path of the entity being mapped (container, list etc.) that is being
-	// described by the yangStruct.
-	structs map[string]*yangStruct
+	// described by the yangDirectory. A yangDirectory is mapped into a Go
+	// struct.
+	structs map[string]*yangDirectory
 	// enums is a map of the enumerated values that are to be written out
 	// in the Go code from the YANG schema. Each is described by a yangGoEnum
 	// struct, and the map is keyed by the enumerated value identifier. For
