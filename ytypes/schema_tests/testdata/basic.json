@@ -1,0 +1,10 @@
+{
+ "openconfig-bgp:bgp": {
+   "global": {
+     "config": {
+       "as": 12345,
+       "router-id": "10.10.10.10"
+     }
+   }
+ }    
+}
