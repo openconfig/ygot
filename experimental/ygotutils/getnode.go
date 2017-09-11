@@ -9,9 +9,9 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	scpb "google.golang.org/genproto/googleapis/rpc/code"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
-	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // GetNode returns the node in the data tree at the indicated path, relative to
@@ -19,8 +19,9 @@ import (
 // be absolute.
 // It returns an error if the path is not found in the tree, or an element along
 // the path is nil.
-func GetNode(schema *yang.Entry, rootStruct ygot.GoStruct, path *gpb.Path) (interface{}, *yang.Entry, spb.Status) {
-	return getNodeInternal(schema, rootStruct, path)
+func GetNode(schema *yang.Entry, rootStruct ygot.GoStruct, path *gpb.Path) (interface{}, spb.Status) {
+	node, _, status := getNodeInternal(schema, rootStruct, path)
+	return node, status
 }
 
 // NewNode returns a new, empty struct element of the type indicated by the
@@ -32,6 +33,9 @@ func NewNode(rootType reflect.Type, path *gpb.Path) (interface{}, spb.Status) {
 	if len(path.GetElem()) == 0 {
 		zeroIndent()
 		dbgPrintln("creating new object of type %s", rootType)
+		if rootType.Kind() == reflect.Ptr {
+			return reflect.New(rootType.Elem()).Interface(), statusOK
+		}
 		return reflect.New(rootType).Elem().Interface(), statusOK
 	}
 	// Strip off the absolute path prefix since the relative and absolute paths

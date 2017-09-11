@@ -16,17 +16,23 @@ package validate
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/experimental/ygotutils"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pmezard/go-difflib/difflib"
 
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	oc "github.com/openconfig/ygot/exampleoc"
+	scpb "google.golang.org/genproto/googleapis/rpc/code"
+	spb "google.golang.org/genproto/googleapis/rpc/status"
 )
 
 const (
@@ -414,6 +420,290 @@ func TestUnmarshal(t *testing.T) {
 	}
 }
 
+/*
+type Device struct {
+	Aps              *Aps                        `path:"" rootname:"aps" module:"openconfig-transport-line-protection"`
+	Bgp              *Bgp                        `path:"" rootname:"bgp" module:"openconfig-bgp"`
+	Component        map[string]*Component       `path:"components/component" rootname:"component" module:"openconfig-platform"`
+	Interface        map[string]*Interface       `path:"interfaces/interface" rootname:"interface" module:"openconfig-interfaces"`
+	Lacp             *Lacp                       `path:"" rootname:"lacp" module:"openconfig-lacp"`
+	Lldp             *Lldp                       `path:"" rootname:"lldp" module:"openconfig-lldp"`
+	LocalRoutes      *LocalRoutes                `path:"" rootname:"local-routes" module:"openconfig-local-routing"`
+	Mpls             *Mpls                       `path:"" rootname:"mpls" module:"openconfig-mpls"`
+	NetworkInstance  map[string]*NetworkInstance `path:"network-instances/network-instance" rootname:"network-instance" module:"openconfig-network-instance"`
+	OpticalAmplifier *OpticalAmplifier           `path:"" rootname:"optical-amplifier" module:"openconfig-optical-amplifier"`
+	RoutingPolicy    *RoutingPolicy              `path:"" rootname:"routing-policy" module:"openconfig-routing-policy"`
+	Stp              *Stp                        `path:"" rootname:"stp" module:"openconfig-spanning-tree"`
+	System           *System                     `path:"" rootname:"system" module:"openconfig-system"`
+	TerminalDevice   *TerminalDevice             `path:"" rootname:"terminal-device" module:"openconfig-terminal-device"`
+}
+
+type Bgp struct {
+	Global    *Bgp_Global               `path:"/bgp/global" module:"openconfig-bgp"`
+	Neighbor  map[string]*Bgp_Neighbor  `path:"/bgp/neighbors/neighbor" module:"openconfig-bgp"`
+	PeerGroup map[string]*Bgp_PeerGroup `path:"/bgp/peer-groups/peer-group" module:"openconfig-bgp"`
+}
+
+type Bgp_Global struct {
+	AfiSafi               map[E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*Bgp_Global_AfiSafi `path:"afi-safis/afi-safi" module:"openconfig-bgp"`
+	As                    *uint32                                                    `path:"config/as" module:"openconfig-bgp"`
+	Confederation         *Bgp_Global_Confederation                                  `path:"confederation" module:"openconfig-bgp"`
+	...
+}
+
+// Bgp_Neighbor represents the /openconfig-bgp/bgp/neighbors/neighbor YANG schema element.
+type Bgp_Neighbor struct {
+	AfiSafi                map[E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*Bgp_Neighbor_AfiSafi `path:"afi-safis/afi-safi" module:"openconfig-bgp"`
+	ApplyPolicy            *Bgp_Neighbor_ApplyPolicy                                    `path:"apply-policy" module:"openconfig-bgp"`
+	AsPathOptions          *Bgp_Neighbor_AsPathOptions                                  `path:"as-path-options" module:"openconfig-bgp"`
+	...
+	NeighborAddress        *string                                                      `path:"config/neighbor-address|neighbor-address" module:"openconfig-bgp"`
+	...
+}
+
+// Bgp_Neighbor_AfiSafi represents the /openconfig-bgp/bgp/neighbors/neighbor/afi-safis/afi-safi YANG schema element.
+type Bgp_Neighbor_AfiSafi struct {
+	Active             *bool                                    `path:"state/active" module:"openconfig-bgp"`
+	AddPaths           *Bgp_Neighbor_AfiSafi_AddPaths           `path:"add-paths" module:"openconfig-bgp"`
+	AfiSafiName        E_OpenconfigBgpTypes_AFI_SAFI_TYPE       `path:"config/afi-safi-name|afi-safi-name" module:"openconfig-bgp"`
+	ApplyPolicy        *Bgp_Neighbor_AfiSafi_ApplyPolicy        `path:"apply-policy" module:"openconfig-bgp"`
+	...
+}
+
+*/
+
+func TestNewNode(t *testing.T) {
+	tests := []struct {
+		desc       string
+		rootType   interface{}
+		gnmiPath   *gpb.Path
+		want       interface{}
+		wantStatus spb.Status
+	}{
+		{
+			desc:       "empty path",
+			rootType:   &oc.Device{},
+			gnmiPath:   toGNMIPath(nil),
+			want:       &oc.Device{},
+			wantStatus: statusOK,
+		},
+		{
+			desc:       "bgp/global/confederation",
+			rootType:   &oc.Device{},
+			gnmiPath:   toGNMIPath([]string{"bgp", "global", "confederation"}),
+			want:       &oc.Bgp_Global_Confederation{},
+			wantStatus: statusOK,
+		},
+		{
+			desc:     "path with keys bgp/neighbors/neighbor...",
+			rootType: &oc.Device{},
+			gnmiPath: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "bgp",
+					},
+					{
+						Name: "neighbors",
+					},
+					{
+						Name: "neighbor",
+						Key: map[string]string{
+							"some-key1": "some-key-value1",
+						},
+					},
+					{
+						Name: "afi-safis",
+					},
+					{
+						Name: "afi-safi",
+						Key: map[string]string{
+							"some-key2": "some-key-value2",
+						},
+					},
+					{
+						Name: "config",
+					},
+					{
+						Name: "afi-safi-name",
+					},
+				},
+			},
+			want:       oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE(0),
+			wantStatus: statusOK,
+		},
+		{
+			desc:     "bad path",
+			rootType: &oc.Device{},
+			gnmiPath: toGNMIPath([]string{"bad", "path"}),
+			wantStatus: spb.Status{
+				Code:    int32(scpb.Code_NOT_FOUND),
+				Message: `could not find path in tree beyond type *exampleoc.Device, remaining path elem:<name:"bad" > elem:<name:"path" > `,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		n, status := ygotutils.NewNode(reflect.TypeOf(tt.rootType), tt.gnmiPath)
+		if got, want := status, tt.wantStatus; got.GetMessage() != want.GetMessage() {
+			t.Errorf("%s: got status: %v, want status: %v ", tt.desc, got, want)
+		}
+		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
+		if isOK(status) {
+			if got, want := n, tt.want; !reflect.DeepEqual(got, want) {
+				t.Errorf("%s: got: %v, want: %v ", tt.desc, valueStr(got), valueStr(want))
+			}
+		}
+	}
+}
+
+func TestGetNode(t *testing.T) {
+	testDevice := &oc.Device{
+		Bgp: &oc.Bgp{
+			Global: &oc.Bgp_Global{
+				Confederation: &oc.Bgp_Global_Confederation{},
+			},
+			Neighbor: map[string]*oc.Bgp_Neighbor{
+				"address1": &oc.Bgp_Neighbor{
+					ApplyPolicy:     &oc.Bgp_Neighbor_ApplyPolicy{},
+					NeighborAddress: ygot.String("address1"),
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		desc       string
+		gnmiPath   *gpb.Path
+		want       interface{}
+		wantStatus spb.Status
+	}{
+		{
+			desc:       "empty path",
+			gnmiPath:   toGNMIPath(nil),
+			want:       testDevice,
+			wantStatus: statusOK,
+		},
+		{
+			desc:       "bgp/global/confederation",
+			gnmiPath:   toGNMIPath([]string{"bgp", "global", "confederation"}),
+			want:       testDevice.Bgp.Global.Confederation,
+			wantStatus: statusOK,
+		},
+		{
+			desc: "path with keys bgp/neighbors/neighbor...",
+			gnmiPath: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "bgp",
+					},
+					{
+						Name: "neighbors",
+					},
+					{
+						Name: "neighbor",
+						Key: map[string]string{
+							"neighbor-address": "address1",
+						},
+					},
+					{
+						Name: "apply-policy",
+					},
+				},
+			},
+			want:       testDevice.Bgp.Neighbor["address1"].ApplyPolicy,
+			wantStatus: statusOK,
+		},
+		{
+			desc: "bad key field",
+			gnmiPath: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "bgp",
+					},
+					{
+						Name: "neighbors",
+					},
+					{
+						Name: "neighbor",
+						Key: map[string]string{
+							"bad-key-field": "address1",
+						},
+					},
+					{
+						Name: "apply-policy",
+					},
+				},
+			},
+			wantStatus: spb.Status{
+				Code:    int32(scpb.Code_INVALID_ARGUMENT),
+				Message: `gnmi path elem:<name:"neighbor" key:<key:"bad-key-field" value:"address1" > > elem:<name:"apply-policy" >  does not contain a map entry for the schema key field name neighbor-address, parent type map[string]*exampleoc.Bgp_Neighbor`,
+			},
+		},
+		{
+			desc: "bad key value",
+			gnmiPath: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "bgp",
+					},
+					{
+						Name: "neighbors",
+					},
+					{
+						Name: "neighbor",
+						Key: map[string]string{
+							"neighbor-address": "bad key value",
+						},
+					},
+					{
+						Name: "apply-policy",
+					},
+				},
+			},
+			wantStatus: spb.Status{
+				Code:    int32(scpb.Code_NOT_FOUND),
+				Message: `could not find path in tree beyond schema node neighbor, (type map[string]*exampleoc.Bgp_Neighbor), remaining path elem:<name:"neighbor" key:<key:"neighbor-address" value:"bad key value" > > elem:<name:"apply-policy" > `,
+			},
+		},
+		{
+			desc:     "bad path",
+			gnmiPath: toGNMIPath([]string{"bad", "path"}),
+			wantStatus: spb.Status{
+				Code:    int32(scpb.Code_NOT_FOUND),
+				Message: `could not find path in tree beyond schema node device, (type *exampleoc.Device), remaining path elem:<name:"bad" > elem:<name:"path" > `,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		n, status := ygotutils.GetNode(oc.SchemaTree["Device"], testDevice, tt.gnmiPath)
+		if got, want := status, tt.wantStatus; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: got status: %v, want status: %v ", tt.desc, got, want)
+		}
+		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
+		if isOK(status) {
+			if got, want := n, tt.want; !reflect.DeepEqual(got, want) {
+				t.Errorf("%s: got: %v, want: %v ", tt.desc, valueStr(got), valueStr(want))
+			}
+		}
+	}
+}
+
+func toGNMIPath(path []string) *gpb.Path {
+	out := &gpb.Path{}
+	for _, p := range path {
+		out.Elem = append(out.GetElem(), &gpb.PathElem{Name: p})
+	}
+	return out
+}
+
+// statusOK indicates an OK Status.
+var statusOK = spb.Status{Code: int32(scpb.Code_OK)}
+
+func isOK(status spb.Status) bool {
+	return status.GetCode() == int32(scpb.Code_OK)
+}
+
 // generateUnifiedDiff takes two strings and generates a diff that can be
 // shown to the user in a test error message.
 func generateUnifiedDiff(want, got string) (string, error) {
@@ -450,6 +740,40 @@ func diffJSON(a, b []byte) (string, error) {
 	sort.Strings(bsv)
 
 	return generateUnifiedDiff(strings.Join(asv, "\n"), strings.Join(bsv, "\n"))
+}
+
+// valueStr returns a string representation of value which may be a value, ptr,
+// or struct type.
+func valueStr(value interface{}) string {
+	// maxValueStrLen is the maximum number of characters output from valueStr.
+	maxValueStrLen := 50
+
+	kind := reflect.ValueOf(value).Kind()
+	switch kind {
+	case reflect.Ptr:
+		if reflect.ValueOf(value).IsNil() || !reflect.ValueOf(value).IsValid() {
+			return "nil"
+		}
+		return strings.Replace(valueStr(reflect.ValueOf(value).Elem().Interface()), ")", " ptr)", -1)
+	case reflect.Struct:
+		var out string
+		structElems := reflect.ValueOf(value)
+		for i := 0; i < structElems.NumField(); i++ {
+			if i != 0 {
+				out += ", "
+			}
+			if !structElems.Field(i).CanInterface() {
+				continue
+			}
+			out += valueStr(structElems.Field(i).Interface())
+		}
+		return "{ " + out + " }"
+	}
+	out := fmt.Sprintf("%v (type %v)", value, kind)
+	if len(out) > maxValueStrLen {
+		out = out[:maxValueStrLen] + "..."
+	}
+	return out
 }
 
 // TODO(mostrowski): move below funtions into a helper package, or from common
