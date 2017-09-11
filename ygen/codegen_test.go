@@ -524,19 +524,19 @@ func TestSimpleStructs(t *testing.T) {
 		var gotCode bytes.Buffer
 		fmt.Fprint(&gotCode, gotGeneratedCode.Header)
 		for _, gotStruct := range gotGeneratedCode.Structs {
-			fmt.Fprintf(&gotCode, gotStruct)
+			fmt.Fprint(&gotCode, gotStruct)
 		}
 
 		for _, gotEnum := range gotGeneratedCode.Enums {
-			fmt.Fprintf(&gotCode, gotEnum)
+			fmt.Fprint(&gotCode, gotEnum)
 		}
 
 		// Write generated enumeration map out.
-		fmt.Fprintf(&gotCode, gotGeneratedCode.EnumMap)
+		fmt.Fprint(&gotCode, gotGeneratedCode.EnumMap)
 
 		if tt.inConfig.GenerateJSONSchema {
 			// Write the schema byte array out.
-			fmt.Fprintf(&gotCode, gotGeneratedCode.JSONSchemaCode)
+			fmt.Fprint(&gotCode, gotGeneratedCode.JSONSchemaCode)
 
 			wantSchema, rferr := ioutil.ReadFile(tt.wantSchemaFile)
 			if rferr != nil {
