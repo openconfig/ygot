@@ -79,7 +79,7 @@ func (s *genState) protoMsgName(e *yang.Entry, compressPaths bool) string {
 }
 
 // protobufPackage generates a protobuf package name for a yang.Entry by taking its
-// parent's path and converting it to a protobuf-safe name. i.e., an entry with
+// parent's path and converting it to a protobuf-style name. i.e., an entry with
 // the path /openconfig-interfaces/interfaces/interface/config/name returns
 // openconfig_interfaces.interfaces.interface.config. If path compression is
 // enabled then entities that would not have messages generated from them

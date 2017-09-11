@@ -18,7 +18,6 @@ import (
 	"fmt"
 
 	"github.com/openconfig/goyang/pkg/yang"
-
 	"github.com/openconfig/ygot/ygot"
 )
 
