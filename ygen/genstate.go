@@ -154,12 +154,12 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths bool) ([]*y
 }
 
 // buildDirectoryDefinitions extracts the yang.Entry instances from a map of
-// entries that need struct or message definitions built for them. It resolves each
-// yang.Entry to a yangDirectory which contains the elements that are needed for
-//
-// The name of the directory entry that is returned is based on the generatedLanguage
-// that is supplied. The compressPaths and genFakeRoot arguments are used to determine
-// how paths that are included within the generated structs are used.
+// entries that need struct or message definitions built for them. It resolves
+// each yang.Entry to a yangDirectory which contains the elements that are
+// needed for subsequent code generation. The name of the directory entry that
+// is returned is based on the generatedLanguage that is supplied. The
+// compressPaths and genFakeRoot arguments are used to determine how paths that
+// are included within the generated structs are used.
 func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compressPaths, genFakeRoot bool, lang generatedLanguage) (map[string]*yangDirectory, []error) {
 	var errs []error
 	mappedStructs := make(map[string]*yangDirectory)
@@ -308,6 +308,10 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 			// identityref but rather for the base identity. This means that we reduce
 			// duplication across different enum types. Re-map the "path" that is to
 			// be used to the new identityref name.
+			if e.Type.IdentityBase == nil {
+				errs = append(errs, fmt.Errorf("entry %s was an identity with a nil base", e.Name))
+				continue
+			}
 			idBaseName := s.resolveIdentityRefBaseType(e)
 			if _, ok := genEnums[idBaseName]; !ok {
 				genEnums[idBaseName] = &yangEnum{
@@ -344,6 +348,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 			}
 		}
 	}
+
 	return genEnums, errs
 }
 
