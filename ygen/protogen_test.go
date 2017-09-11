@@ -265,8 +265,8 @@ func TestGenProtoMsg(t *testing.T) {
 		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, tt.inCompressPaths)
-		if (len(errs) > 0) != tt.wantErr {
-			t.Errorf("s: genProto3Msg(%#v, %#v, *genState, %v): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, errs, tt.wantErr)
+		if (errs != nil) != tt.wantErr {
+			t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, errs, tt.wantErr)
 		}
 
 		if tt.wantErr {
@@ -460,7 +460,7 @@ message MessageName {
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, want.err)
 			}
 
-			if len(errs) > 0 {
+			if errs != nil {
 				continue
 			}
 

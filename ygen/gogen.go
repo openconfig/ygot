@@ -258,7 +258,9 @@ Imported modules were sourced from:
 package {{ .PackageName }}
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"{{ .GoOptions.YgotImportPath }}"
 
@@ -286,6 +288,24 @@ func init() {
 		panic("schema error: " +  err.Error())
 	}
 }
+
+// Unmarshal unmarshals data, which must be RFC7951 JSON format, into
+// destStruct, which must be non-nil and the correct GoStruct type. It returns
+// an error if the destStruct is not found in the schema or the data cannot be
+// unmarshaled.
+func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
+	tn := reflect.TypeOf(destStruct).Elem().Name()
+	schema, ok := SchemaTree[tn]
+	if !ok {
+		return fmt.Errorf("could not find schema for type %%s", tn )
+	}
+	var jsonTree interface{}
+	if err := json.Unmarshal([]byte(data), &jsonTree); err != nil {
+		return err
+	}
+	return ytypes.Unmarshal(schema, destStruct, jsonTree)
+}
+
 {{- end }}
 `
 	// goStructTemplate takes an input generatedGoStruct, which contains a definition of
