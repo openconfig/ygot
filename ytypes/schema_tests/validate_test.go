@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// TODO(mostrowski): create tests against an uncompressed schema.
 package validate
 
 import (
@@ -776,7 +777,7 @@ func valueStr(value interface{}) string {
 	return out
 }
 
-// TODO(mostrowski): move below funtions into a helper package, or from common
+// TODO(mostrowski): move below functions into a helper package, or from common
 // library when one is created.
 
 // schemaTreeString returns the schema hierarchy tree as a string with node
