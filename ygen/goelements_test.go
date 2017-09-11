@@ -320,7 +320,7 @@ func TestCamelCase(t *testing.T) {
 		}
 
 		if got := makeNameUnique(entryCamelCaseName(tt.inEntry), ctx); got != tt.wantName {
-			t.Errorf("%s: did not get expected name for %s (after defining %v): %s",
+			t.Errorf("%s: did not get expected name for %v (after defining %v): %s",
 				tt.name, tt.inEntry, tt.inPrevNames, got)
 		}
 	}

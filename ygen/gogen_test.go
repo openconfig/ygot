@@ -244,7 +244,7 @@ func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Uni
 	case string:
 		return &InputStruct_U1_Union_String{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %%v to InputStruct_U1_Union, unknown union type, got: %%T, want any of [int8, string]", i, i)
+		return nil, fmt.Errorf("cannot convert %v to InputStruct_U1_Union, unknown union type, got: %T, want any of [int8, string]", i, i)
 	}
 }
 `,
@@ -307,7 +307,7 @@ func (t *InputStruct) To_Module_InputStruct_U1_Union(i interface{}) (Module_Inpu
 	case string:
 		return &Module_InputStruct_U1_Union_String{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %%v to Module_InputStruct_U1_Union, unknown union type, got: %%T, want any of [int8, string]", i, i)
+		return nil, fmt.Errorf("cannot convert %v to Module_InputStruct_U1_Union, unknown union type, got: %T, want any of [int8, string]", i, i)
 	}
 }
 `,
@@ -581,7 +581,7 @@ func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
 	// list. Keyed YANG lists do not allow duplicate keys to
 	// be created.
 	if _, ok := t.ListWithKey[key]; ok {
-		return nil, fmt.Errorf("duplicate key %%v for list ListWithKey", key)
+		return nil, fmt.Errorf("duplicate key %v for list ListWithKey", key)
 	}
 
 	t.ListWithKey[key] = &ListWithKey{
@@ -630,7 +630,7 @@ func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
 	// list. Keyed YANG lists do not allow duplicate keys to
 	// be created.
 	if _, ok := t.ListWithKey[key]; ok {
-		return nil, fmt.Errorf("duplicate key %%v for list ListWithKey", key)
+		return nil, fmt.Errorf("duplicate key %v for list ListWithKey", key)
 	}
 
 	t.ListWithKey[key] = &ListWithKey{
@@ -737,7 +737,7 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 	// list. Keyed YANG lists do not allow duplicate keys to
 	// be created.
 	if _, ok := t.ListWithKey[key]; ok {
-		return nil, fmt.Errorf("duplicate key %%v for list ListWithKey", key)
+		return nil, fmt.Errorf("duplicate key %v for list ListWithKey", key)
 	}
 
 	t.ListWithKey[key] = &ListWithKey{
@@ -797,7 +797,7 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 	// list. Keyed YANG lists do not allow duplicate keys to
 	// be created.
 	if _, ok := t.ListWithKey[key]; ok {
-		return nil, fmt.Errorf("duplicate key %%v for list ListWithKey", key)
+		return nil, fmt.Errorf("duplicate key %v for list ListWithKey", key)
 	}
 
 	t.ListWithKey[key] = &ListWithKey{
