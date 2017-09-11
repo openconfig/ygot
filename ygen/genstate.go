@@ -349,10 +349,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 		}
 	}
 
-	if errs != nil {
-		return nil, errs
-	}
-	return genEnums, nil
+	return genEnums, errs
 }
 
 // resolveIdentityRefBaseType calculates the mapped name of an identityref's
