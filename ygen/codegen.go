@@ -20,6 +20,7 @@ package ygen
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -250,8 +251,7 @@ const (
 	defaultRootName = "device"
 )
 
-// generatedLanguage is used as an input to functions which are able to handle
-// more than one output language to allow their output mode to be determined.
+// generatedLanguage represents a language supported in this package.
 type generatedLanguage int64
 
 const (
@@ -277,15 +277,15 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Extract the entities to be mapped into structs and enumerations in the output
 	// Go code. Extract the schematree from the modules provided such that it can be
 	// used to reference entities within the tree.
-	structs, enums, st, errs := langAgnosticDefinitions(yangFiles, includePaths, cg.Config)
+	mdef, errs := mappedDefinitions(yangFiles, includePaths, cg.Config)
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
 
 	// Store the returned schematree within the state for this code generation.
-	cg.state.schematree = st
+	cg.state.schematree = mdef.schemaTree
 
-	goStructs, errs := cg.state.buildDirectoryDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang)
+	goStructs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang)
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
@@ -313,7 +313,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var structSnippets []string
 	for _, structName := range orderedStructNames {
 		structOut, errs := writeGoStruct(structNameMap[structName], goStructs, cg.state, cg.Config.CompressOCPaths, cg.Config.GenerateJSONSchema)
-		if len(errs) > 0 {
+		if errs != nil {
 			codegenErr.Errors = append(codegenErr.Errors, errs...)
 			continue
 		}
@@ -324,8 +324,8 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		structSnippets = appendIfNotEmpty(structSnippets, structOut.interfaces)
 	}
 
-	goEnums, errs := cg.state.findEnumSet(enums, cg.Config.CompressOCPaths)
-	if len(errs) > 0 {
+	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths)
+	if errs != nil {
 		codegenErr.Errors = append(codegenErr.Errors, errs...)
 		return nil, codegenErr
 	}
@@ -405,14 +405,15 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 // Returns a GeneratedProto struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
 func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto, *YANGCodeGeneratorError) {
-	msgs, enums, st, errs := langAgnosticDefinitions(yangFiles, includePaths, cg.Config)
+	// TODO(github.com/openconfig/ygot/issues/20): Handle enumerated types in proto messages.
+	mdef, errs := mappedDefinitions(yangFiles, includePaths, cg.Config)
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
 
-	cg.state.schematree = st
+	cg.state.schematree = mdef.schemaTree
 
-	penums, errs := cg.state.findEnumSet(enums, cg.Config.CompressOCPaths)
+	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths)
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
@@ -421,8 +422,9 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
 
-	protoMsgs, errs := cg.state.buildDirectoryDefinitions(msgs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf)
-	if len(errs) > 0 {
+	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf)
+
+	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
 
@@ -545,11 +547,11 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 		}
 	}
 
-	if len(processErr) > 0 {
+	if processErr != nil {
 		return nil, processErr
 	}
 
-	if errs := moduleSet.Process(); len(errs) != 0 {
+	if errs := moduleSet.Process(); errs != nil {
 		return nil, errs
 	}
 
@@ -565,26 +567,43 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 
 	// Process the ASTs that have been generated for the modules using the Goyang ToEntry
 	// routines.
-	entries := make([]*yang.Entry, len(modNames))
+	entries := []*yang.Entry{}
 	for _, modName := range modNames {
 		entries = append(entries, yang.ToEntry(mods[modName]))
 	}
 	return entries, nil
 }
 
-// langAgnosticDefinitions find the set of directory and enumeration entities
+// mappedYANGDefinitions stores the entities extracted from a YANG schema that are to be mapped to
+// entities within the generated code, or can be used to look up entities within the YANG schema.
+type mappedYANGDefinitions struct {
+	// directoryEntries is the set of entities that are to be mapped to directories (e.g.,
+	// Go structs, proto messages) in the generated code. The map is keyed by the string
+	// path to the directory in the YANG schema.
+	directoryEntries map[string]*yang.Entry
+	// enumEntries is the set of entities that contain an enumerated type within the input
+	// YANG and are to be mapped to enumerated types in the output code. This consists of
+	// leaves that are of type enumeration, identityref, or unions that contain either of
+	// these types. The map is keyed by the string path to the entry in the YANG schema.
+	enumEntries map[string]*yang.Entry
+	// schemaTree is a ctree.Tree that stores a copy of the YANG schema tree, containing
+	// only leaf entries, such that schema paths can be referenced.
+	schemaTree *ctree.Tree
+}
+
+// mappedDefinitions find the set of directory and enumeration entities
 // that are mapped to objects within output code in a language agnostic manner.
-// It takes an input set of YANG schema files (yangFiles), and the paths that
-// are to be used to search for includes (includePaths). Returns a map, keyed
-// by a string path to the schema element, of entities that are to be mapped
-// to directories with the output code (structs in the case of Go, messages
-// for proto3), a map - keyed by schema path - of enumerated entities that
-// are to have code generated for them, a ctree containing the schema tree
-// of the input YANG schemas.
-func langAgnosticDefinitions(yangFiles, includePaths []string, cfg GeneratorConfig) (map[string]*yang.Entry, map[string]*yang.Entry, *ctree.Tree, []error) {
+// It takes:
+//	- yangFiles: an input set of YANG schema files and the paths that
+//	- includePaths: the set of paths that are to be searched for included or
+//	  imported YANG modules.
+//	- cfg: the current generator's configuration.
+// It returns a mappedYANGDefinitions struct populated with the directory and enum
+// entries in the input schemas, along with the calculated schema tree.
+func mappedDefinitions(yangFiles, includePaths []string, cfg GeneratorConfig) (mappedYANGDefinitions, []error) {
 	modules, errs := processModules(yangFiles, includePaths, cfg.YANGParseOptions)
-	if len(errs) > 0 {
-		return nil, nil, nil, errs
+	if errs != nil {
+		return mappedYANGDefinitions{}, errs
 	}
 
 	// Extract the entities that are eligible to have code generated for
@@ -594,28 +613,40 @@ func langAgnosticDefinitions(yangFiles, includePaths []string, cfg GeneratorConf
 	var rootElems []*yang.Entry
 	for _, module := range modules {
 		findMappableEntities(module, dirs, enums, cfg.ExcludeModules, cfg.CompressOCPaths)
-		if module != nil && module.Dir != nil {
+		if module == nil {
+			errs = append(errs, errors.New("found a nil module in the returned module set"))
+			continue
+		}
+		// Ensure that we do not try and traverse an empty module.
+		if module.Dir != nil {
 			for _, e := range module.Dir {
 				rootElems = append(rootElems, e)
 			}
 		}
 	}
+	if errs != nil {
+		return mappedYANGDefinitions{}, errs
+	}
 
 	// Build the schematree for the modules provided.
 	st, err := buildSchemaTree(rootElems)
 	if err != nil {
-		return nil, nil, nil, []error{err}
+		return mappedYANGDefinitions{}, []error{err}
 	}
 
 	// If we were asked to generate a fake root entity, then go and find the top-level entities that
 	// we were asked for.
 	if cfg.GenerateFakeRoot {
 		if err := createFakeRoot(dirs, rootElems, cfg.FakeRootName, cfg.CompressOCPaths); err != nil {
-			return nil, nil, nil, []error{err}
+			return mappedYANGDefinitions{}, []error{err}
 		}
 	}
 
-	return dirs, enums, st, nil
+	return mappedYANGDefinitions{
+		directoryEntries: dirs,
+		enumEntries:      enums,
+		schemaTree:       st,
+	}, nil
 }
 
 // mappableLeaf determines whether the yang.Entry e is leaf with an
@@ -652,16 +683,16 @@ func mappableLeaf(e *yang.Entry) *yang.Entry {
 	return nil
 }
 
-// findMappableEntities finds the descendants of a yang.Entry (e) that should be mapped
-// into Go code. The descendants that are to be mapped to structs are added to the supplied
-// structs map, and the enumerated values (identityref, enumeration, any typedef referencing
-// an enumeration or identityref) are added to the supplied enums map.
-func findMappableEntities(e *yang.Entry, structs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules []string, compressPaths bool) {
+// findMappableEntties finds the descendants of a yang.Entry (e) that should be mapped in
+// the generated code. The descendants that represent directories are appended to the dirs
+// map (keyed by the schema path). Those that represent enumerated types (identityref, enumeration,
+// unions containing these types, or typedefs containing these types) are appended to the
+// enums map, which is again keyed by schema path.
+func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules []string, compressPaths bool) {
 	pp := strings.Split(e.Path(), "/")
-	if !strings.HasPrefix(e.Path(), "/") || len(pp) < 2 {
+	if !strings.HasPrefix(e.Path(), "/") {
 		// This is a malformed path, since the path is defined in the form
-		// /module/container-one. If the length is <2, there was no leading
-		// slash on the path.
+		// /module/container-one.
 		return
 	}
 
@@ -676,7 +707,7 @@ func findMappableEntities(e *yang.Entry, structs map[string]*yang.Entry, enums m
 	for _, ch := range children(e) {
 		switch {
 		case !ch.IsDir():
-			// Leaves are not mapped as structs, so do not map them unless we find
+			// Leaves are not mapped as directories so do not map them unless we find
 			// something that will be an enumeration - so that we can deal with this
 			// as a top-level code entity.
 			if e := mappableLeaf(ch); e != nil {
@@ -686,12 +717,12 @@ func findMappableEntities(e *yang.Entry, structs map[string]*yang.Entry, enums m
 			// If this is a config or state container and we are compressing paths
 			// then we do not want to map this container - but we do want to map its
 			// children.
-			findMappableEntities(ch, structs, enums, excludeModules, compressPaths)
+			findMappableEntities(ch, dirs, enums, excludeModules, compressPaths)
 		case hasOnlyChild(ch) && children(ch)[0].IsList() && compressPaths:
 			// This is a surrounding container for a list, and we are compressing
 			// paths, so we don't want to map it but again we do want to map its
 			// children.
-			findMappableEntities(ch, structs, enums, excludeModules, compressPaths)
+			findMappableEntities(ch, dirs, enums, excludeModules, compressPaths)
 		case isChoiceOrCase(ch):
 			// Don't map for a choice or case node itself, and rather skip over it.
 			// However, we must walk each branch to find the first container that
@@ -710,14 +741,14 @@ func findMappableEntities(e *yang.Entry, structs map[string]*yang.Entry, enums m
 				}
 
 				if gch.IsDir() {
-					structs[fmt.Sprintf("%s/%s", ch.Parent.Path(), gch.Name)] = gch
+					dirs[fmt.Sprintf("%s/%s", ch.Parent.Path(), gch.Name)] = gch
 				}
-				findMappableEntities(gch, structs, enums, excludeModules, compressPaths)
+				findMappableEntities(gch, dirs, enums, excludeModules, compressPaths)
 			}
 		default:
-			structs[ch.Path()] = ch
+			dirs[ch.Path()] = ch
 			// Recurse down the tree.
-			findMappableEntities(ch, structs, enums, excludeModules, compressPaths)
+			findMappableEntities(ch, dirs, enums, excludeModules, compressPaths)
 		}
 	}
 }
@@ -806,7 +837,12 @@ func createFakeRoot(structs map[string]*yang.Entry, rootElems []*yang.Entry, roo
 // repetition of definitions of entries. The entries have aditional information appended to the yang.Entry
 // Annotation field - particularly, the name of the struct that was generated for a particular schema element,
 // and the corresponding path within the schema. Both of these elements cannot be reconstructed from
-// the deserialised yang.Entry contents.
+// the deserialised yang.Entry contents. If the fake root is to be generated (indicated by the generateFakeRoot
+// argument), then the fakerootName will be used for the fake root. In the case that fakeRootName is an empty
+// string, the defaultRootName will be used. If the fake root is not to be generated, the root level entities
+// will be included in the serialised struct definitions, in the case that compressPaths is set to true, then
+// those entities that have no parent in the compressed schema are also included (e.g., a list within a
+// surrounding container at the root).
 func serialiseStructDefinitions(structs map[string]*yangDirectory, generateFakeRoot bool, fakeRootName string, compressPaths bool) ([]byte, error) {
 	entries := map[string]*yang.Entry{}
 	for _, e := range structs {

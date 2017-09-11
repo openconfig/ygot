@@ -219,7 +219,7 @@ func writeProto3Header(in proto3Header) (string, error) {
 // encountered during proto generation.
 func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool, basePackageName, enumPackageName string) (string, string, []string, []error) {
 	msgDefs, errs := genProto3Msg(msg, msgs, state, compressPaths, basePackageName, enumPackageName)
-	if len(errs) > 0 {
+	if errs != nil {
 		return "", "", nil, errs
 	}
 

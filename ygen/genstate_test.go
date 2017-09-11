@@ -376,10 +376,18 @@ func TestFindEnumSet(t *testing.T) {
 		in: map[string]*yang.Entry{
 			"/container/config/identityref-leaf": {
 				Name: "invalid-identityref-leaf",
-				Type: &yang.YangType{},
+				Type: &yang.YangType{
+					Name: "identityref",
+				},
 				Node: &yang.Leaf{
-					Parent: &yang.Module{
-						Name: "test-module",
+					Parent: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "module",
+							},
+						},
 					},
 				},
 			},
@@ -747,9 +755,8 @@ func TestFindEnumSet(t *testing.T) {
 			})
 			entries, errs := cg.state.findEnumSet(tt.in, cg.Config.CompressOCPaths)
 
-			if len(errs) > 0 && !tt.wantErr {
-				t.Errorf("%s (%v): encountered errors when extracting enums: %v",
-					tt.name, compressed, errs)
+			if (errs != nil) != tt.wantErr {
+				t.Errorf("%s findEnumSet(%v, %v): did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", tt.name, tt.in, cg.Config.CompressOCPaths, errs, len(errs), tt.wantErr)
 				continue
 			}
 
@@ -1825,7 +1832,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 			}
 
 			got, errs := cg.state.buildDirectoryDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, c.lang)
-			if len(errs) > 0 {
+			if errs != nil {
 				t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v): could not build struct defs: %v", tt.name, c.compress, errs)
 				continue
 			}
