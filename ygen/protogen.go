@@ -88,16 +88,16 @@ message {{ .Name }} {
 	}
 )
 
-// writeProtoMsg generates a protobuf message for the *yangDirectory described by msg.
+// writeProto3Msg generates a protobuf message for the *yangDirectory described by msg.
 // it uses the context of other messages to be generated (msgs), and the generator
 // state stored in state to determine names of other messages. compressPaths indicates
 // whether path compression should be enabled for the code generation. Returns a string
 // containing the name of the package that the message is within, a string containing
 // the generated code for the protobuf message, and any errors encountered during
 // proto generation.
-func writeProtoMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) (string, string, []error) {
+func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool) (string, string, []error) {
 	msgDef, errs := genProtoMsg(msg, msgs, state, compressPaths)
-	if len(errs) > 0 {
+	if errs != nil {
 		return "", "", errs
 	}
 
