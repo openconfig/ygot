@@ -98,11 +98,10 @@ type resolveTypeArgs struct {
 func (s *genState) pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
 	var pathElements []*yang.Entry
 
-	switch {
-	case genFakeRoot && e.Node != nil && e.Node.NName() == rootElementNodeName:
+	if genFakeRoot && e.Node != nil && e.Node.NName() == rootElementNodeName {
 		// Handle the special case of the root element if it exists.
 		pathElements = []*yang.Entry{e}
-	default:
+	} else {
 		// Determine the set of elements that make up the path back to the root of
 		// the element supplied.
 		element := e
@@ -581,7 +580,8 @@ func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (mapp
 	for _, subtype := range args.yangType.Type {
 		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, compressOCPaths)...)
 	}
-	if len(errs) > 0 {
+
+	if errs != nil {
 		return mappedType{}, fmt.Errorf("errors mapping element: %v", errs)
 	}
 

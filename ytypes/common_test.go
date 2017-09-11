@@ -15,9 +15,12 @@
 package ytypes
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 )
 
 var (
@@ -25,6 +28,27 @@ var (
 	// values.
 	testErrOutput = false
 )
+
+// EnumType is used as an enum type in various tests in the ytypes package.
+type EnumType int64
+
+func (EnumType) ΛMap() map[string]map[int64]ygot.EnumDefinition {
+	m := map[string]map[int64]ygot.EnumDefinition{
+		"EnumType": map[int64]ygot.EnumDefinition{
+			42: {Name: "E_VALUE_FORTY_TWO"},
+		},
+	}
+	return m
+}
+
+// populateParentField recurses through schema and populates each Parent field
+// with the parent schema node ptr.
+func populateParentField(parent, schema *yang.Entry) {
+	schema.Parent = parent
+	for _, e := range schema.Dir {
+		populateParentField(schema, e)
+	}
+}
 
 // testErrLog logs err to t if err != nil and global value testErrOutput is set.
 func testErrLog(t *testing.T, desc string, err error) {
@@ -204,5 +228,109 @@ func TestIsFakeRoot(t *testing.T) {
 		if got := isFakeRoot(tt.in); got != tt.want {
 			t.Errorf("%v: isFakeRoot(%v): did not get expected return value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
 		}
+	}
+}
+
+type StringListElemStruct struct {
+	LeafName *string `path:"leaf-name"`
+}
+
+func (c *StringListElemStruct) IsYANGGoStruct() {}
+
+type ComplexStruct struct {
+	List1       []*StringListElemStruct `path:"list1"`
+	Case1Leaf1  *string                 `path:"case1-leaf1"`
+	Case21Leaf1 *string                 `path:"case21-leaf"`
+}
+
+func (c *ComplexStruct) IsYANGGoStruct() {}
+
+func TestForEachSchemaNode(t *testing.T) {
+	complexSchema := &yang.Entry{
+		Name: "complex-schema",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"list1": {Kind: yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key_field_name",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key_field_name": {
+						Kind: yang.LeafEntry,
+						Name: "key_field_name",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+			"choice1": {
+				Kind: yang.ChoiceEntry,
+				Name: "choice1",
+				Dir: map[string]*yang.Entry{
+					"case1": {
+						Kind: yang.CaseEntry,
+						Name: "case1",
+						Dir: map[string]*yang.Entry{
+							"case1-leaf1": &yang.Entry{
+								Kind: yang.LeafEntry,
+								Name: "Case1Leaf1",
+								Type: &yang.YangType{Kind: yang.Ystring},
+							},
+						},
+					},
+					"case2": {
+						Kind: yang.CaseEntry,
+						Name: "case2",
+						Dir: map[string]*yang.Entry{
+							"case2_choice1": &yang.Entry{
+								Kind: yang.ChoiceEntry,
+								Name: "case2_choice1",
+								Dir: map[string]*yang.Entry{
+									"case21": {
+										Kind: yang.CaseEntry,
+										Name: "case21",
+										Dir: map[string]*yang.Entry{
+											"case21-leaf": &yang.Entry{
+												Kind: yang.LeafEntry,
+												Name: "case21-leaf",
+												Type: &yang.YangType{Kind: yang.Ystring},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	printFieldsIterFunc := func(ni *SchemaNodeInfo, in, out interface{}) (errs []error) {
+		// Only print basic scalar values, skip everything else.
+		outs := out.(*string)
+		*outs += fmt.Sprintf("%v : %v\n", ni.FieldType.Name, pretty.Sprint(ni.FieldValue.Interface()))
+		return
+	}
+
+	val := &ComplexStruct{
+		List1:      []*StringListElemStruct{{LeafName: ygot.String("elem1_leaf_name")}},
+		Case1Leaf1: ygot.String("Case1Leaf1Value"),
+	}
+
+	var outStr string
+	var errs Errors = ForEachSchemaNode(complexSchema, val, nil, &outStr, printFieldsIterFunc)
+	if errs != nil {
+		t.Errorf("ForEachSchemaNode: got error: %s, want error nil", errs)
+	}
+	testErrLog(t, "ForEachSchemaNode", errs)
+	wantStr := ` : {List1:       [{LeafName: "elem1_leaf_name"}],
+ Case1Leaf1:  "Case1Leaf1Value",
+ Case21Leaf1: nil}
+List1 : [{LeafName: "elem1_leaf_name"}]
+List1 : {LeafName: "elem1_leaf_name"}
+
+`
+	if outStr == wantStr {
+		t.Errorf("ForEachSchemaNode: got\n%s\nwant\n%s\n", outStr, wantStr)
 	}
 }
