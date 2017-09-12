@@ -305,12 +305,7 @@ func TestFindMappableEntities(t *testing.T) {
 			structs := make(map[string]*yang.Entry)
 			enums := make(map[string]*yang.Entry)
 
-			cg := NewYANGCodeGenerator(&GeneratorConfig{
-				CompressOCPaths: compress,
-				ExcludeModules:  tt.inSkipModules,
-			})
-
-			cg.findMappableEntities(tt.in, structs, enums)
+			findMappableEntities(tt.in, structs, enums, tt.inSkipModules, compress)
 
 			structOut := make(map[string]bool)
 			enumOut := make(map[string]bool)
@@ -654,12 +649,7 @@ func TestFindRootEntries(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, wantChildren := range map[bool][]string{true: tt.wantCompressRootChildren, false: tt.wantUncompressRootChildren} {
-			cg := NewYANGCodeGenerator(&GeneratorConfig{
-				CompressOCPaths: compress,
-				FakeRootName:    tt.inRootName,
-			})
-
-			if err := cg.createFakeRoot(tt.inStructs, tt.inRootElems); err != nil {
+			if err := createFakeRoot(tt.inStructs, tt.inRootElems, tt.inRootName, compress); err != nil {
 				t.Errorf("%s: cg.createFakeRoot(%v), CompressOCPaths: %v, got unexpected error: %v", tt.name, tt.inStructs, compress, err)
 				continue
 			}

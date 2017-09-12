@@ -222,11 +222,11 @@ func TestFindChildren(t *testing.T) {
 	for _, tt := range tests {
 		for compress, expected := range map[bool][]yang.Entry{true: tt.wantCompressed, false: tt.wantUncompressed} {
 			elems, errs := findAllChildren(tt.inElement, compress)
-			if tt.wantErr == nil && len(errs) > 0 {
+			if tt.wantErr == nil && errs != nil {
 				t.Errorf("%s (compress: %v): errors %v for children of %s", tt.name, compress, errs, tt.inElement.Name)
 			} else {
 				if expErr, ok := tt.wantErr[compress]; ok {
-					if (len(errs) > 0) != expErr {
+					if (errs != nil) != expErr {
 						t.Errorf("%s (compress: %v): did not get expected error", tt.name, compress)
 					}
 				}
@@ -435,7 +435,7 @@ func TestUnionSubTypes(t *testing.T) {
 		s := newGenState()
 		ctypes := make(map[string]int)
 		errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, false)
-		if !tt.wantErr && len(errs) > 0 {
+		if !tt.wantErr && errs != nil {
 			t.Errorf("%s: unexpected errors: %v", tt.name, errs)
 			continue
 		}
@@ -727,7 +727,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			t.Errorf("%s: wrong type returned when mapping type: %s", tt.name, mappedType.nativeType)
 		}
 
-		if len(tt.want.unionTypes) > 0 {
+		if tt.want.unionTypes != nil {
 			for k := range tt.want.unionTypes {
 				if _, ok := mappedType.unionTypes[k]; !ok {
 					t.Errorf("%s: union type did not include expected type: %s", tt.name, k)

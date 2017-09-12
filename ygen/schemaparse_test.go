@@ -182,10 +182,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		cg := NewYANGCodeGenerator(&GeneratorConfig{
-			GenerateFakeRoot: tt.inGenerateFakeRoot,
-		})
-		gotByte, err := cg.serialiseStructDefinitions(tt.inMap)
+		gotByte, err := serialiseStructDefinitions(tt.inMap, tt.inGenerateFakeRoot, "", true)
 
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: cg.SerialiseStructDefinitions(%v), got unexpected error, err: %v", tt.name, tt.inMap, err)

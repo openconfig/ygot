@@ -735,7 +735,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			// This is a YANG container, so it is represented in code using a pointer to the struct type that
 			// is defined for the entity. findMappableEntities has already determined which fields are to
 			// be output, so no filtering of the set of fields is required here.
-			structName, ok := state.uniqueStructNames[field.Path()]
+			structName, ok := state.uniqueDirectoryNames[field.Path()]
 			if !ok {
 				errs = append(errs, fmt.Errorf("could not resolve %s into a defined struct", field.Path()))
 				continue
@@ -959,7 +959,7 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 	// this function being called (as all mappable entities, which includes lists, have been found.
 	// Thus, in the case that this struct does not have a known name, then code cannot be generated
 	// for it, and hence we skip the element.
-	listName, ok := state.uniqueStructNames[listField.Path()]
+	listName, ok := state.uniqueDirectoryNames[listField.Path()]
 	if !ok {
 		return "", nil, nil, fmt.Errorf("list element %s did not have a resolved name", listField.Path())
 	}

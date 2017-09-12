@@ -86,3 +86,217 @@ func TestYangTypeToProtoType(t *testing.T) {
 		}
 	}
 }
+
+func TestProtoMsgName(t *testing.T) {
+	tests := []struct {
+		name                   string
+		inEntry                *yang.Entry
+		inUniqueProtoMsgNames  map[string]map[string]bool
+		inUniqueDirectoryNames map[string]string
+		wantCompress           string
+		wantUncompress         string
+	}{{
+		name: "simple message name",
+		inEntry: &yang.Entry{
+			Name: "msg",
+			Parent: &yang.Entry{
+				Name: "package",
+				Parent: &yang.Entry{
+					Name: "module",
+				},
+			},
+		},
+		wantCompress:   "Msg",
+		wantUncompress: "Msg",
+	}, {
+		name: "simple message name with compression",
+		inEntry: &yang.Entry{
+			Name: "msg",
+			Parent: &yang.Entry{
+				Name: "config",
+				Parent: &yang.Entry{
+					Name: "container",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+		},
+		wantCompress:   "Msg",
+		wantUncompress: "Msg",
+	}, {
+		name: "simple message name with clash when compressing",
+		inEntry: &yang.Entry{
+			Name: "msg",
+			Parent: &yang.Entry{
+				Name: "config",
+				Kind: yang.DirectoryEntry,
+				Dir:  map[string]*yang.Entry{},
+				Parent: &yang.Entry{
+					Name: "container",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+		},
+		inUniqueProtoMsgNames: map[string]map[string]bool{
+			"container": {
+				"Msg": true,
+			},
+		},
+		wantCompress:   "Msg_",
+		wantUncompress: "Msg",
+	}, {
+		name: "cached name",
+		inEntry: &yang.Entry{
+			Name: "leaf",
+			Parent: &yang.Entry{
+				Name: "config",
+				Parent: &yang.Entry{
+					Name: "container",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+		},
+		inUniqueDirectoryNames: map[string]string{"/module/container/config/leaf": "OverriddenName"},
+		wantCompress:           "OverriddenName",
+		wantUncompress:         "OverriddenName",
+	}}
+
+	for _, tt := range tests {
+		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
+			s := newGenState()
+			// Seed the proto message names with some known input.
+			if tt.inUniqueProtoMsgNames != nil {
+				s.uniqueProtoMsgNames = tt.inUniqueProtoMsgNames
+			}
+
+			if tt.inUniqueDirectoryNames != nil {
+				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
+			}
+
+			if got := s.protoMsgName(tt.inEntry, compress); got != want {
+				t.Errorf("%s: protoMsgName(%v, %v): did not get expected name, got: %v, want: %v", tt.name, tt.inEntry, compress, got, want)
+			}
+		}
+	}
+}
+
+func TestProtoPackageName(t *testing.T) {
+	tests := []struct {
+		name                  string
+		inEntry               *yang.Entry
+		inDefinedGlobals      map[string]bool
+		inUniqueProtoPackages map[string]string
+		wantCompress          string
+		wantUncompress        string
+	}{{
+		name: "simple package name",
+		inEntry: &yang.Entry{
+			Name: "leaf",
+			Parent: &yang.Entry{
+				Name: "child-container",
+				Parent: &yang.Entry{
+					Name: "parent-container",
+					Kind: yang.DirectoryEntry,
+					Dir:  map[string]*yang.Entry{},
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+		},
+		wantCompress:   "parent_container.child_container",
+		wantUncompress: "module.parent_container.child_container",
+	}, {
+		name: "package name with choice and case",
+		inEntry: &yang.Entry{
+			Name: "leaf",
+			Parent: &yang.Entry{
+				Name: "child-container",
+				Dir:  map[string]*yang.Entry{},
+				Parent: &yang.Entry{
+					Name: "case",
+					Kind: yang.CaseEntry,
+					Dir:  map[string]*yang.Entry{},
+					Parent: &yang.Entry{
+						Name: "choice",
+						Kind: yang.ChoiceEntry,
+						Dir:  map[string]*yang.Entry{},
+						Parent: &yang.Entry{
+							Name: "container",
+							Dir:  map[string]*yang.Entry{},
+							Parent: &yang.Entry{
+								Name: "module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantCompress:   "container.child_container",
+		wantUncompress: "module.container.child_container",
+	}, {
+		name: "clashing names",
+		inEntry: &yang.Entry{
+			Name: "leaf",
+			Parent: &yang.Entry{
+				Name: "baz-bat",
+				Parent: &yang.Entry{
+					Name: "bar",
+					Dir:  map[string]*yang.Entry{},
+					Parent: &yang.Entry{
+						Name: "foo",
+						Dir:  map[string]*yang.Entry{},
+					},
+				},
+			},
+		},
+		inDefinedGlobals: map[string]bool{
+			"foo.bar.baz_bat": true, // Clash for uncompressed.
+			"bar.baz_bat":     true, // Clash for compressed.
+		},
+		wantCompress:   "bar.baz_bat_",
+		wantUncompress: "foo.bar.baz_bat_",
+	}, {
+		name: "previously defined parent name",
+		inEntry: &yang.Entry{
+			Name: "leaf",
+			Parent: &yang.Entry{
+				Name: "parent",
+				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
+					Dir:  map[string]*yang.Entry{},
+				},
+			},
+		},
+		inUniqueProtoPackages: map[string]string{
+			"/module/parent": "explicit.package.name",
+		},
+		wantCompress:   "explicit.package.name",
+		wantUncompress: "explicit.package.name",
+	}}
+
+	for _, tt := range tests {
+		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
+			s := newGenState()
+			if tt.inDefinedGlobals != nil {
+				s.definedGlobals = tt.inDefinedGlobals
+			}
+
+			if tt.inUniqueProtoPackages != nil {
+				s.uniqueProtoPackages = tt.inUniqueProtoPackages
+			}
+
+			if got := s.protobufPackage(tt.inEntry, compress); got != want {
+				t.Errorf("%s: protobufPackage(%v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inEntry, compress, got, want)
+			}
+		}
+	}
+}
