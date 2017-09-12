@@ -727,7 +727,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			t.Errorf("%s: wrong type returned when mapping type: %s", tt.name, mappedType.nativeType)
 		}
 
-		if len(tt.want.unionTypes) > 0 {
+		if tt.want.unionTypes != nil {
 			for k := range tt.want.unionTypes {
 				if _, ok := mappedType.unionTypes[k]; !ok {
 					t.Errorf("%s: union type did not include expected type: %s", tt.name, k)
