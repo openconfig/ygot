@@ -258,7 +258,7 @@ func TestGenProtoMsg(t *testing.T) {
 		// Seed the state with the supplied message names that have been provided.
 		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
-		got, errs := genProtoMsg(tt.inMsg, tt.inMsgs, s, tt.inCompressPaths)
+		got, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, tt.inCompressPaths)
 		if (errs != nil) != tt.wantErr {
 			t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, errs, tt.wantErr)
 		}
@@ -269,7 +269,7 @@ func TestGenProtoMsg(t *testing.T) {
 
 		if !protoMsgEq(got, tt.wantMsg) {
 			diff := pretty.Compare(got, tt.wantMsg)
-			t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): did not get expected protobuf message definition, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, diff)
+			t.Errorf("%s: genProto3Msg(%#v, %#v, *genState): did not get expected protobuf message definition, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, diff)
 		}
 	}
 }
@@ -302,9 +302,10 @@ func TestSafeProtoName(t *testing.T) {
 
 // writeProtoTestResult stores the result of a test for writeProto3Msg.
 type writeProto3MsgTestResult struct {
-	pkg string // pkg stores the expected package returned from writeProto3Msg.
-	msg string // msg stores the expected message code returned.
-	err bool   // err stores whether there are expected to be returned errors.
+	pkg     string   // pkg stores the expected package returned from writeProto3Msg.
+	msg     string   // msg stores the expected message code returned.
+	imports []string // imports stores the expected set of imports for this message.
+	err     bool     // err stores whether there are expected to be returned errors.
 }
 
 func TestWriteProtoMsg(t *testing.T) {
@@ -424,7 +425,7 @@ message MessageName {
 	for _, tt := range tests {
 		for compress, want := range map[bool]writeProto3MsgTestResult{true: tt.wantCompress, false: tt.wantUncompress} {
 			s := newGenState()
-			gotPkg, gotMsg, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, compress)
+			gotPkg, gotMsg, gotImports, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, compress)
 			if (errs != nil) != want.err {
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, want.err)
 			}
@@ -435,6 +436,10 @@ message MessageName {
 
 			if gotPkg != want.pkg {
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, gotPkg, want.pkg)
+			}
+
+			if reflect.DeepEqual(gotImports, want.imports) {
+				t.Errorf("%s: writeProto3Msg(%v, %v, 5v, %v): did not get expected set of imports, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, gotImports, want.imports)
 			}
 
 			if diff := pretty.Compare(gotMsg, want.msg); diff != "" {

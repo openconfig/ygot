@@ -29,8 +29,8 @@ import (
 // shown to the user in a test error message.
 func generateUnifiedDiff(want, got string) (string, error) {
 	diffl := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(got),
-		B:        difflib.SplitLines(want),
+		A:        difflib.SplitLines(want),
+		B:        difflib.SplitLines(got),
 		FromFile: "got",
 		ToFile:   "want",
 		Context:  3,

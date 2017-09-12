@@ -80,6 +80,8 @@ type GeneratorConfig struct {
 	// GoOptions stores a struct which stores Go code generation specific
 	// options for the code generaton.
 	GoOptions GoOpts
+	// ProtoOptions stores a struct which contains Protobuf specific options.
+	ProtoOptions ProtoOpts
 }
 
 // GoOpts stores Go specific options for the code generation library.
@@ -98,6 +100,16 @@ type GoOpts struct {
 	// YtypesImportPath specifies the path to ytypes library that should be used
 	// in the generated code.
 	YtypesImportPath string
+}
+
+// ProtoOpts stores Protobuf specific options for the code generation library.
+type ProtoOpts struct {
+	// BasePackageName stores the root package name that should be used
+	// for all packages that are output.
+	BasePackageName string
+	// BaseImportPath stores the root URL or path for imports that are
+	// relative within the imported protobufs.
+	BaseImportPath string
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -177,6 +189,20 @@ type GeneratedGoCode struct {
 	// RawJSONSchema stores the JSON document which is serialised and stored in JSONSchemaCode.
 	// It is populated only if the StoreRawSchema YANGCodeGenerator boolean is set to true.
 	RawJSONSchema []byte
+}
+
+// GeneratedProto stores a set of generated Protobuf packages.
+type GeneratedProto struct {
+	// Packages stores a map, keyed by the Protobuf package name, and containing the contents of the protobuf3
+	// messages defined within the package. The calling application can write out the defined packages to the
+	// files expected by the protoc tool.
+	Packages map[string]Proto3Package
+}
+
+// Proto3Package stores the code for a generated protobuf3 package.
+type Proto3Package struct {
+	Header   string   // Header is the header text to be used in the package.
+	Messages []string // Messages is a slice of strings containing the set of messages that are within the generated package.
 }
 
 // YANGCodeGeneratorError is a type implementing error that is returned to the
@@ -259,13 +285,13 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}
 
 	codeHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config)
-	if err != nil {
+	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: []error{err}}
 	}
 
 	// orderedStructNames is used to store the structs that have been
 	// identified in alphabetical order, such that they are returned in a
-	// determinstic order to the calling application. This ensures that if
+	// deterministic order to the calling application. This ensures that if
 	// the slice is simply output in order, then the diffs generated are
 	// minimised (i.e., diffs are not generated simply due to reordering of
 	// the maps used).
@@ -365,6 +391,106 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		JSONSchemaCode: jsonSchema,
 		RawJSONSchema:  rawSchema,
 	}, nil
+}
+
+// GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
+// The YANG schemas for which protobufs are to be created is supplied as the
+// yangFiles argument, with included modules being searched for in includePaths.
+// Returns a GeneratedProto struct containing the messages that are to be
+// output, along with any associated values (e.g., enumerations).
+func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto, *YANGCodeGeneratorError) {
+	// TODO(github.com/openconfig/ygot/issues/20): Handle enumerated types in proto messages.
+	mdef, errs := mappedDefinitions(yangFiles, includePaths, cg.Config)
+	if errs != nil {
+		return nil, &YANGCodeGeneratorError{Errors: errs}
+	}
+
+	cg.state.schematree = mdef.schemaTree
+
+	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf)
+
+	if errs != nil {
+		return nil, &YANGCodeGeneratorError{Errors: errs}
+	}
+
+	genProto := &GeneratedProto{
+		Packages: map[string]Proto3Package{},
+	}
+	ye := NewYANGCodeGeneratorError()
+
+	// Write out the protobuf messages in a determinstic order.
+	msgMap := map[string]*yangDirectory{}
+	msgNames := []string{}
+	for _, m := range protoMsgs {
+		msgNames = append(msgNames, m.name)
+		msgMap[m.name] = m
+	}
+	sort.Strings(msgNames)
+
+	// pkgImports lists the imports that are required for the package that is being
+	// written out.
+	pkgImports := map[string][]string{}
+
+	for _, n := range msgNames {
+		m := msgMap[n]
+		pkg, msg, reqs, errs := writeProto3Msg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)
+
+		if _, ok := pkgImports[pkg]; !ok {
+			pkgImports[pkg] = []string{}
+		}
+
+		for _, i := range reqs {
+			var found bool
+			for _, e := range pkgImports[pkg] {
+				if i == e {
+					found = true
+				}
+			}
+			if !found {
+				pkgImports[pkg] = append(pkgImports[pkg], i)
+			}
+		}
+
+		if errs != nil {
+			ye.Errors = append(ye.Errors, errs...)
+		}
+
+		// If the package does not already exist within the generated proto3
+		// output, then create it within the package map. This allows different
+		// entries in the msgNames set to fall within the same package.
+		tp, ok := genProto.Packages[pkg]
+		if !ok {
+			genProto.Packages[pkg] = Proto3Package{
+				Messages: []string{},
+			}
+			tp = genProto.Packages[pkg]
+		}
+		tp.Messages = append(tp.Messages, msg)
+		genProto.Packages[pkg] = tp
+	}
+
+	for n, pkg := range genProto.Packages {
+		h, err := writeProto3Header(proto3Header{
+			PackageName:            n,
+			BasePackageName:        cg.Config.ProtoOptions.BasePackageName,
+			BaseImportPath:         cg.Config.ProtoOptions.BaseImportPath,
+			Imports:                pkgImports[n],
+			SourceYANGFiles:        yangFiles,
+			SourceYANGIncludePaths: includePaths,
+			CompressPaths:          cg.Config.CompressOCPaths,
+			CallerName:             cg.Config.Caller})
+		if err != nil {
+			ye.Errors = append(ye.Errors, errs...)
+		}
+		pkg.Header = h
+		genProto.Packages[n] = pkg
+	}
+
+	if ye.Errors != nil {
+		return nil, ye
+	}
+
+	return genProto, nil
 }
 
 // processModules takes a list of the filenames of YANG modules (yangFiles),
