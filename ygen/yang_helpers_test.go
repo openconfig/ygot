@@ -284,7 +284,7 @@ func TestYangPath(t *testing.T) {
 			t.Errorf("%s: joinPath(%v) = %s, want %s", tt.name, tt.inSplitPath, got, tt.wantStringPath)
 		}
 
-		if len(tt.wantStrippedPath) > 0 {
+		if tt.wantStrippedPath != "" {
 			var s []string
 			for _, p := range tt.inSplitPath {
 				s = append(s, removePrefix(p))

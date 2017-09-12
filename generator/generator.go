@@ -50,22 +50,22 @@ var (
 // The output includes a package header which is generated.
 func writeGoCode(w io.Writer, goCode *ygen.GeneratedGoCode) error {
 	// Write the package header to the supplier writer.
-	fmt.Fprintf(w, goCode.Header)
+	fmt.Fprint(w, goCode.Header)
 
 	// Write the returned Go code out. First the Structs - which is the struct
 	// definitions for the generated YANG entity, followed by the enumerations.
 	for _, codeSnippets := range [][]string{goCode.Structs, goCode.Enums} {
 		for _, snippet := range codeSnippets {
-			fmt.Fprintf(w, "%s\n", snippet)
+			fmt.Fprintln(w, snippet)
 		}
 	}
 
 	// Write the generated enumeration map out.
-	fmt.Fprintf(w, "%s\n", goCode.EnumMap)
+	fmt.Fprintln(w, goCode.EnumMap)
 
 	// Write the schema out if it was received.
 	if len(goCode.JSONSchemaCode) > 0 {
-		fmt.Fprintf(w, "%s\n", goCode.JSONSchemaCode)
+		fmt.Fprintln(w, goCode.JSONSchemaCode)
 	}
 
 	return nil
