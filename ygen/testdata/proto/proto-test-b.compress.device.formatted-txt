@@ -13,5 +13,11 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
 // Interface represents the /proto-test-b/device/interfaces/interface YANG schema element.
 message Interface {
+  ywrapper.BoolValue enabled = 1;
   ywrapper.StringValue ifIndex = 1;
+}
+
+// StateList represents the /proto-test-b/device/state-list/state-list YANG schema element.
+message StateList {
+  ywrapper.StringValue test = 1;
 }

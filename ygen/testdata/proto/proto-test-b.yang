@@ -25,10 +25,20 @@ module proto-test-b {
         }
       }
     }
+
+    container state-list {
+      list state-list {
+        config false;
+        container state {
+          leaf test { type string; }
+        }
+      }
+    }
   }
 
   grouping interface-config {
     leaf name { type string; }
+    leaf enabled { type boolean; }
   }
 
   grouping interface-state {
