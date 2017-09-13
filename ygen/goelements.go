@@ -23,6 +23,13 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+const (
+	// goEnumPrefix is the prefix that is used for type names in the output
+	// Go code, such that an enumeration's name is of the form
+	//   <goEnumPrefix><EnumName>
+	goEnumPrefix string = "E_"
+)
+
 // goCodeElements contains a definition of the entities within the YANG model
 // that will be written out to Go code.
 type goCodeElements struct {
@@ -171,7 +178,7 @@ func entryCamelCaseName(e *yang.Entry) string {
 }
 
 // camelCaseNameExt returns the CamelCase name from the slice of extensions, if
-// one of the extensions is named "camelcase-name".  Returns the a string
+// one of the extensions is named "camelcase-name". It returns the a string
 // containing the name if the bool return argumnet is set to true; otherwise no
 // such extension was specified.
 func camelCaseNameExt(exts []*yang.Statement) (string, bool) {
@@ -452,16 +459,17 @@ func addNewChild(m map[string]*yang.Entry, k string, v *yang.Entry, errs []error
 // OpenConfig paths is to be enabled.
 func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) (mappedType, error) {
 	// Handle the case of a typedef which is actually an enumeration.
-	mtype, err := s.enumeratedTypedefTypeName(args, "E_")
-	switch {
-	case mtype != nil:
-		// mtype is set to non-nil when this was a valid enumeration
-		// within a typedef.
-		return *mtype, nil
-	case err != nil:
+	mtype, err := s.enumeratedTypedefTypeName(args, goEnumPrefix)
+	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
 		return mappedType{}, err
+	}
+
+	if mtype != nil {
+		// mtype is set to non-nil when this was a valid enumeration
+		// within a typedef.
+		return *mtype, nil
 	}
 
 	// Perform the actual mapping of the type to the Go type.

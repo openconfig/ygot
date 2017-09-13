@@ -276,9 +276,9 @@ func TestGenProtoMsg(t *testing.T) {
 			continue
 		}
 
-		seenMsg := map[string]bool{}
+		notSeen := map[string]bool{}
 		for _, w := range tt.wantMsgs {
-			seenMsg[w.Name] = false
+			notSeen[w.Name] = true
 		}
 
 		for _, got := range gotMsgs {
@@ -287,7 +287,7 @@ func TestGenProtoMsg(t *testing.T) {
 				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): got unexpected expected message, got: nil, want: %v", tt.name, tt.inMsg, tt.inMsgs, got.Name)
 				continue
 			}
-			seenMsg[got.Name] = true
+			delete(notSeen, got.Name)
 
 			if !protoMsgEq(got, want) {
 				diff := pretty.Compare(got, want)
@@ -295,10 +295,8 @@ func TestGenProtoMsg(t *testing.T) {
 			}
 		}
 
-		for m, s := range seenMsg {
-			if !s {
-				t.Errorf("%s: genProtoMsg(%#v, %#v, *genSTate); did not find expected message %s, got messages: %v, want: %s", tt.name, tt.inMsg, tt.inMsgs, m, gotMsgs, m)
-			}
+		if len(notSeen) != 0 {
+			t.Errorf("%s: genProtoMsg(%#v, %#v, *genState); did not test all returned messages, got remaining messages: %v, want: none", tt.name, tt.inMsg, tt.inMsgs, notSeen)
 		}
 	}
 }
@@ -323,18 +321,10 @@ func TestSafeProtoName(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if got := safeProtoFieldName(tt.in); got != tt.want {
+		if got := safeProtoIdentifierName(tt.in); got != tt.want {
 			t.Errorf("%s: safeProtoFieldName(%s): did not get expected name, got: %v, want: %v", tt.name, tt.in, got, tt.want)
 		}
 	}
-}
-
-// writeProtoTestResult stores the result of a test for writeProto3Msg.
-type writeProto3MsgTestResult struct {
-	pkg     string   // pkg stores the expected package returned from writeProto3Msg.
-	msg     string   // msg stores the expected message code returned.
-	imports []string // imports stores the expected set of imports for this message.
-	err     bool     // err stores whether there are expected to be returned errors.
 }
 
 func TestWriteProtoMsg(t *testing.T) {
@@ -344,11 +334,15 @@ func TestWriteProtoMsg(t *testing.T) {
 	enumeratedLeafDef.Set("FORTYTWO", int64(42))
 
 	tests := []struct {
-		name           string
-		inMsg          *yangDirectory
-		inMsgs         map[string]*yangDirectory
-		wantCompress   writeProto3MsgTestResult
-		wantUncompress writeProto3MsgTestResult
+		name              string
+		inMsg             *yangDirectory
+		inMsgs            map[string]*yangDirectory
+		inBasePackageName string
+		inEnumPackageName string
+		wantCompress      generatedProto3Message
+		wantUncompress    generatedProto3Message
+		wantCompressErr   bool
+		wantUncompressErr bool
 	}{{
 		name: "simple message with scalar fields",
 		inMsg: &yangDirectory{
@@ -376,18 +370,18 @@ func TestWriteProtoMsg(t *testing.T) {
 			},
 			path: []string{"", "module", "container", "message-name"},
 		},
-		wantCompress: writeProto3MsgTestResult{
-			pkg: "container",
-			msg: `
+		wantCompress: generatedProto3Message{
+			packageName: "container",
+			messageCode: `
 // MessageName represents the /module/container/message-name YANG schema element.
 message MessageName {
   ywrapper.StringValue field_one = 1;
 }
 `,
 		},
-		wantUncompress: writeProto3MsgTestResult{
-			pkg: "module.container",
-			msg: `
+		wantUncompress: generatedProto3Message{
+			packageName: "module.container",
+			messageCode: `
 // MessageName represents the /module/container/message-name YANG schema element.
 message MessageName {
   ywrapper.StringValue field_one = 1;
@@ -440,18 +434,18 @@ message MessageName {
 				},
 			},
 		},
-		wantCompress: writeProto3MsgTestResult{
-			pkg: "",
-			msg: `
+		wantCompress: generatedProto3Message{
+			packageName: "",
+			messageCode: `
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
   message_name.Child child = 1;
 }
 `,
 		},
-		wantUncompress: writeProto3MsgTestResult{
-			pkg: "module",
-			msg: `
+		wantUncompress: generatedProto3Message{
+			packageName: "module",
+			messageCode: `
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
   module.message_name.Child child = 1;
@@ -489,9 +483,9 @@ message MessageName {
 			},
 			path: []string{"", "module", "message-name"},
 		},
-		wantCompress: writeProto3MsgTestResult{
-			pkg: "",
-			msg: `
+		wantCompress: generatedProto3Message{
+			packageName: "",
+			messageCode: `
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
   enum Enum {
@@ -503,9 +497,9 @@ message MessageName {
 }
 `,
 		},
-		wantUncompress: writeProto3MsgTestResult{
-			pkg: "module",
-			msg: `
+		wantUncompress: generatedProto3Message{
+			packageName: "module",
+			messageCode: `
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
   enum Enum {
@@ -514,33 +508,95 @@ message MessageName {
     Enum_FORTYTWO = 43;
   }
   Enum enum = 1;
+}
+`,
+		},
+	}, {
+		name: "simple message with an identityref leaf",
+		inMsg: &yangDirectory{
+			name: "MessageName",
+			entry: &yang.Entry{
+				Name: "message-name",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
+				},
+			},
+			fields: map[string]*yang.Entry{
+				"identityref": &yang.Entry{
+					Name: "identityref",
+					Kind: yang.LeafEntry,
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Parent: &yang.Entry{
+							Name: "module",
+						},
+					},
+					Type: &yang.YangType{
+						Name: "identityref",
+						Kind: yang.Yidentityref,
+						IdentityBase: &yang.Identity{
+							Name: "foo-identity",
+							Values: []*yang.Identity{
+								{Name: "ONE"},
+								{Name: "TWO"},
+							},
+							Parent: &yang.Module{
+								Name: "test-module",
+							},
+						},
+					},
+				},
+			},
+			path: []string{"", "module-name", "message-name"},
+		},
+		inBasePackageName: "base",
+		inEnumPackageName: "enums",
+		wantCompress: generatedProto3Message{
+			packageName: "",
+			messageCode: `
+// MessageName represents the /module-name/message-name YANG schema element.
+message MessageName {
+  base.enums.TestModule_FooIdentity identityref = 1;
+}
+`,
+		},
+		wantUncompress: generatedProto3Message{
+			packageName: "module",
+			messageCode: `
+// MessageName represents the /module-name/message-name YANG schema element.
+message MessageName {
+  base.enums.TestModule_FooIdentity identityref = 1;
 }
 `,
 		},
 	}}
 
 	for _, tt := range tests {
-		for compress, want := range map[bool]writeProto3MsgTestResult{true: tt.wantCompress, false: tt.wantUncompress} {
+		wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
+		for compress, want := range map[bool]generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
 			s := newGenState()
-			gotPkg, gotMsg, gotImports, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, compress, "", "")
-			if (len(errs) > 0) != want.err {
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, want.err)
+
+			got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, compress, tt.inBasePackageName, tt.inEnumPackageName)
+			if (errs != nil) != wantErr[compress] {
+				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, wantErr[compress])
 			}
 
 			if errs != nil {
 				continue
 			}
 
-			if gotPkg != want.pkg {
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, gotPkg, want.pkg)
+			if got.packageName != want.packageName {
+				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.packageName, want.packageName)
 			}
 
-			if reflect.DeepEqual(gotImports, want.imports) {
-				t.Errorf("%s: writeProto3Msg(%v, %v, 5v, %v): did not get expected set of imports, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, gotImports, want.imports)
+			if reflect.DeepEqual(got.requiredImports, want.requiredImports) {
+				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.requiredImports, want.requiredImports)
 			}
 
-			if diff := pretty.Compare(gotMsg, want.msg); diff != "" {
-				if diffl, err := generateUnifiedDiff(gotMsg, want.msg); err == nil {
+			if diff := pretty.Compare(got.messageCode, want.messageCode); diff != "" {
+				if diffl, err := generateUnifiedDiff(got.messageCode, want.messageCode); err == nil {
 					diff = diffl
 				}
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)

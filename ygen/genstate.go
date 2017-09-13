@@ -530,7 +530,7 @@ func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string
 
 // resolveLeafrefTarget takes an input path and context entry and
 // determines the type of the leaf that is referred to by the path, such that
-// it can be mapped to a native language type. Returns the yang.YangType that
+// it can be mapped to a native language type. It returns the yang.YangType that
 // is associated with the target, and the target yang.Entry, such that the
 // caller can map this to the relevant language type.
 func (s *genState) resolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {

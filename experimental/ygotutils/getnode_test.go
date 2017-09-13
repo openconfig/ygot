@@ -9,9 +9,9 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	scpb "google.golang.org/genproto/googleapis/rpc/code"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
-	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 var (
@@ -50,7 +50,7 @@ func errToString(err error) string {
 	return err.Error()
 }
 
-func isOk(status spb.Status) bool {
+func isOK(status spb.Status) bool {
 	return status.Code == int32(scpb.Code_OK)
 }
 
@@ -170,7 +170,6 @@ func TestGetNodeSimpleKeyedList(t *testing.T) {
 		rootStruct ygot.GoStruct
 		path       *gpb.Path
 		want       interface{}
-		wantSchema *yang.Entry
 		wantStatus spb.Status
 	}{
 		{
@@ -199,7 +198,6 @@ func TestGetNodeSimpleKeyedList(t *testing.T) {
 				},
 			},
 			want:       c1.StructKeyList["forty-two"].Outer.Inner.LeafName,
-			wantSchema: containerWithLeafListSchema.Dir["config"].Dir["simple-key-list"].Dir["outer"].Dir["inner"].Dir["leaf-field"],
 			wantStatus: statusOK,
 		},
 		{
@@ -231,7 +229,6 @@ func TestGetNodeSimpleKeyedList(t *testing.T) {
 				},
 			},
 			want:       c1.StructKeyList["forty-two"].Outer.Inner.LeafName,
-			wantSchema: containerWithLeafListSchema.Dir["config"].Dir["simple-key-list"].Dir["outer"].Dir["inner"].Dir["leaf-field"],
 			wantStatus: statusOK,
 		},
 		{
@@ -260,7 +257,6 @@ func TestGetNodeSimpleKeyedList(t *testing.T) {
 				},
 			},
 			want:       nil,
-			wantSchema: nil,
 			wantStatus: toStatus(scpb.Code_NOT_FOUND, `could not find path in tree beyond schema node simple-key-list, (type *ygotutils.ListElemStruct1), remaining path elem:<name:"bad-element" > elem:<name:"inner" > elem:<name:"leaf-field" > `),
 		},
 		{
@@ -289,23 +285,19 @@ func TestGetNodeSimpleKeyedList(t *testing.T) {
 				},
 			},
 			want:       nil,
-			wantSchema: nil,
 			wantStatus: toStatus(scpb.Code_INVALID_ARGUMENT, `nil data element type *ygotutils.OuterContainerType1, remaining path elem:<name:"inner" > elem:<name:"leaf-field" > `),
 		},
 	}
 
 	for _, tt := range tests {
-		val, schema, status := GetNode(containerWithLeafListSchema, tt.rootStruct, tt.path)
+		val, status := GetNode(containerWithLeafListSchema, tt.rootStruct, tt.path)
 		if got, want := status, tt.wantStatus; !reflect.DeepEqual(got, want) {
 			t.Errorf("%s: got error: %v, wanted error? %v", tt.desc, got, want)
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
-		if isOk(status) {
+		if isOK(status) {
 			if got, want := val, tt.want; !reflect.DeepEqual(got, want) {
 				t.Errorf("%s: struct got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
-			}
-			if got, want := schema.Name, tt.wantSchema.Name; got != want {
-				t.Errorf("%s: schema got:\n%v\nwant:\n%v\n", tt.desc, got, want)
 			}
 		}
 	}
@@ -402,7 +394,6 @@ func TestGetNodeStructKeyedList(t *testing.T) {
 		rootStruct ygot.GoStruct
 		path       *gpb.Path
 		want       interface{}
-		wantSchema *yang.Entry
 		wantStatus spb.Status
 	}{
 		{
@@ -430,7 +421,6 @@ func TestGetNodeStructKeyedList(t *testing.T) {
 				},
 			},
 			want:       c1.StructKeyList[KeyStruct2{"forty-two", 42, 43}].Outer.Inner.LeafName,
-			wantSchema: containerWithLeafListSchema.Dir["struct-key-list"].Dir["outer"].Dir["inner"].Dir["leaf-field"],
 			wantStatus: statusOK,
 		},
 		{
@@ -455,23 +445,19 @@ func TestGetNodeStructKeyedList(t *testing.T) {
 				},
 			},
 			want:       c1.StructKeyList[KeyStruct2{"forty-two", 42, 43}].Outer.Inner,
-			wantSchema: containerWithLeafListSchema.Dir["struct-key-list"].Dir["outer"].Dir["inner"],
 			wantStatus: statusOK,
 		},
 	}
 
 	for _, tt := range tests {
-		val, schema, status := GetNode(containerWithLeafListSchema, tt.rootStruct, tt.path)
+		val, status := GetNode(containerWithLeafListSchema, tt.rootStruct, tt.path)
 		if got, want := status, tt.wantStatus; !reflect.DeepEqual(got, want) {
 			t.Errorf("%s: got error: %v, wanted error? %v", tt.desc, got, want)
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
-		if isOk(status) {
+		if isOK(status) {
 			if got, want := val, tt.want; !reflect.DeepEqual(got, want) {
 				t.Errorf("%s: struct got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
-			}
-			if got, want := schema.Name, tt.wantSchema.Name; got != want {
-				t.Errorf("%s: schema got:\n%v\nwant:\n%v\n", tt.desc, got, want)
 			}
 		}
 	}
@@ -613,7 +599,7 @@ func TestNewNodeSimpleKeyedList(t *testing.T) {
 			t.Errorf("%s: got error: %v, wanted error? %v", tt.desc, got, want)
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
-		if isOk(status) {
+		if isOK(status) {
 			if got, want := reflect.TypeOf(val), reflect.TypeOf(tt.want); got != want {
 				t.Errorf("%s: got: %s, want: %s", tt.desc, got, want)
 			}
@@ -747,8 +733,8 @@ func TestNewNodeStructKeyedList(t *testing.T) {
 			t.Errorf("%s: got error: %v, wanted error? %v", tt.desc, got, want)
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
-		if isOk(status) {
-			if got, want := reflect.TypeOf(val), reflect.TypeOf(tt.want); got != want {
+		if isOK(status) {
+			if got, want := val, tt.want; !reflect.DeepEqual(got, want) {
 				t.Errorf("%s: got: %s, want: %s", tt.desc, got, want)
 			}
 		}

@@ -29,37 +29,35 @@ import (
 // can be distinguished from one set to the nil value.
 //
 // TODO(robjs): Add a link to the translation specification when published.
-func (s *genState) yangTypeToProtoType(args resolveTypeArgs, basePackageName, enumPackageName string) (mappedType, error) {
+func (s *genState) yangTypeToProtoType(args resolveTypeArgs, basePackageName, enumPackageName string) (*mappedType, error) {
 	// Handle typedef cases.
 	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", basePackageName, enumPackageName))
-	switch {
-	case mtype != nil:
+	if err != nil {
+		return nil, err
+	}
+	if mtype != nil {
 		// mtype is set to non-nil when this was a valid enumeration
 		// within a typedef.
-		return *mtype, nil
-	case err != nil:
-		// err is non-nil when this was a typedef which included an
-		// invalid type.
-		return mappedType{}, err
+		return mtype, nil
 	}
 
 	switch args.yangType.Kind {
 	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:
-		return mappedType{nativeType: "ywrapper.IntValue"}, nil
+		return &mappedType{nativeType: "ywrapper.IntValue"}, nil
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
-		return mappedType{nativeType: "ywrapper.UintValue"}, nil
+		return &mappedType{nativeType: "ywrapper.UintValue"}, nil
 	case yang.Ybool, yang.Yempty:
-		return mappedType{nativeType: "ywrapper.BoolValue"}, nil
+		return &mappedType{nativeType: "ywrapper.BoolValue"}, nil
 	case yang.Ystring:
-		return mappedType{nativeType: "ywrapper.StringValue"}, nil
+		return &mappedType{nativeType: "ywrapper.StringValue"}, nil
 	case yang.Ydecimal64:
-		return mappedType{nativeType: "ywrapper.Decimal64Value"}, nil
+		return &mappedType{nativeType: "ywrapper.Decimal64Value"}, nil
 	case yang.Yleafref:
 		// We look up the leafref in the schema tree to be able to
 		// determine what type to map to.
 		target, err := s.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
-			return mappedType{}, err
+			return nil, err
 		}
 		return s.yangTypeToProtoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, basePackageName, enumPackageName)
 	case yang.Yenum:
@@ -68,14 +66,14 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, basePackageName, en
 		// that there are no collisions. Enumerations are mapped to an embedded
 		// enum within the message.
 		if args.contextEntry == nil {
-			return mappedType{}, fmt.Errorf("cannot map enumeration without context entry: %v", args)
+			return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
 		}
-		return mappedType{nativeType: yang.CamelCase(args.contextEntry.Name)}, nil
+		return &mappedType{nativeType: yang.CamelCase(args.contextEntry.Name)}, nil
 	case yang.Yidentityref:
 		if args.contextEntry == nil {
-			return mappedType{}, fmt.Errorf("cannot map identityref without context entry: %v", args)
+			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
-		return mappedType{
+		return &mappedType{
 			nativeType: fmt.Sprintf("%s.%s.%s", basePackageName, enumPackageName, s.resolveIdentityRefBaseType(args.contextEntry)),
 		}, nil
 	default:
@@ -86,27 +84,27 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, basePackageName, en
 		//  - union
 		// We cannot return an interface{} in protobuf, so therefore
 		// we just throw an error with types that we cannot map.
-		return mappedType{}, fmt.Errorf("unimplemented type: %v", args.yangType.Kind)
+		return nil, fmt.Errorf("unimplemented type: %v", args.yangType.Kind)
 	}
 }
 
 // yangTypeToProtoScalarType takes an input resolveTypeArgs and returns the protobuf
 // in-built type that is used to represent it. It is used within list keys where the
 // value cannot be nil/unset.
-func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs) (mappedType, error) {
+func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs) (*mappedType, error) {
 	switch args.yangType.Kind {
 	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:
-		return mappedType{nativeType: "sint64"}, nil
+		return &mappedType{nativeType: "sint64"}, nil
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
-		return mappedType{nativeType: "uint64"}, nil
+		return &mappedType{nativeType: "uint64"}, nil
 	case yang.Ybool, yang.Yempty:
-		return mappedType{nativeType: "bool"}, nil
+		return &mappedType{nativeType: "bool"}, nil
 	case yang.Ystring:
-		return mappedType{nativeType: "string"}, nil
+		return &mappedType{nativeType: "string"}, nil
 	case yang.Yleafref:
 		target, err := s.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
-			return mappedType{}, nil
+			return nil, err
 		}
 		return s.yangTypeToProtoScalarType(resolveTypeArgs{yangType: target.Type, contextEntry: target})
 	case yang.Yenum:
@@ -115,17 +113,16 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs) (mappedType, 
 		// that there are no collisions. Enumerations are mapped to an embedded
 		// enum within the message.
 		if args.contextEntry == nil {
-			return mappedType{}, fmt.Errorf("cannot map enumeration without context entry: %v", args)
+			return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
 		}
-		return mappedType{nativeType: yang.CamelCase(args.contextEntry.Name)}, nil
+		return &mappedType{nativeType: yang.CamelCase(args.contextEntry.Name)}, nil
 	default:
 		// TODO(robjs): implement missing types.
-		//	- enumeration
 		//	- identityref
 		//	- binary
 		//	- bits
 		//	- union
-		return mappedType{}, fmt.Errorf("unimplemented type: %s", args.yangType.Kind)
+		return nil, fmt.Errorf("unimplemented type: %s", args.yangType.Kind)
 	}
 }
 
@@ -161,9 +158,15 @@ func (s *genState) protoMsgName(e *yang.Entry, compressPaths bool) string {
 // becomes interface (since modules, surrounding containers, and config/state containers
 // are not considered with path compression enabled.
 func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
+	parent := e.Parent
+	// In the case of path compression, then the parent of a list is the parent
+	// one level up, as is the case for if there are config and state containers.
+	if compressPaths && e.IsList() || compressPaths && isConfigState(e) {
+		parent = e.Parent.Parent
+	}
 	// If this entry has already had its parent's package calculated for it, then
 	// simply return the already calculated name.
-	if pkg, ok := s.uniqueProtoPackages[e.Parent.Path()]; ok {
+	if pkg, ok := s.uniqueProtoPackages[parent.Path()]; ok {
 		return pkg
 	}
 
@@ -175,7 +178,7 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 			// we also exclude it from the package name.
 			continue
 		}
-		parts = append(parts, safeProtoFieldName(p.Name))
+		parts = append(parts, safeProtoIdentifierName(p.Name))
 	}
 
 	// Reverse the slice since we traversed from leaf back to root.
@@ -184,13 +187,13 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 	}
 
 	// Make the name unique since foo.bar.baz-bat and foo.bar.baz_bat will
-	// become the same name in the safeProtoName transformation above.
+	// become the same name in the safeProtoIdentifierName transformation above.
 	n := makeNameUnique(strings.Join(parts, "."), s.definedGlobals)
 	s.definedGlobals[n] = true
 
 	// Record the mapping between this entry's parent and the defined
 	// package name that was used.
-	s.uniqueProtoPackages[e.Parent.Path()] = n
+	s.uniqueProtoPackages[parent.Path()] = n
 
 	return n
 }

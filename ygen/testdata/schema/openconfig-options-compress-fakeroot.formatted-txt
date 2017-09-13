@@ -46,7 +46,7 @@ func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
 	tn := reflect.TypeOf(destStruct).Elem().Name()
 	schema, ok := SchemaTree[tn]
 	if !ok {
-		return fmt.Errorf("could not find schema for type %%s", tn )
+		return fmt.Errorf("could not find schema for type %s", tn )
 	}
 	var jsonTree interface{}
 	if err := json.Unmarshal([]byte(data), &jsonTree); err != nil {
@@ -148,7 +148,7 @@ type Bgp_Neighbor_EnabledAddressFamily_Union_Uint32 struct {
 func (*Bgp_Neighbor_EnabledAddressFamily_Union_Uint32) Is_Bgp_Neighbor_EnabledAddressFamily_Union() {}
 
 // To_Bgp_Neighbor_EnabledAddressFamily_Union takes an input interface{} and attempts to convert it to a struct
-// which implements the Bgp_Neighbor_EnabledAddressFamily_Union union. Returns an error if the interface{} supplied
+// which implements the Bgp_Neighbor_EnabledAddressFamily_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *Bgp_Neighbor) To_Bgp_Neighbor_EnabledAddressFamily_Union(i interface{}) (Bgp_Neighbor_EnabledAddressFamily_Union, error) {
 	switch v := i.(type) {

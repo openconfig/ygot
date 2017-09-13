@@ -1867,7 +1867,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 
 				}
 
-				if len(wantDir.path) > 0 && !reflect.DeepEqual(wantDir.path, gotDir.path) {
+				if wantDir.path != nil && !reflect.DeepEqual(wantDir.path, gotDir.path) {
 					t.Errorf("%s (%v): %s did not have matching path, got: %v, want: %v", tt.name, c.compress, gotName, gotDir.path, wantDir.path)
 				}
 
