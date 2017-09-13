@@ -171,7 +171,7 @@ func entryCamelCaseName(e *yang.Entry) string {
 }
 
 // camelCaseNameExt returns the CamelCase name from the slice of extensions, if
-// one of the extensions is named "camelcase-name".  Returns the a string
+// one of the extensions is named "camelcase-name". It returns the a string
 // containing the name if the bool return argumnet is set to true; otherwise no
 // such extension was specified.
 func camelCaseNameExt(exts []*yang.Statement) (string, bool) {

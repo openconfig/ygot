@@ -76,7 +76,7 @@ type Platform_Component_E1_Union_Uint32 struct {
 func (*Platform_Component_E1_Union_Uint32) Is_Platform_Component_E1_Union() {}
 
 // To_Platform_Component_E1_Union takes an input interface{} and attempts to convert it to a struct
-// which implements the Platform_Component_E1_Union union. Returns an error if the interface{} supplied
+// which implements the Platform_Component_E1_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *Platform_Component) To_Platform_Component_E1_Union(i interface{}) (Platform_Component_E1_Union, error) {
 	switch v := i.(type) {
@@ -116,7 +116,7 @@ type Platform_Component_Enumerated_Union_String struct {
 func (*Platform_Component_Enumerated_Union_String) Is_Platform_Component_Enumerated_Union() {}
 
 // To_Platform_Component_Enumerated_Union takes an input interface{} and attempts to convert it to a struct
-// which implements the Platform_Component_Enumerated_Union union. Returns an error if the interface{} supplied
+// which implements the Platform_Component_Enumerated_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *Platform_Component) To_Platform_Component_Enumerated_Union(i interface{}) (Platform_Component_Enumerated_Union, error) {
 	switch v := i.(type) {
@@ -166,7 +166,7 @@ type Platform_Component_Power_Union_Uint32 struct {
 func (*Platform_Component_Power_Union_Uint32) Is_Platform_Component_Power_Union() {}
 
 // To_Platform_Component_Power_Union takes an input interface{} and attempts to convert it to a struct
-// which implements the Platform_Component_Power_Union union. Returns an error if the interface{} supplied
+// which implements the Platform_Component_Power_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *Platform_Component) To_Platform_Component_Power_Union(i interface{}) (Platform_Component_Power_Union, error) {
 	switch v := i.(type) {
@@ -208,7 +208,7 @@ type Platform_Component_Type_Union_E_OpenconfigUnione_SOFTWARE struct {
 func (*Platform_Component_Type_Union_E_OpenconfigUnione_SOFTWARE) Is_Platform_Component_Type_Union() {}
 
 // To_Platform_Component_Type_Union takes an input interface{} and attempts to convert it to a struct
-// which implements the Platform_Component_Type_Union union. Returns an error if the interface{} supplied
+// which implements the Platform_Component_Type_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *Platform_Component) To_Platform_Component_Type_Union(i interface{}) (Platform_Component_Type_Union, error) {
 	switch v := i.(type) {

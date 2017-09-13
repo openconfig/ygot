@@ -20,4 +20,5 @@ message Interface_Key {
 // Device represents the /proto-test-b/device YANG schema element.
 message Device {
   repeated Interface_Key interface = 1;
+  repeated device.StateList state_list = 1;
 }

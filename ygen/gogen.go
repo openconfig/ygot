@@ -540,7 +540,7 @@ type {{ $intfName }}_{{ $typeName }} struct {
 func (*{{ $intfName }}_{{ $typeName }}) Is_{{ $intfName }}() {}
 {{ end }}
 // To_{{ .Name }} takes an input interface{} and attempts to convert it to a struct
-// which implements the {{ .Name }} union. Returns an error if the interface{} supplied
+// which implements the {{ .Name }} union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, error) {
 	switch v := i.(type) {
