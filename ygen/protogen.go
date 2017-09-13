@@ -270,7 +270,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 		case field.IsList():
 			fieldType, keyMsg, err := protoListDefinition(field, msgs, state, compressPaths)
 			if err != nil {
-				errs = append(errs, fmt.Errorf("could not define list: %v", err))
+				errs = append(errs, fmt.Errorf("could not define list %s: %v", field.Path(), err))
 				continue
 			}
 			if keyMsg != nil {
@@ -297,8 +297,23 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				fieldDef.Type = fmt.Sprintf("%s.%s", childpkg, childmsg.name)
 			}
 		case field.IsLeaf() || field.IsLeafList():
-			var protoType *mappedType
+			fieldType, enum, err := protoLeafDefinition(field, definedFieldNames, state)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("could not define field %s: %v", field.Path(), err))
+				continue
+			}
+
+			fieldDef.Type = fieldType
+			if enum != nil {
+				msgDef.Enums[fieldType] = enum
+			}
+
+			/*var protoType *mappedType
 			protoType, err = state.yangTypeToProtoType(resolveTypeArgs{yangType: field.Type, contextEntry: field})
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
 			switch {
 			case field.Type.Kind == yang.Yenum && field.Type.Name == "enumeration":
 				// For fields that are enumerations, then we embed an enum within
@@ -315,6 +330,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 			default:
 				fieldDef.Type = protoType.nativeType
 			}
+			*/
 
 			if field.ListAttr != nil {
 				fieldDef.IsRepeated = true
@@ -402,6 +418,30 @@ func protoListDefinition(field *yang.Entry, msgs map[string]*yangDirectory, stat
 		fieldType = listKeyMsg.Name
 	}
 	return fieldType, listKeyMsg, nil
+}
+
+// protoLeafDefinition takes an input yang.Entry, the current set of defined field names, and the generator state and
+// returns a type name, and an optional enum type that is used for the field.
+func protoLeafDefinition(field *yang.Entry, definedFieldNames map[string]bool, state *genState) (string, *protoMsgEnum, error) {
+	protoType, err := state.yangTypeToProtoType(resolveTypeArgs{yangType: field.Type, contextEntry: field})
+	if err != nil {
+		return "", nil, err
+	}
+
+	typeName := protoType.nativeType
+	var enum *protoMsgEnum
+	if isEnumerationLeaf(field) {
+		// For fields that are simple enumerations within a message, then we embed an enumeration
+		// within the Protobuf message.
+		enum, err = genProtoEnum(field)
+		if err != nil {
+			return "", nil, err
+		}
+
+		typeName = makeNameUnique(protoType.nativeType, definedFieldNames)
+	}
+
+	return typeName, enum, nil
 }
 
 // safeProtoFieldName takes an input string which represents the name of a YANG schema

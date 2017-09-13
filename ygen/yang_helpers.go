@@ -201,6 +201,12 @@ func isKeyedList(e *yang.Entry) bool {
 	return e.IsList() && e.Key != ""
 }
 
+// isEnumerationLeaf returns true if the supplied yang.Entry represents a simple
+// enumerated leaf (i.e., one defined with type enumeration in the YANG schema).
+func isEnumerationLeaf(e *yang.Entry) bool {
+	return e.Type.Kind == yang.Yenum && e.Type.Name == "enumeration"
+}
+
 // slicePathToString takes a path represented as a slice of strings, and outputs
 // it as a single string, with path elements separated by a forward slash.
 func slicePathToString(path []string) string {
