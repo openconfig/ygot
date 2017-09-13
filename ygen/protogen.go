@@ -23,6 +23,10 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
+const (
+	protoEnumZeroName string = "UNSET"
+)
+
 // protoMsgField describes a field of a protobuf message.
 type protoMsgField struct {
 	Tag        uint32            // Tag is the field number that should be used in the protobuf message.
@@ -357,7 +361,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 func genProtoEnum(field *yang.Entry) (*protoMsgEnum, error) {
 	eval := map[int64]string{}
 	names := field.Type.Enum.NameMap()
-	eval[0] = "UNSET"
+	eval[0] = protoEnumZeroName
 	if d := field.DefaultValue(); d != "" {
 		if _, ok := names[d]; !ok {
 			return nil, fmt.Errorf("enumeration %s specified a default - %s - that was not a valid value", field.Path(), d)

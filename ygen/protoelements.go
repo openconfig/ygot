@@ -101,7 +101,6 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs) (*mappedType,
 		return &mappedType{nativeType: yang.CamelCase(args.contextEntry.Name)}, nil
 	default:
 		// TODO(robjs): implement missing types.
-		//	- enumeration
 		//	- identityref
 		//	- binary
 		//	- bits
