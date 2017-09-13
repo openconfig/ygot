@@ -312,30 +312,6 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				msgDef.Enums[fieldType] = enum
 			}
 
-			/*var protoType *mappedType
-			protoType, err = state.yangTypeToProtoType(resolveTypeArgs{yangType: field.Type, contextEntry: field})
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-			switch {
-			case field.Type.Kind == yang.Yenum && field.Type.Name == "enumeration":
-				// For fields that are enumerations, then we embed an enum within
-				// the Protobuf message. Check for the type of the name to ensure
-				// that this is a simple enumeration leaf, not a typedef.
-				enum, eerr := genProtoEnum(field)
-				if eerr != nil {
-					err = eerr
-				} else {
-					e := makeNameUnique(protoType.nativeType, definedFieldNames)
-					msgDef.Enums[e] = enum
-					fieldDef.Type = e
-				}
-			default:
-				fieldDef.Type = protoType.nativeType
-			}
-			*/
-
 			if field.ListAttr != nil {
 				fieldDef.IsRepeated = true
 			}
