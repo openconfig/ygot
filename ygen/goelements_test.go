@@ -320,7 +320,7 @@ func TestCamelCase(t *testing.T) {
 		}
 
 		if got := makeNameUnique(entryCamelCaseName(tt.inEntry), ctx); got != tt.wantName {
-			t.Errorf("%s: did not get expected name for %s (after defining %v): %s",
+			t.Errorf("%s: did not get expected name for %v (after defining %v): %s",
 				tt.name, tt.inEntry, tt.inPrevNames, got)
 		}
 	}
@@ -727,7 +727,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			t.Errorf("%s: wrong type returned when mapping type: %s", tt.name, mappedType.nativeType)
 		}
 
-		if len(tt.want.unionTypes) > 0 {
+		if tt.want.unionTypes != nil {
 			for k := range tt.want.unionTypes {
 				if _, ok := mappedType.unionTypes[k]; !ok {
 					t.Errorf("%s: union type did not include expected type: %s", tt.name, k)

@@ -623,7 +623,7 @@ func mappableLeaf(e *yang.Entry) *yang.Entry {
 		return nil
 	}
 
-	types := []*yang.YangType{}
+	var types []*yang.YangType
 	switch {
 	case isEnumType(e.Type):
 		// Handle the case that this leaf is an enumeration or identityref itself.
@@ -636,7 +636,8 @@ func mappableLeaf(e *yang.Entry) *yang.Entry {
 		// includes an identityref or enumerated value.
 		types = append(types, enumeratedUnionTypes(e.Type.Type)...)
 	}
-	if len(types) > 0 {
+
+	if types != nil {
 		return e
 	}
 	return nil

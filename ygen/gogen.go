@@ -297,7 +297,7 @@ func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
 	tn := reflect.TypeOf(destStruct).Elem().Name()
 	schema, ok := SchemaTree[tn]
 	if !ok {
-		return fmt.Errorf("could not find schema for type %%s", tn )
+		return fmt.Errorf("could not find schema for type %s", tn )
 	}
 	var jsonTree interface{}
 	if err := json.Unmarshal([]byte(data), &jsonTree); err != nil {
@@ -459,7 +459,7 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 	// list. Keyed YANG lists do not allow duplicate keys to
 	// be created.
 	if _, ok := t.{{ .ListName }}[key]; ok {
-		return nil, fmt.Errorf("duplicate key %%v for list {{ .ListName }}", key)
+		return nil, fmt.Errorf("duplicate key %v for list {{ .ListName }}", key)
 	}
 
 	t.{{ .ListName }}[key] = &{{ .ListType }}{
@@ -549,7 +549,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		return &{{ $intfName }}_{{ $typeName }}{v}, nil
 	{{ end -}}
 	default:
-		return nil, fmt.Errorf("cannot convert %%v to {{ .Name }}, unknown union type, got: %%T, want any of [
+		return nil, fmt.Errorf("cannot convert %v to {{ .Name }}, unknown union type, got: %T, want any of [
 		{{- $length := len .TypeNames -}}
 		{{- range $i, $type := .TypeNames -}}
 			{{ $type }}
