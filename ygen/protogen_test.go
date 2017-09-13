@@ -273,9 +273,9 @@ func TestGenProtoMsg(t *testing.T) {
 			continue
 		}
 
-		seenMsg := map[string]bool{}
+		notSeen := map[string]bool{}
 		for _, w := range tt.wantMsgs {
-			seenMsg[w.Name] = false
+			notSeen[w.Name] = true
 		}
 
 		for _, got := range gotMsgs {
@@ -284,7 +284,7 @@ func TestGenProtoMsg(t *testing.T) {
 				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): got unexpected expected message, got: nil, want: %v", tt.name, tt.inMsg, tt.inMsgs, got.Name)
 				continue
 			}
-			seenMsg[got.Name] = true
+			delete(notSeen, got.Name)
 
 			if !protoMsgEq(got, want) {
 				diff := pretty.Compare(got, want)
@@ -292,10 +292,8 @@ func TestGenProtoMsg(t *testing.T) {
 			}
 		}
 
-		for m, s := range seenMsg {
-			if !s {
-				t.Errorf("%s: genProtoMsg(%#v, %#v, *genSTate); did not find expected message %s, got messages: %v, want: %s", tt.name, tt.inMsg, tt.inMsgs, m, gotMsgs, m)
-			}
+		if len(notSeen) != 0 {
+			t.Errorf("%s: genProtoMsg(%#v, %#v, *genState); did not test all returned messages, got remaining messages: %v, want: none", tt.name, tt.inMsg, tt.inMsgs, notSeen)
 		}
 	}
 }
