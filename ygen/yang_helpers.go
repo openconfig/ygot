@@ -196,6 +196,26 @@ func isConfig(e *yang.Entry) bool {
 	return true
 }
 
+// isKeyedList returns true if the supplied yang.Entry represents a keyed list.
+func isKeyedList(e *yang.Entry) bool {
+	return e.IsList() && e.Key != ""
+}
+
+// isEnumerationLeaf returns true if the supplied yang.Entry represents a simple
+// enumerated leaf (i.e., one defined with type enumeration in the YANG schema).
+// The name "enumeration" is used for the type in these cases, in cases where
+// the leaf uses a type that is a typedef (derived type) to an enumeration
+// the kind will still be yang.Yenum, but the type name will not be enumeration.
+func isEnumerationLeaf(e *yang.Entry) bool {
+	return e.Type.Kind == yang.Yenum && e.Type.Name == "enumeration"
+}
+
+// isIdentityrefLeaf returns true if the supplied yang.Entry represents an
+// identityref.
+func isIdentityrefLeaf(e *yang.Entry) bool {
+	return e.Type.IdentityBase != nil
+}
+
 // slicePathToString takes a path represented as a slice of strings, and outputs
 // it as a single string, with path elements separated by a forward slash.
 func slicePathToString(path []string) string {
@@ -254,19 +274,34 @@ func appendIfNotEmpty(slice []string, s string) []string {
 	return slice
 }
 
-// appendEntriesNotIn appends strings that are in the ne slice but not the ee
-// slice to the ee slice and returns it.
-func appendEntriesNotIn(ee []string, ne []string) []string {
-	for _, n := range ne {
-		var f bool
-		for _, e := range ee {
-			if e == n {
-				f = true
-			}
-		}
-		if !f {
-			ee = append(ee, n)
+// addNewKeys appends entries from the newKeys string slice to the
+// existing map if the entry is not an existing key. The existing
+// map is modified in place.
+func addNewKeys(existing map[string]interface{}, newKeys []string) {
+	for _, n := range newKeys {
+		if _, ok := existing[n]; !ok {
+			existing[n] = true
 		}
 	}
-	return ee
+}
+
+// stringKeys returns the keys of the supplied map as a slice of strings.
+func stringKeys(m map[string]interface{}) []string {
+	ss := []string{}
+	for k := range m {
+		ss = append(ss, k)
+	}
+	return ss
+}
+
+// listKeyFieldsMap returns a map[string]bool where the keys of the map
+// are the fields that are the keys of the list described by the supplied
+// yang.Entry. In the case the yang.Entry does not described a keyed list,
+// an empty map is returned.
+func listKeyFieldsMap(e *yang.Entry) map[string]bool {
+	r := map[string]bool{}
+	for _, k := range strings.Split(e.Key, " ") {
+		r[k] = true
+	}
+	return r
 }

@@ -24,7 +24,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 	tests := []struct {
 		name    string
 		in      []resolveTypeArgs
-		want    mappedType
+		want    *mappedType
 		wantErr bool
 	}{{
 		name: "integer types",
@@ -34,7 +34,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			{yangType: &yang.YangType{Kind: yang.Yint32}},
 			{yangType: &yang.YangType{Kind: yang.Yint64}},
 		},
-		want: mappedType{nativeType: "ywrapper.IntValue"},
+		want: &mappedType{nativeType: "ywrapper.IntValue"},
 	}, {
 		name: "unsigned integer types",
 		in: []resolveTypeArgs{
@@ -43,22 +43,22 @@ func TestYangTypeToProtoType(t *testing.T) {
 			{yangType: &yang.YangType{Kind: yang.Yuint32}},
 			{yangType: &yang.YangType{Kind: yang.Yuint64}},
 		},
-		want: mappedType{nativeType: "ywrapper.UintValue"},
+		want: &mappedType{nativeType: "ywrapper.UintValue"},
 	}, {
 		name: "bool types",
 		in: []resolveTypeArgs{
 			{yangType: &yang.YangType{Kind: yang.Ybool}},
 			{yangType: &yang.YangType{Kind: yang.Yempty}},
 		},
-		want: mappedType{nativeType: "ywrapper.BoolValue"},
+		want: &mappedType{nativeType: "ywrapper.BoolValue"},
 	}, {
 		name: "string",
 		in:   []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ystring}}},
-		want: mappedType{nativeType: "ywrapper.StringValue"},
+		want: &mappedType{nativeType: "ywrapper.StringValue"},
 	}, {
 		name: "decimal64",
 		in:   []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ydecimal64}}},
-		want: mappedType{nativeType: "ywrapper.Decimal64Value"},
+		want: &mappedType{nativeType: "ywrapper.Decimal64Value"},
 	}, {
 		name: "unmapped types",
 		in: []resolveTypeArgs{
