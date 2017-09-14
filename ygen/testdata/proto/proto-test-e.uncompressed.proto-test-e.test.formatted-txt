@@ -3,7 +3,6 @@
 //
 // Input schema modules:
 //  - testdata/proto/proto-test-e.yang
-// Include paths:
 syntax = "proto3";
 
 package openconfig.proto_test_e.test;

@@ -3,7 +3,6 @@
 //
 // Input schema modules:
 //  - testdata/proto/proto-test-e.yang
-// Include paths:
 syntax = "proto3";
 
 package openconfig.enums;
@@ -11,7 +10,7 @@ package openconfig.enums;
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
-// ProtoTestE_Animals_Animal_Config_Species represents an enumerated type generated for the YANG typedef .
+// ProtoTestE_Animals_Animal_Config_Species represents an enumerated type generated for the YANG enumerated type union.
 enum ProtoTestE_Animals_Animal_Config_Species {
   ProtoTestE_Animals_Animal_Config_Species_UNSET = 0;
   ProtoTestE_Animals_Animal_Config_Species_TAXIDEA_TAXUS = 1;
@@ -19,7 +18,7 @@ enum ProtoTestE_Animals_Animal_Config_Species {
   ProtoTestE_Animals_Animal_Config_Species_OVIS_CANADENSIS = 3;
 }
 
-// ProtoTestE_Bars_Bar_Baz represents an enumerated type generated for the YANG typedef .
+// ProtoTestE_Bars_Bar_Baz represents an enumerated type generated for the YANG enumerated type union.
 enum ProtoTestE_Bars_Bar_Baz {
   ProtoTestE_Bars_Bar_Baz_UNSET = 0;
   ProtoTestE_Bars_Bar_Baz_X = 1;

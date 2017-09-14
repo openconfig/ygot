@@ -177,7 +177,7 @@ func (s *genState) protoUnionType(args resolveTypeArgs, basePackageName, enumPac
 func (s *genState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, basePackageName, enumPackageName string) []error {
 	var errs []error
 	// If subtype.Type is not empty, then this is a union itself.
-	if subtype.Type != nil {
+	if isUnionType(subtype) {
 		for _, st := range subtype.Type {
 			errs = append(errs, s.protoUnionSubTypes(st, ctx, currentTypes, basePackageName, enumPackageName)...)
 		}

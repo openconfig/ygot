@@ -120,6 +120,7 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths bool) ([]*y
 				entry: &yang.Entry{
 					Name: e.Name,
 					Type: &yang.YangType{
+						Name:         e.Type.Name,
 						Kind:         yang.Yidentityref,
 						IdentityBase: t.IdentityBase,
 					},
@@ -142,6 +143,7 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths bool) ([]*y
 				entry: &yang.Entry{
 					Name: e.Name,
 					Type: &yang.YangType{
+						Name: e.Type.Name,
 						Kind: yang.Yenum,
 						Enum: t.Enum,
 					},

@@ -697,14 +697,14 @@ enum EnumeratedValue {
 		},
 		wantEnums: []string{
 			`
-// EnumName represents an enumerated type generated for the YANG typedef typedef.
+// EnumName represents an enumerated type generated for the YANG enumerated type typedef.
 enum EnumName {
   EnumName_UNSET = 0;
   EnumName_SPEED_2_5G = 1;
   EnumName_SPEED_40G = 2;
 }
 `, `
-// SecondEnum represents an enumerated type generated for the YANG typedef derived.
+// SecondEnum represents an enumerated type generated for the YANG enumerated type derived.
 enum SecondEnum {
   SecondEnum_UNSET = 0;
   SecondEnum_VALUE_1 = 1;

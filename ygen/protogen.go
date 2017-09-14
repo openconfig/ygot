@@ -92,9 +92,11 @@ var (
 {{- range $inputFile := .SourceYANGFiles }}
 //  - {{ $inputFile }}
 {{- end }}
+{{- if .SourceYANGIncludePaths }}
 // Include paths:
 {{- range $importPath := .SourceYANGIncludePaths }}
 //   - {{ $importPath }}
+{{- end -}}
 {{- end }}
 syntax = "proto3";
 
@@ -455,14 +457,14 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 			}
 			p.Values = values
 			p.Description = fmt.Sprintf("YANG identity %s", enum.entry.Type.IdentityBase.Name)
-		case enum.entry.Type.Kind == yang.Yenum, enum.entry.Type.Kind == yang.Yenum:
+		case enum.entry.Type.Kind == yang.Yenum:
 			ge, err := genProtoEnum(enum.entry)
 			if err != nil {
 				errs = append(errs, err)
 				continue
 			}
 			p.Values = ge.Values
-			p.Description = fmt.Sprintf("YANG typedef %s", enum.entry.Type.Name)
+			p.Description = fmt.Sprintf("YANG enumerated type %s", enum.entry.Type.Name)
 		case len(enum.entry.Type.Type) != 0:
 			errs = append(errs, fmt.Errorf("unimplemented: support for multiple enumerations within a union for %v", enum.name))
 			continue
@@ -582,7 +584,7 @@ func protoLeafDefinition(leafName string, args protoDefinitionArgs) (*protoDefin
 	}
 
 	switch {
-	case isEnumerationLeaf(args.field):
+	case isSimpleEnumerationType(args.field.Type):
 		// For fields that are simple enumerations within a message, then we embed an enumeration
 		// within the Protobuf message.
 		e, err := genProtoEnum(args.field)
@@ -667,15 +669,6 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 			return nil, fmt.Errorf("list %s included a key %s that did not have a valid proto type: %v", args.field.Path(), k, kf.Type)
 		}
 
-		// If the key is a leafref, then resolve it suhc that we output the union if required.
-		kfType := kf.Type
-		if kfType.Kind == yang.Yleafref {
-			t, err := args.state.resolveLeafrefTarget(kfType.Path, kf)
-			if err != nil {
-			}
-			kfType = t.Type
-		}
-
 		var enumEntry *yang.Entry
 		var unionEntry *yang.Entry
 		switch {
@@ -684,13 +677,15 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 			if err != nil {
 				return nil, fmt.Errorf("error generating type for list %s key %s: type %v", args.field.Path(), k, kf.Type)
 			}
-			switch {
-			case target.Type.Kind == yang.Yenum && target.Type.Name == "enumeration":
+
+			if isSimpleEnumerationType(target.Type) {
 				enumEntry = target
-			case target.Type.Kind == yang.Yunion:
+			}
+
+			if isUnionType(target.Type) {
 				unionEntry = target
 			}
-		case isEnumerationLeaf(kf):
+		case isSimpleEnumerationType(kf.Type):
 			enumEntry = kf
 		case isUnionType(kf.Type):
 			unionEntry = kf
@@ -741,7 +736,7 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 func enumInProtoUnionField(name string, types []*yang.YangType) (map[string]*protoMsgEnum, error) {
 	enums := map[string]*protoMsgEnum{}
 	for _, t := range types {
-		if t.Kind == yang.Yenum && t.Name == "enumeration" {
+		if isSimpleEnumerationType(t) {
 			n := fmt.Sprintf("%s", yang.CamelCase(name))
 			enum, err := genProtoEnum(&yang.Entry{
 				Name: n,
@@ -781,7 +776,8 @@ func unionFieldToOneOf(name string, e *yang.Entry, mtype *mappedType) ([]protoMs
 		st := protoMsgField{
 			Name: fmt.Sprintf("%s_%s", name, tn),
 			Type: t,
-			// TODO(robjs): Determine how best to output tags here.
+			// TODO(robjs): Consider how to output field IDs here. This is pending the
+			// same solution conclusion as is discussed in the protoTagForEntry function.
 			Tag: 42,
 		}
 		oofs = append(oofs, st)
