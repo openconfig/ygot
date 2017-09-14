@@ -495,7 +495,7 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry) (string, error) {
 // enumeratedTypedefTypeName resolves the name of an enumerated typedef (i.e., a typedef which is either
 // an identityref or an enumeration). If the type that was supplied within the resolveTypeArgs struct
 // is not a type definition which includes an enumerated type, the mappedType returned is nil, otherwise
-// it is populated. Returns an error if the type does include an enumerated typedef, but this typedef is
+// it is populated. It returns an error if the type does include an enumerated typedef, but this typedef is
 // invalid.
 func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs) (*mappedType, error) {
 	// If the type that is specified is not a built-in type (i.e., one of those
@@ -528,7 +528,7 @@ func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs) (*mappedType,
 
 // resolveLeafrefTarget takes an input path and context entry and
 // determines the type of the leaf that is referred to by the path, such that
-// it can be mapped to a native language type. Returns the yang.YangType that
+// it can be mapped to a native language type. It returns the yang.YangType that
 // is associated with the target, and the target yang.Entry, such that the
 // caller can map this to the relevant language type.
 func (s *genState) resolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {

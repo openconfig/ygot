@@ -26,7 +26,7 @@ import (
 // buildSchemaTree maps a set of yang.Entry pointers into a ctree structure.
 // Only leaf or leaflist values are mapped, since these are the only entities
 // that can be referenced by XPATH expressions within a YANG schema.
-// Returns an error if there is duplication within the set of entries. The
+// It returns an error if there is duplication within the set of entries. The
 // paths that are used within the schema are represented as a slice of strings.
 func buildSchemaTree(entries []*yang.Entry) (*ctree.Tree, error) {
 	t := &ctree.Tree{}
@@ -114,7 +114,7 @@ func splitXPATHParts(path string) []string {
 
 // removeXPATHNamespaces removes namespaces from a slice of strings that
 // represents an split XPATH, i.e., []string{"oc-if:interfaces",
-// "oc-if:interface"} becomes []string{"interfaces", "interface"}. Returns
+// "oc-if:interface"} becomes []string{"interfaces", "interface"}. It returns
 // an error if invalid path element is encountered.
 func removeXPATHNamespaces(path []string) ([]string, error) {
 	var fixedParts []string

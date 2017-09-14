@@ -396,7 +396,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 // GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
 // The YANG schemas for which protobufs are to be created is supplied as the
 // yangFiles argument, with included modules being searched for in includePaths.
-// Returns a GeneratedProto struct containing the messages that are to be
+// It returns a GeneratedProto struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
 func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto, *YANGCodeGeneratorError) {
 	// TODO(github.com/openconfig/ygot/issues/20): Handle enumerated types in proto messages.
@@ -429,44 +429,32 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 	// pkgImports lists the imports that are required for the package that is being
 	// written out.
-	pkgImports := map[string][]string{}
+	pkgImports := map[string]map[string]interface{}{}
 
 	for _, n := range msgNames {
 		m := msgMap[n]
-		pkg, msg, reqs, errs := writeProto3Msg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)
 
-		if _, ok := pkgImports[pkg]; !ok {
-			pkgImports[pkg] = []string{}
-		}
-
-		for _, i := range reqs {
-			var found bool
-			for _, e := range pkgImports[pkg] {
-				if i == e {
-					found = true
-				}
-			}
-			if !found {
-				pkgImports[pkg] = append(pkgImports[pkg], i)
-			}
-		}
-
-		if errs != nil {
+		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)
+		if len(errs) > 0 {
 			ye.Errors = append(ye.Errors, errs...)
 		}
+		if _, ok := pkgImports[genMsg.packageName]; !ok {
+			pkgImports[genMsg.packageName] = map[string]interface{}{}
+		}
+		addNewKeys(pkgImports[genMsg.packageName], genMsg.requiredImports)
 
 		// If the package does not already exist within the generated proto3
 		// output, then create it within the package map. This allows different
 		// entries in the msgNames set to fall within the same package.
-		tp, ok := genProto.Packages[pkg]
+		tp, ok := genProto.Packages[genMsg.packageName]
 		if !ok {
-			genProto.Packages[pkg] = Proto3Package{
+			genProto.Packages[genMsg.packageName] = Proto3Package{
 				Messages: []string{},
 			}
-			tp = genProto.Packages[pkg]
+			tp = genProto.Packages[genMsg.packageName]
 		}
-		tp.Messages = append(tp.Messages, msg)
-		genProto.Packages[pkg] = tp
+		tp.Messages = append(tp.Messages, genMsg.messageCode)
+		genProto.Packages[genMsg.packageName] = tp
 	}
 
 	for n, pkg := range genProto.Packages {
@@ -474,7 +462,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			PackageName:            n,
 			BasePackageName:        cg.Config.ProtoOptions.BasePackageName,
 			BaseImportPath:         cg.Config.ProtoOptions.BaseImportPath,
-			Imports:                pkgImports[n],
+			Imports:                stringKeys(pkgImports[n]),
 			SourceYANGFiles:        yangFiles,
 			SourceYANGIncludePaths: includePaths,
 			CompressPaths:          cg.Config.CompressOCPaths,

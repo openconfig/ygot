@@ -1,0 +1,47 @@
+module proto-test-b {
+  prefix "proto-b";
+  namespace "urn:proto-b";
+
+
+  container device {
+    container interfaces {
+      list interface {
+        key "name";
+
+        leaf name {
+          type leafref {
+            path "../config/name";
+          }
+        }
+
+        container config {
+          uses interface-config;
+        }
+
+        container state {
+          config false;
+          uses interface-config;
+          uses interface-state;
+        }
+      }
+    }
+
+    container state-list {
+      list state-list {
+        config false;
+        container state {
+          leaf test { type string; }
+        }
+      }
+    }
+  }
+
+  grouping interface-config {
+    leaf name { type string; }
+    leaf enabled { type boolean; }
+  }
+
+  grouping interface-state {
+    leaf ifIndex { type string; }
+  }
+}

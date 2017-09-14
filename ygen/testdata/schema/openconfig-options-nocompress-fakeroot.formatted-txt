@@ -223,7 +223,7 @@ type OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union_U
 func (*OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union_Uint32) Is_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union() {}
 
 // To_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union takes an input interface{} and attempts to convert it to a struct
-// which implements the OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union union. Returns an error if the interface{} supplied
+// which implements the OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor_State) To_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union(i interface{}) (OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union, error) {
 	switch v := i.(type) {

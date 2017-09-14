@@ -235,7 +235,7 @@ type InputStruct_U1_Union_String struct {
 func (*InputStruct_U1_Union_String) Is_InputStruct_U1_Union() {}
 
 // To_InputStruct_U1_Union takes an input interface{} and attempts to convert it to a struct
-// which implements the InputStruct_U1_Union union. Returns an error if the interface{} supplied
+// which implements the InputStruct_U1_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Union, error) {
 	switch v := i.(type) {
@@ -298,7 +298,7 @@ type Module_InputStruct_U1_Union_String struct {
 func (*Module_InputStruct_U1_Union_String) Is_Module_InputStruct_U1_Union() {}
 
 // To_Module_InputStruct_U1_Union takes an input interface{} and attempts to convert it to a struct
-// which implements the Module_InputStruct_U1_Union union. Returns an error if the interface{} supplied
+// which implements the Module_InputStruct_U1_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *InputStruct) To_Module_InputStruct_U1_Union(i interface{}) (Module_InputStruct_U1_Union, error) {
 	switch v := i.(type) {

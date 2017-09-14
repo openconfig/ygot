@@ -196,6 +196,11 @@ func isConfig(e *yang.Entry) bool {
 	return true
 }
 
+// isKeyedList returns true if the supplied yang.Entry represents a keyed list.
+func isKeyedList(e *yang.Entry) bool {
+	return e.IsList() && e.Key != ""
+}
+
 // slicePathToString takes a path represented as a slice of strings, and outputs
 // it as a single string, with path elements separated by a forward slash.
 func slicePathToString(path []string) string {
@@ -252,4 +257,36 @@ func appendIfNotEmpty(slice []string, s string) []string {
 		return append(slice, s)
 	}
 	return slice
+}
+
+// addNewKeys appends entries from the newKeys string slice to the
+// existing map if the entry is not an existing key. The existing
+// map is modified in place.
+func addNewKeys(existing map[string]interface{}, newKeys []string) {
+	for _, n := range newKeys {
+		if _, ok := existing[n]; !ok {
+			existing[n] = true
+		}
+	}
+}
+
+// stringKeys returns the keys of the supplied map as a slice of strings.
+func stringKeys(m map[string]interface{}) []string {
+	ss := []string{}
+	for k := range m {
+		ss = append(ss, k)
+	}
+	return ss
+}
+
+// listKeyFieldsMap returns a map[string]bool where the keys of the map
+// are the fields that are the keys of the list described by the supplied
+// yang.Entry. In the case the yang.Entry does not described a keyed list,
+// an empty map is returned.
+func listKeyFieldsMap(e *yang.Entry) map[string]bool {
+	r := map[string]bool{}
+	for _, k := range strings.Split(e.Key, " ") {
+		r[k] = true
+	}
+	return r
 }

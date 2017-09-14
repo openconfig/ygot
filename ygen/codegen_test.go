@@ -690,6 +690,14 @@ func TestGenerateProto3(t *testing.T) {
 			"proto_test_a.parent":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.formatted-txt"),
 			"proto_test_a.parent.child": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.child.formatted-txt"),
 		},
+	}, {
+		name:     "yang schema with a list",
+		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.yang")},
+		inConfig: GeneratorConfig{CompressOCPaths: true},
+		wantOutputFiles: map[string]string{
+			"":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.formatted-txt"),
+			"device": filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.device.formatted-txt"),
+		},
 	}}
 
 	for _, tt := range tests {
@@ -737,7 +745,7 @@ func TestGenerateProto3(t *testing.T) {
 			fmt.Fprintf(&gotCodeBuf, gotPkg.Header)
 
 			for _, gotMsg := range gotPkg.Messages {
-				fmt.Fprintf(&gotCodeBuf, "%v\n", gotMsg)
+				fmt.Fprintf(&gotCodeBuf, "%v", gotMsg)
 			}
 
 			if diff := pretty.Compare(gotCodeBuf.String(), string(wantCode)); diff != "" {
