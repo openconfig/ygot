@@ -70,6 +70,8 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, basePackageName, en
 		}
 		return &mappedType{nativeType: yang.CamelCase(args.contextEntry.Name)}, nil
 	case yang.Yidentityref:
+		// TODO(https://github.com/openconfig/ygot/issues/33) - refactor to allow
+		// this call outside of the switch.
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
