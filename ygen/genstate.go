@@ -30,11 +30,11 @@ import (
 type genState struct {
 	// definedGlobals specifies the global Go names used during code generation.
 	definedGlobals map[string]bool
-	// uniqueStructNames is a map keyed by the path of a YANG entity representing a
-	// struct in the generated Go code, whose value is the unique name that it
+	// uniqueDirectoryNames is a map keyed by the path of a YANG entity representing a
+	// directory in the generated code, whose value is the unique name that it
 	// was mapped to. This allows routines to determine, based on a particular YANG
 	// entry, how to refer to it when generating code.
-	uniqueStructNames map[string]string
+	uniqueDirectoryNames map[string]string
 	// uniqueIdentityNames is a map which is keyed by a string in the form of
 	// definingModule/identityName which stores the Go anme of the enumerated Go type
 	// that has been created to represent the identity. This allows de-duplication
@@ -68,6 +68,16 @@ type genState struct {
 	// schema tree. This is used for lookups within the module set where
 	// they are required, e.g., for leafrefs.
 	schematree *ctree.Tree
+	// uniqueProtoMsgNames is a map, keyed by a protobuf package name, that
+	// contains a map keyed by protobuf message name strings that indicates the
+	// names that are used within the generated package's context. It is used
+	// during code generation to ensure uniqueness of the generated names within
+	// the specified package.
+	uniqueProtoMsgNames map[string]map[string]bool
+	// uniqueProtoPackages is a map, keyed by a YANG schema path, that allows
+	// a path to be resolved into the calculated Protobuf package name that
+	// is to be used for it.
+	uniqueProtoPackages map[string]string
 	// generatedUnions stores a map, keyed by the output name for a union,
 	// that has already been output in the generated code. This ensures that
 	// where two entities re-use a union that has already been created (e.g.,
@@ -82,10 +92,12 @@ func newGenState() *genState {
 		// Mark the name that is used for the binary type as a reserved name
 		// within the output structs.
 		definedGlobals:               map[string]bool{ygot.BinaryTypeName: true},
-		uniqueStructNames:            make(map[string]string),
+		uniqueDirectoryNames:         make(map[string]string),
 		uniqueEnumeratedTypedefNames: make(map[string]string),
 		uniqueIdentityNames:          make(map[string]string),
 		uniqueEnumeratedLeafNames:    make(map[string]string),
+		uniqueProtoMsgNames:          make(map[string]map[string]bool),
+		uniqueProtoPackages:          make(map[string]string),
 		generatedUnions:              make(map[string]bool),
 	}
 }
@@ -95,8 +107,8 @@ func newGenState() *genState {
 // the yangGoEnums returned such that enumerations can be generated directly from the output of
 // this function in common with enumerations that are not within a union. The name of the enumerated
 // value is calculated based on the original context, and whether path compression is enabled based
-// on the compressOCPaths boolean.
-func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressOCPaths bool) ([]*yangGoEnum, error) {
+// on the compressPaths boolean.
+func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths bool) ([]*yangGoEnum, error) {
 	var es []*yangGoEnum
 
 	for _, t := range enumeratedUnionTypes(e.Type.Type) {
@@ -115,7 +127,7 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressOCPaths bool) ([]
 		case t.Enum != nil:
 			var enumName string
 			if _, chBuiltin := yang.TypeKindFromName[t.Name]; chBuiltin {
-				enumName = s.resolveEnumName(e, compressOCPaths)
+				enumName = s.resolveEnumName(e, compressPaths)
 			} else {
 				var err error
 				enumName, err = s.resolveTypedefEnumeratedName(e)
@@ -141,14 +153,14 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressOCPaths bool) ([]
 	return es, nil
 }
 
-// buildGoStructDefinitions extracts the yang.Entry instances from a map of
-// entries that need struct definitions built for them. It resolves each
-// yang.Entry to a yangDirectory which contains the elements that are needed for
-// subsequent code generation. The name of the struct is calculated based on
-// whether path compression is enabled (via compressOCPaths), and the fake root
-// entity is to be generated (genFakeRoot). If errors are encountered they are
-// returned within an error slice.
-func (s *genState) buildGoStructDefinitions(entries map[string]*yang.Entry, compressOCPaths, genFakeRoot bool) (map[string]*yangDirectory, []error) {
+// buildDirectoryDefinitions extracts the yang.Entry instances from a map of
+// entries that need struct or message definitions built for them. It resolves
+// each yang.Entry to a yangDirectory which contains the elements that are
+// needed for subsequent code generation. The name of the directory entry that
+// is returned is based on the generatedLanguage that is supplied. The
+// compressPaths and genFakeRoot arguments are used to determine how paths that
+// are included within the generated structs are used.
+func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compressPaths, genFakeRoot bool, lang generatedLanguage) (map[string]*yangDirectory, []error) {
 	var errs []error
 	mappedStructs := make(map[string]*yangDirectory)
 
@@ -160,12 +172,25 @@ func (s *genState) buildGoStructDefinitions(entries map[string]*yang.Entry, comp
 				entry: e,
 			}
 
-			// Encode the name of the element into a golang compatible struct name,
-			elem.name = s.structName(e, compressOCPaths, genFakeRoot)
+			// Encode the name of the struct according to the language specified
+			// within the input arguments.
+			switch lang {
+			case protobuf:
+				// In the case of protobuf the message name is simply the camel
+				// case name that is specified.
+				elem.name = s.protoMsgName(e, compressPaths)
+			case golang:
+				// For Go, we map the name of the struct to the path elements
+				// in CamelCase separated by underscores.
+				elem.name = s.goStructName(e, compressPaths, genFakeRoot)
+			default:
+				errs = append(errs, fmt.Errorf("unknown generating language specified for %s, got: %v", e.Name, lang))
+				continue
+			}
 
 			// Find the elements that should be rooted on this particular entity.
 			var fieldErr []error
-			elem.fields, fieldErr = findAllChildren(e, compressOCPaths)
+			elem.fields, fieldErr = findAllChildren(e, compressPaths)
 			if fieldErr != nil {
 				errs = append(errs, fieldErr...)
 				continue
@@ -184,7 +209,7 @@ func (s *genState) buildGoStructDefinitions(entries map[string]*yang.Entry, comp
 			// and returning a yangListAttr structure that describes how they should
 			// be represented.
 			if e.IsList() {
-				lattr, listErr := s.buildListKey(e, compressOCPaths)
+				lattr, listErr := s.buildListKey(e, compressPaths)
 				if listErr != nil {
 					errs = append(errs, listErr...)
 					continue
@@ -202,14 +227,14 @@ func (s *genState) buildGoStructDefinitions(entries map[string]*yang.Entry, comp
 
 // findEnumSet walks the list of enumerated value leaves and determines whether
 // code generation is required for each enum. Particularly, it removes
-// duplication between config and state containers when compressOCPaths is true.
+// duplication between config and state containers when compressPaths is true.
 // It also de-dups references to the same identity base, and type definitions.
-func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressOCPaths bool) (map[string]*yangGoEnum, []error) {
+func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths bool) (map[string]*yangGoEnum, []error) {
 	validEnums := make(map[string]*yang.Entry)
 	var enumNames []string
 	var errs []error
 
-	if compressOCPaths {
+	if compressPaths {
 		// Don't generate output for an element that exists both in the config and state containers,
 		// i.e., /interfaces/interface/config/enum and /interfaces/interface/state/enum should not
 		// both have code generated for them. Since there may be containers underneath state then
@@ -267,7 +292,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressOCPaths b
 		case e.Type.Name == "union", len(e.Type.Type) > 0 && !builtin:
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
-			es, err := s.enumeratedUnionEntry(e, compressOCPaths)
+			es, err := s.enumeratedUnionEntry(e, compressPaths)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -283,6 +308,10 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressOCPaths b
 			// identityref but rather for the base identity. This means that we reduce
 			// duplication across different enum types. Re-map the "path" that is to
 			// be used to the new identityref name.
+			if e.Type.IdentityBase == nil {
+				errs = append(errs, fmt.Errorf("entry %s was an identity with a nil base", e.Name))
+				continue
+			}
 			idBaseName := s.resolveIdentityRefBaseType(e)
 			if _, ok := genEnums[idBaseName]; !ok {
 				genEnums[idBaseName] = &yangGoEnum{
@@ -297,7 +326,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressOCPaths b
 			// in two places, then we do not want to have multiple enumerated types
 			// that represent this leaf), then we do not have errors if duplicates
 			// occur, we simply perform de-duplication at this stage.
-			enumName := s.resolveEnumName(e, compressOCPaths)
+			enumName := s.resolveEnumName(e, compressPaths)
 			if _, ok := genEnums[enumName]; !ok {
 				genEnums[enumName] = &yangGoEnum{
 					name:  enumName,
@@ -319,6 +348,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressOCPaths b
 			}
 		}
 	}
+
 	return genEnums, errs
 }
 
@@ -359,7 +389,7 @@ func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity) string {
 // that will be used in the generated code. Whilst a leaf may only be used
 // in a single context (i.e., at its own path), resolveEnumName may be called
 // multiple times, and hence de-duplication of unique name generation is required.
-func (s *genState) resolveEnumName(e *yang.Entry, compressOCPaths bool) string {
+func (s *genState) resolveEnumName(e *yang.Entry, compressPaths bool) string {
 	// It is possible, given a particular enumerated leaf, for it to appear
 	// multiple times in the schema. For example, through being defined in
 	// a grouping which is instantiated in two places. In these cases, the
@@ -394,7 +424,7 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressOCPaths bool) string {
 		return definedName
 	}
 
-	if compressOCPaths {
+	if compressPaths {
 		// If we compress paths then the name of this enum is of the form
 		// ModuleName_GrandParent_Leaf - we use GrandParent since Parent is
 		// State or Config so would not be unique. The proposed name is

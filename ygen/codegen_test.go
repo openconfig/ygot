@@ -23,9 +23,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
-
-	"github.com/pmezard/go-difflib/difflib"
 )
 
 const (
@@ -305,12 +304,7 @@ func TestFindMappableEntities(t *testing.T) {
 			structs := make(map[string]*yang.Entry)
 			enums := make(map[string]*yang.Entry)
 
-			cg := NewYANGCodeGenerator(&GeneratorConfig{
-				CompressOCPaths: compress,
-				ExcludeModules:  tt.inSkipModules,
-			})
-
-			cg.findMappableEntities(tt.in, structs, enums)
+			findMappableEntities(tt.in, structs, enums, tt.inSkipModules, compress)
 
 			structOut := make(map[string]bool)
 			enumOut := make(map[string]bool)
@@ -524,19 +518,19 @@ func TestSimpleStructs(t *testing.T) {
 		var gotCode bytes.Buffer
 		fmt.Fprint(&gotCode, gotGeneratedCode.Header)
 		for _, gotStruct := range gotGeneratedCode.Structs {
-			fmt.Fprintf(&gotCode, gotStruct)
+			fmt.Fprint(&gotCode, gotStruct)
 		}
 
 		for _, gotEnum := range gotGeneratedCode.Enums {
-			fmt.Fprintf(&gotCode, gotEnum)
+			fmt.Fprint(&gotCode, gotEnum)
 		}
 
 		// Write generated enumeration map out.
-		fmt.Fprintf(&gotCode, gotGeneratedCode.EnumMap)
+		fmt.Fprint(&gotCode, gotGeneratedCode.EnumMap)
 
 		if tt.inConfig.GenerateJSONSchema {
 			// Write the schema byte array out.
-			fmt.Fprintf(&gotCode, gotGeneratedCode.JSONSchemaCode)
+			fmt.Fprint(&gotCode, gotGeneratedCode.JSONSchemaCode)
 
 			wantSchema, rferr := ioutil.ReadFile(tt.wantSchemaFile)
 			if rferr != nil {
@@ -557,16 +551,8 @@ func TestSimpleStructs(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(gotJSON, wantJSON) {
-				diff := difflib.UnifiedDiff{
-					A:        difflib.SplitLines(string(gotGeneratedCode.RawJSONSchema)),
-					B:        difflib.SplitLines(string(wantSchema)),
-					FromFile: "got",
-					ToFile:   "want",
-					Context:  3,
-					Eol:      "\n",
-				}
-				diffr, _ := difflib.GetUnifiedDiffString(diff)
-				t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diffr)
+				diff, _ := generateUnifiedDiff(string(gotGeneratedCode.RawJSONSchema), string(wantSchema))
+				t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
 			}
 		}
 
@@ -574,17 +560,9 @@ func TestSimpleStructs(t *testing.T) {
 			// Use difflib to generate a unified diff between the
 			// two code snippets such that this is simpler to debug
 			// in the test output.
-			diff := difflib.UnifiedDiff{
-				A:        difflib.SplitLines(gotCode.String()),
-				B:        difflib.SplitLines(string(wantCode)),
-				FromFile: "got",
-				ToFile:   "want",
-				Context:  3,
-				Eol:      "\n",
-			}
-			diffr, _ := difflib.GetUnifiedDiffString(diff)
+			diff, _ := generateUnifiedDiff(gotCode.String(), string(wantCode))
 			t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct code (file: %v), diff:\n%s",
-				tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diffr)
+				tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diff)
 		}
 	}
 }
@@ -654,12 +632,7 @@ func TestFindRootEntries(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, wantChildren := range map[bool][]string{true: tt.wantCompressRootChildren, false: tt.wantUncompressRootChildren} {
-			cg := NewYANGCodeGenerator(&GeneratorConfig{
-				CompressOCPaths: compress,
-				FakeRootName:    tt.inRootName,
-			})
-
-			if err := cg.createFakeRoot(tt.inStructs, tt.inRootElems); err != nil {
+			if err := createFakeRoot(tt.inStructs, tt.inRootElems, tt.inRootName, compress); err != nil {
 				t.Errorf("%s: cg.createFakeRoot(%v), CompressOCPaths: %v, got unexpected error: %v", tt.name, tt.inStructs, compress, err)
 				continue
 			}
@@ -689,4 +662,97 @@ func TestFindRootEntries(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestGenerateProto3(t *testing.T) {
+	tests := []struct {
+		name           string
+		inFiles        []string
+		inIncludePaths []string
+		inConfig       GeneratorConfig
+		// wantOutputFiles is a map keyed on protobuf package name with a path
+		// to the file that is expected for each package.
+		wantOutputFiles map[string]string
+		wantErr         bool
+	}{{
+		name:     "simple protobuf test with compression",
+		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
+		inConfig: GeneratorConfig{CompressOCPaths: true},
+		wantOutputFiles: map[string]string{
+			"":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.compress.parent.formatted-txt"),
+			"parent": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.compress.parent.child.formatted-txt"),
+		},
+	}, {
+		name:    "simple protobuf test without compression",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
+		wantOutputFiles: map[string]string{
+			"proto_test_a":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.formatted-txt"),
+			"proto_test_a.parent":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.formatted-txt"),
+			"proto_test_a.parent.child": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.child.formatted-txt"),
+		},
+	}}
+
+	for _, tt := range tests {
+		if tt.inConfig.Caller == "" {
+			// Override the caller if it is not set, to ensure that test
+			// output is deterministic.
+			tt.inConfig.Caller = "codegen-tests"
+		}
+
+		cg := NewYANGCodeGenerator(&tt.inConfig)
+		gotProto, err := cg.GenerateProto3(tt.inFiles, tt.inIncludePaths)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: cg.GenerateProto3(%v, %v), config: %v: got unexpected error: %v", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
+			continue
+		}
+
+		if tt.wantErr {
+			continue
+		}
+
+		seenPkg := map[string]bool{}
+		for n := range gotProto.Packages {
+			seenPkg[n] = false
+		}
+
+		for pkg, wantFile := range tt.wantOutputFiles {
+			wantCode, err := ioutil.ReadFile(wantFile)
+			if err != nil {
+				t.Errorf("%s: ioutil.ReadFile(%v): could not read file for package %s", tt.name, wantFile, pkg)
+				continue
+			}
+
+			gotPkg, ok := gotProto.Packages[pkg]
+			if !ok {
+				t.Errorf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, gotProto.Packages, pkg)
+				continue
+			}
+
+			// Mark this package as having been seen.
+			seenPkg[pkg] = true
+
+			// Write the returned struct out to a buffer to compare with the
+			// testdata file.
+			var gotCodeBuf bytes.Buffer
+			fmt.Fprintf(&gotCodeBuf, gotPkg.Header)
+
+			for _, gotMsg := range gotPkg.Messages {
+				fmt.Fprintf(&gotCodeBuf, "%v\n", gotMsg)
+			}
+
+			if diff := pretty.Compare(gotCodeBuf.String(), string(wantCode)); diff != "" {
+				if diffl, _ := generateUnifiedDiff(gotCodeBuf.String(), string(wantCode)); diffl != "" {
+					diff = diffl
+				}
+				t.Errorf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-got,+want):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
+			}
+		}
+
+		for pkg, seen := range seenPkg {
+			if !seen {
+				t.Errorf("%s: cg.GenerateProto3(%v, %v) did not test received package %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg)
+			}
+		}
+	}
+
 }

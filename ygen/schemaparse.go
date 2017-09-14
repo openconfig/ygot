@@ -63,9 +63,5 @@ func BytesToGoByteSlice(b []byte) []string {
 		bstr.Reset()
 	}
 
-	if bstr.Len() != 0 {
-		lines = append(lines, bstr.String())
-	}
-
 	return lines
 }

@@ -17,6 +17,7 @@ package ygen
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -296,7 +297,7 @@ func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
 	tn := reflect.TypeOf(destStruct).Elem().Name()
 	schema, ok := SchemaTree[tn]
 	if !ok {
-		return fmt.Errorf("could not find schema for type %%s", tn )
+		return fmt.Errorf("could not find schema for type %s", tn )
 	}
 	var jsonTree interface{}
 	if err := json.Unmarshal([]byte(data), &jsonTree); err != nil {
@@ -458,7 +459,7 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 	// list. Keyed YANG lists do not allow duplicate keys to
 	// be created.
 	if _, ok := t.{{ .ListName }}[key]; ok {
-		return nil, fmt.Errorf("duplicate key %%v for list {{ .ListName }}", key)
+		return nil, fmt.Errorf("duplicate key %v for list {{ .ListName }}", key)
 	}
 
 	t.{{ .ListName }}[key] = &{{ .ListType }}{
@@ -548,7 +549,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		return &{{ $intfName }}_{{ $typeName }}{v}, nil
 	{{ end -}}
 	default:
-		return nil, fmt.Errorf("cannot convert %%v to {{ .Name }}, unknown union type, got: %%T, want any of [
+		return nil, fmt.Errorf("cannot convert %v to {{ .Name }}, unknown union type, got: %T, want any of [
 		{{- $length := len .TypeNames -}}
 		{{- range $i, $type := .TypeNames -}}
 			{{ $type }}
@@ -581,6 +582,9 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		// it with a comma in a list of arguments).
 		"inc": func(i int) int {
 			return i + 1
+		},
+		"filepathJoin": func(root, path string) string {
+			return filepath.Join(append(strings.Split(root, "/"), path)...)
 		},
 	}
 )
@@ -735,7 +739,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			// This is a YANG container, so it is represented in code using a pointer to the struct type that
 			// is defined for the entity. findMappableEntities has already determined which fields are to
 			// be output, so no filtering of the set of fields is required here.
-			structName, ok := state.uniqueStructNames[field.Path()]
+			structName, ok := state.uniqueDirectoryNames[field.Path()]
 			if !ok {
 				errs = append(errs, fmt.Errorf("could not resolve %s into a defined struct", field.Path()))
 				continue
@@ -959,7 +963,7 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 	// this function being called (as all mappable entities, which includes lists, have been found.
 	// Thus, in the case that this struct does not have a known name, then code cannot be generated
 	// for it, and hence we skip the element.
-	listName, ok := state.uniqueStructNames[listField.Path()]
+	listName, ok := state.uniqueDirectoryNames[listField.Path()]
 	if !ok {
 		return "", nil, nil, fmt.Errorf("list element %s did not have a resolved name", listField.Path())
 	}
