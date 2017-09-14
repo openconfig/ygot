@@ -155,14 +155,8 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, basePackageNa
 //
 // The mappedType's unionTypes can be output through a template into the oneof.
 func (s *genState) protoUnionType(args resolveTypeArgs, basePackageName, enumPackageName string) (*mappedType, error) {
-	var errs []error
 	unionTypes := make(map[string]int)
-	// Extract the subtypes that are defined into map, keyed on the union type.
-	for _, subtype := range args.yangType.Type {
-		errs = append(errs, s.protoUnionSubTypes(subtype, args.contextEntry, unionTypes, basePackageName, enumPackageName)...)
-	}
-
-	if errs != nil {
+	if errs := s.protoUnionSubTypes(args.yangType, args.contextEntry, unionTypes, basePackageName, enumPackageName); errs != nil {
 		return nil, fmt.Errorf("errors mapping element: %v", errs)
 	}
 
@@ -176,7 +170,6 @@ func (s *genState) protoUnionType(args resolveTypeArgs, basePackageName, enumPac
 // mapping subtypes.
 func (s *genState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, basePackageName, enumPackageName string) []error {
 	var errs []error
-	// If subtype.Type is not empty, then this is a union itself.
 	if isUnionType(subtype) {
 		for _, st := range subtype.Type {
 			errs = append(errs, s.protoUnionSubTypes(st, ctx, currentTypes, basePackageName, enumPackageName)...)
