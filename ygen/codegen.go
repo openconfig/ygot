@@ -149,7 +149,7 @@ type yangDirectory struct {
 type yangListAttr struct {
 	// keys is a map, keyed by the name of the key leaf, with values of the type
 	// of the key of a YANG list.
-	keys map[string]mappedType
+	keys map[string]*mappedType
 	// keyElems is a slice containing the pointers to yang.Entry structs that
 	// make up the list key.
 	keyElems []*yang.Entry
@@ -158,8 +158,8 @@ type yangListAttr struct {
 // yangEnum represents an enumerated type in YANG that is to be output in the
 // Go code. The enumerated type may be a YANG 'identity' or enumeration.
 type yangEnum struct {
-	name  string      // The name of the enumeration or identity.
-	entry *yang.Entry // The yang.Entry corresponding to the enumerated value.
+	name  string      // name is the name of the enumeration or identity.
+	entry *yang.Entry // entry is the yang.Entry corresponding to the enumerated value.
 }
 
 // GeneratedGoCode contains generated code snippets that can be processed by the calling
