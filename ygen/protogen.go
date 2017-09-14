@@ -430,7 +430,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 	var errs []error
 	var genEnums []string
 	for _, enum := range enums {
-		if enum.entry.Type.Kind == yang.Yenum && enum.entry.Type.Name == "enumeration" || enum.entry.Type.Kind == yang.Yunion {
+		if isSimpleEnumerationType(enum.entry.Type) || enum.entry.Type.Kind == yang.Yunion {
 			// Skip simple enumerations and those within unions.
 			continue
 		}
