@@ -23,6 +23,13 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+const (
+	// goEnumPrefix is the prefix that is used for type names in the output
+	// Go code, such that an enumeration's name is of the form
+	//   <goEnumPrefix><EnumName>
+	goEnumPrefix string = "E_"
+)
+
 // goCodeElements contains a definition of the entities within the YANG model
 // that will be written out to Go code.
 type goCodeElements struct {
@@ -34,13 +41,13 @@ type goCodeElements struct {
 	// struct.
 	structs map[string]*yangDirectory
 	// enums is a map of the enumerated values that are to be written out
-	// in the Go code from the YANG schema. Each is described by a yangGoEnum
+	// in the Go code from the YANG schema. Each is described by a yangEnum
 	// struct, and the map is keyed by the enumerated value identifier. For
 	// an in-line enumeration in the YANG, this identifier is the enumeration
 	// leaf's path; for a typedef it is the name of the typedef (which
 	// represents an enumeration or identityref); and for an identitref it
 	// is the name of the base of the identityref.
-	enums map[string]*yangGoEnum
+	enums map[string]*yangEnum
 }
 
 // mappedType is used to store the Go type that a leaf entity in YANG is
@@ -450,45 +457,47 @@ func addNewChild(m map[string]*yang.Entry, k string, v *yang.Entry, errs []error
 // pointer to the YangType; and optionally context required to resolve the name
 // of the type. The compressOCPaths argument specifies whether compression of
 // OpenConfig paths is to be enabled.
-func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) (mappedType, error) {
+func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) (*mappedType, error) {
 	// Handle the case of a typedef which is actually an enumeration.
-	mtype, err := s.enumeratedTypedefTypeName(args)
-	switch {
-	case mtype != nil:
+	mtype, err := s.enumeratedTypedefTypeName(args, goEnumPrefix)
+	if err != nil {
+		// err is non nil when this was a typedef which included
+		// an invalid enumerated type.
+		return nil, err
+	}
+
+	if mtype != nil {
 		// mtype is set to non-nil when this was a valid enumeration
 		// within a typedef.
-		return *mtype, nil
-	case err != nil:
-		// err is non nil when this was a typedef which included
-		return mappedType{}, err
+		return mtype, nil
 	}
 
 	// Perform the actual mapping of the type to the Go type.
 	switch args.yangType.Kind {
 	case yang.Yint8:
-		return mappedType{nativeType: "int8"}, nil
+		return &mappedType{nativeType: "int8"}, nil
 	case yang.Yint16:
-		return mappedType{nativeType: "int16"}, nil
+		return &mappedType{nativeType: "int16"}, nil
 	case yang.Yint32:
-		return mappedType{nativeType: "int32"}, nil
+		return &mappedType{nativeType: "int32"}, nil
 	case yang.Yint64:
-		return mappedType{nativeType: "int64"}, nil
+		return &mappedType{nativeType: "int64"}, nil
 	case yang.Yuint8:
-		return mappedType{nativeType: "uint8"}, nil
+		return &mappedType{nativeType: "uint8"}, nil
 	case yang.Yuint16:
-		return mappedType{nativeType: "uint16"}, nil
+		return &mappedType{nativeType: "uint16"}, nil
 	case yang.Yuint32:
-		return mappedType{nativeType: "uint32"}, nil
+		return &mappedType{nativeType: "uint32"}, nil
 	case yang.Yuint64:
-		return mappedType{nativeType: "uint64"}, nil
+		return &mappedType{nativeType: "uint64"}, nil
 	case yang.Ybool:
-		return mappedType{nativeType: "bool"}, nil
+		return &mappedType{nativeType: "bool"}, nil
 	case yang.Yempty:
 		// Empty is a YANG type that either exists or doesn't, therefore
 		// map it to a boolean to indicate its presence or not.
-		return mappedType{nativeType: "bool"}, nil
+		return &mappedType{nativeType: "bool"}, nil
 	case yang.Ystring:
-		return mappedType{nativeType: "string"}, nil
+		return &mappedType{nativeType: "string"}, nil
 	case yang.Yunion:
 		// A YANG Union is a leaf that can take multiple values - its subtypes need
 		// to be extracted.
@@ -498,9 +507,9 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		// that a created enumered Go type can be used to set their value. Hand
 		// the leaf to the resolveEnumName function to determine the name.
 		if args.contextEntry == nil {
-			return mappedType{}, fmt.Errorf("cannot map enum without context")
+			return nil, fmt.Errorf("cannot map enum without context")
 		}
-		return mappedType{
+		return &mappedType{
 			nativeType:        fmt.Sprintf("E_%s", s.resolveEnumName(args.contextEntry, compressOCPaths)),
 			isEnumeratedValue: true,
 		}, nil
@@ -509,33 +518,33 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		// refer to - this is stored in the IdentityBase field of the context leaf
 		// which is determined by the resolveIdentityRefBaseType.
 		if args.contextEntry == nil {
-			return mappedType{}, fmt.Errorf("cannot map identityref without context")
+			return nil, fmt.Errorf("cannot map identityref without context")
 		}
-		return mappedType{
+		return &mappedType{
 			nativeType:        fmt.Sprintf("E_%s", s.resolveIdentityRefBaseType(args.contextEntry)),
 			isEnumeratedValue: true,
 		}, nil
 	case yang.Ydecimal64:
-		return mappedType{nativeType: "float64"}, nil
+		return &mappedType{nativeType: "float64"}, nil
 	case yang.Yleafref:
 		// This is a leafref, so we check what the type of the leaf that it
 		// references is by looking it up in the schematree.
 		target, err := s.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
-			return mappedType{}, err
+			return nil, err
 		}
 		return s.yangTypeToGoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths)
 	case yang.Ybinary:
 		// Map binary fields to the Binary type defined in the output code,
 		// this is used to ensure that we can distinguish a binary field from
 		// a leaf-list of uint8s which is not possible if mapping to []byte.
-		return mappedType{nativeType: ygot.BinaryTypeName}, nil
+		return &mappedType{nativeType: ygot.BinaryTypeName}, nil
 	default:
 		// Return an empty interface for the types that we do not currently
 		// support. Back-end validation is required for these types.
 		// TODO(robjs): Missing types currently bits. These
 		// should be added.
-		return mappedType{nativeType: "interface{}"}, nil
+		return &mappedType{nativeType: "interface{}"}, nil
 	}
 }
 
@@ -569,7 +578,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 // is enabled such that the name of enumerated types can be calculated correctly.
 //
 // goUnionType returns an error if mapping is not possible.
-func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (mappedType, error) {
+func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*mappedType, error) {
 	var errs []error
 	unionTypes := make(map[string]int)
 
@@ -582,7 +591,7 @@ func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (mapp
 	}
 
 	if errs != nil {
-		return mappedType{}, fmt.Errorf("errors mapping element: %v", errs)
+		return nil, fmt.Errorf("errors mapping element: %v", errs)
 	}
 
 	nativeType := fmt.Sprintf("%s_Union", s.pathToCamelCaseName(args.contextEntry, compressOCPaths, false))
@@ -592,7 +601,7 @@ func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (mapp
 		}
 	}
 
-	return mappedType{
+	return &mappedType{
 		nativeType: nativeType,
 		unionTypes: unionTypes,
 	}, nil
@@ -616,14 +625,14 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 		return errs
 	}
 
-	var mtype mappedType
+	var mtype *mappedType
 	switch subtype.Kind {
 	case yang.Yidentityref:
 		// Handle the specific case that the context entry is now not the correct entry
 		// to map enumerated types to their module. This occurs in the case that the subtype
 		// is an identityref - in this case, the context entry that we are carrying is the
 		// leaf that refers to the union, not the specific subtype that is now being examined.
-		mtype = mappedType{
+		mtype = &mappedType{
 			nativeType: fmt.Sprintf("E_%s", s.identityrefBaseTypeFromIdentity(subtype.IdentityBase)),
 		}
 	default:
@@ -669,7 +678,7 @@ func (s *genState) buildListKey(e *yang.Entry, compressOCPaths bool) (*yangListA
 	}
 
 	listattr := &yangListAttr{
-		keys: make(map[string]mappedType),
+		keys: make(map[string]*mappedType),
 	}
 
 	var errs []error

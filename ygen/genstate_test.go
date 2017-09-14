@@ -30,8 +30,8 @@ func TestFindEnumSet(t *testing.T) {
 	tests := []struct {
 		name             string
 		in               map[string]*yang.Entry
-		wantCompressed   map[string]*yangGoEnum
-		wantUncompressed map[string]*yangGoEnum
+		wantCompressed   map[string]*yangEnum
+		wantUncompressed map[string]*yangEnum
 		wantSame         bool // Whether to expect same compressed/uncompressed output
 		wantErr          bool
 	}{{
@@ -62,7 +62,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: map[string]*yangGoEnum{
+		wantCompressed: map[string]*yangEnum{
 			"TestModule_BaseIdentity": {
 				name: "TestModule_BaseIdentity",
 				entry: &yang.Entry{
@@ -135,7 +135,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: map[string]*yangGoEnum{
+		wantCompressed: map[string]*yangEnum{
 			"BaseModule_Container_EnumerationLeaf": {
 				name: "BaseModule_Container_EnumerationLeaf",
 				entry: &yang.Entry{
@@ -146,7 +146,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantUncompressed: map[string]*yangGoEnum{
+		wantUncompressed: map[string]*yangEnum{
 			"BaseModule_Container_State_EnumerationLeaf": {
 				name: "BaseModule_Container_State_EnumerationLeaf",
 				entry: &yang.Entry{
@@ -215,7 +215,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: map[string]*yangGoEnum{
+		wantCompressed: map[string]*yangEnum{
 			"BaseModule_DerivedEnumeration": {
 				name: "BaseModule_DerivedEnumeration",
 				entry: &yang.Entry{
@@ -254,7 +254,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: map[string]*yangGoEnum{
+		wantCompressed: map[string]*yangEnum{
 			"BaseModule_Derived_Enum": {
 				name: "BaseModule_Derived_Enum",
 				entry: &yang.Entry{
@@ -304,7 +304,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: map[string]*yangGoEnum{
+		wantCompressed: map[string]*yangEnum{
 			"BaseModule_DerivedUnionEnum": {
 				name: "BaseModule_DerivedUnionEnum",
 				entry: &yang.Entry{
@@ -354,7 +354,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: map[string]*yangGoEnum{
+		wantCompressed: map[string]*yangEnum{
 			"BaseModule_DerivedIdentityref": {
 				name: "BaseModule_DerivedIdentityref",
 				entry: &yang.Entry{
@@ -414,7 +414,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: map[string]*yangGoEnum{
+		wantCompressed: map[string]*yangEnum{
 			"BaseModule_BaseIdentity": {
 				name: "BaseModule_BaseIdentity",
 				entry: &yang.Entry{
@@ -463,7 +463,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: map[string]*yangGoEnum{
+		wantCompressed: map[string]*yangEnum{
 			"BaseModule_BaseIdentity": {
 				name: "BaseModule_BaseIdentity",
 				entry: &yang.Entry{
@@ -519,7 +519,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: map[string]*yangGoEnum{
+		wantCompressed: map[string]*yangEnum{
 			"BaseModule_BaseIdentity": {
 				name: "BaseModule_BaseIdentity",
 				entry: &yang.Entry{
@@ -657,7 +657,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: map[string]*yangGoEnum{
+		wantCompressed: map[string]*yangEnum{
 			"BaseModule_Container_E": {
 				name: "BaseModule_Container_E",
 				entry: &yang.Entry{
@@ -699,7 +699,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantUncompressed: map[string]*yangGoEnum{
+		wantUncompressed: map[string]*yangEnum{
 			"BaseModule_Container_State_E": {
 				name: "BaseModule_Container_State_E",
 				entry: &yang.Entry{
@@ -743,13 +743,13 @@ func TestFindEnumSet(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		var wantUncompressed map[string]*yangGoEnum
+		var wantUncompressed map[string]*yangEnum
 		if tt.wantSame {
 			wantUncompressed = tt.wantCompressed
 		} else {
 			wantUncompressed = tt.wantUncompressed
 		}
-		for compressed, wanted := range map[bool]map[string]*yangGoEnum{true: tt.wantCompressed, false: wantUncompressed} {
+		for compressed, wanted := range map[bool]map[string]*yangEnum{true: tt.wantCompressed, false: wantUncompressed} {
 			cg := NewYANGCodeGenerator(&GeneratorConfig{
 				CompressOCPaths: compressed,
 			})

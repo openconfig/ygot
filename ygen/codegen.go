@@ -110,6 +110,11 @@ type ProtoOpts struct {
 	// BaseImportPath stores the root URL or path for imports that are
 	// relative within the imported protobufs.
 	BaseImportPath string
+	// EnumPackageName stores the package name that should be used
+	// for the package that defines enumerated types that are used
+	// in multiple parts of the schema (identityrefs, and enumerations)
+	// that fall within type definitions.
+	EnumPackageName string
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -144,17 +149,17 @@ type yangDirectory struct {
 type yangListAttr struct {
 	// keys is a map, keyed by the name of the key leaf, with values of the type
 	// of the key of a YANG list.
-	keys map[string]mappedType
+	keys map[string]*mappedType
 	// keyElems is a slice containing the pointers to yang.Entry structs that
 	// make up the list key.
 	keyElems []*yang.Entry
 }
 
-// yangGoEnum represents an enumerated type in YANG that is to be output in the
+// yangEnum represents an enumerated type in YANG that is to be output in the
 // Go code. The enumerated type may be a YANG 'identity' or enumeration.
-type yangGoEnum struct {
-	name  string      // The name of the enumeration or identity.
-	entry *yang.Entry // The yang.Entry corresponding to the enumerated value.
+type yangEnum struct {
+	name  string      // name is the name of the enumeration or identity.
+	entry *yang.Entry // entry is the yang.Entry corresponding to the enumerated value.
 }
 
 // GeneratedGoCode contains generated code snippets that can be processed by the calling
@@ -203,6 +208,7 @@ type GeneratedProto struct {
 type Proto3Package struct {
 	Header   string   // Header is the header text to be used in the package.
 	Messages []string // Messages is a slice of strings containing the set of messages that are within the generated package.
+	Enums    []string // Enums is a slice of string containing the generated set of enumerations within the package.
 }
 
 // YANGCodeGeneratorError is a type implementing error that is returned to the
@@ -330,7 +336,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// the diffs are minimised, similarly to the use of orderedStructNames
 	// above.
 	var orderedEnumNames []string
-	enumNameMap := make(map[string]*yangGoEnum)
+	enumNameMap := make(map[string]*yangEnum)
 	for _, goEnum := range goEnums {
 		orderedEnumNames = append(orderedEnumNames, goEnum.name)
 		enumNameMap[goEnum.name] = goEnum
@@ -407,6 +413,15 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 	cg.state.schematree = mdef.schemaTree
 
+	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths)
+	if errs != nil {
+		return nil, &YANGCodeGeneratorError{Errors: errs}
+	}
+	protoEnums, errs := writeProtoEnums(penums)
+	if errs != nil {
+		return nil, &YANGCodeGeneratorError{Errors: errs}
+	}
+
 	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf)
 
 	if errs != nil {
@@ -434,13 +449,38 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	}
 	sort.Strings(msgPaths)
 
+	basePackageName := cg.Config.ProtoOptions.BasePackageName
+	if basePackageName == "" {
+		basePackageName = defaultBasePackageName
+	}
+	enumPackageName := cg.Config.ProtoOptions.EnumPackageName
+	if enumPackageName == "" {
+		enumPackageName = defaultEnumPackageName
+	}
+
+	// Only create the enums package if there are enums that are within the schema.
+	if len(protoEnums) > 0 {
+		// Sort the set of enumerations so that they are deterministically output.
+		sort.Strings(protoEnums)
+		genProto.Packages[fmt.Sprintf("%s.%s", basePackageName, enumPackageName)] = Proto3Package{
+			Enums: protoEnums,
+		}
+	}
+
 	for _, n := range msgPaths {
 		m := msgMap[n]
 
-		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths)
-		if len(errs) > 0 {
+		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths, basePackageName, enumPackageName)
+		if errs != nil {
 			ye.Errors = append(ye.Errors, errs...)
+			continue
 		}
+		if genMsg.packageName == "" {
+			genMsg.packageName = basePackageName
+		} else {
+			genMsg.packageName = fmt.Sprintf("%s.%s", basePackageName, genMsg.packageName)
+		}
+
 		if _, ok := pkgImports[genMsg.packageName]; !ok {
 			pkgImports[genMsg.packageName] = map[string]interface{}{}
 		}
@@ -463,7 +503,6 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	for n, pkg := range genProto.Packages {
 		h, err := writeProto3Header(proto3Header{
 			PackageName:            n,
-			BasePackageName:        cg.Config.ProtoOptions.BasePackageName,
 			BaseImportPath:         cg.Config.ProtoOptions.BaseImportPath,
 			Imports:                stringKeys(pkgImports[n]),
 			SourceYANGFiles:        yangFiles,

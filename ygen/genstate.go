@@ -104,18 +104,18 @@ func newGenState() *genState {
 
 // enumeratedUnionEntry takes an input YANG union yang.Entry and returns the set of enumerated
 // values that should be generated for the entry. New yang.Entry instances are synthesised within
-// the yangGoEnums returned such that enumerations can be generated directly from the output of
+// the yangEnums returned such that enumerations can be generated directly from the output of
 // this function in common with enumerations that are not within a union. The name of the enumerated
 // value is calculated based on the original context, and whether path compression is enabled based
 // on the compressPaths boolean.
-func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths bool) ([]*yangGoEnum, error) {
-	var es []*yangGoEnum
+func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths bool) ([]*yangEnum, error) {
+	var es []*yangEnum
 
 	for _, t := range enumeratedUnionTypes(e.Type.Type) {
-		var en *yangGoEnum
+		var en *yangEnum
 		switch {
 		case t.IdentityBase != nil:
-			en = &yangGoEnum{
+			en = &yangEnum{
 				name: s.identityrefBaseTypeFromIdentity(t.IdentityBase),
 				entry: &yang.Entry{
 					Name: e.Name,
@@ -136,7 +136,7 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths bool) ([]*y
 				}
 			}
 
-			en = &yangGoEnum{
+			en = &yangEnum{
 				name: enumName,
 				entry: &yang.Entry{
 					Name: e.Name,
@@ -229,7 +229,7 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 // code generation is required for each enum. Particularly, it removes
 // duplication between config and state containers when compressPaths is true.
 // It also de-dups references to the same identity base, and type definitions.
-func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths bool) (map[string]*yangGoEnum, []error) {
+func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths bool) (map[string]*yangEnum, []error) {
 	validEnums := make(map[string]*yang.Entry)
 	var enumNames []string
 	var errs []error
@@ -284,7 +284,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 
 	// Sort the list of enums such that we can ensure when there is deduplication then the same
 	// source entity is used for code generation.
-	genEnums := make(map[string]*yangGoEnum)
+	genEnums := make(map[string]*yangEnum)
 	for _, eN := range enumNames {
 		e := validEnums[eN]
 		_, builtin := yang.TypeKindFromName[e.Type.Name]
@@ -314,7 +314,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 			}
 			idBaseName := s.resolveIdentityRefBaseType(e)
 			if _, ok := genEnums[idBaseName]; !ok {
-				genEnums[idBaseName] = &yangGoEnum{
+				genEnums[idBaseName] = &yangEnum{
 					name:  idBaseName,
 					entry: e,
 				}
@@ -328,7 +328,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 			// occur, we simply perform de-duplication at this stage.
 			enumName := s.resolveEnumName(e, compressPaths)
 			if _, ok := genEnums[enumName]; !ok {
-				genEnums[enumName] = &yangGoEnum{
+				genEnums[enumName] = &yangEnum{
 					name:  enumName,
 					entry: e,
 				}
@@ -341,7 +341,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 				continue
 			}
 			if _, ok := genEnums[typeName]; !ok {
-				genEnums[typeName] = &yangGoEnum{
+				genEnums[typeName] = &yangEnum{
 					name:  typeName,
 					entry: e,
 				}
@@ -492,12 +492,14 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry) (string, error) {
 	return uniqueName, nil
 }
 
-// enumeratedTypedefTypeName resolves the name of an enumerated typedef (i.e., a typedef which is either
-// an identityref or an enumeration). If the type that was supplied within the resolveTypeArgs struct
-// is not a type definition which includes an enumerated type, the mappedType returned is nil, otherwise
-// it is populated. It returns an error if the type does include an enumerated typedef, but this typedef is
-// invalid.
-func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs) (*mappedType, error) {
+// enumeratedTypedefTypeName resolves the name of an enumerated typedef (i.e.,
+// a typedef which is either an identityref or an enumeration). The resolved
+// name is prefixed with the prefix supplied. If the type that was supplied
+// within the resolveTypeArgs struct is not a type definition which includes an
+// enumerated type, the mappedType returned is nil, otherwise it is populated.
+// It returns an error if the type does include an enumerated typedef, but this
+// typedef is invalid.
+func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string) (*mappedType, error) {
 	// If the type that is specified is not a built-in type (i.e., one of those
 	// types which is defined in RFC6020/RFC7950) then we establish what the type
 	// that we must actually perform the mapping for is. By default, start with
@@ -518,7 +520,7 @@ func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs) (*mappedType,
 			}
 
 			return &mappedType{
-				nativeType:        fmt.Sprintf("E_%s", tn),
+				nativeType:        fmt.Sprintf("%s%s", prefix, tn),
 				isEnumeratedValue: true,
 			}, nil
 		}

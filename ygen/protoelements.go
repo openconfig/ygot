@@ -29,7 +29,18 @@ import (
 // can be distinguished from one set to the nil value.
 //
 // TODO(robjs): Add a link to the translation specification when published.
-func (s *genState) yangTypeToProtoType(args resolveTypeArgs) (*mappedType, error) {
+func (s *genState) yangTypeToProtoType(args resolveTypeArgs, basePackageName, enumPackageName string) (*mappedType, error) {
+	// Handle typedef cases.
+	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", basePackageName, enumPackageName))
+	if err != nil {
+		return nil, err
+	}
+	if mtype != nil {
+		// mtype is set to non-nil when this was a valid enumeration
+		// within a typedef.
+		return mtype, nil
+	}
+
 	switch args.yangType.Kind {
 	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:
 		return &mappedType{nativeType: "ywrapper.IntValue"}, nil
@@ -48,7 +59,7 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs) (*mappedType, error
 		if err != nil {
 			return nil, err
 		}
-		return s.yangTypeToProtoType(resolveTypeArgs{yangType: target.Type, contextEntry: target})
+		return s.yangTypeToProtoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, basePackageName, enumPackageName)
 	case yang.Yenum:
 		// Return any enumeration simply as the leaf's CamelCase name
 		// since it will be mapped to the correct name at output file to ensure
@@ -58,10 +69,18 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs) (*mappedType, error
 			return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
 		}
 		return &mappedType{nativeType: yang.CamelCase(args.contextEntry.Name)}, nil
+	case yang.Yidentityref:
+		// TODO(https://github.com/openconfig/ygot/issues/33) - refactor to allow
+		// this call outside of the switch.
+		if args.contextEntry == nil {
+			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
+		}
+		return &mappedType{
+			nativeType: fmt.Sprintf("%s.%s.%s", basePackageName, enumPackageName, s.resolveIdentityRefBaseType(args.contextEntry)),
+		}, nil
 	default:
 		// TODO(robjs): Implement types that are missing within this function.
 		// Missing types are:
-		//  - identityref
 		//  - binary
 		//  - bits
 		//  - union
@@ -161,7 +180,7 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 			// we also exclude it from the package name.
 			continue
 		}
-		parts = append(parts, safeProtoFieldName(p.Name))
+		parts = append(parts, safeProtoIdentifierName(p.Name))
 	}
 
 	// Reverse the slice since we traversed from leaf back to root.
@@ -170,7 +189,7 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 	}
 
 	// Make the name unique since foo.bar.baz-bat and foo.bar.baz_bat will
-	// become the same name in the safeProtoName transformation above.
+	// become the same name in the safeProtoIdentifierName transformation above.
 	n := makeNameUnique(strings.Join(parts, "."), s.definedGlobals)
 	s.definedGlobals[n] = true
 

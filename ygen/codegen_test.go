@@ -679,33 +679,50 @@ func TestGenerateProto3(t *testing.T) {
 		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
 		inConfig: GeneratorConfig{CompressOCPaths: true},
 		wantOutputFiles: map[string]string{
-			"":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.compress.parent.formatted-txt"),
-			"parent": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.compress.parent.child.formatted-txt"),
+			"openconfig":        filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.compress.parent.formatted-txt"),
+			"openconfig.parent": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.compress.parent.child.formatted-txt"),
 		},
 	}, {
 		name:    "simple protobuf test without compression",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
 		wantOutputFiles: map[string]string{
-			"proto_test_a":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.formatted-txt"),
-			"proto_test_a.parent":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.formatted-txt"),
-			"proto_test_a.parent.child": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.child.formatted-txt"),
+			"openconfig.proto_test_a":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.formatted-txt"),
+			"openconfig.proto_test_a.parent":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.formatted-txt"),
+			"openconfig.proto_test_a.parent.child": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.child.formatted-txt"),
 		},
 	}, {
 		name:     "yang schema with a list",
 		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.yang")},
 		inConfig: GeneratorConfig{CompressOCPaths: true},
 		wantOutputFiles: map[string]string{
-			"":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.formatted-txt"),
-			"device": filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.device.formatted-txt"),
+			"openconfig":        filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.formatted-txt"),
+			"openconfig.device": filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.device.formatted-txt"),
 		},
 	}, {
 		name:    "yang schema with simple enumerations",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.yang")},
 		wantOutputFiles: map[string]string{
-			"proto_test_c":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.formatted-txt"),
-			"proto_test_c.entity":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.entity.formatted-txt"),
-			"proto_test_c.elists":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.formatted-txt"),
-			"proto_test_c.elists.elist": filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.elist.formatted-txt"),
+			"openconfig.proto_test_c":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.formatted-txt"),
+			"openconfig.proto_test_c.entity":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.entity.formatted-txt"),
+			"openconfig.proto_test_c.elists":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.formatted-txt"),
+			"openconfig.proto_test_c.elists.elist": filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.elist.formatted-txt"),
+		},
+	}, {
+		name:    "yang schema with identityref and enumerated typedef, compression off",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-d.yang")},
+		wantOutputFiles: map[string]string{
+			"openconfig.proto_test_d":      filepath.Join(TestRoot, "testdata", "proto", "proto-test-d.uncompressed.proto-test-d.formatted-txt"),
+			"openconfig.proto_test_d.test": filepath.Join(TestRoot, "testdata", "proto", "proto-test-d.uncompressed.proto-test-d.test.formatted-txt"),
+			"openconfig.enums":             filepath.Join(TestRoot, "testdata", "proto", "proto-test-d.uncompressed.enums.formatted-txt"),
+		},
+	}, {
+		name:    "yang schema with simple enumerations",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.yang")},
+		wantOutputFiles: map[string]string{
+			"openconfig.proto_test_c":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.formatted-txt"),
+			"openconfig.proto_test_c.entity":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.entity.formatted-txt"),
+			"openconfig.proto_test_c.elists":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.formatted-txt"),
+			"openconfig.proto_test_c.elists.elist": filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.elist.formatted-txt"),
 		},
 	}}
 
@@ -763,6 +780,10 @@ func TestGenerateProto3(t *testing.T) {
 
 			for _, gotMsg := range gotPkg.Messages {
 				fmt.Fprintf(&gotCodeBuf, "%v", gotMsg)
+			}
+
+			for _, gotEnum := range gotPkg.Enums {
+				fmt.Fprintf(&gotCodeBuf, "%v", gotEnum)
 			}
 
 			if diff := pretty.Compare(gotCodeBuf.String(), string(wantCode)); diff != "" {

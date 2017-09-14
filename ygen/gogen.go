@@ -1033,13 +1033,13 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 	return listType, multiListKey, listMethodSpec, nil
 }
 
-// writeGoEnum takes an input yangGoEnum, and generates the code corresponding
+// writeGoEnum takes an input yangEnum, and generates the code corresponding
 // to it. If the enum that is input has multiple enumerated types within it
 // (i.e., is a union) then the relevant enumerated type is output for each
 // included entity. If errors are encountered whilst mapping the enumeration to
 // code, they are returned. The enumDefinition template is used to convert a
 // constructed generatedGoEnumeration struct to code within the function.
-func writeGoEnum(inputEnum *yangGoEnum) (goEnumCodeSnippet, error) {
+func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 	// initialised to be UNSET, such that it is possible to determine that the enumerated value
 	// was not modified.
 	values := map[int64]string{

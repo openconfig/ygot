@@ -210,6 +210,12 @@ func isEnumerationLeaf(e *yang.Entry) bool {
 	return e.Type.Kind == yang.Yenum && e.Type.Name == "enumeration"
 }
 
+// isIdentityrefLeaf returns true if the supplied yang.Entry represents an
+// identityref.
+func isIdentityrefLeaf(e *yang.Entry) bool {
+	return e.Type.IdentityBase != nil
+}
+
 // slicePathToString takes a path represented as a slice of strings, and outputs
 // it as a single string, with path elements separated by a forward slash.
 func slicePathToString(path []string) string {
