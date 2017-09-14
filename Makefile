@@ -16,5 +16,4 @@ clean:
 deps:
 	go get -t -d ./...
 install: deps generate
-all:
-	clean deps generate test
+all: clean deps generate test
