@@ -49,10 +49,18 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs) (*mappedType, error
 			return nil, err
 		}
 		return s.yangTypeToProtoType(resolveTypeArgs{yangType: target.Type, contextEntry: target})
+	case yang.Yenum:
+		// Return any enumeration simply as the leaf's CamelCase name
+		// since it will be mapped to the correct name at output file to ensure
+		// that there are no collisions. Enumerations are mapped to an embedded
+		// enum within the message.
+		if args.contextEntry == nil {
+			return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
+		}
+		return &mappedType{nativeType: yang.CamelCase(args.contextEntry.Name)}, nil
 	default:
 		// TODO(robjs): Implement types that are missing within this function.
 		// Missing types are:
-		//  - enumeration
 		//  - identityref
 		//  - binary
 		//  - bits
@@ -82,9 +90,17 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs) (*mappedType,
 			return nil, err
 		}
 		return s.yangTypeToProtoScalarType(resolveTypeArgs{yangType: target.Type, contextEntry: target})
+	case yang.Yenum:
+		// Return any enumeration simply as the leaf's CamelCase name
+		// since it will be mapped to the correct name at output file to ensure
+		// that there are no collisions. Enumerations are mapped to an embedded
+		// enum within the message.
+		if args.contextEntry == nil {
+			return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
+		}
+		return &mappedType{nativeType: yang.CamelCase(args.contextEntry.Name)}, nil
 	default:
 		// TODO(robjs): implement missing types.
-		//	- enumeration
 		//	- identityref
 		//	- binary
 		//	- bits

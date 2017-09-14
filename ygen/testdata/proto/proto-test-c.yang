@@ -1,0 +1,78 @@
+module proto-test-c {
+  prefix "proto-c";
+  namespace "urn:proto-c";
+
+  grouping entity-cfg {
+    leaf enumerated-leaf {
+      type enumeration {
+        enum UP;
+        enum DOWN;
+      }
+    }
+
+    leaf enumerated-with-default {
+      type enumeration {
+        enum A;
+        enum B;
+      }
+      default "A";
+    }
+  }
+
+  container entity {
+    container config {
+      uses entity-cfg;
+    }
+    container state {
+      config false;
+      uses entity-cfg;
+    }
+  }
+
+  grouping elist-cfg {
+    leaf one {
+      type enumeration {
+        enum E0;
+        enum E1;
+        enum E42 {
+          value 42;
+        }
+      }
+    }
+
+    leaf two {
+      type string;
+    }
+
+    leaf non-key {
+      type string;
+    }
+  }
+
+  container elists {
+    list elist {
+      key "one two";
+
+      leaf one {
+        type leafref {
+          path "../config/one";
+        }
+      }
+
+      leaf two {
+        type leafref {
+          path "../config/two";
+        }
+      }
+
+      container config {
+        uses elist-cfg;
+      }
+
+      container state {
+        config false;
+        uses elist-cfg;
+      }
+    }
+  }
+}

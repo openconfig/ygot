@@ -698,6 +698,15 @@ func TestGenerateProto3(t *testing.T) {
 			"":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.formatted-txt"),
 			"device": filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.device.formatted-txt"),
 		},
+	}, {
+		name:    "yang schema with simple enumerations",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.yang")},
+		wantOutputFiles: map[string]string{
+			"proto_test_c":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.formatted-txt"),
+			"proto_test_c.entity":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.entity.formatted-txt"),
+			"proto_test_c.elists":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.formatted-txt"),
+			"proto_test_c.elists.elist": filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.elist.formatted-txt"),
+		},
 	}}
 
 	for _, tt := range tests {
@@ -723,6 +732,14 @@ func TestGenerateProto3(t *testing.T) {
 			seenPkg[n] = false
 		}
 
+		protoPkgs := func(m map[string]Proto3Package) []string {
+			a := []string{}
+			for k := range m {
+				a = append(a, k)
+			}
+			return a
+		}
+
 		for pkg, wantFile := range tt.wantOutputFiles {
 			wantCode, err := ioutil.ReadFile(wantFile)
 			if err != nil {
@@ -732,7 +749,7 @@ func TestGenerateProto3(t *testing.T) {
 
 			gotPkg, ok := gotProto.Packages[pkg]
 			if !ok {
-				t.Errorf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, gotProto.Packages, pkg)
+				t.Errorf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
 				continue
 			}
 

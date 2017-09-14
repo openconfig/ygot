@@ -325,6 +325,11 @@ func TestSafeProtoName(t *testing.T) {
 }
 
 func TestWriteProtoMsg(t *testing.T) {
+	// A definition of an enumerated type.
+	enumeratedLeafDef := yang.NewEnumType()
+	enumeratedLeafDef.Set("ONE", int64(1))
+	enumeratedLeafDef.Set("FORTYTWO", int64(42))
+
 	tests := []struct {
 		name              string
 		inMsg             *yangDirectory
@@ -439,6 +444,65 @@ message MessageName {
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
   module.message_name.Child child = 1;
+}
+`,
+		},
+	}, {
+		name: "simple message with an enumeration leaf",
+		inMsg: &yangDirectory{
+			name: "MessageName",
+			entry: &yang.Entry{
+				Name: "message-name",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
+				},
+			},
+			fields: map[string]*yang.Entry{
+				"enum": &yang.Entry{
+					Name: "enum",
+					Kind: yang.LeafEntry,
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Parent: &yang.Entry{
+							Name: "module",
+						},
+					},
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Kind: yang.Yenum,
+						Enum: enumeratedLeafDef,
+					},
+				},
+			},
+			path: []string{"", "module", "message-name"},
+		},
+		wantCompress: generatedProto3Message{
+			packageName: "",
+			messageCode: `
+// MessageName represents the /module/message-name YANG schema element.
+message MessageName {
+  enum Enum {
+    Enum_UNSET = 0;
+    Enum_ONE = 2;
+    Enum_FORTYTWO = 43;
+  }
+  Enum enum = 1;
+}
+`,
+		},
+		wantUncompress: generatedProto3Message{
+			packageName: "module",
+			messageCode: `
+// MessageName represents the /module/message-name YANG schema element.
+message MessageName {
+  enum Enum {
+    Enum_UNSET = 0;
+    Enum_ONE = 2;
+    Enum_FORTYTWO = 43;
+  }
+  Enum enum = 1;
 }
 `,
 		},
