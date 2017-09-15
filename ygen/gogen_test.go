@@ -536,7 +536,7 @@ func (s *QStruct) Validate() error {
 			"/root-module/tstruct/listWithKey": {
 				name: "ListWithKey",
 				listAttr: &yangListAttr{
-					keys: map[string]mappedType{
+					keys: map[string]*mappedType{
 						"keyLeaf": {nativeType: "string"},
 					},
 					keyElems: []*yang.Entry{
@@ -686,7 +686,7 @@ func (s *Tstruct) Validate() error {
 			"/root-module/tstruct/listWithKey": {
 				name: "ListWithKey",
 				listAttr: &yangListAttr{
-					keys: map[string]mappedType{
+					keys: map[string]*mappedType{
 						"keyLeafOne": {nativeType: "string"},
 						"keyLeafTwo": {nativeType: "int8"},
 					},

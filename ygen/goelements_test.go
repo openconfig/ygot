@@ -473,32 +473,40 @@ func TestYangTypeToGoType(t *testing.T) {
 		ctx          *yang.Entry
 		inEntries    []*yang.Entry
 		compressPath bool
-		want         mappedType
+		want         *mappedType
 		wantErr      bool
 	}{{
 		name: "simple lookup resolution",
 		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32"},
-		want: mappedType{nativeType: "int32"},
+		want: &mappedType{nativeType: "int32"},
 	}, {
 		name: "binary lookup resolution",
 		in:   &yang.YangType{Kind: yang.Ybinary, Name: "binary"},
-		want: mappedType{nativeType: "Binary"},
+		want: &mappedType{nativeType: "Binary"},
 	}, {
 		name: "unknown lookup resolution",
 		in:   &yang.YangType{Kind: yang.YinstanceIdentifier, Name: "instanceIdentifier"},
-		want: mappedType{nativeType: "interface{}"},
+		want: &mappedType{nativeType: "interface{}"},
 	}, {
 		name: "simple empty resolution",
 		in:   &yang.YangType{Kind: yang.Yempty, Name: "empty"},
-		want: mappedType{nativeType: "bool"},
+		want: &mappedType{nativeType: "bool"},
 	}, {
 		name: "simple boolean resolution",
 		in:   &yang.YangType{Kind: yang.Ybool, Name: "bool"},
-		want: mappedType{nativeType: "bool"},
+		want: &mappedType{nativeType: "bool"},
 	}, {
 		name: "simple int64 resolution",
 		in:   &yang.YangType{Kind: yang.Yint64, Name: "int64"},
-		want: mappedType{nativeType: "int64"},
+		want: &mappedType{nativeType: "int64"},
+	}, {
+		name: "simple uint8 resolution",
+		in:   &yang.YangType{Kind: yang.Yuint8, Name: "uint8"},
+		want: &mappedType{nativeType: "uint8"},
+	}, {
+		name: "simple uint16 resolution",
+		in:   &yang.YangType{Kind: yang.Yuint16, Name: "uint16"},
+		want: &mappedType{nativeType: "uint16"},
 	}, {
 		name:    "enum without context",
 		in:      &yang.YangType{Kind: yang.Yenum, Name: "enumeration"},
@@ -539,7 +547,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: mappedType{
+		want: &mappedType{
 			nativeType: "Module_Container_Leaf_Union",
 			unionTypes: map[string]int{"string": 0, "int8": 1},
 		},
@@ -552,7 +560,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				{Kind: yang.Ystring, Name: "string"},
 			},
 		},
-		want: mappedType{
+		want: &mappedType{
 			nativeType: "string",
 			unionTypes: map[string]int{"string": 0},
 		},
@@ -571,7 +579,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		want: mappedType{nativeType: "E_BaseModule_DerivedIdentityref", isEnumeratedValue: true},
+		want: &mappedType{nativeType: "E_BaseModule_DerivedIdentityref", isEnumeratedValue: true},
 	}, {
 		name: "enumeration",
 		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration"},
@@ -586,7 +594,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		want: mappedType{nativeType: "E_BaseModule_EnumerationLeaf", isEnumeratedValue: true},
+		want: &mappedType{nativeType: "E_BaseModule_EnumerationLeaf", isEnumeratedValue: true},
 	}, {
 		name: "typedef enumeration",
 		in:   &yang.YangType{Kind: yang.Yenum, Name: "derived-enumeration"},
@@ -602,7 +610,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: mappedType{nativeType: "E_BaseModule_DerivedEnumeration", isEnumeratedValue: true},
+		want: &mappedType{nativeType: "E_BaseModule_DerivedEnumeration", isEnumeratedValue: true},
 	}, {
 		name: "identityref",
 		in:   &yang.YangType{Kind: yang.Yidentityref, Name: "identityref"},
@@ -623,7 +631,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: mappedType{nativeType: "E_TestModule_BaseIdentity", isEnumeratedValue: true},
+		want: &mappedType{nativeType: "E_TestModule_BaseIdentity", isEnumeratedValue: true},
 	}, {
 		name: "enumeration with compress paths",
 		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration"},
@@ -640,7 +648,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		compressPath: true,
-		want:         mappedType{nativeType: "E_BaseModule_Container_Eleaf", isEnumeratedValue: true},
+		want:         &mappedType{nativeType: "E_BaseModule_Container_Eleaf", isEnumeratedValue: true},
 	}, {
 		name: "enumeration in submodule",
 		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration"},
@@ -653,7 +661,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		compressPath: true,
-		want:         mappedType{nativeType: "E_BaseMod_Container_Eleaf", isEnumeratedValue: true},
+		want:         &mappedType{nativeType: "E_BaseMod_Container_Eleaf", isEnumeratedValue: true},
 	}, {
 		name: "leafref",
 		in:   &yang.YangType{Kind: yang.Yleafref, Name: "leafref", Path: "../c"},
@@ -695,7 +703,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Entry{Name: "module"},
 			},
 		},
-		want: mappedType{nativeType: "uint32"},
+		want: &mappedType{nativeType: "uint32"},
 	}}
 
 	for _, tt := range tests {
@@ -720,6 +728,9 @@ func TestYangTypeToGoType(t *testing.T) {
 			continue
 		} else if !tt.wantErr && err != nil {
 			t.Errorf("%s: error returned when mapping type: %v", tt.name, err)
+		}
+
+		if err != nil {
 			continue
 		}
 
@@ -777,7 +788,7 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		want: yangListAttr{
-			keys: map[string]mappedType{
+			keys: map[string]*mappedType{
 				"keyleaf": {nativeType: "string"},
 			},
 			keyElems: []*yang.Entry{
@@ -896,7 +907,7 @@ func TestBuildListKey(t *testing.T) {
 		},
 		inCompress: true,
 		want: yangListAttr{
-			keys: map[string]mappedType{
+			keys: map[string]*mappedType{
 				"keyleafref": {nativeType: "string"},
 			},
 			keyElems: []*yang.Entry{
@@ -924,7 +935,7 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		want: yangListAttr{
-			keys: map[string]mappedType{
+			keys: map[string]*mappedType{
 				"key1": {nativeType: "string"},
 				"key2": {nativeType: "string"},
 			},
@@ -977,7 +988,7 @@ func TestBuildListKey(t *testing.T) {
 		},
 		inCompress: true,
 		want: yangListAttr{
-			keys: map[string]mappedType{
+			keys: map[string]*mappedType{
 				"key1": {nativeType: "string"},
 				"key2": {nativeType: "int8"},
 			},
@@ -1019,7 +1030,7 @@ func TestBuildListKey(t *testing.T) {
 		},
 		inCompress: true,
 		want: yangListAttr{
-			keys: map[string]mappedType{
+			keys: map[string]*mappedType{
 				"keyleafref": {nativeType: "string"},
 			},
 			keyElems: []*yang.Entry{
@@ -1080,7 +1091,7 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		want: yangListAttr{
-			keys: map[string]mappedType{
+			keys: map[string]*mappedType{
 				"keyleafref": {nativeType: "string"},
 			},
 			keyElems: []*yang.Entry{
@@ -1140,7 +1151,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 		inCompressOCPaths bool
 		// wantTypes is a map, keyed by the path of the yang.Entry within inLeaves and
 		// describing the mappedType that is expected to be output.
-		wantTypes map[string]mappedType
+		wantTypes map[string]*mappedType
 	}{{
 		name: "identity with multiple identityref leaves",
 		inLeaves: []*yang.Entry{{
@@ -1180,7 +1191,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 				},
 			},
 		}},
-		wantTypes: map[string]mappedType{
+		wantTypes: map[string]*mappedType{
 			"/test-module/leaf-one": {nativeType: "E_TestModule_BaseIdentity", isEnumeratedValue: true},
 			"/test-module/leaf-two": {nativeType: "E_TestModule_BaseIdentity", isEnumeratedValue: true},
 		},
@@ -1217,7 +1228,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 				},
 			},
 		}},
-		wantTypes: map[string]mappedType{
+		wantTypes: map[string]*mappedType{
 			"/base-module/leaf-one": {nativeType: "E_BaseModule_DefinedType", isEnumeratedValue: true},
 			"/base-module/leaf-two": {nativeType: "E_BaseModule_DefinedType", isEnumeratedValue: true},
 		},
@@ -1225,7 +1236,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 
 	for _, tt := range tests {
 		s := newGenState()
-		gotTypes := make(map[string]mappedType)
+		gotTypes := make(map[string]*mappedType)
 		for _, leaf := range tt.inLeaves {
 			mtype, err := s.yangTypeToGoType(resolveTypeArgs{leaf.Type, leaf}, tt.inCompressOCPaths)
 			if err != nil {
