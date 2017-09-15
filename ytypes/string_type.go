@@ -52,7 +52,8 @@ func validateString(schema *yang.Entry, value interface{}) error {
 		if err != nil {
 			return err
 		}
-		if !r.MatchString(stringVal) {
+		// The entire string must match the regex for success.
+		if r.FindString(stringVal) != stringVal {
 			return fmt.Errorf("%q does not match regular expression pattern %q for schema %s", stringVal, r, schema.Name)
 		}
 	}
