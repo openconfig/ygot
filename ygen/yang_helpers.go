@@ -201,13 +201,13 @@ func isKeyedList(e *yang.Entry) bool {
 	return e.IsList() && e.Key != ""
 }
 
-// isEnumerationLeaf returns true if the supplied yang.Entry represents a simple
-// enumerated leaf (i.e., one defined with type enumeration in the YANG schema).
-// The name "enumeration" is used for the type in these cases, in cases where
-// the leaf uses a type that is a typedef (derived type) to an enumeration
-// the kind will still be yang.Yenum, but the type name will not be enumeration.
-func isEnumerationLeaf(e *yang.Entry) bool {
-	return e.Type.Kind == yang.Yenum && e.Type.Name == "enumeration"
+// isSimpleEnumerationType returns true wen the type supplied is a simple
+// enumeration (i.e., a leaf that is defined as type enumeration { ... },
+// and is not a typedef that contains an enumeration, or a union that
+// contains an enumeration which may have enum values specified. The type
+// name enumeration is used in these cases by goyang.
+func isSimpleEnumerationType(t *yang.YangType) bool {
+	return t.Kind == yang.Yenum && t.Name == "enumeration"
 }
 
 // isIdentityrefLeaf returns true if the supplied yang.Entry represents an

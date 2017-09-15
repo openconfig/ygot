@@ -500,6 +500,14 @@ func TestYangTypeToGoType(t *testing.T) {
 		in:   &yang.YangType{Kind: yang.Yint64, Name: "int64"},
 		want: &mappedType{nativeType: "int64"},
 	}, {
+		name: "simple uint8 resolution",
+		in:   &yang.YangType{Kind: yang.Yuint8, Name: "uint8"},
+		want: &mappedType{nativeType: "uint8"},
+	}, {
+		name: "simple uint16 resolution",
+		in:   &yang.YangType{Kind: yang.Yuint16, Name: "uint16"},
+		want: &mappedType{nativeType: "uint16"},
+	}, {
 		name:    "enum without context",
 		in:      &yang.YangType{Kind: yang.Yenum, Name: "enumeration"},
 		wantErr: true,
