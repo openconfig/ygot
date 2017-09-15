@@ -22,10 +22,12 @@ import (
 
 func TestYangTypeToProtoType(t *testing.T) {
 	tests := []struct {
-		name    string
-		in      []resolveTypeArgs
-		want    *mappedType
-		wantErr bool
+		name        string
+		in          []resolveTypeArgs
+		wantWrapper *mappedType
+		wantScalar  *mappedType
+		wantSame    bool
+		wantErr     bool
 	}{{
 		name: "integer types",
 		in: []resolveTypeArgs{
@@ -34,7 +36,8 @@ func TestYangTypeToProtoType(t *testing.T) {
 			{yangType: &yang.YangType{Kind: yang.Yint32}},
 			{yangType: &yang.YangType{Kind: yang.Yint64}},
 		},
-		want: &mappedType{nativeType: "ywrapper.IntValue"},
+		wantWrapper: &mappedType{nativeType: "ywrapper.IntValue"},
+		wantScalar:  &mappedType{nativeType: "sint64"},
 	}, {
 		name: "unsigned integer types",
 		in: []resolveTypeArgs{
@@ -43,44 +46,185 @@ func TestYangTypeToProtoType(t *testing.T) {
 			{yangType: &yang.YangType{Kind: yang.Yuint32}},
 			{yangType: &yang.YangType{Kind: yang.Yuint64}},
 		},
-		want: &mappedType{nativeType: "ywrapper.UintValue"},
+		wantWrapper: &mappedType{nativeType: "ywrapper.UintValue"},
+		wantScalar:  &mappedType{nativeType: "uint64"},
 	}, {
 		name: "bool types",
 		in: []resolveTypeArgs{
 			{yangType: &yang.YangType{Kind: yang.Ybool}},
 			{yangType: &yang.YangType{Kind: yang.Yempty}},
 		},
-		want: &mappedType{nativeType: "ywrapper.BoolValue"},
+		wantWrapper: &mappedType{nativeType: "ywrapper.BoolValue"},
+		wantScalar:  &mappedType{nativeType: "bool"},
 	}, {
-		name: "string",
-		in:   []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ystring}}},
-		want: &mappedType{nativeType: "ywrapper.StringValue"},
+		name:        "string",
+		in:          []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ystring}}},
+		wantWrapper: &mappedType{nativeType: "ywrapper.StringValue"},
+		wantScalar:  &mappedType{nativeType: "string"},
 	}, {
-		name: "decimal64",
-		in:   []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ydecimal64}}},
-		want: &mappedType{nativeType: "ywrapper.Decimal64Value"},
+		name:        "decimal64",
+		in:          []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ydecimal64}}},
+		wantWrapper: &mappedType{nativeType: "ywrapper.Decimal64Value"},
+		wantSame:    true,
 	}, {
 		name: "unmapped types",
 		in: []resolveTypeArgs{
-			{yangType: &yang.YangType{Kind: yang.Yenum}},
-			{yangType: &yang.YangType{Kind: yang.Yidentityref}},
 			{yangType: &yang.YangType{Kind: yang.Ybinary}},
 			{yangType: &yang.YangType{Kind: yang.Ybits}},
 		},
 		wantErr: true,
+	}, {
+		name: "union of string, uint32",
+		in: []resolveTypeArgs{
+			{
+				yangType: &yang.YangType{
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{
+						{Kind: yang.Ystring, Name: "string"},
+						{Kind: yang.Yuint32, Name: "uint32"},
+					},
+				},
+			},
+		},
+		wantWrapper: &mappedType{unionTypes: map[string]int{"string": 0, "uint64": 1}},
+		wantSame:    true,
+	}, {
+		name: "union with only strings",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{
+					{Kind: yang.Ystring, Name: "string"},
+					{Kind: yang.Ystring, Name: "string"},
+				},
+			},
+		}},
+		wantWrapper: &mappedType{nativeType: "ywrapper.StringValue"},
+		wantSame:    true,
+	}, {
+		name: "derived identityref",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Kind: yang.Yidentityref,
+				Name: "derived-identityref",
+			},
+			contextEntry: &yang.Entry{
+				Type: &yang.YangType{
+					Name: "derived-identityref",
+					IdentityBase: &yang.Identity{
+						Name:   "base-identity",
+						Parent: &yang.Module{Name: "base-module"},
+					},
+				},
+				Node: &yang.Leaf{
+					Parent: &yang.Module{Name: "base-module"},
+				},
+			},
+		}},
+		wantWrapper: &mappedType{
+			nativeType:        "basePackage.enumPackage.BaseModule_DerivedIdentityref",
+			isEnumeratedValue: true,
+		},
+		wantSame: true,
+	}, {
+		name: "enumeration without context",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Kind: yang.Yenum,
+				Name: "enumeration",
+			},
+		}},
+		wantErr: true,
+	}, {
+		name: "enumeration",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Kind: yang.Yenum,
+				Name: "enumeration",
+			},
+			contextEntry: &yang.Entry{
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Parent: &yang.Entry{Name: "base-module"},
+			},
+		}},
+		wantWrapper: &mappedType{
+			nativeType:        "EnumerationLeaf",
+			isEnumeratedValue: true,
+		},
+		wantSame: true,
+	}, {
+		name: "typedef enumeration",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{Kind: yang.Yenum, Name: "derived-enumeration"},
+			contextEntry: &yang.Entry{
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "derived-enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Parent: &yang.Module{
+						Name: "base-module",
+					},
+				},
+			},
+		}},
+		wantWrapper: &mappedType{nativeType: "basePackage.enumPackage.BaseModule_DerivedEnumeration", isEnumeratedValue: true},
+		wantSame:    true,
+	}, {
+		name: "identityref",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{Kind: yang.Yidentityref, Name: "identityref"},
+			contextEntry: &yang.Entry{
+				Name: "identityref",
+				Type: &yang.YangType{
+					Name: "identityref",
+					IdentityBase: &yang.Identity{
+						Name: "base-identity",
+						Parent: &yang.Module{
+							Name: "test-module",
+						},
+					},
+				},
+				Node: &yang.Leaf{
+					Parent: &yang.Module{
+						Name: "test-module",
+					},
+				},
+			},
+		}},
+		wantWrapper: &mappedType{nativeType: "basePackage.enumPackage.TestModule_BaseIdentity", isEnumeratedValue: true},
+		wantSame:    true,
 	}}
 
 	for _, tt := range tests {
 		s := newGenState()
 		for _, st := range tt.in {
-			got, err := s.yangTypeToProtoType(st, "basePackage", "enumPackage")
+			gotWrapper, err := s.yangTypeToProtoType(st, "basePackage", "enumPackage")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%s: yangTypeToProtoType(%v): got unexpected error: %v", tt.name, tt.in, err)
 				continue
 			}
 
-			if diff := pretty.Compare(got, tt.want); diff != "" {
+			if diff := pretty.Compare(gotWrapper, tt.wantWrapper); diff != "" {
 				t.Errorf("%s: yangTypeToProtoType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
+			}
+
+			gotScalar, err := s.yangTypeToProtoScalarType(st, "basePackage", "enumPackage")
+			if (err != nil) != tt.wantErr {
+				t.Errorf("%s: yangTypeToProtoScalarType(%v, basePackage, enumPackage): got unexpected error: %v", tt.name, tt.in, err)
+			}
+
+			wantScalar := tt.wantScalar
+			if tt.wantSame {
+				wantScalar = tt.wantWrapper
+			}
+			if diff := pretty.Compare(gotScalar, wantScalar); diff != "" {
+				t.Errorf("%s: yangTypeToProtoScalarType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 			}
 		}
 	}

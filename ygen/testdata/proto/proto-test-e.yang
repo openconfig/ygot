@@ -120,6 +120,13 @@ module proto-test-e {
       leaf foo {
         type string;
       }
+
+      leaf single-type-union {
+        type union {
+          type string { pattern "a.*"; }
+          type string { pattern "b.*"; }
+        }
+      }
     }
   }
 

@@ -13,4 +13,5 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 // Bar represents the /proto-test-e/bars/bar YANG schema element.
 message Bar {
   ywrapper.StringValue foo = 1;
+  ywrapper.StringValue single_type_union = 1;
 }
