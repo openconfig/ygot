@@ -511,16 +511,31 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		return err
 	}
 
+	yks := getUnionKinds(schema.Type)
+	dbgPrint("possible union types are %v", yks)
+
+	// This can either be a struct, where multiple types are involved, of just
+	// the type itself, if the alternatives span only one type.
+	if !IsTypeInterface(ft) {
+		// Is not a struct ptr, we must have exactly one type in the union.
+		if len(yks) != 1 {
+			return fmt.Errorf("got %v types for union schema %s for type %T, expect just one type", yks, fieldName, parent)
+		}
+		yk := yks[0]
+		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value)
+		if err != nil {
+			return fmt.Errorf("could not unmarshal %v into type %s", value, yk)
+		}
+		vf.Set(reflect.ValueOf(ygot.ToPtr(goValue)))
+		return nil
+	}
+
 	// The "to union" conversion method is called To_<field type name>
 	mn := "To_" + ft.Name()
 	mapMethod := reflect.New(t).Elem().MethodByName(mn)
 	if !mapMethod.IsValid() {
 		return fmt.Errorf("%s in %T does not have a %s function", fieldName, parent, mn)
 	}
-
-	yks := getUnionKinds(schema.Type)
-
-	dbgPrint("possible union types are %v", yks)
 
 	// For each possible union type, try to unmarshal the JSON value. If it can
 	// unmarshaled, try to resolve the resulting type into a union struct type.
@@ -554,9 +569,13 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 
 func getUnionKinds(t *yang.YangType) []yang.TypeKind {
 	var out []yang.TypeKind
+	m := make(map[yang.TypeKind]interface{})
 	yts := getUnionTypes(t)
 	for _, yt := range yts {
-		out = append(out, yt.Kind)
+		m[yt.Kind] = nil
+	}
+	for k := range m {
+		out = append(out, k)
 	}
 	return out
 }
