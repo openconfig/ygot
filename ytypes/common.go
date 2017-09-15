@@ -768,7 +768,7 @@ func enumStringToIntValue(parent interface{}, fieldName, value string) (int64, e
 	}
 	ft := field.Type()
 	// leaf-list case
-	if ft.Kind() == reflect.Slice{
+	if ft.Kind() == reflect.Slice {
 		ft = ft.Elem()
 	}
 

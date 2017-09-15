@@ -575,3 +575,69 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 		}
 	}
 }
+
+func TestUnmarshalSingleListElement(t *testing.T) {
+	listSchema := &yang.Entry{
+		Name:     "struct-list",
+		Kind:     yang.DirectoryEntry,
+		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		Dir: map[string]*yang.Entry{
+			"leaf-field": {
+				Kind: yang.LeafEntry,
+				Name: "leaf-field",
+				Type: &yang.YangType{Kind: yang.Yint32},
+			},
+			"enum-leaf-field": {
+				Kind: yang.LeafEntry,
+				Name: "enum-leaf-field",
+				Type: &yang.YangType{Kind: yang.Yenum},
+			},
+		},
+	}
+
+	type ListElemStruct struct {
+		LeafName *int32   `path:"leaf-field"`
+		EnumLeaf EnumType `path:"enum-leaf-field"`
+	}
+
+	tests := []struct {
+		desc    string
+		json    string
+		want    ListElemStruct
+		wantErr string
+	}{
+		{
+			desc: "success",
+			json: `{ "leaf-field" : 42, "enum-leaf-field" : "E_VALUE_FORTY_TWO"}`,
+			want: ListElemStruct{
+				LeafName: ygot.Int32(42),
+				EnumLeaf: 42,
+			},
+		},
+		{
+			desc:    "bad field",
+			json:    `{ "leaf-field" : 42, "bad-field" : "E_VALUE_FORTY_TWO"}`,
+			wantErr: `parent container struct-list (type *ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
+		},
+	}
+
+	var jsonTree interface{}
+	for _, test := range tests {
+		var parent ListElemStruct
+
+		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
+			t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
+		}
+
+		err := Unmarshal(listSchema, &parent, jsonTree)
+		if got, want := errToString(err), test.wantErr; got != want {
+			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
+		}
+		testErrLog(t, test.desc, err)
+		if err == nil {
+			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
+				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+			}
+		}
+	}
+}

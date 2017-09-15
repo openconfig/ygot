@@ -124,8 +124,8 @@ func TestUnmarshalLeafList(t *testing.T) {
 		},
 	}
 	type ContainerStruct struct {
-		Int32LeafList []*int32 `path:"int32-leaf-list"`
-		EnumLeafList []EnumType `path:"enum-leaf-list"`
+		Int32LeafList []*int32   `path:"int32-leaf-list"`
+		EnumLeafList  []EnumType `path:"enum-leaf-list"`
 	}
 
 	tests := []struct {
