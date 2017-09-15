@@ -516,7 +516,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 
 	// This can either be a struct, where multiple types are involved, of just
 	// the type itself, if the alternatives span only one type.
-	if !IsTypeStructPtr(ft) {
+	if !IsTypeInterface(ft) {
 		// Is not a struct ptr, we must have exactly one type in the union.
 		if len(yks) != 1 {
 			return fmt.Errorf("got %v types for union schema %s for type %T, expect just one type", yks, fieldName, parent)
