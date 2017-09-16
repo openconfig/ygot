@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Binary generator generates Go code corresponding to an input YANG schema.
-// The input set of YANG modules are read, parsed using Goyang, and handed as
-// input to the codegen package which generates the corresponding Go code.
+// Binary proto_generator generates Protobuf3 code corresponding to an input
+// YANG schema. The input set of modules are read, parsed using goyang, and
+// handled as input to the ygen package which generates the corresponding
+// set of Protobuf3 messages.
 package main
 
 import (
