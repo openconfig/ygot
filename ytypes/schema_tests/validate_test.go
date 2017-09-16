@@ -381,8 +381,18 @@ func TestUnmarshal(t *testing.T) {
 		wantErr      string
 	}{
 		{
-			desc:         "basic test",
+			desc:         "basic",
 			jsonFilePath: "basic.json",
+			parent:       &oc.Device{},
+		},
+		{
+			desc:         "bgp",
+			jsonFilePath: "bgp-example.json",
+			parent:       &oc.Device{},
+		},
+		{
+			desc:         "interfaces",
+			jsonFilePath: "interfaces-example.json",
 			parent:       &oc.Device{},
 		},
 	}

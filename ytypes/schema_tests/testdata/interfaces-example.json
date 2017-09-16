@@ -1,0 +1,177 @@
+{
+   "openconfig-interfaces:interfaces": {
+      "interface": [
+         {
+            "config": {
+               "description": "desc2",
+               "enabled": true,
+               "name": "Bundle-Ether21",
+               "type": "iana-if-type:ieee8023adLag"
+            },
+            "name": "Bundle-Ether21",
+            "subinterfaces": {
+               "subinterface": [
+                  {
+                     "config": {
+                        "index": 0
+                     },
+                     "index": 0,
+                     "openconfig-if-ip:ipv4": {
+                        "addresses": {
+                           "address": [
+                              {
+                                 "config": {
+                                    "ip": "192.168.2.1",
+                                    "prefix-length": 24
+                                 },
+                                 "ip": "192.168.2.1"
+                              }
+                           ]
+                        }
+                     },
+                     "openconfig-if-ip:ipv6": {
+                        "addresses": {
+                           "address": [
+                              {
+                                 "config": {
+                                    "ip": "2001:4860::192:168:2:1",
+                                    "prefix-length": 112
+                                 },
+                                 "ip": "2001:4860::192:168:2:1"
+                              }
+                           ]
+                        }
+                     }
+                  }
+               ]
+            }
+         },
+         {
+            "config": {
+               "enabled": true,
+               "name": "Loopback0",
+               "type": "iana-if-type:softwareLoopback"
+            },
+            "name": "Loopback0",
+            "subinterfaces": {
+               "subinterface": [
+                  {
+                     "config": {
+                        "index": 0
+                     },
+                     "index": 0,
+                     "openconfig-if-ip:ipv4": {
+                        "addresses": {
+                           "address": [
+                              {
+                                 "config": {
+                                    "ip": "10.10.10.10",
+                                    "prefix-length": 32
+                                 },
+                                 "ip": "10.10.10.10"
+                              }
+                           ]
+                        }
+                     },
+                     "openconfig-if-ip:ipv6": {
+                        "addresses": {
+                           "address": [
+                              {
+                                 "config": {
+                                    "ip": "2001:4860::10:10:10:10",
+                                    "prefix-length": 128
+                                 },
+                                 "ip": "2001:4860::10:10:10:10"
+                              }
+                           ]
+                        }
+                     }
+                  }
+               ]
+            }
+         },
+         {
+            "config": {
+               "enabled": true,
+               "name": "MgmtEth0",
+               "type": "iana-if-type:ethernetCsmacd"
+            },
+            "name": "MgmtEth0",
+            "openconfig-if-ethernet:ethernet": {
+               "config": {
+                  "auto-negotiate": false
+               }
+            },
+            "subinterfaces": {
+               "subinterface": [
+                  {
+                     "config": {
+                        "index": 0
+                     },
+                     "index": 0,
+                     "openconfig-if-ip:ipv4": {
+                        "addresses": {
+                           "address": [
+                              {
+                                 "config": {
+                                    "ip": "10.10.10.20",
+                                    "prefix-length": 24
+                                 },
+                                 "ip": "10.10.10.20"
+                              }
+                           ]
+                        }
+                     }
+                  }
+               ]
+            }
+         },
+         {
+            "config": {
+               "description": "desc2",
+               "enabled": true,
+               "name": "TenGigE0/1/0/0/0",
+               "type": "iana-if-type:ethernetCsmacd"
+            },
+            "hold-time": {
+               "config": {
+                  "down": 0,
+                  "up": 3000
+               }
+            },
+            "name": "TenGigE0/1/0/0/0",
+            "openconfig-if-ethernet:ethernet": {
+               "config": {
+                  "auto-negotiate": false
+               },
+               "openconfig-if-aggregate:config": {
+                  "aggregate-id": "Bundle-Ether36"
+               }
+            }
+         },
+         {
+            "config": {
+               "description": "desc3",
+               "enabled": true,
+               "name": "TenGigE0/1/0/2/2",
+               "type": "iana-if-type:ethernetCsmacd"
+            },
+            "hold-time": {
+               "config": {
+                  "down": 0,
+                  "up": 3000
+               }
+            },
+            "name": "TenGigE0/1/0/2/2",
+            "openconfig-if-ethernet:ethernet": {
+               "config": {
+                  "auto-negotiate": false
+               },
+               "openconfig-if-aggregate:config": {
+                  "aggregate-id": "Bundle-Ether41"
+               }
+            }
+         }
+      ]
+   }
+}
