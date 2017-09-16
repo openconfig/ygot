@@ -29,11 +29,13 @@ const (
 
 // protoMsgField describes a field of a protobuf message.
 type protoMsgField struct {
-	Tag        uint32            // Tag is the field number that should be used in the protobuf message.
-	Name       string            // Name is the field's name.
-	Type       string            // Type is the protobuf type for the field.
-	IsRepeated bool              // IsRepeated indicates whether the field is repeated.
-	Extensions map[string]string // Extensions is the set of field tags that are applied to the field.
+	Tag         uint32            // Tag is the field number that should be used in the protobuf message.
+	Name        string            // Name is the field's name.
+	Type        string            // Type is the protobuf type for the field.
+	IsRepeated  bool              // IsRepeated indicates whether the field is repeated.
+	Extensions  map[string]string // Extensions is the set of field tags that are applied to the field.
+	IsOneOf     bool              // IsOneOf indicates that the field is a oneof and hence consists of multiple subfields.
+	OneOfFields []protoMsgField   // OneOfFields contains the set of fields within the oneof
 }
 
 // protoMsg describes a protobuf message.
@@ -90,9 +92,11 @@ var (
 {{- range $inputFile := .SourceYANGFiles }}
 //  - {{ $inputFile }}
 {{- end }}
+{{- if .SourceYANGIncludePaths }}
 // Include paths:
 {{- range $importPath := .SourceYANGIncludePaths }}
 //   - {{ $importPath }}
+{{- end -}}
 {{- end }}
 syntax = "proto3";
 
@@ -119,6 +123,13 @@ message {{ .Name }} {
   }
 {{- end -}}
 {{- range $idx, $field := .Fields }}
+  {{ if $field.IsOneOf -}}
+  oneof {{ $field.Name }} {
+    {{- range $ooField := .OneOfFields }}
+    {{ $ooField.Type }} {{ $ooField.Name }} = {{ $ooField.Tag }};
+    {{- end }}
+  }
+  {{- else -}}
   {{ if $field.IsRepeated }}repeated {{ end -}}
   {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }}
   {{- $noExtensions := len .Extensions -}}
@@ -130,6 +141,7 @@ message {{ .Name }} {
   ]
   {{- end -}}
   ;
+  {{- end -}}
 {{- end }}
 }
 `
@@ -141,9 +153,24 @@ message {{ .Name }} {
 // contains only the keys of the list, and an embedded message containing all entries
 // below this entity in the schema.
 message {{ .Name }} {
+{{- range $ename, $enum := .Enums }}
+  enum {{ $ename }} {
+    {{- range $i, $val := $enum.Values }}
+    {{ $ename }}_{{ $val }} = {{ $i }};
+    {{- end }}
+  }
+{{- end -}}
 {{- range $idx, $field := .Fields }}
-  {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }}
-{{- end }}
+  {{ if $field.IsOneOf -}}
+  oneof {{ $field.Name }} {
+    {{- range $ooField := .OneOfFields }}
+    {{ $ooField.Type }} {{ $ooField.Name }} = {{ $ooField.Tag }};
+    {{- end }}
+  }
+  {{- else -}}
+  {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }};
+  {{- end }}
+{{- end -}}
 }
 `
 
@@ -294,11 +321,18 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 
 		switch {
 		case field.IsList():
-			fieldType, keyMsg, err := protoListDefinition(field, msgs, state, compressPaths)
+			fieldType, keyMsg, err := protoListDefinition(protoDefinitionArgs{
+				field:              field,
+				definedDirectories: msgs,
+				state:              state,
+				compressPaths:      compressPaths,
+			})
+
 			if err != nil {
 				errs = append(errs, fmt.Errorf("could not define list %s: %v", field.Path(), err))
 				continue
 			}
+
 			if keyMsg != nil {
 				msgDefs = append(msgDefs, *keyMsg)
 			}
@@ -323,19 +357,36 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				fieldDef.Type = fmt.Sprintf("%s.%s", childpkg, childmsg.name)
 			}
 		case field.IsLeaf() || field.IsLeafList():
-			fieldType, enum, globalEnum, err := protoLeafDefinition(field, definedFieldNames, state, basePackageName, enumPackageName)
+			d, err := protoLeafDefinition(fieldDef.Name, protoDefinitionArgs{
+				field:             field,
+				definedFieldNames: definedFieldNames,
+				state:             state,
+				basePackageName:   basePackageName,
+				enumPackageName:   enumPackageName,
+			})
+
 			if err != nil {
 				errs = append(errs, fmt.Errorf("could not define field %s: %v", field.Path(), err))
 				continue
 			}
 
-			fieldDef.Type = fieldType
-			if enum != nil {
-				msgDef.Enums[fieldType] = enum
+			fieldDef.Type = d.protoType
+
+			// For any enumerations that were within the field definition, glean them into the
+			// message definition.
+			for n, e := range d.enums {
+				msgDef.Enums[n] = e
+			}
+
+			// For any oneof that is within the field definition, glean them into the message
+			// definitions.
+			if d.oneofs != nil {
+				fieldDef.OneOfFields = append(fieldDef.OneOfFields, d.oneofs...)
+				fieldDef.IsOneOf = true
 			}
 
 			// Add the global enumeration package if it is referenced by this field.
-			if globalEnum {
+			if d.globalEnum {
 				imports[fmt.Sprintf("%s/%s", basePackageName, enumPackageName)] = true
 			}
 
@@ -359,6 +410,18 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 	return append(msgDefs, msgDef), errs
 }
 
+// protoDefinitionArgs is used as the input argument when YANG is being mapped to protobuf.
+type protoDefinitionArgs struct {
+	field              *yang.Entry               // field is the yang.Entry for which the proto output is being defined, in the case that the definition is for an individual entry.
+	directory          *yangDirectory            // directory is the yangDirectory for which the proto output is being defined, in the case that the definition is for an directory entry.
+	definedDirectories map[string]*yangDirectory // definedDirectories specifies the set of yangDirectories that have been defined in the current code generation context.
+	definedFieldNames  map[string]bool           // definedFieldNames specifies the field names that have been defined in the context.
+	state              *genState                 //state is the current generator state.
+	basePackageName    string                    // basePackageName is the name of the base protobuf package being output.
+	enumPackageName    string                    // enumPackageName is the name of the package that global enumerated types are defined in.
+	compressPaths      bool                      // compressPaths defines whether path compression is enabled for the current code generation context.
+}
+
 // writeProtoEnums takes a map of enumerations, described as yangEnum structs, and returns
 // the mapped protobuf enum definition that is required. It skips any identified enumerated
 // type that is a simple enumerated leaf, as these are output as embedded enumerations within
@@ -367,8 +430,8 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 	var errs []error
 	var genEnums []string
 	for _, enum := range enums {
-		if enum.entry.Type.Kind == yang.Yenum && enum.entry.Type.Name == "enumeration" {
-			// Skip simple enumerations.
+		if isSimpleEnumerationType(enum.entry.Type) || enum.entry.Type.Kind == yang.Yunion {
+			// Skip simple enumerations and those within unions.
 			continue
 		}
 
@@ -401,12 +464,12 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 				continue
 			}
 			p.Values = ge.Values
-			p.Description = fmt.Sprintf("YANG typedef %s", enum.entry.Type.Name)
+			p.Description = fmt.Sprintf("YANG enumerated type %s", enum.entry.Type.Name)
 		case len(enum.entry.Type.Type) != 0:
 			errs = append(errs, fmt.Errorf("unimplemented: support for multiple enumerations within a union for %v", enum.name))
 			continue
 		default:
-			errs = append(errs, fmt.Errorf("unknown type of enumerated value in writeProtoEnums for %s, got: %v", enum.name, enum))
+			errs = append(errs, fmt.Errorf("unknown type of enumerated value in writeProtoEnums for %s, got: %v, type: %v", enum.name, enum, enum.entry.Type))
 		}
 
 		var b bytes.Buffer
@@ -457,18 +520,18 @@ func genProtoEnum(field *yang.Entry) (*protoMsgEnum, error) {
 // protoListDefinition takes an input field described by a yang.Entry, the generator context (the set of proto messages, and the generator
 // state), along with whether path compression is enabled and generates the proto message definition for the list. It returns the type
 // that the field within the parent should be mapped to, and an optional key proto definition (in the case of keyed lists).
-func protoListDefinition(field *yang.Entry, msgs map[string]*yangDirectory, state *genState, compressPaths bool) (string, *protoMsg, error) {
-	listMsg, ok := msgs[field.Path()]
+func protoListDefinition(args protoDefinitionArgs) (string, *protoMsg, error) {
+	listMsg, ok := args.definedDirectories[args.field.Path()]
 	if !ok {
-		return "", nil, fmt.Errorf("proto: could not resolve list %s into a defined message", field.Path())
+		return "", nil, fmt.Errorf("proto: could not resolve list %s into a defined message", args.field.Path())
 	}
 
-	listMsgName, ok := state.uniqueDirectoryNames[field.Path()]
+	listMsgName, ok := args.state.uniqueDirectoryNames[args.field.Path()]
 	if !ok {
-		return "", nil, fmt.Errorf("proto: could not find unique message name for %s", field.Path())
+		return "", nil, fmt.Errorf("proto: could not find unique message name for %s", args.field.Path())
 	}
 
-	childPkg := state.protobufPackage(listMsg.entry, compressPaths)
+	childPkg := args.state.protobufPackage(listMsg.entry, args.compressPaths)
 
 	var fieldType string
 	var listKeyMsg *protoMsg
@@ -481,9 +544,15 @@ func protoListDefinition(field *yang.Entry, msgs map[string]*yangDirectory, stat
 		// in the YANG to Protobuf transformation specification.
 		// TODO(robjs): Link to the published transformation specification.
 		var err error
-		listKeyMsg, err = genListKeyProto(listMsg, listMsgName, childPkg, state)
+		listKeyMsg, err = genListKeyProto(childPkg, listMsgName, protoDefinitionArgs{
+			field:           args.field,
+			directory:       listMsg,
+			state:           args.state,
+			basePackageName: args.basePackageName,
+			enumPackageName: args.enumPackageName,
+		})
 		if err != nil {
-			return "", nil, fmt.Errorf("proto: could not build mapping for list entry %s: %v", field.Path(), err)
+			return "", nil, fmt.Errorf("proto: could not build mapping for list entry %s: %v", args.field.Path(), err)
 		}
 		// The type of this field is just the key message's name, since it
 		// will be in the same package as the field's parent.
@@ -492,40 +561,59 @@ func protoListDefinition(field *yang.Entry, msgs map[string]*yangDirectory, stat
 	return fieldType, listKeyMsg, nil
 }
 
-// protoLeafDefinition returns the definition of a leaf within a protobuf message. It takes:
-//  - field:               The yang.Entry corresponding to the field to be mapped.
-//  - definedFieldNames:   The currently defined set of field names within the context of the field.
-//  - state:               The current generator state.
-//  - basePackageName:     The name of the base package for the set of generated protobufs.
-//  - enumPackageName:     The name of the package that global enumerated types are to be written to.
-// It returns:
-//  - The type of the field, as a string.
-//  - An optional protoMsgEnum describing an enumeration to be embedded within the field's parent message.
-//  - A boolean indicating whether the field's type is within the global enumeration package.
-func protoLeafDefinition(field *yang.Entry, definedFieldNames map[string]bool, state *genState, basePackageName, enumPackageName string) (string, *protoMsgEnum, bool, error) {
-	protoType, err := state.yangTypeToProtoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, basePackageName, enumPackageName)
+// protoDefinedLeaf defines a YANG leaf within a protobuf message.
+type protoDefinedLeaf struct {
+	protoType  string                   // protoType is the protobuf type that the leaf should be mapped to.
+	globalEnum bool                     // globalEnum indicates whether the leaf's type is a global scope enumeration (identityref, or typedef defining an enumeration)
+	enums      map[string]*protoMsgEnum // enums defines the set of enumerated values that are required for this leaf within the parent message.
+	oneofs     []protoMsgField          //oneofs defines the set of types within the leaf, if the returned leaf type is a protobuf oneof.
+}
+
+// protoLeafDefinition takes an input leafName, and a set of protoDefinitionArgs specifying the context
+// for the leaf definition, and returns a protoDefinedLeaf describing how it is to be mapped within the
+// protobuf parent message.
+func protoLeafDefinition(leafName string, args protoDefinitionArgs) (*protoDefinedLeaf, error) {
+	protoType, err := args.state.yangTypeToProtoType(resolveTypeArgs{yangType: args.field.Type, contextEntry: args.field}, args.basePackageName, args.enumPackageName)
 	if err != nil {
-		return "", nil, false, err
+		return nil, err
 	}
 
-	typeName := protoType.nativeType
-	var isGlobalEnum bool
-	var enum *protoMsgEnum
+	d := &protoDefinedLeaf{
+		protoType: protoType.nativeType,
+		enums:     map[string]*protoMsgEnum{},
+	}
+
 	switch {
-	case isEnumerationLeaf(field):
+	case isSimpleEnumerationType(args.field.Type):
 		// For fields that are simple enumerations within a message, then we embed an enumeration
 		// within the Protobuf message.
-		enum, err = genProtoEnum(field)
+		e, err := genProtoEnum(args.field)
 		if err != nil {
-			return "", nil, false, err
+			return nil, err
 		}
 
-		typeName = makeNameUnique(protoType.nativeType, definedFieldNames)
-	case isEnumType(field.Type):
-		isGlobalEnum = true
+		d.protoType = makeNameUnique(protoType.nativeType, args.definedFieldNames)
+		d.enums = map[string]*protoMsgEnum{}
+		d.enums[d.protoType] = e
+	case isEnumType(args.field.Type):
+		d.globalEnum = true
+	case isUnionType(args.field.Type):
+		oofs, enums, err := unionFieldToOneOf(leafName, args.field, protoType)
+		if err != nil {
+			return nil, err
+		}
+
+		// Append any enumerations that are within the union.
+		for n, e := range enums {
+			d.enums[n] = e
+		}
+
+		// Append the oneof that was in the union.
+		d.oneofs = append(d.oneofs, oofs...)
+
 	}
 
-	return typeName, enum, isGlobalEnum, nil
+	return d, nil
 }
 
 // safeProtoIdentifierName takes an input string which represents the name of a YANG schema
@@ -559,48 +647,78 @@ func protoTagForEntry(e *yang.Entry) (uint32, error) {
 // genListKeyProto generates a protoMsg that describes the proto3 message that represents
 // the key of a list for YANG lists. It takes a yangDirectory pointer to the list being
 // described, the name of the list, the package name that the list is within, and the
-// current generator state. It returnsthe definition of the list key proto.
-func genListKeyProto(list *yangDirectory, listName string, listPackage string, state *genState) (*protoMsg, error) {
-	// TODO(robjs): Check whether we need to make sure that this is unique.
+// current generator state. It returns the definition of the list key proto.
+func genListKeyProto(listPackage string, listName string, args protoDefinitionArgs) (*protoMsg, error) {
 	n := fmt.Sprintf("%s_Key", listName)
 	km := &protoMsg{
 		Name:     n,
-		YANGPath: list.entry.Path(),
+		YANGPath: args.field.Path(),
 		Enums:    map[string]*protoMsgEnum{},
 	}
 
 	definedFieldNames := map[string]bool{}
 	ctag := uint32(1)
-	for _, k := range strings.Split(list.entry.Key, " ") {
-		kf, ok := list.fields[k]
+	for _, k := range strings.Split(args.field.Key, " ") {
+		kf, ok := args.directory.fields[k]
 		if !ok {
-			return nil, fmt.Errorf("list %s included a key %s did that did not exist", list.entry.Path(), k)
+			return nil, fmt.Errorf("list %s included a key %s did that did not exist", args.field.Path(), k)
 		}
 
-		t, err := state.yangTypeToProtoScalarType(resolveTypeArgs{yangType: kf.Type, contextEntry: kf})
+		scalarType, err := args.state.yangTypeToProtoScalarType(resolveTypeArgs{yangType: kf.Type, contextEntry: kf}, args.basePackageName, args.enumPackageName)
 		if err != nil {
-			return nil, fmt.Errorf("list %s included a key %s that did not have a valid proto type: %v", list.entry.Path(), k, kf.Type)
+			return nil, fmt.Errorf("list %s included a key %s that did not have a valid proto type: %v", args.field.Path(), k, kf.Type)
 		}
 
-		var pt string
+		var enumEntry *yang.Entry
+		var unionEntry *yang.Entry
 		switch {
-		case kf.Type.Kind == yang.Yenum && kf.Type.Name == "enumeration":
-			enum, err := genProtoEnum(kf)
+		case kf.Type.Kind == yang.Yleafref:
+			target, err := args.state.resolveLeafrefTarget(kf.Type.Path, kf)
 			if err != nil {
-				return nil, fmt.Errorf("error generating type for list key %s, type %s", list.entry.Path(), k, kf.Type)
+				return nil, fmt.Errorf("error generating type for list %s key %s: type %v", args.field.Path(), k, kf.Type)
 			}
-			pt = makeNameUnique(t.nativeType, definedFieldNames)
-			km.Enums[pt] = enum
-		default:
-			pt = t.nativeType
+
+			if isSimpleEnumerationType(target.Type) {
+				enumEntry = target
+			}
+
+			if isUnionType(target.Type) {
+				unionEntry = target
+			}
+		case isSimpleEnumerationType(kf.Type):
+			enumEntry = kf
+		case isUnionType(kf.Type):
+			unionEntry = kf
 		}
 
-		km.Fields = append(km.Fields, &protoMsgField{
+		fd := &protoMsgField{
 			Name: makeNameUnique(safeProtoIdentifierName(k), definedFieldNames),
 			Tag:  ctag,
-			Type: pt,
-		})
+		}
+		switch {
+		case enumEntry != nil:
+			enum, err := genProtoEnum(enumEntry)
+			if err != nil {
+				return nil, fmt.Errorf("error generating type for list %s key %s, type %v", args.field.Path(), k, enumEntry.Type)
+			}
+			tn := makeNameUnique(scalarType.nativeType, definedFieldNames)
+			fd.Type = tn
+			km.Enums[tn] = enum
+		case unionEntry != nil:
+			fd.IsOneOf = true
+			oofs, enums, err := unionFieldToOneOf(fd.Name, kf, scalarType)
+			if err != nil {
+				return nil, fmt.Errorf("error generating type for union list key %s in list %s", k, args.field.Path())
+			}
+			fd.OneOfFields = append(fd.OneOfFields, oofs...)
+			for n, e := range enums {
+				km.Enums[n] = e
+			}
+		default:
+			fd.Type = scalarType.nativeType
+		}
 
+		km.Fields = append(km.Fields, fd)
 		ctag++
 	}
 
@@ -611,4 +729,59 @@ func genListKeyProto(list *yangDirectory, listName string, listPackage string, s
 	})
 
 	return km, nil
+}
+
+// enumInProtoUnionField parses an enum that is within a union and returns the generated
+// enumeration that should be included within a protobuf message for it.
+func enumInProtoUnionField(name string, types []*yang.YangType) (map[string]*protoMsgEnum, error) {
+	enums := map[string]*protoMsgEnum{}
+	for _, t := range types {
+		if isSimpleEnumerationType(t) {
+			n := fmt.Sprintf("%s", yang.CamelCase(name))
+			enum, err := genProtoEnum(&yang.Entry{
+				Name: n,
+				Type: t,
+			})
+			if err != nil {
+				return nil, err
+			}
+			enums[n] = enum
+		}
+	}
+
+	return enums, nil
+}
+
+// unionFieldToOneOf takes an input name, a yang.Entry containing a field definition and a mappedType
+// containing the proto type that the entry has been mapped to, and returns the list of fields within
+// the oneof that should be created, along with any enumerations that are contained within the union.
+func unionFieldToOneOf(name string, e *yang.Entry, mtype *mappedType) ([]protoMsgField, map[string]*protoMsgEnum, error) {
+	enums, err := enumInProtoUnionField(name, e.Type.Type)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	typeNames := []string{}
+	for tn := range mtype.unionTypes {
+		typeNames = append(typeNames, tn)
+	}
+	sort.Strings(typeNames)
+
+	oofs := []protoMsgField{}
+	for _, t := range typeNames {
+		// Split the type name on "." to ensure that we don't have oneof options
+		// that reference some other package in the type name.
+		tp := strings.Split(t, ".")
+		tn := tp[len(tp)-1]
+		st := protoMsgField{
+			Name: fmt.Sprintf("%s_%s", name, tn),
+			Type: t,
+			// TODO(robjs): Consider how to output field IDs here. This is pending the
+			// same solution conclusion as is discussed in the protoTagForEntry function.
+			Tag: 42,
+		}
+		oofs = append(oofs, st)
+	}
+
+	return oofs, enums, nil
 }

@@ -1,0 +1,154 @@
+module proto-test-e {
+  prefix "e";
+  namespace "urn:e";
+
+  identity ID;
+  identity IDVAL {
+    base ID;
+  }
+
+  grouping test-cfg {
+    leaf a {
+      type enumeration {
+        enum A;
+        enum B;
+        enum C;
+      }
+    }
+
+    leaf b {
+      type union {
+        type identityref {
+          base ID;
+        }
+        type string;
+      }
+    }
+
+    leaf c {
+      type union {
+        type enumeration {
+          enum D;
+          enum E;
+          enum F;
+        }
+        type string;
+      }
+    }
+  }
+
+  grouping foo-cfg {
+    leaf bar {
+      type enumeration {
+        enum A;
+        enum B;
+      }
+    }
+
+    leaf baz {
+      type string;
+    }
+  }
+
+  grouping animal-cfg {
+    leaf species {
+      type union {
+        type enumeration {
+          // Badger
+          enum TAXIDEA_TAXUS;
+          // Elk
+          enum CERVUS_CANADENSIS;
+          // Bighorn sheep
+          enum OVIS_CANADENSIS;
+        }
+        type string;
+      }
+    }
+
+    leaf name {
+      type string;
+    }
+  }
+
+  container test {
+    container config {
+      uses test-cfg;
+    }
+
+    container state {
+      config false;
+      uses test-cfg;
+    }
+  }
+
+  container foos {
+    list foo {
+      key "bar";
+
+      leaf bar {
+        type leafref {
+          path "../config/bar";
+        }
+      }
+
+      container config {
+        uses foo-cfg;
+      }
+
+      container state {
+        config false;
+        uses foo-cfg;
+      }
+    }
+  }
+
+  container bars {
+    list bar {
+      key "baz";
+
+      leaf baz {
+        type union {
+          type string;
+          type enumeration {
+            enum X;
+            enum Y;
+            enum Z;
+          }
+        }
+      }
+
+      leaf foo {
+        type string;
+      }
+
+      leaf single-type-union {
+        type union {
+          type string { pattern "a.*"; }
+          type string { pattern "b.*"; }
+        }
+      }
+    }
+  }
+
+  container animals {
+    list animal {
+      key "species";
+
+      leaf species {
+        type leafref {
+          path "../config/species";
+        }
+      }
+
+      container config {
+        uses animal-cfg;
+      }
+
+      container state {
+        config false;
+        uses animal-cfg;
+      }
+    }
+  }
+}
+

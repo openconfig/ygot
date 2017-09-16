@@ -3,7 +3,6 @@
 //
 // Input schema modules:
 //  - testdata/proto/proto-test-a.yang
-// Include paths:
 syntax = "proto3";
 
 package openconfig.parent;
@@ -19,4 +18,8 @@ message Child {
   ywrapper.StringValue leaf_with_dashes = 1;
   ywrapper.StringValue string = 1;
   ywrapper.UintValue uinteger = 1;
+  oneof uleaf {
+    string uleaf_string = 42;
+    uint64 uleaf_uint64 = 42;
+  }
 }
