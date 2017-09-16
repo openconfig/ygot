@@ -613,6 +613,107 @@ message MessageName {
 `,
 		},
 	}, {
+		name: "simple message with a list",
+		inMsg: &yangDirectory{
+			name: "MessageName",
+			entry: &yang.Entry{
+				Name: "message-name",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
+				},
+			},
+			fields: map[string]*yang.Entry{
+				"list": &yang.Entry{
+					Name: "list",
+					Kind: yang.DirectoryEntry,
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Parent: &yang.Entry{
+							Name: "module",
+							Kind: yang.DirectoryEntry,
+						},
+					},
+					Key:      "keyfield",
+					ListAttr: &yang.ListAttr{},
+					Dir: map[string]*yang.Entry{
+						"keyfield": {
+							Name: "keyfield",
+							Type: &yang.YangType{
+								Kind: yang.Ystring,
+							},
+						},
+					},
+				},
+			},
+		},
+		inMsgs: map[string]*yangDirectory{
+			"/module/message-name/list": {
+				name: "ListMessageName",
+				entry: &yang.Entry{
+					Name: "list",
+					Kind: yang.DirectoryEntry,
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Parent: &yang.Entry{
+							Name: "module",
+							Kind: yang.DirectoryEntry,
+						},
+					},
+					Key:      "keyfield",
+					ListAttr: &yang.ListAttr{},
+					Dir: map[string]*yang.Entry{
+						"keyfield": {
+							Name: "keyfield",
+							Type: &yang.YangType{
+								Kind: yang.Ystring,
+							},
+						},
+					},
+				},
+				fields: map[string]*yang.Entry{
+					"keyfield": {
+						Name: "keyfield",
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
+				},
+			},
+		},
+		inUniqueDirectoryNames: map[string]string{"/module/message-name/list": "List"},
+		wantCompress: generatedProto3Message{
+			packageName: "message_name",
+			messageCode: `
+// List_Key represents the /module/message-name/list YANG schema element.
+message List_Key {
+  string keyfield = 1;
+  message_name.List List = 2;
+}
+
+// MessageName represents the  YANG schema element.
+message MessageName {
+  repeated List_Key list = 140998691;
+}
+`,
+		},
+		wantUncompress: generatedProto3Message{
+			packageName: "module",
+			messageCode: `
+// List_Key represents the /module/message-name/list YANG schema element.
+message List_Key {
+  string keyfield = 1;
+  module.message_name.List List = 2;
+}
+
+// MessageName represents the  YANG schema element.
+message MessageName {
+  repeated List_Key list = 140998691;
+}
+`,
+		},
+	}, {
 		name: "simple message with an identityref leaf",
 		inMsg: &yangDirectory{
 			name: "MessageName",
