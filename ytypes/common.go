@@ -396,8 +396,7 @@ func getJSONTreeValForPath(tree interface{}, path []string) (interface{}, bool) 
 
 	for k, v := range t {
 		if path[0] == stripModulePrefix(k) {
-			ret, ok := getJSONTreeValForPath(v, path[1:])
-			if ok {
+			if ret, ok := getJSONTreeValForPath(v, path[1:]); ok {
 				return ret, true
 			}
 		}
