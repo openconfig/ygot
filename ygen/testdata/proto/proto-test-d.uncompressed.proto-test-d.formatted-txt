@@ -14,6 +14,6 @@ import "proto_test_d/test.proto";
 
 // Test represents the /proto-test-d/test YANG schema element.
 message Test {
-  proto_test_d.test.Config config = 1;
-  proto_test_d.test.State state = 1;
+  proto_test_d.test.Config config = 95205528;
+  proto_test_d.test.State state = 392556081;
 }

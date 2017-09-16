@@ -14,6 +14,6 @@ import "proto_test_e/animals/animal.proto";
 
 // Animal represents the /proto-test-e/animals/animal YANG schema element.
 message Animal {
-  proto_test_e.animals.animal.Config config = 1;
-  proto_test_e.animals.animal.State state = 1;
+  proto_test_e.animals.animal.Config config = 222717263;
+  proto_test_e.animals.animal.State state = 363146560;
 }

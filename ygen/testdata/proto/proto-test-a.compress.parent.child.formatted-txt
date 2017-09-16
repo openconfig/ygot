@@ -12,14 +12,14 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
 // Child represents the /proto-test-a/parent/child YANG schema element.
 message Child {
-  ywrapper.BoolValue boolean = 1;
-  ywrapper.IntValue integer = 1;
-  repeated ywrapper.StringValue leaf_list = 1;
-  ywrapper.StringValue leaf_with_dashes = 1;
-  ywrapper.StringValue string = 1;
-  ywrapper.UintValue uinteger = 1;
+  ywrapper.BoolValue boolean = 135159880;
+  ywrapper.IntValue integer = 367917455;
+  repeated ywrapper.StringValue leaf_list = 370551192;
+  ywrapper.StringValue leaf_with_dashes = 503746721;
+  ywrapper.StringValue string = 486500768;
+  ywrapper.UintValue uinteger = 343208358;
   oneof uleaf {
-    string uleaf_string = 42;
-    uint64 uleaf_uint64 = 42;
+    string uleaf_string = 3105816;
+    uint64 uleaf_uint64 = 443249937;
   }
 }

@@ -83,11 +83,11 @@ func TestGenProtoMsg(t *testing.T) {
 				Name:     "MessageName",
 				YANGPath: "/root/message-name",
 				Fields: []*protoMsgField{{
-					Tag:  1,
+					Tag:  410095931,
 					Name: "field_one",
 					Type: "ywrapper.StringValue",
 				}, {
-					Tag:  1,
+					Tag:  25944937,
 					Name: "field_two",
 					Type: "ywrapper.IntValue",
 				}},
@@ -140,12 +140,12 @@ func TestGenProtoMsg(t *testing.T) {
 				Name:     "AMessage",
 				YANGPath: "/root/a-message",
 				Fields: []*protoMsgField{{
-					Tag:        1,
+					Tag:        299656613,
 					Name:       "leaf_list",
 					Type:       "ywrapper.StringValue",
 					IsRepeated: true,
 				}, {
-					Tag:  1,
+					Tag:  17594927,
 					Name: "container_child",
 					Type: "a_message.ContainerChild",
 				}},
@@ -197,12 +197,12 @@ func TestGenProtoMsg(t *testing.T) {
 				Name:     "AMessage",
 				YANGPath: "/root/a-message",
 				Fields: []*protoMsgField{{
-					Tag:        1,
+					Tag:        299656613,
 					Name:       "leaf_list",
 					Type:       "ywrapper.StringValue",
 					IsRepeated: true,
 				}, {
-					Tag:  1,
+					Tag:  17594927,
 					Name: "container_child",
 					Type: "root.a_message.ContainerChild",
 				}},
@@ -375,7 +375,7 @@ func TestWriteProtoMsg(t *testing.T) {
 			messageCode: `
 // MessageName represents the /module/container/message-name YANG schema element.
 message MessageName {
-  ywrapper.StringValue field_one = 1;
+  ywrapper.StringValue field_one = 410095931;
 }
 `,
 		},
@@ -384,7 +384,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module/container/message-name YANG schema element.
 message MessageName {
-  ywrapper.StringValue field_one = 1;
+  ywrapper.StringValue field_one = 410095931;
 }
 `,
 		},
@@ -439,7 +439,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
-  message_name.Child child = 1;
+  message_name.Child child = 399980855;
 }
 `,
 		},
@@ -448,7 +448,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
-  module.message_name.Child child = 1;
+  module.message_name.Child child = 399980855;
 }
 `,
 		},
@@ -493,7 +493,7 @@ message MessageName {
     Enum_ONE = 2;
     Enum_FORTYTWO = 43;
   }
-  Enum enum = 1;
+  Enum enum = 278979784;
 }
 `,
 		},
@@ -507,7 +507,7 @@ message MessageName {
     Enum_ONE = 2;
     Enum_FORTYTWO = 43;
   }
-  Enum enum = 1;
+  Enum enum = 278979784;
 }
 `,
 		},
@@ -593,7 +593,7 @@ message List_Key {
 
 // MessageName represents the  YANG schema element.
 message MessageName {
-  repeated List_Key list = 1;
+  repeated List_Key list = 140998691;
 }
 `,
 		},
@@ -608,7 +608,7 @@ message List_Key {
 
 // MessageName represents the  YANG schema element.
 message MessageName {
-  repeated List_Key list = 1;
+  repeated List_Key list = 140998691;
 }
 `,
 		},
@@ -659,7 +659,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module-name/message-name YANG schema element.
 message MessageName {
-  base.enums.TestModule_FooIdentity identityref = 1;
+  base.enums.TestModule_FooIdentity identityref = 518954308;
 }
 `,
 		},
@@ -668,7 +668,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module-name/message-name YANG schema element.
 message MessageName {
-  base.enums.TestModule_FooIdentity identityref = 1;
+  base.enums.TestModule_FooIdentity identityref = 518954308;
 }
 `,
 		},
@@ -851,13 +851,14 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		inName       string
-		inEntry      *yang.Entry
-		inMappedType *mappedType
-		wantFields   []protoMsgField
-		wantEnums    map[string]*protoMsgEnum
-		wantErr      bool
+		name            string
+		inName          string
+		inEntry         *yang.Entry
+		inMappedType    *mappedType
+		wantFields      []*protoMsgField
+		wantEnums       map[string]*protoMsgEnum
+		wantRepeatedMsg *protoMsg
+		wantErr         bool
 	}{{
 		name:   "simple string union",
 		inName: "FieldName",
@@ -876,12 +877,12 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				"sint64": 0,
 			},
 		},
-		wantFields: []protoMsgField{{
-			Tag:  42,
+		wantFields: []*protoMsgField{{
+			Tag:  171677331,
 			Name: "FieldName_sint64",
 			Type: "sint64",
 		}, {
-			Tag:  42,
+			Tag:  173535000,
 			Name: "FieldName_string",
 			Type: "string",
 		}},
@@ -908,12 +909,12 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				"string":       1,
 			},
 		},
-		wantFields: []protoMsgField{{
-			Tag:  42,
+		wantFields: []*protoMsgField{{
+			Tag:  440160524,
 			Name: "FieldName_SomeEnumType",
 			Type: "SomeEnumType",
 		}, {
-			Tag:  42,
+			Tag:  173535000,
 			Name: "FieldName_string",
 			Type: "string",
 		}},
@@ -926,10 +927,42 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name:   "leaflist of union",
+		inName: "FieldName",
+		inEntry: &yang.Entry{
+			Name: "field-name",
+			Type: &yang.YangType{
+				Type: []*yang.YangType{
+					{Kind: yang.Ystring},
+					{Kind: yang.Yuint8},
+				},
+			},
+			ListAttr: &yang.ListAttr{},
+		},
+		inMappedType: &mappedType{
+			unionTypes: map[string]int{
+				"string": 0,
+				"uint64": 1,
+			},
+		},
+		wantRepeatedMsg: &protoMsg{
+			Name:     "FieldNameUnion",
+			YANGPath: "/field-name union field field-name",
+			Fields: []*protoMsgField{{
+				Tag:  173535000,
+				Name: "FieldName_string",
+				Type: "string",
+			}, {
+				Tag:  76808209,
+				Name: "FieldName_uint64",
+				Type: "uint64",
+			}},
+		},
 	}}
 
 	for _, tt := range tests {
-		gotFields, gotEnums, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType)
+		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, err, tt.wantErr)
 		}
@@ -938,12 +971,16 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(gotFields, tt.wantFields) {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected set of fields, got: %v, want: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, gotFields, tt.wantFields)
+		if !reflect.DeepEqual(got.oneOfFields, tt.wantFields) {
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected set of fields, got: %v, want: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, got.oneOfFields, tt.wantFields)
 		}
 
-		if !reflect.DeepEqual(gotEnums, tt.wantEnums) {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected set of enums, got: %v, want: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, gotEnums, tt.wantEnums)
+		if diff := pretty.Compare(got.enums, tt.wantEnums); diff != "" {
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected set of enums, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, diff)
+		}
+
+		if diff := pretty.Compare(got.repeatedMsg, tt.wantRepeatedMsg); diff != "" {
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected repeated message, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, diff)
 		}
 	}
 }

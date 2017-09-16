@@ -14,12 +14,12 @@ import "openconfig/enums.proto";
 
 // Config represents the /proto-test-d/test/config YANG schema element.
 message Config {
-  openconfig.enums.ProtoTestD_FOO id = 1;
-  openconfig.enums.ProtoTestD_ATypedef ty = 1;
+  openconfig.enums.ProtoTestD_FOO id = 411659456;
+  openconfig.enums.ProtoTestD_ATypedef ty = 495547642;
 }
 
 // State represents the /proto-test-d/test/state YANG schema element.
 message State {
-  openconfig.enums.ProtoTestD_FOO id = 1;
-  openconfig.enums.ProtoTestD_ATypedef ty = 1;
+  openconfig.enums.ProtoTestD_FOO id = 490046099;
+  openconfig.enums.ProtoTestD_ATypedef ty = 3508169;
 }

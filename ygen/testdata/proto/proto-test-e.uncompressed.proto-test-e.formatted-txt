@@ -15,15 +15,15 @@ import "proto_test_e/test.proto";
 // Animal_Key represents the /proto-test-e/animals/animal YANG schema element.
 message Animal_Key {
   oneof species {
-    Species species_Species = 42;
-    string species_string = 42;
+    Species species_Species = 277604926;
+    string species_string = 155124263;
   }
   proto_test_e.animals.Animal Animal = 2;
 }
 
 // Animals represents the /proto-test-e/animals YANG schema element.
 message Animals {
-  repeated Animal_Key animal = 1;
+  repeated Animal_Key animal = 87848318;
 }
 
 // Bar_Key represents the /proto-test-e/bars/bar YANG schema element.
@@ -35,15 +35,15 @@ message Bar_Key {
     Baz_Z = 3;
   }
   oneof baz {
-    Baz baz_Baz = 42;
-    string baz_string = 42;
+    Baz baz_Baz = 424259260;
+    string baz_string = 333826994;
   }
   proto_test_e.bars.Bar Bar = 2;
 }
 
 // Bars represents the /proto-test-e/bars YANG schema element.
 message Bars {
-  repeated Bar_Key bar = 1;
+  repeated Bar_Key bar = 500614484;
 }
 
 // Foo_Key represents the /proto-test-e/foos/foo YANG schema element.
@@ -59,11 +59,11 @@ message Foo_Key {
 
 // Foos represents the /proto-test-e/foos YANG schema element.
 message Foos {
-  repeated Foo_Key foo = 1;
+  repeated Foo_Key foo = 515769290;
 }
 
 // Test represents the /proto-test-e/test YANG schema element.
 message Test {
-  proto_test_e.test.Config config = 1;
-  proto_test_e.test.State state = 1;
+  proto_test_e.test.Config config = 18200749;
+  proto_test_e.test.State state = 138259042;
 }

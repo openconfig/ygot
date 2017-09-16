@@ -14,6 +14,6 @@ import "proto_test_a/parent/child.proto";
 
 // Child represents the /proto-test-a/parent/child YANG schema element.
 message Child {
-  proto_test_a.parent.child.Config config = 1;
-  proto_test_a.parent.child.State state = 1;
+  proto_test_a.parent.child.Config config = 45155888;
+  proto_test_a.parent.child.State state = 236795049;
 }

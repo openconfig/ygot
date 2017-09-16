@@ -18,10 +18,10 @@ message Config {
     Species_CERVUS_CANADENSIS = 2;
     Species_OVIS_CANADENSIS = 3;
   }
-  ywrapper.StringValue name = 1;
+  ywrapper.StringValue name = 249571319;
   oneof species {
-    Species species_Species = 42;
-    string species_string = 42;
+    Species species_Species = 464812903;
+    string species_string = 236397324;
   }
 }
 
@@ -33,9 +33,9 @@ message State {
     Species_CERVUS_CANADENSIS = 2;
     Species_OVIS_CANADENSIS = 3;
   }
-  ywrapper.StringValue name = 1;
+  ywrapper.StringValue name = 140365706;
   oneof species {
-    Species species_Species = 42;
-    string species_string = 42;
+    Species species_Species = 369243768;
+    string species_string = 480834449;
   }
 }

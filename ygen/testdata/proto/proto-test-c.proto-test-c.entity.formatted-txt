@@ -21,8 +21,8 @@ message Config {
     EnumeratedWithDefault_A = 0;
     EnumeratedWithDefault_B = 2;
   }
-  EnumeratedLeaf enumerated_leaf = 1;
-  EnumeratedWithDefault enumerated_with_default = 1;
+  EnumeratedLeaf enumerated_leaf = 10800442;
+  EnumeratedWithDefault enumerated_with_default = 83098118;
 }
 
 // State represents the /proto-test-c/entity/state YANG schema element.
@@ -36,6 +36,6 @@ message State {
     EnumeratedWithDefault_A = 0;
     EnumeratedWithDefault_B = 2;
   }
-  EnumeratedLeaf enumerated_leaf = 1;
-  EnumeratedWithDefault enumerated_with_default = 1;
+  EnumeratedLeaf enumerated_leaf = 247899547;
+  EnumeratedWithDefault enumerated_with_default = 82519423;
 }

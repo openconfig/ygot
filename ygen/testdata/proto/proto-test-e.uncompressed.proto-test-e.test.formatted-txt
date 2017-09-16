@@ -24,14 +24,14 @@ message Config {
     C_E = 2;
     C_F = 3;
   }
-  A a = 1;
+  A a = 205874313;
   oneof b {
-    openconfig.enums.ProtoTestE_ID b_ProtoTestE_ID = 42;
-    string b_string = 42;
+    openconfig.enums.ProtoTestE_ID b_ProtoTestE_ID = 349983350;
+    string b_string = 464943506;
   }
   oneof c {
-    C c_C = 42;
-    string c_string = 42;
+    C c_C = 41292233;
+    string c_string = 30323953;
   }
 }
 
@@ -49,13 +49,13 @@ message State {
     C_E = 2;
     C_F = 3;
   }
-  A a = 1;
+  A a = 138530090;
   oneof b {
-    openconfig.enums.ProtoTestE_ID b_ProtoTestE_ID = 42;
-    string b_string = 42;
+    openconfig.enums.ProtoTestE_ID b_ProtoTestE_ID = 474755425;
+    string b_string = 216646479;
   }
   oneof c {
-    C c_C = 42;
-    string c_string = 42;
+    C c_C = 403813798;
+    string c_string = 187790664;
   }
 }

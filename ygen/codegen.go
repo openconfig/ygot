@@ -196,8 +196,8 @@ type GeneratedGoCode struct {
 	RawJSONSchema []byte
 }
 
-// GeneratedProto stores a set of generated Protobuf packages.
-type GeneratedProto struct {
+// GeneratedProto3 stores a set of generated Protobuf packages.
+type GeneratedProto3 struct {
 	// Packages stores a map, keyed by the Protobuf package name, and containing the contents of the protobuf3
 	// messages defined within the package. The calling application can write out the defined packages to the
 	// files expected by the protoc tool.
@@ -206,6 +206,7 @@ type GeneratedProto struct {
 
 // Proto3Package stores the code for a generated protobuf3 package.
 type Proto3Package struct {
+	FilePath []string // FilePath is the path to the file that this package should be written to.
 	Header   string   // Header is the header text to be used in the package.
 	Messages []string // Messages is a slice of strings containing the set of messages that are within the generated package.
 	Enums    []string // Enums is a slice of string containing the generated set of enumerations within the package.
@@ -402,9 +403,9 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 // GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
 // The YANG schemas for which protobufs are to be created is supplied as the
 // yangFiles argument, with included modules being searched for in includePaths.
-// It returns a GeneratedProto struct containing the messages that are to be
+// It returns a GeneratedProto3 struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
-func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto, *YANGCodeGeneratorError) {
+func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto3, *YANGCodeGeneratorError) {
 	// TODO(github.com/openconfig/ygot/issues/20): Handle enumerated types in proto messages.
 	mdef, errs := mappedDefinitions(yangFiles, includePaths, cg.Config)
 	if errs != nil {
@@ -428,7 +429,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
 
-	genProto := &GeneratedProto{
+	genProto := &GeneratedProto3{
 		Packages: map[string]Proto3Package{},
 	}
 	ye := NewYANGCodeGeneratorError()
@@ -463,7 +464,8 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		// Sort the set of enumerations so that they are deterministically output.
 		sort.Strings(protoEnums)
 		genProto.Packages[fmt.Sprintf("%s.%s", basePackageName, enumPackageName)] = Proto3Package{
-			Enums: protoEnums,
+			FilePath: []string{basePackageName, fmt.Sprintf("%s.proto", enumPackageName)},
+			Enums:    protoEnums,
 		}
 	}
 
@@ -491,7 +493,10 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		// entries in the msgNames set to fall within the same package.
 		tp, ok := genProto.Packages[genMsg.packageName]
 		if !ok {
+			pp := strings.Split(genMsg.packageName, ".")
+			np := append(pp[:len(pp)-1], fmt.Sprintf("%s.proto", pp[len(pp)-1]))
 			genProto.Packages[genMsg.packageName] = Proto3Package{
+				FilePath: np,
 				Messages: []string{},
 			}
 			tp = genProto.Packages[genMsg.packageName]
