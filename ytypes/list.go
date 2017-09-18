@@ -281,6 +281,21 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 		return err
 	}
 
+	// Parent must be a map, slice ptr, or struct ptr.
+	// The last case can happen when a user wants to unmarshal just a single
+	// list element. That element returns is a list type schema in the OC
+	// schema tree so to handle that case we have to allow unmarshaling into
+	// struct ptr here.
+	t := reflect.TypeOf(parent)
+	if IsTypeStructPtr(t) {
+		fmt.Printf("it's a struct\n")
+		// Create a container equivalent of the list, which is just the list
+		// with ListAttrs unset.
+		newSchema := schema
+		newSchema.ListAttr = nil
+		return Unmarshal(newSchema, parent, value)
+	}
+
 	// value represents a JSON array, which is a Go slice.
 	jsonList, ok := value.([]interface{})
 	if !ok {
@@ -288,10 +303,8 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 			schema.Name, valueStr(value), value)
 	}
 
-	// Parent must be a map or slice ptr.
-	t := reflect.TypeOf(parent)
-	if t.Kind() != reflect.Map && !IsTypeSlicePtr(t) {
-		return fmt.Errorf("unmarshalList for %s got parent type %s, expect map or slice ptr", schema.Name, t.Kind())
+	if !(IsTypeMap(t) || IsTypeSlicePtr(t)) {
+		return fmt.Errorf("unmarshalList for %s got parent type %s, expect map, slice ptr or struct ptr", schema.Name, t.Kind())
 	}
 
 	listElementType := t.Elem()
@@ -363,7 +376,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 
 		var err error
 		switch {
-		case t.Kind() == reflect.Map:
+		case IsTypeMap(t):
 			// If this is a keyed list, create the key and copy values into it
 			// from the element struct.
 			var newKey reflect.Value
@@ -399,6 +412,8 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 			err = InsertIntoMap(parent, newKey.Interface(), newVal.Interface())
 		case IsTypeSlicePtr(t):
 			err = InsertIntoSlice(parent, newVal.Interface())
+		default:
+			return fmt.Errorf("unexpected type %s inserting in unmarshalList for parent type %T", t, parent)
 		}
 		if err != nil {
 			return err
