@@ -52,16 +52,20 @@ func TestFindMappableEntities(t *testing.T) {
 		name: "base-test",
 		in: &yang.Entry{
 			Name: "module",
+			Kind: yang.DirectoryEntry,
 			Dir: map[string]*yang.Entry{
 				"base": {
 					Name: "base",
+					Kind: yang.DirectoryEntry,
 					Dir: map[string]*yang.Entry{
 						"config": {
 							Name: "config",
+							Kind: yang.DirectoryEntry,
 							Dir:  map[string]*yang.Entry{},
 						},
 						"state": {
 							Name: "state",
+							Kind: yang.DirectoryEntry,
 							Dir:  map[string]*yang.Entry{},
 						},
 					},
@@ -83,9 +87,11 @@ func TestFindMappableEntities(t *testing.T) {
 			Dir: map[string]*yang.Entry{
 				"base": {
 					Name: "base",
+					Kind: yang.DirectoryEntry,
 					Dir: map[string]*yang.Entry{
 						"config": {
 							Name: "config",
+							Kind: yang.DirectoryEntry,
 							Dir: map[string]*yang.Entry{
 								"enumleaf": {
 									Name: "enumleaf",
@@ -97,6 +103,7 @@ func TestFindMappableEntities(t *testing.T) {
 						},
 						"state": {
 							Name: "state",
+							Kind: yang.DirectoryEntry,
 							Dir: map[string]*yang.Entry{
 								"enumleaf": {
 									Name: "enumleaf",
@@ -122,6 +129,7 @@ func TestFindMappableEntities(t *testing.T) {
 		name: "skip module",
 		in: &yang.Entry{
 			Name: "module",
+			Kind: yang.DirectoryEntry,
 			Dir: map[string]*yang.Entry{
 				"ignored-container": {
 					Name: "ignored-container",
@@ -142,12 +150,15 @@ func TestFindMappableEntities(t *testing.T) {
 		name: "surrounding container for list at root",
 		in: &yang.Entry{
 			Name: "module",
+			Kind: yang.DirectoryEntry,
 			Dir: map[string]*yang.Entry{
 				"surrounding-container": {
 					Name: "surrounding-container",
+					Kind: yang.DirectoryEntry,
 					Dir: map[string]*yang.Entry{
 						"child-list": {
 							Name:     "child-list",
+							Kind:     yang.DirectoryEntry,
 							Dir:      map[string]*yang.Entry{},
 							ListAttr: &yang.ListAttr{},
 						},
@@ -176,6 +187,7 @@ func TestFindMappableEntities(t *testing.T) {
 							Dir: map[string]*yang.Entry{
 								"container": {
 									Name: "container",
+									Kind: yang.DirectoryEntry,
 									Dir:  map[string]*yang.Entry{},
 								},
 							},
@@ -194,6 +206,7 @@ func TestFindMappableEntities(t *testing.T) {
 		name: "enumerated value within a union leaf",
 		in: &yang.Entry{
 			Name: "module",
+			Kind: yang.DirectoryEntry,
 			Dir: map[string]*yang.Entry{
 				"leaf": {
 					Name: "leaf",
@@ -212,6 +225,7 @@ func TestFindMappableEntities(t *testing.T) {
 		name: "identityref value within a union leaf",
 		in: &yang.Entry{
 			Name: "module",
+			Kind: yang.DirectoryEntry,
 			Dir: map[string]*yang.Entry{
 				"leaf": {
 					Name: "leaf",
@@ -232,6 +246,7 @@ func TestFindMappableEntities(t *testing.T) {
 		name: "enumeration within a typedef which is a union",
 		in: &yang.Entry{
 			Name: "module",
+			Kind: yang.DirectoryEntry,
 			Dir: map[string]*yang.Entry{
 				"leaf": {
 					Name: "leaf",
@@ -252,6 +267,7 @@ func TestFindMappableEntities(t *testing.T) {
 		name: "enumerated value within a choice that has a child",
 		in: &yang.Entry{
 			Name: "module",
+			Kind: yang.DirectoryEntry,
 			Dir: map[string]*yang.Entry{
 				"choice": {
 					Name: "choice",
@@ -263,6 +279,7 @@ func TestFindMappableEntities(t *testing.T) {
 							Dir: map[string]*yang.Entry{
 								"container": {
 									Name: "container",
+									Kind: yang.DirectoryEntry,
 									Dir: map[string]*yang.Entry{
 										"choice-case-container-leaf": {
 											Name: "choice-case-container-leaf",
@@ -581,6 +598,7 @@ func TestFindRootEntries(t *testing.T) {
 			"/foo": {
 				Name: "foo",
 				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
 				Parent: &yang.Entry{
 					Name: "module",
 				},
@@ -588,6 +606,7 @@ func TestFindRootEntries(t *testing.T) {
 			"/foo/bar": {
 				Name: "bar",
 				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
 				Parent: &yang.Entry{
 					Name: "foo",
 					Parent: &yang.Entry{
@@ -605,6 +624,7 @@ func TestFindRootEntries(t *testing.T) {
 			"/foo": {
 				Name: "foo",
 				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
 				Parent: &yang.Entry{
 					Name: "module",
 				},
@@ -613,6 +633,7 @@ func TestFindRootEntries(t *testing.T) {
 		inRootElems: []*yang.Entry{{
 			Name: "foo",
 			Dir:  map[string]*yang.Entry{},
+			Kind: yang.DirectoryEntry,
 			Parent: &yang.Entry{
 				Name: "module",
 			},
@@ -727,6 +748,13 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.enums":                       filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.enums.formatted-txt"),
 			"openconfig.proto_test_e.animals":        filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.animals.formatted-txt"),
 			"openconfig.proto_test_e.animals.animal": filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.animals.animal.formatted-txt"),
+		},
+	}, {
+		name:    "yang schema with anydata",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-anydata-test.yang")},
+		wantOutputFiles: map[string]string{
+			"openconfig.proto_anydata_test":   filepath.Join(TestRoot, "testdata", "proto", "proto_anydata_test.formatted-txt"),
+			"openconfig.proto_anydata_test.e": filepath.Join(TestRoot, "testdata", "proto", "proto_anydata_test.e.formatted-txt"),
 		},
 	}}
 

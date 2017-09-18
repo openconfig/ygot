@@ -9,7 +9,6 @@ package openconfig.proto_test_e;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
-
 import "proto_test_e/test.proto";
 
 // Animal_Key represents the /proto-test-e/animals/animal YANG schema element.
@@ -18,7 +17,7 @@ message Animal_Key {
     Species species_Species = 277604926;
     string species_string = 155124263;
   }
-  proto_test_e.animals.Animal Animal = 2;
+  proto_test_e.animals.Animal animal = 2;
 }
 
 // Animals represents the /proto-test-e/animals YANG schema element.
@@ -38,7 +37,7 @@ message Bar_Key {
     Baz baz_Baz = 424259260;
     string baz_string = 333826994;
   }
-  proto_test_e.bars.Bar Bar = 2;
+  proto_test_e.bars.Bar bar = 2;
 }
 
 // Bars represents the /proto-test-e/bars YANG schema element.
@@ -54,7 +53,7 @@ message Foo_Key {
     Bar_B = 2;
   }
   Bar bar = 1;
-  proto_test_e.foos.Foo Foo = 2;
+  proto_test_e.foos.Foo foo = 2;
 }
 
 // Foos represents the /proto-test-e/foos YANG schema element.

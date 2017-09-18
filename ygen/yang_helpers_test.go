@@ -28,6 +28,7 @@ func TestYangHelperChecks(t *testing.T) {
 		name                string
 		inEntry             *yang.Entry
 		wantDir             bool
+		wantContainer       bool
 		wantList            bool
 		wantRoot            bool
 		wantConfigState     bool
@@ -40,12 +41,14 @@ func TestYangHelperChecks(t *testing.T) {
 		name: "valid directory node",
 		inEntry: &yang.Entry{
 			Name: "container",
+			Kind: yang.DirectoryEntry,
 			Dir: map[string]*yang.Entry{
 				"child": {},
 			},
 			Parent: &yang.Entry{},
 		},
 		wantDir:             true,
+		wantContainer:       true,
 		wantCompressedValid: true,
 		wantHasOnlyChild:    true,
 	}, {

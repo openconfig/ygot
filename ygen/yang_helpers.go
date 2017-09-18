@@ -70,6 +70,11 @@ func isEnumType(t *yang.YangType) bool {
 	return t.Kind == yang.Yenum || t.Kind == yang.Yidentityref
 }
 
+// isAnydata returns true if the entry is an Anydata node.
+func isAnydata(e *yang.Entry) bool {
+	return e.Kind == yang.AnyDataEntry
+}
+
 // isOCCompressedValidElement returns true if the element would be output in the
 // compressed YANG code.
 func isOCCompressedValidElement(e *yang.Entry) bool {

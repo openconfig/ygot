@@ -25,7 +25,13 @@ import (
 )
 
 const (
+	// protoEnumZeroName is the name given to the value 0 in each generated protobuf enum.
 	protoEnumZeroName string = "UNSET"
+	// protoAnyType is the name of the type to use for a google.protobuf.Any field.
+	protoAnyType = "google.protobuf.Any"
+	// protoAnyPackage is the name of the import to be used when a google.protobuf.Any field
+	// is included in the output data.
+	protoAnyPackage = "google/protobuf/any"
 )
 
 // protoMsgField describes a field of a protobuf message.
@@ -104,11 +110,11 @@ syntax = "proto3";
 package {{ .PackageName }};
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
-import "github.com/openconfig/ygot/proto/yext/yext.proto";
-{{ $publicImport := .BaseImportPath -}}
+//import "github.com/openconfig/ygot/proto/yext/yext.proto";
+{{- $publicImport := .BaseImportPath -}}
 {{- range $importedProto := .Imports }}
 import "{{ filepathJoin $publicImport $importedProto }}.proto";
-{{ end -}}
+{{- end }}
 `
 
 	// protoMessageTemplate is populated for each entity that is mapped to a message
@@ -206,6 +212,10 @@ func writeProto3Header(in proto3Header) (string, error) {
 		in.CallerName = callerName()
 	}
 
+	// Sort the list of imports such that they are output in alphabetical
+	// order, minimising diffs.
+	sort.Strings(in.Imports)
+
 	var b bytes.Buffer
 	if err := protoTemplates["header"].Execute(&b, in); err != nil {
 		return "", err
@@ -240,6 +250,8 @@ func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *g
 	}
 
 	if msg.entry.Parent == nil {
+		// TODO(github.com/openconfig/ygot/issues/40): Add support for generating the
+		// fake root in Protobuf, which has a nil parent.
 		return nil, []error{fmt.Errorf("YANG schema element %s does not have a parent, protobuf messages are not generated for modules", msg.entry.Path())}
 	}
 
@@ -327,6 +339,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				definedDirectories: msgs,
 				state:              state,
 				compressPaths:      compressPaths,
+				basePackageName:    basePackageName,
 			})
 
 			if err != nil {
@@ -340,7 +353,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 			fieldDef.Type = fieldType
 			// Lists are always repeated fields.
 			fieldDef.IsRepeated = true
-		case field.IsDir():
+		case field.IsContainer():
 			childmsg, ok := msgs[field.Path()]
 			if !ok {
 				err = fmt.Errorf("proto: could not resolve %s into a defined struct", field.Path())
@@ -351,11 +364,11 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				// Add the import to the slice of imports if it is not already
 				// there. This allows the message file to import the required
 				// child packages.
-				childpath := strings.Replace(childpkg, ".", "/", -1)
+				childpath := fmt.Sprintf("%s/%s", basePackageName, strings.Replace(childpkg, ".", "/", -1))
 				if _, ok := imports[childpath]; !ok {
 					imports[childpath] = true
 				}
-				fieldDef.Type = fmt.Sprintf("%s.%s", childpkg, childmsg.name)
+				fieldDef.Type = fmt.Sprintf("%s.%s.%s", basePackageName, childpkg, childmsg.name)
 			}
 		case field.IsLeaf() || field.IsLeafList():
 			d, err := protoLeafDefinition(fieldDef.Name, protoDefinitionArgs{
@@ -398,7 +411,9 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 			if field.ListAttr != nil {
 				fieldDef.IsRepeated = true
 			}
-
+		case isAnydata(field):
+			fieldDef.Type = protoAnyType
+			imports[protoAnyPackage] = true
 		default:
 			err = fmt.Errorf("proto: unknown field type in message %s, field %s", msg.name, field.Name)
 		}
@@ -543,7 +558,7 @@ func protoListDefinition(args protoDefinitionArgs) (string, *protoMsg, error) {
 	if !isKeyedList(listMsg.entry) {
 		// In proto3 we represent unkeyed lists as a
 		// repeated field of the parent message.
-		fieldType = fmt.Sprintf("%s.%s", childPkg, listMsgName)
+		fieldType = fmt.Sprintf("%s.%s.%s", args.basePackageName, childPkg, listMsgName)
 	} else {
 		// YANG lists are mapped to a repeated message structure as described
 		// in the YANG to Protobuf transformation specification.
@@ -614,6 +629,8 @@ func protoLeafDefinition(leafName string, args protoDefinitionArgs) (*protoDefin
 			d.enums[n] = e
 		}
 
+		d.globalEnum = u.hadGlobalEnums
+
 		// Append the oneof that was in the union.
 		d.oneofs = append(d.oneofs, u.oneOfFields...)
 
@@ -678,6 +695,7 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 		Name:     n,
 		YANGPath: args.field.Path(),
 		Enums:    map[string]*protoMsgEnum{},
+		Imports:  []string{fmt.Sprintf("%s/%s", args.basePackageName, strings.Replace(listPackage, ".", "/", -1))},
 	}
 
 	definedFieldNames := map[string]bool{}
@@ -747,8 +765,8 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 	}
 
 	km.Fields = append(km.Fields, &protoMsgField{
-		Name: listName,
-		Type: fmt.Sprintf("%s.%s", listPackage, listName),
+		Name: safeProtoIdentifierName(args.field.Name),
+		Type: fmt.Sprintf("%s.%s.%s", args.basePackageName, listPackage, listName),
 		Tag:  ctag,
 	})
 
@@ -779,9 +797,10 @@ func enumInProtoUnionField(name string, types []*yang.YangType) (map[string]*pro
 // protoUnionField stores information relating to a oneof field within a protobuf
 // message.
 type protoUnionField struct {
-	oneOfFields []*protoMsgField         // oneOfFields contains a set of fields that are within a oneof.
-	enums       map[string]*protoMsgEnum // enums stores a definition of any simple enumeration types within the YANG union.
-	repeatedMsg *protoMsg                // repeatedMsg stores a message that contains fields that should be repeated, and is used to store a YANG leaf-list of union leaves.
+	oneOfFields    []*protoMsgField         // oneOfFields contains a set of fields that are within a oneof.
+	enums          map[string]*protoMsgEnum // enums stores a definition of any simple enumeration types within the YANG union.
+	repeatedMsg    *protoMsg                // repeatedMsg stores a message that contains fields that should be repeated, and is used to store a YANG leaf-list of union leaves.
+	hadGlobalEnums bool                     // hadGlobalEnums determines whether there was a global scope enum (typedef, identityref) in the message.
 }
 
 // unionFieldToOneOf takes an input name, a yang.Entry containing a field definition and a mappedType
@@ -794,8 +813,12 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType) (*pro
 	}
 
 	typeNames := []string{}
+	var importGlobalEnums bool
 	for tn := range mtype.unionTypes {
 		typeNames = append(typeNames, tn)
+		/*if t.isGlobalEnum {
+			importGlobalEnums = true
+		}*/
 	}
 	sort.Strings(typeNames)
 
@@ -824,7 +847,7 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType) (*pro
 		// oneof, therefore we return a message that contains the protoMsgFields that are defined
 		// above.
 		p := &protoMsg{
-			Name:     fmt.Sprintf("%sUnion", yang.CamelCase(fieldName)),
+			Name:     fmt.Sprintf("%s%sUnion", yang.CamelCase(e.Parent.Name), yang.CamelCase(fieldName)),
 			YANGPath: fmt.Sprintf("%s union field %s", e.Path(), e.Name),
 			Fields:   oofs,
 		}
@@ -836,7 +859,8 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType) (*pro
 	}
 
 	return &protoUnionField{
-		oneOfFields: oofs,
-		enums:       enums,
+		oneOfFields:    oofs,
+		enums:          enums,
+		hadGlobalEnums: importGlobalEnums,
 	}, nil
 }

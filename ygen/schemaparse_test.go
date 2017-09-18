@@ -87,6 +87,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 	}
 	containerEntry := &yang.Entry{
 		Name:   "container",
+		Kind:   yang.DirectoryEntry,
 		Parent: moduleEntry,
 	}
 	leafEntry := &yang.Entry{
@@ -99,6 +100,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 
 	annotatedContainerEntry := &yang.Entry{
 		Name: "container",
+		Kind: yang.DirectoryEntry,
 		Annotation: map[string]interface{}{
 			"schemapath": "/module/container",
 			"structname": "Container",

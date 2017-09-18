@@ -22,7 +22,7 @@ import "github.com/openconfig/gnmi/proto/gnmi/gnmi.proto";
 
 package yext;
 
-import google.protobuf.FieldOptions {
+extend google.protobuf.FieldOptions {
   // path stores the schema path to the field within the YANG schema.
   gnmi.Path path = 1001;
 }

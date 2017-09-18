@@ -697,7 +697,9 @@ func mappableLeaf(e *yang.Entry) *yang.Entry {
 // the generated code. The descendants that represent directories are appended to the dirs
 // map (keyed by the schema path). Those that represent enumerated types (identityref, enumeration,
 // unions containing these types, or typedefs containing these types) are appended to the
-// enums map, which is again keyed by schema path.
+// enums map, which is again keyed by schema path. If any child of the entry is in a module
+// defined in excludeModules, it is skipped. If compressPaths is set to true, then names are
+// mapped with path compression enabled.
 func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules []string, compressPaths bool) {
 	pp := strings.Split(e.Path(), "/")
 	if !strings.HasPrefix(e.Path(), "/") {
@@ -716,7 +718,7 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 
 	for _, ch := range children(e) {
 		switch {
-		case !ch.IsDir():
+		case ch.IsLeaf(), ch.IsLeafList():
 			// Leaves are not mapped as directories so do not map them unless we find
 			// something that will be an enumeration - so that we can deal with this
 			// as a top-level code entity.
@@ -750,15 +752,17 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 					continue
 				}
 
-				if gch.IsDir() {
+				if gch.IsContainer() || gch.IsList() {
 					dirs[fmt.Sprintf("%s/%s", ch.Parent.Path(), gch.Name)] = gch
 				}
 				findMappableEntities(gch, dirs, enums, excludeModules, compressPaths)
 			}
-		default:
+		case ch.IsContainer(), ch.IsList():
 			dirs[ch.Path()] = ch
 			// Recurse down the tree.
 			findMappableEntities(ch, dirs, enums, excludeModules, compressPaths)
+		default:
+			log.Infof("unknown type of entry %v in findMappableEntities for %s", e.Kind, e.Path())
 		}
 	}
 }
@@ -777,7 +781,7 @@ func findRootEntries(structs map[string]*yang.Entry, compressPaths bool) map[str
 			// are compressing, then all invalid elements have
 			// already been compressed out of the schema by this
 			// stage.
-			if s.IsDir() {
+			if s.IsContainer() || s.IsList() {
 				rootEntries[n] = s
 			}
 		case 4:

@@ -526,6 +526,7 @@ func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string
 			return &mappedType{
 				nativeType:        fmt.Sprintf("%s%s", prefix, tn),
 				isEnumeratedValue: true,
+				isGlobalEnum:      true,
 			}, nil
 		}
 	}

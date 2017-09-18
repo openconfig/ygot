@@ -47,7 +47,7 @@ func protoMsgEq(a, b protoMsg) bool {
 	return true
 }
 
-func TestGenProtoMsg(t *testing.T) {
+func TestGenProto3Msg(t *testing.T) {
 	tests := []struct {
 		name                   string
 		inMsg                  *yangDirectory
@@ -65,6 +65,7 @@ func TestGenProtoMsg(t *testing.T) {
 			entry: &yang.Entry{
 				Name: "message-name",
 				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
 			},
 			fields: map[string]*yang.Entry{
 				"field-one": {
@@ -100,6 +101,7 @@ func TestGenProtoMsg(t *testing.T) {
 			entry: &yang.Entry{
 				Name: "a-message",
 				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
 			},
 			fields: map[string]*yang.Entry{
 				"leaf-list": {
@@ -110,6 +112,7 @@ func TestGenProtoMsg(t *testing.T) {
 				"container-child": {
 					Name: "container-child",
 					Dir:  map[string]*yang.Entry{},
+					Kind: yang.DirectoryEntry,
 					Parent: &yang.Entry{
 						Name: "a-message",
 						Parent: &yang.Entry{
@@ -158,6 +161,7 @@ func TestGenProtoMsg(t *testing.T) {
 			entry: &yang.Entry{
 				Name: "a-message",
 				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
 			},
 			fields: map[string]*yang.Entry{
 				"leaf-list": {
@@ -168,6 +172,7 @@ func TestGenProtoMsg(t *testing.T) {
 				"container-child": {
 					Name: "container-child",
 					Dir:  map[string]*yang.Entry{},
+					Kind: yang.DirectoryEntry,
 					Parent: &yang.Entry{
 						Name: "a-message",
 						Parent: &yang.Entry{
@@ -215,6 +220,7 @@ func TestGenProtoMsg(t *testing.T) {
 			entry: &yang.Entry{
 				Name: "a-message-with-a-list",
 				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
 			},
 			fields: map[string]*yang.Entry{
 				"list": {
@@ -222,6 +228,7 @@ func TestGenProtoMsg(t *testing.T) {
 					Parent: &yang.Entry{
 						Name: "a-message-with-a-list",
 					},
+					Kind: yang.DirectoryEntry,
 					Dir: map[string]*yang.Entry{
 						"key": {
 							Name: "key",
@@ -241,6 +248,7 @@ func TestGenProtoMsg(t *testing.T) {
 			entry: &yang.Entry{
 				Name: "message-with-invalid-contents",
 				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
 			},
 			fields: map[string]*yang.Entry{
 				"unimplemented": {
@@ -256,9 +264,46 @@ func TestGenProtoMsg(t *testing.T) {
 					},
 				},
 			},
-			path: []string{"", "mesassge-with-invalid-contents", "unimplemented"},
+			path: []string{"", "messasge-with-invalid-contents", "unimplemented"},
 		},
 		wantErr: true,
+	}, {
+		name: "message with any anydata field",
+		inMsg: &yangDirectory{
+			name: "MessageWithAnydata",
+			entry: &yang.Entry{
+				Name: "message-with-anydata",
+				Kind: yang.DirectoryEntry,
+				Dir:  map[string]*yang.Entry{},
+			},
+			fields: map[string]*yang.Entry{
+				"any-data": {
+					Name: "any-data",
+					Kind: yang.AnyDataEntry,
+				},
+				"leaf": {
+					Name: "leaf",
+					Kind: yang.LeafEntry,
+					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+			},
+			path: []string{"", "message-with-anydata"},
+		},
+		wantMsgs: map[string]protoMsg{
+			"MessageWithAnydata": {
+				Name:     "MessageWithAnydata",
+				YANGPath: "/message-with-anydata",
+				Fields: []*protoMsgField{{
+					Tag:  453452743,
+					Name: "any_data",
+					Type: "google.protobuf.Any",
+				}, {
+					Tag:  463279904,
+					Name: "leaf",
+					Type: "ywrapper.StringValue",
+				}},
+			},
+		},
 	}}
 
 	for _, tt := range tests {
@@ -283,7 +328,7 @@ func TestGenProtoMsg(t *testing.T) {
 		for _, got := range gotMsgs {
 			want, ok := tt.wantMsgs[got.Name]
 			if !ok {
-				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): got unexpected expected message, got: nil, want: %v", tt.name, tt.inMsg, tt.inMsgs, got.Name)
+				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): got unexpected message, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, got.Name, tt.wantMsgs)
 				continue
 			}
 			delete(notSeen, got.Name)
@@ -588,7 +633,7 @@ message MessageName {
 // List_Key represents the /module/message-name/list YANG schema element.
 message List_Key {
   string keyfield = 1;
-  message_name.List List = 2;
+  message_name.List list = 2;
 }
 
 // MessageName represents the  YANG schema element.
@@ -603,7 +648,7 @@ message MessageName {
 // List_Key represents the /module/message-name/list YANG schema element.
 message List_Key {
   string keyfield = 1;
-  module.message_name.List List = 2;
+  module.message_name.List list = 2;
 }
 
 // MessageName represents the  YANG schema element.
@@ -689,7 +734,7 @@ message MessageName {
 // List_Key represents the /module/message-name/list YANG schema element.
 message List_Key {
   string keyfield = 1;
-  message_name.List List = 2;
+  message_name.List list = 2;
 }
 
 // MessageName represents the  YANG schema element.
@@ -704,7 +749,7 @@ message MessageName {
 // List_Key represents the /module/message-name/list YANG schema element.
 message List_Key {
   string keyfield = 1;
-  module.message_name.List List = 2;
+  module.message_name.List list = 2;
 }
 
 // MessageName represents the  YANG schema element.
