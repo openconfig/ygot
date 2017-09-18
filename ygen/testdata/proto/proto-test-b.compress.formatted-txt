@@ -13,7 +13,7 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 // Interface_Key represents the /proto-test-b/device/interfaces/interface YANG schema element.
 message Interface_Key {
   string name = 1;
-  device.Interface Interface = 2;
+  device.Interface interface = 2;
 }
 
 // Device represents the /proto-test-b/device YANG schema element.

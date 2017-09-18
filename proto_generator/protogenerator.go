@@ -39,6 +39,7 @@ var (
 	ignoreCircDeps   = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
 	generateFakeRoot = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
 	fakeRootName     = flag.String("fakeroot_name", "", "The name of the fake root entity.")
+	baseImportPath   = flag.String("base_import_path", "", "The base import path that should be used for this package, for example a URL to the GitHub repo that the protobuf messages are stored in.")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
@@ -90,6 +91,9 @@ func main() {
 		FakeRootName:     *fakeRootName,
 		YANGParseOptions: yang.Options{
 			IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+		},
+		ProtoOptions: ygen.ProtoOpts{
+			BaseImportPath: *baseImportPath,
 		},
 	})
 

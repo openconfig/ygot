@@ -75,6 +75,10 @@ type mappedType struct {
 	// derived types with constant values, and are hence not represented
 	// as pointers in the output code.
 	isEnumeratedValue bool
+	// isGlobalEnum specifies whether the nativeType that is returned
+	// is a generated enumerated value with global scope. This is applicable
+	// only to languages that allow local or global scoped type definition.
+	isGlobalEnum bool
 }
 
 // resolveTypeArgs is a structure used as an input argument to the yangTypeToGoType
@@ -332,7 +336,7 @@ func findAllChildren(e *yang.Entry, compressOCPaths bool) (map[string]*yang.Entr
 	//
 	// To achieve this then we build an orderedChildNames slice which specifies the
 	// order in which we should process the children of entry e.
-	if e.IsDir() {
+	if e.IsContainer() || e.IsList() {
 		if _, ok := e.Dir["config"]; ok {
 			orderedChildNames = append(orderedChildNames, "config")
 		}
