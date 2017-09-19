@@ -16,6 +16,7 @@ package ygen
 import (
 	"bytes"
 	"fmt"
+	"hash/fnv"
 	"sort"
 	"strings"
 	"text/template"
@@ -35,7 +36,7 @@ type protoMsgField struct {
 	IsRepeated  bool              // IsRepeated indicates whether the field is repeated.
 	Extensions  map[string]string // Extensions is the set of field tags that are applied to the field.
 	IsOneOf     bool              // IsOneOf indicates that the field is a oneof and hence consists of multiple subfields.
-	OneOfFields []protoMsgField   // OneOfFields contains the set of fields within the oneof
+	OneOfFields []*protoMsgField  // OneOfFields contains the set of fields within the oneof
 }
 
 // protoMsg describes a protobuf message.
@@ -385,6 +386,10 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				fieldDef.IsOneOf = true
 			}
 
+			if d.repeatedMsg != nil {
+				msgDefs = append(msgDefs, *d.repeatedMsg)
+			}
+
 			// Add the global enumeration package if it is referenced by this field.
 			if d.globalEnum {
 				imports[fmt.Sprintf("%s/%s", basePackageName, enumPackageName)] = true
@@ -563,10 +568,11 @@ func protoListDefinition(args protoDefinitionArgs) (string, *protoMsg, error) {
 
 // protoDefinedLeaf defines a YANG leaf within a protobuf message.
 type protoDefinedLeaf struct {
-	protoType  string                   // protoType is the protobuf type that the leaf should be mapped to.
-	globalEnum bool                     // globalEnum indicates whether the leaf's type is a global scope enumeration (identityref, or typedef defining an enumeration)
-	enums      map[string]*protoMsgEnum // enums defines the set of enumerated values that are required for this leaf within the parent message.
-	oneofs     []protoMsgField          //oneofs defines the set of types within the leaf, if the returned leaf type is a protobuf oneof.
+	protoType   string                   // protoType is the protobuf type that the leaf should be mapped to.
+	globalEnum  bool                     // globalEnum indicates whether the leaf's type is a global scope enumeration (identityref, or typedef defining an enumeration)
+	enums       map[string]*protoMsgEnum // enums defines the set of enumerated values that are required for this leaf within the parent message.
+	oneofs      []*protoMsgField         // oneofs defines the set of types within the leaf, if the returned leaf type is a protobuf oneof.
+	repeatedMsg *protoMsg                // repeatedMsgs returns a message that should be repeated for this leaf, used in the case of a leaf-list of unions.
 }
 
 // protoLeafDefinition takes an input leafName, and a set of protoDefinitionArgs specifying the context
@@ -598,19 +604,23 @@ func protoLeafDefinition(leafName string, args protoDefinitionArgs) (*protoDefin
 	case isEnumType(args.field.Type):
 		d.globalEnum = true
 	case isUnionType(args.field.Type):
-		oofs, enums, err := unionFieldToOneOf(leafName, args.field, protoType)
+		u, err := unionFieldToOneOf(leafName, args.field, protoType)
 		if err != nil {
 			return nil, err
 		}
 
 		// Append any enumerations that are within the union.
-		for n, e := range enums {
+		for n, e := range u.enums {
 			d.enums[n] = e
 		}
 
 		// Append the oneof that was in the union.
-		d.oneofs = append(d.oneofs, oofs...)
+		d.oneofs = append(d.oneofs, u.oneOfFields...)
 
+		if u.repeatedMsg != nil {
+			d.repeatedMsg = u.repeatedMsg
+			d.protoType = u.repeatedMsg.Name
+		}
 	}
 
 	return d, nil
@@ -635,13 +645,25 @@ func safeProtoIdentifierName(name string) string {
 	return replacer.Replace(name)
 }
 
-// fieldTag returns a protobuf tag value for the entry e. The tag value supplied is
-// between 1 and 2^29-1. The values 19,000-19,999 are excluded as these are explicitly
-// reserved for protobuf-internal use by https://developers.google.com/protocol-buffers/docs/proto3.
+// protoTagForEntry returns a protobuf tag value for the entry e.
 func protoTagForEntry(e *yang.Entry) (uint32, error) {
-	// TODO(robjs): Replace this function with the final implementation
-	// once concluded.
-	return 1, nil
+	return fieldTag(e.Path())
+}
+
+// fieldTag takes an input string and calculates a FNV hash for the value. If the
+// hash is in the range 19,000-19,999 or 1-1,000, the input string has _ appended to
+// it and the hash is calculated.
+func fieldTag(s string) (uint32, error) {
+	h := fnv.New32()
+	if _, err := h.Write([]byte(s)); err != nil {
+		return 0, fmt.Errorf("could not write field path to hash: %v", err)
+	}
+
+	v := h.Sum32() & 0x1fffffff // 2^29-1
+	if (v >= 19000 && v <= 19999) || (v >= 1 && v <= 1000) {
+		return fieldTag(fmt.Sprintf("%s_", s))
+	}
+	return v, nil
 }
 
 // genListKeyProto generates a protoMsg that describes the proto3 message that represents
@@ -706,12 +728,12 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 			km.Enums[tn] = enum
 		case unionEntry != nil:
 			fd.IsOneOf = true
-			oofs, enums, err := unionFieldToOneOf(fd.Name, kf, scalarType)
+			u, err := unionFieldToOneOf(fd.Name, kf, scalarType)
 			if err != nil {
 				return nil, fmt.Errorf("error generating type for union list key %s in list %s", k, args.field.Path())
 			}
-			fd.OneOfFields = append(fd.OneOfFields, oofs...)
-			for n, e := range enums {
+			fd.OneOfFields = append(fd.OneOfFields, u.oneOfFields...)
+			for n, e := range u.enums {
 				km.Enums[n] = e
 			}
 		default:
@@ -752,13 +774,21 @@ func enumInProtoUnionField(name string, types []*yang.YangType) (map[string]*pro
 	return enums, nil
 }
 
+// protoUnionField stores information relating to a oneof field within a protobuf
+// message.
+type protoUnionField struct {
+	oneOfFields []*protoMsgField         // oneOfFields contains a set of fields that are within a oneof.
+	enums       map[string]*protoMsgEnum // enums stores a definition of any simple enumeration types within the YANG union.
+	repeatedMsg *protoMsg                // repeatedMsg stores a message that contains fields that should be repeated, and is used to store a YANG leaf-list of union leaves.
+}
+
 // unionFieldToOneOf takes an input name, a yang.Entry containing a field definition and a mappedType
-// containing the proto type that the entry has been mapped to, and returns the list of fields within
-// the oneof that should be created, along with any enumerations that are contained within the union.
-func unionFieldToOneOf(name string, e *yang.Entry, mtype *mappedType) ([]protoMsgField, map[string]*protoMsgEnum, error) {
-	enums, err := enumInProtoUnionField(name, e.Type.Type)
+// containing the proto type that the entry has been mapped to, and returns a definition of a union
+// field within the protobuf message.
+func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType) (*protoUnionField, error) {
+	enums, err := enumInProtoUnionField(fieldName, e.Type.Type)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	typeNames := []string{}
@@ -767,21 +797,55 @@ func unionFieldToOneOf(name string, e *yang.Entry, mtype *mappedType) ([]protoMs
 	}
 	sort.Strings(typeNames)
 
-	oofs := []protoMsgField{}
+	oofs := []*protoMsgField{}
 	for _, t := range typeNames {
 		// Split the type name on "." to ensure that we don't have oneof options
 		// that reference some other package in the type name.
 		tp := strings.Split(t, ".")
 		tn := tp[len(tp)-1]
-		st := protoMsgField{
-			Name: fmt.Sprintf("%s_%s", name, tn),
+		// Calculate the tag by having the path, with the type name appended to it
+		// such that we have unique inputs for each option.
+		fn, err := fieldTag(fmt.Sprintf("%s_%s", e.Path(), tn))
+		if err != nil {
+			return nil, fmt.Errorf("could not calculate tag number for %s, type %s in oneof", e.Path(), tn)
+		}
+		st := &protoMsgField{
+			Name: fmt.Sprintf("%s_%s", fieldName, tn),
 			Type: t,
-			// TODO(robjs): Consider how to output field IDs here. This is pending the
-			// same solution conclusion as is discussed in the protoTagForEntry function.
-			Tag: 42,
+			Tag:  fn,
 		}
 		oofs = append(oofs, st)
 	}
 
-	return oofs, enums, nil
+	if e.IsLeafList() {
+		// In this case, we cannot return a oneof, since it is not possible to have a repeated
+		// oneof, therefore we return a message that contains the protoMsgFields that are defined
+		// above.
+		p := &protoMsg{
+			Name:     fmt.Sprintf("%sUnion", yang.CamelCase(fieldName)),
+			YANGPath: fmt.Sprintf("%s union field %s", e.Path(), e.Name),
+			Fields:   oofs,
+		}
+
+		return &protoUnionField{
+			enums:       enums,
+			repeatedMsg: p,
+		}, nil
+	}
+
+	return &protoUnionField{
+		oneOfFields: oofs,
+		enums:       enums,
+	}, nil
+}
+
+// protoPackageToFilePath takes an input string containing a period separated protobuf package
+// name in the form parent.child and returns a path to the file that it should be written to
+// assuming a hierarchical directory structure is used. If the package supplied is
+// openconfig.interfaces.interface, it is returned as []string{"openconfig", "interfaces",
+// "interface.proto"} such that filepath.Join can create the relevant file system path
+// for the input package.
+func protoPackageToFilePath(pkg string) []string {
+	pp := strings.Split(pkg, ".")
+	return append(pp[:len(pp)-1], fmt.Sprintf("%s.proto", pp[len(pp)-1]))
 }

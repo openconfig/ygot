@@ -17,8 +17,8 @@ message Config {
     Bar_A = 1;
     Bar_B = 2;
   }
-  Bar bar = 1;
-  ywrapper.StringValue baz = 1;
+  Bar bar = 508444297;
+  ywrapper.StringValue baz = 508444289;
 }
 
 // State represents the /proto-test-e/foos/foo/state YANG schema element.
@@ -28,6 +28,6 @@ message State {
     Bar_A = 1;
     Bar_B = 2;
   }
-  Bar bar = 1;
-  ywrapper.StringValue baz = 1;
+  Bar bar = 169576570;
+  ywrapper.StringValue baz = 169576562;
 }

@@ -117,6 +117,13 @@ module proto-test-e {
         }
       }
 
+      leaf-list llu {
+        type union {
+          type string;
+          type uint8;
+        }
+      }
+
       leaf foo {
         type string;
       }

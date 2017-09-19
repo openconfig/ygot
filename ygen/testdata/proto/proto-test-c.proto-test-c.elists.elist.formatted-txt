@@ -18,9 +18,9 @@ message Config {
     One_E1 = 2;
     One_E42 = 43;
   }
-  ywrapper.StringValue non_key = 1;
-  One one = 1;
-  ywrapper.StringValue two = 1;
+  ywrapper.StringValue non_key = 460983769;
+  One one = 441760514;
+  ywrapper.StringValue two = 294851988;
 }
 
 // State represents the /proto-test-c/elists/elist/state YANG schema element.
@@ -31,7 +31,7 @@ message State {
     One_E1 = 2;
     One_E42 = 43;
   }
-  ywrapper.StringValue non_key = 1;
-  One one = 1;
-  ywrapper.StringValue two = 1;
+  ywrapper.StringValue non_key = 139458606;
+  One one = 199644645;
+  ywrapper.StringValue two = 346656131;
 }

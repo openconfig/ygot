@@ -27,11 +27,11 @@ message Elist_Key {
 
 // Elists represents the /proto-test-c/elists YANG schema element.
 message Elists {
-  repeated Elist_Key elist = 1;
+  repeated Elist_Key elist = 446862998;
 }
 
 // Entity represents the /proto-test-c/entity YANG schema element.
 message Entity {
-  proto_test_c.entity.Config config = 1;
-  proto_test_c.entity.State state = 1;
+  proto_test_c.entity.Config config = 228602824;
+  proto_test_c.entity.State state = 14179425;
 }

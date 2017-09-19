@@ -12,27 +12,27 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
 // Config represents the /proto-test-a/parent/child/config YANG schema element.
 message Config {
-  ywrapper.IntValue integer = 1;
-  repeated ywrapper.StringValue leaf_list = 1;
-  ywrapper.StringValue leaf_with_dashes = 1;
-  ywrapper.StringValue string = 1;
-  ywrapper.UintValue uinteger = 1;
+  ywrapper.IntValue integer = 367917455;
+  repeated ywrapper.StringValue leaf_list = 370551192;
+  ywrapper.StringValue leaf_with_dashes = 503746721;
+  ywrapper.StringValue string = 486500768;
+  ywrapper.UintValue uinteger = 343208358;
   oneof uleaf {
-    string uleaf_string = 42;
-    uint64 uleaf_uint64 = 42;
+    string uleaf_string = 3105816;
+    uint64 uleaf_uint64 = 443249937;
   }
 }
 
 // State represents the /proto-test-a/parent/child/state YANG schema element.
 message State {
-  ywrapper.BoolValue boolean = 1;
-  ywrapper.IntValue integer = 1;
-  repeated ywrapper.StringValue leaf_list = 1;
-  ywrapper.StringValue leaf_with_dashes = 1;
-  ywrapper.StringValue string = 1;
-  ywrapper.UintValue uinteger = 1;
+  ywrapper.BoolValue boolean = 135159880;
+  ywrapper.IntValue integer = 486380674;
+  repeated ywrapper.StringValue leaf_list = 256667601;
+  ywrapper.StringValue leaf_with_dashes = 475722830;
+  ywrapper.StringValue string = 428609663;
+  ywrapper.UintValue uinteger = 343366297;
   oneof uleaf {
-    string uleaf_string = 42;
-    uint64 uleaf_uint64 = 42;
+    string uleaf_string = 422459635;
+    uint64 uleaf_uint64 = 251638742;
   }
 }

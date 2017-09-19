@@ -14,5 +14,5 @@ import "proto_test_a/parent.proto";
 
 // Parent represents the /proto-test-a/parent YANG schema element.
 message Parent {
-  proto_test_a.parent.Child child = 1;
+  proto_test_a.parent.Child child = 85413199;
 }
