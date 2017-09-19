@@ -52,8 +52,9 @@ func validateString(schema *yang.Entry, value interface{}) error {
 		if err != nil {
 			return err
 		}
-		// The entire string must match the regex for success.
-		if r.FindString(stringVal) != stringVal {
+		// fixYangRegexp adds ^(...)$ around the pattern - the result is
+		// equivalent to a full match of whole string.
+		if !r.MatchString(stringVal) {
 			return fmt.Errorf("%q does not match regular expression pattern %q for schema %s", stringVal, r, schema.Name)
 		}
 	}
@@ -122,10 +123,15 @@ func fixYangRegexp(pattern string) string {
 	var buf bytes.Buffer
 	var inEscape bool
 	var prevChar rune
+	addParens := false
 
 	for i, ch := range pattern {
 		if i == 0 && ch != '^' {
 			buf.WriteRune('^')
+			// Add parens around entire expression to prevent logical 
+			// subexpressions associating with leading/trailing ^ / $.
+			buf.WriteRune('(')
+			addParens = true
 		}
 
 		switch ch {
@@ -152,6 +158,9 @@ func fixYangRegexp(pattern string) string {
 		buf.WriteRune(ch)
 
 		if i == len(pattern)-1 {
+			if addParens {
+				buf.WriteRune(')')				
+			}
 			if ch != '$' {
 				buf.WriteRune('$')
 			}

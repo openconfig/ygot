@@ -146,6 +146,14 @@ func TestValidateString(t *testing.T) {
 			val:        "abc",
 		},
 		{
+			desc:       "logical expression",
+			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
+			schemaName: "range-2-to-10",
+			re:         []string{`a+|\.`},
+			val:        "aaa aaa",
+			wantErr:    true,
+		},
+		{
 			desc:       "bad schema",
 			length:     yang.YRange{Min: yang.FromInt(20), Max: yang.FromInt(10)},
 			schemaName: "bad-range",
