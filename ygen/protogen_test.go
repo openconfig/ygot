@@ -56,6 +56,7 @@ func TestGenProto3Msg(t *testing.T) {
 		inCompressPaths        bool
 		inBasePackage          string
 		inEnumPackage          string
+		inBaseImportPath       string
 		wantMsgs               map[string]protoMsg
 		wantErr                bool
 	}{{
@@ -79,6 +80,8 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 			path: []string{"", "root", "message-name"},
 		},
+		inBasePackage: "base",
+		inEnumPackage: "enums",
 		wantMsgs: map[string]protoMsg{
 			"MessageName": {
 				Name:     "MessageName",
@@ -138,6 +141,8 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 		},
 		inCompressPaths: true,
+		inBasePackage:   "base",
+		inEnumPackage:   "enums",
 		wantMsgs: map[string]protoMsg{
 			"AMessage": {
 				Name:     "AMessage",
@@ -150,8 +155,9 @@ func TestGenProto3Msg(t *testing.T) {
 				}, {
 					Tag:  17594927,
 					Name: "container_child",
-					Type: "a_message.ContainerChild",
+					Type: "base.a_message.ContainerChild",
 				}},
+				Imports: []string{"base/a_message"},
 			},
 		},
 	}, {
@@ -197,6 +203,8 @@ func TestGenProto3Msg(t *testing.T) {
 				},
 			},
 		},
+		inBasePackage: "base",
+		inEnumPackage: "enums",
 		wantMsgs: map[string]protoMsg{
 			"AMessage": {
 				Name:     "AMessage",
@@ -209,8 +217,9 @@ func TestGenProto3Msg(t *testing.T) {
 				}, {
 					Tag:  17594927,
 					Name: "container_child",
-					Type: "root.a_message.ContainerChild",
+					Type: "base.root.a_message.ContainerChild",
 				}},
+				Imports: []string{"base/root/a_message"},
 			},
 		},
 	}, {
@@ -289,6 +298,8 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 			path: []string{"", "message-with-anydata"},
 		},
+		inBasePackage: "base",
+		inEnumPackage: "enums",
 		wantMsgs: map[string]protoMsg{
 			"MessageWithAnydata": {
 				Name:     "MessageWithAnydata",
@@ -311,7 +322,13 @@ func TestGenProto3Msg(t *testing.T) {
 		// Seed the state with the supplied message names that have been provided.
 		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
-		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage)
+		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, protoMsgConfig{
+			compressPaths:   tt.inCompressPaths,
+			basePackageName: tt.inBasePackage,
+			enumPackageName: tt.inEnumPackage,
+			baseImportPath:  tt.inBaseImportPath,
+		})
+
 		if (errs != nil) != tt.wantErr {
 			t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
 		}
@@ -383,6 +400,7 @@ func TestWriteProtoMsg(t *testing.T) {
 		inMsgs                 map[string]*yangDirectory
 		inBasePackageName      string
 		inEnumPackageName      string
+		inBaseImportPath       string
 		inUniqueDirectoryNames map[string]string
 		wantCompress           generatedProto3Message
 		wantUncompress         generatedProto3Message
@@ -415,6 +433,8 @@ func TestWriteProtoMsg(t *testing.T) {
 			},
 			path: []string{"", "module", "container", "message-name"},
 		},
+		inBasePackageName: "base",
+		inEnumPackageName: "enums",
 		wantCompress: generatedProto3Message{
 			packageName: "container",
 			messageCode: `
@@ -479,12 +499,14 @@ message MessageName {
 				},
 			},
 		},
+		inBasePackageName: "base",
+		inEnumPackageName: "enums",
 		wantCompress: generatedProto3Message{
 			packageName: "",
 			messageCode: `
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
-  message_name.Child child = 399980855;
+  base.message_name.Child child = 399980855;
 }
 `,
 		},
@@ -493,7 +515,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
-  module.message_name.Child child = 399980855;
+  base.module.message_name.Child child = 399980855;
 }
 `,
 		},
@@ -528,6 +550,8 @@ message MessageName {
 			},
 			path: []string{"", "module", "message-name"},
 		},
+		inBasePackageName: "base",
+		inEnumPackageName: "enums",
 		wantCompress: generatedProto3Message{
 			packageName: "",
 			messageCode: `
@@ -627,33 +651,35 @@ message MessageName {
 			},
 		},
 		inUniqueDirectoryNames: map[string]string{"/module/message-name/list": "List"},
+		inBasePackageName:      "base",
+		inEnumPackageName:      "enums",
 		wantCompress: generatedProto3Message{
 			packageName: "message_name",
 			messageCode: `
-// List_Key represents the /module/message-name/list YANG schema element.
-message List_Key {
+// ListKey represents the /module/message-name/list YANG schema element.
+message ListKey {
   string keyfield = 1;
-  message_name.List list = 2;
+  base.message_name.List list = 2;
 }
 
 // MessageName represents the  YANG schema element.
 message MessageName {
-  repeated List_Key list = 140998691;
+  repeated ListKey list = 140998691;
 }
 `,
 		},
 		wantUncompress: generatedProto3Message{
 			packageName: "module",
 			messageCode: `
-// List_Key represents the /module/message-name/list YANG schema element.
-message List_Key {
+// ListKey represents the /module/message-name/list YANG schema element.
+message ListKey {
   string keyfield = 1;
-  module.message_name.List list = 2;
+  base.module.message_name.List list = 2;
 }
 
 // MessageName represents the  YANG schema element.
 message MessageName {
-  repeated List_Key list = 140998691;
+  repeated ListKey list = 140998691;
 }
 `,
 		},
@@ -728,33 +754,35 @@ message MessageName {
 			},
 		},
 		inUniqueDirectoryNames: map[string]string{"/module/message-name/list": "List"},
+		inBasePackageName:      "base",
+		inEnumPackageName:      "enums",
 		wantCompress: generatedProto3Message{
 			packageName: "message_name",
 			messageCode: `
-// List_Key represents the /module/message-name/list YANG schema element.
-message List_Key {
+// ListKey represents the /module/message-name/list YANG schema element.
+message ListKey {
   string keyfield = 1;
-  message_name.List list = 2;
+  base.message_name.List list = 2;
 }
 
 // MessageName represents the  YANG schema element.
 message MessageName {
-  repeated List_Key list = 140998691;
+  repeated ListKey list = 140998691;
 }
 `,
 		},
 		wantUncompress: generatedProto3Message{
 			packageName: "module",
 			messageCode: `
-// List_Key represents the /module/message-name/list YANG schema element.
-message List_Key {
+// ListKey represents the /module/message-name/list YANG schema element.
+message ListKey {
   string keyfield = 1;
-  module.message_name.List list = 2;
+  base.module.message_name.List list = 2;
 }
 
 // MessageName represents the  YANG schema element.
 message MessageName {
-  repeated List_Key list = 140998691;
+  repeated ListKey list = 140998691;
 }
 `,
 		},
@@ -827,7 +855,13 @@ message MessageName {
 			// Seed the message names with the supplied input.
 			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
-			got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, compress, tt.inBasePackageName, tt.inEnumPackageName)
+			got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, protoMsgConfig{
+				compressPaths:   compress,
+				basePackageName: tt.inBasePackageName,
+				enumPackageName: tt.inEnumPackageName,
+				baseImportPath:  tt.inBaseImportPath,
+			})
+
 			if (errs != nil) != wantErr[compress] {
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, wantErr[compress])
 			}
@@ -1034,6 +1068,34 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		}},
 		wantEnums: map[string]*protoMsgEnum{},
 	}, {
+		name:   "decimal64 union",
+		inName: "FieldName",
+		inEntry: &yang.Entry{
+			Name: "field-name",
+			Type: &yang.YangType{
+				Type: []*yang.YangType{
+					{Kind: yang.Ystring},
+					{Kind: yang.Ydecimal64},
+				},
+			},
+		},
+		inMappedType: &mappedType{
+			unionTypes: map[string]int{
+				"string":             0,
+				"ywrapper.Decimal64": 1,
+			},
+		},
+		wantFields: []*protoMsgField{{
+			Tag:  173535000,
+			Name: "FieldName_string",
+			Type: "string",
+		}, {
+			Tag:  328616554,
+			Name: "FieldName_decimal64",
+			Type: "ywrapper.Decimal64",
+		}},
+		wantEnums: map[string]*protoMsgEnum{},
+	}, {
 		name:   "union with an enumeration",
 		inName: "FieldName",
 		inEntry: &yang.Entry{
@@ -1056,8 +1118,8 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			},
 		},
 		wantFields: []*protoMsgField{{
-			Tag:  440160524,
-			Name: "FieldName_SomeEnumType",
+			Tag:  29065580,
+			Name: "FieldName_someenumtype",
 			Type: "SomeEnumType",
 		}, {
 			Tag:  173535000,
@@ -1084,6 +1146,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 					{Kind: yang.Yuint8},
 				},
 			},
+			Parent:   &yang.Entry{Name: "parent"},
 			ListAttr: &yang.ListAttr{},
 		},
 		inMappedType: &mappedType{
@@ -1093,14 +1156,14 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			},
 		},
 		wantRepeatedMsg: &protoMsg{
-			Name:     "FieldNameUnion",
-			YANGPath: "/field-name union field field-name",
+			Name:     "ParentFieldNameUnion",
+			YANGPath: "/parent/field-name union field field-name",
 			Fields: []*protoMsgField{{
-				Tag:  173535000,
+				Tag:  85114709,
 				Name: "FieldName_string",
 				Type: "string",
 			}, {
-				Tag:  76808209,
+				Tag:  192993976,
 				Name: "FieldName_uint64",
 				Type: "uint64",
 			}},
@@ -1117,8 +1180,8 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(got.oneOfFields, tt.wantFields) {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected set of fields, got: %v, want: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, got.oneOfFields, tt.wantFields)
+		if diff := pretty.Compare(got.oneOfFields, tt.wantFields); diff != "" {
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %V): did not get expected set of fields, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, diff)
 		}
 
 		if diff := pretty.Compare(got.enums, tt.wantEnums); diff != "" {

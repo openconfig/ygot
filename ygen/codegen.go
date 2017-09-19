@@ -115,6 +115,15 @@ type ProtoOpts struct {
 	// in multiple parts of the schema (identityrefs, and enumerations)
 	// that fall within type definitions.
 	EnumPackageName string
+	// YwrapperPath is the path to the ywrapper.proto file that stores
+	// the definition of the wrapper messages used to ensure that unset
+	// fields can be distinguished from those that are set to their
+	// default value. The path excluds the filename.
+	YwrapperPath string
+	// YextPath is the path to the yext.proto file that stores the
+	// definition of the extension messages that are used to annotat the
+	// generated protobuf messages.
+	YextPath string
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -452,27 +461,43 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 	basePackageName := cg.Config.ProtoOptions.BasePackageName
 	if basePackageName == "" {
-		basePackageName = defaultBasePackageName
+		basePackageName = DefaultBasePackageName
 	}
 	enumPackageName := cg.Config.ProtoOptions.EnumPackageName
 	if enumPackageName == "" {
-		enumPackageName = defaultEnumPackageName
+		enumPackageName = DefaultEnumPackageName
+	}
+	ywrapperPath := cg.Config.ProtoOptions.YwrapperPath
+	if ywrapperPath == "" {
+		ywrapperPath = DefaultYwrapperPath
+	}
+	yextPath := cg.Config.ProtoOptions.YextPath
+	if yextPath == "" {
+		yextPath = DefaultYextPath
 	}
 
 	// Only create the enums package if there are enums that are within the schema.
 	if len(protoEnums) > 0 {
 		// Sort the set of enumerations so that they are deterministically output.
 		sort.Strings(protoEnums)
+		fp := []string{basePackageName, fmt.Sprintf("%s.proto", enumPackageName)}
 		genProto.Packages[fmt.Sprintf("%s.%s", basePackageName, enumPackageName)] = Proto3Package{
-			FilePath: []string{basePackageName, fmt.Sprintf("%s.proto", enumPackageName)},
+			FilePath: fp,
 			Enums:    protoEnums,
 		}
+
 	}
 
 	for _, n := range msgPaths {
 		m := msgMap[n]
 
-		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths, basePackageName, enumPackageName)
+		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, protoMsgConfig{
+			compressPaths:   cg.Config.CompressOCPaths,
+			basePackageName: basePackageName,
+			enumPackageName: enumPackageName,
+			baseImportPath:  cg.Config.ProtoOptions.BaseImportPath,
+		})
+
 		if errs != nil {
 			ye.Errors = append(ye.Errors, errs...)
 			continue
@@ -508,12 +533,14 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	for n, pkg := range genProto.Packages {
 		h, err := writeProto3Header(proto3Header{
 			PackageName:            n,
-			BaseImportPath:         cg.Config.ProtoOptions.BaseImportPath,
 			Imports:                stringKeys(pkgImports[n]),
 			SourceYANGFiles:        yangFiles,
 			SourceYANGIncludePaths: includePaths,
 			CompressPaths:          cg.Config.CompressOCPaths,
-			CallerName:             cg.Config.Caller})
+			CallerName:             cg.Config.Caller,
+			YwrapperPath:           ywrapperPath,
+			YextPath:               yextPath,
+		})
 		if err != nil {
 			ye.Errors = append(ye.Errors, errs...)
 		}

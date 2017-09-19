@@ -696,9 +696,11 @@ func TestGenerateProto3(t *testing.T) {
 		wantOutputFiles map[string]string
 		wantErr         bool
 	}{{
-		name:     "simple protobuf test with compression",
-		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
-		inConfig: GeneratorConfig{CompressOCPaths: true},
+		name:    "simple protobuf test with compression",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths: true,
+		},
 		wantOutputFiles: map[string]string{
 			"openconfig":        filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.compress.parent.formatted-txt"),
 			"openconfig.parent": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.compress.parent.child.formatted-txt"),

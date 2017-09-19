@@ -75,10 +75,6 @@ type mappedType struct {
 	// derived types with constant values, and are hence not represented
 	// as pointers in the output code.
 	isEnumeratedValue bool
-	// isGlobalEnum specifies whether the nativeType that is returned
-	// is a generated enumerated value with global scope. This is applicable
-	// only to languages that allow local or global scoped type definition.
-	isGlobalEnum bool
 }
 
 // resolveTypeArgs is a structure used as an input argument to the yangTypeToGoType

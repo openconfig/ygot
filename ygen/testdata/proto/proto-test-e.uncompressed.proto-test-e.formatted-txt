@@ -9,24 +9,27 @@ package openconfig.proto_test_e;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
-import "proto_test_e/test.proto";
+import "openconfig/proto_test_e/animals.proto";
+import "openconfig/proto_test_e/bars.proto";
+import "openconfig/proto_test_e/foos.proto";
+import "openconfig/proto_test_e/test.proto";
 
-// Animal_Key represents the /proto-test-e/animals/animal YANG schema element.
-message Animal_Key {
+// AnimalKey represents the /proto-test-e/animals/animal YANG schema element.
+message AnimalKey {
   oneof species {
-    Species species_Species = 277604926;
+    Species species_species = 379647774;
     string species_string = 155124263;
   }
-  proto_test_e.animals.Animal animal = 2;
+  openconfig.proto_test_e.animals.Animal animal = 2;
 }
 
 // Animals represents the /proto-test-e/animals YANG schema element.
 message Animals {
-  repeated Animal_Key animal = 87848318;
+  repeated AnimalKey animal = 87848318;
 }
 
-// Bar_Key represents the /proto-test-e/bars/bar YANG schema element.
-message Bar_Key {
+// BarKey represents the /proto-test-e/bars/bar YANG schema element.
+message BarKey {
   enum Baz {
     Baz_UNSET = 0;
     Baz_X = 1;
@@ -34,35 +37,35 @@ message Bar_Key {
     Baz_Z = 3;
   }
   oneof baz {
-    Baz baz_Baz = 424259260;
+    Baz baz_baz = 429379036;
     string baz_string = 333826994;
   }
-  proto_test_e.bars.Bar bar = 2;
+  openconfig.proto_test_e.bars.Bar bar = 2;
 }
 
 // Bars represents the /proto-test-e/bars YANG schema element.
 message Bars {
-  repeated Bar_Key bar = 500614484;
+  repeated BarKey bar = 500614484;
 }
 
-// Foo_Key represents the /proto-test-e/foos/foo YANG schema element.
-message Foo_Key {
+// FooKey represents the /proto-test-e/foos/foo YANG schema element.
+message FooKey {
   enum Bar {
     Bar_UNSET = 0;
     Bar_A = 1;
     Bar_B = 2;
   }
   Bar bar = 1;
-  proto_test_e.foos.Foo foo = 2;
+  openconfig.proto_test_e.foos.Foo foo = 2;
 }
 
 // Foos represents the /proto-test-e/foos YANG schema element.
 message Foos {
-  repeated Foo_Key foo = 515769290;
+  repeated FooKey foo = 515769290;
 }
 
 // Test represents the /proto-test-e/test YANG schema element.
 message Test {
-  proto_test_e.test.Config config = 18200749;
-  proto_test_e.test.State state = 138259042;
+  openconfig.proto_test_e.test.Config config = 18200749;
+  openconfig.proto_test_e.test.State state = 138259042;
 }

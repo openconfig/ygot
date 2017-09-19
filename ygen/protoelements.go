@@ -148,7 +148,6 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, basePackageNa
 		return &mappedType{
 			nativeType:        fmt.Sprintf("%s.%s.%s", basePackageName, enumPackageName, s.resolveIdentityRefBaseType(args.contextEntry)),
 			isEnumeratedValue: true,
-			isGlobalEnum:      true,
 		}, nil
 	case yang.Yunion:
 		return s.protoUnionType(args, basePackageName, enumPackageName)
@@ -203,7 +202,6 @@ func (s *genState) protoUnionType(args resolveTypeArgs, basePackageName, enumPac
 	// Rewrite the map to be the expected format for the mappedType return value,
 	// we sort the keys into alphabetical order to avoid test flakes.
 	keys := []string{}
-	var isGlobal bool
 	for k := range unionTypes {
 		keys = append(keys, k)
 	}
@@ -215,8 +213,7 @@ func (s *genState) protoUnionType(args resolveTypeArgs, basePackageName, enumPac
 	}
 
 	return &mappedType{
-		unionTypes:   rtypes,
-		isGlobalEnum: isGlobal,
+		unionTypes: rtypes,
 	}, nil
 }
 

@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"fmt"
 	"hash/fnv"
+	"path/filepath"
 	"sort"
 	"strings"
 	"text/template"
@@ -30,8 +31,26 @@ const (
 	// protoAnyType is the name of the type to use for a google.protobuf.Any field.
 	protoAnyType = "google.protobuf.Any"
 	// protoAnyPackage is the name of the import to be used when a google.protobuf.Any field
-	// is included in the output data.
+	// is included in the output data. The string specified has .proto appended to it when
+	// output.
 	protoAnyPackage = "google/protobuf/any"
+	// protoListKeyMessageSuffix specifies the suffix that should be added to a list's name
+	// to specify the repeated message that makes up the list's key. The repeated message is
+	// called <ListNameInCamelCase><protoListKeyMessageSuffix>.
+	protoListKeyMessageSuffix = "Key"
+	// defaultBasePackageName defines the default base package that is
+	// generated when generating proto3 code.
+	DefaultBasePackageName = "openconfig"
+	// defaultEnumPackageName defines the default package name that is
+	// used for the package that defines enumerated types that are
+	// used throughout the schema.
+	DefaultEnumPackageName = "enums"
+	// defaultYwrapperPath defines the default import path for the ywrapper.proto file,
+	// excluding the filename.
+	DefaultYwrapperPath = "github.com/openconfig/ygot/proto/ywrapper"
+	// defaultYextPath defines the default import path for the yext.proto file, excluding
+	// the filename.
+	DefaultYextPath = "github.com/openconfig/ygot/proto/yext"
 )
 
 // protoMsgField describes a field of a protobuf message.
@@ -70,23 +89,14 @@ type protoEnum struct {
 // proto3Header describes the header of a Protobuf3 package.
 type proto3Header struct {
 	PackageName            string   // PackageName is the name of the package that is to be output.
-	BaseImportPath         string   // BaseImportPath specifies the path to generated protobufs that are to be imported by this protobuf, for example, the base repository URL in GitHub.
 	Imports                []string // Imports is the set of packages that should be imported by the package whose header is being output.
 	SourceYANGFiles        []string // SourceYANGFiles specifies the list of the input YANG files that the protobuf is being generated based on.
 	SourceYANGIncludePaths []string // SourceYANGIncludePaths specifies the list of the paths that were used to search for YANG imports.
 	CompressPaths          bool     // CompressPaths indicates whether path compression was enabled or disabled for this generated protobuf.
 	CallerName             string   // CallerName indicates the name of the entity initiating code generation.
+	YwrapperPath           string   // YwrapperPath is the path to the ywrapper.proto file, excluding the filename.
+	YextPath               string   // YextPath is the path to the yext.proto file, excluding the filename.
 }
-
-const (
-	// defaultBasePackageName defines the default base package that is
-	// generated when generating proto3 code.
-	defaultBasePackageName = "openconfig"
-	// defaultEnumPackageName defines the default package name that is
-	// used for the package that defines enumerated types that are
-	// used throughout the schema.
-	defaultEnumPackageName = "enums"
-)
 
 var (
 	// protoHeaderTemplate is populated and output at the top of the protobuf code output.
@@ -109,11 +119,10 @@ syntax = "proto3";
 
 package {{ .PackageName }};
 
-import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
-//import "github.com/openconfig/ygot/proto/yext/yext.proto";
-{{- $publicImport := .BaseImportPath -}}
+import "{{ .YwrapperPath }}/ywrapper.proto";
+import "{{ .YextPath }}/yext.proto";
 {{- range $importedProto := .Imports }}
-import "{{ filepathJoin $publicImport $importedProto }}.proto";
+import "{{ $importedProto }}.proto";
 {{- end }}
 `
 
@@ -231,20 +240,25 @@ type generatedProto3Message struct {
 	requiredImports []string // requiredImports contains the imports that are required by the generated message.
 }
 
+// protoMsgConfig defines the set of configuration options required to generate a Protobuf message.
+type protoMsgConfig struct {
+	compressPaths   bool   // compressPaths indicates whether path compression should be enabled.
+	basePackageName string // basePackageName specifies the package name that is the base for all child packages.
+	enumPackageName string // enumPackageName specifies the package in which global enum definitions are specified.
+	baseImportPath  string // baseImportPath specifies the path that should be used for importing the generated files.
+}
+
 // writeProto3Message outputs the generated Protobuf3 code for a particular protobuf message. It takes:
 //  - msg:               The yangDirectory struct that describes a particular protobuf3 message.
 //  - msgs:              The set of other yangDirectory structs, keyed by schema path, that represent the other proto3
 //                       messages to be generated.
 //  - state:             The current generator state.
-//  - compressPaths:     Whether path compression is enabled for the current generation.
-//  - basePackageName:   The base name of the protobuf packages being generated.
-//  - enumPackageName:   The name of the package that enumerated types that are referenced across multiple messages
-//                       are to be stored.
+//  - cfg:		 The configuration for the message creation as defined in a protoMsgConfig struct.
 //  It returns a generatedProto3Message pointer which includes the definition of the proto3 message, particularly the
 //  name of the package it is within, the code for the message, and any imports for packages that are referenced by
 //  the message.
-func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool, basePackageName, enumPackageName string) (*generatedProto3Message, []error) {
-	msgDefs, errs := genProto3Msg(msg, msgs, state, compressPaths, basePackageName, enumPackageName)
+func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg protoMsgConfig) (*generatedProto3Message, []error) {
+	msgDefs, errs := genProto3Msg(msg, msgs, state, cfg)
 	if errs != nil {
 		return nil, errs
 	}
@@ -258,7 +272,7 @@ func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *g
 	// pkg is the name of the protobuf package, if the entry's parent has already
 	// been seen in the schema, the same package name as for siblings of this
 	// entry will be returned.
-	pkg := state.protobufPackage(msg.entry, compressPaths)
+	pkg := state.protobufPackage(msg.entry, cfg.compressPaths)
 
 	var b bytes.Buffer
 	imports := map[string]interface{}{}
@@ -282,9 +296,8 @@ func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *g
 // code representing it. It uses the set of messages that have been extracted and the
 // current generator state to map to other messages and ensure uniqueness of names.
 // The configuration parameters for the current code generation required are supplied
-// as arguments, particularly whether path is compression is enabled, the base package
-// name and the name of the package that enumerated types are written to.
-func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, compressPaths bool, basePackageName, enumPackageName string) ([]protoMsg, []error) {
+// as a protoMsgConfig struct.
+func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg protoMsgConfig) ([]protoMsg, []error) {
 	var errs []error
 
 	var msgDefs []protoMsg
@@ -338,8 +351,9 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				field:              field,
 				definedDirectories: msgs,
 				state:              state,
-				compressPaths:      compressPaths,
-				basePackageName:    basePackageName,
+				compressPaths:      cfg.compressPaths,
+				basePackageName:    cfg.basePackageName,
+				baseImportPath:     cfg.baseImportPath,
 			})
 
 			if err != nil {
@@ -359,24 +373,24 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				err = fmt.Errorf("proto: could not resolve %s into a defined struct", field.Path())
 			} else {
 
-				childpkg := state.protobufPackage(childmsg.entry, compressPaths)
+				childpkg := state.protobufPackage(childmsg.entry, cfg.compressPaths)
 
 				// Add the import to the slice of imports if it is not already
 				// there. This allows the message file to import the required
 				// child packages.
-				childpath := fmt.Sprintf("%s/%s", basePackageName, strings.Replace(childpkg, ".", "/", -1))
+				childpath := filepath.Join(append([]string{cfg.baseImportPath, cfg.basePackageName}, strings.Split(childpkg, ".")...)...)
 				if _, ok := imports[childpath]; !ok {
 					imports[childpath] = true
 				}
-				fieldDef.Type = fmt.Sprintf("%s.%s.%s", basePackageName, childpkg, childmsg.name)
+				fieldDef.Type = fmt.Sprintf("%s.%s.%s", cfg.basePackageName, childpkg, childmsg.name)
 			}
 		case field.IsLeaf() || field.IsLeafList():
 			d, err := protoLeafDefinition(fieldDef.Name, protoDefinitionArgs{
 				field:             field,
 				definedFieldNames: definedFieldNames,
 				state:             state,
-				basePackageName:   basePackageName,
-				enumPackageName:   enumPackageName,
+				basePackageName:   cfg.basePackageName,
+				enumPackageName:   cfg.enumPackageName,
 			})
 
 			if err != nil {
@@ -405,7 +419,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 
 			// Add the global enumeration package if it is referenced by this field.
 			if d.globalEnum {
-				imports[fmt.Sprintf("%s/%s", basePackageName, enumPackageName)] = true
+				imports[filepath.Join(cfg.baseImportPath, cfg.basePackageName, cfg.enumPackageName)] = true
 			}
 
 			if field.ListAttr != nil {
@@ -439,6 +453,7 @@ type protoDefinitionArgs struct {
 	state              *genState                 //state is the current generator state.
 	basePackageName    string                    // basePackageName is the name of the base protobuf package being output.
 	enumPackageName    string                    // enumPackageName is the name of the package that global enumerated types are defined in.
+	baseImportPath     string                    // baseImportPath is the path to be used as the root for imports of generated packages.
 	compressPaths      bool                      // compressPaths defines whether path compression is enabled for the current code generation context.
 }
 
@@ -455,6 +470,8 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 			continue
 		}
 
+		// Make the name of the enum upper case as is it conventional that a protobuf enum
+		// is completely upper case.
 		p := &protoEnum{Name: enum.name}
 		switch {
 		case isIdentityrefLeaf(enum.entry):
@@ -527,7 +544,8 @@ func genProtoEnum(field *yang.Entry) (*protoMsgEnum, error) {
 			continue
 		}
 		// We always add one to the value that is returned to ensure that
-		// we never redefine value 0.
+		// we never redefine value 0. We always specify the names as all upper-case
+		// to ensure that we follow the protobuf style guide.
 		eval[field.Type.Enum.Value(n)+1] = safeProtoIdentifierName(n)
 	}
 
@@ -570,6 +588,7 @@ func protoListDefinition(args protoDefinitionArgs) (string, *protoMsg, error) {
 			state:           args.state,
 			basePackageName: args.basePackageName,
 			enumPackageName: args.enumPackageName,
+			baseImportPath:  args.baseImportPath,
 		})
 		if err != nil {
 			return "", nil, fmt.Errorf("proto: could not build mapping for list entry %s: %v", args.field.Path(), err)
@@ -690,12 +709,12 @@ func fieldTag(s string) (uint32, error) {
 // described, the name of the list, the package name that the list is within, and the
 // current generator state. It returns the definition of the list key proto.
 func genListKeyProto(listPackage string, listName string, args protoDefinitionArgs) (*protoMsg, error) {
-	n := fmt.Sprintf("%s_Key", listName)
+	n := fmt.Sprintf("%s%s", listName, protoListKeyMessageSuffix)
 	km := &protoMsg{
 		Name:     n,
 		YANGPath: args.field.Path(),
 		Enums:    map[string]*protoMsgEnum{},
-		Imports:  []string{fmt.Sprintf("%s/%s", args.basePackageName, strings.Replace(listPackage, ".", "/", -1))},
+		Imports:  []string{filepath.Join(append([]string{args.baseImportPath, args.basePackageName}, strings.Split(listPackage, ".")...)...)},
 	}
 
 	definedFieldNames := map[string]bool{}
@@ -813,31 +832,35 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType) (*pro
 	}
 
 	typeNames := []string{}
-	var importGlobalEnums bool
 	for tn := range mtype.unionTypes {
 		typeNames = append(typeNames, tn)
-		/*if t.isGlobalEnum {
-			importGlobalEnums = true
-		}*/
 	}
 	sort.Strings(typeNames)
 
+	var importGlobalEnums bool
 	oofs := []*protoMsgField{}
 	for _, t := range typeNames {
 		// Split the type name on "." to ensure that we don't have oneof options
-		// that reference some other package in the type name.
+		// that reference some other package in the type name. If there was a "."
+		// in the field name, then this means that we had a global enumeration
+		// present and hence should import this path.
 		tp := strings.Split(t, ".")
+		if len(tp) > 1 {
+			importGlobalEnums = true
+		}
 		tn := tp[len(tp)-1]
 		// Calculate the tag by having the path, with the type name appended to it
-		// such that we have unique inputs for each option.
-		fn, err := fieldTag(fmt.Sprintf("%s_%s", e.Path(), tn))
+		// such that we have unique inputs for each option. We make the name lower-case
+		// as it is conventional that protobuf field names are lowercase separated by
+		// underscores.
+		ft, err := fieldTag(fmt.Sprintf("%s_%s", e.Path(), strings.ToLower(tn)))
 		if err != nil {
 			return nil, fmt.Errorf("could not calculate tag number for %s, type %s in oneof", e.Path(), tn)
 		}
 		st := &protoMsgField{
-			Name: fmt.Sprintf("%s_%s", fieldName, tn),
+			Name: fmt.Sprintf("%s_%s", fieldName, strings.ToLower(tn)),
 			Type: t,
-			Tag:  fn,
+			Tag:  ft,
 		}
 		oofs = append(oofs, st)
 	}

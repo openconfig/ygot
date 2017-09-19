@@ -9,15 +9,16 @@ package openconfig;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+import "openconfig/device.proto";
 
-// Interface_Key represents the /proto-test-b/device/interfaces/interface YANG schema element.
-message Interface_Key {
+// InterfaceKey represents the /proto-test-b/device/interfaces/interface YANG schema element.
+message InterfaceKey {
   string name = 1;
-  device.Interface interface = 2;
+  openconfig.device.Interface interface = 2;
 }
 
 // Device represents the /proto-test-b/device YANG schema element.
 message Device {
-  repeated Interface_Key interface = 69384178;
-  repeated device.StateList state_list = 534211865;
+  repeated InterfaceKey interface = 69384178;
+  repeated openconfig.device.StateList state_list = 534211865;
 }
