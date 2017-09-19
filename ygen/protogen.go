@@ -645,7 +645,7 @@ func safeProtoIdentifierName(name string) string {
 	return replacer.Replace(name)
 }
 
-// fieldTag returns a protobuf tag value for the entry e.
+// protoTagForEntry returns a protobuf tag value for the entry e.
 func protoTagForEntry(e *yang.Entry) (uint32, error) {
 	return fieldTag(e.Path())
 }
