@@ -514,7 +514,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	yks := getUnionKinds(schema.Type)
 	dbgPrint("possible union types are %v", yks)
 
-	// This can either be a interface, where multiple types are involved, of 
+	// This can either be a interface, where multiple types are involved, of
 	// just the type itself, if the alternatives span only one type.
 	if !IsTypeInterface(ft) {
 		// Is not an interface, we must have exactly one type in the union.
