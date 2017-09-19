@@ -234,3 +234,38 @@ func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
 
 	return string(j), nil
 }
+
+// MergeJSON takes two input maps, and merges them into a single map.
+func MergeJSON(a, b map[string]interface{}) (map[string]interface{}, error) {
+	o := map[string]interface{}{}
+
+	// Copy map a into the output.
+	for k, v := range a {
+		o[k] = v
+	}
+
+	for k, v := range b {
+		if _, ok := o[k]; !ok {
+			// Simple case, where the branch in b does not exist in
+			// a, so we can simply glean the subtree.
+			o[k] = v
+			continue
+		}
+
+		src, sok := o[k].(map[string]interface{})
+		dst, dok := v.(map[string]interface{})
+		if sok && dok {
+			// The key exists in both a and b, and is a map[string]interface{}
+			// in both, such that it can be merged as the subtree.
+			var err error
+			o[k], err = mergeJSON(src, dst)
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+		return nil, fmt.Errorf("%s is not a map[string]interface{} in tree, src: %T, dst: %T", k, src, dst)
+	}
+
+	return o, nil
+}

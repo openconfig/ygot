@@ -407,3 +407,6 @@ func TestInitContainer(t *testing.T) {
 		}
 	}
 }
+
+func TestMergeJSON(t *testing.T) {
+}
