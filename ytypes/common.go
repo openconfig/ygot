@@ -40,7 +40,7 @@ var (
 	// dbgPrint and dbgSchema. Additional characters are truncated.
 	maxCharsPerLine = 1000
 	// maxValueStrLen is the maximum number of characters output from valueStr.
-	maxValueStrLen = 50
+	maxValueStrLen = 150
 
 	// YangMaxNumber represents the maximum value for any integer type.
 	YangMaxNumber = yang.Number{Kind: yang.MaxNumber}
@@ -385,21 +385,23 @@ func getJSONTreeValForField(parentSchema, schema *yang.Entry, f reflect.StructFi
 // getJSONTreeValForPath returns a JSON subtree from tree at the given path from
 // the root. If returns (nil, false) if no subtree is found at the given path.
 func getJSONTreeValForPath(tree interface{}, path []string) (interface{}, bool) {
-	t := tree
-	for i := 0; i < len(path); i++ {
-		tt, ok := t.(map[string]interface{})
-		if !ok {
-			return nil, false
-		}
-		nv, ok := mapValueNoPrefix(tt, path[i])
-		if !ok {
-			return nil, false
-		}
-		t = nv
+	if len(path) == 0 {
+		return tree, true
 	}
-	dbgPrint("path:%v matches tree %s, return subtree %s", path, valueStr(tree), valueStr(t))
 
-	return t, true
+	t, ok := tree.(map[string]interface{})
+	if !ok {
+		return nil, false
+	}
+
+	for k, v := range t {
+		if path[0] == stripModulePrefix(k) {
+			if ret, ok := getJSONTreeValForPath(v, path[1:]); ok {
+				return ret, true
+			}
+		}
+	}
+	return nil, false
 }
 
 // childSchema returns the schema for the struct field f, if f contains a valid
@@ -768,7 +770,7 @@ func enumStringToIntValue(parent interface{}, fieldName, value string) (int64, e
 	}
 	ft := field.Type()
 	// leaf-list case
-	if ft.Kind() == reflect.Slice{
+	if ft.Kind() == reflect.Slice {
 		ft = ft.Elem()
 	}
 

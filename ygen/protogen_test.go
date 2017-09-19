@@ -250,7 +250,6 @@ func TestGenProtoMsg(t *testing.T) {
 						Kind: yang.Yunion,
 						Type: []*yang.YangType{
 							{Kind: yang.Ybinary},
-							{Kind: yang.Yenum},
 							{Kind: yang.Ybits},
 							{Kind: yang.YinstanceIdentifier},
 						},
@@ -269,7 +268,7 @@ func TestGenProtoMsg(t *testing.T) {
 
 		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage)
 		if (errs != nil) != tt.wantErr {
-			t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
+			t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
 		}
 
 		if tt.wantErr {
@@ -334,15 +333,16 @@ func TestWriteProtoMsg(t *testing.T) {
 	enumeratedLeafDef.Set("FORTYTWO", int64(42))
 
 	tests := []struct {
-		name              string
-		inMsg             *yangDirectory
-		inMsgs            map[string]*yangDirectory
-		inBasePackageName string
-		inEnumPackageName string
-		wantCompress      generatedProto3Message
-		wantUncompress    generatedProto3Message
-		wantCompressErr   bool
-		wantUncompressErr bool
+		name                   string
+		inMsg                  *yangDirectory
+		inMsgs                 map[string]*yangDirectory
+		inBasePackageName      string
+		inEnumPackageName      string
+		inUniqueDirectoryNames map[string]string
+		wantCompress           generatedProto3Message
+		wantUncompress         generatedProto3Message
+		wantCompressErr        bool
+		wantUncompressErr      bool
 	}{{
 		name: "simple message with scalar fields",
 		inMsg: &yangDirectory{
@@ -512,6 +512,107 @@ message MessageName {
 `,
 		},
 	}, {
+		name: "simple message with a list",
+		inMsg: &yangDirectory{
+			name: "MessageName",
+			entry: &yang.Entry{
+				Name: "message-name",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
+				},
+			},
+			fields: map[string]*yang.Entry{
+				"list": &yang.Entry{
+					Name: "list",
+					Kind: yang.DirectoryEntry,
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Parent: &yang.Entry{
+							Name: "module",
+							Kind: yang.DirectoryEntry,
+						},
+					},
+					Key:      "keyfield",
+					ListAttr: &yang.ListAttr{},
+					Dir: map[string]*yang.Entry{
+						"keyfield": {
+							Name: "keyfield",
+							Type: &yang.YangType{
+								Kind: yang.Ystring,
+							},
+						},
+					},
+				},
+			},
+		},
+		inMsgs: map[string]*yangDirectory{
+			"/module/message-name/list": {
+				name: "ListMessageName",
+				entry: &yang.Entry{
+					Name: "list",
+					Kind: yang.DirectoryEntry,
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Parent: &yang.Entry{
+							Name: "module",
+							Kind: yang.DirectoryEntry,
+						},
+					},
+					Key:      "keyfield",
+					ListAttr: &yang.ListAttr{},
+					Dir: map[string]*yang.Entry{
+						"keyfield": {
+							Name: "keyfield",
+							Type: &yang.YangType{
+								Kind: yang.Ystring,
+							},
+						},
+					},
+				},
+				fields: map[string]*yang.Entry{
+					"keyfield": {
+						Name: "keyfield",
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
+				},
+			},
+		},
+		inUniqueDirectoryNames: map[string]string{"/module/message-name/list": "List"},
+		wantCompress: generatedProto3Message{
+			packageName: "message_name",
+			messageCode: `
+// List_Key represents the /module/message-name/list YANG schema element.
+message List_Key {
+  string keyfield = 1;
+  message_name.List List = 2;
+}
+
+// MessageName represents the  YANG schema element.
+message MessageName {
+  repeated List_Key list = 1;
+}
+`,
+		},
+		wantUncompress: generatedProto3Message{
+			packageName: "module",
+			messageCode: `
+// List_Key represents the /module/message-name/list YANG schema element.
+message List_Key {
+  string keyfield = 1;
+  module.message_name.List List = 2;
+}
+
+// MessageName represents the  YANG schema element.
+message MessageName {
+  repeated List_Key list = 1;
+}
+`,
+		},
+	}, {
 		name: "simple message with an identityref leaf",
 		inMsg: &yangDirectory{
 			name: "MessageName",
@@ -577,6 +678,8 @@ message MessageName {
 		wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
 		for compress, want := range map[bool]generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
 			s := newGenState()
+			// Seed the message names with the supplied input.
+			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 			got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, compress, tt.inBasePackageName, tt.inEnumPackageName)
 			if (errs != nil) != wantErr[compress] {
@@ -697,14 +800,14 @@ enum EnumeratedValue {
 		},
 		wantEnums: []string{
 			`
-// EnumName represents an enumerated type generated for the YANG typedef typedef.
+// EnumName represents an enumerated type generated for the YANG enumerated type typedef.
 enum EnumName {
   EnumName_UNSET = 0;
   EnumName_SPEED_2_5G = 1;
   EnumName_SPEED_40G = 2;
 }
 `, `
-// SecondEnum represents an enumerated type generated for the YANG typedef derived.
+// SecondEnum represents an enumerated type generated for the YANG enumerated type derived.
 enum SecondEnum {
   SecondEnum_UNSET = 0;
   SecondEnum_VALUE_1 = 1;
@@ -728,6 +831,119 @@ enum SecondEnum {
 		sort.Strings(got)
 		if diff := pretty.Compare(got, tt.wantEnums); diff != "" {
 			t.Errorf("%s: writeProtoEnums(%v): did not get expected output, diff(-got,+want):\n%s", tt.name, tt.inEnums, diff)
+		}
+	}
+}
+
+func TestUnionFieldToOneOf(t *testing.T) {
+	// Create mock enumerations within goyang since we cannot create them in-line.
+	testEnums := map[string][]string{
+		"enumOne": {"SPEED_2.5G", "SPEED_40G"},
+	}
+	testYANGEnums := map[string]*yang.EnumType{}
+
+	for name, values := range testEnums {
+		enum := yang.NewEnumType()
+		for i, v := range values {
+			enum.Set(v, int64(i))
+		}
+		testYANGEnums[name] = enum
+	}
+
+	tests := []struct {
+		name         string
+		inName       string
+		inEntry      *yang.Entry
+		inMappedType *mappedType
+		wantFields   []protoMsgField
+		wantEnums    map[string]*protoMsgEnum
+		wantErr      bool
+	}{{
+		name:   "simple string union",
+		inName: "FieldName",
+		inEntry: &yang.Entry{
+			Name: "field-name",
+			Type: &yang.YangType{
+				Type: []*yang.YangType{
+					{Kind: yang.Ystring},
+					{Kind: yang.Yint8},
+				},
+			},
+		},
+		inMappedType: &mappedType{
+			unionTypes: map[string]int{
+				"string": 0,
+				"sint64": 0,
+			},
+		},
+		wantFields: []protoMsgField{{
+			Tag:  42,
+			Name: "FieldName_sint64",
+			Type: "sint64",
+		}, {
+			Tag:  42,
+			Name: "FieldName_string",
+			Type: "string",
+		}},
+		wantEnums: map[string]*protoMsgEnum{},
+	}, {
+		name:   "union with an enumeration",
+		inName: "FieldName",
+		inEntry: &yang.Entry{
+			Name: "field-name",
+			Type: &yang.YangType{
+				Type: []*yang.YangType{
+					{
+						Name: "enumeration",
+						Kind: yang.Yenum,
+						Enum: testYANGEnums["enumOne"],
+					},
+					{Kind: yang.Ystring},
+				},
+			},
+		},
+		inMappedType: &mappedType{
+			unionTypes: map[string]int{
+				"SomeEnumType": 0,
+				"string":       1,
+			},
+		},
+		wantFields: []protoMsgField{{
+			Tag:  42,
+			Name: "FieldName_SomeEnumType",
+			Type: "SomeEnumType",
+		}, {
+			Tag:  42,
+			Name: "FieldName_string",
+			Type: "string",
+		}},
+		wantEnums: map[string]*protoMsgEnum{
+			"FieldName": &protoMsgEnum{
+				Values: map[int64]string{
+					0: "UNSET",
+					1: "SPEED_2_5G",
+					2: "SPEED_40G",
+				},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		gotFields, gotEnums, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, err, tt.wantErr)
+		}
+
+		if err != nil {
+			continue
+		}
+
+		if !reflect.DeepEqual(gotFields, tt.wantFields) {
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected set of fields, got: %v, want: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, gotFields, tt.wantFields)
+		}
+
+		if !reflect.DeepEqual(gotEnums, tt.wantEnums) {
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected set of enums, got: %v, want: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, gotEnums, tt.wantEnums)
 		}
 	}
 }
