@@ -10,16 +10,16 @@ package openconfig.enums;
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
-// ProtoTestD_ATypedef represents an enumerated type generated for the YANG enumerated type a-typedef.
-enum ProtoTestD_ATypedef {
-  ProtoTestD_ATypedef_UNSET = 0;
-  ProtoTestD_ATypedef_ONE = 1;
-  ProtoTestD_ATypedef_TWO = 2;
+// ProtoTestDATypedef represents an enumerated type generated for the YANG enumerated type a-typedef.
+enum ProtoTestDATypedef {
+  ProtoTestDATypedef_UNSET = 0;
+  ProtoTestDATypedef_ONE = 1;
+  ProtoTestDATypedef_TWO = 2;
 }
 
-// ProtoTestD_FOO represents an enumerated type generated for the YANG identity FOO.
-enum ProtoTestD_FOO {
-  ProtoTestD_FOO_UNSET = 0;
-  ProtoTestD_FOO_BAR = 1;
-  ProtoTestD_FOO_BAZ = 2;
+// ProtoTestDFOO represents an enumerated type generated for the YANG identity FOO.
+enum ProtoTestDFOO {
+  ProtoTestDFOO_UNSET = 0;
+  ProtoTestDFOO_BAR = 1;
+  ProtoTestDFOO_BAZ = 2;
 }

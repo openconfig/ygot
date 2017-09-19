@@ -833,7 +833,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module-name/message-name YANG schema element.
 message MessageName {
-  base.enums.TestModule_FooIdentity identityref = 518954308;
+  base.enums.TestModuleFooIdentity identityref = 518954308;
 }
 `,
 		},
@@ -842,7 +842,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module-name/message-name YANG schema element.
 message MessageName {
-  base.enums.TestModule_FooIdentity identityref = 518954308;
+  base.enums.TestModuleFooIdentity identityref = 518954308;
 }
 `,
 		},

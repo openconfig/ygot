@@ -172,7 +172,7 @@ message {{ .Name }} {
 {{- range $ename, $enum := .Enums }}
   enum {{ $ename }} {
     {{- range $i, $val := $enum.Values }}
-    {{ $ename }}_{{ $val }} = {{ $i }};
+    {{ toUpper $ename }}_{{ $val }} = {{ $i }};
     {{- end }}
   }
 {{- end -}}
@@ -197,7 +197,7 @@ message {{ .Name }} {
 // {{ .Name }} represents an enumerated type generated for the {{ .Description }}.
 enum {{ .Name }} {
 {{- range $i, $val := .Values }}
-  {{ $.Name }}_{{ $val }} = {{ $i }};
+  {{ toUpper $.Name }}_{{ $val }} = {{ $i }};
 {{- end }}
 }
 `
@@ -470,8 +470,6 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 			continue
 		}
 
-		// Make the name of the enum upper case as is it conventional that a protobuf enum
-		// is completely upper case.
 		p := &protoEnum{Name: enum.name}
 		switch {
 		case isIdentityrefLeaf(enum.entry):
@@ -485,7 +483,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 			// causes an entry earlier in the sequence than others.
 			names := []string{}
 			for _, v := range enum.entry.Type.IdentityBase.Values {
-				names = append(names, safeProtoIdentifierName(v.Name))
+				names = append(names, strings.ToUpper(safeProtoIdentifierName(v.Name)))
 			}
 			sort.Strings(names)
 
@@ -546,7 +544,7 @@ func genProtoEnum(field *yang.Entry) (*protoMsgEnum, error) {
 		// We always add one to the value that is returned to ensure that
 		// we never redefine value 0. We always specify the names as all upper-case
 		// to ensure that we follow the protobuf style guide.
-		eval[field.Type.Enum.Value(n)+1] = safeProtoIdentifierName(n)
+		eval[field.Type.Enum.Value(n)+1] = strings.ToUpper(safeProtoIdentifierName(n))
 	}
 
 	// TODO(robjs): Embed an option into the message such that we can persist

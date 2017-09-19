@@ -10,24 +10,24 @@ package openconfig.enums;
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
-// ProtoTestE_Animals_Animal_Config_Species represents an enumerated type generated for the YANG enumerated type union.
-enum ProtoTestE_Animals_Animal_Config_Species {
-  ProtoTestE_Animals_Animal_Config_Species_UNSET = 0;
-  ProtoTestE_Animals_Animal_Config_Species_TAXIDEA_TAXUS = 1;
-  ProtoTestE_Animals_Animal_Config_Species_CERVUS_CANADENSIS = 2;
-  ProtoTestE_Animals_Animal_Config_Species_OVIS_CANADENSIS = 3;
+// ProtoTestEAnimalsAnimalConfigSpecies represents an enumerated type generated for the YANG enumerated type union.
+enum ProtoTestEAnimalsAnimalConfigSpecies {
+  ProtoTestEAnimalsAnimalConfigSpecies_UNSET = 0;
+  ProtoTestEAnimalsAnimalConfigSpecies_TAXIDEA_TAXUS = 1;
+  ProtoTestEAnimalsAnimalConfigSpecies_CERVUS_CANADENSIS = 2;
+  ProtoTestEAnimalsAnimalConfigSpecies_OVIS_CANADENSIS = 3;
 }
 
-// ProtoTestE_Bars_Bar_Baz represents an enumerated type generated for the YANG enumerated type union.
-enum ProtoTestE_Bars_Bar_Baz {
-  ProtoTestE_Bars_Bar_Baz_UNSET = 0;
-  ProtoTestE_Bars_Bar_Baz_X = 1;
-  ProtoTestE_Bars_Bar_Baz_Y = 2;
-  ProtoTestE_Bars_Bar_Baz_Z = 3;
+// ProtoTestEBarsBarBaz represents an enumerated type generated for the YANG enumerated type union.
+enum ProtoTestEBarsBarBaz {
+  ProtoTestEBarsBarBaz_UNSET = 0;
+  ProtoTestEBarsBarBaz_X = 1;
+  ProtoTestEBarsBarBaz_Y = 2;
+  ProtoTestEBarsBarBaz_Z = 3;
 }
 
-// ProtoTestE_ID represents an enumerated type generated for the YANG identity ID.
-enum ProtoTestE_ID {
-  ProtoTestE_ID_UNSET = 0;
-  ProtoTestE_ID_IDVAL = 1;
+// ProtoTestEID represents an enumerated type generated for the YANG identity ID.
+enum ProtoTestEID {
+  ProtoTestEID_UNSET = 0;
+  ProtoTestEID_IDVAL = 1;
 }
