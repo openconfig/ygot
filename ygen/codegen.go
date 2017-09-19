@@ -493,10 +493,8 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		// entries in the msgNames set to fall within the same package.
 		tp, ok := genProto.Packages[genMsg.packageName]
 		if !ok {
-			pp := strings.Split(genMsg.packageName, ".")
-			np := append(pp[:len(pp)-1], fmt.Sprintf("%s.proto", pp[len(pp)-1]))
 			genProto.Packages[genMsg.packageName] = Proto3Package{
-				FilePath: np,
+				FilePath: protoPackageToFilePath(genMsg.packageName),
 				Messages: []string{},
 			}
 			tp = genProto.Packages[genMsg.packageName]

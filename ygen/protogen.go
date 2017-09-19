@@ -645,9 +645,7 @@ func safeProtoIdentifierName(name string) string {
 	return replacer.Replace(name)
 }
 
-// fieldTag returns a protobuf tag value for the entry e. The tag value supplied is
-// between 1 and 2^29-1. The values 19,000-19,999 are excluded as these are explicitly
-// reserved for protobuf-internal use by https://developers.google.com/protocol-buffers/docs/proto3.
+// fieldTag returns a protobuf tag value for the entry e.
 func protoTagForEntry(e *yang.Entry) (uint32, error) {
 	return fieldTag(e.Path())
 }
@@ -661,7 +659,7 @@ func fieldTag(s string) (uint32, error) {
 		return 0, fmt.Errorf("could not write field path to hash: %v", err)
 	}
 
-	v := h.Sum32() & 0x1fffffff
+	v := h.Sum32() & 0x1fffffff // 2^29-1
 	if (v >= 19000 && v <= 19999) || (v >= 1 && v <= 1000) {
 		return fieldTag(fmt.Sprintf("%s_", s))
 	}
@@ -839,4 +837,15 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType) (*pro
 		oneOfFields: oofs,
 		enums:       enums,
 	}, nil
+}
+
+// protoPackageToFilePath takes an input string containing a period separated protobuf package
+// name in the form parent.child and returns a path to the file that it should be written to
+// assuming a hierarchical directory structure is used. If the package supplied is
+// openconfig.interfaces.interface, it is returned as []string{"openconfig", "interfaces",
+// "interface.proto"} such that filepath.Join can create the relevant file system path
+// for the input package.
+func protoPackageToFilePath(pkg string) []string {
+	pp := strings.Split(pkg, ".")
+	return append(pp[:len(pp)-1], fmt.Sprintf("%s.proto", pp[len(pp)-1]))
 }
