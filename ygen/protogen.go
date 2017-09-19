@@ -378,7 +378,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				// Add the import to the slice of imports if it is not already
 				// there. This allows the message file to import the required
 				// child packages.
-				childpath := filepath.Join(append([]string{cfg.baseImportPath, cfg.basePackageName}, strings.Split(childpkg, ".")...)...)
+				childpath := filepath.Join(cfg.baseImportPath, cfg.basePackageName, strings.Replace(childpkg, ".", "/", -1))
 				if _, ok := imports[childpath]; !ok {
 					imports[childpath] = true
 				}
@@ -470,8 +470,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 			continue
 		}
 
-		// Make the name of the enum upper case as is it conventional that a protobuf enum
-		// is completely upper case.
+		// Make the name of the enum upper case to follow Protobuf enum convention.
 		p := &protoEnum{Name: enum.name}
 		switch {
 		case isIdentityrefLeaf(enum.entry):
@@ -543,9 +542,8 @@ func genProtoEnum(field *yang.Entry) (*protoMsgEnum, error) {
 			// a valid enumeration name in YANG.
 			continue
 		}
-		// We always add one to the value that is returned to ensure that
-		// we never redefine value 0. We always specify the names as all upper-case
-		// to ensure that we follow the protobuf style guide.
+		// Names are converted to upper case to follow the protobuf style guide,
+		// adding one to ensure that the 0 value can represent unused values.
 		eval[field.Type.Enum.Value(n)+1] = safeProtoIdentifierName(n)
 	}
 
@@ -712,7 +710,7 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 		Name:     n,
 		YANGPath: args.field.Path(),
 		Enums:    map[string]*protoMsgEnum{},
-		Imports:  []string{filepath.Join(append([]string{args.baseImportPath, args.basePackageName}, strings.Split(listPackage, ".")...)...)},
+		Imports:  []string{filepath.Join(args.baseImportPath, args.basePackageName, strings.Replace(listPackage, ".", "/", -1))},
 	}
 
 	definedFieldNames := map[string]bool{}
