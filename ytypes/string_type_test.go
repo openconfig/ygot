@@ -146,6 +146,14 @@ func TestValidateString(t *testing.T) {
 			val:        "abc",
 		},
 		{
+			desc:       "logical expression",
+			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
+			schemaName: "range-2-to-10",
+			re:         []string{`a+|\.`},
+			val:        "aaa aaa",
+			wantErr:    true,
+		},
+		{
 			desc:       "bad schema",
 			length:     yang.YRange{Min: yang.FromInt(20), Max: yang.FromInt(10)},
 			schemaName: "bad-range",
@@ -154,7 +162,7 @@ func TestValidateString(t *testing.T) {
 			wantErr:    true,
 		},
 		{
-			desc:       "regular expression pattern matching failure",
+			desc:       "regex failure",
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
 			re:         []string{`ab.`, `.*bc`},
@@ -162,7 +170,22 @@ func TestValidateString(t *testing.T) {
 			wantErr:    true,
 		},
 		{
-			desc:       "regular expression pattern matching failure with derived type name",
+			desc:       "repeating regex success",
+			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
+			schemaName: "range-2-to-10",
+			re:         []string{`[a|b]*`},
+			val:        "abbbab",
+		},
+		{
+			desc:       "repeating regex failure",
+			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
+			schemaName: "range-2-to-10",
+			re:         []string{`[a|b]*`},
+			val:        "abbcbab",
+			wantErr:    true,
+		},
+		{
+			desc:       "regex failure with derived type name",
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
 			re:         []string{`ab.`, `.*bc`},
