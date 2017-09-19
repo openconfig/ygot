@@ -32,14 +32,14 @@ import (
 var (
 	yangPaths        = flag.String("path", "", "Comma separated list of paths to be recursively searched for included modules or submodules within the defined YANG modules.")
 	compressPaths    = flag.Bool("compress_paths", false, "If set to true, the schema's paths are compressed, according to OpenConfig YANG module conventions.")
-	excludeModules   = flag.String("exclude_modules", "", "Comma separated set of module names that should be excluded from code generation this can be used to ensure overlapping namespaces can be ignored.")
+	excludeModules   = flag.String("exclude_modules", "", "Comma separated set of module names that should be excluded from code generation. This can be used to ensure overlapping namespaces can be ignored.")
 	packageName      = flag.String("package_name", "openconfig", "The name of the Proto package that generated messages should belong to as their parent.")
 	enumPackageName  = flag.String("enum_package_name", "enums", "The name of the package within the generated package that should contain global enum definitions.")
 	outputDir        = flag.String("output_dir", "", "The path to which files should be output, hierarchical folders are created for the generated messages.")
 	ignoreCircDeps   = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
-	generateFakeRoot = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
-	fakeRootName     = flag.String("fakeroot_name", "", "The name of the fake root entity.")
 	baseImportPath   = flag.String("base_import_path", "", "The base import path that should be used for this package, for example a URL to the GitHub repo that the protobuf messages are stored in.")
+	generateFakeRoot = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. The fake root's name can be controlled with the fakeroot_name flag.")
+	fakeRootName     = flag.String("fakeroot_name", "Device", "The name of the fake root entity.")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
