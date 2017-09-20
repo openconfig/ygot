@@ -505,6 +505,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 
 			// If the supplied enum entry has the valuePrefix annotation then use it to
 			// calculate the enum value names.
+			p.ValuePrefix = enum.name
 			if e, ok := enum.entry.Annotation["valuePrefix"]; ok {
 				t, ok := e.([]string)
 				if ok {
@@ -514,10 +515,6 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 					}
 					p.ValuePrefix = strings.Join(pp, "_")
 				}
-			}
-
-			if p.ValuePrefix == "" {
-				p.ValuePrefix = enum.name
 			}
 
 			p.Description = fmt.Sprintf("YANG enumerated type %s", enum.entry.Type.Name)
