@@ -12,14 +12,14 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
 // ProtoTestDATypedef represents an enumerated type generated for the YANG enumerated type a-typedef.
 enum ProtoTestDATypedef {
-  ProtoTestDATypedef_UNSET = 0;
-  ProtoTestDATypedef_ONE = 1;
-  ProtoTestDATypedef_TWO = 2;
+  PROTOTESTDATYPEDEF_UNSET = 0;
+  PROTOTESTDATYPEDEF_ONE = 1;
+  PROTOTESTDATYPEDEF_TWO = 2;
 }
 
 // ProtoTestDFOO represents an enumerated type generated for the YANG identity FOO.
 enum ProtoTestDFOO {
-  ProtoTestDFOO_UNSET = 0;
-  ProtoTestDFOO_BAR = 1;
-  ProtoTestDFOO_BAZ = 2;
+  PROTOTESTDFOO_UNSET = 0;
+  PROTOTESTDFOO_BAR = 1;
+  PROTOTESTDFOO_BAZ = 2;
 }

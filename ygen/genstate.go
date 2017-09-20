@@ -147,6 +147,7 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, omitUnders
 						Kind: yang.Yenum,
 						Enum: t.Enum,
 					},
+					Annotation: map[string]interface{}{"valuePrefix": traverseElementSchemaPath(e)},
 				},
 			}
 		}

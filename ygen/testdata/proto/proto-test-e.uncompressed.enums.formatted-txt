@@ -12,22 +12,22 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
 // ProtoTestEAnimalsAnimalConfigSpecies represents an enumerated type generated for the YANG enumerated type union.
 enum ProtoTestEAnimalsAnimalConfigSpecies {
-  ProtoTestEAnimalsAnimalConfigSpecies_UNSET = 0;
-  ProtoTestEAnimalsAnimalConfigSpecies_TAXIDEA_TAXUS = 1;
-  ProtoTestEAnimalsAnimalConfigSpecies_CERVUS_CANADENSIS = 2;
-  ProtoTestEAnimalsAnimalConfigSpecies_OVIS_CANADENSIS = 3;
+  PROTOTESTE_ANIMALS_ANIMAL_CONFIG_SPECIES_UNSET = 0;
+  PROTOTESTE_ANIMALS_ANIMAL_CONFIG_SPECIES_TAXIDEA_TAXUS = 1;
+  PROTOTESTE_ANIMALS_ANIMAL_CONFIG_SPECIES_CERVUS_CANADENSIS = 2;
+  PROTOTESTE_ANIMALS_ANIMAL_CONFIG_SPECIES_OVIS_CANADENSIS = 3;
 }
 
 // ProtoTestEBarsBarBaz represents an enumerated type generated for the YANG enumerated type union.
 enum ProtoTestEBarsBarBaz {
-  ProtoTestEBarsBarBaz_UNSET = 0;
-  ProtoTestEBarsBarBaz_X = 1;
-  ProtoTestEBarsBarBaz_Y = 2;
-  ProtoTestEBarsBarBaz_Z = 3;
+  PROTOTESTE_BARS_BAR_BAZ_UNSET = 0;
+  PROTOTESTE_BARS_BAR_BAZ_X = 1;
+  PROTOTESTE_BARS_BAR_BAZ_Y = 2;
+  PROTOTESTE_BARS_BAR_BAZ_Z = 3;
 }
 
 // ProtoTestEID represents an enumerated type generated for the YANG identity ID.
 enum ProtoTestEID {
-  ProtoTestEID_UNSET = 0;
-  ProtoTestEID_IDVAL = 1;
+  PROTOTESTEID_UNSET = 0;
+  PROTOTESTEID_IDVAL = 1;
 }

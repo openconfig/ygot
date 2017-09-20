@@ -946,9 +946,9 @@ func TestWriteProtoEnums(t *testing.T) {
 			`
 // EnumeratedValue represents an enumerated type generated for the YANG identity IdentityValue.
 enum EnumeratedValue {
-  EnumeratedValue_UNSET = 0;
-  EnumeratedValue_VALUE_A = 1;
-  EnumeratedValue_VALUE_B = 2;
+  ENUMERATEDVALUE_UNSET = 0;
+  ENUMERATEDVALUE_VALUE_A = 1;
+  ENUMERATEDVALUE_VALUE_B = 2;
 }
 `,
 		},
@@ -964,6 +964,9 @@ enum EnumeratedValue {
 						Kind: yang.Yenum,
 						Enum: testYANGEnums["enumOne"],
 					},
+					Annotation: map[string]interface{}{
+						"valuePrefix": []string{"enum-name"},
+					},
 				},
 			},
 			"f": &yangEnum{
@@ -975,6 +978,9 @@ enum EnumeratedValue {
 						Kind: yang.Yenum,
 						Enum: testYANGEnums["enumTwo"],
 					},
+					Annotation: map[string]interface{}{
+						"valuePrefix": []string{"secondenum"},
+					},
 				},
 			},
 		},
@@ -982,16 +988,16 @@ enum EnumeratedValue {
 			`
 // EnumName represents an enumerated type generated for the YANG enumerated type typedef.
 enum EnumName {
-  EnumName_UNSET = 0;
-  EnumName_SPEED_2_5G = 1;
-  EnumName_SPEED_40G = 2;
+  ENUMNAME_UNSET = 0;
+  ENUMNAME_SPEED_2_5G = 1;
+  ENUMNAME_SPEED_40G = 2;
 }
 `, `
 // SecondEnum represents an enumerated type generated for the YANG enumerated type derived.
 enum SecondEnum {
-  SecondEnum_UNSET = 0;
-  SecondEnum_VALUE_1 = 1;
-  SecondEnum_VALUE_2 = 2;
+  SECONDENUM_UNSET = 0;
+  SECONDENUM_VALUE_1 = 1;
+  SECONDENUM_VALUE_2 = 2;
 }
 `,
 		},

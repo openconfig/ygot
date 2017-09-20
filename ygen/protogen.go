@@ -84,6 +84,7 @@ type protoEnum struct {
 	Name        string           // Name is the enumeration's name within the protobuf package.
 	Description string           // Description is a string description of the enumerated type within the YANG schema, used in comments.
 	Values      map[int64]string // Values contains the string names, keyed by enum value, that the enumerated type can take.
+	ValuePrefix string           // ValuePrefix contains the string prefix that should be prepended to each value within the enumerated type.
 }
 
 // proto3Header describes the header of a Protobuf3 package.
@@ -197,7 +198,7 @@ message {{ .Name }} {
 // {{ .Name }} represents an enumerated type generated for the {{ .Description }}.
 enum {{ .Name }} {
 {{- range $i, $val := .Values }}
-  {{ toUpper $.Name }}_{{ $val }} = {{ $i }};
+  {{ toUpper $.ValuePrefix }}_{{ $val }} = {{ $i }};
 {{- end }}
 }
 `
@@ -378,7 +379,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				// Add the import to the slice of imports if it is not already
 				// there. This allows the message file to import the required
 				// child packages.
-				childpath := filepath.Join(append([]string{cfg.baseImportPath, cfg.basePackageName}, strings.Split(childpkg, ".")...)...)
+				childpath := filepath.Join(cfg.baseImportPath, cfg.basePackageName, strings.Replace(childpkg, ".", "/", -1))
 				if _, ok := imports[childpath]; !ok {
 					imports[childpath] = true
 				}
@@ -470,6 +471,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 			continue
 		}
 
+		// Make the name of the enum upper case to follow Protobuf enum convention.
 		p := &protoEnum{Name: enum.name}
 		switch {
 		case isIdentityrefLeaf(enum.entry):
@@ -491,6 +493,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 				values[int64(i)+1] = n
 			}
 			p.Values = values
+			p.ValuePrefix = enum.name
 			p.Description = fmt.Sprintf("YANG identity %s", enum.entry.Type.IdentityBase.Name)
 		case enum.entry.Type.Kind == yang.Yenum:
 			ge, err := genProtoEnum(enum.entry)
@@ -499,6 +502,24 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 				continue
 			}
 			p.Values = ge.Values
+
+			// If the supplied enum entry has the valuePrefix annotation then use it to
+			// calculate the enum value names.
+			if e, ok := enum.entry.Annotation["valuePrefix"]; ok {
+				t, ok := e.([]string)
+				if ok {
+					pp := []string{}
+					for _, pe := range t {
+						pp = append(pp, safeProtoIdentifierName(yang.CamelCase(pe)))
+					}
+					p.ValuePrefix = strings.Join(pp, "_")
+				}
+			}
+
+			if p.ValuePrefix == "" {
+				p.ValuePrefix = enum.name
+			}
+
 			p.Description = fmt.Sprintf("YANG enumerated type %s", enum.entry.Type.Name)
 		case len(enum.entry.Type.Type) != 0:
 			errs = append(errs, fmt.Errorf("unimplemented: support for multiple enumerations within a union for %v", enum.name))
@@ -541,10 +562,9 @@ func genProtoEnum(field *yang.Entry) (*protoMsgEnum, error) {
 			// a valid enumeration name in YANG.
 			continue
 		}
-		// We always add one to the value that is returned to ensure that
-		// we never redefine value 0. We always specify the names as all upper-case
-		// to ensure that we follow the protobuf style guide.
-		eval[field.Type.Enum.Value(n)+1] = strings.ToUpper(safeProtoIdentifierName(n))
+		// Names are converted to upper case to follow the protobuf style guide,
+		// adding one to ensure that the 0 value can represent unused values.
+		eval[field.Type.Enum.Value(n)+1] = safeProtoIdentifierName(n)
 	}
 
 	// TODO(robjs): Embed an option into the message such that we can persist
@@ -679,9 +699,7 @@ func safeProtoIdentifierName(name string) string {
 	return replacer.Replace(name)
 }
 
-// fieldTag returns a protobuf tag value for the entry e. The tag value supplied is
-// between 1 and 2^29-1. The values 19,000-19,999 are excluded as these are explicitly
-// reserved for protobuf-internal use by https://developers.google.com/protocol-buffers/docs/proto3.
+// protoTagForEntry returns a protobuf tag value for the entry e.
 func protoTagForEntry(e *yang.Entry) (uint32, error) {
 	return fieldTag(e.Path())
 }
@@ -695,7 +713,7 @@ func fieldTag(s string) (uint32, error) {
 		return 0, fmt.Errorf("could not write field path to hash: %v", err)
 	}
 
-	v := h.Sum32() & 0x1fffffff
+	v := h.Sum32() & 0x1fffffff // 2^29-1
 	if (v >= 19000 && v <= 19999) || (v >= 1 && v <= 1000) {
 		return fieldTag(fmt.Sprintf("%s_", s))
 	}
@@ -712,7 +730,7 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 		Name:     n,
 		YANGPath: args.field.Path(),
 		Enums:    map[string]*protoMsgEnum{},
-		Imports:  []string{filepath.Join(append([]string{args.baseImportPath, args.basePackageName}, strings.Split(listPackage, ".")...)...)},
+		Imports:  []string{filepath.Join(args.baseImportPath, args.basePackageName, strings.Replace(listPackage, ".", "/", -1))},
 	}
 
 	definedFieldNames := map[string]bool{}
@@ -884,4 +902,15 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType) (*pro
 		enums:          enums,
 		hadGlobalEnums: importGlobalEnums,
 	}, nil
+}
+
+// protoPackageToFilePath takes an input string containing a period separated protobuf package
+// name in the form parent.child and returns a path to the file that it should be written to
+// assuming a hierarchical directory structure is used. If the package supplied is
+// openconfig.interfaces.interface, it is returned as []string{"openconfig", "interfaces",
+// "interface.proto"} such that filepath.Join can create the relevant file system path
+// for the input package.
+func protoPackageToFilePath(pkg string) []string {
+	pp := strings.Split(pkg, ".")
+	return append(pp[:len(pp)-1], fmt.Sprintf("%s.proto", pp[len(pp)-1]))
 }
