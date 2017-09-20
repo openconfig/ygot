@@ -288,7 +288,6 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 	// struct ptr here.
 	t := reflect.TypeOf(parent)
 	if IsTypeStructPtr(t) {
-		fmt.Printf("it's a struct\n")
 		// Create a container equivalent of the list, which is just the list
 		// with ListAttrs unset.
 		newSchema := schema

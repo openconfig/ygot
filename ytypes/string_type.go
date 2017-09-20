@@ -128,7 +128,7 @@ func fixYangRegexp(pattern string) string {
 	for i, ch := range pattern {
 		if i == 0 && ch != '^' {
 			buf.WriteRune('^')
-			// Add parens around entire expression to prevent logical 
+			// Add parens around entire expression to prevent logical
 			// subexpressions associating with leading/trailing ^ / $.
 			buf.WriteRune('(')
 			addParens = true
@@ -159,7 +159,7 @@ func fixYangRegexp(pattern string) string {
 
 		if i == len(pattern)-1 {
 			if addParens {
-				buf.WriteRune(')')				
+				buf.WriteRune(')')
 			}
 			if ch != '$' {
 				buf.WriteRune('$')
