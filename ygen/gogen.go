@@ -735,7 +735,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				associatedListKeyStructs = append(associatedListKeyStructs, multiKeyListKey)
 			}
 
-		case field.IsDir():
+		case field.IsContainer():
 			// This is a YANG container, so it is represented in code using a pointer to the struct type that
 			// is defined for the entity. findMappableEntities has already determined which fields are to
 			// be output, so no filtering of the set of fields is required here.
@@ -749,7 +749,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				Name: fieldName,
 				Type: fmt.Sprintf("*%s", structName),
 			}
-		default:
+		case field.IsLeaf() || field.IsLeafList():
 			// This is a leaf or leaf-list, so we map it into the Go type that corresponds to the
 			// YANG type that the leaf represents.
 			mtype, err := state.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressOCPaths)
@@ -821,6 +821,9 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				Type:          fType,
 				IsScalarField: scalarField,
 			}
+		default:
+			errs = append(errs, fmt.Errorf("unknown entity type for mapping to Go: %s, Kind: %v", field.Path(), field.Kind))
+			continue
 		}
 
 		// Find the schema paths that the field corresponds to, such that these can

@@ -115,6 +115,15 @@ type ProtoOpts struct {
 	// in multiple parts of the schema (identityrefs, and enumerations)
 	// that fall within type definitions.
 	EnumPackageName string
+	// YwrapperPath is the path to the ywrapper.proto file that stores
+	// the definition of the wrapper messages used to ensure that unset
+	// fields can be distinguished from those that are set to their
+	// default value. The path excluds the filename.
+	YwrapperPath string
+	// YextPath is the path to the yext.proto file that stores the
+	// definition of the extension messages that are used to annotat the
+	// generated protobuf messages.
+	YextPath string
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -452,27 +461,43 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 	basePackageName := cg.Config.ProtoOptions.BasePackageName
 	if basePackageName == "" {
-		basePackageName = defaultBasePackageName
+		basePackageName = DefaultBasePackageName
 	}
 	enumPackageName := cg.Config.ProtoOptions.EnumPackageName
 	if enumPackageName == "" {
-		enumPackageName = defaultEnumPackageName
+		enumPackageName = DefaultEnumPackageName
+	}
+	ywrapperPath := cg.Config.ProtoOptions.YwrapperPath
+	if ywrapperPath == "" {
+		ywrapperPath = DefaultYwrapperPath
+	}
+	yextPath := cg.Config.ProtoOptions.YextPath
+	if yextPath == "" {
+		yextPath = DefaultYextPath
 	}
 
 	// Only create the enums package if there are enums that are within the schema.
 	if len(protoEnums) > 0 {
 		// Sort the set of enumerations so that they are deterministically output.
 		sort.Strings(protoEnums)
+		fp := []string{basePackageName, fmt.Sprintf("%s.proto", enumPackageName)}
 		genProto.Packages[fmt.Sprintf("%s.%s", basePackageName, enumPackageName)] = Proto3Package{
-			FilePath: []string{basePackageName, fmt.Sprintf("%s.proto", enumPackageName)},
+			FilePath: fp,
 			Enums:    protoEnums,
 		}
+
 	}
 
 	for _, n := range msgPaths {
 		m := msgMap[n]
 
-		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, cg.Config.CompressOCPaths, basePackageName, enumPackageName)
+		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, protoMsgConfig{
+			compressPaths:   cg.Config.CompressOCPaths,
+			basePackageName: basePackageName,
+			enumPackageName: enumPackageName,
+			baseImportPath:  cg.Config.ProtoOptions.BaseImportPath,
+		})
+
 		if errs != nil {
 			ye.Errors = append(ye.Errors, errs...)
 			continue
@@ -506,12 +531,14 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	for n, pkg := range genProto.Packages {
 		h, err := writeProto3Header(proto3Header{
 			PackageName:            n,
-			BaseImportPath:         cg.Config.ProtoOptions.BaseImportPath,
 			Imports:                stringKeys(pkgImports[n]),
 			SourceYANGFiles:        yangFiles,
 			SourceYANGIncludePaths: includePaths,
 			CompressPaths:          cg.Config.CompressOCPaths,
-			CallerName:             cg.Config.Caller})
+			CallerName:             cg.Config.Caller,
+			YwrapperPath:           ywrapperPath,
+			YextPath:               yextPath,
+		})
 		if err != nil {
 			ye.Errors = append(ye.Errors, errs...)
 		}
@@ -695,7 +722,9 @@ func mappableLeaf(e *yang.Entry) *yang.Entry {
 // the generated code. The descendants that represent directories are appended to the dirs
 // map (keyed by the schema path). Those that represent enumerated types (identityref, enumeration,
 // unions containing these types, or typedefs containing these types) are appended to the
-// enums map, which is again keyed by schema path.
+// enums map, which is again keyed by schema path. If any child of the entry is in a module
+// defined in excludeModules, it is skipped. If compressPaths is set to true, then names are
+// mapped with path compression enabled.
 func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules []string, compressPaths bool) {
 	pp := strings.Split(e.Path(), "/")
 	if !strings.HasPrefix(e.Path(), "/") {
@@ -714,7 +743,7 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 
 	for _, ch := range children(e) {
 		switch {
-		case !ch.IsDir():
+		case ch.IsLeaf(), ch.IsLeafList():
 			// Leaves are not mapped as directories so do not map them unless we find
 			// something that will be an enumeration - so that we can deal with this
 			// as a top-level code entity.
@@ -748,15 +777,17 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 					continue
 				}
 
-				if gch.IsDir() {
+				if gch.IsContainer() || gch.IsList() {
 					dirs[fmt.Sprintf("%s/%s", ch.Parent.Path(), gch.Name)] = gch
 				}
 				findMappableEntities(gch, dirs, enums, excludeModules, compressPaths)
 			}
-		default:
+		case ch.IsContainer(), ch.IsList():
 			dirs[ch.Path()] = ch
 			// Recurse down the tree.
 			findMappableEntities(ch, dirs, enums, excludeModules, compressPaths)
+		default:
+			log.Infof("unknown type of entry %v in findMappableEntities for %s", e.Kind, e.Path())
 		}
 	}
 }
@@ -775,7 +806,7 @@ func findRootEntries(structs map[string]*yang.Entry, compressPaths bool) map[str
 			// are compressing, then all invalid elements have
 			// already been compressed out of the schema by this
 			// stage.
-			if s.IsDir() {
+			if s.IsContainer() || s.IsList() {
 				rootEntries[n] = s
 			}
 		case 4:

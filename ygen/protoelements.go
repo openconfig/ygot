@@ -212,7 +212,9 @@ func (s *genState) protoUnionType(args resolveTypeArgs, basePackageName, enumPac
 		rtypes[k] = len(rtypes)
 	}
 
-	return &mappedType{unionTypes: rtypes}, nil
+	return &mappedType{
+		unionTypes: rtypes,
+	}, nil
 }
 
 // protoUnionSubTypes extracts all possible subtypes of a YANG union. It returns a map keyed by the mapped type

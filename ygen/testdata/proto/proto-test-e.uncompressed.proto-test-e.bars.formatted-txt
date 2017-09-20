@@ -10,8 +10,8 @@ package openconfig.proto_test_e.bars;
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
-// LluUnion represents the /proto-test-e/bars/bar/llu union field llu YANG schema element.
-message LluUnion {
+// BarLluUnion represents the /proto-test-e/bars/bar/llu union field llu YANG schema element.
+message BarLluUnion {
   string llu_string = 167885444;
   uint64 llu_uint64 = 80267053;
 }
@@ -19,6 +19,6 @@ message LluUnion {
 // Bar represents the /proto-test-e/bars/bar YANG schema element.
 message Bar {
   ywrapper.StringValue foo = 91327513;
-  repeated LluUnion llu = 139983164;
+  repeated BarLluUnion llu = 139983164;
   ywrapper.StringValue single_type_union = 186685410;
 }

@@ -9,11 +9,10 @@ package openconfig.proto_test_a.parent;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
-
-import "proto_test_a/parent/child.proto";
+import "openconfig/proto_test_a/parent/child.proto";
 
 // Child represents the /proto-test-a/parent/child YANG schema element.
 message Child {
-  proto_test_a.parent.child.Config config = 45155888;
-  proto_test_a.parent.child.State state = 236795049;
+  openconfig.proto_test_a.parent.child.Config config = 45155888;
+  openconfig.proto_test_a.parent.child.State state = 236795049;
 }

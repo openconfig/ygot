@@ -17,12 +17,12 @@
 // is generated.
 syntax = "proto3";
 
-import "github.com/google/protobuf/src/google/protobuf/descriptor.proto";
-import "github.com/openconfig/gnmi/proto/gnmi/gnmi.proto";
+import "google/protobuf/descriptor.proto";
+import "proto/gnmi/gnmi.proto";
 
 package yext;
 
-import google.protobuf.FieldOptions {
+extend google.protobuf.FieldOptions {
   // path stores the schema path to the field within the YANG schema.
   gnmi.Path path = 1001;
 }

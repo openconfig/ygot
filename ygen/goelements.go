@@ -332,7 +332,7 @@ func findAllChildren(e *yang.Entry, compressOCPaths bool) (map[string]*yang.Entr
 	//
 	// To achieve this then we build an orderedChildNames slice which specifies the
 	// order in which we should process the children of entry e.
-	if e.IsDir() {
+	if e.IsContainer() || e.IsList() {
 		if _, ok := e.Dir["config"]; ok {
 			orderedChildNames = append(orderedChildNames, "config")
 		}

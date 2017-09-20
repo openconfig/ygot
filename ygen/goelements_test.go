@@ -174,12 +174,14 @@ func TestFindChildren(t *testing.T) {
 			Name:   "root",
 			Config: yang.TSTrue,
 			Type:   &yang.YangType{},
+			Kind:   yang.DirectoryEntry,
 			Dir: map[string]*yang.Entry{
 				"name": {Name: "name"},
 				"config": {
 					Name:   "config",
 					Config: yang.TSTrue,
 					Type:   &yang.YangType{},
+					Kind:   yang.DirectoryEntry,
 					Dir: map[string]*yang.Entry{
 						"name": {Name: "name"},
 					},

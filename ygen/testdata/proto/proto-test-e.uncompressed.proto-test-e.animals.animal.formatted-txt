@@ -20,7 +20,7 @@ message Config {
   }
   ywrapper.StringValue name = 249571319;
   oneof species {
-    Species species_Species = 464812903;
+    Species species_species = 250459527;
     string species_string = 236397324;
   }
 }
@@ -35,7 +35,7 @@ message State {
   }
   ywrapper.StringValue name = 140365706;
   oneof species {
-    Species species_Species = 369243768;
+    Species species_species = 512760152;
     string species_string = 480834449;
   }
 }
