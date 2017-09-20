@@ -508,6 +508,56 @@ func TestMergeJSON(t *testing.T) {
 			"a": "b",
 		},
 		wantErr: true,
+	}, {
+		name: "different depth trees",
+		inA: map[string]interface{}{
+			"a": map[string]interface{}{
+				"a1": map[string]interface{}{
+					"a2": map[string]interface{}{
+						"a3": 42,
+					},
+				},
+			},
+			"b": map[string]interface{}{
+				"a1": map[string]interface{}{
+					"a2": 42,
+				},
+			},
+		},
+		inB: map[string]interface{}{
+			"a": map[string]interface{}{
+				"b1": true,
+			},
+			"b": map[string]interface{}{
+				"b2": 84,
+				"b3": map[string]interface{}{
+					"b4": map[string]interface{}{
+						"b5": true,
+					},
+				},
+			},
+		},
+		want: map[string]interface{}{
+			"a": map[string]interface{}{
+				"a1": map[string]interface{}{
+					"a2": map[string]interface{}{
+						"a3": 42,
+					},
+				},
+				"b1": true,
+			},
+			"b": map[string]interface{}{
+				"a1": map[string]interface{}{
+					"a2": 42,
+				},
+				"b2": 84,
+				"b3": map[string]interface{}{
+					"b4": map[string]interface{}{
+						"b5": true,
+					},
+				},
+			},
+		},
 	}}
 
 	for _, tt := range tests {

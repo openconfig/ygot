@@ -803,7 +803,7 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 // outputs the JSON that corresponds to it in the requested JSON format. In a
 // GoStruct, a slice may be a binary field, leaf-list or an unkeyed list. The
 // parentMod is used to track the name of the parent module in the case that
-// module anmes should be appended.
+// module names should be appended.
 func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
 	if field.Type().Name() == BinaryTypeName {
 		// Handle the case that that we have a Binary ([]byte) value,

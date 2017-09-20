@@ -277,7 +277,7 @@ func MergeJSON(a, b map[string]interface{}) (map[string]interface{}, error) {
 	for k, v := range b {
 		if _, ok := o[k]; !ok {
 			// Simple case, where the branch in b does not exist in
-			// a, so we can simply glean the subtree.
+			// a, so we can simply add the subtree.
 			o[k] = v
 			continue
 		}
