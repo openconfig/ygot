@@ -756,7 +756,7 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 		}
 	case reflect.Slice:
 		var err error
-		value, err = constructJSONSlice(field, args)
+		value, err = constructJSONSlice(field, parentMod, args)
 		if err != nil {
 			return nil, err
 		}
@@ -801,16 +801,35 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 
 // constructJSONSlice takes an input reflect.Value containing a slice, and
 // outputs the JSON that corresponds to it in the requested JSON format. In a
-// GoStruct, a slice may be a binary field, leaf-list or an unkeyed list.
-func constructJSONSlice(field reflect.Value, args jsonOutputConfig) (interface{}, error) {
+// GoStruct, a slice may be a binary field, leaf-list or an unkeyed list. The
+// parentMod is used to track the name of the parent module in the case that
+// module anmes should be appended.
+func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
 	if field.Type().Name() == BinaryTypeName {
 		// Handle the case that that we have a Binary ([]byte) value,
 		// which must be returned as a JSON string.
 		return binaryBase64(field.Bytes()), nil
 	}
 
-	// TODO(robjs): Check for the case whereby we have an unkeyed list
-	// and the child is a struct.
+	// In the case that the field is a slice of struct pointers then this
+	// was an unkeyed YANG list.
+	if c := field.Type().Elem(); c.Kind() == reflect.Ptr && c.Elem().Kind() == reflect.Struct {
+		vals := []interface{}{}
+		for i := 0; i < field.Len(); i++ {
+			gs, ok := field.Index(i).Interface().(GoStruct)
+			if !ok {
+				return nil, fmt.Errorf("invalid member of a slice, %s was not a valid GoStruct", c.Elem().Name)
+			}
+			j, err := constructJSON(gs, parentMod, args)
+			if err != nil {
+				return nil, err
+			}
+			vals = append(vals, j)
+		}
+
+		return vals, nil
+	}
+
 	appmod := false
 	if args.rfc7951Config != nil {
 		appmod = args.rfc7951Config.AppendModuleName

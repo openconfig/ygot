@@ -809,6 +809,10 @@ func TestConstructJSON(t *testing.T) {
 			EnumField: EnumTestVALTWO,
 			LeafList:  []string{"hello", "world"},
 			MixedList: []interface{}{uint64(42)},
+			KeylessList: []*renderExampleList{
+				{Val: String("21st Amendment")},
+				{Val: String("Anchor")},
+			},
 		},
 		inAppendMod: true,
 		wantIETF: map[string]interface{}{
@@ -817,6 +821,20 @@ func TestConstructJSON(t *testing.T) {
 			"int-val":    42,
 			"enum":       "bar:VAL_TWO",
 			"mixed-list": []interface{}{"42"},
+			"keyless-list": []interface{}{
+				map[string]interface{}{
+					"val": "21st Amendment",
+					"state": map[string]interface{}{
+						"val": "21st Amendment",
+					},
+				},
+				map[string]interface{}{
+					"val": "Anchor",
+					"state": map[string]interface{}{
+						"val": "Anchor",
+					},
+				},
+			},
 		},
 		wantInternal: map[string]interface{}{
 			"str":        "hello",
@@ -824,6 +842,20 @@ func TestConstructJSON(t *testing.T) {
 			"int-val":    42,
 			"enum":       "VAL_TWO",
 			"mixed-list": []interface{}{42},
+			"keyless-list": []interface{}{
+				map[string]interface{}{
+					"val": "21st Amendment",
+					"state": map[string]interface{}{
+						"val": "21st Amendment",
+					},
+				},
+				map[string]interface{}{
+					"val": "Anchor",
+					"state": map[string]interface{}{
+						"val": "Anchor",
+					},
+				},
+			},
 		},
 	}, {
 		name: "empty map",
