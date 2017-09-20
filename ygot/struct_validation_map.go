@@ -28,6 +28,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 const (
@@ -39,7 +41,7 @@ const (
 // structTagsToLibPaths takes an input struct field as a reflect.Type, and determines
 // the set of validation library paths that it maps to. Returns the paths as a slice of
 // empty interface slices, or an error.
-func structTagToLibPaths(f reflect.StructField, parentPath []interface{}) ([][]interface{}, error) {
+func structTagToLibPaths(f reflect.StructField, parentPath []interface{}, asPathElem bool) ([][]interface{}, error) {
 	pathAnnotation, ok := f.Tag.Lookup("path")
 	if !ok {
 		return nil, fmt.Errorf("field did not specify a path")
@@ -48,13 +50,17 @@ func structTagToLibPaths(f reflect.StructField, parentPath []interface{}) ([][]i
 	var mapPaths [][]interface{}
 	tagPaths := strings.Split(pathAnnotation, "|")
 	for _, p := range tagPaths {
-		// Make a copy of the existing aprent path so we can append to it without
+		// Make a copy of the existing parent path so we can append to it without
 		// modifying it for future paths.
 		elementPath := make([]interface{}, len(parentPath))
 		copy(elementPath, parentPath)
 		for _, pp := range strings.Split(p, "/") {
 			if pp != "" {
-				elementPath = append(elementPath, interface{}(pp))
+				if asPathElem {
+					elementPath = append(elementPath, &gnmipb.PathElem{Name: pp})
+				} else {
+					elementPath = append(elementPath, interface{}(pp))
+				}
 			}
 		}
 		mapPaths = append(mapPaths, elementPath)

@@ -69,9 +69,11 @@ func TestStripPrefix(t *testing.T) {
 
 func TestInterfacePathAsgNMIPath(t *testing.T) {
 	tests := []struct {
-		name string
-		in   []interface{}
-		want *gnmipb.Path
+		name          string
+		in            []interface{}
+		inUsePathElem bool
+		want          *gnmipb.Path
+		wantErr       bool
 	}{{
 		name: "simple path",
 		in:   []interface{}{"one", "two", "three"},
@@ -87,8 +89,12 @@ func TestInterfacePathAsgNMIPath(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if got := interfacePathAsgNMIPath(tt.in); !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("%s: interfacePathAsgNMIPath(%v): did not get correct output, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		got, err := interfacePathAsgNMIPath(tt.in)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: interfacePathAsgNMIPath%v, %v): did not get expected error, got: %v, want err: %v", tt.name, tt.in, tt.inUsePathElem, err, tt.wantErr)
+		}
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("%s: interfacePathAsgNMIPath(%v, %v): did not get correct output, got: %v, want: %v", tt.name, tt.in, tt.inUsePathElem, got, tt.want)
 		}
 	}
 }

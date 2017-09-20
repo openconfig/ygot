@@ -40,16 +40,20 @@ type path struct {
 	p []interface{}
 }
 
+type ToNotificationsConfig struct {
+	UsePathElem bool
+}
+
 // TogNMINotifications takes an input GoStruct and renders it to slice of
 // Notification messages, marked with the specified timestamp. If a parentPath
 // is used, it is used as a prefix path for the notifications returned.
-func TogNMINotifications(s GoStruct, ts int64, prefix []interface{}) ([]*gnmipb.Notification, error) {
+func TogNMINotifications(s GoStruct, ts int64, prefix []interface{}, cfg *ToNotificationsConfig) ([]*gnmipb.Notification, error) {
 	leaves := map[*path]interface{}{}
-	if err := findUpdatedLeaves(leaves, s, prefix); err != nil {
+	if err := findUpdatedLeaves(leaves, s, prefix, cfg.UsePathElem); err != nil {
 		return nil, err
 	}
 
-	msgs, err := leavesToNotifications(leaves, ts, prefix)
+	msgs, err := leavesToNotifications(leaves, ts, prefix, cfg.UsePathElem)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +67,7 @@ func TogNMINotifications(s GoStruct, ts int64, prefix []interface{}) ([]*gnmipb.
 // the GoStruct contains fields that are themselves structured objects (YANG
 // lists, or containers - represented as maps or struct pointers), the function
 // is called recursively on them.
-func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parentPath []interface{}) error {
+func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parentPath []interface{}, usePathElem bool) error {
 	var errs errlist.List
 
 	if s == nil {
@@ -78,7 +82,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parentPath []in
 		fval := sval.Field(i)
 		ftype := stype.Field(i)
 
-		mapPaths, err := structTagToLibPaths(ftype, parentPath)
+		mapPaths, err := structTagToLibPaths(ftype, parentPath, usePathElem)
 		if err != nil {
 			errs.Add(fmt.Errorf("%s->%s: %v", parentPath, ftype.Name, err))
 			continue
@@ -112,7 +116,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parentPath []in
 					errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
 					continue
 				}
-				errs.Add(findUpdatedLeaves(leaves, goStruct, childPath))
+				errs.Add(findUpdatedLeaves(leaves, goStruct, childPath, usePathElem))
 			}
 		case reflect.Ptr:
 			// Determine whether this is a pointer to a struct (another YANG container), or a leaf.
@@ -123,7 +127,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parentPath []in
 					errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
 					continue
 				}
-				errs.Add(findUpdatedLeaves(leaves, goStruct, mapPaths[0]))
+				errs.Add(findUpdatedLeaves(leaves, goStruct, mapPaths[0], usePathElem))
 			default:
 				for _, p := range mapPaths {
 					leaves[&path{p}] = fval.Elem().Interface()
@@ -179,12 +183,20 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parentPath []in
 // future.
 // TODO(robjs): Update this functionality based on adoption of the gNMI structured paths
 // when Pictor is ready to support these.
-func interfacePathAsgNMIPath(p []interface{}) *gnmipb.Path {
+func interfacePathAsgNMIPath(p []interface{}, usePathElem bool) (*gnmipb.Path, error) {
 	pfx := &gnmipb.Path{}
 	for _, e := range p {
-		pfx.Element = append(pfx.Element, fmt.Sprintf("%v", e))
+		if usePathElem {
+			pe, ok := e.(*gnmipb.PathElem)
+			if !ok {
+				return nil, fmt.Errorf("invalid path element %v in path %v, expected gnmipb.PathElem", e, p)
+			}
+			pfx.Elem = append(pfx.Elem, pe)
+		} else {
+			pfx.Element = append(pfx.Element, fmt.Sprintf("%v", e))
+		}
 	}
-	return pfx
+	return pfx, nil
 }
 
 // stripPrefix removes the specified prefix from the provided path. Returns an error if
@@ -222,12 +234,16 @@ func sliceToScalarArray(v []interface{}) (*gnmipb.ScalarArray, error) {
 // likely to be suboptimal since it results in very large Notifications for particular
 // structs. There should be some fragmentation of Updates across Notification messages
 // in a future implementation. We return a slice to keep the API stable.
-func leavesToNotifications(leaves map[*path]interface{}, ts int64, prefix []interface{}) ([]*gnmipb.Notification, error) {
+func leavesToNotifications(leaves map[*path]interface{}, ts int64, prefix []interface{}, usePathElem bool) ([]*gnmipb.Notification, error) {
 	n := &gnmipb.Notification{
 		Timestamp: ts,
 	}
 
-	pfx := interfacePathAsgNMIPath(prefix)
+	pfx, err := interfacePathAsgNMIPath(prefix, usePathElem)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(pfx.Element) > 0 {
 		n.Prefix = pfx
 	}
@@ -245,8 +261,12 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, prefix []inte
 			return nil, err
 		}
 
+		gp, err := interfacePathAsgNMIPath(path, usePathElem)
+		if err != nil {
+			return nil, err
+		}
 		u := &gnmipb.Update{
-			Path: interfacePathAsgNMIPath(path),
+			Path: gp,
 		}
 
 		switch val := reflect.ValueOf(v); val.Kind() {
@@ -496,7 +516,7 @@ func constructJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[str
 			appendModName = true
 		}
 
-		mapPaths, err := structTagToLibPaths(fType, nil)
+		mapPaths, err := structTagToLibPaths(fType, nil, false)
 		if err != nil {
 			errs.Add(fmt.Errorf("%s: %v", fType.Name, err))
 			continue
