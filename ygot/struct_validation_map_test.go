@@ -650,6 +650,11 @@ func TestMergeStructJSON(t *testing.T) {
 				"bandol": map[string]interface{}{"val": "bandol"},
 			},
 		},
+	}, {
+		name:     "overlapping trees",
+		inStruct: &mergeTest{FieldOne: String("foo")},
+		inJSON:   map[string]interface{}{"field-one": "bar"},
+		wantErr:  true,
 	}}
 
 	for _, tt := range tests {
