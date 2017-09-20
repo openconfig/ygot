@@ -9,11 +9,10 @@ package openconfig.proto_test_e.animals;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
-
-import "proto_test_e/animals/animal.proto";
+import "openconfig/proto_test_e/animals/animal.proto";
 
 // Animal represents the /proto-test-e/animals/animal YANG schema element.
 message Animal {
-  proto_test_e.animals.animal.Config config = 222717263;
-  proto_test_e.animals.animal.State state = 363146560;
+  openconfig.proto_test_e.animals.animal.Config config = 222717263;
+  openconfig.proto_test_e.animals.animal.State state = 363146560;
 }

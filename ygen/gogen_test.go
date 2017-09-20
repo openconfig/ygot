@@ -320,6 +320,7 @@ func (t *InputStruct) To_Module_InputStruct_U1_Union(i interface{}) (Module_Inpu
 				"c1": {
 					Name: "c1",
 					Dir:  map[string]*yang.Entry{},
+					Kind: yang.DirectoryEntry,
 					Parent: &yang.Entry{
 						Name: "input-struct",
 						Parent: &yang.Entry{
@@ -387,6 +388,7 @@ func (s *InputStruct) Validate() error {
 				"elem": {
 					Name: "elem",
 					Dir:  map[string]*yang.Entry{},
+					Kind: yang.DirectoryEntry,
 					Parent: &yang.Entry{
 						Name: "a-struct",
 						Parent: &yang.Entry{
@@ -410,6 +412,7 @@ func (s *InputStruct) Validate() error {
 			fields: map[string]*yang.Entry{
 				"list": {
 					Name:     "list",
+					Kind:     yang.DirectoryEntry,
 					Dir:      map[string]*yang.Entry{},
 					ListAttr: &yang.ListAttr{},
 					Parent: &yang.Entry{
@@ -436,6 +439,7 @@ func (s *InputStruct) Validate() error {
 				"a-list": {
 					Name:     "a-list",
 					ListAttr: &yang.ListAttr{},
+					Kind:     yang.DirectoryEntry,
 					Dir:      map[string]*yang.Entry{},
 					Parent: &yang.Entry{
 						Name: "q-struct",
@@ -521,6 +525,7 @@ func (s *QStruct) Validate() error {
 							},
 						},
 					},
+					Kind: yang.DirectoryEntry,
 					Dir: map[string]*yang.Entry{
 						"keyLeaf": {
 							Name: "keyLeaf",
@@ -667,6 +672,7 @@ func (s *Tstruct) Validate() error {
 							},
 						},
 					},
+					Kind: yang.DirectoryEntry,
 					Dir: map[string]*yang.Entry{
 						"keyLeafOne": {
 							Name: "keyLeafOne",
@@ -1145,6 +1151,7 @@ func TestFindMapPaths(t *testing.T) {
 							Name: "config",
 							Parent: &yang.Entry{
 								Name: "d-list",
+								Kind: yang.DirectoryEntry,
 								Dir: map[string]*yang.Entry{
 									"d-key": {
 										Name: "d-key",
@@ -1172,6 +1179,7 @@ func TestFindMapPaths(t *testing.T) {
 				Name: "config",
 				Parent: &yang.Entry{
 					Name: "d-list",
+					Kind: yang.DirectoryEntry,
 					Dir: map[string]*yang.Entry{
 						"d-key": {
 							Name: "d-key",

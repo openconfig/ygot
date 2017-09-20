@@ -9,11 +9,10 @@ package openconfig.proto_test_e.foos;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
-
-import "proto_test_e/foos/foo.proto";
+import "openconfig/proto_test_e/foos/foo.proto";
 
 // Foo represents the /proto-test-e/foos/foo YANG schema element.
 message Foo {
-  proto_test_e.foos.foo.Config config = 141156251;
-  proto_test_e.foos.foo.State state = 279305116;
+  openconfig.proto_test_e.foos.foo.Config config = 141156251;
+  openconfig.proto_test_e.foos.foo.State state = 279305116;
 }

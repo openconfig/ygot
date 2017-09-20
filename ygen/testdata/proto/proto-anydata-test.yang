@@ -1,0 +1,27 @@
+module proto-anydata-test {
+  prefix "at";
+  namespace "urn:at";
+
+  anydata root-anydata {
+    description "some anydata at the root";
+  }
+
+  container a {
+    anydata container-anydata {
+      description "some anydata in a container";
+    }
+  }
+
+
+  container e {
+    list c {
+      key "k";
+
+      leaf k { type string; }
+
+      anydata list-anydata {
+        description "some anydata in a list";
+      }
+    }
+  }
+}

@@ -37,6 +37,7 @@ var (
 	enumPackageName  = flag.String("enum_package_name", "enums", "The name of the package within the generated package that should contain global enum definitions.")
 	outputDir        = flag.String("output_dir", "", "The path to which files should be output, hierarchical folders are created for the generated messages.")
 	ignoreCircDeps   = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
+	baseImportPath   = flag.String("base_import_path", "", "The base import path that should be used for this package, for example a URL to the GitHub repo that the protobuf messages are stored in.")
 	generateFakeRoot = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. The fake root's name can be controlled with the fakeroot_name flag.")
 	fakeRootName     = flag.String("fakeroot_name", "Device", "The name of the fake root entity.")
 )
@@ -90,6 +91,9 @@ func main() {
 		FakeRootName:     *fakeRootName,
 		YANGParseOptions: yang.Options{
 			IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+		},
+		ProtoOptions: ygen.ProtoOpts{
+			BaseImportPath: *baseImportPath,
 		},
 	})
 

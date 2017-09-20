@@ -9,6 +9,7 @@ package openconfig.proto_test_e.test;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+import "openconfig/enums.proto";
 
 // Config represents the /proto-test-e/test/config YANG schema element.
 message Config {
@@ -26,11 +27,11 @@ message Config {
   }
   A a = 205874313;
   oneof b {
-    openconfig.enums.ProtoTestE_ID b_ProtoTestE_ID = 349983350;
+    openconfig.enums.ProtoTestE_ID b_prototeste_id = 162577430;
     string b_string = 464943506;
   }
   oneof c {
-    C c_C = 41292233;
+    C c_c = 41292265;
     string c_string = 30323953;
   }
 }
@@ -51,11 +52,11 @@ message State {
   }
   A a = 138530090;
   oneof b {
-    openconfig.enums.ProtoTestE_ID b_ProtoTestE_ID = 474755425;
+    openconfig.enums.ProtoTestE_ID b_prototeste_id = 49747713;
     string b_string = 216646479;
   }
   oneof c {
-    C c_C = 403813798;
+    C c_c = 403813766;
     string c_string = 187790664;
   }
 }
