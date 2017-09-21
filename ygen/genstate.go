@@ -488,10 +488,10 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores boo
 		switch len(enumTypes) {
 		case 1:
 			// We specifically say that this is an enumeration within the leaf.
-			if !noUnderscores {
-				typeName = fmt.Sprintf("%s_Enum", enumTypes[0].Name)
-			} else {
+			if noUnderscores {
 				typeName = fmt.Sprintf("%sEnum", enumTypes[0].Name)
+			} else {
+				typeName = fmt.Sprintf("%s_Enum", enumTypes[0].Name)
 			}
 		case 0:
 			return "", fmt.Errorf("enumerated type had an empty union within it, path: %v, type: %v, enumerated: %v", e.Path(), e.Type, enumTypes)
