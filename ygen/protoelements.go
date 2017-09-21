@@ -32,7 +32,7 @@ import (
 // TODO(robjs): Add a link to the translation specification when published.
 func (s *genState) yangTypeToProtoType(args resolveTypeArgs, basePackageName, enumPackageName string) (*mappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", basePackageName, enumPackageName))
+	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", basePackageName, enumPackageName), true)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, basePackageName, en
 			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
 		return &mappedType{
-			nativeType:        fmt.Sprintf("%s.%s.%s", basePackageName, enumPackageName, s.resolveIdentityRefBaseType(args.contextEntry)),
+			nativeType:        fmt.Sprintf("%s.%s.%s", basePackageName, enumPackageName, s.resolveIdentityRefBaseType(args.contextEntry, true)),
 			isEnumeratedValue: true,
 		}, nil
 	case yang.Yunion:
@@ -101,7 +101,7 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, basePackageName, en
 // value cannot be nil/unset.
 func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, basePackageName, enumPackageName string) (*mappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", basePackageName, enumPackageName))
+	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", basePackageName, enumPackageName), true)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, basePackageNa
 			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
 		return &mappedType{
-			nativeType:        fmt.Sprintf("%s.%s.%s", basePackageName, enumPackageName, s.resolveIdentityRefBaseType(args.contextEntry)),
+			nativeType:        fmt.Sprintf("%s.%s.%s", basePackageName, enumPackageName, s.resolveIdentityRefBaseType(args.contextEntry, true)),
 			isEnumeratedValue: true,
 		}, nil
 	case yang.Yunion:
@@ -236,7 +236,7 @@ func (s *genState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, c
 	case yang.Yidentityref:
 		// Handle the case that the context entry is not the correct entry to deal with. This occurs when the subtype is
 		// an identityref.
-		mtype = &mappedType{nativeType: fmt.Sprintf("%s.%s.%s", basePackageName, enumPackageName, s.identityrefBaseTypeFromIdentity(subtype.IdentityBase))}
+		mtype = &mappedType{nativeType: fmt.Sprintf("%s.%s.%s", basePackageName, enumPackageName, s.identityrefBaseTypeFromIdentity(subtype.IdentityBase, true))}
 	default:
 		var err error
 		mtype, err = s.yangTypeToProtoScalarType(resolveTypeArgs{yangType: subtype, contextEntry: ctx}, basePackageName, enumPackageName)

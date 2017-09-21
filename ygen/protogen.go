@@ -84,6 +84,7 @@ type protoEnum struct {
 	Name        string           // Name is the enumeration's name within the protobuf package.
 	Description string           // Description is a string description of the enumerated type within the YANG schema, used in comments.
 	Values      map[int64]string // Values contains the string names, keyed by enum value, that the enumerated type can take.
+	ValuePrefix string           // ValuePrefix contains the string prefix that should be prepended to each value within the enumerated type.
 }
 
 // proto3Header describes the header of a Protobuf3 package.
@@ -172,7 +173,7 @@ message {{ .Name }} {
 {{- range $ename, $enum := .Enums }}
   enum {{ $ename }} {
     {{- range $i, $val := $enum.Values }}
-    {{ $ename }}_{{ $val }} = {{ $i }};
+    {{ toUpper $ename }}_{{ $val }} = {{ $i }};
     {{- end }}
   }
 {{- end -}}
@@ -197,7 +198,7 @@ message {{ .Name }} {
 // {{ .Name }} represents an enumerated type generated for the {{ .Description }}.
 enum {{ .Name }} {
 {{- range $i, $val := .Values }}
-  {{ $.Name }}_{{ $val }} = {{ $i }};
+  {{ toUpper $.ValuePrefix }}_{{ $val }} = {{ $i }};
 {{- end }}
 }
 `
@@ -484,7 +485,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 			// causes an entry earlier in the sequence than others.
 			names := []string{}
 			for _, v := range enum.entry.Type.IdentityBase.Values {
-				names = append(names, safeProtoIdentifierName(v.Name))
+				names = append(names, strings.ToUpper(safeProtoIdentifierName(v.Name)))
 			}
 			sort.Strings(names)
 
@@ -492,6 +493,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 				values[int64(i)+1] = n
 			}
 			p.Values = values
+			p.ValuePrefix = enum.name
 			p.Description = fmt.Sprintf("YANG identity %s", enum.entry.Type.IdentityBase.Name)
 		case enum.entry.Type.Kind == yang.Yenum:
 			ge, err := genProtoEnum(enum.entry)
@@ -500,6 +502,21 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 				continue
 			}
 			p.Values = ge.Values
+
+			// If the supplied enum entry has the valuePrefix annotation then use it to
+			// calculate the enum value names.
+			p.ValuePrefix = enum.name
+			if e, ok := enum.entry.Annotation["valuePrefix"]; ok {
+				t, ok := e.([]string)
+				if ok {
+					pp := []string{}
+					for _, pe := range t {
+						pp = append(pp, safeProtoIdentifierName(yang.CamelCase(pe)))
+					}
+					p.ValuePrefix = strings.Join(pp, "_")
+				}
+			}
+
 			p.Description = fmt.Sprintf("YANG enumerated type %s", enum.entry.Type.Name)
 		case len(enum.entry.Type.Type) != 0:
 			errs = append(errs, fmt.Errorf("unimplemented: support for multiple enumerations within a union for %v", enum.name))
