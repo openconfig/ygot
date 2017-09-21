@@ -368,6 +368,11 @@ func IsNilOrInvalidValue(v reflect.Value) bool {
 	return !v.IsValid() || (v.Kind() == reflect.Ptr && v.IsNil()) || isNil(v.Interface())
 }
 
+// IsValuePtr reports whether v is a ptr type.
+func IsValuePtr(v reflect.Value) bool {
+	return v.Kind() == reflect.Ptr
+}
+
 // IsValueStruct reports whether v is a struct type.
 func IsValueStruct(v reflect.Value) bool {
 	return v.Kind() == reflect.Struct
@@ -386,6 +391,11 @@ func IsValueMap(v reflect.Value) bool {
 // IsValueSlice reports whether v is a slice type.
 func IsValueSlice(v reflect.Value) bool {
 	return v.Kind() == reflect.Slice
+}
+
+// IsValueInterface reports whether v is an interface type.
+func IsValueInterface(v reflect.Value) bool {
+	return v.Kind() == reflect.Interface
 }
 
 // IsValueScalar reports whether v is a scalar type.

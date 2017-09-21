@@ -99,6 +99,8 @@ func yangBuiltinTypeToGoType(t yang.TypeKind) interface{} {
 		return float64(0)
 	case yang.Ybinary:
 		return []byte(nil)
+	case yang.Yenum, yang.Yidentityref:
+		return int64(0)		
 	default:
 		// TODO(mostrowski): handle bitset.
 		log.Errorf("unexpected type %v in yangBuiltinTypeToGoPtrType", t)
