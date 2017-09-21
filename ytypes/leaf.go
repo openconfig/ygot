@@ -38,7 +38,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 		return nil
 	}
 
-	dbgPrint("validateLeaf with value %s, schema name %s", valueStr(value), inSchema.Name)
+	dbgPrint("validateLeaf with value %s (%T), schema name %s (%s)", valueStr(value), value, inSchema.Name, inSchema.Type.Kind)
 
 	schema, err := resolveLeafRef(inSchema)
 	if err != nil {
@@ -79,7 +79,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 	case yang.Ydecimal64:
 		return appendErr(errors, validateDecimal(schema, rv))
 	case yang.Yenum, yang.Yidentityref:
-		if rkind != reflect.Int64 {
+		if rkind != reflect.Int64 && !isValueInterfacePtrToEnum(reflect.ValueOf(value)) {
 			return appendErr(errors, fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rkind, schema.Name, ykind))
 		}
 		return nil
@@ -213,15 +213,22 @@ func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
 		return appendErr(errors, fmt.Errorf("wrong value type for union %s: got: %T, expect ptr", schema.Name, value))
 	}
 
-	elem := reflect.ValueOf(value).Elem()
-
-	if elem.Type().Kind() == reflect.Struct {
-		structElems := reflect.ValueOf(value).Elem()
-		if structElems.NumField() != 1 {
-			return appendErr(errors, fmt.Errorf("union %s should only have one field, but has %d", schema.Name, structElems.NumField()))
+	v := reflect.ValueOf(value).Elem()
+	
+	// Unions of enum types are passed as ptr to interface to struct ptr.
+	// Normalize to a union struct.
+	if IsValueInterface(v) {
+		v = v.Elem()
+		if IsValuePtr(v) {
+			v = v.Elem()
 		}
+	}
 
-		return validateMatchingSchemas(schema, structElems.Field(0).Interface())
+	if v.Type().Kind() == reflect.Struct {
+		if v.NumField() != 1 {
+			return appendErr(errors, fmt.Errorf("union %s should only have one field, but has %d", schema.Name, v.NumField()))
+		}
+		return validateMatchingSchemas(schema, v.Field(0).Interface())
 	}
 
 	return validateMatchingSchemas(schema, value)
@@ -233,9 +240,13 @@ func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
 // during validation against each matching schema otherwise.
 func validateMatchingSchemas(schema *yang.Entry, value interface{}) (errors []error) {
 	ss := findMatchingSchemasInUnion(schema.Type, value)
-	dbgPrint("validateMatchingSchemas for %s: %v", schema.Name, ss)
+	var kk []yang.TypeKind
+	for _, s := range ss {
+		kk = append(kk, s.Type.Kind)
+	}
+	dbgPrint("validateMatchingSchemas for value %v (%T) for schema %s with types %v", value, value, schema.Name, kk)
 	if len(ss) == 0 {
-		return []error{fmt.Errorf("no types in schema %s match the type of value %v, which is %T", schema.Name, value, value)}
+		return []error{fmt.Errorf("no types in schema %s match the type of value %v, which is %T", schema.Name, valueStr(value), value)}
 	}
 	for _, s := range ss {
 		var errs []error
@@ -262,6 +273,7 @@ func validateMatchingSchemas(schema *yang.Entry, value interface{}) (errors []er
 func findMatchingSchemasInUnion(ytype *yang.YangType, value interface{}) []*yang.Entry {
 	var matches []*yang.Entry
 
+	dbgPrint("findMatchingSchemasInUnion for type %T, kind %s", value, reflect.TypeOf(value).Kind())
 	for _, t := range ytype.Type {
 		if t.Kind == yang.Yunion {
 			// Recursively check all union types within this union.
@@ -277,7 +289,7 @@ func findMatchingSchemasInUnion(ytype *yang.YangType, value interface{}) []*yang
 			log.Warningf("no matching Go type for type %v in union value %s", t.Kind, valueStr(value))
 			continue
 		}
-		if reflect.ValueOf(ybt).Type() == reflect.ValueOf(value).Type() {
+		if reflect.TypeOf(ybt).Kind() == reflect.TypeOf(value).Kind() {
 			matches = append(matches, yangTypeToLeafEntry(t))
 		}
 	}
@@ -703,4 +715,18 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 	}
 
 	return nil, fmt.Errorf("unmarshalScalar: unsupported type %v in schema node %s", ykind, schema.Name)
+}
+
+// isValueInterfacePtrToEnum reports whether v is an interface ptr to enum type.
+func isValueInterfacePtrToEnum(v reflect.Value) bool {
+	if v.Kind() != reflect.Ptr {
+		return false
+	}
+	v = v.Elem()
+	if v.Kind() != reflect.Interface {
+		return false
+	}
+	v = v.Elem()
+
+	return v.Kind() == reflect.Int64
 }
