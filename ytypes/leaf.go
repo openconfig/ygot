@@ -24,6 +24,7 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -34,15 +35,15 @@ import (
 // schema type.
 func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 	// TODO(mostrowski): "mandatory" not implemented.
-	if isNil(value) {
+	if util.IsValueNil(value) {
 		return nil
 	}
 
-	dbgPrint("validateLeaf with value %s, schema name %s", valueStr(value), inSchema.Name)
+	util.DbgPrint("validateLeaf with value %s, schema name %s", util.ValueStr(value), inSchema.Name)
 
 	schema, err := resolveLeafRef(inSchema)
 	if err != nil {
-		return appendErr(errors, err)
+		return util.AppendErr(errors, err)
 	}
 
 	var rv interface{}
@@ -53,34 +54,34 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 		rv = reflect.ValueOf(value).Elem().Interface()
 	case reflect.Slice:
 		if ykind != yang.Ybinary {
-			return appendErr(errors, fmt.Errorf("bad leaf type: expect []byte for binary value %v for schema %s, have type %v",
+			return util.AppendErr(errors, fmt.Errorf("bad leaf type: expect []byte for binary value %v for schema %s, have type %v",
 				value, schema.Name, ykind))
 		}
 	case reflect.Int64:
 		if ykind != yang.Yenum && ykind != yang.Yidentityref {
-			return appendErr(errors, fmt.Errorf("bad leaf type: expect Int64 for enum type for schema %s, have type %v",
+			return util.AppendErr(errors, fmt.Errorf("bad leaf type: expect Int64 for enum type for schema %s, have type %v",
 				schema.Name, ykind))
 		}
 	default:
-		return appendErr(errors, fmt.Errorf("bad leaf value type %v, expect Ptr or Int64 for schema %s", rkind, schema.Name))
+		return util.AppendErr(errors, fmt.Errorf("bad leaf value type %v, expect Ptr or Int64 for schema %s", rkind, schema.Name))
 	}
 
 	switch ykind {
 	case yang.Ybinary:
-		return appendErr(errors, validateBinary(schema, rv))
+		return util.AppendErr(errors, validateBinary(schema, rv))
 	case yang.Ybits:
 		return nil
 		// TODO(mostrowski): restore when representation is decided.
-		//return appendErr(errors, validateBitset(schema, rv))
+		//return util.AppendErr(errors, validateBitset(schema, rv))
 	case yang.Ybool:
-		return appendErr(errors, validateBool(schema, rv))
+		return util.AppendErr(errors, validateBool(schema, rv))
 	case yang.Ystring:
-		return appendErr(errors, validateString(schema, rv))
+		return util.AppendErr(errors, validateString(schema, rv))
 	case yang.Ydecimal64:
-		return appendErr(errors, validateDecimal(schema, rv))
+		return util.AppendErr(errors, validateDecimal(schema, rv))
 	case yang.Yenum, yang.Yidentityref:
 		if rkind != reflect.Int64 {
-			return appendErr(errors, fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rkind, schema.Name, ykind))
+			return util.AppendErr(errors, fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rkind, schema.Name, ykind))
 		}
 		return nil
 	case yang.Yunion:
@@ -89,9 +90,9 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 		return validateLeafRef(schema, value)
 	}
 	if isIntegerType(ykind) {
-		return appendErr(errors, validateInt(schema, rv))
+		return util.AppendErr(errors, validateInt(schema, rv))
 	}
-	return appendErr(errors, fmt.Errorf("unknown leaf type %v for schema %s", ykind, schema.Name))
+	return util.AppendErr(errors, fmt.Errorf("unknown leaf type %v for schema %s", ykind, schema.Name))
 }
 
 /*
@@ -201,8 +202,8 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
  choices with the same type that are not represented by a named wrapper struct.
 */
 func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
-	dbgPrint("validateUnion %s", schema.Name)
-	if isNil(value) {
+	util.DbgPrint("validateUnion %s", schema.Name)
+	if util.IsValueNil(value) {
 		return nil
 	}
 
@@ -210,7 +211,7 @@ func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
 	// Enum types are also represented as a struct for union where the field
 	// has the enum type.
 	if reflect.TypeOf(value).Kind() != reflect.Ptr {
-		return appendErr(errors, fmt.Errorf("wrong value type for union %s: got: %T, expect ptr", schema.Name, value))
+		return util.AppendErr(errors, fmt.Errorf("wrong value type for union %s: got: %T, expect ptr", schema.Name, value))
 	}
 
 	elem := reflect.ValueOf(value).Elem()
@@ -218,7 +219,7 @@ func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
 	if elem.Type().Kind() == reflect.Struct {
 		structElems := reflect.ValueOf(value).Elem()
 		if structElems.NumField() != 1 {
-			return appendErr(errors, fmt.Errorf("union %s should only have one field, but has %d", schema.Name, structElems.NumField()))
+			return util.AppendErr(errors, fmt.Errorf("union %s should only have one field, but has %d", schema.Name, structElems.NumField()))
 		}
 
 		return validateMatchingSchemas(schema, structElems.Field(0).Interface())
@@ -233,7 +234,7 @@ func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
 // during validation against each matching schema otherwise.
 func validateMatchingSchemas(schema *yang.Entry, value interface{}) (errors []error) {
 	ss := findMatchingSchemasInUnion(schema.Type, value)
-	dbgPrint("validateMatchingSchemas for %s: %v", schema.Name, ss)
+	util.DbgPrint("validateMatchingSchemas for %s: %v", schema.Name, ss)
 	if len(ss) == 0 {
 		return []error{fmt.Errorf("no types in schema %s match the type of value %v, which is %T", schema.Name, value, value)}
 	}
@@ -250,7 +251,7 @@ func validateMatchingSchemas(schema *yang.Entry, value interface{}) (errors []er
 		if errs == nil {
 			return nil
 		}
-		errors = appendErrs(errors, errs)
+		errors = util.AppendErrs(errors, errs)
 	}
 
 	return
@@ -274,7 +275,7 @@ func findMatchingSchemasInUnion(ytype *yang.YangType, value interface{}) []*yang
 			ybt = ygot.ToPtr(yangBuiltinTypeToGoType(t.Kind))
 		}
 		if ybt == nil {
-			log.Warningf("no matching Go type for type %v in union value %s", t.Kind, valueStr(value))
+			log.Warningf("no matching Go type for type %v in union value %s", t.Kind, util.ValueStr(value))
 			continue
 		}
 		if reflect.ValueOf(ybt).Type() == reflect.ValueOf(value).Type() {
@@ -290,12 +291,12 @@ func findMatchingSchemasInUnion(ytype *yang.YangType, value interface{}) []*yang
 // TODO(mostrowski): In leaf-list case, handle checking that value exists in the
 // referenced data tree node.
 func validateLeafRef(schema *yang.Entry, value interface{}) (errors []error) {
-	dbgPrint("validateLeafRef %s\n", schema.Name)
+	util.DbgPrint("validateLeafRef %s\n", schema.Name)
 	refSchema, err := findLeafRefSchema(schema, schema.Type.Path)
 	if err == nil {
 		return validateLeaf(refSchema, value)
 	}
-	return appendErr(errors, err)
+	return util.AppendErr(errors, err)
 }
 
 // stripPrefix removes the prefix from a YANG path element. For example, removing
@@ -426,12 +427,12 @@ func validateLeafSchema(schema *yang.Entry) error {
 // the parent containing the leaf.
 //   schema points to the schema for the leaf type.
 func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}) error {
-	if isNil(value) {
+	if util.IsValueNil(value) {
 		return nil
 	}
 
 	var err error
-	dbgPrint("unmarshalLeaf value %v, type %T, into parent type %T, schema name %s", valueStr(value), value, parent, inSchema.Name)
+	util.DbgPrint("unmarshalLeaf value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, inSchema.Name)
 
 	if err := validateLeafSchema(inSchema); err != nil {
 		return err
@@ -467,7 +468,7 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}) 
 		return err
 	}
 
-	return UpdateField(parent, fieldName, v)
+	return util.UpdateField(parent, fieldName, v)
 }
 
 // unmarshalUnion unmarshals a union schema type with the given value into
@@ -496,9 +497,9 @@ RouteReflectorClusterId set with the type Bgp_Neighbor_RouteReflector_RouteRefle
 with field String set to "forty-two".
 */
 func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, value interface{}) error {
-	dbgPrint("unmarshalUnion value %v, type %T, into parent type %T field name %s, schema name %s", valueStr(value), value, parent, fieldName, schema.Name)
+	util.DbgPrint("unmarshalUnion value %v, type %T, into parent type %T field name %s, schema name %s", util.ValueStr(value), value, parent, fieldName, schema.Name)
 	v, t := reflect.ValueOf(parent), reflect.TypeOf(parent)
-	if !IsTypeStructPtr(t) {
+	if !util.IsTypeStructPtr(t) {
 		return fmt.Errorf("%T is not a struct ptr in unmarshalUnion", parent)
 	}
 
@@ -512,11 +513,11 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	}
 
 	yks := getUnionKinds(schema.Type)
-	dbgPrint("possible union types are %v", yks)
+	util.DbgPrint("possible union types are %v", yks)
 
 	// This can either be a interface, where multiple types are involved, of
 	// just the type itself, if the alternatives span only one type.
-	if !IsTypeInterface(ft) {
+	if !util.IsTypeInterface(ft) {
 		// Is not an interface, we must have exactly one type in the union.
 		if len(yks) != 1 {
 			return fmt.Errorf("got %v types for union schema %s for type %T, expect just one type", yks, fieldName, parent)
@@ -545,7 +546,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	for _, yk := range yks {
 		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value)
 		if err != nil {
-			dbgPrint("could not unmarshal %v into type %s", value, yk)
+			util.DbgPrint("could not unmarshal %v into type %s", value, yk)
 			continue
 		}
 
@@ -556,7 +557,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		ei := ec[0].Interface()
 		ee := ec[1].Interface()
 		if ee != nil {
-			dbgPrint("unmarshaled %v type %T does not have a union type", goValue, goValue)
+			util.DbgPrint("unmarshaled %v type %T does not have a union type", goValue, goValue)
 			continue
 		}
 
@@ -598,9 +599,9 @@ func getFieldElemType(parent interface{}, fieldName string) (reflect.Type, error
 		return reflect.TypeOf(nil), fmt.Errorf("%s is not a valid field name in %T", fieldName, parent)
 	}
 	switch {
-	case IsTypeStructPtr(t):
+	case util.IsTypeStructPtr(t):
 		return ft.Type, nil
-	case IsTypeSlicePtr(t):
+	case util.IsTypeSlicePtr(t):
 		// Dereference slice ptr, then Elem() gives slice element type.
 		return ft.Type.Elem().Elem(), nil
 	}
@@ -615,7 +616,7 @@ func getFieldElemType(parent interface{}, fieldName string) (reflect.Type, error
 //   fieldName is the name of the field being unmarshaled.
 //     Required if the unmarshaled type is an enum.
 func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, value interface{}) (interface{}, error) {
-	if isNil(value) {
+	if util.IsValueNil(value) {
 		return nil, nil
 	}
 
@@ -662,7 +663,7 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 		}
 		// Convert to destination enum type.
 		v := reflect.ValueOf(intV)
-		t, err := GetFieldType(parent, fieldName)
+		t, err := util.GetFieldType(parent, fieldName)
 		if err != nil {
 			return nil, err
 		}

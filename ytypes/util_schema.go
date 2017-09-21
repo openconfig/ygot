@@ -21,7 +21,9 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // validateLengthSchema validates whether the given schema has a valid length
@@ -80,10 +82,10 @@ func isInRange(yr yang.YRange, val yang.Number) bool {
 // list, or leaf-list type.
 func validateListAttr(schema *yang.Entry, value interface{}) (errors []error) {
 	if schema == nil {
-		return appendErr(errors, fmt.Errorf("schema is nil"))
+		return util.AppendErr(errors, fmt.Errorf("schema is nil"))
 	}
 	if schema.ListAttr == nil {
-		return appendErr(errors, fmt.Errorf("schema %s ListAttr is nil", schema.Name))
+		return util.AppendErr(errors, fmt.Errorf("schema %s ListAttr is nil", schema.Name))
 	}
 
 	var size int
@@ -94,7 +96,7 @@ func validateListAttr(schema *yang.Entry, value interface{}) (errors []error) {
 		case reflect.Slice, reflect.Map:
 			size = reflect.ValueOf(value).Len()
 		default:
-			return appendErr(errors, fmt.Errorf("value %v type %T must be map or slice type for schema %s", value, value, schema.Name))
+			return util.AppendErr(errors, fmt.Errorf("value %v type %T must be map or slice type for schema %s", value, value, schema.Name))
 		}
 	}
 
@@ -103,24 +105,24 @@ func validateListAttr(schema *yang.Entry, value interface{}) (errors []error) {
 	// bounds.
 	if v := schema.ListAttr.MinElements; v != nil {
 		if minN, err := yang.ParseNumber(v.Name); err != nil {
-			errors = appendErr(errors, err)
+			errors = util.AppendErr(errors, err)
 		} else if min, err := minN.Int(); err != nil {
-			errors = appendErr(errors, err)
+			errors = util.AppendErr(errors, err)
 		} else if min < 0 {
-			errors = appendErr(errors, fmt.Errorf("list %s has negative min required elements", schema.Name))
+			errors = util.AppendErr(errors, fmt.Errorf("list %s has negative min required elements", schema.Name))
 		} else if int64(size) < min {
-			errors = appendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, min))
+			errors = util.AppendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, min))
 		}
 	}
 	if v := schema.ListAttr.MaxElements; v != nil {
 		if maxN, err := yang.ParseNumber(v.Name); err != nil {
-			errors = appendErr(errors, err)
+			errors = util.AppendErr(errors, err)
 		} else if max, err := maxN.Int(); err != nil {
-			errors = appendErr(errors, err)
+			errors = util.AppendErr(errors, err)
 		} else if max < 0 {
-			errors = appendErr(errors, fmt.Errorf("list %s has negative max required elements", schema.Name))
+			errors = util.AppendErr(errors, fmt.Errorf("list %s has negative max required elements", schema.Name))
 		} else if int64(size) > max {
-			errors = appendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, max))
+			errors = util.AppendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, max))
 		}
 	}
 
@@ -136,7 +138,7 @@ func isChoiceOrCase(e *yang.Entry) bool {
 
 // isValueScalar reports whether v is a scalar (non-composite) type.
 func isValueScalar(v reflect.Value) bool {
-	return !IsValueStruct(v) && !IsValueStructPtr(v) && !IsValueMap(v) && !IsValueSlice(v)
+	return !util.IsValueStruct(v) && !util.IsValueStructPtr(v) && !util.IsValueMap(v) && !util.IsValueSlice(v)
 }
 
 // isFakeRoot reports whether the supplied yang.Entry represents the synthesised
@@ -159,7 +161,7 @@ func isUnkeyedList(e *yang.Entry) bool {
 // found in the tree at the specified path.
 func childSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error) {
 	pathTag, _ := f.Tag.Lookup("path")
-	dbgSchema("childSchema for schema %s, field %s, tag %s\n", schema.Name, f.Name, pathTag)
+	util.DbgSchema("childSchema for schema %s, field %s, tag %s\n", schema.Name, f.Name, pathTag)
 	if rootName, ok := f.Tag.Lookup("rootname"); ok {
 		return schema.Dir[rootName], nil
 	}
@@ -175,14 +177,14 @@ func childSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error)
 	if schema.IsContainer() && len(p) > 1 && p[0] == schema.Name {
 		p = p[1:]
 	}
-	dbgSchema("pathToSchema yields %v\n", p)
+	util.DbgSchema("pathToSchema yields %v\n", p)
 	// For empty path, return the parent schema.
 	childSchema := schema
 	foundSchema := true
 	// Traverse the returned schema path to get the child schema.
-	dbgSchema("traversing schema Dirs...")
+	util.DbgSchema("traversing schema Dirs...")
 	for ; len(p) > 0; p = p[1:] {
-		dbgSchema("/%s", p[0])
+		util.DbgSchema("/%s", p[0])
 		ns, ok := childSchema.Dir[stripModulePrefix(p[0])]
 		if !ok {
 			foundSchema = false
@@ -191,10 +193,10 @@ func childSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error)
 		childSchema = ns
 	}
 	if foundSchema {
-		dbgSchema(" - found\n")
+		util.DbgSchema(" - found\n")
 		return childSchema, nil
 	}
-	dbgSchema(" - not found\n")
+	util.DbgSchema(" - not found\n")
 
 	// Path is not null and was not found in the schema. It could be inside a
 	// choice/case schema element which is not represented in the path tags.
@@ -216,17 +218,17 @@ func childSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error)
 		}
 	}
 
-	dbgSchema("checking for %s against non choice/case entries: %v\n", p[0], stringMapKeys(entries))
+	util.DbgSchema("checking for %s against non choice/case entries: %v\n", p[0], stringMapKeys(entries))
 	for name, entry := range entries {
-		dbgSchema("%s ? ", name)
+		util.DbgSchema("%s ? ", name)
 
 		if stripModulePrefix(name) == p[0] {
-			dbgSchema(" - match\n")
+			util.DbgSchema(" - match\n")
 			return entry, nil
 		}
 	}
 
-	dbgSchema(" - no matches\n")
+	util.DbgSchema(" - no matches\n")
 	return nil, nil
 }
 
@@ -323,7 +325,7 @@ func dataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][
 		return nil, err
 	}
 	n, err := removeNonDataPathElements(parentSchema, schema, out)
-	dbgPrint("have paths %v, removing non-data from %s -> %v", out, schema.Name, n)
+	util.DbgPrint("have paths %v, removing non-data from %s -> %v", out, schema.Name, n)
 	return n, err
 }
 
@@ -370,7 +372,7 @@ func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]st
 	for _, sp := range dataPaths {
 		pm[stripModulePrefix(sp[0])] = true
 	}
-	dbgSchema("check dataPaths %v against dataTree %v\n", pm, jsonTree)
+	util.DbgSchema("check dataPaths %v against dataTree %v\n", pm, jsonTree)
 	for jf := range jsonTree {
 		if !pm[stripModulePrefix(jf)] {
 			return fmt.Errorf("JSON contains unexpected field %s", jf)
@@ -427,7 +429,7 @@ func resolveLeafRef(schema *yang.Entry) (*yang.Entry, error) {
 	}
 
 	if s != orig {
-		dbgPrint("follow schema leaf-ref from %s to %s, type %v", orig.Name, s.Name, s.Type.Kind)
+		util.DbgPrint("follow schema leaf-ref from %s to %s, type %v", orig.Name, s.Name, s.Type.Kind)
 	}
 	return s, nil
 }
@@ -438,7 +440,7 @@ func resolveLeafRef(schema *yang.Entry) (*yang.Entry, error) {
 // parent struct.
 func schemaToStructFieldName(schema *yang.Entry, parent interface{}) (string, *yang.Entry, error) {
 	v := reflect.ValueOf(parent)
-	if IsNilOrInvalidValue(v) {
+	if util.IsNilOrInvalidValue(v) {
 		return "", nil, fmt.Errorf("parent field is nil in schemaToStructFieldName for node %s", schema.Name)
 	}
 
@@ -520,4 +522,127 @@ func stripModulePrefixes(in []string) []string {
 func stripModulePrefix(s string) string {
 	sv := strings.Split(s, ":")
 	return sv[len(sv)-1]
+}
+
+// SchemaNodeInfo describes a node in a YANG schema tree being traversed. It is
+// passed to an function
+type SchemaNodeInfo struct {
+	// NodeInfo is inherited.
+	util.NodeInfo
+	// Path is the path to the current schema node.
+	Path []string
+	// Schema is the schema for the current node being traversed.
+	Schema *yang.Entry
+}
+
+// SchemaNodeIteratorFunc is an iteration function for traversing YANG schema
+// trees.
+// in, out are passed through from the caller to the iteration and can be used
+// to pass state in and out.
+// It returns a slice of errors encountered while processing the field.
+type SchemaNodeIteratorFunc func(ni *SchemaNodeInfo, in, out interface{}) []error
+
+// ForEachSchemaNode recursively iterates through the nodes in schema and
+// executes iterFunction on each field.
+// in, out are passed through from the caller to the iteration and can be used
+// arbitrarily in the iteration function to carry state and results.
+// It returns a slice of errors encountered while processing the struct.
+func ForEachSchemaNode(schema *yang.Entry, value interface{}, in, out interface{}, iterFunction SchemaNodeIteratorFunc) (errs []error) {
+	if util.IsValueNil(value) {
+		return nil
+	}
+	return forEachSchemaNodeInternal(&SchemaNodeInfo{Schema: schema, NodeInfo: util.NodeInfo{FieldValue: reflect.ValueOf(value)}}, in, out, iterFunction)
+}
+
+// forEachSchemaNodeInternal recursively iterates through the nodes in ni.schema
+// and executes iterFunction on each field.
+// in, out are passed through from the caller to the iteration and can be used
+// arbitrarily in the iteration function to carry state and results.
+func forEachSchemaNodeInternal(ni *SchemaNodeInfo, in, out interface{}, iterFunction SchemaNodeIteratorFunc) (errs []error) {
+	if util.IsNilOrInvalidValue(ni.FieldValue) {
+		return nil
+	}
+
+	errs = util.AppendErrs(errs, iterFunction(ni, in, out))
+
+	switch {
+	case util.IsValueStruct(ni.FieldValue) || util.IsValueStructPtr(ni.FieldValue):
+		structElems := util.PtrToValue(ni.FieldValue)
+		for i := 0; i < structElems.NumField(); i++ {
+			cschema, err := childSchema(ni.Schema, structElems.Type().Field(i))
+			if err != nil {
+				errs = util.AppendErr(errs, fmt.Errorf("%s: %v", structElems.Type().Field(i).Name, err))
+				continue
+			}
+			if cschema == nil {
+				continue
+			}
+			nn := *ni
+			nn.Schema = cschema
+			nn.Path = append(ni.Path, cschema.Name)
+			nn.ParentStruct = ni.FieldValue.Interface()
+			nn.FieldType = structElems.Type().Field(i)
+			nn.FieldValue = structElems.Field(i)
+
+			errs = util.AppendErrs(errs, forEachSchemaNodeInternal(&nn, in, out, iterFunction))
+		}
+
+	case util.IsValueSlice(ni.FieldValue):
+		for i := 0; i < ni.FieldValue.Len(); i++ {
+			nn := *ni
+			nn.FieldValue = ni.FieldValue.Index(i)
+
+			errs = util.AppendErrs(errs, forEachSchemaNodeInternal(&nn, in, out, iterFunction))
+		}
+
+	case util.IsValueMap(ni.FieldValue):
+		for _, key := range ni.FieldValue.MapKeys() {
+			nn := *ni
+			nn.FieldValue = ni.FieldValue.MapIndex(key)
+			nn.FieldKey = key
+			nn.FieldKeys = ni.FieldValue.MapKeys()
+
+			errs = util.AppendErrs(errs, forEachSchemaNodeInternal(&nn, in, out, iterFunction))
+		}
+	}
+
+	return nil
+}
+
+// DataSchemaTreesString outputs a combined data/schema tree string where schema
+// is displayed alongside the data tree e.g.
+//  [device (container)]
+//   RoutingPolicy [routing-policy (container)]
+//     DefinedSets [defined-sets (container)]
+//       PrefixSet [prefix-set (list)]
+//       prefix1
+//         prefix1
+//         {255.255.255.0/20 20..24}
+//           IpPrefix : "255.255.255.0/20" [ip-prefix (leaf)]
+//           MasklengthRange : "20..24" [masklength-range (leaf)]
+//         PrefixSetName : "prefix1" [prefix-set-name (leaf)]
+func DataSchemaTreesString(schema *yang.Entry, dataTree interface{}) string {
+	printFieldsIterFunc := func(ni *SchemaNodeInfo, in, out interface{}) (errs []error) {
+		outs := out.(*string)
+		prefix := ""
+		for i := 0; i < len(ni.Path); i++ {
+			prefix += "  "
+		}
+
+		fStr := fmt.Sprintf("%s%s", prefix, ni.FieldType.Name)
+		schemaStr := fmt.Sprintf("[%s (%s)]", ni.Schema.Name, util.SchemaTypeStr(ni.Schema))
+		switch {
+		case isValueScalar(ni.FieldValue):
+			*outs += fmt.Sprintf("%s : %s %s\n", fStr, pretty.Sprint(ni.FieldValue.Interface()), schemaStr)
+		case !util.IsNilOrInvalidValue(ni.NodeInfo.FieldKey):
+			*outs += fmt.Sprintf("%s%v\n", prefix, ni.NodeInfo.FieldKey)
+
+		case !util.IsNilOrInvalidValue(ni.FieldValue):
+			*outs += fmt.Sprintf("%s %s\n", fStr, schemaStr)
+		}
+		return
+	}
+	var outStr string
+	ForEachSchemaNode(schema, dataTree, nil, &outStr, printFieldsIterFunc)
+	return outStr
 }

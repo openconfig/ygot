@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ytypes
+package util
 
 import (
 	"fmt"
@@ -27,6 +27,9 @@ import (
 const (
 	// wildcardStr is a wildcard string that matches any one word in a string.
 	wildcardStr = "{{*}}"
+	// testErrOutput controls whether expect error test cases log the error
+	// values.
+	testErrOutput = false
 )
 
 // errToString returns the string representation of err and the empty string if
@@ -38,10 +41,19 @@ func errToString(err error) string {
 	return err.Error()
 }
 
+// testErrLog logs err to t if err != nil and global value testErrOutput is set.
+func testErrLog(t *testing.T, desc string, err error) {
+	if err != nil {
+		if testErrOutput {
+			t.Logf("%s: %v", desc, err)
+		}
+	}
+}
+
 // areEqual compares a and b. If a and b are both pointers, it compares the
 // values they are pointing to.
 func areEqual(a, b interface{}) bool {
-	if isNil(a) && isNil(b) {
+	if IsValueNil(a) && IsValueNil(b) {
 		return true
 	}
 	va, vb := reflect.ValueOf(a), reflect.ValueOf(b)
@@ -102,7 +114,7 @@ func TestUpdateField(t *testing.T) {
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntField",
 			fieldValue:   nil,
-			wantErr:      "cannot assign value <nil> (type <nil>) to struct field IntField (type int) in struct *ytypes.BasicStruct",
+			wantErr:      "cannot assign value <nil> (type <nil>) to struct field IntField (type int) in struct *util.BasicStruct",
 		},
 		{
 			desc:         "nil parent",
@@ -130,7 +142,7 @@ func TestUpdateField(t *testing.T) {
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntField",
 			fieldValue:   "forty two",
-			wantErr:      "cannot assign value forty two (type string) to struct field IntField (type int) in struct *ytypes.BasicStruct",
+			wantErr:      "cannot assign value forty two (type string) to struct field IntField (type int) in struct *util.BasicStruct",
 		},
 		{
 			desc:         "int ptr",
@@ -158,14 +170,14 @@ func TestUpdateField(t *testing.T) {
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntPtrField",
 			fieldValue:   42,
-			wantErr:      "cannot assign value 42 (type int) to struct field IntPtrField (type *int8) in struct *ytypes.BasicStruct",
+			wantErr:      "cannot assign value 42 (type int) to struct field IntPtrField (type *int8) in struct *util.BasicStruct",
 		},
 		{
 			desc:         "int ptr to int field error",
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntField",
 			fieldValue:   ygot.Int8(42),
-			wantErr:      "cannot assign value " + wildcardStr + " (type *int8) to struct field IntField (type int) in struct *ytypes.BasicStruct",
+			wantErr:      "cannot assign value " + wildcardStr + " (type *int8) to struct field IntField (type int) in struct *util.BasicStruct",
 		},
 		{
 			desc:         "struct",
@@ -179,14 +191,14 @@ func TestUpdateField(t *testing.T) {
 			parentStruct: &StructOfStructs{},
 			fieldName:    "StructBadField",
 			fieldValue:   &BasicStruct{IntField: 42, StringField: "forty two"},
-			wantErr:      "parent type *ytypes.StructOfStructs does not have a field name StructBadField",
+			wantErr:      "parent type *util.StructOfStructs does not have a field name StructBadField",
 		},
 		{
 			desc:         "struct bad field type",
 			parentStruct: &StructOfStructs{},
 			fieldName:    "BasicStructField",
 			fieldValue:   42,
-			wantErr:      "cannot assign value 42 (type int) to struct field BasicStructField (type *ytypes.BasicStruct) in struct *ytypes.StructOfStructs",
+			wantErr:      "cannot assign value 42 (type int) to struct field BasicStructField (type *util.BasicStruct) in struct *util.StructOfStructs",
 		},
 	}
 
@@ -244,14 +256,14 @@ func TestInsertIntoSliceStructField(t *testing.T) {
 			parentStruct: &BasicStruct{},
 			fieldName:    "MissingField",
 			fieldValue:   42,
-			wantErr:      "parent type *ytypes.BasicStruct does not have a field name MissingField",
+			wantErr:      "parent type *util.BasicStruct does not have a field name MissingField",
 		},
 		{
 			desc:         "slice of int, bad field type",
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntSliceField",
 			fieldValue:   "forty-two",
-			wantErr:      "cannot assign value forty-two (type string) to struct field IntSliceField (type int) in struct *ytypes.BasicStruct",
+			wantErr:      "cannot assign value forty-two (type string) to struct field IntSliceField (type int) in struct *util.BasicStruct",
 		},
 	}
 
@@ -343,7 +355,7 @@ func TestInsertIntoMapStructField(t *testing.T) {
 			fieldName:    "MissingField",
 			key:          "forty-two",
 			fieldValue:   42,
-			wantErr:      "field MissingField not found in parent type *ytypes.BasicStruct",
+			wantErr:      "field MissingField not found in parent type *util.BasicStruct",
 		},
 		{
 			desc:         "string to int, bad value",
@@ -394,7 +406,7 @@ func TestForEachField(t *testing.T) {
 
 	printFieldsIterFunc := func(ni *NodeInfo, in, out interface{}) (errs []error) {
 		// Only print basic scalar values, skip everything else.
-		if !IsValueScalar(ni.FieldValue) || isNil(ni.FieldKey) {
+		if !IsValueScalar(ni.FieldValue) || IsValueNil(ni.FieldKey) {
 			return
 		}
 		outs := out.(*string)
@@ -508,7 +520,7 @@ func TestUpdateFieldUsingForEachField(t *testing.T) {
 	// that are nil, they must already exist. It only works as an update.
 	setFunc := func(ni *NodeInfo, in, out interface{}) (errs []error) {
 		if ni.FieldType.Name == "BasicStructField" {
-			errs = appendErr(errs, UpdateField(ni.ParentStruct, "BasicStructField", &basicStruct1))
+			errs = AppendErr(errs, UpdateField(ni.ParentStruct, "BasicStructField", &basicStruct1))
 		}
 		return
 	}

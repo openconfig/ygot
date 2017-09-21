@@ -13,13 +13,33 @@
 // limitations under the License.
 
 // Package ytypes implements YANG type validation logic.
-package ytypes
+package util
 
 import (
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
 )
+
+var (
+	// YangMaxNumber represents the maximum value for any integer type.
+	YangMaxNumber = yang.Number{Kind: yang.MaxNumber}
+	// YangMinNumber represents the minimum value for any integer type.
+	YangMinNumber = yang.Number{Kind: yang.MinNumber}
+)
+
+// IsValueNil is a general purpose nil check for the kinds of value types expected in
+// this package.
+func IsValueNil(value interface{}) bool {
+	if value == nil {
+		return true
+	}
+	switch reflect.TypeOf(value).Kind() {
+	case reflect.Slice, reflect.Ptr, reflect.Map:
+		return reflect.ValueOf(value).IsNil()
+	}
+	return false
+}
 
 // stringMapKeys returns the keys for map m.
 func stringMapKeys(m map[string]*yang.Entry) []string {
@@ -38,33 +58,4 @@ func stringMapSetToSlice(m map[string]interface{}) []string {
 		out = append(out, k)
 	}
 	return out
-}
-
-// makeField sets field f in parentStruct to a default newly constructed value
-// with the type of the given field.
-func makeField(parentStruct reflect.Value, f reflect.StructField) {
-	switch f.Type.Kind() {
-	case reflect.Map:
-		parentStruct.FieldByName(f.Name).Set(reflect.MakeMap(f.Type))
-	case reflect.Slice:
-		parentStruct.FieldByName(f.Name).Set(reflect.MakeSlice(f.Type, 0, 0))
-	case reflect.Interface:
-		// This is a union field type, which can only be created once its type
-		// is known.
-	default:
-		parentStruct.FieldByName(f.Name).Set(reflect.New(f.Type.Elem()))
-	}
-}
-
-// makeNewValue creates a new element of type newType and sets value to it.
-// kind specifies the kind of value.
-func makeNewValue(newType reflect.Type, value reflect.Value, kind reflect.Kind) {
-	switch kind {
-	case reflect.Map:
-		value.Set(reflect.MakeMap(newType))
-	case reflect.Slice:
-		value.Set(reflect.MakeSlice(newType, 0, 0))
-	case reflect.Ptr:
-		value.Set(reflect.New(newType.Elem()))
-	}
 }

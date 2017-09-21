@@ -11,14 +11,14 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package ytypes
+package util
 
 // Errors is a slice of error.
 type Errors []error
 
 // Error implements the error#Error method.
 func (e Errors) Error() string {
-	return errStr([]error(e))
+	return ToString([]error(e))
 }
 
 // String implements the stringer#String method.
@@ -26,24 +26,24 @@ func (e Errors) String() string {
 	return e.Error()
 }
 
-// appendErr appends err to errors if it is not nil and returns the result.
-func appendErr(errors []error, err error) []error {
+// AppendErr appends err to errors if it is not nil and returns the result.
+func AppendErr(errors []error, err error) []error {
 	if len(errors) == 0 && err == nil {
 		return nil
 	}
 	return append(errors, err)
 }
 
-// appendErrs appends newErrs to errors and returns the result.
-func appendErrs(errors []error, newErrs []error) []error {
+// AppendErrs appends newErrs to errors and returns the result.
+func AppendErrs(errors []error, newErrs []error) []error {
 	if len(errors) == 0 && len(newErrs) == 0 {
 		return nil
 	}
 	return append(errors, newErrs...)
 }
 
-// errStr returns a string representation of errors.
-func errStr(errors []error) string {
+// ToString returns a string representation of errors.
+func ToString(errors []error) string {
 	var out string
 	for i, e := range errors {
 		if e == nil {

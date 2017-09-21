@@ -25,8 +25,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/experimental/ygotutils"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pmezard/go-difflib/difflib"
 
@@ -72,7 +72,7 @@ func errToString(err error) string {
 //      fmt.Println(schemaTreeString(oc.SchemaTree["LocalRoutes_Static"], ""))
 //
 // 2. Print in-memory structure representations. Replace is needed due to large
-//    default indentations:
+//    default util.Indentations:
 //      fmt.Println(strings.Replace(pretty.Sprint(oc.SchemaTree["LocalRoutes_Static"].Dir["next-hops"].Dir["next-hop"].Dir["config"].Dir["next-hop"])[0:], "              ", "  ", -1))
 //
 // 3. Detailed representation in JSON format:
@@ -561,7 +561,7 @@ func TestNewNode(t *testing.T) {
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
 		if isOK(status) {
 			if got, want := n, tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %v, want: %v ", tt.desc, valueStr(got), valueStr(want))
+				t.Errorf("%s: got: %v, want: %v ", tt.desc, util.ValueStr(got), util.ValueStr(want))
 			}
 		}
 	}
@@ -694,7 +694,7 @@ func TestGetNode(t *testing.T) {
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
 		if isOK(status) {
 			if got, want := n, tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %v, want: %v ", tt.desc, valueStr(got), valueStr(want))
+				t.Errorf("%s: got: %v, want: %v ", tt.desc, util.ValueStr(got), util.ValueStr(want))
 			}
 		}
 	}
@@ -751,78 +751,4 @@ func diffJSON(a, b []byte) (string, error) {
 	sort.Strings(bsv)
 
 	return generateUnifiedDiff(strings.Join(asv, "\n"), strings.Join(bsv, "\n"))
-}
-
-// valueStr returns a string representation of value which may be a value, ptr,
-// or struct type.
-func valueStr(value interface{}) string {
-	// maxValueStrLen is the maximum number of characters output from valueStr.
-	maxValueStrLen := 50
-
-	kind := reflect.ValueOf(value).Kind()
-	switch kind {
-	case reflect.Ptr:
-		if reflect.ValueOf(value).IsNil() || !reflect.ValueOf(value).IsValid() {
-			return "nil"
-		}
-		return strings.Replace(valueStr(reflect.ValueOf(value).Elem().Interface()), ")", " ptr)", -1)
-	case reflect.Struct:
-		var out string
-		structElems := reflect.ValueOf(value)
-		for i := 0; i < structElems.NumField(); i++ {
-			if i != 0 {
-				out += ", "
-			}
-			if !structElems.Field(i).CanInterface() {
-				continue
-			}
-			out += valueStr(structElems.Field(i).Interface())
-		}
-		return "{ " + out + " }"
-	}
-	out := fmt.Sprintf("%v (type %v)", value, kind)
-	if len(out) > maxValueStrLen {
-		out = out[:maxValueStrLen] + "..."
-	}
-	return out
-}
-
-// TODO(mostrowski): move below functions into a helper package, or from common
-// library when one is created.
-
-// schemaTreeString returns the schema hierarchy tree as a string with node
-// names and types only e.g.
-// clock (container)
-//   timezone (choice)
-//     timezone-name (case)
-//       timezone-name (leaf)
-//     timezone-utc-offset (case)
-//       timezone-utc-offset (leaf)
-func schemaTreeString(schema *yang.Entry, prefix string) string {
-	out := prefix + schema.Name + " (" + schemaTypeStr(schema) + ")" + "\n"
-	for _, ch := range schema.Dir {
-		out += schemaTreeString(ch, prefix+"  ")
-	}
-	return out
-}
-
-// schemaTypeStr returns a string representation of the type of element schema
-// represents e.g. "container", "choice" etc.
-func schemaTypeStr(schema *yang.Entry) string {
-	switch {
-	case schema.IsChoice():
-		return "choice"
-	case schema.IsContainer():
-		return "container"
-	case schema.IsCase():
-		return "case"
-	case schema.IsList():
-		return "list"
-	case schema.IsLeaf():
-		return "leaf"
-	case schema.IsLeafList():
-		return "leaf-list"
-	default:
-	}
-	return "other"
 }

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ytypes
+// Package util implements utlity functions used in ygot.
 
-// TODO(mostrowski): move to more common package.
+package util
 
 import (
 	"fmt"
@@ -23,9 +23,91 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 )
 
+// IsTypeStructPtr reports whether v is a struct ptr type.
+func IsTypeStructPtr(t reflect.Type) bool {
+	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct
+}
+
+// IsTypeSlicePtr reports whether v is a slice ptr type.
+func IsTypeSlicePtr(t reflect.Type) bool {
+	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Slice
+}
+
+// IsTypeMap reports whether v is a map type.
+func IsTypeMap(t reflect.Type) bool {
+	return t.Kind() == reflect.Map
+}
+
+// IsTypeInterface reports whether v is an interface.
+func IsTypeInterface(t reflect.Type) bool {
+	return t.Kind() == reflect.Interface
+}
+
+// IsNilOrInvalidValue reports whether v is nil or reflect.Zero.
+func IsNilOrInvalidValue(v reflect.Value) bool {
+	return !v.IsValid() || (v.Kind() == reflect.Ptr && v.IsNil()) || IsValueNil(v.Interface())
+}
+
+// IsValueStruct reports whether v is a struct type.
+func IsValueStruct(v reflect.Value) bool {
+	return v.Kind() == reflect.Struct
+}
+
+// IsValueStructPtr reports whether v is a struct ptr type.
+func IsValueStructPtr(v reflect.Value) bool {
+	return v.Kind() == reflect.Ptr && IsValueStruct(v.Elem())
+}
+
+// IsValueMap reports whether v is a map type.
+func IsValueMap(v reflect.Value) bool {
+	return v.Kind() == reflect.Map
+}
+
+// IsValueSlice reports whether v is a slice type.
+func IsValueSlice(v reflect.Value) bool {
+	return v.Kind() == reflect.Slice
+}
+
+// IsValueScalar reports whether v is a scalar type.
+func IsValueScalar(v reflect.Value) bool {
+	return !IsValueStruct(v) && !IsValueStructPtr(v) && !IsValueMap(v) && !IsValueSlice(v)
+}
+
+// PtrToValue returns the dereferenced reflect.Value of value if it is a ptr, or
+// value if it is not.
+func PtrToValue(value reflect.Value) reflect.Value {
+	if IsValueStructPtr(value) {
+		return value.Elem()
+	}
+	return value
+}
+
+// GetFieldType returns the type of the field with fieldName in the containing
+// parent, which must be a ptr to a struct.
+// It returns an error if the parent is the wrong type or has no field called
+// fieldName.
+func GetFieldType(parent interface{}, fieldName string) (reflect.Type, error) {
+	pt := reflect.TypeOf(parent)
+	if !IsValueStructPtr(reflect.ValueOf(parent)) {
+		return reflect.TypeOf(nil), fmt.Errorf("parent is type %T, must be struct ptr in GetFieldType with fieldName %s", parent, fieldName)
+	}
+
+	pt = pt.Elem()
+	ft, ok := pt.FieldByName(fieldName)
+	if !ok {
+		return reflect.TypeOf(nil), fmt.Errorf("field name %s not a part of %T in GetFieldType", fieldName, parent)
+	}
+
+	switch ft.Type.Kind() {
+	case reflect.Slice, reflect.Map:
+		return ft.Type.Elem(), nil
+	}
+	return ft.Type, nil
+}
+
 // InsertIntoSlice inserts value into parent which must be a slice.
 func InsertIntoSlice(parentSlice interface{}, value interface{}) error {
-	dbgPrint("InsertIntoSlice into parent type %T with value %v, type %T", parentSlice, valueStr(value), value)
+	DbgPrint("InsertIntoSlice into parent type %T with value %v, type %T", parentSlice, ValueStr(value), value)
 
 	pv := reflect.ValueOf(parentSlice)
 	t := reflect.TypeOf(parentSlice)
@@ -36,15 +118,15 @@ func InsertIntoSlice(parentSlice interface{}, value interface{}) error {
 	}
 
 	pv.Elem().Set(reflect.Append(pv.Elem(), v))
-	dbgPrint("new list: %v\n", pv.Elem().Interface())
+	DbgPrint("new list: %v\n", pv.Elem().Interface())
 
 	return nil
 }
 
 // InsertIntoMap inserts value with key into parent which must be a map.
 func InsertIntoMap(parentMap interface{}, key interface{}, value interface{}) error {
-	dbgPrint("InsertIntoMap into parent type %T with key %v(%T) value \n%s\n (%T)",
-		parentMap, valueStr(key), key, pretty.Sprint(value), value)
+	DbgPrint("InsertIntoMap into parent type %T with key %v(%T) value \n%s\n (%T)",
+		parentMap, ValueStr(key), key, pretty.Sprint(value), value)
 
 	v := reflect.ValueOf(parentMap)
 	t := reflect.TypeOf(parentMap)
@@ -64,9 +146,9 @@ func InsertIntoMap(parentMap interface{}, key interface{}, value interface{}) er
 // nil) in parentStruct, with value fieldValue. If the field is a slice,
 // fieldValue is appended.
 func UpdateField(parentStruct interface{}, fieldName string, fieldValue interface{}) error {
-	dbgPrint("UpdateField field %s of parent type %T with value %v", fieldName, parentStruct, valueStr(fieldValue))
+	DbgPrint("UpdateField field %s of parent type %T with value %v", fieldName, parentStruct, ValueStr(fieldValue))
 
-	if isNil(parentStruct) {
+	if IsValueNil(parentStruct) {
 		return fmt.Errorf("parent is nil in UpdateField for field %s", fieldName)
 	}
 
@@ -91,7 +173,7 @@ func UpdateField(parentStruct interface{}, fieldName string, fieldValue interfac
 // If the struct field type is a ptr and the value is non-ptr, the field is
 // populated with the corresponding ptr type.
 func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue interface{}) error {
-	dbgPrint("InsertIntoStruct field %s of parent type %T with value %v", fieldName, parentStruct, valueStr(fieldValue))
+	DbgPrint("InsertIntoStruct field %s of parent type %T with value %v", fieldName, parentStruct, ValueStr(fieldValue))
 
 	v, t := reflect.ValueOf(fieldValue), reflect.TypeOf(fieldValue)
 	pv, pt := reflect.ValueOf(parentStruct), reflect.TypeOf(parentStruct)
@@ -126,31 +208,10 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 	return nil
 }
 
-func isFieldTypeCompatible(ft reflect.StructField, v reflect.Value) bool {
-	if ft.Type.Kind() == reflect.Ptr {
-		if !v.IsValid() {
-			return true
-		}
-		return v.Type() == ft.Type
-	}
-	if !v.IsValid() || isNil(v.Interface()) {
-		return false
-	}
-	return v.Type() == ft.Type
-}
-
-func isValueTypeCompatible(t reflect.Type, v reflect.Value) bool {
-	if !v.IsValid() {
-		return t.Kind() == reflect.Ptr
-	}
-
-	return v.Type().Kind() == t.Kind()
-}
-
 // InsertIntoSliceStructField inserts fieldValue into a field of type slice in parentStruct
 // called fieldName (which must exist, but may be nil).
 func InsertIntoSliceStructField(parentStruct interface{}, fieldName string, fieldValue interface{}) error {
-	dbgPrint("InsertIntoSliceStructField field %s of parent type %T with value %v", fieldName, parentStruct, valueStr(fieldValue))
+	DbgPrint("InsertIntoSliceStructField field %s of parent type %T with value %v", fieldName, parentStruct, ValueStr(fieldValue))
 
 	v, t := reflect.ValueOf(fieldValue), reflect.TypeOf(fieldValue)
 	pv, pt := reflect.ValueOf(parentStruct), reflect.TypeOf(parentStruct)
@@ -189,7 +250,7 @@ func InsertIntoSliceStructField(parentStruct interface{}, fieldName string, fiel
 // called fieldName (which must exist, but may be nil), using the given key.
 // If the key already exists in the map, the corresponding value is updated.
 func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, fieldValue interface{}) error {
-	dbgPrint("InsertIntoMapStructField field %s of parent type %T with key %v, value %v", fieldName, parentStruct, key, valueStr(fieldValue))
+	DbgPrint("InsertIntoMapStructField field %s of parent type %T with key %v, value %v", fieldName, parentStruct, key, ValueStr(fieldValue))
 
 	v := reflect.ValueOf(parentStruct)
 	t := reflect.TypeOf(parentStruct)
@@ -227,33 +288,25 @@ func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, f
 	return nil
 }
 
-// makeField sets field f in parentStruct to a default newly constructed value
-// with the type of the given field.
-func makeField(parentStruct reflect.Value, f reflect.StructField) {
-	switch f.Type.Kind() {
-	case reflect.Map:
-		parentStruct.FieldByName(f.Name).Set(reflect.MakeMap(f.Type))
-	case reflect.Slice:
-		parentStruct.FieldByName(f.Name).Set(reflect.MakeSlice(f.Type, 0, 0))
-	case reflect.Interface:
-		// This is a union field type, which can only be created once its type
-		// is known.
-	default:
-		parentStruct.FieldByName(f.Name).Set(reflect.New(f.Type.Elem()))
+func isFieldTypeCompatible(ft reflect.StructField, v reflect.Value) bool {
+	if ft.Type.Kind() == reflect.Ptr {
+		if !v.IsValid() {
+			return true
+		}
+		return v.Type() == ft.Type
 	}
+	if !v.IsValid() || IsValueNil(v.Interface()) {
+		return false
+	}
+	return v.Type() == ft.Type
 }
 
-// makeNewValue creates a new element of type newType and sets value to it.
-// kind specifies the kind of value.
-func makeNewValue(newType reflect.Type, value reflect.Value, kind reflect.Kind) {
-	switch kind {
-	case reflect.Map:
-		value.Set(reflect.MakeMap(newType))
-	case reflect.Slice:
-		value.Set(reflect.MakeSlice(newType, 0, 0))
-	case reflect.Ptr:
-		value.Set(reflect.New(newType.Elem()))
+func isValueTypeCompatible(t reflect.Type, v reflect.Value) bool {
+	if !v.IsValid() {
+		return t.Kind() == reflect.Ptr
 	}
+
+	return v.Type().Kind() == t.Kind()
 }
 
 // NodeInfo describes a node in a tree being traversed. It is passed to the
@@ -286,7 +339,7 @@ type FieldIteratorFunc func(ni *NodeInfo, in, out interface{}) []error
 //   iterFunction is executed on each scalar field.
 // It returns a slice of errors encountered while processing the struct.
 func ForEachField(value interface{}, in, out interface{}, iterFunction FieldIteratorFunc) (errs []error) {
-	if isNil(value) {
+	if IsValueNil(value) {
 		return nil
 	}
 	return forEachFieldInternal(&NodeInfo{FieldValue: reflect.ValueOf(value)}, in, out, iterFunction)
@@ -301,7 +354,7 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 		return nil
 	}
 
-	errs = appendErrs(errs, iterFunction(ni, in, out))
+	errs = AppendErrs(errs, iterFunction(ni, in, out))
 
 	switch {
 	case IsValueStruct(ni.FieldValue) || IsValueStructPtr(ni.FieldValue):
@@ -311,14 +364,14 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 			nn.ParentStruct = ni.FieldValue.Interface()
 			nn.FieldType = structElems.Type().Field(i)
 			nn.FieldValue = structElems.Field(i)
-			errs = appendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+			errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
 		}
 
 	case IsValueSlice(ni.FieldValue):
 		for i := 0; i < ni.FieldValue.Len(); i++ {
 			nn := *ni
 			nn.FieldValue = ni.FieldValue.Index(i)
-			errs = appendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+			errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
 		}
 
 	case IsValueMap(ni.FieldValue):
@@ -327,91 +380,9 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 			nn.FieldValue = ni.FieldValue.MapIndex(key)
 			nn.FieldKey = key
 			nn.FieldKeys = ni.FieldValue.MapKeys()
-			errs = appendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+			errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
 		}
 	}
 
 	return nil
-}
-
-// PtrToValue returns the dereferenced reflect.Value of value if it is a ptr, or
-// value if it is not.
-func PtrToValue(value reflect.Value) reflect.Value {
-	if IsValueStructPtr(value) {
-		return value.Elem()
-	}
-	return value
-}
-
-// IsTypeStructPtr reports whether v is a struct ptr type.
-func IsTypeStructPtr(t reflect.Type) bool {
-	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct
-}
-
-// IsTypeSlicePtr reports whether v is a slice ptr type.
-func IsTypeSlicePtr(t reflect.Type) bool {
-	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Slice
-}
-
-// IsTypeMap reports whether v is a map type.
-func IsTypeMap(t reflect.Type) bool {
-	return t.Kind() == reflect.Map
-}
-
-// IsTypeInterface reports whether v is an interface.
-func IsTypeInterface(t reflect.Type) bool {
-	return t.Kind() == reflect.Interface
-}
-
-// IsNilOrInvalidValue reports whether v is nil or reflect.Zero.
-func IsNilOrInvalidValue(v reflect.Value) bool {
-	return !v.IsValid() || (v.Kind() == reflect.Ptr && v.IsNil()) || isNil(v.Interface())
-}
-
-// IsValueStruct reports whether v is a struct type.
-func IsValueStruct(v reflect.Value) bool {
-	return v.Kind() == reflect.Struct
-}
-
-// IsValueStructPtr reports whether v is a struct ptr type.
-func IsValueStructPtr(v reflect.Value) bool {
-	return v.Kind() == reflect.Ptr && IsValueStruct(v.Elem())
-}
-
-// IsValueMap reports whether v is a map type.
-func IsValueMap(v reflect.Value) bool {
-	return v.Kind() == reflect.Map
-}
-
-// IsValueSlice reports whether v is a slice type.
-func IsValueSlice(v reflect.Value) bool {
-	return v.Kind() == reflect.Slice
-}
-
-// IsValueScalar reports whether v is a scalar type.
-func IsValueScalar(v reflect.Value) bool {
-	return !IsValueStruct(v) && !IsValueStructPtr(v) && !IsValueMap(v) && !IsValueSlice(v)
-}
-
-// GetFieldType returns the type of the field with fieldName in the containing
-// parent, which must be a ptr to a struct.
-// It returns an error if the parent is the wrong type or has no field called
-// fieldName.
-func GetFieldType(parent interface{}, fieldName string) (reflect.Type, error) {
-	pt := reflect.TypeOf(parent)
-	if !IsValueStructPtr(reflect.ValueOf(parent)) {
-		return reflect.TypeOf(nil), fmt.Errorf("parent is type %T, must be struct ptr in GetFieldType with fieldName %s", parent, fieldName)
-	}
-
-	pt = pt.Elem()
-	ft, ok := pt.FieldByName(fieldName)
-	if !ok {
-		return reflect.TypeOf(nil), fmt.Errorf("field name %s not a part of %T in GetFieldType", fieldName, parent)
-	}
-
-	switch ft.Type.Kind() {
-	case reflect.Slice, reflect.Map:
-		return ft.Type.Elem(), nil
-	}
-	return ft.Type, nil
 }
