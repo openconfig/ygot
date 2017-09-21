@@ -1010,14 +1010,27 @@ func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
 //    Colour *string `path:"colour"`
 //  }
 //
-// The generated method is:
+// The generated method will;
+//  - Check pointer keys to ensure they are non-nil.
+//  - Return a map[string]interface{} keyed by the name of the key in the YANG schema, with the value
+//    specified in the struct.
 //
-// func (t *Foo) GetListKey() map[string]string {
-//   return map[string]string {
-//     "bar": fmt.Sprintf("%s", t.Bar),
-//     "baz": fmt.Sprintf("%s", t.Baz),
-//   }
-// }
+// i.e.: for the above struct:
+//
+//  func (t *Foo) ΛListKeyMap() (map[string]interface{}, error) {
+//	if t.Bar == nil {
+//	   return nil, fmt.Errorf("key value for Bar is nil")
+//	}
+//
+//	if t.Baz == nil {
+//	   return nil, fmt.Errorf("key value for Baz is nil")
+//	}
+//
+//	return map[string]interface{}{
+//	  "bar": *t.Bar,
+//	  "baz": *t.Baz,
+//	}
+//  }
 func generateGetListKey(buf *bytes.Buffer, s *yangDirectory, nameMap map[string]*yangFieldMap) error {
 	if s.listAttr == nil {
 		return nil
