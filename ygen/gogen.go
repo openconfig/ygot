@@ -218,6 +218,25 @@ type generatedGoListMethod struct {
 	Receiver  string          // Receiver is the name of the parent struct of the list, which is the receiver for the generated method.
 }
 
+// generatedGoKeyHelper contains the fields required for generating a method
+// associated with a struct that is within a list in the YANG schema.
+type generatedGoKeyHelper struct {
+	// Receiver is the name of the type which acts as a receiver for a generated method.
+	Receiver string
+	// Keys specifies the keys of the list, as a map from YANG to Go identifier.
+	Keys []*yangFieldMap
+}
+
+// yangFieldMap maps a YANG identifier to its Go identifier.
+type yangFieldMap struct {
+	// YANGName is the field's name in the YANG schema.
+	YANGName string
+	// GoName is the field's name in the Go struct.
+	GoName string
+	// IsPtr indicates that the key field is a pointer.
+	IsPtr bool
+}
+
 // generatedGoEnumeration is used to represent a Go enumerated value to be handed
 // to a template for output.
 type generatedGoEnumeration struct {
@@ -476,6 +495,28 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 }
 `
 
+	// goKeyMapTemplate defines the template for a function that is generated for a YANG
+	// list type. It returns a map[string]interface{} keyed by the YANG leaf identifier of each
+	// key leaf, and containing their values within the struct.
+	goKeyMapTemplate = `
+// ΛListKeyMap returns the keys of the {{ .Receiver }} struct, which is a YANG list entry.
+func (t *{{ .Receiver }}) ΛListKeyMap() (map[string]interface{}, error) {
+{{- range $key := .Keys -}}{{ if $key.IsPtr }}
+	if t.{{ $key.GoName }} == nil {
+		return nil, fmt.Errorf("nil value for key {{ $key.GoName }}")
+	}
+	{{- end }}
+{{ end }}
+	return map[string]interface{}{
+		{{- range $key := .Keys }}
+		"{{ $key.YANGName }}": {{ if $key.IsPtr -}}
+		*
+		{{- end -}} t.{{ $key.GoName }},
+		{{- end }}
+	}, nil
+}
+`
+
 	// goEnumMapTemplate provides a template to output a constant map which
 	// can be used to resolve the string value of any enumeration within the
 	// schema.
@@ -571,6 +612,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"enumMap":         makeTemplate("enumMap", goEnumMapTemplate),
 		"schemaVar":       makeTemplate("schemaVar", schemaVarTemplate),
 		"unionIntf":       makeTemplate("unionIntf", unionInterfaceTemplate),
+		"keyHelper":       makeTemplate("keyHelper", goKeyMapTemplate),
 	}
 
 	// templateHelperFunctions specifies a set of functions that are supplied as
@@ -693,6 +735,9 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 	// generate two elements that have the same name.
 	definedStructFieldNames := map[string]bool{}
 
+	// definedNameMap defines a map, keyed by YANG identifier to the Go struct field name.
+	definedNameMap := map[string]*yangFieldMap{}
+
 	// genUnions stores the set of multi-type YANG unions that must have
 	// code generated for them.
 	genUnions := []goUnionInterface{}
@@ -709,6 +754,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 		// Make the name of the field into CamelCase. The definedStructFieldNames map is used as the
 		// context, such that the name generated is unique within this structure.
 		fieldName := makeNameUnique(entryCamelCaseName(field), definedStructFieldNames)
+		definedNameMap[fName] = &yangFieldMap{YANGName: fName, GoName: fieldName}
 
 		switch {
 		case field.IsList():
@@ -816,6 +862,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				scalarField = false
 			}
 
+			definedNameMap[fName].IsPtr = scalarField
 			fieldDef = &goStructField{
 				Name:          fieldName,
 				Type:          fType,
@@ -889,6 +936,10 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 		}
 	}
 
+	if err := generateGetListKey(&methodBuf, targetStruct, definedNameMap); err != nil {
+		errs = append(errs, err)
+	}
+
 	// interfaceBuf is used to store the code generated for interfaces that
 	// are used for multi-type unions within the struct.
 	var interfaceBuf bytes.Buffer
@@ -930,10 +981,65 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 //   }
 func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
 	if err := goTemplates["structValidator"].Execute(buf, structDef); err != nil {
-		fmt.Println(err)
 		return err
 	}
 
+	return nil
+}
+
+// generateGetListKey generates a function extracting the keys from a list
+// defined in the yangDirectory s, and appends it to the supplier buffer. The
+// nameMap stores maps between the key YANG field identifiers and their Go
+// identifiers.
+//
+// If the input yangDirectory is the following list entry:
+//
+//  list foo {
+//    key "bar baz";
+//
+//    leaf bar { type string; }
+//    leaf baz { type uint8; }
+//    leaf colour { type string; }
+//  }
+//
+// Which is mapped into the Go struct:
+//
+//  type Foo {
+//    Bar *string `path:"bar"`
+//    Baz *uint8  `path:"baz"`
+//    Colour *string `path:"colour"`
+//  }
+//
+// The generated method is:
+//
+// func (t *Foo) GetListKey() map[string]string {
+//   return map[string]string {
+//     "bar": fmt.Sprintf("%s", t.Bar),
+//     "baz": fmt.Sprintf("%s", t.Baz),
+//   }
+// }
+func generateGetListKey(buf *bytes.Buffer, s *yangDirectory, nameMap map[string]*yangFieldMap) error {
+	if s.listAttr == nil {
+		return nil
+	}
+
+	h := generatedGoKeyHelper{
+		Receiver: s.name,
+	}
+
+	kn := []string{}
+	for k := range s.listAttr.keys {
+		kn = append(kn, k)
+	}
+	sort.Strings(kn)
+
+	for _, k := range kn {
+		h.Keys = append(h.Keys, nameMap[k])
+	}
+
+	if err := goTemplates["keyHelper"].Execute(buf, h); err != nil {
+		return err
+	}
 	return nil
 }
 

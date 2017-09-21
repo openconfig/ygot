@@ -37,6 +37,16 @@ type ValidatedGoStruct interface {
 	Validate() error
 }
 
+// KeyHelperGoStruct is an interface which can be implemented by Go structs
+// that are generated to represent a YANG container or list member that has
+// the corresponding function to retrieve the list keys as a map.
+type KeyHelperGoStruct interface {
+	GoStruct // Must be a valid GoStruct
+	// ΛListKeyMap defines a helper method that returns a map of the
+	// keys of a list element.
+	ΛListKeyMap() (map[string]interface{}, error)
+}
+
 // GoEnum is an interface which can be implemented by derived types which
 // represent an enumerated value within a YANG schema. This allows handling
 // code that finds struct fields that implement this interface to do specific
