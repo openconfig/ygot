@@ -459,7 +459,7 @@ func addNewChild(m map[string]*yang.Entry, k string, v *yang.Entry, errs []error
 // OpenConfig paths is to be enabled.
 func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) (*mappedType, error) {
 	// Handle the case of a typedef which is actually an enumeration.
-	mtype, err := s.enumeratedTypedefTypeName(args, goEnumPrefix)
+	mtype, err := s.enumeratedTypedefTypeName(args, goEnumPrefix, false)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
@@ -510,7 +510,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 			return nil, fmt.Errorf("cannot map enum without context")
 		}
 		return &mappedType{
-			nativeType:        fmt.Sprintf("E_%s", s.resolveEnumName(args.contextEntry, compressOCPaths)),
+			nativeType:        fmt.Sprintf("E_%s", s.resolveEnumName(args.contextEntry, compressOCPaths, false)),
 			isEnumeratedValue: true,
 		}, nil
 	case yang.Yidentityref:
@@ -521,7 +521,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 			return nil, fmt.Errorf("cannot map identityref without context")
 		}
 		return &mappedType{
-			nativeType:        fmt.Sprintf("E_%s", s.resolveIdentityRefBaseType(args.contextEntry)),
+			nativeType:        fmt.Sprintf("E_%s", s.resolveIdentityRefBaseType(args.contextEntry, false)),
 			isEnumeratedValue: true,
 		}, nil
 	case yang.Ydecimal64:
@@ -633,7 +633,7 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 		// is an identityref - in this case, the context entry that we are carrying is the
 		// leaf that refers to the union, not the specific subtype that is now being examined.
 		mtype = &mappedType{
-			nativeType: fmt.Sprintf("E_%s", s.identityrefBaseTypeFromIdentity(subtype.IdentityBase)),
+			nativeType: fmt.Sprintf("E_%s", s.identityrefBaseTypeFromIdentity(subtype.IdentityBase, false)),
 		}
 	default:
 		var err error

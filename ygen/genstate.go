@@ -106,9 +106,10 @@ func newGenState() *genState {
 // values that should be generated for the entry. New yang.Entry instances are synthesised within
 // the yangEnums returned such that enumerations can be generated directly from the output of
 // this function in common with enumerations that are not within a union. The name of the enumerated
-// value is calculated based on the original context, and whether path compression is enabled based
-// on the compressPaths boolean.
-func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths bool) ([]*yangEnum, error) {
+// value is calculated based on the original context, whether path compression is enabled based
+// on the compressPaths boolean, and whether the name should not include underscores, as per the
+// noUnderscores boolean.
+func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores bool) ([]*yangEnum, error) {
 	var es []*yangEnum
 
 	for _, t := range enumeratedUnionTypes(e.Type.Type) {
@@ -116,7 +117,7 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths bool) ([]*y
 		switch {
 		case t.IdentityBase != nil:
 			en = &yangEnum{
-				name: s.identityrefBaseTypeFromIdentity(t.IdentityBase),
+				name: s.identityrefBaseTypeFromIdentity(t.IdentityBase, noUnderscores),
 				entry: &yang.Entry{
 					Name: e.Name,
 					Type: &yang.YangType{
@@ -129,10 +130,10 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths bool) ([]*y
 		case t.Enum != nil:
 			var enumName string
 			if _, chBuiltin := yang.TypeKindFromName[t.Name]; chBuiltin {
-				enumName = s.resolveEnumName(e, compressPaths)
+				enumName = s.resolveEnumName(e, compressPaths, noUnderscores)
 			} else {
 				var err error
-				enumName, err = s.resolveTypedefEnumeratedName(e)
+				enumName, err = s.resolveTypedefEnumeratedName(e, noUnderscores)
 				if err != nil {
 					return nil, err
 				}
@@ -147,6 +148,7 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths bool) ([]*y
 						Kind: yang.Yenum,
 						Enum: t.Enum,
 					},
+					Annotation: map[string]interface{}{"valuePrefix": traverseElementSchemaPath(e)},
 				},
 			}
 		}
@@ -233,7 +235,9 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 // code generation is required for each enum. Particularly, it removes
 // duplication between config and state containers when compressPaths is true.
 // It also de-dups references to the same identity base, and type definitions.
-func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths bool) (map[string]*yangEnum, []error) {
+// If noUnderscores is set to true, then underscores are omitted from the enum
+// names to reflect to the preferred style of some generated languages.
+func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores bool) (map[string]*yangEnum, []error) {
 	validEnums := make(map[string]*yang.Entry)
 	var enumNames []string
 	var errs []error
@@ -296,7 +300,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 		case e.Type.Name == "union", len(e.Type.Type) > 0 && !builtin:
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
-			es, err := s.enumeratedUnionEntry(e, compressPaths)
+			es, err := s.enumeratedUnionEntry(e, compressPaths, noUnderscores)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -316,7 +320,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 				errs = append(errs, fmt.Errorf("entry %s was an identity with a nil base", e.Name))
 				continue
 			}
-			idBaseName := s.resolveIdentityRefBaseType(e)
+			idBaseName := s.resolveIdentityRefBaseType(e, noUnderscores)
 			if _, ok := genEnums[idBaseName]; !ok {
 				genEnums[idBaseName] = &yangEnum{
 					name:  idBaseName,
@@ -330,7 +334,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 			// in two places, then we do not want to have multiple enumerated types
 			// that represent this leaf), then we do not have errors if duplicates
 			// occur, we simply perform de-duplication at this stage.
-			enumName := s.resolveEnumName(e, compressPaths)
+			enumName := s.resolveEnumName(e, compressPaths, noUnderscores)
 			if _, ok := genEnums[enumName]; !ok {
 				genEnums[enumName] = &yangEnum{
 					name:  enumName,
@@ -339,7 +343,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 			}
 		default:
 			// This is a type which is defined through a typedef.
-			typeName, err := s.resolveTypedefEnumeratedName(e)
+			typeName, err := s.resolveTypedefEnumeratedName(e, noUnderscores)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -362,16 +366,20 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths boo
 // base's name. This function wraps the identityrefBaseTypeFromIdentity
 // function since it covers the common case that the caller is interested in
 // determining the name from an identityref leaf, rather than directly from the
-// identity.
-func (s *genState) resolveIdentityRefBaseType(idr *yang.Entry) string {
-	return s.identityrefBaseTypeFromIdentity(idr.Type.IdentityBase)
+// identity. If the noUnderscores bool is set to true, underscores are omitted
+// from the name returned such that the enumerated type name is compliant
+// with language styles where underscores are not allowed in names.
+func (s *genState) resolveIdentityRefBaseType(idr *yang.Entry, noUnderscores bool) string {
+	return s.identityrefBaseTypeFromIdentity(idr.Type.IdentityBase, noUnderscores)
 }
 
 // identityrefBaseTypeFromIdentity takes an input yang.Identity pointer and
 // determines the name of the identity used within the generated code for it. The value
 // returned is based on the defining module followed by the CamelCase-ified version
-// of the identity's name.
-func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity) string {
+// of the identity's name. If noUnderscores is set to false, underscores are omitted
+// from the name returned such that the enumerated type name is compliant with
+// language styles where underscores are not allowed in names.
+func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity, noUnderscores bool) string {
 	definingModName := parentModuleName(i)
 
 	// As per a typedef that includes an enumeration, there is a many to one
@@ -381,7 +389,12 @@ func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity) string {
 	if definedName, ok := s.uniqueIdentityNames[identityKey]; ok {
 		return definedName
 	}
-	name := fmt.Sprintf("%s_%s", yang.CamelCase(definingModName), yang.CamelCase(i.Name))
+	var name string
+	if noUnderscores {
+		name = fmt.Sprintf("%s%s", yang.CamelCase(definingModName), yang.CamelCase(i.Name))
+	} else {
+		name = fmt.Sprintf("%s_%s", yang.CamelCase(definingModName), yang.CamelCase(i.Name))
+	}
 	// The name of an identityref base type must be unique within the entire generated
 	// code, so the context of name generation is global.
 	uniqueName := makeNameUnique(name, s.definedGlobals)
@@ -393,7 +406,9 @@ func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity) string {
 // that will be used in the generated code. Whilst a leaf may only be used
 // in a single context (i.e., at its own path), resolveEnumName may be called
 // multiple times, and hence de-duplication of unique name generation is required.
-func (s *genState) resolveEnumName(e *yang.Entry, compressPaths bool) string {
+// If noUnderscores is set to true, then underscores are omitted from the
+// output name.
+func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores bool) string {
 	// It is possible, given a particular enumerated leaf, for it to appear
 	// multiple times in the schema. For example, through being defined in
 	// a grouping which is instantiated in two places. In these cases, the
@@ -436,6 +451,9 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths bool) string {
 		// other defined names.
 		name := fmt.Sprintf("%s_%s_%s", yang.CamelCase(definingModName),
 			yang.CamelCase(e.Parent.Parent.Name), yang.CamelCase(e.Name))
+		if noUnderscores {
+			name = strings.Replace(name, "_", "", -1)
+		}
 		uniqueName := makeNameUnique(name, s.definedGlobals)
 		s.uniqueEnumeratedLeafNames[identifierPath] = uniqueName
 		return uniqueName
@@ -444,7 +462,7 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths bool) string {
 	// If this was we don't compress the paths, then we write out the entire path.
 	var nbuf bytes.Buffer
 	for i, p := range traverseElementSchemaPath(e) {
-		if i != 0 {
+		if i != 0 && !noUnderscores {
 			nbuf.WriteRune('_')
 		}
 		nbuf.WriteString(yang.CamelCase(p))
@@ -458,7 +476,7 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths bool) string {
 // that has an underlying enumerated type (e.g., identityref or enumeration),
 // and resolves the name of the enum that will be generated in the corresponding
 // Go code.
-func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry) (string, error) {
+func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores bool) (string, error) {
 	typeName := e.Type.Name
 
 	// Handle the case whereby we have been handed an enumeration that is within a
@@ -470,7 +488,11 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry) (string, error) {
 		switch len(enumTypes) {
 		case 1:
 			// We specifically say that this is an enumeration within the leaf.
-			typeName = fmt.Sprintf("%s_Enum", enumTypes[0].Name)
+			if noUnderscores {
+				typeName = fmt.Sprintf("%sEnum", enumTypes[0].Name)
+			} else {
+				typeName = fmt.Sprintf("%s_Enum", enumTypes[0].Name)
+			}
 		case 0:
 			return "", fmt.Errorf("enumerated type had an empty union within it, path: %v, type: %v, enumerated: %v", e.Path(), e.Type, enumTypes)
 		default:
@@ -491,6 +513,9 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry) (string, error) {
 	// The module/typedefName was not already defined with a CamelCase name, so generate one
 	// here, and store it to be re-used later.
 	name := fmt.Sprintf("%s_%s", yang.CamelCase(definingModName), yang.CamelCase(typeName))
+	if noUnderscores {
+		name = strings.Replace(name, "_", "", -1)
+	}
 	uniqueName := makeNameUnique(name, s.definedGlobals)
 	s.uniqueEnumeratedTypedefNames[typedefKey] = uniqueName
 	return uniqueName, nil
@@ -501,9 +526,11 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry) (string, error) {
 // name is prefixed with the prefix supplied. If the type that was supplied
 // within the resolveTypeArgs struct is not a type definition which includes an
 // enumerated type, the mappedType returned is nil, otherwise it is populated.
+// If noUnderscores is set to true, underscores are omitted from the name
+// of the enumerated typedef.
 // It returns an error if the type does include an enumerated typedef, but this
 // typedef is invalid.
-func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string) (*mappedType, error) {
+func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores bool) (*mappedType, error) {
 	// If the type that is specified is not a built-in type (i.e., one of those
 	// types which is defined in RFC6020/RFC7950) then we establish what the type
 	// that we must actually perform the mapping for is. By default, start with
@@ -518,7 +545,7 @@ func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string
 				return nil, fmt.Errorf("error mapping node %s due to lack of context", args.yangType.Name)
 			}
 
-			tn, err := s.resolveTypedefEnumeratedName(args.contextEntry)
+			tn, err := s.resolveTypedefEnumeratedName(args.contextEntry, noUnderscores)
 			if err != nil {
 				return nil, err
 			}

@@ -171,6 +171,31 @@ func TestValidateSystemDns(t *testing.T) {
 	}
 }
 
+func TestValidateSystemAaa(t *testing.T) {
+	dev := &oc.Device{
+		System: &oc.System{
+			Aaa: &oc.System_Aaa{
+				Authentication: &oc.System_Aaa_Authentication{
+					AuthenticationMethod: []oc.System_Aaa_Authentication_AuthenticationMethod_Union{
+						&oc.System_Aaa_Authentication_AuthenticationMethod_Union_E_OpenconfigAaaTypes_AAA_METHOD_TYPE{
+							E_OpenconfigAaaTypes_AAA_METHOD_TYPE: oc.OpenconfigAaaTypes_AAA_METHOD_TYPE_LOCAL,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// Validate the fake root device.
+	if err := dev.Validate(); err != nil {
+		t.Errorf("root success: got %s, want nil", err)
+	}
+	// Validate an element in the device subtree.
+	if err := dev.System.Validate(); err != nil {
+		t.Errorf("system success: got %s, want nil", err)
+	}
+}
+
 func TestValidateLLDP(t *testing.T) {
 	dev := &oc.Device{
 		Lldp: &oc.Lldp{

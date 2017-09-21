@@ -48,6 +48,16 @@ func IsNilOrInvalidValue(v reflect.Value) bool {
 	return !v.IsValid() || (v.Kind() == reflect.Ptr && v.IsNil()) || IsValueNil(v.Interface())
 }
 
+// IsValuePtr reports whether v is a ptr type.
+func IsValuePtr(v reflect.Value) bool {
+	return v.Kind() == reflect.Ptr
+}
+
+// IsValueInterface reports whether v is an interface type.
+func IsValueInterface(v reflect.Value) bool {
+	return v.Kind() == reflect.Interface
+}
+
 // IsValueStruct reports whether v is a struct type.
 func IsValueStruct(v reflect.Value) bool {
 	return v.Kind() == reflect.Struct
