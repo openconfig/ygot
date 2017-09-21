@@ -38,7 +38,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 		return nil
 	}
 
-	dbgPrint("validateLeaf with value %s, schema name %s", valueStr(value), inSchema.Name)
+	dbgPrint("validateLeaf with value %s (%T), schema name %s (%s)", valueStr(value), value, inSchema.Name, inSchema.Type.Kind)
 
 	schema, err := resolveLeafRef(inSchema)
 	if err != nil {
@@ -79,7 +79,9 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 	case yang.Ydecimal64:
 		return appendErr(errors, validateDecimal(schema, rv))
 	case yang.Yenum, yang.Yidentityref:
-		// Compiler prevents bad values from being populated.
+		if rkind != reflect.Int64 && !isValueInterfacePtrToEnum(reflect.ValueOf(value)) {
+			return appendErr(errors, fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rkind, schema.Name, ykind))
+		}
 		return nil
 	case yang.Yunion:
 		return validateUnion(schema, value)
@@ -238,7 +240,11 @@ func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
 // during validation against each matching schema otherwise.
 func validateMatchingSchemas(schema *yang.Entry, value interface{}) (errors []error) {
 	ss := findMatchingSchemasInUnion(schema.Type, value)
-	dbgPrint("validateMatchingSchemas for %s: %v", schema.Name, ss)
+	var kk []yang.TypeKind
+	for _, s := range ss {
+		kk = append(kk, s.Type.Kind)
+	}
+	dbgPrint("validateMatchingSchemas for value %v (%T) for schema %s with types %v", value, value, schema.Name, kk)
 	if len(ss) == 0 {
 		return []error{fmt.Errorf("no types in schema %s match the type of value %v, which is %T", schema.Name, valueStr(value), value)}
 	}
@@ -267,7 +273,7 @@ func validateMatchingSchemas(schema *yang.Entry, value interface{}) (errors []er
 func findMatchingSchemasInUnion(ytype *yang.YangType, value interface{}) []*yang.Entry {
 	var matches []*yang.Entry
 
-	dbgPrint("findMatchingSchemasInUnion for type %T, kind %s\n", value, reflect.TypeOf(value).Kind())
+	dbgPrint("findMatchingSchemasInUnion for type %T, kind %s", value, reflect.TypeOf(value).Kind())
 	for _, t := range ytype.Type {
 		if t.Kind == yang.Yunion {
 			// Recursively check all union types within this union.
@@ -709,4 +715,18 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 	}
 
 	return nil, fmt.Errorf("unmarshalScalar: unsupported type %v in schema node %s", ykind, schema.Name)
+}
+
+// isValueInterfacePtrToEnum reports whether v is an interface ptr to enum type.
+func isValueInterfacePtrToEnum(v reflect.Value) bool {
+	if v.Kind() != reflect.Ptr {
+		return false
+	}
+	v = v.Elem()
+	if v.Kind() != reflect.Interface {
+		return false
+	}
+	v = v.Elem()
+
+	return v.Kind() == reflect.Int64
 }
