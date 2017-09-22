@@ -1107,17 +1107,10 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 	}, err
 }
 
-// findMapPaths takes an input yang.Entry and calculates the set of paths to
-// which the entry is mapped in the underlying schema. In the case that the
-// absolutePaths argument is false, the path is relative to the parent struct,
-// otherwise it is absolute within the schema. The set of paths that are
-// returned (as a slice of slices of strings) give the YANG schema paths that
-// should be populated by the contents of the entity (be it a leaf, list or
-// containter) when mapping to the underlying schema for validation. If the
-// entity is also a key to a list of type leafref, then the corresponding
-// target leaf is also returned in the map path as well.  as the expanded path
-// of the schema entry. If errors are encountered when mapping the paths, they
-// are returned.
+// findMapPaths takes an input yang.Entry and calculates the set of schemapaths that it represents.
+// If absolutePaths is set, the paths are absolute otherwise they are relative to the parent. If
+// the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
+// path is also returned.
 func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, absolutePaths bool) ([][]string, error) {
 	fieldSlicePath := traverseElementSchemaPath(field)
 	var childPath, parentPath []string
@@ -1130,14 +1123,9 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, abs
 		// specified as the container has its own name encoded. In the case that it is
 		// a list or a non-directory entry, then we need to include the name of the entry
 		// in the path.
-		switch len(fieldSlicePath) {
-		case 2:
+		childPath = fieldSlicePath[1:]
+		if len(fieldSlicePath) == 2 && field.IsContainer() {
 			childPath = []string{}
-			if !field.IsContainer() {
-				childPath = []string{fieldSlicePath[1]}
-			}
-		default:
-			childPath = fieldSlicePath[1:]
 		}
 	case absolutePaths:
 		childPath = append([]string{""}, fieldSlicePath[1:]...)

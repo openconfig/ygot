@@ -319,6 +319,7 @@ func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *g
 // current generator state to map to other messages and ensure uniqueness of names.
 // The configuration parameters for the current code generation required are supplied
 // as a protoMsgConfig struct.
+// TODO(robjs): Split the logic of this function into multiple subfunctions.
 func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg protoMsgConfig) ([]protoMsg, []error) {
 	var errs []error
 

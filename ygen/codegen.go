@@ -125,7 +125,7 @@ type ProtoOpts struct {
 	// generated protobuf messages.
 	YextPath string
 	// AnnotateSchemaPaths specifies whether the extensions defined in
-	// eyext.proto should be used to annoate schema paths into the output
+	// yext.proto should be used to annotate schema paths into the output
 	// protobuf file.
 	AnnotateSchemaPaths bool
 }
