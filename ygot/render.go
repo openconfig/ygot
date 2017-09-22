@@ -22,6 +22,7 @@ import (
 
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/value"
+	"github.com/openconfig/ygot/util"
 
 	log "github.com/golang/glog"
 
@@ -813,12 +814,12 @@ func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputCo
 
 	// In the case that the field is a slice of struct pointers then this
 	// was an unkeyed YANG list.
-	if c := field.Type().Elem(); c.Kind() == reflect.Ptr && c.Elem().Kind() == reflect.Struct {
+	if c := field.Type().Elem(); util.IsTypeStructPtr(c) {
 		vals := []interface{}{}
 		for i := 0; i < field.Len(); i++ {
 			gs, ok := field.Index(i).Interface().(GoStruct)
 			if !ok {
-				return nil, fmt.Errorf("invalid member of a slice, %s was not a valid GoStruct", c.Elem().Name)
+				return nil, fmt.Errorf("invalid member of a slice, %s was not a valid GoStruct", c.Name)
 			}
 			j, err := constructJSON(gs, parentMod, args)
 			if err != nil {
