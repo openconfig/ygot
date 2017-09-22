@@ -16,10 +16,12 @@ package ytypes
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -57,6 +59,20 @@ func testErrLog(t *testing.T, desc string, err error) {
 			t.Logf("%s: %v", desc, err)
 		}
 	}
+}
+
+// areEqual compares a and b. If a and b are both pointers, it compares the
+// values they are pointing to.
+func areEqual(a, b interface{}) bool {
+	if util.IsValueNil(a) && util.IsValueNil(b) {
+		return true
+	}
+	va, vb := reflect.ValueOf(a), reflect.ValueOf(b)
+	if va.Kind() == reflect.Ptr && vb.Kind() == reflect.Ptr {
+		return reflect.DeepEqual(va.Elem().Interface(), vb.Elem().Interface())
+	}
+
+	return reflect.DeepEqual(a, b)
 }
 
 func TestValidateListAttr(t *testing.T) {
@@ -318,7 +334,7 @@ func TestForEachSchemaNode(t *testing.T) {
 	}
 
 	var outStr string
-	var errs Errors = ForEachSchemaNode(complexSchema, val, nil, &outStr, printFieldsIterFunc)
+	var errs util.Errors = ForEachSchemaNode(complexSchema, val, nil, &outStr, printFieldsIterFunc)
 	if errs != nil {
 		t.Errorf("ForEachSchemaNode: got error: %s, want error nil", errs)
 	}

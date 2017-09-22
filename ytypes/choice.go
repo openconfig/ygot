@@ -19,6 +19,7 @@ import (
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -31,7 +32,7 @@ import (
 // element in such cases. It returns all the field names that were selected in
 // the data tree from the Choice schema.
 func validateChoice(schema *yang.Entry, structValue ygot.GoStruct) (selected []string, errors []error) {
-	dbgPrint("validateChoice with value %s, schema name %s\n", valueStr(structValue), schema.Name)
+	util.DbgPrint("validateChoice with value %s, schema name %s\n", util.ValueStr(structValue), schema.Name)
 	// Validate that multiple cases are not selected. Since choice is always
 	// inside a container, there's no need to validate each individual field
 	// since that is part of container validation.
@@ -39,14 +40,14 @@ func validateChoice(schema *yang.Entry, structValue ygot.GoStruct) (selected []s
 	for _, caseSchema := range schema.Dir {
 		sel, errs := IsCaseSelected(caseSchema, structValue)
 		selected = append(selected, sel...)
-		errors = appendErrs(errors, errs)
+		errors = util.AppendErrs(errors, errs)
 		if len(sel) > 0 {
 			selectedCases = append(selectedCases, caseSchema.Name)
 		}
 	}
 
 	if len(selectedCases) > 1 {
-		errors = appendErr(errors, fmt.Errorf("multiple cases %v selected for choice %s", selectedCases, schema.Name))
+		errors = util.AppendErr(errors, fmt.Errorf("multiple cases %v selected for choice %s", selectedCases, schema.Name))
 	}
 
 	return
@@ -64,7 +65,7 @@ func IsCaseSelected(schema *yang.Entry, value interface{}) (selected []string, e
 			fieldType := v.Type().Field(i)
 			cs, err := childSchema(schema, fieldType)
 			if err != nil {
-				errors = appendErr(errors, err)
+				errors = util.AppendErr(errors, err)
 				continue
 			}
 			if cs != nil {
