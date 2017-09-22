@@ -1,0 +1,18 @@
+module proto-test-f {
+  prefix "f";
+  namespace "urn:f";
+
+  container a {
+    leaf b { type string; }
+
+    container c {
+      leaf d { type string; }
+
+      list e {
+        key "f";
+        leaf f { type string; }
+        leaf g { type string; }
+      }
+    }
+  }
+}

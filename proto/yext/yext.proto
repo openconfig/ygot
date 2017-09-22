@@ -23,6 +23,10 @@ import "proto/gnmi/gnmi.proto";
 package yext;
 
 extend google.protobuf.FieldOptions {
-  // path stores the schema path to the field within the YANG schema.
-  gnmi.Path path = 1001;
+  // schemapath stores the schema path to the field within the YANG schema.
+  // The path stored is absolute if the entity is at the root of the schema
+  // tree. In the case that it is not (i.e., it is an entity that has a parent
+  // which is not a module, the path supplied is the relative path to the
+  // parent of the entity).
+  string schemapath = 1002;
 }
