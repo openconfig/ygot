@@ -30,7 +30,9 @@ type GoStruct interface {
 // that are generated to represent a YANG container or list member that have
 // the corresponding function to be validated against the a YANG schema.
 type ValidatedGoStruct interface {
-	GoStruct // Embed GoStruct since a ValidatedGoStruct must be a GoStruct.
+	// GoStruct ensures that the interface for a standard GoStruct
+	// is embedded.
+	GoStruct
 	// Validate compares the contents of the implementing struct against
 	// the YANG schema, and returns an error if the struct's contents
 	// are not valid, or nil if the struct complies with the schema.
@@ -41,7 +43,9 @@ type ValidatedGoStruct interface {
 // that are generated to represent a YANG container or list member that has
 // the corresponding function to retrieve the list keys as a map.
 type KeyHelperGoStruct interface {
-	GoStruct // Must be a valid GoStruct
+	// GoStruct ensures that the interface for a standard GoStruct
+	// is embedded.
+	GoStruct
 	// ΛListKeyMap defines a helper method that returns a map of the
 	// keys of a list element.
 	ΛListKeyMap() (map[string]interface{}, error)
