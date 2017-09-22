@@ -196,30 +196,13 @@ type EmitJSONConfig struct {
 // EmitJSON takes an input ValidatedGoStruct (produced by ygen with validation enabled)
 // and serialises it to a JSON string. By default, produces the Internal format JSON.
 func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
-	f := Internal
-	if opts != nil {
-		f = opts.Format
-	}
-
 	if err := s.Validate(); err != nil {
 		return "", fmt.Errorf("validation err: %v", err)
 	}
 
-	var v map[string]interface{}
-	var err error
-	switch f {
-	case Internal:
-		if v, err = ConstructInternalJSON(s); err != nil {
-			return "", fmt.Errorf("ConstructInternalJSON error: %v", err)
-		}
-	case RFC7951:
-		var c *RFC7951JSONConfig
-		if opts != nil {
-			c = opts.RFC7951Config
-		}
-		if v, err = ConstructIETFJSON(s, c); err != nil {
-			return "", fmt.Errorf("ConstructIETFJSON error: %v", err)
-		}
+	v, err := makeJSON(s, opts)
+	if err != nil {
+		return "", err
 	}
 
 	indent := indentString
@@ -233,4 +216,96 @@ func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
 	}
 
 	return string(j), nil
+}
+
+// makeJSON renders the GoStruct s to map[string]interface{} according to the
+// JSON format specified. By default makeJSON returns internal format JSON.
+func makeJSON(s GoStruct, opts *EmitJSONConfig) (map[string]interface{}, error) {
+	f := Internal
+	if opts != nil {
+		f = opts.Format
+	}
+
+	var v map[string]interface{}
+	var err error
+	switch f {
+	case Internal:
+		if v, err = ConstructInternalJSON(s); err != nil {
+			return nil, fmt.Errorf("ConstructInternalJSON error: %v", err)
+		}
+	case RFC7951:
+		var c *RFC7951JSONConfig
+		if opts != nil {
+			c = opts.RFC7951Config
+		}
+		if v, err = ConstructIETFJSON(s, c); err != nil {
+			return nil, fmt.Errorf("ConstructIETFJSON error: %v", err)
+		}
+	}
+	return v, nil
+}
+
+// MergeStructJSON marshals the GoStruct ns to JSON according to the configuration, and
+// merges it with the existing JSON provided as a map[string]interface{}. The merged
+// JSON output is returned.
+//
+// To create valid JSON-serialised YANG, it is expected that the existing JSON is in
+// the same format as is specified in the options. Where there are overlapping tree
+// elements in the serialised struct they are merged where possible.
+func MergeStructJSON(ns GoStruct, ej map[string]interface{}, opts *EmitJSONConfig) (map[string]interface{}, error) {
+	j, err := makeJSON(ns, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	nj, err := MergeJSON(ej, j)
+	if err != nil {
+		return nil, err
+	}
+	return nj, nil
+}
+
+// MergeJSON takes two input maps, and merges them into a single map.
+func MergeJSON(a, b map[string]interface{}) (map[string]interface{}, error) {
+	o := map[string]interface{}{}
+
+	// Copy map a into the output.
+	for k, v := range a {
+		o[k] = v
+	}
+
+	for k, v := range b {
+		if _, ok := o[k]; !ok {
+			// Simple case, where the branch in b does not exist in
+			// a, so we can simply add the subtree.
+			o[k] = v
+			continue
+		}
+
+		src, sok := o[k].(map[string]interface{})
+		dst, dok := v.(map[string]interface{})
+		if sok && dok {
+			// The key exists in both a and b, and is a map[string]interface{}
+			// in both, such that it can be merged as the subtree.
+			var err error
+			o[k], err = MergeJSON(src, dst)
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+
+		ssrc, sok := o[k].([]interface{})
+		sdst, dok := v.([]interface{})
+		if sok && dok {
+			// The key exists in both a and b, and is a slice
+			// such that we can concat the two slices.
+			o[k] = append(ssrc, sdst...)
+			continue
+		}
+
+		return nil, fmt.Errorf("%s is not a mergable JSON type in tree, a: %T, b: %T", k, o[k], v)
+	}
+
+	return o, nil
 }

@@ -407,3 +407,314 @@ func TestInitContainer(t *testing.T) {
 		}
 	}
 }
+
+func TestMergeJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		inA     map[string]interface{}
+		inB     map[string]interface{}
+		want    map[string]interface{}
+		wantErr bool
+	}{{
+		name: "simple maps",
+		inA:  map[string]interface{}{"a": 1},
+		inB:  map[string]interface{}{"b": 2},
+		want: map[string]interface{}{"a": 1, "b": 2},
+	}, {
+		name: "non-overlapping multi-layer tree",
+		inA: map[string]interface{}{
+			"a": map[string]interface{}{
+				"a1": 42,
+			},
+			"aa": map[string]interface{}{
+				"aa2": 84,
+			},
+		},
+		inB: map[string]interface{}{
+			"b": map[string]interface{}{
+				"b1": 42,
+			},
+			"bb": map[string]interface{}{
+				"bb2": 84,
+			},
+		},
+		want: map[string]interface{}{
+			"a": map[string]interface{}{
+				"a1": 42,
+			},
+			"aa": map[string]interface{}{
+				"aa2": 84,
+			},
+			"b": map[string]interface{}{
+				"b1": 42,
+			},
+			"bb": map[string]interface{}{
+				"bb2": 84,
+			},
+		},
+	}, {
+		name: "overlapping trees",
+		inA: map[string]interface{}{
+			"a": map[string]interface{}{
+				"b": "c",
+			},
+		},
+		inB: map[string]interface{}{
+			"a": map[string]interface{}{
+				"c": "d",
+			},
+		},
+		want: map[string]interface{}{
+			"a": map[string]interface{}{
+				"b": "c",
+				"c": "d",
+			},
+		},
+	}, {
+		name: "slice within json",
+		inA: map[string]interface{}{
+			"a": []interface{}{
+				map[string]interface{}{"a": "a"},
+			},
+		},
+		inB: map[string]interface{}{
+			"a": []interface{}{
+				map[string]interface{}{"b": "b"},
+			},
+		},
+		want: map[string]interface{}{
+			"a": []interface{}{
+				map[string]interface{}{"a": "a"},
+				map[string]interface{}{"b": "b"},
+			},
+		},
+	}, {
+		name: "slice value",
+		inA: map[string]interface{}{
+			"a": []interface{}{"a"},
+		},
+		inB: map[string]interface{}{
+			"a": []interface{}{"b"},
+		},
+		want: map[string]interface{}{
+			"a": []interface{}{"a", "b"},
+		},
+	}, {
+		name: "scalar value",
+		inA: map[string]interface{}{
+			"a": "a",
+		},
+		inB: map[string]interface{}{
+			"a": "b",
+		},
+		wantErr: true,
+	}, {
+		name: "different depth trees",
+		inA: map[string]interface{}{
+			"a": map[string]interface{}{
+				"a1": map[string]interface{}{
+					"a2": map[string]interface{}{
+						"a3": 42,
+					},
+				},
+			},
+			"b": map[string]interface{}{
+				"a1": map[string]interface{}{
+					"a2": 42,
+				},
+			},
+		},
+		inB: map[string]interface{}{
+			"a": map[string]interface{}{
+				"b1": true,
+			},
+			"b": map[string]interface{}{
+				"b2": 84,
+				"b3": map[string]interface{}{
+					"b4": map[string]interface{}{
+						"b5": true,
+					},
+				},
+			},
+		},
+		want: map[string]interface{}{
+			"a": map[string]interface{}{
+				"a1": map[string]interface{}{
+					"a2": map[string]interface{}{
+						"a3": 42,
+					},
+				},
+				"b1": true,
+			},
+			"b": map[string]interface{}{
+				"a1": map[string]interface{}{
+					"a2": 42,
+				},
+				"b2": 84,
+				"b3": map[string]interface{}{
+					"b4": map[string]interface{}{
+						"b5": true,
+					},
+				},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		got, err := MergeJSON(tt.inA, tt.inB)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: MergeJSON(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inA, tt.inB, err, tt.wantErr)
+			continue
+		}
+
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: MergeJSON(%v, %v): did not get expected merged JSON, diff(-got,+want):\n%s", tt.name, tt.inA, tt.inB, diff)
+		}
+	}
+}
+
+type mergeTest struct {
+	FieldOne    *string                        `path:"field-one" module:"mod"`
+	FieldTwo    *uint8                         `path:"field-two" module:"mod"`
+	LeafList    []string                       `path:"leaf-list" module:"leaflist"`
+	UnkeyedList []*mergeTestListChild          `path:"unkeyed-list" module:"bar"`
+	List        map[string]*mergeTestListChild `path:"list" module:"bar"`
+}
+
+func (*mergeTest) IsYANGGoStruct() {}
+
+type mergeTestListChild struct {
+	Val *string `path:"val" module:"mod"`
+}
+
+func (*mergeTestListChild) IsYANGGoStruct() {}
+
+func TestMergeStructJSON(t *testing.T) {
+	tests := []struct {
+		name     string
+		inStruct GoStruct
+		inJSON   map[string]interface{}
+		inOpts   *EmitJSONConfig
+		wantJSON map[string]interface{}
+		wantErr  bool
+	}{{
+		name:     "single field merge test, internal format",
+		inStruct: &mergeTest{FieldOne: String("hello")},
+		inJSON: map[string]interface{}{
+			"field-two": "world",
+		},
+		wantJSON: map[string]interface{}{
+			"field-one": "hello",
+			"field-two": "world",
+		},
+	}, {
+		name:     "single field merge test, RFC7951 format",
+		inStruct: &mergeTest{FieldOne: String("hello")},
+		inJSON: map[string]interface{}{
+			"mod:field-two": "world",
+		},
+		inOpts: &EmitJSONConfig{
+			Format: RFC7951,
+			RFC7951Config: &RFC7951JSONConfig{
+				AppendModuleName: true,
+			},
+		},
+		wantJSON: map[string]interface{}{
+			"mod:field-one": "hello",
+			"mod:field-two": "world",
+		},
+	}, {
+		name: "leaf-list field, present in only one message, internal JSON",
+		inStruct: &mergeTest{
+			FieldOne: String("hello"),
+			LeafList: []string{"me", "you're", "looking", "for"},
+		},
+		inJSON: map[string]interface{}{
+			"leaf-list": []interface{}{"is", "it"},
+		},
+		wantJSON: map[string]interface{}{
+			"field-one": "hello",
+			"leaf-list": []interface{}{"is", "it", "me", "you're", "looking", "for"},
+		},
+	}, {
+		name: "unkeyed list merge",
+		inStruct: &mergeTest{
+			UnkeyedList: []*mergeTestListChild{{String("in")}, {String("the")}, {String("jar")}},
+		},
+		inJSON: map[string]interface{}{
+			"unkeyed-list": []interface{}{
+				map[string]interface{}{"val": "whisky"},
+			},
+		},
+		inOpts: &EmitJSONConfig{
+			Format: RFC7951,
+		},
+		wantJSON: map[string]interface{}{
+			"unkeyed-list": []interface{}{
+				map[string]interface{}{"val": "whisky"},
+				map[string]interface{}{"val": "in"},
+				map[string]interface{}{"val": "the"},
+				map[string]interface{}{"val": "jar"},
+			},
+		},
+	}, {
+		name: "keyed list, RFC7951 JSON",
+		inStruct: &mergeTest{
+			List: map[string]*mergeTestListChild{
+				"anjou":  {String("anjou")},
+				"chinon": {String("chinon")},
+			},
+		},
+		inJSON: map[string]interface{}{
+			"list": []interface{}{
+				map[string]interface{}{"val": "sancerre"},
+			},
+		},
+		inOpts: &EmitJSONConfig{
+			Format: RFC7951,
+		},
+		wantJSON: map[string]interface{}{
+			"list": []interface{}{
+				map[string]interface{}{"val": "sancerre"},
+				map[string]interface{}{"val": "anjou"},
+				map[string]interface{}{"val": "chinon"},
+			},
+		},
+	}, {
+		name: "keyed list, internal JSON",
+		inStruct: &mergeTest{
+			List: map[string]*mergeTestListChild{
+				"bandol": {String("bandol")},
+			},
+		},
+		inJSON: map[string]interface{}{
+			"list": map[string]interface{}{
+				"bellet": map[string]interface{}{
+					"val": "bellet",
+				},
+			},
+		},
+		wantJSON: map[string]interface{}{
+			"list": map[string]interface{}{
+				"bellet": map[string]interface{}{"val": "bellet"},
+				"bandol": map[string]interface{}{"val": "bandol"},
+			},
+		},
+	}, {
+		name:     "overlapping trees",
+		inStruct: &mergeTest{FieldOne: String("foo")},
+		inJSON:   map[string]interface{}{"field-one": "bar"},
+		wantErr:  true,
+	}}
+
+	for _, tt := range tests {
+		got, err := MergeStructJSON(tt.inStruct, tt.inJSON, tt.inOpts)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: MergeStructJSON(%v, %v, %v): did not get expected error status, got: %v, want: %v", tt.name, tt.inStruct, tt.inJSON, tt.inOpts, err, tt.wantErr)
+		}
+
+		if diff := pretty.Compare(got, tt.wantJSON); diff != "" {
+			t.Errorf("%s: MergeStrucTJSON(%v, %v, %v): did not get expected error status, diff(-got,+want):\n%s", tt.name, tt.inStruct, tt.inJSON, tt.inOpts, diff)
+		}
+	}
+}
