@@ -41,31 +41,55 @@ const (
 // structTagsToLibPaths takes an input struct field as a reflect.Type, and determines
 // the set of validation library paths that it maps to. Returns the paths as a slice of
 // empty interface slices, or an error.
-func structTagToLibPaths(f reflect.StructField, parentPath []interface{}, asPathElem bool) ([][]interface{}, error) {
+func structTagToLibPaths(f reflect.StructField, parentPath *pathWrapper) ([]*pathWrapper, error) {
+	if parentPath.pathFormat != ElementPath && parentPath.pathFormat != PathElemPath {
+		return nil, fmt.Errorf("unknown path format: %v", parentPath.pathFormat)
+	}
+
 	pathAnnotation, ok := f.Tag.Lookup("path")
 	if !ok {
 		return nil, fmt.Errorf("field did not specify a path")
 	}
 
-	var mapPaths [][]interface{}
+	var mapPaths []*pathWrapper
 	tagPaths := strings.Split(pathAnnotation, "|")
 	for _, p := range tagPaths {
 		// Make a copy of the existing parent path so we can append to it without
 		// modifying it for future paths.
-		elementPath := make([]interface{}, len(parentPath))
-		copy(elementPath, parentPath)
-		for _, pp := range strings.Split(p, "/") {
-			if pp != "" {
-				if asPathElem {
-					elementPath = append(elementPath, &gnmipb.PathElem{Name: pp})
-				} else {
-					elementPath = append(elementPath, interface{}(pp))
-				}
+		ePath := &pathWrapper{
+			pathFormat: parentPath.pathFormat,
+		}
+		switch parentPath.pathFormat {
+		case ElementPath:
+			ePath.elementPath = make([]string, len(parentPath.elementPath))
+			copy(ePath.elementPath, parentPath.elementPath)
+		case PathElemPath:
+			for _, e := range ePath.structuredPath {
+				n := *e
+				ePath.structuredPath = append(ePath.structuredPath, &n)
 			}
 		}
-		mapPaths = append(mapPaths, elementPath)
-	}
 
+		for _, pp := range strings.Split(p, "/") {
+			// Handle empty path tags.
+			if pp == "" {
+				continue
+			}
+			switch ePath.pathFormat {
+			case ElementPath:
+				ePath.elementPath = append(ePath.elementPath, pp)
+			case PathElemPath:
+				ePath.structuredPath = append(ePath.structuredPath, &gnmipb.PathElem{Name: pp})
+			}
+		}
+		mapPaths = append(mapPaths, ePath)
+	}
+	fmt.Printf("----\n")
+	for _, e := range mapPaths {
+		fmt.Printf("%v\n", e)
+		fmt.Printf("%s,\n", e)
+	}
+	fmt.Printf("----\n")
 	return mapPaths, nil
 }
 

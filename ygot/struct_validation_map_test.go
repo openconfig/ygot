@@ -18,10 +18,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/pmezard/go-difflib/difflib"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 const (
@@ -50,6 +53,145 @@ func errToString(err error) string {
 		return ""
 	}
 	return err.Error()
+}
+
+func TestStructTagToLibPaths(t *testing.T) {
+	tests := []struct {
+		name     string
+		inField  reflect.StructField
+		inParent *pathWrapper
+		want     []*pathWrapper
+		wantErr  bool
+	}{{
+		name: "simple single tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inParent: &pathWrapper{
+			pathFormat: ElementPath,
+		},
+		want: []*pathWrapper{{
+			pathFormat:  ElementPath,
+			elementPath: []string{"foo"},
+		}},
+	}, {
+		name: "empty tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"" rootpath:""`,
+		},
+		inParent: &pathWrapper{
+			pathFormat: ElementPath,
+		},
+		want: []*pathWrapper{{
+			pathFormat:  ElementPath,
+			elementPath: []string{},
+		}},
+	}, {
+		name: "multiple path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar|bar"`,
+		},
+		inParent: &pathWrapper{
+			pathFormat: ElementPath,
+		},
+		want: []*pathWrapper{{
+			pathFormat:  ElementPath,
+			elementPath: []string{"foo", "bar"},
+		}, {
+			pathFormat:  ElementPath,
+			elementPath: []string{"bar"},
+		}},
+	}, {
+		name: "populated parent path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz"`,
+		},
+		inParent: &pathWrapper{
+			pathFormat:  ElementPath,
+			elementPath: []string{"existing"},
+		},
+		want: []*pathWrapper{{
+			pathFormat:  ElementPath,
+			elementPath: []string{"existing", "baz"},
+		}, {
+			pathFormat:  ElementPath,
+			elementPath: []string{"existing", "foo", "baz"},
+		}},
+	}, {
+		name: "simple pathelem single tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inParent: &pathWrapper{
+			pathFormat: PathElemPath,
+		},
+		want: []*pathWrapper{{
+			pathFormat:     PathElemPath,
+			structuredPath: []*gnmipb.PathElem{{Name: "foo"}},
+		}},
+	}, {
+		name: "empty tag pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"" rootpath:""`,
+		},
+		inParent: &pathWrapper{
+			pathFormat: PathElemPath,
+		},
+		want: []*pathWrapper{{
+			pathFormat:     PathElemPath,
+			structuredPath: []*gnmipb.PathElem{},
+		}},
+	}, {
+		name: "multiple pathelem path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar|bar"`,
+		},
+		inParent: &pathWrapper{
+			pathFormat: PathElemPath,
+		},
+		want: []*pathWrapper{{
+			pathFormat:     PathElemPath,
+			structuredPath: []*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}},
+		}, {
+			pathFormat:     PathElemPath,
+			structuredPath: []*gnmipb.PathElem{{Name: "bar"}},
+		}},
+	}, {
+		name: "populated pathelem parent path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz"`,
+		},
+		inParent: &pathWrapper{
+			pathFormat:     PathElemPath,
+			structuredPath: []*gnmipb.PathElem{{Name: "existing"}},
+		},
+		want: []*pathWrapper{{
+			pathFormat:     PathElemPath,
+			structuredPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "baz"}},
+		}, {
+			pathFormat:     PathElemPath,
+			structuredPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "foo"}, {Name: "baz"}},
+		}},
+	}}
+
+	for _, tt := range tests {
+		got, err := structTagToLibPaths(tt.inField, tt.inParent)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, err, tt.wantErr)
+		}
+
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: structTagToligPaths(%v, %v): did not get expected set of map paths, diff(-got,+want):\n%s", tt.name, tt.inField, tt.inParent, diff)
+		}
+	}
 }
 
 // mapStructTestOne is the base struct used for the simple-schema test.
