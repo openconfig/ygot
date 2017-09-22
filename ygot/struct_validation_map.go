@@ -64,10 +64,8 @@ func structTagToLibPaths(f reflect.StructField, parentPath *pathWrapper) ([]*pat
 			ePath.elementPath = make([]string, len(parentPath.elementPath))
 			copy(ePath.elementPath, parentPath.elementPath)
 		case PathElemPath:
-			for _, e := range ePath.structuredPath {
-				n := *e
-				ePath.structuredPath = append(ePath.structuredPath, &n)
-			}
+			ePath.structuredPath = make([]*gnmipb.PathElem, len(parentPath.structuredPath))
+			copy(ePath.structuredPath, parentPath.structuredPath)
 		}
 
 		for _, pp := range strings.Split(p, "/") {
@@ -84,12 +82,6 @@ func structTagToLibPaths(f reflect.StructField, parentPath *pathWrapper) ([]*pat
 		}
 		mapPaths = append(mapPaths, ePath)
 	}
-	fmt.Printf("----\n")
-	for _, e := range mapPaths {
-		fmt.Printf("%v\n", e)
-		fmt.Printf("%s,\n", e)
-	}
-	fmt.Printf("----\n")
 	return mapPaths, nil
 }
 

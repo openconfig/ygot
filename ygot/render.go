@@ -176,18 +176,22 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *pathWra
 					}
 					childPath = &pathWrapper{
 						pathFormat: ElementPath,
-						//	elementPath: append(mapPaths[0].elementPath, keyval),
 					}
+					// We copy the elements from the existing elementPath such that when updating
+					// it, then the elements are not modified when the paths are changed.
 					for _, e := range mapPaths[0].elementPath {
 						childPath.elementPath = append(childPath.elementPath, e)
 					}
 					childPath.elementPath = append(childPath.elementPath, keyval)
 				case PathElemPath:
+					// Similarly, copy the paths when they are structured.
 					childPath = &pathWrapper{
-						pathFormat:     PathElemPath,
-						structuredPath: make([]*gnmipb.PathElem, len(mapPaths[0].structuredPath)),
+						pathFormat: PathElemPath,
 					}
-					copy(childPath.structuredPath, mapPaths[0].structuredPath)
+					for _, e := range mapPaths[0].structuredPath {
+						n := *e
+						childPath.structuredPath = append(childPath.structuredPath, &n)
+					}
 
 					var err error
 					childPath, err = appendgNMIPathElemKey(fval.MapIndex(k), childPath)
@@ -382,17 +386,21 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *pathWrap
 		Timestamp: ts,
 	}
 
-	switch pfx.pathFormat {
-	case ElementPath:
-		n.Prefix = &gnmipb.Path{
-			Element: pfx.elementPath,
+	if pfx != nil {
+		if pfx.pathFormat != ElementPath && pfx.pathFormat != PathElemPath {
+			return nil, fmt.Errorf("invalid path format specified: %v", pfx.pathFormat)
 		}
-	case PathElemPath:
-		n.Prefix = &gnmipb.Path{
-			Elem: pfx.structuredPath,
+
+		switch {
+		case pfx.pathFormat == ElementPath && pfx.elementPath != nil:
+			n.Prefix = &gnmipb.Path{
+				Element: pfx.elementPath,
+			}
+		case pfx.pathFormat == PathElemPath && pfx.structuredPath != nil:
+			n.Prefix = &gnmipb.Path{
+				Elem: pfx.structuredPath,
+			}
 		}
-	default:
-		return nil, fmt.Errorf("unknown path format specified in prefix: %v", pfx.pathFormat)
 	}
 
 	for p, v := range leaves {
