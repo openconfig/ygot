@@ -196,23 +196,23 @@ type Union1 interface {
 	IsUnion1()
 }
 
-type Union1_String struct {
+type Union1String struct {
 	String *string
 }
 
-func (Union1_String) IsUnion1() {}
+func (Union1String) IsUnion1() {}
 
-type Union1_Int16 struct {
+type Union1Int16 struct {
 	Int16 *int16
 }
 
-func (Union1_Int16) IsUnion1() {}
+func (Union1Int16) IsUnion1() {}
 
-type Union1_EnumType struct {
+type Union1EnumType struct {
 	EnumType EnumType
 }
 
-func (Union1_EnumType) IsUnion1() {}
+func (Union1EnumType) IsUnion1() {}
 
 type Union1BadLeaf struct {
 	BadLeaf *float32
@@ -331,22 +331,22 @@ func TestValidateLeafUnion(t *testing.T) {
 		{
 			desc:   "success string",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1_String{String: ygot.String("aaa")}},
+			val:    &UnionContainer{UnionField: &Union1String{String: ygot.String("aaa")}},
 		},
 		{
 			desc:   "success int16",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1_Int16{Int16: ygot.Int16(1)}},
+			val:    &UnionContainer{UnionField: &Union1Int16{Int16: ygot.Int16(1)}},
 		},
 		{
 			desc:   "success enum",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1_EnumType{EnumType: 42}},
+			val:    &UnionContainer{UnionField: &Union1EnumType{EnumType: 42}},
 		},
 		{
 			desc:    "bad regex",
 			schema:  unionContainerSchema,
-			val:     &UnionContainer{UnionField: &Union1_String{String: ygot.String("bbb")}},
+			val:     &UnionContainer{UnionField: &Union1String{String: ygot.String("bbb")}},
 			wantErr: true,
 		},
 		{
