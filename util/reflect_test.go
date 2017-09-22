@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
-	"github.com/openconfig/ygot/ygot"
 )
 
 const (
@@ -81,6 +80,12 @@ func areEqualWithWildcards(s, pattern string) bool {
 	}
 	return true
 }
+
+// to ptr conversion utility functions
+func toStringPtr(s string) *string { return &s }
+func toInt8Ptr(i int8) *int8 { return &i }
+func toInt32Ptr(i int32) *int32 { return &i }
+
 
 func TestUpdateField(t *testing.T) {
 	type BasicStruct struct {
@@ -148,12 +153,12 @@ func TestUpdateField(t *testing.T) {
 			desc:         "int ptr",
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntPtrField",
-			fieldValue:   ygot.Int8(42),
-			wantVal:      &BasicStruct{IntPtrField: ygot.Int8(42)},
+			fieldValue:   toInt8Ptr(42),
+			wantVal:      &BasicStruct{IntPtrField: toInt8Ptr(42)},
 		},
 		{
 			desc:         "nil int ptr",
-			parentStruct: &BasicStruct{IntPtrField: ygot.Int8(42)},
+			parentStruct: &BasicStruct{IntPtrField: toInt8Ptr(42)},
 			fieldName:    "IntPtrField",
 			fieldValue:   nil,
 			wantVal:      &BasicStruct{},
@@ -162,8 +167,8 @@ func TestUpdateField(t *testing.T) {
 			desc:         "string ptr",
 			parentStruct: &BasicStruct{},
 			fieldName:    "StringPtrField",
-			fieldValue:   ygot.String("forty two"),
-			wantVal:      &BasicStruct{StringPtrField: ygot.String("forty two")},
+			fieldValue:   toStringPtr("forty two"),
+			wantVal:      &BasicStruct{StringPtrField: toStringPtr("forty two")},
 		},
 		{
 			desc:         "int to int ptr field error",
@@ -176,7 +181,7 @@ func TestUpdateField(t *testing.T) {
 			desc:         "int ptr to int field error",
 			parentStruct: &BasicStruct{},
 			fieldName:    "IntField",
-			fieldValue:   ygot.Int8(42),
+			fieldValue:   toInt8Ptr(42),
 			wantErr:      "cannot assign value " + wildcardStr + " (type *int8) to struct field IntField (type int) in struct *util.BasicStruct",
 		},
 		{
@@ -239,10 +244,10 @@ func TestInsertIntoSliceStructField(t *testing.T) {
 		},
 		{
 			desc:         "slice of int ptr",
-			parentStruct: &BasicStruct{IntPtrSliceField: []*int8{ygot.Int8(42)}},
+			parentStruct: &BasicStruct{IntPtrSliceField: []*int8{toInt8Ptr(42)}},
 			fieldName:    "IntPtrSliceField",
-			fieldValue:   ygot.Int8(43),
-			wantVal:      &BasicStruct{IntPtrSliceField: []*int8{ygot.Int8(42), ygot.Int8(43)}},
+			fieldValue:   toInt8Ptr(43),
+			wantVal:      &BasicStruct{IntPtrSliceField: []*int8{toInt8Ptr(42), toInt8Ptr(43)}},
 		},
 		{
 			desc:         "slice of int ptr, nil value",
@@ -330,8 +335,8 @@ func TestInsertIntoMapStructField(t *testing.T) {
 			parentStruct: &BasicStruct{},
 			fieldName:    "StringToIntPtrMapField",
 			key:          "forty-two",
-			fieldValue:   ygot.Int8(42),
-			wantVal:      &BasicStruct{StringToIntPtrMapField: map[string]*int8{"forty-two": ygot.Int8(42)}},
+			fieldValue:   toInt8Ptr(42),
+			wantVal:      &BasicStruct{StringToIntPtrMapField: map[string]*int8{"forty-two": toInt8Ptr(42)}},
 		},
 		{
 			desc:         "string to int ptr, nil value",
@@ -428,8 +433,8 @@ func TestForEachField(t *testing.T) {
 		return
 	}
 
-	basicStruct1 := BasicStruct{Int32Field: int32(42), StringField: "forty two", Int32PtrField: ygot.Int32(4242), StringPtrField: ygot.String("forty two ptr")}
-	basicStruct2 := BasicStruct{Int32Field: int32(43), StringField: "forty three", Int32PtrField: ygot.Int32(4343), StringPtrField: ygot.String("forty three ptr")}
+	basicStruct1 := BasicStruct{Int32Field: int32(42), StringField: "forty two", Int32PtrField: toInt32Ptr(4242), StringPtrField: toStringPtr("forty two ptr")}
+	basicStruct2 := BasicStruct{Int32Field: int32(43), StringField: "forty three", Int32PtrField: toInt32Ptr(4343), StringPtrField: toStringPtr("forty three ptr")}
 
 	tests := []struct {
 		desc         string
@@ -514,7 +519,7 @@ func TestUpdateFieldUsingForEachField(t *testing.T) {
 		BasicStructField *BasicStruct
 	}
 
-	basicStruct1 := BasicStruct{Int32Field: int32(42), StringField: "forty two", Int32PtrField: ygot.Int32(4242), StringPtrField: ygot.String("forty two ptr")}
+	basicStruct1 := BasicStruct{Int32Field: int32(42), StringField: "forty two", Int32PtrField: toInt32Ptr(4242), StringPtrField: toStringPtr("forty two ptr")}
 
 	// This doesn't work as a general insert because it won't create fields
 	// that are nil, they must already exist. It only works as an update.
