@@ -20,7 +20,7 @@ import (
 
 	oc "github.com/openconfig/ygot/demo/getting_started/pkg/ocdemo"
 	"github.com/openconfig/ygot/ygot"
-	"github.com/openconfig/ygot/ytypes"
+	"github.com/openconfig/ygot/util"
 )
 
 // The following generation rule uses the generator binary to create the
@@ -119,7 +119,7 @@ func main() {
 	if err := invalidIf.Validate(); err == nil {
 		panic(fmt.Sprintf("Did not find invalid address, got nil err: %v", err))
 	} else {
-		errs := err.(ytypes.Errors)
+		errs := err.(util.Errors)
 		for _, err := range errs {
 			fmt.Printf("Got expected error: %v\n", err)
 		}

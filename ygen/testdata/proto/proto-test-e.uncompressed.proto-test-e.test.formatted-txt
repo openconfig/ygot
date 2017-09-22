@@ -27,7 +27,7 @@ message Config {
   }
   A a = 205874313;
   oneof b {
-    openconfig.enums.ProtoTestE_ID b_prototeste_id = 162577430;
+    openconfig.enums.ProtoTestEID b_prototesteid = 227021533;
     string b_string = 464943506;
   }
   oneof c {
@@ -52,7 +52,7 @@ message State {
   }
   A a = 138530090;
   oneof b {
-    openconfig.enums.ProtoTestE_ID b_prototeste_id = 49747713;
+    openconfig.enums.ProtoTestEID b_prototesteid = 173913472;
     string b_string = 216646479;
   }
   oneof c {

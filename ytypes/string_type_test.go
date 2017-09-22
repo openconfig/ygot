@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 var validStringSchema = yrangeAndPatternToStringSchema("valid-string-schema", yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)}, nil)
@@ -77,19 +78,19 @@ func TestValidateStringSchemaRanges(t *testing.T) {
 		},
 		{
 			desc:       "unset min success",
-			length:     yang.YRange{Min: YangMinNumber, Max: yang.FromInt(10)},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: yang.FromInt(10)},
 			schemaName: "range-10-or-less",
 			re:         []string{`ab.`, `.*bc`},
 		},
 		{
 			desc:       "unset max success",
-			length:     yang.YRange{Min: yang.FromInt(2), Max: YangMaxNumber},
+			length:     yang.YRange{Min: yang.FromInt(2), Max: util.YangMaxNumber},
 			schemaName: "range-2-or-more",
 			re:         []string{`ab.`, `.*bc`},
 		},
 		{
 			desc:       "unset min and max success",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`ab.`, `.*bc`},
 		},
@@ -101,13 +102,13 @@ func TestValidateStringSchemaRanges(t *testing.T) {
 		},
 		{
 			desc:       "negative min length",
-			length:     yang.YRange{Min: yang.FromInt(-1), Max: YangMaxNumber},
+			length:     yang.YRange{Min: yang.FromInt(-1), Max: util.YangMaxNumber},
 			schemaName: "bad-range-negative-min",
 			wantErr:    true,
 		},
 		{
 			desc:       "negative max length",
-			length:     yang.YRange{Min: YangMinNumber, Max: yang.FromInt(-1)},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: yang.FromInt(-1)},
 			schemaName: "bad-range-negative-max",
 			wantErr:    true,
 		},
@@ -194,7 +195,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "non string type",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			val:        int64(123),
 			wantErr:    true,
@@ -208,21 +209,21 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "short string",
-			length:     yang.YRange{Min: yang.FromInt(20), Max: YangMaxNumber},
+			length:     yang.YRange{Min: yang.FromInt(20), Max: util.YangMaxNumber},
 			schemaName: "range-20-or-more",
 			val:        "short_value",
 			wantErr:    true,
 		},
 		{
 			desc:       "regular expression matching with no anchors OK",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[ab]{2}([cd])?`},
 			val:        "abc",
 		},
 		{
 			desc:       "regular expression matching with no anchors failure",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[ab]{2}([cd])?`},
 			val:        "cdb",
@@ -230,7 +231,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "unanchored regular expression does not match",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[0-9]+`},
 			val:        "abcd999",
@@ -238,42 +239,42 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "regular expression matching with anchors",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`^[ab]{2}([cd])?$`},
 			val:        "aad",
 		},
 		{
 			desc:       "regular expression matching with embedded $",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`$[0-9]+`},
 			val:        "$100",
 		},
 		{
 			desc:       "regular expression matching with embedded ^",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[a-z]+^`},
 			val:        "caret^",
 		},
 		{
 			desc:       "regular expression matching with escape chars",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[0-9]+\.[0-9]+`},
 			val:        "10.10",
 		},
 		{
 			desc:       "regular expression with escaped escapes",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`foo\\^bar`},
 			val:        `foo\^bar`,
 		},
 		{
 			desc:       "regular expression with set negation, valid",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[^:][0-9a-fA-F]+`},
 			val:        ":FFFF",
@@ -281,7 +282,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "regular expression with set negation, invalid",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[^:][0-9a-fA-F]+`},
 			val:        "CAFE",

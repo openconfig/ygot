@@ -122,7 +122,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			},
 		}},
 		wantWrapper: &mappedType{
-			nativeType:        "basePackage.enumPackage.BaseModule_DerivedIdentityref",
+			nativeType:        "basePackage.enumPackage.BaseModuleDerivedIdentityref",
 			isEnumeratedValue: true,
 		},
 		wantSame: true,
@@ -173,7 +173,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		}},
-		wantWrapper: &mappedType{nativeType: "basePackage.enumPackage.BaseModule_DerivedEnumeration", isEnumeratedValue: true},
+		wantWrapper: &mappedType{nativeType: "basePackage.enumPackage.BaseModuleDerivedEnumeration", isEnumeratedValue: true},
 		wantSame:    true,
 	}, {
 		name: "identityref",
@@ -197,7 +197,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		}},
-		wantWrapper: &mappedType{nativeType: "basePackage.enumPackage.TestModule_BaseIdentity", isEnumeratedValue: true},
+		wantWrapper: &mappedType{nativeType: "basePackage.enumPackage.TestModuleBaseIdentity", isEnumeratedValue: true},
 		wantSame:    true,
 	}}
 

@@ -20,6 +20,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -28,14 +29,14 @@ import (
 // validateContainer validates each of the values in the map, keyed by the list
 // Key value, against the given list schema.
 func validateContainer(schema *yang.Entry, value ygot.GoStruct) (errors []error) {
-	if isNil(value) {
+	if util.IsValueNil(value) {
 		return nil
 	}
 	// Check that the schema itself is valid.
 	if err := validateContainerSchema(schema); err != nil {
-		return appendErr(errors, err)
+		return util.AppendErr(errors, err)
 	}
-	dbgPrint("validateContainer with value %v, type %T, schema name %s", valueStr(value), value, schema.Name)
+	util.DbgPrint("validateContainer with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
 
 	extraFields := make(map[string]interface{})
 
@@ -55,12 +56,12 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) (errors []error)
 			cschema, err := childSchema(schema, structTypes.Field(i))
 			switch {
 			case err != nil:
-				errors = appendErr(errors, fmt.Errorf("%s: %v", fieldName, err))
+				errors = util.AppendErr(errors, fmt.Errorf("%s: %v", fieldName, err))
 				continue
 			case cschema != nil:
 				// Regular named child.
 				if errs := Validate(cschema, fieldValue); len(errs) != 0 {
-					errors = appendErrs(appendErr(errors, fmt.Errorf("%s/", fieldName)), errs)
+					errors = util.AppendErrs(util.AppendErr(errors, fmt.Errorf("%s/", fieldName)), errs)
 				}
 			case !structElems.Field(i).IsNil():
 				// Either an element in choice schema subtree, or bad field.
@@ -79,17 +80,17 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) (errors []error)
 					delete(extraFields, s)
 				}
 				if errs != nil {
-					errors = appendErrs(appendErr(errors, fmt.Errorf("%s/", choiceSchema.Name)), errs)
+					errors = util.AppendErrs(util.AppendErr(errors, fmt.Errorf("%s/", choiceSchema.Name)), errs)
 				}
 			}
 		}
 
 	default:
-		errors = appendErr(errors, fmt.Errorf("validateContainer expected struct type for %s (type %T), got %v", schema.Name, value, reflect.TypeOf(value).Kind()))
+		errors = util.AppendErr(errors, fmt.Errorf("validateContainer expected struct type for %s (type %T), got %v", schema.Name, value, reflect.TypeOf(value).Kind()))
 	}
 
 	if len(extraFields) > 0 {
-		errors = appendErr(errors, fmt.Errorf("fields %v are not found in the container schema %s", stringMapSetToSlice(extraFields), schema.Name))
+		errors = util.AppendErr(errors, fmt.Errorf("fields %v are not found in the container schema %s", stringMapSetToSlice(extraFields), schema.Name))
 	}
 
 	return
@@ -101,11 +102,11 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) (errors []error)
 //   parent is the parent struct, which must be a struct ptr.
 //   value is a JSON data tree which must be a map[string]interface{}.
 func unmarshalContainer(schema *yang.Entry, parent interface{}, value interface{}) error {
-	if isNil(value) {
+	if util.IsValueNil(value) {
 		return nil
 	}
 
-	dbgPrint("unmarshalContainer value %v, type %T, into parent type %T, schema name %s", valueStr(value), value, parent, schema.Name)
+	util.DbgPrint("unmarshalContainer value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, schema.Name)
 
 	// Check that the schema itself is valid.
 	if err := validateContainerSchema(schema); err != nil {
@@ -116,11 +117,11 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, value interface{
 	jsonTree, ok := value.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("unmarshalContainer for schema %s: value %v: got type %T inside container, expect map[string]interface{}",
-			schema.Name, valueStr(value), value)
+			schema.Name, util.ValueStr(value), value)
 	}
 
 	pvp := reflect.ValueOf(parent)
-	if !IsValueStructPtr(pvp) {
+	if !util.IsValueStructPtr(pvp) {
 		return fmt.Errorf("unmarshalContainer got parent type %T, expect struct ptr", parent)
 	}
 	pv := pvp.Elem()
@@ -152,15 +153,15 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, value interface{
 
 		allSchemaPaths = append(allSchemaPaths, sp...)
 		if jsonValue == nil {
-			dbgPrint("field %s paths %v not present in tree", ft.Name, sp)
+			util.DbgPrint("field %s paths %v not present in tree", ft.Name, sp)
 			continue
 		}
 
-		dbgPrint("populating field %s type %s with paths %v.", ft.Name, ft.Type, sp)
+		util.DbgPrint("populating field %s type %s with paths %v.", ft.Name, ft.Type, sp)
 		// Only create a new field if it is nil, otherwise update just the
 		// fields that are in the data tree being passed to unmarshal, and
 		// preserve all other existing values.
-		if IsNilOrInvalidValue(f) {
+		if util.IsNilOrInvalidValue(f) {
 			makeField(pv, ft)
 		}
 
@@ -187,7 +188,7 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, value interface{
 		return fmt.Errorf("parent container %s (type %T): %s", schema.Name, parent, err)
 	}
 
-	dbgPrint("container after unmarshal:\n%s\n", pretty.Sprint(pv.Interface()))
+	util.DbgPrint("container after unmarshal:\n%s\n", pretty.Sprint(pv.Interface()))
 	return nil
 }
 

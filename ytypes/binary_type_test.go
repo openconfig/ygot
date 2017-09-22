@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 var validBinarySchema = yrangeToBinarySchema("schema-with-range-2-to-10", yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)})
@@ -79,16 +80,16 @@ func TestValidateBinarySchemaRanges(t *testing.T) {
 		{
 			desc:       "unset min length success",
 			schemaName: "range-10-or-less",
-			length:     yang.YRange{Min: YangMinNumber, Max: yang.FromInt(10)},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: yang.FromInt(10)},
 		},
 		{
 			desc:       "unset max length success",
 			schemaName: "range-2-or-more",
-			length:     yang.YRange{Min: yang.FromInt(2), Max: YangMaxNumber},
+			length:     yang.YRange{Min: yang.FromInt(2), Max: util.YangMaxNumber},
 		}, {
 			schemaName: "range-any",
 			desc:       "unset min and max length success",
-			length:     yang.YRange{Min: YangMinNumber, Max: YangMaxNumber},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 		},
 		{
 			desc:       "bad length range",
@@ -99,13 +100,13 @@ func TestValidateBinarySchemaRanges(t *testing.T) {
 		{
 			desc:       "negative min length",
 			schemaName: "negative-min-length",
-			length:     yang.YRange{Min: yang.FromInt(-1), Max: YangMaxNumber},
+			length:     yang.YRange{Min: yang.FromInt(-1), Max: util.YangMaxNumber},
 			wantErr:    true,
 		},
 		{
 			desc:       "negative max length",
 			schemaName: "negative-max-length",
-			length:     yang.YRange{Min: YangMinNumber, Max: yang.FromInt(-1)},
+			length:     yang.YRange{Min: util.YangMinNumber, Max: yang.FromInt(-1)},
 			wantErr:    true,
 		},
 	}

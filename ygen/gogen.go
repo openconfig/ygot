@@ -586,6 +586,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"filepathJoin": func(root, path string) string {
 			return filepath.Join(append(strings.Split(root, "/"), path)...)
 		},
+		"toUpper": strings.ToUpper,
 	}
 )
 

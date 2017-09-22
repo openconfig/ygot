@@ -18,20 +18,21 @@ import (
 	"fmt"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
 // Validate recursively validates the value of the given data tree struct
 // against the given schema.
-func Validate(schema *yang.Entry, value interface{}) (errors Errors) {
+func Validate(schema *yang.Entry, value interface{}) (errors util.Errors) {
 	// Nil value means the field is unset.
-	if isNil(value) {
+	if util.IsValueNil(value) {
 		return nil
 	}
 	if schema == nil {
-		return appendErr(errors, fmt.Errorf("nil schema for type %T, value %v", value, value))
+		return util.AppendErr(errors, fmt.Errorf("nil schema for type %T, value %v", value, value))
 	}
-	dbgPrint("Validate with value %v, type %T, schema name %s", valueStr(value), value, schema.Name)
+	util.DbgPrint("Validate with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
 
 	switch {
 	case schema.IsLeaf():
@@ -39,7 +40,7 @@ func Validate(schema *yang.Entry, value interface{}) (errors Errors) {
 	case schema.IsContainer():
 		gsv, ok := value.(ygot.GoStruct)
 		if !ok {
-			return appendErr(errors, fmt.Errorf("type %T is not a GoStruct for schema %s", value, schema.Name))
+			return util.AppendErr(errors, fmt.Errorf("type %T is not a GoStruct for schema %s", value, schema.Name))
 		}
 		errors = validateContainer(schema, gsv)
 	case schema.IsLeafList():
@@ -47,9 +48,9 @@ func Validate(schema *yang.Entry, value interface{}) (errors Errors) {
 	case schema.IsList():
 		return validateList(schema, value)
 	case schema.IsChoice():
-		return appendErr(errors, fmt.Errorf("cannot pass choice schema %s to Validate", schema.Name))
+		return util.AppendErr(errors, fmt.Errorf("cannot pass choice schema %s to Validate", schema.Name))
 	default:
-		errors = appendErr(errors, fmt.Errorf("unknown schema type for type %T, value %v", value, value))
+		errors = util.AppendErr(errors, fmt.Errorf("unknown schema type for type %T, value %v", value, value))
 	}
 	return errors
 }

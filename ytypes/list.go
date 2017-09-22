@@ -21,6 +21,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-7.8.
@@ -28,23 +29,23 @@ import (
 // validateList validates each of the values in the map, keyed by the list Key
 // value, against the given list schema.
 func validateList(schema *yang.Entry, value interface{}) (errors []error) {
-	if isNil(value) {
+	if util.IsValueNil(value) {
 		return nil
 	}
 
 	// Check that the schema itself is valid.
 	if err := validateListSchema(schema); err != nil {
-		return appendErr(errors, err)
+		return util.AppendErr(errors, err)
 	}
 
-	dbgPrint("validateList with value %v, type %T, schema name %s", value, value, schema.Name)
+	util.DbgPrint("validateList with value %v, type %T, schema name %s", value, value, schema.Name)
 
 	kind := reflect.TypeOf(value).Kind()
 	if kind == reflect.Slice || kind == reflect.Map {
 		// Check list attributes: size constraints etc.
 		// Skip this check if not a list type - in this case value may be a list
 		// element which shares the list schema (excluding ListAttr).
-		errors = appendErrs(errors, validateListAttr(schema, value))
+		errors = util.AppendErrs(errors, validateListAttr(schema, value))
 	}
 
 	switch kind {
@@ -52,7 +53,7 @@ func validateList(schema *yang.Entry, value interface{}) (errors []error) {
 		// List without key is a slice in the data tree.
 		sv := reflect.ValueOf(value)
 		for i := 0; i < sv.Len(); i++ {
-			errors = appendErrs(errors, validateStructElems(schema, sv.Index(i).Interface()))
+			errors = util.AppendErrs(errors, validateStructElems(schema, sv.Index(i).Interface()))
 		}
 	case reflect.Map:
 		// List with key is a map in the data tree, with the key being the value
@@ -61,19 +62,19 @@ func validateList(schema *yang.Entry, value interface{}) (errors []error) {
 			cv := reflect.ValueOf(value).MapIndex(key).Interface()
 			structElems := reflect.ValueOf(cv).Elem()
 			// Check that keys are present and have correct values.
-			errors = appendErrs(errors, checkKeys(schema, structElems, key))
+			errors = util.AppendErrs(errors, checkKeys(schema, structElems, key))
 
 			// Verify each elements's fields.
-			errors = appendErrs(errors, validateStructElems(schema, cv))
+			errors = util.AppendErrs(errors, validateStructElems(schema, cv))
 		}
 	case reflect.Ptr:
 		// Validate was called on a list element rather than the whole list, or
 		// on a completely bogus struct. In either case, evaluate just the
 		// element against the list schema without considering list attributes.
-		errors = appendErrs(errors, validateStructElems(schema, value))
+		errors = util.AppendErrs(errors, validateStructElems(schema, value))
 
 	default:
-		errors = appendErr(errors, fmt.Errorf("validateList expected map/slice type for %s, got %T", schema.Name, value))
+		errors = util.AppendErr(errors, fmt.Errorf("validateList expected map/slice type for %s, got %T", schema.Name, value))
 	}
 	return
 }
@@ -92,9 +93,9 @@ func validateList(schema *yang.Entry, value interface{}) (errors []error) {
 func checkKeys(schema *yang.Entry, structElems reflect.Value, keyValue reflect.Value) (errors []error) {
 	keys := strings.Split(schema.Key, " ")
 	if len(keys) == 1 {
-		errors = appendErrs(errors, checkBasicKeyValue(structElems, schema.Key, keyValue))
+		errors = util.AppendErrs(errors, checkBasicKeyValue(structElems, schema.Key, keyValue))
 	} else {
-		errors = appendErrs(errors, checkStructKeyValues(structElems, keyValue))
+		errors = util.AppendErrs(errors, checkStructKeyValues(structElems, keyValue))
 	}
 	return
 }
@@ -106,9 +107,9 @@ func checkBasicKeyValue(structElems reflect.Value, keyFieldSchemaName string, ke
 	// Find field name corresponding to keyFieldName in the schema.
 	keyFieldName, err := schemaNameToFieldName(structElems, keyFieldSchemaName)
 	if err != nil {
-		return appendErr(errors, err)
+		return util.AppendErr(errors, err)
 	}
-	if isNil(keyValue.Interface()) {
+	if util.IsValueNil(keyValue.Interface()) {
 		return nil
 	}
 
@@ -123,7 +124,7 @@ func checkBasicKeyValue(structElems reflect.Value, keyFieldSchemaName string, ke
 		elementKeyValue = structElems.FieldByName(keyFieldName).Interface()
 	}
 	if elementKeyValue != keyValue.Interface() {
-		errors = appendErr(errors, fmt.Errorf("key field %s: element key %v != map key %v",
+		errors = util.AppendErr(errors, fmt.Errorf("key field %s: element key %v != map key %v",
 			keyFieldName, elementKeyValue, keyValue))
 	}
 
@@ -136,14 +137,14 @@ func checkBasicKeyValue(structElems reflect.Value, keyFieldSchemaName string, ke
 //  - has no fields not defined in the schema key definition
 //  - has values for each field equal to the corresponding field in the element.
 func checkStructKeyValues(structElems reflect.Value, keyStruct reflect.Value) (errors []error) {
-	//dbgPrint("checkStructKeyValues structElems=%v, keyStruct=%v", valueStr(structElems.Interface()), keyStruct)
+	//util.DbgPrint("checkStructKeyValues structElems=%v, keyStruct=%v", util.ValueStr(structElems.Interface()), keyStruct)
 	switch keyStruct.Type().Kind() {
 	case reflect.Struct:
 		for i := 0; i < keyStruct.NumField(); i++ {
 			keyName := keyStruct.Type().Field(i).Name
 			keyValue := keyStruct.Field(i).Interface()
 			if !structElems.FieldByName(keyName).IsValid() {
-				errors = appendErr(errors, fmt.Errorf("missing key field %s in %v", keyName, keyStruct))
+				errors = util.AppendErr(errors, fmt.Errorf("missing key field %s in %v", keyName, keyStruct))
 				continue
 			}
 
@@ -155,13 +156,13 @@ func checkStructKeyValues(structElems reflect.Value, keyStruct reflect.Value) (e
 				elementStructKeyValue = structElems.FieldByName(keyName).Interface()
 			}
 			if elementStructKeyValue != keyValue {
-				errors = appendErr(errors, fmt.Errorf("element key value %v for key field %s has different value from map key %v",
+				errors = util.AppendErr(errors, fmt.Errorf("element key value %v for key field %s has different value from map key %v",
 					elementStructKeyValue, keyName, keyValue))
 			}
 		}
 
 	default:
-		errors = appendErr(errors, fmt.Errorf("key value %v is not struct type", keyStruct))
+		errors = util.AppendErr(errors, fmt.Errorf("key value %v is not struct type", keyStruct))
 	}
 
 	return
@@ -175,7 +176,7 @@ func validateStructElems(schema *yang.Entry, value interface{}) (errors []error)
 	structTypes := structElems.Type()
 
 	if structElems.Kind() != reflect.Struct {
-		return appendErr(errors, fmt.Errorf("expected a struct type for %s: got %s", schema.Name, valueStr(value)))
+		return util.AppendErr(errors, fmt.Errorf("expected a struct type for %s: got %s", schema.Name, util.ValueStr(value)))
 	}
 	// Verify each elements's fields.
 	for i := 0; i < structElems.NumField(); i++ {
@@ -184,13 +185,13 @@ func validateStructElems(schema *yang.Entry, value interface{}) (errors []error)
 
 		cschema, err := childSchema(schema, structTypes.Field(i))
 		if err != nil {
-			errors = appendErr(errors, err)
+			errors = util.AppendErr(errors, err)
 			continue
 		}
 		if cschema == nil {
-			errors = appendErr(errors, fmt.Errorf("child schema not found for struct %s field %s", schema.Name, fieldName))
+			errors = util.AppendErr(errors, fmt.Errorf("child schema not found for struct %s field %s", schema.Name, fieldName))
 		} else {
-			errors = appendErrs(errors, Validate(cschema, fieldValue))
+			errors = util.AppendErrs(errors, Validate(cschema, fieldValue))
 		}
 	}
 	return
@@ -271,10 +272,10 @@ func nameMatchesPath(fieldName string, path []string) (bool, error) {
 //     unmamshaled into
 //   value is a JSON list
 func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) error {
-	if isNil(value) {
+	if util.IsValueNil(value) {
 		return nil
 	}
-	dbgPrint("unmarshalList value %v, type %T, into parent type %T, schema name %s", valueStr(value), value, parent, schema.Name)
+	util.DbgPrint("unmarshalList value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, schema.Name)
 
 	// Check that the schema itself is valid.
 	if err := validateListSchema(schema); err != nil {
@@ -287,7 +288,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 	// schema tree so to handle that case we have to allow unmarshaling into
 	// struct ptr here.
 	t := reflect.TypeOf(parent)
-	if IsTypeStructPtr(t) {
+	if util.IsTypeStructPtr(t) {
 		// Create a container equivalent of the list, which is just the list
 		// with ListAttrs unset.
 		newSchema := schema
@@ -299,18 +300,18 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 	jsonList, ok := value.([]interface{})
 	if !ok {
 		return fmt.Errorf("unmarshalList for schema %s: value %v: got type %T, expect []interface{}",
-			schema.Name, valueStr(value), value)
+			schema.Name, util.ValueStr(value), value)
 	}
 
-	if !(IsTypeMap(t) || IsTypeSlicePtr(t)) {
+	if !(util.IsTypeMap(t) || util.IsTypeSlicePtr(t)) {
 		return fmt.Errorf("unmarshalList for %s got parent type %s, expect map, slice ptr or struct ptr", schema.Name, t.Kind())
 	}
 
 	listElementType := t.Elem()
-	if IsTypeSlicePtr(t) {
+	if util.IsTypeSlicePtr(t) {
 		listElementType = t.Elem().Elem()
 	}
-	if !IsTypeStructPtr(listElementType) {
+	if !util.IsTypeStructPtr(listElementType) {
 		return fmt.Errorf("unmarshalList for %s parent type %T, has bad field type %v", listElementType, parent, listElementType)
 	}
 
@@ -326,7 +327,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 	for _, le := range jsonList {
 		jsonTree := le.(map[string]interface{})
 		newVal := reflect.New(listElementType.Elem())
-		dbgPrint("creating a new list element val of type %v", newVal.Type())
+		util.DbgPrint("creating a new list element val of type %v", newVal.Type())
 
 		// Iterate over the fields of the newly created struct list element,
 		// filling each with the appropriate json subtree if it is present.
@@ -346,10 +347,10 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 			}
 			allSchemaPaths = append(allSchemaPaths, sp...)
 			if jv == nil {
-				dbgPrint("field %s paths %v not present in tree", sf.Name, sp)
+				util.DbgPrint("field %s paths %v not present in tree", sf.Name, sp)
 				continue
 			}
-			dbgPrint("populating field %s type %s with paths %v.", sf.Name, sf.Type, sp)
+			util.DbgPrint("populating field %s type %s with paths %v.", sf.Name, sf.Type, sp)
 
 			makeNewValue(sf.Type, newVal.Elem().Field(i), sf.Type.Kind())
 
@@ -358,7 +359,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 			if cschema.IsList() || cschema.IsLeafList() {
 				err = Unmarshal(cschema, newVal.Elem().Field(i).Interface(), jv)
 			} else {
-				if IsTypeStructPtr(newVal.Elem().Field(i).Type()) {
+				if util.IsTypeStructPtr(newVal.Elem().Field(i).Type()) {
 					err = Unmarshal(cschema, newVal.Elem().Field(i).Interface(), jv)
 				} else {
 					err = Unmarshal(cschema, newVal.Interface(), jv)
@@ -375,7 +376,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 
 		var err error
 		switch {
-		case IsTypeMap(t):
+		case util.IsTypeMap(t):
 			// If this is a keyed list, create the key and copy values into it
 			// from the element struct.
 			var newKey reflect.Value
@@ -389,7 +390,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 				if err != nil {
 					return err
 				}
-				dbgPrint("key value is %v.", kv)
+				util.DbgPrint("key value is %v.", kv)
 				newKey.Set(reflect.ValueOf(kv))
 			} else {
 				for i := 0; i < newKey.NumField(); i++ {
@@ -403,14 +404,14 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 						// Ptr values are deferenced in key struct.
 						nv = nv.Elem()
 					}
-					dbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
+					util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
 					newKey.FieldByName(kfn).Set(nv)
 				}
 			}
 
-			err = InsertIntoMap(parent, newKey.Interface(), newVal.Interface())
-		case IsTypeSlicePtr(t):
-			err = InsertIntoSlice(parent, newVal.Interface())
+			err = util.InsertIntoMap(parent, newKey.Interface(), newVal.Interface())
+		case util.IsTypeSlicePtr(t):
+			err = util.InsertIntoSlice(parent, newVal.Interface())
 		default:
 			return fmt.Errorf("unexpected type %s inserting in unmarshalList for parent type %T", t, parent)
 		}
@@ -418,7 +419,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, value interface{}) er
 			return err
 		}
 	}
-	dbgPrint("list after unmarshal:\n%s\n", pretty.Sprint(parent))
+	util.DbgPrint("list after unmarshal:\n%s\n", pretty.Sprint(parent))
 
 	return nil
 }

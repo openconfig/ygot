@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.8.
@@ -25,7 +26,7 @@ import (
 // validateBinary validates value, which must be a Go string type, against the
 // given schema.
 func validateBinary(schema *yang.Entry, value interface{}) error {
-	if isNil(value) {
+	if util.IsValueNil(value) {
 		return nil
 	}
 	// Check that the schema itself is valid.

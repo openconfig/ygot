@@ -334,7 +334,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		structSnippets = appendIfNotEmpty(structSnippets, structOut.interfaces)
 	}
 
-	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths)
+	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, false)
 	if errs != nil {
 		codegenErr.Errors = append(codegenErr.Errors, errs...)
 		return nil, codegenErr
@@ -423,7 +423,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 	cg.state.schematree = mdef.schemaTree
 
-	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths)
+	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, true)
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}

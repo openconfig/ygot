@@ -28,12 +28,13 @@ import (
 // CompressOCPaths set to both true and false.
 func TestFindEnumSet(t *testing.T) {
 	tests := []struct {
-		name             string
-		in               map[string]*yang.Entry
-		wantCompressed   map[string]*yangEnum
-		wantUncompressed map[string]*yangEnum
-		wantSame         bool // Whether to expect same compressed/uncompressed output
-		wantErr          bool
+		name              string
+		in                map[string]*yang.Entry
+		inOmitUnderscores bool
+		wantCompressed    map[string]*yangEnum
+		wantUncompressed  map[string]*yangEnum
+		wantSame          bool // Whether to expect same compressed/uncompressed output
+		wantErr           bool
 	}{{
 		name: "simple identityref",
 		in: map[string]*yang.Entry{
@@ -753,7 +754,7 @@ func TestFindEnumSet(t *testing.T) {
 			cg := NewYANGCodeGenerator(&GeneratorConfig{
 				CompressOCPaths: compressed,
 			})
-			entries, errs := cg.state.findEnumSet(tt.in, cg.Config.CompressOCPaths)
+			entries, errs := cg.state.findEnumSet(tt.in, cg.Config.CompressOCPaths, tt.inOmitUnderscores)
 
 			if (errs != nil) != tt.wantErr {
 				t.Errorf("%s findEnumSet(%v, %v): did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", tt.name, tt.in, cg.Config.CompressOCPaths, errs, len(errs), tt.wantErr)
