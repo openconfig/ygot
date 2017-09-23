@@ -646,6 +646,7 @@ func protoListDefinition(args protoDefinitionArgs) (string, *protoMsg, error) {
 		// will be in the same package as the field's parent.
 		fieldType = listKeyMsg.Name
 	}
+
 	return fieldType, listKeyMsg, nil
 }
 
@@ -686,7 +687,7 @@ func protoLeafDefinition(leafName string, args protoDefinitionArgs) (*protoDefin
 		d.enums[d.protoType] = e
 	case isEnumType(args.field.Type):
 		d.globalEnum = true
-	case isUnionType(args.field.Type):
+	case isUnionType(args.field.Type) && protoType.unionTypes != nil:
 		u, err := unionFieldToOneOf(leafName, args.field, protoType)
 		if err != nil {
 			return nil, err
@@ -795,7 +796,7 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 			}
 		case isSimpleEnumerationType(kf.Type):
 			enumEntry = kf
-		case isUnionType(kf.Type):
+		case isUnionType(kf.Type) && scalarType.unionTypes != nil:
 			unionEntry = kf
 		}
 

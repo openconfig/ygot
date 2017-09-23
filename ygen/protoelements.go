@@ -188,10 +188,15 @@ func (s *genState) protoUnionType(args resolveTypeArgs, basePackageName, enumPac
 	// Handle the case that there is just one protobuf type within the union.
 	if len(unionTypes) == 1 {
 		for _, t := range unionTypes {
+
+			// TODO(robjs): handle the case where we want different things here, if this
+			// is within a key, then we want the scalar type, if it's not, then we want
+			// the wrapper type.
 			n, err := s.yangTypeToProtoType(resolveTypeArgs{
 				yangType:     t,
 				contextEntry: args.contextEntry,
 			}, basePackageName, enumPackageName)
+
 			if err != nil {
 				return nil, fmt.Errorf("error mapping single type within a union: %v", err)
 			}

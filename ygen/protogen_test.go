@@ -224,7 +224,7 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 		},
 	}, {
-		name: "message with unimplemented list",
+		name: "message with list",
 		inMsg: &yangDirectory{
 			name: "AMessageWithAList",
 			entry: &yang.Entry{
@@ -245,10 +245,82 @@ func TestGenProto3Msg(t *testing.T) {
 							Type: &yang.YangType{Kind: yang.Ystring},
 						},
 					},
-					Key: "key",
+					Key:      "key",
+					ListAttr: &yang.ListAttr{},
 				},
 			},
-			path: []string{"", "a-messsage-with-a-list", "list"},
+			path: []string{"", "a-message-with-a-list", "list"},
+		},
+		inBasePackage: "base",
+		inEnumPackage: "enums",
+		inUniqueDirectoryNames: map[string]string{
+			"/a-message-with-a-list/list": "List",
+		},
+		inMsgs: map[string]*yangDirectory{
+			"/a-message-with-a-list/list": &yangDirectory{
+				name: "List",
+				entry: &yang.Entry{
+					Name: "list",
+					Parent: &yang.Entry{
+						Name: "a-message-with-a-list",
+					},
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"key": {
+							Name: "key",
+							Type: &yang.YangType{Kind: yang.Ystring},
+						},
+					},
+					Key:      "key",
+					ListAttr: &yang.ListAttr{},
+				},
+				fields: map[string]*yang.Entry{
+					"key": {
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+		},
+		wantMsgs: map[string]protoMsg{
+			"AMessageWithAList": protoMsg{
+				Name:     "AMessageWithAList",
+				YANGPath: "/a-message-with-a-list/list",
+				Fields: []*protoMsgField{{
+					Name:       "list",
+					Type:       "ListKey",
+					Tag:        200573382,
+					IsRepeated: true,
+				}},
+			},
+			"ListKey": protoMsg{
+				Name:     "ListKey",
+				YANGPath: "/a-message-with-a-list/list",
+				Fields: []*protoMsgField{{
+					Tag:        1,
+					Name:       "key",
+					Type:       "string",
+					IsRepeated: false,
+				}, {
+					Tag:  2,
+					Name: "list",
+					Type: "base.a_message_with_a_list.List",
+				}},
+				Imports: []string{"base/a_message_with_a_list"},
+			},
+		},
+	}, {
+		name: "message with missing directory",
+		inMsg: &yangDirectory{
+			name:  "foo",
+			entry: &yang.Entry{Name: "foo"},
+			fields: map[string]*yang.Entry{
+				"bar": {
+					Name: "bar",
+					Kind: yang.DirectoryEntry,
+					Dir:  map[string]*yang.Entry{},
+				},
+			},
 		},
 		wantErr: true,
 	}, {
@@ -934,6 +1006,186 @@ message MessageName {
 				}
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
 			}
+		}
+	}
+}
+
+func TestGenListKeyProto(t *testing.T) {
+	tests := []struct {
+		name          string
+		inListPackage string
+		inListName    string
+		inArgs        protoDefinitionArgs
+		wantMsg       *protoMsg
+		wantErr       bool
+	}{{
+		name:          "simple list key proto",
+		inListPackage: "pkg",
+		inListName:    "list",
+		inArgs: protoDefinitionArgs{
+			field: &yang.Entry{
+				Name:     "list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{},
+				Key:      "key",
+				Dir:      map[string]*yang.Entry{},
+			},
+			directory: &yangDirectory{
+				name: "List",
+				fields: map[string]*yang.Entry{
+					"key": {
+						Name: "key",
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
+				},
+			},
+			definedDirectories: map[string]*yangDirectory{},
+			state: &genState{
+				uniqueDirectoryNames: map[string]string{
+					"/list": "List",
+				},
+			},
+			compressPaths:   false,
+			basePackageName: "base",
+			baseImportPath:  "base/path",
+		},
+		wantMsg: &protoMsg{
+			Name:     "listKey",
+			YANGPath: "/list",
+			Fields: []*protoMsgField{{
+				Tag:  1,
+				Name: "key",
+				Type: "string",
+			}, {
+				Tag:  2,
+				Name: "list",
+				Type: "base.pkg.list",
+			}},
+			Imports: []string{"base/path/base/pkg"},
+		},
+	}, {
+		name:          "list with union key - string and int",
+		inListPackage: "pkg",
+		inListName:    "list",
+		inArgs: protoDefinitionArgs{
+			field: &yang.Entry{
+				Name:     "list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{},
+				Key:      "key",
+				Dir:      map[string]*yang.Entry{},
+			},
+			directory: &yangDirectory{
+				name: "List",
+				fields: map[string]*yang.Entry{
+					"key": {
+						Name: "key",
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{
+								{Kind: yang.Ystring},
+								{Kind: yang.Yint8},
+							},
+						},
+					},
+				},
+			},
+			definedDirectories: map[string]*yangDirectory{},
+			state: &genState{
+				uniqueDirectoryNames: map[string]string{
+					"/list": "List",
+				},
+			},
+			compressPaths:   false,
+			basePackageName: "base",
+			baseImportPath:  "base/path",
+		},
+		wantMsg: &protoMsg{
+			Name:     "listKey",
+			YANGPath: "/list",
+			Fields: []*protoMsgField{{
+				Tag:     1,
+				Name:    "key",
+				IsOneOf: true,
+				OneOfFields: []*protoMsgField{{
+					Tag:  232819104,
+					Name: "key_sint64",
+					Type: "sint64",
+				}, {
+					Tag:  470483267,
+					Name: "key_string",
+					Type: "string",
+				}},
+			}, {
+				Tag:  2,
+				Name: "list",
+				Type: "base.pkg.list",
+			}},
+			Imports: []string{"base/path/base/pkg"},
+		},
+	}, {
+		name:          "list with union key - two string",
+		inListPackage: "pkg",
+		inListName:    "list",
+		inArgs: protoDefinitionArgs{
+			field: &yang.Entry{
+				Name:     "list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{},
+				Key:      "key",
+				Dir:      map[string]*yang.Entry{},
+			},
+			directory: &yangDirectory{
+				name: "List",
+				fields: map[string]*yang.Entry{
+					"key": {
+						Name: "key",
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{
+								{Kind: yang.Ystring, Pattern: []string{"b.*"}},
+								{Kind: yang.Ystring, Pattern: []string{"a.*"}},
+							},
+						},
+					},
+				},
+			},
+			definedDirectories: map[string]*yangDirectory{},
+			state: &genState{
+				uniqueDirectoryNames: map[string]string{
+					"/list": "List",
+				},
+			},
+			compressPaths:   false,
+			basePackageName: "base",
+			baseImportPath:  "base/path",
+		},
+		wantMsg: &protoMsg{
+			Name:     "listKey",
+			YANGPath: "/list",
+			Fields: []*protoMsgField{{
+				Tag:  1,
+				Name: "key",
+				Type: "string",
+			}, {
+				Tag:  2,
+				Name: "list",
+				Type: "base.pkg.list",
+			}},
+			Imports: []string{"base/path/base/pkg"},
+		},
+	}}
+
+	for _, tt := range tests {
+		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: genListKeyProto(%s, %s, %#v): got unexpected error returned, got: %v, want err: %v", tt.name, tt.inListPackage, tt.inListName, tt.inArgs, err, tt.wantErr)
+		}
+
+		if diff := pretty.Compare(got, tt.wantMsg); diff != "" {
+			t.Errorf("%s: genListKeyProto(%s, %s, %#v): did not get expected return message, diff(-got,+want):\n%s", tt.name, tt.inListPackage, tt.inListName, tt.inArgs, diff)
 		}
 	}
 }
