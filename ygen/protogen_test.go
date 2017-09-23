@@ -224,7 +224,7 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 		},
 	}, {
-		name: "message with unimplemented list",
+		name: "message with list",
 		inMsg: &yangDirectory{
 			name: "AMessageWithAList",
 			entry: &yang.Entry{
@@ -250,7 +250,9 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 			path: []string{"", "a-messsage-with-a-list", "list"},
 		},
-		wantErr: true,
+		inMsgs: map[string]*yangDirectory{
+			"/a-message-with-a-list/list": &yangDirectory{
+
 	}, {
 		name: "message with an unimplemented mapping",
 		inMsg: &yangDirectory{
