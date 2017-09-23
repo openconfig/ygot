@@ -38,17 +38,17 @@ const (
 	// to specify the repeated message that makes up the list's key. The repeated message is
 	// called <ListNameInCamelCase><protoListKeyMessageSuffix>.
 	protoListKeyMessageSuffix = "Key"
-	// DefaultBasePackageName defines the default base package that is
+	// defaultBasePackageName defines the default base package that is
 	// generated when generating proto3 code.
 	DefaultBasePackageName = "openconfig"
-	// DefaultEnumPackageName defines the default package name that is
+	// defaultEnumPackageName defines the default package name that is
 	// used for the package that defines enumerated types that are
 	// used throughout the schema.
 	DefaultEnumPackageName = "enums"
-	// DefaultYwrapperPath defines the default import path for the ywrapper.proto file,
+	// defaultYwrapperPath defines the default import path for the ywrapper.proto file,
 	// excluding the filename.
 	DefaultYwrapperPath = "github.com/openconfig/ygot/proto/ywrapper"
-	// DefaultYextPath defines the default import path for the yext.proto file, excluding
+	// defaultYextPath defines the default import path for the yext.proto file, excluding
 	// the filename.
 	DefaultYextPath = "github.com/openconfig/ygot/proto/yext"
 	// protoSchemaAnnotationOption specifies the name of the FieldOption used to annotate
@@ -686,7 +686,7 @@ func protoLeafDefinition(leafName string, args protoDefinitionArgs) (*protoDefin
 		d.enums[d.protoType] = e
 	case isEnumType(args.field.Type):
 		d.globalEnum = true
-	case isUnionType(args.field.Type) && len(protoType.unionTypes) != 0:
+	case isUnionType(args.field.Type):
 		u, err := unionFieldToOneOf(leafName, args.field, protoType)
 		if err != nil {
 			return nil, err
@@ -795,7 +795,7 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 			}
 		case isSimpleEnumerationType(kf.Type):
 			enumEntry = kf
-		case isUnionType(kf.Type) && scalarType.unionTypes != nil:
+		case isUnionType(kf.Type):
 			unionEntry = kf
 		}
 
