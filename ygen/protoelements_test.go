@@ -22,12 +22,13 @@ import (
 
 func TestYangTypeToProtoType(t *testing.T) {
 	tests := []struct {
-		name        string
-		in          []resolveTypeArgs
-		wantWrapper *mappedType
-		wantScalar  *mappedType
-		wantSame    bool
-		wantErr     bool
+		name                   string
+		in                     []resolveTypeArgs
+		inResolveProtoTypeArgs *resolveProtoTypeArgs
+		wantWrapper            *mappedType
+		wantScalar             *mappedType
+		wantSame               bool
+		wantErr                bool
 	}{{
 		name: "integer types",
 		in: []resolveTypeArgs{
@@ -199,12 +200,39 @@ func TestYangTypeToProtoType(t *testing.T) {
 		}},
 		wantWrapper: &mappedType{nativeType: "basePackage.enumPackage.TestModuleBaseIdentity", isEnumeratedValue: true},
 		wantSame:    true,
+	}, {
+		name: "single type union with scalars requested",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Kind:    yang.Ystring,
+					Pattern: []string{"a.*"},
+				}, {
+					Kind:    yang.Ystring,
+					Pattern: []string{"b.*"},
+				}},
+			},
+		}},
+		inResolveProtoTypeArgs: &resolveProtoTypeArgs{
+			basePackageName:             "basePackage",
+			enumPackageName:             "enumPackage",
+			scalarTypeInSingleTypeUnion: true,
+		},
+		wantWrapper: &mappedType{nativeType: "string"},
+		wantSame:    true,
 	}}
 
 	for _, tt := range tests {
+
+		rpt := resolveProtoTypeArgs{basePackageName: "basePackage", enumPackageName: "enumPackage"}
+		if tt.inResolveProtoTypeArgs != nil {
+			rpt = *tt.inResolveProtoTypeArgs
+		}
+
 		s := newGenState()
 		for _, st := range tt.in {
-			gotWrapper, err := s.yangTypeToProtoType(st, "basePackage", "enumPackage")
+			gotWrapper, err := s.yangTypeToProtoType(st, rpt)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%s: yangTypeToProtoType(%v): got unexpected error: %v", tt.name, tt.in, err)
 				continue
@@ -214,7 +242,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				t.Errorf("%s: yangTypeToProtoType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 			}
 
-			gotScalar, err := s.yangTypeToProtoScalarType(st, "basePackage", "enumPackage")
+			gotScalar, err := s.yangTypeToProtoScalarType(st, rpt)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%s: yangTypeToProtoScalarType(%v, basePackage, enumPackage): got unexpected error: %v", tt.name, tt.in, err)
 			}

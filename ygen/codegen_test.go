@@ -771,6 +771,34 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_test_f.a":   filepath.Join(TestRoot, "testdata", "proto", "proto_test_f.uncompressed.proto_test_f.a.formatted-txt"),
 			"openconfig.proto_test_f.a.c": filepath.Join(TestRoot, "testdata", "proto", "proto_test_f.uncompressed.proto_test_f.a.c.formatted-txt"),
 		},
+	}, {
+		name:    "yang schema with fake root, path compression and union list key",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.yang")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths:  true,
+			GenerateFakeRoot: true,
+			ProtoOptions: ProtoOpts{
+				AnnotateSchemaPaths: true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.compressed.openconfig.formatted-txt"),
+		},
+	}, {
+		name:    "yang schema with fakeroot, and union list key",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot: true,
+			ProtoOptions: ProtoOpts{
+				AnnotateSchemaPaths: true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig":                                          filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.formatted-txt"),
+			"openconfig.proto_union_list_key":                     filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.formatted-txt"),
+			"openconfig.proto_union_list_key.list_container":      filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.list_container.formatted-txt"),
+			"openconfig.proto_union_list_key.list_container.list": filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.list_container.list.formatted-txt"),
+		},
 	}}
 
 	for _, tt := range tests {

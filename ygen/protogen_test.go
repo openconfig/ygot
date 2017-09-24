@@ -776,115 +776,12 @@ message MessageName {
 		inBasePackageName:      "base",
 		inEnumPackageName:      "enums",
 		wantCompress: generatedProto3Message{
-			packageName: "message_name",
+			packageName: "",
 			messageCode: `
 // ListKey represents the /module/message-name/list YANG schema element.
 message ListKey {
   string keyfield = 1;
-  base.message_name.List list = 2;
-}
-
-// MessageName represents the  YANG schema element.
-message MessageName {
-  repeated ListKey list = 140998691;
-}
-`,
-		},
-		wantUncompress: generatedProto3Message{
-			packageName: "module",
-			messageCode: `
-// ListKey represents the /module/message-name/list YANG schema element.
-message ListKey {
-  string keyfield = 1;
-  base.module.message_name.List list = 2;
-}
-
-// MessageName represents the  YANG schema element.
-message MessageName {
-  repeated ListKey list = 140998691;
-}
-`,
-		},
-	}, {
-		name: "simple message with a list",
-		inMsg: &yangDirectory{
-			name: "MessageName",
-			entry: &yang.Entry{
-				Name: "message-name",
-				Kind: yang.DirectoryEntry,
-				Parent: &yang.Entry{
-					Name: "module",
-					Kind: yang.DirectoryEntry,
-				},
-			},
-			fields: map[string]*yang.Entry{
-				"list": &yang.Entry{
-					Name: "list",
-					Kind: yang.DirectoryEntry,
-					Parent: &yang.Entry{
-						Name: "message-name",
-						Parent: &yang.Entry{
-							Name: "module",
-							Kind: yang.DirectoryEntry,
-						},
-					},
-					Key:      "keyfield",
-					ListAttr: &yang.ListAttr{},
-					Dir: map[string]*yang.Entry{
-						"keyfield": {
-							Name: "keyfield",
-							Type: &yang.YangType{
-								Kind: yang.Ystring,
-							},
-						},
-					},
-				},
-			},
-		},
-		inMsgs: map[string]*yangDirectory{
-			"/module/message-name/list": {
-				name: "ListMessageName",
-				entry: &yang.Entry{
-					Name: "list",
-					Kind: yang.DirectoryEntry,
-					Parent: &yang.Entry{
-						Name: "message-name",
-						Parent: &yang.Entry{
-							Name: "module",
-							Kind: yang.DirectoryEntry,
-						},
-					},
-					Key:      "keyfield",
-					ListAttr: &yang.ListAttr{},
-					Dir: map[string]*yang.Entry{
-						"keyfield": {
-							Name: "keyfield",
-							Type: &yang.YangType{
-								Kind: yang.Ystring,
-							},
-						},
-					},
-				},
-				fields: map[string]*yang.Entry{
-					"keyfield": {
-						Name: "keyfield",
-						Type: &yang.YangType{
-							Kind: yang.Ystring,
-						},
-					},
-				},
-			},
-		},
-		inUniqueDirectoryNames: map[string]string{"/module/message-name/list": "List"},
-		inBasePackageName:      "base",
-		inEnumPackageName:      "enums",
-		wantCompress: generatedProto3Message{
-			packageName: "message_name",
-			messageCode: `
-// ListKey represents the /module/message-name/list YANG schema element.
-message ListKey {
-  string keyfield = 1;
-  base.message_name.List list = 2;
+  List list = 2;
 }
 
 // MessageName represents the  YANG schema element.

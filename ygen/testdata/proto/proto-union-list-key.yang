@@ -1,0 +1,38 @@
+module proto-union-list-key {
+  prefix "p";
+  namespace "urn:p";
+
+  grouping list-cfg {
+    leaf key {
+      type union {
+        type string { pattern "aa.*"; }
+        type string { pattern "bb.*"; }
+      }
+    }
+
+    leaf non-key {
+      type uint8;
+    }
+  }
+
+  container list-container {
+    list list {
+      key "key";
+
+      leaf key {
+        type leafref {
+          path "../config/key";
+        }
+      }
+
+      container config {
+        uses list-cfg;
+      }
+
+      container state {
+        config false;
+        uses list-cfg;
+      }
+    }
+  }
+}
