@@ -31,6 +31,10 @@ func protoMsgEq(a, b protoMsg) bool {
 		return false
 	}
 
+	if a.Imports != nil && b.Imports != nil && !reflect.DeepEqual(a.Imports, b.Imports) {
+		return false
+	}
+
 	// Avoid flakes by comparing the fields in an unordered data structure.
 	fieldMap := func(s []*protoMsgField) map[string]*protoMsgField {
 		e := map[string]*protoMsgField{}
@@ -95,6 +99,93 @@ func TestGenProto3Msg(t *testing.T) {
 					Tag:  25944937,
 					Name: "field_two",
 					Type: "ywrapper.IntValue",
+				}},
+			},
+		},
+	}, {
+		name: "simple message with union leaf and leaf-list",
+		inMsg: &yangDirectory{
+			name: "MessageName",
+			entry: &yang.Entry{
+				Name: "message-name",
+				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
+			},
+			fields: map[string]*yang.Entry{
+				"field-one": {
+					Name: "field-one",
+					Type: &yang.YangType{
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{
+							{Kind: yang.Ystring},
+							{Kind: yang.Yint8},
+						},
+					},
+				},
+				"field-two": {
+					Name:     "field-two",
+					ListAttr: &yang.ListAttr{},
+					Type: &yang.YangType{
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{
+							{Kind: yang.Yint32},
+							{
+								Kind: yang.Yenum,
+								Name: "derived-enum",
+								Enum: &yang.EnumType{},
+							},
+						},
+					},
+					Parent: &yang.Entry{Name: "parent"},
+					Node: &yang.Leaf{
+						Name: "leaf",
+						Parent: &yang.Module{
+							Name: "base",
+						},
+					},
+				},
+			},
+			path: []string{"", "root", "message-name"},
+		},
+		inBasePackage: "base",
+		inEnumPackage: "enums",
+		wantMsgs: map[string]protoMsg{
+			"MessageName": {
+				Name:     "MessageName",
+				YANGPath: "/root/message-name",
+				Imports:  []string{"base/enums"},
+				Fields: []*protoMsgField{{
+					Tag:     410095931,
+					Name:    "field_one",
+					Type:    "",
+					IsOneOf: true,
+					OneOfFields: []*protoMsgField{{
+						Tag:  225170402,
+						Name: "field_one_sint64",
+						Type: "sint64",
+					}, {
+						Tag:  299030977,
+						Name: "field_one_string",
+						Type: "string",
+					}},
+				}, {
+					Tag:        332121324,
+					Name:       "field_two",
+					Type:       "ParentFieldTwoUnion",
+					IsRepeated: true,
+				}},
+			},
+			"ParentFieldTwoUnion": {
+				Name:     "ParentFieldTwoUnion",
+				YANGPath: "/parent/field-two union field field-two",
+				Fields: []*protoMsgField{{
+					Tag:  305727351,
+					Name: "field_two_basederivedenumenum",
+					Type: "base.enums.BaseDerivedEnumEnum",
+				}, {
+					Tag:  226381575,
+					Name: "field_two_sint64",
+					Type: "sint64",
 				}},
 			},
 		},
@@ -377,6 +468,7 @@ func TestGenProto3Msg(t *testing.T) {
 			"MessageWithAnydata": {
 				Name:     "MessageWithAnydata",
 				YANGPath: "/message-with-anydata",
+				Imports:  []string{"google/protobuf/any"},
 				Fields: []*protoMsgField{{
 					Tag:  453452743,
 					Name: "any_data",
