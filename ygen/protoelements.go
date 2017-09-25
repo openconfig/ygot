@@ -315,18 +315,17 @@ func (s *genState) protoMsgName(e *yang.Entry, compressPaths bool) string {
 // becomes interface (since modules, surrounding containers, and config/state containers
 // are not considered with path compression enabled.
 func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
+	if e.Node != nil && e.Node.NName() == rootElementNodeName {
+		return ""
+	}
+
 	parent := e.Parent
 	// In the case of path compression, then the parent of a list is the parent
 	// one level up, as is the case for if there are config and state containers.
 	if compressPaths && e.IsList() || compressPaths && isConfigState(e) {
-		/*		if e.Parent.Parent.Parent == nil {
-				// The grandparent entity is at the root, therefore we do not want to
-				// return a package name - since it should be in the base package.
-				return ""
-			}*/
 		parent = e.Parent.Parent
-
 	}
+
 	// If this entry has already had its parent's package calculated for it, then
 	// simply return the already calculated name.
 	if pkg, ok := s.uniqueProtoPackages[parent.Path()]; ok {
