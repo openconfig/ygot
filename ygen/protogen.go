@@ -975,8 +975,9 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType) (*pro
 		}
 
 		return &protoUnionField{
-			enums:       enums,
-			repeatedMsg: p,
+			enums:          enums,
+			repeatedMsg:    p,
+			hadGlobalEnums: importGlobalEnums,
 		}, nil
 	}
 
