@@ -57,6 +57,7 @@ func TestGenProto3Msg(t *testing.T) {
 		inBasePackage          string
 		inEnumPackage          string
 		inBaseImportPath       string
+		inAnnotateSchemaPaths  bool
 		wantMsgs               map[string]protoMsg
 		wantErr                bool
 	}{{
@@ -315,6 +316,54 @@ func TestGenProto3Msg(t *testing.T) {
 				}},
 			},
 		},
+	}, {
+		name: "message with annotate schema paths enabled",
+		inMsg: &yangDirectory{
+			name: "MessageWithAnnotations",
+			entry: &yang.Entry{
+				Name: "message-with-annotations",
+				Kind: yang.DirectoryEntry,
+				Dir:  map[string]*yang.Entry{},
+				Parent: &yang.Entry{
+					Name: "two",
+					Parent: &yang.Entry{
+						Name: "one",
+					},
+				},
+			},
+			fields: map[string]*yang.Entry{
+				"leaf": {
+					Name: "leaf",
+					Kind: yang.LeafEntry,
+					Type: &yang.YangType{Kind: yang.Ystring},
+					Parent: &yang.Entry{
+						Name: "two",
+						Parent: &yang.Entry{
+							Name: "one",
+						},
+					},
+				},
+			},
+			path: []string{"", "one", "two"},
+		},
+		inBasePackage:         "base",
+		inEnumPackage:         "enums",
+		inAnnotateSchemaPaths: true,
+		wantMsgs: map[string]protoMsg{
+			"MessageWithAnnotations": protoMsg{
+				Name:     "MessageWithAnnotations",
+				YANGPath: "/one/two",
+				Fields: []*protoMsgField{{
+					Name: "leaf",
+					Tag:  60047678,
+					Type: "ywrapper.StringValue",
+					Options: []*protoOption{{
+						Name:  "(yext.schemapath)",
+						Value: `"/two/leaf"`,
+					}},
+				}},
+			},
+		},
 	}}
 
 	for _, tt := range tests {
@@ -323,10 +372,11 @@ func TestGenProto3Msg(t *testing.T) {
 		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, protoMsgConfig{
-			compressPaths:   tt.inCompressPaths,
-			basePackageName: tt.inBasePackage,
-			enumPackageName: tt.inEnumPackage,
-			baseImportPath:  tt.inBaseImportPath,
+			compressPaths:       tt.inCompressPaths,
+			basePackageName:     tt.inBasePackage,
+			enumPackageName:     tt.inEnumPackage,
+			baseImportPath:      tt.inBaseImportPath,
+			annotateSchemaPaths: tt.inAnnotateSchemaPaths,
 		})
 
 		if (errs != nil) != tt.wantErr {

@@ -758,6 +758,19 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_anydata_test":   filepath.Join(TestRoot, "testdata", "proto", "proto_anydata_test.formatted-txt"),
 			"openconfig.proto_anydata_test.e": filepath.Join(TestRoot, "testdata", "proto", "proto_anydata_test.e.formatted-txt"),
 		},
+	}, {
+		name:    "yang schema with path annotations",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-f.yang")},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				AnnotateSchemaPaths: true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig.proto_test_f":     filepath.Join(TestRoot, "testdata", "proto", "proto_test_f.uncompressed.proto_test_f.formatted-txt"),
+			"openconfig.proto_test_f.a":   filepath.Join(TestRoot, "testdata", "proto", "proto_test_f.uncompressed.proto_test_f.a.formatted-txt"),
+			"openconfig.proto_test_f.a.c": filepath.Join(TestRoot, "testdata", "proto", "proto_test_f.uncompressed.proto_test_f.a.c.formatted-txt"),
+		},
 	}}
 
 	for _, tt := range tests {

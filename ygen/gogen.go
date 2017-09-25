@@ -828,8 +828,9 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 		}
 
 		// Find the schema paths that the field corresponds to, such that these can
-		// be used as annotations (tags) within the generated struct.
-		schemaMapPaths, err := findMapPaths(targetStruct, field, compressOCPaths)
+		// be used as annotations (tags) within the generated struct. Go paths are
+		// always relative.
+		schemaMapPaths, err := findMapPaths(targetStruct, field, compressOCPaths, false)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -1106,36 +1107,29 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 	}, err
 }
 
-// findMapPaths takes an input yang.Entry and calculates the set of paths to
-// which the entry is mapped in the underlying schema relative to the parent
-// struct. The set of paths that are returned (as a slice of slices of strings)
-// give the YANG schema paths that should be populated by the contents of the
-// entity (be it a leaf, list or containter) when mapping to the underlying
-// schema for validation. If the entity is also a key to a list of type leafref,
-// then the corresponding target leaf is also returned in the map path as well.
-// as the expanded path of the schema entry. If errors are encountered when
-// mapping the paths, they are returned.
-func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths bool) ([][]string, error) {
+// findMapPaths takes an input yang.Entry and calculates the set of schemapaths that it represents.
+// If absolutePaths is set, the paths are absolute otherwise they are relative to the parent. If
+// the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
+// path is also returned.
+func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, absolutePaths bool) ([][]string, error) {
 	fieldSlicePath := traverseElementSchemaPath(field)
 	var childPath, parentPath []string
 
-	if parent.isFakeRoot {
+	switch {
+	case parent.isFakeRoot:
 		parentPath = []string{}
 		// If the length of the fieldSlicePath is 3, then this is an entity at the root
 		// that has been mapped, if it is a container, then an empty string can be
 		// specified as the container has its own name encoded. In the case that it is
 		// a list or a non-directory entry, then we need to include the name of the entry
 		// in the path.
-		switch len(fieldSlicePath) {
-		case 2:
+		childPath = fieldSlicePath[1:]
+		if len(fieldSlicePath) == 2 && field.IsContainer() {
 			childPath = []string{}
-			if !field.IsContainer() {
-				childPath = []string{fieldSlicePath[1]}
-			}
-		default:
-			childPath = fieldSlicePath[1:]
 		}
-	} else {
+	case absolutePaths:
+		childPath = append([]string{""}, fieldSlicePath[1:]...)
+	default:
 		parentPath = parent.path
 
 		// Ensure that the special cases of root nodes, and top-level nodes are handled
@@ -1165,16 +1159,18 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths bool
 			}
 		}
 
-		// Append the elements that are not common between the two paths.
-		// Since the field is necessarily a child of the parent, then to
-		// determine those elements of the field's path that are not contained
-		// in the parent's, we walk from index X of the field's path (where X
-		// is the number of elements in the path of the parent).
-		if len(fieldSlicePath) < len(parentPath) {
-			return nil, fmt.Errorf("field %v is not a valid child of %v", fieldSlicePath, parent.path)
-		}
+		if !absolutePaths {
+			// Append the elements that are not common between the two paths.
+			// Since the field is necessarily a child of the parent, then to
+			// determine those elements of the field's path that are not contained
+			// in the parent's, we walk from index X of the field's path (where X
+			// is the number of elements in the path of the parent).
+			if len(fieldSlicePath) < len(parentPath) {
+				return nil, fmt.Errorf("field %v is not a valid child of %v", fieldSlicePath, parent.path)
+			}
 
-		childPath = append(childPath, fieldSlicePath[len(parentPath)-1:]...)
+			childPath = append(childPath, fieldSlicePath[len(parentPath)-1:]...)
+		}
 	}
 	mapPaths := [][]string{childPath}
 
