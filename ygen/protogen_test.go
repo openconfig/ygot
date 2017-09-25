@@ -546,6 +546,7 @@ func TestWriteProtoMsg(t *testing.T) {
 						Dir:  map[string]*yang.Entry{},
 					},
 				},
+				Node: &yang.Container{Name: "message-name"},
 			},
 			fields: map[string]*yang.Entry{
 				"field-one": &yang.Entry{
@@ -776,12 +777,12 @@ message MessageName {
 		inBasePackageName:      "base",
 		inEnumPackageName:      "enums",
 		wantCompress: generatedProto3Message{
-			packageName: "",
+			packageName: "message_name",
 			messageCode: `
 // ListKey represents the /module/message-name/list YANG schema element.
 message ListKey {
   string keyfield = 1;
-  List list = 2;
+  base.message_name.List list = 2;
 }
 
 // MessageName represents the  YANG schema element.

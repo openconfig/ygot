@@ -399,17 +399,21 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 			if !ok {
 				err = fmt.Errorf("proto: could not resolve %s into a defined struct", field.Path())
 			} else {
-
-				childpkg := state.protobufPackage(childmsg.entry, cfg.compressPaths)
-
-				// Add the import to the slice of imports if it is not already
-				// there. This allows the message file to import the required
-				// child packages.
-				childpath := filepath.Join(cfg.baseImportPath, cfg.basePackageName, strings.Replace(childpkg, ".", "/", -1))
-				if _, ok := imports[childpath]; !ok {
-					imports[childpath] = true
+				var pfx string
+				if cfg.compressPaths && msg.isFakeRoot {
+					pfx = ""
+				} else {
+					childpkg := state.protobufPackage(childmsg.entry, cfg.compressPaths)
+					// Add the import to the slice of imports if it is not already
+					// there. This allows the message file to import the required
+					// child packages.
+					childpath := filepath.Join(cfg.baseImportPath, cfg.basePackageName, strings.Replace(childpkg, ".", "/", -1))
+					if _, ok := imports[childpath]; !ok {
+						imports[childpath] = true
+					}
+					pfx = fmt.Sprintf("%s.%s.", cfg.basePackageName, childpkg)
 				}
-				fieldDef.Type = fmt.Sprintf("%s.%s.%s", cfg.basePackageName, childpkg, childmsg.name)
+				fieldDef.Type = fmt.Sprintf("%s%s", pfx, childmsg.name)
 			}
 		case field.IsLeaf() || field.IsLeafList():
 			d, err := protoLeafDefinition(fieldDef.Name, protoDefinitionArgs{

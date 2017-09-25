@@ -319,11 +319,11 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 	// In the case of path compression, then the parent of a list is the parent
 	// one level up, as is the case for if there are config and state containers.
 	if compressPaths && e.IsList() || compressPaths && isConfigState(e) {
-		if e.Parent.Parent.Parent == nil {
-			// The grandparent entity is at the root, therefore we do not want to
-			// return a package name - since it should be in the base package.
-			return ""
-		}
+		/*		if e.Parent.Parent.Parent == nil {
+				// The grandparent entity is at the root, therefore we do not want to
+				// return a package name - since it should be in the base package.
+				return ""
+			}*/
 		parent = e.Parent.Parent
 
 	}
