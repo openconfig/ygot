@@ -18,7 +18,6 @@
 syntax = "proto3";
 
 import "google/protobuf/descriptor.proto";
-import "proto/gnmi/gnmi.proto";
 
 package yext;
 
