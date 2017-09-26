@@ -25,10 +25,10 @@ To allow values to be distinguished as explicitly null versus unset (required to
 | `enumeration`           | `enum`                              | Embedded within a message where an `enumeration` field exists, globally defined `enum` if corresponding to a typedef.              |
 | `identityref`           | `enum`                              | A global `enum` is generated for the `identityref` base `identity`. |
 | `instance-identifier`   | `gnmi.Path`                         | gNMI’s paths are used to reference a node within the tree. Refer to the [path specification](https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-path-conventions.md). |
-| `int(8|16|32|64)`       | `sint64` as `ywrapper.IntValue`     | Range restrictions encoded as a field option. |
+| `int{8,16,32,64}`       | `sint64` as `ywrapper.IntValue`     | Range restrictions encoded as a field option. |
 | `leafref`               | Type of leafref `path` target node  |               |
 | `string`                | `string` as `ywrapper.StringValue`  | Length and pattern restrictions encoded as a field option.  |
-| `uint(8|16|32|64)`      | `uint64` as `ywrapper.UintValue`    | Range restrictions encoded as a field option. |
+| `uint{8,16,32,64}`      | `uint64` as `ywrapper.UintValue`    | Range restrictions encoded as a field option. |
 | `union`                 | `oneof` containing included types   | See note below concerning repeated `union` fields. |
 
 
