@@ -59,8 +59,8 @@ func TestStructTagToLibPaths(t *testing.T) {
 	tests := []struct {
 		name     string
 		inField  reflect.StructField
-		inParent *pathWrapper
-		want     []*pathWrapper
+		inParent *gnmiPath
+		want     []*gnmiPath
 		wantErr  bool
 	}{{
 		name: "simple single tag example",
@@ -68,12 +68,11 @@ func TestStructTagToLibPaths(t *testing.T) {
 			Name: "field",
 			Tag:  `path:"foo"`,
 		},
-		inParent: &pathWrapper{
-			pathFormat: ElementPath,
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
 		},
-		want: []*pathWrapper{{
-			pathFormat:  ElementPath,
-			elementPath: []string{"foo"},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo"},
 		}},
 	}, {
 		name: "empty tag example",
@@ -81,12 +80,11 @@ func TestStructTagToLibPaths(t *testing.T) {
 			Name: "field",
 			Tag:  `path:"" rootpath:""`,
 		},
-		inParent: &pathWrapper{
-			pathFormat: ElementPath,
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
 		},
-		want: []*pathWrapper{{
-			pathFormat:  ElementPath,
-			elementPath: []string{},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{},
 		}},
 	}, {
 		name: "multiple path",
@@ -94,15 +92,13 @@ func TestStructTagToLibPaths(t *testing.T) {
 			Name: "field",
 			Tag:  `path:"foo/bar|bar"`,
 		},
-		inParent: &pathWrapper{
-			pathFormat: ElementPath,
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
 		},
-		want: []*pathWrapper{{
-			pathFormat:  ElementPath,
-			elementPath: []string{"foo", "bar"},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo", "bar"},
 		}, {
-			pathFormat:  ElementPath,
-			elementPath: []string{"bar"},
+			stringSlicePath: []string{"bar"},
 		}},
 	}, {
 		name: "populated parent path",
@@ -110,16 +106,13 @@ func TestStructTagToLibPaths(t *testing.T) {
 			Name: "field",
 			Tag:  `path:"baz|foo/baz"`,
 		},
-		inParent: &pathWrapper{
-			pathFormat:  ElementPath,
-			elementPath: []string{"existing"},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{"existing"},
 		},
-		want: []*pathWrapper{{
-			pathFormat:  ElementPath,
-			elementPath: []string{"existing", "baz"},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"existing", "baz"},
 		}, {
-			pathFormat:  ElementPath,
-			elementPath: []string{"existing", "foo", "baz"},
+			stringSlicePath: []string{"existing", "foo", "baz"},
 		}},
 	}, {
 		name: "simple pathelem single tag example",
@@ -127,12 +120,11 @@ func TestStructTagToLibPaths(t *testing.T) {
 			Name: "field",
 			Tag:  `path:"foo"`,
 		},
-		inParent: &pathWrapper{
-			pathFormat: PathElemPath,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
 		},
-		want: []*pathWrapper{{
-			pathFormat:     PathElemPath,
-			structuredPath: []*gnmipb.PathElem{{Name: "foo"}},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}},
 		}},
 	}, {
 		name: "empty tag pathelem example",
@@ -140,12 +132,11 @@ func TestStructTagToLibPaths(t *testing.T) {
 			Name: "field",
 			Tag:  `path:"" rootpath:""`,
 		},
-		inParent: &pathWrapper{
-			pathFormat: PathElemPath,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
 		},
-		want: []*pathWrapper{{
-			pathFormat:     PathElemPath,
-			structuredPath: []*gnmipb.PathElem{},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{},
 		}},
 	}, {
 		name: "multiple pathelem path",
@@ -153,15 +144,13 @@ func TestStructTagToLibPaths(t *testing.T) {
 			Name: "field",
 			Tag:  `path:"foo/bar|bar"`,
 		},
-		inParent: &pathWrapper{
-			pathFormat: PathElemPath,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
 		},
-		want: []*pathWrapper{{
-			pathFormat:     PathElemPath,
-			structuredPath: []*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}},
 		}, {
-			pathFormat:     PathElemPath,
-			structuredPath: []*gnmipb.PathElem{{Name: "bar"}},
+			pathElemPath: []*gnmipb.PathElem{{Name: "bar"}},
 		}},
 	}, {
 		name: "populated pathelem parent path",
@@ -169,16 +158,13 @@ func TestStructTagToLibPaths(t *testing.T) {
 			Name: "field",
 			Tag:  `path:"baz|foo/baz"`,
 		},
-		inParent: &pathWrapper{
-			pathFormat:     PathElemPath,
-			structuredPath: []*gnmipb.PathElem{{Name: "existing"}},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}},
 		},
-		want: []*pathWrapper{{
-			pathFormat:     PathElemPath,
-			structuredPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "baz"}},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "baz"}},
 		}, {
-			pathFormat:     PathElemPath,
-			structuredPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "foo"}, {Name: "baz"}},
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "foo"}, {Name: "baz"}},
 		}},
 	}}
 
@@ -189,7 +175,7 @@ func TestStructTagToLibPaths(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(got, tt.want); diff != "" {
-			t.Errorf("%s: structTagToligPaths(%v, %v): did not get expected set of map paths, diff(-got,+want):\n%s", tt.name, tt.inField, tt.inParent, diff)
+			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-got,+want):\n%s", tt.name, tt.inField, tt.inParent, diff)
 		}
 	}
 }

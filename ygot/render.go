@@ -36,55 +36,51 @@ const (
 // path stores the elements of a path for a particular leaf,
 // such that it can be used as a key for maps.
 type path struct {
-	p *pathWrapper
+	p *gnmiPath
 }
 
-// GNMIPathFormat specifies the type of paths that are to be
-// used in gNMI.
-type GNMIPathFormat int64
-
-const (
-	// Unspecified is the uninitialised value of the GNMIPathFormat enumerated
-	// value.
-	InvalidPathFormat GNMIPathFormat = iota
-	// ElementPath indicates that the gNMI <= 0.3.1 path format should be
-	// utilised, this format consists of a slice of string 'elements' within
-	// each message.
-	ElementPath
-	// PathElemPath indicates that the gNMI >= 0.4.0 path format should be
-	// used. This format consists of a slice of gNMI PathElem messages with
-	// a name and set of keys within them.
-	PathElemPath
-)
-
-// pathWrapper provides a wrapper for gNMI path types, particularly
+// gnmiPath provides a wrapper for gNMI path types, particularly
 // containing the Element-based paths which are used in gNMI pre-0.3.1 and
 // PathElem-based paths which are used in gNMI 0.4.0 and above.
-type pathWrapper struct {
-	// pathFormat stores the format of paths that are expected to be stored.
-	pathFormat GNMIPathFormat
-	// elementPath stores a path expressed as a series of scalar elements. On output it is
+type gnmiPath struct {
+	// stringSlicePath stores a path expressed as a series of scalar elements. On output it is
 	// rendered to a []string which is placed in the gNMI element field.
-	elementPath []string
-	// structuredPath stores a path expressed as a series of PathElem messages.
-	structuredPath []*gnmipb.PathElem
+	stringSlicePath []string
+	// pathElemPath stores a path expressed as a series of PathElem messages.
+	pathElemPath []*gnmipb.PathElem
+}
+
+// isValid determines whether a gnmiPath is valid by determing whether the
+// elementPath and structuredPath are both set or both unset.
+func (g *gnmiPath) isValid() bool {
+	if g.stringSlicePath != nil && g.pathElemPath != nil {
+		return false
+	}
+	return true
+}
+
+// isElementPath determines whether the gnmiPath receiver describes a simple
+// string slice path, or a structured path using gnmipb.PathElem values.
+func (g *gnmiPath) isElementPath() bool {
+	return g.stringSlicePath != nil
 }
 
 // GNMINotificationsConfig specifies arguments determining how the
 // gNMI output should be created by ygot.
 type GNMINotificationsConfig struct {
-	// PathFormat specifies the format of paths to be utilised when
-	// generating notifications.
-	PathFormat GNMIPathFormat
+	// UsePathElem specifies whether the elem field of the gNMI Path
+	// message should be used for the paths in the output notification. If
+	// set to false, the element field is used.
+	UsePathElem bool
 	// ElementPrefix stores the prefix that should be used within the
 	// Prefix field of the gNMI Notification message expressed as a slice
 	// of strings as per the path definition in gNMI 0.3.1 and below.
-	// If UsePathElem is set to true, this prefix is ignored.
-	ElementPrefix []string
+	// Used if UsePathElem is unset.
+	StringSlicePrefix []string
 	// PathElemPrefix stores the prefix that should be used withinthe
 	// Prefix field of the gNMI Notification message, expressed as a slice
 	// of PathElem messages. This path format is used by gNMI 0.4.0 and
-	// above. This prefix is only used if UsePathElem is set to true.
+	// above. Used if PathElem is set.
 	PathElemPrefix []*gnmipb.PathElem
 }
 
@@ -94,20 +90,17 @@ type GNMINotificationsConfig struct {
 // in the message if relevant.
 func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*gnmipb.Notification, error) {
 
-	var pfx *pathWrapper
-	switch cfg.PathFormat {
-	case ElementPath:
-		pfx = &pathWrapper{
-			pathFormat:  ElementPath,
-			elementPath: cfg.ElementPrefix,
-		}
-	case PathElemPath:
-		pfx = &pathWrapper{
-			pathFormat:     PathElemPath,
-			structuredPath: cfg.PathElemPrefix,
-		}
-	default:
-		return nil, fmt.Errorf("invalid gNMI path format specified: %v", cfg.PathFormat)
+	pfx := &gnmiPath{
+		stringSlicePath: cfg.StringSlicePrefix,
+		pathElemPath:    cfg.PathElemPrefix,
+	}
+
+	if cfg.UsePathElem && pfx.pathElemPath == nil {
+		pfx.pathElemPath = []*gnmipb.PathElem{}
+	}
+
+	if !cfg.UsePathElem && pfx.stringSlicePath == nil {
+		pfx.stringSlicePath = []string{}
 	}
 
 	leaves := map[*path]interface{}{}
@@ -129,11 +122,11 @@ func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*
 // the GoStruct contains fields that are themselves structured objects (YANG
 // lists, or containers - represented as maps or struct pointers), the function
 // is called recursively on them.
-func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *pathWrapper) error {
+func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPath) error {
 	var errs errlist.List
 
-	if parent.pathFormat != ElementPath && parent.pathFormat != PathElemPath {
-		return fmt.Errorf("invald path type specified: %v", parent.pathFormat)
+	if !parent.isValid() {
+		return fmt.Errorf("invalid parent specified: %v", parent)
 	}
 
 	if s == nil {
@@ -150,7 +143,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *pathWra
 
 		mapPaths, err := structTagToLibPaths(ftype, parent)
 		if err != nil {
-			errs.Add(fmt.Errorf("%s->%s: %v", parent, ftype.Name, err))
+			errs.Add(fmt.Errorf("%v->%s: %v", parent, ftype.Name, err))
 			continue
 		}
 
@@ -166,40 +159,12 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *pathWra
 		case reflect.Map:
 			// We need to map each child along with its key value.
 			for _, k := range fval.MapKeys() {
-				var childPath *pathWrapper
-				switch parent.pathFormat {
-				case ElementPath:
-					keyval, err := keyValueAsString(k.Interface())
-					if err != nil {
-						errs.Add(fmt.Errorf("can't append path element key for %v: %v", mapPaths[0], err))
-						continue
-					}
-					childPath = &pathWrapper{
-						pathFormat: ElementPath,
-					}
-					// We copy the elements from the existing elementPath such that when updating
-					// it, then the elements are not modified when the paths are changed.
-					for _, e := range mapPaths[0].elementPath {
-						childPath.elementPath = append(childPath.elementPath, e)
-					}
-					childPath.elementPath = append(childPath.elementPath, keyval)
-				case PathElemPath:
-					// Similarly, copy the paths when they are structured.
-					childPath = &pathWrapper{
-						pathFormat: PathElemPath,
-					}
-					for _, e := range mapPaths[0].structuredPath {
-						n := *e
-						childPath.structuredPath = append(childPath.structuredPath, &n)
-					}
-
-					var err error
-					childPath, err = appendgNMIPathElemKey(fval.MapIndex(k), childPath)
-					if err != nil {
-						errs.Add(fmt.Errorf("can't append path element key for %v: %v", mapPaths[0], err))
-						continue
-					}
+				childPath, err := mapValuePath(k, fval.MapIndex(k), mapPaths[0])
+				if err != nil {
+					errs.Add(err)
+					continue
 				}
+
 				goStruct, ok := fval.MapIndex(k).Interface().(GoStruct)
 				if !ok {
 					errs.Add(fmt.Errorf("%v: was not a valid GoStruct", mapPaths[0]))
@@ -266,6 +231,38 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *pathWra
 	return errs.Err()
 }
 
+// mapValuePath calculates the gNMI Path of a map element with the specified
+// key and value. The format of the path returned depends on the input format
+// of the parentPath.
+func mapValuePath(key, value reflect.Value, parentPath *gnmiPath) (*gnmiPath, error) {
+	childPath := &gnmiPath{}
+
+	if parentPath == nil {
+		return nil, fmt.Errorf("nil map paths supplied to mapValuePath for %v %v", key.Interface(), value.Interface())
+	}
+
+	if parentPath.isElementPath() {
+		keyval, err := keyValueAsString(key.Interface())
+		if err != nil {
+			return nil, fmt.Errorf("can't append path element key: %v", err)
+		}
+		// We copy the elements from the existing elementPath such that when updating
+		// it, then the elements are not modified when the paths are changed.
+		for _, e := range parentPath.stringSlicePath {
+			childPath.stringSlicePath = append(childPath.stringSlicePath, e)
+		}
+		childPath.stringSlicePath = append(childPath.stringSlicePath, keyval)
+		return childPath, nil
+	}
+
+	for _, e := range parentPath.pathElemPath {
+		n := *e
+		childPath.pathElemPath = append(childPath.pathElemPath, &n)
+	}
+
+	return appendgNMIPathElemKey(value, childPath)
+}
+
 // interfacePathAsgNMIPath takes a path that is specified as a slice of empty interfaces
 // and populates a gNMI path message with the string components. It should be noted that this
 // functionality does not comply with the gNMI specification, and should be updated in the
@@ -289,25 +286,23 @@ func interfacePathAsgNMIPath(p []interface{}, usePathElem bool) (*gnmipb.Path, e
 // appendgNMIPathElemKey takes an input reflect.Value which must implement KeyHelperGoStruct
 // and appends the keys from it to the last entry in the supplied mapPath, which must be a
 // gNMI PathElem message.
-func appendgNMIPathElemKey(v reflect.Value, p *pathWrapper) (*pathWrapper, error) {
+func appendgNMIPathElemKey(v reflect.Value, p *gnmiPath) (*gnmiPath, error) {
 	if p == nil {
 		return nil, fmt.Errorf("nil path supplied")
 	}
 
-	if p.pathFormat != PathElemPath {
-		return nil, fmt.Errorf("invalid path type to append keys: %v", p.pathFormat)
+	if !p.isValid() {
+		return nil, fmt.Errorf("invalid structured path in supplied path: %v", p)
 	}
 
-	if len(p.structuredPath) == 0 {
-		return nil, fmt.Errorf("zero length structured path in supplied path: %v", p)
+	if p.isElementPath() {
+		return nil, fmt.Errorf("invalid path type to append keys: %v", p)
 	}
 
-	np := &pathWrapper{
-		pathFormat: PathElemPath,
-	}
-	np.structuredPath = make([]*gnmipb.PathElem, len(p.structuredPath))
-	copy(np.structuredPath, p.structuredPath)
-	newElem := *np.structuredPath[len(np.structuredPath)-1]
+	np := &gnmiPath{}
+	np.pathElemPath = make([]*gnmipb.PathElem, len(p.pathElemPath))
+	copy(np.pathElemPath, p.pathElemPath)
+	newElem := *np.pathElemPath[len(np.pathElemPath)-1]
 
 	if !v.IsValid() || v.IsNil() {
 		return nil, fmt.Errorf("nil value received for element %v", p)
@@ -331,7 +326,7 @@ func appendgNMIPathElemKey(v reflect.Value, p *pathWrapper) (*pathWrapper, error
 		newElem.Key[kn] = v
 	}
 
-	np.structuredPath[len(np.structuredPath)-1] = &newElem
+	np.pathElemPath[len(np.pathElemPath)-1] = &newElem
 	return np, nil
 }
 
@@ -381,24 +376,22 @@ func sliceToScalarArray(v []interface{}) (*gnmipb.ScalarArray, error) {
 // likely to be suboptimal since it results in very large Notifications for particular
 // structs. There should be some fragmentation of Updates across Notification messages
 // in a future implementation. We return a slice to keep the API stable.
-func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *pathWrapper) ([]*gnmipb.Notification, error) {
+func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath) ([]*gnmipb.Notification, error) {
 	n := &gnmipb.Notification{
 		Timestamp: ts,
 	}
 
 	if pfx != nil {
-		if pfx.pathFormat != ElementPath && pfx.pathFormat != PathElemPath {
-			return nil, fmt.Errorf("invalid path format specified: %v", pfx.pathFormat)
+		if !pfx.isValid() {
+			return nil, fmt.Errorf("invalid path format specified: %v", pfx)
 		}
 
-		switch {
-		case pfx.pathFormat == ElementPath && pfx.elementPath != nil:
+		// If the length of the path was 0, then we leave the values in the
+		// output protobuf message as nil.
+		if len(pfx.stringSlicePath) != 0 || len(pfx.pathElemPath) != 0 {
 			n.Prefix = &gnmipb.Path{
-				Element: pfx.elementPath,
-			}
-		case pfx.pathFormat == PathElemPath && pfx.structuredPath != nil:
-			n.Prefix = &gnmipb.Path{
-				Elem: pfx.structuredPath,
+				Element: pfx.stringSlicePath,
+				Elem:    pfx.pathElemPath,
 			}
 		}
 	}
@@ -412,12 +405,13 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *pathWrap
 		u := &gnmipb.Update{
 			Path: &gnmipb.Path{},
 		}
-		switch pfx.pathFormat {
-		case ElementPath:
-			u.Path.Element = path.elementPath
-		case PathElemPath:
-			u.Path.Elem = path.structuredPath
+
+		if !pfx.isValid() {
+			return nil, err
 		}
+
+		u.Path.Element = path.stringSlicePath
+		u.Path.Elem = path.pathElemPath
 
 		switch val := reflect.ValueOf(v); val.Kind() {
 		case reflect.Slice:
@@ -455,34 +449,35 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *pathWrap
 // stripPrefix removes the prefix pfx from the supplied path, and returns the more
 // specific path elements of the path. If the prefix is invalid for the path an
 // error is return.
-func stripPrefix(path *pathWrapper, pfx *pathWrapper) (*pathWrapper, error) {
-	if path.pathFormat != pfx.pathFormat {
-		return nil, fmt.Errorf("mismatched path formats in prefix and path, %v != %s", path.pathFormat, pfx.pathFormat)
+func stripPrefix(path *gnmiPath, pfx *gnmiPath) (*gnmiPath, error) {
+	if path.isElementPath() != pfx.isElementPath() {
+		return nil, fmt.Errorf("mismatched path formats in prefix and path, isElementPath: %v != %v", path.isElementPath(), pfx.isElementPath())
 	}
 
-	switch path.pathFormat {
-	case ElementPath:
-		for i, e := range pfx.elementPath {
-			if path.elementPath[i] != e {
+	if !path.isValid() || !pfx.isValid() {
+		return nil, fmt.Errorf("invalid paths supplied for stripPrefix: %v, %v", path, pfx)
+	}
+
+	if pfx.isElementPath() {
+		for i, e := range pfx.stringSlicePath {
+			if path.stringSlicePath[i] != e {
 				return nil, fmt.Errorf("prefix is not a prefix of the supplied path, %v is not a subset of %v", pfx, path)
 			}
 		}
-		return &pathWrapper{
-			pathFormat:  ElementPath,
-			elementPath: path.elementPath[len(pfx.elementPath):],
-		}, nil
-	case PathElemPath:
-		for i, e := range pfx.structuredPath {
-			if !proto.Equal(path.structuredPath[i], e) {
-				return nil, fmt.Errorf("prefix is not a prefix of the supplied path, %v is not a subset of %v", pfx, path)
-			}
-		}
-		return &pathWrapper{
-			pathFormat:     PathElemPath,
-			structuredPath: path.structuredPath[len(pfx.structuredPath):],
+		return &gnmiPath{
+			stringSlicePath: path.stringSlicePath[len(pfx.stringSlicePath):],
 		}, nil
 	}
-	return nil, fmt.Errorf("unknown path type supplied: %v", path.pathFormat)
+
+	for i, e := range pfx.pathElemPath {
+		if !proto.Equal(path.pathElemPath[i], e) {
+			return nil, fmt.Errorf("prefix is not a prefix of the supplied path, %v is not a subset of %v", pfx, path)
+		}
+	}
+	return &gnmiPath{
+		pathElemPath: path.pathElemPath[len(pfx.pathElemPath):],
+	}, nil
+
 }
 
 // leaflistToSlice takes a reflect.Value that represents a leaf list in the YANG schema
@@ -699,7 +694,7 @@ func constructJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[str
 			appendModName = true
 		}
 
-		mapPaths, err := structTagToLibPaths(fType, &pathWrapper{pathFormat: ElementPath})
+		mapPaths, err := structTagToLibPaths(fType, &gnmiPath{stringSlicePath: []string{}})
 		if err != nil {
 			errs.Add(fmt.Errorf("%s: %v", fType.Name, err))
 			continue
@@ -721,7 +716,7 @@ func constructJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[str
 
 		for _, p := range mapPaths {
 			v, ok := value.(map[string]interface{})
-			switch len(p.elementPath) {
+			switch len(p.stringSlicePath) {
 			case 0:
 				if ok {
 					// Handle the case that the path is empty, used by the default
@@ -738,17 +733,17 @@ func constructJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[str
 					continue
 				}
 			case 1:
-				pelem := p.elementPath[0]
+				pelem := p.stringSlicePath[0]
 				if appendModName {
-					pelem = fmt.Sprintf("%s:%s", appmod, p.elementPath[0])
+					pelem = fmt.Sprintf("%s:%s", appmod, p.stringSlicePath[0])
 				}
 				jsonout[pelem] = value
 			default:
 				parent := jsonout
-				for i := 0; i < len(p.elementPath)-1; i++ {
+				for i := 0; i < len(p.stringSlicePath)-1; i++ {
 					// For the 0th element, append the module name if it differs to the
 					// parent. All schema compression that is within a GoStruct is intra-module.
-					k := p.elementPath[i]
+					k := p.stringSlicePath[i]
 					if i == 0 && appendModName {
 						k = fmt.Sprintf("%s:%s", appmod, k)
 					}
@@ -757,7 +752,7 @@ func constructJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[str
 					}
 					parent = parent[k].(map[string]interface{})
 				}
-				k := p.elementPath[len(p.elementPath)-1]
+				k := p.stringSlicePath[len(p.stringSlicePath)-1]
 				parent[k] = value
 
 			}

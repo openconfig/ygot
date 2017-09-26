@@ -1032,9 +1032,7 @@ func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
 //	}
 //  }
 func generateGetListKey(buf *bytes.Buffer, s *yangDirectory, nameMap map[string]*yangFieldMap) error {
-	if s.listAttr == nil {
-		// The supplied yangDirectory is an unkeyed list, or a container
-		// therefore we do not generate the helper method for these cases.
+	if !s.isList() {
 		return nil
 	}
 

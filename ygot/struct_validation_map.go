@@ -41,9 +41,9 @@ const (
 // structTagsToLibPaths takes an input struct field as a reflect.Type, and determines
 // the set of validation library paths that it maps to. Returns the paths as a slice of
 // empty interface slices, or an error.
-func structTagToLibPaths(f reflect.StructField, parentPath *pathWrapper) ([]*pathWrapper, error) {
-	if parentPath.pathFormat != ElementPath && parentPath.pathFormat != PathElemPath {
-		return nil, fmt.Errorf("unknown path format: %v", parentPath.pathFormat)
+func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath) ([]*gnmiPath, error) {
+	if !parentPath.isValid() {
+		return nil, fmt.Errorf("invalid path format in parentPath (%v, %v)", parentPath.stringSlicePath == nil, parentPath.pathElemPath == nil)
 	}
 
 	pathAnnotation, ok := f.Tag.Lookup("path")
@@ -51,21 +51,19 @@ func structTagToLibPaths(f reflect.StructField, parentPath *pathWrapper) ([]*pat
 		return nil, fmt.Errorf("field did not specify a path")
 	}
 
-	var mapPaths []*pathWrapper
+	var mapPaths []*gnmiPath
 	tagPaths := strings.Split(pathAnnotation, "|")
 	for _, p := range tagPaths {
 		// Make a copy of the existing parent path so we can append to it without
 		// modifying it for future paths.
-		ePath := &pathWrapper{
-			pathFormat: parentPath.pathFormat,
-		}
-		switch parentPath.pathFormat {
-		case ElementPath:
-			ePath.elementPath = make([]string, len(parentPath.elementPath))
-			copy(ePath.elementPath, parentPath.elementPath)
-		case PathElemPath:
-			ePath.structuredPath = make([]*gnmipb.PathElem, len(parentPath.structuredPath))
-			copy(ePath.structuredPath, parentPath.structuredPath)
+		ePath := &gnmiPath{}
+
+		if parentPath.isElementPath() {
+			ePath.stringSlicePath = make([]string, len(parentPath.stringSlicePath))
+			copy(ePath.stringSlicePath, parentPath.stringSlicePath)
+		} else {
+			ePath.pathElemPath = make([]*gnmipb.PathElem, len(parentPath.pathElemPath))
+			copy(ePath.pathElemPath, parentPath.pathElemPath)
 		}
 
 		for _, pp := range strings.Split(p, "/") {
@@ -73,11 +71,10 @@ func structTagToLibPaths(f reflect.StructField, parentPath *pathWrapper) ([]*pat
 			if pp == "" {
 				continue
 			}
-			switch ePath.pathFormat {
-			case ElementPath:
-				ePath.elementPath = append(ePath.elementPath, pp)
-			case PathElemPath:
-				ePath.structuredPath = append(ePath.structuredPath, &gnmipb.PathElem{Name: pp})
+			if ePath.isElementPath() {
+				ePath.stringSlicePath = append(ePath.stringSlicePath, pp)
+			} else {
+				ePath.pathElemPath = append(ePath.pathElemPath, &gnmipb.PathElem{Name: pp})
 			}
 		}
 		mapPaths = append(mapPaths, ePath)
