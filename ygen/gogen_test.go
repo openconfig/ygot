@@ -655,6 +655,78 @@ func (s *Tstruct) Validate() error {
 `,
 		},
 	}, {
+		name: "missing list definition element",
+		inStructToMap: &yangDirectory{
+			name: "Tstruct",
+			fields: map[string]*yang.Entry{
+				"listWithKey": {
+					Name:     "listWithKey",
+					ListAttr: &yang.ListAttr{},
+					Key:      "keyLeaf",
+					Parent: &yang.Entry{
+						Name: "tstruct",
+						Parent: &yang.Entry{
+							Name: "root-module",
+							Node: &yang.Module{
+								Name: "exmod",
+							},
+						},
+					},
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"keyLeaf": {
+							Name: "keyLeaf",
+							Type: &yang.YangType{Kind: yang.Ystring},
+						},
+					},
+					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+				},
+			},
+			path: []string{"", "root-module", "tstruct"},
+		},
+		inMappableEntities: map[string]*yangDirectory{
+			"/root-module/tstruct/listWithKey": &yangDirectory{},
+		},
+		wantCompressed:   wantGoStructOut{wantErr: true},
+		wantUncompressed: wantGoStructOut{wantErr: true},
+	}, {
+		name: "unknown kind",
+		inStructToMap: &yangDirectory{
+			name: "AStruct",
+			fields: map[string]*yang.Entry{
+				"anydata": &yang.Entry{
+					Name: "anydata",
+					Kind: yang.AnyDataEntry,
+				},
+			},
+		},
+		wantCompressed:   wantGoStructOut{wantErr: true},
+		wantUncompressed: wantGoStructOut{wantErr: true},
+	}, {
+		name: "unknown field type",
+		inStructToMap: &yangDirectory{
+			name: "AStruct",
+			fields: map[string]*yang.Entry{
+				"idd": &yang.Entry{
+					Name: "idd",
+					Type: &yang.YangType{Kind: yang.Yidentityref},
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "container-two",
+							Parent: &yang.Entry{
+								Name: "mod",
+								Node: &yang.Module{},
+							},
+						},
+					},
+				},
+			},
+			path: []string{"", "mod", "container-two", "container"},
+		},
+		wantCompressed:   wantGoStructOut{wantErr: true},
+		wantUncompressed: wantGoStructOut{wantErr: true},
+	}, {
 		name: "struct with multi-key list",
 		inStructToMap: &yangDirectory{
 			name: "Tstruct",

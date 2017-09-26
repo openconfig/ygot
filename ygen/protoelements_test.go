@@ -57,6 +57,27 @@ func TestYangTypeToProtoType(t *testing.T) {
 		wantWrapper: &mappedType{nativeType: "ywrapper.BoolValue"},
 		wantScalar:  &mappedType{nativeType: "bool"},
 	}, {
+		name: "missing leafref path",
+		in: []resolveTypeArgs{
+			{yangType: &yang.YangType{Kind: yang.Yleafref}},
+		},
+		wantErr: true,
+	}, {
+		name: "identityref with no context",
+		in: []resolveTypeArgs{
+			{yangType: &yang.YangType{Kind: yang.Yidentityref}},
+		},
+		wantErr: true,
+	}, {
+		name: "missing leafref path in a union",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{Kind: yang.Yleafref}},
+			},
+		}},
+		wantErr: true,
+	}, {
 		name:        "string",
 		in:          []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ystring}}},
 		wantWrapper: &mappedType{nativeType: "ywrapper.StringValue"},
