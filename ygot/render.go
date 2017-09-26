@@ -381,18 +381,16 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath
 		Timestamp: ts,
 	}
 
-	if pfx != nil {
-		if !pfx.isValid() {
-			return nil, fmt.Errorf("invalid path format specified: %v", pfx)
-		}
+	if !pfx.isValid() {
+		return nil, fmt.Errorf("invalid path format specified: %v", pfx)
+	}
 
-		// If the length of the path was 0, then we leave the values in the
-		// output protobuf message as nil.
-		if len(pfx.stringSlicePath) != 0 || len(pfx.pathElemPath) != 0 {
-			n.Prefix = &gnmipb.Path{
-				Element: pfx.stringSlicePath,
-				Elem:    pfx.pathElemPath,
-			}
+	// If the length of the path was 0, then we leave the values in the
+	// output protobuf message as nil.
+	if len(pfx.stringSlicePath) != 0 || len(pfx.pathElemPath) != 0 {
+		n.Prefix = &gnmipb.Path{
+			Element: pfx.stringSlicePath,
+			Elem:    pfx.pathElemPath,
 		}
 	}
 
