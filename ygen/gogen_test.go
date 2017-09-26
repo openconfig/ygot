@@ -1076,6 +1076,7 @@ func TestFindMapPaths(t *testing.T) {
 		inStruct          *yangDirectory
 		inField           *yang.Entry
 		inCompressOCPaths bool
+		inAbsolutePaths   bool
 		wantPaths         [][]string
 		wantErr           bool
 	}{{
@@ -1203,7 +1204,7 @@ func TestFindMapPaths(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressOCPaths)
+		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressOCPaths, tt.inAbsolutePaths)
 		if err != nil {
 			if !tt.wantErr {
 				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, got unexpected error: %v",

@@ -18,23 +18,24 @@ import (
 	"fmt"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // Unmarshal recursively unmarshals JSON data tree in value into the given
 // parent, using the given schema. Any values already in the parent that are
 // not present in value are preserved.
 func Unmarshal(schema *yang.Entry, parent interface{}, value interface{}) error {
-	indent()
-	defer dedent()
+	util.Indent()
+	defer util.Dedent()
 
 	// Nil value means the field is unset.
-	if isNil(value) {
+	if util.IsValueNil(value) {
 		return nil
 	}
 	if schema == nil {
 		return fmt.Errorf("nil schema for parent type %T, value %v (%T)", parent, value, value)
 	}
-	dbgPrint("Unmarshal value %v, type %T, into parent type %T, schema name %s", valueStr(value), value, parent, schema.Name)
+	util.DbgPrint("Unmarshal value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, schema.Name)
 
 	switch {
 	case schema.IsLeaf():

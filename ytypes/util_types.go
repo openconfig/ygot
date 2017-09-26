@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package ytypes
 
 import (
@@ -18,6 +19,7 @@ import (
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 
 	log "github.com/golang/glog"
@@ -27,7 +29,7 @@ import (
 // of type fieldName maps to in the parent, which must be a struct ptr.
 func enumStringToIntValue(parent interface{}, fieldName, value string) (int64, error) {
 	v := reflect.ValueOf(parent)
-	if !IsValueStructPtr(v) {
+	if !util.IsValueStructPtr(v) {
 		return 0, fmt.Errorf("enumStringToIntValue: %T is not a struct ptr", parent)
 	}
 	field := v.Elem().FieldByName(fieldName)
@@ -99,6 +101,8 @@ func yangBuiltinTypeToGoType(t yang.TypeKind) interface{} {
 		return float64(0)
 	case yang.Ybinary:
 		return []byte(nil)
+	case yang.Yenum, yang.Yidentityref:
+		return int64(0)		
 	default:
 		// TODO(mostrowski): handle bitset.
 		log.Errorf("unexpected type %v in yangBuiltinTypeToGoPtrType", t)

@@ -124,6 +124,10 @@ type ProtoOpts struct {
 	// definition of the extension messages that are used to annotat the
 	// generated protobuf messages.
 	YextPath string
+	// AnnotateSchemaPaths specifies whether the extensions defined in
+	// yext.proto should be used to annotate schema paths into the output
+	// protobuf file.
+	AnnotateSchemaPaths bool
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -339,7 +343,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		structSnippets = appendIfNotEmpty(structSnippets, structOut.interfaces)
 	}
 
-	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths)
+	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, false)
 	if errs != nil {
 		codegenErr.Errors = append(codegenErr.Errors, errs...)
 		return nil, codegenErr
@@ -428,7 +432,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 	cg.state.schematree = mdef.schemaTree
 
-	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths)
+	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, true)
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
@@ -497,10 +501,11 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		m := msgMap[n]
 
 		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, protoMsgConfig{
-			compressPaths:   cg.Config.CompressOCPaths,
-			basePackageName: basePackageName,
-			enumPackageName: enumPackageName,
-			baseImportPath:  cg.Config.ProtoOptions.BaseImportPath,
+			compressPaths:       cg.Config.CompressOCPaths,
+			basePackageName:     basePackageName,
+			enumPackageName:     enumPackageName,
+			baseImportPath:      cg.Config.ProtoOptions.BaseImportPath,
+			annotateSchemaPaths: cg.Config.ProtoOptions.AnnotateSchemaPaths,
 		})
 
 		if errs != nil {

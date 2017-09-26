@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package ytypes implements YANG type validation logic.
-// TODO(b/65052436): split this file up into logical units.
 package ytypes
 
 import (

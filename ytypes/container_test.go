@@ -24,6 +24,15 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+// errToString returns the string representation of err and the empty string if
+// err is nil.
+func errToString(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
+
 type ContainerStruct struct {
 	Leaf1Name *string `path:"config/leaf1|leaf1"`
 	Leaf2Name *string `path:"leaf2"`

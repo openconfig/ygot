@@ -196,20 +196,26 @@ type Union1 interface {
 	IsUnion1()
 }
 
-type Union1Leaf1 struct {
-	Leaf1 *string
+type Union1String struct {
+	String *string
 }
 
-func (Union1Leaf1) IsUnion1() {}
+func (Union1String) IsUnion1() {}
 
-type Union1Leaf2 struct {
-	Leaf2 *int16
+type Union1Int16 struct {
+	Int16 *int16
 }
 
-func (Union1Leaf2) IsUnion1() {}
+func (Union1Int16) IsUnion1() {}
+
+type Union1EnumType struct {
+	EnumType EnumType
+}
+
+func (Union1EnumType) IsUnion1() {}
 
 type Union1BadLeaf struct {
-	Leaf3 *float32
+	BadLeaf *float32
 }
 
 func (Union1BadLeaf) IsUnion1() {}
@@ -229,16 +235,21 @@ func TestValidateLeafUnion(t *testing.T) {
 				Name: "union1",
 				Kind: yang.LeafEntry,
 				Type: &yang.YangType{
+					Name: "union1-type",
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "leaf1",
+							Name:    "string",
 							Kind:    yang.Ystring,
 							Pattern: []string{"a+"},
 						},
 						{
-							Name: "leaf2",
+							Name: "int16",
 							Kind: yang.Yint16,
+						},
+						{
+							Name: "enum",
+							Kind: yang.Yenum,
 						},
 					},
 				},
@@ -259,12 +270,12 @@ func TestValidateLeafUnion(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "leaf1",
+							Name:    "string",
 							Kind:    yang.Ystring,
 							Pattern: []string{"a+"},
 						},
 						{
-							Name:    "leaf2",
+							Name:    "int16",
 							Kind:    yang.Ystring,
 							Pattern: []string{"b+"},
 						},
@@ -285,21 +296,21 @@ func TestValidateLeafUnion(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "leaf1",
+							Name:    "string",
 							Kind:    yang.Ystring,
 							Pattern: []string{"a+"},
 						},
 						{
-							Name:    "leaf2",
+							Name:    "int16",
 							Kind:    yang.Ystring,
 							Pattern: []string{"b+"},
 						},
 						{
-							Name: "leaf3",
+							Name: "bad-leaf",
 							Kind: yang.Yunion,
 							Type: []*yang.YangType{
 								{
-									Name:    "leaf3",
+									Name:    "bad-leaf",
 									Kind:    yang.Ystring,
 									Pattern: []string{"c+"},
 								},
@@ -318,39 +329,44 @@ func TestValidateLeafUnion(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			desc:   "success leaf1",
+			desc:   "success string",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1Leaf1{Leaf1: ygot.String("aaa")}},
+			val:    &UnionContainer{UnionField: &Union1String{String: ygot.String("aaa")}},
 		},
 		{
-			desc:   "success leaf2",
+			desc:   "success int16",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1Leaf2{Leaf2: ygot.Int16(1)}},
+			val:    &UnionContainer{UnionField: &Union1Int16{Int16: ygot.Int16(1)}},
+		},
+		{
+			desc:   "success enum",
+			schema: unionContainerSchema,
+			val:    &UnionContainer{UnionField: &Union1EnumType{EnumType: 42}},
 		},
 		{
 			desc:    "bad regex",
 			schema:  unionContainerSchema,
-			val:     &UnionContainer{UnionField: &Union1Leaf1{Leaf1: ygot.String("bbb")}},
+			val:     &UnionContainer{UnionField: &Union1String{String: ygot.String("bbb")}},
 			wantErr: true,
 		},
 		{
 			desc:    "bad type",
 			schema:  unionContainerSchema,
-			val:     &UnionContainer{UnionField: &Union1BadLeaf{Leaf3: ygot.Float32(0)}},
+			val:     &UnionContainer{UnionField: &Union1BadLeaf{BadLeaf: ygot.Float32(0)}},
 			wantErr: true,
 		},
 		{
-			desc:   "success no wrapping struct leaf1",
+			desc:   "success no wrapping struct string",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
 		},
 		{
-			desc:   "success no wrapping struct leaf2",
+			desc:   "success no wrapping struct int16",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("bbb")},
 		},
 		{
-			desc:   "success no wrapping struct leaf1",
+			desc:   "success no wrapping struct string",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
 		},

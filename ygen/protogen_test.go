@@ -57,6 +57,7 @@ func TestGenProto3Msg(t *testing.T) {
 		inBasePackage          string
 		inEnumPackage          string
 		inBaseImportPath       string
+		inAnnotateSchemaPaths  bool
 		wantMsgs               map[string]protoMsg
 		wantErr                bool
 	}{{
@@ -315,6 +316,54 @@ func TestGenProto3Msg(t *testing.T) {
 				}},
 			},
 		},
+	}, {
+		name: "message with annotate schema paths enabled",
+		inMsg: &yangDirectory{
+			name: "MessageWithAnnotations",
+			entry: &yang.Entry{
+				Name: "message-with-annotations",
+				Kind: yang.DirectoryEntry,
+				Dir:  map[string]*yang.Entry{},
+				Parent: &yang.Entry{
+					Name: "two",
+					Parent: &yang.Entry{
+						Name: "one",
+					},
+				},
+			},
+			fields: map[string]*yang.Entry{
+				"leaf": {
+					Name: "leaf",
+					Kind: yang.LeafEntry,
+					Type: &yang.YangType{Kind: yang.Ystring},
+					Parent: &yang.Entry{
+						Name: "two",
+						Parent: &yang.Entry{
+							Name: "one",
+						},
+					},
+				},
+			},
+			path: []string{"", "one", "two"},
+		},
+		inBasePackage:         "base",
+		inEnumPackage:         "enums",
+		inAnnotateSchemaPaths: true,
+		wantMsgs: map[string]protoMsg{
+			"MessageWithAnnotations": protoMsg{
+				Name:     "MessageWithAnnotations",
+				YANGPath: "/one/two",
+				Fields: []*protoMsgField{{
+					Name: "leaf",
+					Tag:  60047678,
+					Type: "ywrapper.StringValue",
+					Options: []*protoOption{{
+						Name:  "(yext.schemapath)",
+						Value: `"/two/leaf"`,
+					}},
+				}},
+			},
+		},
 	}}
 
 	for _, tt := range tests {
@@ -323,10 +372,11 @@ func TestGenProto3Msg(t *testing.T) {
 		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, protoMsgConfig{
-			compressPaths:   tt.inCompressPaths,
-			basePackageName: tt.inBasePackage,
-			enumPackageName: tt.inEnumPackage,
-			baseImportPath:  tt.inBaseImportPath,
+			compressPaths:       tt.inCompressPaths,
+			basePackageName:     tt.inBasePackage,
+			enumPackageName:     tt.inEnumPackage,
+			baseImportPath:      tt.inBaseImportPath,
+			annotateSchemaPaths: tt.inAnnotateSchemaPaths,
 		})
 
 		if (errs != nil) != tt.wantErr {
@@ -833,7 +883,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module-name/message-name YANG schema element.
 message MessageName {
-  base.enums.TestModule_FooIdentity identityref = 518954308;
+  base.enums.TestModuleFooIdentity identityref = 518954308;
 }
 `,
 		},
@@ -842,7 +892,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module-name/message-name YANG schema element.
 message MessageName {
-  base.enums.TestModule_FooIdentity identityref = 518954308;
+  base.enums.TestModuleFooIdentity identityref = 518954308;
 }
 `,
 		},
@@ -946,9 +996,9 @@ func TestWriteProtoEnums(t *testing.T) {
 			`
 // EnumeratedValue represents an enumerated type generated for the YANG identity IdentityValue.
 enum EnumeratedValue {
-  EnumeratedValue_UNSET = 0;
-  EnumeratedValue_VALUE_A = 1;
-  EnumeratedValue_VALUE_B = 2;
+  ENUMERATEDVALUE_UNSET = 0;
+  ENUMERATEDVALUE_VALUE_A = 1;
+  ENUMERATEDVALUE_VALUE_B = 2;
 }
 `,
 		},
@@ -964,6 +1014,9 @@ enum EnumeratedValue {
 						Kind: yang.Yenum,
 						Enum: testYANGEnums["enumOne"],
 					},
+					Annotation: map[string]interface{}{
+						"valuePrefix": []string{"enum-name"},
+					},
 				},
 			},
 			"f": &yangEnum{
@@ -975,6 +1028,9 @@ enum EnumeratedValue {
 						Kind: yang.Yenum,
 						Enum: testYANGEnums["enumTwo"],
 					},
+					Annotation: map[string]interface{}{
+						"valuePrefix": []string{"secondenum"},
+					},
 				},
 			},
 		},
@@ -982,16 +1038,16 @@ enum EnumeratedValue {
 			`
 // EnumName represents an enumerated type generated for the YANG enumerated type typedef.
 enum EnumName {
-  EnumName_UNSET = 0;
-  EnumName_SPEED_2_5G = 1;
-  EnumName_SPEED_40G = 2;
+  ENUMNAME_UNSET = 0;
+  ENUMNAME_SPEED_2_5G = 1;
+  ENUMNAME_SPEED_40G = 2;
 }
 `, `
 // SecondEnum represents an enumerated type generated for the YANG enumerated type derived.
 enum SecondEnum {
-  SecondEnum_UNSET = 0;
-  SecondEnum_VALUE_1 = 1;
-  SecondEnum_VALUE_2 = 2;
+  SECONDENUM_UNSET = 0;
+  SECONDENUM_VALUE_1 = 1;
+  SECONDENUM_VALUE_2 = 2;
 }
 `,
 		},

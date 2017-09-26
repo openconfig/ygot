@@ -51,17 +51,28 @@ const (
 	// defaultYextPath defines the default import path for the yext.proto file, excluding
 	// the filename.
 	DefaultYextPath = "github.com/openconfig/ygot/proto/yext"
+	// protoSchemaAnnotationOption specifies the name of the FieldOption used to annotate
+	// schemapaths into a protobuf message.
+	protoSchemaAnnotationOption = "(yext.schemapath)"
 )
 
 // protoMsgField describes a field of a protobuf message.
 type protoMsgField struct {
-	Tag         uint32            // Tag is the field number that should be used in the protobuf message.
-	Name        string            // Name is the field's name.
-	Type        string            // Type is the protobuf type for the field.
-	IsRepeated  bool              // IsRepeated indicates whether the field is repeated.
-	Extensions  map[string]string // Extensions is the set of field tags that are applied to the field.
-	IsOneOf     bool              // IsOneOf indicates that the field is a oneof and hence consists of multiple subfields.
-	OneOfFields []*protoMsgField  // OneOfFields contains the set of fields within the oneof
+	Tag         uint32           // Tag is the field number that should be used in the protobuf message.
+	Name        string           // Name is the field's name.
+	Type        string           // Type is the protobuf type for the field.
+	IsRepeated  bool             // IsRepeated indicates whether the field is repeated.
+	Options     []*protoOption   //Extensions is the set of field extensions that should be specified for the field.
+	IsOneOf     bool             // IsOneOf indicates that the field is a oneof and hence consists of multiple subfields.
+	OneOfFields []*protoMsgField // OneOfFields contains the set of fields within the oneof
+}
+
+// protoOption describes a protobuf (message or field) option.
+type protoOption struct {
+	// Name is the protobuf option's name.
+	Name string
+	// Value is the protobuf option's value.
+	Value string
 }
 
 // protoMsg describes a protobuf message.
@@ -84,6 +95,7 @@ type protoEnum struct {
 	Name        string           // Name is the enumeration's name within the protobuf package.
 	Description string           // Description is a string description of the enumerated type within the YANG schema, used in comments.
 	Values      map[int64]string // Values contains the string names, keyed by enum value, that the enumerated type can take.
+	ValuePrefix string           // ValuePrefix contains the string prefix that should be prepended to each value within the enumerated type.
 }
 
 // proto3Header describes the header of a Protobuf3 package.
@@ -148,11 +160,11 @@ message {{ .Name }} {
   {{- else -}}
   {{ if $field.IsRepeated }}repeated {{ end -}}
   {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }}
-  {{- $noExtensions := len .Extensions -}}
-  {{- if ne $noExtensions 0 -}} [
-    {{- range $i, $opt := $field.Extensions -}}
-      {{- $opt -}}
-      {{- if ne (inc $i) $noExtensions -}}, {{- end }}
+  {{- $noOptions := len .Options -}}
+  {{- if ne $noOptions 0 }} [
+    {{- range $i, $opt := $field.Options -}}
+      {{- $opt.Name }} = {{ $opt.Value -}}
+      {{- if ne (inc $i) $noOptions -}}, {{- end }}
    {{- end -}}
   ]
   {{- end -}}
@@ -172,7 +184,7 @@ message {{ .Name }} {
 {{- range $ename, $enum := .Enums }}
   enum {{ $ename }} {
     {{- range $i, $val := $enum.Values }}
-    {{ $ename }}_{{ $val }} = {{ $i }};
+    {{ toUpper $ename }}_{{ $val }} = {{ $i }};
     {{- end }}
   }
 {{- end -}}
@@ -184,7 +196,16 @@ message {{ .Name }} {
     {{- end }}
   }
   {{- else -}}
-  {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }};
+  {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }}
+  {{- $noOptions := len .Options -}}
+  {{- if ne $noOptions 0 }} [
+    {{- range $i, $opt := $field.Options -}}
+      {{- $opt.Name }} = {{ $opt.Value -}}
+      {{- if ne (inc $i) $noOptions -}}, {{- end }}
+   {{- end -}}
+  ]
+  {{- end -}}
+  ;
   {{- end }}
 {{- end -}}
 }
@@ -197,7 +218,7 @@ message {{ .Name }} {
 // {{ .Name }} represents an enumerated type generated for the {{ .Description }}.
 enum {{ .Name }} {
 {{- range $i, $val := .Values }}
-  {{ $.Name }}_{{ $val }} = {{ $i }};
+  {{ toUpper $.ValuePrefix }}_{{ $val }} = {{ $i }};
 {{- end }}
 }
 `
@@ -242,10 +263,11 @@ type generatedProto3Message struct {
 
 // protoMsgConfig defines the set of configuration options required to generate a Protobuf message.
 type protoMsgConfig struct {
-	compressPaths   bool   // compressPaths indicates whether path compression should be enabled.
-	basePackageName string // basePackageName specifies the package name that is the base for all child packages.
-	enumPackageName string // enumPackageName specifies the package in which global enum definitions are specified.
-	baseImportPath  string // baseImportPath specifies the path that should be used for importing the generated files.
+	compressPaths       bool   // compressPaths indicates whether path compression should be enabled.
+	basePackageName     string // basePackageName specifies the package name that is the base for all child packages.
+	enumPackageName     string // enumPackageName specifies the package in which global enum definitions are specified.
+	baseImportPath      string // baseImportPath specifies the path that should be used for importing the generated files.
+	annotateSchemaPaths bool   // annotateSchemaPaths uses the yext protobuf field extensions to annotate the paths from the schema into the output protobuf.
 }
 
 // writeProto3Message outputs the generated Protobuf3 code for a particular protobuf message. It takes:
@@ -297,6 +319,7 @@ func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *g
 // current generator state to map to other messages and ensure uniqueness of names.
 // The configuration parameters for the current code generation required are supplied
 // as a protoMsgConfig struct.
+// TODO(robjs): Split the logic of this function into multiple subfunctions.
 func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg protoMsgConfig) ([]protoMsg, []error) {
 	var errs []error
 
@@ -348,12 +371,13 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 		switch {
 		case field.IsList():
 			fieldType, keyMsg, err := protoListDefinition(protoDefinitionArgs{
-				field:              field,
-				definedDirectories: msgs,
-				state:              state,
-				compressPaths:      cfg.compressPaths,
-				basePackageName:    cfg.basePackageName,
-				baseImportPath:     cfg.baseImportPath,
+				field:               field,
+				definedDirectories:  msgs,
+				state:               state,
+				compressPaths:       cfg.compressPaths,
+				basePackageName:     cfg.basePackageName,
+				baseImportPath:      cfg.baseImportPath,
+				annotateSchemaPaths: cfg.annotateSchemaPaths,
 			})
 
 			if err != nil {
@@ -432,6 +456,15 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 			err = fmt.Errorf("proto: unknown field type in message %s, field %s", msg.name, field.Name)
 		}
 
+		if cfg.annotateSchemaPaths {
+			o, err := protoSchemaPathAnnotation(msg, field, cfg.compressPaths)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			fieldDef.Options = append(fieldDef.Options, o)
+		}
+
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -446,15 +479,16 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 
 // protoDefinitionArgs is used as the input argument when YANG is being mapped to protobuf.
 type protoDefinitionArgs struct {
-	field              *yang.Entry               // field is the yang.Entry for which the proto output is being defined, in the case that the definition is for an individual entry.
-	directory          *yangDirectory            // directory is the yangDirectory for which the proto output is being defined, in the case that the definition is for an directory entry.
-	definedDirectories map[string]*yangDirectory // definedDirectories specifies the set of yangDirectories that have been defined in the current code generation context.
-	definedFieldNames  map[string]bool           // definedFieldNames specifies the field names that have been defined in the context.
-	state              *genState                 //state is the current generator state.
-	basePackageName    string                    // basePackageName is the name of the base protobuf package being output.
-	enumPackageName    string                    // enumPackageName is the name of the package that global enumerated types are defined in.
-	baseImportPath     string                    // baseImportPath is the path to be used as the root for imports of generated packages.
-	compressPaths      bool                      // compressPaths defines whether path compression is enabled for the current code generation context.
+	field               *yang.Entry               // field is the yang.Entry for which the proto output is being defined, in the case that the definition is for an individual entry.
+	directory           *yangDirectory            // directory is the yangDirectory for which the proto output is being defined, in the case that the definition is for an directory entry.
+	definedDirectories  map[string]*yangDirectory // definedDirectories specifies the set of yangDirectories that have been defined in the current code generation context.
+	definedFieldNames   map[string]bool           // definedFieldNames specifies the field names that have been defined in the context.
+	state               *genState                 //state is the current generator state.
+	basePackageName     string                    // basePackageName is the name of the base protobuf package being output.
+	enumPackageName     string                    // enumPackageName is the name of the package that global enumerated types are defined in.
+	baseImportPath      string                    // baseImportPath is the path to be used as the root for imports of generated packages.
+	compressPaths       bool                      // compressPaths defines whether path compression is enabled for the current code generation context.
+	annotateSchemaPaths bool                      // annotateSchemaPaths defines whether fields should have their schema path annotated to them.
 }
 
 // writeProtoEnums takes a map of enumerations, described as yangEnum structs, and returns
@@ -484,7 +518,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 			// causes an entry earlier in the sequence than others.
 			names := []string{}
 			for _, v := range enum.entry.Type.IdentityBase.Values {
-				names = append(names, safeProtoIdentifierName(v.Name))
+				names = append(names, strings.ToUpper(safeProtoIdentifierName(v.Name)))
 			}
 			sort.Strings(names)
 
@@ -492,6 +526,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 				values[int64(i)+1] = n
 			}
 			p.Values = values
+			p.ValuePrefix = enum.name
 			p.Description = fmt.Sprintf("YANG identity %s", enum.entry.Type.IdentityBase.Name)
 		case enum.entry.Type.Kind == yang.Yenum:
 			ge, err := genProtoEnum(enum.entry)
@@ -500,6 +535,21 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 				continue
 			}
 			p.Values = ge.Values
+
+			// If the supplied enum entry has the valuePrefix annotation then use it to
+			// calculate the enum value names.
+			p.ValuePrefix = enum.name
+			if e, ok := enum.entry.Annotation["valuePrefix"]; ok {
+				t, ok := e.([]string)
+				if ok {
+					pp := []string{}
+					for _, pe := range t {
+						pp = append(pp, safeProtoIdentifierName(yang.CamelCase(pe)))
+					}
+					p.ValuePrefix = strings.Join(pp, "_")
+				}
+			}
+
 			p.Description = fmt.Sprintf("YANG enumerated type %s", enum.entry.Type.Name)
 		case len(enum.entry.Type.Type) != 0:
 			errs = append(errs, fmt.Errorf("unimplemented: support for multiple enumerations within a union for %v", enum.name))
@@ -581,12 +631,13 @@ func protoListDefinition(args protoDefinitionArgs) (string, *protoMsg, error) {
 		// TODO(robjs): Link to the published transformation specification.
 		var err error
 		listKeyMsg, err = genListKeyProto(childPkg, listMsgName, protoDefinitionArgs{
-			field:           args.field,
-			directory:       listMsg,
-			state:           args.state,
-			basePackageName: args.basePackageName,
-			enumPackageName: args.enumPackageName,
-			baseImportPath:  args.baseImportPath,
+			field:               args.field,
+			directory:           listMsg,
+			state:               args.state,
+			basePackageName:     args.basePackageName,
+			enumPackageName:     args.enumPackageName,
+			baseImportPath:      args.baseImportPath,
+			annotateSchemaPaths: args.annotateSchemaPaths,
 		})
 		if err != nil {
 			return "", nil, fmt.Errorf("proto: could not build mapping for list entry %s: %v", args.field.Path(), err)
@@ -775,6 +826,14 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 			fd.Type = scalarType.nativeType
 		}
 
+		if args.annotateSchemaPaths {
+			o, err := protoSchemaPathAnnotation(args.directory, kf, args.compressPaths)
+			if err != nil {
+				return nil, err
+			}
+			fd.Options = append(fd.Options, o)
+		}
+
 		km.Fields = append(km.Fields, fd)
 		ctag++
 	}
@@ -893,4 +952,24 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType) (*pro
 func protoPackageToFilePath(pkg string) []string {
 	pp := strings.Split(pkg, ".")
 	return append(pp[:len(pp)-1], fmt.Sprintf("%s.proto", pp[len(pp)-1]))
+}
+
+// protoSchemaPathAnnotation takes a protobuf message and field, and returns the protobuf
+// field option definitions required to annotate it with its schema path(s).
+func protoSchemaPathAnnotation(msg *yangDirectory, field *yang.Entry, compressPaths bool) (*protoOption, error) {
+	// protobuf paths are always absolute.
+	smapp, err := findMapPaths(msg, field, compressPaths, true)
+	if err != nil {
+		return nil, err
+	}
+	var b bytes.Buffer
+	b.WriteRune('"')
+	for i, p := range smapp {
+		b.WriteString(slicePathToString(p))
+		if i != len(smapp)-1 {
+			b.WriteString("|")
+		}
+	}
+	b.WriteRune('"')
+	return &protoOption{Name: protoSchemaAnnotationOption, Value: b.String()}, nil
 }
