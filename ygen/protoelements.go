@@ -23,6 +23,8 @@ import (
 
 // resolveProtoTypeArgs specifies input parameters required for resolving types
 // from YANG to protobuf.
+// TODO(robjs): Consider embedding resolveProtoTypeArgs in this struct per
+// discussion in https://github.com/openconfig/ygot/pull/57.
 type resolveProtoTypeArgs struct {
 	// basePackageNAme is the name of the package within which all generated packages
 	// are to be generated.
@@ -44,7 +46,8 @@ type resolveProtoTypeArgs struct {
 // The type returned is a wrapper protobuf such that in proto3 an unset field
 // can be distinguished from one set to the nil value.
 //
-// TODO(robjs): Add a link to the translation specification when published.
+// See https://github.com/openconfig/ygot/blob/master/docs/yang-to-protobuf-transformations-spec.md
+// for additional details as to the transformation from YANG to Protobuf.
 func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*mappedType, error) {
 	// Handle typedef cases.
 	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
