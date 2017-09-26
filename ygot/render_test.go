@@ -261,6 +261,35 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		wantPath *gnmiPath
 		wantErr  bool
 	}{{
+		name: "invalid path",
+		inValue: reflect.ValueOf(&pathElemExampleChild{
+			Val: String("foo"),
+		}),
+		inPath:  &gnmiPath{},
+		wantErr: true,
+	}, {
+		name: "invalid path - both specified",
+		inValue: reflect.ValueOf(&pathElemExampleChild{
+			Val: String("bar"),
+		}),
+		inPath: &gnmiPath{
+			stringSlicePath: []string{"fish"},
+			pathElemPath:    []*gnmipb.PathElem{{Name: "bar"}},
+		},
+		wantErr: true,
+	}, {
+		name: "zero length input path",
+		inValue: reflect.ValueOf(&pathElemExampleChild{
+			Val: String("bar"),
+		}),
+		inPath:  &gnmiPath{pathElemPath: []*gnmipb.PathElem{}},
+		wantErr: true,
+	}, {
+		name:    "invalid struct input",
+		inValue: reflect.ValueOf(&struct{ Fish string }{"haddock"}),
+		inPath:  &gnmiPath{pathElemPath: []*gnmipb.PathElem{{Name: "bar"}}},
+		wantErr: true,
+	}, {
 		name: "simple append",
 		inValue: reflect.ValueOf(&pathElemExampleChild{
 			Val: String("foo"),
@@ -407,6 +436,7 @@ type Binary []byte
 type renderExample struct {
 	Str           *string                             `path:"str"`
 	IntVal        *int32                              `path:"int-val"`
+	FloatVal      *float32                            `path:"floatval"`
 	EnumField     EnumTest                            `path:"enum"`
 	Ch            *renderExampleChild                 `path:"ch"`
 	LeafList      []string                            `path:"leaf-list"`
@@ -588,6 +618,17 @@ func TestTogNMINotifications(t *testing.T) {
 			}},
 		}},
 	}, {
+		name:        "simple float value leaf example",
+		inTimestamp: 42,
+		inStruct:    &renderExample{FloatVal: Float32(42.0)},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"floatval"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{42.0}},
+			}},
+		}},
+	}, {
 		name:        "struct with invalid GoStruct map",
 		inTimestamp: 42,
 		inStruct: &renderExample{
@@ -693,7 +734,7 @@ func TestTogNMINotifications(t *testing.T) {
 		inStruct: &renderExample{MixedList: []interface{}{
 			42.42, int8(-42), int16(-84), int32(-168), int64(-336),
 			uint8(12), uint16(144), uint32(20736), uint64(429981696),
-			true, EnumTestVALTWO,
+			true, EnumTestVALTWO, float32(42.0),
 		}},
 		want: []*gnmipb.Notification{{
 			Timestamp: 720,
@@ -724,6 +765,8 @@ func TestTogNMINotifications(t *testing.T) {
 								Value: &gnmipb.TypedValue_BoolVal{true},
 							}, {
 								Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"},
+							}, {
+								Value: &gnmipb.TypedValue_FloatVal{42.0},
 							}},
 						},
 					},
@@ -814,6 +857,20 @@ func TestTogNMINotifications(t *testing.T) {
 			},
 		},
 		wantErr: true, //unimplemented.
+	}, {
+		name:        "invalid element in leaf-list",
+		inTimestamp: 42,
+		inStruct: &renderExample{
+			MixedList: []interface{}{struct{ Foo string }{"bar"}},
+		},
+		wantErr: true,
+	}, {
+		name:        "invalid slice within a slice",
+		inTimestamp: 42,
+		inStruct: &renderExample{
+			MixedList: []interface{}{[]string{"foo"}},
+		},
+		wantErr: true,
 	}, {
 		name:        "simple pathElemExample",
 		inTimestamp: 42,

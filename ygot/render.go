@@ -59,10 +59,16 @@ func (g *gnmiPath) isValid() bool {
 	return true
 }
 
-// isElementPath determines whether the gnmiPath receiver describes a simple
+// isStringSlicePath determines whether the gnmiPath receiver describes a simple
 // string slice path, or a structured path using gnmipb.PathElem values.
-func (g *gnmiPath) isElementPath() bool {
+func (g *gnmiPath) isStringSlicePath() bool {
 	return g.stringSlicePath != nil
+}
+
+// isPathElemPath determines whether the gnmiPath receiver describes a structured
+// PathElem based gNMI path.
+func (g *gnmiPath) isPathElemPath() bool {
+	return g.pathElemPath != nil
 }
 
 // GNMINotificationsConfig specifies arguments determining how the
@@ -241,7 +247,7 @@ func mapValuePath(key, value reflect.Value, parentPath *gnmiPath) (*gnmiPath, er
 		return nil, fmt.Errorf("nil map paths supplied to mapValuePath for %v %v", key.Interface(), value.Interface())
 	}
 
-	if parentPath.isElementPath() {
+	if parentPath.isStringSlicePath() {
 		keyval, err := keyValueAsString(key.Interface())
 		if err != nil {
 			return nil, fmt.Errorf("can't append path element key: %v", err)
@@ -295,8 +301,12 @@ func appendgNMIPathElemKey(v reflect.Value, p *gnmiPath) (*gnmiPath, error) {
 		return nil, fmt.Errorf("invalid structured path in supplied path: %v", p)
 	}
 
-	if p.isElementPath() {
+	if p.isStringSlicePath() || !p.isPathElemPath() {
 		return nil, fmt.Errorf("invalid path type to append keys: %v", p)
+	}
+
+	if len(p.pathElemPath) == 0 {
+		return nil, fmt.Errorf("invalid path element path length, can't append keys to 0 length path: %v", p.pathElemPath)
 	}
 
 	np := &gnmiPath{}
@@ -448,15 +458,15 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath
 // specific path elements of the path. If the prefix is invalid for the path an
 // error is return.
 func stripPrefix(path *gnmiPath, pfx *gnmiPath) (*gnmiPath, error) {
-	if path.isElementPath() != pfx.isElementPath() {
-		return nil, fmt.Errorf("mismatched path formats in prefix and path, isElementPath: %v != %v", path.isElementPath(), pfx.isElementPath())
+	if path.isStringSlicePath() != pfx.isStringSlicePath() {
+		return nil, fmt.Errorf("mismatched path formats in prefix and path, isElementPath: %v != %v", path.isStringSlicePath(), pfx.isStringSlicePath())
 	}
 
 	if !path.isValid() || !pfx.isValid() {
 		return nil, fmt.Errorf("invalid paths supplied for stripPrefix: %v, %v", path, pfx)
 	}
 
-	if pfx.isElementPath() {
+	if pfx.isStringSlicePath() {
 		for i, e := range pfx.stringSlicePath {
 			if path.stringSlicePath[i] != e {
 				return nil, fmt.Errorf("prefix is not a prefix of the supplied path, %v is not a subset of %v", pfx, path)
@@ -557,7 +567,6 @@ func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, e
 			}
 			sval = append(sval, e.Bytes())
 		default:
-
 			return nil, fmt.Errorf("invalid type %s in leaflist", e.Kind())
 		}
 	}
@@ -605,6 +614,9 @@ func appendTypedValue(l []interface{}, v reflect.Value, appendModuleName bool) (
 	case reflect.Bool:
 		return append(l, ival.(bool)), nil
 	case reflect.Slice:
+		if v.Type().Name() != BinaryTypeName {
+			return nil, fmt.Errorf("unknown type within a slice: %v", v.Type().Name())
+		}
 		return append(l, v.Bytes()), nil
 	}
 	return nil, fmt.Errorf("unknown kind in leaflist: %v", reflect.TypeOf(v).Kind())

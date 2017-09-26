@@ -63,6 +63,17 @@ func TestStructTagToLibPaths(t *testing.T) {
 		want     []*gnmiPath
 		wantErr  bool
 	}{{
+		name: "invalid input path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath:    []*gnmipb.PathElem{},
+			stringSlicePath: []string{},
+		},
+		wantErr: true,
+	}, {
 		name: "simple single tag example",
 		inField: reflect.StructField{
 			Name: "field",

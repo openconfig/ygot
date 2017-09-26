@@ -58,7 +58,7 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath) ([]*gnmiPa
 		// modifying it for future paths.
 		ePath := &gnmiPath{}
 
-		if parentPath.isElementPath() {
+		if parentPath.isStringSlicePath() {
 			ePath.stringSlicePath = make([]string, len(parentPath.stringSlicePath))
 			copy(ePath.stringSlicePath, parentPath.stringSlicePath)
 		} else {
@@ -71,7 +71,7 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath) ([]*gnmiPa
 			if pp == "" {
 				continue
 			}
-			if ePath.isElementPath() {
+			if ePath.isStringSlicePath() {
 				ePath.stringSlicePath = append(ePath.stringSlicePath, pp)
 			} else {
 				ePath.pathElemPath = append(ePath.pathElemPath, &gnmipb.PathElem{Name: pp})
