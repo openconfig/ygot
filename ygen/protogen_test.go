@@ -1237,7 +1237,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(got.oneOfFields, tt.wantFields); diff != "" {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %V): did not get expected set of fields, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, diff)
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected set of fields, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, diff)
 		}
 
 		if diff := pretty.Compare(got.enums, tt.wantEnums); diff != "" {

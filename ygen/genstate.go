@@ -499,6 +499,9 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores boo
 			return "", fmt.Errorf("multiple enumerated types within a single enumeration not supported, path: %v, type: %v, enumerated: %v", e.Path(), e.Type, enumTypes)
 		}
 	}
+	if e.Node == nil {
+		return "", fmt.Errorf("nil Node in enum type %s", e.Name)
+	}
 
 	definingModName := parentModuleName(e.Node)
 	// Since there can be many leaves that refer to the same typedef, then we do not generate
