@@ -285,16 +285,19 @@ func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *g
 		return nil, errs
 	}
 
-	if msg.entry.Parent == nil {
-		// TODO(github.com/openconfig/ygot/issues/40): Add support for generating the
-		// fake root in Protobuf, which has a nil parent.
+	var pkg string
+	switch {
+	case msg.isFakeRoot:
+		// In this case, we explicitly leave the package name as nil, which is interpeted
+		// as meaning that the base package is used throughout the handling code.
+	case msg.entry.Parent == nil:
 		return nil, []error{fmt.Errorf("YANG schema element %s does not have a parent, protobuf messages are not generated for modules", msg.entry.Path())}
+	default:
+		// pkg is the name of the protobuf package, if the entry's parent has already
+		// been seen in the schema, the same package name as for siblings of this
+		// entry will be returned.
+		pkg = state.protobufPackage(msg.entry, cfg.compressPaths)
 	}
-
-	// pkg is the name of the protobuf package, if the entry's parent has already
-	// been seen in the schema, the same package name as for siblings of this
-	// entry will be returned.
-	pkg := state.protobufPackage(msg.entry, cfg.compressPaths)
 
 	var b bytes.Buffer
 	imports := map[string]interface{}{}
@@ -396,17 +399,21 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 			if !ok {
 				err = fmt.Errorf("proto: could not resolve %s into a defined struct", field.Path())
 			} else {
-
-				childpkg := state.protobufPackage(childmsg.entry, cfg.compressPaths)
-
-				// Add the import to the slice of imports if it is not already
-				// there. This allows the message file to import the required
-				// child packages.
-				childpath := filepath.Join(cfg.baseImportPath, cfg.basePackageName, strings.Replace(childpkg, ".", "/", -1))
-				if _, ok := imports[childpath]; !ok {
-					imports[childpath] = true
+				var pfx string
+				if cfg.compressPaths && msg.isFakeRoot {
+					pfx = ""
+				} else {
+					childpkg := state.protobufPackage(childmsg.entry, cfg.compressPaths)
+					// Add the import to the slice of imports if it is not already
+					// there. This allows the message file to import the required
+					// child packages.
+					childpath := filepath.Join(cfg.baseImportPath, cfg.basePackageName, strings.Replace(childpkg, ".", "/", -1))
+					if _, ok := imports[childpath]; !ok {
+						imports[childpath] = true
+					}
+					pfx = fmt.Sprintf("%s.%s.", cfg.basePackageName, childpkg)
 				}
-				fieldDef.Type = fmt.Sprintf("%s.%s.%s", cfg.basePackageName, childpkg, childmsg.name)
+				fieldDef.Type = fmt.Sprintf("%s%s", pfx, childmsg.name)
 			}
 		case field.IsLeaf() || field.IsLeafList():
 			d, err := protoLeafDefinition(fieldDef.Name, protoDefinitionArgs{
@@ -646,6 +653,7 @@ func protoListDefinition(args protoDefinitionArgs) (string, *protoMsg, error) {
 		// will be in the same package as the field's parent.
 		fieldType = listKeyMsg.Name
 	}
+
 	return fieldType, listKeyMsg, nil
 }
 
@@ -662,7 +670,13 @@ type protoDefinedLeaf struct {
 // for the leaf definition, and returns a protoDefinedLeaf describing how it is to be mapped within the
 // protobuf parent message.
 func protoLeafDefinition(leafName string, args protoDefinitionArgs) (*protoDefinedLeaf, error) {
-	protoType, err := args.state.yangTypeToProtoType(resolveTypeArgs{yangType: args.field.Type, contextEntry: args.field}, args.basePackageName, args.enumPackageName)
+	protoType, err := args.state.yangTypeToProtoType(resolveTypeArgs{
+		yangType:     args.field.Type,
+		contextEntry: args.field,
+	}, resolveProtoTypeArgs{
+		basePackageName: args.basePackageName,
+		enumPackageName: args.enumPackageName,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -686,7 +700,7 @@ func protoLeafDefinition(leafName string, args protoDefinitionArgs) (*protoDefin
 		d.enums[d.protoType] = e
 	case isEnumType(args.field.Type):
 		d.globalEnum = true
-	case isUnionType(args.field.Type):
+	case isUnionType(args.field.Type) && protoType.unionTypes != nil:
 		u, err := unionFieldToOneOf(leafName, args.field, protoType)
 		if err != nil {
 			return nil, err
@@ -761,7 +775,10 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 		Name:     n,
 		YANGPath: args.field.Path(),
 		Enums:    map[string]*protoMsgEnum{},
-		Imports:  []string{filepath.Join(args.baseImportPath, args.basePackageName, strings.Replace(listPackage, ".", "/", -1))},
+	}
+
+	if listPackage != "" {
+		km.Imports = []string{filepath.Join(args.baseImportPath, args.basePackageName, strings.Replace(listPackage, ".", "/", -1))}
 	}
 
 	definedFieldNames := map[string]bool{}
@@ -772,7 +789,28 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 			return nil, fmt.Errorf("list %s included a key %s did that did not exist", args.field.Path(), k)
 		}
 
-		scalarType, err := args.state.yangTypeToProtoScalarType(resolveTypeArgs{yangType: kf.Type, contextEntry: kf}, args.basePackageName, args.enumPackageName)
+		scalarType, err := args.state.yangTypeToProtoScalarType(resolveTypeArgs{
+			yangType:     kf.Type,
+			contextEntry: kf,
+		}, resolveProtoTypeArgs{
+			basePackageName: args.basePackageName,
+			enumPackageName: args.enumPackageName,
+			// When there is a union within a list key that has a single type within it
+			// e.g.,:
+			// list foo {
+			//   key "bar";
+			//   leaf bar {
+			//     type union {
+			//       type string { pattern "a.*" }
+			//			 type string { pattern "b.*" }
+			//     }
+			//   }
+			// }
+			// Then we want to use the scalar type rather than the wrapper type in
+			// this message since all keys must be set. We therefore signal this in
+			// the call to the type resolution.
+			scalarTypeInSingleTypeUnion: true,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("list %s included a key %s that did not have a valid proto type: %v", args.field.Path(), k, kf.Type)
 		}
@@ -790,12 +828,12 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 				enumEntry = target
 			}
 
-			if isUnionType(target.Type) {
+			if isUnionType(target.Type) && scalarType.unionTypes != nil {
 				unionEntry = target
 			}
 		case isSimpleEnumerationType(kf.Type):
 			enumEntry = kf
-		case isUnionType(kf.Type):
+		case isUnionType(kf.Type) && scalarType.unionTypes != nil:
 			unionEntry = kf
 		}
 
@@ -838,9 +876,15 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 		ctag++
 	}
 
+	ltype := fmt.Sprintf("%s.%s.%s", args.basePackageName, listPackage, listName)
+	if listPackage == "" {
+		// Handle the case that the context of the list is already the base package.
+		ltype = listName
+	}
+
 	km.Fields = append(km.Fields, &protoMsgField{
 		Name: safeProtoIdentifierName(args.field.Name),
-		Type: fmt.Sprintf("%s.%s.%s", args.basePackageName, listPackage, listName),
+		Type: ltype,
 		Tag:  ctag,
 	})
 
@@ -931,8 +975,9 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType) (*pro
 		}
 
 		return &protoUnionField{
-			enums:       enums,
-			repeatedMsg: p,
+			enums:          enums,
+			repeatedMsg:    p,
+			hadGlobalEnums: importGlobalEnums,
 		}, nil
 	}
 
