@@ -610,6 +610,10 @@ type exampleBgpNeighborEnabledAddressFamiliesUnionUint64 struct {
 func (*exampleBgpNeighborEnabledAddressFamiliesUnionUint64) IsExampleBgpNeighborEnabledAddressFamiliesUnion() {
 }
 
+type exampleBgpNeighborEnabledAddressFamiliesUnionEnum struct {
+	E EnumTest
+}
+
 type exampleBgpNeighborEnabledAddressFamiliesUnionBinary struct {
 	Binary Binary
 }
@@ -634,6 +638,12 @@ type exampleTransportAddressUint64 struct {
 }
 
 func (*exampleTransportAddressUint64) IsExampleTransportAddress() {}
+
+type exampleTransportAddressEnum struct {
+	E EnumTest
+}
+
+func (*exampleTransportAddressEnum) IsExampleTransportAddress() {}
 
 // invalidGoStruct explicitly does not implement the GoStruct interface.
 type invalidGoStruct struct {
@@ -1070,6 +1080,17 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantSame: true,
 	}, {
+		name: "union example",
+		in: &exampleBgpNeighbor{
+			TransportAddress: &exampleTransportAddressEnum{EnumTestVALONE},
+		},
+		wantIETF: map[string]interface{}{
+			"state": map[string]interface{}{
+				"transport-address": "VAL_ONE",
+			},
+		},
+		wantSame: true,
+	}, {
 		name: "union with IETF content",
 		in: &exampleBgpNeighbor{
 			TransportAddress: &exampleTransportAddressUint64{42},
@@ -1234,6 +1255,12 @@ type uFieldInt32 struct {
 
 func (uFieldInt32) IsU() {}
 
+type uFieldE struct {
+	E EnumTest
+}
+
+func (*uFieldE) IsU() {}
+
 type uFieldInt64 int64
 
 func (*uFieldInt64) IsU() {}
@@ -1273,11 +1300,16 @@ func TestUnionInterfaceValue(t *testing.T) {
 		},
 	}
 
+	testSix := &unionTestOne{
+		UField: &uFieldE{EnumTestVALONE},
+	}
+
 	tests := []struct {
-		name    string
-		in      reflect.Value
-		want    interface{}
-		wantErr bool
+		name        string
+		in          reflect.Value
+		inAppendMod bool
+		want        interface{}
+		wantErr     bool
 	}{{
 		name: "simple valid union",
 		in:   reflect.ValueOf(testOne).Elem().Field(0),
@@ -1302,10 +1334,19 @@ func TestUnionInterfaceValue(t *testing.T) {
 		name:    "invalid input, two fields in struct value",
 		in:      reflect.ValueOf(testFive).Elem().Field(0),
 		wantErr: true,
+	}, {
+		name: "valid enum union",
+		in:   reflect.ValueOf(testSix).Elem().Field(0),
+		want: "VAL_ONE",
+	}, {
+		name:        "valid enum with append mod",
+		in:          reflect.ValueOf(testSix).Elem().Field(0),
+		inAppendMod: true,
+		want:        "foo:VAL_ONE",
 	}}
 
 	for _, tt := range tests {
-		got, err := unionInterfaceValue(tt.in)
+		got, err := unionInterfaceValue(tt.in, tt.inAppendMod)
 		if err != nil {
 			if !tt.wantErr {
 				t.Errorf("%s: unionInterfaceValue(%v): got unexpected error: %v", tt.name, tt.in, err)

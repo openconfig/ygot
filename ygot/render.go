@@ -159,7 +159,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parentPath []in
 			continue
 		case reflect.Interface:
 			// This is a union value.
-			val, err := unionInterfaceValue(fval)
+			val, err := unionInterfaceValue(fval, false)
 			if err != nil {
 				errs.Add(err)
 				continue
@@ -338,7 +338,7 @@ func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, e
 			ival := e.Interface()
 			switch reflect.TypeOf(ival).Kind() {
 			case reflect.Ptr:
-				uval, err := unionInterfaceValue(e)
+				uval, err := unionInterfaceValue(e, appendModuleName)
 				if err != nil {
 					return nil, err
 				}
@@ -729,6 +729,11 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 		}
 	}
 
+	appmod := false
+	if args.rfc7951Config != nil {
+		appmod = args.rfc7951Config.AppendModuleName
+	}
+
 	switch field.Kind() {
 	case reflect.Map:
 		var err error
@@ -764,10 +769,6 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 	case reflect.Int64:
 		// Enumerated values are represented as int64 in the generated Go structures.
 		// For output, we map the enumerated value to the string name of the enum.
-		appmod := false
-		if args.rfc7951Config != nil {
-			appmod = args.rfc7951Config.AppendModuleName
-		}
 		v, set, err := enumFieldToString(field, appmod)
 		if err != nil {
 			return nil, err
@@ -783,7 +784,7 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 		// an interface in the generated Go structures - extract the relevant value
 		// and return this.
 		var err error
-		value, err = unionInterfaceValue(field)
+		value, err = unionInterfaceValue(field, appmod)
 		if err != nil {
 			return nil, err
 		}
@@ -891,7 +892,7 @@ func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputCo
 //
 // This function extracts field index 0 of the struct within the interface and returns
 // the value.
-func unionInterfaceValue(v reflect.Value) (interface{}, error) {
+func unionInterfaceValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
 	switch {
 	case v.Kind() != reflect.Ptr && v.Kind() != reflect.Interface:
 		return nil, fmt.Errorf("received a union type which was invalid: %v", v.Kind())
@@ -903,5 +904,14 @@ func unionInterfaceValue(v reflect.Value) (interface{}, error) {
 		return nil, fmt.Errorf("received a union type which did not have one field, had: %v", v.Elem().Elem().NumField())
 	}
 
-	return v.Elem().Elem().Field(0).Interface(), nil
+	i := v.Elem().Elem().Field(0).Interface()
+	if _, isEnum := i.(GoEnum); isEnum {
+		var err error
+		i, _, err = enumFieldToString(v.Elem().Elem().Field(0), appendModuleName)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return i, nil
 }
