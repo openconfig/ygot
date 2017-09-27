@@ -68,6 +68,10 @@ func writeGoCode(w io.Writer, goCode *ygen.GeneratedGoCode) error {
 		fmt.Fprintln(w, goCode.JSONSchemaCode)
 	}
 
+	if len(goCode.EnumTypeMap) > 0 {
+		fmt.Fprintln(w, goCode.EnumTypeMap)
+	}
+
 	return nil
 }
 

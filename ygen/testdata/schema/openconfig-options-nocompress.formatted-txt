@@ -364,3 +364,15 @@ var (
 		0x00, 0x00,
 	}
 )
+
+// ΛEnumTypes is a map, keyed by a YANG schema path, of the enumerated types that
+// correspond with the leaf. The type is represented as a reflect.Type. The naming
+// of the map ensures that there are no clashes with valid YANG identifiers.
+var ΛEnumTypes = map[string][]reflect.Type{
+	"/bgp/neighbors/neighbor/state/enabled-address-family": []reflect.Type{
+		reflect.TypeOf((E_OpenconfigOptions_AFI)(0)),
+	},
+	"/bgp/neighbors/neighbor/state/session-state": []reflect.Type{
+		reflect.TypeOf((E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState)(0)),
+	},
+}
