@@ -110,7 +110,6 @@ func validateIntSlice(schema *yang.Entry, value interface{}) error {
 // check validation rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.
-// TODO(mostrowski): consider moving this into goyang.
 func validateIntSchema(schema *yang.Entry) error {
 	if schema == nil {
 		return fmt.Errorf("int schema is nil")
@@ -147,7 +146,6 @@ func validateIntSchema(schema *yang.Entry) error {
 		}
 	}
 
-	// TODO(mostrowski): This is from goyang, maybe remove.
 	if len(ranges) != 0 {
 		if err := ranges.Validate(); err != nil {
 			return err
