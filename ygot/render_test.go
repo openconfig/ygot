@@ -24,6 +24,268 @@ import (
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+func TestPathElemBasics(t *testing.T) {
+	tests := []struct {
+		name               string
+		inGNMIPath         *gnmiPath
+		wantValid          bool
+		wantIsStringPath   bool
+		wantIsPathElemPath bool
+		wantLen            int
+	}{{
+		name: "string path only",
+		inGNMIPath: &gnmiPath{
+			stringSlicePath: []string{"foo", "bar"},
+		},
+		wantValid:          true,
+		wantIsStringPath:   true,
+		wantIsPathElemPath: false,
+		wantLen:            2,
+	}, {
+		name: "path elem path only",
+		inGNMIPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "foo",
+			}},
+		},
+		wantValid:          true,
+		wantIsStringPath:   false,
+		wantIsPathElemPath: true,
+		wantLen:            1,
+	}, {
+		name:       "invalid, both nil",
+		inGNMIPath: &gnmiPath{},
+		wantValid:  false,
+	}, {
+		name: "invalid, both set",
+		inGNMIPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "bar",
+			}},
+			stringSlicePath: []string{"foo"},
+		},
+		wantValid: false,
+	}}
+
+	for _, tt := range tests {
+		if got := tt.inGNMIPath.isValid(); got != tt.wantValid {
+			t.Errorf("%s: (gnmiPath)(%#v).isValid(): did not get expected result, got: %v, want: %v", tt.name, tt.inGNMIPath, got, tt.wantValid)
+		}
+
+		if !tt.inGNMIPath.isValid() {
+			continue
+		}
+
+		if got := tt.inGNMIPath.isStringSlicePath(); got != tt.wantIsStringPath {
+			t.Errorf("%s: (gnmiPath)(%#v).isStringSlicePath(): did not get expeted result, got: %v, want: %v", tt.name, tt.inGNMIPath, got, tt.wantIsStringPath)
+		}
+
+		if got := tt.inGNMIPath.isPathElemPath(); got != tt.wantIsPathElemPath {
+			t.Errorf("%s: (gnmiPath)(%#v).isPathElemPath(): did not get expected result, got: %v, want: %v", tt.name, tt.inGNMIPath, got, tt.wantIsPathElemPath)
+		}
+
+		if got := tt.inGNMIPath.Len(); got != tt.wantLen {
+			t.Errorf("%s: (gnmiPath)(%#v).Len(): did not get expected result, got: %v, want: %v", tt.name, tt.inGNMIPath, got, tt.wantLen)
+		}
+	}
+}
+
+func TestAppendName(t *testing.T) {
+	tests := []struct {
+		name    string
+		inPath  *gnmiPath
+		inName  string
+		want    *gnmiPath
+		wantErr bool
+	}{{
+		name:   "string slice append",
+		inPath: &gnmiPath{stringSlicePath: []string{}},
+		inName: "foo",
+		want:   &gnmiPath{stringSlicePath: []string{"foo"}},
+	}, {
+		name:   "pathElem slice append",
+		inPath: &gnmiPath{pathElemPath: []*gnmipb.PathElem{}},
+		inName: "bar",
+		want:   &gnmiPath{pathElemPath: []*gnmipb.PathElem{{Name: "bar"}}},
+	}, {
+		name:    "invalid input",
+		inPath:  &gnmiPath{},
+		inName:  "foo",
+		wantErr: true,
+	}, {
+		name:   "existing string slice",
+		inPath: &gnmiPath{stringSlicePath: []string{"bar"}},
+		inName: "foo",
+		want:   &gnmiPath{stringSlicePath: []string{"bar", "foo"}},
+	}, {
+		name: "existing pathElem",
+		inPath: &gnmiPath{pathElemPath: []*gnmipb.PathElem{{
+			Name: "zaphod",
+			Key:  map[string]string{"just": "this-guy"},
+		}}},
+		inName: "beeblebrox",
+		want: &gnmiPath{pathElemPath: []*gnmipb.PathElem{{
+			Name: "zaphod",
+			Key:  map[string]string{"just": "this-guy"},
+		}, {
+			Name: "beeblebrox",
+		}}},
+	}}
+
+	for _, tt := range tests {
+		if err := tt.inPath.AppendName(tt.inName); (err != nil) != tt.wantErr {
+			t.Errorf("%s: (gnmiPath)(%#v).AppendName(%s): did not get expected error status, got: %v, want error: %v", tt.name, tt.inPath, tt.inName, err, tt.wantErr)
+		}
+
+		if tt.wantErr {
+			continue
+		}
+
+		if diff := pretty.Compare(tt.inPath, tt.want); diff != "" {
+			t.Errorf("%s: (gnmiPath)(%#v).AppendName(%s): did not get expected path, diff(-got,+want):\n%s", tt.name, tt.inPath, tt.inName, diff)
+		}
+	}
+}
+
+func TestGNMIPathCopy(t *testing.T) {
+	tests := []struct {
+		name   string
+		inPath *gnmiPath
+	}{{
+		name:   "string element path",
+		inPath: &gnmiPath{stringSlicePath: []string{"one", "two"}},
+	}, {
+		name: "path element path",
+		inPath: &gnmiPath{pathElemPath: []*gnmipb.PathElem{
+			{Name: "one"},
+			{Name: "two", Key: map[string]string{"three": "four"}},
+		}},
+	}}
+
+	for _, tt := range tests {
+		if got := tt.inPath.Copy(); !reflect.DeepEqual(got, tt.inPath) {
+			t.Errorf("%s: (gnmiPath).Copy(): did not get expected result, got: %v, want: %v", tt.name, got, tt.inPath)
+		}
+	}
+}
+
+func TestGNMIPathOps(t *testing.T) {
+	tests := []struct {
+		name                string
+		inPath              *gnmiPath
+		inIndex             int
+		inValue             interface{}
+		wantLastPathElem    *gnmipb.PathElem
+		wantLastPathElemErr bool
+		wantPath            *gnmiPath
+		wantSetIndexErr     bool
+	}{{
+		name:                "string slice path",
+		inPath:              newStringSliceGNMIPath([]string{"one", "two"}),
+		wantLastPathElemErr: true,
+		inIndex:             1,
+		inValue:             "three",
+		wantPath:            newStringSliceGNMIPath([]string{"one", "three"}),
+	}, {
+		name:             "pathElem path",
+		inPath:           newPathElemGNMIPath([]*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}}),
+		inIndex:          0,
+		inValue:          &gnmipb.PathElem{Name: "baz", Key: map[string]string{"formerly": "foo"}},
+		wantLastPathElem: &gnmipb.PathElem{Name: "bar"},
+		wantPath:         &gnmiPath{pathElemPath: []*gnmipb.PathElem{{Name: "baz", Key: map[string]string{"formerly": "foo"}}, {Name: "bar"}}},
+	}, {
+		name:                "invalid set index - path elem into string",
+		inPath:              newStringSliceGNMIPath([]string{"one", "two"}),
+		inIndex:             1,
+		inValue:             &gnmipb.PathElem{Name: "bar"},
+		wantLastPathElemErr: true,
+		wantSetIndexErr:     true,
+	}, {
+		name:             "invalid set index - string into path elem",
+		inPath:           newPathElemGNMIPath([]*gnmipb.PathElem{{Name: "one"}}),
+		inIndex:          0,
+		inValue:          "foo",
+		wantLastPathElem: &gnmipb.PathElem{Name: "one"},
+		wantSetIndexErr:  true,
+	}, {
+		name:                "invalid set index - no known type",
+		inPath:              newStringSliceGNMIPath([]string{"foo"}),
+		inIndex:             0,
+		inValue:             32,
+		wantLastPathElemErr: true,
+		wantSetIndexErr:     true,
+	}, {
+		name:                "invalid set index - index out of range",
+		inPath:              newStringSliceGNMIPath([]string{"bar"}),
+		inIndex:             422,
+		inValue:             "hello buffer overflow!",
+		wantLastPathElemErr: true,
+		wantSetIndexErr:     true,
+	}}
+
+	for _, tt := range tests {
+		gotLast, err := tt.inPath.LastPathElem()
+		if (err != nil) != tt.wantLastPathElemErr {
+			t.Errorf("%s: %v.LastPathElem(): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inPath, err, tt.wantLastPathElemErr)
+		}
+
+		if err == nil && !reflect.DeepEqual(gotLast, tt.wantLastPathElem) {
+			t.Errorf("%s: %v.LastPathElem(), did not get expected last element, got: %v, want: %V", tt.name, tt.inPath, gotLast, tt.wantLastPathElem)
+		}
+
+		np := tt.inPath.Copy()
+		err = np.SetIndex(tt.inIndex, tt.inValue)
+		if (err != nil) != tt.wantSetIndexErr {
+			t.Errorf("%s: %v.SetIndex(%d, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inPath, tt.inIndex, tt.inValue, err, tt.wantSetIndexErr)
+		}
+
+		if err == nil && !reflect.DeepEqual(np, tt.wantPath) {
+			t.Errorf("%s: %v.SetIndex(%d, %v): did not get expected path, got: %v, want: %v", tt.name, tt.inPath, tt.inIndex, tt.inValue, np, tt.wantPath)
+		}
+	}
+}
+
+func TestGNMIPathToProto(t *testing.T) {
+	tests := []struct {
+		name      string
+		inPath    *gnmiPath
+		wantProto *gnmipb.Path
+		wantErr   bool
+	}{{
+		name:      "string slice path",
+		inPath:    newStringSliceGNMIPath([]string{"one", "two"}),
+		wantProto: &gnmipb.Path{Element: []string{"one", "two"}},
+	}, {
+		name:      "empty string slice path",
+		inPath:    newStringSliceGNMIPath([]string{}),
+		wantProto: nil,
+	}, {
+		name:      "path elem path",
+		inPath:    newPathElemGNMIPath([]*gnmipb.PathElem{{Name: "one"}}),
+		wantProto: &gnmipb.Path{Elem: []*gnmipb.PathElem{{Name: "one"}}},
+	}, {
+		name:      "empty path elem path",
+		inPath:    newPathElemGNMIPath([]*gnmipb.PathElem{}),
+		wantProto: nil,
+	}, {
+		name:    "invalid path",
+		inPath:  &gnmiPath{stringSlicePath: []string{"one"}, pathElemPath: []*gnmipb.PathElem{{Name: "bar"}}},
+		wantErr: true,
+	}}
+
+	for _, tt := range tests {
+		got, err := tt.inPath.ToProto()
+
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: %v.ToProto(), did not get expected error, got: %v, wantErr: %v", tt.name, tt.inPath, err, tt.wantErr)
+		}
+
+		if !proto.Equal(got, tt.wantProto) {
+			t.Errorf("%s: %v.ToProto, did not get expected return value, got: %s, want: %s", tt.name, tt.inPath, proto.MarshalTextString(got), proto.MarshalTextString(tt.wantProto))
+		}
+	}
+}
+
 func TestStripPrefix(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -164,7 +426,7 @@ func TestStripPrefix(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := stripPrefix(tt.inPath, tt.inPrefix)
+		got, err := tt.inPath.stripPrefix(tt.inPrefix)
 		if err != nil {
 			if !tt.wantErr {
 				t.Errorf("%s: stripPrefix(%v, %v): got unexpected error: %v", tt.name, tt.inPath, tt.inPrefix, err)
