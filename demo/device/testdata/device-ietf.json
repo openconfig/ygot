@@ -40,6 +40,19 @@
          }
       ]
    },
+   "openconfig-platform:components": {
+      "component": [
+         {
+            "config": {
+               "name": "os"
+            },
+            "name": "os",
+            "state": {
+               "type": "openconfig-platform-types:OPERATING_SYSTEM"
+            }
+         }
+      ]
+   },
    "openconfig-system:system": {
       "config": {
          "hostname": "rtr02.pop44"
