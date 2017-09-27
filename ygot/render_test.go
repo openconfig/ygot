@@ -237,12 +237,15 @@ func (EnumTest) ΛMap() map[string]map[int64]EnumDefinition {
 }
 
 const (
-	// C_TestVALONE is used to represent VAL_ONE of the /c/test
+	// EnumTestVALONE is used to represent VAL_ONE of the /c/test
 	// enumerated leaf in the schema-with-list test.
 	EnumTestVALONE EnumTest = 1
-	// C_TestVALTWO is used to represent VAL_TWO of the /c/test
+	// EnumTestVALTWO is used to represent VAL_TWO of the /c/test
 	// enumerated leaf in the schema-with-list test.
 	EnumTestVALTWO EnumTest = 2
+	// EnumTestVALTHREE is an an enum value that does not have
+	// a corresponding string mapping.
+	EnumTestVALTHREE = 3
 )
 
 func TestTogNMINotifications(t *testing.T) {
@@ -274,6 +277,11 @@ func TestTogNMINotifications(t *testing.T) {
 		},
 		wantErr: true,
 	}, {
+		name:        "no path tags on struct",
+		inTimestamp: 42,
+		inStruct:    &invalidGoStructEntity{NoPath: String("foo")},
+		wantErr:     true,
+	}, {
 		name:        "struct with invalid pointer",
 		inTimestamp: 42,
 		inStruct: &renderExample{
@@ -304,6 +312,11 @@ func TestTogNMINotifications(t *testing.T) {
 				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
 			}},
 		}},
+	}, {
+		name:        "struct with invalid enum",
+		inTimestamp: 42,
+		inStruct:    &renderExample{EnumField: EnumTestVALTHREE},
+		wantErr:     true,
 	}, {
 		name:        "struct with leaflist",
 		inTimestamp: 42,
@@ -1304,6 +1317,10 @@ func TestUnionInterfaceValue(t *testing.T) {
 		UField: &uFieldE{EnumTestVALONE},
 	}
 
+	testSeven := &unionTestOne{
+		UField: &uFieldE{EnumTestVALTHREE},
+	}
+
 	tests := []struct {
 		name        string
 		in          reflect.Value
@@ -1343,6 +1360,10 @@ func TestUnionInterfaceValue(t *testing.T) {
 		in:          reflect.ValueOf(testSix).Elem().Field(0),
 		inAppendMod: true,
 		want:        "foo:VAL_ONE",
+	}, {
+		name:    "enum without a string mapping",
+		in:      reflect.ValueOf(testSeven).Elem().Field(0),
+		wantErr: true,
 	}}
 
 	for _, tt := range tests {
