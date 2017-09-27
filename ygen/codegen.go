@@ -341,7 +341,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		structSnippets = appendIfNotEmpty(structSnippets, structOut.methods)
 		structSnippets = appendIfNotEmpty(structSnippets, structOut.interfaces)
 
-		// Copy the content sof the enumTypeMap for the struct into the global
+		// Copy the contents of the enumTypeMap for the struct into the global
 		// map.
 		for p, t := range structOut.enumTypeMap {
 			enumTypeMap[p] = t
