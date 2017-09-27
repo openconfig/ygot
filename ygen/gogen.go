@@ -149,11 +149,6 @@ type goStructCodeSnippet struct {
 	// used within the generated struct. Used when there are interfaces that
 	// represent multi-type unions generated.
 	interfaces string
-	// enumMap contains a map, keyed by a schema path (represented as a string)
-	// to the underlying type names selected for that leaf. A slice of strings
-	// is used for the type to handle cases where there is more than one enumerated
-	// type returned for a leaf.
-	enumTypeMap map[string][]string
 }
 
 // goEnumCodeSnippet is used to store the generated code snippets associated with
@@ -504,25 +499,6 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 }
 `
 
-	// goEnumTypeMapTemplate provides a template to output a constant map which
-	// can be used to resolve a schemapath to the set of enumerated types that
-	// are valid for the leaf or leaf-list defined at the path specified.
-	goEnumTypeMapTemplate = `
-// ΛEnumTypes is a map, keyed by a YANG schema path, of the enumerated types that
-// correspond with the leaf. The type is represented as a reflect.Type. The naming
-// of the map ensures that there are no clashes with valid YANG identifiers.
-var ΛEnumTypes = map[string][]reflect.Type{
-  {{- range $schemapath, $types := . }}
-	"{{ $schemapath }}": []reflect.Type{
-		{{- range $i, $t := $types }}
-			reflect.TypeOf(({{ $t }})(0)),
-		{{- end }}
-		},
-	},
-	{{- end }}
-}
-`
-
 	// schemaVarTemplate provides a template to output a constant byte
 	// slice which contains the serialised schema of the YANG modules for
 	// which code generation was performed.
@@ -539,8 +515,7 @@ var (
 		{{ $line }}
 {{- end }}
 	}
-)
-`
+)`
 
 	// unionInterfaceTemplate defines a template that outputs an interface
 	// definition that corresponds to a multi-type union in YANG.
@@ -595,7 +570,6 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"enumMap":         makeTemplate("enumMap", goEnumMapTemplate),
 		"schemaVar":       makeTemplate("schemaVar", schemaVarTemplate),
 		"unionIntf":       makeTemplate("unionIntf", unionInterfaceTemplate),
-		"enumTypeMap":     makeTemplate("enumTypeMap", goEnumTypeMapTemplate),
 	}
 
 	// templateHelperFunctions specifies a set of functions that are supplied as
@@ -716,9 +690,6 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 	// generate two elements that have the same name.
 	definedStructFieldNames := map[string]bool{}
 
-	// enumTypeMap stores a map of schemapath to type name for enumerated types.
-	enumTypeMap := map[string][]string{}
-
 	// genUnions stores the set of multi-type YANG unions that must have
 	// code generated for them.
 	genUnions := []goUnionInterface{}
@@ -789,7 +760,6 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			// This is done to allow checks against nil.
 			scalarField := true
 			fType := mtype.nativeType
-			schemapath := entrySchemaPath(field)
 
 			if len(mtype.unionTypes) > 1 {
 				// If this is a union that has more than one subtype, then we need
@@ -810,12 +780,6 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 					}
 
 					for t := range mtype.unionTypes {
-						// If the type within the union is not a builtin type then we store
-						// it within the enumMap, since it is an enumerated type.
-						if _, builtin := validGoBuiltinTypes[t]; !builtin {
-							enumTypeMap[schemapath] = append(enumTypeMap[schemapath], t)
-						}
-
 						tn := yang.CamelCase(t)
 						// Ensure that we sanitise the type name to be used in the
 						// output struct.
@@ -847,12 +811,6 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				// and is instead represented as the empty interface, or if the
 				// native type is a byte slice.
 				scalarField = false
-			}
-
-			if mtype.isEnumeratedValue {
-				// Any enumerated type is stored in the enumMap to allow for type
-				// resolution from a schema path.
-				enumTypeMap[schemapath] = append(enumTypeMap[schemapath], mtype.nativeType)
 			}
 
 			fieldDef = &goStructField{
@@ -945,11 +903,10 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 	}
 
 	return goStructCodeSnippet{
-		structDef:   structBuf.String(),
-		methods:     methodBuf.String(),
-		listKeys:    listkeyBuf.String(),
-		interfaces:  interfaceBuf.String(),
-		enumTypeMap: enumTypeMap,
+		structDef:  structBuf.String(),
+		methods:    methodBuf.String(),
+		listKeys:   listkeyBuf.String(),
+		interfaces: interfaceBuf.String(),
 	}, errs
 }
 
@@ -1251,22 +1208,6 @@ func generateEnumMap(enumValues map[string]map[int64]ygot.EnumDefinition) (strin
 
 	var buf bytes.Buffer
 	if err := goTemplates["enumMap"].Execute(&buf, enumValues); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
-// generateEnumTypeMap outputs a map using the enumTypeMap template. It takes an
-// input of a map, keyed by schema path, to the string names of the enumerated
-// types that can correspond to the schema path. The map generated allows a
-// schemapath to be mapped into the reflect.Type representing the enum value.
-func generateEnumTypeMap(enumTypeMap map[string][]string) (string, error) {
-	if len(enumTypeMap) == 0 {
-		return "", nil
-	}
-
-	var buf bytes.Buffer
-	if err := goTemplates["enumTypeMap"].Execute(&buf, enumTypeMap); err != nil {
 		return "", err
 	}
 	return buf.String(), nil

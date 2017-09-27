@@ -218,13 +218,3 @@ var (
 		0xff, 0x01, 0x00, 0x00, 0xff, 0xff, 0xd6, 0x1e, 0xaf, 0x7d, 0x59, 0x22, 0x00, 0x00,
 	}
 )
-
-// ΛEnumTypes is a map, keyed by a YANG schema path, of the enumerated types that
-// correspond with the leaf. The type is represented as a reflect.Type. The naming
-// of the map ensures that there are no clashes with valid YANG identifiers.
-var ΛEnumTypes = map[string][]reflect.Type{
-	"/parent/child/config/three": []reflect.Type{
-			reflect.TypeOf((E_OpenconfigSimple_Child_Three)(0)),
-		},
-	},
-}

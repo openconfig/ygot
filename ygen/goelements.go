@@ -30,26 +30,6 @@ const (
 	goEnumPrefix string = "E_"
 )
 
-var (
-	// validGoBuiltinTypes stores the valid types that the Go code generation
-	// produces, such that resolved types can be checked as to whether they are
-	// Go built in types.
-	validGoBuiltinTypes = map[string]bool{
-		"int8":        true,
-		"int16":       true,
-		"int32":       true,
-		"int64":       true,
-		"uint8":       true,
-		"uint16":      true,
-		"uint32":      true,
-		"uint64":      true,
-		"float64":     true,
-		"string":      true,
-		"bool":        true,
-		"interface{}": true,
-	}
-)
-
 // goCodeElements contains a definition of the entities within the YANG model
 // that will be written out to Go code.
 type goCodeElements struct {
