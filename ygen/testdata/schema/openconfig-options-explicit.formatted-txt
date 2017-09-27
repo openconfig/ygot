@@ -224,7 +224,6 @@ var (
 // of the map ensures that there are no clashes with valid YANG identifiers.
 var ΛEnumTypes = map[string][]reflect.Type{
 	"/parent/child/config/three": []reflect.Type{
-			reflect.TypeOf((E_OpenconfigSimple_Child_Three)(0)),
-		},
+		reflect.TypeOf((E_OpenconfigSimple_Child_Three)(0)),
 	},
 }

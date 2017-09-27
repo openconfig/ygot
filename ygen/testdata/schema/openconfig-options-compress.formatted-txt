@@ -309,11 +309,9 @@ var (
 // of the map ensures that there are no clashes with valid YANG identifiers.
 var ΛEnumTypes = map[string][]reflect.Type{
 	"/bgp/neighbors/neighbor/state/enabled-address-family": []reflect.Type{
-			reflect.TypeOf((E_OpenconfigOptions_AFI)(0)),
-		},
+		reflect.TypeOf((E_OpenconfigOptions_AFI)(0)),
 	},
 	"/bgp/neighbors/neighbor/state/session-state": []reflect.Type{
-			reflect.TypeOf((E_OpenconfigOptions_Neighbor_SessionState)(0)),
-		},
+		reflect.TypeOf((E_OpenconfigOptions_Neighbor_SessionState)(0)),
 	},
 }

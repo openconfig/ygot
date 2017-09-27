@@ -515,9 +515,8 @@ var ΛEnumTypes = map[string][]reflect.Type{
   {{- range $schemapath, $types := . }}
 	"{{ $schemapath }}": []reflect.Type{
 		{{- range $i, $t := $types }}
-			reflect.TypeOf(({{ $t }})(0)),
+		reflect.TypeOf(({{ $t }})(0)),
 		{{- end }}
-		},
 	},
 	{{- end }}
 }
