@@ -72,6 +72,13 @@ func CreateDemoDeviceInstance() (*oc.Device, error) {
 		return nil, err
 	}
 
+	// Add a component.
+	c, err := d.NewComponent("os")
+	if err != nil {
+		return nil, err
+	}
+	c.Type = &oc.Component_Type_Union_E_OpenconfigPlatformTypes_OPENCONFIG_SOFTWARE_COMPONENT{oc.OpenconfigPlatformTypes_OPENCONFIG_SOFTWARE_COMPONENT_OPERATING_SYSTEM}
+
 	return d, nil
 }
 

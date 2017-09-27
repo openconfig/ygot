@@ -1,4 +1,17 @@
 {
+   "components": {
+      "component": {
+         "os": {
+            "config": {
+               "name": "os"
+            },
+            "name": "os",
+            "state": {
+               "type": "OPERATING_SYSTEM"
+            }
+         }
+      }
+   },
    "interfaces": {
       "interface": {
          "eth0": {
