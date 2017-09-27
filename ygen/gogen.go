@@ -17,7 +17,6 @@ package ygen
 import (
 	"bytes"
 	"fmt"
-	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -150,6 +149,11 @@ type goStructCodeSnippet struct {
 	// used within the generated struct. Used when there are interfaces that
 	// represent multi-type unions generated.
 	interfaces string
+	// enumMap contains a map, keyed by a schema path (represented as a string)
+	// to the underlying type names selected for that leaf. A slice of strings
+	// is used for the type to handle cases where there is more than one enumerated
+	// type returned for a leaf.
+	enumTypeMap map[string][]string
 }
 
 // goEnumCodeSnippet is used to store the generated code snippets associated with
@@ -500,6 +504,24 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 }
 `
 
+	// goEnumTypeMapTemplate provides a template to output a constant map which
+	// can be used to resolve a schemapath to the set of enumerated types that
+	// are valid for the leaf or leaf-list defined at the path specified.
+	goEnumTypeMapTemplate = `
+// ΛEnumTypes is a map, keyed by a YANG schema path, of the enumerated types that
+// correspond with the leaf. The type is represented as a reflect.Type. The naming
+// of the map ensures that there are no clashes with valid YANG identifiers.
+var ΛEnumTypes = map[string][]reflect.Type{
+  {{- range $schemapath, $types := . }}
+	"{{ $schemapath }}": []reflect.Type{
+		{{- range $i, $t := $types }}
+		reflect.TypeOf(({{ $t }})(0)),
+		{{- end }}
+	},
+	{{- end }}
+}
+`
+
 	// schemaVarTemplate provides a template to output a constant byte
 	// slice which contains the serialised schema of the YANG modules for
 	// which code generation was performed.
@@ -516,7 +538,8 @@ var (
 		{{ $line }}
 {{- end }}
 	}
-)`
+)
+`
 
 	// unionInterfaceTemplate defines a template that outputs an interface
 	// definition that corresponds to a multi-type union in YANG.
@@ -571,6 +594,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"enumMap":         makeTemplate("enumMap", goEnumMapTemplate),
 		"schemaVar":       makeTemplate("schemaVar", schemaVarTemplate),
 		"unionIntf":       makeTemplate("unionIntf", unionInterfaceTemplate),
+		"enumTypeMap":     makeTemplate("enumTypeMap", goEnumTypeMapTemplate),
 	}
 
 	// templateHelperFunctions specifies a set of functions that are supplied as
@@ -582,9 +606,6 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		// it with a comma in a list of arguments).
 		"inc": func(i int) int {
 			return i + 1
-		},
-		"filepathJoin": func(root, path string) string {
-			return filepath.Join(append(strings.Split(root, "/"), path)...)
 		},
 		"toUpper": strings.ToUpper,
 	}
@@ -694,6 +715,9 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 	// generate two elements that have the same name.
 	definedStructFieldNames := map[string]bool{}
 
+	// enumTypeMap stores a map of schemapath to type name for enumerated types.
+	enumTypeMap := map[string][]string{}
+
 	// genUnions stores the set of multi-type YANG unions that must have
 	// code generated for them.
 	genUnions := []goUnionInterface{}
@@ -764,6 +788,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			// This is done to allow checks against nil.
 			scalarField := true
 			fType := mtype.nativeType
+			schemapath := entrySchemaPath(field)
 
 			if len(mtype.unionTypes) > 1 {
 				// If this is a union that has more than one subtype, then we need
@@ -784,6 +809,12 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 					}
 
 					for t := range mtype.unionTypes {
+						// If the type within the union is not a builtin type then we store
+						// it within the enumMap, since it is an enumerated type.
+						if _, builtin := validGoBuiltinTypes[t]; !builtin {
+							enumTypeMap[schemapath] = append(enumTypeMap[schemapath], t)
+						}
+
 						tn := yang.CamelCase(t)
 						// Ensure that we sanitise the type name to be used in the
 						// output struct.
@@ -817,6 +848,12 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				scalarField = false
 			}
 
+			if mtype.isEnumeratedValue {
+				// Any enumerated type is stored in the enumMap to allow for type
+				// resolution from a schema path.
+				enumTypeMap[schemapath] = append(enumTypeMap[schemapath], mtype.nativeType)
+			}
+
 			fieldDef = &goStructField{
 				Name:          fieldName,
 				Type:          fType,
@@ -828,8 +865,9 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 		}
 
 		// Find the schema paths that the field corresponds to, such that these can
-		// be used as annotations (tags) within the generated struct.
-		schemaMapPaths, err := findMapPaths(targetStruct, field, compressOCPaths)
+		// be used as annotations (tags) within the generated struct. Go paths are
+		// always relative.
+		schemaMapPaths, err := findMapPaths(targetStruct, field, compressOCPaths, false)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -906,10 +944,11 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 	}
 
 	return goStructCodeSnippet{
-		structDef:  structBuf.String(),
-		methods:    methodBuf.String(),
-		listKeys:   listkeyBuf.String(),
-		interfaces: interfaceBuf.String(),
+		structDef:   structBuf.String(),
+		methods:     methodBuf.String(),
+		listKeys:    listkeyBuf.String(),
+		interfaces:  interfaceBuf.String(),
+		enumTypeMap: enumTypeMap,
 	}, errs
 }
 
@@ -1106,36 +1145,29 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 	}, err
 }
 
-// findMapPaths takes an input yang.Entry and calculates the set of paths to
-// which the entry is mapped in the underlying schema relative to the parent
-// struct. The set of paths that are returned (as a slice of slices of strings)
-// give the YANG schema paths that should be populated by the contents of the
-// entity (be it a leaf, list or containter) when mapping to the underlying
-// schema for validation. If the entity is also a key to a list of type leafref,
-// then the corresponding target leaf is also returned in the map path as well.
-// as the expanded path of the schema entry. If errors are encountered when
-// mapping the paths, they are returned.
-func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths bool) ([][]string, error) {
+// findMapPaths takes an input yang.Entry and calculates the set of schemapaths that it represents.
+// If absolutePaths is set, the paths are absolute otherwise they are relative to the parent. If
+// the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
+// path is also returned.
+func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, absolutePaths bool) ([][]string, error) {
 	fieldSlicePath := traverseElementSchemaPath(field)
 	var childPath, parentPath []string
 
-	if parent.isFakeRoot {
+	switch {
+	case parent.isFakeRoot:
 		parentPath = []string{}
 		// If the length of the fieldSlicePath is 3, then this is an entity at the root
 		// that has been mapped, if it is a container, then an empty string can be
 		// specified as the container has its own name encoded. In the case that it is
 		// a list or a non-directory entry, then we need to include the name of the entry
 		// in the path.
-		switch len(fieldSlicePath) {
-		case 2:
+		childPath = fieldSlicePath[1:]
+		if len(fieldSlicePath) == 2 && field.IsContainer() {
 			childPath = []string{}
-			if !field.IsContainer() {
-				childPath = []string{fieldSlicePath[1]}
-			}
-		default:
-			childPath = fieldSlicePath[1:]
 		}
-	} else {
+	case absolutePaths:
+		childPath = append([]string{""}, fieldSlicePath[1:]...)
+	default:
 		parentPath = parent.path
 
 		// Ensure that the special cases of root nodes, and top-level nodes are handled
@@ -1165,16 +1197,18 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths bool
 			}
 		}
 
-		// Append the elements that are not common between the two paths.
-		// Since the field is necessarily a child of the parent, then to
-		// determine those elements of the field's path that are not contained
-		// in the parent's, we walk from index X of the field's path (where X
-		// is the number of elements in the path of the parent).
-		if len(fieldSlicePath) < len(parentPath) {
-			return nil, fmt.Errorf("field %v is not a valid child of %v", fieldSlicePath, parent.path)
-		}
+		if !absolutePaths {
+			// Append the elements that are not common between the two paths.
+			// Since the field is necessarily a child of the parent, then to
+			// determine those elements of the field's path that are not contained
+			// in the parent's, we walk from index X of the field's path (where X
+			// is the number of elements in the path of the parent).
+			if len(fieldSlicePath) < len(parentPath) {
+				return nil, fmt.Errorf("field %v is not a valid child of %v", fieldSlicePath, parent.path)
+			}
 
-		childPath = append(childPath, fieldSlicePath[len(parentPath)-1:]...)
+			childPath = append(childPath, fieldSlicePath[len(parentPath)-1:]...)
+		}
 	}
 	mapPaths := [][]string{childPath}
 
@@ -1216,6 +1250,22 @@ func generateEnumMap(enumValues map[string]map[int64]ygot.EnumDefinition) (strin
 
 	var buf bytes.Buffer
 	if err := goTemplates["enumMap"].Execute(&buf, enumValues); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// generateEnumTypeMap outputs a map using the enumTypeMap template. It takes an
+// input of a map, keyed by schema path, to the string names of the enumerated
+// types that can correspond to the schema path. The map generated allows a
+// schemapath to be mapped into the reflect.Type representing the enum value.
+func generateEnumTypeMap(enumTypeMap map[string][]string) (string, error) {
+	if len(enumTypeMap) == 0 {
+		return "", nil
+	}
+
+	var buf bytes.Buffer
+	if err := goTemplates["enumTypeMap"].Execute(&buf, enumTypeMap); err != nil {
 		return "", err
 	}
 	return buf.String(), nil

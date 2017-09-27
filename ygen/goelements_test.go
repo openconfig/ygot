@@ -219,6 +219,72 @@ func TestFindChildren(t *testing.T) {
 				Type: &yang.YangType{},
 			},
 		},
+	}, {
+		name: "choice entry within state",
+		inElement: &yang.Entry{
+			Name: "container",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"state": {
+					Name: "state",
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"choice": {
+							Kind: yang.ChoiceEntry,
+							Dir: map[string]*yang.Entry{
+								"case": {
+									Kind: yang.CaseEntry,
+									Dir: map[string]*yang.Entry{
+										"string": &yang.Entry{
+											Name: "string",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantCompressed: []yang.Entry{{
+			Name: "string",
+		}},
+		wantUncompressed: []yang.Entry{{
+			Name: "state",
+		}},
+	}, {
+		name: "choice entry within config",
+		inElement: &yang.Entry{
+			Name: "container",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"config": {
+					Name: "config",
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"choice": {
+							Kind: yang.ChoiceEntry,
+							Dir: map[string]*yang.Entry{
+								"case": {
+									Kind: yang.CaseEntry,
+									Dir: map[string]*yang.Entry{
+										"string": &yang.Entry{
+											Name: "string",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantCompressed: []yang.Entry{{
+			Name: "string",
+		}},
+		wantUncompressed: []yang.Entry{{
+			Name: "config",
+		}},
 	}}
 
 	for _, tt := range tests {
@@ -241,11 +307,12 @@ func TestFindChildren(t *testing.T) {
 
 			for _, expectEntry := range expected {
 				if elem, ok := retMap[expectEntry.Name]; ok {
+					delete(retMap, expectEntry.Name)
 					if elem.Config != expectEntry.Config {
 						t.Errorf("%s (compress: %v): element %s had wrong config status %s", tt.name, compress,
 							expectEntry.Name, elem.Config)
 					}
-					if elem.Type.Kind != expectEntry.Type.Kind {
+					if elem.Type != nil && elem.Type.Kind != expectEntry.Type.Kind {
 						t.Errorf("%s (compress: %v): element %s had wrong type %s", tt.name,
 							compress, expectEntry.Name, elem.Type.Kind)
 					}
@@ -253,6 +320,10 @@ func TestFindChildren(t *testing.T) {
 					t.Errorf("%s (compress: %v): could not find expected child %s in %s", tt.name, compress,
 						expectEntry.Name, tt.inElement.Name)
 				}
+			}
+
+			if len(retMap) != 0 && expected != nil {
+				t.Errorf("%s (compress: %v): got unexpected entries, got: %v, want: nil", tt.name, compress, retMap)
 			}
 		}
 	}
@@ -313,6 +384,17 @@ func TestCamelCase(t *testing.T) {
 			}},
 		},
 		wantName: "FishChips_",
+	}, {
+		name: "non-camelcase extension",
+		inEntry: &yang.Entry{
+			Name: "little-creatures",
+			Exts: []*yang.Statement{{
+				Keyword:     "amod:other-ext",
+				HasArgument: true,
+				Argument:    "true\n",
+			}},
+		},
+		wantName: "LittleCreatures",
 	}}
 
 	for _, tt := range tests {
@@ -482,6 +564,10 @@ func TestYangTypeToGoType(t *testing.T) {
 		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32"},
 		want: &mappedType{nativeType: "int32"},
 	}, {
+		name: "decimal64",
+		in:   &yang.YangType{Kind: yang.Ydecimal64, Name: "decimal64"},
+		want: &mappedType{nativeType: "float64"},
+	}, {
 		name: "binary lookup resolution",
 		in:   &yang.YangType{Kind: yang.Ybinary, Name: "binary"},
 		want: &mappedType{nativeType: "Binary"},
@@ -509,6 +595,10 @@ func TestYangTypeToGoType(t *testing.T) {
 		name: "simple uint16 resolution",
 		in:   &yang.YangType{Kind: yang.Yuint16, Name: "uint16"},
 		want: &mappedType{nativeType: "uint16"},
+	}, {
+		name:    "leafref without valid path",
+		in:      &yang.YangType{Kind: yang.Yleafref, Name: "leafref"},
+		wantErr: true,
 	}, {
 		name:    "enum without context",
 		in:      &yang.YangType{Kind: yang.Yenum, Name: "enumeration"},
@@ -774,6 +864,28 @@ func TestBuildListKey(t *testing.T) {
 					Type: &yang.YangType{Kind: yang.Ystring},
 				},
 			},
+		},
+		wantErr: true,
+	}, {
+		name: "no key in config true list",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {Type: &yang.YangType{Kind: yang.Ystring}},
+			},
+			Config: yang.TSTrue,
+		},
+		wantErr: true,
+	}, {
+		name: "invalid key in config true list",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {Type: &yang.YangType{Kind: yang.Yidentityref}},
+			},
+			Key: "keyleaf",
 		},
 		wantErr: true,
 	}, {
@@ -1119,11 +1231,13 @@ func TestBuildListKey(t *testing.T) {
 		got, err := s.buildListKey(tt.in, tt.inCompress)
 		if err != nil && !tt.wantErr {
 			t.Errorf("%s: could not build list key successfully %v", tt.name, err)
-		} else if err == nil && tt.wantErr {
+		}
+
+		if err == nil && tt.wantErr {
 			t.Errorf("%s: did not get expected error", tt.name)
 		}
 
-		if got == nil {
+		if tt.wantErr || got == nil {
 			continue
 		}
 

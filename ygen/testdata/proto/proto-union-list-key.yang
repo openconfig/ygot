@@ -1,0 +1,63 @@
+module proto-union-list-key {
+  prefix "p";
+  namespace "urn:p";
+
+  grouping policy-cfg {
+    leaf policy-name {
+      type union {
+        type string { pattern "a.*"; }
+        type string { pattern "b.*"; }
+      }
+    }
+
+    leaf other-leaf {
+      type string;
+    }
+  }
+
+  grouping set-cfg {
+    leaf s { type string; }
+  }
+
+  grouping set-state {
+    leaf ss { type string; }
+  }
+
+  container routing-policy {
+    container sets {
+      container config {
+        uses set-cfg;
+      }
+
+      container state {
+        config false;
+        uses set-cfg;
+        uses set-state;
+      }
+    }
+
+    container policies {
+      list policy {
+        key "policy-name";
+
+        leaf policy-name {
+          type leafref {
+            path "../config/policy-name";
+          }
+        }
+
+        container config {
+          uses policy-cfg;
+        }
+
+        container state {
+          config false;
+          uses policy-cfg;
+        }
+      }
+    }
+  }
+
+
+
+}

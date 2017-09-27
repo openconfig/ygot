@@ -59,6 +59,14 @@ enumTwo
 		wantCode: `
 foo
 `,
+	}, {
+		name: "enum type map",
+		inGoCode: &ygen.GeneratedGoCode{
+			EnumTypeMap: "map",
+		},
+		wantCode: `
+map
+`,
 	}}
 
 	for _, tt := range tests {

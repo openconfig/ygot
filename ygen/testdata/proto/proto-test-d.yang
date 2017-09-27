@@ -27,6 +27,16 @@ module proto-test-d {
     leaf ty {
       type a-typedef;
     }
+
+    leaf-list foo {
+      type string;
+    }
+
+    leaf bar {
+      type leafref {
+        path "../foo";
+      }
+    }
   }
 
 
@@ -41,4 +51,3 @@ module proto-test-d {
     }
   }
 }
-

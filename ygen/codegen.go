@@ -124,6 +124,10 @@ type ProtoOpts struct {
 	// definition of the extension messages that are used to annotat the
 	// generated protobuf messages.
 	YextPath string
+	// AnnotateSchemaPaths specifies whether the extensions defined in
+	// yext.proto should be used to annotate schema paths into the output
+	// protobuf file.
+	AnnotateSchemaPaths bool
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -203,6 +207,8 @@ type GeneratedGoCode struct {
 	// RawJSONSchema stores the JSON document which is serialised and stored in JSONSchemaCode.
 	// It is populated only if the StoreRawSchema YANGCodeGenerator boolean is set to true.
 	RawJSONSchema []byte
+	// EnumTypeMap is a Go map that allows YANG schemapaths to be mapped to reflect.Type values.
+	EnumTypeMap string
 }
 
 // GeneratedProto3 stores a set of generated Protobuf packages.
@@ -319,6 +325,8 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}
 	sort.Strings(orderedStructNames)
 
+	// enumTypeMap stores the map of the path to type.
+	enumTypeMap := map[string][]string{}
 	codegenErr := NewYANGCodeGeneratorError()
 	var structSnippets []string
 	for _, structName := range orderedStructNames {
@@ -332,6 +340,12 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		structSnippets = appendIfNotEmpty(structSnippets, structOut.listKeys)
 		structSnippets = appendIfNotEmpty(structSnippets, structOut.methods)
 		structSnippets = appendIfNotEmpty(structSnippets, structOut.interfaces)
+
+		// Copy the contents of the enumTypeMap for the struct into the global
+		// map.
+		for p, t := range structOut.enumTypeMap {
+			enumTypeMap[p] = t
+		}
 	}
 
 	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, false)
@@ -381,6 +395,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 
 	var rawSchema []byte
 	var jsonSchema string
+	var enumTypeMapCode string
 	if cg.Config.GenerateJSONSchema {
 		var err error
 		if rawSchema, err = serialiseStructDefinitions(goStructs, cg.Config.GenerateFakeRoot, cg.Config.FakeRootName, cg.Config.CompressOCPaths); err != nil {
@@ -391,6 +406,10 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 			if jsonSchema, err = writeGoSchema(rawSchema, cg.Config.GoOptions.SchemaVarName); err != nil {
 				codegenErr.Errors = append(codegenErr.Errors, err)
 			}
+		}
+
+		if enumTypeMapCode, err = generateEnumTypeMap(enumTypeMap); err != nil {
+			codegenErr.Errors = append(codegenErr.Errors, err)
 		}
 	}
 
@@ -406,6 +425,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		EnumMap:        enumMap,
 		JSONSchemaCode: jsonSchema,
 		RawJSONSchema:  rawSchema,
+		EnumTypeMap:    enumTypeMapCode,
 	}, nil
 }
 
@@ -492,10 +512,11 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		m := msgMap[n]
 
 		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, protoMsgConfig{
-			compressPaths:   cg.Config.CompressOCPaths,
-			basePackageName: basePackageName,
-			enumPackageName: enumPackageName,
-			baseImportPath:  cg.Config.ProtoOptions.BaseImportPath,
+			compressPaths:       cg.Config.CompressOCPaths,
+			basePackageName:     basePackageName,
+			enumPackageName:     enumPackageName,
+			baseImportPath:      cg.Config.ProtoOptions.BaseImportPath,
+			annotateSchemaPaths: cg.Config.ProtoOptions.AnnotateSchemaPaths,
 		})
 
 		if errs != nil {

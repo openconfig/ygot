@@ -33,6 +33,17 @@ const (
 	TestRoot string = ""
 )
 
+func TestNewYANGCodeGeneratorError(t *testing.T) {
+	e := NewYANGCodeGeneratorError()
+	e.Errors = append(e.Errors, fmt.Errorf("test string"))
+	e.Errors = append(e.Errors, []error{fmt.Errorf("test string two"), fmt.Errorf("string three")}...)
+	want := "errors encountered during code generation:\ntest string\ntest string two\nstring three\n"
+
+	if got := e.Error(); got != want {
+		t.Errorf("NewYANGCodeGenerator did not concatenate errors correctly, got: %s, want: %s", got, want)
+	}
+}
+
 // TestFindMappableEntities tests the extraction of elements that are to be mapped
 // into Go code from a YANG schema.
 func TestFindMappableEntities(t *testing.T) {
@@ -548,6 +559,7 @@ func TestSimpleStructs(t *testing.T) {
 		if tt.inConfig.GenerateJSONSchema {
 			// Write the schema byte array out.
 			fmt.Fprint(&gotCode, gotGeneratedCode.JSONSchemaCode)
+			fmt.Fprint(&gotCode, gotGeneratedCode.EnumTypeMap)
 
 			wantSchema, rferr := ioutil.ReadFile(tt.wantSchemaFile)
 			if rferr != nil {
@@ -757,6 +769,50 @@ func TestGenerateProto3(t *testing.T) {
 		wantOutputFiles: map[string]string{
 			"openconfig.proto_anydata_test":   filepath.Join(TestRoot, "testdata", "proto", "proto_anydata_test.formatted-txt"),
 			"openconfig.proto_anydata_test.e": filepath.Join(TestRoot, "testdata", "proto", "proto_anydata_test.e.formatted-txt"),
+		},
+	}, {
+		name:    "yang schema with path annotations",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-f.yang")},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				AnnotateSchemaPaths: true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig.proto_test_f":     filepath.Join(TestRoot, "testdata", "proto", "proto_test_f.uncompressed.proto_test_f.formatted-txt"),
+			"openconfig.proto_test_f.a":   filepath.Join(TestRoot, "testdata", "proto", "proto_test_f.uncompressed.proto_test_f.a.formatted-txt"),
+			"openconfig.proto_test_f.a.c": filepath.Join(TestRoot, "testdata", "proto", "proto_test_f.uncompressed.proto_test_f.a.c.formatted-txt"),
+		},
+	}, {
+		name:    "yang schema with fake root, path compression and union list key",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.yang")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths:  true,
+			GenerateFakeRoot: true,
+			ProtoOptions: ProtoOpts{
+				AnnotateSchemaPaths: true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig":                filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.compressed.openconfig.formatted-txt"),
+			"openconfig.routing_policy": filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.compressed.openconfig.routing_policy.formatted-txt"),
+		},
+	}, {
+		name:    "yang schema with fakeroot, and union list key",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot: true,
+			ProtoOptions: ProtoOpts{
+				AnnotateSchemaPaths: true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig":                                                     filepath.Join(TestRoot, "testdata", "proto", "proto-union-list_key.uncompressed.openconfig.formatted-txt"),
+			"openconfig.proto_union_list_key":                                filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.formatted-txt"),
+			"openconfig.proto_union_list_key.routing_policy":                 filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.formatted-txt"),
+			"openconfig.proto_union_list_key.routing_policy.policies":        filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.policies.formatted-txt"),
+			"openconfig.proto_union_list_key.routing_policy.policies.policy": filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.policies.policy.formatted-txt"),
+			"openconfig.proto_union_list_key.routing_policy.sets":            filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.sets.formatted-txt"),
 		},
 	}}
 
