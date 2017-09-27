@@ -559,6 +559,7 @@ func TestSimpleStructs(t *testing.T) {
 		if tt.inConfig.GenerateJSONSchema {
 			// Write the schema byte array out.
 			fmt.Fprint(&gotCode, gotGeneratedCode.JSONSchemaCode)
+			fmt.Fprint(&gotCode, gotGeneratedCode.EnumTypeMap)
 
 			wantSchema, rferr := ioutil.ReadFile(tt.wantSchemaFile)
 			if rferr != nil {
