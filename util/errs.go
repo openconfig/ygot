@@ -28,22 +28,28 @@ func (e Errors) String() string {
 }
 
 // AppendErr appends err to errors if it is not nil and returns the result.
+// If err is nil, it is not appended.
 func AppendErr(errors []error, err error) []error {
-	if len(errors) == 0 && err == nil {
-		return nil
+	if err == nil {
+		return errors
 	}
 	return append(errors, err)
 }
 
 // AppendErrs appends newErrs to errors and returns the result.
+// If newErrs is empty, nothing is appended.
 func AppendErrs(errors []error, newErrs []error) []error {
-	if len(errors) == 0 && len(newErrs) == 0 {
-		return nil
+	if len(newErrs) == 0 {
+		return errors
 	}
-	return append(errors, newErrs...)
+	for _, e := range newErrs {
+		errors = AppendErr(errors, e)
+	}
+	return errors
 }
 
-// ToString returns a string representation of errors.
+// ToString returns a string representation of errors. Any nil errors in the
+// slice are skipped.
 func ToString(errors []error) string {
 	var out string
 	for i, e := range errors {
