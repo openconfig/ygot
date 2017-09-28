@@ -426,7 +426,7 @@ func TestStripPrefix(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := tt.inPath.stripPrefix(tt.inPrefix)
+		got, err := tt.inPath.StripPrefix(tt.inPrefix)
 		if err != nil {
 			if !tt.wantErr {
 				t.Errorf("%s: stripPrefix(%v, %v): got unexpected error: %v", tt.name, tt.inPath, tt.inPrefix, err)

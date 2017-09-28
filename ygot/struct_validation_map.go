@@ -28,8 +28,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-
-	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 const (
@@ -56,26 +54,14 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath) ([]*gnmiPa
 	for _, p := range tagPaths {
 		// Make a copy of the existing parent path so we can append to it without
 		// modifying it for future paths.
-		ePath := &gnmiPath{}
-
-		if parentPath.isStringSlicePath() {
-			ePath.stringSlicePath = make([]string, len(parentPath.stringSlicePath))
-			copy(ePath.stringSlicePath, parentPath.stringSlicePath)
-		} else {
-			ePath.pathElemPath = make([]*gnmipb.PathElem, len(parentPath.pathElemPath))
-			copy(ePath.pathElemPath, parentPath.pathElemPath)
-		}
+		ePath := parentPath.Copy()
 
 		for _, pp := range strings.Split(p, "/") {
 			// Handle empty path tags.
 			if pp == "" {
 				continue
 			}
-			if ePath.isStringSlicePath() {
-				ePath.stringSlicePath = append(ePath.stringSlicePath, pp)
-			} else {
-				ePath.pathElemPath = append(ePath.pathElemPath, &gnmipb.PathElem{Name: pp})
-			}
+			ePath.AppendName(pp)
 		}
 		mapPaths = append(mapPaths, ePath)
 	}
