@@ -309,3 +309,118 @@ func MergeJSON(a, b map[string]interface{}) (map[string]interface{}, error) {
 
 	return o, nil
 }
+
+// MergeStructs takes two input ValidatedGoStructs and merges their contents,
+// returning a new ValidatedGoStruct. If the input structs a and b are of
+// different types, an error is returned.
+func MergeStructs(a, b ValidatedGoStruct) (ValidatedGoStruct, error) {
+}
+
+func copyStruct(dstVal, srcVal reflect.Value) error {
+	//dstVal := reflect.ValueOf(dst).Elem()
+	//srcVal := reflect.ValueOf(src).Elem()
+
+	fmt.Printf("src: %v dst: %v\n", srcVal, dstVal)
+	if srcVal.Type() != dstVal.Type() {
+		return fmt.Errorf("cannot copy %s to %s", srcVal.Type().Name(), dstVal.Type().Name())
+	}
+
+	for i := 0; i < srcVal.NumField(); i++ {
+		srcField := srcVal.Field(i)
+		dstField := dstVal.Field(i)
+
+		switch srcField.Kind() {
+		case reflect.Ptr:
+			if srcField.IsNil() || !srcField.IsValid() {
+				fmt.Printf("skipped\n")
+				continue
+			}
+
+			switch srcField.Elem().Kind() {
+			case reflect.Struct:
+				// Handle struct ptrs.
+				fmt.Printf("%#v %v\n", srcField.Elem().Interface(), srcField.IsNil())
+				var d reflect.Value
+				d = reflect.New(srcField.Type().Elem())
+				fmt.Printf("d is %v\n", d)
+				if err := copyStruct(d.Elem(), srcField.Elem()); err != nil {
+					return err
+				}
+				fmt.Printf("d is %#v\n", d.Interface())
+				dstField.Set(d)
+			default:
+				fmt.Printf("hit default\n")
+				p := reflect.New(srcField.Type().Elem())
+				p.Elem().Set(srcField.Elem())
+				dstField.Set(p)
+			}
+		case reflect.Interface:
+			if srcField.IsNil() || !srcField.IsValid() {
+				fmt.Printf("skipped\n")
+				continue
+			}
+			switch srcField.Elem().Elem().Kind() {
+			case reflect.Struct:
+				// Handle struct ptrs.
+				fmt.Printf("%#v %v\n", srcField.Elem().Interface(), srcField.IsNil())
+				var d reflect.Value
+				d = reflect.New(srcField.Elem().Elem().Type())
+				fmt.Printf("d is %v\n", d)
+				if err := copyStruct(d.Elem(), srcField.Elem().Elem()); err != nil {
+					return err
+				}
+				fmt.Printf("in interface d is %#v\n", d.Interface())
+				dstField.Set(d)
+			default:
+				return fmt.Errorf("unknown type in interface, %s", srcField.Elem().Kind())
+			}
+		case reflect.Map:
+			if srcField.Len() == 0 {
+				continue
+			}
+			keys := srcField.MapKeys()
+			if k := srcField.MapIndex(keys[0]).Kind(); k != reflect.Ptr {
+				return fmt.Errorf("invalid map, got member type %s", k)
+			}
+
+			nm := reflect.MakeMapWithSize(reflect.MapOf((keys[0]).Type(), srcField.MapIndex(keys[0]).Type()), srcField.Len())
+			for _, k := range keys {
+				v := srcField.MapIndex(k)
+				fmt.Printf("in map %v is %v\n", v, v.Elem().Type())
+				d := reflect.New(v.Elem().Type())
+				fmt.Printf("in map d is %v\n", d.Elem().Type())
+				if err := copyStruct(d.Elem(), v.Elem()); err != nil {
+					return err
+				}
+				nm.SetMapIndex(k, d)
+			}
+			dstField.Set(nm)
+		case reflect.Slice:
+			fmt.Printf("%v\n", srcField.Type().Elem().Kind())
+			switch {
+			case srcField.Type().Elem().Kind() != reflect.Ptr:
+				fallthrough
+			case srcField.Type().Elem().Elem().Kind() != reflect.Struct:
+				dstField.Set(srcField)
+				continue
+			}
+
+			if srcField.Len() == 0 {
+				continue
+			}
+			ns := reflect.MakeSlice(reflect.SliceOf(srcField.Type().Elem()), 0, 0)
+			for i := 0; i < srcField.Len(); i++ {
+				v := srcField.Index(i)
+				d := reflect.New(v.Type().Elem())
+				if err := copyStruct(d.Elem(), v.Elem()); err != nil {
+					return err
+				}
+				ns = reflect.Append(ns, d)
+			}
+			dstField.Set(ns)
+		default:
+			dstField.Set(srcField)
+		}
+	}
+	return nil
+}
