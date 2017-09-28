@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
@@ -715,6 +716,318 @@ func TestMergeStructJSON(t *testing.T) {
 
 		if diff := pretty.Compare(got, tt.wantJSON); diff != "" {
 			t.Errorf("%s: MergeStrucTJSON(%v, %v, %v): did not get expected error status, diff(-got,+want):\n%s", tt.name, tt.inStruct, tt.inJSON, tt.inOpts, diff)
+		}
+	}
+}
+
+// Types for testing copyStruct.
+type enumType int64
+
+const (
+	EnumTypeValue enumType = 1
+)
+
+type copyUnion interface {
+	IsUnion()
+}
+
+type copyUnionS struct {
+	S string
+}
+
+func (*copyUnionS) IsUnion() {}
+
+type copyMapKey struct {
+	A string
+}
+
+type copyTest struct {
+	StringField   *string
+	Uint32Field   *uint32
+	StructPointer *copyTest
+	EnumValue     enumType
+	UnionField    copyUnion
+	StringSlice   []string
+	StringMap     map[string]*copyTest
+	StructMap     map[copyMapKey]*copyTest
+	StructSlice   []*copyTest
+}
+
+func (*copyTest) IsYANGGoStruct() {}
+
+type errorCopyTest struct {
+	I interface{}
+	S *string
+	M map[string]errorCopyTest
+	N map[string]*errorCopyTest
+	E *errorCopyTest
+	L []*errorCopyTest
+}
+
+func (*errorCopyTest) IsYANGGoStruct() {}
+
+func TestCopyStruct(t *testing.T) {
+	tests := []struct {
+		name    string
+		inSrc   GoStruct
+		inDst   GoStruct
+		wantDst GoStruct
+		wantErr bool
+	}{{
+		name:    "simple string pointer",
+		inSrc:   &copyTest{StringField: String("anchor-steam")},
+		inDst:   &copyTest{},
+		wantDst: &copyTest{StringField: String("anchor-steam")},
+	}, {
+		name: "uint and string pointer",
+		inSrc: &copyTest{
+			StringField: String("fourpure-juicebox"),
+			Uint32Field: Uint32(42),
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			StringField: String("fourpure-juicebox"),
+			Uint32Field: Uint32(42),
+		},
+	}, {
+		name: "struct pointer with single field",
+		inSrc: &copyTest{
+			StringField: String("lagunitas-aunt-sally"),
+			StructPointer: &copyTest{
+				StringField: String("deschutes-pinedrops"),
+			},
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			StringField: String("lagunitas-aunt-sally"),
+			StructPointer: &copyTest{
+				StringField: String("deschutes-pinedrops"),
+			},
+		},
+	}, {
+		name: "struct pointer with multiple fields",
+		inSrc: &copyTest{
+			StringField: String("allagash-brett"),
+			Uint32Field: Uint32(84),
+			StructPointer: &copyTest{
+				StringField: String("brooklyn-summer-ale"),
+				Uint32Field: Uint32(128),
+			},
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			StringField: String("allagash-brett"),
+			Uint32Field: Uint32(84),
+			StructPointer: &copyTest{
+				StringField: String("brooklyn-summer-ale"),
+				Uint32Field: Uint32(128),
+			},
+		},
+	}, {
+		name: "enum value",
+		inSrc: &copyTest{
+			EnumValue: EnumTypeValue,
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			EnumValue: EnumTypeValue,
+		},
+	}, {
+		name: "union field",
+		inSrc: &copyTest{
+			UnionField: &copyUnionS{"new-belgium-fat-tire"},
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			UnionField: &copyUnionS{"new-belgium-fat-tire"},
+		},
+	}, {
+		name: "string slice",
+		inSrc: &copyTest{
+			StringSlice: []string{"sierra-nevada-pale-ale", "stone-ipa"},
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			StringSlice: []string{"sierra-nevada-pale-ale", "stone-ipa"},
+		},
+	}, {
+		name: "string map",
+		inSrc: &copyTest{
+			StringMap: map[string]*copyTest{
+				"ballast-point": &copyTest{StringField: String("sculpin")},
+				"upslope":       &copyTest{StringSlice: []string{"amber-ale", "brown"}},
+			},
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			StringMap: map[string]*copyTest{
+				"ballast-point": &copyTest{StringField: String("sculpin")},
+				"upslope":       &copyTest{StringSlice: []string{"amber-ale", "brown"}},
+			},
+		},
+	}, {
+		name: "struct map",
+		inSrc: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				copyMapKey{"saint-arnold"}: &copyTest{StringField: String("fancy-lawnmower")},
+				copyMapKey{"green-flash"}:  &copyTest{StringField: String("hop-head-red")},
+			},
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				copyMapKey{"saint-arnold"}: &copyTest{StringField: String("fancy-lawnmower")},
+				copyMapKey{"green-flash"}:  &copyTest{StringField: String("hop-head-red")},
+			},
+		},
+	}, {
+		name: "struct slice",
+		inSrc: &copyTest{
+			StructSlice: []*copyTest{{
+				StringField: String("russian-river-pliny-the-elder"),
+			}, {
+				StringField: String("lagunitas-brown-shugga"),
+			}},
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			StructSlice: []*copyTest{{
+				StringField: String("russian-river-pliny-the-elder"),
+			}, {
+				StringField: String("lagunitas-brown-shugga"),
+			}},
+		},
+	}, {
+		name:    "error, integer in interface",
+		inSrc:   &errorCopyTest{I: 42},
+		inDst:   &errorCopyTest{},
+		wantErr: true,
+	}, {
+		name:    "error, integer pointer in interface",
+		inSrc:   &errorCopyTest{I: Uint32(42)},
+		inDst:   &errorCopyTest{},
+		wantErr: true,
+	}, {
+		name:    "error, invalid interface in struct within interface",
+		inSrc:   &errorCopyTest{I: &errorCopyTest{I: "founders-kbs"}},
+		inDst:   &errorCopyTest{},
+		wantErr: true,
+	}, {
+		name: "error, invalid struct in map",
+		inSrc: &errorCopyTest{M: map[string]errorCopyTest{
+			"beaver-town-gamma-ray": {S: String("beaver-town-black-betty-ipa")},
+		}},
+		inDst:   &errorCopyTest{},
+		wantErr: true,
+	}, {
+		name: "error, invalid field in struct in map",
+		inSrc: &errorCopyTest{N: map[string]*errorCopyTest{
+			"brewdog-punk-ipa": {I: "harbour-amber-ale"},
+		}},
+		inDst:   &errorCopyTest{},
+		wantErr: true,
+	}, {
+		name:    "error, invalid field in struct in struct ptr",
+		inSrc:   &errorCopyTest{E: &errorCopyTest{I: "meantime-wheat"}},
+		inDst:   &errorCopyTest{},
+		wantErr: true,
+	}, {
+		name:    "error, invalid struct in struct ptr slice",
+		inSrc:   &errorCopyTest{L: []*errorCopyTest{{I: "wild-beer-co-somerset-wild"}}},
+		inDst:   &errorCopyTest{},
+		wantErr: true,
+	}, {
+		name:    "error, mismatched types",
+		inSrc:   &copyTest{StringField: String("camden-hells")},
+		inDst:   &errorCopyTest{S: String("kernel-table-beer")},
+		wantErr: true,
+	}}
+
+	for _, tt := range tests {
+		dst, src := reflect.ValueOf(tt.inDst).Elem(), reflect.ValueOf(tt.inSrc).Elem()
+		var wantDst reflect.Value
+		if tt.wantDst != nil {
+			wantDst = reflect.ValueOf(tt.wantDst).Elem()
+		}
+
+		err := copyStruct(dst, src)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: copyStruct(%v, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
+		}
+
+		if err != nil {
+			continue
+		}
+
+		if diff := pretty.Compare(dst, wantDst); diff != "" {
+			t.Errorf("%s: copyStruct(%v, %v): did not get expected copied struct, diff(-got,+want):\n%s", tt.name, tt.inSrc, tt.inDst, diff)
+		}
+	}
+}
+
+type validatedMergeTest struct {
+	String      *string
+	StringTwo   *string
+	Uint32Field *uint32
+}
+
+func (*validatedMergeTest) Validate() error { return nil }
+func (*validatedMergeTest) IsYANGGoStruct() {}
+
+type validatedMergeTestTwo struct {
+	String *string
+	I      interface{}
+}
+
+func (*validatedMergeTestTwo) Validate() error { return nil }
+func (*validatedMergeTestTwo) IsYANGGoStruct() {}
+
+func TestMergeStructs(t *testing.T) {
+	tests := []struct {
+		name    string
+		inA     ValidatedGoStruct
+		inB     ValidatedGoStruct
+		want    ValidatedGoStruct
+		wantErr bool
+	}{{
+		name: "simple struct merge, a empty",
+		inA:  &validatedMergeTest{},
+		inB:  &validatedMergeTest{String: String("odell-90-shilling")},
+		want: &validatedMergeTest{String: String("odell-90-shilling")},
+	}, {
+		name: "simple struct merge, a populated",
+		inA:  &validatedMergeTest{String: String("left-hand-milk-stout-nitro"), Uint32Field: Uint32(42)},
+		inB:  &validatedMergeTest{StringTwo: String("new-belgium-lips-of-faith-la-folie")},
+		want: &validatedMergeTest{
+			String:      String("left-hand-milk-stout-nitro"),
+			StringTwo:   String("new-belgium-lips-of-faith-la-folie"),
+			Uint32Field: Uint32(42),
+		},
+	}, {
+		name:    "error, differing types",
+		inA:     &validatedMergeTest{String: String("great-divide-yeti")},
+		inB:     &validatedMergeTestTwo{String: String("north-coast-old-rasputin")},
+		wantErr: true,
+	}, {
+		name:    "error, bad data in A",
+		inA:     &validatedMergeTestTwo{I: "belleville-thames-surfer"},
+		inB:     &validatedMergeTestTwo{String: String("fourpure-beartooth")},
+		wantErr: true,
+	}, {
+		name:    "error, bad data in B",
+		inA:     &validatedMergeTestTwo{String: String("weird-beard-sorachi-faceplant")},
+		inB:     &validatedMergeTestTwo{I: "fourpure-southern-latitude"},
+		wantErr: true,
+	}}
+
+	for _, tt := range tests {
+		got, err := MergeStructs(tt.inA, tt.inB)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: MergeStructs(%v, %v): did not get expected error status, got: %v, wantErr: %v", tt.name, tt.inA, tt.inB, err, tt.wantErr)
+		}
+
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: MergeStructs(%v, %v): did not get expected returned struct, diff(-got,+want):\n%s", tt.name, tt.inA, tt.inB, diff)
 		}
 	}
 }
