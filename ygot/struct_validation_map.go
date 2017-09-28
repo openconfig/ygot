@@ -341,10 +341,6 @@ func copyStruct(dstVal, srcVal reflect.Value) error {
 		srcField := srcVal.Field(i)
 		dstField := dstVal.Field(i)
 
-		/*if !dstField.IsNil() {
-			return fmt.Errorf("field %v was already set in destination struct", dstField.Type().Name())
-		}*/
-
 		switch srcField.Kind() {
 		case reflect.Ptr:
 			if err := copyPtrField(dstField, srcField); err != nil {
