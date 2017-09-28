@@ -425,7 +425,10 @@ func copyMapField(dstField, srcField reflect.Value) error {
 		return fmt.Errorf("invalid map, got member type %s", k)
 	}
 
-	nm := reflect.MakeMapWithSize(reflect.MapOf((keys[0]).Type(), srcField.MapIndex(keys[0]).Type()), srcField.Len())
+	// TODO(robjs): When we move to go1.9+ only support in ygot, we can use the
+	// following to make a map of a particular size.
+	// nm := reflect.MakeMapWithSize(reflect.MapOf((keys[0]).Type(), srcField.MapIndex(keys[0]).Type()), srcField.Len())
+	nm := reflect.MakeMap(reflect.MapOf((keys[0]).Type(), srcField.MapIndex(keys[0]).Type()))
 	for _, k := range keys {
 		v := srcField.MapIndex(k)
 		d := reflect.New(v.Elem().Type())
