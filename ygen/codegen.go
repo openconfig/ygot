@@ -155,6 +155,11 @@ type yangDirectory struct {
 	isFakeRoot bool                   // isFakeRoot indicates that the struct is a fake root struct, so specific mapping rules should be implemented.
 }
 
+// isList returns true if the yangDirectory describes a list.
+func (y *yangDirectory) isList() bool {
+	return y.listAttr != nil
+}
+
 // yangListAttr is used to store the additional elements for a Go struct that
 // are required if the struct represents a YANG list. It stores the name of
 // the key elements, and their associated types, along with pointers to those

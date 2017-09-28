@@ -15,6 +15,7 @@
 package ygot
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -23,55 +24,429 @@ import (
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+func TestPathElemBasics(t *testing.T) {
+	tests := []struct {
+		name               string
+		inGNMIPath         *gnmiPath
+		wantValid          bool
+		wantIsStringPath   bool
+		wantIsPathElemPath bool
+		wantLen            int
+	}{{
+		name: "string path only",
+		inGNMIPath: &gnmiPath{
+			stringSlicePath: []string{"foo", "bar"},
+		},
+		wantValid:          true,
+		wantIsStringPath:   true,
+		wantIsPathElemPath: false,
+		wantLen:            2,
+	}, {
+		name: "path elem path only",
+		inGNMIPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "foo",
+			}},
+		},
+		wantValid:          true,
+		wantIsStringPath:   false,
+		wantIsPathElemPath: true,
+		wantLen:            1,
+	}, {
+		name:       "invalid, both nil",
+		inGNMIPath: &gnmiPath{},
+		wantValid:  false,
+	}, {
+		name: "invalid, both set",
+		inGNMIPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "bar",
+			}},
+			stringSlicePath: []string{"foo"},
+		},
+		wantValid: false,
+	}}
+
+	for _, tt := range tests {
+		if got := tt.inGNMIPath.isValid(); got != tt.wantValid {
+			t.Errorf("%s: (gnmiPath)(%#v).isValid(): did not get expected result, got: %v, want: %v", tt.name, tt.inGNMIPath, got, tt.wantValid)
+		}
+
+		if !tt.inGNMIPath.isValid() {
+			continue
+		}
+
+		if got := tt.inGNMIPath.isStringSlicePath(); got != tt.wantIsStringPath {
+			t.Errorf("%s: (gnmiPath)(%#v).isStringSlicePath(): did not get expeted result, got: %v, want: %v", tt.name, tt.inGNMIPath, got, tt.wantIsStringPath)
+		}
+
+		if got := tt.inGNMIPath.isPathElemPath(); got != tt.wantIsPathElemPath {
+			t.Errorf("%s: (gnmiPath)(%#v).isPathElemPath(): did not get expected result, got: %v, want: %v", tt.name, tt.inGNMIPath, got, tt.wantIsPathElemPath)
+		}
+
+		if got := tt.inGNMIPath.Len(); got != tt.wantLen {
+			t.Errorf("%s: (gnmiPath)(%#v).Len(): did not get expected result, got: %v, want: %v", tt.name, tt.inGNMIPath, got, tt.wantLen)
+		}
+	}
+}
+
+func TestAppendName(t *testing.T) {
+	tests := []struct {
+		name    string
+		inPath  *gnmiPath
+		inName  string
+		want    *gnmiPath
+		wantErr bool
+	}{{
+		name:   "string slice append",
+		inPath: &gnmiPath{stringSlicePath: []string{}},
+		inName: "foo",
+		want:   &gnmiPath{stringSlicePath: []string{"foo"}},
+	}, {
+		name:   "pathElem slice append",
+		inPath: &gnmiPath{pathElemPath: []*gnmipb.PathElem{}},
+		inName: "bar",
+		want:   &gnmiPath{pathElemPath: []*gnmipb.PathElem{{Name: "bar"}}},
+	}, {
+		name:    "invalid input",
+		inPath:  &gnmiPath{},
+		inName:  "foo",
+		wantErr: true,
+	}, {
+		name:   "existing string slice",
+		inPath: &gnmiPath{stringSlicePath: []string{"bar"}},
+		inName: "foo",
+		want:   &gnmiPath{stringSlicePath: []string{"bar", "foo"}},
+	}, {
+		name: "existing pathElem",
+		inPath: &gnmiPath{pathElemPath: []*gnmipb.PathElem{{
+			Name: "zaphod",
+			Key:  map[string]string{"just": "this-guy"},
+		}}},
+		inName: "beeblebrox",
+		want: &gnmiPath{pathElemPath: []*gnmipb.PathElem{{
+			Name: "zaphod",
+			Key:  map[string]string{"just": "this-guy"},
+		}, {
+			Name: "beeblebrox",
+		}}},
+	}}
+
+	for _, tt := range tests {
+		if err := tt.inPath.AppendName(tt.inName); (err != nil) != tt.wantErr {
+			t.Errorf("%s: (gnmiPath)(%#v).AppendName(%s): did not get expected error status, got: %v, want error: %v", tt.name, tt.inPath, tt.inName, err, tt.wantErr)
+		}
+
+		if tt.wantErr {
+			continue
+		}
+
+		if diff := pretty.Compare(tt.inPath, tt.want); diff != "" {
+			t.Errorf("%s: (gnmiPath)(%#v).AppendName(%s): did not get expected path, diff(-got,+want):\n%s", tt.name, tt.inPath, tt.inName, diff)
+		}
+	}
+}
+
+func TestGNMIPathCopy(t *testing.T) {
+	tests := []struct {
+		name   string
+		inPath *gnmiPath
+	}{{
+		name:   "string element path",
+		inPath: &gnmiPath{stringSlicePath: []string{"one", "two"}},
+	}, {
+		name: "path element path",
+		inPath: &gnmiPath{pathElemPath: []*gnmipb.PathElem{
+			{Name: "one"},
+			{Name: "two", Key: map[string]string{"three": "four"}},
+		}},
+	}}
+
+	for _, tt := range tests {
+		if got := tt.inPath.Copy(); !reflect.DeepEqual(got, tt.inPath) {
+			t.Errorf("%s: (gnmiPath).Copy(): did not get expected result, got: %v, want: %v", tt.name, got, tt.inPath)
+		}
+	}
+}
+
+func TestGNMIPathOps(t *testing.T) {
+	tests := []struct {
+		name                string
+		inPath              *gnmiPath
+		inIndex             int
+		inValue             interface{}
+		wantLastPathElem    *gnmipb.PathElem
+		wantLastPathElemErr bool
+		wantPath            *gnmiPath
+		wantSetIndexErr     bool
+	}{{
+		name:                "string slice path",
+		inPath:              newStringSliceGNMIPath([]string{"one", "two"}),
+		wantLastPathElemErr: true,
+		inIndex:             1,
+		inValue:             "three",
+		wantPath:            newStringSliceGNMIPath([]string{"one", "three"}),
+	}, {
+		name:             "pathElem path",
+		inPath:           newPathElemGNMIPath([]*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}}),
+		inIndex:          0,
+		inValue:          &gnmipb.PathElem{Name: "baz", Key: map[string]string{"formerly": "foo"}},
+		wantLastPathElem: &gnmipb.PathElem{Name: "bar"},
+		wantPath:         &gnmiPath{pathElemPath: []*gnmipb.PathElem{{Name: "baz", Key: map[string]string{"formerly": "foo"}}, {Name: "bar"}}},
+	}, {
+		name:                "invalid set index - path elem into string",
+		inPath:              newStringSliceGNMIPath([]string{"one", "two"}),
+		inIndex:             1,
+		inValue:             &gnmipb.PathElem{Name: "bar"},
+		wantLastPathElemErr: true,
+		wantSetIndexErr:     true,
+	}, {
+		name:             "invalid set index - string into path elem",
+		inPath:           newPathElemGNMIPath([]*gnmipb.PathElem{{Name: "one"}}),
+		inIndex:          0,
+		inValue:          "foo",
+		wantLastPathElem: &gnmipb.PathElem{Name: "one"},
+		wantSetIndexErr:  true,
+	}, {
+		name:                "invalid set index - no known type",
+		inPath:              newStringSliceGNMIPath([]string{"foo"}),
+		inIndex:             0,
+		inValue:             32,
+		wantLastPathElemErr: true,
+		wantSetIndexErr:     true,
+	}, {
+		name:                "invalid set index - index out of range",
+		inPath:              newStringSliceGNMIPath([]string{"bar"}),
+		inIndex:             422,
+		inValue:             "hello buffer overflow!",
+		wantLastPathElemErr: true,
+		wantSetIndexErr:     true,
+	}}
+
+	for _, tt := range tests {
+		gotLast, err := tt.inPath.LastPathElem()
+		if (err != nil) != tt.wantLastPathElemErr {
+			t.Errorf("%s: %v.LastPathElem(): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inPath, err, tt.wantLastPathElemErr)
+		}
+
+		if err == nil && !reflect.DeepEqual(gotLast, tt.wantLastPathElem) {
+			t.Errorf("%s: %v.LastPathElem(), did not get expected last element, got: %v, want: %V", tt.name, tt.inPath, gotLast, tt.wantLastPathElem)
+		}
+
+		np := tt.inPath.Copy()
+		err = np.SetIndex(tt.inIndex, tt.inValue)
+		if (err != nil) != tt.wantSetIndexErr {
+			t.Errorf("%s: %v.SetIndex(%d, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inPath, tt.inIndex, tt.inValue, err, tt.wantSetIndexErr)
+		}
+
+		if err == nil && !reflect.DeepEqual(np, tt.wantPath) {
+			t.Errorf("%s: %v.SetIndex(%d, %v): did not get expected path, got: %v, want: %v", tt.name, tt.inPath, tt.inIndex, tt.inValue, np, tt.wantPath)
+		}
+	}
+}
+
+func TestGNMIPathToProto(t *testing.T) {
+	tests := []struct {
+		name      string
+		inPath    *gnmiPath
+		wantProto *gnmipb.Path
+		wantErr   bool
+	}{{
+		name:      "string slice path",
+		inPath:    newStringSliceGNMIPath([]string{"one", "two"}),
+		wantProto: &gnmipb.Path{Element: []string{"one", "two"}},
+	}, {
+		name:      "empty string slice path",
+		inPath:    newStringSliceGNMIPath([]string{}),
+		wantProto: nil,
+	}, {
+		name:      "path elem path",
+		inPath:    newPathElemGNMIPath([]*gnmipb.PathElem{{Name: "one"}}),
+		wantProto: &gnmipb.Path{Elem: []*gnmipb.PathElem{{Name: "one"}}},
+	}, {
+		name:      "empty path elem path",
+		inPath:    newPathElemGNMIPath([]*gnmipb.PathElem{}),
+		wantProto: nil,
+	}, {
+		name:    "invalid path",
+		inPath:  &gnmiPath{stringSlicePath: []string{"one"}, pathElemPath: []*gnmipb.PathElem{{Name: "bar"}}},
+		wantErr: true,
+	}}
+
+	for _, tt := range tests {
+		got, err := tt.inPath.ToProto()
+
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: %v.ToProto(), did not get expected error, got: %v, wantErr: %v", tt.name, tt.inPath, err, tt.wantErr)
+		}
+
+		if !proto.Equal(got, tt.wantProto) {
+			t.Errorf("%s: %v.ToProto, did not get expected return value, got: %s, want: %s", tt.name, tt.inPath, proto.MarshalTextString(got), proto.MarshalTextString(tt.wantProto))
+		}
+	}
+}
+
 func TestStripPrefix(t *testing.T) {
 	tests := []struct {
 		name     string
-		inPath   []interface{}
-		inPrefix []interface{}
-		wantPath []interface{}
+		inPath   *gnmiPath
+		inPrefix *gnmiPath
+		want     *gnmiPath
 		wantErr  bool
 	}{{
-		name:     "simple prefix case",
-		inPath:   []interface{}{"one", "two", "three"},
-		inPrefix: []interface{}{"one"},
-		wantPath: []interface{}{"two", "three"},
+		name: "mismatched types",
+		inPath: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		inPrefix: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		wantErr: true,
 	}, {
-		name:     "two element prefix",
-		inPath:   []interface{}{"one", "two", "three"},
-		inPrefix: []interface{}{"one", "two"},
-		wantPath: []interface{}{"three"},
+		name: "simple element prefix",
+		inPath: &gnmiPath{
+			stringSlicePath: []string{"one", "two", "three"},
+		},
+		inPrefix: &gnmiPath{
+			stringSlicePath: []string{"one"},
+		},
+		want: &gnmiPath{
+			stringSlicePath: []string{"two", "three"},
+		},
 	}, {
-		name:     "non-string case",
-		inPath:   []interface{}{1, 2, 3},
-		inPrefix: []interface{}{1, 2},
-		wantPath: []interface{}{3},
+		name: "two element prefix",
+		inPath: &gnmiPath{
+			stringSlicePath: []string{"one", "two", "three"},
+		},
+		inPrefix: &gnmiPath{
+			stringSlicePath: []string{"one", "two"},
+		},
+		want: &gnmiPath{
+			stringSlicePath: []string{"three"},
+		},
 	}, {
-		name:     "invalid prefix",
-		inPath:   []interface{}{"four", "five", "six"},
-		inPrefix: []interface{}{"one"},
+		name: "invalid prefix",
+		inPath: &gnmiPath{
+			stringSlicePath: []string{"four", "five", "six"},
+		},
+		inPrefix: &gnmiPath{
+			stringSlicePath: []string{"one", "two"},
+		},
+		wantErr: true,
+	}, {
+		name: "simple pathelem prefix",
+		inPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}, {
+				Name: "three",
+			}},
+		},
+		inPrefix: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "one",
+			}},
+		},
+		want: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "two",
+			}, {
+				Name: "three",
+			}},
+		},
+	}, {
+		name: "two element pathelem prefix",
+		inPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}, {
+				Name: "three",
+			}},
+		},
+		inPrefix: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		want: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "three",
+			}},
+		},
+	}, {
+		name: "pathelem with a key",
+		inPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"key": "value"},
+			}, {
+				Name: "two",
+			}},
+		},
+		inPrefix: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"key": "value"},
+			}},
+		},
+		want: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "two",
+			}},
+		},
+	}, {
+		name: "invalid prefix for pathelem path",
+		inPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		inPrefix: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{
+				Name: "four",
+			}},
+		},
+		wantErr: true,
+	}, {
+		name: "invalid inputs",
+		inPath: &gnmiPath{
+			pathElemPath:    []*gnmipb.PathElem{},
+			stringSlicePath: []string{},
+		},
+		inPrefix: &gnmiPath{stringSlicePath: []string{"foo"}},
 		wantErr:  true,
 	}}
 
 	for _, tt := range tests {
-		got, err := stripPrefix(tt.inPath, tt.inPrefix)
+		got, err := tt.inPath.StripPrefix(tt.inPrefix)
 		if err != nil {
 			if !tt.wantErr {
-				t.Errorf("%s: stripPrefix(%v, %v): got unexpected error: %v", tt.name, tt.inPath, tt.inPrefix, got)
+				t.Errorf("%s: stripPrefix(%v, %v): got unexpected error: %v", tt.name, tt.inPath, tt.inPrefix, err)
 			}
 			continue
 		}
 
-		if !reflect.DeepEqual(got, tt.wantPath) {
-			t.Errorf("%s: stripPrefix(%v, %v): did not get expected path, got: %v, want: %v", tt.name, tt.inPath, tt.inPrefix, got, tt.wantPath)
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("%s: stripPrefix(%v, %v): did not get expected path, got: %v, want: %v", tt.name, tt.inPath, tt.inPrefix, got, tt.want)
 		}
 	}
 }
 
 func TestInterfacePathAsgNMIPath(t *testing.T) {
 	tests := []struct {
-		name string
-		in   []interface{}
-		want *gnmipb.Path
+		name          string
+		in            []interface{}
+		inUsePathElem bool
+		want          *gnmipb.Path
+		wantErr       bool
 	}{{
 		name: "simple path",
 		in:   []interface{}{"one", "two", "three"},
@@ -84,11 +459,186 @@ func TestInterfacePathAsgNMIPath(t *testing.T) {
 		want: &gnmipb.Path{
 			Element: []string{"one", "42", "fourteen thousand eight hundred and twenty three", "42.24"},
 		},
+	}, {
+		name: "pathelem used",
+		in: []interface{}{
+			&gnmipb.PathElem{Name: "a"},
+			&gnmipb.PathElem{Name: "b"},
+		},
+		inUsePathElem: true,
+		want: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b"},
+			},
+		},
+	}, {
+		name: "path elem with key",
+		in: []interface{}{
+			&gnmipb.PathElem{Name: "a", Key: map[string]string{"foo": "bar"}},
+		},
+		inUsePathElem: true,
+		want: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{{Name: "a", Key: map[string]string{"foo": "bar"}}},
+		},
 	}}
 
 	for _, tt := range tests {
-		if got := interfacePathAsgNMIPath(tt.in); !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("%s: interfacePathAsgNMIPath(%v): did not get correct output, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		got, err := interfacePathAsgNMIPath(tt.in, tt.inUsePathElem)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: interfacePathAsgNMIPath%v, %v): did not get expected error, got: %v, want err: %v", tt.name, tt.in, tt.inUsePathElem, err, tt.wantErr)
+		}
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("%s: interfacePathAsgNMIPath(%v, %v): did not get correct output, got: %v, want: %v", tt.name, tt.in, tt.inUsePathElem, got, tt.want)
+		}
+	}
+}
+
+type pathElemMultiKey struct {
+	I *int8    `path:"i"`
+	J *uint8   `path:"j"`
+	S *string  `path:"s"`
+	E EnumTest `path:"e"`
+}
+
+func (*pathElemMultiKey) IsYANGGoStruct() {}
+
+func (e *pathElemMultiKey) ΛListKeyMap() (map[string]interface{}, error) {
+	if e.I == nil || e.J == nil || e.S == nil || e.E == (EnumTest)(0) {
+		return nil, fmt.Errorf("unset keys")
+	}
+	return map[string]interface{}{
+		"i": *e.I,
+		"j": *e.J,
+		"s": *e.S,
+		"e": e.E,
+	}, nil
+}
+
+func TestAppendGNMIPathElemKey(t *testing.T) {
+	tests := []struct {
+		name     string
+		inValue  reflect.Value
+		inPath   *gnmiPath
+		wantPath *gnmiPath
+		wantErr  bool
+	}{{
+		name: "invalid path",
+		inValue: reflect.ValueOf(&pathElemExampleChild{
+			Val: String("foo"),
+		}),
+		inPath:  &gnmiPath{},
+		wantErr: true,
+	}, {
+		name: "invalid path - both specified",
+		inValue: reflect.ValueOf(&pathElemExampleChild{
+			Val: String("bar"),
+		}),
+		inPath: &gnmiPath{
+			stringSlicePath: []string{"fish"},
+			pathElemPath:    []*gnmipb.PathElem{{Name: "bar"}},
+		},
+		wantErr: true,
+	}, {
+		name: "zero length input path",
+		inValue: reflect.ValueOf(&pathElemExampleChild{
+			Val: String("bar"),
+		}),
+		inPath:  &gnmiPath{pathElemPath: []*gnmipb.PathElem{}},
+		wantErr: true,
+	}, {
+		name:    "invalid struct input",
+		inValue: reflect.ValueOf(&struct{ Fish string }{"haddock"}),
+		inPath:  &gnmiPath{pathElemPath: []*gnmipb.PathElem{{Name: "bar"}}},
+		wantErr: true,
+	}, {
+		name: "simple append",
+		inValue: reflect.ValueOf(&pathElemExampleChild{
+			Val: String("foo"),
+		}),
+		inPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{
+				&gnmipb.PathElem{Name: "foo"},
+				&gnmipb.PathElem{Name: "bar"},
+			},
+		},
+		wantPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{
+				&gnmipb.PathElem{Name: "foo"},
+				&gnmipb.PathElem{Name: "bar", Key: map[string]string{"val": "foo"}},
+			},
+		},
+	}, {
+		name: "append with multiple value key, diverse values",
+		inValue: reflect.ValueOf(&pathElemMultiKey{
+			I: Int8(-42),
+			J: Uint8(42),
+			S: String("foo"),
+			E: EnumTestVALTWO,
+		}),
+		inPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{
+				&gnmipb.PathElem{Name: "foo"},
+			},
+		},
+		wantPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{
+				&gnmipb.PathElem{
+					Name: "foo",
+					Key: map[string]string{
+						"i": "-42",
+						"j": "42",
+						"s": "foo",
+						"e": "VAL_TWO",
+					},
+				},
+			},
+		},
+	}, {
+		name:    "append with nil key",
+		inValue: reflect.ValueOf(&pathElemMultiKey{}),
+		inPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{
+				&gnmipb.PathElem{Name: "foo"},
+			},
+		},
+		wantErr: true,
+	}, {
+		name: "append with path that does not have a pathelem in it",
+		inValue: reflect.ValueOf(&pathElemExampleChild{
+			Val: String("foo"),
+		}),
+		inPath: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		wantErr: true,
+	}, {
+		name:    "nil input",
+		inValue: reflect.ValueOf(nil),
+		inPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{
+				&gnmipb.PathElem{Name: "foo"},
+			},
+		},
+		wantErr: true,
+	}, {
+		name: "nil path input",
+		inValue: reflect.ValueOf(&pathElemExampleChild{
+			Val: String("bar"),
+		}),
+		inPath:  nil,
+		wantErr: true,
+	}}
+
+	for _, tt := range tests {
+		got, err := appendgNMIPathElemKey(tt.inValue, tt.inPath)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: appendgNMIPathElemKey(%v, %v): did not get expected error status, got: %v, want error: %v", tt.name, tt.inValue, tt.inPath, err, tt.wantErr)
+		}
+
+		if diff := pretty.Compare(got, tt.wantPath); diff != "" {
+			//	if !reflect.DeepEqual(got, tt.wantPath) {
+			t.Errorf("%s: appendgNMIPathElemKey(%v, %v): did not get expected return path, diff(-got,+want):\n%s", tt.name, tt.inValue, tt.inPath, diff)
 		}
 	}
 }
@@ -148,6 +698,7 @@ type Binary []byte
 type renderExample struct {
 	Str           *string                             `path:"str"`
 	IntVal        *int32                              `path:"int-val"`
+	FloatVal      *float32                            `path:"floatval"`
 	EnumField     EnumTest                            `path:"enum"`
 	Ch            *renderExampleChild                 `path:"ch"`
 	LeafList      []string                            `path:"leaf-list"`
@@ -236,6 +787,70 @@ func (EnumTest) ΛMap() map[string]map[int64]EnumDefinition {
 	}
 }
 
+// pathElemExample is an example struct used for rendering using gNMI PathElems.
+type pathElemExample struct {
+	List        map[string]*pathElemExampleChild                                  `path:"list"`
+	StringField *string                                                           `path:"string-field"`
+	MKey        map[pathElemExampleMultiKeyChildKey]*pathElemExampleMultiKeyChild `path:"m-key"`
+}
+
+// IsYANGGoStruct ensures that pathElemExample implements GoStruct.
+func (*pathElemExample) IsYANGGoStruct() {}
+
+// pathElemExampleChild is an example struct that is used as a list child struct.
+type pathElemExampleChild struct {
+	Val        *string `path:"val|config/val"`
+	OtherField *uint8  `path:"other-field"`
+}
+
+// IsYANGGoStruct ensures that pathElemExampleChild implements GoStruct.
+func (*pathElemExampleChild) IsYANGGoStruct() {}
+
+// ΛListKeyMap ensures that pathElemExampleChild implements the KeyHelperGoStruct
+// helper.
+func (p *pathElemExampleChild) ΛListKeyMap() (map[string]interface{}, error) {
+	if p.Val == nil {
+		return nil, fmt.Errorf("invalid input, key Val was nil")
+	}
+	return map[string]interface{}{
+		"val": *p.Val,
+	}, nil
+}
+
+// pathElemExampleMultiKeyChild is an example struct that is used as a list child
+// struct where there are multiple keys.
+type pathElemExampleMultiKeyChild struct {
+	Foo *string `path:"foo"`
+	Bar *uint16 `path:"bar"`
+	Baz *uint8  `path:"baz"`
+}
+
+// IsYANGGoStruct ensures that pathElemExampleMultiKeyChild implements the GoStruct
+// interface.
+func (*pathElemExampleMultiKeyChild) IsYANGGoStruct() {}
+
+// ΛListKeyMap ensurs that pathElemExampleMultiKeyChild implements the KeyHelperGoStruct
+// interface.
+func (p *pathElemExampleMultiKeyChild) ΛListKeyMap() (map[string]interface{}, error) {
+	if p.Foo == nil {
+		return nil, fmt.Errorf("invalid input, key Foo was nil")
+	}
+
+	if p.Bar == nil {
+		return nil, fmt.Errorf("invalid input, key Bar was nil")
+	}
+	return map[string]interface{}{
+		"foo": *p.Foo,
+		"bar": *p.Bar,
+	}, nil
+}
+
+// pathElemExampleMultiKeyChildKey is the key type used for the MultiKeyChild list.
+type pathElemExampleMultiKeyChildKey struct {
+	Foo string `path:"foo"`
+	Bar uint16 `path:"bar"`
+}
+
 const (
 	// EnumTestVALONE is used to represent VAL_ONE of the /c/test
 	// enumerated leaf in the schema-with-list test.
@@ -253,7 +868,7 @@ func TestTogNMINotifications(t *testing.T) {
 		name        string
 		inTimestamp int64
 		inStruct    GoStruct
-		inPrefix    []interface{}
+		inConfig    GNMINotificationsConfig
 		want        []*gnmipb.Notification
 		wantErr     bool
 	}{{
@@ -265,6 +880,17 @@ func TestTogNMINotifications(t *testing.T) {
 			Update: []*gnmipb.Update{{
 				Path: &gnmipb.Path{Element: []string{"str"}},
 				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
+			}},
+		}},
+	}, {
+		name:        "simple float value leaf example",
+		inTimestamp: 42,
+		inStruct:    &renderExample{FloatVal: Float32(42.0)},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"floatval"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{42.0}},
 			}},
 		}},
 	}, {
@@ -383,7 +1009,7 @@ func TestTogNMINotifications(t *testing.T) {
 		inStruct: &renderExample{MixedList: []interface{}{
 			42.42, int8(-42), int16(-84), int32(-168), int64(-336),
 			uint8(12), uint16(144), uint32(20736), uint64(429981696),
-			true, EnumTestVALTWO,
+			true, EnumTestVALTWO, float32(42.0),
 		}},
 		want: []*gnmipb.Notification{{
 			Timestamp: 720,
@@ -414,6 +1040,8 @@ func TestTogNMINotifications(t *testing.T) {
 								Value: &gnmipb.TypedValue_BoolVal{true},
 							}, {
 								Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"},
+							}, {
+								Value: &gnmipb.TypedValue_FloatVal{42.0},
 							}},
 						},
 					},
@@ -428,7 +1056,9 @@ func TestTogNMINotifications(t *testing.T) {
 			IntVal: Int32(42),
 			Ch:     &renderExampleChild{Uint64(42)},
 		},
-		inPrefix: []interface{}{"base"},
+		inConfig: GNMINotificationsConfig{
+			StringSlicePrefix: []string{"base"},
+		},
 		want: []*gnmipb.Notification{{
 			Timestamp: 420042,
 			Prefix: &gnmipb.Path{
@@ -454,7 +1084,9 @@ func TestTogNMINotifications(t *testing.T) {
 				84: {String("zaphod")},
 			},
 		},
-		inPrefix: []interface{}{"heart", "of", "gold"},
+		inConfig: GNMINotificationsConfig{
+			StringSlicePrefix: []string{"heart", "of", "gold"},
+		},
 		want: []*gnmipb.Notification{{
 			Timestamp: 42,
 			Prefix:    &gnmipb.Path{Element: []string{"heart", "of", "gold"}},
@@ -500,13 +1132,152 @@ func TestTogNMINotifications(t *testing.T) {
 			},
 		},
 		wantErr: true, //unimplemented.
+	}, {
+		name:        "invalid element in leaf-list",
+		inTimestamp: 42,
+		inStruct: &renderExample{
+			MixedList: []interface{}{struct{ Foo string }{"bar"}},
+		},
+		wantErr: true,
+	}, {
+		name:        "invalid slice within a slice",
+		inTimestamp: 42,
+		inStruct: &renderExample{
+			MixedList: []interface{}{[]string{"foo"}},
+		},
+		wantErr: true,
+	}, {
+		name:        "simple pathElemExample",
+		inTimestamp: 42,
+		inStruct: &pathElemExample{
+			StringField: String("foo"),
+			List: map[string]*pathElemExampleChild{
+				"p1": {Val: String("p1"), OtherField: Uint8(42)},
+				"p2": {Val: String("p2"), OtherField: Uint8(84)},
+			},
+		},
+		inConfig: GNMINotificationsConfig{UsePathElem: true},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "string-field",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"foo"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p1"},
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"p1"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p1"},
+					}, {
+						Name: "config",
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"p1"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p1"},
+					}, {
+						Name: "other-field",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{42}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p2"},
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"p2"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p2"},
+					}, {
+						Name: "config",
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"p2"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p2"},
+					}, {
+						Name: "other-field",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{84}},
+			}},
+		}},
+	}, {
+		name:        "multi key example with path elements",
+		inTimestamp: 42,
+		inStruct: &pathElemExample{
+			MKey: map[pathElemExampleMultiKeyChildKey]*pathElemExampleMultiKeyChild{
+				pathElemExampleMultiKeyChildKey{Foo: "foo", Bar: 16}: {Foo: String("foo"), Bar: Uint16(16)},
+			},
+		},
+		inConfig: GNMINotificationsConfig{UsePathElem: true},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "m-key",
+						Key: map[string]string{
+							"foo": "foo",
+							"bar": "16",
+						},
+					}, {
+						Name: "foo",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"foo"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "m-key",
+						Key: map[string]string{
+							"foo": "foo",
+							"bar": "16",
+						},
+					}, {
+						Name: "bar",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{16}},
+			}},
+		}},
 	}}
 
 	for _, tt := range tests {
-		got, err := TogNMINotifications(tt.inStruct, tt.inTimestamp, tt.inPrefix)
+		got, err := TogNMINotifications(tt.inStruct, tt.inTimestamp, tt.inConfig)
 		if err != nil {
 			if !tt.wantErr {
-				t.Errorf("%s: TogNMINotifications(%v, %v, %v): got unexpected error: %v", tt.name, tt.inStruct, tt.inTimestamp, tt.inPrefix, err)
+				t.Errorf("%s: TogNMINotifications(%v, %v, %v): got unexpected error: %v", tt.name, tt.inStruct, tt.inTimestamp, tt.inConfig, err)
 			}
 			continue
 		}
@@ -514,9 +1285,10 @@ func TestTogNMINotifications(t *testing.T) {
 		// Avoid test flakiness by ignoring the update ordering. Required because
 		// there is no order to the map of fields that are returned by the struct
 		// output.
+
 		if !notificationSetEqual(got, tt.want) {
 			diff := pretty.Compare(got, tt.want)
-			t.Errorf("%s: TogNMINotifications(%v, %v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, tt.inPrefix, diff)
+			t.Errorf("%s: TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
 		}
 	}
 }
@@ -528,7 +1300,7 @@ func notificationSetEqual(a, b []*gnmipb.Notification) bool {
 		return false
 	}
 
-	res := map[bool]int{}
+	matchall := true
 	for _, aelem := range a {
 		var matched bool
 		for _, belem := range b {
@@ -537,10 +1309,12 @@ func notificationSetEqual(a, b []*gnmipb.Notification) bool {
 				break
 			}
 		}
-		res[matched]++
+		if !matched {
+			matchall = false
+		}
 	}
 
-	return res[false] != 0
+	return matchall
 }
 
 // updateSetEqual checks whether two slices of gNMI Updates are equal, ignoring their
@@ -550,21 +1324,20 @@ func updateSetEqual(a, b []*gnmipb.Update) bool {
 		return false
 	}
 
-	aSet := map[*gnmipb.Path]*gnmipb.Update{}
 	for _, aelem := range a {
-		aSet[aelem.Path] = aelem
-	}
-
-	for _, belem := range b {
-		aelem, ok := aSet[belem.Path]
-		if !ok {
-			return false
+		var matched bool
+		for _, belem := range b {
+			if proto.Equal(aelem, belem) {
+				matched = true
+				break
+			}
 		}
 
-		if !reflect.DeepEqual(aelem, belem) {
+		if !matched {
 			return false
 		}
 	}
+
 	return true
 }
 
