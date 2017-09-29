@@ -1393,10 +1393,6 @@ func generateEnumMap(enumValues map[string]map[int64]ygot.EnumDefinition) (strin
 // types that can correspond to the schema path. The map generated allows a
 // schemapath to be mapped into the reflect.Type representing the enum value.
 func generateEnumTypeMap(enumTypeMap map[string][]string) (string, error) {
-	if len(enumTypeMap) == 0 {
-		return "", nil
-	}
-
 	var buf bytes.Buffer
 	if err := goTemplates["enumTypeMap"].Execute(&buf, enumTypeMap); err != nil {
 		return "", err
