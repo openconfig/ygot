@@ -456,7 +456,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 		{
 			desc:    "bad field",
 			json:    `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
-			wantErr: `parent container key-list (type map[string]*ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
+			wantErr: `parent container key-list (type *ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
 		},
 	}
 
