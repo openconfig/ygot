@@ -18,10 +18,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/pmezard/go-difflib/difflib"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 const (
@@ -50,6 +53,142 @@ func errToString(err error) string {
 		return ""
 	}
 	return err.Error()
+}
+
+func TestStructTagToLibPaths(t *testing.T) {
+	tests := []struct {
+		name     string
+		inField  reflect.StructField
+		inParent *gnmiPath
+		want     []*gnmiPath
+		wantErr  bool
+	}{{
+		name: "invalid input path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath:    []*gnmipb.PathElem{},
+			stringSlicePath: []string{},
+		},
+		wantErr: true,
+	}, {
+		name: "simple single tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo"},
+		}},
+	}, {
+		name: "empty tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"" rootpath:""`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{},
+		}},
+	}, {
+		name: "multiple path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar|bar"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo", "bar"},
+		}, {
+			stringSlicePath: []string{"bar"},
+		}},
+	}, {
+		name: "populated parent path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{"existing"},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"existing", "baz"},
+		}, {
+			stringSlicePath: []string{"existing", "foo", "baz"},
+		}},
+	}, {
+		name: "simple pathelem single tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}},
+		}},
+	}, {
+		name: "empty tag pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"" rootpath:""`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{},
+		}},
+	}, {
+		name: "multiple pathelem path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar|bar"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}},
+		}, {
+			pathElemPath: []*gnmipb.PathElem{{Name: "bar"}},
+		}},
+	}, {
+		name: "populated pathelem parent path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "baz"}},
+		}, {
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "foo"}, {Name: "baz"}},
+		}},
+	}}
+
+	for _, tt := range tests {
+		got, err := structTagToLibPaths(tt.inField, tt.inParent)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, err, tt.wantErr)
+		}
+
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-got,+want):\n%s", tt.name, tt.inField, tt.inParent, diff)
+		}
+	}
 }
 
 // mapStructTestOne is the base struct used for the simple-schema test.
