@@ -14,6 +14,8 @@
 
 package ygot
 
+import "reflect"
+
 // GoStruct is an interface which can be implemented by Go structs that are
 // generated to represent a YANG container or list member. It simply allows
 // handling code to ensure that it is interacting with a struct that will meet
@@ -37,6 +39,9 @@ type ValidatedGoStruct interface {
 	// the YANG schema, and returns an error if the struct's contents
 	// are not valid, or nil if the struct complies with the schema.
 	Validate() error
+	// ΛEnumTypeMap returns the set of enumerated types that are contained
+	// in the generated code.
+	ΛEnumTypeMap() map[string][]reflect.Type
 }
 
 // KeyHelperGoStruct is an interface which can be implemented by Go structs

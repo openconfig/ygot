@@ -100,6 +100,10 @@ func (s *Bgp) Validate() error {
 	return nil
 }
 
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Bgp) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
 // Bgp_Neighbor represents the /openconfig-options/bgp/neighbors/neighbor YANG schema element.
 type Bgp_Neighbor struct {
 	EnabledAddressFamily	[]Bgp_Neighbor_EnabledAddressFamily_Union	`path:"state/enabled-address-family" module:"openconfig-options"`
@@ -131,6 +135,10 @@ func (s *Bgp_Neighbor) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Bgp_Neighbor) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
 // Bgp_Neighbor_EnabledAddressFamily_Union is an interface that is implemented by valid types for the union
 // for the leaf /openconfig-options/bgp/neighbors/neighbor/state/enabled-address-family within the YANG schema.
@@ -189,6 +197,10 @@ func (s *Device) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Device) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
 // E_OpenconfigOptions_AFI is a derived int64 type which is used to represent
 // the enumerated node OpenconfigOptions_AFI. An additional value named
