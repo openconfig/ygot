@@ -563,6 +563,15 @@ var ΛEnumTypes = map[string][]reflect.Type{
 }
 `
 
+	// goEnumTypeMapAccessTemplate provides a teplate to output an accessor
+	// function with a generated struct as receiver, it returns the enum type
+	// map associated with the generated code.
+	goEnumTypeMapAccessTemplate = `
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *{{ .StructName }}) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+`
+
 	// schemaVarTemplate provides a template to output a constant byte
 	// slice which contains the serialised schema of the YANG modules for
 	// which code generation was performed.
@@ -626,17 +635,18 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 
 	// The set of built templates that are to be referenced during code generation.
 	goTemplates = map[string]*template.Template{
-		"header":          makeTemplate("header", goHeaderTemplate),
-		"struct":          makeTemplate("struct", goStructTemplate),
-		"structValidator": makeTemplate("structValidator", goStructValidatorTemplate),
-		"listkey":         makeTemplate("listkey", goListKeyTemplate),
-		"newListEntry":    makeTemplate("newListEntry", goNewListMemberTemplate),
-		"enumDefinition":  makeTemplate("enumDefinition", goEnumDefinitionTemplate),
-		"enumMap":         makeTemplate("enumMap", goEnumMapTemplate),
-		"schemaVar":       makeTemplate("schemaVar", schemaVarTemplate),
-		"unionIntf":       makeTemplate("unionIntf", unionInterfaceTemplate),
-		"keyHelper":       makeTemplate("keyHelper", goKeyMapTemplate),
-		"enumTypeMap":     makeTemplate("enumTypeMap", goEnumTypeMapTemplate),
+		"header":              makeTemplate("header", goHeaderTemplate),
+		"struct":              makeTemplate("struct", goStructTemplate),
+		"structValidator":     makeTemplate("structValidator", goStructValidatorTemplate),
+		"listkey":             makeTemplate("listkey", goListKeyTemplate),
+		"newListEntry":        makeTemplate("newListEntry", goNewListMemberTemplate),
+		"enumDefinition":      makeTemplate("enumDefinition", goEnumDefinitionTemplate),
+		"enumMap":             makeTemplate("enumMap", goEnumMapTemplate),
+		"schemaVar":           makeTemplate("schemaVar", schemaVarTemplate),
+		"unionIntf":           makeTemplate("unionIntf", unionInterfaceTemplate),
+		"keyHelper":           makeTemplate("keyHelper", goKeyMapTemplate),
+		"enumTypeMap":         makeTemplate("enumTypeMap", goEnumTypeMapTemplate),
+		"enumTypeMapAccessor": makeTemplate("enumTypeMapAccessor", goEnumTypeMapAccessTemplate),
 	}
 
 	// templateHelperFunctions specifies a set of functions that are supplied as
@@ -990,6 +1000,10 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 
 	if generateJSONSchema {
 		if err := generateValidator(&methodBuf, structDef); err != nil {
+			errs = append(errs, err)
+		}
+
+		if err := generateEnumTypeMapAccessor(&methodBuf, structDef); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -1388,6 +1402,15 @@ func generateEnumTypeMap(enumTypeMap map[string][]string) (string, error) {
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+// generateEnumTypeMapAccessor generates a function which returns the defined
+// enumTypeMap for a struct.
+func generateEnumTypeMapAccessor(b *bytes.Buffer, s generatedGoStruct) error {
+	if err := goTemplates["enumTypeMapAccessor"].Execute(b, s); err != nil {
+		return err
+	}
+	return nil
 }
 
 // writeGoSchema generates Go code which serialises the rawSchema byte slice
