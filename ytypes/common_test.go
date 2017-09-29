@@ -29,18 +29,27 @@ var (
 	// testErrOutput controls whether expect error test cases log the error
 	// values.
 	testErrOutput = false
+	globalEnumMap = map[string]map[int64]ygot.EnumDefinition{
+		"EnumType": map[int64]ygot.EnumDefinition{
+			42: {Name: "E_VALUE_FORTY_TWO"},
+		}
+		"EnumType2": map[int64]ygot.EnumDefinition{
+			43: {Name: "E_VALUE_FORTY_THREE"},
+		}
 )
 
 // EnumType is used as an enum type in various tests in the ytypes package.
 type EnumType int64
 
 func (EnumType) ΛMap() map[string]map[int64]ygot.EnumDefinition {
-	m := map[string]map[int64]ygot.EnumDefinition{
-		"EnumType": map[int64]ygot.EnumDefinition{
-			42: {Name: "E_VALUE_FORTY_TWO"},
-		},
-	}
-	return m
+	return globalEnumMap
+}
+
+// EnumType2 is used as an enum type in various tests in the ytypes package.
+type EnumType2 int64
+
+func (EnumType2) ΛMap() map[string]map[int64]ygot.EnumDefinition {
+	return globalEnumMap
 }
 
 // populateParentField recurses through schema and populates each Parent field

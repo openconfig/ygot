@@ -215,7 +215,7 @@ func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
 	}
 
 	v := reflect.ValueOf(value).Elem()
-	
+
 	// Unions of enum types are passed as ptr to interface to struct ptr.
 	// Normalize to a union struct.
 	if util.IsValueInterface(v) {
@@ -508,6 +508,7 @@ the resulting Bgp_Neighbor_RouteReflector would have field
 RouteReflectorClusterId set with the type Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union_String,
 with field String set to "forty-two".
 */
+
 func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, value interface{}) error {
 	util.DbgPrint("unmarshalUnion value %v, type %T, into parent type %T field name %s, schema name %s", util.ValueStr(value), value, parent, fieldName, schema.Name)
 	v, t := reflect.ValueOf(parent), reflect.TypeOf(parent)
@@ -524,8 +525,15 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		return err
 	}
 
-	yks := getUnionKinds(schema.Type)
-	util.DbgPrint("possible union types are %v", yks)
+	yks, yss, err := getUnionKindsAndEntries(schema, schema.Type)
+	if err != nil {
+		return err
+	}
+	var ss []yang.TypeKind
+	for _, e := range yss {
+		ss = append(ss, e.Type.Kind)
+	}
+	util.DbgPrint("possible union types are scalars %v or enums with paths %v", yks, ss)
 
 	// This can either be a interface, where multiple types are involved, of
 	// just the type itself, if the alternatives span only one type.
@@ -543,6 +551,32 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		return nil
 	}
 
+	// For each possible union type, try to unmarshal the JSON value. If it can
+	// unmarshaled, try to resolve the resulting type into a union struct type.
+	// Note that values can resolve into more than one struct type depending on
+	// the value and its range. In this case, no attempt is made to find the
+	// most restrictive type.
+
+	// Try to unmarshal in to enum types first, since the case of union of
+	// string and enum could unmarshal into either.
+	for _, ys := range yss {
+		valueStr, ok := value.(string)
+		if !ok {
+			// Only string values could be enum types.
+			continue
+		}
+		goValue, err := enumStringToUnionStructValue(schema, parent, fieldName, valueStr)
+		if err != nil {
+			util.DbgPrint("could not unmarshal %v into enum type %s: %s", value, ys.Type.Kind, err)
+			continue
+		}
+
+		vf.Set(reflect.ValueOf(goValue))
+		return nil
+	}
+
+	// Value does not match any enum type, so call the To_ function which will
+	// return a mapping of value to field type, if one matches.
 	// The "to union" conversion method is called To_<field type name>
 	mn := "To_" + ft.Name()
 	mapMethod := reflect.New(t).Elem().MethodByName(mn)
@@ -550,15 +584,10 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		return fmt.Errorf("%s in %T does not have a %s function", fieldName, parent, mn)
 	}
 
-	// For each possible union type, try to unmarshal the JSON value. If it can
-	// unmarshaled, try to resolve the resulting type into a union struct type.
-	// Note that values can resolve into more than one struct type depending on
-	// the value and its range. In this case, no attempt is made to find the
-	// most restrictive type.
 	for _, yk := range yks {
 		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value)
 		if err != nil {
-			util.DbgPrint("could not unmarshal %v into type %s", value, yk)
+			util.DbgPrint("could not unmarshal %v into type %s: %s", value, yk, err)
 			continue
 		}
 
@@ -573,6 +602,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 			continue
 		}
 
+		util.DbgPrint("unmarshaling %v into type %s", value, yk)
 		vf.Set(reflect.ValueOf(ei))
 		return nil
 	}
@@ -580,28 +610,49 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	return fmt.Errorf("could not find suitable union type to unmarshal value %v type %T into parent struct type %T field %s", value, value, parent, fieldName)
 }
 
-func getUnionKinds(t *yang.YangType) []yang.TypeKind {
-	var out []yang.TypeKind
+func getUnionKindsAndEntries(schema *yang.Entry, t *yang.YangType) ([]yang.TypeKind, []*yang.Entry, error) {
+	var outk []yang.TypeKind
 	m := make(map[yang.TypeKind]interface{})
-	yts := getUnionTypes(t)
+	yts, oute, err := getUnionTypesAndEntries(schema, t)
+	if err != nil {
+		return nil, nil, err
+	}
 	for _, yt := range yts {
 		m[yt.Kind] = nil
 	}
 	for k := range m {
-		out = append(out, k)
+		outk = append(outk, k)
 	}
-	return out
+	return outk, oute, nil
 }
 
-func getUnionTypes(t *yang.YangType) []*yang.YangType {
-	var out []*yang.YangType
-	if t.Kind != yang.Yunion {
-		return []*yang.YangType{t}
+func getUnionTypesAndEntries(schema *yang.Entry, t *yang.YangType) ([]*yang.YangType, []*yang.Entry, error) {
+	var outk []*yang.YangType
+	var oute []*yang.Entry
+	switch t.Kind {
+	case yang.Yidentityref:
+		ns, err := findLeafRefSchema(schema, t.Path)
+		if err != nil {
+			return nil, nil, err
+		}
+		return nil, []*yang.Entry{ns}, nil
+	case yang.Yunion:
+		for _, t := range t.Type {
+			nk, ne, err := getUnionTypesAndEntries(schema, t)
+			if err != nil {
+				return nil, nil, err
+			}
+			outk = append(outk, nk...)
+			oute = append(oute, ne...)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+	default:
+		outk = []*yang.YangType{t}
 	}
-	for _, t := range t.Type {
-		out = append(out, getUnionTypes(t)...)
-	}
-	return out
+
+	return outk, oute, nil
 }
 
 func getFieldElemType(parent interface{}, fieldName string) (reflect.Type, error) {
@@ -669,17 +720,7 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 		return floatV, nil
 
 	case yang.Yenum, yang.Yidentityref:
-		intV, err := enumStringToIntValue(parent, fieldName, value.(string))
-		if err != nil {
-			return nil, err
-		}
-		// Convert to destination enum type.
-		v := reflect.ValueOf(intV)
-		t, err := util.GetFieldType(parent, fieldName)
-		if err != nil {
-			return nil, err
-		}
-		return v.Convert(t).Interface(), nil
+		return enumStringToValue(schema, parent, fieldName, value.(string))
 
 	case yang.Yint64:
 		// TODO(b/64812268): value types are different for internal style JSON.
