@@ -563,7 +563,7 @@ var ΛEnumTypes = map[string][]reflect.Type{
 }
 `
 
-	// goEnumTypeMapAccessTemplate provides a teplate to output an accessor
+	// goEnumTypeMapAccessTemplate provides a template to output an accessor
 	// function with a generated struct as receiver, it returns the enum type
 	// map associated with the generated code.
 	goEnumTypeMapAccessTemplate = `
