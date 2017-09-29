@@ -203,6 +203,8 @@ func (*mapStructTestOne) Validate() error {
 	return nil
 }
 
+func (*mapStructTestOne) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
 // mapStructTestOne_Child is a child structure of the mapStructTestOne test
 // case.
 type mapStructTestOneChild struct {
@@ -220,6 +222,8 @@ func (*mapStructTestOneChild) Validate() error {
 	return nil
 }
 
+func (*mapStructTestOneChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
 // mapStructTestFour is the top-level container used for the
 // schema-with-list test.
 type mapStructTestFour struct {
@@ -232,6 +236,8 @@ func (*mapStructTestFour) IsYANGGoStruct() {}
 func (*mapStructTestFour) Validate() error {
 	return nil
 }
+
+func (*mapStructTestFour) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 // mapStructTestFourC is the "c" container used for the schema-with-list
 // test.
@@ -247,6 +253,8 @@ func (*mapStructTestFourC) IsYANGGoStruct() {}
 func (*mapStructTestFourC) Validate() error {
 	return nil
 }
+
+func (*mapStructTestFourC) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 // mapStructTestFourCACLSet is the struct which represents each entry in
 // the ACLSet list in the schema-with-list test.
@@ -264,6 +272,8 @@ func (*mapStructTestFourCACLSet) Validate() error {
 	return nil
 }
 
+func (*mapStructTestFourCACLSet) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
 // mapStructTestFourOtherSet is a map entry with a
 type mapStructTestFourCOtherSet struct {
 	Name ECTest `path:"config/name|name"`
@@ -275,6 +285,8 @@ func (*mapStructTestFourCOtherSet) IsYANGGoStruct() {}
 func (*mapStructTestFourCOtherSet) Validate() error {
 	return nil
 }
+
+func (*mapStructTestFourCOtherSet) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 // ECTest is a synthesised derived type which is used to represent
 // an enumeration in the YANG schema.
@@ -315,6 +327,8 @@ func (*mapStructInvalid) Validate() error {
 	return fmt.Errorf("invalid")
 }
 
+func (*mapStructInvalid) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
 // mapStructNoPaths is a valid GoStruct who does not implement path tags.
 type mapStructNoPaths struct {
 	Name *string
@@ -324,7 +338,8 @@ type mapStructNoPaths struct {
 func (*mapStructNoPaths) IsYANGGoStruct() {}
 
 // Validate implements the ValidatedGoStruct interface.
-func (*mapStructNoPaths) Validate() error { return nil }
+func (*mapStructNoPaths) Validate() error                         { return nil }
+func (*mapStructNoPaths) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 // TestEmitJSON validates that the EmitJSON function outputs the expected JSON
 // for a set of input structs and schema definitions.

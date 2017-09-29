@@ -74,6 +74,10 @@ func (s *Fakeroot) Validate() error {
 	return nil
 }
 
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Fakeroot) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
 // Parent represents the /openconfig-simple/parent YANG schema element.
 type Parent struct {
 	Child	*Parent_Child	`path:"/parent/child" module:"openconfig-simple"`
@@ -91,6 +95,10 @@ func (s *Parent) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Parent) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
 // Parent_Child represents the /openconfig-simple/parent/child YANG schema element.
 type Parent_Child struct {
@@ -113,6 +121,10 @@ func (s *Parent_Child) Validate() error {
 	return nil
 }
 
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Parent_Child) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
 // RemoteContainer represents the /openconfig-simple/remote-container YANG schema element.
 type RemoteContainer struct {
 	ALeaf	*string	`path:"/remote-container/config/a-leaf" module:"openconfig-simple"`
@@ -130,6 +142,10 @@ func (s *RemoteContainer) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *RemoteContainer) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
 // E_OpenconfigSimple_Child_Three is a derived int64 type which is used to represent
 // the enumerated node OpenconfigSimple_Child_Three. An additional value named
