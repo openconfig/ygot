@@ -23,6 +23,8 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/pmezard/go-difflib/difflib"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 const (
@@ -53,6 +55,142 @@ func errToString(err error) string {
 	return err.Error()
 }
 
+func TestStructTagToLibPaths(t *testing.T) {
+	tests := []struct {
+		name     string
+		inField  reflect.StructField
+		inParent *gnmiPath
+		want     []*gnmiPath
+		wantErr  bool
+	}{{
+		name: "invalid input path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath:    []*gnmipb.PathElem{},
+			stringSlicePath: []string{},
+		},
+		wantErr: true,
+	}, {
+		name: "simple single tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo"},
+		}},
+	}, {
+		name: "empty tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"" rootpath:""`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{},
+		}},
+	}, {
+		name: "multiple path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar|bar"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo", "bar"},
+		}, {
+			stringSlicePath: []string{"bar"},
+		}},
+	}, {
+		name: "populated parent path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{"existing"},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"existing", "baz"},
+		}, {
+			stringSlicePath: []string{"existing", "foo", "baz"},
+		}},
+	}, {
+		name: "simple pathelem single tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}},
+		}},
+	}, {
+		name: "empty tag pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"" rootpath:""`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{},
+		}},
+	}, {
+		name: "multiple pathelem path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar|bar"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}},
+		}, {
+			pathElemPath: []*gnmipb.PathElem{{Name: "bar"}},
+		}},
+	}, {
+		name: "populated pathelem parent path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "baz"}},
+		}, {
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "foo"}, {Name: "baz"}},
+		}},
+	}}
+
+	for _, tt := range tests {
+		got, err := structTagToLibPaths(tt.inField, tt.inParent)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, err, tt.wantErr)
+		}
+
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-got,+want):\n%s", tt.name, tt.inField, tt.inParent, diff)
+		}
+	}
+}
+
 // mapStructTestOne is the base struct used for the simple-schema test.
 type mapStructTestOne struct {
 	Child *mapStructTestOneChild `path:"child" module:"test-one"`
@@ -64,6 +202,8 @@ func (*mapStructTestOne) IsYANGGoStruct() {}
 func (*mapStructTestOne) Validate() error {
 	return nil
 }
+
+func (*mapStructTestOne) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 // mapStructTestOne_Child is a child structure of the mapStructTestOne test
 // case.
@@ -82,6 +222,8 @@ func (*mapStructTestOneChild) Validate() error {
 	return nil
 }
 
+func (*mapStructTestOneChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
 // mapStructTestFour is the top-level container used for the
 // schema-with-list test.
 type mapStructTestFour struct {
@@ -94,6 +236,8 @@ func (*mapStructTestFour) IsYANGGoStruct() {}
 func (*mapStructTestFour) Validate() error {
 	return nil
 }
+
+func (*mapStructTestFour) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 // mapStructTestFourC is the "c" container used for the schema-with-list
 // test.
@@ -109,6 +253,8 @@ func (*mapStructTestFourC) IsYANGGoStruct() {}
 func (*mapStructTestFourC) Validate() error {
 	return nil
 }
+
+func (*mapStructTestFourC) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 // mapStructTestFourCACLSet is the struct which represents each entry in
 // the ACLSet list in the schema-with-list test.
@@ -126,6 +272,8 @@ func (*mapStructTestFourCACLSet) Validate() error {
 	return nil
 }
 
+func (*mapStructTestFourCACLSet) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
 // mapStructTestFourOtherSet is a map entry with a
 type mapStructTestFourCOtherSet struct {
 	Name ECTest `path:"config/name|name"`
@@ -137,6 +285,8 @@ func (*mapStructTestFourCOtherSet) IsYANGGoStruct() {}
 func (*mapStructTestFourCOtherSet) Validate() error {
 	return nil
 }
+
+func (*mapStructTestFourCOtherSet) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 // ECTest is a synthesised derived type which is used to represent
 // an enumeration in the YANG schema.
@@ -177,6 +327,8 @@ func (*mapStructInvalid) Validate() error {
 	return fmt.Errorf("invalid")
 }
 
+func (*mapStructInvalid) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
 // mapStructNoPaths is a valid GoStruct who does not implement path tags.
 type mapStructNoPaths struct {
 	Name *string
@@ -186,7 +338,8 @@ type mapStructNoPaths struct {
 func (*mapStructNoPaths) IsYANGGoStruct() {}
 
 // Validate implements the ValidatedGoStruct interface.
-func (*mapStructNoPaths) Validate() error { return nil }
+func (*mapStructNoPaths) Validate() error                         { return nil }
+func (*mapStructNoPaths) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 // TestEmitJSON validates that the EmitJSON function outputs the expected JSON
 // for a set of input structs and schema definitions.

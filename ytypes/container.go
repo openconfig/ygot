@@ -100,13 +100,13 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) (errors []error)
 //   schema is the schema of the schema node corresponding to the struct being
 //     unmamshaled into.
 //   parent is the parent struct, which must be a struct ptr.
-//   value is a JSON data tree which must be a map[string]interface{}.
-func unmarshalContainer(schema *yang.Entry, parent interface{}, value interface{}) error {
-	if util.IsValueNil(value) {
+//   jsonTree is a JSON data tree which must be a map[string]interface{}.
+func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interface{}) error {
+	if util.IsValueNil(jsonTree) {
 		return nil
 	}
 
-	util.DbgPrint("unmarshalContainer value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, schema.Name)
+	util.DbgPrint("unmarshalContainer jsonTree %v, type %T, into parent type %T, schema name %s", util.ValueStr(jsonTree), jsonTree, parent, schema.Name)
 
 	// Check that the schema itself is valid.
 	if err := validateContainerSchema(schema); err != nil {
@@ -114,24 +114,33 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, value interface{
 	}
 
 	// Since this is a container, the JSON data tree is a map.
-	jsonTree, ok := value.(map[string]interface{})
+	jt, ok := jsonTree.(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("unmarshalContainer for schema %s: value %v: got type %T inside container, expect map[string]interface{}",
-			schema.Name, util.ValueStr(value), value)
+		return fmt.Errorf("unmarshalContainer for schema %s: jsonTree %v: got type %T inside container, expect map[string]interface{}",
+			schema.Name, util.ValueStr(jsonTree), jsonTree)
 	}
 
 	pvp := reflect.ValueOf(parent)
 	if !util.IsValueStructPtr(pvp) {
 		return fmt.Errorf("unmarshalContainer got parent type %T, expect struct ptr", parent)
 	}
-	pv := pvp.Elem()
 
+	return unmarshalStruct(schema, parent, jt)
+}
+
+// unmarshalStruct unmarshals a JSON tree into a struct.
+//   schema is the YANG schema of the node corresponding to the struct being 
+//     unmarshalled into.
+//   parent is the parent struct, which must be a struct ptr.
+//   jsonTree is a JSON data tree which must be a map[string]interface{}.
+func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string]interface{}) error {
+	destv := reflect.ValueOf(parent).Elem()
 	var allSchemaPaths [][]string
 	// Range over the parent struct fields. For each field, check if the data
 	// is present in the JSON tree and if so unmarshal it into the field.
-	for i := 0; i < pv.NumField(); i++ {
-		f := pv.Field(i)
-		ft := pv.Type().Field(i)
+	for i := 0; i < destv.NumField(); i++ {
+		f := destv.Field(i)
+		ft := destv.Type().Field(i)
 		cschema, err := childSchema(schema, ft)
 		if err != nil {
 			return err
@@ -139,7 +148,7 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, value interface{
 		if cschema == nil {
 			return fmt.Errorf("unmarshalContainer could not find schema for type %T, field name %s", parent, ft.Name)
 		}
-		jsonValue, err := getJSONTreeValForField(schema, cschema, ft, value)
+		jsonValue, err := getJSONTreeValForField(schema, cschema, ft, jsonTree)
 		if err != nil {
 			return err
 		}
@@ -162,7 +171,7 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, value interface{
 		// fields that are in the data tree being passed to unmarshal, and
 		// preserve all other existing values.
 		if util.IsNilOrInvalidValue(f) {
-			makeField(pv, ft)
+			makeField(destv, ft)
 		}
 
 		p := parent
@@ -188,7 +197,7 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, value interface{
 		return fmt.Errorf("parent container %s (type %T): %s", schema.Name, parent, err)
 	}
 
-	util.DbgPrint("container after unmarshal:\n%s\n", pretty.Sprint(pv.Interface()))
+	util.DbgPrint("container after unmarshal:\n%s\n", pretty.Sprint(destv.Interface()))
 	return nil
 }
 

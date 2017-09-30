@@ -27,10 +27,10 @@ import (
 
 // generateUnifiedDiff takes two strings and generates a diff that can be
 // shown to the user in a test error message.
-func generateUnifiedDiff(want, got string) (string, error) {
+func generateUnifiedDiff(got, want string) (string, error) {
 	diffl := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(want),
-		B:        difflib.SplitLines(got),
+		A:        difflib.SplitLines(got),
+		B:        difflib.SplitLines(want),
 		FromFile: "got",
 		ToFile:   "want",
 		Context:  3,
@@ -132,6 +132,10 @@ func (s *Tstruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -155,6 +159,10 @@ func (s *Tstruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 		},
 	}, {
@@ -206,6 +214,10 @@ func (s *InputStruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 			interfaces: `
 // InputStruct_U1_Union is an interface that is implemented by valid types for the union
@@ -269,6 +281,10 @@ func (s *InputStruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 			interfaces: `
 // Module_InputStruct_U1_Union is an interface that is implemented by valid types for the union
@@ -356,6 +372,10 @@ func (s *InputStruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -378,6 +398,10 @@ func (s *InputStruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 		},
 	}, {
@@ -483,6 +507,10 @@ func (s *QStruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -505,6 +533,10 @@ func (s *QStruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 		},
 	}, {
@@ -603,6 +635,10 @@ func (s *Tstruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -652,6 +688,10 @@ func (s *Tstruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 		},
 	}, {
@@ -833,6 +873,10 @@ func (s *Tstruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -893,6 +937,10 @@ func (s *Tstruct) Validate() error {
 	}
 	return nil
 }
+
+// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
+// that are included in the generated code.
+func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `,
 		},
 	}}
@@ -924,7 +972,8 @@ func (s *Tstruct) Validate() error {
 			}
 
 			if diff := pretty.Compare(want.structs, got.structDef); diff != "" {
-				if diffl, err := generateUnifiedDiff(want.structs, got.structDef); err == nil {
+				if diffl, err := generateUnifiedDiff(got.structDef, want.methods); err == nil {
+
 					diff = diffl
 				}
 				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-got,+want):\n%s",
@@ -932,7 +981,7 @@ func (s *Tstruct) Validate() error {
 			}
 
 			if diff := pretty.Compare(want.keys, got.listKeys); diff != "" {
-				if diffl, err := generateUnifiedDiff(want.keys, got.listKeys); err == nil {
+				if diffl, err := generateUnifiedDiff(got.listKeys, want.keys); err == nil {
 					diff = diffl
 				}
 				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
@@ -940,15 +989,15 @@ func (s *Tstruct) Validate() error {
 			}
 
 			if diff := pretty.Compare(want.methods, got.methods); diff != "" {
-				if diffl, err := generateUnifiedDiff(want.methods, got.methods); err == nil {
+				if diffl, err := generateUnifiedDiff(got.methods, want.methods); err == nil {
 					diff = diffl
 				}
-				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): methods generated corresponding to lists incorrect, diff (-got,+want):\n%s",
+				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
 					tt.name, compressed, tt.inStructToMap, diff)
 			}
 
 			if diff := pretty.Compare(want.interfaces, got.interfaces); diff != "" {
-				if diffl, err := generateUnifiedDiff(want.interfaces, got.interfaces); err == nil {
+				if diffl, err := generateUnifiedDiff(got.interfaces, want.interfaces); err == nil {
 					diff = diffl
 				}
 				t.Errorf("%s: writeGoStruct(CompressOCPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
@@ -1131,7 +1180,7 @@ const (
 
 		if diff := pretty.Compare(tt.want, got); diff != "" {
 			fmt.Println(diff)
-			if diffl, err := generateUnifiedDiff(tt.want.constDef, got.constDef); err == nil {
+			if diffl, err := generateUnifiedDiff(got.constDef, tt.want.constDef); err == nil {
 				diff = diffl
 			}
 			t.Errorf("%s: writeGoEnum(%v): got incorrect output, diff(-got,+want):\n%s",
@@ -1362,7 +1411,7 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 
 		if tt.wantMap != got {
 			diff := fmt.Sprintf("got: %s, want %s", got, tt.wantMap)
-			if diffl, err := generateUnifiedDiff(tt.wantMap, got); err == nil {
+			if diffl, err := generateUnifiedDiff(got, tt.wantMap); err == nil {
 				diff = "diff (-got, +want):\n" + diffl
 			}
 			t.Errorf("%s: did not get expected generated enum, %s", tt.name, diff)
