@@ -25,6 +25,7 @@ import (
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -511,43 +512,41 @@ with field String set to "forty-two".
 
 func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, value interface{}) error {
 	util.DbgPrint("unmarshalUnion value %v, type %T, into parent type %T field name %s, schema name %s", util.ValueStr(value), value, parent, fieldName, schema.Name)
-	v, t := reflect.ValueOf(parent), reflect.TypeOf(parent)
-	if !util.IsTypeStructPtr(t) {
+	parentV, parentT := reflect.ValueOf(parent), reflect.TypeOf(parent)
+	if !util.IsTypeStructPtr(parentT) {
 		return fmt.Errorf("%T is not a struct ptr in unmarshalUnion", parent)
 	}
 
-	vf := v.Elem().FieldByName(fieldName)
-	if !vf.IsValid() {
+	// Get the value and type of the field to set, which may have slice or
+	// interface types for leaf-list and union cases.
+	destUnionFieldV := parentV.Elem().FieldByName(fieldName)
+	if !destUnionFieldV.IsValid() {
 		return fmt.Errorf("%s is not a valid field name in %T", fieldName, parent)
 	}
-	ft, err := getFieldElemType(parent, fieldName)
+	dft, _ := parentT.Elem().FieldByName(fieldName)
+	destUnionFieldElemT := dft.Type
+
+	// Separately get the YANG kinds and reflect Types. The latter represent
+	// possible enum types.
+	uks, uts, err := getUnionKindsAndTypes(schema, parentT)
 	if err != nil {
 		return err
 	}
+	util.DbgPrint("possible union types are scalars %v or enums %v", uks, uts)
 
-	yks, yss, err := getUnionKindsAndEntries(schema, schema.Type)
-	if err != nil {
-		return err
-	}
-	var ss []yang.TypeKind
-	for _, e := range yss {
-		ss = append(ss, e.Type.Kind)
-	}
-	util.DbgPrint("possible union types are scalars %v or enums with paths %v", yks, ss)
-
-	// This can either be a interface, where multiple types are involved, of
-	// just the type itself, if the alternatives span only one type.
-	if !util.IsTypeInterface(ft) {
+	// Special case. If all possible union types map to a single go type, the
+	// GoStruct field is that type rather than a union Interface type.
+	if !util.IsTypeInterface(destUnionFieldElemT) && !util.IsTypeSliceOfInterface(destUnionFieldElemT) {
 		// Is not an interface, we must have exactly one type in the union.
-		if len(yks) != 1 {
-			return fmt.Errorf("got %v types for union schema %s for type %T, expect just one type", yks, fieldName, parent)
+		if len(uks) != 1 {
+			return fmt.Errorf("got %v types for union schema %s for type %T, expect just one type", uks, fieldName, parent)
 		}
-		yk := yks[0]
+		yk := uks[0]
 		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value)
 		if err != nil {
 			return fmt.Errorf("could not unmarshal %v into type %s", value, yk)
 		}
-		vf.Set(reflect.ValueOf(ygot.ToPtr(goValue)))
+		destUnionFieldV.Set(reflect.ValueOf(ygot.ToPtr(goValue)))
 		return nil
 	}
 
@@ -556,120 +555,157 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	// Note that values can resolve into more than one struct type depending on
 	// the value and its range. In this case, no attempt is made to find the
 	// most restrictive type.
-
-	// Try to unmarshal in to enum types first, since the case of union of
-	// string and enum could unmarshal into either.
-	for _, ys := range yss {
-		valueStr, ok := value.(string)
-		if !ok {
-			// Only string values could be enum types.
-			continue
+	// Try to unmarshal to enum types first, since the case of union of string
+	// and enum could unmarshal into either. Only string values can be enum
+	// types.
+	valueStr, ok := value.(string)
+	if ok {
+		for _, ut := range uts {
+			util.DbgPrint("try to unmarshal into enum type %s", ut)
+			ev, err := castToEnumValue(ut, valueStr)
+			if err != nil {
+				return err
+			}
+			if ev != nil {
+				return setFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, ev)
+			}
+			util.DbgPrint("could not unmarshal %v into enum type: %s", value, err)
 		}
-		goValue, err := enumStringToUnionStructValue(schema, parent, fieldName, valueStr)
-		if err != nil {
-			util.DbgPrint("could not unmarshal %v into enum type %s: %s", value, ys.Type.Kind, err)
-			continue
-		}
-
-		vf.Set(reflect.ValueOf(goValue))
-		return nil
 	}
 
-	// Value does not match any enum type, so call the To_ function which will
-	// return a mapping of value to field type, if one matches.
-	// The "to union" conversion method is called To_<field type name>
-	mn := "To_" + ft.Name()
-	mapMethod := reflect.New(t).Elem().MethodByName(mn)
-	if !mapMethod.IsValid() {
-		return fmt.Errorf("%s in %T does not have a %s function", fieldName, parent, mn)
-	}
-
-	for _, yk := range yks {
-		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value)
-		if err != nil {
-			util.DbgPrint("could not unmarshal %v into type %s: %s", value, yk, err)
-			continue
+	for _, yk := range uks {
+		util.DbgPrint("try to unmarshal into type %s", yk)
+		gv, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value)
+		if err == nil {
+			return setFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, gv)
 		}
-
-		ec := mapMethod.Call([]reflect.Value{reflect.ValueOf(goValue)})
-		if len(ec) != 2 {
-			return fmt.Errorf("%s in %T %s function returns %d params", fieldName, parent, mn, len(ec))
-		}
-		ei := ec[0].Interface()
-		ee := ec[1].Interface()
-		if ee != nil {
-			util.DbgPrint("unmarshaled %v type %T does not have a union type", goValue, goValue)
-			continue
-		}
-
-		util.DbgPrint("unmarshaling %v into type %s", value, yk)
-		vf.Set(reflect.ValueOf(ei))
-		return nil
+		util.DbgPrint("could not unmarshal %v into type %s: %s", value, yk, err)
 	}
 
 	return fmt.Errorf("could not find suitable union type to unmarshal value %v type %T into parent struct type %T field %s", value, value, parent, fieldName)
 }
 
-func getUnionKindsAndEntries(schema *yang.Entry, t *yang.YangType) ([]yang.TypeKind, []*yang.Entry, error) {
-	var outk []yang.TypeKind
-	m := make(map[yang.TypeKind]interface{})
-	yts, oute, err := getUnionTypesAndEntries(schema, t)
+// setFieldWithTypedValue sets the field destV that has type ft and the given
+// parent type with v, which must be a compatible enum type.
+func setFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT reflect.Type, v interface{}) error {
+	util.DbgPrint("setFieldWithTypedValue value %v into type %s", util.ValueStr(v), destElemT)
+	if destElemT.Kind() == reflect.Slice {
+		// leaf-list case
+		destElemT = destElemT.Elem()
+	}
+	mn := "To_" + destElemT.Name()
+	mapMethod := reflect.New(parentT).Elem().MethodByName(mn)
+	if !mapMethod.IsValid() {
+		return fmt.Errorf("%s does not have a %s function", destElemT.Name(), mn)
+	}
+	ec := mapMethod.Call([]reflect.Value{reflect.ValueOf(v)})
+	if len(ec) != 2 {
+		return fmt.Errorf("%s %s function returns %d params", destElemT.Name(), mn, len(ec))
+	}
+	ei := ec[0].Interface()
+	ee := ec[1].Interface()
+	if ee != nil {
+		return fmt.Errorf("unmarshaled %v type %T does not have a union type: %v", v, v, ee)
+	}
+
+	util.DbgPrint("unmarshaling %v into type %s", v, reflect.TypeOf(ei))
+
+	eiv := reflect.ValueOf(ei)
+	if destV.Type().Kind() == reflect.Slice {
+		destV.Set(reflect.Append(destV, eiv))
+	} else {
+		destV.Set(eiv)
+	}
+
+	return nil
+}
+
+// getUnionKindsAndTypes returns the YANG kinds of basic types and and 
+// reflect.Types of enum types that are possible for values for the union with 
+// the given schema and type.
+func getUnionKindsAndTypes(schema *yang.Entry, parentT reflect.Type) ([]yang.TypeKind, []reflect.Type, error) {
+	uks, err := getUnionKindsNotEnums(schema)
 	if err != nil {
 		return nil, nil, err
 	}
-	for _, yt := range yts {
+	uts, err := schemaToEnumTypes(schema, parentT)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return uks, uts, nil
+}
+
+// getUnionKindsNotEnums returns all the YANG kinds under the given schema node,
+// dereferencing any refs.
+func getUnionKindsNotEnums(schema *yang.Entry) ([]yang.TypeKind, error) {
+	var uks []yang.TypeKind
+	m := make(map[yang.TypeKind]interface{})
+	uts, err := getUnionTypesNotEnums(schema, schema.Type)
+	if err != nil {
+		return nil, err
+	}
+	for _, yt := range uts {
 		m[yt.Kind] = nil
 	}
 	for k := range m {
-		outk = append(outk, k)
+		uks = append(uks, k)
 	}
-	return outk, oute, nil
+	return uks, nil
 }
 
-func getUnionTypesAndEntries(schema *yang.Entry, t *yang.YangType) ([]*yang.YangType, []*yang.Entry, error) {
-	var outk []*yang.YangType
-	var oute []*yang.Entry
-	switch t.Kind {
-	case yang.Yidentityref:
-		ns, err := findLeafRefSchema(schema, t.Path)
+// getUnionTypesNotEnums returns all the non-enum YANG types under the given schema 
+// node, dereferencing any refs.
+func getUnionTypesNotEnums(schema *yang.Entry, yt *yang.YangType) ([]*yang.YangType, error) {
+	var uts []*yang.YangType
+	switch yt.Kind {
+	case yang.Yenum, yang.Yidentityref:
+		// Enum types handled separately.
+		return nil, nil
+	case yang.Yleafref:
+		ns, err := findLeafRefSchema(schema, yt.Path)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		return nil, []*yang.Entry{ns}, nil
+		return getUnionTypesNotEnums(ns, ns.Type)
 	case yang.Yunion:
-		for _, t := range t.Type {
-			nk, ne, err := getUnionTypesAndEntries(schema, t)
+		for _, t := range yt.Type {
+			nt, err := getUnionTypesNotEnums(schema, t)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
-			outk = append(outk, nk...)
-			oute = append(oute, ne...)
+			uts = append(uts, nt...)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
 	default:
-		outk = []*yang.YangType{t}
+		uts = []*yang.YangType{yt}
 	}
 
-	return outk, oute, nil
+	return uts, nil
 }
 
-func getFieldElemType(parent interface{}, fieldName string) (reflect.Type, error) {
-	t := reflect.TypeOf(parent)
-	ft, ok := t.Elem().FieldByName(fieldName)
-	if !ok {
-		return reflect.TypeOf(nil), fmt.Errorf("%s is not a valid field name in %T", fieldName, parent)
-	}
-	switch {
-	case util.IsTypeStructPtr(t):
-		return ft.Type, nil
-	case util.IsTypeSlicePtr(t):
-		// Dereference slice ptr, then Elem() gives slice element type.
-		return ft.Type.Elem().Elem(), nil
+// schemaToEnumTypes returns the actual enum types (rather than the interface
+// type) for a given schema, which must be for an enum type.
+func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, error) {
+	enumTypesMethod := reflect.New(t).Elem().MethodByName("ΛEnumTypeMap")
+	if !enumTypesMethod.IsValid() {
+		return nil, fmt.Errorf("type %s does not have a ΛEnumTypesMap function", t)
 	}
 
-	return reflect.TypeOf(nil), fmt.Errorf("%T is not a valid parent type", parent)
+	ec := enumTypesMethod.Call(nil)
+	if len(ec) == 0 {
+		return nil, fmt.Errorf("%s ΛEnumTypes function returns empty value", t)
+	}
+	ei := ec[0].Interface()
+	enumTypesMap, ok := ei.(map[string][]reflect.Type)
+	if !ok {
+		return nil, fmt.Errorf("%s ΛEnumTypes function returned wrong type %T, want map[string][]reflect.Type", t, ei)
+	}
+	util.DbgPrint("path is %s for schema %s", ygen.EntrySchemaPath(schema), schema.Name)
+
+	return enumTypesMap[ygen.EntrySchemaPath(schema)], nil
 }
 
 // unmarshalScalar unmarshals value, which is the Go type from json.Unmarshal,
@@ -686,6 +722,8 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 	if err := validateLeafSchema(schema); err != nil {
 		return nil, err
 	}
+
+	util.DbgPrint("unmarshalScalar value %v, type %T, into parent type %T field %s", value, value, parent, fieldName)
 
 	ykind := schema.Type.Kind
 
@@ -720,7 +758,7 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 		return floatV, nil
 
 	case yang.Yenum, yang.Yidentityref:
-		return enumStringToValue(schema, parent, fieldName, value.(string))
+		return enumStringToValue(parent, fieldName, value.(string))
 
 	case yang.Yint64:
 		// TODO(b/64812268): value types are different for internal style JSON.

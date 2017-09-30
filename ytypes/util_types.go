@@ -20,60 +20,15 @@ import (
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ygot"
 
 	log "github.com/golang/glog"
 )
 
-// enumStringToUnionStructValue returns a struct ptr with a field populated with
-// the correct enum type and value, if a matching value can be found for the
-// given value string.
-func enumStringToUnionStructValue(schema *yang.Entry, parent interface{}, fieldName, value string) (interface{}, error) {
-	util.DbgPrint("enumStringToUnionStructValue with schema %s, parent type %T, fieldName %s, value %s", schema.Name, parent, fieldName, value)
-	v := reflect.ValueOf(parent)
-	if !util.IsValueStructPtr(v) {
-		return 0, fmt.Errorf("enumStringToIntValue: %T is not a struct ptr", parent)
-	}
-
-	field := v.Elem().FieldByName(fieldName)
-	if !field.IsValid() {
-		return 0, fmt.Errorf("%s is not a valid enum field name in %T", fieldName, parent)
-	}
-
-	if !util.IsTypeInterface(field.Type()) {
-		return 0, fmt.Errorf("field %s is has type %s, expect interface", fieldName, field.Type())
-	}
-
-	fts, err := schemaToEnumTypes(schema, reflect.TypeOf(parent))
-	if err != nil {
-		return 0, err
-	}
-	if len(fts) == 0 {
-		return 0, fmt.Errorf("enumStringToIntValue: schemaToEnumTypes returned null")
-	}
-
-	for _, ft := range fts {
-		// Look for a match for the enum field, which is the only field in the
-		// wrapping struct.
-		ei, err := findMatchingEnumType(parent, ft.Field(0).Type, value)
-		if err != nil {
-			return 0, err
-		}
-		if ei != nil {
-			// Return the struct ptr of the wrapping struct.
-			nv := reflect.New(ft)
-			nv.Elem().Field(0).Set(reflect.ValueOf(ei))
-			return nv.Interface(), nil
-		}
-	}
-	return 0, fmt.Errorf("%s is not a valid value for enum field %s", value, fieldName)
-}
-
 // enumStringToValue returns the enum type value that enumerated string value
 // of type fieldName maps to in the parent, which must be a struct ptr.
-func enumStringToValue(schema *yang.Entry, parent interface{}, fieldName, value string) (interface{}, error) {
-	util.DbgPrint("enumStringToIntValue with schema %s, parent type %T, fieldName %s, value %s", schema.Name, parent, fieldName, value)
+func enumStringToValue(parent interface{}, fieldName, value string) (interface{}, error) {
+	util.DbgPrint("enumStringToValue with parent type %T, fieldName %s, value %s", parent, fieldName, value)
 	v := reflect.ValueOf(parent)
 	if !util.IsValueStructPtr(v) {
 		return 0, fmt.Errorf("enumStringToIntValue: %T is not a struct ptr", parent)
@@ -83,12 +38,19 @@ func enumStringToValue(schema *yang.Entry, parent interface{}, fieldName, value 
 		return 0, fmt.Errorf("%s is not a valid enum field name in %T", fieldName, parent)
 	}
 
-	return findMatchingEnumType(parent, field.Type(), value)
+	ev, err := castToEnumValue(field.Type(), value)
+	if err != nil {
+		return nil, err
+	}
+	if ev == nil {
+		return 0, fmt.Errorf("%s is not a valid value for enum field %s, type %s", value, fieldName, field.Type())
+	}
+	return ev, nil
 }
 
-// findMatchingEnumType returns value as the given type ft, if value is one of
-// the allowed values of ft, or an error otherwise.
-func findMatchingEnumType(parent interface{}, ft reflect.Type, value string) (interface{}, error) {
+// castToEnumValue returns value as the given type ft, if value is one of
+// the allowed values of ft, or nil, nil otherwise.
+func castToEnumValue(ft reflect.Type, value string) (interface{}, error) {
 	if ft.Kind() == reflect.Slice {
 		// leaf-list case
 		ft = ft.Elem()
@@ -97,17 +59,17 @@ func findMatchingEnumType(parent interface{}, ft reflect.Type, value string) (in
 	util.DbgPrint("checking for matching enum value for type %s", ft)
 	mapMethod := reflect.New(ft).MethodByName("ΛMap")
 	if !mapMethod.IsValid() {
-		return 0, fmt.Errorf("%s in %T does not have a ΛMap function", ft, parent)
+		return 0, fmt.Errorf("%s does not have a ΛMap function", ft)
 	}
 
 	ec := mapMethod.Call(nil)
 	if len(ec) == 0 {
-		return 0, fmt.Errorf("%s ΛMap function returns empty value", ft, parent)
+		return 0, fmt.Errorf("%s ΛMap function returns empty value", ft)
 	}
 	ei := ec[0].Interface()
 	enumMap, ok := ei.(map[string]map[int64]ygot.EnumDefinition)
 	if !ok {
-		return 0, fmt.Errorf("%s in %T ΛMap function returned wrong type %T, want map[string]map[int64]ygot.EnumDefinition", ft, parent, ei)
+		return 0, fmt.Errorf("%s ΛMap function returned wrong type %T, want map[string]map[int64]ygot.EnumDefinition", ft, ei)
 	}
 
 	m, ok := enumMap[ft.Name()]
@@ -122,29 +84,7 @@ func findMatchingEnumType(parent interface{}, ft reflect.Type, value string) (in
 		}
 	}
 
-	return 0, fmt.Errorf("%s is not a valid value for enum field %s", value, ft)
-}
-
-// schemaToEnumTypes returns the actual enum types (rather than the interface
-// type) for a given schema, which must be for an enum type. 
-func schemaToEnumTypes(schema *yang.Entry, ft reflect.Type) ([]reflect.Type, error) {
-	enumTypesMethod := reflect.New(ft).Elem().MethodByName("ΛEnumTypeMap")
-	if !enumTypesMethod.IsValid() {
-		return nil, fmt.Errorf("type %s does not have a ΛEnumTypesMap function", ft)
-	}
-
-	ec := enumTypesMethod.Call(nil)
-	if len(ec) == 0 {
-		return nil, fmt.Errorf("%s ΛEnumTypes function returns empty value", ft)
-	}
-	ei := ec[0].Interface()
-	enumTypesMap, ok := ei.(map[string][]reflect.Type)
-	if !ok {
-		return nil, fmt.Errorf("%s ΛEnumTypes function returned wrong type %T, want map[string][]reflect.Type", ft, ei)
-	}
-	util.DbgPrint("path is %s for schema %s", ygen.EntrySchemaPath(schema), schema.Name)
-
-	return enumTypesMap[ygen.EntrySchemaPath(schema)], nil
+	return nil, nil
 }
 
 // yangBuiltinTypeToGoType returns a pointer to the Go built-in value with

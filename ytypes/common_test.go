@@ -32,10 +32,11 @@ var (
 	globalEnumMap = map[string]map[int64]ygot.EnumDefinition{
 		"EnumType": map[int64]ygot.EnumDefinition{
 			42: {Name: "E_VALUE_FORTY_TWO"},
-		}
+		},
 		"EnumType2": map[int64]ygot.EnumDefinition{
 			43: {Name: "E_VALUE_FORTY_THREE"},
-		}
+		},
+	}
 )
 
 // EnumType is used as an enum type in various tests in the ytypes package.

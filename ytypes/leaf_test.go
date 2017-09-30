@@ -815,9 +815,19 @@ func (*UnionLeafType_EnumType) ΛMap() map[string]map[int64]ygot.EnumDefinition 
 	return globalEnumMap
 }
 
+type UnionLeafType_EnumType2 struct {
+	EnumType2 EnumType2
+}
+
+func (*UnionLeafType_EnumType2) Is_UnionLeafType() {}
+
+func (*UnionLeafType_EnumType2) ΛMap() map[string]map[int64]ygot.EnumDefinition {
+	return globalEnumMap
+}
+
 func (*LeafContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
-		"/union-leaf": []reflect.Type{reflect.TypeOf(UnionLeafType_EnumType{})},
+		"/union-leaf": []reflect.Type{reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
 	}
 }
 
@@ -829,6 +839,8 @@ func (*LeafContainerStruct) To_UnionLeafType(i interface{}) (UnionLeafType, erro
 		return &UnionLeafType_Uint32{v}, nil
 	case EnumType:
 		return &UnionLeafType_EnumType{v}, nil
+	case EnumType2:
+		return &UnionLeafType_EnumType2{v}, nil
 	default:
 		return nil, fmt.Errorf("cannot convert %v to To_UnionLeafType, unknown union type, got: %T, want any of [string, uint32]", i, i)
 	}
@@ -905,6 +917,11 @@ func TestUnmarshalLeaf(t *testing.T) {
 			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_EnumType{EnumType: 42}},
 		},
 		{
+			desc: "union enum2 success",
+			json: `{"union-leaf" : "E_VALUE_FORTY_THREE"}`,
+			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_EnumType2{EnumType2: 43}},
+		},
+		{
 			desc:    "int32 bad type",
 			json:    `{"int32-leaf" : "-42"}`,
 			wantErr: `got string type for field int32-leaf, expect float64`,
@@ -962,7 +979,7 @@ func TestUnmarshalLeaf(t *testing.T) {
 		{
 			desc:    "enum bad value",
 			json:    `{"enum-leaf" : "E_BAD_VALUE"}`,
-			wantErr: `E_BAD_VALUE is not a valid value for enum field ytypes.EnumType`,
+			wantErr: `E_BAD_VALUE is not a valid value for enum field EnumLeaf, type ytypes.EnumType`,
 		},
 		{
 			desc:    "union bad type",
@@ -990,8 +1007,10 @@ func TestUnmarshalLeaf(t *testing.T) {
 					Kind: yang.Yuint32,
 				},
 				{
+					Kind: yang.Yenum,
+				},
+				{
 					Kind: yang.Yidentityref,
-					Path: "../enum-leaf",
 				},
 			},
 		},
@@ -1018,7 +1037,6 @@ func TestUnmarshalLeaf(t *testing.T) {
 	}
 
 	var jsonTree interface{}
-	// TODO DEBUG REMOVE
 	for _, test := range tests {
 		var parent LeafContainerStruct
 
