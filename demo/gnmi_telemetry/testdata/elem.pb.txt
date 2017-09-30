@@ -1,0 +1,240 @@
+timestamp: 42
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "afts"
+    element: "ipv4-unicast"
+    element: "ipv4-entry"
+    element: "192.0.2.1/32"
+    element: "prefix"
+  >
+  val: <
+    string_val: "192.0.2.1/32"
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "afts"
+    element: "mpls"
+    element: "label-entry"
+    element: "128"
+    element: "config"
+    element: "label"
+  >
+  val: <
+    uint_val: 128
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "afts"
+    element: "mpls"
+    element: "label-entry"
+    element: "128"
+    element: "next-hops"
+    element: "next-hop"
+    element: "0"
+    element: "config"
+    element: "index"
+  >
+  val: <
+    uint_val: 0
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "afts"
+    element: "mpls"
+    element: "label-entry"
+    element: "128"
+    element: "next-hops"
+    element: "next-hop"
+    element: "0"
+    element: "state"
+    element: "pushed-mpls-label-stack"
+  >
+  val: <
+    leaflist_val: <
+      element: <
+        uint_val: 42
+      >
+      element: <
+        uint_val: 84
+      >
+      element: <
+        string_val: "IPV4_EXPLICIT_NULL"
+      >
+    >
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "afts"
+    element: "mpls"
+    element: "label-entry"
+    element: "128"
+    element: "label"
+  >
+  val: <
+    uint_val: 128
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "afts"
+    element: "mpls"
+    element: "label-entry"
+    element: "128"
+    element: "next-hops"
+    element: "next-hop"
+    element: "0"
+    element: "index"
+  >
+  val: <
+    uint_val: 0
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "config"
+    element: "type"
+  >
+  val: <
+    string_val: "DEFAULT_INSTANCE"
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "afts"
+    element: "ipv4-unicast"
+    element: "ipv4-entry"
+    element: "192.0.2.1/32"
+    element: "next-hops"
+    element: "next-hop"
+    element: "42"
+    element: "config"
+    element: "index"
+  >
+  val: <
+    uint_val: 42
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "afts"
+    element: "ipv4-unicast"
+    element: "ipv4-entry"
+    element: "192.0.2.1/32"
+    element: "next-hops"
+    element: "next-hop"
+    element: "42"
+    element: "index"
+  >
+  val: <
+    uint_val: 42
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "afts"
+    element: "ipv4-unicast"
+    element: "ipv4-entry"
+    element: "192.0.2.1/32"
+    element: "config"
+    element: "prefix"
+  >
+  val: <
+    string_val: "192.0.2.1/32"
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "config"
+    element: "name"
+  >
+  val: <
+    string_val: "DEFAULT"
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "afts"
+    element: "ipv4-unicast"
+    element: "ipv4-entry"
+    element: "192.0.2.1/32"
+    element: "next-hops"
+    element: "next-hop"
+    element: "42"
+    element: "state"
+    element: "ip-address"
+  >
+  val: <
+    string_val: "10.1.1.1"
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "afts"
+    element: "mpls"
+    element: "label-entry"
+    element: "128"
+    element: "next-hops"
+    element: "next-hop"
+    element: "0"
+    element: "state"
+    element: "ip-address"
+  >
+  val: <
+    string_val: "192.0.2.1"
+  >
+>
+update: <
+  path: <
+    element: "network-instances"
+    element: "network-instance"
+    element: "DEFAULT"
+    element: "name"
+  >
+  val: <
+    string_val: "DEFAULT"
+  >
+>
+
