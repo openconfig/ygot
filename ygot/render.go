@@ -916,10 +916,12 @@ func keyValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
 	if _, isEnum := v.Interface().(GoEnum); !isEnum {
 		return v.Interface(), nil
 	}
+
 	name, _, err := enumFieldToString(v, appendModuleName)
 	if err != nil {
 		return nil, err
 	}
+
 	return name, nil
 }
 
@@ -1134,7 +1136,7 @@ func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputCo
 		for i := 0; i < field.Len(); i++ {
 			gs, ok := field.Index(i).Interface().(GoStruct)
 			if !ok {
-				return nil, fmt.Errorf("invalid member of a slice, %s was not a valid GoStruct", c.Name)
+				return nil, fmt.Errorf("invalid member of a slice, %s was not a valid GoStruct", c.Name())
 			}
 			j, err := constructJSON(gs, parentMod, args)
 			if err != nil {
