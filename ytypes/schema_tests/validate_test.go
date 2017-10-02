@@ -420,6 +420,16 @@ func TestUnmarshal(t *testing.T) {
 			jsonFilePath: "interfaces-example.json",
 			parent:       &oc.Device{},
 		},
+		{
+			desc:         "local-routing",
+			jsonFilePath: "local-routing-example.json",
+			parent:       &oc.Device{},
+		},
+		{
+			desc:         "policy",
+			jsonFilePath: "policy-example.json",
+			parent:       &oc.Device{},
+		},
 	}
 
 	emitJSONConfig := &ygot.EmitJSONConfig{

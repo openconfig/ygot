@@ -1,0 +1,306 @@
+{
+   "openconfig-routing-policy:routing-policy": {
+      "defined-sets": {
+         "prefix-sets": {
+            "prefix-set": [
+               {
+                  "config": {
+                     "name": "LOOPBACK"
+                  },
+                  "name": "LOOPBACK",
+                  "prefixes": {
+                     "prefix": [
+                        {
+                           "config": {
+                              "ip-prefix": "10.10.10.10/32",
+                              "masklength-range": "exact"
+                           },
+                           "ip-prefix": "10.10.10.10/32",
+                           "masklength-range": "exact"
+                        }
+                     ]
+                  }
+               },
+               {
+                  "config": {
+                     "name": "UPLINK"
+                  },
+                  "name": "UPLINK"
+               },
+               {
+                  "config": {
+                     "name": "ipv4-default-only"
+                  },
+                  "name": "ipv4-default-only",
+                  "prefixes": {
+                     "prefix": [
+                        {
+                           "config": {
+                              "ip-prefix": "0.0.0.0/0",
+                              "masklength-range": "exact"
+                           },
+                           "ip-prefix": "0.0.0.0/0",
+                           "masklength-range": "exact"
+                        }
+                     ]
+                  }
+               },
+               {
+                  "config": {
+                     "name": "ipv4-direct-routes"
+                  },
+                  "name": "ipv4-direct-routes",
+                  "prefixes": {
+                     "prefix": [
+                        {
+                           "config": {
+                              "ip-prefix": "0.0.0.0/0",
+                              "masklength-range": "20..32"
+                           },
+                           "ip-prefix": "0.0.0.0/0",
+                           "masklength-range": "20..32"
+                        }
+                     ]
+                  }
+               },
+               {
+                  "config": {
+                     "name": "ipv4-link-local"
+                  },
+                  "name": "ipv4-link-local"
+               },
+               {
+                  "config": {
+                     "name": "ipv4-point-to-point"
+                  },
+                  "name": "ipv4-point-to-point",
+                  "prefixes": {
+                     "prefix": [
+                        {
+                           "config": {
+                              "ip-prefix": "0.0.0.0/0",
+                              "masklength-range": "30..31"
+                           },
+                           "ip-prefix": "0.0.0.0/0",
+                           "masklength-range": "30..31"
+                        }
+                     ]
+                  }
+               },
+               {
+                  "config": {
+                     "name": "ipv6-128"
+                  },
+                  "name": "ipv6-128",
+                  "prefixes": {
+                     "prefix": [
+                        {
+                           "config": {
+                              "ip-prefix": "::/0",
+                              "masklength-range": "exact"
+                           },
+                           "ip-prefix": "::/0",
+                           "masklength-range": "exact"
+                        }
+                     ]
+                  }
+               },
+               {
+                  "config": {
+                     "name": "ipv6-default-only"
+                  },
+                  "name": "ipv6-default-only",
+                  "prefixes": {
+                     "prefix": [
+                        {
+                           "config": {
+                              "ip-prefix": "::/0",
+                              "masklength-range": "exact"
+                           },
+                           "ip-prefix": "::/0",
+                           "masklength-range": "exact"
+                        }
+                     ]
+                  }
+               },
+               {
+                  "config": {
+                     "name": "ipv6-direct-routes"
+                  },
+                  "name": "ipv6-direct-routes",
+                  "prefixes": {
+                     "prefix": [
+                        {
+                           "config": {
+                              "ip-prefix": "::/0",
+                              "masklength-range": "64..128"
+                           },
+                           "ip-prefix": "::/0",
+                           "masklength-range": "64..128"
+                        }
+                     ]
+                  }
+               },
+               {
+                  "config": {
+                     "name": "ipv6-link-local"
+                  },
+                  "name": "ipv6-link-local"
+               },
+               {
+                  "config": {
+                     "name": "ipv6-point-to-point"
+                  },
+                  "name": "ipv6-point-to-point",
+                  "prefixes": {
+                     "prefix": [
+                        {
+                           "config": {
+                              "ip-prefix": "::/0",
+                              "masklength-range": "126..127"
+                           },
+                           "ip-prefix": "::/0",
+                           "masklength-range": "126..127"
+                        }
+                     ]
+                  }
+               }
+            ]
+         }
+      },
+      "policy-definitions": {
+         "policy-definition": [
+            {
+               "config": {
+                  "name": "ACCEPT-ALL"
+               },
+               "name": "ACCEPT-ALL",
+               "statements": {
+                  "statement": [
+                     {
+                        "config": {
+                           "name": "statement-1503089350050711"
+                        },
+                        "name": "statement-1503089350050711"
+                     },
+                     {
+                        "config": {
+                           "name": "statement-1503089350050757"
+                        },
+                        "name": "statement-1503089350050757"
+                     }
+                  ]
+               }
+            },
+            {
+               "config": {
+                  "name": "DIRECT"
+               },
+               "name": "DIRECT",
+               "statements": {
+                  "statement": [
+                     {
+                        "conditions": {
+                           "match-prefix-set": {
+                              "config": {
+                                 "match-set-options": "ANY",
+                                 "prefix-set": "ipv4-direct-routes"
+                              }
+                           }
+                        },
+                        "config": {
+                           "name": "statement-1503089350047049"
+                        },
+                        "name": "statement-1503089350047049"
+                     }
+                  ]
+               }
+            },
+            {
+               "config": {
+                  "name": "DRAIN"
+               },
+               "name": "DRAIN",
+               "statements": {
+                  "statement": [
+                     {
+                        "conditions": {
+                           "match-prefix-set": {
+                              "config": {
+                                 "match-set-options": "ANY",
+                                 "prefix-set": "ipv4-link-local"
+                              }
+                           }
+                        },
+                        "config": {
+                           "name": "statement-1503089350045556"
+                        },
+                        "name": "statement-1503089350045556"
+                     },
+                     {
+                        "config": {
+                           "name": "statement-1503089350045889"
+                        },
+                        "name": "statement-1503089350045889"
+                     }
+                  ]
+               }
+            },
+            {
+               "config": {
+                  "name": "NO-ROUTES"
+               },
+               "name": "NO-ROUTES",
+               "statements": {
+                  "statement": [
+                     {
+                        "config": {
+                           "name": "statement-1503089350049718"
+                        },
+                        "name": "statement-1503089350049718"
+                     }
+                  ]
+               }
+            },
+            {
+               "config": {
+                  "name": "PASS"
+               },
+               "name": "PASS",
+               "statements": {
+                  "statement": [
+                     {
+                        "config": {
+                           "name": "statement-1503089350045427"
+                        },
+                        "name": "statement-1503089350045427"
+                     }
+                  ]
+               }
+            },
+            {
+               "config": {
+                  "name": "PASS-ALL"
+               },
+               "name": "PASS-ALL",
+               "statements": {
+                  "statement": [
+                     {
+                        "config": {
+                           "name": "statement-1503089350048788"
+                        },
+                        "name": "statement-1503089350048788"
+                     },
+                     {
+                        "config": {
+                           "name": "statement-1503089350048836"
+                        },
+                        "name": "statement-1503089350048836"
+                     }
+                  ]
+               }
+            }
+         ]
+      }
+   }
+}
