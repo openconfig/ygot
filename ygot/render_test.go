@@ -230,7 +230,7 @@ func TestGNMIPathOps(t *testing.T) {
 		}
 
 		if err == nil && !reflect.DeepEqual(gotLast, tt.wantLastPathElem) {
-			t.Errorf("%s: %v.LastPathElem(), did not get expected last element, got: %v, want: %V", tt.name, tt.inPath, gotLast, tt.wantLastPathElem)
+			t.Errorf("%s: %v.LastPathElem(), did not get expected last element, got: %v, want: %v", tt.name, tt.inPath, gotLast, tt.wantLastPathElem)
 		}
 
 		np := tt.inPath.Copy()
