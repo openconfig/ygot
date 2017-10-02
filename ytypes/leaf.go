@@ -215,7 +215,7 @@ func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
 	}
 
 	v := reflect.ValueOf(value).Elem()
-	
+
 	// Unions of enum types are passed as ptr to interface to struct ptr.
 	// Normalize to a union struct.
 	if util.IsValueInterface(v) {
@@ -249,7 +249,9 @@ func validateMatchingSchemas(schema *yang.Entry, value interface{}) (errors []er
 	if len(ss) == 0 {
 		return []error{fmt.Errorf("no types in schema %s match the type of value %v, which is %T", schema.Name, util.ValueStr(value), value)}
 	}
+	fmt.Printf("%d possible schemas\n", len(ss))
 	for _, s := range ss {
+		fmt.Printf("check against schema %s\n", s.Type.Pattern)
 		var errs []error
 		if reflect.ValueOf(value).Kind() == reflect.Ptr {
 			errs = validateLeaf(s, value)
@@ -260,8 +262,10 @@ func validateMatchingSchemas(schema *yang.Entry, value interface{}) (errors []er
 			errs = validateLeaf(s, &value)
 		}
 		if errs == nil {
+			fmt.Printf("match\n")
 			return nil
 		}
+		fmt.Printf("no match error: %v\n", errs)
 		errors = util.AppendErrs(errors, errs)
 	}
 

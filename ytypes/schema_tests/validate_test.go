@@ -420,6 +420,16 @@ func TestUnmarshal(t *testing.T) {
 			jsonFilePath: "interfaces-example.json",
 			parent:       &oc.Device{},
 		},
+		{
+			desc:         "local-routing",
+			jsonFilePath: "local-routing-example.json",
+			parent:       &oc.Device{},
+		},
+		{
+			desc:         "policy",
+			jsonFilePath: "policy-example.json",
+			parent:       &oc.Device{},
+		},
 	}
 
 	emitJSONConfig := &ygot.EmitJSONConfig{
@@ -428,7 +438,7 @@ func TestUnmarshal(t *testing.T) {
 			AppendModuleName: true,
 		}}
 
-	for _, tt := range tests {
+	for _, tt := range tests[3:4] {
 		j, err := ioutil.ReadFile(filepath.Join(testRoot, "testdata", tt.jsonFilePath))
 		if err != nil {
 			t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.desc, tt.jsonFilePath, err)

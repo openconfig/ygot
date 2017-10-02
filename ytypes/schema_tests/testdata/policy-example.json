@@ -1,0 +1,686 @@
+{
+ "openconfig-routing-policy:routing-policy": {
+  "defined-sets": {
+   "prefix-sets": {
+    "prefix-set": [
+     {
+      "prefix-set-name": "UPLINK"
+     },
+     {
+      "prefix-set-name": "LOOPBACK",
+      "prefix": [
+       {
+        "ip-prefix": "10.10.10.10/32",
+        "masklength-range": "exact"
+       }
+      ]
+     },
+     {
+      "prefix-set-name": "ipv6-128",
+      "prefix": [
+       {
+        "ip-prefix": "::/0",
+        "masklength-range": "exact"
+       }
+      ]
+     },
+     {
+      "prefix-set-name": "ipv4-link-local"
+     },
+     {
+      "prefix-set-name": "ipv6-link-local"
+     },
+     {
+      "prefix-set-name": "ipv4-default-only",
+      "prefix": [
+       {
+        "ip-prefix": "0.0.0.0/0",
+        "masklength-range": "exact"
+       }
+      ]
+     },
+     {
+      "prefix-set-name": "ipv6-default-only",
+      "prefix": [
+       {
+        "ip-prefix": "::/0",
+        "masklength-range": "exact"
+       }
+      ]
+     },
+     {
+      "prefix-set-name": "ipv4-direct-routes",
+      "prefix": [
+       {
+        "ip-prefix": "0.0.0.0/0",
+        "masklength-range": "20..32"
+       }
+      ]
+     },
+     {
+      "prefix-set-name": "ipv6-direct-routes",
+      "prefix": [
+       {
+        "ip-prefix": "::/0",
+        "masklength-range": "64..128"
+       }
+      ]
+     },
+     {
+      "prefix-set-name": "ipv4-point-to-point",
+      "prefix": [
+       {
+        "ip-prefix": "0.0.0.0/0",
+        "masklength-range": "30..31"
+       }
+      ]
+     },
+     {
+      "prefix-set-name": "ipv6-point-to-point",
+      "prefix": [
+       {
+        "ip-prefix": "::/0",
+        "masklength-range": "126..127"
+       }
+      ]
+     }
+    ]
+   },
+   "openconfig-bgp-policy:bgp-defined-sets": {
+    "community-sets": {
+     "community-set": [
+      {
+       "community-set-name": "CORE-VIPS",
+       "community-member": [
+        "11112:22285"
+       ]
+      },
+      {
+       "community-set-name": "BB-DEFAULT",
+       "community-member": [
+        "11112:22270"
+       ]
+      },
+      {
+       "community-set-name": "SAT-BACKUP",
+       "community-member": [
+        "11112:22100",
+        "11114:21040"
+       ]
+      },
+      {
+       "community-set-name": "ANYCAST-AGG",
+       "community-member": [
+        "11112:22211"
+       ]
+      },
+      {
+       "community-set-name": "ANYCAST-VIP",
+       "community-member": [
+        "11112:22210"
+       ]
+      },
+      {
+       "community-set-name": "SAT-PRIMARY",
+       "community-member": [
+        "11112:22100",
+        "11114:21030"
+       ]
+      },
+      {
+       "community-set-name": "NO-ADVERTISE",
+       "community-member": [
+        "no-advertise"
+       ]
+      },
+      {
+       "community-set-name": "SAT-OVERRIDE",
+       "community-member": [
+        "11114:21035"
+       ]
+      },
+      {
+       "community-set-name": "AS15169-STATIC",
+       "community-member": [
+        "11112:22100",
+        "11112:10210"
+       ]
+      },
+      {
+       "community-set-name": "ROUTE-INJECTOR",
+       "community-member": [
+        "11112:22200"
+       ]
+      },
+      {
+       "community-set-name": "SATELLITE-VIPS",
+       "community-member": [
+        "11112:22286"
+       ]
+      },
+      {
+       "community-set-name": "SHELLFISH-DECAP",
+       "community-member": [
+        "11112:22240"
+       ]
+      },
+      {
+       "community-set-name": "AS15169-EXTERNAL",
+       "community-member": [
+        "11112:22110"
+       ]
+      },
+      {
+       "community-set-name": "AS15169-INTERNAL",
+       "community-member": [
+        "11112:22100"
+       ]
+      },
+      {
+       "community-set-name": "AS15169-PR-LOCAL",
+       "community-member": [
+        "11114:60020"
+       ]
+      },
+      {
+       "community-set-name": "METROSHARD-LOCAL",
+       "community-member": [
+        "11114:60030"
+       ]
+      },
+      {
+       "community-set-name": "AS15169-CONNECTED",
+       "community-member": [
+        "11112:10200"
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "policy-definitions": {
+   "policy-definition": [
+    {
+     "name": "PASS",
+     "statements": {
+      "statement": [
+       {
+        "name": "statement-1503089350045427"
+       }
+      ]
+     }
+    },
+    {
+     "name": "DRAIN",
+     "statements": {
+      "statement": [
+       {
+        "name": "statement-1503089350045556",
+        "conditions": {
+         "match-prefix-set": {
+          "prefix-set": "ipv4-link-local",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350045664",
+        "conditions": {
+         "match-prefix-set": {
+          "prefix-set": "ipv6-link-local",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350045771",
+        "conditions": {
+         "openconfig-bgp-policy:bgp-conditions": {
+          "match-community-set": {
+           "community-set": "AS15169-PR-LOCAL",
+           "match-set-options": "ALL"
+          }
+         }
+        },
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350045889",
+        "conditions": {
+         "openconfig-bgp-policy:bgp-conditions": {
+          "match-community-set": {
+           "community-set": "AS15169-CONNECTED",
+           "match-set-options": "ALL"
+          }
+         }
+        },
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-as-path-prepend": {
+           "repeat-n": 3
+          },
+          "set-local-pref": 10
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350046101",
+        "conditions": {
+         "openconfig-bgp-policy:bgp-conditions": {
+          "match-community-set": {
+           "community-set": "AS15169-STATIC",
+           "match-set-options": "ALL"
+          }
+         }
+        },
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-as-path-prepend": {
+           "repeat-n": 3
+          },
+          "set-local-pref": 10
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350046261",
+        "conditions": {
+         "match-prefix-set": {
+          "prefix-set": "ipv4-default-only",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-as-path-prepend": {
+           "repeat-n": 3
+          },
+          "set-local-pref": 10
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350046391",
+        "conditions": {
+         "match-prefix-set": {
+          "prefix-set": "ipv6-default-only",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-as-path-prepend": {
+           "repeat-n": 3
+          },
+          "set-local-pref": 10
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350046554",
+        "conditions": {
+         "openconfig-bgp-policy:bgp-conditions": {
+          "match-community-set": {
+           "community-set": "SHELLFISH-DECAP",
+           "match-set-options": "ALL"
+          }
+         }
+        },
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-as-path-prepend": {
+           "repeat-n": 3
+          },
+          "set-local-pref": 10
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350046737",
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "name": "DIRECT",
+     "statements": {
+      "statement": [
+       {
+        "name": "statement-1503089350046853",
+        "conditions": {
+         "match-prefix-set": {
+          "prefix-set": "ipv4-link-local",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350046945",
+        "conditions": {
+         "match-prefix-set": {
+          "prefix-set": "ipv6-link-local",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350047049",
+        "conditions": {
+         "match-prefix-set": {
+          "prefix-set": "ipv4-direct-routes",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-community": {
+           "community-set-ref": "AS15169-CONNECTED"
+          }
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350047187",
+        "conditions": {
+         "match-prefix-set": {
+          "prefix-set": "ipv6-direct-routes",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-community": {
+           "community-set-ref": "AS15169-CONNECTED"
+          }
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350047323",
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "name": "PASS-ALL",
+     "statements": {
+      "statement": [
+       {
+        "name": "statement-1503089350048788"
+       },
+       {
+        "name": "statement-1503089350048836",
+        "actions": {
+         "accept-route": [
+          null
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "name": "NO-ROUTES",
+     "statements": {
+      "statement": [
+       {
+        "name": "statement-1503089350049718",
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "name": "ACCEPT-ALL",
+     "statements": {
+      "statement": [
+       {
+        "name": "statement-1503089350050711"
+       },
+       {
+        "name": "statement-1503089350050757",
+        "actions": {
+         "accept-route": [
+          null
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "name": "STATIC-TO-BGP",
+     "statements": {
+      "statement": [
+       {
+        "name": "statement-1503089350051826",
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-route-origin": "IGP",
+          "set-community": {
+           "community-set-ref": "AS15169-STATIC",
+           "options": "ADD"
+          }
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350051948",
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       }
+      ]
+     }
+    },
+    {
+     "name": "SATELLITE-DRAIN",
+     "statements": {
+      "statement": [
+       {
+        "name": "statement-1503089350052286",
+        "conditions": {
+         "openconfig-bgp-policy:bgp-conditions": {
+          "match-community-set": {
+           "community-set": "SHELLFISH-DECAP",
+           "match-set-options": "ALL"
+          }
+         }
+        },
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-community": {
+           "community-set-ref": "NO-ADVERTISE",
+           "options": "ADD"
+          },
+          "set-as-path-prepend": {
+           "repeat-n": 3
+          }
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350052528",
+        "conditions": {
+         "match-prefix-set": {
+          "prefix-set": "ipv4-default-only",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-as-path-prepend": {
+           "repeat-n": 3
+          }
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350052671",
+        "conditions": {
+         "openconfig-bgp-policy:bgp-conditions": {
+          "match-community-set": {
+           "community-set": "AS15169-CONNECTED",
+           "match-set-options": "ALL"
+          }
+         },
+         "match-prefix-set": {
+          "prefix-set": "ipv4-point-to-point",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350052819",
+        "conditions": {
+         "match-prefix-set": {
+          "prefix-set": "ipv6-default-only",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-as-path-prepend": {
+           "repeat-n": 3
+          }
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350052966",
+        "conditions": {
+         "openconfig-bgp-policy:bgp-conditions": {
+          "match-community-set": {
+           "community-set": "AS15169-CONNECTED",
+           "match-set-options": "ALL"
+          }
+         },
+         "match-prefix-set": {
+          "prefix-set": "ipv6-point-to-point",
+          "match-set-options": "ANY"
+         }
+        },
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350053115",
+        "conditions": {
+         "openconfig-bgp-policy:bgp-conditions": {
+          "match-community-set": {
+           "community-set": "AS15169-CONNECTED",
+           "match-set-options": "ALL"
+          }
+         }
+        },
+        "actions": {
+         "openconfig-bgp-policy:bgp-actions": {
+          "set-community": {
+           "community-set-ref": "NO-ADVERTISE",
+           "options": "ADD"
+          },
+          "set-as-path-prepend": {
+           "repeat-n": 3
+          }
+         },
+         "accept-route": [
+          null
+         ]
+        }
+       },
+       {
+        "name": "statement-1503089350053306",
+        "actions": {
+         "reject-route": [
+          null
+         ]
+        }
+       }
+      ]
+     }
+    }
+   ]
+  }
+ }
+}
