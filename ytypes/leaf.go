@@ -709,7 +709,7 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 	p := ygen.EntrySchemaPath(schema)
 	m, ok := enumTypesMap[p]
 	if !ok {
-		return fmt.Errorf("schema %s with path %s does not have an entry in ΛEnumTypesMap", schema.Name, p)
+		return nil, fmt.Errorf("schema %s with path %s does not have an entry in ΛEnumTypesMap", schema.Name, p)
 	}
 	return m, nil
 }
