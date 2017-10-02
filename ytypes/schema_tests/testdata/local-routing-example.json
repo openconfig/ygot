@@ -45,10 +45,10 @@
      "next-hops": {
       "next-hop": [
        {
-        "index": "**oc-loc-rt:DROP**",
+        "index": "**openconfig-local-routing:DROP**",
         "config": {
-         "index": "**oc-loc-rt:DROP**",
-         "next-hop": "oc-loc-rt:DROP"
+         "index": "**openconfig-local-routing:DROP**",
+         "next-hop": "openconfig-local-routing:DROP"
         }
        }
       ]
@@ -96,10 +96,10 @@
      "next-hops": {
       "next-hop": [
        {
-        "index": "**oc-loc-rt:DROP**",
+        "index": "**openconfig-local-routing:DROP**",
         "config": {
-         "index": "**oc-loc-rt:DROP**",
-         "next-hop": "oc-loc-rt:DROP"
+         "index": "**openconfig-local-routing:DROP**",
+         "next-hop": "openconfig-local-routing:DROP"
         }
        }
       ]
@@ -113,10 +113,10 @@
      "next-hops": {
       "next-hop": [
        {
-        "index": "**oc-loc-rt:DROP**",
+        "index": "**openconfig-local-routing:DROP**",
         "config": {
-         "index": "**oc-loc-rt:DROP**",
-         "next-hop": "oc-loc-rt:DROP"
+         "index": "**openconfig-local-routing:DROP**",
+         "next-hop": "openconfig-local-routing:DROP"
         }
        }
       ]

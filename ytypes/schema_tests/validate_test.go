@@ -438,7 +438,7 @@ func TestUnmarshal(t *testing.T) {
 			AppendModuleName: true,
 		}}
 
-	for _, tt := range tests[3:4] {
+	for _, tt := range tests {
 		j, err := ioutil.ReadFile(filepath.Join(testRoot, "testdata", tt.jsonFilePath))
 		if err != nil {
 			t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.desc, tt.jsonFilePath, err)
