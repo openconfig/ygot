@@ -787,6 +787,7 @@ type LeafContainerStruct struct {
 	BoolLeaf   *bool         `path:"bool-leaf"`
 	EnumLeaf   EnumType      `path:"enum-leaf"`
 	UnionLeaf  UnionLeafType `path:"union-leaf"`
+	UnionLeaf2 *string       `path:"union-leaf2"`
 }
 
 type UnionLeafType interface {
@@ -805,12 +806,42 @@ type UnionLeafType_Uint32 struct {
 
 func (*UnionLeafType_Uint32) Is_UnionLeafType() {}
 
+type UnionLeafType_EnumType struct {
+	EnumType EnumType
+}
+
+func (*UnionLeafType_EnumType) Is_UnionLeafType() {}
+
+func (*UnionLeafType_EnumType) ΛMap() map[string]map[int64]ygot.EnumDefinition {
+	return globalEnumMap
+}
+
+type UnionLeafType_EnumType2 struct {
+	EnumType2 EnumType2
+}
+
+func (*UnionLeafType_EnumType2) Is_UnionLeafType() {}
+
+func (*UnionLeafType_EnumType2) ΛMap() map[string]map[int64]ygot.EnumDefinition {
+	return globalEnumMap
+}
+
+func (*LeafContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type {
+	return map[string][]reflect.Type{
+		"/container-schema/union-leaf": []reflect.Type{reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+	}
+}
+
 func (*LeafContainerStruct) To_UnionLeafType(i interface{}) (UnionLeafType, error) {
 	switch v := i.(type) {
 	case string:
 		return &UnionLeafType_String{v}, nil
 	case uint32:
 		return &UnionLeafType_Uint32{v}, nil
+	case EnumType:
+		return &UnionLeafType_EnumType{v}, nil
+	case EnumType2:
+		return &UnionLeafType_EnumType2{v}, nil
 	default:
 		return nil, fmt.Errorf("cannot convert %v to To_UnionLeafType, unknown union type, got: %T, want any of [string, uint32]", i, i)
 	}
@@ -880,6 +911,21 @@ func TestUnmarshalLeaf(t *testing.T) {
 			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_Uint32{Uint32: 42}},
 		},
 		{
+			desc: "union enum success",
+			json: `{"union-leaf" : "E_VALUE_FORTY_TWO"}`,
+			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_EnumType{EnumType: 42}},
+		},
+		{
+			desc: "union enum2 success",
+			json: `{"union-leaf" : "E_VALUE_FORTY_THREE"}`,
+			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_EnumType2{EnumType2: 43}},
+		},
+		{
+			desc: "union no struct success, correct type, value unvalidated",
+			json: `{"union-leaf2" : "ccc"}`,
+			want: LeafContainerStruct{UnionLeaf2: ygot.String("ccc")},
+		},
+		{
 			desc:    "int32 bad type",
 			json:    `{"int32-leaf" : "-42"}`,
 			wantErr: `got string type for field int32-leaf, expect float64`,
@@ -937,7 +983,7 @@ func TestUnmarshalLeaf(t *testing.T) {
 		{
 			desc:    "enum bad value",
 			json:    `{"enum-leaf" : "E_BAD_VALUE"}`,
-			wantErr: `E_BAD_VALUE is not a valid value for enum field EnumLeaf`,
+			wantErr: `E_BAD_VALUE is not a valid value for enum field EnumLeaf, type ytypes.EnumType`,
 		},
 		{
 			desc:    "union bad type",
@@ -964,6 +1010,32 @@ func TestUnmarshalLeaf(t *testing.T) {
 				{
 					Kind: yang.Yuint32,
 				},
+				{
+					Kind: yang.Yenum,
+				},
+				{
+					Kind: yang.Yidentityref,
+				},
+			},
+		},
+	}
+
+	unionNoStructSchema := &yang.Entry{
+		Name: "union-leaf2",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					// Note that Validate is not called as part of Unmarshal,
+					// therefore any string pattern will actually match.
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
+				},
+				{
+					Kind:    yang.Ystring,
+					Pattern: []string{"b+"},
+				},
 			},
 		},
 	}
@@ -982,13 +1054,16 @@ func TestUnmarshalLeaf(t *testing.T) {
 		typeToLeafSchema("bool-leaf", yang.Ybool),
 		enumLeafSchema,
 		unionSchema,
+		unionNoStructSchema,
 	}
+
 	for _, s := range leafSchemas {
+		s.Parent = containerSchema
 		containerSchema.Dir[s.Name] = s
 	}
 
 	var jsonTree interface{}
-	for _, test := range tests {
+	for idx, test := range tests {
 		var parent LeafContainerStruct
 
 		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
@@ -997,12 +1072,12 @@ func TestUnmarshalLeaf(t *testing.T) {
 
 		err := Unmarshal(containerSchema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
+			t.Errorf("%s (#%d): Unmarshal got error: %v, wanted error? %v", test.desc, idx, got, want)
 		}
 		testErrLog(t, test.desc, err)
 		if err == nil {
 			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+				t.Errorf("%s (#%d): Unmarshal got:\n%v\nwant:\n%v\n", test.desc, idx, pretty.Sprint(got), pretty.Sprint(want))
 			}
 		}
 	}

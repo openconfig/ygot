@@ -41,6 +41,11 @@ func IsTypeInterface(t reflect.Type) bool {
 	return t.Kind() == reflect.Interface
 }
 
+// IsTypeSliceOfInterface reports whether v is a slice of interface.
+func IsTypeSliceOfInterface(t reflect.Type) bool {
+	return t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Interface
+}
+
 // IsNilOrInvalidValue reports whether v is nil or reflect.Zero.
 func IsNilOrInvalidValue(v reflect.Value) bool {
 	return !v.IsValid() || (v.Kind() == reflect.Ptr && v.IsNil()) || IsValueNil(v.Interface())
