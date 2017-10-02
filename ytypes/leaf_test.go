@@ -1027,7 +1027,7 @@ func TestUnmarshalLeaf(t *testing.T) {
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
 				{
-					// Note that Validate is not called as part of Unmarshal, 
+					// Note that Validate is not called as part of Unmarshal,
 					// therefore any string pattern will actually match.
 					Kind:    yang.Ystring,
 					Pattern: []string{"a+"},

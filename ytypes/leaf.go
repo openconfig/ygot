@@ -25,7 +25,6 @@ import (
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -705,7 +704,7 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 		return nil, fmt.Errorf("%s ΛEnumTypes function returned wrong type %T, want map[string][]reflect.Type", t, ei)
 	}
 
-	util.DbgPrint("path is %s for schema %s", ygen.EntrySchemaPath(schema), schema.Name)
+	util.DbgPrint("path is %s for schema %s", absoluteSchemaDataPath(schema), schema.Name)
 
 	return enumTypesMap[absoluteSchemaDataPath(schema)], nil
 }
