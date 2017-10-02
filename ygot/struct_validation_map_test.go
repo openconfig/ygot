@@ -1124,16 +1124,18 @@ type validatedMergeTest struct {
 	Uint32Field *uint32
 }
 
-func (*validatedMergeTest) Validate() error { return nil }
-func (*validatedMergeTest) IsYANGGoStruct() {}
+func (*validatedMergeTest) Validate() error                         { return nil }
+func (*validatedMergeTest) IsYANGGoStruct()                         {}
+func (*validatedMergeTest) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 type validatedMergeTestTwo struct {
 	String *string
 	I      interface{}
 }
 
-func (*validatedMergeTestTwo) Validate() error { return nil }
-func (*validatedMergeTestTwo) IsYANGGoStruct() {}
+func (*validatedMergeTestTwo) Validate() error                         { return nil }
+func (*validatedMergeTestTwo) IsYANGGoStruct()                         {}
+func (*validatedMergeTestTwo) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 func TestMergeStructs(t *testing.T) {
 	tests := []struct {
