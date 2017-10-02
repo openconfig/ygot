@@ -129,7 +129,7 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interfa
 }
 
 // unmarshalStruct unmarshals a JSON tree into a struct.
-//   schema is the YANG schema of the node corresponding to the struct being 
+//   schema is the YANG schema of the node corresponding to the struct being
 //     unmarshalled into.
 //   parent is the parent struct, which must be a struct ptr.
 //   jsonTree is a JSON data tree which must be a map[string]interface{}.
