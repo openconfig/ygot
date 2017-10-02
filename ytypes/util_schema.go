@@ -245,6 +245,20 @@ func schemaTreeRoot(schema *yang.Entry) *yang.Entry {
 	return root
 }
 
+// absoluteSchemaDataPath returns the absolute path of the schema, excluding
+// any choice or case entries.
+// TODO(mostrowski): why are these excluded?
+func absoluteSchemaDataPath(schema *yang.Entry) string {
+	out := []string{schema.Name}
+	for s := schema.Parent; s != nil; s = s.Parent {
+		if !isChoiceOrCase(s) && !isFakeRoot(s) {
+			out = append([]string{s.Name}, out...)
+		}
+	}
+
+	return "/" + strings.Join(out, "/")
+}
+
 // findFirstNonChoiceOrCase recursively traverses the schema tree and populates
 // m with the set of the first nodes in every path that neither case nor choice
 // nodes. The keys in the map are the schema element names of the matching
