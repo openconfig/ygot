@@ -349,14 +349,14 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{})
 }
 
 // makeKeyForInsert returns a key for inserting a struct newVal into the parent,
-// which must be a map. 
+// which must be a map.
 func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.Value) (reflect.Value, error) {
 	// Key is always a value type, never a ptr.
 	listKeyType := reflect.TypeOf(parentMap).Key()
 	newKey := reflect.New(listKeyType).Elem()
 
 	if listKeyType.Kind() == reflect.Struct {
-		// For struct key type, copy the key fields from the new list entry 
+		// For struct key type, copy the key fields from the new list entry
 		// struct newVal into the key struct.
 		for i := 0; i < newKey.NumField(); i++ {
 			kfn := listKeyType.Field(i).Name

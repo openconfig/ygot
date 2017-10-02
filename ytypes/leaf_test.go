@@ -895,7 +895,6 @@ func TestUnmarshalLeaf(t *testing.T) {
 			want: LeafContainerStruct{Uint64Leaf: ygot.Uint64(42)},
 		},
 		{
-			// TODO DEBUG 8
 			desc: "enum success",
 			json: `{"enum-leaf" : "E_VALUE_FORTY_TWO"}`,
 			want: LeafContainerStruct{EnumLeaf: 42},
@@ -911,7 +910,6 @@ func TestUnmarshalLeaf(t *testing.T) {
 			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_Uint32{Uint32: 42}},
 		},
 		{
-			// TODO DEBUG 11
 			desc: "union enum success",
 			json: `{"union-leaf" : "E_VALUE_FORTY_TWO"}`,
 			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_EnumType{EnumType: 42}},

@@ -620,8 +620,8 @@ func setFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT
 	return nil
 }
 
-// getUnionKindsAndTypes returns the YANG kinds of basic types and and 
-// reflect.Types of enum types that are possible for values for the union with 
+// getUnionKindsAndTypes returns the YANG kinds of basic types and and
+// reflect.Types of enum types that are possible for values for the union with
 // the given schema and type.
 func getUnionKindsAndTypes(schema *yang.Entry, parentT reflect.Type) ([]yang.TypeKind, []reflect.Type, error) {
 	uks, err := getUnionKindsNotEnums(schema)
@@ -654,7 +654,7 @@ func getUnionKindsNotEnums(schema *yang.Entry) ([]yang.TypeKind, error) {
 	return uks, nil
 }
 
-// getUnionTypesNotEnums returns all the non-enum YANG types under the given schema 
+// getUnionTypesNotEnums returns all the non-enum YANG types under the given schema
 // node, dereferencing any refs.
 func getUnionTypesNotEnums(schema *yang.Entry, yt *yang.YangType) ([]*yang.YangType, error) {
 	var uts []*yang.YangType
@@ -687,7 +687,8 @@ func getUnionTypesNotEnums(schema *yang.Entry, yt *yang.YangType) ([]*yang.YangT
 }
 
 // schemaToEnumTypes returns the actual enum types (rather than the interface
-// type) for a given schema, which must be for an enum type.
+// type) for a given schema, which must be for an enum type. t is the type of
+// the containing parent struct.
 func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, error) {
 	enumTypesMethod := reflect.New(t).Elem().MethodByName("ΛEnumTypeMap")
 	if !enumTypesMethod.IsValid() {
@@ -705,7 +706,12 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 	}
 	util.DbgPrint("path is %s for schema %s", ygen.EntrySchemaPath(schema), schema.Name)
 
-	return enumTypesMap[ygen.EntrySchemaPath(schema)], nil
+	p := ygen.EntrySchemaPath(schema)
+	m, ok := enumTypesMap[p]
+	if !ok {
+		return fmt.Errorf("schema %s with path %s does not have an entry in ΛEnumTypesMap", schema.Name, p)
+	}
+	return m, nil
 }
 
 // unmarshalScalar unmarshals value, which is the Go type from json.Unmarshal,
