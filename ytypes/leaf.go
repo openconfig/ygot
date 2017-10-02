@@ -704,14 +704,10 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 	if !ok {
 		return nil, fmt.Errorf("%s ΛEnumTypes function returned wrong type %T, want map[string][]reflect.Type", t, ei)
 	}
+
 	util.DbgPrint("path is %s for schema %s", ygen.EntrySchemaPath(schema), schema.Name)
 
-	p := ygen.EntrySchemaPath(schema)
-	m, ok := enumTypesMap[p]
-	if !ok {
-		return nil, fmt.Errorf("schema %s with path %s does not have an entry in ΛEnumTypesMap", schema.Name, p)
-	}
-	return m, nil
+	return enumTypesMap[absoluteSchemaDataPath(schema)], nil
 }
 
 // unmarshalScalar unmarshals value, which is the Go type from json.Unmarshal,

@@ -787,6 +787,7 @@ type LeafContainerStruct struct {
 	BoolLeaf   *bool         `path:"bool-leaf"`
 	EnumLeaf   EnumType      `path:"enum-leaf"`
 	UnionLeaf  UnionLeafType `path:"union-leaf"`
+	UnionLeaf2 *string       `path:"union-leaf2"`
 }
 
 type UnionLeafType interface {
@@ -827,7 +828,7 @@ func (*UnionLeafType_EnumType2) ΛMap() map[string]map[int64]ygot.EnumDefinition
 
 func (*LeafContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
-		"/union-leaf": []reflect.Type{reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-leaf": []reflect.Type{reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
 	}
 }
 
@@ -918,6 +919,11 @@ func TestUnmarshalLeaf(t *testing.T) {
 			desc: "union enum2 success",
 			json: `{"union-leaf" : "E_VALUE_FORTY_THREE"}`,
 			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_EnumType2{EnumType2: 43}},
+		},
+		{
+			desc: "union no struct success, correct type, value unvalidated",
+			json: `{"union-leaf2" : "ccc"}`,
+			want: LeafContainerStruct{UnionLeaf2: ygot.String("ccc")},
 		},
 		{
 			desc:    "int32 bad type",
@@ -1014,6 +1020,26 @@ func TestUnmarshalLeaf(t *testing.T) {
 		},
 	}
 
+	unionNoStructSchema := &yang.Entry{
+		Name: "union-leaf2",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					// Note that Validate is not called as part of Unmarshal, 
+					// therefore any string pattern will actually match.
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
+				},
+				{
+					Kind:    yang.Ystring,
+					Pattern: []string{"b+"},
+				},
+			},
+		},
+	}
+
 	var leafSchemas = []*yang.Entry{
 		typeToLeafSchema("int8-leaf", yang.Yint8),
 		typeToLeafSchema("uint8-leaf", yang.Yuint8),
@@ -1028,14 +1054,16 @@ func TestUnmarshalLeaf(t *testing.T) {
 		typeToLeafSchema("bool-leaf", yang.Ybool),
 		enumLeafSchema,
 		unionSchema,
+		unionNoStructSchema,
 	}
+
 	for _, s := range leafSchemas {
 		s.Parent = containerSchema
 		containerSchema.Dir[s.Name] = s
 	}
 
 	var jsonTree interface{}
-	for _, test := range tests {
+	for idx, test := range tests {
 		var parent LeafContainerStruct
 
 		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
@@ -1044,12 +1072,12 @@ func TestUnmarshalLeaf(t *testing.T) {
 
 		err := Unmarshal(containerSchema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
+			t.Errorf("%s (#%d): Unmarshal got error: %v, wanted error? %v", test.desc, idx, got, want)
 		}
 		testErrLog(t, test.desc, err)
 		if err == nil {
 			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+				t.Errorf("%s (#%d): Unmarshal got:\n%v\nwant:\n%v\n", test.desc, idx, pretty.Sprint(got), pretty.Sprint(want))
 			}
 		}
 	}

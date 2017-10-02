@@ -311,8 +311,8 @@ func listKeyFieldsMap(e *yang.Entry) map[string]bool {
 	return r
 }
 
-// EntrySchemaPath takes an input yang.Entry, and returns its YANG schema
+// entrySchemaPath takes an input yang.Entry, and returns its YANG schema
 // path.
-func EntrySchemaPath(e *yang.Entry) string {
+func entrySchemaPath(e *yang.Entry) string {
 	return slicePathToString(append([]string{""}, traverseElementSchemaPath(e)[1:]...))
 }

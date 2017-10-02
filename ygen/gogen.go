@@ -844,7 +844,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			// This is done to allow checks against nil.
 			scalarField := true
 			fType := mtype.nativeType
-			schemapath := EntrySchemaPath(field)
+			schemapath := entrySchemaPath(field)
 
 			if len(mtype.unionTypes) > 1 {
 				// If this is a union that has more than one subtype, then we need
