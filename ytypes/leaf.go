@@ -79,8 +79,10 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 		return nil
 		// TODO(mostrowski): restore when representation is decided.
 		//return util.AppendErr(errors, validateBitset(schema, rv))
-	case yang.Ybool, yang.Yempty:
+	case yang.Ybool:
 		return util.AppendErr(errors, validateBool(schema, rv))
+	case yang.Yempty:
+		return util.AppendErr(errors, validateEmpty(schema, rv))
 	case yang.Ystring:
 		return util.AppendErr(errors, validateString(schema, rv))
 	case yang.Ydecimal64:

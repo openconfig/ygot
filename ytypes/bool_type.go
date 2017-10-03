@@ -16,10 +16,8 @@ package ytypes
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.5.
@@ -30,14 +28,6 @@ func validateBool(schema *yang.Entry, value interface{}) error {
 	// Check that the schema itself is valid.
 	if err := validateBoolSchema(schema); err != nil {
 		return err
-	}
-
-	// If the schema is type empty, check that it had the correct type name.
-	if schema.Type.Kind == yang.Yempty {
-		if reflect.TypeOf(value).Name() != ygot.EmptyTypeName {
-			return fmt.Errorf("non derived type %T with value %v for schema %s", value, value, schema.Name)
-		}
-		return nil
 	}
 
 	// Check that type of value is the type expected from the schema.
@@ -86,7 +76,7 @@ func validateBoolSchema(schema *yang.Entry) error {
 	if schema.Type == nil {
 		return fmt.Errorf("bool schema %s Type is nil", schema.Name)
 	}
-	if schema.Type.Kind != yang.Ybool && schema.Type.Kind != yang.Yempty {
+	if schema.Type.Kind != yang.Ybool {
 		return fmt.Errorf("bool schema %s has wrong type %v", schema.Name, schema.Type.Kind)
 	}
 

@@ -20,18 +20,14 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
-var validBoolSchema = &yang.Entry{Name: "valid-bool-schema", Type: &yang.YangType{Kind: yang.Ybool}}
+var validEmptySchema = &yang.Entry{Name: "empty-schema", Type: &yang.YangType{Kind: yang.Yempty}}
 
-func TestValidateBoolSchema(t *testing.T) {
+func TestValidateEmptySchema(t *testing.T) {
 	tests := []struct {
 		desc    string
 		schema  *yang.Entry
 		wantErr bool
 	}{
-		{
-			desc:   "success",
-			schema: validBoolSchema,
-		},
 		{
 			desc:    "nil schema",
 			schema:  nil,
@@ -47,18 +43,22 @@ func TestValidateBoolSchema(t *testing.T) {
 			schema:  &yang.Entry{Name: "string-type-schema", Type: &yang.YangType{Kind: yang.Ystring}},
 			wantErr: true,
 		},
+		{
+			desc:   "empty schema",
+			schema: validEmptySchema,
+		},
 	}
 
 	for _, test := range tests {
-		err := validateBoolSchema(test.schema)
+		err := validateEmptySchema(test.schema)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBoolSchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: validateEmptySchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
 }
 
-func TestValidateBool(t *testing.T) {
+func TestValidateEmpty(t *testing.T) {
 	tests := []struct {
 		desc    string
 		schema  *yang.Entry
@@ -67,8 +67,8 @@ func TestValidateBool(t *testing.T) {
 	}{
 		{
 			desc:   "success",
-			schema: validBoolSchema,
-			val:    true,
+			schema: validEmptySchema,
+			val:    YANGEmpty(false),
 		},
 		{
 			desc:    "bad schema",
@@ -77,58 +77,34 @@ func TestValidateBool(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			desc:    "non bool type",
-			schema:  validBoolSchema,
+			desc:    "non empty type",
+			schema:  validEmptySchema,
 			val:     "",
 			wantErr: true,
 		},
-	}
-
-	for _, test := range tests {
-		err := validateBool(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBool(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
-	}
-}
-
-func TestValidateSliceBoolType(t *testing.T) {
-	tests := []struct {
-		desc    string
-		schema  *yang.Entry
-		val     interface{}
-		wantErr bool
-	}{
 		{
-			desc:   "success",
-			schema: validBoolSchema,
-			val:    []bool{true, false},
+			desc:   "valid empty",
+			schema: validEmptySchema,
+			val:    YANGEmpty(true),
 		},
 		{
-			desc:    "bad schema",
-			schema:  nil,
-			val:     []bool{true},
+			desc:    "invalid empty",
+			schema:  validEmptySchema,
+			val:     true,
 			wantErr: true,
 		},
 		{
-			desc:    "non []bool",
-			schema:  validBoolSchema,
-			val:     []string{"abc", "def"},
-			wantErr: true,
-		},
-		{
-			desc:    "duplicate element",
-			schema:  validBoolSchema,
-			val:     []bool{true, true},
+			desc:    "invalid empty - wrong type",
+			schema:  validEmptySchema,
+			val:     "fish",
 			wantErr: true,
 		},
 	}
 
 	for _, test := range tests {
-		err := validateBoolSlice(test.schema, test.val)
+		err := validateEmpty(test.schema, test.val)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBool(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+			t.Errorf("%s: validateEmpty(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
