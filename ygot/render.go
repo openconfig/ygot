@@ -1241,11 +1241,13 @@ func unionInterfaceValue(v reflect.Value, appendModuleName bool) (interface{}, e
 		return nil, fmt.Errorf("received a union type which was invalid: %v", v.Kind())
 	}
 
-	if !util.StructValueHasNFields(v.Elem().Elem(), 1) {
+	s := v.Elem().Elem() // Dereference the struct ptr.
+
+	if !util.IsStructValueWithNFields(s, 1) {
 		return nil, fmt.Errorf("received a union type which did not have one field, had: %v", v.Elem().Elem().NumField())
 	}
 
-	return resolveUnionVal(v.Elem().Elem().Field(0).Interface(), appendModuleName)
+	return resolveUnionVal(s.Field(0).Interface(), appendModuleName)
 }
 
 // unionPtrValue returns the value of a union when it is stored as a pointer. The
@@ -1256,7 +1258,7 @@ func unionPtrValue(v reflect.Value, appendModuleName bool) (interface{}, error) 
 		return nil, fmt.Errorf("received a union pointer that didn't contain a struct, got: %v", v.Kind())
 	}
 
-	if !util.StructValueHasNFields(v.Elem(), 1) {
+	if !util.IsStructValueWithNFields(v.Elem(), 1) {
 		return nil, fmt.Errorf("received a union pointer struct that didn't have one field, got: %v", v.Elem().NumField())
 	}
 

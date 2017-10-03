@@ -101,10 +101,10 @@ func PtrToValue(value reflect.Value) reflect.Value {
 	return value
 }
 
-// StructValueHasNFields returns true if the reflect.Value representing a struct
+// IsStructValueWithNFields returns true if the reflect.Value representing a struct
 // v has n fields.
-func StructValueHasNFields(v reflect.Value, n int) bool {
-	return v.NumField() == n
+func IsStructValueWithNFields(v reflect.Value, n int) bool {
+	return IsValueStruct(v) && v.NumField() == n
 }
 
 // GetFieldType returns the type of the field with fieldName in the containing
