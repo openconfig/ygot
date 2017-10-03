@@ -331,7 +331,7 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
-			"struct-list": &yang.Entry{
+			"struct-list": {
 				Name:     "struct-list",
 				Kind:     yang.DirectoryEntry,
 				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
@@ -370,7 +370,7 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 			json: `{"struct-list" : [ { "leaf-field" : 42, "enum-leaf-field" : "E_VALUE_FORTY_TWO"} ] }`,
 			want: ContainerStruct{
 				StructList: []*ListElemStruct{
-					&ListElemStruct{
+					{
 						LeafName: ygot.Int32(42),
 						EnumLeaf: 42,
 					},
@@ -405,7 +405,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
-			"key-list": &yang.Entry{
+			"key-list": {
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
 				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
@@ -446,7 +446,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 			json: `{ "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] }`,
 			want: ContainerStruct{
 				KeyList: map[string]*ListElemStruct{
-					"forty-two": &ListElemStruct{
+					"forty-two": {
 						Key:       ygot.String("forty-two"),
 						LeafField: ygot.Int32(42),
 					},
@@ -486,7 +486,7 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
-			"struct-key-list": &yang.Entry{
+			"struct-key-list": {
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
 				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
@@ -544,7 +544,7 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 			json: `{ "struct-key-list" : [ { "key1" : "forty-two", "key2" : 42, "key3" : "E_VALUE_FORTY_TWO", "leaf-field" : 43} ] }`,
 			want: ContainerStruct{
 				StructKeyList: map[KeyStruct]*ListElemStruct{
-					{"forty-two", 42, 42}: &ListElemStruct{
+					{"forty-two", 42, 42}: {
 						Key1:     ygot.String("forty-two"),
 						Key2:     ygot.Int32(42),
 						EnumKey:  42,

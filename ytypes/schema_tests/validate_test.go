@@ -609,7 +609,7 @@ func TestGetNode(t *testing.T) {
 				Confederation: &oc.Bgp_Global_Confederation{},
 			},
 			Neighbor: map[string]*oc.Bgp_Neighbor{
-				"address1": &oc.Bgp_Neighbor{
+				"address1": {
 					ApplyPolicy:     &oc.Bgp_Neighbor_ApplyPolicy{},
 					NeighborAddress: ygot.String("address1"),
 				},
