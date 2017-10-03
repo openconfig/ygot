@@ -828,7 +828,7 @@ func (*UnionLeafType_EnumType2) ΛMap() map[string]map[int64]ygot.EnumDefinition
 
 func (*LeafContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
-		"/container-schema/union-leaf": []reflect.Type{reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-leaf": {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
 	}
 }
 
