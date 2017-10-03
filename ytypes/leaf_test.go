@@ -138,6 +138,18 @@ func TestValidateLeaf(t *testing.T) {
 			schema: typeToLeafSchema("empty", yang.Yempty),
 			val:    YANGEmpty(true),
 		},
+		{
+			desc:    "bad empty type",
+			schema:  typeToLeafSchema("empty", yang.Yempty),
+			val:     "string",
+			wantErr: true,
+		},
+		{
+			desc:    "slice in non-binary type",
+			schema:  typeToLeafSchema("binary", yang.Ystring),
+			val:     []byte{1, 2, 3},
+			wantErr: true,
+		},
 		// TODO(mostrowski): restore when representation is decided.
 		/*{
 			desc:   "bitset success",
