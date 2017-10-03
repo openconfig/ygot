@@ -1520,6 +1520,7 @@ func (*listAtRootChild) IsYANGGoStruct() {}
 // modules at the root.
 type diffModAtRoot struct {
 	Child *diffModAtRootChild `path:"" module:"m1"`
+	Elem  *diffModAtRootElem  `path:"" module:"m1"`
 }
 
 func (*diffModAtRoot) IsYANGGoStruct() {}
@@ -1531,6 +1532,18 @@ type diffModAtRootChild struct {
 }
 
 func (*diffModAtRootChild) IsYANGGoStruct() {}
+
+type diffModAtRootElem struct {
+	C *diffModAtRootElemTwo `path:"/baz/c" module:"m1"`
+}
+
+func (*diffModAtRootElem) IsYANGGoStruct() {}
+
+type diffModAtRootElemTwo struct {
+	Name *string `path:"name" module:"m1"`
+}
+
+func (*diffModAtRootElemTwo) IsYANGGoStruct() {}
 
 func TestConstructJSON(t *testing.T) {
 	tests := []struct {
@@ -1581,6 +1594,11 @@ func TestConstructJSON(t *testing.T) {
 				ValueTwo:   String("two"),
 				ValueThree: String("three"),
 			},
+			Elem: &diffModAtRootElem{
+				C: &diffModAtRootElemTwo{
+					Name: String("baz"),
+				},
+			},
 		},
 		inAppendMod: true,
 		wantIETF: map[string]interface{}{
@@ -1589,12 +1607,22 @@ func TestConstructJSON(t *testing.T) {
 				"m3:value-two": "two",
 				"value-three":  "three",
 			},
+			"m1:baz": map[string]interface{}{
+				"c": map[string]interface{}{
+					"name": "baz",
+				},
+			},
 		},
 		wantInternal: map[string]interface{}{
 			"foo": map[string]interface{}{
 				"value-one":   "one",
 				"value-two":   "two",
 				"value-three": "three",
+			},
+			"baz": map[string]interface{}{
+				"c": map[string]interface{}{
+					"name": "baz",
+				},
 			},
 		},
 	}, {
