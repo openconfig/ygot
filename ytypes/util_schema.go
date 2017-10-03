@@ -579,7 +579,7 @@ func forEachSchemaNodeInternal(ni *SchemaNodeInfo, in, out interface{}, iterFunc
 
 	switch {
 	case util.IsValueStruct(ni.FieldValue) || util.IsValueStructPtr(ni.FieldValue):
-		structElems := util.PtrToValue(ni.FieldValue)
+		structElems := derefIfStructPtr(ni.FieldValue)
 		for i := 0; i < structElems.NumField(); i++ {
 			cschema, err := childSchema(ni.Schema, structElems.Type().Field(i))
 			if err != nil {

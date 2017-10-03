@@ -19,6 +19,7 @@ import (
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // stringMapKeys returns the keys for map m.
@@ -68,3 +69,14 @@ func makeNewValue(newType reflect.Type, value reflect.Value, kind reflect.Kind) 
 		value.Set(reflect.New(newType.Elem()))
 	}
 }
+
+// derefIfStructPtr returns the dereferenced reflect.Value of value if it is a
+// struct ptr, or value if it is not.
+func derefIfStructPtr(value reflect.Value) reflect.Value {
+	if util.IsValueStructPtr(value) {
+		return value.Elem()
+	}
+	return value
+}
+
+

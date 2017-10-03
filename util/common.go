@@ -16,8 +16,6 @@
 package util
 
 import (
-	"reflect"
-
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
@@ -27,19 +25,6 @@ var (
 	// YangMinNumber represents the minimum value for any integer type.
 	YangMinNumber = yang.Number{Kind: yang.MinNumber}
 )
-
-// IsValueNil is a general purpose nil check for the kinds of value types expected in
-// this package.
-func IsValueNil(value interface{}) bool {
-	if value == nil {
-		return true
-	}
-	switch reflect.TypeOf(value).Kind() {
-	case reflect.Slice, reflect.Ptr, reflect.Map:
-		return reflect.ValueOf(value).IsNil()
-	}
-	return false
-}
 
 // stringMapKeys returns the keys for map m.
 func stringMapKeys(m map[string]*yang.Entry) []string {
