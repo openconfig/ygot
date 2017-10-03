@@ -1,0 +1,129 @@
+{
+ "openconfig-local-routing:local-routes": {
+  "static-routes": {
+   "static": [
+    {
+     "prefix": "10.0.0.0/8",
+     "config": {
+      "prefix": "10.0.0.0/8"
+     },
+     "next-hops": {
+      "next-hop": [
+       {
+        "index": "**10.10.16.254**",
+        "config": {
+         "index": "**10.10.16.254**",
+         "next-hop": "10.10.16.254",
+         "metric": 200
+        }
+       },
+       {
+        "index": "**10.10.17.254**",
+        "config": {
+         "index": "**10.10.17.254**",
+         "next-hop": "10.10.17.254",
+         "metric": 200
+        }
+       },
+       {
+        "index": "**10.10.18.254**",
+        "config": {
+         "index": "**10.10.18.254**",
+         "next-hop": "10.10.18.254",
+         "metric": 200
+        }
+       }
+      ]
+     }
+    },
+    {
+     "prefix": "10.244.168.0/25",
+     "config": {
+      "prefix": "10.244.168.0/25",
+      "set-tag": 9999
+     },
+     "next-hops": {
+      "next-hop": [
+       {
+        "index": "**openconfig-local-routing:DROP**",
+        "config": {
+         "index": "**openconfig-local-routing:DROP**",
+         "next-hop": "openconfig-local-routing:DROP"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "prefix": "172.16.0.0/12",
+     "config": {
+      "prefix": "172.16.0.0/12"
+     },
+     "next-hops": {
+      "next-hop": [
+       {
+        "index": "**10.10.16.254**",
+        "config": {
+         "index": "**10.10.16.254**",
+         "next-hop": "10.10.16.254",
+         "metric": 200
+        }
+       },
+       {
+        "index": "**10.10.17.254**",
+        "config": {
+         "index": "**10.10.17.254**",
+         "next-hop": "10.10.17.254",
+         "metric": 200
+        }
+       },
+       {
+        "index": "**10.10.18.254**",
+        "config": {
+         "index": "**10.10.18.254**",
+         "next-hop": "10.10.18.254",
+         "metric": 200
+        }
+       }
+      ]
+     }
+    },
+    {
+     "prefix": "192.0.2.1/32",
+     "config": {
+      "prefix": "192.0.2.1/32"
+     },
+     "next-hops": {
+      "next-hop": [
+       {
+        "index": "**openconfig-local-routing:DROP**",
+        "config": {
+         "index": "**openconfig-local-routing:DROP**",
+         "next-hop": "openconfig-local-routing:DROP"
+        }
+       }
+      ]
+     }
+    },
+    {
+     "prefix": "fc00::/128",
+     "config": {
+      "prefix": "fc00::/128"
+     },
+     "next-hops": {
+      "next-hop": [
+       {
+        "index": "**openconfig-local-routing:DROP**",
+        "config": {
+         "index": "**openconfig-local-routing:DROP**",
+         "next-hop": "openconfig-local-routing:DROP"
+        }
+       }
+      ]
+     }
+    }
+   ]
+  }
+ }
+}
+
