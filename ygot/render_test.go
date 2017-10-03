@@ -1516,6 +1516,22 @@ type listAtRootChild struct {
 
 func (*listAtRootChild) IsYANGGoStruct() {}
 
+// Types to ensure correct serialisation of elements with different
+// modules at the root.
+type diffModAtRoot struct {
+	Child *diffModAtRootChild `path:"" module:"m1"`
+}
+
+func (*diffModAtRoot) IsYANGGoStruct() {}
+
+type diffModAtRootChild struct {
+	ValueOne   *string `path:"/foo/value-one" module:"m2"`
+	ValueTwo   *string `path:"/foo/value-two" module:"m3"`
+	ValueThree *string `path:"/foo/value-three" module"m1"`
+}
+
+func (*diffModAtRootChild) IsYANGGoStruct() {}
+
 func TestConstructJSON(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -1557,6 +1573,30 @@ func TestConstructJSON(t *testing.T) {
 			InvalidEnum: int64(42),
 		},
 		wantErr: true,
+	}, {
+		name: "different modules at root",
+		in: &diffModAtRoot{
+			Child: &diffModAtRootChild{
+				ValueOne:   String("one"),
+				ValueTwo:   String("two"),
+				ValueThree: String("three"),
+			},
+		},
+		inAppendMod: true,
+		wantIETF: map[string]interface{}{
+			"m1:foo": map[string]interface{}{
+				"m2:value-one": "one",
+				"m3:value-two": "two",
+				"value-three":  "three",
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"value-one":   "one",
+				"value-two":   "two",
+				"value-three": "three",
+			},
+		},
 	}, {
 		name: "simple render",
 		in: &renderExample{
