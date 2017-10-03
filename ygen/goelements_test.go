@@ -578,7 +578,7 @@ func TestYangTypeToGoType(t *testing.T) {
 	}, {
 		name: "simple empty resolution",
 		in:   &yang.YangType{Kind: yang.Yempty, Name: "empty"},
-		want: &mappedType{nativeType: "bool"},
+		want: &mappedType{nativeType: "YANGEmpty"},
 	}, {
 		name: "simple boolean resolution",
 		in:   &yang.YangType{Kind: yang.Ybool, Name: "bool"},

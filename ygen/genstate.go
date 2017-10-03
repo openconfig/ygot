@@ -91,7 +91,10 @@ func newGenState() *genState {
 	return &genState{
 		// Mark the name that is used for the binary type as a reserved name
 		// within the output structs.
-		definedGlobals:               map[string]bool{ygot.BinaryTypeName: true},
+		definedGlobals: map[string]bool{
+			ygot.BinaryTypeName: true,
+			ygot.EmptyTypeName:  true,
+		},
 		uniqueDirectoryNames:         make(map[string]string),
 		uniqueEnumeratedTypedefNames: make(map[string]string),
 		uniqueIdentityNames:          make(map[string]string),

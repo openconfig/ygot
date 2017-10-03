@@ -681,6 +681,9 @@ func TestSliceToScalarArray(t *testing.T) {
 // Binary is the name used for binary encoding in the Go structures.
 type Binary []byte
 
+// YANGEmpty is the name used for a leaf of type empty in the Go structures.
+type YANGEmpty bool
+
 // renderExample is used within TestTogNMINotifications as a GoStruct.
 type renderExample struct {
 	Str           *string                             `path:"str"`
@@ -698,6 +701,7 @@ type renderExample struct {
 	KeylessList   []*renderExampleList                `path:"keyless-list"`
 	InvalidMap    map[string]*invalidGoStruct         `path:"invalid-gostruct-map"`
 	InvalidPtr    *invalidGoStruct                    `path:"invalid-gostruct"`
+	Empty         YANGEmpty                           `path:"empty"`
 }
 
 // IsYANGGoStruct ensures that the renderExample type implements the GoStruct
@@ -1640,6 +1644,17 @@ func TestConstructJSON(t *testing.T) {
 			"str": "hello",
 		},
 		wantSame: true,
+	}, {
+		name: "empty value",
+		in: &renderExample{
+			Empty: true,
+		},
+		wantIETF: map[string]interface{}{
+			"empty": []interface{}{nil},
+		},
+		wantInternal: map[string]interface{}{
+			"empty": true,
+		},
 	}, {
 		name: "multi-keyed list",
 		in: &structWithMultiKey{
