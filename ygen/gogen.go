@@ -293,11 +293,16 @@ import (
 {{- end }}
 )
 
-// Binary is a type that is used for fields that have a YANG type of
+// {{ .BinaryTypeName }} is a type that is used for fields that have a YANG type of
 // binary. It is used such that binary fields can be distinguished from
 // leaf-lists of uint8s (which are mapped to []uint8, equivalent to
 // []byte in reflection).
-type Binary []byte
+type {{ .BinaryTypeName }} []byte
+
+// {{ .EmptyTypeName }} is a type that is used for fields that have a YANG type of
+// empty. It is used such that empty fields can be distinguished from boolean fields
+// in the generated code.
+type {{ .EmptyTypeName }} bool
 
 {{- if .GenerateSchema }}
 
@@ -717,6 +722,8 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (strin
 		GeneratingBinary: cfg.Caller,
 		GenerateSchema:   cfg.GenerateJSONSchema,
 		GoOptions:        cfg.GoOptions,
+		BinaryTypeName:   ygot.BinaryTypeName,
+		EmptyTypeName:    ygot.EmptyTypeName,
 	}
 
 	var buf bytes.Buffer

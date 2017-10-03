@@ -33,6 +33,7 @@ const (
 	// BinaryTypeName is the name of the type that is used for YANG
 	// binary fields in the output structs.
 	BinaryTypeName string = "Binary"
+	EmptyTypeName  string = "YANGEmpty"
 )
 
 // path stores the elements of a path for a particular leaf,
