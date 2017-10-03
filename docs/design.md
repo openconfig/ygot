@@ -173,13 +173,13 @@ YANG Type | Go Type  | Notes
 `int{8,16,32,64}` | `int{8,16,32,64}` |
 `uint{8,16,32,64}` | `uint{8,16,32,64}` |
 `bool` | `bool` |
-`empty` | `bool` |
+`empty` | `bool` (derived) |
 `string` | `string` |
 `union` | `interface{}` | A `union` is represented as an empty interface, with validation intending to be done whilst mapping into the `//ops/openconfig/lib/go` library.
 `enumeration` | `int64` | Each enumeration is generated as a new type based on Go's int64, names are assigned to each value of the enumeration akin to the `proto` library.
 `identityref` | `int64` | The identityref's "base" is mapped using the same process as the an enumeration leaf.
 `decimal64` | `float64` |
-`binary` | `[]byte` |
+`binary` | `[]byte` (derived) |
 `bits` | `interface{}` | TODO(robjs): Add support for `bits`, this is low priority as it is not used in any OpenConfig schema.
 
 ### YANG Lists

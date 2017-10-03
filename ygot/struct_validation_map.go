@@ -28,6 +28,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/openconfig/ygot/util"
 )
 
 const (
@@ -318,4 +320,191 @@ func MergeJSON(a, b map[string]interface{}) (map[string]interface{}, error) {
 	}
 
 	return o, nil
+}
+
+// MergeStructs takes two input ValidatedGoStructs and merges their contents,
+// returning a new ValidatedGoStruct. If the input structs a and b are of
+// different types, an error is returned.
+//
+// In the case that the structs contain a slice, or a map that is already
+// populated in both structs, an error is returned. Merging two lists with
+// identical members will be added in future iterations of this code.
+//
+// TODO(robjs): Fix the unimplemented test cases where two structs of
+// the same type have slices or maps that are already populated.
+// See https://github.com/openconfig/ygot/issues/74.
+func MergeStructs(a, b ValidatedGoStruct) (ValidatedGoStruct, error) {
+	if reflect.TypeOf(a) != reflect.TypeOf(b) {
+		return nil, fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", a, b)
+	}
+
+	n := reflect.New(reflect.TypeOf(a).Elem())
+	if err := copyStruct(n.Elem(), reflect.ValueOf(a).Elem()); err != nil {
+		return nil, fmt.Errorf("error merging a to new struct: %v", err)
+	}
+
+	if err := copyStruct(n.Elem(), reflect.ValueOf(b).Elem()); err != nil {
+		return nil, fmt.Errorf("error merging b to new struct: %v", err)
+	}
+
+	return n.Interface().(ValidatedGoStruct), nil
+
+}
+
+// copyStruct copies the fields of srcVal into the dstVal struct in-place.
+func copyStruct(dstVal, srcVal reflect.Value) error {
+	if srcVal.Type() != dstVal.Type() {
+		return fmt.Errorf("cannot copy %s to %s", srcVal.Type().Name(), dstVal.Type().Name())
+	}
+
+	if !util.IsValueStruct(dstVal) || !util.IsValueStruct(srcVal) {
+		return fmt.Errorf("cannot handle non-struct types, src: %v, dst: %v", srcVal.Type().Kind(), dstVal.Type().Kind())
+	}
+
+	for i := 0; i < srcVal.NumField(); i++ {
+		srcField := srcVal.Field(i)
+		dstField := dstVal.Field(i)
+
+		switch srcField.Kind() {
+		case reflect.Ptr:
+			if err := copyPtrField(dstField, srcField); err != nil {
+				return err
+			}
+		case reflect.Interface:
+			if err := copyInterfaceField(dstField, srcField); err != nil {
+				return err
+			}
+		case reflect.Map:
+			if err := copyMapField(dstField, srcField); err != nil {
+				return err
+			}
+		case reflect.Slice:
+			if err := copySliceField(dstField, srcField); err != nil {
+				return err
+			}
+		default:
+			dstField.Set(srcField)
+		}
+	}
+	return nil
+}
+
+// copyPtrField copies srcField to dstField. srcField and dstField must be
+// reflect.Value structs which represent pointers.
+func copyPtrField(dstField, srcField reflect.Value) error {
+	if srcField.IsNil() || !srcField.IsValid() {
+		return nil
+	}
+
+	// Check for struct ptr, or ptr to avoid panic.
+	if util.IsValueStructPtr(srcField) {
+		var d reflect.Value
+		d = reflect.New(srcField.Type().Elem())
+		if err := copyStruct(d.Elem(), srcField.Elem()); err != nil {
+			return err
+		}
+		dstField.Set(d)
+		return nil
+	}
+
+	if util.IsValuePtr(srcField) {
+		p := reflect.New(srcField.Type().Elem())
+		p.Elem().Set(srcField.Elem())
+		dstField.Set(p)
+		return nil
+	}
+
+	return fmt.Errorf("received non-ptr type: %v", srcField.Kind())
+}
+
+// copyInterfaceField copies srcField into dstField. Both srcField and dstField
+// are reflect.Value structs which contain an interface value.
+func copyInterfaceField(dstField, srcField reflect.Value) error {
+	if srcField.IsNil() || !srcField.IsValid() {
+		return nil
+	}
+
+	if !util.IsValueInterface(srcField) || !util.IsValueStructPtr(srcField.Elem()) {
+		return fmt.Errorf("invalid interface type received: %T", srcField.Interface())
+	}
+
+	s := srcField.Elem().Elem() // Dereference to a struct.
+	var d reflect.Value
+	d = reflect.New(s.Type())
+	if err := copyStruct(d.Elem(), s); err != nil {
+		return err
+	}
+	dstField.Set(d)
+	return nil
+}
+
+// copyMapField copies srcField into dstField. Both srcField and dstField are
+// reflect.Value structs which contain a map value. If dstField is populated
+// then an error is returned.
+// TODO(robjs): Implement merging of maps when they are populated in the dstField
+// supplied. See https://github.com/openconfig/ygot/issues/74.
+func copyMapField(dstField, srcField reflect.Value) error {
+	if !util.IsValueMap(srcField) {
+		return fmt.Errorf("received a non-map type in copy map field: %v", srcField.Kind())
+	}
+
+	if srcField.Len() == 0 {
+		return nil
+	}
+
+	if dstField.Len() != 0 {
+		return fmt.Errorf("unimplemented: cannot map slice where destination was set: %v == %v", srcField.Type().Name(), dstField.Interface())
+	}
+
+	keys := srcField.MapKeys()
+	if k := srcField.MapIndex(keys[0]).Kind(); k != reflect.Ptr {
+		return fmt.Errorf("invalid map, got member type %s", k)
+	}
+
+	// TODO(robjs): When we move to go1.9+ only support in ygot, we can use the
+	// following to make a map of a particular size.
+	// nm := reflect.MakeMapWithSize(reflect.MapOf((keys[0]).Type(), srcField.MapIndex(keys[0]).Type()), srcField.Len())
+	nm := reflect.MakeMap(reflect.MapOf((keys[0]).Type(), srcField.MapIndex(keys[0]).Type()))
+	for _, k := range keys {
+		v := srcField.MapIndex(k)
+		d := reflect.New(v.Elem().Type())
+		if err := copyStruct(d.Elem(), v.Elem()); err != nil {
+			return err
+		}
+		nm.SetMapIndex(k, d)
+	}
+	dstField.Set(nm)
+	return nil
+}
+
+// copySliceField copies srcField into dstField. Both srcField and dstField
+// must have a kind of reflect.Slice kind and contain pointers to structs. If
+// the slice in dstField is populated an error is returned.
+// TODO(robjs): Implement merging of slice fields when they are populated in the
+// dstField, see https://github.com/openconfig/ygot/issues/74.
+func copySliceField(dstField, srcField reflect.Value) error {
+	if dstField.Len() != 0 {
+		return fmt.Errorf("unimplemented: cannot map slice where destination was set: %v == %v", srcField.Type().Name(), dstField.Interface())
+	}
+
+	if !util.IsTypeStructPtr(srcField.Type().Elem()) {
+		dstField.Set(srcField)
+		return nil
+	}
+
+	if srcField.Len() == 0 {
+		return nil
+	}
+
+	ns := reflect.MakeSlice(reflect.SliceOf(srcField.Type().Elem()), 0, 0)
+	for i := 0; i < srcField.Len(); i++ {
+		v := srcField.Index(i)
+		d := reflect.New(v.Type().Elem())
+		if err := copyStruct(d.Elem(), v.Elem()); err != nil {
+			return err
+		}
+		ns = reflect.Append(ns, d)
+	}
+	dstField.Set(ns)
+	return nil
 }

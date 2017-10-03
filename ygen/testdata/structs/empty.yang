@@ -1,0 +1,19 @@
+module empty {
+  prefix "e";
+  namespace "urn:e";
+
+  grouping e-cfg {
+    leaf e { type empty; }
+  }
+
+  container test {
+    container config {
+      uses e-cfg;
+    }
+
+    container state {
+      config false;
+      uses e-cfg;
+    }
+  }
+}
