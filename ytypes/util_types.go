@@ -25,9 +25,10 @@ import (
 	log "github.com/golang/glog"
 )
 
-// enumStringToIntValue returns the integer value that enumerated string value
+// enumStringToValue returns the enum type value that enumerated string value
 // of type fieldName maps to in the parent, which must be a struct ptr.
-func enumStringToIntValue(parent interface{}, fieldName, value string) (int64, error) {
+func enumStringToValue(parent interface{}, fieldName, value string) (interface{}, error) {
+	util.DbgPrint("enumStringToValue with parent type %T, fieldName %s, value %s", parent, fieldName, value)
 	v := reflect.ValueOf(parent)
 	if !util.IsValueStructPtr(v) {
 		return 0, fmt.Errorf("enumStringToIntValue: %T is not a struct ptr", parent)
@@ -36,40 +37,54 @@ func enumStringToIntValue(parent interface{}, fieldName, value string) (int64, e
 	if !field.IsValid() {
 		return 0, fmt.Errorf("%s is not a valid enum field name in %T", fieldName, parent)
 	}
-	ft := field.Type()
-	// leaf-list case
+
+	ev, err := castToEnumValue(field.Type(), value)
+	if err != nil {
+		return nil, err
+	}
+	if ev == nil {
+		return 0, fmt.Errorf("%s is not a valid value for enum field %s, type %s", value, fieldName, field.Type())
+	}
+	return ev, nil
+}
+
+// castToEnumValue returns value as the given type ft, if value is one of
+// the allowed values of ft, or nil, nil otherwise.
+func castToEnumValue(ft reflect.Type, value string) (interface{}, error) {
 	if ft.Kind() == reflect.Slice {
+		// leaf-list case
 		ft = ft.Elem()
 	}
 
-	mapMethod := reflect.New(ft).Elem().MethodByName("ΛMap")
+	util.DbgPrint("checking for matching enum value for type %s", ft)
+	mapMethod := reflect.New(ft).MethodByName("ΛMap")
 	if !mapMethod.IsValid() {
-		return 0, fmt.Errorf("%s in %T does not have a ΛMap function", fieldName, parent)
+		return 0, fmt.Errorf("%s does not have a ΛMap function", ft)
 	}
 
 	ec := mapMethod.Call(nil)
 	if len(ec) == 0 {
-		return 0, fmt.Errorf("%s in %T ΛMap function returns empty value", fieldName, parent)
+		return 0, fmt.Errorf("%s ΛMap function returns empty value", ft)
 	}
 	ei := ec[0].Interface()
 	enumMap, ok := ei.(map[string]map[int64]ygot.EnumDefinition)
 	if !ok {
-		return 0, fmt.Errorf("%s in %T ΛMap function returned wrong type %T, want map[string]map[int64]ygot.EnumDefinition",
-			fieldName, parent, ei)
+		return 0, fmt.Errorf("%s ΛMap function returned wrong type %T, want map[string]map[int64]ygot.EnumDefinition", ft, ei)
 	}
 
 	m, ok := enumMap[ft.Name()]
 	if !ok {
-		return 0, fmt.Errorf("%s is not a valid enum field name, has type %s", fieldName, ft.Name())
+		return 0, fmt.Errorf("%s is not a valid enum field name", ft.Name())
 	}
 
 	for k, v := range m {
 		if stripModulePrefix(v.Name) == stripModulePrefix(value) {
-			return k, nil
+			// Convert to destination enum type.
+			return reflect.ValueOf(k).Convert(ft).Interface(), nil
 		}
 	}
 
-	return 0, fmt.Errorf("%s is not a valid value for enum field %s", value, fieldName)
+	return nil, nil
 }
 
 // yangBuiltinTypeToGoType returns a pointer to the Go built-in value with
@@ -102,7 +117,7 @@ func yangBuiltinTypeToGoType(t yang.TypeKind) interface{} {
 	case yang.Ybinary:
 		return []byte(nil)
 	case yang.Yenum, yang.Yidentityref:
-		return int64(0)		
+		return int64(0)
 	default:
 		// TODO(mostrowski): handle bitset.
 		log.Errorf("unexpected type %v in yangBuiltinTypeToGoPtrType", t)

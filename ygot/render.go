@@ -50,6 +50,9 @@ type gnmiPath struct {
 	stringSlicePath []string
 	// pathElemPath stores a path expressed as a series of PathElem messages.
 	pathElemPath []*gnmipb.PathElem
+	// isAbsolute determines whether the stored path is absolute (when set), or relative
+	// when unset.
+	isAbsolute bool
 }
 
 // newStringSliceGNMIPath returns a new gnmiPath with a string slice path.
@@ -837,11 +840,12 @@ func constructJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[str
 			switch p.Len() {
 			case 0:
 				if ok {
-					// Handle the case that the path is empty, used by the default
-					// struct.
 					for mk, mv := range v {
 						k := mk
 						if appendModName {
+							// Append the module name for the 0th element if
+							// specified to do so. This is the module name of
+							// the root.
 							k = fmt.Sprintf("%s:%s", appmod, mk)
 						}
 						jsonout[k] = mv
@@ -861,17 +865,29 @@ func constructJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[str
 				}
 				jsonout[pelem] = value
 			default:
+				var nilParent bool
 				parent := jsonout
 				for i := 0; i < p.Len()-1; i++ {
-					// For the 0th element, append the module name if it differs to the
-					// parent. All schema compression that is within a GoStruct is intra-module.
 					k, err := p.StringElemAt(i)
 					if err != nil {
 						errs.Add(err)
 						continue
 					}
-					if i == 0 && appendModName {
+
+					switch {
+					case (i == 0 && appendModName && !p.isAbsolute):
+						// If the path is not absolute, then path compression has
+						// occurred - and therefore the elements must be in the
+						// same module. In this case, we append the module name
+						// to the first element in the list.
+						fallthrough
+					case i == 0 && appendModName && parentMod == "":
+						// For the first element, regardless of whether the path
+						// was absolute or not, we always must append the module
+						// name if there was no parent module, since this is an
+						// entity at the root.
 						k = fmt.Sprintf("%s:%s", appmod, k)
+						nilParent = true
 					}
 					if _, ok := parent[k]; !ok {
 						parent[k] = map[string]interface{}{}
@@ -882,6 +898,18 @@ func constructJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[str
 				if err != nil {
 					errs.Add(err)
 					continue
+				}
+				if p.isAbsolute && appendModName && !nilParent {
+					// If the path was not absolute, then we need to prepend the
+					// module name since the last entity in the path was in a
+					// different module to its parent. We do not need to check the
+					// values of the module names, since in the case that the
+					// module is the same appendModName is false.
+					//
+					// In the case that the parent was nil, then we must not
+					// append the name here, since we must be within the same
+					// module.
+					k = fmt.Sprintf("%s:%s", appmod, k)
 				}
 				parent[k] = value
 
