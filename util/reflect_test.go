@@ -720,10 +720,15 @@ func TestStructValueHasNFields(t *testing.T) {
 		inStruct: reflect.ValueOf(two{}),
 		inNumber: 2,
 		want:     true,
+	}, {
+		name:     "non-struct type",
+		inStruct: reflect.ValueOf("check"),
+		inNumber: 42,
+		want:     false,
 	}}
 
 	for _, tt := range tests {
-		if got := StructValueHasNFields(tt.inStruct, tt.inNumber); got != tt.want {
+		if got := IsStructValueWithNFields(tt.inStruct, tt.inNumber); got != tt.want {
 			t.Errorf("%s: StructValueHasNFields(%#v, %d): did not get expected return, got: %v, want: %v", tt.name, tt.inStruct, tt.inNumber, got, tt.want)
 		}
 	}
