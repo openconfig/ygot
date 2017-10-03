@@ -513,14 +513,14 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
-				&gnmipb.PathElem{Name: "bar"},
+				{Name: "foo"},
+				{Name: "bar"},
 			},
 		},
 		wantPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
-				&gnmipb.PathElem{Name: "bar", Key: map[string]string{"val": "foo"}},
+				{Name: "foo"},
+				{Name: "bar", Key: map[string]string{"val": "foo"}},
 			},
 		},
 	}, {
@@ -534,12 +534,12 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
+				{Name: "foo"},
 			},
 		},
 		wantPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{
+				{
 					Name: "foo",
 					Key: map[string]string{
 						"i": "-42",
@@ -586,7 +586,7 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		inValue: reflect.ValueOf(&pathElemMultiKey{}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
+				{Name: "foo"},
 			},
 		},
 		wantErr: true,
@@ -604,7 +604,7 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		inValue: reflect.ValueOf(nil),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
+				{Name: "foo"},
 			},
 		},
 		wantErr: true,
@@ -1243,7 +1243,7 @@ func TestTogNMINotifications(t *testing.T) {
 		inTimestamp: 42,
 		inStruct: &pathElemExample{
 			MKey: map[pathElemExampleMultiKeyChildKey]*pathElemExampleMultiKeyChild{
-				pathElemExampleMultiKeyChildKey{Foo: "foo", Bar: 16}: {Foo: String("foo"), Bar: Uint16(16)},
+				{Foo: "foo", Bar: 16}: {Foo: String("foo"), Bar: Uint16(16)},
 			},
 		},
 		inConfig: GNMINotificationsConfig{UsePathElem: true},
@@ -1534,7 +1534,7 @@ func (*diffModAtRoot) IsYANGGoStruct() {}
 type diffModAtRootChild struct {
 	ValueOne   *string `path:"/foo/value-one" module:"m2"`
 	ValueTwo   *string `path:"/foo/value-two" module:"m3"`
-	ValueThree *string `path:"/foo/value-three" module"m1"`
+	ValueThree *string `path:"/foo/value-three" module:"m1"`
 }
 
 func (*diffModAtRootChild) IsYANGGoStruct() {}

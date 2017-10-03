@@ -19,8 +19,8 @@ import (
 	"fmt"
 
 	oc "github.com/openconfig/ygot/demo/getting_started/pkg/ocdemo"
-	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygot"
 )
 
 // The following generation rule uses the generator binary to create the

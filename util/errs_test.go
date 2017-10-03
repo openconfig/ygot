@@ -57,7 +57,7 @@ func TestAppendErr(t *testing.T) {
 	if got, want := errs.String(), "err1"; got != want {
 		t.Errorf("got: %s, want: %s", got, want)
 	}
-	
+
 	errs = AppendErr(errs, nil)
 	errs = AppendErr(errs, fmt.Errorf("err2"))
 	if got, want := errs.String(), "err1, err2"; got != want {
@@ -89,7 +89,7 @@ func TestAppendErrsInFunction(t *testing.T) {
 	if got, want := myAppendErrFunc().String(), wantStr; got != want {
 		t.Errorf("got: %s, want: %s", got, want)
 	}
-	
+
 	myAppendErrsFunc := func() (errs Errors) {
 		errs = AppendErrs(errs, testErrs)
 		return
@@ -97,7 +97,7 @@ func TestAppendErrsInFunction(t *testing.T) {
 	if got, want := myAppendErrsFunc().String(), wantStr; got != want {
 		t.Errorf("got: %s, want: %s", got, want)
 	}
-	
+
 	myErrorSliceFunc := func() (errs []error) {
 		errs = AppendErrs(errs, testErrs)
 		return
