@@ -83,7 +83,13 @@ func IsValueSlice(v reflect.Value) bool {
 
 // IsValueScalar reports whether v is a scalar type.
 func IsValueScalar(v reflect.Value) bool {
-	return !IsValueStruct(v) && !IsValueStructPtr(v) && !IsValueMap(v) && !IsValueSlice(v)
+	return !IsNilOrInvalidValue(v) && !IsValueStruct(v) && !IsValueStructPtr(v) && !IsValueMap(v) && !IsValueSlice(v)
+}
+
+// IsInterfaceToStructPtr reports whether v is an interface that contains a pointer
+// to a struct.
+func IsValueInterfaceToStructPtr(v reflect.Value) bool {
+	return IsValueInterface(v) && IsValueStructPtr(v.Elem())
 }
 
 // PtrToValue returns the dereferenced reflect.Value of value if it is a ptr, or
@@ -93,6 +99,12 @@ func PtrToValue(value reflect.Value) reflect.Value {
 		return value.Elem()
 	}
 	return value
+}
+
+// IsStructValueWithNFields returns true if the reflect.Value representing a struct
+// v has n fields.
+func IsStructValueWithNFields(v reflect.Value, n int) bool {
+	return IsValueStruct(v) && v.NumField() == n
 }
 
 // GetFieldType returns the type of the field with fieldName in the containing
