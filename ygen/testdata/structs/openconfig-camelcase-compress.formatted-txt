@@ -25,6 +25,11 @@ import (
 // []byte in reflection).
 type Binary []byte
 
+// YANGEmpty is a type that is used for fields that have a YANG type of
+// empty. It is used such that empty fields can be distinguished from boolean fields
+// in the generated code.
+type YANGEmpty bool
+
 // BGP represents the /openconfig-camelcase/bgp YANG schema element.
 type BGP struct {
 	Neighbor	map[string]*BGP_Neighbor	`path:"/bgp/neighbors/neighbor" module:"openconfig-camelcase"`
