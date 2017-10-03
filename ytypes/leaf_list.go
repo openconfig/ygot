@@ -73,6 +73,10 @@ func validateLeafListSchema(schema *yang.Entry) error {
 		return fmt.Errorf("schema for %s with type %v is not leaf list type", schema.Name, schema.Kind)
 	}
 
+	if schema.Type.Kind == yang.Yempty {
+		return fmt.Errorf("schema for %s contains leaf-list of empty type, invalid YANG", schema.Name)
+	}
+
 	return nil
 }
 

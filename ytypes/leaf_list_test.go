@@ -52,6 +52,16 @@ func TestValidateLeafListSchema(t *testing.T) {
 			schema:  &yang.Entry{Name: "nil-type-schema", Type: nil},
 			wantErr: true,
 		},
+		{
+			desc: "invalid leaf-list schema - contains empty",
+			schema: &yang.Entry{
+				Name:     "invalid-leaflist",
+				Kind:     yang.LeafEntry,
+				Type:     &yang.YangType{Kind: yang.Yempty},
+				ListAttr: &yang.ListAttr{},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, test := range tests {
