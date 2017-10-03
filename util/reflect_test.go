@@ -689,3 +689,42 @@ func TestReflectValueHelpers(t *testing.T) {
 		}
 	}
 }
+
+func TestStructValueHasNFields(t *testing.T) {
+	type one struct {
+		One string
+	}
+
+	type two struct {
+		One string
+		Two string
+	}
+
+	tests := []struct {
+		name     string
+		inStruct reflect.Value
+		inNumber int
+		want     bool
+	}{{
+		name:     "one",
+		inStruct: reflect.ValueOf(one{}),
+		inNumber: 1,
+		want:     true,
+	}, {
+		name:     "one != two",
+		inStruct: reflect.ValueOf(one{}),
+		inNumber: 2,
+		want:     false,
+	}, {
+		name:     "two",
+		inStruct: reflect.ValueOf(two{}),
+		inNumber: 2,
+		want:     true,
+	}}
+
+	for _, tt := range tests {
+		if got := StructValueHasNFields(tt.inStruct, tt.inNumber); got != tt.want {
+			t.Errorf("%s: StructValueHasNFields(%#v, %d): did not get expected return, got: %v, want: %v", tt.name, tt.inStruct, tt.inNumber, got, tt.want)
+		}
+	}
+}

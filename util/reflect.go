@@ -96,6 +96,12 @@ func PtrToValue(value reflect.Value) reflect.Value {
 	return value
 }
 
+// StructValueHasNFields returns true if the reflect.Value representing a struct
+// v has n fields.
+func StructValueHasNFields(v reflect.Value, n int) bool {
+	return v.NumField() == n
+}
+
 // GetFieldType returns the type of the field with fieldName in the containing
 // parent, which must be a ptr to a struct.
 // It returns an error if the parent is the wrong type or has no field called
