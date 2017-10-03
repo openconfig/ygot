@@ -28,6 +28,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/openconfig/ygot/util"
 )
 
 const (
@@ -323,6 +325,14 @@ func MergeJSON(a, b map[string]interface{}) (map[string]interface{}, error) {
 // MergeStructs takes two input ValidatedGoStructs and merges their contents,
 // returning a new ValidatedGoStruct. If the input structs a and b are of
 // different types, an error is returned.
+//
+// In the case that the structs contain a slice, or a map that is already
+// populated in both structs, an error is returned. Merging two lists with
+// identical members will be added in future iterations of this code.
+//
+// TODO(robjs): Fix the unimplemented test cases where two structs of
+// the same type have slices or maps that are already populated.
+// See https://github.com/openconfig/ygot/issues/74.
 func MergeStructs(a, b ValidatedGoStruct) (ValidatedGoStruct, error) {
 	if reflect.TypeOf(a) != reflect.TypeOf(b) {
 		return nil, fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", a, b)
@@ -345,6 +355,10 @@ func MergeStructs(a, b ValidatedGoStruct) (ValidatedGoStruct, error) {
 func copyStruct(dstVal, srcVal reflect.Value) error {
 	if srcVal.Type() != dstVal.Type() {
 		return fmt.Errorf("cannot copy %s to %s", srcVal.Type().Name(), dstVal.Type().Name())
+	}
+
+	if !util.IsValueStruct(dstVal) || !util.IsValueStruct(srcVal) {
+		return fmt.Errorf("cannot handle non-struct types, src: %v, dst: %v", srcVal.Type().Kind(), dstVal.Type().Kind())
 	}
 
 	for i := 0; i < srcVal.NumField(); i++ {
@@ -425,11 +439,19 @@ func copyInterfaceField(dstField, srcField reflect.Value) error {
 }
 
 // copyMapField copies srcField into dstField. Both srcField and dstField are
-// reflect.Value structs which contain a map value.
+// reflect.Value structs which contain a map value. If dstField is populated
+// then an error is returned.
+// TODO(robjs): Implement merging of maps when they are populated in the dstField
+// supplied. See https://github.com/openconfig/ygot/issues/74.
 func copyMapField(dstField, srcField reflect.Value) error {
 	if srcField.Len() == 0 {
 		return nil
 	}
+
+	if dstField.Len() != 0 {
+		return fmt.Errorf("unimplemented: cannot map slice where destination was set: %v == %v", srcField.Type().Name(), dstField.Interface())
+	}
+
 	keys := srcField.MapKeys()
 	if k := srcField.MapIndex(keys[0]).Kind(); k != reflect.Ptr {
 		return fmt.Errorf("invalid map, got member type %s", k)
@@ -452,8 +474,15 @@ func copyMapField(dstField, srcField reflect.Value) error {
 }
 
 // copySliceField copies srcField into dstField. Both srcField and dstField are
-// reflect.Value structs which represent slices.
+// reflect.Value structs which represent slices. If the slice in dstField is populated
+// an error is returned.
+// TODO(robjs): Implement merging of slice fields when they are populated in the
+// dstField, see https://github.com/openconfig/ygot/issues/74.
 func copySliceField(dstField, srcField reflect.Value) error {
+	if dstField.Len() != 0 {
+		return fmt.Errorf("unimplemented: cannot map slice where destination was set: %v == %v", srcField.Type().Name(), dstField.Interface())
+	}
+
 	switch {
 	case srcField.Type().Elem().Kind() != reflect.Ptr:
 		fallthrough
@@ -465,6 +494,7 @@ func copySliceField(dstField, srcField reflect.Value) error {
 	if srcField.Len() == 0 {
 		return nil
 	}
+
 	ns := reflect.MakeSlice(reflect.SliceOf(srcField.Type().Elem()), 0, 0)
 	for i := 0; i < srcField.Len(); i++ {
 		v := srcField.Index(i)

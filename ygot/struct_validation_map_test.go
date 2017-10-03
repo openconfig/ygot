@@ -919,6 +919,29 @@ type errorCopyTest struct {
 
 func (*errorCopyTest) IsYANGGoStruct() {}
 
+func TestCopyStructError(t *testing.T) {
+	// Checks specifically for bad reflect.Values being provided.
+	tests := []struct {
+		name string
+		inA  reflect.Value
+		inB  reflect.Value
+	}{{
+		name: "non-struct pointer",
+		inA:  reflect.ValueOf(String("little-creatures-pale-ale")),
+		inB:  reflect.ValueOf(String("4-pines-brewing-kolsch")),
+	}, {
+		name: "non-pointer",
+		inA:  reflect.ValueOf("4-pines-indian-summer-ale"),
+		inB:  reflect.ValueOf("james-squire-150-lashes"),
+	}}
+
+	for _, tt := range tests {
+		if err := copyStruct(tt.inA, tt.inB); err == nil {
+			t.Errorf("%s: copyStruct(%v, %v): did not get nil error, got: %v, want: nil", tt.name, tt.inA, tt.inB, err)
+		}
+	}
+}
+
 func TestCopyStruct(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -1004,6 +1027,18 @@ func TestCopyStruct(t *testing.T) {
 			StringSlice: []string{"sierra-nevada-pale-ale", "stone-ipa"},
 		},
 	}, {
+		name: "unimplemented string slice with existing members",
+		inSrc: &copyTest{
+			StringSlice: []string{"stone-and-wood-pacific", "pirate-life-brewing-iipa"},
+		},
+		inDst: &copyTest{
+			StringSlice: []string{"feral-brewing-co-hop-hog", "balter-brewing-xpa"},
+		},
+		wantDst: &copyTest{
+			StringSlice: []string{"stone-and-wood-pacific", "pirate-life-brewing-iipa", "feral-brewing-co-hop-hog", "balter-brewing-xpa"},
+		},
+		wantErr: true, // unimplemented.
+	}, {
 		name: "string map",
 		inSrc: &copyTest{
 			StringMap: map[string]*copyTest{
@@ -1018,6 +1053,19 @@ func TestCopyStruct(t *testing.T) {
 				"upslope":       &copyTest{StringSlice: []string{"amber-ale", "brown"}},
 			},
 		},
+	}, {
+		name: "unimplemented: string slice with existing members",
+		inSrc: &copyTest{
+			StringMap: map[string]*copyTest{
+				"bentspoke-brewing": &copyTest{StringField: String("crankshaft")},
+			},
+		},
+		inDst: &copyTest{
+			StringMap: map[string]*copyTest{
+				"modus-operandi-brewing-co": &copyTest{StringField: String("former-tenant")},
+			},
+		},
+		wantErr: true, // unimplemented.
 	}, {
 		name: "struct map",
 		inSrc: &copyTest{
@@ -1050,6 +1098,26 @@ func TestCopyStruct(t *testing.T) {
 				StringField: String("lagunitas-brown-shugga"),
 			}},
 		},
+	}, {
+		name: "unimplemented: struct slice with overlapping contents",
+		inSrc: &copyTest{
+			StructSlice: []*copyTest{{
+				StringField: String("pirate-life-brewing-ipa"),
+			}},
+		},
+		inDst: &copyTest{
+			StructSlice: []*copyTest{{
+				StringField: String("gage-roads-little-dove"),
+			}},
+		},
+		wantDst: &copyTest{
+			StructSlice: []*copyTest{{
+				StringField: String("pirate-life-brewing-ipa"),
+			}, {
+				StringField: String("gage-roads-little-dove"),
+			}},
+		},
+		wantErr: true, // unimplemented.
 	}, {
 		name:    "error, integer in interface",
 		inSrc:   &errorCopyTest{I: 42},
@@ -1112,7 +1180,7 @@ func TestCopyStruct(t *testing.T) {
 			continue
 		}
 
-		if diff := pretty.Compare(dst, wantDst); diff != "" {
+		if diff := pretty.Compare(dst.Interface(), wantDst.Interface()); diff != "" {
 			t.Errorf("%s: copyStruct(%v, %v): did not get expected copied struct, diff(-got,+want):\n%s", tt.name, tt.inSrc, tt.inDst, diff)
 		}
 	}
