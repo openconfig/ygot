@@ -1039,27 +1039,27 @@ func TestCopyStruct(t *testing.T) {
 		name: "string map",
 		inSrc: &copyTest{
 			StringMap: map[string]*copyTest{
-				"ballast-point": &copyTest{StringField: String("sculpin")},
-				"upslope":       &copyTest{StringSlice: []string{"amber-ale", "brown"}},
+				"ballast-point": {StringField: String("sculpin")},
+				"upslope":       {StringSlice: []string{"amber-ale", "brown"}},
 			},
 		},
 		inDst: &copyTest{},
 		wantDst: &copyTest{
 			StringMap: map[string]*copyTest{
-				"ballast-point": &copyTest{StringField: String("sculpin")},
-				"upslope":       &copyTest{StringSlice: []string{"amber-ale", "brown"}},
+				"ballast-point": {StringField: String("sculpin")},
+				"upslope":       {StringSlice: []string{"amber-ale", "brown"}},
 			},
 		},
 	}, {
 		name: "unimplemented: string map with existing members",
 		inSrc: &copyTest{
 			StringMap: map[string]*copyTest{
-				"bentspoke-brewing": &copyTest{StringField: String("crankshaft")},
+				"bentspoke-brewing": {StringField: String("crankshaft")},
 			},
 		},
 		inDst: &copyTest{
 			StringMap: map[string]*copyTest{
-				"modus-operandi-brewing-co": &copyTest{StringField: String("former-tenant")},
+				"modus-operandi-brewing-co": {StringField: String("former-tenant")},
 			},
 		},
 		wantErr: true, // Input combination not supported, destination slice must be nil.
@@ -1067,15 +1067,15 @@ func TestCopyStruct(t *testing.T) {
 		name: "struct map",
 		inSrc: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
-				copyMapKey{"saint-arnold"}: &copyTest{StringField: String("fancy-lawnmower")},
-				copyMapKey{"green-flash"}:  &copyTest{StringField: String("hop-head-red")},
+				{"saint-arnold"}: {StringField: String("fancy-lawnmower")},
+				{"green-flash"}:  {StringField: String("hop-head-red")},
 			},
 		},
 		inDst: &copyTest{},
 		wantDst: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
-				copyMapKey{"saint-arnold"}: &copyTest{StringField: String("fancy-lawnmower")},
-				copyMapKey{"green-flash"}:  &copyTest{StringField: String("hop-head-red")},
+				{"saint-arnold"}: {StringField: String("fancy-lawnmower")},
+				{"green-flash"}:  {StringField: String("hop-head-red")},
 			},
 		},
 	}, {
