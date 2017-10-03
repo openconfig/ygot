@@ -9,9 +9,11 @@ install:
         - go get -u github.com/golang/protobuf/protoc-gen-go
         - make install
 script:
+        - go tool vet ./util
         - go tool vet -composites=false ./ygot
         - go tool vet ./ygen
         - go tool vet ./ytypes
+        - diff -u <(echo -n) <(gofmt -d -s ./util)
         - diff -u <(echo -n) <(gofmt -d -s ./ygot)
         - diff -u <(echo -n) <(gofmt -d -s ./ygen)
         - diff -u <(echo -n) <(gofmt -d -s ./ytypes)

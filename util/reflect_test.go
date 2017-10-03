@@ -86,6 +86,163 @@ func toStringPtr(s string) *string { return &s }
 func toInt8Ptr(i int8) *int8       { return &i }
 func toInt32Ptr(i int32) *int32    { return &i }
 
+func TestIsValueNil(t *testing.T) {
+	if !IsValueNil(nil) {
+		t.Error("got IsValueNil(nil) false, want true")
+	}
+	if !IsValueNil((*int)(nil)) {
+		t.Error("got IsValueNil(ptr) false, want true")
+	}
+	if !IsValueNil((map[int]int)(nil)) {
+		t.Error("got IsValueNil(map) false, want true")
+	}
+	if !IsValueNil(([]int)(nil)) {
+		t.Error("got IsValueNil(slice) false, want true")
+	}
+	if !IsValueNil((interface{})(nil)) {
+		t.Error("got IsValueNil(interface) false, want true")
+	}
+
+	if IsValueNil(toInt8Ptr(42)) {
+		t.Error("got IsValueNil(ptr) true, want false")
+	}
+	if IsValueNil(map[int]int{42: 42}) {
+		t.Error("got IsValueNil(map) true, want false")
+	}
+	if IsValueNil([]int{1, 2, 3}) {
+		t.Error("got IsValueNil(slice) true, want false")
+	}
+	if IsValueNil((interface{})(42)) {
+		t.Error("got IsValueNil(interface) true, want false")
+	}
+}
+
+// TODO(mostrowski): check interface types.
+
+func TestIsValueFuncs(t *testing.T) {
+	testInt := int(42)
+	testStruct := struct{}{}
+	testSlice := []bool{}
+	testMap := map[bool]bool{}
+	var testNilSlice []bool
+	var testNilMap map[bool]bool
+
+	allValues := []interface{}{nil, testInt, &testInt, testStruct, &testStruct, testNilSlice, testSlice, &testSlice, testNilMap, testMap, &testMap}
+
+	tests := []struct {
+		desc     string
+		function func(v reflect.Value) bool
+		okValues []interface{}
+	}{
+		{
+			desc:     "IsValuePtr",
+			function: IsValuePtr,
+			okValues: []interface{}{&testInt, &testStruct, &testSlice, &testMap},
+		},
+		{
+			desc:     "IsValueStruct",
+			function: IsValueStruct,
+			okValues: []interface{}{testStruct},
+		},
+		{
+			desc:     "IsValueStructPtr",
+			function: IsValueStructPtr,
+			okValues: []interface{}{&testStruct},
+		},
+		{
+			desc:     "IsValueMap",
+			function: IsValueMap,
+			okValues: []interface{}{testNilMap, testMap},
+		},
+		{
+			desc:     "IsValueSlice",
+			function: IsValueSlice,
+			okValues: []interface{}{testNilSlice, testSlice},
+		},
+		{
+			desc:     "IsValueScalar",
+			function: IsValueScalar,
+			okValues: []interface{}{testInt, &testInt},
+		},
+	}
+
+	for _, tt := range tests {
+		for _, v := range allValues {
+			/*fmt.Printf("check %s with %s ", tt.desc, reflect.TypeOf(v))
+			if isInListOfInterface(tt.okValues, v) {
+				fmt.Printf("(want OK)")
+			}
+			fmt.Println("")*/
+			if got, want := tt.function(reflect.ValueOf(v)), isInListOfInterface(tt.okValues, v); got != want {
+				t.Errorf("%s with %s: got: %t, want: %t", tt.desc, reflect.TypeOf(v), got, want)
+			}
+		}
+	}
+
+}
+
+func TestIsTypeFuncs(t *testing.T) {
+	testInt := int(42)
+	testStruct := struct{}{}
+	testSlice := []bool{}
+	testSliceOfInterface := []interface{}{}
+	testMap := map[bool]bool{}
+	var testNilSlice []bool
+	var testNilMap map[bool]bool
+
+	allTypes := []interface{}{nil, testInt, &testInt, testStruct, &testStruct, testNilSlice, testSlice, &testSlice, testSliceOfInterface, testNilMap, testMap, &testMap}
+
+	tests := []struct {
+		desc     string
+		function func(v reflect.Type) bool
+		okTypes  []interface{}
+	}{
+		{
+			desc:     "IsTypeStructPtr",
+			function: IsTypeStructPtr,
+			okTypes:  []interface{}{&testStruct},
+		},
+		{
+			desc:     "IsTypeSlicePtr",
+			function: IsTypeSlicePtr,
+			okTypes:  []interface{}{&testSlice},
+		},
+		{
+			desc:     "IsTypeMap",
+			function: IsTypeMap,
+			okTypes:  []interface{}{testNilMap, testMap},
+		},
+		{
+			desc:     "IsTypeSliceOfInterface",
+			function: IsTypeSliceOfInterface,
+			okTypes:  []interface{}{testSliceOfInterface},
+		},
+	}
+
+	for _, tt := range tests {
+		for _, v := range allTypes {
+			/*fmt.Printf("check %s with %s ", tt.desc, reflect.TypeOf(v))
+			if isInListOfInterface(tt.okTypes, v) {
+				fmt.Printf("(want OK)")
+			}
+			fmt.Println("")	*/
+			if got, want := tt.function(reflect.TypeOf(v)), isInListOfInterface(tt.okTypes, v); got != want {
+				t.Errorf("%s with %s: got: %t, want: %t", tt.desc, reflect.TypeOf(v), got, want)
+			}
+		}
+	}
+
+}
+
+func isInListOfInterface(lv []interface{}, v interface{}) bool {
+	for _, vv := range lv {
+		if reflect.DeepEqual(vv, v) {
+			return true
+		}
+	}
+	return false
+}
+
 func TestUpdateField(t *testing.T) {
 	type BasicStruct struct {
 		IntField       int
@@ -351,7 +508,7 @@ func TestInsertIntoMapStructField(t *testing.T) {
 			fieldName:    "StructToIntMapField",
 			key:          KeyStruct{IntField: 42},
 			fieldValue:   42,
-			wantVal:      &BasicStruct{StructToIntMapField: map[KeyStruct]int{KeyStruct{IntField: 42}: 42}},
+			wantVal:      &BasicStruct{StructToIntMapField: map[KeyStruct]int{{IntField: 42}: 42}},
 		},
 		{
 			desc:         "missing field",
