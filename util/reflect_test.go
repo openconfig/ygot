@@ -83,9 +83,8 @@ func areEqualWithWildcards(s, pattern string) bool {
 
 // to ptr conversion utility functions
 func toStringPtr(s string) *string { return &s }
-func toInt8Ptr(i int8) *int8 { return &i }
-func toInt32Ptr(i int32) *int32 { return &i }
-
+func toInt8Ptr(i int8) *int8       { return &i }
+func toInt32Ptr(i int32) *int32    { return &i }
 
 func TestUpdateField(t *testing.T) {
 	type BasicStruct struct {

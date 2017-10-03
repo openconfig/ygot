@@ -1528,7 +1528,7 @@ func (*diffModAtRoot) IsYANGGoStruct() {}
 type diffModAtRootChild struct {
 	ValueOne   *string `path:"/foo/value-one" module:"m2"`
 	ValueTwo   *string `path:"/foo/value-two" module:"m3"`
-	ValueThree *string `path:"/foo/value-three" module"m1"`
+	ValueThree *string `path:"/foo/value-three" module:"m1"`
 }
 
 func (*diffModAtRootChild) IsYANGGoStruct() {}
