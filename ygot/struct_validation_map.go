@@ -477,9 +477,9 @@ func copyMapField(dstField, srcField reflect.Value) error {
 	return nil
 }
 
-// copySliceField copies srcField into dstField. Both srcField and dstField are
-// reflect.Value structs which represent slices. If the slice in dstField is populated
-// an error is returned.
+// copySliceField copies srcField into dstField. Both srcField and dstField
+// must have a kind of reflect.Slice kind and contain pointers to structs. If
+// the slice in dstField is populated an error is returned.
 // TODO(robjs): Implement merging of slice fields when they are populated in the
 // dstField, see https://github.com/openconfig/ygot/issues/74.
 func copySliceField(dstField, srcField reflect.Value) error {
