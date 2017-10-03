@@ -1152,9 +1152,8 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 		}
 	case reflect.Bool:
 		// A non-pointer field of type boolean is an empty leaf within the YANG schema.
-		// For RFC7951 this is represented as a null JSON array (i.e., [null]), if the
-		// case that this leaf is present in internal JSON, then it is rendered as 'true'
-		// only if the leaf is set, otherwise it is nil.
+		// For RFC7951 this is represented as a null JSON array (i.e., [null]). For internal
+		// JSON if the leaf is present and set, it is rendered as 'true', or as nil otherwise.
 		switch {
 		case args.jType == RFC7951 && field.Type().Name() == EmptyTypeName && field.Bool():
 			value = []interface{}{nil}
