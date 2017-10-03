@@ -293,11 +293,16 @@ import (
 {{- end }}
 )
 
-// Binary is a type that is used for fields that have a YANG type of
+// {{ .BinaryTypeName }} is a type that is used for fields that have a YANG type of
 // binary. It is used such that binary fields can be distinguished from
 // leaf-lists of uint8s (which are mapped to []uint8, equivalent to
 // []byte in reflection).
-type Binary []byte
+type {{ .BinaryTypeName }} []byte
+
+// {{ .EmptyTypeName }} is a type that is used for fields that have a YANG type of
+// empty. It is used such that empty fields can be distinguished from boolean fields
+// in the generated code.
+type {{ .EmptyTypeName }} bool
 
 {{- if .GenerateSchema }}
 
@@ -709,6 +714,8 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (strin
 		GeneratingBinary string   // GeneratingBinary is the name of the binary generating the code.
 		GenerateSchema   bool     // GenerateSchema stores whether the generator requested that the schema was to be stored with the output code.
 		GoOptions        GoOpts   // GoOptions stores additional Go-specific options for the output code, including package paths.
+		BinaryTypeName   string   // BinaryTypeName is the name of the type used for YANG binary types.
+		EmptyTypeName    string   // EmptyTypeName is the name of the type used for YANG empty types.
 	}{
 		PackageName:      cfg.PackageName,
 		YANGFiles:        yangFiles,
@@ -717,6 +724,8 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (strin
 		GeneratingBinary: cfg.Caller,
 		GenerateSchema:   cfg.GenerateJSONSchema,
 		GoOptions:        cfg.GoOptions,
+		BinaryTypeName:   ygot.BinaryTypeName,
+		EmptyTypeName:    ygot.EmptyTypeName,
 	}
 
 	var buf bytes.Buffer
@@ -894,7 +903,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				// code using a slice of the type that the element was mapped to.
 				fType = fmt.Sprintf("[]%s", fType)
 				scalarField = false
-			case mtype.isEnumeratedValue == true, mtype.nativeType == "interface{}", mtype.nativeType == "Binary":
+			case mtype.isEnumeratedValue == true, mtype.nativeType == "interface{}", mtype.nativeType == ygot.BinaryTypeName, mtype.nativeType == ygot.EmptyTypeName:
 				// If the value is an enumerated value, then we did not represent it
 				// as a pointer within the struct, so mark it as a scalar field such
 				// that the template does not attempt to prefix it with an asterisk.
