@@ -62,6 +62,12 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 			return util.AppendErr(errors, fmt.Errorf("bad leaf type: expect Int64 for enum type for schema %s, have type %v",
 				schema.Name, ykind))
 		}
+	case reflect.Bool:
+		if ykind != yang.Yempty {
+			return util.AppendErr(errors, fmt.Errorf("bad leaf type: expect Bool for empty type for schema %s, have type %v",
+				schema.Name, ykind))
+		}
+		rv = value
 	default:
 		return util.AppendErr(errors, fmt.Errorf("bad leaf value type %v, expect Ptr or Int64 for schema %s", rkind, schema.Name))
 	}
@@ -73,7 +79,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 		return nil
 		// TODO(mostrowski): restore when representation is decided.
 		//return util.AppendErr(errors, validateBitset(schema, rv))
-	case yang.Ybool:
+	case yang.Ybool, yang.Yempty:
 		return util.AppendErr(errors, validateBool(schema, rv))
 	case yang.Ystring:
 		return util.AppendErr(errors, validateString(schema, rv))

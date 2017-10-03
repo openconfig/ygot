@@ -20,7 +20,10 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
-var validBoolSchema = &yang.Entry{Name: "valid-bool-schema", Type: &yang.YangType{Kind: yang.Ybool}}
+var (
+	validBoolSchema  = &yang.Entry{Name: "valid-bool-schema", Type: &yang.YangType{Kind: yang.Ybool}}
+	validEmptySchema = &yang.Entry{Name: "empty-schema", Type: &yang.YangType{Kind: yang.Yempty}}
+)
 
 func TestValidateBoolSchema(t *testing.T) {
 	tests := []struct {
@@ -46,6 +49,10 @@ func TestValidateBoolSchema(t *testing.T) {
 			desc:    "bad schema type",
 			schema:  &yang.Entry{Name: "string-type-schema", Type: &yang.YangType{Kind: yang.Ystring}},
 			wantErr: true,
+		},
+		{
+			desc:   "empty schema",
+			schema: validEmptySchema,
 		},
 	}
 
@@ -80,6 +87,23 @@ func TestValidateBool(t *testing.T) {
 			desc:    "non bool type",
 			schema:  validBoolSchema,
 			val:     "",
+			wantErr: true,
+		},
+		{
+			desc:   "valid empty",
+			schema: validEmptySchema,
+			val:    YANGEmpty(true),
+		},
+		{
+			desc:    "invalid empty",
+			schema:  validEmptySchema,
+			val:     true,
+			wantErr: true,
+		},
+		{
+			desc:    "invalid empty - wrong type",
+			schema:  validEmptySchema,
+			val:     "fish",
 			wantErr: true,
 		},
 	}

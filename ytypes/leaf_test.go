@@ -83,6 +83,10 @@ func TestValidateLeafSchema(t *testing.T) {
 	}
 }
 
+// YANGEmpty is a derived type which is used to represent the YANG
+// empty type.
+type YANGEmpty bool
+
 func TestValidateLeaf(t *testing.T) {
 	tests := []struct {
 		desc    string
@@ -128,6 +132,11 @@ func TestValidateLeaf(t *testing.T) {
 			schema:  typeToLeafSchema("int32", yang.Yint32),
 			val:     ygot.String("value"),
 			wantErr: true,
+		},
+		{
+			desc:   "empty type",
+			schema: typeToLeafSchema("empty", yang.Yempty),
+			val:    YANGEmpty(true),
 		},
 		// TODO(mostrowski): restore when representation is decided.
 		/*{
