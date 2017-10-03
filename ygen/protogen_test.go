@@ -348,7 +348,7 @@ func TestGenProto3Msg(t *testing.T) {
 			"/a-message-with-a-list/list": "List",
 		},
 		inMsgs: map[string]*yangDirectory{
-			"/a-message-with-a-list/list": &yangDirectory{
+			"/a-message-with-a-list/list": {
 				name: "List",
 				entry: &yang.Entry{
 					Name: "list",
@@ -374,7 +374,7 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 		},
 		wantMsgs: map[string]protoMsg{
-			"AMessageWithAList": protoMsg{
+			"AMessageWithAList": {
 				Name:     "AMessageWithAList",
 				YANGPath: "/a-message-with-a-list/list",
 				Fields: []*protoMsgField{{
@@ -384,7 +384,7 @@ func TestGenProto3Msg(t *testing.T) {
 					IsRepeated: true,
 				}},
 			},
-			"ListKey": protoMsg{
+			"ListKey": {
 				Name:     "ListKey",
 				YANGPath: "/a-message-with-a-list/list",
 				Fields: []*protoMsgField{{
@@ -514,7 +514,7 @@ func TestGenProto3Msg(t *testing.T) {
 		inEnumPackage:         "enums",
 		inAnnotateSchemaPaths: true,
 		wantMsgs: map[string]protoMsg{
-			"MessageWithAnnotations": protoMsg{
+			"MessageWithAnnotations": {
 				Name:     "MessageWithAnnotations",
 				YANGPath: "/one/two",
 				Fields: []*protoMsgField{{
@@ -641,7 +641,7 @@ func TestWriteProtoMsg(t *testing.T) {
 				Node: &yang.Container{Name: "message-name"},
 			},
 			fields: map[string]*yang.Entry{
-				"field-one": &yang.Entry{
+				"field-one": {
 					Name: "field-one",
 					Type: &yang.YangType{Kind: yang.Ystring},
 				},
@@ -681,7 +681,7 @@ message MessageName {
 				},
 			},
 			fields: map[string]*yang.Entry{
-				"child": &yang.Entry{
+				"child": {
 					Name: "child",
 					Kind: yang.DirectoryEntry,
 					Dir:  map[string]*yang.Entry{},
@@ -698,7 +698,7 @@ message MessageName {
 			path: []string{"", "module", "message-name"},
 		},
 		inMsgs: map[string]*yangDirectory{
-			"/module/message-name/child": &yangDirectory{
+			"/module/message-name/child": {
 				name: "Child",
 				entry: &yang.Entry{
 					Name: "child",
@@ -747,7 +747,7 @@ message MessageName {
 				},
 			},
 			fields: map[string]*yang.Entry{
-				"enum": &yang.Entry{
+				"enum": {
 					Name: "enum",
 					Kind: yang.LeafEntry,
 					Parent: &yang.Entry{
@@ -808,7 +808,7 @@ message MessageName {
 				},
 			},
 			fields: map[string]*yang.Entry{
-				"list": &yang.Entry{
+				"list": {
 					Name: "list",
 					Kind: yang.DirectoryEntry,
 					Parent: &yang.Entry{
@@ -911,7 +911,7 @@ message MessageName {
 				},
 			},
 			fields: map[string]*yang.Entry{
-				"identityref": &yang.Entry{
+				"identityref": {
 					Name: "identityref",
 					Kind: yang.LeafEntry,
 					Parent: &yang.Entry{
@@ -1204,7 +1204,7 @@ func TestWriteProtoEnums(t *testing.T) {
 	}{{
 		name: "skipped enumeration type",
 		inEnums: map[string]*yangEnum{
-			"e": &yangEnum{
+			"e": {
 				name: "e",
 				entry: &yang.Entry{
 					Name: "e",
@@ -1247,7 +1247,7 @@ enum EnumeratedValue {
 	}, {
 		name: "enum for typedef enumeration",
 		inEnums: map[string]*yangEnum{
-			"e": &yangEnum{
+			"e": {
 				name: "EnumName",
 				entry: &yang.Entry{
 					Name: "e",
@@ -1261,7 +1261,7 @@ enum EnumeratedValue {
 					},
 				},
 			},
-			"f": &yangEnum{
+			"f": {
 				name: "SecondEnum",
 				entry: &yang.Entry{
 					Name: "f",
@@ -1425,7 +1425,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			Type: "string",
 		}},
 		wantEnums: map[string]*protoMsgEnum{
-			"FieldName": &protoMsgEnum{
+			"FieldName": {
 				Values: map[int64]string{
 					0: "UNSET",
 					1: "SPEED_2_5G",
