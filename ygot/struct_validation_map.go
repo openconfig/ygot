@@ -396,21 +396,25 @@ func copyPtrField(dstField, srcField reflect.Value) error {
 		return nil
 	}
 
-	switch srcField.Elem().Kind() {
-	case reflect.Struct:
+	// Check for struct ptr, or ptr to avoid panic.
+	if util.IsValueStructPtr(srcField) {
 		var d reflect.Value
 		d = reflect.New(srcField.Type().Elem())
 		if err := copyStruct(d.Elem(), srcField.Elem()); err != nil {
 			return err
 		}
 		dstField.Set(d)
-	default:
+		return nil
+	}
+
+	if util.IsValuePtr(srcField) {
 		p := reflect.New(srcField.Type().Elem())
 		p.Elem().Set(srcField.Elem())
 		dstField.Set(p)
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("received non-ptr type: %v", srcField.Kind())
 }
 
 // copyInterfaceField copies srcField into dstField. Both srcField and dstField
@@ -420,21 +424,17 @@ func copyInterfaceField(dstField, srcField reflect.Value) error {
 		return nil
 	}
 
-	if srcField.Elem().Kind() != reflect.Ptr {
+	if !util.IsValueInterface(srcField) || !util.IsValueStructPtr(srcField.Elem()) {
 		return fmt.Errorf("invalid interface type received: %T", srcField.Interface())
 	}
 
-	switch srcField.Elem().Elem().Kind() {
-	case reflect.Struct:
-		var d reflect.Value
-		d = reflect.New(srcField.Elem().Elem().Type())
-		if err := copyStruct(d.Elem(), srcField.Elem().Elem()); err != nil {
-			return err
-		}
-		dstField.Set(d)
-	default:
-		return fmt.Errorf("unknown type in interface, %s", srcField.Elem().Kind())
+	s := srcField.Elem().Elem() // Dereference to a struct.
+	var d reflect.Value
+	d = reflect.New(s.Type())
+	if err := copyStruct(d.Elem(), s); err != nil {
+		return err
 	}
+	dstField.Set(d)
 	return nil
 }
 
@@ -444,6 +444,10 @@ func copyInterfaceField(dstField, srcField reflect.Value) error {
 // TODO(robjs): Implement merging of maps when they are populated in the dstField
 // supplied. See https://github.com/openconfig/ygot/issues/74.
 func copyMapField(dstField, srcField reflect.Value) error {
+	if !util.IsValueMap(srcField) {
+		return fmt.Errorf("received a non-map type in copy map field: %v", srcField.Kind())
+	}
+
 	if srcField.Len() == 0 {
 		return nil
 	}
