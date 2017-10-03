@@ -33,6 +33,9 @@ const (
 	// BinaryTypeName is the name of the type that is used for YANG
 	// binary fields in the output structs.
 	BinaryTypeName string = "Binary"
+	// EmptyTypeName is the name of the type that is used for YANG
+	// empty fields in the output structs.
+	EmptyTypeName string = "YANGEmpty"
 )
 
 // path stores the elements of a path for a particular leaf,
@@ -1146,6 +1149,16 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 		}
 		if args.jType == RFC7951 {
 			value = writeIETFScalarJSON(value)
+		}
+	case reflect.Bool:
+		// A non-pointer field of type boolean is an empty leaf within the YANG schema.
+		// For RFC7951 this is represented as a null JSON array (i.e., [null]). For internal
+		// JSON if the leaf is present and set, it is rendered as 'true', or as nil otherwise.
+		switch {
+		case args.jType == RFC7951 && field.Type().Name() == EmptyTypeName && field.Bool():
+			value = []interface{}{nil}
+		case field.Bool():
+			value = true
 		}
 	default:
 		return nil, fmt.Errorf("got unexpected field type, was: %v", field.Kind())

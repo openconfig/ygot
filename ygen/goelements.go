@@ -515,8 +515,10 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		return &mappedType{nativeType: "bool"}, nil
 	case yang.Yempty:
 		// Empty is a YANG type that either exists or doesn't, therefore
-		// map it to a boolean to indicate its presence or not.
-		return &mappedType{nativeType: "bool"}, nil
+		// map it to a boolean to indicate its presence or not. The empty
+		// type name uses a specific name in the generated code, such that
+		// it can be identified for marshalling.
+		return &mappedType{nativeType: ygot.EmptyTypeName}, nil
 	case yang.Ystring:
 		return &mappedType{nativeType: "string"}, nil
 	case yang.Yunion:
