@@ -10,9 +10,9 @@ import (
 
 	log "github.com/golang/glog"
 
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	scpb "google.golang.org/genproto/googleapis/rpc/code"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
-	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 var (

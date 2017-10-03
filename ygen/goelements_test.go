@@ -235,7 +235,7 @@ func TestFindChildren(t *testing.T) {
 								"case": {
 									Kind: yang.CaseEntry,
 									Dir: map[string]*yang.Entry{
-										"string": &yang.Entry{
+										"string": {
 											Name: "string",
 										},
 									},
@@ -268,7 +268,7 @@ func TestFindChildren(t *testing.T) {
 								"case": {
 									Kind: yang.CaseEntry,
 									Dir: map[string]*yang.Entry{
-										"string": &yang.Entry{
+										"string": {
 											Name: "string",
 										},
 									},

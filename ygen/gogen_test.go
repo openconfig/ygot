@@ -725,7 +725,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			path: []string{"", "root-module", "tstruct"},
 		},
 		inMappableEntities: map[string]*yangDirectory{
-			"/root-module/tstruct/listWithKey": &yangDirectory{},
+			"/root-module/tstruct/listWithKey": {},
 		},
 		wantCompressed:   wantGoStructOut{wantErr: true},
 		wantUncompressed: wantGoStructOut{wantErr: true},
@@ -734,7 +734,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		inStructToMap: &yangDirectory{
 			name: "AStruct",
 			fields: map[string]*yang.Entry{
-				"anydata": &yang.Entry{
+				"anydata": {
 					Name: "anydata",
 					Kind: yang.AnyDataEntry,
 				},
@@ -747,7 +747,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		inStructToMap: &yangDirectory{
 			name: "AStruct",
 			fields: map[string]*yang.Entry{
-				"idd": &yang.Entry{
+				"idd": {
 					Name: "idd",
 					Type: &yang.YangType{Kind: yang.Yidentityref},
 					Parent: &yang.Entry{
