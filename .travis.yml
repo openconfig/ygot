@@ -12,5 +12,8 @@ script:
         - go tool vet -composites=false ./ygot
         - go tool vet ./ygen
         - go tool vet ./ytypes
+        diff -u <(echo -n) <(gofmt -d -s ./ygot)
+        diff -u <(echo -n) <(gofmt -d -s ./ygen)
+        diff -u <(echo -n) <(gofmt -d -s ./ytypes)
 after_success:
         - ./scripts/coverage.sh
