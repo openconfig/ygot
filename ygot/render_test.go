@@ -562,7 +562,7 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
+				{Name: "foo"},
 			},
 		},
 		wantErr: true,
@@ -577,7 +577,7 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
+				{Name: "foo"},
 			},
 		},
 		wantErr: true,
