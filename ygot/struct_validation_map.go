@@ -487,10 +487,7 @@ func copySliceField(dstField, srcField reflect.Value) error {
 		return fmt.Errorf("unimplemented: cannot map slice where destination was set: %v == %v", srcField.Type().Name(), dstField.Interface())
 	}
 
-	switch {
-	case srcField.Type().Elem().Kind() != reflect.Ptr:
-		fallthrough
-	case srcField.Type().Elem().Elem().Kind() != reflect.Struct:
+	if !util.IsTypeStructPtr(srcField.Type().Elem()) {
 		dstField.Set(srcField)
 		return nil
 	}

@@ -1034,10 +1034,7 @@ func TestCopyStruct(t *testing.T) {
 		inDst: &copyTest{
 			StringSlice: []string{"feral-brewing-co-hop-hog", "balter-brewing-xpa"},
 		},
-		wantDst: &copyTest{
-			StringSlice: []string{"stone-and-wood-pacific", "pirate-life-brewing-iipa", "feral-brewing-co-hop-hog", "balter-brewing-xpa"},
-		},
-		wantErr: true, // unimplemented.
+		wantErr: true, // Input combination not supported, destination slice must be nil.
 	}, {
 		name: "string map",
 		inSrc: &copyTest{
@@ -1054,7 +1051,7 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 	}, {
-		name: "unimplemented: string slice with existing members",
+		name: "unimplemented: string map with existing members",
 		inSrc: &copyTest{
 			StringMap: map[string]*copyTest{
 				"bentspoke-brewing": &copyTest{StringField: String("crankshaft")},
@@ -1065,7 +1062,7 @@ func TestCopyStruct(t *testing.T) {
 				"modus-operandi-brewing-co": &copyTest{StringField: String("former-tenant")},
 			},
 		},
-		wantErr: true, // unimplemented.
+		wantErr: true, // Input combination not supported, destination slice must be nil.
 	}, {
 		name: "struct map",
 		inSrc: &copyTest{
@@ -1110,14 +1107,7 @@ func TestCopyStruct(t *testing.T) {
 				StringField: String("gage-roads-little-dove"),
 			}},
 		},
-		wantDst: &copyTest{
-			StructSlice: []*copyTest{{
-				StringField: String("pirate-life-brewing-ipa"),
-			}, {
-				StringField: String("gage-roads-little-dove"),
-			}},
-		},
-		wantErr: true, // unimplemented.
+		wantErr: true, // Input combination unimplemented, destination slice must be nil.
 	}, {
 		name:    "error, integer in interface",
 		inSrc:   &errorCopyTest{I: 42},
