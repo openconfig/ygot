@@ -26,10 +26,11 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
-	oc "github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/ygot"
+
+	log "github.com/golang/glog"
+	oc "github.com/openconfig/ygot/exampleoc"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )

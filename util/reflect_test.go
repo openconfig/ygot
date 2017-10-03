@@ -83,9 +83,8 @@ func areEqualWithWildcards(s, pattern string) bool {
 
 // to ptr conversion utility functions
 func toStringPtr(s string) *string { return &s }
-func toInt8Ptr(i int8) *int8 { return &i }
-func toInt32Ptr(i int32) *int32 { return &i }
-
+func toInt8Ptr(i int8) *int8       { return &i }
+func toInt32Ptr(i int32) *int32    { return &i }
 
 func TestUpdateField(t *testing.T) {
 	type BasicStruct struct {
@@ -538,5 +537,155 @@ func TestUpdateFieldUsingForEachField(t *testing.T) {
 
 	if got, want := *a.BasicStructField, basicStruct1; got != want {
 		t.Errorf("set struct: got: %s, want: %s", pretty.Sprint(got), pretty.Sprint(want))
+	}
+}
+
+type interfaceContainer struct {
+	I anInterface
+}
+
+type anInterface interface {
+	IsU()
+}
+
+type implementsInterface struct {
+	F string
+}
+
+func (*implementsInterface) IsU() {}
+
+func TestReflectTypeHelpers(t *testing.T) {
+	slicePtr := []string{"hello"}
+	intf := &interfaceContainer{
+		I: &implementsInterface{
+			F: "fish",
+		},
+	}
+	intfField := reflect.ValueOf(intf).Elem().Field(0)
+
+	tests := []struct {
+		name              string
+		in                reflect.Type
+		wantTypeStructPtr bool
+		wantTypeSlicePtr  bool
+		wantTypeMap       bool
+		wantTypeInterface bool
+	}{{
+		name:              "struct ptr",
+		in:                reflect.TypeOf(&implementsInterface{}),
+		wantTypeStructPtr: true,
+	}, {
+		name:             "type slice ptr",
+		in:               reflect.TypeOf(&slicePtr),
+		wantTypeSlicePtr: true,
+	}, {
+		name:        "type map",
+		in:          reflect.TypeOf(map[string]interface{}{}),
+		wantTypeMap: true,
+	}, {
+		name:              "interface",
+		in:                intfField.Type(),
+		wantTypeInterface: true,
+	}}
+
+	for _, tt := range tests {
+		if got := IsTypeStructPtr(tt.in); got != tt.wantTypeStructPtr {
+			t.Errorf("%s: IsTypeStructPtr(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantTypeStructPtr)
+		}
+
+		if got := IsTypeSlicePtr(tt.in); got != tt.wantTypeSlicePtr {
+			t.Errorf("%s: IsTypeSlicePtr(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantTypeSlicePtr)
+		}
+
+		if got := IsTypeMap(tt.in); got != tt.wantTypeMap {
+			t.Errorf("%s: IsTypeMap(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantTypeMap)
+		}
+
+		if got := IsTypeInterface(tt.in); got != tt.wantTypeInterface {
+			t.Errorf("%s: IsTypeInterface(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantTypeInterface)
+		}
+	}
+}
+
+func TestReflectValueHelpers(t *testing.T) {
+	invIntf := &interfaceContainer{}
+	intf := &interfaceContainer{
+		I: &implementsInterface{
+			F: "brie",
+		},
+	}
+
+	tests := []struct {
+		name                            string
+		in                              reflect.Value
+		wantIsNilOrInvalid              bool
+		wantIsValuePtr                  bool
+		wantIsValueInterface            bool
+		wantIsValueStruct               bool
+		wantIsValueStructPtr            bool
+		wantIsValueMap                  bool
+		wantIsValueScalar               bool
+		wantIsValueInterfaceToStructPtr bool
+	}{{
+		name:               "nil or invalid",
+		in:                 reflect.ValueOf(invIntf.I),
+		wantIsNilOrInvalid: true,
+	}, {
+		name:                 "value ptr, value structptr",
+		in:                   reflect.ValueOf(intf),
+		wantIsValuePtr:       true,
+		wantIsValueStructPtr: true,
+	}, {
+		name:                            "value interface",
+		in:                              reflect.ValueOf(intf).Elem().Field(0),
+		wantIsValueInterface:            true,
+		wantIsValueInterfaceToStructPtr: true,
+		wantIsValueScalar:               true,
+	}, {
+		name:              "value struct",
+		in:                reflect.ValueOf(interfaceContainer{}),
+		wantIsValueStruct: true,
+	}, {
+		name:           "value map",
+		in:             reflect.ValueOf(map[string]string{}),
+		wantIsValueMap: true,
+	}, {
+		name:              "value scalar",
+		in:                reflect.ValueOf("fish"),
+		wantIsValueScalar: true,
+	}}
+
+	for _, tt := range tests {
+		if got := IsNilOrInvalidValue(tt.in); got != tt.wantIsNilOrInvalid {
+			t.Errorf("%s: IsNilOrInvalidValue(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantIsNilOrInvalid)
+		}
+
+		if got := IsValuePtr(tt.in); got != tt.wantIsValuePtr {
+			t.Errorf("%s: IsValuePtr(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantIsValuePtr)
+		}
+
+		if got := IsValueInterface(tt.in); got != tt.wantIsValueInterface {
+			t.Errorf("%s: IsValueInterface(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantIsValueInterface)
+		}
+
+		if got := IsValueStruct(tt.in); got != tt.wantIsValueStruct {
+			t.Errorf("%s: IsValueStruct(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantIsValueStruct)
+		}
+
+		if got := IsValueStructPtr(tt.in); got != tt.wantIsValueStructPtr {
+			t.Errorf("%s: IsValueStructPtr(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantIsValueStructPtr)
+		}
+
+		if got := IsValueMap(tt.in); got != tt.wantIsValueMap {
+			t.Errorf("%s: IsValueMap(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantIsValueMap)
+		}
+
+		if got := IsValueScalar(tt.in); got != tt.wantIsValueScalar {
+			t.Errorf("%s: IsValueScalar(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantIsValueScalar)
+		}
+
+		if got := IsValueInterfaceToStructPtr(tt.in); got != tt.wantIsValueInterfaceToStructPtr {
+			t.Errorf("%s: IsValueInterfaceToStructPtr(%v): did not get expected return, got: %v, want: %v", tt.name, tt.in, got, tt.wantIsValueInterfaceToStructPtr)
+		}
 	}
 }

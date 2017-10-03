@@ -1209,12 +1209,13 @@ func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputCo
 // This function extracts field index 0 of the struct within the interface and returns
 // the value.
 func unionInterfaceValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
+	fmt.Printf("%v\n", v.Kind())
 	switch {
-	case v.Kind() != reflect.Ptr && v.Kind() != reflect.Interface:
+	case v.Kind() != reflect.Interface:
 		return nil, fmt.Errorf("received a union type which was invalid: %v", v.Kind())
 	case v.Elem().Kind() != reflect.Ptr:
 		return nil, fmt.Errorf("received a union type which was not a pointer: %v", v.Kind())
-	case v.Elem().Elem().Kind() != reflect.Struct:
+	case !util.IsValueStructPtr(v.Elem()):
 		return nil, fmt.Errorf("received a union type that did not contain a struct: %v", v.Kind())
 	case v.Elem().Elem().NumField() != 1:
 		return nil, fmt.Errorf("received a union type which did not have one field, had: %v", v.Elem().Elem().NumField())
@@ -1229,7 +1230,7 @@ func unionPtrValue(v reflect.Value, appendModuleName bool) (interface{}, error) 
 	switch {
 	case v.Kind() != reflect.Ptr:
 		return nil, fmt.Errorf("received a union pointer type that wasn't a pointer, got: %v", v.Kind())
-	case v.Elem().Kind() != reflect.Struct:
+	case !util.IsValueStructPtr(v):
 		return nil, fmt.Errorf("received a union pointer that didn't contain a struct, got: %v", v.Elem().Kind())
 	case v.Elem().NumField() != 1:
 		return nil, fmt.Errorf("received a union pointer struct that didn't have one field, got: %v", v.Elem().NumField())
