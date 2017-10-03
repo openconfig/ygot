@@ -230,7 +230,7 @@ func TestGNMIPathOps(t *testing.T) {
 		}
 
 		if err == nil && !reflect.DeepEqual(gotLast, tt.wantLastPathElem) {
-			t.Errorf("%s: %v.LastPathElem(), did not get expected last element, got: %v, want: %V", tt.name, tt.inPath, gotLast, tt.wantLastPathElem)
+			t.Errorf("%s: %v.LastPathElem(), did not get expected last element, got: %v, want: %v", tt.name, tt.inPath, gotLast, tt.wantLastPathElem)
 		}
 
 		np := tt.inPath.Copy()
@@ -558,14 +558,14 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
-				&gnmipb.PathElem{Name: "bar"},
+				{Name: "foo"},
+				{Name: "bar"},
 			},
 		},
 		wantPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
-				&gnmipb.PathElem{Name: "bar", Key: map[string]string{"val": "foo"}},
+				{Name: "foo"},
+				{Name: "bar", Key: map[string]string{"val": "foo"}},
 			},
 		},
 	}, {
@@ -578,12 +578,12 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
+				{Name: "foo"},
 			},
 		},
 		wantPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{
+				{
 					Name: "foo",
 					Key: map[string]string{
 						"i": "-42",
@@ -599,7 +599,7 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		inValue: reflect.ValueOf(&pathElemMultiKey{}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
+				{Name: "foo"},
 			},
 		},
 		wantErr: true,
@@ -617,7 +617,7 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		inValue: reflect.ValueOf(nil),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
-				&gnmipb.PathElem{Name: "foo"},
+				{Name: "foo"},
 			},
 		},
 		wantErr: true,
@@ -1237,7 +1237,7 @@ func TestTogNMINotifications(t *testing.T) {
 		inTimestamp: 42,
 		inStruct: &pathElemExample{
 			MKey: map[pathElemExampleMultiKeyChildKey]*pathElemExampleMultiKeyChild{
-				pathElemExampleMultiKeyChildKey{Foo: "foo", Bar: 16}: {Foo: String("foo"), Bar: Uint16(16)},
+				{Foo: "foo", Bar: 16}: {Foo: String("foo"), Bar: Uint16(16)},
 			},
 		},
 		inConfig: GNMINotificationsConfig{UsePathElem: true},
@@ -1516,6 +1516,35 @@ type listAtRootChild struct {
 
 func (*listAtRootChild) IsYANGGoStruct() {}
 
+// Types to ensure correct serialisation of elements with different
+// modules at the root.
+type diffModAtRoot struct {
+	Child *diffModAtRootChild `path:"" module:"m1"`
+	Elem  *diffModAtRootElem  `path:"" module:"m1"`
+}
+
+func (*diffModAtRoot) IsYANGGoStruct() {}
+
+type diffModAtRootChild struct {
+	ValueOne   *string `path:"/foo/value-one" module:"m2"`
+	ValueTwo   *string `path:"/foo/value-two" module:"m3"`
+	ValueThree *string `path:"/foo/value-three" module:"m1"`
+}
+
+func (*diffModAtRootChild) IsYANGGoStruct() {}
+
+type diffModAtRootElem struct {
+	C *diffModAtRootElemTwo `path:"/baz/c" module:"m1"`
+}
+
+func (*diffModAtRootElem) IsYANGGoStruct() {}
+
+type diffModAtRootElemTwo struct {
+	Name *string `path:"name" module:"m1"`
+}
+
+func (*diffModAtRootElemTwo) IsYANGGoStruct() {}
+
 func TestConstructJSON(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -1557,6 +1586,45 @@ func TestConstructJSON(t *testing.T) {
 			InvalidEnum: int64(42),
 		},
 		wantErr: true,
+	}, {
+		name: "different modules at root",
+		in: &diffModAtRoot{
+			Child: &diffModAtRootChild{
+				ValueOne:   String("one"),
+				ValueTwo:   String("two"),
+				ValueThree: String("three"),
+			},
+			Elem: &diffModAtRootElem{
+				C: &diffModAtRootElemTwo{
+					Name: String("baz"),
+				},
+			},
+		},
+		inAppendMod: true,
+		wantIETF: map[string]interface{}{
+			"m1:foo": map[string]interface{}{
+				"m2:value-one": "one",
+				"m3:value-two": "two",
+				"value-three":  "three",
+			},
+			"m1:baz": map[string]interface{}{
+				"c": map[string]interface{}{
+					"name": "baz",
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"value-one":   "one",
+				"value-two":   "two",
+				"value-three": "three",
+			},
+			"baz": map[string]interface{}{
+				"c": map[string]interface{}{
+					"name": "baz",
+				},
+			},
+		},
 	}, {
 		name: "simple render",
 		in: &renderExample{

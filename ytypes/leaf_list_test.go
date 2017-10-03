@@ -109,13 +109,13 @@ func TestUnmarshalLeafList(t *testing.T) {
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
-			"int32-leaf-list": &yang.Entry{
+			"int32-leaf-list": {
 				Name:     "int32-leaf-list",
 				Kind:     yang.LeafEntry,
 				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
 				Type:     &yang.YangType{Kind: yang.Yint32},
 			},
-			"enum-leaf-list": &yang.Entry{
+			"enum-leaf-list": {
 				Name:     "enum-leaf-list",
 				Kind:     yang.LeafEntry,
 				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
