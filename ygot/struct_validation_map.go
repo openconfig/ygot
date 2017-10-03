@@ -63,6 +63,11 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath) ([]*gnmiPa
 			}
 			ePath.AppendName(pp)
 		}
+
+		if len(p) > 0 && p[0] == '/' {
+			ePath.isAbsolute = true
+		}
+
 		mapPaths = append(mapPaths, ePath)
 	}
 	return mapPaths, nil
