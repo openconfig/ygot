@@ -394,7 +394,8 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 func unmarshalContainerWithListSchema(schema *yang.Entry, parent interface{}, value interface{}) error {
 
 	if !util.IsTypeStructPtr(reflect.TypeOf(parent)) {
-		return fmt.Errorf("unmarshalContainerWithListSchema value %v, type %T, into parent type %T, schema name %s: parent must be a struct ptr")
+		return fmt.Errorf("unmarshalContainerWithListSchema value %v, type %T, into parent type %T, schema name %s: parent must be a struct ptr",
+			value, value, parent, schema.Name)
 	}
 	// Create a container equivalent of the list, which is just the list
 	// with ListAttrs unset.

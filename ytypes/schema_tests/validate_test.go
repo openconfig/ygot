@@ -420,6 +420,16 @@ func TestUnmarshal(t *testing.T) {
 			jsonFilePath: "interfaces-example.json",
 			parent:       &oc.Device{},
 		},
+		{
+			desc:         "local-routing",
+			jsonFilePath: "local-routing-example.json",
+			parent:       &oc.Device{},
+		},
+		{
+			desc:         "policy",
+			jsonFilePath: "policy-example.json",
+			parent:       &oc.Device{},
+		},
 	}
 
 	emitJSONConfig := &ygot.EmitJSONConfig{
@@ -599,7 +609,7 @@ func TestGetNode(t *testing.T) {
 				Confederation: &oc.Bgp_Global_Confederation{},
 			},
 			Neighbor: map[string]*oc.Bgp_Neighbor{
-				"address1": &oc.Bgp_Neighbor{
+				"address1": {
 					ApplyPolicy:     &oc.Bgp_Neighbor_ApplyPolicy{},
 					NeighborAddress: ygot.String("address1"),
 				},

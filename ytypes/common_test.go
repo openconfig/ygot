@@ -30,10 +30,10 @@ var (
 	// values.
 	testErrOutput = false
 	globalEnumMap = map[string]map[int64]ygot.EnumDefinition{
-		"EnumType": map[int64]ygot.EnumDefinition{
+		"EnumType": {
 			42: {Name: "E_VALUE_FORTY_TWO"},
 		},
-		"EnumType2": map[int64]ygot.EnumDefinition{
+		"EnumType2": {
 			43: {Name: "E_VALUE_FORTY_THREE"},
 		},
 	}
@@ -296,7 +296,7 @@ func TestForEachSchemaNode(t *testing.T) {
 						Kind: yang.CaseEntry,
 						Name: "case1",
 						Dir: map[string]*yang.Entry{
-							"case1-leaf1": &yang.Entry{
+							"case1-leaf1": {
 								Kind: yang.LeafEntry,
 								Name: "Case1Leaf1",
 								Type: &yang.YangType{Kind: yang.Ystring},
@@ -307,7 +307,7 @@ func TestForEachSchemaNode(t *testing.T) {
 						Kind: yang.CaseEntry,
 						Name: "case2",
 						Dir: map[string]*yang.Entry{
-							"case2_choice1": &yang.Entry{
+							"case2_choice1": {
 								Kind: yang.ChoiceEntry,
 								Name: "case2_choice1",
 								Dir: map[string]*yang.Entry{
@@ -315,7 +315,7 @@ func TestForEachSchemaNode(t *testing.T) {
 										Kind: yang.CaseEntry,
 										Name: "case21",
 										Dir: map[string]*yang.Entry{
-											"case21-leaf": &yang.Entry{
+											"case21-leaf": {
 												Kind: yang.LeafEntry,
 												Name: "case21-leaf",
 												Type: &yang.YangType{Kind: yang.Ystring},
