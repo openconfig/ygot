@@ -1051,7 +1051,7 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 	}, {
-		name: "unimplemented: string map with existing members",
+		name: "string map with existing members",
 		inSrc: &copyTest{
 			StringMap: map[string]*copyTest{
 				"bentspoke-brewing": {StringField: String("crankshaft")},
@@ -1062,7 +1062,25 @@ func TestCopyStruct(t *testing.T) {
 				"modus-operandi-brewing-co": {StringField: String("former-tenant")},
 			},
 		},
-		wantErr: true, // Input combination not supported, destination slice must be nil.
+		wantDst: &copyTest{
+			StringMap: map[string]*copyTest{
+				"bentspoke-brewing":         {StringField: String("crankshaft")},
+				"modus-operandi-brewing-co": {StringField: String("former-tenant")},
+			},
+		},
+	}, {
+		name: "unimplemented, string map with overlapping members",
+		inSrc: &copyTest{
+			StringMap: map[string]*copyTest{
+				"wild-beer-co": {StringField: String("wild-goose-chase")},
+			},
+		},
+		inDst: &copyTest{
+			StringMap: map[string]*copyTest{
+				"wild-beer-co": {StringField: String("wildebeest")},
+			},
+		},
+		wantErr: true, // Maps with matching keys are currently not merged.
 	}, {
 		name: "struct map",
 		inSrc: &copyTest{
@@ -1243,4 +1261,90 @@ func TestMergeStructs(t *testing.T) {
 			t.Errorf("%s: MergeStructs(%v, %v): did not get expected returned struct, diff(-got,+want):\n%s", tt.name, tt.inA, tt.inB, diff)
 		}
 	}
+}
+
+func TestValidateMap(t *testing.T) {
+	tests := []struct {
+		name        string
+		inSrc       reflect.Value
+		inDst       reflect.Value
+		wantMapType *mapType
+		wantErr     string
+	}{{
+		name:  "valid maps",
+		inSrc: reflect.ValueOf(map[string]*copyTest{}),
+		inDst: reflect.ValueOf(map[string]*copyTest{}),
+		wantMapType: &mapType{
+			key:   reflect.TypeOf(""),
+			value: reflect.TypeOf(&copyTest{}),
+		},
+	}, {
+		name:    "invalid src field, not a map",
+		inSrc:   reflect.ValueOf(""),
+		inDst:   reflect.ValueOf(map[string]*copyTest{}),
+		wantErr: "invalid src field, was not a map, was: string",
+	}, {
+		name:    "invalid dst field, not a map",
+		inSrc:   reflect.ValueOf(map[string]*copyTest{}),
+		inDst:   reflect.ValueOf(uint32(42)),
+		wantErr: "invalid dst field, was not a map, was: uint32",
+	}, {
+		name:    "invalid src and dst fields, do not have the same value type",
+		inSrc:   reflect.ValueOf(map[string]string{}),
+		inDst:   reflect.ValueOf(map[string]uint32{}),
+		wantErr: "invalid maps, src and dst value types are different, string != uint32",
+	}, {
+		name:    "invalid src and dst field, not a struct ptr",
+		inSrc:   reflect.ValueOf(map[string]copyTest{}),
+		inDst:   reflect.ValueOf(map[string]copyTest{}),
+		wantErr: "invalid maps, src or dst does not have a struct ptr element, src: struct, dst: struct",
+	}, {
+		name:    "invalid maps, src and dst key types differ",
+		inSrc:   reflect.ValueOf(map[string]*copyTest{}),
+		inDst:   reflect.ValueOf(map[uint32]*copyTest{}),
+		wantErr: "invalid maps, src and dst key types are different, string != uint32",
+	}}
+
+	for _, tt := range tests {
+		got, err := validateMap(tt.inSrc, tt.inDst)
+		if err != nil {
+			if err.Error() != tt.wantErr {
+				t.Errorf("%s: validateMap(%v, %v): did not get expected error status, got: %v, wantErr: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
+			}
+			continue
+		}
+
+		if diff := pretty.Compare(got, tt.wantMapType); diff != "" {
+			t.Errorf("%s: validateMap(%v, %v): did not get expected return mapType, diff(-got,+want):\n%s", tt.name, tt.inSrc, tt.inDst, diff)
+		}
+	}
+}
+
+func TestCopyErrorCases(t *testing.T) {
+	type errorTest struct {
+		name    string
+		inSrc   reflect.Value
+		inDst   reflect.Value
+		wantErr string
+	}
+
+	mapErrs := []errorTest{
+		{"bad src", reflect.ValueOf(""), reflect.ValueOf(map[string]string{}), "received a non-map type in src map field: string"},
+		{"bad dst", reflect.ValueOf(map[string]string{}), reflect.ValueOf(uint32(42)), "received a non-map type in dst map field: uint32"},
+	}
+	for _, tt := range mapErrs {
+		if err := copyMapField(tt.inDst, tt.inSrc); err == nil || err.Error() != tt.wantErr {
+			t.Errorf("%s: copyMapField(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
+		}
+	}
+
+	ptrErrs := []errorTest{
+		{"non-ptr", reflect.ValueOf(""), reflect.ValueOf(""), "received non-ptr type: string"},
+	}
+	for _, tt := range ptrErrs {
+		if err := copyPtrField(tt.inDst, tt.inSrc); err == nil || err.Error() != tt.wantErr {
+			t.Errorf("%s: copyPtrField(%v, %v): did not get expected erorr, got: %v, want: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
+		}
+	}
+
 }
