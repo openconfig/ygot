@@ -519,7 +519,7 @@ type mapType struct {
 	value reflect.Type // value is the type of the value of the map.
 }
 
-// validateMapInternal checks the srcField and dstField reflect.Value structs
+// validateMap checks the srcField and dstField reflect.Value structs
 // to ensure that they are valid maps of struct pointers, and that their keys
 // types are the same. It returns a specification of the map type if the maps
 // match.
