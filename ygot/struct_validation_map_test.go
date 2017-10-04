@@ -1097,6 +1097,37 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 	}, {
+		name: "struct map with non-overlapping contents",
+		inSrc: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"brewdog"}: {StringField: String("kingpin")},
+			},
+		},
+		inDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"cheshire-brewhouse"}: {StringField: String("dane'ish")},
+			},
+		},
+		wantDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"brewdog"}:            {StringField: String("kingpin")},
+				{"cheshire-brewhouse"}: {StringField: String("dane'ish")},
+			},
+		},
+	}, {
+		name: "unimplemented: struct map with overlapping contents",
+		inSrc: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"fourpure"}: {StringField: String("session-ipa")},
+			},
+		},
+		inDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"fourpure"}: {StringField: String("oatmeal-stout")},
+			},
+		},
+		wantErr: true, // Merging two maps with overlapping keys is not implemented.
+	}, {
 		name: "struct slice",
 		inSrc: &copyTest{
 			StructSlice: []*copyTest{{
@@ -1343,8 +1374,82 @@ func TestCopyErrorCases(t *testing.T) {
 	}
 	for _, tt := range ptrErrs {
 		if err := copyPtrField(tt.inDst, tt.inSrc); err == nil || err.Error() != tt.wantErr {
-			t.Errorf("%s: copyPtrField(%v, %v): did not get expected erorr, got: %v, want: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
+			t.Errorf("%s: copyPtrField(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
 		}
 	}
 
+	badDeepCopy := &errorCopyTest{I: "foobar"}
+	wantBDCErr := "cannot DeepCopy struct: invalid interface type received: string"
+	if _, err := DeepCopy(badDeepCopy); err == nil || err.Error() != wantBDCErr {
+		t.Errorf("badDeepCopy: DeepCopy(%v): did not get expected error, got: %v, want: %v", badDeepCopy, err, wantBDCErr)
+	}
+}
+
+func TestDeepCopy(t *testing.T) {
+	tests := []struct {
+		name    string
+		in      *copyTest
+		inKey   string
+		wantErr bool
+	}{{
+		name: "simple copy",
+		in:   &copyTest{StringField: String("zaphod")},
+	}, {
+		name: "copy with map",
+		in: &copyTest{
+			StringMap: map[string]*copyTest{
+				"just": {StringField: String("this guy")},
+			},
+		},
+		inKey: "just",
+	}, {
+		name: "copy with slice",
+		in: &copyTest{
+			StringSlice: []string{"one"},
+		},
+	}}
+
+	for _, tt := range tests {
+		got, err := DeepCopy(tt.in)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: DeepCopy(%#v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.in, err, tt.wantErr)
+		}
+		if diff := pretty.Compare(got, tt.in); diff != "" {
+			t.Errorf("%s: DeepCopy(%#v): did not get identical copy, diff(-got,+want):\n%s", tt.name, tt.in, diff)
+		}
+
+		// Check we got a copy that doesn't modify the original.
+		gotC, ok := got.(*copyTest)
+		if !ok {
+			t.Errorf("%s: DeepCopy(%#v): did not get back the same type, got: %T, want: %T", tt.name, tt.in, got, tt.in)
+		}
+
+		if &gotC == &tt.in {
+			t.Errorf("%s: DeepCopy(%#v): after copy, input and copy have same memory address: %v", tt.name, tt.in, &gotC)
+		}
+
+		if len(tt.in.StringMap) != 0 && tt.inKey != "" {
+			if &tt.in.StringMap == &gotC.StringMap {
+				t.Errorf("%s: DeepCopy(%#v): after copy, input map and copied map have the same address: %v", tt.name, tt.in, &gotC.StringMap)
+			}
+
+			if v, ok := tt.in.StringMap[tt.inKey]; ok {
+				cv, cok := gotC.StringMap[tt.inKey]
+				if !cok {
+					t.Errorf("%s: DeepCopy(%#v): after copy, received map did not have correct key, want key: %v, got: %v", tt.name, tt.in, tt.inKey, gotC.StringMap)
+				}
+
+				if &v == &cv {
+					t.Errorf("%s: DeepCopy(%#v): after copy, input map element and copied map element have the same address: %v", tt.name, tt.in, &cv)
+				}
+			}
+		}
+
+		if len(tt.in.StringSlice) != 0 {
+			if &tt.in.StringSlice == &gotC.StringSlice {
+				t.Errorf("%s: DeepCopy(%#v): after copy, input slice and copied slice have the same address: %v", tt.name, tt.in, &gotC.StringSlice)
+			}
+		}
+
+	}
 }

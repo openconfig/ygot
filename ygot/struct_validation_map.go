@@ -338,10 +338,11 @@ func MergeStructs(a, b ValidatedGoStruct) (ValidatedGoStruct, error) {
 		return nil, fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", a, b)
 	}
 
-	n := reflect.New(reflect.TypeOf(a).Elem())
-	if err := copyStruct(n.Elem(), reflect.ValueOf(a).Elem()); err != nil {
-		return nil, fmt.Errorf("error merging a to new struct: %v", err)
+	tn, err := DeepCopy(a)
+	if err != nil {
+		return nil, err
 	}
+	n := reflect.ValueOf(tn)
 
 	if err := copyStruct(n.Elem(), reflect.ValueOf(b).Elem()); err != nil {
 		return nil, fmt.Errorf("error merging b to new struct: %v", err)
@@ -349,6 +350,16 @@ func MergeStructs(a, b ValidatedGoStruct) (ValidatedGoStruct, error) {
 
 	return n.Interface().(ValidatedGoStruct), nil
 
+}
+
+// DeepCopy returns a deep copy of the supplied GoStruct. A new copy
+// of the GoStruct is created, along with any underlying values.
+func DeepCopy(s GoStruct) (GoStruct, error) {
+	n := reflect.New(reflect.TypeOf(s).Elem())
+	if err := copyStruct(n.Elem(), reflect.ValueOf(s).Elem()); err != nil {
+		return nil, fmt.Errorf("cannot DeepCopy struct: %v", err)
+	}
+	return n.Interface().(GoStruct), nil
 }
 
 // copyStruct copies the fields of srcVal into the dstVal struct in-place.
