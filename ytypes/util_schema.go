@@ -536,6 +536,15 @@ func stripModulePrefix(s string) string {
 	return sv[len(sv)-1]
 }
 
+// derefIfStructPtr returns the dereferenced reflect.Value of value if it is a 
+// ptr, or value if it is not.
+func derefIfStructPtr(value reflect.Value) reflect.Value {
+	if util.IsValueStructPtr(value) {
+		return value.Elem()
+	}
+	return value
+}
+
 // SchemaNodeInfo describes a node in a YANG schema tree being traversed. It is
 // passed to an function
 type SchemaNodeInfo struct {
@@ -579,7 +588,7 @@ func forEachSchemaNodeInternal(ni *SchemaNodeInfo, in, out interface{}, iterFunc
 
 	switch {
 	case util.IsValueStruct(ni.FieldValue) || util.IsValueStructPtr(ni.FieldValue):
-		structElems := util.PtrToValue(ni.FieldValue)
+		structElems := derefIfStructPtr(ni.FieldValue)
 		for i := 0; i < structElems.NumField(); i++ {
 			cschema, err := childSchema(ni.Schema, structElems.Type().Field(i))
 			if err != nil {

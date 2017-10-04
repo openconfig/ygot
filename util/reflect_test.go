@@ -241,7 +241,7 @@ type anInterface interface {
 }
 
 type implementsInterface struct {
-	F string
+	A string
 }
 
 func (*implementsInterface) IsU() {}
@@ -249,19 +249,22 @@ func (*implementsInterface) IsU() {}
 func TestIsValueInterface(t *testing.T) {
 	intf := &interfaceContainer{
 		I: &implementsInterface{
-			F: "brie",
+			A: "a",
 		},
 	}
-	if !IsValueInterface(reflect.ValueOf(intf).Elem().Field(0)) {
+	iField := reflect.ValueOf(intf).Elem().FieldByName("I")
+	if !IsValueInterface(iField) {
 		t.Errorf("IsValueInterface(): got false, want true")
 	}
-
+	if !IsValueInterfaceToStructPtr(iField) {
+		t.Errorf("IsValueInterface(): got false, want true")
+	}
 }
 
 func TestIsTypeInterface(t *testing.T) {
 	intf := &interfaceContainer{
 		I: &implementsInterface{
-			F: "fish",
+			A: "a",
 		},
 	}
 	testIfField := reflect.ValueOf(intf).Elem().Field(0)
