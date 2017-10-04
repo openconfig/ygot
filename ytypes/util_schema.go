@@ -536,7 +536,7 @@ func stripModulePrefix(s string) string {
 	return sv[len(sv)-1]
 }
 
-// derefIfStructPtr returns the dereferenced reflect.Value of value if it is a 
+// derefIfStructPtr returns the dereferenced reflect.Value of value if it is a
 // ptr, or value if it is not.
 func derefIfStructPtr(value reflect.Value) reflect.Value {
 	if util.IsValueStructPtr(value) {
