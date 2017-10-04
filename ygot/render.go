@@ -439,26 +439,6 @@ func mapValuePath(key, value reflect.Value, parentPath *gnmiPath) (*gnmiPath, er
 	return appendgNMIPathElemKey(value, childPath)
 }
 
-// interfacePathAsgNMIPath takes a path that is specified as a slice of empty interfaces
-// and populates a gNMI path message with the string components. It should be noted that this
-// functionality does not comply with the gNMI specification, and should be updated in the
-// future.
-func interfacePathAsgNMIPath(p []interface{}, usePathElem bool) (*gnmipb.Path, error) {
-	pfx := &gnmipb.Path{}
-	for _, e := range p {
-		if usePathElem {
-			pe, ok := e.(*gnmipb.PathElem)
-			if !ok {
-				return nil, fmt.Errorf("invalid path element %v in path %v, expected gnmipb.PathElem, got: %T", e, p, e)
-			}
-			pfx.Elem = append(pfx.Elem, pe)
-		} else {
-			pfx.Element = append(pfx.Element, fmt.Sprintf("%v", e))
-		}
-	}
-	return pfx, nil
-}
-
 // appendgNMIPathElemKey takes an input reflect.Value which must implement KeyHelperGoStruct
 // and appends the keys from it to the last entry in the supplied mapPath, which must be a
 // gNMI PathElem message.
@@ -532,9 +512,15 @@ func keyValueAsString(v interface{}) (string, error) {
 		return fmt.Sprintf("%d", v), nil
 	case reflect.String:
 		return v.(string), nil
+	case reflect.Ptr:
+		iv, err := unionPtrValue(kv, false)
+		if err != nil {
+			return "", err
+		}
+		return keyValueAsString(iv)
 	}
 
-	return "", fmt.Errorf("cannot convert type %v to a string for use in a key", kv.Kind())
+	return "", fmt.Errorf("cannot convert type %v to a string for use in a key: %v", kv.Kind(), v)
 }
 
 // sliceToScalarArray takes an input slice of empty interfaces and converts it to
@@ -961,10 +947,12 @@ func keyValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
 	if _, isEnum := v.Interface().(GoEnum); !isEnum {
 		return v.Interface(), nil
 	}
+
 	name, _, err := enumFieldToString(v, appendModuleName)
 	if err != nil {
 		return nil, err
 	}
+
 	return name, nil
 }
 
@@ -1262,25 +1250,43 @@ func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputCo
 // This function extracts field index 0 of the struct within the interface and returns
 // the value.
 func unionInterfaceValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
-	switch {
-	case v.Kind() != reflect.Ptr && v.Kind() != reflect.Interface:
+	if !util.IsValueInterfaceToStructPtr(v) {
 		return nil, fmt.Errorf("received a union type which was invalid: %v", v.Kind())
-	case v.Elem().Kind() != reflect.Ptr:
-		return nil, fmt.Errorf("received a union type which was not a pointer: %v", v.Kind())
-	case v.Elem().Elem().Kind() != reflect.Struct:
-		return nil, fmt.Errorf("received a union type that did not contain a struct: %v", v.Kind())
-	case v.Elem().Elem().NumField() != 1:
+	}
+
+	s := v.Elem().Elem() // Dereference the struct ptr.
+
+	if !util.IsStructValueWithNFields(s, 1) {
 		return nil, fmt.Errorf("received a union type which did not have one field, had: %v", v.Elem().Elem().NumField())
 	}
 
-	i := v.Elem().Elem().Field(0).Interface()
-	if _, isEnum := i.(GoEnum); isEnum {
+	return resolveUnionVal(s.Field(0).Interface(), appendModuleName)
+}
+
+// unionPtrValue returns the value of a union when it is stored as a pointer. The
+// type of the union field is as per the description in unionInterfaceValue. Union
+// pointer values are used when a list is keyed by a union.
+func unionPtrValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
+	if !util.IsValueStructPtr(v) {
+		return nil, fmt.Errorf("received a union pointer that didn't contain a struct, got: %v", v.Kind())
+	}
+
+	if !util.IsStructValueWithNFields(v.Elem(), 1) {
+		return nil, fmt.Errorf("received a union pointer struct that didn't have one field, got: %v", v.Elem().NumField())
+	}
+
+	return resolveUnionVal(v.Elem().Field(0).Interface(), appendModuleName)
+}
+
+// resolveUnionVal returns the value of a field in a union, resolving it to its
+// the relevant type where required.
+func resolveUnionVal(v interface{}, appendModuleName bool) (interface{}, error) {
+	if _, isEnum := v.(GoEnum); isEnum {
 		var err error
-		i, _, err = enumFieldToString(v.Elem().Elem().Field(0), appendModuleName)
+		v, _, err = enumFieldToString(reflect.ValueOf(v), appendModuleName)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	return i, nil
+	return v, nil
 }

@@ -440,71 +440,18 @@ func TestStripPrefix(t *testing.T) {
 	}
 }
 
-func TestInterfacePathAsgNMIPath(t *testing.T) {
-	tests := []struct {
-		name          string
-		in            []interface{}
-		inUsePathElem bool
-		want          *gnmipb.Path
-		wantErr       bool
-	}{{
-		name: "simple path",
-		in:   []interface{}{"one", "two", "three"},
-		want: &gnmipb.Path{
-			Element: []string{"one", "two", "three"},
-		},
-	}, {
-		name: "non-string path",
-		in:   []interface{}{"one", 42, "fourteen thousand eight hundred and twenty three", 42.24},
-		want: &gnmipb.Path{
-			Element: []string{"one", "42", "fourteen thousand eight hundred and twenty three", "42.24"},
-		},
-	}, {
-		name: "pathelem used",
-		in: []interface{}{
-			&gnmipb.PathElem{Name: "a"},
-			&gnmipb.PathElem{Name: "b"},
-		},
-		inUsePathElem: true,
-		want: &gnmipb.Path{
-			Elem: []*gnmipb.PathElem{
-				{Name: "a"},
-				{Name: "b"},
-			},
-		},
-	}, {
-		name: "path elem with key",
-		in: []interface{}{
-			&gnmipb.PathElem{Name: "a", Key: map[string]string{"foo": "bar"}},
-		},
-		inUsePathElem: true,
-		want: &gnmipb.Path{
-			Elem: []*gnmipb.PathElem{{Name: "a", Key: map[string]string{"foo": "bar"}}},
-		},
-	}}
-
-	for _, tt := range tests {
-		got, err := interfacePathAsgNMIPath(tt.in, tt.inUsePathElem)
-		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: interfacePathAsgNMIPath%v, %v): did not get expected error, got: %v, want err: %v", tt.name, tt.in, tt.inUsePathElem, err, tt.wantErr)
-		}
-		if !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("%s: interfacePathAsgNMIPath(%v, %v): did not get correct output, got: %v, want: %v", tt.name, tt.in, tt.inUsePathElem, got, tt.want)
-		}
-	}
-}
-
 type pathElemMultiKey struct {
-	I *int8    `path:"i"`
-	J *uint8   `path:"j"`
-	S *string  `path:"s"`
-	E EnumTest `path:"e"`
+	I *int8              `path:"i"`
+	J *uint8             `path:"j"`
+	S *string            `path:"s"`
+	E EnumTest           `path:"e"`
+	X renderExampleUnion `path:"x"`
 }
 
 func (*pathElemMultiKey) IsYANGGoStruct() {}
 
 func (e *pathElemMultiKey) ΛListKeyMap() (map[string]interface{}, error) {
-	if e.I == nil || e.J == nil || e.S == nil || e.E == (EnumTest)(0) {
+	if e.I == nil || e.J == nil || e.S == nil || e.E == (EnumTest)(0) || e.X == nil {
 		return nil, fmt.Errorf("unset keys")
 	}
 	return map[string]interface{}{
@@ -512,10 +459,13 @@ func (e *pathElemMultiKey) ΛListKeyMap() (map[string]interface{}, error) {
 		"j": *e.J,
 		"s": *e.S,
 		"e": e.E,
+		"x": e.X,
 	}, nil
 }
 
 func TestAppendGNMIPathElemKey(t *testing.T) {
+	c := complex(30, 4)
+
 	tests := []struct {
 		name     string
 		inValue  reflect.Value
@@ -552,6 +502,11 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 		inPath:  &gnmiPath{pathElemPath: []*gnmipb.PathElem{{Name: "bar"}}},
 		wantErr: true,
 	}, {
+		name:    "unserialisable input",
+		inValue: reflect.ValueOf(&pathElemUnserialisable{&c}),
+		inPath:  &gnmiPath{pathElemPath: []*gnmipb.PathElem{{Name: "bar"}}},
+		wantErr: true,
+	}, {
 		name: "simple append",
 		inValue: reflect.ValueOf(&pathElemExampleChild{
 			Val: String("foo"),
@@ -575,6 +530,7 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 			J: Uint8(42),
 			S: String("foo"),
 			E: EnumTestVALTWO,
+			X: &renderExampleUnionString{"hello"},
 		}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
@@ -590,10 +546,41 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 						"j": "42",
 						"s": "foo",
 						"e": "VAL_TWO",
+						"x": "hello",
 					},
 				},
 			},
 		},
+	}, {
+		name: "append with multiple value key, invalid enum value",
+		inValue: reflect.ValueOf(&pathElemMultiKey{
+			I: Int8(-42),
+			J: Uint8(42),
+			S: String("foo"),
+			E: EnumTestVALTHREE,
+			X: &renderExampleUnionString{"hello"},
+		}),
+		inPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{
+				{Name: "foo"},
+			},
+		},
+		wantErr: true,
+	}, {
+		name: "append with multiple value key, invalid union value",
+		inValue: reflect.ValueOf(&pathElemMultiKey{
+			I: Int8(-42),
+			J: Uint8(42),
+			S: String("foo"),
+			E: EnumTestVALTWO,
+			X: &renderExampleUnionInvalid{String: "test"},
+		}),
+		inPath: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{
+				{Name: "foo"},
+			},
+		},
+		wantErr: true,
 	}, {
 		name:    "append with nil key",
 		inValue: reflect.ValueOf(&pathElemMultiKey{}),
@@ -818,6 +805,25 @@ func (p *pathElemExampleChild) ΛListKeyMap() (map[string]interface{}, error) {
 	}
 	return map[string]interface{}{
 		"val": *p.Val,
+	}, nil
+}
+
+// pathElemUnserialisable is an example struct that is used as a list child struct.
+type pathElemUnserialisable struct {
+	Complex *complex128 `path:"complex"`
+}
+
+// IsYANGGoStruct ensures that pathElemUnserialisable implements GoStruct.
+func (*pathElemUnserialisable) IsYANGGoStruct() {}
+
+// ΛListKeyMap ensures that pathElemUnserialisable implements the KeyHelperGoStruct
+// helper.
+func (p *pathElemUnserialisable) ΛListKeyMap() (map[string]interface{}, error) {
+	if p.Complex == nil {
+		return nil, fmt.Errorf("invalid input, key Val was nil")
+	}
+	return map[string]interface{}{
+		"complex": *p.Complex,
 	}, nil
 }
 
@@ -2233,6 +2239,58 @@ func TestUnionInterfaceValue(t *testing.T) {
 
 		if got != tt.want {
 			t.Errorf("%s: unionInterfaceValue(%v): did not get expected value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestUnionPtrValue(t *testing.T) {
+	s := "hello world"
+
+	type twoFieldStruct struct {
+		S string
+		T string
+	}
+
+	type oneFieldEnum struct {
+		E EnumTest
+	}
+
+	tests := []struct {
+		name            string
+		inValue         reflect.Value
+		inAppendModName bool
+		want            interface{}
+		wantErr         bool
+	}{{
+		name:    "simple value ptr",
+		inValue: reflect.ValueOf(&renderExampleUnionString{"one"}),
+		want:    "one",
+	}, {
+		name:    "non-ptr input",
+		inValue: reflect.ValueOf(renderExampleUnionString{"world"}),
+		wantErr: true,
+	}, {
+		name:    "ptr to a non-struct",
+		inValue: reflect.ValueOf(&s),
+		wantErr: true,
+	}, {
+		name:    "two field struct",
+		inValue: reflect.ValueOf(&twoFieldStruct{S: "hello", T: "world"}),
+		wantErr: true,
+	}, {
+		name:    "bad enum value",
+		inValue: reflect.ValueOf(&oneFieldEnum{E: EnumTestVALTHREE}),
+		wantErr: true,
+	}}
+
+	for _, tt := range tests {
+		got, err := unionPtrValue(tt.inValue, tt.inAppendModName)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: unionPtrValue(%v, %v): did not get expected error, got: %v, want error: %v", tt.name, tt.inValue, tt.inAppendModName, err, tt.wantErr)
+		}
+
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("%s: unionPtrValue(%v, %v): did not get expected value, got: %v, want: %v", tt.name, tt.inValue, tt.inAppendModName, got, tt.want)
 		}
 	}
 }
