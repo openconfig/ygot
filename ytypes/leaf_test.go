@@ -15,6 +15,7 @@
 package ytypes
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -23,6 +24,11 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
+)
+
+var (
+	base64testString        = "forty two"
+	base64testStringEncoded = base64.StdEncoding.EncodeToString([]byte(base64testString))
 )
 
 func typeToLeafSchema(name string, t yang.TypeKind) *yang.Entry {
@@ -70,6 +76,16 @@ func TestValidateLeafSchema(t *testing.T) {
 		{
 			desc:    "test nil schema type",
 			schema:  &yang.Entry{Type: nil},
+			wantErr: true,
+		},
+		{
+			desc: "test bad schema type",
+			schema: &yang.Entry{
+				Kind: yang.DirectoryEntry,
+				Type: &yang.YangType{
+					Kind: yang.Ystring,
+				},
+			},
 			wantErr: true,
 		},
 	}
@@ -424,6 +440,7 @@ type Leaf1Container struct {
 	Leaf2 *string `path:"container1/leaf2"`
 	Leaf3 *string `path:"container1/leaf3"`
 	Leaf4 *string `path:"container1/leaf4"`
+	Leaf5 *string `path:"leaf5"`
 }
 
 func (*Leaf1Container) IsYANGGoStruct() {}
@@ -622,6 +639,27 @@ func TestValidateLeafRef(t *testing.T) {
 			},
 		},
 		"container1": fakeRootContainerSchema,
+		"container2": {
+			Name: "container2",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"leaf2": {
+					Name: "leaf2",
+					Type: &yang.YangType{
+						Kind:    yang.Ystring,
+						Pattern: []string{"b.*"},
+					},
+				},
+			},
+		},
+		"leaf5": {
+			Name:   "leaf5",
+			Parent: fakeRootWithList,
+			Type: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "/list-compressed-out/container2/leaf2",
+			},
+		},
 	}
 
 	predicateSchema := &yang.Entry{
@@ -689,6 +727,11 @@ func TestValidateLeafRef(t *testing.T) {
 			desc:   "success absolute leafref with fakeroot",
 			schema: fakeRootContainerSchema,
 			val:    &Leaf1Container{Leaf1: ygot.String("bbb")},
+		},
+		{
+			desc:   "success absolute leafref with fakeroot with compressed root element",
+			schema: fakeRootWithList,
+			val:    &Leaf1Container{Leaf5: ygot.String("bbb")},
 		},
 		{
 			desc:    "bad value",
@@ -795,20 +838,21 @@ func TestRemoveXPATHPredicates(t *testing.T) {
 }
 
 type LeafContainerStruct struct {
-	Int8Leaf   *int8         `path:"int8-leaf"`
-	Uint8Leaf  *uint8        `path:"uint8-leaf"`
-	Int16Leaf  *int16        `path:"int16-leaf"`
-	Uint16Leaf *uint16       `path:"uint16-leaf"`
-	Int32Leaf  *int32        `path:"int32-leaf"`
-	Uint32Leaf *uint32       `path:"uint32-leaf"`
-	Int64Leaf  *int64        `path:"int64-leaf"`
-	Uint64Leaf *uint64       `path:"uint64-leaf"`
-	StringLeaf *string       `path:"string-leaf"`
-	BinaryLeaf []byte        `path:"binary-leaf"`
-	BoolLeaf   *bool         `path:"bool-leaf"`
-	EnumLeaf   EnumType      `path:"enum-leaf"`
-	UnionLeaf  UnionLeafType `path:"union-leaf"`
-	UnionLeaf2 *string       `path:"union-leaf2"`
+	Int8Leaf    *int8         `path:"int8-leaf"`
+	Uint8Leaf   *uint8        `path:"uint8-leaf"`
+	Int16Leaf   *int16        `path:"int16-leaf"`
+	Uint16Leaf  *uint16       `path:"uint16-leaf"`
+	Int32Leaf   *int32        `path:"int32-leaf"`
+	Uint32Leaf  *uint32       `path:"uint32-leaf"`
+	Int64Leaf   *int64        `path:"int64-leaf"`
+	Uint64Leaf  *uint64       `path:"uint64-leaf"`
+	StringLeaf  *string       `path:"string-leaf"`
+	BinaryLeaf  []byte        `path:"binary-leaf"`
+	BoolLeaf    *bool         `path:"bool-leaf"`
+	DecimalLeaf *float64      `path:"decimal-leaf"`
+	EnumLeaf    EnumType      `path:"enum-leaf"`
+	UnionLeaf   UnionLeafType `path:"union-leaf"`
+	UnionLeaf2  *string       `path:"union-leaf2"`
 }
 
 type UnionLeafType interface {
@@ -877,6 +921,11 @@ func TestUnmarshalLeaf(t *testing.T) {
 		wantErr string
 	}{
 		{
+			desc: "nil success",
+			json: `{}`,
+			want: LeafContainerStruct{},
+		},
+		{
 			desc: "int8 success",
 			json: `{"int8-leaf" : -42}`,
 			want: LeafContainerStruct{Int8Leaf: ygot.Int8(-42)},
@@ -896,7 +945,7 @@ func TestUnmarshalLeaf(t *testing.T) {
 			json: `{"uint16-leaf" : 42}`,
 			want: LeafContainerStruct{Uint16Leaf: ygot.Uint16(42)},
 		},
-		{
+		{ // 5
 			desc: "int32 success",
 			json: `{"int32-leaf" : -42}`,
 			want: LeafContainerStruct{Int32Leaf: ygot.Int32(-42)},
@@ -920,6 +969,21 @@ func TestUnmarshalLeaf(t *testing.T) {
 			desc: "enum success",
 			json: `{"enum-leaf" : "E_VALUE_FORTY_TWO"}`,
 			want: LeafContainerStruct{EnumLeaf: 42},
+		},
+		{ // 10
+			desc: "binary success",
+			json: `{"binary-leaf" : "` + base64testStringEncoded + `"}`,
+			want: LeafContainerStruct{BinaryLeaf: []byte(base64testString)},
+		},
+		{
+			desc: "bool success",
+			json: `{"bool-leaf" : true}`,
+			want: LeafContainerStruct{BoolLeaf: ygot.Bool(true)},
+		},
+		{
+			desc: "decimal success",
+			json: `{"decimal-leaf" : "42.42"}`,
+			want: LeafContainerStruct{DecimalLeaf: ygot.Float64(42.42)},
 		},
 		{
 			desc: "union string success",
@@ -1011,12 +1075,36 @@ func TestUnmarshalLeaf(t *testing.T) {
 			json:    `{"union-leaf" : -42}`,
 			wantErr: `could not find suitable union type to unmarshal value -42 type float64 into parent struct type *ytypes.LeafContainerStruct field UnionLeaf`,
 		},
+		{
+			desc:    "binary bad type",
+			json:    `{"binary-leaf" : 42}`,
+			wantErr: `got float64 type for field binary-leaf, expect string`,
+		},
+		{
+			desc:    "bool bad type",
+			json:    `{"bool-leaf" : "true"}`,
+			wantErr: `got string type for field bool-leaf, expect bool`,
+		},
+		{
+			desc:    "decimal bad type",
+			json:    `{"decimal-leaf" : 42.42}`,
+			wantErr: `got float64 type for field decimal-leaf, expect string`,
+		},
 	}
 
 	containerSchema := &yang.Entry{
 		Name: "container-schema",
 		Kind: yang.DirectoryEntry,
-		Dir:  make(map[string]*yang.Entry),
+		Dir: map[string]*yang.Entry{
+			"leaf": {
+				Name: "leaf",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Kind:    yang.Ystring,
+					Pattern: []string{"b+"},
+				},
+			},
+		},
 	}
 
 	unionSchema := &yang.Entry{
@@ -1026,7 +1114,8 @@ func TestUnmarshalLeaf(t *testing.T) {
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
 				{
-					Kind: yang.Ystring,
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
 				},
 				{
 					Kind: yang.Yuint32,
@@ -1036,6 +1125,10 @@ func TestUnmarshalLeaf(t *testing.T) {
 				},
 				{
 					Kind: yang.Yidentityref,
+				},
+				{
+					Kind: yang.Yleafref,
+					Path: "../leaf",
 				},
 			},
 		},
@@ -1073,6 +1166,7 @@ func TestUnmarshalLeaf(t *testing.T) {
 		typeToLeafSchema("string-leaf", yang.Ystring),
 		typeToLeafSchema("binary-leaf", yang.Ybinary),
 		typeToLeafSchema("bool-leaf", yang.Ybool),
+		typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
 		enumLeafSchema,
 		unionSchema,
 		unionNoStructSchema,

@@ -403,10 +403,13 @@ func findLeafRefSchema(schema *yang.Entry, pathStr string) (*yang.Entry, error) 
 		}
 		if refSchema.Dir[pe] == nil {
 			if isFakeRoot(refSchema) {
-				// In the fake root, if we have something at the root of the form /list/container and
-				// schema compression is enabled, then we actually have only 'container' at the fake
-				// root. So we need to check whether there is a child of the name of the subsequent
-				// entry in the path element.
+				// Special handling is required for the fake root, since it
+				// contains only entries for which code is generated. These
+				// would not normally be removed in the schema, but the
+				// schema fakeroot is a special case which is constructed to
+				// contain the generated root elements.
+				// Therefore, need to check the path element also against the
+				// child of the entry.
 				pech, err := stripPrefix(path[i+1])
 				if err != nil {
 					return nil, err
@@ -487,7 +490,10 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}) 
 	if err != nil {
 		return err
 	}
-
+	if ykind == yang.Ybinary {
+		// Binary is a slice field which is treated as a scalar.
+		return util.InsertIntoStruct(parent, fieldName, v)
+	}
 	return util.UpdateField(parent, fieldName, v)
 }
 
@@ -533,22 +539,29 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	dft, _ := parentT.Elem().FieldByName(fieldName)
 	destUnionFieldElemT := dft.Type
 
-	// Separately get the YANG kinds and reflect Types. The latter represent
-	// possible enum types.
-	uks, uts, err := getUnionKindsAndTypes(schema, parentT)
+	// Possible enum types, as []reflect.Type
+	ets, err := schemaToEnumTypes(schema, parentT)
 	if err != nil {
 		return err
 	}
-	util.DbgPrint("possible union types are scalars %v or enums %v", uks, uts)
+	// Possible YANG scalar types, as []yang.TypeKind. This discards any
+	// yang.Type restrictions, since these are expected to be checked during
+	// verification after unmarshal.
+	sks, err := getUnionKindsNotEnums(schema)
+	if err != nil {
+		return err
+	}
+
+	util.DbgPrint("possible union types are enums %v or scalars %v", ets, sks)
 
 	// Special case. If all possible union types map to a single go type, the
 	// GoStruct field is that type rather than a union Interface type.
 	if !util.IsTypeInterface(destUnionFieldElemT) && !util.IsTypeSliceOfInterface(destUnionFieldElemT) {
 		// Is not an interface, we must have exactly one type in the union.
-		if len(uks) != 1 {
-			return fmt.Errorf("got %v types for union schema %s for type %T, expect just one type", uks, fieldName, parent)
+		if len(sks) != 1 {
+			return fmt.Errorf("got %v types for union schema %s for type %T, expect just one type", sks, fieldName, parent)
 		}
-		yk := uks[0]
+		yk := sks[0]
 		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value)
 		if err != nil {
 			return fmt.Errorf("could not unmarshal %v into type %s", value, yk)
@@ -567,9 +580,9 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	// types.
 	valueStr, ok := value.(string)
 	if ok {
-		for _, ut := range uts {
-			util.DbgPrint("try to unmarshal into enum type %s", ut)
-			ev, err := castToEnumValue(ut, valueStr)
+		for _, et := range ets {
+			util.DbgPrint("try to unmarshal into enum type %s", et)
+			ev, err := castToEnumValue(et, valueStr)
 			if err != nil {
 				return err
 			}
@@ -580,13 +593,14 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		}
 	}
 
-	for _, yk := range uks {
-		util.DbgPrint("try to unmarshal into type %s", yk)
-		gv, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value)
+	for _, sk := range sks {
+		util.DbgPrint("try to unmarshal into type %s", sk)
+		sch := yangKindToLeafEntry(sk)
+		gv, err := unmarshalScalar(parent, sch, fieldName, value)
 		if err == nil {
 			return setFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, gv)
 		}
-		util.DbgPrint("could not unmarshal %v into type %s: %s", value, yk, err)
+		util.DbgPrint("could not unmarshal %v into type %s: %s", value, sk, err)
 	}
 
 	return fmt.Errorf("could not find suitable union type to unmarshal value %v type %T into parent struct type %T field %s", value, value, parent, fieldName)
@@ -627,22 +641,6 @@ func setFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT
 	return nil
 }
 
-// getUnionKindsAndTypes returns the YANG kinds of basic types and and
-// reflect.Types of enum types that are possible for values for the union with
-// the given schema and type.
-func getUnionKindsAndTypes(schema *yang.Entry, parentT reflect.Type) ([]yang.TypeKind, []reflect.Type, error) {
-	uks, err := getUnionKindsNotEnums(schema)
-	if err != nil {
-		return nil, nil, err
-	}
-	uts, err := schemaToEnumTypes(schema, parentT)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return uks, uts, nil
-}
-
 // getUnionKindsNotEnums returns all the YANG kinds under the given schema node,
 // dereferencing any refs.
 func getUnionKindsNotEnums(schema *yang.Entry) ([]yang.TypeKind, error) {
@@ -661,8 +659,8 @@ func getUnionKindsNotEnums(schema *yang.Entry) ([]yang.TypeKind, error) {
 	return uks, nil
 }
 
-// getUnionTypesNotEnums returns all the non-enum YANG types under the given schema
-// node, dereferencing any refs.
+// getUnionTypesNotEnums returns all the non-enum YANG types under the given
+// schema node, dereferencing any refs.
 func getUnionTypesNotEnums(schema *yang.Entry, yt *yang.YangType) ([]*yang.YangType, error) {
 	var uts []*yang.YangType
 	switch yt.Kind {

@@ -20,6 +20,7 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.2.
@@ -47,6 +48,8 @@ func validateInt(schema *yang.Entry, value interface{}) error {
 		return err
 	}
 
+	util.DbgPrint("validateInt type %s with value %v", util.YangTypeToDebugString(schema.Type), value)
+
 	kind := schema.Type.Kind
 	ranges := schema.Type.Range
 
@@ -62,7 +65,7 @@ func validateInt(schema *yang.Entry, value interface{}) error {
 		}
 	} else {
 		if !isInRanges(ranges, yang.FromUint(reflect.ValueOf(value).Uint())) {
-			return fmt.Errorf("integer value %v is outside specified ranges for schema %s", value, schema.Name)
+			return fmt.Errorf("unsigned integer value %v is outside specified ranges for schema %s", value, schema.Name)
 		}
 	}
 
@@ -76,6 +79,8 @@ func validateIntSlice(schema *yang.Entry, value interface{}) error {
 	if err := validateIntSchema(schema); err != nil {
 		return err
 	}
+
+	util.DbgPrint("validateIntSlice type %s with value %v", util.YangTypeToDebugString(schema.Type), value)
 
 	kind := schema.Type.Kind
 	val := reflect.ValueOf(value)
