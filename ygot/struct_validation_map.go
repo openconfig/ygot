@@ -402,13 +402,13 @@ func copyStruct(dstVal, srcVal reflect.Value) error {
 // copyPtrField copies srcField to dstField. srcField and dstField must be
 // reflect.Value structs which represent pointers.
 func copyPtrField(dstField, srcField reflect.Value) error {
-	if srcField.IsNil() || !srcField.IsValid() {
-		return nil
-	}
-
 	if !util.IsValuePtr(srcField) {
 		return fmt.Errorf("received non-ptr type: %v", srcField.Kind())
 	}
+
+	if srcField.IsNil() || !srcField.IsValid() {
+		return nil
+  }
 
 	// Check for struct ptr, or ptr to avoid panic.
 	if util.IsValueStructPtr(srcField) {
