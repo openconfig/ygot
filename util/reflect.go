@@ -23,32 +23,60 @@ import (
 
 // IsTypeStructPtr reports whether v is a struct ptr type.
 func IsTypeStructPtr(t reflect.Type) bool {
+	if t == reflect.TypeOf(nil) {
+		return false
+	}
 	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Struct
 }
 
 // IsTypeSlicePtr reports whether v is a slice ptr type.
 func IsTypeSlicePtr(t reflect.Type) bool {
+	if t == reflect.TypeOf(nil) {
+		return false
+	}
 	return t.Kind() == reflect.Ptr && t.Elem().Kind() == reflect.Slice
 }
 
 // IsTypeMap reports whether v is a map type.
 func IsTypeMap(t reflect.Type) bool {
+	if t == reflect.TypeOf(nil) {
+		return false
+	}
 	return t.Kind() == reflect.Map
 }
 
 // IsTypeInterface reports whether v is an interface.
 func IsTypeInterface(t reflect.Type) bool {
+	if t == reflect.TypeOf(nil) {
+		return false
+	}
 	return t.Kind() == reflect.Interface
 }
 
 // IsTypeSliceOfInterface reports whether v is a slice of interface.
 func IsTypeSliceOfInterface(t reflect.Type) bool {
+	if t == reflect.TypeOf(nil) {
+		return false
+	}
 	return t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Interface
 }
 
 // IsNilOrInvalidValue reports whether v is nil or reflect.Zero.
 func IsNilOrInvalidValue(v reflect.Value) bool {
 	return !v.IsValid() || (v.Kind() == reflect.Ptr && v.IsNil()) || IsValueNil(v.Interface())
+}
+
+// IsValueNil is a general purpose nil check for the kinds of value types expected in
+// this package.
+func IsValueNil(value interface{}) bool {
+	if value == nil {
+		return true
+	}
+	switch reflect.TypeOf(value).Kind() {
+	case reflect.Slice, reflect.Ptr, reflect.Map:
+		return reflect.ValueOf(value).IsNil()
+	}
+	return false
 }
 
 // IsValuePtr reports whether v is a ptr type.
@@ -83,22 +111,22 @@ func IsValueSlice(v reflect.Value) bool {
 
 // IsValueScalar reports whether v is a scalar type.
 func IsValueScalar(v reflect.Value) bool {
-	return !IsNilOrInvalidValue(v) && !IsValueStruct(v) && !IsValueStructPtr(v) && !IsValueMap(v) && !IsValueSlice(v)
+	if IsNilOrInvalidValue(v) {
+		return false
+	}
+	if IsValuePtr(v) {
+		if v.IsNil() {
+			return false
+		}
+		v = v.Elem()
+	}
+	return !IsValueStruct(v) && !IsValueMap(v) && !IsValueSlice(v)
 }
 
 // IsInterfaceToStructPtr reports whether v is an interface that contains a pointer
 // to a struct.
 func IsValueInterfaceToStructPtr(v reflect.Value) bool {
 	return IsValueInterface(v) && IsValueStructPtr(v.Elem())
-}
-
-// PtrToValue returns the dereferenced reflect.Value of value if it is a ptr, or
-// value if it is not.
-func PtrToValue(value reflect.Value) reflect.Value {
-	if IsValueStructPtr(value) {
-		return value.Elem()
-	}
-	return value
 }
 
 // IsStructValueWithNFields returns true if the reflect.Value representing a struct
@@ -383,7 +411,7 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 
 	switch {
 	case IsValueStruct(ni.FieldValue) || IsValueStructPtr(ni.FieldValue):
-		structElems := PtrToValue(ni.FieldValue)
+		structElems := derefIfStructPtr(ni.FieldValue)
 		for i := 0; i < structElems.NumField(); i++ {
 			nn := *ni
 			nn.ParentStruct = ni.FieldValue.Interface()
@@ -410,4 +438,13 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	}
 
 	return nil
+}
+
+// derefIfStructPtr returns the dereferenced reflect.Value of value if it is a
+// struct ptr, or value if it is not.
+func derefIfStructPtr(value reflect.Value) reflect.Value {
+	if IsValueStructPtr(value) {
+		return value.Elem()
+	}
+	return value
 }
