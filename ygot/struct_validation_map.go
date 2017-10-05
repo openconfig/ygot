@@ -338,17 +338,27 @@ func MergeStructs(a, b ValidatedGoStruct) (ValidatedGoStruct, error) {
 		return nil, fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", a, b)
 	}
 
-	n := reflect.New(reflect.TypeOf(a).Elem())
-	if err := copyStruct(n.Elem(), reflect.ValueOf(a).Elem()); err != nil {
-		return nil, fmt.Errorf("error merging a to new struct: %v", err)
+	tn, err := DeepCopy(a)
+	if err != nil {
+		return nil, err
 	}
+	n := reflect.ValueOf(tn)
 
 	if err := copyStruct(n.Elem(), reflect.ValueOf(b).Elem()); err != nil {
 		return nil, fmt.Errorf("error merging b to new struct: %v", err)
 	}
 
 	return n.Interface().(ValidatedGoStruct), nil
+}
 
+// DeepCopy returns a deep copy of the supplied GoStruct. A new copy
+// of the GoStruct is created, along with any underlying values.
+func DeepCopy(s GoStruct) (GoStruct, error) {
+	n := reflect.New(reflect.TypeOf(s).Elem())
+	if err := copyStruct(n.Elem(), reflect.ValueOf(s).Elem()); err != nil {
+		return nil, fmt.Errorf("cannot DeepCopy struct: %v", err)
+	}
+	return n.Interface().(GoStruct), nil
 }
 
 // copyStruct copies the fields of srcVal into the dstVal struct in-place.
@@ -396,6 +406,10 @@ func copyPtrField(dstField, srcField reflect.Value) error {
 		return nil
 	}
 
+	if !util.IsValuePtr(srcField) {
+		return fmt.Errorf("received non-ptr type: %v", srcField.Kind())
+	}
+
 	// Check for struct ptr, or ptr to avoid panic.
 	if util.IsValueStructPtr(srcField) {
 		var d reflect.Value
@@ -407,14 +421,10 @@ func copyPtrField(dstField, srcField reflect.Value) error {
 		return nil
 	}
 
-	if util.IsValuePtr(srcField) {
-		p := reflect.New(srcField.Type().Elem())
-		p.Elem().Set(srcField.Elem())
-		dstField.Set(p)
-		return nil
-	}
-
-	return fmt.Errorf("received non-ptr type: %v", srcField.Kind())
+	p := reflect.New(srcField.Type().Elem())
+	p.Elem().Set(srcField.Elem())
+	dstField.Set(p)
+	return nil
 }
 
 // copyInterfaceField copies srcField into dstField. Both srcField and dstField
@@ -439,42 +449,103 @@ func copyInterfaceField(dstField, srcField reflect.Value) error {
 }
 
 // copyMapField copies srcField into dstField. Both srcField and dstField are
-// reflect.Value structs which contain a map value. If dstField is populated
-// then an error is returned.
-// TODO(robjs): Implement merging of maps when they are populated in the dstField
-// supplied. See https://github.com/openconfig/ygot/issues/74.
+// reflect.Value structs which contain a map value. If both srcField and dstField
+// are populated, and have non-overlapping keys, they are merged. If a key exists
+// in both the srcField and dstField map, an error is returned.
+// TODO(robjs): Implement merging maps where there are key values taht overlap.
+//  See https://github.com/openconfig/ygot/issues/74.
 func copyMapField(dstField, srcField reflect.Value) error {
 	if !util.IsValueMap(srcField) {
-		return fmt.Errorf("received a non-map type in copy map field: %v", srcField.Kind())
+		return fmt.Errorf("received a non-map type in src map field: %v", srcField.Kind())
 	}
 
-	if srcField.Len() == 0 {
+	if !util.IsValueMap(dstField) {
+		return fmt.Errorf("received a non-map type in dst map field: %v", dstField.Kind())
+	}
+
+	// Skip cases where there are empty maps in both src and dst.
+	if srcField.Len() == 0 && dstField.Len() == 0 {
 		return nil
 	}
 
-	if dstField.Len() != 0 {
-		return fmt.Errorf("unimplemented: cannot map slice where destination was set: %v == %v", srcField.Type().Name(), dstField.Interface())
+	m, err := validateMap(srcField, dstField)
+	if err != nil {
+		return err
 	}
 
-	keys := srcField.MapKeys()
-	if k := srcField.MapIndex(keys[0]).Kind(); k != reflect.Ptr {
-		return fmt.Errorf("invalid map, got member type %s", k)
-	}
+	srcKeys := srcField.MapKeys()
+	dstKeys := dstField.MapKeys()
 
 	// TODO(robjs): When we move to go1.9+ only support in ygot, we can use the
 	// following to make a map of a particular size.
 	// nm := reflect.MakeMapWithSize(reflect.MapOf((keys[0]).Type(), srcField.MapIndex(keys[0]).Type()), srcField.Len())
-	nm := reflect.MakeMap(reflect.MapOf((keys[0]).Type(), srcField.MapIndex(keys[0]).Type()))
-	for _, k := range keys {
-		v := srcField.MapIndex(k)
-		d := reflect.New(v.Elem().Type())
-		if err := copyStruct(d.Elem(), v.Elem()); err != nil {
-			return err
+	nm := reflect.MakeMap(reflect.MapOf(m.key, m.value))
+
+	mapsToMap := []struct {
+		keys  []reflect.Value
+		field reflect.Value
+	}{
+		{srcKeys, srcField},
+		{dstKeys, dstField},
+	}
+	existingKeys := map[interface{}]bool{}
+
+	for _, m := range mapsToMap {
+		for _, k := range m.keys {
+			// Check that this key has not already been mapped. We do not support
+			// the case where there are overlapping keys.
+			// TODO(robjs): Implement mapping of entities that exist in both maps.
+			if _, ok := existingKeys[k.Interface()]; ok {
+				return fmt.Errorf("cannot map element %v, overlaps in both maps", k.Interface())
+			}
+			existingKeys[k.Interface()] = true
+
+			v := m.field.MapIndex(k)
+			d := reflect.New(v.Elem().Type())
+			if err := copyStruct(d.Elem(), v.Elem()); err != nil {
+				return err
+			}
+			nm.SetMapIndex(k, d)
 		}
-		nm.SetMapIndex(k, d)
 	}
 	dstField.Set(nm)
 	return nil
+}
+
+// mapTypes provides a specification of a map.
+type mapType struct {
+	key   reflect.Type // key is the type of the key of the map.
+	value reflect.Type // value is the type of the value of the map.
+}
+
+// validateMap checks the srcField and dstField reflect.Value structs
+// to ensure that they are valid maps of struct pointers, and that their keys
+// types are the same. It returns a specification of the map type if the maps
+// match.
+func validateMap(srcField, dstField reflect.Value) (*mapType, error) {
+	if s := srcField.Kind(); s != reflect.Map {
+		return nil, fmt.Errorf("invalid src field, was not a map, was: %v", s)
+	}
+
+	if d := dstField.Kind(); d != reflect.Map {
+		return nil, fmt.Errorf("invalid dst field, was not a map, was: %v", d)
+	}
+
+	st, dt := srcField.Type(), dstField.Type()
+	se, de := st.Elem(), dt.Elem()
+	if se != de {
+		return nil, fmt.Errorf("invalid maps, src and dst value types are different, %v != %v", se, de)
+	}
+
+	if !util.IsTypeStructPtr(se) || !util.IsTypeStructPtr(de) {
+		return nil, fmt.Errorf("invalid maps, src or dst does not have a struct ptr element, src: %v, dst: %v", se.Kind(), de.Kind())
+	}
+
+	if sk, dk := st.Key(), dt.Key(); sk != dk {
+		return nil, fmt.Errorf("invalid maps, src and dst key types are different, %v != %v", sk, dk)
+	}
+
+	return &mapType{key: st.Key(), value: st.Elem()}, nil
 }
 
 // copySliceField copies srcField into dstField. Both srcField and dstField
