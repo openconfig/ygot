@@ -408,7 +408,7 @@ func copyPtrField(dstField, srcField reflect.Value) error {
 
 	if srcField.IsNil() || !srcField.IsValid() {
 		return nil
-  }
+	}
 
 	// Check for struct ptr, or ptr to avoid panic.
 	if util.IsValueStructPtr(srcField) {
