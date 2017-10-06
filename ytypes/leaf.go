@@ -712,8 +712,6 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 		return nil, fmt.Errorf("%s ΛEnumTypes function returned wrong type %T, want map[string][]reflect.Type", t, ei)
 	}
 
-	util.DbgPrint("path is %s for schema %s", absoluteSchemaDataPath(schema), schema.Name)
-
 	return enumTypesMap[absoluteSchemaDataPath(schema)], nil
 }
 
