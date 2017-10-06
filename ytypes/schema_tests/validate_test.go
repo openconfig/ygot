@@ -400,10 +400,11 @@ func TestValidateRoutingPolicy(t *testing.T) {
 
 func TestUnmarshal(t *testing.T) {
 	tests := []struct {
-		desc         string
-		jsonFilePath string
-		parent       ygot.ValidatedGoStruct
-		wantErr      string
+		desc              string
+		jsonFilePath      string
+		dontAppendModName bool
+		parent            ygot.ValidatedGoStruct
+		wantErr           string
 	}{
 		{
 			desc:         "basic",
@@ -431,19 +432,21 @@ func TestUnmarshal(t *testing.T) {
 			parent:       &oc.Device{},
 		},
 		{
-			desc:         "components example",
-			jsonFilePath: "components-example.json",
-			parent:       &oc.Device{},
+			desc:              "components example",
+			jsonFilePath:      "components-example.json",
+			dontAppendModName: true,
+			parent:            &oc.Device{},
 		},
 	}
 
-	emitJSONConfig := &ygot.EmitJSONConfig{
-		Format: ygot.RFC7951,
-		RFC7951Config: &ygot.RFC7951JSONConfig{
-			AppendModuleName: true,
-		}}
-
 	for _, tt := range tests {
+
+		emitJSONConfig := &ygot.EmitJSONConfig{
+			Format: ygot.RFC7951,
+			RFC7951Config: &ygot.RFC7951JSONConfig{
+				AppendModuleName: !tt.dontAppendModName,
+			}}
+
 		j, err := ioutil.ReadFile(filepath.Join(testRoot, "testdata", tt.jsonFilePath))
 		if err != nil {
 			t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.desc, tt.jsonFilePath, err)

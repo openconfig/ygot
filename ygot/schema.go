@@ -47,6 +47,7 @@ func GzipToSchema(gzj []byte) (map[string]*yang.Entry, error) {
 	for _, n := range nentries {
 		rebuildSchemaMap(n, nil, schema)
 	}
+
 	return schema, nil
 }
 
