@@ -916,6 +916,13 @@ func serialiseStructDefinitions(structs map[string]*yangDirectory, generateFakeR
 			"schemapath": e.entry.Path(),
 			"structname": e.name,
 		}
+
+		for _, ch := range children(e.entry) {
+			ch.Annotation = map[string]interface{}{
+				"schemapath": ch.Path(),
+			}
+		}
+
 		if e.isFakeRoot {
 			entries[e.name].Annotation["isFakeRoot"] = true
 		}
