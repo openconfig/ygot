@@ -34,8 +34,9 @@ func errToString(err error) string {
 }
 
 type ContainerStruct struct {
-	Leaf1Name *string `path:"config/leaf1|leaf1"`
-	Leaf2Name *string `path:"leaf2"`
+	Leaf1Name   *string `path:"config/leaf1|leaf1"`
+	Leaf2Name   *string `path:"leaf2"`
+	BadLeafName *string `path:"bad-leaf"`
 }
 
 func (c *ContainerStruct) IsYANGGoStruct() {}
@@ -95,6 +96,12 @@ func TestValidateContainerSchema(t *testing.T) {
 	}
 }
 
+type BadStruct struct {
+	UnknownName *string `path:"unknown"`
+}
+
+func (*BadStruct) IsYANGGoStruct() {}
+
 func TestValidateContainer(t *testing.T) {
 	containerSchema := &yang.Entry{
 		Name: "container-schema",
@@ -117,47 +124,56 @@ func TestValidateContainer(t *testing.T) {
 		},
 	}
 
-	type BadStruct struct {
-		UnknownName *string `path:"unknown"`
-	}
-
 	tests := []struct {
 		desc    string
 		schema  *yang.Entry
 		val     interface{}
-		wantErr bool
+		wantErr string
 	}{
 		{
-			desc: "success",
+			desc: "success with nil",
+			val:  nil,
+		},
+		{
+			desc:   "success",
+			schema: containerSchema,
 			val: &ContainerStruct{
 				Leaf1Name: ygot.String("Leaf1Value"),
 				Leaf2Name: ygot.String("Leaf2Value"),
 			},
 		},
 		{
+			desc:   "bad field",
+			schema: containerSchema,
+			val: &ContainerStruct{
+				BadLeafName: ygot.String("value"),
+			},
+			wantErr: `fields [BadLeafName] are not found in the container schema container-schema`,
+		},
+		{
 			desc:    "bad value type",
 			schema:  containerSchema,
 			val:     int(1),
-			wantErr: true,
+			wantErr: `type int is not a GoStruct for schema container-schema`,
 		},
 		{
 			desc:    "bad schema",
 			schema:  nil,
 			val:     int(1),
-			wantErr: true,
+			wantErr: `nil schema for type int, value 1`,
 		},
 		{
 			desc:    "missing key",
 			schema:  containerSchema,
 			val:     &BadStruct{UnknownName: ygot.String("Unknown")},
-			wantErr: true,
+			wantErr: `fields [UnknownName] are not found in the container schema container-schema`,
 		},
 	}
 
 	for _, test := range tests {
-		err := Validate(containerSchema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: Validate got error: %v, wanted error? %v", test.desc, err, test.wantErr)
+		err := Validate(test.schema, test.val)
+		if got, want := errToString(err), test.wantErr; got != want {
+			t.Errorf("%s: got error: %v, wanted error? %v", test.desc, got, want)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -225,10 +241,22 @@ func TestUnmarshalContainer(t *testing.T) {
 		wantErr string
 	}{
 		{
+			desc:   "success nil value",
+			schema: containerSchema,
+			json:   ``,
+			want:   &ParentContainerStruct{},
+		},
+		{
 			desc:   "success",
 			schema: containerSchema,
 			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } } }`,
 			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
+		},
+		{
+			desc:    "nil schema",
+			schema:  nil,
+			json:    `{}`,
+			wantErr: `nil schema for parent type *ytypes.ParentContainerStruct, value map[] (map[string]interface {})`,
 		},
 		{
 			desc:    "bad field name",
@@ -248,8 +276,10 @@ func TestUnmarshalContainer(t *testing.T) {
 	for _, test := range tests {
 		var parent ParentContainerStruct
 
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("json unmarshal (%s) : %s", test.desc, err))
+		if test.json != "" {
+			if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
+				t.Fatal(fmt.Sprintf("json unmarshal (%s) : %s", test.desc, err))
+			}
 		}
 
 		err := Unmarshal(test.schema, &parent, jsonTree)
@@ -262,5 +292,13 @@ func TestUnmarshalContainer(t *testing.T) {
 				t.Errorf("%s: got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
 			}
 		}
+	}
+
+	var parent ParentContainerStruct
+	badJSONTree := []interface{}{}
+
+	wantErrStr := `unmarshalContainer for schema parent-field: jsonTree [] (type slice): got type []interface {} inside container, expect map[string]interface{}`
+	if got, want := errToString(Unmarshal(containerSchema, &parent, badJSONTree)), wantErrStr; got != want {
+		t.Errorf("Unmarshal container with bad json : got error: %s, want error: %s", got, want)
 	}
 }

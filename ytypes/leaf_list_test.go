@@ -84,31 +84,36 @@ func TestValidateLeafList(t *testing.T) {
 		desc    string
 		schema  *yang.Entry
 		val     interface{}
-		wantErr bool
+		wantErr string
 	}{
+		{
+			desc:   "success nil value",
+			schema: leafListSchema,
+			val:    nil,
+		},
 		{
 			desc:   "success",
 			schema: leafListSchema,
 			val:    []string{"test1", "test2"},
 		},
 		{
-			desc:    "bad schema",
+			desc:    "nil schema",
 			schema:  nil,
 			val:     []string{"test1"},
-			wantErr: true,
+			wantErr: `nil schema for type []string, value [test1]`,
 		},
 		{
 			desc:    "bad struct fields",
 			schema:  leafListSchema,
 			val:     []int32{1},
-			wantErr: true,
+			wantErr: `non string type int32 with value 1 for schema leaf-list-schema`,
 		},
 	}
 
 	for _, test := range tests {
 		err := Validate(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: b.Validate(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+		if got, want := errToString(err), test.wantErr; got != want {
+			t.Errorf("%s: Validate(%v) got error: %v, wanted error? %v", test.desc, test.val, got, want)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -145,6 +150,11 @@ func TestUnmarshalLeafList(t *testing.T) {
 		wantErr string
 	}{
 		{
+			desc: "nil success",
+			json: ``,
+			want: ContainerStruct{},
+		},
+		{
 			desc: "int32 success",
 			json: `{ "int32-leaf-list" : [-42, 0, 42] }`,
 			want: ContainerStruct{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
@@ -170,8 +180,10 @@ func TestUnmarshalLeafList(t *testing.T) {
 	for _, test := range tests {
 		var parent ContainerStruct
 
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
+		if test.json != "" {
+			if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
+				t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
+			}
 		}
 
 		err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
@@ -184,5 +196,15 @@ func TestUnmarshalLeafList(t *testing.T) {
 				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
 			}
 		}
+	}
+
+	var parent ContainerStruct
+	badJSONTree := map[string]interface{}{
+		"int32-leaf-list": map[string]interface{}{},
+	}
+
+	wantErrStr := `unmarshalLeafList for schema int32-leaf-list: value map[] (type map): got type map[string]interface {}, expect []interface{}`
+	if got, want := errToString(Unmarshal(containerWithLeafListSchema, &parent, badJSONTree)), wantErrStr; got != want {
+		t.Errorf("Unmarshal leaf-list with bad json : got error: %s, want error: %s", got, want)
 	}
 }

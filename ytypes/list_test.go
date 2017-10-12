@@ -140,31 +140,46 @@ func TestValidateListNoKey(t *testing.T) {
 		desc    string
 		schema  *yang.Entry
 		val     interface{}
-		wantErr bool
+		wantErr string
 	}{
+		{
+			desc:   "success with nil value",
+			schema: listSchema,
+			val:    nil,
+		},
 		{
 			desc:   "success",
 			schema: listSchema,
 			val:    []*StringListElemStruct{{LeafName: ygot.String("elem1_leaf_name")}},
 		},
 		{
-			desc:    "bad schema",
+			desc:   "success with list element",
+			schema: listSchema,
+			val:    &StringListElemStruct{LeafName: ygot.String("elem1_leaf_name")},
+		},
+		{
+			desc:    "nil schema",
 			schema:  nil,
-			val:     []*StringListElemStruct{{LeafName: ygot.String("elem1_leaf_name")}},
-			wantErr: true,
+			val:     1,
+			wantErr: `nil schema for type int, value 1`,
 		},
 		{
 			desc:    "bad field",
 			schema:  listSchema,
 			val:     []*BadElemStruct{{UnknownName: ygot.String("elem1_leaf_name")}},
-			wantErr: true,
+			wantErr: `child schema not found for struct list-schema field UnknownName`,
+		},
+		{
+			desc:   "failure with list element",
+			schema: listSchema,
+			val:    &StringListElemStruct{LeafName: ygot.String("elem1_leaf_name")},
 		},
 	}
 
 	for _, test := range tests {
 		err := Validate(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: b.Validate(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+		if got, want := errToString(err), test.wantErr; got != want {
+			t.Errorf("%s: Validate got error: %v, want error: %v", test.desc, got, want)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -361,13 +376,21 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 
 	tests := []struct {
 		desc    string
+		schema  *yang.Entry
 		json    string
 		want    ContainerStruct
 		wantErr string
 	}{
 		{
-			desc: "success",
-			json: `{"struct-list" : [ { "leaf-field" : 42, "enum-leaf-field" : "E_VALUE_FORTY_TWO"} ] }`,
+			desc:   "success with nil value",
+			schema: containerWithLeafListSchema,
+			json:   ``,
+			want:   ContainerStruct{},
+		},
+		{
+			desc:   "success",
+			schema: containerWithLeafListSchema,
+			json:   `{"struct-list" : [ { "leaf-field" : 42, "enum-leaf-field" : "E_VALUE_FORTY_TWO"} ] }`,
 			want: ContainerStruct{
 				StructList: []*ListElemStruct{
 					{
@@ -377,17 +400,32 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc:    "nil schema error",
+			schema:  nil,
+			json:    `{}`,
+			want:    ContainerStruct{},
+			wantErr: `nil schema for parent type *ytypes.ContainerStruct, value map[] (map[string]interface {})`,
+		},
+		{
+			desc:    "bad value type",
+			schema:  containerWithLeafListSchema,
+			json:    `{"struct-list" : { "leaf-field" : 42 } }`,
+			wantErr: `unmarshalList for schema struct-list: jsonList map[leaf-field:42] (type map): got type map[string]interface {}, expect []interface{}`,
+		},
 	}
 
 	var jsonTree interface{}
 	for _, test := range tests {
 		var parent ContainerStruct
 
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
+		if test.json != "" {
+			if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
+				t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
+			}
 		}
 
-		err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
+		err := Unmarshal(test.schema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
 			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
 		}

@@ -405,18 +405,6 @@ func removeRootPrefix(path []string) []string {
 	return path[2:]
 }
 
-// mapValueNoPrefix returns the map value matching the key in the absence of
-// module prefixes in either the provided key or the map key.
-func mapValueNoPrefix(t map[string]interface{}, key string) (interface{}, bool) {
-	for k, v := range t {
-		if stripModulePrefix(k) == stripModulePrefix(key) {
-			return v, true
-		}
-	}
-
-	return nil, false
-}
-
 // resolveLeafRef returns a ptr to the schema pointed to by the provided leaf-ref
 // schema. It returns schema itself if schema is not a leaf-ref.
 func resolveLeafRef(schema *yang.Entry) (*yang.Entry, error) {
