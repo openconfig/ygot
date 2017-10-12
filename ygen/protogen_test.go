@@ -1475,7 +1475,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	for _, tt := range tests {
 		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, err, tt.wantErr)
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, err, tt.wantErr)
 		}
 
 		if err != nil {
