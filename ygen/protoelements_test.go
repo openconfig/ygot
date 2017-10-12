@@ -222,6 +222,30 @@ func TestYangTypeToProtoType(t *testing.T) {
 		wantWrapper: &mappedType{nativeType: "basePackage.enumPackage.TestModuleBaseIdentity", isEnumeratedValue: true},
 		wantSame:    true,
 	}, {
+		name: "identityref with underscore in identity name",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{Kind: yang.Yidentityref, Name: "identityref"},
+			contextEntry: &yang.Entry{
+				Name: "identityref",
+				Type: &yang.YangType{
+					Name: "identityref",
+					IdentityBase: &yang.Identity{
+						Name: "BASE_IDENTITY",
+						Parent: &yang.Module{
+							Name: "test-module",
+						},
+					},
+				},
+				Node: &yang.Leaf{
+					Parent: &yang.Module{
+						Name: "test-module",
+					},
+				},
+			},
+		}},
+		wantWrapper: &mappedType{nativeType: "basePackage.enumPackage.TestModuleBASEIDENTITY", isEnumeratedValue: true},
+		wantSame:    true,
+	}, {
 		name: "single type union with scalars requested",
 		in: []resolveTypeArgs{{
 			yangType: &yang.YangType{

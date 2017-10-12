@@ -1,0 +1,57 @@
+module proto-enums {
+  prefix "p";
+  namespace "urn:p";
+
+  identity BASE_IDENTITY;
+  identity DERIVED_IDENTITY {
+    base BASE_IDENTITY;
+  }
+
+  typedef enum-typedef {
+    type enumeration {
+      enum A_VAL;
+    }
+  }
+
+  typedef enum-union-typedef {
+    type union {
+      type enumeration {
+        enum B_VAL;
+      }
+    }
+  }
+
+  typedef union-identityref-typedef {
+    type union {
+      type identityref {
+        base BASE_IDENTITY;
+      }
+    }
+  }
+
+  container a {
+    leaf a {
+      type enumeration {
+        enum C_VAL;
+      }
+    }
+
+    leaf b {
+      type identityref {
+        base BASE_IDENTITY;
+      }
+    }
+
+    leaf c {
+      type enum-typedef;
+    }
+
+    leaf d {
+      type enum-union-typedef;
+    }
+
+    leaf e {
+      type union-identityref-typedef;
+    }
+  }
+}
