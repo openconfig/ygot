@@ -537,7 +537,7 @@ func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]stri
 			// the name of the identities that correspond with the base, and the value
 			// is gleaned from the YANG schema.
 			values := map[int64]protoEnumValue{
-				0: protoEnumValue{ProtoLabel: protoEnumZeroName},
+				0: {ProtoLabel: protoEnumZeroName},
 			}
 
 			// Ensure that we output the identity values in a determinstic order.
