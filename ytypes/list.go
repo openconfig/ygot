@@ -399,9 +399,9 @@ func unmarshalContainerWithListSchema(schema *yang.Entry, parent interface{}, va
 	}
 	// Create a container equivalent of the list, which is just the list
 	// with ListAttrs unset.
-	newSchema := schema
+	newSchema := *schema
 	newSchema.ListAttr = nil
-	return Unmarshal(newSchema, parent, value)
+	return Unmarshal(&newSchema, parent, value)
 }
 
 // getKeyValue returns the value from the structVal field whose last path

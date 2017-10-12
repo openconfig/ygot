@@ -1,0 +1,10 @@
+module proto-enums-addid {
+  prefix "pi";
+  namespace "urn:pi";
+
+  import proto-enums { prefix pe; }
+
+  identity REMOTE_IDENTITY {
+    base pe:BASE_IDENTITY;
+  }
+}

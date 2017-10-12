@@ -13,13 +13,13 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 // Config represents the /proto-test-c/entity/config YANG schema element.
 message Config {
   enum EnumeratedLeaf {
-    EnumeratedLeaf_UNSET = 0;
-    EnumeratedLeaf_UP = 1;
-    EnumeratedLeaf_DOWN = 2;
+    ENUMERATEDLEAF_UNSET = 0;
+    ENUMERATEDLEAF_UP = 1;
+    ENUMERATEDLEAF_DOWN = 2;
   }
   enum EnumeratedWithDefault {
-    EnumeratedWithDefault_A = 0;
-    EnumeratedWithDefault_B = 2;
+    ENUMERATEDWITHDEFAULT_A = 0;
+    ENUMERATEDWITHDEFAULT_B = 2;
   }
   EnumeratedLeaf enumerated_leaf = 10800442;
   EnumeratedWithDefault enumerated_with_default = 83098118;
@@ -28,13 +28,13 @@ message Config {
 // State represents the /proto-test-c/entity/state YANG schema element.
 message State {
   enum EnumeratedLeaf {
-    EnumeratedLeaf_UNSET = 0;
-    EnumeratedLeaf_UP = 1;
-    EnumeratedLeaf_DOWN = 2;
+    ENUMERATEDLEAF_UNSET = 0;
+    ENUMERATEDLEAF_UP = 1;
+    ENUMERATEDLEAF_DOWN = 2;
   }
   enum EnumeratedWithDefault {
-    EnumeratedWithDefault_A = 0;
-    EnumeratedWithDefault_B = 2;
+    ENUMERATEDWITHDEFAULT_A = 0;
+    ENUMERATEDWITHDEFAULT_B = 2;
   }
   EnumeratedLeaf enumerated_leaf = 247899547;
   EnumeratedWithDefault enumerated_with_default = 82519423;
