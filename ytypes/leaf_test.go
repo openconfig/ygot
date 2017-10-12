@@ -945,7 +945,7 @@ func TestUnmarshalLeaf(t *testing.T) {
 			json: `{"uint16-leaf" : 42}`,
 			want: LeafContainerStruct{Uint16Leaf: ygot.Uint16(42)},
 		},
-		{ // 5
+		{
 			desc: "int32 success",
 			json: `{"int32-leaf" : -42}`,
 			want: LeafContainerStruct{Int32Leaf: ygot.Int32(-42)},
@@ -970,7 +970,7 @@ func TestUnmarshalLeaf(t *testing.T) {
 			json: `{"enum-leaf" : "E_VALUE_FORTY_TWO"}`,
 			want: LeafContainerStruct{EnumLeaf: 42},
 		},
-		{ // 10
+		{
 			desc: "binary success",
 			json: `{"binary-leaf" : "` + base64testStringEncoded + `"}`,
 			want: LeafContainerStruct{BinaryLeaf: []byte(base64testString)},

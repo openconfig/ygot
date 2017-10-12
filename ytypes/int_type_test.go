@@ -251,7 +251,7 @@ func TestValidateInt(t *testing.T) {
 			inValues:  []int64{-10, -7, -5, -3, -2, 0, 5, 10},
 			outValues: []int64{-11, -4, 11},
 		},
-		{ // 5
+		{
 			desc: "ranges [-,-], [+,+]",
 			ranges: yang.YangRange{
 				yang.YRange{Min: yang.FromInt(-10), Max: yang.FromInt(-5)},
@@ -296,7 +296,7 @@ func TestValidateInt(t *testing.T) {
 			inValues:  []int64{-10, -7, -5, 0, 5, 10},
 			outValues: []int64{-11, -4, -1, 11},
 		},
-		{ // 10
+		{
 			desc: "ranges [-inf,-], [0,+]",
 			ranges: yang.YangRange{
 				yang.YRange{Min: util.YangMinNumber, Max: yang.FromInt(-5)},
