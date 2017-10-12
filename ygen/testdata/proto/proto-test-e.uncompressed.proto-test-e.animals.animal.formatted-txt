@@ -13,10 +13,10 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 // Config represents the /proto-test-e/animals/animal/config YANG schema element.
 message Config {
   enum Species {
-    Species_UNSET = 0;
-    Species_TAXIDEA_TAXUS = 1;
-    Species_CERVUS_CANADENSIS = 2;
-    Species_OVIS_CANADENSIS = 3;
+    SPECIES_UNSET = 0;
+    SPECIES_TAXIDEA_TAXUS = 1;
+    SPECIES_CERVUS_CANADENSIS = 2;
+    SPECIES_OVIS_CANADENSIS = 3;
   }
   ywrapper.StringValue name = 249571319;
   oneof species {
@@ -28,10 +28,10 @@ message Config {
 // State represents the /proto-test-e/animals/animal/state YANG schema element.
 message State {
   enum Species {
-    Species_UNSET = 0;
-    Species_TAXIDEA_TAXUS = 1;
-    Species_CERVUS_CANADENSIS = 2;
-    Species_OVIS_CANADENSIS = 3;
+    SPECIES_UNSET = 0;
+    SPECIES_TAXIDEA_TAXUS = 1;
+    SPECIES_CERVUS_CANADENSIS = 2;
+    SPECIES_OVIS_CANADENSIS = 3;
   }
   ywrapper.StringValue name = 140365706;
   oneof species {

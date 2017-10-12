@@ -773,9 +773,9 @@ message MessageName {
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
   enum Enum {
-    Enum_UNSET = 0;
-    Enum_ONE = 2;
-    Enum_FORTYTWO = 43;
+    ENUM_UNSET = 0;
+    ENUM_ONE = 2;
+    ENUM_FORTYTWO = 43;
   }
   Enum enum = 278979784;
 }
@@ -787,9 +787,9 @@ message MessageName {
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
   enum Enum {
-    Enum_UNSET = 0;
-    Enum_ONE = 2;
-    Enum_FORTYTWO = 43;
+    ENUM_UNSET = 0;
+    ENUM_ONE = 2;
+    ENUM_FORTYTWO = 43;
   }
   Enum enum = 278979784;
 }

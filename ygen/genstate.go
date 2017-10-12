@@ -394,7 +394,7 @@ func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity, noUnderscor
 	}
 	var name string
 	if noUnderscores {
-		name = fmt.Sprintf("%s%s", yang.CamelCase(definingModName), yang.CamelCase(i.Name))
+		name = fmt.Sprintf("%s%s", yang.CamelCase(definingModName), strings.Replace(yang.CamelCase(i.Name), "_", "", -1))
 	} else {
 		name = fmt.Sprintf("%s_%s", yang.CamelCase(definingModName), yang.CamelCase(i.Name))
 	}

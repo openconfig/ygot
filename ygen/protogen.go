@@ -146,7 +146,7 @@ message {{ .Name }} {
 {{- range $ename, $enum := .Enums }}
   enum {{ $ename }} {
     {{- range $i, $val := $enum.Values }}
-    {{ $ename }}_{{ $val }} = {{ $i }};
+    {{ toUpper $ename }}_{{ $val }} = {{ $i }};
     {{- end }}
   }
 {{- end -}}
@@ -533,7 +533,7 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 				values[int64(i)+1] = n
 			}
 			p.Values = values
-			p.ValuePrefix = enum.name
+			p.ValuePrefix = strings.ToUpper(enum.name)
 			p.Description = fmt.Sprintf("YANG identity %s", enum.entry.Type.IdentityBase.Name)
 		case enum.entry.Type.Kind == yang.Yenum:
 			ge, err := genProtoEnum(enum.entry)
@@ -545,13 +545,13 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 
 			// If the supplied enum entry has the valuePrefix annotation then use it to
 			// calculate the enum value names.
-			p.ValuePrefix = enum.name
+			p.ValuePrefix = strings.ToUpper(enum.name)
 			if e, ok := enum.entry.Annotation["valuePrefix"]; ok {
 				t, ok := e.([]string)
 				if ok {
 					pp := []string{}
 					for _, pe := range t {
-						pp = append(pp, safeProtoIdentifierName(yang.CamelCase(pe)))
+						pp = append(pp, strings.ToUpper(safeProtoIdentifierName(yang.CamelCase(pe))))
 					}
 					p.ValuePrefix = strings.Join(pp, "_")
 				}

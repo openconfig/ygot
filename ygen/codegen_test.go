@@ -818,6 +818,14 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_union_list_key.routing_policy.policies.policy": filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.policies.policy.formatted-txt"),
 			"openconfig.proto_union_list_key.routing_policy.sets":            filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.sets.formatted-txt"),
 		},
+	}, {
+		name:     "yang schema with various types of enums with underscores",
+		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-enums.yang")},
+		inConfig: GeneratorConfig{},
+		wantOutputFiles: map[string]string{
+			"openconfig.enums":       filepath.Join(TestRoot, "testdata", "proto", "proto-enums.enums.formatted-txt"),
+			"openconfig.proto_enums": filepath.Join(TestRoot, "testdata", "proto", "proto-enums.formatted-txt"),
+		},
 	}}
 
 	for _, tt := range tests {

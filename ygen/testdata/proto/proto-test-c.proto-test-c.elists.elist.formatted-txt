@@ -13,10 +13,10 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 // Config represents the /proto-test-c/elists/elist/config YANG schema element.
 message Config {
   enum One {
-    One_UNSET = 0;
-    One_E0 = 1;
-    One_E1 = 2;
-    One_E42 = 43;
+    ONE_UNSET = 0;
+    ONE_E0 = 1;
+    ONE_E1 = 2;
+    ONE_E42 = 43;
   }
   ywrapper.StringValue non_key = 460983769;
   One one = 441760514;
@@ -26,10 +26,10 @@ message Config {
 // State represents the /proto-test-c/elists/elist/state YANG schema element.
 message State {
   enum One {
-    One_UNSET = 0;
-    One_E0 = 1;
-    One_E1 = 2;
-    One_E42 = 43;
+    ONE_UNSET = 0;
+    ONE_E0 = 1;
+    ONE_E1 = 2;
+    ONE_E42 = 43;
   }
   ywrapper.StringValue non_key = 139458606;
   One one = 199644645;

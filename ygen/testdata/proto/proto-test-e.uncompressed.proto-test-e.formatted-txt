@@ -31,10 +31,10 @@ message Animals {
 // BarKey represents the /proto-test-e/bars/bar YANG schema element.
 message BarKey {
   enum Baz {
-    Baz_UNSET = 0;
-    Baz_X = 1;
-    Baz_Y = 2;
-    Baz_Z = 3;
+    BAZ_UNSET = 0;
+    BAZ_X = 1;
+    BAZ_Y = 2;
+    BAZ_Z = 3;
   }
   oneof baz {
     Baz baz_baz = 429379036;
@@ -51,9 +51,9 @@ message Bars {
 // FooKey represents the /proto-test-e/foos/foo YANG schema element.
 message FooKey {
   enum Bar {
-    Bar_UNSET = 0;
-    Bar_A = 1;
-    Bar_B = 2;
+    BAR_UNSET = 0;
+    BAR_A = 1;
+    BAR_B = 2;
   }
   Bar bar = 1;
   openconfig.proto_test_e.foos.Foo foo = 2;

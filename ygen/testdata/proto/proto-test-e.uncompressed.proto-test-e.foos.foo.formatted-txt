@@ -13,9 +13,9 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 // Config represents the /proto-test-e/foos/foo/config YANG schema element.
 message Config {
   enum Bar {
-    Bar_UNSET = 0;
-    Bar_A = 1;
-    Bar_B = 2;
+    BAR_UNSET = 0;
+    BAR_A = 1;
+    BAR_B = 2;
   }
   Bar bar = 508444297;
   ywrapper.StringValue baz = 508444289;
@@ -24,9 +24,9 @@ message Config {
 // State represents the /proto-test-e/foos/foo/state YANG schema element.
 message State {
   enum Bar {
-    Bar_UNSET = 0;
-    Bar_A = 1;
-    Bar_B = 2;
+    BAR_UNSET = 0;
+    BAR_A = 1;
+    BAR_B = 2;
   }
   Bar bar = 169576570;
   ywrapper.StringValue baz = 169576562;
