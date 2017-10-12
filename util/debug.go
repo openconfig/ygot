@@ -121,3 +121,19 @@ func SchemaTypeStr(schema *yang.Entry) string {
 	}
 	return "other"
 }
+
+// SchemaTreeString returns the schema hierarchy tree as a string with node
+// names and types only e.g.
+// clock (container)
+//   timezone (choice)
+//     timezone-name (case)
+//       timezone-name (leaf)
+//     timezone-utc-offset (case)
+//       timezone-utc-offset (leaf)
+func SchemaTreeString(schema *yang.Entry, prefix string) string {
+	out := prefix + schema.Name + " (" + SchemaTypeStr(schema) + ")" + "\n"
+	for _, ch := range schema.Dir {
+		out += SchemaTreeString(ch, prefix+"  ")
+	}
+	return out
+}
