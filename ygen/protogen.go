@@ -86,7 +86,7 @@ type protoMsg struct {
 
 // protoMsgEnum represents an embedded enumeration within a protobuf message.
 type protoMsgEnum struct {
-	Values map[int64]protoEnumValue // The values that the enumerated type can take.
+	Values map[int64]protoEnumValue // Values that the enumerated type can take.
 }
 
 // protoEnumValue describes a value within a Protobuf enumeration.
@@ -514,12 +514,11 @@ type protoDefinitionArgs struct {
 	annotateEnumNames   bool                      // annotateEnumNames defines whether values within enumerations should be annotated with their original name in the YANG schema.
 }
 
-// writeProtoEnums takes a map of enumerations, described as yangEnum structs,
-// and returns the mapped protobuf enum definition that is required. If the
-// annotateEnumNames bool is set it stores the enum name used in the input YANG
-// schema for each value. It skips any identified enumerated type that is a
-// simple enumerated leaf, as these are output as embedded enumerations within
-// each message. It returns a slice of strings containing the generated code.
+// writeProtoEnums takes a map of enumerated types within the YANG schema and
+// returns the mapped Protobuf enum definition corresponding to each type. If
+// the annotateEnumNames bool is set, then the original enum value label is
+// stored in the definition. Since leaves that are of type enumeration are
+// output directly within a Protobuf message, these are skipped.
 func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]string, []error) {
 	var errs []error
 	var genEnums []string
@@ -933,7 +932,7 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 
 // enumInProtoUnionField parses an enum that is within a union and returns the generated
 // enumeration that should be included within a protobuf message for it. If annotateEnumNames
-// is set to true, included enumerated value's original names are stored.
+// is set to true, the enumerated value's original names are stored.
 func enumInProtoUnionField(name string, types []*yang.YangType, annotateEnumNames bool) (map[string]*protoMsgEnum, error) {
 	enums := map[string]*protoMsgEnum{}
 	for _, t := range types {
@@ -964,7 +963,8 @@ type protoUnionField struct {
 
 // unionFieldToOneOf takes an input name, a yang.Entry containing a field definition and a mappedType
 // containing the proto type that the entry has been mapped to, and returns a definition of a union
-// field within the protobuf message.
+// field within the protobuf message. If the annotateEnumNames boolean is set, then any enumerated types
+// within the union have their original names within the YANG schema appended.
 func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType, annotateEnumNames bool) (*protoUnionField, error) {
 	enums, err := enumInProtoUnionField(fieldName, e.Type.Type, annotateEnumNames)
 	if err != nil {
