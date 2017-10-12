@@ -826,6 +826,21 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.enums":       filepath.Join(TestRoot, "testdata", "proto", "proto-enums.enums.formatted-txt"),
 			"openconfig.proto_enums": filepath.Join(TestRoot, "testdata", "proto", "proto-enums.formatted-txt"),
 		},
+	}, {
+		name: "yang schema with identity that adds to previous module",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata", "proto", "proto-enums.yang"),
+			filepath.Join(TestRoot, "testdata", "proto", "proto-enums-addid.yang"),
+		},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames: true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig.enums":       filepath.Join(TestRoot, "testdata", "proto", "proto-enums-addid.enums.formatted-txt"),
+			"openconfig.proto_enums": filepath.Join(TestRoot, "testdata", "proto", "proto-enums-addid.formatted-txt"),
+		},
 	}}
 
 	for _, tt := range tests {

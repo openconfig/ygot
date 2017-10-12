@@ -3,6 +3,7 @@
 //
 // Input schema modules:
 //  - testdata/proto/proto-enums.yang
+//  - testdata/proto/proto-enums-addid.yang
 syntax = "proto3";
 
 package openconfig.enums;
@@ -13,11 +14,12 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 // ProtoEnumsBASEIDENTITY represents an enumerated type generated for the YANG identity BASE_IDENTITY.
 enum ProtoEnumsBASEIDENTITY {
   PROTOENUMSBASEIDENTITY_UNSET = 0;
-  PROTOENUMSBASEIDENTITY_DERIVED_IDENTITY = 191733515;
+  PROTOENUMSBASEIDENTITY_DERIVED_IDENTITY = 191733515 [(yext.yang_name) = "DERIVED_IDENTITY"];
+  PROTOENUMSBASEIDENTITY_REMOTE_IDENTITY = 494029318 [(yext.yang_name) = "REMOTE_IDENTITY"];
 }
 
 // ProtoEnumsEnumTypedef represents an enumerated type generated for the YANG enumerated type enum-typedef.
 enum ProtoEnumsEnumTypedef {
   PROTOENUMSENUMTYPEDEF_UNSET = 0;
-  PROTOENUMSENUMTYPEDEF_A_VAL = 1;
+  PROTOENUMSENUMTYPEDEF_A_VAL = 1 [(yext.yang_name) = "A_VAL"];
 }

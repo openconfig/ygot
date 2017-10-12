@@ -81,21 +81,27 @@ type protoMsg struct {
 	YANGPath string                   // YANGPath stores the path that the message corresponds to within the YANG schema.
 	Fields   []*protoMsgField         // Fields is a slice of the fields that are within the message.
 	Imports  []string                 // Imports is a slice of strings that contains the relative import paths that are required by this message.
-	Enums    map[string]*protoMsgEnum // Embedded enumerations within the message.
+	Enums    map[string]*protoMsgEnum // Enums lists the embedded enumerations within the message.
 }
 
 // protoMsgEnum represents an embedded enumeration within a protobuf message.
 type protoMsgEnum struct {
-	Values map[int64]string // The values that the enumerated type can take.
+	Values map[int64]protoEnumValue // The values that the enumerated type can take.
+}
+
+// protoEnumValue describes a value within a Protobuf enumeration.
+type protoEnumValue struct {
+	ProtoLabel string // ProtoLabel is the label that should be used for the value in the protobuf.
+	YANGLabel  string // YANGLabel is the label that was originally specified in the YANG schema.
 }
 
 // protoEnum represents an enumeration that is defined at the root of a protobuf
 // package.
 type protoEnum struct {
-	Name        string           // Name is the enumeration's name within the protobuf package.
-	Description string           // Description is a string description of the enumerated type within the YANG schema, used in comments.
-	Values      map[int64]string // Values contains the string names, keyed by enum value, that the enumerated type can take.
-	ValuePrefix string           // ValuePrefix contains the string prefix that should be prepended to each value within the enumerated type.
+	Name        string                   // Name is the enumeration's name within the protobuf package.
+	Description string                   // Description is a string description of the enumerated type within the YANG schema, used in comments.
+	Values      map[int64]protoEnumValue // Values contains the string names, keyed by enum value, that the enumerated type can take.
+	ValuePrefix string                   // ValuePrefix contains the string prefix that should be prepended to each value within the enumerated type.
 }
 
 // proto3Header describes the header of a Protobuf3 package.
@@ -146,7 +152,9 @@ message {{ .Name }} {
 {{- range $ename, $enum := .Enums }}
   enum {{ $ename }} {
     {{- range $i, $val := $enum.Values }}
-    {{ toUpper $ename }}_{{ $val }} = {{ $i }};
+    {{ toUpper $ename }}_{{ $val.ProtoLabel }} = {{ $i }}
+    {{- if ne $val.YANGLabel "" }} [(yext.yang_name) = "{{ $val.YANGLabel }}"]{{ end -}}
+    ;
     {{- end }}
   }
 {{- end -}}
@@ -184,7 +192,9 @@ message {{ .Name }} {
 {{- range $ename, $enum := .Enums }}
   enum {{ $ename }} {
     {{- range $i, $val := $enum.Values }}
-    {{ toUpper $ename }}_{{ $val }} = {{ $i }};
+    {{ toUpper $ename }}_{{ $val.ProtoLabel }} = {{ $i }}
+    {{- if ne $val.YANGLabel "" }} [(yext.yang_name) = "{{ $val.YANGLabel }}"]{{ end -}}
+    ;
     {{- end }}
   }
 {{- end -}}
@@ -218,7 +228,9 @@ message {{ .Name }} {
 // {{ .Name }} represents an enumerated type generated for the {{ .Description }}.
 enum {{ .Name }} {
 {{- range $i, $val := .Values }}
-  {{ toUpper $.ValuePrefix }}_{{ $val }} = {{ $i }};
+  {{ toUpper $.ValuePrefix }}_{{ $val.ProtoLabel }} = {{ $i }}
+  {{- if ne $val.YANGLabel "" }} [(yext.yang_name) = "{{ $val.YANGLabel }}"]{{ end -}}
+  ;
 {{- end }}
 }
 `
@@ -268,6 +280,7 @@ type protoMsgConfig struct {
 	enumPackageName     string // enumPackageName specifies the package in which global enum definitions are specified.
 	baseImportPath      string // baseImportPath specifies the path that should be used for importing the generated files.
 	annotateSchemaPaths bool   // annotateSchemaPaths uses the yext protobuf field extensions to annotate the paths from the schema into the output protobuf.
+	annotateEnumNames   bool   // annotateEnumNames uses the yext protobuf enum value extensions to annoate the original YANG name for an enum into the output protobuf.
 }
 
 // writeProto3Message outputs the generated Protobuf3 code for a particular protobuf message. It takes:
@@ -381,6 +394,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				basePackageName:     cfg.basePackageName,
 				baseImportPath:      cfg.baseImportPath,
 				annotateSchemaPaths: cfg.annotateSchemaPaths,
+				annotateEnumNames:   cfg.annotateEnumNames,
 			})
 
 			if err != nil {
@@ -422,6 +436,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				state:             state,
 				basePackageName:   cfg.basePackageName,
 				enumPackageName:   cfg.enumPackageName,
+				annotateEnumNames: cfg.annotateEnumNames,
 			})
 
 			if err != nil {
@@ -496,13 +511,16 @@ type protoDefinitionArgs struct {
 	baseImportPath      string                    // baseImportPath is the path to be used as the root for imports of generated packages.
 	compressPaths       bool                      // compressPaths defines whether path compression is enabled for the current code generation context.
 	annotateSchemaPaths bool                      // annotateSchemaPaths defines whether fields should have their schema path annotated to them.
+	annotateEnumNames   bool                      // annotateEnumNames defines whether values within enumerations should be annotated with their original name in the YANG schema.
 }
 
-// writeProtoEnums takes a map of enumerations, described as yangEnum structs, and returns
-// the mapped protobuf enum definition that is required. It skips any identified enumerated
-// type that is a simple enumerated leaf, as these are output as embedded enumerations within
+// writeProtoEnums takes a map of enumerations, described as yangEnum structs,
+// and returns the mapped protobuf enum definition that is required. If the
+// annotateEnumNames bool is set it stores the enum name used in the input YANG
+// schema for each value. It skips any identified enumerated type that is a
+// simple enumerated leaf, as these are output as embedded enumerations within
 // each message. It returns a slice of strings containing the generated code.
-func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
+func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]string, []error) {
 	var errs []error
 	var genEnums []string
 	for _, enum := range enums {
@@ -518,25 +536,34 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 			// For an identityref the values are based on
 			// the name of the identities that correspond with the base, and the value
 			// is gleaned from the YANG schema.
-			values := map[int64]string{0: "UNSET"}
+			values := map[int64]protoEnumValue{
+				0: protoEnumValue{ProtoLabel: protoEnumZeroName},
+			}
 
-			// TODO(robjs): Implement a consistent approach for enumeration values.
-			// This approach will cause issues when there is an entry added which
-			// causes an entry earlier in the sequence than others.
+			// Ensure that we output the identity values in a determinstic order.
+			nameMap := map[string]*yang.Identity{}
 			names := []string{}
 			for _, v := range enum.entry.Type.IdentityBase.Values {
-				names = append(names, strings.ToUpper(safeProtoIdentifierName(v.Name)))
+				names = append(names, v.Name)
+				nameMap[v.Name] = v
 			}
-			sort.Strings(names)
 
-			for i, n := range names {
-				values[int64(i)+1] = n
+			for _, n := range names {
+				v := nameMap[n]
+				// Calculate a tag value for the identity values, since otherwise when another
+				// module augments this module then the enum values may be subject to change.
+				tag, err := fieldTag(fmt.Sprintf("%s%s", enum.entry.Type.IdentityBase.Name, v.Name))
+				if err != nil {
+					errs = append(errs, fmt.Errorf("cannot calculate tag for %s: %v", v.Name, err))
+				}
+
+				values[int64(tag)] = toProtoEnumValue(strings.ToUpper(safeProtoIdentifierName(v.Name)), v.Name, annotateEnumNames)
 			}
 			p.Values = values
 			p.ValuePrefix = strings.ToUpper(enum.name)
 			p.Description = fmt.Sprintf("YANG identity %s", enum.entry.Type.IdentityBase.Name)
 		case enum.entry.Type.Kind == yang.Yenum:
-			ge, err := genProtoEnum(enum.entry)
+			ge, err := genProtoEnum(enum.entry, annotateEnumNames)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -581,16 +608,19 @@ func writeProtoEnums(enums map[string]*yangEnum) ([]string, []error) {
 
 // genProtoEnum takes an input yang.Entry that contains an enumerated type
 // and returns a protoMsgEnum that contains its definition within the proto
-// schema.
-func genProtoEnum(field *yang.Entry) (*protoMsgEnum, error) {
-	eval := map[int64]string{}
+// schema. If the annotateEnumNames bool is set, then the original YANG name
+// is stored with each enum value.
+func genProtoEnum(field *yang.Entry, annotateEnumNames bool) (*protoMsgEnum, error) {
+	eval := map[int64]protoEnumValue{}
 	names := field.Type.Enum.NameMap()
-	eval[0] = protoEnumZeroName
+	eval[0] = protoEnumValue{ProtoLabel: protoEnumZeroName}
+
 	if d := field.DefaultValue(); d != "" {
 		if _, ok := names[d]; !ok {
 			return nil, fmt.Errorf("enumeration %s specified a default - %s - that was not a valid value", field.Path(), d)
 		}
-		eval[0] = d
+
+		eval[0] = toProtoEnumValue(safeProtoIdentifierName(d), d, annotateEnumNames)
 	}
 
 	for n := range names {
@@ -601,12 +631,9 @@ func genProtoEnum(field *yang.Entry) (*protoMsgEnum, error) {
 		}
 		// Names are converted to upper case to follow the protobuf style guide,
 		// adding one to ensure that the 0 value can represent unused values.
-		eval[field.Type.Enum.Value(n)+1] = safeProtoIdentifierName(n)
+		eval[field.Type.Enum.Value(n)+1] = toProtoEnumValue(safeProtoIdentifierName(n), n, annotateEnumNames)
 	}
 
-	// TODO(robjs): Embed an option into the message such that we can persist
-	// the eval map -- this would allow a consumer to be able to map back to the
-	// string that is in the YANG schema.
 	return &protoMsgEnum{Values: eval}, nil
 }
 
@@ -645,6 +672,7 @@ func protoListDefinition(args protoDefinitionArgs) (string, *protoMsg, error) {
 			enumPackageName:     args.enumPackageName,
 			baseImportPath:      args.baseImportPath,
 			annotateSchemaPaths: args.annotateSchemaPaths,
+			annotateEnumNames:   args.annotateEnumNames,
 		})
 		if err != nil {
 			return "", nil, fmt.Errorf("proto: could not build mapping for list entry %s: %v", args.field.Path(), err)
@@ -690,7 +718,7 @@ func protoLeafDefinition(leafName string, args protoDefinitionArgs) (*protoDefin
 	case isSimpleEnumerationType(args.field.Type):
 		// For fields that are simple enumerations within a message, then we embed an enumeration
 		// within the Protobuf message.
-		e, err := genProtoEnum(args.field)
+		e, err := genProtoEnum(args.field, args.annotateEnumNames)
 		if err != nil {
 			return nil, err
 		}
@@ -701,7 +729,7 @@ func protoLeafDefinition(leafName string, args protoDefinitionArgs) (*protoDefin
 	case isEnumType(args.field.Type):
 		d.globalEnum = true
 	case isUnionType(args.field.Type) && protoType.unionTypes != nil:
-		u, err := unionFieldToOneOf(leafName, args.field, protoType)
+		u, err := unionFieldToOneOf(leafName, args.field, protoType, args.annotateEnumNames)
 		if err != nil {
 			return nil, err
 		}
@@ -723,6 +751,18 @@ func protoLeafDefinition(leafName string, args protoDefinitionArgs) (*protoDefin
 	}
 
 	return d, nil
+}
+
+// toProtoEnumValue takes an input enum definition - with a protobuf and YANG label, and returns
+// a protoEnumValue. The YANGLabel is only stored if annotateEnumValues is set.
+func toProtoEnumValue(protoName, yangName string, annotateEnumValues bool) protoEnumValue {
+	ev := protoEnumValue{
+		ProtoLabel: protoName,
+	}
+	if annotateEnumValues {
+		ev.YANGLabel = yangName
+	}
+	return ev
 }
 
 // safeProtoIdentifierName takes an input string which represents the name of a YANG schema
@@ -843,7 +883,7 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 		}
 		switch {
 		case enumEntry != nil:
-			enum, err := genProtoEnum(enumEntry)
+			enum, err := genProtoEnum(enumEntry, args.annotateEnumNames)
 			if err != nil {
 				return nil, fmt.Errorf("error generating type for list %s key %s, type %v", args.field.Path(), k, enumEntry.Type)
 			}
@@ -852,7 +892,7 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 			km.Enums[tn] = enum
 		case unionEntry != nil:
 			fd.IsOneOf = true
-			u, err := unionFieldToOneOf(fd.Name, kf, scalarType)
+			u, err := unionFieldToOneOf(fd.Name, kf, scalarType, args.annotateEnumNames)
 			if err != nil {
 				return nil, fmt.Errorf("error generating type for union list key %s in list %s", k, args.field.Path())
 			}
@@ -892,8 +932,9 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 }
 
 // enumInProtoUnionField parses an enum that is within a union and returns the generated
-// enumeration that should be included within a protobuf message for it.
-func enumInProtoUnionField(name string, types []*yang.YangType) (map[string]*protoMsgEnum, error) {
+// enumeration that should be included within a protobuf message for it. If annotateEnumNames
+// is set to true, included enumerated value's original names are stored.
+func enumInProtoUnionField(name string, types []*yang.YangType, annotateEnumNames bool) (map[string]*protoMsgEnum, error) {
 	enums := map[string]*protoMsgEnum{}
 	for _, t := range types {
 		if isSimpleEnumerationType(t) {
@@ -901,7 +942,7 @@ func enumInProtoUnionField(name string, types []*yang.YangType) (map[string]*pro
 			enum, err := genProtoEnum(&yang.Entry{
 				Name: n,
 				Type: t,
-			})
+			}, annotateEnumNames)
 			if err != nil {
 				return nil, err
 			}
@@ -924,8 +965,8 @@ type protoUnionField struct {
 // unionFieldToOneOf takes an input name, a yang.Entry containing a field definition and a mappedType
 // containing the proto type that the entry has been mapped to, and returns a definition of a union
 // field within the protobuf message.
-func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType) (*protoUnionField, error) {
-	enums, err := enumInProtoUnionField(fieldName, e.Type.Type)
+func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType, annotateEnumNames bool) (*protoUnionField, error) {
+	enums, err := enumInProtoUnionField(fieldName, e.Type.Type, annotateEnumNames)
 	if err != nil {
 		return nil, err
 	}

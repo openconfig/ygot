@@ -1197,10 +1197,11 @@ func TestWriteProtoEnums(t *testing.T) {
 	}
 
 	tests := []struct {
-		name      string
-		inEnums   map[string]*yangEnum
-		wantEnums []string
-		wantErr   bool
+		name                string
+		inEnums             map[string]*yangEnum
+		inAnnotateEnumNames bool
+		wantEnums           []string
+		wantErr             bool
 	}{{
 		name: "skipped enumeration type",
 		inEnums: map[string]*yangEnum{
@@ -1239,8 +1240,8 @@ func TestWriteProtoEnums(t *testing.T) {
 // EnumeratedValue represents an enumerated type generated for the YANG identity IdentityValue.
 enum EnumeratedValue {
   ENUMERATEDVALUE_UNSET = 0;
-  ENUMERATEDVALUE_VALUE_A = 1;
-  ENUMERATEDVALUE_VALUE_B = 2;
+  ENUMERATEDVALUE_VALUE_A = 321526273;
+  ENUMERATEDVALUE_VALUE_B = 321526274;
 }
 `,
 		},
@@ -1276,27 +1277,28 @@ enum EnumeratedValue {
 				},
 			},
 		},
+		inAnnotateEnumNames: true,
 		wantEnums: []string{
 			`
 // EnumName represents an enumerated type generated for the YANG enumerated type typedef.
 enum EnumName {
   ENUMNAME_UNSET = 0;
-  ENUMNAME_SPEED_2_5G = 1;
-  ENUMNAME_SPEED_40G = 2;
+  ENUMNAME_SPEED_2_5G = 1 [(yext.yang_name) = "SPEED_2.5G"];
+  ENUMNAME_SPEED_40G = 2 [(yext.yang_name) = "SPEED_40G"];
 }
 `, `
 // SecondEnum represents an enumerated type generated for the YANG enumerated type derived.
 enum SecondEnum {
   SECONDENUM_UNSET = 0;
-  SECONDENUM_VALUE_1 = 1;
-  SECONDENUM_VALUE_2 = 2;
+  SECONDENUM_VALUE_1 = 1 [(yext.yang_name) = "VALUE_1"];
+  SECONDENUM_VALUE_2 = 2 [(yext.yang_name) = "VALUE_2"];
 }
 `,
 		},
 	}}
 
 	for _, tt := range tests {
-		got, err := writeProtoEnums(tt.inEnums)
+		got, err := writeProtoEnums(tt.inEnums, tt.inAnnotateEnumNames)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: writeProtoEnums(%v): did not get expected error, got: %v", tt.name, tt.inEnums, err)
 		}
@@ -1329,14 +1331,15 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		inName          string
-		inEntry         *yang.Entry
-		inMappedType    *mappedType
-		wantFields      []*protoMsgField
-		wantEnums       map[string]*protoMsgEnum
-		wantRepeatedMsg *protoMsg
-		wantErr         bool
+		name                string
+		inName              string
+		inEntry             *yang.Entry
+		inMappedType        *mappedType
+		inAnnotateEnumNames bool
+		wantFields          []*protoMsgField
+		wantEnums           map[string]*protoMsgEnum
+		wantRepeatedMsg     *protoMsg
+		wantErr             bool
 	}{{
 		name:   "simple string union",
 		inName: "FieldName",
@@ -1415,6 +1418,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				"string":       1,
 			},
 		},
+		inAnnotateEnumNames: true,
 		wantFields: []*protoMsgField{{
 			Tag:  29065580,
 			Name: "FieldName_someenumtype",
@@ -1426,10 +1430,10 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		}},
 		wantEnums: map[string]*protoMsgEnum{
 			"FieldName": {
-				Values: map[int64]string{
-					0: "UNSET",
-					1: "SPEED_2_5G",
-					2: "SPEED_40G",
+				Values: map[int64]protoEnumValue{
+					0: {ProtoLabel: "UNSET"},
+					1: {ProtoLabel: "SPEED_2_5G", YANGLabel: "SPEED_2.5G"},
+					2: {ProtoLabel: "SPEED_40G", YANGLabel: "SPEED_40G"},
 				},
 			},
 		},
@@ -1469,9 +1473,9 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType)
+		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, err, tt.wantErr)
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, err, tt.wantErr)
 		}
 
 		if err != nil {
@@ -1479,15 +1483,15 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(got.oneOfFields, tt.wantFields); diff != "" {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected set of fields, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, diff)
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected set of fields, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, diff)
 		}
 
 		if diff := pretty.Compare(got.enums, tt.wantEnums); diff != "" {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected set of enums, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, diff)
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected set of enums, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, diff)
 		}
 
 		if diff := pretty.Compare(got.repeatedMsg, tt.wantRepeatedMsg); diff != "" {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v): did not get expected repeated message, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, diff)
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected repeated message, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, diff)
 		}
 	}
 }
