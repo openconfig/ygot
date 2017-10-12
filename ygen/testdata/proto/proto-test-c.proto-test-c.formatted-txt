@@ -15,10 +15,10 @@ import "openconfig/proto_test_c/entity.proto";
 // ElistKey represents the /proto-test-c/elists/elist YANG schema element.
 message ElistKey {
   enum One {
-    One_UNSET = 0;
-    One_E0 = 1;
-    One_E1 = 2;
-    One_E42 = 43;
+    ONE_UNSET = 0;
+    ONE_E0 = 1;
+    ONE_E1 = 2;
+    ONE_E42 = 43;
   }
   One one = 1;
   string two = 2;

@@ -122,7 +122,7 @@ func SchemaTypeStr(schema *yang.Entry) string {
 	return "other"
 }
 
-// YangTypeToDebugString returns a
+// YangTypeToDebugString returns a debug string representation of a YangType.
 func YangTypeToDebugString(yt *yang.YangType) string {
 	out := fmt.Sprintf("(TypeKind: %s", yang.TypeKindToName[yt.Kind])
 	if len(yt.Pattern) != 0 {
@@ -132,4 +132,20 @@ func YangTypeToDebugString(yt *yang.YangType) string {
 		out += fmt.Sprintf(", Range: %s", yt.Range.String())
 	}
 	return out + ")"
+}
+
+// SchemaTreeString returns the schema hierarchy tree as a string with node
+// names and types only e.g.
+// clock (container)
+//   timezone (choice)
+//     timezone-name (case)
+//       timezone-name (leaf)
+//     timezone-utc-offset (case)
+//       timezone-utc-offset (leaf)
+func SchemaTreeString(schema *yang.Entry, prefix string) string {
+	out := prefix + schema.Name + " (" + SchemaTypeStr(schema) + ")" + "\n"
+	for _, ch := range schema.Dir {
+		out += SchemaTreeString(ch, prefix+"  ")
+	}
+	return out
 }

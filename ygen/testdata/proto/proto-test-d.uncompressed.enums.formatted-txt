@@ -20,6 +20,6 @@ enum ProtoTestDATypedef {
 // ProtoTestDFOO represents an enumerated type generated for the YANG identity FOO.
 enum ProtoTestDFOO {
   PROTOTESTDFOO_UNSET = 0;
-  PROTOTESTDFOO_BAR = 1;
-  PROTOTESTDFOO_BAZ = 2;
+  PROTOTESTDFOO_BAR = 174869410;
+  PROTOTESTDFOO_BAZ = 174869418;
 }

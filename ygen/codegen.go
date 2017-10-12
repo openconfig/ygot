@@ -126,8 +126,14 @@ type ProtoOpts struct {
 	YextPath string
 	// AnnotateSchemaPaths specifies whether the extensions defined in
 	// yext.proto should be used to annotate schema paths into the output
-	// protobuf file.
+	// protobuf file. See
+	// https://github.com/openconfig/ygot/blob/master/docs/yang-to-protobuf-transformations-spec.md#annotation-of-schema-paths
 	AnnotateSchemaPaths bool
+	// AnnotateEnumNames specifies whether the extensions defined in
+	// yext.proto should be used to annotate enum values with their
+	// original YANG names in the output protobuf file.
+	// See https://github.com/openconfig/ygot/blob/master/docs/yang-to-protobuf-transformations-spec.md#annotation-of-enums
+	AnnotateEnumNames bool
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -452,7 +458,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
-	protoEnums, errs := writeProtoEnums(penums)
+	protoEnums, errs := writeProtoEnums(penums, cg.Config.ProtoOptions.AnnotateEnumNames)
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
@@ -522,6 +528,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			enumPackageName:     enumPackageName,
 			baseImportPath:      cg.Config.ProtoOptions.BaseImportPath,
 			annotateSchemaPaths: cg.Config.ProtoOptions.AnnotateSchemaPaths,
+			annotateEnumNames:   cg.Config.ProtoOptions.AnnotateEnumNames,
 		})
 
 		if errs != nil {
