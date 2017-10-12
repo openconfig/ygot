@@ -22,7 +22,7 @@ import (
 )
 
 func TestDataSchemaTreesString(t *testing.T) {
-	containerWithLeafListSchema := &yang.Entry{
+	containerWithListSchema := &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
@@ -71,7 +71,7 @@ func TestDataSchemaTreesString(t *testing.T) {
 		},
 	}
 
-	got := DataSchemaTreesString(containerWithLeafListSchema, container)
+	got := DataSchemaTreesString(containerWithListSchema, container)
 	want := ` [container (container)]
   KeyList [key-list (list)]
   keyval1

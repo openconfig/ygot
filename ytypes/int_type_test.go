@@ -384,8 +384,8 @@ func TestValidateUint(t *testing.T) {
 		},
 	}
 
-	//yangIntTypes := []yang.TypeKind{yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64}
-	yangIntTypes := []yang.TypeKind{yang.Yuint8}
+	yangIntTypes := []yang.TypeKind{yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64}
+	//yangIntTypes := []yang.TypeKind{yang.Yuint8}
 
 	// Bad schema type.
 	if err := validateInt(typeAndRangeToIntSchema("bad-schema", yang.Ystring, nil), nil); err == nil {
