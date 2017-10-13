@@ -43,6 +43,7 @@ var (
 	generateFakeRoot    = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. The fake root's name can be controlled with the fakeroot_name flag.")
 	fakeRootName        = flag.String("fakeroot_name", "Device", "The name of the fake root entity.")
 	annotateSchemaPaths = flag.Bool("add_schemapaths", true, "If set to true, the schema path of each YANG entity is added as a protobuf field option")
+	annotateEnumNames   = flag.Bool("add_enumnames", true, "If set to true, each value within output enums will be annotated with the label in the original YANG schema.")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
@@ -100,6 +101,7 @@ func main() {
 			YwrapperPath:        *ywrapperPath,
 			YextPath:            *yextPath,
 			AnnotateSchemaPaths: *annotateSchemaPaths,
+			AnnotateEnumNames:   *annotateEnumNames,
 		},
 	})
 
