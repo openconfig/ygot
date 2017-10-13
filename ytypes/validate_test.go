@@ -114,7 +114,7 @@ func TestValidate(t *testing.T) {
 		desc    string
 		val     interface{}
 		schema  *yang.Entry
-		wantErr bool
+		wantErr string
 	}{
 		{
 			desc:   "leaf",
@@ -154,17 +154,17 @@ func TestValidate(t *testing.T) {
 			val:    &Case1Leaf1ChoiceStruct{Case1Leaf1: ygot.String("Case1Leaf1Value")},
 		},
 		{
-			desc:    "unsupported schema",
-			schema:  &yang.Entry{Kind: yang.DirectoryEntry},
-			val:     ygot.String(""),
-			wantErr: true,
+			desc:    "choice schema not allowed",
+			schema:  &yang.Entry{Kind: yang.ChoiceEntry, Name: "choice"},
+			val:     &EmptyContainerStruct{},
+			wantErr: `cannot pass choice schema choice to Validate`,
 		},
 	}
 
 	for _, test := range tests {
 		err := Validate(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: Validate got error: %v, wanted error? %v", test.desc, err, test.wantErr)
+		if got, want := errToString(err), test.wantErr; got != want {
+			t.Errorf("%s: Validate got error: %s, want error: %s", test.desc, got, want)
 		}
 		testErrLog(t, test.desc, err)
 	}
