@@ -334,7 +334,9 @@ func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *g
 // code representing it. It uses the set of messages that have been extracted and the
 // current generator state to map to other messages and ensure uniqueness of names.
 // The configuration parameters for the current code generation required are supplied
-// as a protoMsgConfig struct.
+// as a protoMsgConfig struct. The parentPkg argument specifies the name of the parent
+// package for the protobuf message(s) that are being generated, such that relative
+// paths can be used in the messages.
 // TODO(robjs): Split the logic of this function into multiple subfunctions.
 func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg protoMsgConfig, parentPkg string) ([]protoMsg, []error) {
 	var errs []error
