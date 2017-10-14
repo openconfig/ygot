@@ -13,6 +13,6 @@ import "openconfig/proto_test_c/elists/elist.proto";
 
 // Elist represents the /proto-test-c/elists/elist YANG schema element.
 message Elist {
-  openconfig.proto_test_c.elists.elist.Config config = 319399671;
-  openconfig.proto_test_c.elists.elist.State state = 267339816;
+  elist.Config config = 319399671;
+  elist.State state = 267339816;
 }

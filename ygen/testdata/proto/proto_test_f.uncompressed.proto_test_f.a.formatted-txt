@@ -14,7 +14,7 @@ import "openconfig/proto_test_f/a/c.proto";
 // EKey represents the /proto-test-f/a/c/e YANG schema element.
 message EKey {
   string f = 1 [(yext.schemapath) = "/a/c/e/f"];
-  openconfig.proto_test_f.a.c.E e = 2;
+  c.E e = 2;
 }
 
 // C represents the /proto-test-f/a/c YANG schema element.

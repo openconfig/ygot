@@ -20,7 +20,7 @@ message AnimalKey {
     Species species_species = 379647774;
     string species_string = 155124263;
   }
-  openconfig.proto_test_e.animals.Animal animal = 2;
+  animals.Animal animal = 2;
 }
 
 // Animals represents the /proto-test-e/animals YANG schema element.
@@ -40,7 +40,7 @@ message BarKey {
     Baz baz_baz = 429379036;
     string baz_string = 333826994;
   }
-  openconfig.proto_test_e.bars.Bar bar = 2;
+  bars.Bar bar = 2;
 }
 
 // Bars represents the /proto-test-e/bars YANG schema element.
@@ -56,7 +56,7 @@ message FooKey {
     BAR_B = 2;
   }
   Bar bar = 1;
-  openconfig.proto_test_e.foos.Foo foo = 2;
+  foos.Foo foo = 2;
 }
 
 // Foos represents the /proto-test-e/foos YANG schema element.
@@ -66,6 +66,6 @@ message Foos {
 
 // Test represents the /proto-test-e/test YANG schema element.
 message Test {
-  openconfig.proto_test_e.test.Config config = 18200749;
-  openconfig.proto_test_e.test.State state = 138259042;
+  test.Config config = 18200749;
+  test.State state = 138259042;
 }

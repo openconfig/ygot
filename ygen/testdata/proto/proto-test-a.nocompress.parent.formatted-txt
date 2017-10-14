@@ -13,6 +13,6 @@ import "openconfig/proto_test_a/parent/child.proto";
 
 // Child represents the /proto-test-a/parent/child YANG schema element.
 message Child {
-  openconfig.proto_test_a.parent.child.Config config = 45155888;
-  openconfig.proto_test_a.parent.child.State state = 236795049;
+  child.Config config = 45155888;
+  child.State state = 236795049;
 }

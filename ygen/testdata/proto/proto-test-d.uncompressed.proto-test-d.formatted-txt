@@ -13,6 +13,6 @@ import "openconfig/proto_test_d/test.proto";
 
 // Test represents the /proto-test-d/test YANG schema element.
 message Test {
-  openconfig.proto_test_d.test.Config config = 95205528;
-  openconfig.proto_test_d.test.State state = 392556081;
+  test.Config config = 95205528;
+  test.State state = 392556081;
 }

@@ -293,11 +293,6 @@ type protoMsgConfig struct {
 //  name of the package it is within, the code for the message, and any imports for packages that are referenced by
 //  the message.
 func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg protoMsgConfig) (*generatedProto3Message, []error) {
-	msgDefs, errs := genProto3Msg(msg, msgs, state, cfg)
-	if errs != nil {
-		return nil, errs
-	}
-
 	var pkg string
 	switch {
 	case msg.isFakeRoot:
@@ -310,6 +305,11 @@ func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *g
 		// been seen in the schema, the same package name as for siblings of this
 		// entry will be returned.
 		pkg = state.protobufPackage(msg.entry, cfg.compressPaths)
+	}
+
+	msgDefs, errs := genProto3Msg(msg, msgs, state, cfg, pkg)
+	if errs != nil {
+		return nil, errs
 	}
 
 	var b bytes.Buffer
@@ -336,7 +336,7 @@ func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *g
 // The configuration parameters for the current code generation required are supplied
 // as a protoMsgConfig struct.
 // TODO(robjs): Split the logic of this function into multiple subfunctions.
-func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg protoMsgConfig) ([]protoMsg, []error) {
+func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg protoMsgConfig, parentPkg string) ([]protoMsg, []error) {
 	var errs []error
 
 	var msgDefs []protoMsg
@@ -352,9 +352,6 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 	definedFieldNames := map[string]bool{}
 	imports := map[string]interface{}{}
 
-	// Traverse the fields in alphabetical order to ensure deterministic output.
-	// TODO(robjs): Once the field tags are unique then make this sort on the
-	// field tag.
 	fNames := []string{}
 	for name := range msg.fields {
 		fNames = append(fNames, name)
@@ -395,6 +392,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 				baseImportPath:      cfg.baseImportPath,
 				annotateSchemaPaths: cfg.annotateSchemaPaths,
 				annotateEnumNames:   cfg.annotateEnumNames,
+				parentPackage:       parentPkg,
 			})
 
 			if err != nil {
@@ -425,7 +423,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 					if _, ok := imports[childpath]; !ok {
 						imports[childpath] = true
 					}
-					pfx = fmt.Sprintf("%s.%s.", cfg.basePackageName, childpkg)
+					pfx = fmt.Sprintf("%s.", stripPackagePrefix(parentPkg, childpkg))
 				}
 				fieldDef.Type = fmt.Sprintf("%s%s", pfx, childmsg.name)
 			}
@@ -512,6 +510,7 @@ type protoDefinitionArgs struct {
 	compressPaths       bool                      // compressPaths defines whether path compression is enabled for the current code generation context.
 	annotateSchemaPaths bool                      // annotateSchemaPaths defines whether fields should have their schema path annotated to them.
 	annotateEnumNames   bool                      // annotateEnumNames defines whether values within enumerations should be annotated with their original name in the YANG schema.
+	parentPackage       string                    // parentPackage stores the name of the protobuf package that the field's parent is within.
 }
 
 // writeProtoEnums takes a map of enumerated types within the YANG schema and
@@ -672,6 +671,7 @@ func protoListDefinition(args protoDefinitionArgs) (string, *protoMsg, error) {
 			baseImportPath:      args.baseImportPath,
 			annotateSchemaPaths: args.annotateSchemaPaths,
 			annotateEnumNames:   args.annotateEnumNames,
+			parentPackage:       args.parentPackage,
 		})
 		if err != nil {
 			return "", nil, fmt.Errorf("proto: could not build mapping for list entry %s: %v", args.field.Path(), err)
@@ -915,7 +915,7 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 		ctag++
 	}
 
-	ltype := fmt.Sprintf("%s.%s.%s", args.basePackageName, listPackage, listName)
+	ltype := fmt.Sprintf("%s.%s", stripPackagePrefix(args.parentPackage, listPackage), listName)
 	if listPackage == "" {
 		// Handle the case that the context of the list is already the base package.
 		ltype = listName
@@ -1058,4 +1058,20 @@ func protoSchemaPathAnnotation(msg *yangDirectory, field *yang.Entry, compressPa
 	}
 	b.WriteRune('"')
 	return &protoOption{Name: protoSchemaAnnotationOption, Value: b.String()}, nil
+}
+
+// stripPackagePrefix removes the prefix of pfx from the path supplied. If pfx
+// is not a prefix of path the entire path is returned.
+func stripPackagePrefix(pfx, path string) string {
+	pfxP := strings.Split(pfx, ".")
+	pathP := strings.Split(path, ".")
+
+	var i int
+	for i = range pfxP {
+		if pfxP[i] != pathP[i] {
+			return path
+		}
+	}
+
+	return strings.Join(pathP[i+1:], ".")
 }
