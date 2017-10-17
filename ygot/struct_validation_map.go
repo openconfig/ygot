@@ -400,7 +400,10 @@ func copyStruct(dstVal, srcVal reflect.Value) error {
 }
 
 // copyPtrField copies srcField to dstField. srcField and dstField must be
-// reflect.Value structs which represent pointers.
+// reflect.Value structs which represent pointers. If the source and destination
+// are struct pointers, then their contents are merged. If the source and
+// destination are non-struct pointers, values are not merged and an error
+// is returned.
 func copyPtrField(dstField, srcField reflect.Value) error {
 
 	if util.IsNilOrInvalidValue(srcField) {
