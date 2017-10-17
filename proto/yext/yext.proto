@@ -26,12 +26,14 @@ extend google.protobuf.FieldOptions {
   // The path stored is absolute if the entity is at the root of the schema
   // tree. In the case that it is not (i.e., it is an entity that has a parent
   // which is not a module, the path supplied is the relative path to the
-  // parent of the entity).
-  string schemapath = 1002;
+  // parent of the entity). The field number for this extension is reserved
+  // in the global protobuf registry.
+  string schemapath = 1040;
 }
 
 extend google.protobuf.EnumValueOptions {
   // yang_name stores the original YANG name of the enumerated value, for
-  // serialisation to a string.
-  string yang_name = 1002;
+  // serialisation to a string. The field number for this extension is
+  // reserved in the global protobuf registry.
+  string yang_name = 1040;
 }
