@@ -1250,7 +1250,7 @@ func TestMergeStructs(t *testing.T) {
 		inA     ValidatedGoStruct
 		inB     ValidatedGoStruct
 		want    ValidatedGoStruct
-		wantErr bool
+		wantErr string
 	}{{
 		name: "simple struct merge, a empty",
 		inA:  &validatedMergeTest{},
@@ -1269,23 +1269,28 @@ func TestMergeStructs(t *testing.T) {
 		name:    "error, differing types",
 		inA:     &validatedMergeTest{String: String("great-divide-yeti")},
 		inB:     &validatedMergeTestTwo{String: String("north-coast-old-rasputin")},
-		wantErr: true,
+		wantErr: "cannot merge structs that are not of matching types, *ygot.validatedMergeTest != *ygot.validatedMergeTestTwo",
 	}, {
 		name:    "error, bad data in A",
 		inA:     &validatedMergeTestTwo{I: "belleville-thames-surfer"},
 		inB:     &validatedMergeTestTwo{String: String("fourpure-beartooth")},
-		wantErr: true,
+		wantErr: "cannot DeepCopy struct: invalid interface type received: string",
 	}, {
 		name:    "error, bad data in B",
 		inA:     &validatedMergeTestTwo{String: String("weird-beard-sorachi-faceplant")},
 		inB:     &validatedMergeTestTwo{I: "fourpure-southern-latitude"},
-		wantErr: true,
+		wantErr: "error merging b to new struct: invalid interface type received: string",
+	}, {
+		name:    "error, field set in both structs",
+		inA:     &validatedMergeTest{String: String("karbach-hopadillo")},
+		inB:     &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
+		wantErr: "error merging b to new struct: destination value was set when merging, src: blackwater-draw-brewing-co-border-town, dst: karbach-hopadillo",
 	}}
 
 	for _, tt := range tests {
 		got, err := MergeStructs(tt.inA, tt.inB)
-		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: MergeStructs(%v, %v): did not get expected error status, got: %v, wantErr: %v", tt.name, tt.inA, tt.inB, err, tt.wantErr)
+		if err != nil && err.Error() != tt.wantErr {
+			t.Errorf("%s: MergeStructs(%v, %v): did not get expected error status, got: %v, want: %v", tt.name, tt.inA, tt.inB, err, tt.wantErr)
 		}
 
 		if diff := pretty.Compare(got, tt.want); diff != "" {
@@ -1449,6 +1454,148 @@ func TestDeepCopy(t *testing.T) {
 			if &tt.in.StringSlice == &gotC.StringSlice {
 				t.Errorf("%s: DeepCopy(%#v): after copy, input slice and copied slice have the same address: %v", tt.name, tt.in, &gotC.StringSlice)
 			}
+		}
+	}
+}
+
+type buildEmptyTreeMergeTest struct {
+	Son      *buildEmptyTreeMergeTestChild
+	Daughter *buildEmptyTreeMergeTestChild
+	String   *string
+}
+
+func (*buildEmptyTreeMergeTest) Validate() error                         { return nil }
+func (*buildEmptyTreeMergeTest) IsYANGGoStruct()                         {}
+func (*buildEmptyTreeMergeTest) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
+type buildEmptyTreeMergeTestChild struct {
+	Grandson      *buildEmptyTreeMergeTestGrandchild
+	Granddaughter *buildEmptyTreeMergeTestGrandchild
+	String        *string
+}
+
+func (*buildEmptyTreeMergeTestChild) Validate() error                         { return nil }
+func (*buildEmptyTreeMergeTestChild) IsYANGGoStruct()                         {}
+func (*buildEmptyTreeMergeTestChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
+type buildEmptyTreeMergeTestGrandchild struct {
+	String *string
+}
+
+func (*buildEmptyTreeMergeTestGrandchild) Validate() error                         { return nil }
+func (*buildEmptyTreeMergeTestGrandchild) IsYANGGoStruct()                         {}
+func (*buildEmptyTreeMergeTestGrandchild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
+func TestBuildEmptyTreeMerge(t *testing.T) {
+	tests := []struct {
+		name        string
+		inStructA   *buildEmptyTreeMergeTest
+		inStructB   *buildEmptyTreeMergeTest
+		inBuildSonA bool
+		inBuildSonB bool
+		want        ValidatedGoStruct
+		wantErr     bool
+	}{{
+		name: "check with no build empty",
+		inStructA: &buildEmptyTreeMergeTest{
+			Son: &buildEmptyTreeMergeTestChild{
+				String: String("blackwater-draw-brewing-co-contract-killer"),
+			},
+		},
+		inStructB: &buildEmptyTreeMergeTest{
+			Daughter: &buildEmptyTreeMergeTestChild{
+				String: String("brazos-valley-brewing-7-spanish-angels"),
+			},
+		},
+		want: &buildEmptyTreeMergeTest{
+			Son: &buildEmptyTreeMergeTestChild{
+				String: String("blackwater-draw-brewing-co-contract-killer"),
+			},
+			Daughter: &buildEmptyTreeMergeTestChild{
+				String: String("brazos-valley-brewing-7-spanish-angels"),
+			},
+		},
+	}, {
+		name: "check with build empty on B",
+		inStructA: &buildEmptyTreeMergeTest{
+			Son: &buildEmptyTreeMergeTestChild{
+				String: String("brazos-valley-brewing-mama-tried-ipa"),
+				Grandson: &buildEmptyTreeMergeTestGrandchild{
+					String: String("brazos-valley-brewing-killin'-time-blonde"),
+				},
+			},
+		},
+		inStructB: &buildEmptyTreeMergeTest{
+			Daughter: &buildEmptyTreeMergeTestChild{
+				String: String("brazos-valley-brewing-13th-can"),
+				Granddaughter: &buildEmptyTreeMergeTestGrandchild{
+					String: String("brazos-valley-brewing-silt-brown-ale"),
+				},
+			},
+			Son: &buildEmptyTreeMergeTestChild{},
+		},
+		inBuildSonB: true,
+		want: &buildEmptyTreeMergeTest{
+			Son: &buildEmptyTreeMergeTestChild{
+				String: String("brazos-valley-brewing-mama-tried-ipa"),
+				Grandson: &buildEmptyTreeMergeTestGrandchild{
+					String: String("brazos-valley-brewing-killin'-time-blonde"),
+				},
+				Granddaughter: &buildEmptyTreeMergeTestGrandchild{},
+			},
+			Daughter: &buildEmptyTreeMergeTestChild{
+				String: String("brazos-valley-brewing-13th-can"),
+				Granddaughter: &buildEmptyTreeMergeTestGrandchild{
+					String: String("brazos-valley-brewing-silt-brown-ale"),
+				},
+			},
+		},
+	}, {
+		name: "check with build empty on A",
+		inStructA: &buildEmptyTreeMergeTest{
+			Son: &buildEmptyTreeMergeTestChild{},
+			Daughter: &buildEmptyTreeMergeTestChild{
+				String: String("huff-brewing-orrange-blossom-saison"),
+			},
+		},
+		inStructB: &buildEmptyTreeMergeTest{
+			Son: &buildEmptyTreeMergeTestChild{
+				String: String("brazos-valley-brewing-suma-babushka"),
+				Grandson: &buildEmptyTreeMergeTestGrandchild{
+					String: String("brazos-valley-brewing-big-spoon"),
+				},
+			},
+		},
+		inBuildSonA: true,
+		want: &buildEmptyTreeMergeTest{
+			Son: &buildEmptyTreeMergeTestChild{
+				String: String("brazos-valley-brewing-suma-babushka"),
+				Grandson: &buildEmptyTreeMergeTestGrandchild{
+					String: String("brazos-valley-brewing-big-spoon"),
+				},
+				Granddaughter: &buildEmptyTreeMergeTestGrandchild{},
+			},
+			Daughter: &buildEmptyTreeMergeTestChild{
+				String: String("huff-brewing-orrange-blossom-saison"),
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		if tt.inBuildSonA {
+			BuildEmptyTree(tt.inStructA.Son)
+		}
+
+		if tt.inBuildSonB {
+			BuildEmptyTree(tt.inStructB.Son)
+		}
+
+		got, err := MergeStructs(tt.inStructA, tt.inStructB)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: MergeStructs(%v, %v): got unexpected error status, got: %v, wantErr: %v", tt.name, tt.inStructA, tt.inStructB, err, tt.wantErr)
+		}
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: MergeStructs(%v, %v): did not get expected merge result, diff(-got,+want):\n%s", tt.name, tt.inStructA, tt.inStructB, diff)
 		}
 
 	}
