@@ -13,5 +13,5 @@ import "openconfig/proto_test_a/parent.proto";
 
 // Parent represents the /proto-test-a/parent YANG schema element.
 message Parent {
-  openconfig.proto_test_a.parent.Child child = 85413199;
+  parent.Child child = 85413199;
 }

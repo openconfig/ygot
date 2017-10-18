@@ -62,6 +62,7 @@ func TestGenProto3Msg(t *testing.T) {
 		inEnumPackage          string
 		inBaseImportPath       string
 		inAnnotateSchemaPaths  bool
+		inParentPackage        string
 		wantMsgs               map[string]protoMsg
 		wantErr                bool
 	}{{
@@ -247,7 +248,7 @@ func TestGenProto3Msg(t *testing.T) {
 				}, {
 					Tag:  17594927,
 					Name: "container_child",
-					Type: "base.a_message.ContainerChild",
+					Type: "a_message.ContainerChild",
 				}},
 				Imports: []string{"base/a_message"},
 			},
@@ -309,7 +310,7 @@ func TestGenProto3Msg(t *testing.T) {
 				}, {
 					Tag:  17594927,
 					Name: "container_child",
-					Type: "base.root.a_message.ContainerChild",
+					Type: "root.a_message.ContainerChild",
 				}},
 				Imports: []string{"base/root/a_message"},
 			},
@@ -395,7 +396,7 @@ func TestGenProto3Msg(t *testing.T) {
 				}, {
 					Tag:  2,
 					Name: "list",
-					Type: "base.a_message_with_a_list.List",
+					Type: "a_message_with_a_list.List",
 				}},
 				Imports: []string{"base/a_message_with_a_list"},
 			},
@@ -541,7 +542,7 @@ func TestGenProto3Msg(t *testing.T) {
 			enumPackageName:     tt.inEnumPackage,
 			baseImportPath:      tt.inBaseImportPath,
 			annotateSchemaPaths: tt.inAnnotateSchemaPaths,
-		})
+		}, tt.inParentPackage)
 
 		if (errs != nil) != tt.wantErr {
 			t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
@@ -721,7 +722,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
-  base.message_name.Child child = 399980855;
+  message_name.Child child = 399980855;
 }
 `,
 		},
@@ -730,7 +731,7 @@ message MessageName {
 			messageCode: `
 // MessageName represents the /module/message-name YANG schema element.
 message MessageName {
-  base.module.message_name.Child child = 399980855;
+  message_name.Child child = 399980855;
 }
 `,
 		},
@@ -798,9 +799,9 @@ message MessageName {
 	}, {
 		name: "simple message with a list",
 		inMsg: &yangDirectory{
-			name: "MessageName",
+			name: "AMessage",
 			entry: &yang.Entry{
-				Name: "message-name",
+				Name: "a-message",
 				Kind: yang.DirectoryEntry,
 				Parent: &yang.Entry{
 					Name: "module",
@@ -809,17 +810,10 @@ message MessageName {
 			},
 			fields: map[string]*yang.Entry{
 				"list": {
-					Name: "list",
-					Kind: yang.DirectoryEntry,
-					Parent: &yang.Entry{
-						Name: "message-name",
-						Parent: &yang.Entry{
-							Name: "module",
-							Kind: yang.DirectoryEntry,
-						},
-					},
-					Key:      "keyfield",
+					Name:     "list",
+					Kind:     yang.DirectoryEntry,
 					ListAttr: &yang.ListAttr{},
+					Key:      "keyfield",
 					Dir: map[string]*yang.Entry{
 						"keyfield": {
 							Name: "keyfield",
@@ -828,29 +822,46 @@ message MessageName {
 							},
 						},
 					},
+					Parent: &yang.Entry{
+						Name: "surrounding-container",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "a-message",
+							Kind: yang.DirectoryEntry,
+							Parent: &yang.Entry{
+								Name: "module",
+								Kind: yang.DirectoryEntry,
+							},
+						},
+					},
 				},
 			},
 		},
 		inMsgs: map[string]*yangDirectory{
-			"/module/message-name/list": {
-				name: "ListMessageName",
+			"/module/a-message/surrounding-container/list": {
+				name: "List",
 				entry: &yang.Entry{
-					Name: "list",
-					Kind: yang.DirectoryEntry,
-					Parent: &yang.Entry{
-						Name: "message-name",
-						Parent: &yang.Entry{
-							Name: "module",
-							Kind: yang.DirectoryEntry,
-						},
-					},
-					Key:      "keyfield",
+					Name:     "list",
+					Kind:     yang.DirectoryEntry,
 					ListAttr: &yang.ListAttr{},
+					Key:      "keyfield",
 					Dir: map[string]*yang.Entry{
 						"keyfield": {
 							Name: "keyfield",
 							Type: &yang.YangType{
 								Kind: yang.Ystring,
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "surrounding-container",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "a-message",
+							Kind: yang.DirectoryEntry,
+							Parent: &yang.Entry{
+								Name: "module",
+								Kind: yang.DirectoryEntry,
 							},
 						},
 					},
@@ -865,36 +876,36 @@ message MessageName {
 				},
 			},
 		},
-		inUniqueDirectoryNames: map[string]string{"/module/message-name/list": "List"},
 		inBasePackageName:      "base",
 		inEnumPackageName:      "enums",
+		inUniqueDirectoryNames: map[string]string{"/module/a-message/surrounding-container/list": "List"},
 		wantCompress: generatedProto3Message{
-			packageName: "message_name",
+			packageName: "",
 			messageCode: `
-// ListKey represents the /module/message-name/list YANG schema element.
+// ListKey represents the /module/a-message/surrounding-container/list YANG schema element.
 message ListKey {
   string keyfield = 1;
-  base.message_name.List list = 2;
+  a_message.List list = 2;
 }
 
-// MessageName represents the  YANG schema element.
-message MessageName {
-  repeated ListKey list = 140998691;
+// AMessage represents the  YANG schema element.
+message AMessage {
+  repeated ListKey list = 486198550;
 }
 `,
 		},
 		wantUncompress: generatedProto3Message{
 			packageName: "module",
 			messageCode: `
-// ListKey represents the /module/message-name/list YANG schema element.
+// ListKey represents the /module/a-message/surrounding-container/list YANG schema element.
 message ListKey {
   string keyfield = 1;
-  base.module.message_name.List list = 2;
+  a_message.surrounding_container.List list = 2;
 }
 
-// MessageName represents the  YANG schema element.
-message MessageName {
-  repeated ListKey list = 140998691;
+// AMessage represents the  YANG schema element.
+message AMessage {
+  repeated ListKey list = 486198550;
 }
 `,
 		},
@@ -1051,7 +1062,7 @@ func TestGenListKeyProto(t *testing.T) {
 			}, {
 				Tag:  2,
 				Name: "list",
-				Type: "base.pkg.list",
+				Type: "pkg.list",
 			}},
 			Imports: []string{"base/path/base/pkg"},
 		},
@@ -1111,7 +1122,7 @@ func TestGenListKeyProto(t *testing.T) {
 			}, {
 				Tag:  2,
 				Name: "list",
-				Type: "base.pkg.list",
+				Type: "pkg.list",
 			}},
 			Imports: []string{"base/path/base/pkg"},
 		},
@@ -1162,7 +1173,7 @@ func TestGenListKeyProto(t *testing.T) {
 			}, {
 				Tag:  2,
 				Name: "list",
-				Type: "base.pkg.list",
+				Type: "pkg.list",
 			}},
 			Imports: []string{"base/path/base/pkg"},
 		},
@@ -1494,4 +1505,44 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected repeated message, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, diff)
 		}
 	}
+}
+
+func TestStripPackagePrefix(t *testing.T) {
+	tests := []struct {
+		name         string
+		inPrefix     string
+		inPath       string
+		want         string
+		wantStripped bool
+	}{{
+		name:         "invalid prefix at element one",
+		inPrefix:     "one.two",
+		inPath:       "two.four",
+		want:         "two.four",
+		wantStripped: false,
+	}, {
+		name:         "single element prefix",
+		inPrefix:     "one",
+		inPath:       "one.three",
+		want:         "three",
+		wantStripped: true,
+	}, {
+		name:         "longer prefix",
+		inPrefix:     "one.two.three",
+		inPath:       "one.two.three.five",
+		want:         "five",
+		wantStripped: true,
+	}}
+
+	for _, tt := range tests {
+		got, stripped := stripPackagePrefix(tt.inPrefix, tt.inPath)
+		if got != tt.want {
+			t.Errorf("%s: stripPackagePrefix(%s, %s): did not get expected output, got: %s, want: %s", tt.name, tt.inPrefix, tt.inPath, got, tt.want)
+		}
+
+		if stripped != tt.wantStripped {
+			t.Errorf("%s: stripPackagePrefix(%s, %s): did not get expected stipped status, got: %v, want: %v", tt.name, tt.inPrefix, tt.inPath, stripped, tt.wantStripped)
+		}
+	}
+
 }

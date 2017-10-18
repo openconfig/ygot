@@ -497,6 +497,24 @@ func TestProtoPackageName(t *testing.T) {
 		},
 		wantCompress:   "explicit.package.name",
 		wantUncompress: "explicit.package.name",
+	}, {
+		name: "list entry within surrounding container with path compression",
+		inEntry: &yang.Entry{
+			Name:     "list",
+			Kind:     yang.DirectoryEntry,
+			ListAttr: &yang.ListAttr{},
+			Dir:      map[string]*yang.Entry{},
+			Parent: &yang.Entry{
+				Name: "surrounding-container",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
+				},
+			},
+		},
+		wantCompress:   "",
+		wantUncompress: "module.surrounding_container",
 	}}
 
 	for _, tt := range tests {

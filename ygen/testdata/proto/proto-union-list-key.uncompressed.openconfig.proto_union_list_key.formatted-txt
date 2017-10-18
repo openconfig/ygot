@@ -13,6 +13,6 @@ import "openconfig/proto_union_list_key/routing_policy.proto";
 
 // RoutingPolicy represents the /proto-union-list-key/routing-policy YANG schema element.
 message RoutingPolicy {
-  openconfig.proto_union_list_key.routing_policy.Policies policies = 145359312 [(yext.schemapath) = "/routing-policy/policies"];
-  openconfig.proto_union_list_key.routing_policy.Sets sets = 123599041 [(yext.schemapath) = "/routing-policy/sets"];
+  routing_policy.Policies policies = 145359312 [(yext.schemapath) = "/routing-policy/policies"];
+  routing_policy.Sets sets = 123599041 [(yext.schemapath) = "/routing-policy/sets"];
 }
