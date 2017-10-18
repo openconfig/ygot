@@ -1509,30 +1509,39 @@ func TestUnionFieldToOneOf(t *testing.T) {
 
 func TestStripPackagePrefix(t *testing.T) {
 	tests := []struct {
-		name     string
-		inPrefix string
-		inPath   string
-		want     string
+		name         string
+		inPrefix     string
+		inPath       string
+		want         string
+		wantStripped bool
 	}{{
-		name:     "invalid prefix at element one",
-		inPrefix: "one.two",
-		inPath:   "two.four",
-		want:     "two.four",
+		name:         "invalid prefix at element one",
+		inPrefix:     "one.two",
+		inPath:       "two.four",
+		want:         "two.four",
+		wantStripped: false,
 	}, {
-		name:     "single element prefix",
-		inPrefix: "one",
-		inPath:   "one.three",
-		want:     "three",
+		name:         "single element prefix",
+		inPrefix:     "one",
+		inPath:       "one.three",
+		want:         "three",
+		wantStripped: true,
 	}, {
-		name:     "longer prefix",
-		inPrefix: "one.two.three",
-		inPath:   "one.two.three.five",
-		want:     "five",
+		name:         "longer prefix",
+		inPrefix:     "one.two.three",
+		inPath:       "one.two.three.five",
+		want:         "five",
+		wantStripped: true,
 	}}
 
 	for _, tt := range tests {
-		if got := stripPackagePrefix(tt.inPrefix, tt.inPath); got != tt.want {
+		got, stripped := stripPackagePrefix(tt.inPrefix, tt.inPath)
+		if got != tt.want {
 			t.Errorf("%s: stripPackagePrefix(%s, %s): did not get expected output, got: %s, want: %s", tt.name, tt.inPrefix, tt.inPath, got, tt.want)
+		}
+
+		if stripped != tt.wantStripped {
+			t.Errorf("%s: stripPackagePrefix(%s, %s): did not get expected stipped status, got: %v, want: %v", tt.name, tt.inPrefix, tt.inPath, stripped, tt.wantStripped)
 		}
 	}
 

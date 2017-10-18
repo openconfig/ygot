@@ -425,7 +425,9 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 					if _, ok := imports[childpath]; !ok {
 						imports[childpath] = true
 					}
-					pfx = fmt.Sprintf("%s.", stripPackagePrefix(parentPkg, childpkg))
+
+					p, _ := stripPackagePrefix(parentPkg, childpkg)
+					pfx = fmt.Sprintf("%s.", p)
 				}
 				fieldDef.Type = fmt.Sprintf("%s%s", pfx, childmsg.name)
 			}
@@ -917,7 +919,8 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 		ctag++
 	}
 
-	ltype := fmt.Sprintf("%s.%s", stripPackagePrefix(args.parentPackage, listPackage), listName)
+	p, _ := stripPackagePrefix(args.parentPackage, listPackage)
+	ltype := fmt.Sprintf("%s.%s", p, listName)
 	if listPackage == "" {
 		// Handle the case that the context of the list is already the base package.
 		ltype = listName
@@ -1063,17 +1066,18 @@ func protoSchemaPathAnnotation(msg *yangDirectory, field *yang.Entry, compressPa
 }
 
 // stripPackagePrefix removes the prefix of pfx from the path supplied. If pfx
-// is not a prefix of path the entire path is returned.
-func stripPackagePrefix(pfx, path string) string {
+// is not a prefix of path the entire path is returned. If the prefix was
+// stripped, the returned bool is set.
+func stripPackagePrefix(pfx, path string) (string, bool) {
 	pfxP := strings.Split(pfx, ".")
 	pathP := strings.Split(path, ".")
 
 	var i int
 	for i = range pfxP {
 		if pfxP[i] != pathP[i] {
-			return path
+			return path, false
 		}
 	}
 
-	return strings.Join(pathP[i+1:], ".")
+	return strings.Join(pathP[i+1:], "."), true
 }
