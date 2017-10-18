@@ -14,7 +14,7 @@ import "openconfig/device.proto";
 // InterfaceKey represents the /proto-test-b/device/interfaces/interface YANG schema element.
 message InterfaceKey {
   string name = 1;
-  openconfig.device.Interface interface = 2;
+  device.Interface interface = 2;
 }
 
 // Device represents the /proto-test-b/device YANG schema element.

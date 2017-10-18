@@ -20,7 +20,7 @@ message A {
 // CKey represents the /proto-anydata-test/e/c YANG schema element.
 message CKey {
   string k = 1;
-  openconfig.proto_anydata_test.e.C c = 2;
+  e.C c = 2;
 }
 
 // E represents the /proto-anydata-test/e YANG schema element.

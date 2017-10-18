@@ -14,5 +14,5 @@ import "openconfig/proto_test_f/a.proto";
 // A represents the /proto-test-f/a YANG schema element.
 message A {
   ywrapper.StringValue b = 333818617 [(yext.schemapath) = "/a/b"];
-  openconfig.proto_test_f.a.C c = 333818616 [(yext.schemapath) = "/a/c"];
+  a.C c = 333818616 [(yext.schemapath) = "/a/c"];
 }

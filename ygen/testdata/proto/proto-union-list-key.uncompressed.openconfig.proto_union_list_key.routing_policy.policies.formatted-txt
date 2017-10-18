@@ -13,6 +13,6 @@ import "openconfig/proto_union_list_key/routing_policy/policies/policy.proto";
 
 // Policy represents the /proto-union-list-key/routing-policy/policies/policy YANG schema element.
 message Policy {
-  openconfig.proto_union_list_key.routing_policy.policies.policy.Config config = 338842802 [(yext.schemapath) = "/routing-policy/policies/policy/config"];
-  openconfig.proto_union_list_key.routing_policy.policies.policy.State state = 65592239 [(yext.schemapath) = "/routing-policy/policies/policy/state"];
+  policy.Config config = 338842802 [(yext.schemapath) = "/routing-policy/policies/policy/config"];
+  policy.State state = 65592239 [(yext.schemapath) = "/routing-policy/policies/policy/state"];
 }

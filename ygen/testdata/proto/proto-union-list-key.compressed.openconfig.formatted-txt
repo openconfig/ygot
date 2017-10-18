@@ -19,11 +19,11 @@ message Device {
 // PolicyKey represents the /proto-union-list-key/routing-policy/policies/policy YANG schema element.
 message PolicyKey {
   string policy_name = 1 [(yext.schemapath) = "/routing-policy/policies/policy/config/policy-name"];
-  openconfig.routing_policy.Policy policy = 2;
+  routing_policy.Policy policy = 2;
 }
 
 // RoutingPolicy represents the /proto-union-list-key/routing-policy YANG schema element.
 message RoutingPolicy {
   repeated PolicyKey policy = 57154301 [(yext.schemapath) = "/routing-policy/policies/policy"];
-  openconfig.routing_policy.Sets sets = 123599041 [(yext.schemapath) = "/routing-policy/sets"];
+  routing_policy.Sets sets = 123599041 [(yext.schemapath) = "/routing-policy/sets"];
 }

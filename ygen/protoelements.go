@@ -348,7 +348,7 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 	}
 
 	parts := []string{}
-	for p := e.Parent; p != nil; p = p.Parent {
+	for p := parent; p != nil; p = p.Parent {
 		if compressPaths && !isOCCompressedValidElement(p) || !compressPaths && isChoiceOrCase(p) {
 			// If compress paths is enabled, and this entity would not
 			// have been included in the generated protobuf output, therefore

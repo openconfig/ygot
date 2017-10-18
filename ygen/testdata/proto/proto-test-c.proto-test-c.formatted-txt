@@ -22,7 +22,7 @@ message ElistKey {
   }
   One one = 1;
   string two = 2;
-  openconfig.proto_test_c.elists.Elist elist = 3;
+  elists.Elist elist = 3;
 }
 
 // Elists represents the /proto-test-c/elists YANG schema element.
@@ -32,6 +32,6 @@ message Elists {
 
 // Entity represents the /proto-test-c/entity YANG schema element.
 message Entity {
-  openconfig.proto_test_c.entity.Config config = 228602824;
-  openconfig.proto_test_c.entity.State state = 14179425;
+  entity.Config config = 228602824;
+  entity.State state = 14179425;
 }
