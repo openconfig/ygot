@@ -135,30 +135,7 @@ func IsStructValueWithNFields(v reflect.Value, n int) bool {
 	return IsValueStruct(v) && v.NumField() == n
 }
 
-// GetFieldType returns the type of the field with fieldName in the containing
-// parent, which must be a ptr to a struct.
-// It returns an error if the parent is the wrong type or has no field called
-// fieldName.
-func GetFieldType(parent interface{}, fieldName string) (reflect.Type, error) {
-	pt := reflect.TypeOf(parent)
-	if !IsValueStructPtr(reflect.ValueOf(parent)) {
-		return reflect.TypeOf(nil), fmt.Errorf("parent is type %T, must be struct ptr in GetFieldType with fieldName %s", parent, fieldName)
-	}
-
-	pt = pt.Elem()
-	ft, ok := pt.FieldByName(fieldName)
-	if !ok {
-		return reflect.TypeOf(nil), fmt.Errorf("field name %s not a part of %T in GetFieldType", fieldName, parent)
-	}
-
-	switch ft.Type.Kind() {
-	case reflect.Slice, reflect.Map:
-		return ft.Type.Elem(), nil
-	}
-	return ft.Type, nil
-}
-
-// InsertIntoSlice inserts value into parent which must be a slice.
+// InsertIntoSlice inserts value into parent which must be a ptr to a slice.
 func InsertIntoSlice(parentSlice interface{}, value interface{}) error {
 	DbgPrint("InsertIntoSlice into parent type %T with value %v, type %T", parentSlice, ValueStr(value), value)
 
@@ -277,7 +254,7 @@ func InsertIntoSliceStructField(parentStruct interface{}, fieldName string, fiel
 		return fmt.Errorf("parent type %T does not have a field name %s", parentStruct, fieldName)
 	}
 	if ft.Type.Kind() != reflect.Slice {
-		return fmt.Errorf("parent type %T, field name %s in type %s, must be a slice", parentStruct, fieldName, ft.Type)
+		return fmt.Errorf("parent type %T, field name %s is type %s, must be a slice", parentStruct, fieldName, ft.Type)
 	}
 	et := ft.Type.Elem()
 

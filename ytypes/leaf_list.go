@@ -88,12 +88,12 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 	if util.IsValueNil(value) {
 		return nil
 	}
-	util.DbgPrint("unmarshalLeafList value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, schema.Name)
-
 	// Check that the schema itself is valid.
 	if err := validateLeafListSchema(schema); err != nil {
 		return err
 	}
+
+	util.DbgPrint("unmarshalLeafList value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, schema.Name)
 
 	leafList, ok := value.([]interface{})
 	if !ok {
