@@ -275,12 +275,12 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{})
 	if util.IsValueNil(jsonList) {
 		return nil
 	}
-	util.DbgPrint("unmarshalList jsonList %v, type %T, into parent type %T, schema name %s", util.ValueStr(jsonList), jsonList, parent, schema.Name)
-
 	// Check that the schema itself is valid.
 	if err := validateListSchema(schema); err != nil {
 		return err
 	}
+
+	util.DbgPrint("unmarshalList jsonList %v, type %T, into parent type %T, schema name %s", util.ValueStr(jsonList), jsonList, parent, schema.Name)
 
 	// Parent must be a map, slice ptr, or struct ptr.
 	t := reflect.TypeOf(parent)

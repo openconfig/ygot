@@ -55,16 +55,3 @@ func makeField(parentStruct reflect.Value, f reflect.StructField) {
 		parentStruct.FieldByName(f.Name).Set(reflect.New(f.Type.Elem()))
 	}
 }
-
-// makeNewValue creates a new element of type newType and sets value to it.
-// kind specifies the kind of value.
-func makeNewValue(newType reflect.Type, value reflect.Value, kind reflect.Kind) {
-	switch kind {
-	case reflect.Map:
-		value.Set(reflect.MakeMap(newType))
-	case reflect.Slice:
-		value.Set(reflect.MakeSlice(newType, 0, 0))
-	case reflect.Ptr:
-		value.Set(reflect.New(newType.Elem()))
-	}
-}

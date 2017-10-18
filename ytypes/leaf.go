@@ -94,8 +94,6 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 		return nil
 	case yang.Yunion:
 		return validateUnion(schema, value)
-	case yang.Yleafref:
-		return validateLeafRef(schema, value)
 	}
 	if isIntegerType(ykind) {
 		return util.AppendErr(errors, validateInt(schema, rv))
@@ -304,19 +302,6 @@ func findMatchingSchemasInUnion(ytype *yang.YangType, value interface{}) []*yang
 	}
 
 	return matches
-}
-
-// validateLeafRef validates a leaf-ref type. This type contains a path pointing
-// to the actual type definition.
-// TODO(mostrowski): In leaf-list case, handle checking that value exists in the
-// referenced data tree node.
-func validateLeafRef(schema *yang.Entry, value interface{}) (errors []error) {
-	util.DbgPrint("validateLeafRef %s\n", schema.Name)
-	refSchema, err := findLeafRefSchema(schema, schema.Type.Path)
-	if err == nil {
-		return validateLeaf(refSchema, value)
-	}
-	return util.AppendErr(errors, err)
 }
 
 // stripPrefix removes the prefix from a YANG path element. For example, removing
