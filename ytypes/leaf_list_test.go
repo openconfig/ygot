@@ -22,6 +22,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -117,6 +118,25 @@ func TestValidateLeafList(t *testing.T) {
 		}
 		testErrLog(t, test.desc, err)
 	}
+
+	// nil value
+	if got := validateLeafList(nil, nil); got != nil {
+		t.Errorf("nil value: got error: %v, wanted error: nil", got)
+	}
+
+	// nil schema
+	err := util.Errors(validateLeafList(nil, &struct{}{})).Error()
+	wantErr := `list schema is nil`
+	if got, want := err, wantErr; got != want {
+		t.Errorf("nil schema: Unmarshal got error: %v, wanted error: %v", got, want)
+	}
+
+	// bad value type
+	err = util.Errors(validateLeafList(validLeafListSchema, struct{}{})).Error()
+	wantErr = `expected slice type for valid-leaf-list-schema, got struct {}`
+	if got, want := err, wantErr; got != want {
+		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+	}
 }
 
 func TestUnmarshalLeafList(t *testing.T) {
@@ -206,5 +226,22 @@ func TestUnmarshalLeafList(t *testing.T) {
 	wantErrStr := `unmarshalLeafList for schema int32-leaf-list: value map[] (type map): got type map[string]interface {}, expect []interface{}`
 	if got, want := errToString(Unmarshal(containerWithLeafListSchema, &parent, badJSONTree)), wantErrStr; got != want {
 		t.Errorf("Unmarshal leaf-list with bad json : got error: %s, want error: %s", got, want)
+	}
+
+	// nil value
+	if got := unmarshalLeafList(nil, nil, nil); got != nil {
+		t.Errorf("nil value: Unmarshal got error: %v, wanted error? nil", got)
+	}
+
+	// nil schema
+	wantErr := `list schema is nil`
+	if got, want := errToString(unmarshalLeafList(nil, nil, []struct{}{})), wantErr; got != want {
+		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+	}
+
+	// bad value type
+	wantErr = `unmarshalLeafList for schema valid-leaf-list-schema: value 42 (type int): got type int, expect []interface{}`
+	if got, want := errToString(unmarshalLeafList(validLeafListSchema, &struct{}{}, int(42))), wantErr; got != want {
+		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
 	}
 }
