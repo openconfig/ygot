@@ -210,6 +210,39 @@ func TestValidateLeaf(t *testing.T) {
 			val:     ygot.String("four hundred and twenty two point eight"),
 			wantErr: true,
 		},
+		{
+			desc:   "enum success",
+			schema: typeToLeafSchema("enum", yang.Yenum),
+			val:    int64(0),
+		},
+		{
+			desc:    "enum bad type",
+			schema:  typeToLeafSchema("enum", yang.Yenum),
+			val:     int(0),
+			wantErr: true,
+		},
+		{
+			desc:   "identityref success",
+			schema: typeToLeafSchema("identityref", yang.Yidentityref),
+			val:    int64(0),
+		},
+		{
+			desc:    "identityref bad type",
+			schema:  typeToLeafSchema("identityref", yang.Yidentityref),
+			val:     int(0),
+			wantErr: true,
+		},
+		{
+			desc:   "empty success",
+			schema: typeToLeafSchema("empty", yang.Yempty),
+			val:    YANGEmpty(true),
+		},
+		{
+			desc:    "empty bad type",
+			schema:  typeToLeafSchema("empty", yang.Yempty),
+			val:     ygot.Int32(1),
+			wantErr: true,
+		},
 	}
 
 	for _, test := range tests {
@@ -915,7 +948,6 @@ func (*LeafContainerStruct) To_UnionLeafType(i interface{}) (UnionLeafType, erro
 func TestUnmarshalLeaf(t *testing.T) {
 	tests := []struct {
 		desc    string
-		schema  *yang.Entry
 		json    string
 		want    LeafContainerStruct
 		wantErr string
@@ -1009,6 +1041,11 @@ func TestUnmarshalLeaf(t *testing.T) {
 			desc: "union no struct success, correct type, value unvalidated",
 			json: `{"union-leaf2" : "ccc"}`,
 			want: LeafContainerStruct{UnionLeaf2: ygot.String("ccc")},
+		},
+		{
+			desc:    "bad field",
+			json:    `{"bad-field" : "42"}`,
+			wantErr: `parent container container-schema (type *ytypes.LeafContainerStruct): JSON contains unexpected field bad-field`,
 		},
 		{
 			desc:    "int32 bad type",
@@ -1195,6 +1232,20 @@ func TestUnmarshalLeaf(t *testing.T) {
 				t.Errorf("%s (#%d): Unmarshal got:\n%v\nwant:\n%v\n", test.desc, idx, pretty.Sprint(got), pretty.Sprint(want))
 			}
 		}
+	}
+
+	// nil schema
+	err := Unmarshal(nil, &LeafContainerStruct{}, map[string]interface{}{})
+	wantErr := `nil schema for parent type *ytypes.LeafContainerStruct, value map[] (map[string]interface {})`
+	if got, want := errToString(err), wantErr; got != want {
+		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+	}
+
+	// bad parent type
+	err = unmarshalUnion(containerSchema, LeafContainerStruct{}, "int8-leaf", 42)
+	wantErr = `ytypes.LeafContainerStruct is not a struct ptr in unmarshalUnion`
+	if got, want := errToString(err), wantErr; got != want {
+		t.Errorf("bad parent type: Unmarshal got error: %v, wanted error? %v", got, want)
 	}
 }
 

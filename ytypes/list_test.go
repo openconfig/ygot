@@ -22,10 +22,12 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
 var validListSchema = &yang.Entry{
+	Name:     "valid-list-schema",
 	Kind:     yang.DirectoryEntry,
 	ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
 	Key:      "key_field_name",
@@ -112,6 +114,27 @@ func TestValidateListSchema(t *testing.T) {
 			t.Errorf("%s: validateListSchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
+	}
+}
+
+func TestValidateList(t *testing.T) {
+	// nil value
+	if got := validateList(nil, nil); got != nil {
+		t.Errorf("nil value: Unmarshal got error: %v, wanted error? nil", got)
+	}
+
+	// nil schema
+	err := util.Errors(validateList(nil, &struct{}{})).Error()
+	wantErr := `list schema is nil`
+	if got, want := err, wantErr; got != want {
+		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+	}
+
+	// bad value type
+	err = util.Errors(validateList(validListSchema, struct{}{})).Error()
+	wantErr = `validateList expected map/slice type for valid-list-schema, got struct {}`
+	if got, want := err, wantErr; got != want {
+		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
 	}
 }
 
@@ -338,6 +361,37 @@ func TestValidateListStructKey(t *testing.T) {
 			t.Errorf("%s: b.Validate(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
+	}
+}
+
+func TestUnmarshalList(t *testing.T) {
+	// nil value
+	if got := unmarshalList(nil, nil, nil); got != nil {
+		t.Errorf("nil value: Unmarshal got error: %v, wanted error? nil", got)
+	}
+
+	// nil schema
+	wantErr := `list schema is nil`
+	if got, want := errToString(unmarshalList(nil, nil, []struct{}{})), wantErr; got != want {
+		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+	}
+
+	// bad parent type
+	wantErr = `unmarshalList for valid-list-schema got parent type struct, expect map, slice ptr or struct ptr`
+	if got, want := errToString(unmarshalList(validListSchema, struct{}{}, []interface{}{})), wantErr; got != want {
+		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+	}
+
+	// bad value type
+	wantErr = `unmarshalContainer for schema valid-list-schema: jsonTree 42 (type int): got type int inside container, expect map[string]interface{}`
+	if got, want := errToString(unmarshalList(validListSchema, &struct{}{}, int(42))), wantErr; got != want {
+		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+	}
+
+	// bad parent type for unmarshalContainerWithListSchema
+	wantErr = `unmarshalContainerWithListSchema value [], type []interface {}, into parent type struct {}, schema name valid-list-schema: parent must be a struct ptr`
+	if got, want := errToString(unmarshalContainerWithListSchema(validListSchema, struct{}{}, []interface{}{})), wantErr; got != want {
+		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
 	}
 }
 

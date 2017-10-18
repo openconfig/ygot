@@ -325,6 +325,11 @@ func TestUpdateField(t *testing.T) {
 			wantErr:      "parent is nil in UpdateField for field IntField",
 		},
 		{
+			desc:         "bad parent type",
+			parentStruct: struct{}{},
+			wantErr:      "parent type struct {} must be a struct ptr",
+		},
+		{
 			desc:         "string",
 			parentStruct: &BasicStruct{},
 			fieldName:    "StringField",
@@ -365,6 +370,12 @@ func TestUpdateField(t *testing.T) {
 			fieldName:    "StringPtrField",
 			fieldValue:   toStringPtr("forty two"),
 			wantVal:      &BasicStruct{StringPtrField: toStringPtr("forty two")},
+		},
+		{
+			desc:         "bad field error",
+			parentStruct: &BasicStruct{},
+			fieldName:    "BadField",
+			wantErr:      "parent type *util.BasicStruct does not have a field name BadField",
 		},
 		{
 			desc:         "int to int ptr field error",
@@ -421,6 +432,7 @@ func TestInsertIntoSliceStructField(t *testing.T) {
 	type BasicStruct struct {
 		IntSliceField    []int
 		IntPtrSliceField []*int8
+		NonSliceField    int
 	}
 
 	tests := []struct {
@@ -456,8 +468,19 @@ func TestInsertIntoSliceStructField(t *testing.T) {
 			desc:         "missing field",
 			parentStruct: &BasicStruct{},
 			fieldName:    "MissingField",
-			fieldValue:   42,
 			wantErr:      "parent type *util.BasicStruct does not have a field name MissingField",
+		},
+		{
+			desc:         "bad parent type",
+			parentStruct: struct{}{},
+			wantErr:      "parent type struct {} must be a struct ptr",
+		},
+		{
+			desc:         "bad field type",
+			parentStruct: &BasicStruct{},
+			fieldName:    "NonSliceField",
+			fieldValue:   42,
+			wantErr:      "parent type *util.BasicStruct, field name NonSliceField is type int, must be a slice",
 		},
 		{
 			desc:         "slice of int, bad field type",
@@ -469,7 +492,7 @@ func TestInsertIntoSliceStructField(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := UpdateField(tt.parentStruct, tt.fieldName, tt.fieldValue)
+		err := InsertIntoSliceStructField(tt.parentStruct, tt.fieldName, tt.fieldValue)
 		if got, want := errToString(err), tt.wantErr; !areEqualWithWildcards(got, want) {
 			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
 		}
@@ -491,6 +514,7 @@ func TestInsertIntoMapStructField(t *testing.T) {
 		StringToIntMapField    map[string]int
 		StringToIntPtrMapField map[string]*int8
 		StructToIntMapField    map[KeyStruct]int
+		NonMapField            int
 	}
 
 	tests := []struct {
@@ -559,6 +583,12 @@ func TestInsertIntoMapStructField(t *testing.T) {
 			wantErr:      "field MissingField not found in parent type *util.BasicStruct",
 		},
 		{
+			desc:         "bad field type",
+			parentStruct: &BasicStruct{},
+			fieldName:    "NonMapField",
+			wantErr:      "field NonMapField to insert into must be a map, type is int",
+		},
+		{
 			desc:         "string to int, bad value",
 			parentStruct: &BasicStruct{},
 			fieldName:    "StringToIntMapField",
@@ -579,6 +609,43 @@ func TestInsertIntoMapStructField(t *testing.T) {
 			}
 		}
 		testErrLog(t, tt.desc, err)
+	}
+}
+
+func TestInsertIntoSlice(t *testing.T) {
+	parentSlice := []int{42, 43}
+	value := 44
+	if err := InsertIntoSlice(&parentSlice, value); err != nil {
+		t.Fatalf("got error: %s, want error: nil", err)
+	}
+	wantSlice := []int{42, 43, value}
+	if got, want := parentSlice, wantSlice; !reflect.DeepEqual(got, want) {
+		t.Errorf("got:\n%v\nwant:\n%v\n", got, want)
+	}
+
+	badParent := struct{}{}
+	wantErr := `InsertIntoSlice parent type is *struct {}, must be slice ptr`
+	if got, want := errToString(InsertIntoSlice(&badParent, value)), wantErr; got != want {
+		t.Fatalf("got error: %s, want error: %s", got, want)
+	}
+}
+
+func TestInsertIntoMap(t *testing.T) {
+	parentMap := map[int]string{42: "forty two", 43: "forty three"}
+	key := 44
+	value := "forty four"
+	if err := InsertIntoMap(parentMap, key, value); err != nil {
+		t.Fatalf("got error: %s, want error: nil", err)
+	}
+	wantMap := map[int]string{42: "forty two", 43: "forty three", 44: "forty four"}
+	if got, want := parentMap, wantMap; !reflect.DeepEqual(got, want) {
+		t.Errorf("got:\n%v\nwant:\n%v\n", got, want)
+	}
+
+	badParent := struct{}{}
+	wantErr := `InsertIntoMap parent type is *struct {}, must be map`
+	if got, want := errToString(InsertIntoMap(&badParent, key, value)), wantErr; got != want {
+		t.Fatalf("got error: %s, want error: %s", got, want)
 	}
 }
 
