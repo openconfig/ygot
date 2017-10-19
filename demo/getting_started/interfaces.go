@@ -143,4 +143,11 @@ func main() {
 		panic(fmt.Sprintf("JSON demo error: %v", err))
 	}
 	fmt.Println(json)
+
+  // The generated code includes an Unmarshal function, which can be used to load
+  // a data tree such as the one that we just created.
+  loadd := &oc.Device{}
+  if err := oc.Unmarshal([]byte(json), loadd); err != nil {
+    panic(fmt.Sprintf("Can't unmarshal JSON: %v", err))
+  }
 }
