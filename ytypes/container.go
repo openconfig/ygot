@@ -28,13 +28,14 @@ import (
 
 // validateContainer validates each of the values in the map, keyed by the list
 // Key value, against the given list schema.
-func validateContainer(schema *yang.Entry, value ygot.GoStruct) (errors []error) {
+func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
+	var errors []error
 	if util.IsValueNil(value) {
 		return nil
 	}
 	// Check that the schema itself is valid.
 	if err := validateContainerSchema(schema); err != nil {
-		return util.AppendErr(errors, err)
+		return util.NewErrs(err)
 	}
 	util.DbgPrint("validateContainer with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
 
@@ -60,7 +61,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) (errors []error)
 				continue
 			case cschema != nil:
 				// Regular named child.
-				if errs := Validate(cschema, fieldValue); len(errs) != 0 {
+				if errs := Validate(cschema, fieldValue); errs != nil {
 					errors = util.AppendErrs(util.AppendErr(errors, fmt.Errorf("%s/", fieldName)), errs)
 				}
 			case !structElems.Field(i).IsNil():
@@ -93,7 +94,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) (errors []error)
 		errors = util.AppendErr(errors, fmt.Errorf("fields %v are not found in the container schema %s", stringMapSetToSlice(extraFields), schema.Name))
 	}
 
-	return
+	return errors
 }
 
 // unmarshalContainer unmarshals a JSON tree into a struct.

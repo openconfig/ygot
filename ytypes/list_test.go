@@ -111,7 +111,7 @@ func TestValidateListSchema(t *testing.T) {
 	for _, test := range tests {
 		err := validateListSchema(test.schema)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateListSchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: validateListSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -120,21 +120,21 @@ func TestValidateListSchema(t *testing.T) {
 func TestValidateList(t *testing.T) {
 	// nil value
 	if got := validateList(nil, nil); got != nil {
-		t.Errorf("nil value: Unmarshal got error: %v, wanted error? nil", got)
+		t.Errorf("nil value: Unmarshal got error: %v, want error: nil", got)
 	}
 
 	// nil schema
 	err := util.Errors(validateList(nil, &struct{}{})).Error()
 	wantErr := `list schema is nil`
 	if got, want := err, wantErr; got != want {
-		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 
 	// bad value type
 	err = util.Errors(validateList(validListSchema, struct{}{})).Error()
 	wantErr = `validateList expected map/slice type for valid-list-schema, got struct {}`
 	if got, want := err, wantErr; got != want {
-		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 }
 
@@ -200,11 +200,11 @@ func TestValidateListNoKey(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := Validate(test.schema, test.val)
-		if got, want := errToString(err), test.wantErr; got != want {
+		errs := Validate(test.schema, test.val)
+		if got, want := errs.String(), test.wantErr; got != want {
 			t.Errorf("%s: Validate got error: %v, want error: %v", test.desc, got, want)
 		}
-		testErrLog(t, test.desc, err)
+		testErrLog(t, test.desc, errs)
 	}
 }
 
@@ -263,11 +263,11 @@ func TestValidateListSimpleKey(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := Validate(listSchema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: b.Validate(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+		errs := Validate(listSchema, test.val)
+		if got, want := (errs != nil), test.wantErr; got != want {
+			t.Errorf("%s: b.Validate(%v) got error: %v, want error? %v", test.desc, test.val, errs, test.wantErr)
 		}
-		testErrLog(t, test.desc, err)
+		testErrLog(t, test.desc, errs)
 	}
 }
 
@@ -356,42 +356,42 @@ func TestValidateListStructKey(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := Validate(listSchemaStructKey, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: b.Validate(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+		errs := Validate(listSchemaStructKey, test.val)
+		if got, want := (errs != nil), test.wantErr; got != want {
+			t.Errorf("%s: b.Validate(%v) got error: %v, want error? %v", test.desc, test.val, errs, test.wantErr)
 		}
-		testErrLog(t, test.desc, err)
+		testErrLog(t, test.desc, errs)
 	}
 }
 
 func TestUnmarshalList(t *testing.T) {
 	// nil value
 	if got := unmarshalList(nil, nil, nil); got != nil {
-		t.Errorf("nil value: Unmarshal got error: %v, wanted error? nil", got)
+		t.Errorf("nil value: Unmarshal got error: %v, want error: nil", got)
 	}
 
 	// nil schema
 	wantErr := `list schema is nil`
 	if got, want := errToString(unmarshalList(nil, nil, []struct{}{})), wantErr; got != want {
-		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 
 	// bad parent type
 	wantErr = `unmarshalList for valid-list-schema got parent type struct, expect map, slice ptr or struct ptr`
 	if got, want := errToString(unmarshalList(validListSchema, struct{}{}, []interface{}{})), wantErr; got != want {
-		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 
 	// bad value type
 	wantErr = `unmarshalContainer for schema valid-list-schema: jsonTree 42 (type int): got type int inside container, expect map[string]interface{}`
 	if got, want := errToString(unmarshalList(validListSchema, &struct{}{}, int(42))), wantErr; got != want {
-		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 
 	// bad parent type for unmarshalContainerWithListSchema
 	wantErr = `unmarshalContainerWithListSchema value [], type []interface {}, into parent type struct {}, schema name valid-list-schema: parent must be a struct ptr`
 	if got, want := errToString(unmarshalContainerWithListSchema(validListSchema, struct{}{}, []interface{}{})), wantErr; got != want {
-		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 }
 
@@ -481,7 +481,7 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 
 		err := Unmarshal(test.schema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
+			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
 		}
 		testErrLog(t, test.desc, err)
 		if err == nil {
@@ -562,7 +562,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 
 		err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
+			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
 		}
 		testErrLog(t, test.desc, err)
 		if err == nil {
@@ -657,7 +657,7 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 
 		err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
+			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
 		}
 		testErrLog(t, test.desc, err)
 		if err == nil {
@@ -723,7 +723,7 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 
 		err := Unmarshal(listSchema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
+			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
 		}
 		testErrLog(t, test.desc, err)
 		if err == nil {

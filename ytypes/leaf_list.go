@@ -28,13 +28,14 @@ import (
 // validateLeafList validates each of the values in value against the given
 // schema. value is expected to be a slice of the Go type corresponding to the
 // YANG type in the schema.
-func validateLeafList(schema *yang.Entry, value interface{}) (errors []error) {
+func validateLeafList(schema *yang.Entry, value interface{}) util.Errors {
+	var errors []error
 	if util.IsValueNil(value) {
 		return nil
 	}
 	// Check that the schema itself is valid.
 	if err := validateLeafListSchema(schema); err != nil {
-		return util.AppendErr(errors, err)
+		return util.NewErrs(err)
 	}
 
 	util.DbgPrint("validateLeafList with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
@@ -58,7 +59,7 @@ func validateLeafList(schema *yang.Entry, value interface{}) (errors []error) {
 		errors = util.AppendErr(errors, fmt.Errorf("expected slice type for %s, got %T", schema.Name, value))
 	}
 
-	return
+	return errors
 }
 
 // validateLeafListSchema validates the given list type schema. This is a sanity

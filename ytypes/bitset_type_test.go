@@ -66,7 +66,7 @@ func TestValidateBitsetSchema(t *testing.T) {
 	for _, test := range tests {
 		err := validateBitsetSchema(test.schema)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBitsetSchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: validateBitsetSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -107,7 +107,7 @@ func TestValidateBitset(t *testing.T) {
 	for _, test := range tests {
 		err := validateBitset(test.schema, test.val)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBitset(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+			t.Errorf("%s: validateBitset(%v) got error: %v, want error? %v", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -148,7 +148,7 @@ func TestValidateBitsetSlice(t *testing.T) {
 	for _, test := range tests {
 		err := validateBitsetSlice(test.schema, test.val)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBitset(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+			t.Errorf("%s: validateBitset(%v) got error: %v, want error? %v", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}

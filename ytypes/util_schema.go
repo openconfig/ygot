@@ -78,12 +78,13 @@ func isInRange(yr yang.YRange, val yang.Number) bool {
 // validateListAttr validates any attributes of value present in the schema,
 // such as min/max elements. The schema and value can be a container,
 // list, or leaf-list type.
-func validateListAttr(schema *yang.Entry, value interface{}) (errors []error) {
+func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
+	var errors []error
 	if schema == nil {
-		return util.AppendErr(errors, fmt.Errorf("schema is nil"))
+		return util.NewErrs(fmt.Errorf("schema is nil"))
 	}
 	if schema.ListAttr == nil {
-		return util.AppendErr(errors, fmt.Errorf("schema %s ListAttr is nil", schema.Name))
+		return util.NewErrs(fmt.Errorf("schema %s ListAttr is nil", schema.Name))
 	}
 
 	var size int
@@ -94,7 +95,7 @@ func validateListAttr(schema *yang.Entry, value interface{}) (errors []error) {
 		case reflect.Slice, reflect.Map:
 			size = reflect.ValueOf(value).Len()
 		default:
-			return util.AppendErr(errors, fmt.Errorf("value %v type %T must be map or slice type for schema %s", value, value, schema.Name))
+			return util.NewErrs(fmt.Errorf("value %v type %T must be map or slice type for schema %s", value, value, schema.Name))
 		}
 	}
 
@@ -124,7 +125,7 @@ func validateListAttr(schema *yang.Entry, value interface{}) (errors []error) {
 		}
 	}
 
-	return
+	return errors
 }
 
 // isChoiceOrCase returns true if the entry is either a 'case' or a 'choice'

@@ -59,7 +59,7 @@ func TestValidateBinarySchema(t *testing.T) {
 	for _, test := range tests {
 		err := validateBinarySchema(test.schema)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBinarySchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: validateBinarySchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -114,7 +114,7 @@ func TestValidateBinarySchemaRanges(t *testing.T) {
 	for _, test := range tests {
 		err := validateBinarySchema(yrangeToBinarySchema(test.schemaName, test.length))
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBinarySchema(%v) got error: %v, wanted error? %v, ", test.desc, test.length, err, test.wantErr)
+			t.Errorf("%s: validateBinarySchema(%v) got error: %v, want error? %v, ", test.desc, test.length, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -167,7 +167,7 @@ func TestValidateBinary(t *testing.T) {
 	for _, test := range tests {
 		err := validateBinary(yrangeToBinarySchema(test.schemaName, test.length), test.val)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: b.validateBinary(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+			t.Errorf("%s: b.validateBinary(%v) got error: %v, want error? %v", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -220,7 +220,7 @@ func TestValidateBinarySlice(t *testing.T) {
 	for _, test := range tests {
 		err := validateBinarySlice(yrangeToBinarySchema(test.schemaName, test.length), test.val)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: b.validateBinarySlice(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+			t.Errorf("%s: b.validateBinarySlice(%v) got error: %v, want error? %v", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}

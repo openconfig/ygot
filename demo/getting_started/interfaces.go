@@ -116,12 +116,11 @@ func main() {
 	}
 	ygot.BuildEmptyTree(subif)
 	_, err = subif.Ipv4.NewAddress("Not a valid address")
-	if err := invalidIf.Validate(); err == nil {
-		panic(fmt.Sprintf("Did not find invalid address, got nil err: %v", err))
+	if errs := invalidIf.Validate(); errs == nil {
+		panic(fmt.Sprintf("Did not find invalid address, got nil err: %v", errs))
 	} else {
-		errs := err.(util.Errors)
-		for _, err := range errs {
-			fmt.Printf("Got expected error: %v\n", err)
+		for _, e := range errs {
+			fmt.Printf("Got expected error: %v\n", e)
 		}
 	}
 

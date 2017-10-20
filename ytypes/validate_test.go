@@ -162,11 +162,11 @@ func TestValidate(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := Validate(test.schema, test.val)
-		if got, want := errToString(err), test.wantErr; got != want {
+		errs := Validate(test.schema, test.val)
+		if got, want := errs.String(), test.wantErr; got != want {
 			t.Errorf("%s: Validate got error: %s, want error: %s", test.desc, got, want)
 		}
-		testErrLog(t, test.desc, err)
+		testErrLog(t, test.desc, errs)
 	}
 
 }
