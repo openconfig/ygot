@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/openconfig/ygot.svg?branch=master)](https://travis-ci.org/openconfig/ygot)
+[![Coverage Status](https://coveralls.io/repos/github/openconfig/ygot/badge.svg?branch=master)](https://coveralls.io/github/openconfig/ygot?branch=master)
+
 ![#ygot](docs/img/ygot.png)
 
 ## Introduction
@@ -163,6 +166,22 @@ fmt.Println(json)
 ```
 
 `EmitJSON` performs both `Validate` and outputs the structure to JSON. The format can be an internal JSON format, or that described by RFC7951. Validation or JSON marshalling errors are directly returned.
+
+### Unmarshalling JSON to a GoStruct
+
+ygot includes a function to unmarshal data from RFC7951-encoded JSON to a GoStruct. Since this function relies on the schema of the generated code, it us output within the generated code package - and named `Unmarshal`. The function takes an argument of a `[]byte` (byte slice) containing the JSON document to be unmarshalled, and a pointer to the struct into which it should be unmarshalled. Any struct can be unmarshalled into. If data cannot be unmarshalled, an error is returned.
+
+To unmarshal the example created in this guide, we call `Unmarshal` with the `oc.Device` struct pointer, and the JSON document:
+
+```go
+// Device struct to unmarshal into.
+loadd := &oc.Device{}
+if err := oc.Unmarshal([]byte(json), loadd); err != nil {
+  panic(fmt.Sprintf("Cannot unmarshal JSON: %v", err))
+}
+```
+
+Currently, only the `RFC7951` format of JSON is supported for unmarshalling, the `Internal` format supported by ygot is not yet supported.
 
 ## For Developers
  * [Contributing](CONTRIBUTING.md) - how to contribute to ygot.
