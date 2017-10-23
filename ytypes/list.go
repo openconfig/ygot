@@ -28,14 +28,15 @@ import (
 
 // validateList validates each of the values in the map, keyed by the list Key
 // value, against the given list schema.
-func validateList(schema *yang.Entry, value interface{}) (errors []error) {
+func validateList(schema *yang.Entry, value interface{}) util.Errors {
+	var errors []error
 	if util.IsValueNil(value) {
 		return nil
 	}
 
 	// Check that the schema itself is valid.
 	if err := validateListSchema(schema); err != nil {
-		return util.AppendErr(errors, err)
+		return util.NewErrs(err)
 	}
 
 	util.DbgPrint("validateList with value %v, type %T, schema name %s", value, value, schema.Name)
@@ -76,7 +77,8 @@ func validateList(schema *yang.Entry, value interface{}) (errors []error) {
 	default:
 		errors = util.AppendErr(errors, fmt.Errorf("validateList expected map/slice type for %s, got %T", schema.Name, value))
 	}
-	return
+
+	return errors
 }
 
 // checkKeys checks that the map key value for the list equals the value of the
@@ -90,31 +92,30 @@ func validateList(schema *yang.Entry, value interface{}) (errors []error) {
 //    2. Each element in the list has key fields defined by the leaves in 1.
 //    3. For each such key field, the field value in the element equals the
 //       value of the map key of the containing map in the data tree.
-func checkKeys(schema *yang.Entry, structElems reflect.Value, keyValue reflect.Value) (errors []error) {
+func checkKeys(schema *yang.Entry, structElems reflect.Value, keyValue reflect.Value) util.Errors {
 	keys := strings.Split(schema.Key, " ")
 	if len(keys) == 1 {
-		errors = util.AppendErrs(errors, checkBasicKeyValue(structElems, schema.Key, keyValue))
-	} else {
-		errors = util.AppendErrs(errors, checkStructKeyValues(structElems, keyValue))
+		return checkBasicKeyValue(structElems, schema.Key, keyValue)
 	}
-	return
+
+	return checkStructKeyValues(structElems, keyValue)
 }
 
 // checkBasicKeyValue checks if keyValue, which is the value of the map key,
 // is equal to the value of the key field with field name keyFieldName in the
 // element struct.
-func checkBasicKeyValue(structElems reflect.Value, keyFieldSchemaName string, keyValue reflect.Value) (errors []error) {
+func checkBasicKeyValue(structElems reflect.Value, keyFieldSchemaName string, keyValue reflect.Value) util.Errors {
 	// Find field name corresponding to keyFieldName in the schema.
 	keyFieldName, err := schemaNameToFieldName(structElems, keyFieldSchemaName)
 	if err != nil {
-		return util.AppendErr(errors, err)
+		return util.NewErrs(err)
 	}
 	if util.IsValueNil(keyValue.Interface()) {
 		return nil
 	}
 
 	if !structElems.FieldByName(keyFieldName).IsValid() {
-		return []error{fmt.Errorf("missing key field %s in element %v", keyFieldName, structElems)}
+		return util.NewErrs(fmt.Errorf("missing key field %s in element %v", keyFieldName, structElems))
 	}
 	var elementKeyValue interface{}
 	if structElems.FieldByName(keyFieldName).Kind() == reflect.Ptr && !structElems.FieldByName(keyFieldName).IsNil() {
@@ -124,11 +125,10 @@ func checkBasicKeyValue(structElems reflect.Value, keyFieldSchemaName string, ke
 		elementKeyValue = structElems.FieldByName(keyFieldName).Interface()
 	}
 	if elementKeyValue != keyValue.Interface() {
-		errors = util.AppendErr(errors, fmt.Errorf("key field %s: element key %v != map key %v",
-			keyFieldName, elementKeyValue, keyValue))
+		return util.NewErrs(fmt.Errorf("key field %s: element key %v != map key %v", keyFieldName, elementKeyValue, keyValue))
 	}
 
-	return
+	return nil
 }
 
 // checkStructKeyValues checks that the provided key struct (which is the key
@@ -136,47 +136,43 @@ func checkBasicKeyValue(structElems reflect.Value, keyFieldSchemaName string, ke
 //  - has all the fields defined in the schema key definition
 //  - has no fields not defined in the schema key definition
 //  - has values for each field equal to the corresponding field in the element.
-func checkStructKeyValues(structElems reflect.Value, keyStruct reflect.Value) (errors []error) {
-	//util.DbgPrint("checkStructKeyValues structElems=%v, keyStruct=%v", util.ValueStr(structElems.Interface()), keyStruct)
-	switch keyStruct.Type().Kind() {
-	case reflect.Struct:
-		for i := 0; i < keyStruct.NumField(); i++ {
-			keyName := keyStruct.Type().Field(i).Name
-			keyValue := keyStruct.Field(i).Interface()
-			if !structElems.FieldByName(keyName).IsValid() {
-				errors = util.AppendErr(errors, fmt.Errorf("missing key field %s in %v", keyName, keyStruct))
-				continue
-			}
-
-			var elementStructKeyValue interface{}
-			if structElems.FieldByName(keyName).Kind() == reflect.Ptr && !structElems.FieldByName(keyName).IsNil() {
-				elementStructKeyValue = structElems.FieldByName(keyName).Elem().Interface()
-
-			} else {
-				elementStructKeyValue = structElems.FieldByName(keyName).Interface()
-			}
-			if elementStructKeyValue != keyValue {
-				errors = util.AppendErr(errors, fmt.Errorf("element key value %v for key field %s has different value from map key %v",
-					elementStructKeyValue, keyName, keyValue))
-			}
+func checkStructKeyValues(structElems reflect.Value, keyStruct reflect.Value) util.Errors {
+	var errors []error
+	if keyStruct.Type().Kind() != reflect.Struct {
+		return util.NewErrs(fmt.Errorf("key value %v is not struct type", keyStruct))
+	}
+	for i := 0; i < keyStruct.NumField(); i++ {
+		keyName := keyStruct.Type().Field(i).Name
+		keyValue := keyStruct.Field(i).Interface()
+		if !structElems.FieldByName(keyName).IsValid() {
+			errors = util.AppendErr(errors, fmt.Errorf("missing key field %s in %v", keyName, keyStruct))
+			continue
 		}
 
-	default:
-		errors = util.AppendErr(errors, fmt.Errorf("key value %v is not struct type", keyStruct))
+		elementStructKeyValue := structElems.FieldByName(keyName)
+		if structElems.FieldByName(keyName).Kind() == reflect.Ptr && !structElems.FieldByName(keyName).IsNil() {
+			elementStructKeyValue = elementStructKeyValue.Elem()
+		}
+
+		if elementStructKeyValue.Interface() != keyValue {
+			errors = util.AppendErr(errors, fmt.Errorf("element key value %v for key field %s has different value from map key %v",
+				elementStructKeyValue, keyName, keyValue))
+		}
 	}
 
-	return
+	return errors
 }
 
 // validateStructElems validates each of the struct fields against the schema.
 // TODO(mostrowski): choice directly under list is not handled here.
 // Also, there's code duplication with a very similar operation in container.
-func validateStructElems(schema *yang.Entry, value interface{}) (errors []error) {
+func validateStructElems(schema *yang.Entry, value interface{}) util.Errors {
+	var errors []error
 	structElems := reflect.ValueOf(value).Elem()
 	structTypes := structElems.Type()
 
 	if structElems.Kind() != reflect.Struct {
-		return util.AppendErr(errors, fmt.Errorf("expected a struct type for %s: got %s", schema.Name, util.ValueStr(value)))
+		return util.NewErrs(fmt.Errorf("expected a struct type for %s: got %s", schema.Name, util.ValueStr(value)))
 	}
 	// Verify each elements's fields.
 	for i := 0; i < structElems.NumField(); i++ {
@@ -194,7 +190,8 @@ func validateStructElems(schema *yang.Entry, value interface{}) (errors []error)
 			errors = util.AppendErrs(errors, Validate(cschema, fieldValue))
 		}
 	}
-	return
+
+	return errors
 }
 
 // validateListSchema validates the given list type schema. This is a sanity

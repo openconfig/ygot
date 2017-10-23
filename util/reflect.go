@@ -66,8 +66,8 @@ func IsNilOrInvalidValue(v reflect.Value) bool {
 	return !v.IsValid() || (v.Kind() == reflect.Ptr && v.IsNil()) || IsValueNil(v.Interface())
 }
 
-// IsValueNil is a general purpose nil check for the kinds of value types expected in
-// this package.
+// IsValueNil returns true if either value is nil, or has dynamic type {ptr,
+// map, slice} with value nil.
 func IsValueNil(value interface{}) bool {
 	if value == nil {
 		return true
@@ -123,19 +123,19 @@ func IsValueScalar(v reflect.Value) bool {
 	return !IsValueStruct(v) && !IsValueMap(v) && !IsValueSlice(v)
 }
 
-// IsInterfaceToStructPtr reports whether v is an interface that contains a pointer
-// to a struct.
+// IsInterfaceToStructPtr reports whether v is an interface that contains a
+// pointer to a struct.
 func IsValueInterfaceToStructPtr(v reflect.Value) bool {
 	return IsValueInterface(v) && IsValueStructPtr(v.Elem())
 }
 
-// IsStructValueWithNFields returns true if the reflect.Value representing a struct
-// v has n fields.
+// IsStructValueWithNFields returns true if the reflect.Value representing a
+// struct v has n fields.
 func IsStructValueWithNFields(v reflect.Value, n int) bool {
 	return IsValueStruct(v) && v.NumField() == n
 }
 
-// InsertIntoSlice inserts value into parent which must be a slice.
+// InsertIntoSlice inserts value into parent which must be a slice ptr.
 func InsertIntoSlice(parentSlice interface{}, value interface{}) error {
 	DbgPrint("InsertIntoSlice into parent type %T with value %v, type %T", parentSlice, ValueStr(value), value)
 
@@ -238,8 +238,8 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 	return nil
 }
 
-// InsertIntoSliceStructField inserts fieldValue into a field of type slice in parentStruct
-// called fieldName (which must exist, but may be nil).
+// InsertIntoSliceStructField inserts fieldValue into a field of type slice in
+// parentStruct called fieldName (which must exist, but may be nil).
 func InsertIntoSliceStructField(parentStruct interface{}, fieldName string, fieldValue interface{}) error {
 	DbgPrint("InsertIntoSliceStructField field %s of parent type %T with value %v", fieldName, parentStruct, ValueStr(fieldValue))
 
@@ -276,9 +276,10 @@ func InsertIntoSliceStructField(parentStruct interface{}, fieldName string, fiel
 	return nil
 }
 
-// InsertIntoMapStructField inserts fieldValue into a field of type map in parentStruct
-// called fieldName (which must exist, but may be nil), using the given key.
-// If the key already exists in the map, the corresponding value is updated.
+// InsertIntoMapStructField inserts fieldValue into a field of type map in
+// parentStruct called fieldName (which must exist, but may be nil), using the
+// given key. If the key already exists in the map, the corresponding value is
+// updated.
 func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, fieldValue interface{}) error {
 	DbgPrint("InsertIntoMapStructField field %s of parent type %T with key %v, value %v", fieldName, parentStruct, key, ValueStr(fieldValue))
 
@@ -318,6 +319,9 @@ func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, f
 	return nil
 }
 
+// isFieldTypeCompatible reports whether f.Set(v) can be called successfully on
+// a struct field f corresponding to ft. It is assumed that f is exported and
+// addressable.
 func isFieldTypeCompatible(ft reflect.StructField, v reflect.Value) bool {
 	if ft.Type.Kind() == reflect.Ptr {
 		if !v.IsValid() {
@@ -325,12 +329,15 @@ func isFieldTypeCompatible(ft reflect.StructField, v reflect.Value) bool {
 		}
 		return v.Type() == ft.Type
 	}
-	if !v.IsValid() || IsValueNil(v.Interface()) {
+	if !v.IsValid() {
 		return false
 	}
 	return v.Type() == ft.Type
 }
 
+// isValueTypeCompatible reports whether f.Set(v) can be called successfully on
+// a struct field f with type t. It is assumed that f is exported and
+// addressable.
 func isValueTypeCompatible(t reflect.Type, v reflect.Value) bool {
 	if !v.IsValid() {
 		return t.Kind() == reflect.Ptr

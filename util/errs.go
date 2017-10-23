@@ -27,9 +27,18 @@ func (e Errors) String() string {
 	return e.Error()
 }
 
+// NewErrs returns a slice of error with a single element err.
+// If err is nil, returns nil.
+func NewErrs(err error) Errors {
+	if err == nil {
+		return nil
+	}
+	return []error{err}
+}
+
 // AppendErr appends err to errors if it is not nil and returns the result.
 // If err is nil, it is not appended.
-func AppendErr(errors []error, err error) []error {
+func AppendErr(errors []error, err error) Errors {
 	if err == nil {
 		return errors
 	}
@@ -38,7 +47,7 @@ func AppendErr(errors []error, err error) []error {
 
 // AppendErrs appends newErrs to errors and returns the result.
 // If newErrs is empty, nothing is appended.
-func AppendErrs(errors []error, newErrs []error) []error {
+func AppendErrs(errors []error, newErrs []error) Errors {
 	if len(newErrs) == 0 {
 		return errors
 	}

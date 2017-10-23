@@ -65,7 +65,7 @@ func TestUnmarshal(t *testing.T) {
 
 		err := Unmarshal(tt.schema, &parent, tt.value)
 		if got, want := errToString(err), tt.wantErr; got != want {
-			t.Errorf("%s: got error: %v, wanted error? %v", tt.desc, got, want)
+			t.Errorf("%s: got error: %v, want error: %v", tt.desc, got, want)
 		}
 	}
 }

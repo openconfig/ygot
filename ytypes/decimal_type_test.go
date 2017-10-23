@@ -74,7 +74,7 @@ func TestValidateDecimalSchema(t *testing.T) {
 	for _, test := range tests {
 		err := validateDecimalSchema(test.schema)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validDecimalSchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: validDecimalSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -137,7 +137,7 @@ func TestValidateDecimalType(t *testing.T) {
 	for _, test := range tests {
 		err := validateDecimal(test.schema, test.val)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateDecimal(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+			t.Errorf("%s: validateDecimal(%v) got error: %v, want error? %v", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -307,7 +307,7 @@ func TestValidateDecimalSlice(t *testing.T) {
 	for _, test := range tests {
 		err := validateDecimalSlice(test.schema, test.val)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateDecimal(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+			t.Errorf("%s: validateDecimal(%v) got error: %v, want error? %v", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}

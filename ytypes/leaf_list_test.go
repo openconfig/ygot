@@ -68,7 +68,7 @@ func TestValidateLeafListSchema(t *testing.T) {
 	for _, test := range tests {
 		err := validateLeafListSchema(test.schema)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateListSchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: validateListSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -112,30 +112,30 @@ func TestValidateLeafList(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := Validate(test.schema, test.val)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Validate(%v) got error: %v, wanted error? %v", test.desc, test.val, got, want)
+		errs := Validate(test.schema, test.val)
+		if got, want := errs.String(), test.wantErr; got != want {
+			t.Errorf("%s: Validate(%v) got error: %v, want error: %v", test.desc, test.val, got, want)
 		}
-		testErrLog(t, test.desc, err)
+		testErrLog(t, test.desc, errs)
 	}
 
 	// nil value
 	if got := validateLeafList(nil, nil); got != nil {
-		t.Errorf("nil value: got error: %v, wanted error: nil", got)
+		t.Errorf("nil value: got error: %v, want error: nil", got)
 	}
 
 	// nil schema
 	err := util.Errors(validateLeafList(nil, &struct{}{})).Error()
 	wantErr := `list schema is nil`
 	if got, want := err, wantErr; got != want {
-		t.Errorf("nil schema: Unmarshal got error: %v, wanted error: %v", got, want)
+		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 
 	// bad value type
 	err = util.Errors(validateLeafList(validLeafListSchema, struct{}{})).Error()
 	wantErr = `expected slice type for valid-leaf-list-schema, got struct {}`
 	if got, want := err, wantErr; got != want {
-		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 }
 
@@ -208,7 +208,7 @@ func TestUnmarshalLeafList(t *testing.T) {
 
 		err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
+			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
 		}
 		testErrLog(t, test.desc, err)
 		if err == nil {
@@ -230,18 +230,18 @@ func TestUnmarshalLeafList(t *testing.T) {
 
 	// nil value
 	if got := unmarshalLeafList(nil, nil, nil); got != nil {
-		t.Errorf("nil value: Unmarshal got error: %v, wanted error? nil", got)
+		t.Errorf("nil value: Unmarshal got error: %v, want error: nil", got)
 	}
 
 	// nil schema
 	wantErr := `list schema is nil`
 	if got, want := errToString(unmarshalLeafList(nil, nil, []struct{}{})), wantErr; got != want {
-		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 
 	// bad value type
 	wantErr = `unmarshalLeafList for schema valid-leaf-list-schema: value 42 (type int): got type int, expect []interface{}`
 	if got, want := errToString(unmarshalLeafList(validLeafListSchema, &struct{}{}, int(42))), wantErr; got != want {
-		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 }

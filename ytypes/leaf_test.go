@@ -93,7 +93,7 @@ func TestValidateLeafSchema(t *testing.T) {
 	for _, test := range tests {
 		err := validateLeafSchema(test.schema)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateLeafSchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: validateLeafSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -246,11 +246,11 @@ func TestValidateLeaf(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := Validate(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: Validate(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+		errs := Validate(test.schema, test.val)
+		if got, want := (errs != nil), test.wantErr; got != want {
+			t.Errorf("%s: Validate(%v) got error: %v, want error? %v", test.desc, test.schema, errs, test.wantErr)
 		}
-		testErrLog(t, test.desc, err)
+		testErrLog(t, test.desc, errs)
 	}
 }
 
@@ -460,11 +460,11 @@ func TestValidateLeafUnion(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := Validate(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: got error: %v, wanted error? %v", test.desc, err, test.wantErr)
+		errs := Validate(test.schema, test.val)
+		if got, want := (errs != nil), test.wantErr; got != want {
+			t.Errorf("%s: got error: %v, want error? %v", test.desc, errs, test.wantErr)
 		}
-		testErrLog(t, test.desc, err)
+		testErrLog(t, test.desc, errs)
 	}
 }
 
@@ -802,11 +802,11 @@ func TestValidateLeafRef(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := Validate(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: got error: %v, wanted error? %v", test.desc, err, test.wantErr)
+		errs := Validate(test.schema, test.val)
+		if got, want := (errs != nil), test.wantErr; got != want {
+			t.Errorf("%s: got error: %v, want error? %v", test.desc, errs, test.wantErr)
 		}
-		testErrLog(t, test.desc, err)
+		testErrLog(t, test.desc, errs)
 	}
 }
 
@@ -1224,7 +1224,7 @@ func TestUnmarshalLeaf(t *testing.T) {
 
 		err := Unmarshal(containerSchema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s (#%d): Unmarshal got error: %v, wanted error? %v", test.desc, idx, got, want)
+			t.Errorf("%s (#%d): Unmarshal got error: %v, want error: %v", test.desc, idx, got, want)
 		}
 		testErrLog(t, test.desc, err)
 		if err == nil {
@@ -1238,14 +1238,14 @@ func TestUnmarshalLeaf(t *testing.T) {
 	err := Unmarshal(nil, &LeafContainerStruct{}, map[string]interface{}{})
 	wantErr := `nil schema for parent type *ytypes.LeafContainerStruct, value map[] (map[string]interface {})`
 	if got, want := errToString(err), wantErr; got != want {
-		t.Errorf("nil schema: Unmarshal got error: %v, wanted error? %v", got, want)
+		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 
 	// bad parent type
 	err = unmarshalUnion(containerSchema, LeafContainerStruct{}, "int8-leaf", 42)
 	wantErr = `ytypes.LeafContainerStruct is not a struct ptr in unmarshalUnion`
 	if got, want := errToString(err), wantErr; got != want {
-		t.Errorf("bad parent type: Unmarshal got error: %v, wanted error? %v", got, want)
+		t.Errorf("bad parent type: Unmarshal got error: %v, want error: %v", got, want)
 	}
 }
 
@@ -1308,7 +1308,7 @@ func TestUnmarshalLeafRef(t *testing.T) {
 
 		err := Unmarshal(containerSchema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, wanted error? %v", test.desc, got, want)
+			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
 		}
 		testErrLog(t, test.desc, err)
 		if err == nil {

@@ -57,7 +57,7 @@ func TestValidateStringSchema(t *testing.T) {
 	for _, test := range tests {
 		err := validateStringSchema(test.schema)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateStringSchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: validateStringSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -124,7 +124,7 @@ func TestValidateStringSchemaRanges(t *testing.T) {
 	for _, test := range tests {
 		err := validateStringSchema(yrangeAndPatternToStringSchema(test.schemaName, test.length, test.re))
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateStringSchema got error: %v, wanted error? %v", test.desc, err, test.wantErr)
+			t.Errorf("%s: validateStringSchema got error: %v, want error? %v", test.desc, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -292,7 +292,7 @@ func TestValidateString(t *testing.T) {
 	for _, test := range tests {
 		err := validateString(yrangeAndPatternToStringSchema(test.schemaName, test.length, test.re), test.val)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: s.validateString(%v) got error: %v, wanted error? %t", test.desc, test.val, err, test.wantErr)
+			t.Errorf("%s: s.validateString(%v) got error: %v, want error? %t", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -339,7 +339,7 @@ func TestValidateStringSlice(t *testing.T) {
 	for _, test := range tests {
 		err := validateStringSlice(test.schema, test.val)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: s.validateStringSlice(%v) got error: %v, wanted error? %t", test.desc, test.val, err, test.wantErr)
+			t.Errorf("%s: s.validateStringSlice(%v) got error: %v, want error? %t", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}

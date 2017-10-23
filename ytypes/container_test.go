@@ -90,7 +90,7 @@ func TestValidateContainerSchema(t *testing.T) {
 	for _, test := range tests {
 		err := validateContainerSchema(test.schema)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateContainerSchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: validateContainerSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -171,11 +171,11 @@ func TestValidateContainer(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := Validate(test.schema, test.val)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: got error: %v, wanted error? %v", test.desc, got, want)
+		errs := Validate(test.schema, test.val)
+		if got, want := errs.String(), test.wantErr; got != want {
+			t.Errorf("%s: got error: %v, want error: %v", test.desc, got, want)
 		}
-		testErrLog(t, test.desc, err)
+		testErrLog(t, test.desc, errs)
 	}
 }
 
@@ -284,7 +284,7 @@ func TestUnmarshalContainer(t *testing.T) {
 
 		err := Unmarshal(test.schema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: got error: %v, wanted error? %v", test.desc, got, want)
+			t.Errorf("%s: got error: %v, want error: %v", test.desc, got, want)
 		}
 		testErrLog(t, test.desc, err)
 		if err == nil {
