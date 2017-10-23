@@ -320,7 +320,8 @@ func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, f
 }
 
 // isFieldTypeCompatible reports whether f.Set(v) can be called successfully on
-// a struct field f corresponding to ft.
+// a struct field f corresponding to ft. It is assumed that f is exported and 
+// addressable.
 func isFieldTypeCompatible(ft reflect.StructField, v reflect.Value) bool {
 	if ft.Type.Kind() == reflect.Ptr {
 		if !v.IsValid() {
@@ -335,7 +336,8 @@ func isFieldTypeCompatible(ft reflect.StructField, v reflect.Value) bool {
 }
 
 // isValueTypeCompatible reports whether f.Set(v) can be called successfully on
-// a struct field f with type t.
+// a struct field f with type t. It is assumed that f is exported and 
+// addressable.
 func isValueTypeCompatible(t reflect.Type, v reflect.Value) bool {
 	if !v.IsValid() {
 		return t.Kind() == reflect.Ptr
