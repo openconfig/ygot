@@ -265,6 +265,7 @@
         }
     },
     "Annotation": {
+        "isFakeRoot": true,
         "schemapath": "/",
         "structname": "Device"
     }

@@ -266,5 +266,8 @@
                 "structname": "OpenconfigOptions_Bgp"
             }
         }
+    },
+    "Annotation": {
+      "isFakeRoot": true
     }
 }

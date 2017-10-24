@@ -1290,14 +1290,10 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, abs
 	fieldSlicePath := traverseElementSchemaPath(field)
 	var childPath, parentPath []string
 
-	switch {
-	case absolutePaths:
+	if absolutePaths {
 		childPath = append([]string{""}, fieldSlicePath[1:]...)
-	default:
+	} else {
 		parentPath = parent.path
-	}
-
-	if !absolutePaths {
 		// Append the elements that are not common between the two paths.
 		// Since the field is necessarily a child of the parent, then to
 		// determine those elements of the field's path that are not contained
@@ -1311,7 +1307,6 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, abs
 	}
 
 	mapPaths := [][]string{childPath}
-
 	if !compressOCPaths || parent.listAttr == nil {
 		return mapPaths, nil
 	}

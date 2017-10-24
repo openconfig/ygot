@@ -26,7 +26,8 @@ import (
 
 func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry) ([]byte, error) {
 	rootEntry := &yang.Entry{
-		Dir: map[string]*yang.Entry{},
+		Dir:        map[string]*yang.Entry{},
+		Annotation: map[string]interface{}{},
 	}
 	for _, m := range ms {
 		annotateChildren(m, dn)
@@ -40,12 +41,13 @@ func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry)
 
 	if fakeroot != nil {
 		rootEntry.Name = fakeroot.Name
-		rootEntry.Annotation = map[string]interface{}{
-			"schemapath": "/",
-			"structname": dn[fakeroot.Path()],
-		}
+		rootEntry.Annotation["schemapath"] = "/"
+		rootEntry.Annotation["structname"] = dn[fakeroot.Path()]
 		rootEntry.Kind = yang.DirectoryEntry
 	}
+	// Always annotate the root as a fake root, so that it is not treated
+	// as a path element in ytypes.
+	rootEntry.Annotation["isFakeRoot"] = true
 
 	j, err := json.MarshalIndent(rootEntry, "", strings.Repeat(" ", 4))
 	if err != nil {

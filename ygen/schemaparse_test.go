@@ -121,6 +121,9 @@ func TestBuildJSONTree(t *testing.T) {
                 "structname": "SimpleContainer"
             }
         }
+    },
+    "Annotation": {
+        "isFakeRoot": true
     }
 }`,
 	}, {
@@ -199,6 +202,9 @@ func TestBuildJSONTree(t *testing.T) {
                 "structname": "SimpleContainer"
             }
         }
+    },
+    "Annotation": {
+        "isFakeRoot": true
     }
 }`,
 	}, {
@@ -241,6 +247,7 @@ func TestBuildJSONTree(t *testing.T) {
         }
     },
     "Annotation": {
+        "isFakeRoot": true,
         "schemapath": "/",
         "structname": "TheFakeRoot"
     }
@@ -340,7 +347,10 @@ func TestSchemaRoundtrip(t *testing.T) {
 		"container": containerEntry,
 	}
 
-	annotatedRootEntry := &yang.Entry{Dir: map[string]*yang.Entry{}}
+	annotatedRootEntry := &yang.Entry{
+		Dir:        map[string]*yang.Entry{},
+		Annotation: map[string]interface{}{"isFakeRoot": true},
+	}
 	annotatedContainerEntry := &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,
@@ -394,6 +404,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 		Kind: yang.DirectoryEntry,
 		Dir:  map[string]*yang.Entry{},
 		Annotation: map[string]interface{}{
+			"isFakeRoot": true,
 			"schemapath": "/",
 			"structname": "Device",
 		},
@@ -472,15 +483,13 @@ func TestSchemaRoundtrip(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(got, tt.want) {
-			fmt.Printf("%v\n%v\n", got, tt.want)
-			fmt.Printf("%v\n%v\n", got["Container"].Parent, tt.want["Container"].Parent)
 			// Use JSON serialisation for test debugging output.
+			fmt.Printf("%v\n", tt.want["Container"].Parent)
+			fmt.Printf("%v\n", got["Container"].Parent)
 			gotj, _ := json.MarshalIndent(got, "", strings.Repeat(" ", 4))
 			wantj, _ := json.MarshalIndent(tt.want, "", strings.Repeat(" ", 4))
 			diff, _ := generateUnifiedDiff(string(gotj), string(wantj))
 			t.Errorf("%s: GzipToSchema(...): did not get expected output, diff(-got,+want):\n%s", tt.name, diff)
-			fmt.Printf("got: %s\n", gotj)
-			fmt.Printf("want: %s\n", wantj)
 		}
 	}
 }
