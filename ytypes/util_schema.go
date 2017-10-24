@@ -250,6 +250,11 @@ func schemaTreeRoot(schema *yang.Entry) *yang.Entry {
 // any choice or case entries.
 // TODO(mostrowski): why are these excluded?
 func absoluteSchemaDataPath(schema *yang.Entry) string {
+	util.DbgPrint("%v", schema.Annotation)
+	if s, ok := schema.Annotation["schemapath"]; ok {
+		return s.(string)
+	}
+
 	out := []string{schema.Name}
 	for s := schema.Parent; s != nil; s = s.Parent {
 		if !isChoiceOrCase(s) && !isFakeRoot(s) {

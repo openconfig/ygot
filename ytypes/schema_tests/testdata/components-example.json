@@ -1,0 +1,15 @@
+{
+  "components": {
+    "component": [
+      {
+        "config": {
+          "name": "Linecard3"
+        },
+        "name": "Linecard3",
+        "state": {
+          "type": "LINECARD"
+        }
+      }
+    ]
+  }
+}

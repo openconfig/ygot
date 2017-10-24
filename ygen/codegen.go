@@ -903,6 +903,16 @@ func createFakeRoot(structs map[string]*yang.Entry, rootElems []*yang.Entry, roo
 	return nil
 }
 
+func annotateChildren(e *yang.Entry) {
+	for _, ch := range children(e) {
+		if ch.Annotation == nil {
+			ch.Annotation = map[string]interface{}{}
+		}
+		ch.Annotation["schemapath"] = entrySchemaPath(ch)
+		annotateChildren(ch)
+	}
+}
+
 // serialiseStructDefinitions takes an input set of structs - expressed as a map of yangDirectory structs
 // and outputs a byte slice which corresponds to the serialised JSON representation of the schema.
 // The output JSON contains only the root level entities of the schema - such that there is no
@@ -923,6 +933,9 @@ func serialiseStructDefinitions(structs map[string]*yangDirectory, generateFakeR
 			"schemapath": e.entry.Path(),
 			"structname": e.name,
 		}
+
+		annotateChildren(e.entry)
+
 		if e.isFakeRoot {
 			entries[e.name].Annotation["isFakeRoot"] = true
 		}
