@@ -19,7 +19,6 @@ package ygen
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -409,13 +408,14 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var enumTypeMapCode string
 	if cg.Config.GenerateJSONSchema {
 		var err error
-		if rawSchema, err = serialiseStructDefinitions(goStructs, cg.Config.GenerateFakeRoot, cg.Config.FakeRootName, cg.Config.CompressOCPaths); err != nil {
-			codegenErr.Errors = append(codegenErr.Errors, err)
+		rawSchema, err = buildJSONTree(mdef.modules, cg.state.uniqueDirectoryNames, mdef.directoryEntries["/"])
+		if err != nil {
+			codegenErr.Errors = append(codegenErr.Errors, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}
 
-		if rawSchema != nil {
+		if len(rawSchema) > 0 {
 			if jsonSchema, err = writeGoSchema(rawSchema, cg.Config.GoOptions.SchemaVarName); err != nil {
-				codegenErr.Errors = append(codegenErr.Errors, err)
+				codegenErr.Errors = append(codegenErr.Errors, fmt.Errorf("error storing schema variable: %v", err))
 			}
 		}
 
@@ -656,6 +656,9 @@ type mappedYANGDefinitions struct {
 	// schemaTree is a ctree.Tree that stores a copy of the YANG schema tree, containing
 	// only leaf entries, such that schema paths can be referenced.
 	schemaTree *ctree.Tree
+	// modules is the set of parsed YANG modules that are being processed as part of the
+	// code generatio, expressed as a slice of yang.Entry pointers.
+	modules []*yang.Entry
 }
 
 // mappedDefinitions find the set of directory and enumeration entities
@@ -667,10 +670,10 @@ type mappedYANGDefinitions struct {
 //	- cfg: the current generator's configuration.
 // It returns a mappedYANGDefinitions struct populated with the directory and enum
 // entries in the input schemas, along with the calculated schema tree.
-func mappedDefinitions(yangFiles, includePaths []string, cfg GeneratorConfig) (mappedYANGDefinitions, []error) {
+func mappedDefinitions(yangFiles, includePaths []string, cfg GeneratorConfig) (*mappedYANGDefinitions, []error) {
 	modules, errs := processModules(yangFiles, includePaths, cfg.YANGParseOptions)
 	if errs != nil {
-		return mappedYANGDefinitions{}, errs
+		return nil, errs
 	}
 
 	// Extract the entities that are eligible to have code generated for
@@ -692,27 +695,41 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg GeneratorConfig) (m
 		}
 	}
 	if errs != nil {
-		return mappedYANGDefinitions{}, errs
+		return nil, errs
 	}
 
 	// Build the schematree for the modules provided.
 	st, err := buildSchemaTree(rootElems)
 	if err != nil {
-		return mappedYANGDefinitions{}, []error{err}
+		return nil, []error{err}
 	}
 
 	// If we were asked to generate a fake root entity, then go and find the top-level entities that
 	// we were asked for.
 	if cfg.GenerateFakeRoot {
 		if err := createFakeRoot(dirs, rootElems, cfg.FakeRootName, cfg.CompressOCPaths); err != nil {
-			return mappedYANGDefinitions{}, []error{err}
+			return nil, []error{err}
 		}
 	}
 
-	return mappedYANGDefinitions{
+	// For all non-excluded modules, we store these to be
+	// used as the schema tree.
+	emm := map[string]bool{}
+	for _, e := range cfg.ExcludeModules {
+		emm[e] = true
+	}
+	ms := []*yang.Entry{}
+	for _, m := range modules {
+		if _, ex := emm[m.Name]; !ex {
+			ms = append(ms, m)
+		}
+	}
+
+	return &mappedYANGDefinitions{
 		directoryEntries: dirs,
 		enumEntries:      enums,
 		schemaTree:       st,
+		modules:          ms,
 	}, nil
 }
 
@@ -901,49 +918,4 @@ func createFakeRoot(structs map[string]*yang.Entry, rootElems []*yang.Entry, roo
 	// code should be generated.
 	structs["/"] = fakeRoot
 	return nil
-}
-
-// serialiseStructDefinitions takes an input set of structs - expressed as a map of yangDirectory structs
-// and outputs a byte slice which corresponds to the serialised JSON representation of the schema.
-// The output JSON contains only the root level entities of the schema - such that there is no
-// repetition of definitions of entries. The entries have aditional information appended to the yang.Entry
-// Annotation field - particularly, the name of the struct that was generated for a particular schema element,
-// and the corresponding path within the schema. Both of these elements cannot be reconstructed from
-// the deserialised yang.Entry contents. If the fake root is to be generated (indicated by the generateFakeRoot
-// argument), then the fakerootName will be used for the fake root. In the case that fakeRootName is an empty
-// string, the defaultRootName will be used. If the fake root is not to be generated, the root level entities
-// will be included in the serialised struct definitions, in the case that compressPaths is set to true, then
-// those entities that have no parent in the compressed schema are also included (e.g., a list within a
-// surrounding container at the root).
-func serialiseStructDefinitions(structs map[string]*yangDirectory, generateFakeRoot bool, fakeRootName string, compressPaths bool) ([]byte, error) {
-	entries := map[string]*yang.Entry{}
-	for _, e := range structs {
-		entries[e.name] = e.entry
-		entries[e.name].Annotation = map[string]interface{}{
-			"schemapath": e.entry.Path(),
-			"structname": e.name,
-		}
-		if e.isFakeRoot {
-			entries[e.name].Annotation["isFakeRoot"] = true
-		}
-	}
-
-	schema := map[string]*yang.Entry{}
-	if generateFakeRoot {
-		rootName := yang.CamelCase(defaultRootName)
-		if fakeRootName != "" {
-			rootName = yang.CamelCase(fakeRootName)
-		}
-		if e, ok := entries[rootName]; ok {
-			schema[rootName] = e
-		}
-	} else {
-		schema = findRootEntries(entries, compressPaths)
-	}
-
-	json, err := json.MarshalIndent(schema, "", "    ")
-	if err != nil {
-		return nil, err
-	}
-	return json, nil
 }

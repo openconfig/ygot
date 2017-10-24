@@ -18,6 +18,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"testing"
+	"fmt"
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/pmezard/go-difflib/difflib"
@@ -84,6 +85,8 @@ func TestBGPDemo(t *testing.T) {
 		if ioerr != nil {
 			t.Fatalf("TestBGPDemo %s: ioutil.ReadFile(%s/%s): could not open file: %v", tt.name, TestRoot, tt.wantFile, ioerr)
 		}
+
+		fmt.Printf("%v\n", tt.got)
 
 		if diff := pretty.Compare(tt.got, string(want)); diff != "" {
 			if diffl, err := generateUnifiedDiff(tt.got, string(want)); err == nil {

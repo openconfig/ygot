@@ -16,12 +16,252 @@ package ygen
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 )
+
+func TestBuildJSONTree(t *testing.T) {
+	// Simple YANG hierarchy for test case.
+	simpleModule := &yang.Entry{
+		Name: "a-module",
+		Kind: yang.DirectoryEntry,
+	}
+	simpleContainer := &yang.Entry{
+		Name:   "simple-container",
+		Kind:   yang.DirectoryEntry,
+		Parent: simpleModule,
+	}
+	simpleLeaf := &yang.Entry{
+		Name:   "simple-leaf",
+		Kind:   yang.LeafEntry,
+		Parent: simpleContainer,
+	}
+	simpleContainer.Dir = map[string]*yang.Entry{"simple-leaf": simpleLeaf}
+	simpleModule.Dir = map[string]*yang.Entry{"simple-container": simpleContainer}
+
+	// More complex YANG hierarchy with multiple modules, and children.
+	moduleTwo := &yang.Entry{
+		Name: "a-module",
+		Kind: yang.DirectoryEntry,
+	}
+	moduleTwoContainerOne := &yang.Entry{
+		Name:   "container-one",
+		Kind:   yang.DirectoryEntry,
+		Parent: moduleTwo,
+	}
+	moduleTwoContainerOne.Dir = map[string]*yang.Entry{
+		"ch-one": {
+			Name:   "ch-one",
+			Kind:   yang.LeafEntry,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+			Parent: moduleTwoContainerOne,
+		},
+		"ch-two": {
+			Name:   "ch-two",
+			Kind:   yang.LeafEntry,
+			Type:   &yang.YangType{Kind: yang.Yuint32},
+			Parent: moduleTwoContainerOne,
+		},
+	}
+	moduleTwoContainerTwo := &yang.Entry{
+		Name:   "container-two",
+		Kind:   yang.DirectoryEntry,
+		Parent: moduleTwo,
+	}
+	moduleTwoContainerTwo.Dir = map[string]*yang.Entry{
+		"ch2-leafone": {
+			Name:   "ch2-leafone",
+			Kind:   yang.LeafEntry,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+			Parent: moduleTwoContainerTwo,
+		},
+	}
+	moduleTwo.Dir = map[string]*yang.Entry{
+		"container-one": moduleTwoContainerOne,
+		"container-two": moduleTwoContainerTwo,
+	}
+
+	tests := []struct {
+		name             string
+		inEntries        []*yang.Entry
+		inDirectoryNames map[string]string
+		inFakeRoot       *yang.Entry
+		want             string
+		wantErr          string
+	}{{
+		name:      "simple module entry",
+		inEntries: []*yang.Entry{simpleModule},
+		inDirectoryNames: map[string]string{
+			"/a-module/simple-container": "SimpleContainer",
+		},
+		want: `{
+    "Name": "",
+    "Kind": 0,
+    "Config": 0,
+    "Dir": {
+        "simple-container": {
+            "Name": "simple-container",
+            "Kind": 1,
+            "Config": 0,
+            "Dir": {
+                "simple-leaf": {
+                    "Name": "simple-leaf",
+                    "Kind": 0,
+                    "Config": 0
+                }
+            },
+            "Annotation": {
+                "schemapath": "/a-module/simple-container",
+                "structname": "SimpleContainer"
+            }
+        }
+    }
+}`,
+	}, {
+		name:      "multiple modules",
+		inEntries: []*yang.Entry{simpleModule, moduleTwo},
+		inDirectoryNames: map[string]string{
+			"/a-module/simple-container": "SimpleContainer",
+			"/module-two/container-one":  "C1",
+			"/module-two/container-two":  "C2",
+		},
+		want: `{
+    "Name": "",
+    "Kind": 0,
+    "Config": 0,
+    "Dir": {
+        "container-one": {
+            "Name": "container-one",
+            "Kind": 1,
+            "Config": 0,
+            "Dir": {
+                "ch-one": {
+                    "Name": "ch-one",
+                    "Kind": 0,
+                    "Config": 0,
+                    "Type": {
+                        "Name": "",
+                        "Kind": 18
+                    }
+                },
+                "ch-two": {
+                    "Name": "ch-two",
+                    "Kind": 0,
+                    "Config": 0,
+                    "Type": {
+                        "Name": "",
+                        "Kind": 7
+                    }
+                }
+            },
+            "Annotation": {
+                "schemapath": "/a-module/container-one"
+            }
+        },
+        "container-two": {
+            "Name": "container-two",
+            "Kind": 1,
+            "Config": 0,
+            "Dir": {
+                "ch2-leafone": {
+                    "Name": "ch2-leafone",
+                    "Kind": 0,
+                    "Config": 0,
+                    "Type": {
+                        "Name": "",
+                        "Kind": 18
+                    }
+                }
+            },
+            "Annotation": {
+                "schemapath": "/a-module/container-two"
+            }
+        },
+        "simple-container": {
+            "Name": "simple-container",
+            "Kind": 1,
+            "Config": 0,
+            "Dir": {
+                "simple-leaf": {
+                    "Name": "simple-leaf",
+                    "Kind": 0,
+                    "Config": 0
+                }
+            },
+            "Annotation": {
+                "schemapath": "/a-module/simple-container",
+                "structname": "SimpleContainer"
+            }
+        }
+    }
+}`,
+	}, {
+		name:      "overlapping root children",
+		inEntries: []*yang.Entry{simpleModule, simpleModule},
+		inDirectoryNames: map[string]string{
+			"/a-module/simple-container": "uniqueName",
+		},
+		wantErr: "overlapping root children for key simple-container",
+	}, {
+		name:      "non-nil fake root",
+		inEntries: []*yang.Entry{simpleModule},
+		inFakeRoot: &yang.Entry{
+			Name: "device",
+		},
+		inDirectoryNames: map[string]string{
+			"/a-module/simple-container": "uniqueName",
+			"/device":                    "TheFakeRoot",
+		},
+		want: `{
+    "Name": "device",
+    "Kind": 1,
+    "Config": 0,
+    "Dir": {
+        "simple-container": {
+            "Name": "simple-container",
+            "Kind": 1,
+            "Config": 0,
+            "Dir": {
+                "simple-leaf": {
+                    "Name": "simple-leaf",
+                    "Kind": 0,
+                    "Config": 0
+                }
+            },
+            "Annotation": {
+                "schemapath": "/a-module/simple-container",
+                "structname": "uniqueName"
+            }
+        }
+    },
+    "Annotation": {
+        "schemapath": "/",
+        "structname": "TheFakeRoot"
+    }
+}`,
+	}}
+
+	for _, tt := range tests {
+		gotb, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot)
+		if err != nil && err.Error() != tt.wantErr {
+			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inEntries, tt.inDirectoryNames, err, tt.wantErr)
+		}
+
+		got := string(gotb)
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			if diffl, err := generateUnifiedDiff(got, tt.want); err == nil {
+				diff = diffl
+			}
+			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected JSON tree, diff(-got,+want):\n%s", tt.name, tt.inEntries, tt.inDirectoryNames, diff)
+		}
+	}
+}
 
 func TestWriteGzippedByteSlice(t *testing.T) {
 	tests := []struct {
@@ -52,7 +292,6 @@ func TestWriteGzippedByteSlice(t *testing.T) {
 			t.Errorf("%s: WriteGzippedByteSlice(%v): did not get expected output, got: %v, want: %v", tt.name, tt.inBytes, got, tt.want)
 		}
 	}
-
 }
 
 func TestBytesToGoByteSlice(t *testing.T) {
@@ -97,7 +336,11 @@ func TestSchemaRoundtrip(t *testing.T) {
 	containerEntry.Dir = map[string]*yang.Entry{
 		"leaf": leafEntry,
 	}
+	moduleEntry.Dir = map[string]*yang.Entry{
+		"container": containerEntry,
+	}
 
+	annotatedRootEntry := &yang.Entry{Dir: map[string]*yang.Entry{}}
 	annotatedContainerEntry := &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,
@@ -105,7 +348,9 @@ func TestSchemaRoundtrip(t *testing.T) {
 			"schemapath": "/module/container",
 			"structname": "Container",
 		},
+		Parent: annotatedRootEntry,
 	}
+	annotatedRootEntry.Dir["container"] = annotatedContainerEntry
 	annotatedLeafEntry := &yang.Entry{
 		Name:   "leaf",
 		Parent: annotatedContainerEntry,
@@ -114,100 +359,128 @@ func TestSchemaRoundtrip(t *testing.T) {
 		"leaf": annotatedLeafEntry,
 	}
 
-	// Test case 2: fake root entry.
+	// Test case 2: with fakeroot
 	fakeRootEntry := &yang.Entry{
 		Name: "device",
 		Kind: yang.DirectoryEntry,
-		Node: &yang.Value{
-			Name: rootElementNodeName,
+	}
+
+	fakeRootModuleEntry := &yang.Entry{
+		Name: "module",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+	}
+
+	fakeRootContainerEntry := &yang.Entry{
+		Name:   "container",
+		Kind:   yang.DirectoryEntry,
+		Parent: fakeRootModuleEntry,
+		Dir:    map[string]*yang.Entry{},
+	}
+	fakeRootModuleEntry.Dir["container"] = fakeRootContainerEntry
+
+	fakeRootLeafEntry := &yang.Entry{
+		Name: "leaf",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Ystring,
 		},
+		Parent: fakeRootContainerEntry,
 	}
-	childEntry := &yang.Entry{
-		Name:   "child",
-		Parent: fakeRootEntry,
-	}
-	fakeRootEntry.Dir = map[string]*yang.Entry{
-		"child": childEntry,
-	}
+	fakeRootContainerEntry.Dir["leaf"] = fakeRootLeafEntry
 
 	annotatedFakeRootEntry := &yang.Entry{
 		Name: "device",
 		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
 		Annotation: map[string]interface{}{
+			"schemapath": "/",
 			"structname": "Device",
-			"schemapath": "/device",
-			"isFakeRoot": true,
 		},
 	}
-	annotatedChildEntry := &yang.Entry{
-		Name:   "child",
+	annotatedFakeRootContainerEntry := &yang.Entry{
+		Name:   "container",
+		Kind:   yang.DirectoryEntry,
 		Parent: annotatedFakeRootEntry,
+		Annotation: map[string]interface{}{
+			"structname": "Container",
+			"schemapath": "/module/container",
+		},
+		Dir: map[string]*yang.Entry{},
 	}
-	annotatedFakeRootEntry.Dir = map[string]*yang.Entry{
-		"child": annotatedChildEntry,
+	annotatedFakeRootEntry.Dir["container"] = annotatedFakeRootContainerEntry
+
+	annotatedFakeRootLeafEntry := &yang.Entry{
+		Name: "leaf",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Ystring,
+		},
+		Parent: annotatedFakeRootContainerEntry,
 	}
+	annotatedFakeRootContainerEntry.Dir["leaf"] = annotatedFakeRootLeafEntry
 
 	tests := []struct {
-		name               string
-		inMap              map[string]*yangDirectory
-		inGenerateFakeRoot bool
-		want               map[string]*yang.Entry
-		wantErr            bool
+		name             string
+		inEntries        []*yang.Entry
+		inFakeRoot       *yang.Entry
+		inDirectoryNames map[string]string
+		want             map[string]*yang.Entry
+		wantJSONErr      string
+		wantGzipErr      string
+		wantSchemaErr    string
 	}{{
-		name: "simple schema",
-		inMap: map[string]*yangDirectory{
-			"Container": {
-				name:  "Container",
-				entry: containerEntry,
-			},
+		name:      "simple schema",
+		inEntries: []*yang.Entry{moduleEntry},
+		inDirectoryNames: map[string]string{
+			"/module/container": "Container",
 		},
 		want: map[string]*yang.Entry{
 			"Container": annotatedContainerEntry,
 		},
 	}, {
-		name: "fakeroot",
-		inMap: map[string]*yangDirectory{
-			"Container": {
-				name:  "Container",
-				entry: containerEntry,
-			},
-			"Device": {
-				name:       "Device",
-				entry:      fakeRootEntry,
-				isFakeRoot: true,
-			},
+		name:       "test with fakeroot",
+		inEntries:  []*yang.Entry{fakeRootModuleEntry},
+		inFakeRoot: fakeRootEntry,
+		inDirectoryNames: map[string]string{
+			"/module/container": "Container",
+			"/device":           "Device",
 		},
-		inGenerateFakeRoot: true,
 		want: map[string]*yang.Entry{
-			"Device": annotatedFakeRootEntry,
+			"Container": annotatedFakeRootContainerEntry,
+			"Device":    annotatedFakeRootEntry,
 		},
 	}}
 
 	for _, tt := range tests {
-		gotByte, err := serialiseStructDefinitions(tt.inMap, tt.inGenerateFakeRoot, "", true)
-
-		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: cg.SerialiseStructDefinitions(%v), got unexpected error, err: %v", tt.name, tt.inMap, err)
+		gotByte, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot)
+		if err != nil && err.Error() != tt.wantJSONErr {
+			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inEntries, tt.inDirectoryNames, err, tt.wantJSONErr)
 			continue
 		}
 
 		gotGzip, err := WriteGzippedByteSlice(gotByte)
-		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: WriteGzippedByteSlice(...), got unexpected error:, err: %v", tt.name, err)
+		if err != nil && err.Error() != tt.wantGzipErr {
+			t.Errorf("%s: WriteGzippedByteSlice(%v): did not get expected error, got: %v, want: %v", tt.name, gotByte, err, tt.wantGzipErr)
+			continue
 		}
 
 		got, err := ygot.GzipToSchema(gotGzip)
-		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: GzipToSchema(...), got unexpected error, err: %v", tt.name, err)
+		if err != nil && err.Error() != tt.wantSchemaErr {
+			t.Errorf("%s: ygot.GzipToSchema(%v): did not get expected error, got: %v, want: %v", tt.name, gotGzip, err, tt.wantSchemaErr)
 			continue
 		}
 
 		if !reflect.DeepEqual(got, tt.want) {
-			// Use the JSON serialisation for test debugging output.
-			gotj, _ := json.MarshalIndent(got, "", "  ")
-			wantj, _ := json.MarshalIndent(tt.want, "", "  ")
-			diff, _ := generateUnifiedDiff(string(wantj), string(gotj))
-			t.Errorf("%s: GzipToSchema(...), did not get expected output, diff(-got,+want):\n%s", tt.name, diff)
+			fmt.Printf("%v\n%v\n", got, tt.want)
+			fmt.Printf("%v\n%v\n", got["Container"].Parent, tt.want["Container"].Parent)
+			// Use JSON serialisation for test debugging output.
+			gotj, _ := json.MarshalIndent(got, "", strings.Repeat(" ", 4))
+			wantj, _ := json.MarshalIndent(tt.want, "", strings.Repeat(" ", 4))
+			diff, _ := generateUnifiedDiff(string(gotj), string(wantj))
+			t.Errorf("%s: GzipToSchema(...): did not get expected output, diff(-got,+want):\n%s", tt.name, diff)
+			fmt.Printf("got: %s\n", gotj)
+			fmt.Printf("want: %s\n", wantj)
 		}
 	}
 }
