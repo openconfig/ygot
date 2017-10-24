@@ -1215,7 +1215,7 @@ func TestFindMapPaths(t *testing.T) {
 				},
 			},
 		},
-		wantPaths: [][]string{{"", "a-container", "field-a"}},
+		wantPaths: [][]string{{"field-a"}},
 	}, {
 		name: "invalid parent path",
 		inStruct: &yangDirectory{
@@ -1248,7 +1248,27 @@ func TestFindMapPaths(t *testing.T) {
 			},
 		},
 		inCompressOCPaths: true,
-		wantPaths:         [][]string{{"", "b-container", "config", "field-b"}},
+		wantPaths:         [][]string{{"config", "field-b"}},
+	}, {
+		name: "container with absolute paths on",
+		inStruct: &yangDirectory{
+			name: "BContainer",
+			path: []string{"", "a-module", "b-container", "c-container"},
+		},
+		inField: &yang.Entry{
+			Name: "field-d",
+			Parent: &yang.Entry{
+				Name: "c-container",
+				Parent: &yang.Entry{
+					Name: "b-container",
+					Parent: &yang.Entry{
+						Name: "a-module",
+					},
+				},
+			},
+		},
+		inAbsolutePaths: true,
+		wantPaths:       [][]string{{"", "b-container", "c-container", "field-d"}},
 	}, {
 		name: "top-level module - not valid to map",
 		inStruct: &yangDirectory{

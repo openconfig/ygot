@@ -71,9 +71,12 @@ func annotateChildren(e *yang.Entry, dn map[string]string) {
 			// Recurse to annotate the children of this entry.
 			annotateChildren(ch, dn)
 		}
-		// Save some bytes by setting the description string to nil.
+		// In the compressed schema, we remove the human-readable Description
+		// of each child element, since this is not required by any machine
+		// reconstructing the data.
 		ch.Description = ""
 	}
+	e.Description = ""
 }
 
 // WriteGzippedByteSlice takes an input slice of bytes, gzips it

@@ -762,11 +762,6 @@ func TestValidateLeafRef(t *testing.T) {
 			val:    &Leaf1Container{Leaf1: ygot.String("bbb")},
 		},
 		{
-			desc:   "success absolute leafref with fakeroot with compressed root element",
-			schema: fakeRootWithList,
-			val:    &Leaf1Container{Leaf5: ygot.String("bbb")},
-		},
-		{
 			desc:    "bad value",
 			schema:  validContainerSchema,
 			val:     &Leaf1Container{Leaf1: ygot.String("bbb")},

@@ -160,9 +160,6 @@ func isUnkeyedList(e *yang.Entry) bool {
 func childSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error) {
 	pathTag, _ := f.Tag.Lookup("path")
 	util.DbgSchema("childSchema for schema %s, field %s, tag %s\n", schema.Name, f.Name, pathTag)
-	if rootName, ok := f.Tag.Lookup("rootname"); ok {
-		return schema.Dir[rootName], nil
-	}
 	p, err := pathToSchema(f)
 	if err != nil {
 		return nil, err
@@ -304,16 +301,11 @@ func pathToSchema(f reflect.StructField) ([]string, error) {
 	return nil, fmt.Errorf("field %s had path tag %s with |, but no elements of form a/b", f.Name, pathAnnotation)
 }
 
-// schemaPaths returns all the paths in the path tag, plus the path value of
-// the rootname tag, if one is present.
+// schemaPaths returns all the paths in the path tag.
 func schemaPaths(schema *yang.Entry, f reflect.StructField) ([][]string, error) {
 	var out [][]string
-	rootTag, ok := f.Tag.Lookup("rootname")
-	if ok {
-		out = append(out, strings.Split(rootTag, "/"))
-	}
 	pathTag, ok := f.Tag.Lookup("path")
-	if (!ok || pathTag == "") && rootTag == "" {
+	if !ok || pathTag == "" {
 		return nil, fmt.Errorf("field %s did not specify a path", f.Name)
 	}
 	if pathTag == "" {

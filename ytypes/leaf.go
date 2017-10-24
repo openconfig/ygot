@@ -387,25 +387,6 @@ func findLeafRefSchema(schema *yang.Entry, pathStr string) (*yang.Entry, error) 
 			continue
 		}
 		if refSchema.Dir[pe] == nil {
-			if isFakeRoot(refSchema) {
-				// Special handling is required for the fake root, since it
-				// contains only entries for which code is generated. These
-				// would not normally be removed in the schema, but the
-				// schema fakeroot is a special case which is constructed to
-				// contain the generated root elements.
-				// Therefore, need to check the path element also against the
-				// child of the entry.
-				pech, err := stripPrefix(path[i+1])
-				if err != nil {
-					return nil, err
-				}
-				if refSchema.Dir[pech] != nil {
-					refSchema = refSchema.Dir[pech]
-					// Skip this element.
-					i++
-					continue
-				}
-			}
 			return nil, fmt.Errorf("schema node %s is nil for leafref schema %s with path %s", pe, schema.Name, pathStr)
 		}
 		refSchema = refSchema.Dir[pe]

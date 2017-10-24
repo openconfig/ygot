@@ -32,8 +32,8 @@ type YANGEmpty bool
 
 // ChoiceCaseExample_ChoiceCaseAnonymousCase represents the /choice-case-example/choice-case-anonymous-case YANG schema element.
 type ChoiceCaseExample_ChoiceCaseAnonymousCase struct {
-	A	*string	`path:"/choice-case-anonymous-case/a" module:"choice-case-example"`
-	B	*string	`path:"/choice-case-anonymous-case/b" module:"choice-case-example"`
+	A	*string	`path:"a" module:"choice-case-example"`
+	B	*string	`path:"b" module:"choice-case-example"`
 }
 
 // IsYANGGoStruct ensures that ChoiceCaseExample_ChoiceCaseAnonymousCase implements the yang.GoStruct
@@ -43,8 +43,8 @@ func (*ChoiceCaseExample_ChoiceCaseAnonymousCase) IsYANGGoStruct() {}
 
 // ChoiceCaseExample_ChoiceCaseWithLeafref represents the /choice-case-example/choice-case-with-leafref YANG schema element.
 type ChoiceCaseExample_ChoiceCaseWithLeafref struct {
-	Ptr	*string	`path:"/choice-case-with-leafref/ptr" module:"choice-case-example"`
-	Referenced	*string	`path:"/choice-case-with-leafref/referenced" module:"choice-case-example"`
+	Ptr	*string	`path:"ptr" module:"choice-case-example"`
+	Referenced	*string	`path:"referenced" module:"choice-case-example"`
 }
 
 // IsYANGGoStruct ensures that ChoiceCaseExample_ChoiceCaseWithLeafref implements the yang.GoStruct
@@ -54,8 +54,8 @@ func (*ChoiceCaseExample_ChoiceCaseWithLeafref) IsYANGGoStruct() {}
 
 // ChoiceCaseExample_SimpleChoiceCase represents the /choice-case-example/simple-choice-case YANG schema element.
 type ChoiceCaseExample_SimpleChoiceCase struct {
-	A	*string	`path:"/simple-choice-case/a" module:"choice-case-example"`
-	B	*string	`path:"/simple-choice-case/b" module:"choice-case-example"`
+	A	*string	`path:"a" module:"choice-case-example"`
+	B	*string	`path:"b" module:"choice-case-example"`
 }
 
 // IsYANGGoStruct ensures that ChoiceCaseExample_SimpleChoiceCase implements the yang.GoStruct

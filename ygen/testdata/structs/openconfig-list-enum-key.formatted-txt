@@ -32,8 +32,8 @@ type YANGEmpty bool
 
 // Top represents the /openconfig-list-enum-key/top YANG schema element.
 type Top struct {
-	Ekm	map[Top_Ekm_Key]*Top_Ekm	`path:"/top/multi-key/ekm" module:"openconfig-list-enum-key"`
-	Eks	map[E_OpenconfigListEnumKey_Eks_K]*Top_Eks	`path:"/top/single-key/eks" module:"openconfig-list-enum-key"`
+	Ekm	map[Top_Ekm_Key]*Top_Ekm	`path:"multi-key/ekm" module:"openconfig-list-enum-key"`
+	Eks	map[E_OpenconfigListEnumKey_Eks_K]*Top_Eks	`path:"single-key/eks" module:"openconfig-list-enum-key"`
 }
 
 // IsYANGGoStruct ensures that Top implements the yang.GoStruct
