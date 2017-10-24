@@ -24,6 +24,15 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
+// buildJSON tree takes an input set of modules expressed as a slice of yang.Entry
+// structs, the names of directories within the generated code, and a yang.Entry
+// which corresponds to the fake root and returns a JSON serialised tree of the
+// schema for the set of modules. The JSON document that is returned is always
+// rooted on a yang.Entry which corresponds to the root item, and stores all
+// root-level enties (and their subtrees) within the input module set. All
+// YANG directories are annotated in the output JSON with the name of the type
+// they correspond to in the generated code, and the absolute schema path that
+// the entry corresponds to.
 func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry) ([]byte, error) {
 	rootEntry := &yang.Entry{
 		Dir:        map[string]*yang.Entry{},
