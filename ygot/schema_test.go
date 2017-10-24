@@ -45,7 +45,7 @@ func TestGzipToSchema(t *testing.T) {
 		name    string
 		in      []byte
 		want    map[string]*yang.Entry
-		wantErr bool
+		wantErr string
 	}{{
 		name: "simple entry",
 		in: []byte{
@@ -65,13 +65,29 @@ func TestGzipToSchema(t *testing.T) {
 		want: map[string]*yang.Entry{
 			"container": containerElement,
 		},
+	}, {
+		name:    "bad gzip data",
+		in:      []byte("I am not a valid gzip!"),
+		wantErr: "gzip: invalid header",
+	}, {
+		name: "bad JSON document",
+		in: []byte{
+			0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xaa, 0x56, 0xca, 0xcc, 0x2b, 0x4b,
+			0xcc, 0xc9, 0x4c, 0xd1, 0xcd, 0x2a, 0xce, 0xcf, 0x53, 0xaa, 0x05, 0x00, 0x00, 0x00, 0xff, 0xff,
+			0x01, 0x00, 0x00, 0xff, 0xff, 0x74, 0x4e, 0x31, 0xbb, 0x10, 0x00, 0x00, 0x00,
+		},
+		wantErr: "invalid character '}' after object key",
+	}, {
+		name:    "empty input",
+		in:      []byte{},
+		wantErr: "EOF",
 	}}
 
 	for _, tt := range tests {
 		got, err := GzipToSchema(tt.in)
 		if err != nil {
-			if !tt.wantErr {
-				t.Errorf("%s: GzipToSchema(%v): got unexpected error: %v\n", tt.name, tt.in, err)
+			if err.Error() != tt.wantErr {
+				t.Errorf("%s: GzipToSchema(%v): got unexpected error, got: %v, want: %v\n", tt.name, tt.in, err, tt.wantErr)
 			}
 			continue
 		}
