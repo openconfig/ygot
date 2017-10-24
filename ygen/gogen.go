@@ -1295,20 +1295,21 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, abs
 		childPath = append([]string{""}, fieldSlicePath[1:]...)
 	default:
 		parentPath = parent.path
-
-		if !absolutePaths {
-			// Append the elements that are not common between the two paths.
-			// Since the field is necessarily a child of the parent, then to
-			// determine those elements of the field's path that are not contained
-			// in the parent's, we walk from index X of the field's path (where X
-			// is the number of elements in the path of the parent).
-			if len(fieldSlicePath) < len(parentPath) {
-				return nil, fmt.Errorf("field %v is not a valid child of %v", fieldSlicePath, parent.path)
-			}
-
-			childPath = append(childPath, fieldSlicePath[len(parentPath)-1:]...)
-		}
 	}
+
+	if !absolutePaths {
+		// Append the elements that are not common between the two paths.
+		// Since the field is necessarily a child of the parent, then to
+		// determine those elements of the field's path that are not contained
+		// in the parent's, we walk from index X of the field's path (where X
+		// is the number of elements in the path of the parent).
+		if len(fieldSlicePath) < len(parentPath) {
+			return nil, fmt.Errorf("field %v is not a valid child of %v", fieldSlicePath, parent.path)
+		}
+
+		childPath = append(childPath, fieldSlicePath[len(parentPath)-1:]...)
+	}
+
 	mapPaths := [][]string{childPath}
 
 	if !compressOCPaths || parent.listAttr == nil {
