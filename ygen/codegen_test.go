@@ -965,7 +965,7 @@ func TestCreateFakeRoot(t *testing.T) {
 						Name: "module",
 					},
 				},
-				"bar": &yang.Entry{
+				"bar": {
 					Name: "bar",
 					Parent: &yang.Entry{
 						Name: "module",
