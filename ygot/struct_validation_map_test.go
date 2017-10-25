@@ -1115,7 +1115,7 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 	}, {
-		name: "unimplemented: struct map with overlapping contents",
+		name: "struct map with overlapping contents",
 		inSrc: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
 				{"fourpure"}: {StringField: String("session-ipa")},
