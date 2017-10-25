@@ -1123,10 +1123,17 @@ func TestCopyStruct(t *testing.T) {
 		},
 		inDst: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
-				{"fourpure"}: {StringField: String("oatmeal-stout")},
+				{"fourpure"}: {Uint32Field: Uint32(42)},
 			},
 		},
-		wantErr: true, // Merging two maps with overlapping keys is not implemented.
+		wantDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"fourpure"}: {
+					StringField: String("session-ipa"),
+					Uint32Field: Uint32(42),
+				},
+			},
+		},
 	}, {
 		name: "struct slice",
 		inSrc: &copyTest{

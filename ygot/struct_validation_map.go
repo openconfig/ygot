@@ -506,20 +506,21 @@ func copyMapField(dstField, srcField reflect.Value) error {
 		{srcKeys, srcField},
 		{dstKeys, dstField},
 	}
-	existingKeys := map[interface{}]bool{}
+	existingKeys := map[interface{}]reflect.Value{}
 
 	for _, m := range mapsToMap {
 		for _, k := range m.keys {
 			// Check that this key has not already been mapped. We do not support
 			// the case where there are overlapping keys.
-			// TODO(robjs): Implement mapping of entities that exist in both maps.
-			if _, ok := existingKeys[k.Interface()]; ok {
-				return fmt.Errorf("cannot map element %v, overlaps in both maps", k.Interface())
-			}
-			existingKeys[k.Interface()] = true
-
 			v := m.field.MapIndex(k)
-			d := reflect.New(v.Elem().Type())
+			var d reflect.Value
+			if _, ok := existingKeys[k.Interface()]; ok {
+				d = existingKeys[k.Interface()]
+			} else {
+				d = reflect.New(v.Elem().Type())
+				existingKeys[k.Interface()] = v
+			}
+
 			if err := copyStruct(d.Elem(), v.Elem()); err != nil {
 				return err
 			}
