@@ -216,7 +216,7 @@ func TestValidateListAttr(t *testing.T) {
 		err := validateListAttr(test.schema, test.value)
 		// TODO(mostrowski): make consistent with rest of structs library.
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: TestValidateListAttr(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: TestValidateListAttr(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		if err != nil {
 			if testErrOutput {

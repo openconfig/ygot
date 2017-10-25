@@ -24,13 +24,13 @@ import (
 
 // Validate recursively validates the value of the given data tree struct
 // against the given schema.
-func Validate(schema *yang.Entry, value interface{}) (errors util.Errors) {
+func Validate(schema *yang.Entry, value interface{}) util.Errors {
 	// Nil value means the field is unset.
 	if util.IsValueNil(value) {
 		return nil
 	}
 	if schema == nil {
-		return util.AppendErr(errors, fmt.Errorf("nil schema for type %T, value %v", value, value))
+		return util.NewErrs(fmt.Errorf("nil schema for type %T, value %v", value, value))
 	}
 	util.DbgPrint("Validate with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
 
@@ -40,17 +40,16 @@ func Validate(schema *yang.Entry, value interface{}) (errors util.Errors) {
 	case schema.IsContainer():
 		gsv, ok := value.(ygot.GoStruct)
 		if !ok {
-			return util.AppendErr(errors, fmt.Errorf("type %T is not a GoStruct for schema %s", value, schema.Name))
+			return util.NewErrs(fmt.Errorf("type %T is not a GoStruct for schema %s", value, schema.Name))
 		}
-		errors = validateContainer(schema, gsv)
+		return validateContainer(schema, gsv)
 	case schema.IsLeafList():
 		return validateLeafList(schema, value)
 	case schema.IsList():
 		return validateList(schema, value)
 	case schema.IsChoice():
-		return util.AppendErr(errors, fmt.Errorf("cannot pass choice schema %s to Validate", schema.Name))
-	default:
-		errors = util.AppendErr(errors, fmt.Errorf("unknown schema type for type %T, value %v", value, value))
+		return util.NewErrs(fmt.Errorf("cannot pass choice schema %s to Validate", schema.Name))
 	}
-	return errors
+
+	return util.NewErrs(fmt.Errorf("unknown schema type for type %T, value %v", value, value))
 }

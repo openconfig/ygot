@@ -42,6 +42,19 @@ func TestToString(t *testing.T) {
 	}
 }
 
+func TestNewErrs(t *testing.T) {
+	var errs Errors
+	errs = NewErrs(nil)
+	if errs != nil {
+		t.Errorf("got: %s, want: nil", errs)
+	}
+
+	errs = NewErrs(fmt.Errorf("err1"))
+	if got, want := errs.String(), "err1"; got != want {
+		t.Errorf("got: %s, want: %s", got, want)
+	}
+}
+
 func TestAppendErr(t *testing.T) {
 	var errs Errors
 	if got, want := errs.String(), ""; got != want {

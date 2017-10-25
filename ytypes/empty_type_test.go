@@ -52,7 +52,7 @@ func TestValidateEmptySchema(t *testing.T) {
 	for _, test := range tests {
 		err := validateEmptySchema(test.schema)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateEmptySchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: validateEmptySchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -104,7 +104,7 @@ func TestValidateEmpty(t *testing.T) {
 	for _, test := range tests {
 		err := validateEmpty(test.schema, test.val)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateEmpty(%v) got error: %v, wanted error? %v", test.desc, test.val, err, test.wantErr)
+			t.Errorf("%s: validateEmpty(%v) got error: %v, want error? %v", test.desc, test.val, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}

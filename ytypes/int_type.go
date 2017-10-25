@@ -152,8 +152,8 @@ func validateIntSchema(schema *yang.Entry) error {
 	}
 
 	if len(ranges) != 0 {
-		if err := ranges.Validate(); err != nil {
-			return err
+		if errs := ranges.Validate(); errs != nil {
+			return errs
 		}
 	}
 

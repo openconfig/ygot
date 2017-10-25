@@ -98,7 +98,7 @@ func TestValidateChoice(t *testing.T) {
 	for _, test := range tests {
 		errs := Validate(containerWithChoiceSchema, test.val)
 		if got, want := (errs != nil), test.wantErr; got != want {
-			t.Errorf("%s: Validate got error: %s, wanted error? %v", test.desc, errs, test.wantErr)
+			t.Errorf("%s: Validate got error: %s, want error? %v", test.desc, errs, test.wantErr)
 		}
 		testErrLog(t, test.desc, errs)
 	}
@@ -208,7 +208,7 @@ func TestUnmarshalChoice(t *testing.T) {
 
 		err := Unmarshal(test.schema, &parent, jsonTree)
 		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: got error: %v, wanted error? %v", test.desc, got, want)
+			t.Errorf("%s: got error: %v, want error: %v", test.desc, got, want)
 		}
 		testErrLog(t, test.desc, err)
 		if err == nil {

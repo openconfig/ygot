@@ -33,7 +33,7 @@ import (
 // validateLeaf validates the value of a leaf struct against the given schema.
 // This value is expected to be a Go basic type corresponding to the leaf
 // schema type.
-func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
+func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 	// TODO(mostrowski): "mandatory" not implemented.
 	if util.IsValueNil(value) {
 		return nil
@@ -43,7 +43,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 
 	schema, err := resolveLeafRef(inSchema)
 	if err != nil {
-		return util.AppendErr(errors, err)
+		return util.NewErrs(err)
 	}
 
 	var rv interface{}
@@ -54,51 +54,48 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
 		rv = reflect.ValueOf(value).Elem().Interface()
 	case reflect.Slice:
 		if ykind != yang.Ybinary {
-			return util.AppendErr(errors, fmt.Errorf("bad leaf type: expect []byte for binary value %v for schema %s, have type %v",
-				value, schema.Name, ykind))
+			return util.NewErrs(fmt.Errorf("bad leaf type: expect []byte for binary value %v for schema %s, have type %v", value, schema.Name, ykind))
 		}
 	case reflect.Int64:
 		if ykind != yang.Yenum && ykind != yang.Yidentityref {
-			return util.AppendErr(errors, fmt.Errorf("bad leaf type: expect Int64 for enum type for schema %s, have type %v",
-				schema.Name, ykind))
+			return util.NewErrs(fmt.Errorf("bad leaf type: expect Int64 for enum type for schema %s, have type %v", schema.Name, ykind))
 		}
 	case reflect.Bool:
 		if ykind != yang.Yempty {
-			return util.AppendErr(errors, fmt.Errorf("bad leaf type: expect Bool for empty type for schema %s, have type %v",
-				schema.Name, ykind))
+			return util.NewErrs(fmt.Errorf("bad leaf type: expect Bool for empty type for schema %s, have type %v", schema.Name, ykind))
 		}
 		rv = value
 	default:
-		return util.AppendErr(errors, fmt.Errorf("bad leaf value type %v, expect Ptr or Int64 for schema %s", rkind, schema.Name))
+		return util.NewErrs(fmt.Errorf("bad leaf value type %v, expect Ptr or Int64 for schema %s", rkind, schema.Name))
 	}
 
 	switch ykind {
 	case yang.Ybinary:
-		return util.AppendErr(errors, validateBinary(schema, rv))
+		return util.NewErrs(validateBinary(schema, rv))
 	case yang.Ybits:
 		return nil
 		// TODO(mostrowski): restore when representation is decided.
-		//return util.AppendErr(errors, validateBitset(schema, rv))
+		//return util.NewErrs(validateBitset(schema, rv))
 	case yang.Ybool:
-		return util.AppendErr(errors, validateBool(schema, rv))
+		return util.NewErrs(validateBool(schema, rv))
 	case yang.Yempty:
-		return util.AppendErr(errors, validateEmpty(schema, rv))
+		return util.NewErrs(validateEmpty(schema, rv))
 	case yang.Ystring:
-		return util.AppendErr(errors, validateString(schema, rv))
+		return util.NewErrs(validateString(schema, rv))
 	case yang.Ydecimal64:
-		return util.AppendErr(errors, validateDecimal(schema, rv))
+		return util.NewErrs(validateDecimal(schema, rv))
 	case yang.Yenum, yang.Yidentityref:
 		if rkind != reflect.Int64 && !isValueInterfacePtrToEnum(reflect.ValueOf(value)) {
-			return util.AppendErr(errors, fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rkind, schema.Name, ykind))
+			return util.NewErrs(fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rkind, schema.Name, ykind))
 		}
 		return nil
 	case yang.Yunion:
 		return validateUnion(schema, value)
 	}
 	if isIntegerType(ykind) {
-		return util.AppendErr(errors, validateInt(schema, rv))
+		return util.NewErrs(validateInt(schema, rv))
 	}
-	return util.AppendErr(errors, fmt.Errorf("unknown leaf type %v for schema %s", ykind, schema.Name))
+	return util.NewErrs(fmt.Errorf("unknown leaf type %v for schema %s", ykind, schema.Name))
 }
 
 /*
@@ -207,7 +204,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) (errors []error) {
  validateUnion supports any combination of nested union types and multiple
  choices with the same type that are not represented by a named wrapper struct.
 */
-func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
+func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
 	util.DbgPrint("validateUnion %s", schema.Name)
 	if util.IsValueNil(value) {
 		return nil
@@ -217,7 +214,7 @@ func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
 	// Enum types are also represented as a struct for union where the field
 	// has the enum type.
 	if reflect.TypeOf(value).Kind() != reflect.Ptr {
-		return util.AppendErr(errors, fmt.Errorf("wrong value type for union %s: got: %T, expect ptr", schema.Name, value))
+		return util.NewErrs(fmt.Errorf("wrong value type for union %s: got: %T, expect ptr", schema.Name, value))
 	}
 
 	v := reflect.ValueOf(value).Elem()
@@ -233,7 +230,7 @@ func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
 
 	if v.Type().Kind() == reflect.Struct {
 		if v.NumField() != 1 {
-			return util.AppendErr(errors, fmt.Errorf("union %s should only have one field, but has %d", schema.Name, v.NumField()))
+			return util.NewErrs(fmt.Errorf("union %s should only have one field, but has %d", schema.Name, v.NumField()))
 		}
 		return validateMatchingSchemas(schema, v.Field(0).Interface())
 	}
@@ -245,7 +242,8 @@ func validateUnion(schema *yang.Entry, value interface{}) (errors []error) {
 // that match the type of passed in value. It returns nil if value is
 // successfully validated against any matching schema, or a list of errors found
 // during validation against each matching schema otherwise.
-func validateMatchingSchemas(schema *yang.Entry, value interface{}) (errors []error) {
+func validateMatchingSchemas(schema *yang.Entry, value interface{}) util.Errors {
+	var errors []error
 	ss := findMatchingSchemasInUnion(schema.Type, value)
 	var kk []yang.TypeKind
 	for _, s := range ss {
@@ -253,7 +251,7 @@ func validateMatchingSchemas(schema *yang.Entry, value interface{}) (errors []er
 	}
 	util.DbgPrint("validateMatchingSchemas for value %v (%T) for schema %s with types %v", value, value, schema.Name, kk)
 	if len(ss) == 0 {
-		return []error{fmt.Errorf("no types in schema %s match the type of value %v, which is %T", schema.Name, util.ValueStr(value), value)}
+		return util.NewErrs(fmt.Errorf("no types in schema %s match the type of value %v, which is %T", schema.Name, util.ValueStr(value), value))
 	}
 	for _, s := range ss {
 		var errs []error
@@ -271,7 +269,7 @@ func validateMatchingSchemas(schema *yang.Entry, value interface{}) (errors []er
 		errors = util.AppendErrs(errors, errs)
 	}
 
-	return
+	return errors
 }
 
 // findMatchingSchemasInUnion returns all schemas in the given union type,

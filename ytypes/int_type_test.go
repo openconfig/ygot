@@ -111,7 +111,7 @@ func TestValidateIntSchema(t *testing.T) {
 	for _, test := range tests {
 		err := validateIntSchema(test.schema)
 		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateIntSchema(%v) got error: %v, wanted error? %v", test.desc, test.schema, err, test.wantErr)
+			t.Errorf("%s: validateIntSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
 		}
 		testErrLog(t, test.desc, err)
 	}
@@ -157,7 +157,7 @@ func TestValidateIntSchemaRanges(t *testing.T) {
 		for _, ty := range yangIntTypes {
 			err := validateIntSchema(typeAndRangeToIntSchema(test.desc+"-schema", ty, test.ranges))
 			if got, want := (err != nil), test.wantErr; got != want {
-				t.Errorf("%s: validateIntSchema(%v) for %v got error: %v, wanted error? %v",
+				t.Errorf("%s: validateIntSchema(%v) for %v got error: %v, want error? %v",
 					test.desc, ty, test.ranges, err, test.wantErr)
 			}
 			testErrLog(t, test.desc, err)

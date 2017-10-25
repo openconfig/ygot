@@ -447,7 +447,7 @@ func TestUnmarshal(t *testing.T) {
 
 		err = oc.Unmarshal(j, tt.parent)
 		if got, want := errToString(err), tt.wantErr; got != want {
-			t.Errorf("%s: got error: %v, wanted error? %v ", tt.desc, got, want)
+			t.Errorf("%s: got error: %v, want error: %v ", tt.desc, got, want)
 		}
 		testErrLog(t, tt.desc, err)
 		if err == nil {
