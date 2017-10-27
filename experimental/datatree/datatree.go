@@ -12,6 +12,7 @@ import (
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+// TreeNode is a node within a tree used to store a YANG-modelled hierarchy.
 type TreeNode struct {
 	// mu is a a read/write mutex that can be used to acquire a read or
 	// write lock on the subtree.
@@ -26,14 +27,18 @@ type TreeNode struct {
 	leaf interface{}
 }
 
+// IsStruct returns true if the TreeNode contains a goStruct - i.e., contains
+// a container or a map list entry.
 func (t *TreeNode) IsStruct() bool {
 	return t.goStruct != nil
 }
 
+// IsLeaf returns true if the TreeNode contains a scalar value.
 func (t *TreeNode) IsLeaf() bool {
 	return t.leaf != nil
 }
 
+// IsValid checks the validity of the TreeNode.
 func (t *TreeNode) IsValid() bool {
 	if t.IsStruct() && t.IsLeaf() {
 		return false
@@ -44,6 +49,8 @@ func (t *TreeNode) IsValid() bool {
 	return true
 }
 
+// Equal determines whether the tree node receiver is equal with the tree node
+// supplied.
 func (t *TreeNode) Equal(c *TreeNode) bool {
 	if c == nil {
 		return false
@@ -135,6 +142,7 @@ func validPathElem(p *gnmipb.PathElem) error {
 	return nil
 }
 
+// addNode adds the node c at the path p within the tree.
 func (t *TreeNode) addNode(p *gnmipb.PathElem, c *TreeNode) error {
 	if err := validPathElem(p); err != nil {
 		return fmt.Errorf("cannot add invalid path element: %v", err)
@@ -166,6 +174,10 @@ func (t *TreeNode) addNode(p *gnmipb.PathElem, c *TreeNode) error {
 // that find *does not* acquire a read lock on the TreeNode - rather the caller
 // must ensure that they hold the lock before proceeding if consistency is
 // required.
+//
+// TODO(robjs): find here is pretty costly, since it's O(N) on the size of the
+// subtree. Using proto.Equal is also somewhat costly. Is there some way that
+// we can make this more efficient?
 func (t *TreeNode) find(p *gnmipb.PathElem) (*gnmipb.PathElem, *TreeNode) {
 	for k := range t.subtree {
 		if proto.Equal(k, p) {
@@ -175,6 +187,8 @@ func (t *TreeNode) find(p *gnmipb.PathElem) (*gnmipb.PathElem, *TreeNode) {
 	return nil, nil
 }
 
+// addAllNodes add the tree node c at the path specified in pp, creating interim
+// path elements if they do not exist.
 func (t *TreeNode) addAllNodes(pp []*gnmipb.PathElem, c *TreeNode) error {
 	if c == nil || !c.IsValid() {
 		return fmt.Errorf("cannot add invalid child at path %v", pp)
@@ -205,6 +219,8 @@ func (t *TreeNode) addAllNodes(pp []*gnmipb.PathElem, c *TreeNode) error {
 	return cnode.addNode(pp[len(pp)-1], c)
 }
 
+// addChildrenInternal takes an input ygot.GoStruct and adds it to the TreeNode
+// t.
 func (t *TreeNode) addChildrenInternal(s ygot.GoStruct) error {
 	sv := reflect.ValueOf(s)
 	st := sv.Elem().Type()
@@ -263,6 +279,7 @@ func (t *TreeNode) addChildrenInternal(s ygot.GoStruct) error {
 	return nil
 }
 
+// add adds the child TreeNode at all paths described in the path.
 func (t *TreeNode) add(path [][]*gnmipb.PathElem, child *TreeNode) error {
 	for _, pp := range path {
 		if len(pp) == 1 {
