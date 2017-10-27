@@ -1332,6 +1332,10 @@ func TestStripPrefix(t *testing.T) {
 		name:    "invalid input",
 		inName:  "foo:bar:foo",
 		wantErr: "path element did not form a valid name (name, prefix:name): foo:bar:foo",
+	}, {
+		name:     "empty string",
+		inName:   "",
+		wantName: "",
 	}}
 
 	for _, tt := range tests {

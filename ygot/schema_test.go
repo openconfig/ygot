@@ -94,7 +94,10 @@ func TestGzipToSchema(t *testing.T) {
 
 		if !reflect.DeepEqual(got, tt.want) {
 			gotj, _ := json.MarshalIndent(got, "", strings.Repeat(" ", 4))
-			wantj, _ := json.MarshalIndent(tt.want, "", strings.Repeat(" ", 4))
+			wantj, err := json.MarshalIndent(tt.want, "", strings.Repeat(" ", 4))
+			if err != nil {
+				t.Errorf("%s: GzipToSchema(%v): did not get expected output, and JSON generation failed: %v", tt.name, tt.in, err)
+			}
 			diff, _ := generateUnifiedDiff(string(gotj), string(wantj))
 			t.Errorf("%s: GzipToSchema(%v): did not get expected output, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 		}
