@@ -32,7 +32,8 @@ import (
 // root-level enties (and their subtrees) within the input module set. All
 // YANG directories are annotated in the output JSON with the name of the type
 // they correspond to in the generated code, and the absolute schema path that
-// the entry corresponds to.
+// the entry corresponds to. In the case that the fake root struct that is provided
+// is nil, a synthetic root entry is used to store the schema tree.
 func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry) ([]byte, error) {
 	rootEntry := &yang.Entry{
 		Dir:        map[string]*yang.Entry{},
@@ -62,32 +63,46 @@ func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry)
 	if err != nil {
 		return nil, fmt.Errorf("JSON marshalling error: %v", err)
 	}
+	if len(j) == 0 {
+		return nil, nil
+	}
 	return j, nil
 }
 
-// annotateChildren annotates e with its schema path, and the value corresponding
+// annotateChildren annotates the children of e with their schema path, and the value corresponding
 // to its path in the supplied dn map. The dn map is assumed to contain the
 // names of unique directories that are generated within the code to be output.
 // The children of e are recursively annotated.
 func annotateChildren(e *yang.Entry, dn map[string]string) {
+	annotateEntry(e, dn)
 	for _, ch := range children(e) {
-		if ch.Annotation == nil {
-			ch.Annotation = map[string]interface{}{}
-		}
-		if n, ok := dn[ch.Path()]; ok {
-			ch.Annotation["structname"] = n
-		}
+		annotateEntry(ch, dn)
 		if ch.IsDir() {
 			ch.Annotation["schemapath"] = ch.Path()
 			// Recurse to annotate the children of this entry.
 			annotateChildren(ch, dn)
 		}
-		// In the compressed schema, we remove the human-readable Description
-		// of each child element, since this is not required by any machine
-		// reconstructing the data.
-		ch.Description = ""
 	}
+}
+
+// annotateEntry modifies the yang.Entry e to:
+//  - set the description to be the nil string to reduce
+//    filesizes of serialised schemas.
+//  - add the struct name corresponding to the path of the entry
+//    in the supplied dn map to the annotations.
+//  - add the YANG schema path to the annotations, where e
+//    corresponds to a YANG directory.
+func annotateEntry(e *yang.Entry, dn map[string]string) {
 	e.Description = ""
+	if e.Annotation == nil {
+		e.Annotation = map[string]interface{}{}
+	}
+	if n, ok := dn[e.Path()]; ok {
+		e.Annotation["structname"] = n
+	}
+	if e.IsDir() {
+		e.Annotation["schemapath"] = e.Path()
+	}
 }
 
 // WriteGzippedByteSlice takes an input slice of bytes, gzips it

@@ -303,7 +303,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Extract the entities to be mapped into structs and enumerations in the output
 	// Go code. Extract the schematree from the modules provided such that it can be
 	// used to reference entities within the tree.
-	mdef, errs := mappedDefinitions(yangFiles, includePaths, cg.Config)
+	mdef, errs := mappedDefinitions(yangFiles, includePaths, &cg.Config)
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
@@ -413,7 +413,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 			codegenErr.Errors = append(codegenErr.Errors, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}
 
-		if len(rawSchema) > 0 {
+		if rawSchema != nil {
 			if jsonSchema, err = writeGoSchema(rawSchema, cg.Config.GoOptions.SchemaVarName); err != nil {
 				codegenErr.Errors = append(codegenErr.Errors, fmt.Errorf("error storing schema variable: %v", err))
 			}
@@ -447,7 +447,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 // output, along with any associated values (e.g., enumerations).
 func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto3, *YANGCodeGeneratorError) {
 	// TODO(github.com/openconfig/ygot/issues/20): Handle enumerated types in proto messages.
-	mdef, errs := mappedDefinitions(yangFiles, includePaths, cg.Config)
+	mdef, errs := mappedDefinitions(yangFiles, includePaths, &cg.Config)
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
@@ -670,7 +670,7 @@ type mappedYANGDefinitions struct {
 //	- cfg: the current generator's configuration.
 // It returns a mappedYANGDefinitions struct populated with the directory and enum
 // entries in the input schemas, along with the calculated schema tree.
-func mappedDefinitions(yangFiles, includePaths []string, cfg GeneratorConfig) (*mappedYANGDefinitions, []error) {
+func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (*mappedYANGDefinitions, []error) {
 	modules, errs := processModules(yangFiles, includePaths, cfg.YANGParseOptions)
 	if errs != nil {
 		return nil, errs
@@ -714,13 +714,13 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg GeneratorConfig) (*
 
 	// For all non-excluded modules, we store these to be
 	// used as the schema tree.
-	emm := map[string]bool{}
+	excluded := map[string]bool{}
 	for _, e := range cfg.ExcludeModules {
-		emm[e] = true
+		excluded[e] = true
 	}
 	ms := []*yang.Entry{}
 	for _, m := range modules {
-		if _, ex := emm[m.Name]; !ex {
+		if _, ok := excluded[m.Name]; !ok {
 			ms = append(ms, m)
 		}
 	}
