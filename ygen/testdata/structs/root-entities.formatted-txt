@@ -32,8 +32,8 @@ type YANGEmpty bool
 
 // Fakeroot represents the /fakeroot YANG schema element.
 type Fakeroot struct {
-	Entry	map[string]*RootEntities_Entry	`path:"entry" rootname:"entry" module:"root-entities"`
-	Name	*string	`path:"name" rootname:"name" module:"root-entities"`
+	Entry	map[string]*RootEntities_Entry	`path:"entry" module:"root-entities"`
+	Name	*string	`path:"name" module:"root-entities"`
 }
 
 // IsYANGGoStruct ensures that Fakeroot implements the yang.GoStruct

@@ -917,5 +917,101 @@ func TestGenerateProto3(t *testing.T) {
 			}
 		}
 	}
+}
 
+func TestCreateFakeRoot(t *testing.T) {
+	tests := []struct {
+		name            string
+		inStructs       map[string]*yang.Entry
+		inRootElems     []*yang.Entry
+		inRootName      string
+		inCompressPaths bool
+		wantRoot        *yang.Entry
+		wantErr         bool
+	}{{
+		name: "simple root",
+		inStructs: map[string]*yang.Entry{
+			"/module/foo": {
+				Name: "foo",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+				},
+			},
+		},
+		inRootElems: []*yang.Entry{{
+			Name: "foo",
+			Kind: yang.DirectoryEntry,
+			Parent: &yang.Entry{
+				Name: "module",
+			},
+		}, {
+			Name: "bar",
+			Parent: &yang.Entry{
+				Name: "module",
+			},
+			Type: &yang.YangType{Kind: yang.Ystring},
+		}},
+		inRootName:      "",
+		inCompressPaths: false,
+		wantRoot: &yang.Entry{
+			Name: defaultRootName,
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"foo": {
+					Name: "foo",
+					Kind: yang.DirectoryEntry,
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+				"bar": {
+					Name: "bar",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+			},
+			Node: &yang.Value{
+				Name: rootElementNodeName,
+			},
+		},
+	}, {
+		name: "overlapping root entries",
+		inStructs: map[string]*yang.Entry{
+			"/module1/foo": {
+				Name: "foo",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module1",
+				},
+			},
+			"/module2/foo": {
+				Name: "foo",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module2",
+				},
+			},
+		},
+		inRootName: "name",
+		wantErr:    true,
+	}}
+
+	for _, tt := range tests {
+		err := createFakeRoot(tt.inStructs, tt.inRootElems, tt.inRootName, tt.inCompressPaths)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: createFakeRoot(%v, %v, %s, %v): did not get expected error, got: %s, wantErr: %v", tt.name, tt.inStructs, tt.inRootElems, tt.inRootName, tt.inCompressPaths, err, tt.wantErr)
+			continue
+		}
+
+		if err != nil {
+			continue
+		}
+
+		if diff := pretty.Compare(tt.inStructs["/"], tt.wantRoot); diff != "" {
+			t.Errorf("%s: createFakeRoot(%v, %v, %s, %v): did not get expected root struct, diff(-got,+want):\n%s", tt.name, tt.inStructs, tt.inRootElems, tt.inRootName, tt.inCompressPaths, diff)
+		}
+	}
 }

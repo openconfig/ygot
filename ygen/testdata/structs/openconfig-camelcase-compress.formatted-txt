@@ -32,7 +32,7 @@ type YANGEmpty bool
 
 // BGP represents the /openconfig-camelcase/bgp YANG schema element.
 type BGP struct {
-	Neighbor	map[string]*BGP_Neighbor	`path:"/bgp/neighbors/neighbor" module:"openconfig-camelcase"`
+	Neighbor	map[string]*BGP_Neighbor	`path:"neighbors/neighbor" module:"openconfig-camelcase"`
 }
 
 // IsYANGGoStruct ensures that BGP implements the yang.GoStruct
@@ -90,7 +90,7 @@ func (t *BGP_Neighbor) ΛListKeyMap() (map[string]interface{}, error) {
 
 // Device represents the /device YANG schema element.
 type Device struct {
-	BGP	*BGP	`path:"" rootname:"bgp" module:"openconfig-camelcase"`
+	BGP	*BGP	`path:"bgp" module:"openconfig-camelcase"`
 }
 
 // IsYANGGoStruct ensures that Device implements the yang.GoStruct

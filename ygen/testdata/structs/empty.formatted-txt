@@ -32,8 +32,8 @@ type YANGEmpty bool
 
 // Empty_Test represents the /empty/test YANG schema element.
 type Empty_Test struct {
-	Config	*Empty_Test_Config	`path:"/test/config" module:"empty"`
-	State	*Empty_Test_State	`path:"/test/state" module:"empty"`
+	Config	*Empty_Test_Config	`path:"config" module:"empty"`
+	State	*Empty_Test_State	`path:"state" module:"empty"`
 }
 
 // IsYANGGoStruct ensures that Empty_Test implements the yang.GoStruct
