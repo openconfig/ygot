@@ -13,7 +13,7 @@ import "openconfig/routing_policy.proto";
 
 // Device represents the /device YANG schema element.
 message Device {
-  RoutingPolicy routing_policy = 425978595 [(yext.schemapath) = ""];
+  RoutingPolicy routing_policy = 425978595 [(yext.schemapath) = "/routing-policy"];
 }
 
 // PolicyKey represents the /proto-union-list-key/routing-policy/policies/policy YANG schema element.

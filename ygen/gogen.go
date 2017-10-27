@@ -948,11 +948,6 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 		}
 		tagBuf.WriteByte('"')
 
-		// Add annotations for the fake root.
-		if targetStruct.isFakeRoot {
-			tagBuf.WriteString(fmt.Sprintf(` rootname:"%s"`, field.Name))
-		}
-
 		// Append a tag indicating the module that instantiates this field.
 		im, err := field.InstantiatingModule()
 		if err != nil {
@@ -1295,65 +1290,23 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, abs
 	fieldSlicePath := traverseElementSchemaPath(field)
 	var childPath, parentPath []string
 
-	switch {
-	case parent.isFakeRoot:
-		parentPath = []string{}
-		// If the length of the fieldSlicePath is 3, then this is an entity at the root
-		// that has been mapped, if it is a container, then an empty string can be
-		// specified as the container has its own name encoded. In the case that it is
-		// a list or a non-directory entry, then we need to include the name of the entry
-		// in the path.
-		childPath = fieldSlicePath[1:]
-		if len(fieldSlicePath) == 2 && field.IsContainer() {
-			childPath = []string{}
-		}
-	case absolutePaths:
+	if absolutePaths {
 		childPath = append([]string{""}, fieldSlicePath[1:]...)
-	default:
+	} else {
 		parentPath = parent.path
-
-		// Ensure that the special cases of root nodes, and top-level nodes are handled
-		// such that modules and the root entity are excluded from any mapping.
-		switch {
-		case len(parentPath) <= 2:
-			// This is not an element that should be mapped, since it exists at the root,
-			// so return an error. The path specified will be []string{"", "openconfig-bgp"}
-			// where the "" represents the root, and "openconfig-bgp" is the module name).
-			return nil, fmt.Errorf("field %v is an invalid mappable entity", parent.path)
-		case len(parentPath) == 3:
-			// This is an element that is at the root. Its goyang path is of the form
-			// []string{"", MODULE-NAME, CONTAINER-NAME}. The struct tag should contain
-			// an absolute path, which includes only valid schema path elements. Therefore
-			// we return []string{"", CONTAINER-NAME}. The MODULE-NAME is skipped a it is
-			// not a valid schema path element, and the leading "" ensures that the path
-			// is prefixed with a /.
-			// Absolute paths are used for top-level entities such rendering functions
-			// can be agnostic to whether the fakeroot was created.
-			// A special case exists where there are lists at the root, since in this case
-			// we cannot simply have the parent path prepended to the current element's
-			// name, and therefore we do not use absolute paths.
-			if parent.entry != nil && parent.entry.IsList() {
-				childPath = []string{}
-			} else {
-				childPath = append(childPath, []string{"", parentPath[2]}...)
-			}
+		// Append the elements that are not common between the two paths.
+		// Since the field is necessarily a child of the parent, then to
+		// determine those elements of the field's path that are not contained
+		// in the parent's, we walk from index X of the field's path (where X
+		// is the number of elements in the path of the parent).
+		if len(fieldSlicePath) < len(parentPath) {
+			return nil, fmt.Errorf("field %v is not a valid child of %v", fieldSlicePath, parent.path)
 		}
 
-		if !absolutePaths {
-			// Append the elements that are not common between the two paths.
-			// Since the field is necessarily a child of the parent, then to
-			// determine those elements of the field's path that are not contained
-			// in the parent's, we walk from index X of the field's path (where X
-			// is the number of elements in the path of the parent).
-			if len(fieldSlicePath) < len(parentPath) {
-				return nil, fmt.Errorf("field %v is not a valid child of %v", fieldSlicePath, parent.path)
-			}
-
-			childPath = append(childPath, fieldSlicePath[len(parentPath)-1:]...)
-		}
+		childPath = append(childPath, fieldSlicePath[len(parentPath)-1:]...)
 	}
-	mapPaths := [][]string{childPath}
 
+	mapPaths := [][]string{childPath}
 	if !compressOCPaths || parent.listAttr == nil {
 		return mapPaths, nil
 	}

@@ -762,11 +762,6 @@ func TestValidateLeafRef(t *testing.T) {
 			val:    &Leaf1Container{Leaf1: ygot.String("bbb")},
 		},
 		{
-			desc:   "success absolute leafref with fakeroot with compressed root element",
-			schema: fakeRootWithList,
-			val:    &Leaf1Container{Leaf5: ygot.String("bbb")},
-		},
-		{
 			desc:    "bad value",
 			schema:  validContainerSchema,
 			val:     &Leaf1Container{Leaf1: ygot.String("bbb")},
@@ -1315,6 +1310,137 @@ func TestUnmarshalLeafRef(t *testing.T) {
 			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
 				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
 			}
+		}
+	}
+}
+
+func TestStripPrefix(t *testing.T) {
+	tests := []struct {
+		name     string
+		inName   string
+		wantName string
+		wantErr  string
+	}{{
+		name:     "valid with prefix",
+		inName:   "one:two",
+		wantName: "two",
+	}, {
+		name:     "valid without prefix",
+		inName:   "two",
+		wantName: "two",
+	}, {
+		name:    "invalid input",
+		inName:  "foo:bar:foo",
+		wantErr: "path element did not form a valid name (name, prefix:name): foo:bar:foo",
+	}, {
+		name:     "empty string",
+		inName:   "",
+		wantName: "",
+	}}
+
+	for _, tt := range tests {
+		got, err := stripPrefix(tt.inName)
+		if err != nil && err.Error() != tt.wantErr {
+			t.Errorf("%s: stripPrefix(%v): did not get expected error, got: %v, want: %s", tt.name, tt.inName, got, tt.wantErr)
+		}
+
+		if err != nil {
+			continue
+		}
+
+		if got != tt.wantName {
+			t.Errorf("%s: stripPrefix(%v): did not get expected name, got: %s, want: %s", tt.name, tt.inName, got, tt.wantName)
+		}
+	}
+}
+
+func TestFindLeafRefSchema(t *testing.T) {
+	tests := []struct {
+		name      string
+		inSchema  *yang.Entry
+		inPathStr string
+		wantEntry *yang.Entry
+		wantErr   string
+	}{{
+		name: "simple reference",
+		inSchema: &yang.Entry{
+			Name: "referencing",
+			Type: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "../foo",
+			},
+			Parent: &yang.Entry{
+				Name: "directory",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"foo": {
+						Name: "foo",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+		},
+		inPathStr: "../foo",
+		wantEntry: &yang.Entry{
+			Name: "foo",
+			Type: &yang.YangType{Kind: yang.Ystring},
+		},
+	}, {
+		name: "empty path",
+		inSchema: &yang.Entry{
+			Name: "referencing",
+			Type: &yang.YangType{
+				Kind: yang.Yleafref,
+			},
+		},
+		wantErr: "leafref schema referencing has empty path",
+	}, {
+		name: "bad xpath predicate, mismatched []s",
+		inSchema: &yang.Entry{
+			Name: "referencing",
+			Type: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "/interfaces/interface[name=foo/bar",
+			},
+		},
+		inPathStr: "/interfaces/interface[name=foo/bar",
+		wantErr:   "Mismatched brackets within substring /interfaces/interface[name=foo/bar of /interfaces/interface[name=foo/bar, [ pos: 21, ] pos: -1",
+	}, {
+		name: "strip prefix error in path",
+		inSchema: &yang.Entry{
+			Name: "referencing",
+			Type: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "/interface:foo:bar/baz",
+			},
+		},
+		inPathStr: "/interface:foo:bar/baz",
+		wantErr:   "leafref schema referencing path /interface:foo:bar/baz: path element did not form a valid name (name, prefix:name): interface:foo:bar",
+	}, {
+		name: "nil reference",
+		inSchema: &yang.Entry{
+			Name: "referencing",
+			Type: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "/interfaces/interface/baz",
+			},
+		},
+		inPathStr: "/interfaces/interface/baz",
+		wantErr:   "schema node interfaces is nil for leafref schema referencing with path /interfaces/interface/baz",
+	}}
+
+	for _, tt := range tests {
+		got, err := findLeafRefSchema(tt.inSchema, tt.inPathStr)
+		if err != nil && err.Error() != tt.wantErr {
+			t.Errorf("%s: findLeafRefSchema(%v, %s): did not get expected error, got: %v, want: %v", tt.name, tt.inSchema, tt.inPathStr, err, tt.wantErr)
+		}
+
+		if err != nil {
+			continue
+		}
+
+		if diff := pretty.Compare(got, tt.wantEntry); diff != "" {
+			t.Errorf("%s: findLeafRefSchema(%v, %s): did not get expected entry, diff(-got,+want):\n%s", tt.name, tt.inSchema, tt.inPathStr, diff)
 		}
 	}
 }

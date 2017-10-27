@@ -38,15 +38,13 @@ func GzipToSchema(gzj []byte) (map[string]*yang.Entry, error) {
 		return nil, err
 	}
 
-	nentries := map[string]*yang.Entry{}
-	if err := json.Unmarshal(s, &nentries); err != nil {
+	root := &yang.Entry{}
+	if err := json.Unmarshal(s, &root); err != nil {
 		return nil, err
 	}
 
 	schema := map[string]*yang.Entry{}
-	for _, n := range nentries {
-		rebuildSchemaMap(n, nil, schema)
-	}
+	rebuildSchemaMap(root, nil, schema)
 	return schema, nil
 }
 

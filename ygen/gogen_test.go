@@ -115,8 +115,8 @@ func TestGoCodeStructGeneration(t *testing.T) {
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	F1	*int8	` + "`" + `path:"/tstruct/f1"` + "`" + `
-	F2	[]string	` + "`" + `path:"/tstruct/f2"` + "`" + `
+	F1	*int8	` + "`" + `path:"f1"` + "`" + `
+	F2	[]string	` + "`" + `path:"f2"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -142,8 +142,8 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	F1	*int8	` + "`" + `path:"/tstruct/f1"` + "`" + `
-	F2	[]string	` + "`" + `path:"/tstruct/f2"` + "`" + `
+	F1	*int8	` + "`" + `path:"f1"` + "`" + `
+	F2	[]string	` + "`" + `path:"f2"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -198,7 +198,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // InputStruct represents the /module/input-struct YANG schema element.
 type InputStruct struct {
-	U1	InputStruct_U1_Union	` + "`" + `path:"/input-struct/u1"` + "`" + `
+	U1	InputStruct_U1_Union	` + "`" + `path:"u1"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -265,7 +265,7 @@ func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Uni
 			structs: `
 // InputStruct represents the /module/input-struct YANG schema element.
 type InputStruct struct {
-	U1	Module_InputStruct_U1_Union	` + "`" + `path:"/input-struct/u1"` + "`" + `
+	U1	Module_InputStruct_U1_Union	` + "`" + `path:"u1"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -356,7 +356,7 @@ func (t *InputStruct) To_Module_InputStruct_U1_Union(i interface{}) (Module_Inpu
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
 type InputStruct struct {
-	C1	*InputStruct_C1	` + "`" + `path:"/input-struct/c1"` + "`" + `
+	C1	*InputStruct_C1	` + "`" + `path:"c1"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -382,7 +382,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
 type InputStruct struct {
-	C1	*InputStruct_C1	` + "`" + `path:"/input-struct/c1"` + "`" + `
+	C1	*InputStruct_C1	` + "`" + `path:"c1"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -491,7 +491,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 			structs: `
 // QStruct represents the /root-module/q-struct YANG schema element.
 type QStruct struct {
-	AList	[]*QStruct_AList	` + "`" + `path:"/q-struct/a-list"` + "`" + `
+	AList	[]*QStruct_AList	` + "`" + `path:"a-list"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that QStruct implements the yang.GoStruct
@@ -517,7 +517,7 @@ func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // QStruct represents the /root-module/q-struct YANG schema element.
 type QStruct struct {
-	AList	[]*QStruct_AList	` + "`" + `path:"/q-struct/a-list"` + "`" + `
+	AList	[]*QStruct_AList	` + "`" + `path:"a-list"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that QStruct implements the yang.GoStruct
@@ -592,7 +592,7 @@ func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"/tstruct/listWithKey"` + "`" + `
+	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"listWithKey"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -645,7 +645,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"/tstruct/listWithKey"` + "`" + `
+	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"listWithKey"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -819,7 +819,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"/tstruct/listWithKey"` + "`" + `
+	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"listWithKey"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -883,7 +883,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"/tstruct/listWithKey"` + "`" + `
+	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"listWithKey"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -972,7 +972,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			}
 
 			if diff := pretty.Compare(want.structs, got.structDef); diff != "" {
-				if diffl, err := generateUnifiedDiff(got.structDef, want.methods); err == nil {
+				if diffl, err := generateUnifiedDiff(got.structDef, want.structs); err == nil {
 
 					diff = diffl
 				}
@@ -1215,7 +1215,7 @@ func TestFindMapPaths(t *testing.T) {
 				},
 			},
 		},
-		wantPaths: [][]string{{"", "a-container", "field-a"}},
+		wantPaths: [][]string{{"field-a"}},
 	}, {
 		name: "invalid parent path",
 		inStruct: &yangDirectory{
@@ -1248,7 +1248,27 @@ func TestFindMapPaths(t *testing.T) {
 			},
 		},
 		inCompressOCPaths: true,
-		wantPaths:         [][]string{{"", "b-container", "config", "field-b"}},
+		wantPaths:         [][]string{{"config", "field-b"}},
+	}, {
+		name: "container with absolute paths on",
+		inStruct: &yangDirectory{
+			name: "BContainer",
+			path: []string{"", "a-module", "b-container", "c-container"},
+		},
+		inField: &yang.Entry{
+			Name: "field-d",
+			Parent: &yang.Entry{
+				Name: "c-container",
+				Parent: &yang.Entry{
+					Name: "b-container",
+					Parent: &yang.Entry{
+						Name: "a-module",
+					},
+				},
+			},
+		},
+		inAbsolutePaths: true,
+		wantPaths:       [][]string{{"", "b-container", "c-container", "field-d"}},
 	}, {
 		name: "top-level module - not valid to map",
 		inStruct: &yangDirectory{
