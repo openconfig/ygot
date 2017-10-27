@@ -1,12 +1,13 @@
 package datatree
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/ygot/ygot"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -17,23 +18,17 @@ type TreeNode struct {
 	// mu is a a read/write mutex that can be used to acquire a read or
 	// write lock on the subtree.
 	mu sync.RWMutex
-	// subtree is populated if the value in the tree has a subtree itself.
-	subtree map[*gnmipb.PathElem]*TreeNode
-	// With 1e4 nodes, the benchmarks are thus:
+	// subtree is populated if the value in the tree has a subtree itself. The
+	// key of the map if generated using the toKey function which marshals the
+	// contents of the PathElem proto into a string such that a hash map can
+	// be used.
 	//
-	// BenchmarkToTreeFlatStruct-12                     	       1	47584252876 ns/op
-	// BenchmarkToTreeHierarchicalStruct-12             	      30	  43763672 ns/op
-	// BenchmarkToNotificationsFlatStruct-12            	      50	  34680670 ns/op
-	// BenchmarkToNotificationsHierarchicalStruct-12    	       1	7185872753 ns/op
-	//
-	// The performance hits here are due to the inefficiency of looking up the
-	// *gnmipb.PathElem from the map. The toNotifications test for the hierarchy
-	// is due to 10,000 element long paths needing to be rendered.
-	//
-	// The former is of greater interest, since we potentially expect relatively
-	// wide datastructures to exist. subtree is therefore changed to determine how
-	// having a hash map improves things.
-	//
+	// With the test size set to 100k nodes, then we have the following test
+	// results:
+	// BenchmarkToTreeFlatStruct-12                     	       3	 493403351 ns/op
+	// BenchmarkToTreeHierarchicalStruct-12             	       2	 533456043 ns/op
+	// BenchmarkToNotificationsFlatStruct-12            	       3	 441763392 ns/op
+	subtree map[string]*TreeNode
 	// goStruct stores a pointer to the struct that this tree node corresponds
 	// with.
 	goStruct ygot.GoStruct
@@ -87,8 +82,8 @@ func (t *TreeNode) Equal(c *TreeNode) bool {
 	}
 
 	for p, s := range t.subtree {
-		k, n := c.find(p)
-		if k == nil {
+		n := c.findByKey(p)
+		if n == nil {
 			return false
 		}
 		if !s.Equal(n) {
@@ -169,17 +164,23 @@ func (t *TreeNode) addNode(p *gnmipb.PathElem, c *TreeNode) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	if t.subtree == nil {
-		t.subtree = map[*gnmipb.PathElem]*TreeNode{}
+		t.subtree = map[string]*TreeNode{}
 	}
 
-	if k, e := t.find(p); e != nil {
+	k, err := toKey(p)
+	if err != nil {
+		return fmt.Errorf("cannot marshal key: %v", err)
+	}
+
+	if e := t.findByKey(k); e != nil {
 		if e.IsLeaf() != c.IsLeaf() {
 			return fmt.Errorf("mismatched types, new isLeaf: %v, existing isLeaf: %v", c.IsLeaf(), e.IsLeaf())
 		}
+
 		delete(t.subtree, k)
 	}
 
-	t.subtree[p] = c
+	t.subtree[k] = c
 	return nil
 }
 
@@ -189,13 +190,35 @@ func (t *TreeNode) addNode(p *gnmipb.PathElem, c *TreeNode) error {
 // that find *does not* acquire a read lock on the TreeNode - rather the caller
 // must ensure that they hold the lock before proceeding if consistency is
 // required.
-func (t *TreeNode) find(p *gnmipb.PathElem) (*gnmipb.PathElem, *TreeNode) {
-	for k := range t.subtree {
-		if proto.Equal(k, p) {
-			return k, t.subtree[k]
-		}
+func (t *TreeNode) find(p *gnmipb.PathElem) (*TreeNode, error) {
+	k, err := toKey(p)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+	return t.findByKey(k), nil
+}
+
+func (t *TreeNode) findByKey(k string) *TreeNode {
+	return t.subtree[k]
+}
+
+func toKey(p *gnmipb.PathElem) (string, error) {
+	// Note that we can't use proto.Marshal here because it is not actually
+	// deterministic.
+	var b bytes.Buffer
+	b.WriteString(p.Name)
+
+	keyNames := []string{}
+	for k := range p.Key {
+		keyNames = append(keyNames, k)
+	}
+	sort.Strings(keyNames)
+
+	for _, k := range keyNames {
+		b.WriteString(k)
+		b.WriteString(p.Key[k])
+	}
+	return b.String(), nil
 }
 
 // addAllNodes add the tree node c at the path specified in pp, creating interim
@@ -214,7 +237,11 @@ func (t *TreeNode) addAllNodes(pp []*gnmipb.PathElem, c *TreeNode) error {
 		if err := validPathElem(pp[i]); err != nil {
 			return fmt.Errorf("invalid path element at index %d: %v", i, err)
 		}
-		if _, n := cnode.find(pp[i]); n != nil {
+		n, err := cnode.find(pp[i])
+		if err != nil {
+			return fmt.Errorf("can't marshal key proto: %v", err)
+		}
+		if n != nil {
 			if n.IsLeaf() {
 				return fmt.Errorf("cannot add branch to %v, is a leaf", pp[i])
 			}
