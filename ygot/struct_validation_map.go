@@ -469,8 +469,8 @@ func copyInterfaceField(dstField, srcField reflect.Value) error {
 // copyMapField copies srcField into dstField. Both srcField and dstField are
 // reflect.Value structs which contain a map value. If both srcField and dstField
 // are populated, and have non-overlapping keys, they are merged. If the same
-// key is populated in srcField and dstField, their contents are merged unless
-// there are overlapping fields populated within the map values.
+// key is populated in srcField and dstField, their contents are merged if they
+// do not overlap, otherwise an error is returned.
 func copyMapField(dstField, srcField reflect.Value) error {
 	if !util.IsValueMap(srcField) {
 		return fmt.Errorf("received a non-map type in src map field: %v", srcField.Kind())
