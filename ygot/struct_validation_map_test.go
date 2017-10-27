@@ -1227,6 +1227,19 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 	}, {
+		name: "struct map with overlapping fields within the same key",
+		inSrc: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"new-belgium"}: {StringField: String("voodoo-ranger")},
+			},
+		},
+		inDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"new-belgium"}: {StringField: String("fat-tire")},
+			},
+		},
+		wantErr: true,
+	}, {
 		name: "struct slice",
 		inSrc: &copyTest{
 			StructSlice: []*copyTest{{

@@ -468,10 +468,9 @@ func copyInterfaceField(dstField, srcField reflect.Value) error {
 
 // copyMapField copies srcField into dstField. Both srcField and dstField are
 // reflect.Value structs which contain a map value. If both srcField and dstField
-// are populated, and have non-overlapping keys, they are merged. If a key exists
-// in both the srcField and dstField map, an error is returned.
-// TODO(robjs): Implement merging maps where there are key values taht overlap.
-//  See https://github.com/openconfig/ygot/issues/74.
+// are populated, and have non-overlapping keys, they are merged. If the same
+// key is populated in srcField and dstField, their contents are merged unless
+// there are overlapping fields populated within the map values.
 func copyMapField(dstField, srcField reflect.Value) error {
 	if !util.IsValueMap(srcField) {
 		return fmt.Errorf("received a non-map type in src map field: %v", srcField.Kind())
@@ -510,13 +509,12 @@ func copyMapField(dstField, srcField reflect.Value) error {
 
 	for _, m := range mapsToMap {
 		for _, k := range m.keys {
-			// Check that this key has not already been mapped. We do not support
-			// the case where there are overlapping keys.
+			// If the key already exists, then determine the existing item to merge
+			// into.
 			v := m.field.MapIndex(k)
 			var d reflect.Value
-			if _, ok := existingKeys[k.Interface()]; ok {
-				d = existingKeys[k.Interface()]
-			} else {
+			var ok bool
+			if d, ok = existingKeys[k.Interface()]; !ok {
 				d = reflect.New(v.Elem().Type())
 				existingKeys[k.Interface()] = v
 			}
@@ -574,7 +572,7 @@ func validateMap(srcField, dstField reflect.Value) (*mapType, error) {
 // dstField, see https://github.com/openconfig/ygot/issues/74.
 func copySliceField(dstField, srcField reflect.Value) error {
 	if dstField.Len() != 0 {
-		return fmt.Errorf("unimplemented: cannot map slice where destination was set: %v == %v", srcField.Type().Name(), dstField.Interface())
+		return fmt.Errorf("unimplemented: cannot map slice where destination was set, src: %v, dst: %v", srcField.Interface(), dstField.Interface())
 	}
 
 	if !util.IsTypeStructPtr(srcField.Type().Elem()) {
