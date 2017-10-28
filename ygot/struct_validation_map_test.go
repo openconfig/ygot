@@ -191,6 +191,90 @@ func TestStructTagToLibPaths(t *testing.T) {
 	}
 }
 
+type enumTest int64
+
+func (enumTest) IsYANGGoEnum() {}
+
+const (
+	EUNSET enumTest = 0
+	EONE   enumTest = 1
+	ETWO   enumTest = 2
+)
+
+func (enumTest) ΛMap() map[string]map[int64]EnumDefinition {
+	return map[string]map[int64]EnumDefinition{
+		"enumTest": {
+			1: EnumDefinition{Name: "VAL_ONE", DefiningModule: "valone-mod"},
+			2: EnumDefinition{Name: "VAL_TWO", DefiningModule: "valtwo-mod"},
+		},
+	}
+}
+
+type badEnumTest int64
+
+func (badEnumTest) IsYANGGoEnum() {}
+
+const (
+	BUNSET badEnumTest = 0
+	BONE   badEnumTest = 1
+)
+
+func (badEnumTest) ΛMap() map[string]map[int64]EnumDefinition {
+	return nil
+}
+
+func TestEnumFieldToString(t *testing.T) {
+	var i interface{}
+	i = EONE
+	if _, ok := i.(GoEnum); !ok {
+		t.Fatalf("TestEnumFieldToString: %T is not a valid GoEnum", i)
+	}
+
+	tests := []struct {
+		name               string
+		inField            reflect.Value
+		inAppendModuleName bool
+		wantName           string
+		wantSet            bool
+		wantErr            string
+	}{{
+		name:     "simple enum",
+		inField:  reflect.ValueOf(EONE),
+		wantName: "VAL_ONE",
+		wantSet:  true,
+	}, {
+		name:     "unset enum",
+		inField:  reflect.ValueOf(EUNSET),
+		wantName: "",
+		wantSet:  false,
+	}, {
+		name:               "simple enum with append module name",
+		inField:            reflect.ValueOf(ETWO),
+		inAppendModuleName: true,
+		wantName:           "valtwo-mod:VAL_TWO",
+		wantSet:            true,
+	}, {
+		name:    "bad enum - no mapping",
+		inField: reflect.ValueOf(BONE),
+		wantErr: "cannot map enumerated value as type badEnumTest was unknown",
+	}}
+
+	for _, tt := range tests {
+		gotName, gotSet, err := enumFieldToString(tt.inField, tt.inAppendModuleName)
+		if err != nil && err.Error() != tt.wantErr {
+			t.Errorf("%s: enumFieldToString(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inField, tt.inAppendModuleName, err, tt.wantErr)
+		}
+
+		if gotName != tt.wantName {
+			t.Errorf("%s: enumFieldToString(%v, %v): did not get expected name, got: %v, want: %v", tt.name, tt.inField, tt.inAppendModuleName, gotName, tt.wantName)
+		}
+
+		if gotSet != tt.wantSet {
+			t.Errorf("%s: enumFieldToString(%v, %v): did not get expected set status, got: %v, want: %v", tt.name, tt.inField, tt.inAppendModuleName, gotSet, tt.wantSet)
+		}
+	}
+}
+
 // mapStructTestOne is the base struct used for the simple-schema test.
 type mapStructTestOne struct {
 	Child *mapStructTestOneChild `path:"child" module:"test-one"`
@@ -897,6 +981,8 @@ type copyMapKey struct {
 type copyTest struct {
 	StringField   *string
 	Uint32Field   *uint32
+	Uint16Field   *uint16
+	Float64Field  *float64
 	StructPointer *copyTest
 	EnumValue     enumType
 	UnionField    copyUnion
@@ -1115,7 +1201,7 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 	}, {
-		name: "unimplemented: struct map with overlapping contents",
+		name: "struct map with overlapping contents",
 		inSrc: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
 				{"fourpure"}: {StringField: String("session-ipa")},
@@ -1123,10 +1209,36 @@ func TestCopyStruct(t *testing.T) {
 		},
 		inDst: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
-				{"fourpure"}: {StringField: String("oatmeal-stout")},
+				{"fourpure"}: {
+					Uint32Field:  Uint32(42),
+					Uint16Field:  Uint16(16),
+					Float64Field: Float64(42.42),
+				},
 			},
 		},
-		wantErr: true, // Merging two maps with overlapping keys is not implemented.
+		wantDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"fourpure"}: {
+					StringField:  String("session-ipa"),
+					Uint32Field:  Uint32(42),
+					Uint16Field:  Uint16(16),
+					Float64Field: Float64(42.42),
+				},
+			},
+		},
+	}, {
+		name: "struct map with overlapping fields within the same key",
+		inSrc: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"new-belgium"}: {StringField: String("voodoo-ranger")},
+			},
+		},
+		inDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"new-belgium"}: {StringField: String("fat-tire")},
+			},
+		},
+		wantErr: true,
 	}, {
 		name: "struct slice",
 		inSrc: &copyTest{

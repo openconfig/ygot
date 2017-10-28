@@ -468,10 +468,9 @@ func copyInterfaceField(dstField, srcField reflect.Value) error {
 
 // copyMapField copies srcField into dstField. Both srcField and dstField are
 // reflect.Value structs which contain a map value. If both srcField and dstField
-// are populated, and have non-overlapping keys, they are merged. If a key exists
-// in both the srcField and dstField map, an error is returned.
-// TODO(robjs): Implement merging maps where there are key values taht overlap.
-//  See https://github.com/openconfig/ygot/issues/74.
+// are populated, and have non-overlapping keys, they are merged. If the same
+// key is populated in srcField and dstField, their contents are merged if they
+// do not overlap, otherwise an error is returned.
 func copyMapField(dstField, srcField reflect.Value) error {
 	if !util.IsValueMap(srcField) {
 		return fmt.Errorf("received a non-map type in src map field: %v", srcField.Kind())
@@ -506,20 +505,20 @@ func copyMapField(dstField, srcField reflect.Value) error {
 		{srcKeys, srcField},
 		{dstKeys, dstField},
 	}
-	existingKeys := map[interface{}]bool{}
+	existingKeys := map[interface{}]reflect.Value{}
 
 	for _, m := range mapsToMap {
 		for _, k := range m.keys {
-			// Check that this key has not already been mapped. We do not support
-			// the case where there are overlapping keys.
-			// TODO(robjs): Implement mapping of entities that exist in both maps.
-			if _, ok := existingKeys[k.Interface()]; ok {
-				return fmt.Errorf("cannot map element %v, overlaps in both maps", k.Interface())
-			}
-			existingKeys[k.Interface()] = true
-
+			// If the key already exists, then determine the existing item to merge
+			// into.
 			v := m.field.MapIndex(k)
-			d := reflect.New(v.Elem().Type())
+			var d reflect.Value
+			var ok bool
+			if d, ok = existingKeys[k.Interface()]; !ok {
+				d = reflect.New(v.Elem().Type())
+				existingKeys[k.Interface()] = v
+			}
+
 			if err := copyStruct(d.Elem(), v.Elem()); err != nil {
 				return err
 			}
@@ -573,7 +572,7 @@ func validateMap(srcField, dstField reflect.Value) (*mapType, error) {
 // dstField, see https://github.com/openconfig/ygot/issues/74.
 func copySliceField(dstField, srcField reflect.Value) error {
 	if dstField.Len() != 0 {
-		return fmt.Errorf("unimplemented: cannot map slice where destination was set: %v == %v", srcField.Type().Name(), dstField.Interface())
+		return fmt.Errorf("unimplemented: cannot map slice where destination was set, src: %v, dst: %v", srcField.Interface(), dstField.Interface())
 	}
 
 	if !util.IsTypeStructPtr(srcField.Type().Elem()) {
