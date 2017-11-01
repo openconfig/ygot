@@ -642,15 +642,16 @@ func genProtoEnum(field *yang.Entry, annotateEnumNames bool) (*protoMsgEnum, err
 	return &protoMsgEnum{Values: eval}, nil
 }
 
-type protoMsgList struct {
-	listType string
-	imports  []string
+// protoMsgListField describes a list field within a protobuf mesage.
+type protoMsgListField struct {
+	listType string   // listType is the name of the message that represents a list member.
+	imports  []string // imports is the set of modules that are required by this list message.
 }
 
 // protoListDefinition takes an input field described by a yang.Entry, the generator context (the set of proto messages, and the generator
-// state), along with whether path compression is enabled and generates the proto message definition for the list. It returns the type
-// that the field within the parent should be mapped to, and an optional key proto definition (in the case of keyed lists).
-func protoListDefinition(args protoDefinitionArgs) (*protoMsgList, *protoMsg, error) {
+// state), along with whether path compression is enabled and generates the proto message definition for the list. It returns the definition
+// of the field representing the list as a protoMsgListField and an optional message which stores the key of a keyed list.
+func protoListDefinition(args protoDefinitionArgs) (*protoMsgListField, *protoMsg, error) {
 	listMsg, ok := args.definedDirectories[args.field.Path()]
 	if !ok {
 		return nil, nil, fmt.Errorf("proto: could not resolve list %s into a defined message", args.field.Path())
@@ -664,13 +665,13 @@ func protoListDefinition(args protoDefinitionArgs) (*protoMsgList, *protoMsg, er
 	childPkg := args.state.protobufPackage(listMsg.entry, args.compressPaths)
 
 	var listKeyMsg *protoMsg
-	var listDef *protoMsgList
+	var listDef *protoMsgListField
 	if !isKeyedList(listMsg.entry) {
 		// In proto3 we represent unkeyed lists as a
 		// repeated field of the parent message.
 		p := fmt.Sprintf("%s.%s.%s", args.basePackageName, childPkg, listMsgName)
 		p, _ = stripPackagePrefix(fmt.Sprintf("%s.%s", args.basePackageName, args.parentPackage), p)
-		listDef = &protoMsgList{
+		listDef = &protoMsgListField{
 			listType: p,
 			imports:  []string{importPath(args.baseImportPath, args.basePackageName, childPkg)},
 		}
@@ -695,7 +696,7 @@ func protoListDefinition(args protoDefinitionArgs) (*protoMsgList, *protoMsg, er
 		}
 		// The type of this field is just the key message's name, since it
 		// will be in the same package as the field's parent.
-		listDef = &protoMsgList{
+		listDef = &protoMsgListField{
 			listType: listKeyMsg.Name,
 		}
 	}
