@@ -16,6 +16,11 @@ clean:
 	rm -f ${ROOT_DIR}/demo/getting_started/pkg/ocdemo/oc.go
 	rm -f ${ROOT_DIR}/demo/uncompressed/pkg/demo/uncompressed.go
 deps:
-	go get -t -d ./...
-install: generate deps
-all: clean generate deps test
+	go get -t -d ./ygot
+	go get -t -d ./ygen
+	go get -t -d ./generator
+	go get -t -d ./proto_generator
+	go get -t -d ./exampleoc
+	go get -t -d ./ytypes
+install: deps generate
+all: clean deps generate test
