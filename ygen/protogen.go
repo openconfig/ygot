@@ -140,7 +140,7 @@ package {{ .PackageName }};
 import "{{ .YwrapperPath }}/ywrapper.proto";
 import "{{ .YextPath }}/yext.proto";
 {{- range $importedProto := .Imports }}
-import "{{ $importedProto }}.proto";
+import "{{ $importedProto }}";
 {{- end }}
 `
 
@@ -385,12 +385,13 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 
 		switch {
 		case field.IsList():
-			fieldType, keyMsg, err := protoListDefinition(protoDefinitionArgs{
+			listDef, keyMsg, err := protoListDefinition(protoDefinitionArgs{
 				field:               field,
 				definedDirectories:  msgs,
 				state:               state,
 				compressPaths:       cfg.compressPaths,
 				basePackageName:     cfg.basePackageName,
+				enumPackageName:     cfg.enumPackageName,
 				baseImportPath:      cfg.baseImportPath,
 				annotateSchemaPaths: cfg.annotateSchemaPaths,
 				annotateEnumNames:   cfg.annotateEnumNames,
@@ -405,7 +406,10 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 			if keyMsg != nil {
 				msgDefs = append(msgDefs, *keyMsg)
 			}
-			fieldDef.Type = fieldType
+
+			fieldDef.Type = listDef.listType
+			addNewKeys(imports, listDef.imports)
+
 			// Lists are always repeated fields.
 			fieldDef.IsRepeated = true
 		case field.IsContainer():
@@ -421,7 +425,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 					// Add the import to the slice of imports if it is not already
 					// there. This allows the message file to import the required
 					// child packages.
-					childpath := filepath.Join(cfg.baseImportPath, cfg.basePackageName, strings.Replace(childpkg, ".", "/", -1))
+					childpath := importPath(cfg.baseImportPath, cfg.basePackageName, childpkg)
 					if _, ok := imports[childpath]; !ok {
 						imports[childpath] = true
 					}
@@ -467,7 +471,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 
 			// Add the global enumeration package if it is referenced by this field.
 			if d.globalEnum {
-				imports[filepath.Join(cfg.baseImportPath, cfg.basePackageName, cfg.enumPackageName)] = true
+				imports[importPath(cfg.baseImportPath, cfg.basePackageName, cfg.enumPackageName)] = true
 			}
 
 			if field.ListAttr != nil {
@@ -639,28 +643,38 @@ func genProtoEnum(field *yang.Entry, annotateEnumNames bool) (*protoMsgEnum, err
 	return &protoMsgEnum{Values: eval}, nil
 }
 
+type protoMsgList struct {
+	listType string
+	imports  []string
+}
+
 // protoListDefinition takes an input field described by a yang.Entry, the generator context (the set of proto messages, and the generator
 // state), along with whether path compression is enabled and generates the proto message definition for the list. It returns the type
 // that the field within the parent should be mapped to, and an optional key proto definition (in the case of keyed lists).
-func protoListDefinition(args protoDefinitionArgs) (string, *protoMsg, error) {
+func protoListDefinition(args protoDefinitionArgs) (*protoMsgList, *protoMsg, error) {
 	listMsg, ok := args.definedDirectories[args.field.Path()]
 	if !ok {
-		return "", nil, fmt.Errorf("proto: could not resolve list %s into a defined message", args.field.Path())
+		return nil, nil, fmt.Errorf("proto: could not resolve list %s into a defined message", args.field.Path())
 	}
 
 	listMsgName, ok := args.state.uniqueDirectoryNames[args.field.Path()]
 	if !ok {
-		return "", nil, fmt.Errorf("proto: could not find unique message name for %s", args.field.Path())
+		return nil, nil, fmt.Errorf("proto: could not find unique message name for %s", args.field.Path())
 	}
 
 	childPkg := args.state.protobufPackage(listMsg.entry, args.compressPaths)
 
-	var fieldType string
 	var listKeyMsg *protoMsg
+	var listDef *protoMsgList
 	if !isKeyedList(listMsg.entry) {
 		// In proto3 we represent unkeyed lists as a
 		// repeated field of the parent message.
-		fieldType = fmt.Sprintf("%s.%s.%s", args.basePackageName, childPkg, listMsgName)
+		p := fmt.Sprintf("%s.%s.%s", args.basePackageName, childPkg, listMsgName)
+		p, _ = stripPackagePrefix(fmt.Sprintf("%s.%s", args.basePackageName, args.parentPackage), p)
+		listDef = &protoMsgList{
+			listType: p,
+			imports:  []string{importPath(args.baseImportPath, args.basePackageName, childPkg)},
+		}
 	} else {
 		// YANG lists are mapped to a repeated message structure as described
 		// in the YANG to Protobuf transformation specification.
@@ -678,14 +692,16 @@ func protoListDefinition(args protoDefinitionArgs) (string, *protoMsg, error) {
 			parentPackage:       args.parentPackage,
 		})
 		if err != nil {
-			return "", nil, fmt.Errorf("proto: could not build mapping for list entry %s: %v", args.field.Path(), err)
+			return nil, nil, fmt.Errorf("proto: could not build mapping for list entry %s: %v", args.field.Path(), err)
 		}
 		// The type of this field is just the key message's name, since it
 		// will be in the same package as the field's parent.
-		fieldType = listKeyMsg.Name
+		listDef = &protoMsgList{
+			listType: listKeyMsg.Name,
+		}
 	}
 
-	return fieldType, listKeyMsg, nil
+	return listDef, listKeyMsg, nil
 }
 
 // protoDefinedLeaf defines a YANG leaf within a protobuf message.
@@ -821,7 +837,7 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 	}
 
 	if listPackage != "" {
-		km.Imports = []string{filepath.Join(args.baseImportPath, args.basePackageName, strings.Replace(listPackage, ".", "/", -1))}
+		km.Imports = []string{importPath(args.baseImportPath, args.basePackageName, listPackage)}
 	}
 
 	definedFieldNames := map[string]bool{}
@@ -874,6 +890,10 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 			if isUnionType(target.Type) && scalarType.unionTypes != nil {
 				unionEntry = target
 			}
+
+			if isIdentityrefLeaf(target) {
+				km.Imports = append(km.Imports, importPath(args.baseImportPath, args.basePackageName, args.enumPackageName))
+			}
 		case isSimpleEnumerationType(kf.Type):
 			enumEntry = kf
 		case isUnionType(kf.Type) && scalarType.unionTypes != nil:
@@ -902,6 +922,9 @@ func genListKeyProto(listPackage string, listName string, args protoDefinitionAr
 			fd.OneOfFields = append(fd.OneOfFields, u.oneOfFields...)
 			for n, e := range u.enums {
 				km.Enums[n] = e
+			}
+			if u.hadGlobalEnums {
+				km.Imports = append(km.Imports, importPath(args.baseImportPath, args.basePackageName, args.enumPackageName))
 			}
 		default:
 			fd.Type = scalarType.nativeType
@@ -1042,7 +1065,8 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType, annot
 // for the input package.
 func protoPackageToFilePath(pkg string) []string {
 	pp := strings.Split(pkg, ".")
-	return append(pp[:len(pp)-1], fmt.Sprintf("%s.proto", pp[len(pp)-1]))
+	//return append(pp[:len(pp)-1], fmt.Sprintf("%s.proto", pp[len(pp)-1]))
+	return append(pp, fmt.Sprintf("%s.proto", pp[len(pp)-1]))
 }
 
 // protoSchemaPathAnnotation takes a protobuf message and field, and returns the protobuf
@@ -1080,4 +1104,11 @@ func stripPackagePrefix(pfx, path string) (string, bool) {
 	}
 
 	return strings.Join(pathP[i+1:], "."), true
+}
+
+// importPath returns a string indicating the import path for a particular
+// child package - considering the base import path, and base package name
+// for the generated set of protobuf messages.
+func importPath(baseImportPath, basePkgName, childPkg string) string {
+	return filepath.Join(append([]string{baseImportPath}, protoPackageToFilePath(fmt.Sprintf("%s.%s", basePkgName, childPkg))...)...)
 }

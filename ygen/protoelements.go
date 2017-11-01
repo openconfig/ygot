@@ -65,6 +65,8 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoT
 		return &mappedType{nativeType: "ywrapper.IntValue"}, nil
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
 		return &mappedType{nativeType: "ywrapper.UintValue"}, nil
+	case yang.Ybinary:
+		return &mappedType{nativeType: "ywrapper.BytesValue"}, nil
 	case yang.Ybool, yang.Yempty:
 		return &mappedType{nativeType: "ywrapper.BoolValue"}, nil
 	case yang.Ystring:
@@ -133,6 +135,8 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolve
 		return &mappedType{nativeType: "sint64"}, nil
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
 		return &mappedType{nativeType: "uint64"}, nil
+	case yang.Ybinary:
+		return &mappedType{nativeType: "bytes"}, nil
 	case yang.Ybool, yang.Yempty:
 		return &mappedType{nativeType: "bool"}, nil
 	case yang.Ystring:
@@ -334,11 +338,12 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 		return ""
 	}
 
-	parent := e.Parent
+	// NOTE robjs: changed this to simply e
+	parent := e
 	// In the case of path compression, then the parent of a list is the parent
 	// one level up, as is the case for if there are config and state containers.
 	if compressPaths && e.IsList() || compressPaths && isConfigState(e) {
-		parent = e.Parent.Parent
+		parent = e.Parent
 	}
 
 	// If this entry has already had its parent's package calculated for it, then
