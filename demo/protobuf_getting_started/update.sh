@@ -1,13 +1,17 @@
 #!/bin/bash
 
+clean() {
+  rm -rf ribproto
+  rm -rf public
+  rm -rf deps
+}
+
 # Ensure that the .pb.go has been generated for the extensions
 # that are required.
 (cd ../../proto/yext && go generate)
 (cd ../../proto/ywrapper && go generate)
 
-rm -rf ribproto
-rm -rf public
-rm -rf deps
+clean
 
 git clone https://github.com/openconfig/public.git
 mkdir deps
@@ -25,4 +29,4 @@ find ribproto -name "*.proto" | while read l; do
 	protoc -I=$proto_imports --go_out=. $l
 done
 
-go run demo.go
+clean

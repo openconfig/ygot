@@ -9,10 +9,10 @@ package openconfig.proto_test_e;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
-import "openconfig/proto_test_e/animals.proto";
-import "openconfig/proto_test_e/bars.proto";
-import "openconfig/proto_test_e/foos.proto";
-import "openconfig/proto_test_e/test.proto";
+import "openconfig/proto_test_e/animals/animals.proto";
+import "openconfig/proto_test_e/bars/bars.proto";
+import "openconfig/proto_test_e/foos/foos.proto";
+import "openconfig/proto_test_e/test/test.proto";
 
 // AnimalKey represents the /proto-test-e/animals/animal YANG schema element.
 message AnimalKey {

@@ -339,11 +339,11 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 	}
 
 	// NOTE robjs: changed this to simply e
-	parent := e
+	parent := e.Parent
 	// In the case of path compression, then the parent of a list is the parent
 	// one level up, as is the case for if there are config and state containers.
 	if compressPaths && e.IsList() || compressPaths && isConfigState(e) {
-		parent = e.Parent
+		parent = e.Parent.Parent
 	}
 
 	// If this entry has already had its parent's package calculated for it, then

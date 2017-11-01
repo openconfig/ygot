@@ -154,7 +154,7 @@ func TestGenProto3Msg(t *testing.T) {
 			"MessageName": {
 				Name:     "MessageName",
 				YANGPath: "/root/message-name",
-				Imports:  []string{"base/enums"},
+				Imports:  []string{"base/enums/enums.proto"},
 				Fields: []*protoMsgField{{
 					Tag:     410095931,
 					Name:    "field_one",
@@ -250,7 +250,7 @@ func TestGenProto3Msg(t *testing.T) {
 					Name: "container_child",
 					Type: "a_message.ContainerChild",
 				}},
-				Imports: []string{"base/a_message"},
+				Imports: []string{"base/a_message/a_message.proto"},
 			},
 		},
 	}, {
@@ -312,7 +312,7 @@ func TestGenProto3Msg(t *testing.T) {
 					Name: "container_child",
 					Type: "root.a_message.ContainerChild",
 				}},
-				Imports: []string{"base/root/a_message"},
+				Imports: []string{"base/root/a_message/a_message.proto"},
 			},
 		},
 	}, {
@@ -398,7 +398,7 @@ func TestGenProto3Msg(t *testing.T) {
 					Name: "list",
 					Type: "a_message_with_a_list.List",
 				}},
-				Imports: []string{"base/a_message_with_a_list"},
+				Imports: []string{"base/a_message_with_a_list/a_message_with_a_list.proto"},
 			},
 		},
 	}, {
@@ -469,7 +469,7 @@ func TestGenProto3Msg(t *testing.T) {
 			"MessageWithAnydata": {
 				Name:     "MessageWithAnydata",
 				YANGPath: "/message-with-anydata",
-				Imports:  []string{"google/protobuf/any"},
+				Imports:  []string{"google/protobuf/any.proto"},
 				Fields: []*protoMsgField{{
 					Tag:  453452743,
 					Name: "any_data",
@@ -1064,7 +1064,7 @@ func TestGenListKeyProto(t *testing.T) {
 				Name: "list",
 				Type: "pkg.list",
 			}},
-			Imports: []string{"base/path/base/pkg"},
+			Imports: []string{"base/path/base/pkg/pkg.proto"},
 		},
 	}, {
 		name:          "list with union key - string and int",
@@ -1124,7 +1124,7 @@ func TestGenListKeyProto(t *testing.T) {
 				Name: "list",
 				Type: "pkg.list",
 			}},
-			Imports: []string{"base/path/base/pkg"},
+			Imports: []string{"base/path/base/pkg/pkg.proto"},
 		},
 	}, {
 		name:          "list with union key - two string",
@@ -1175,7 +1175,7 @@ func TestGenListKeyProto(t *testing.T) {
 				Name: "list",
 				Type: "pkg.list",
 			}},
-			Imports: []string{"base/path/base/pkg"},
+			Imports: []string{"base/path/base/pkg/pkg.proto"},
 		},
 	}}
 

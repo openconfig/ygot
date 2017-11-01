@@ -1,0 +1,608 @@
+--- FAIL: TestGenerateProto3 (0.02s)
+	codegen_test.go:910: simple protobuf test with compression: cg.GenerateProto3([testdata/proto/proto-test-a.yang], []) for package openconfig, did not get expected code (code file: testdata/proto/proto-test-a.compress.parent.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/parent/parent.proto";
+		+import "openconfig/parent.proto";
+		 
+		 // Parent represents the /proto-test-a/parent YANG schema element.
+		 message Parent {
+	codegen_test.go:910: simple protobuf test without compression: cg.GenerateProto3([testdata/proto/proto-test-a.yang], []) for package openconfig.proto_test_a, did not get expected code (code file: testdata/proto/proto-test-a.nocompress.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_test_a/parent/parent.proto";
+		+import "openconfig/proto_test_a/parent.proto";
+		 
+		 // Parent represents the /proto-test-a/parent YANG schema element.
+		 message Parent {
+	codegen_test.go:910: simple protobuf test without compression: cg.GenerateProto3([testdata/proto/proto-test-a.yang], []) for package openconfig.proto_test_a.parent, did not get expected code (code file: testdata/proto/proto-test-a.nocompress.parent.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_test_a/parent/child/child.proto";
+		+import "openconfig/proto_test_a/parent/child.proto";
+		 
+		 // Child represents the /proto-test-a/parent/child YANG schema element.
+		 message Child {
+	codegen_test.go:910: yang schema with a list: cg.GenerateProto3([testdata/proto/proto-test-b.yang], []) for package openconfig, did not get expected code (code file: testdata/proto/proto-test-b.compress.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/device/device.proto";
+		+import "openconfig/device.proto";
+		 
+		 // InterfaceKey represents the /proto-test-b/device/interfaces/interface YANG schema element.
+		 message InterfaceKey {
+	codegen_test.go:910: yang schema with simple enumerations: cg.GenerateProto3([testdata/proto/proto-test-c.yang], []) for package openconfig.proto_test_c, did not get expected code (code file: testdata/proto/proto-test-c.proto-test-c.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,8 +9,8 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_test_c/elists/elists.proto";
+		-import "openconfig/proto_test_c/entity/entity.proto";
+		+import "openconfig/proto_test_c/elists.proto";
+		+import "openconfig/proto_test_c/entity.proto";
+		 
+		 // ElistKey represents the /proto-test-c/elists/elist YANG schema element.
+		 message ElistKey {
+	codegen_test.go:910: yang schema with simple enumerations: cg.GenerateProto3([testdata/proto/proto-test-c.yang], []) for package openconfig.proto_test_c.elists, did not get expected code (code file: testdata/proto/proto-test-c.proto-test-c.elists.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_test_c/elists/elist/elist.proto";
+		+import "openconfig/proto_test_c/elists/elist.proto";
+		 
+		 // Elist represents the /proto-test-c/elists/elist YANG schema element.
+		 message Elist {
+	codegen_test.go:910: yang schema with identityref and enumerated typedef, compression off: cg.GenerateProto3([testdata/proto/proto-test-d.yang], []) for package openconfig.proto_test_d, did not get expected code (code file: testdata/proto/proto-test-d.uncompressed.proto-test-d.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_test_d/test/test.proto";
+		+import "openconfig/proto_test_d/test.proto";
+		 
+		 // Test represents the /proto-test-d/test YANG schema element.
+		 message Test {
+	codegen_test.go:910: yang schema with identityref and enumerated typedef, compression off: cg.GenerateProto3([testdata/proto/proto-test-d.yang], []) for package openconfig.proto_test_d.test, did not get expected code (code file: testdata/proto/proto-test-d.uncompressed.proto-test-d.test.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/enums/enums.proto";
+		+import "openconfig/enums.proto";
+		 
+		 // Config represents the /proto-test-d/test/config YANG schema element.
+		 message Config {
+	codegen_test.go:910: yang schema with unions: cg.GenerateProto3([testdata/proto/proto-test-e.yang], []) for package openconfig.proto_test_e, did not get expected code (code file: testdata/proto/proto-test-e.uncompressed.proto-test-e.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,10 +9,10 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_test_e/animals/animals.proto";
+		-import "openconfig/proto_test_e/bars/bars.proto";
+		-import "openconfig/proto_test_e/foos/foos.proto";
+		-import "openconfig/proto_test_e/test/test.proto";
+		+import "openconfig/proto_test_e/animals.proto";
+		+import "openconfig/proto_test_e/bars.proto";
+		+import "openconfig/proto_test_e/foos.proto";
+		+import "openconfig/proto_test_e/test.proto";
+		 
+		 // AnimalKey represents the /proto-test-e/animals/animal YANG schema element.
+		 message AnimalKey {
+	codegen_test.go:910: yang schema with unions: cg.GenerateProto3([testdata/proto/proto-test-e.yang], []) for package openconfig.proto_test_e.test, did not get expected code (code file: testdata/proto/proto-test-e.uncompressed.proto-test-e.test.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/enums/enums.proto";
+		+import "openconfig/enums.proto";
+		 
+		 // Config represents the /proto-test-e/test/config YANG schema element.
+		 message Config {
+	codegen_test.go:910: yang schema with unions: cg.GenerateProto3([testdata/proto/proto-test-e.yang], []) for package openconfig.proto_test_e.foos, did not get expected code (code file: testdata/proto/proto-test-e.uncompressed.proto-test-e.foos.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_test_e/foos/foo/foo.proto";
+		+import "openconfig/proto_test_e/foos/foo.proto";
+		 
+		 // Foo represents the /proto-test-e/foos/foo YANG schema element.
+		 message Foo {
+	codegen_test.go:910: yang schema with unions: cg.GenerateProto3([testdata/proto/proto-test-e.yang], []) for package openconfig.proto_test_e.animals, did not get expected code (code file: testdata/proto/proto-test-e.uncompressed.proto-test-e.animals.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_test_e/animals/animal/animal.proto";
+		+import "openconfig/proto_test_e/animals/animal.proto";
+		 
+		 // Animal represents the /proto-test-e/animals/animal YANG schema element.
+		 message Animal {
+	codegen_test.go:910: yang schema with path annotations: cg.GenerateProto3([testdata/proto/proto-test-f.yang], []) for package openconfig.proto_test_f, did not get expected code (code file: testdata/proto/proto_test_f.uncompressed.proto_test_f.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_test_f/a/a.proto";
+		+import "openconfig/proto_test_f/a.proto";
+		 
+		 // A represents the /proto-test-f/a YANG schema element.
+		 message A {
+	codegen_test.go:910: yang schema with path annotations: cg.GenerateProto3([testdata/proto/proto-test-f.yang], []) for package openconfig.proto_test_f.a, did not get expected code (code file: testdata/proto/proto_test_f.uncompressed.proto_test_f.a.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_test_f/a/c/c.proto";
+		+import "openconfig/proto_test_f/a/c.proto";
+		 
+		 // EKey represents the /proto-test-f/a/c/e YANG schema element.
+		 message EKey {
+	codegen_test.go:910: yang schema with fake root, path compression and union list key: cg.GenerateProto3([testdata/proto/proto-union-list-key.yang], []) for package openconfig, did not get expected code (code file: testdata/proto/proto-union-list-key.compressed.openconfig.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/routing_policy/routing_policy.proto";
+		+import "openconfig/routing_policy.proto";
+		 
+		 // Device represents the /device YANG schema element.
+		 message Device {
+	codegen_test.go:910: yang schema with fakeroot, and union list key: cg.GenerateProto3([testdata/proto/proto-union-list-key.yang], []) for package openconfig.proto_union_list_key.routing_policy, did not get expected code (code file: testdata/proto/proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,8 +9,8 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_union_list_key/routing_policy/policies/policies.proto";
+		-import "openconfig/proto_union_list_key/routing_policy/sets/sets.proto";
+		+import "openconfig/proto_union_list_key/routing_policy/policies.proto";
+		+import "openconfig/proto_union_list_key/routing_policy/sets.proto";
+		 
+		 // PolicyKey represents the /proto-union-list-key/routing-policy/policies/policy YANG schema element.
+		 message PolicyKey {
+	codegen_test.go:910: yang schema with fakeroot, and union list key: cg.GenerateProto3([testdata/proto/proto-union-list-key.yang], []) for package openconfig.proto_union_list_key.routing_policy.policies, did not get expected code (code file: testdata/proto/proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.policies.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_union_list_key/routing_policy/policies/policy/policy.proto";
+		+import "openconfig/proto_union_list_key/routing_policy/policies/policy.proto";
+		 
+		 // Policy represents the /proto-union-list-key/routing-policy/policies/policy YANG schema element.
+		 message Policy {
+	codegen_test.go:910: yang schema with fakeroot, and union list key: cg.GenerateProto3([testdata/proto/proto-union-list-key.yang], []) for package openconfig, did not get expected code (code file: testdata/proto/proto-union-list_key.uncompressed.openconfig.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_union_list_key/proto_union_list_key.proto";
+		+import "openconfig/proto_union_list_key.proto";
+		 
+		 // Device represents the /device YANG schema element.
+		 message Device {
+	codegen_test.go:910: yang schema with fakeroot, and union list key: cg.GenerateProto3([testdata/proto/proto-union-list-key.yang], []) for package openconfig.proto_union_list_key, did not get expected code (code file: testdata/proto/proto-union-list-key.uncompressed.openconfig.proto_union_list_key.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/proto_union_list_key/routing_policy/routing_policy.proto";
+		+import "openconfig/proto_union_list_key/routing_policy.proto";
+		 
+		 // RoutingPolicy represents the /proto-union-list-key/routing-policy YANG schema element.
+		 message RoutingPolicy {
+	codegen_test.go:910: yang schema with various types of enums with underscores: cg.GenerateProto3([testdata/proto/proto-enums.yang], []) for package openconfig.proto_enums, did not get expected code (code file: testdata/proto/proto-enums.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -9,7 +9,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/enums/enums.proto";
+		+import "openconfig/enums.proto";
+		 
+		 // A represents the /proto-enums/a YANG schema element.
+		 message A {
+	codegen_test.go:910: yang schema with identity that adds to previous module: cg.GenerateProto3([testdata/proto/proto-enums.yang testdata/proto/proto-enums-addid.yang], []) for package openconfig.proto_enums, did not get expected code (code file: testdata/proto/proto-enums-addid.formatted-txt), diff(-got,+want):
+		--- got
+		+++ want
+		@@ -10,7 +10,7 @@
+		 
+		 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+		 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+		-import "openconfig/enums/enums.proto";
+		+import "openconfig/enums.proto";
+		 
+		 // A represents the /proto-enums/a YANG schema element.
+		 message A {
+--- FAIL: TestGenProto3Msg (0.00s)
+	protogen_test.go:570: simple message with union leaf and leaf-list: genProtoMsg(&ygen.yangDirectory{name:"MessageName", entry:(*yang.Entry)(0xc4203d7440), fields:map[string]*yang.Entry{"field-one":(*yang.Entry)(0xc4203d7560), "field-two":(*yang.Entry)(0xc4203d7680)}, path:[]string{"", "root", "message-name"}, listAttr:(*ygen.yangListAttr)(nil), isFakeRoot:false}, map[string]*ygen.yangDirectory(nil), *genState): did not get expected protobuf message definition, diff(-got,+want):
+		 {
+		  Name: "MessageName",
+		  YANGPath: "/root/message-name",
+		  Fields: [
+		   {
+		    Tag: 410095931,
+		    Name: "field_one",
+		    Type: "",
+		    IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: true,
+		    OneOfFields: [
+		     {
+		      Tag: 225170402,
+		      Name: "field_one_sint64",
+		      Type: "sint64",
+		      IsRepeated: false,
+		      Options: [
+		      ],
+		      IsOneOf: false,
+		      OneOfFields: [
+		      ],
+		     },
+		     {
+		      Tag: 299030977,
+		      Name: "field_one_string",
+		      Type: "string",
+		      IsRepeated: false,
+		      Options: [
+		      ],
+		      IsOneOf: false,
+		      OneOfFields: [
+		      ],
+		     },
+		    ],
+		   },
+		   {
+		    Tag: 332121324,
+		    Name: "field_two",
+		    Type: "ParentFieldTwoUnion",
+		    IsRepeated: true,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		  ],
+		  Imports: [
+		-  "base/enums/enums.proto",
+		+  "base/enums",
+		  ],
+		  Enums: {
+		  },
+		 }
+	protogen_test.go:570: simple message with leaf-list and a message child, compression on: genProtoMsg(&ygen.yangDirectory{name:"AMessage", entry:(*yang.Entry)(0xc4203d78c0), fields:map[string]*yang.Entry{"leaf-list":(*yang.Entry)(0xc4203d79e0), "container-child":(*yang.Entry)(0xc4203d7b00)}, path:[]string{"", "root", "a-message"}, listAttr:(*ygen.yangListAttr)(nil), isFakeRoot:false}, map[string]*ygen.yangDirectory{"/root/a-message/container-child":(*ygen.yangDirectory)(0xc4200d75e0)}, *genState): did not get expected protobuf message definition, diff(-got,+want):
+		 {
+		  Name: "AMessage",
+		  YANGPath: "/root/a-message",
+		  Fields: [
+		   {
+		-   Tag: 17594927,
+		-   Name: "container_child",
+		-   Type: "a_message.ContainerChild",
+		-   IsRepeated: false,
+		+   Tag: 299656613,
+		+   Name: "leaf_list",
+		+   Type: "ywrapper.StringValue",
+		+   IsRepeated: true,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		   {
+		-   Tag: 299656613,
+		-   Name: "leaf_list",
+		-   Type: "ywrapper.StringValue",
+		-   IsRepeated: true,
+		+   Tag: 17594927,
+		+   Name: "container_child",
+		+   Type: "a_message.ContainerChild",
+		+   IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		  ],
+		  Imports: [
+		-  "base/a_message/a_message.proto",
+		+  "base/a_message",
+		  ],
+		  Enums: {
+		  },
+		 }
+	protogen_test.go:570: simple message with leaf-list and a message child, compression off: genProtoMsg(&ygen.yangDirectory{name:"AMessage", entry:(*yang.Entry)(0xc4203d8240), fields:map[string]*yang.Entry{"leaf-list":(*yang.Entry)(0xc4203d8360), "container-child":(*yang.Entry)(0xc4203d8480)}, path:[]string{"", "root", "a-message"}, listAttr:(*ygen.yangListAttr)(nil), isFakeRoot:false}, map[string]*ygen.yangDirectory{"/root/a-message/container-child":(*ygen.yangDirectory)(0xc4200d7680)}, *genState): did not get expected protobuf message definition, diff(-got,+want):
+		 {
+		  Name: "AMessage",
+		  YANGPath: "/root/a-message",
+		  Fields: [
+		   {
+		-   Tag: 17594927,
+		-   Name: "container_child",
+		-   Type: "root.a_message.ContainerChild",
+		-   IsRepeated: false,
+		+   Tag: 299656613,
+		+   Name: "leaf_list",
+		+   Type: "ywrapper.StringValue",
+		+   IsRepeated: true,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		   {
+		-   Tag: 299656613,
+		-   Name: "leaf_list",
+		-   Type: "ywrapper.StringValue",
+		-   IsRepeated: true,
+		+   Tag: 17594927,
+		+   Name: "container_child",
+		+   Type: "root.a_message.ContainerChild",
+		+   IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		  ],
+		  Imports: [
+		-  "base/root/a_message/a_message.proto",
+		+  "base/root/a_message",
+		  ],
+		  Enums: {
+		  },
+		 }
+	protogen_test.go:570: message with list: genProtoMsg(&ygen.yangDirectory{name:"AMessageWithAList", entry:(*yang.Entry)(0xc4203d8b40), fields:map[string]*yang.Entry{"list":(*yang.Entry)(0xc4203d8c60)}, path:[]string{"", "a-message-with-a-list", "list"}, listAttr:(*ygen.yangListAttr)(nil), isFakeRoot:false}, map[string]*ygen.yangDirectory{"/a-message-with-a-list/list":(*ygen.yangDirectory)(0xc4200d7720)}, *genState): did not get expected protobuf message definition, diff(-got,+want):
+		 {
+		  Name: "ListKey",
+		  YANGPath: "/a-message-with-a-list/list",
+		  Fields: [
+		   {
+		    Tag: 1,
+		    Name: "key",
+		    Type: "string",
+		    IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		   {
+		    Tag: 2,
+		    Name: "list",
+		    Type: "a_message_with_a_list.List",
+		    IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		  ],
+		  Imports: [
+		-  "base/a_message_with_a_list/a_message_with_a_list.proto",
+		+  "base/a_message_with_a_list",
+		  ],
+		  Enums: {
+		  },
+		 }
+	protogen_test.go:570: message with any anydata field: genProtoMsg(&ygen.yangDirectory{name:"MessageWithAnydata", entry:(*yang.Entry)(0xc4203d99e0), fields:map[string]*yang.Entry{"any-data":(*yang.Entry)(0xc4203d9b00), "leaf":(*yang.Entry)(0xc4203d9c20)}, path:[]string{"", "message-with-anydata"}, listAttr:(*ygen.yangListAttr)(nil), isFakeRoot:false}, map[string]*ygen.yangDirectory(nil), *genState): did not get expected protobuf message definition, diff(-got,+want):
+		 {
+		  Name: "MessageWithAnydata",
+		  YANGPath: "/message-with-anydata",
+		  Fields: [
+		   {
+		    Tag: 453452743,
+		    Name: "any_data",
+		    Type: "google.protobuf.Any",
+		    IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		   {
+		    Tag: 463279904,
+		    Name: "leaf",
+		    Type: "ywrapper.StringValue",
+		    IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		  ],
+		  Imports: [
+		-  "google/protobuf/any.proto",
+		+  "google/protobuf/any",
+		  ],
+		  Enums: {
+		  },
+		 }
+--- FAIL: TestGenListKeyProto (0.00s)
+	protogen_test.go:1189: simple list key proto: genListKeyProto(pkg, list, ygen.protoDefinitionArgs{field:(*yang.Entry)(0xc42028c000), directory:(*ygen.yangDirectory)(0xc42039d2c0), definedDirectories:map[string]*ygen.yangDirectory{}, definedFieldNames:map[string]bool(nil), state:(*ygen.genState)(0xc42039d310), basePackageName:"base", enumPackageName:"", baseImportPath:"base/path", compressPaths:false, annotateSchemaPaths:false, annotateEnumNames:false, parentPackage:""}): did not get expected return message, diff(-got,+want):
+		 {
+		  Name: "listKey",
+		  YANGPath: "/list",
+		  Fields: [
+		   {
+		    Tag: 1,
+		    Name: "key",
+		    Type: "string",
+		    IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		   {
+		    Tag: 2,
+		    Name: "list",
+		    Type: "pkg.list",
+		    IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		  ],
+		  Imports: [
+		-  "base/path/base/pkg/pkg.proto",
+		+  "base/path/base/pkg",
+		  ],
+		  Enums: {
+		  },
+		 }
+	protogen_test.go:1189: list with union key - string and int: genListKeyProto(pkg, list, ygen.protoDefinitionArgs{field:(*yang.Entry)(0xc42028c360), directory:(*ygen.yangDirectory)(0xc42039d360), definedDirectories:map[string]*ygen.yangDirectory{}, definedFieldNames:map[string]bool(nil), state:(*ygen.genState)(0xc42039d3b0), basePackageName:"base", enumPackageName:"", baseImportPath:"base/path", compressPaths:false, annotateSchemaPaths:false, annotateEnumNames:false, parentPackage:""}): did not get expected return message, diff(-got,+want):
+		 {
+		  Name: "listKey",
+		  YANGPath: "/list",
+		  Fields: [
+		   {
+		    Tag: 1,
+		    Name: "key",
+		    Type: "",
+		    IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: true,
+		    OneOfFields: [
+		     {
+		      Tag: 232819104,
+		      Name: "key_sint64",
+		      Type: "sint64",
+		      IsRepeated: false,
+		      Options: [
+		      ],
+		      IsOneOf: false,
+		      OneOfFields: [
+		      ],
+		     },
+		     {
+		      Tag: 470483267,
+		      Name: "key_string",
+		      Type: "string",
+		      IsRepeated: false,
+		      Options: [
+		      ],
+		      IsOneOf: false,
+		      OneOfFields: [
+		      ],
+		     },
+		    ],
+		   },
+		   {
+		    Tag: 2,
+		    Name: "list",
+		    Type: "pkg.list",
+		    IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		  ],
+		  Imports: [
+		-  "base/path/base/pkg/pkg.proto",
+		+  "base/path/base/pkg",
+		  ],
+		  Enums: {
+		  },
+		 }
+	protogen_test.go:1189: list with union key - two string: genListKeyProto(pkg, list, ygen.protoDefinitionArgs{field:(*yang.Entry)(0xc42028c6c0), directory:(*ygen.yangDirectory)(0xc42039d400), definedDirectories:map[string]*ygen.yangDirectory{}, definedFieldNames:map[string]bool(nil), state:(*ygen.genState)(0xc42039d450), basePackageName:"base", enumPackageName:"", baseImportPath:"base/path", compressPaths:false, annotateSchemaPaths:false, annotateEnumNames:false, parentPackage:""}): did not get expected return message, diff(-got,+want):
+		 {
+		  Name: "listKey",
+		  YANGPath: "/list",
+		  Fields: [
+		   {
+		    Tag: 1,
+		    Name: "key",
+		    Type: "string",
+		    IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		   {
+		    Tag: 2,
+		    Name: "list",
+		    Type: "pkg.list",
+		    IsRepeated: false,
+		    Options: [
+		    ],
+		    IsOneOf: false,
+		    OneOfFields: [
+		    ],
+		   },
+		  ],
+		  Imports: [
+		-  "base/path/base/pkg/pkg.proto",
+		+  "base/path/base/pkg",
+		  ],
+		  Enums: {
+		  },
+		 }
+FAIL
+exit status 1
+FAIL	github.com/openconfig/ygot/ygen	0.132s

@@ -31,9 +31,8 @@ const (
 	// protoAnyType is the name of the type to use for a google.protobuf.Any field.
 	protoAnyType = "google.protobuf.Any"
 	// protoAnyPackage is the name of the import to be used when a google.protobuf.Any field
-	// is included in the output data. The string specified has .proto appended to it when
-	// output.
-	protoAnyPackage = "google/protobuf/any"
+	// is included in the output data.
+	protoAnyPackage = "google/protobuf/any.proto"
 	// protoListKeyMessageSuffix specifies the suffix that should be added to a list's name
 	// to specify the repeated message that makes up the list's key. The repeated message is
 	// called <ListNameInCamelCase><protoListKeyMessageSuffix>.

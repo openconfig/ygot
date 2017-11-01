@@ -9,7 +9,7 @@ package openconfig.proto_test_f;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
-import "openconfig/proto_test_f/a.proto";
+import "openconfig/proto_test_f/a/a.proto";
 
 // A represents the /proto-test-f/a YANG schema element.
 message A {
