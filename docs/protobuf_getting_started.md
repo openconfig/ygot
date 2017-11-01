@@ -148,6 +148,6 @@ This leaves us with a generated `.pb.go` file for each `.proto` that was generat
 
 ## Using the Generated Protobufs in a Go program
 
-
+Since the generated set of Protobufs form a number of different packages, each of these Go packages needs to be imported within the calling application, as demonstrated in the `demo/protobuf_getting_started/demo.go` program. Once the relevant protobufs have been imported, the generated Protobuf structures can be used as per any other generated protobuf code.
 
 

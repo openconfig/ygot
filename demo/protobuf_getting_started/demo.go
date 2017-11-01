@@ -47,7 +47,7 @@ func main() {
 	}
 
 	fmt.Printf("%s\n", proto.MarshalTextString(rt))
-	fmt.Printf("size in bytes: %d", len(b))
+	fmt.Printf("Marshalled proto size in bytes: %d\n", len(b))
 }
 
 // buildRouteProto returns a Protobuf representation a route and associated
