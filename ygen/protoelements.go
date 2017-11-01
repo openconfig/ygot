@@ -338,7 +338,6 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 		return ""
 	}
 
-	// NOTE robjs: changed this to simply e
 	parent := e.Parent
 	// In the case of path compression, then the parent of a list is the parent
 	// one level up, as is the case for if there are config and state containers.

@@ -1064,7 +1064,6 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType, annot
 // for the input package.
 func protoPackageToFilePath(pkg string) []string {
 	pp := strings.Split(pkg, ".")
-	//return append(pp[:len(pp)-1], fmt.Sprintf("%s.proto", pp[len(pp)-1]))
 	return append(pp, fmt.Sprintf("%s.proto", pp[len(pp)-1]))
 }
 
