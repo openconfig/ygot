@@ -17,5 +17,5 @@ clean:
 	rm -f ${ROOT_DIR}/demo/uncompressed/pkg/demo/uncompressed.go
 deps:
 	go get -t -d ./...
-install: deps generate
-all: clean deps generate test
+install: generate deps
+all: clean generate deps test
