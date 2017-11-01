@@ -22,5 +22,6 @@ deps:
 	go get -t -d ./proto_generator
 	go get -t -d ./exampleoc
 	go get -t -d ./ytypes
+	go get -t -d ./demo/gnmi_telemetry
 install: deps generate
 all: clean deps generate test
