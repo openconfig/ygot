@@ -40,7 +40,17 @@ import (
 )
 
 func main() {
-	rt := buildRouteProto()
+	rt := buildRouteProto(&ipv4Prefix{
+		atomicAggregate: true,
+		localPref:       100,
+		med:             10,
+		nextHop:         "10.0.1.1",
+		origin:          ocenums.OpenconfigRibBgpBgpOriginAttrType_OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP,
+		originatorID:    "192.0.2.42",
+		prefix:          "192.0.2.0/24",
+		protocolOrigin:  ocenums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP,
+	})
+
 	b, err := proto.Marshal(rt)
 	if err != nil {
 		log.Exitf("Error marshalling proto: %v", err)
@@ -50,9 +60,21 @@ func main() {
 	fmt.Printf("Marshalled proto size in bytes: %d\n", len(b))
 }
 
+// ipv4Prefix describes an IPv4 Prefix within the OpenConfig BGP RIB model.
+type ipv4Prefix struct {
+	atomicAggregate bool                                             // atomicAggregate is set when a downstream BGP speaker has aggregated the prefix.
+	localPref       uint64                                           // localPrefix is the value of the BGP LOCAL_PREFERENCE attribute.
+	med             uint64                                           // med is the value of the BGP multi-exit discriminator.
+	nextHop         string                                           // nextHop is the IP next-hop used for the BGP route.
+	origin          ocenums.OpenconfigRibBgpBgpOriginAttrType        // origin is the value of the ORIGIN attribute of the BGP prefix.
+	originatorID    string                                           // originatorID specifies the address of the BGP originator of the prefix.
+	prefix          string                                           // prefix is the IPv4 prefix for the route.
+	protocolOrigin  ocenums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE // protocolOrigin specifies the route on the device via which the prefix was learnt.
+}
+
 // buildRouteProto returns a Protobuf representation a route and associated
 // attribute set in the OpenConfig BGP RIB model.
-func buildRouteProto() *ocpb.Device {
+func buildRouteProto(pfx *ipv4Prefix) *ocpb.Device {
 	return &ocpb.Device{
 		BgpRib: &ocrpb.BgpRib{
 			AttrSets: &ocrbpb.AttrSets{
@@ -60,13 +82,13 @@ func buildRouteProto() *ocpb.Device {
 					Index: 1,
 					AttrSet: &ocrapb.AttrSet{
 						State: &ocraapb.State{
-							AtomicAggregate: &ywpb.BoolValue{true},
+							AtomicAggregate: &ywpb.BoolValue{pfx.atomicAggregate},
 							Index:           &ywpb.UintValue{1},
-							LocalPref:       &ywpb.UintValue{100},
-							Med:             &ywpb.UintValue{10},
-							NextHop:         &ywpb.StringValue{"10.0.1.1"},
-							Origin:          ocenums.OpenconfigRibBgpBgpOriginAttrType_OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP,
-							OriginatorId:    &ywpb.StringValue{"192.0.2.42"},
+							LocalPref:       &ywpb.UintValue{pfx.localPref},
+							Med:             &ywpb.UintValue{pfx.med},
+							NextHop:         &ywpb.StringValue{pfx.nextHop},
+							Origin:          pfx.origin,
+							OriginatorId:    &ywpb.StringValue{pfx.originatorID},
 						},
 					},
 				}},
@@ -79,14 +101,14 @@ func buildRouteProto() *ocpb.Device {
 							LocRib: &ocrbaai4pb.LocRib{
 								Routes: &ocrbaai4lpb.Routes{
 									Route: []*ocrbaai4lpb.RouteKey{{
-										Prefix: "192.0.2.0/24",
+										Prefix: pfx.prefix,
 										Origin: &ocrbaai4lpb.RouteKey_OriginOpenconfigpolicytypesinstallprotocoltype{ocenums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP},
 										PathId: 1,
 										Route: &ocrbaai4lrpb.Route{
 											State: &ocrbaai4lrrpb.State{
 												PathId:    &ywpb.UintValue{1},
-												Prefix:    &ywpb.StringValue{"192.0.2.0/24"},
-												Origin:    &ocrbaai4lrrpb.State_OriginOpenconfigpolicytypesinstallprotocoltype{ocenums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP},
+												Prefix:    &ywpb.StringValue{pfx.prefix},
+												Origin:    &ocrbaai4lrrpb.State_OriginOpenconfigpolicytypesinstallprotocoltype{pfx.protocolOrigin},
 												AttrIndex: &ywpb.UintValue{1},
 											},
 										},

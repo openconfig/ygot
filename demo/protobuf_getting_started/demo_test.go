@@ -24,21 +24,33 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 
 	ocpb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig"
+	ocenums "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
 )
 
 func TestProtoGenerate(t *testing.T) {
 	tests := []struct {
 		name          string
-		inTestFunc    func() *ocpb.Device
+		inTestFunc    func(*ipv4Prefix) *ocpb.Device
+		inPrefix      *ipv4Prefix
 		wantTextProto string
 	}{{
-		name:          "simple route entry test",
-		inTestFunc:    buildRouteProto,
+		name:       "simple route entry test",
+		inTestFunc: buildRouteProto,
+		inPrefix: &ipv4Prefix{
+			atomicAggregate: true,
+			localPref:       100,
+			med:             10,
+			nextHop:         "10.0.1.1",
+			origin:          ocenums.OpenconfigRibBgpBgpOriginAttrType_OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP,
+			originatorID:    "192.0.2.42",
+			prefix:          "192.0.2.0/24",
+			protocolOrigin:  ocenums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP,
+		},
 		wantTextProto: "route_entry.txtpb",
 	}}
 
 	for _, tt := range tests {
-		got := tt.inTestFunc()
+		got := tt.inTestFunc(tt.inPrefix)
 
 		want := &ocpb.Device{}
 
