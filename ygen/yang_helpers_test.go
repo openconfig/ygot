@@ -709,8 +709,8 @@ func TestDirectEntryChild(t *testing.T) {
 			Name: "parent",
 			Kind: yang.DirectoryEntry,
 			Dir: map[string]*yang.Entry{
-				"surrounding-container": &yang.Entry{Name: "child"},
-				"childtwo":              &yang.Entry{Name: "childtwo"},
+				"surrounding-container": {Name: "child"},
+				"childtwo":              {Name: "childtwo"},
 			},
 			Parent: &yang.Entry{
 				Name: "module",
