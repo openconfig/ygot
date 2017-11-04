@@ -665,10 +665,14 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 			return i + 1
 		},
 		"toUpper": strings.ToUpper,
-		"indentLine": func(s string) string {
+		"indentLines": func(s string) string {
 			var b bytes.Buffer
 			p := strings.Split(s, "\n")
+			b.WriteRune('\n')
 			for i, l := range p {
+				if l == "" {
+					continue
+				}
 				b.WriteString(fmt.Sprintf("  %s", l))
 				if i != len(p)-1 {
 					b.WriteRune('\n')

@@ -317,6 +317,35 @@ func entrySchemaPath(e *yang.Entry) string {
 	return slicePathToString(append([]string{""}, traverseElementSchemaPath(e)[1:]...))
 }
 
+// isDirectEntryChild determines whether the entry c is a direct child of the
+// entry p within the output code. If compressPaths is set, a check to determine
+// whether c would be a direct child after schema compression is performed.
+func isDirectEntryChild(p, c *yang.Entry, compressPaths bool) bool {
+	ppp := strings.Split(p.Path(), "/")
+	cpp := strings.Split(c.Path(), "/")
+	dc := isPathChild(ppp, cpp)
+
+	// If we are not compressing paths, the child is not a list entry,
+	// or the child path is not a grandchild
+	// of the current element, then this cannot be a valid direct child.
+	if !compressPaths || !c.IsList() || len(cpp) > len(ppp)+2 || len(cpp) < len(ppp) {
+		return dc
+	}
+
+	ppe, ok := p.Dir[c.Parent.Name]
+	if !ok {
+		// Can't be a valid child because the parent of the entity doesn't exist
+		// within this container.
+		return false
+	}
+
+	if !hasOnlyChild(ppe) {
+		return false
+	}
+
+	return children(ppe)[0].Path() == c.Path()
+}
+
 // isPathChild takes an input slice of strings representing a path and determines
 // whether b is a child of a within the YANG schema.
 func isPathChild(a, b []string) bool {

@@ -841,6 +841,40 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.enums":       filepath.Join(TestRoot, "testdata", "proto", "proto-enums-addid.enums.formatted-txt"),
 			"openconfig.proto_enums": filepath.Join(TestRoot, "testdata", "proto", "proto-enums-addid.formatted-txt"),
 		},
+	}, {
+		name: "yang schema with nested messages requested - uncompressed",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata", "proto", "nested-messages.yang"),
+		},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig.enums":           filepath.Join(TestRoot, "testdata", "proto", "nested-messages.enums.formatted-txt"),
+			"openconfig.nested_messages": filepath.Join(TestRoot, "testdata", "proto", "nested-messages.nested_messages.formatted-txt"),
+		},
+	}, {
+		name: "yang schema with nested messages - compressed with fakeroot",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata", "proto", "nested-messages.yang"),
+		},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+			},
+			CompressOCPaths:  true,
+			GenerateFakeRoot: true,
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "nested-messages.compressed.enums.formatted-txt"),
+			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "nested-messages.compressed.nested_messages.formatted-txt"),
+		},
 	}}
 
 	for _, tt := range tests {
@@ -896,11 +930,11 @@ func TestGenerateProto3(t *testing.T) {
 			fmt.Fprintf(&gotCodeBuf, gotPkg.Header)
 
 			for _, gotMsg := range gotPkg.Messages {
-				fmt.Fprintf(&gotCodeBuf, "%v", gotMsg)
+				fmt.Fprintf(&gotCodeBuf, "%s\n", gotMsg)
 			}
 
 			for _, gotEnum := range gotPkg.Enums {
-				fmt.Fprintf(&gotCodeBuf, "%v", gotEnum)
+				fmt.Fprintf(&gotCodeBuf, "%s", gotEnum)
 			}
 
 			if diff := pretty.Compare(gotCodeBuf.String(), string(wantCode)); diff != "" {
