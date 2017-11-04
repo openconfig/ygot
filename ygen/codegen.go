@@ -103,9 +103,6 @@ type GoOpts struct {
 
 // ProtoOpts stores Protobuf specific options for the code generation library.
 type ProtoOpts struct {
-	// BasePackageName stores the root package name that should be used
-	// for all packages that are output.
-	BasePackageName string
 	// BaseImportPath stores the root URL or path for imports that are
 	// relative within the imported protobufs.
 	BaseImportPath string
@@ -494,7 +491,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	}
 	sort.Strings(msgPaths)
 
-	basePackageName := cg.Config.ProtoOptions.BasePackageName
+	basePackageName := cg.Config.PackageName
 	if basePackageName == "" {
 		basePackageName = DefaultBasePackageName
 	}
