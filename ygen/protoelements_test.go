@@ -84,6 +84,11 @@ func TestYangTypeToProtoType(t *testing.T) {
 		wantWrapper: &mappedType{nativeType: "ywrapper.StringValue"},
 		wantScalar:  &mappedType{nativeType: "string"},
 	}, {
+		name:        "binary",
+		in:          []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ybinary}}},
+		wantWrapper: &mappedType{nativeType: "ywrapper.BytesValue"},
+		wantScalar:  &mappedType{nativeType: "bytes"},
+	}, {
 		name:        "decimal64",
 		in:          []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ydecimal64}}},
 		wantWrapper: &mappedType{nativeType: "ywrapper.Decimal64Value"},
@@ -91,7 +96,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "unmapped types",
 		in: []resolveTypeArgs{
-			{yangType: &yang.YangType{Kind: yang.Ybinary}},
 			{yangType: &yang.YangType{Kind: yang.Ybits}},
 		},
 		wantErr: true,

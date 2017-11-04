@@ -684,7 +684,6 @@ func makeTemplate(name, src string) *template.Template {
 // DefaultYgotImportPath, and an unset cfg.GoOptions.YtypesImportPath results in the
 // path for ytypes being set to DefaultYtypesImportPath.
 func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (string, error) {
-
 	// Determine the running binary's name.
 	if cfg.Caller == "" {
 		cfg.Caller = callerName()

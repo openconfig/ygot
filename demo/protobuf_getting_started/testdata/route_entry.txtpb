@@ -1,0 +1,62 @@
+bgp_rib: <
+  afi_safis: <
+    afi_safi: <
+      afi_safi_name: OPENCONFIGBGPTYPESAFISAFITYPE_IPV4_UNICAST
+      afi_safi: <
+        ipv4_unicast: <
+          loc_rib: <
+            routes: <
+              route: <
+                prefix: "192.0.2.0/24"
+                origin_openconfigpolicytypesinstallprotocoltype: OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP
+                path_id: 1
+                route: <
+                  state: <
+                    attr_index: <
+                      value: 1
+                    >
+                    origin_openconfigpolicytypesinstallprotocoltype: OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP
+                    path_id: <
+                      value: 1
+                    >
+                    prefix: <
+                      value: "192.0.2.0/24"
+                    >
+                  >
+                >
+              >
+            >
+          >
+        >
+      >
+    >
+  >
+  attr_sets: <
+    attr_set: <
+      index: 1
+      attr_set: <
+        state: <
+          atomic_aggregate: <
+            value: true
+          >
+          index: <
+            value: 1
+          >
+          local_pref: <
+            value: 100
+          >
+          med: <
+            value: 10
+          >
+          next_hop: <
+            value: "10.0.1.1"
+          >
+          origin: OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP
+          originator_id: <
+            value: "192.0.2.42"
+          >
+        >
+      >
+    >
+  >
+>

@@ -511,12 +511,11 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	if len(protoEnums) > 0 {
 		// Sort the set of enumerations so that they are deterministically output.
 		sort.Strings(protoEnums)
-		fp := []string{basePackageName, fmt.Sprintf("%s.proto", enumPackageName)}
+		fp := []string{basePackageName, enumPackageName, fmt.Sprintf("%s.proto", enumPackageName)}
 		genProto.Packages[fmt.Sprintf("%s.%s", basePackageName, enumPackageName)] = Proto3Package{
 			FilePath: fp,
 			Enums:    protoEnums,
 		}
-
 	}
 
 	for _, n := range msgPaths {

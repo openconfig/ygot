@@ -16,7 +16,6 @@ package ygen
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -484,8 +483,6 @@ func TestSchemaRoundtrip(t *testing.T) {
 
 		if !reflect.DeepEqual(got, tt.want) {
 			// Use JSON serialisation for test debugging output.
-			fmt.Printf("%v\n", tt.want["Container"].Parent)
-			fmt.Printf("%v\n", got["Container"].Parent)
 			gotj, _ := json.MarshalIndent(got, "", strings.Repeat(" ", 4))
 			wantj, _ := json.MarshalIndent(tt.want, "", strings.Repeat(" ", 4))
 			diff, _ := generateUnifiedDiff(string(gotj), string(wantj))
