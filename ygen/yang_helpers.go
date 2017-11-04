@@ -316,3 +316,18 @@ func listKeyFieldsMap(e *yang.Entry) map[string]bool {
 func entrySchemaPath(e *yang.Entry) string {
 	return slicePathToString(append([]string{""}, traverseElementSchemaPath(e)[1:]...))
 }
+
+// isPathChild takes an input slice of strings representing a path and determines
+// whether b is a child of a within the YANG schema.
+func isPathChild(a, b []string) bool {
+	if len(b) <= len(a) || len(b) > len(a)+1 {
+		return false
+	}
+
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}

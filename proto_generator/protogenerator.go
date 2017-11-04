@@ -20,6 +20,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,6 +45,7 @@ var (
 	fakeRootName        = flag.String("fakeroot_name", "Device", "The name of the fake root entity.")
 	annotateSchemaPaths = flag.Bool("add_schemapaths", true, "If set to true, the schema path of each YANG entity is added as a protobuf field option")
 	annotateEnumNames   = flag.Bool("add_enumnames", true, "If set to true, each value within output enums will be annotated with the label in the original YANG schema.")
+	nestedMessages      = flag.Bool("nested_messages", true, "If set to true, one message with embedded child messages is output per root-level entity.")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
@@ -102,6 +104,7 @@ func main() {
 			YextPath:            *yextPath,
 			AnnotateSchemaPaths: *annotateSchemaPaths,
 			AnnotateEnumNames:   *annotateEnumNames,
+			NestedMessages:      *nestedMessages,
 		},
 	})
 
@@ -124,7 +127,7 @@ func main() {
 
 		f.WriteString(p.Header)
 		for _, m := range p.Messages {
-			f.WriteString(m)
+			f.WriteString(fmt.Sprintf("%s\n", m))
 		}
 		for _, e := range p.Enums {
 			f.WriteString(e)

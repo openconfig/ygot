@@ -133,6 +133,10 @@ type ProtoOpts struct {
 	// original YANG names in the output protobuf file.
 	// See https://github.com/openconfig/ygot/blob/master/docs/yang-to-protobuf-transformations-spec.md#annotation-of-enums
 	AnnotateEnumNames bool
+	// NestedMessages indicates whether nested messages should be
+	// output for the protobuf schema. If unset, a separate package
+	// is generated per package.
+	NestedMessages bool
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -528,36 +532,42 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			baseImportPath:      cg.Config.ProtoOptions.BaseImportPath,
 			annotateSchemaPaths: cg.Config.ProtoOptions.AnnotateSchemaPaths,
 			annotateEnumNames:   cg.Config.ProtoOptions.AnnotateEnumNames,
+			nestedMessages:      cg.Config.ProtoOptions.NestedMessages,
 		})
+
+		// Check whether any messages were required for this schema element.
+		if genMsg == nil {
+			continue
+		}
 
 		if errs != nil {
 			ye.Errors = append(ye.Errors, errs...)
 			continue
 		}
-		if genMsg.packageName == "" {
-			genMsg.packageName = basePackageName
+		if genMsg.PackageName == "" {
+			genMsg.PackageName = basePackageName
 		} else {
-			genMsg.packageName = fmt.Sprintf("%s.%s", basePackageName, genMsg.packageName)
+			genMsg.PackageName = fmt.Sprintf("%s.%s", basePackageName, genMsg.PackageName)
 		}
 
-		if _, ok := pkgImports[genMsg.packageName]; !ok {
-			pkgImports[genMsg.packageName] = map[string]interface{}{}
+		if _, ok := pkgImports[genMsg.PackageName]; !ok {
+			pkgImports[genMsg.PackageName] = map[string]interface{}{}
 		}
-		addNewKeys(pkgImports[genMsg.packageName], genMsg.requiredImports)
+		addNewKeys(pkgImports[genMsg.PackageName], genMsg.RequiredImports)
 
 		// If the package does not already exist within the generated proto3
 		// output, then create it within the package map. This allows different
 		// entries in the msgNames set to fall within the same package.
-		tp, ok := genProto.Packages[genMsg.packageName]
+		tp, ok := genProto.Packages[genMsg.PackageName]
 		if !ok {
-			genProto.Packages[genMsg.packageName] = Proto3Package{
-				FilePath: protoPackageToFilePath(genMsg.packageName),
+			genProto.Packages[genMsg.PackageName] = Proto3Package{
+				FilePath: protoPackageToFilePath(genMsg.PackageName),
 				Messages: []string{},
 			}
-			tp = genProto.Packages[genMsg.packageName]
+			tp = genProto.Packages[genMsg.PackageName]
 		}
-		tp.Messages = append(tp.Messages, genMsg.messageCode)
-		genProto.Packages[genMsg.packageName] = tp
+		tp.Messages = append(tp.Messages, genMsg.MessageCode)
+		genProto.Packages[genMsg.PackageName] = tp
 	}
 
 	for n, pkg := range genProto.Packages {
