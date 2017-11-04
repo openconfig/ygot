@@ -9,7 +9,7 @@ package openconfig.nested_messages;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
-import "openconfig/enums.proto";
+import "openconfig/enums/enums.proto";
 
 // TopLevel represents the /nested-messages/top-level YANG schema element.
 message TopLevel {

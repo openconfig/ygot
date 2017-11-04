@@ -297,7 +297,7 @@ type protoMsgConfig struct {
 //  the message.
 func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg protoMsgConfig) (*generatedProto3Message, []error) {
 	if cfg.nestedMessages {
-		if len(msg.path) != 3 {
+		if !msg.isFakeRoot && len(msg.path) != 3 {
 			// We only operate on messages that are length 3 (i.e., are children of a
 			// module). The path is in the format []{"", <module>, <element>} hence we
 			// match len == 3.
@@ -349,8 +349,13 @@ func writeProto3MsgNested(msg *yangDirectory, msgs map[string]*yangDirectory, st
 
 	// Always import the enum package for a nested protobuf definition. Since
 	// only the top-level message ever uses this then it is imported for all
-	// downstream packages.
-	gmsg.RequiredImports = []string{fmt.Sprintf("%s.proto", filepath.Join(cfg.baseImportPath, cfg.basePackageName, cfg.enumPackageName))}
+	// downstream packages. For the fake root, which is the only message that
+	// refers to multiple packages, we maintain the imports.
+	imports := []string{}
+	if msg.isFakeRoot {
+		imports = gmsg.RequiredImports
+	}
+	gmsg.RequiredImports = append(imports, fmt.Sprintf("%s.proto", filepath.Join(cfg.baseImportPath, cfg.basePackageName, cfg.enumPackageName, cfg.enumPackageName)))
 
 	return gmsg, nil
 }
@@ -539,12 +544,14 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 					// there. This allows the message file to import the required
 					// child packages.
 					childpath := importPath(cfg.baseImportPath, cfg.basePackageName, childpkg)
-					if _, ok := imports[childpath]; !ok && !cfg.nestedMessages {
-						imports[childpath] = true
+					if _, ok := imports[childpath]; !ok {
+						if !cfg.nestedMessages || msg.isFakeRoot {
+							imports[childpath] = true
+						}
 					}
 
 					p, _ := stripPackagePrefix(parentPkg, childpkg)
-					if !cfg.nestedMessages {
+					if !cfg.nestedMessages || msg.isFakeRoot {
 						pfx = fmt.Sprintf("%s.", p)
 					} else {
 						pfx = ""

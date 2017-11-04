@@ -9,7 +9,12 @@ package openconfig;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
-import "openconfig/enums.proto";
+import "openconfig/enums/enums.proto";
+
+// Device represents the /device YANG schema element.
+message Device {
+  TopLevel top_level = 170575407 [(yext.schemapath) = "/top-level"];
+}
 
 // TopLevel represents the /nested-messages/top-level YANG schema element.
 message TopLevel {

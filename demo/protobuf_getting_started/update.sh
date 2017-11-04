@@ -15,7 +15,7 @@ rm -rf ribproto
 
 go run ../../proto_generator/protogenerator.go \
   -generate_fakeroot \
-   -base_import_path="github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto" \
+  -base_import_path="github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto" \
   -path=yang -output_dir=ribproto \
   -enum_package_name=enums -package_name=openconfig \
   -exclude_modules=ietf-interfaces \

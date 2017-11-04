@@ -842,7 +842,7 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_enums": filepath.Join(TestRoot, "testdata", "proto", "proto-enums-addid.formatted-txt"),
 		},
 	}, {
-		name: "yang schema with nested messages requested - uncompressed",
+		name: "yang schema with nested messages requested - uncompressed with fakeroot",
 		inFiles: []string{
 			filepath.Join(TestRoot, "testdata", "proto", "nested-messages.yang"),
 		},
@@ -852,8 +852,10 @@ func TestGenerateProto3(t *testing.T) {
 				AnnotateSchemaPaths: true,
 				NestedMessages:      true,
 			},
+			GenerateFakeRoot: true,
 		},
 		wantOutputFiles: map[string]string{
+			"openconfig":                 filepath.Join(TestRoot, "testdata", "proto", "nested-messages.openconfig.formatted-txt"),
 			"openconfig.enums":           filepath.Join(TestRoot, "testdata", "proto", "nested-messages.enums.formatted-txt"),
 			"openconfig.nested_messages": filepath.Join(TestRoot, "testdata", "proto", "nested-messages.nested_messages.formatted-txt"),
 		},
