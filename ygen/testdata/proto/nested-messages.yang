@@ -24,6 +24,12 @@ module nested-messages {
       }
     }
     leaf l { type string; }
+    leaf-list u {
+      type union {
+        type string;
+        type uint32;
+      }
+    }
   }
 
   grouping enum-cfg {

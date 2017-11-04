@@ -86,13 +86,25 @@ message TopLevel {
     message Idref {
       // Config represents the /nested-messages/top-level/idrefsc/idref/config YANG schema element.
       message Config {
+        // UUnion represents the /nested-messages/top-level/idrefsc/idref/config/u union field u YANG schema element.
+        message UUnion {
+          string u_string = 44885770;
+          uint64 u_uint64 = 423874955;
+        }
         openconfig.enums.NestedMessagesKEY i = 372609662 [(yext.schemapath) = "/top-level/idrefsc/idref/config/i"];
         ywrapper.StringValue l = 372609659 [(yext.schemapath) = "/top-level/idrefsc/idref/config/l"];
+        repeated UUnion u = 372609634 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
       }
       // State represents the /nested-messages/top-level/idrefsc/idref/state YANG schema element.
       message State {
+        // UUnion represents the /nested-messages/top-level/idrefsc/idref/state/u union field u YANG schema element.
+        message UUnion {
+          string u_string = 362654037;
+          uint64 u_uint64 = 470533304;
+        }
         openconfig.enums.NestedMessagesKEY i = 500927979 [(yext.schemapath) = "/top-level/idrefsc/idref/state/i"];
         ywrapper.StringValue l = 500927982 [(yext.schemapath) = "/top-level/idrefsc/idref/state/l"];
+        repeated UUnion u = 500927991 [(yext.schemapath) = "/top-level/idrefsc/idref/state/u"];
       }
       Config config = 135893622 [(yext.schemapath) = "/top-level/idrefsc/idref/config"];
       State state = 419960739 [(yext.schemapath) = "/top-level/idrefsc/idref/state"];

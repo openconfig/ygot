@@ -209,12 +209,12 @@ func TestGenProto3Msg(t *testing.T) {
 				}, {
 					Tag:        332121324,
 					Name:       "field_two",
-					Type:       "ParentFieldTwoUnion",
+					Type:       "FieldTwoUnion",
 					IsRepeated: true,
 				}},
 			},
-			"ParentFieldTwoUnion": {
-				Name:     "ParentFieldTwoUnion",
+			"FieldTwoUnion": {
+				Name:     "FieldTwoUnion",
 				YANGPath: "/parent/field-two union field field-two",
 				Fields: []*protoMsgField{{
 					Tag:  305727351,
@@ -1799,7 +1799,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			},
 		},
 		wantRepeatedMsg: &protoMsg{
-			Name:     "ParentFieldNameUnion",
+			Name:     "FieldNameUnion",
 			YANGPath: "/parent/field-name union field field-name",
 			Fields: []*protoMsgField{{
 				Tag:  85114709,

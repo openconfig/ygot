@@ -48,7 +48,13 @@ message TopLevel {
   }
   // Idref represents the /nested-messages/top-level/idrefsc/idref YANG schema element.
   message Idref {
+    // UUnion represents the /nested-messages/top-level/idrefsc/idref/config/u union field u YANG schema element.
+    message UUnion {
+      string u_string = 44885770;
+      uint64 u_uint64 = 423874955;
+    }
     ywrapper.StringValue l = 372609659 [(yext.schemapath) = "/top-level/idrefsc/idref/config/l"];
+    repeated UUnion u = 372609634 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
   }
   // IdrefKey represents the /nested-messages/top-level/idrefsc/idref YANG schema element.
   message IdrefKey {

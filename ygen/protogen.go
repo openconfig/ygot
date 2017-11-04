@@ -590,7 +590,16 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 			}
 
 			if d.repeatedMsg != nil {
-				msgDefs = append(msgDefs, *d.repeatedMsg)
+				if cfg.nestedMessages {
+					gm, gerrs := genProto3MsgCode(parentPkg, []protoMsg{*d.repeatedMsg})
+					if err != nil {
+						errs = append(errs, gerrs...)
+						continue
+					}
+					msgDef.ChildMsgs = append(msgDef.ChildMsgs, gm)
+				} else {
+					msgDefs = append(msgDefs, *d.repeatedMsg)
+				}
 			}
 
 			// Add the global enumeration package if it is referenced by this field.
@@ -1178,7 +1187,7 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType, annot
 		// oneof, therefore we return a message that contains the protoMsgFields that are defined
 		// above.
 		p := &protoMsg{
-			Name:     fmt.Sprintf("%s%sUnion", yang.CamelCase(e.Parent.Name), yang.CamelCase(fieldName)),
+			Name:     fmt.Sprintf("%sUnion", yang.CamelCase(fieldName)),
 			YANGPath: fmt.Sprintf("%s union field %s", e.Path(), e.Name),
 			Fields:   oofs,
 		}
