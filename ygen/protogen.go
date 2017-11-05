@@ -347,15 +347,36 @@ func writeProto3MsgNested(msg *yangDirectory, msgs map[string]*yangDirectory, st
 		return nil, append(gerrs, errs...)
 	}
 
-	// Always import the enum package for a nested protobuf definition. Since
-	// only the top-level message ever uses this then it is imported for all
-	// downstream packages. For the fake root, which is the only message that
-	// refers to multiple packages, we maintain the imports.
+	// Inherit the set of imports that are required for this child. We
+	// skip any that are relative imports as these are only needed for
+	// the case that we have different files per hierarchy level and
+	// are not nesting messages.
 	imports := []string{}
 	if msg.isFakeRoot {
 		imports = gmsg.RequiredImports
+	} else {
+		allImports := map[string]bool{}
+		for _, ch := range childMsgs {
+			for _, i := range ch.RequiredImports {
+				allImports[i] = true
+			}
+		}
+		for _, i := range gmsg.RequiredImports {
+			allImports[i] = true
+		}
+
+		epk := filepath.Join(cfg.baseImportPath, cfg.basePackageName, cfg.enumPackageName, fmt.Sprintf("%s.proto", cfg.enumPackageName))
+		for i := range allImports {
+			if !strings.HasPrefix(i, cfg.baseImportPath) {
+				fmt.Printf("appending %s in %s\n", i, msg.name)
+				imports = append(imports, i)
+			}
+			if _, ok := allImports[epk]; ok {
+				imports = append(imports, epk)
+			}
+		}
 	}
-	gmsg.RequiredImports = append(imports, fmt.Sprintf("%s.proto", filepath.Join(cfg.baseImportPath, cfg.basePackageName, cfg.enumPackageName, cfg.enumPackageName)))
+	gmsg.RequiredImports = imports
 
 	return gmsg, nil
 }
