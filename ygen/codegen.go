@@ -522,7 +522,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	for _, n := range msgPaths {
 		m := msgMap[n]
 
-		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, protoMsgConfig{
+		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, &protoMsgConfig{
 			compressPaths:       cg.Config.CompressOCPaths,
 			basePackageName:     basePackageName,
 			enumPackageName:     enumPackageName,

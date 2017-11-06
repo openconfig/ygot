@@ -1340,6 +1340,12 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, abs
 			// list, since the YANG specification enforces that keys are direct
 			// children of the list.
 			keyPath := []string{fieldSlicePath[len(fieldSlicePath)-1]}
+			if absolutePaths {
+				// If absolute paths are required, then the 'config' or 'state' container needs to be omitted from
+				// the complete path for the secondary mapping.
+				keyPath = append([]string{""}, fieldSlicePath[1:len(fieldSlicePath)-2]...)
+				keyPath = append(keyPath, fieldSlicePath[len(fieldSlicePath)-1])
+			}
 			mapPaths = append(mapPaths, keyPath)
 			break
 		}

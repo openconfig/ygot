@@ -37,7 +37,7 @@ message TopLevel {
       E_A = 1 [(yext.yang_name) = "A"];
       E_B = 2 [(yext.yang_name) = "B"];
     }
-    E e = 1 [(yext.schemapath) = "/top-level/enumsc/enum/config/e"];
+    E e = 1 [(yext.schemapath) = "/top-level/enumsc/enum/config/e|/top-level/enumsc/enum/e"];
     Enum enum = 2;
   }
   message Idref {
@@ -49,7 +49,7 @@ message TopLevel {
     repeated UUnion u = 372609634 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
   }
   message IdrefKey {
-    openconfig.enums.NestedMessagesKEY i = 1 [(yext.schemapath) = "/top-level/idrefsc/idref/config/i"];
+    openconfig.enums.NestedMessagesKEY i = 1 [(yext.schemapath) = "/top-level/idrefsc/idref/config/i|/top-level/idrefsc/idref/i"];
     Idref idref = 2;
   }
   message Unk {

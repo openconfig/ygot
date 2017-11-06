@@ -22,7 +22,7 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
-func protoMsgEq(a, b protoMsg) bool {
+func protoMsgEq(a, b *protoMsg) bool {
 	if a.Name != b.Name {
 		return false
 	}
@@ -64,7 +64,7 @@ func TestGenProto3Msg(t *testing.T) {
 		inAnnotateSchemaPaths  bool
 		inParentPackage        string
 		inChildMsgs            []*generatedProto3Message
-		wantMsgs               map[string]protoMsg
+		wantMsgs               map[string]*protoMsg
 		wantErr                bool
 	}{{
 		name: "simple message with only scalar fields",
@@ -89,7 +89,7 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 		inBasePackage: "base",
 		inEnumPackage: "enums",
-		wantMsgs: map[string]protoMsg{
+		wantMsgs: map[string]*protoMsg{
 			"MessageName": {
 				Name:     "MessageName",
 				YANGPath: "/root/message-name",
@@ -129,7 +129,7 @@ func TestGenProto3Msg(t *testing.T) {
 			MessageCode:     "test-code",
 			RequiredImports: []string{"should-be-ignored"},
 		}},
-		wantMsgs: map[string]protoMsg{
+		wantMsgs: map[string]*protoMsg{
 			"MessageName": {
 				Name:     "MessageName",
 				YANGPath: "/root/message-name",
@@ -187,7 +187,7 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 		inBasePackage: "base",
 		inEnumPackage: "enums",
-		wantMsgs: map[string]protoMsg{
+		wantMsgs: map[string]*protoMsg{
 			"MessageName": {
 				Name:     "MessageName",
 				YANGPath: "/root/message-name",
@@ -273,7 +273,7 @@ func TestGenProto3Msg(t *testing.T) {
 		inCompressPaths: true,
 		inBasePackage:   "base",
 		inEnumPackage:   "enums",
-		wantMsgs: map[string]protoMsg{
+		wantMsgs: map[string]*protoMsg{
 			"AMessage": {
 				Name:     "AMessage",
 				YANGPath: "/root/a-message",
@@ -335,7 +335,7 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 		inBasePackage: "base",
 		inEnumPackage: "enums",
-		wantMsgs: map[string]protoMsg{
+		wantMsgs: map[string]*protoMsg{
 			"AMessage": {
 				Name:     "AMessage",
 				YANGPath: "/root/a-message",
@@ -411,7 +411,7 @@ func TestGenProto3Msg(t *testing.T) {
 				},
 			},
 		},
-		wantMsgs: map[string]protoMsg{
+		wantMsgs: map[string]*protoMsg{
 			"AMessageWithAList": {
 				Name:     "AMessageWithAList",
 				YANGPath: "/a-message-with-a-list/list",
@@ -502,7 +502,7 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 		inBasePackage: "base",
 		inEnumPackage: "enums",
-		wantMsgs: map[string]protoMsg{
+		wantMsgs: map[string]*protoMsg{
 			"MessageWithAnydata": {
 				Name:     "MessageWithAnydata",
 				YANGPath: "/message-with-anydata",
@@ -551,7 +551,7 @@ func TestGenProto3Msg(t *testing.T) {
 		inBasePackage:         "base",
 		inEnumPackage:         "enums",
 		inAnnotateSchemaPaths: true,
-		wantMsgs: map[string]protoMsg{
+		wantMsgs: map[string]*protoMsg{
 			"MessageWithAnnotations": {
 				Name:     "MessageWithAnnotations",
 				YANGPath: "/one/two",
@@ -573,7 +573,7 @@ func TestGenProto3Msg(t *testing.T) {
 		// Seed the state with the supplied message names that have been provided.
 		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
-		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, protoMsgConfig{
+		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
 			compressPaths:       tt.inCompressPaths,
 			basePackageName:     tt.inBasePackage,
 			enumPackageName:     tt.inEnumPackage,
@@ -1297,7 +1297,7 @@ message MessageName {
 			// Seed the message names with the supplied input.
 			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
-			got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, protoMsgConfig{
+			got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
 				compressPaths:   compress,
 				basePackageName: tt.inBasePackageName,
 				enumPackageName: tt.inEnumPackageName,
@@ -1336,14 +1336,14 @@ func TestGenListKeyProto(t *testing.T) {
 		name          string
 		inListPackage string
 		inListName    string
-		inArgs        protoDefinitionArgs
+		inArgs        *protoDefinitionArgs
 		wantMsg       *protoMsg
 		wantErr       bool
 	}{{
 		name:          "simple list key proto",
 		inListPackage: "pkg",
 		inListName:    "list",
-		inArgs: protoDefinitionArgs{
+		inArgs: &protoDefinitionArgs{
 			field: &yang.Entry{
 				Name:     "list",
 				Kind:     yang.DirectoryEntry,
@@ -1368,9 +1368,11 @@ func TestGenListKeyProto(t *testing.T) {
 					"/list": "List",
 				},
 			},
-			compressPaths:   false,
-			basePackageName: "base",
-			baseImportPath:  "base/path",
+			cfg: &protoMsgConfig{
+				compressPaths:   false,
+				basePackageName: "base",
+				baseImportPath:  "base/path",
+			},
 		},
 		wantMsg: &protoMsg{
 			Name:     "listKey",
@@ -1390,7 +1392,7 @@ func TestGenListKeyProto(t *testing.T) {
 		name:          "list with union key - string and int",
 		inListPackage: "pkg",
 		inListName:    "list",
-		inArgs: protoDefinitionArgs{
+		inArgs: &protoDefinitionArgs{
 			field: &yang.Entry{
 				Name:     "list",
 				Kind:     yang.DirectoryEntry,
@@ -1419,9 +1421,11 @@ func TestGenListKeyProto(t *testing.T) {
 					"/list": "List",
 				},
 			},
-			compressPaths:   false,
-			basePackageName: "base",
-			baseImportPath:  "base/path",
+			cfg: &protoMsgConfig{
+				compressPaths:   false,
+				basePackageName: "base",
+				baseImportPath:  "base/path",
+			},
 		},
 		wantMsg: &protoMsg{
 			Name:     "listKey",
@@ -1450,7 +1454,7 @@ func TestGenListKeyProto(t *testing.T) {
 		name:          "list with union key - two string",
 		inListPackage: "pkg",
 		inListName:    "list",
-		inArgs: protoDefinitionArgs{
+		inArgs: &protoDefinitionArgs{
 			field: &yang.Entry{
 				Name:     "list",
 				Kind:     yang.DirectoryEntry,
@@ -1479,9 +1483,11 @@ func TestGenListKeyProto(t *testing.T) {
 					"/list": "List",
 				},
 			},
-			compressPaths:   false,
-			basePackageName: "base",
-			baseImportPath:  "base/path",
+			cfg: &protoMsgConfig{
+				compressPaths:   false,
+				basePackageName: "base",
+				baseImportPath:  "base/path",
+			},
 		},
 		wantMsg: &protoMsg{
 			Name:     "listKey",
