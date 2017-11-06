@@ -11,7 +11,6 @@ import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 import "openconfig/nested_messages/nested_messages.proto";
 
-// Device represents the /device YANG schema element.
 message Device {
   nested_messages.TopLevel top_level = 170575407 [(yext.schemapath) = "/top-level"];
 }

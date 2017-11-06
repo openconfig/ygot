@@ -76,12 +76,13 @@ type protoOption struct {
 
 // protoMsg describes a protobuf message.
 type protoMsg struct {
-	Name      string                    // Name is the name of the protobuf message to be output.
-	YANGPath  string                    // YANGPath stores the path that the message corresponds to within the YANG schema.
-	Fields    []*protoMsgField          // Fields is a slice of the fields that are within the message.
-	Imports   []string                  // Imports is a slice of strings that contains the relative import paths that are required by this message.
-	Enums     map[string]*protoMsgEnum  // Enums lists the embedded enumerations within the message.
-	ChildMsgs []*generatedProto3Message // ChildMsgs is the set of messages that should be embedded within the message.
+	Name        string                    // Name is the name of the protobuf message to be output.
+	YANGPath    string                    // YANGPath stores the path that the message corresponds to within the YANG schema.
+	Fields      []*protoMsgField          // Fields is a slice of the fields that are within the message.
+	Imports     []string                  // Imports is a slice of strings that contains the relative import paths that are required by this message.
+	Enums       map[string]*protoMsgEnum  // Enums lists the embedded enumerations within the message.
+	ChildMsgs   []*generatedProto3Message // ChildMsgs is the set of messages that should be embedded within the message.
+	PathComment bool                      // PathComment - when set - indicates that comments that specify the path to a message should be included in the output protobuf.
 }
 
 // protoMsgEnum represents an embedded enumeration within a protobuf message.
@@ -147,7 +148,9 @@ import "{{ $importedProto }}";
 	// protoMessageTemplate is populated for each entity that is mapped to a message
 	// within the output protobuf.
 	protoMessageTemplate = `
+{{ if .PathComment -}}
 // {{ .Name }} represents the {{ .YANGPath }} YANG schema element.
+{{ end -}}
 message {{ .Name }} {
 {{- range $idx, $msg := .ChildMsgs -}}
 	{{- indentLines $msg.MessageCode -}}
@@ -342,7 +345,7 @@ func writeProto3MsgNested(msg *yangDirectory, msgs map[string]*yangDirectory, st
 		return nil, append(gerrs, errs...)
 	}
 
-	gmsg, errs := genProto3MsgCode(pkg, msgDefs)
+	gmsg, errs := genProto3MsgCode(pkg, msgDefs, false)
 	if errs != nil {
 		return nil, append(gerrs, errs...)
 	}
@@ -399,7 +402,7 @@ func protobufPackageForMsg(msg *yangDirectory, state *genState, compressPaths bo
 	return state.protobufPackage(msg.entry, compressPaths), nil
 }
 
-// writeProto3MsgHierarchy generates a protobuf message definition. It takes the
+// writeProto3MsgSingleMsg generates a protobuf message definition. It takes the
 // arguments of writeProto3Message, outputting an individual message that outputs
 // a package definition and a single protobuf message.
 func writeProto3MsgSingleMsg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg protoMsgConfig) (*generatedProto3Message, []error) {
@@ -413,13 +416,16 @@ func writeProto3MsgSingleMsg(msg *yangDirectory, msgs map[string]*yangDirectory,
 		return nil, errs
 	}
 
-	return genProto3MsgCode(pkg, msgDefs)
+	return genProto3MsgCode(pkg, msgDefs, true)
 }
 
 // genProto3MsgCode takes an input package name, and set of protobuf message
-// definitions, and outputs the generated code for the messages.
-func genProto3MsgCode(pkg string, msgDefs []protoMsg) (*generatedProto3Message, []error) {
+// definitions, and outputs the generated code for the messages. If the
+// pathComment argument is setFunc, each message is output with a comment
+// indicating its path in the YANG schema, otherwise it is included.
+func genProto3MsgCode(pkg string, msgDefs []protoMsg, pathComment bool) (*generatedProto3Message, []error) {
 	var b bytes.Buffer
+	var errs []error
 	imports := map[string]interface{}{}
 	for i, msgDef := range msgDefs {
 		// Sort the child messages into a determinstic order. We cannot use the
@@ -428,6 +434,10 @@ func genProto3MsgCode(pkg string, msgDefs []protoMsg) (*generatedProto3Message, 
 		cmsgs := map[string]*generatedProto3Message{}
 		cstrs := []string{}
 		for _, m := range msgDef.ChildMsgs {
+			if m == nil {
+				errs = append(errs, fmt.Errorf("received nil message in %s", pkg))
+				continue
+			}
 			cmsgs[m.MessageCode] = m
 			cstrs = append(cstrs, m.MessageCode)
 		}
@@ -437,6 +447,7 @@ func genProto3MsgCode(pkg string, msgDefs []protoMsg) (*generatedProto3Message, 
 			nm = append(nm, cmsgs[c])
 		}
 		msgDef.ChildMsgs = nm
+		msgDef.PathComment = pathComment
 
 		if err := protoTemplates["msg"].Execute(&b, msgDef); err != nil {
 			return nil, []error{err}
@@ -445,6 +456,10 @@ func genProto3MsgCode(pkg string, msgDefs []protoMsg) (*generatedProto3Message, 
 		if i != len(msgDefs)-1 {
 			b.WriteRune('\n')
 		}
+	}
+
+	if errs != nil {
+		return nil, errs
 	}
 
 	return &generatedProto3Message{
@@ -535,7 +550,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 					// If nested messages are being output, we must ensure that the
 					// generated key message is output within the parent message - hence
 					// it is generated directly here and appended to the child messages.
-					kc, cerrs := genProto3MsgCode(parentPkg, []protoMsg{*keyMsg})
+					kc, cerrs := genProto3MsgCode(parentPkg, []protoMsg{*keyMsg}, false)
 					if errs != nil {
 						errs = append(errs, cerrs...)
 						continue
@@ -612,7 +627,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 
 			if d.repeatedMsg != nil {
 				if cfg.nestedMessages {
-					gm, gerrs := genProto3MsgCode(parentPkg, []protoMsg{*d.repeatedMsg})
+					gm, gerrs := genProto3MsgCode(parentPkg, []protoMsg{*d.repeatedMsg}, false)
 					if err != nil {
 						errs = append(errs, gerrs...)
 						continue

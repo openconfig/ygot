@@ -893,7 +893,7 @@ func TestGenerateProto3(t *testing.T) {
 			continue
 		}
 
-		if tt.wantErr {
+		if tt.wantErr || err != nil {
 			continue
 		}
 

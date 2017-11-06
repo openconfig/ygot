@@ -11,13 +11,9 @@ import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 import "openconfig/enums/enums.proto";
 
-// TopLevel represents the /nested-messages/top-level YANG schema element.
 message TopLevel {
-  // Child represents the /nested-messages/top-level/child YANG schema element.
   message Child {
-    // Grandchild represents the /nested-messages/top-level/child/grandchild YANG schema element.
     message Grandchild {
-      // Config represents the /nested-messages/top-level/child/grandchild/config YANG schema element.
       message Config {
         ywrapper.StringValue a = 404127368 [(yext.schemapath) = "/top-level/child/grandchild/config/a"];
         openconfig.enums.NestedMessagesEnumt b = 404127371 [(yext.schemapath) = "/top-level/child/grandchild/config/b"];
@@ -26,7 +22,6 @@ message TopLevel {
           string c_string = 420673426;
         }
       }
-      // State represents the /nested-messages/top-level/child/grandchild/state YANG schema element.
       message State {
         ywrapper.StringValue a = 319593801 [(yext.schemapath) = "/top-level/child/grandchild/state/a"];
         openconfig.enums.NestedMessagesEnumt b = 319593802 [(yext.schemapath) = "/top-level/child/grandchild/state/b"];
@@ -41,11 +36,8 @@ message TopLevel {
     }
     Grandchild grandchild = 265269555 [(yext.schemapath) = "/top-level/child/grandchild"];
   }
-  // Enumsc represents the /nested-messages/top-level/enumsc YANG schema element.
   message Enumsc {
-    // Enum represents the /nested-messages/top-level/enumsc/enum YANG schema element.
     message Enum {
-      // Config represents the /nested-messages/top-level/enumsc/enum/config YANG schema element.
       message Config {
         enum E {
           E_UNSET = 0;
@@ -55,7 +47,6 @@ message TopLevel {
         E e = 282566062 [(yext.schemapath) = "/top-level/enumsc/enum/config/e"];
         ywrapper.StringValue l = 282566055 [(yext.schemapath) = "/top-level/enumsc/enum/config/l"];
       }
-      // State represents the /nested-messages/top-level/enumsc/enum/state YANG schema element.
       message State {
         enum E {
           E_UNSET = 0;
@@ -68,7 +59,6 @@ message TopLevel {
       Config config = 10872546 [(yext.schemapath) = "/top-level/enumsc/enum/config"];
       State state = 358365215 [(yext.schemapath) = "/top-level/enumsc/enum/state"];
     }
-    // EnumKey represents the /nested-messages/top-level/enumsc/enum YANG schema element.
     message EnumKey {
       enum E {
         E_UNSET = 0;
@@ -80,13 +70,9 @@ message TopLevel {
     }
     repeated EnumKey enum = 296531661 [(yext.schemapath) = "/top-level/enumsc/enum"];
   }
-  // Idrefsc represents the /nested-messages/top-level/idrefsc YANG schema element.
   message Idrefsc {
-    // Idref represents the /nested-messages/top-level/idrefsc/idref YANG schema element.
     message Idref {
-      // Config represents the /nested-messages/top-level/idrefsc/idref/config YANG schema element.
       message Config {
-        // UUnion represents the /nested-messages/top-level/idrefsc/idref/config/u union field u YANG schema element.
         message UUnion {
           string u_string = 44885770;
           uint64 u_uint64 = 423874955;
@@ -95,9 +81,7 @@ message TopLevel {
         ywrapper.StringValue l = 372609659 [(yext.schemapath) = "/top-level/idrefsc/idref/config/l"];
         repeated UUnion u = 372609634 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
       }
-      // State represents the /nested-messages/top-level/idrefsc/idref/state YANG schema element.
       message State {
-        // UUnion represents the /nested-messages/top-level/idrefsc/idref/state/u union field u YANG schema element.
         message UUnion {
           string u_string = 362654037;
           uint64 u_uint64 = 470533304;
@@ -109,18 +93,14 @@ message TopLevel {
       Config config = 135893622 [(yext.schemapath) = "/top-level/idrefsc/idref/config"];
       State state = 419960739 [(yext.schemapath) = "/top-level/idrefsc/idref/state"];
     }
-    // IdrefKey represents the /nested-messages/top-level/idrefsc/idref YANG schema element.
     message IdrefKey {
       openconfig.enums.NestedMessagesKEY i = 1 [(yext.schemapath) = "/top-level/idrefsc/idref/i"];
       Idref idref = 2;
     }
     repeated IdrefKey idref = 77081425 [(yext.schemapath) = "/top-level/idrefsc/idref"];
   }
-  // Unksc represents the /nested-messages/top-level/unksc YANG schema element.
   message Unksc {
-    // Unk represents the /nested-messages/top-level/unksc/unk YANG schema element.
     message Unk {
-      // State represents the /nested-messages/top-level/unksc/unk/state YANG schema element.
       message State {
         ywrapper.StringValue y = 530324651 [(yext.schemapath) = "/top-level/unksc/unk/state/y"];
       }

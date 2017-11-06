@@ -828,9 +828,7 @@ message MessageName {
 		wantCompress: &generatedProto3Message{
 			PackageName: "",
 			MessageCode: `
-// MessageName represents the /module/message-name YANG schema element.
 message MessageName {
-  // Child represents the /module/message-name/child YANG schema element.
   message Child {
     ywrapper.StringValue leaf = 463279904;
   }
@@ -840,9 +838,7 @@ message MessageName {
 		wantUncompress: &generatedProto3Message{
 			PackageName: "module",
 			MessageCode: `
-// MessageName represents the /module/message-name YANG schema element.
 message MessageName {
-  // Child represents the /module/message-name/child YANG schema element.
   message Child {
     ywrapper.StringValue leaf = 463279904;
   }
@@ -1107,9 +1103,7 @@ message AMessage {
 		wantCompress: &generatedProto3Message{
 			PackageName: "",
 			MessageCode: `
-// AMessage represents the /module/a-message YANG schema element.
 message AMessage {
-  // ListKey represents the /module/a-message/surrounding-container/list YANG schema element.
   message ListKey {
     string keyfield = 1;
     List list = 2;
@@ -1120,9 +1114,7 @@ message AMessage {
 		wantUncompress: &generatedProto3Message{
 			PackageName: "module",
 			MessageCode: `
-// AMessage represents the /module/a-message YANG schema element.
 message AMessage {
-  // ListKey represents the /module/a-message/surrounding-container/list YANG schema element.
   message ListKey {
     string keyfield = 1;
     List list = 2;
@@ -1131,7 +1123,7 @@ message AMessage {
 }`,
 		},
 	}, {
-		name: "simple message with unkeyed list",
+		name: "simple message with unkeyed list - nested messages",
 		inMsg: &yangDirectory{
 			name: "AMessage",
 			entry: &yang.Entry{
@@ -1216,7 +1208,6 @@ message AMessage {
 		wantCompress: &generatedProto3Message{
 			PackageName: "",
 			MessageCode: `
-// AMessage represents the /module/a-message YANG schema element.
 message AMessage {
   repeated List list = 486198550;
 }`,
@@ -1224,7 +1215,6 @@ message AMessage {
 		wantUncompress: &generatedProto3Message{
 			PackageName: "module",
 			MessageCode: `
-// AMessage represents the /module/a-message YANG schema element.
 message AMessage {
   repeated List list = 486198550;
 }`,
