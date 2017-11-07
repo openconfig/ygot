@@ -131,7 +131,7 @@ type ProtoOpts struct {
 	// See https://github.com/openconfig/ygot/blob/master/docs/yang-to-protobuf-transformations-spec.md#annotation-of-enums
 	AnnotateEnumNames bool
 	// NestedMessages indicates whether nested messages should be
-	// output for the protobuf schema. If unset, a separate package
+	// output for the protobuf schema. If false, a separate package
 	// is generated per package.
 	NestedMessages bool
 }
@@ -532,22 +532,25 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			nestedMessages:      cg.Config.ProtoOptions.NestedMessages,
 		})
 
-		// Check whether any messages were required for this schema element.
-		if genMsg == nil {
-			continue
-		}
-
 		if errs != nil {
 			ye.Errors = append(ye.Errors, errs...)
 			continue
 		}
+
+		// Check whether any messages were required for this schema element, writeProto3Msg can
+		// return nil if nested messages were being produced, and the message was encapsulated
+		// in another message.
+		if genMsg == nil {
+			continue
+		}
+
 		if genMsg.PackageName == "" {
 			genMsg.PackageName = basePackageName
 		} else {
 			genMsg.PackageName = fmt.Sprintf("%s.%s", basePackageName, genMsg.PackageName)
 		}
 
-		if _, ok := pkgImports[genMsg.PackageName]; !ok {
+		if pkgImports[genMsg.PackageName] == nil {
 			pkgImports[genMsg.PackageName] = map[string]interface{}{}
 		}
 		addNewKeys(pkgImports[genMsg.PackageName], genMsg.RequiredImports)

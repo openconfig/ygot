@@ -760,6 +760,7 @@ message MessageName {
 message MessageName {
   message_name.Child child = 399980855;
 }`,
+			RequiredImports: []string{"base/message_name/message_name.proto"},
 		},
 		wantUncompress: &generatedProto3Message{
 			PackageName: "module",
@@ -768,6 +769,7 @@ message MessageName {
 message MessageName {
   message_name.Child child = 399980855;
 }`,
+			RequiredImports: []string{"base/module/message_name/message_name.proto"},
 		},
 	}, {
 		name: "simple message with other messages embedded - with nested messages",
@@ -1000,6 +1002,7 @@ message ListKey {
 message AMessage {
   repeated ListKey list = 486198550;
 }`,
+			RequiredImports: []string{"base/a_message/a_message.proto"},
 		},
 		wantUncompress: &generatedProto3Message{
 			PackageName: "module",
@@ -1014,6 +1017,7 @@ message ListKey {
 message AMessage {
   repeated ListKey list = 486198550;
 }`,
+			RequiredImports: []string{"base/module/a_message/surrounding_container/surrounding_container.proto"},
 		},
 	}, {
 		name: "simple message with a list - nested messages",
@@ -1279,6 +1283,7 @@ message AMessage {
 message MessageName {
   base.enums.TestModuleFooIdentity identityref = 518954308;
 }`,
+			RequiredImports: []string{"base/enums/enums.proto"},
 		},
 		wantUncompress: &generatedProto3Message{
 			PackageName: "module",
@@ -1287,6 +1292,7 @@ message MessageName {
 message MessageName {
   base.enums.TestModuleFooIdentity identityref = 518954308;
 }`,
+			RequiredImports: []string{"base/enums/enums.proto"},
 		},
 	}}
 
@@ -1317,7 +1323,7 @@ message MessageName {
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.PackageName, want.PackageName)
 			}
 
-			if reflect.DeepEqual(got.RequiredImports, want.RequiredImports) {
+			if !reflect.DeepEqual(got.RequiredImports, want.RequiredImports) {
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.RequiredImports, want.RequiredImports)
 			}
 
