@@ -45,7 +45,7 @@ var (
 	fakeRootName        = flag.String("fakeroot_name", "Device", "The name of the fake root entity.")
 	annotateSchemaPaths = flag.Bool("add_schemapaths", true, "If set to true, the schema path of each YANG entity is added as a protobuf field option")
 	annotateEnumNames   = flag.Bool("add_enumnames", true, "If set to true, each value within output enums will be annotated with the label in the original YANG schema.")
-	nestedMessages      = flag.Bool("nested_messages", true, "If set to true, one message with embedded child messages is output per root-level entity.")
+	packageHierarchy    = flag.Bool("package_hierarchy", false, "If set to true, an individual protobuf package is output per level of the YANG schema tree.")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
@@ -104,7 +104,7 @@ func main() {
 			YextPath:            *yextPath,
 			AnnotateSchemaPaths: *annotateSchemaPaths,
 			AnnotateEnumNames:   *annotateEnumNames,
-			NestedMessages:      *nestedMessages,
+			NestedMessages:      !*packageHierarchy,
 		},
 	})
 

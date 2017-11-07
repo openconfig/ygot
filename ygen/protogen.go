@@ -26,18 +26,10 @@ import (
 	"github.com/openconfig/ygot/util"
 )
 
+// Constants defining the defaults for Protobuf package generation. These constants
+// can be referred to by calling applications as defaults that are presented to
+// a user.
 const (
-	// protoEnumZeroName is the name given to the value 0 in each generated protobuf enum.
-	protoEnumZeroName string = "UNSET"
-	// protoAnyType is the name of the type to use for a google.protobuf.Any field.
-	protoAnyType = "google.protobuf.Any"
-	// protoAnyPackage is the name of the import to be used when a google.protobuf.Any field
-	// is included in the output data.
-	protoAnyPackage = "google/protobuf/any.proto"
-	// protoListKeyMessageSuffix specifies the suffix that should be added to a list's name
-	// to specify the repeated message that makes up the list's key. The repeated message is
-	// called <ListNameInCamelCase><protoListKeyMessageSuffix>.
-	protoListKeyMessageSuffix = "Key"
 	// DefaultBasePackageName defines the default base package that is
 	// generated when generating proto3 code.
 	DefaultBasePackageName = "openconfig"
@@ -51,18 +43,34 @@ const (
 	// DefaultYextPath defines the default import path for the yext.proto file, excluding
 	// the filename.
 	DefaultYextPath = "github.com/openconfig/ygot/proto/yext"
+)
+
+const (
+	// protoEnumZeroName is the name given to the value 0 in each generated protobuf enum.
+	protoEnumZeroName string = "UNSET"
+	// protoAnyType is the name of the type to use for a google.protobuf.Any field.
+	protoAnyType = "google.protobuf.Any"
+	// protoAnyPackage is the name of the import to be used when a google.protobuf.Any field
+	// is included in the output data.
+	protoAnyPackage = "google/protobuf/any.proto"
+	// protoListKeyMessageSuffix specifies the suffix that should be added to a list's name
+	// to specify the repeated message that makes up the list's key. The repeated message is
+	// called <ListNameInCamelCase><protoListKeyMessageSuffix>.
+	protoListKeyMessageSuffix = "Key"
 	// protoSchemaAnnotationOption specifies the name of the FieldOption used to annotate
 	// schemapaths into a protobuf message.
 	protoSchemaAnnotationOption = "(yext.schemapath)"
 )
 
 // protoMsgField describes a field of a protobuf message.
+// Note, throughout this package private structs that have public fields are used
+// in text/template which cannot refer to unexported fields.
 type protoMsgField struct {
 	Tag         uint32           // Tag is the field number that should be used in the protobuf message.
 	Name        string           // Name is the field's name.
 	Type        string           // Type is the protobuf type for the field.
 	IsRepeated  bool             // IsRepeated indicates whether the field is repeated.
-	Options     []*protoOption   //Extensions is the set of field extensions that should be specified for the field.
+	Options     []*protoOption   // Extensions is the set of field extensions that should be specified for the field.
 	IsOneOf     bool             // IsOneOf indicates that the field is a oneof and hence consists of multiple subfields.
 	OneOfFields []*protoMsgField // OneOfFields contains the set of fields within the oneof
 }
@@ -274,9 +282,9 @@ func writeProto3Header(in proto3Header) (string, error) {
 
 // generatedProto3Message contains the code for a proto3 message.
 type generatedProto3Message struct {
-	PackageName     string   // packageName is the name of the package that the proto3 message is within.
-	MessageCode     string   // messageCode contains the proto3 definition of the message.
-	RequiredImports []string // requiredImports contains the imports that are required by the generated message.
+	PackageName     string   // PackageName is the name of the package that the proto3 message is within.
+	MessageCode     string   // MessageCode contains the proto3 definition of the message.
+	RequiredImports []string // RequiredImports contains the imports that are required by the generated message.
 }
 
 // protoMsgConfig defines the set of configuration options required to generate a Protobuf message.
@@ -645,7 +653,7 @@ func addProtoContainerField(fieldDef *protoMsgField, args *protoDefinitionArgs) 
 		// there. This allows the message file to import the required
 		// child packages.
 		childpath := importPath(args.cfg.baseImportPath, args.cfg.basePackageName, childpkg)
-		if _, ok := imports[childpath]; !ok {
+		if imports[childpath] == nil {
 			if !args.cfg.nestedMessages || args.directory.isFakeRoot {
 				imports[childpath] = true
 			}
