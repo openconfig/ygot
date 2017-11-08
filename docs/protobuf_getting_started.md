@@ -18,7 +18,7 @@ The `ygot` package contains a `proto_generator` binary ([source](https://github.
   * **Nested Messages**: In this output mode, one protobuf package per YANG module is output.
   * **Hierarchical Packages**: In this case, each level of the YANG schema tree hierarchy has an individual protobuf package output for it.
 
-The default output mode is to produce nested messages. The `-nested_messages` flag of the `proto_generator` binary can be set to false to produce hierarchical packages.
+The default output mode is to produce nested messages. The `-package_hierarchy` flag of the `proto_generator` binary can be set to true to produce hierarchical packages.
 
 To examine the output of `proto_generator`, we'll use the following YANG module:
 
