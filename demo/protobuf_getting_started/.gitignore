@@ -1,2 +1,3 @@
-ribproto
+ribproto/**/*.pb.go
+ribproto/**/*.proto
 
