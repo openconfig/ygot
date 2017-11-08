@@ -1,0 +1,139 @@
+module nested-messages {
+  namespace "urn:nm";
+  prefix "nm";
+
+  identity KEY;
+  identity FOO {
+    base "KEY";
+  }
+  identity BAR {
+    base "KEY";
+  }
+
+  typedef enumt {
+    type enumeration {
+      enum ONE;
+      enum TWO;
+    }
+  }
+
+  grouping idref-cfg {
+    leaf i {
+      type identityref {
+        base "KEY";
+      }
+    }
+    leaf l { type string; }
+    leaf-list u {
+      type union {
+        type string;
+        type uint32;
+      }
+    }
+  }
+
+  grouping enum-cfg {
+    leaf e {
+      type enumeration {
+        enum A;
+        enum B;
+      }
+    }
+    leaf l { type string; }
+  }
+
+  grouping grandchild-cfg {
+    leaf a {
+      type string;
+    }
+
+    leaf b {
+      type enumt;
+    }
+
+    leaf c {
+      type union {
+        type string;
+        type enumt;
+      }
+    }
+  }
+
+  grouping grandchild-state {
+    leaf x {
+      type string;
+    }
+  }
+
+  grouping unk-state {
+    leaf y { type string; }
+  }
+
+  container top-level {
+    container idrefsc {
+      list idref {
+        key "i";
+
+        leaf i {
+          type leafref {
+            path "../config/i";
+          }
+        }
+
+        container config {
+          uses idref-cfg;
+        }
+
+        container state {
+          config false;
+          uses idref-cfg;
+        }
+      }
+    }
+
+    container enumsc {
+      list enum {
+        key "e";
+
+        leaf e {
+          type leafref {
+            path "../config/e";
+          }
+        }
+
+        container config {
+          uses enum-cfg;
+        }
+
+        container state {
+          config false;
+          uses enum-cfg;
+        }
+      }
+    }
+
+    container unksc {
+      list unk {
+        config false;
+
+        container state {
+          config false;
+          uses unk-state;
+        }
+      }
+    }
+
+    container child {
+      container grandchild {
+        container config {
+          uses grandchild-cfg;
+        }
+        container state {
+          config false;
+          uses grandchild-cfg;
+          uses grandchild-state;
+        }
+      }
+    }
+  }
+}
