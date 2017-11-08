@@ -11,7 +11,6 @@ clean() {
 (cd ../../proto/ywrapper && go generate)
 
 clean
-rm -rf ribproto
 
 go run ../../proto_generator/protogenerator.go \
   -generate_fakeroot \
