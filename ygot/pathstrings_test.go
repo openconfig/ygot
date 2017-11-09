@@ -26,9 +26,10 @@ import (
 // method of the library.
 func TestPathToString(t *testing.T) {
 	tests := []struct {
-		name string
-		in   *gnmipb.Path
-		want string
+		name    string
+		in      *gnmipb.Path
+		want    string
+		wantErr string
 	}{{
 		name: "root path",
 		in:   &gnmipb.Path{Element: []string{}},
@@ -38,9 +39,10 @@ func TestPathToString(t *testing.T) {
 		in:   &gnmipb.Path{Element: []string{"a", "b", "c", "d"}},
 		want: "/a/b/c/d",
 	}, {
-		name: "empty path segment",
-		in:   &gnmipb.Path{Element: []string{"x", "", "y", "z"}},
-		want: "/x//y/z",
+		name:    "empty path segment",
+		in:      &gnmipb.Path{Element: []string{"x", "", "y", "z"}},
+		want:    "/x//y/z",
+		wantErr: "nil element at index 1 in [x  y z]",
 	}, {
 		name: "path with attributes",
 		in:   &gnmipb.Path{Element: []string{"q", "r[s=t]", "u"}},
@@ -66,10 +68,42 @@ func TestPathToString(t *testing.T) {
 			{Name: "g"},
 		}},
 		want: "/a[a=b]/b[c=d][e=f]/g",
+	}, {
+		name: "structured path with nil element",
+		in: &gnmipb.Path{Elem: []*gnmipb.PathElem{
+			{Name: "a", Key: map[string]string{"a": "b"}},
+			{Key: map[string]string{"c": "d"}},
+		}},
+		wantErr: "nil name for PathElem at index 1",
+	}, {
+		name: "structed path with nil key name",
+		in: &gnmipb.Path{Elem: []*gnmipb.PathElem{
+			{Name: "a", Key: map[string]string{"": "d"}},
+		}},
+		wantErr: "nil key name (value: d) in element a",
+	}, {
+		name: "both path types set",
+		in: &gnmipb.Path{
+			Element: []string{"one", "two", "three"},
+			Elem: []*gnmipb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "three",
+			}},
+		},
+		want: "/one/two/three", // should have the element type, not elem.
 	}}
 
 	for _, tt := range tests {
-		got := PathToString(tt.in)
+		got, err := PathToString(tt.in)
+		if err != nil && err.Error() != tt.wantErr {
+			t.Errorf("%s: PathToString(%v): did not get expected error, got: %v, want: %v", tt.name, tt.in, err, tt.wantErr)
+		}
+
+		if err != nil || tt.wantErr != "" {
+			continue
+		}
+
 		if got != tt.want {
 			t.Errorf("%s: PathToString(%v): got: %s, want: %s", tt.name, tt.in, got, tt.want)
 		}

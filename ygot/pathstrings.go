@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -33,37 +34,42 @@ import (
 // specified, keys that are specified in the path are concatenated onto the name of
 // the path element using the format [name=value]. If the path specifies both pre-
 // and post-0.4.0 paths, the pre-0.4.0 version is returned.
-func PathToString(path *gnmipb.Path) string {
-	var buf bytes.Buffer
-	buf.WriteRune('/')
+func PathToString(path *gnmipb.Path) (string, error) {
+	p := []string{"/"}
 	if path.Element != nil {
+
 		for i, e := range path.Element {
-			buf.WriteString(e)
-			if i != len(path.Element)-1 {
-				buf.WriteRune('/')
+			if e == "" {
+				return "", fmt.Errorf("nil element at index %d in %v", i, path.Element)
 			}
+			p = append(p, e)
 		}
-		return buf.String()
+		return filepath.Join(p...), nil
 	}
 
 	for i, e := range path.Elem {
-		buf.WriteString(e.Name)
+		if e.Name == "" {
+			return "", fmt.Errorf("nil name for PathElem at index %d", i)
+		}
+
+		elem := e.Name
 		if len(e.Key) != 0 {
 			var keys []string
-			for k := range e.Key {
+			for k, v := range e.Key {
+				if k == "" {
+					return "", fmt.Errorf("nil key name (value: %s) in element %s", v, e.Name)
+				}
 				keys = append(keys, k)
 			}
 			sort.Strings(keys)
 
 			for _, k := range keys {
-				buf.WriteString(fmt.Sprintf("[%s=%s]", k, e.Key[k]))
+				elem = fmt.Sprintf("%s[%s=%s]", elem, k, e.Key[k])
 			}
 		}
-		if i != len(path.Elem)-1 {
-			buf.WriteRune('/')
-		}
+		p = append(p, elem)
 	}
-	return buf.String()
+	return filepath.Join(p...), nil
 }
 
 // PathType is used to indicate a gNMI path type.
@@ -80,26 +86,26 @@ const (
 
 // StringToPath takes an input string representing a path in gNMI, and converts
 // it to a gNMI Path message, populated with the specified path encodings.
-func StringToPath(path string, pathTypes ...PathType) (*gnmipb.Path, util.Errors) {
+func StringToPath(path string, pathTypes ...PathType) (*gnmipb.Path, error) {
+	var errs util.Errors
 	if len(pathTypes) == 0 {
-		return nil, []error{errors.New("no path types specified")}
+		return nil, util.AppendErr(errs, errors.New("no path types specified"))
 	}
 
 	pmsg := &gnmipb.Path{}
-	var errs util.Errors
 	for _, p := range pathTypes {
 		switch p {
 		case StructuredPath:
 			gp, err := StringToStructuredPath(path)
 			if err != nil {
-				errs = append(errs, fmt.Errorf("error building structured path: %v", err))
+				errs = util.AppendErr(errs, fmt.Errorf("error building structured path: %v", err))
 				continue
 			}
 			pmsg.Elem = gp.Elem
 		case StringSlicePath:
 			gp, err := StringToStringSlicePath(path)
 			if err != nil {
-				errs = append(errs, fmt.Errorf("error building string slice path: %v", err))
+				errs = util.AppendErr(errs, fmt.Errorf("error building string slice path: %v", err))
 				continue
 			}
 			pmsg.Element = gp.Element
