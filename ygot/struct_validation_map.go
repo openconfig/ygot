@@ -26,6 +26,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -73,6 +74,24 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath) ([]*gnmiPa
 		mapPaths = append(mapPaths, ePath)
 	}
 	return mapPaths, nil
+}
+
+func StructFieldPathMap(s GoStruct) (map[string][]string, error) {
+	sval := reflect.ValueOf(s).Elem()
+	stype := sval.Type()
+
+	mm := map[string][]string{}
+	for i := 0; i < sval.NumField(); i++ {
+		ftype := stype.Field(i)
+		p, err := structTagToLibPaths(ftype, &gnmiPath{stringSlicePath: []string{}})
+		if err != nil {
+			return nil, err
+		}
+		for _, pth := range p {
+			mm[ftype.Name] = append(mm[ftype.Name], filepath.Join(pth.stringSlicePath...))
+		}
+	}
+	return mm, nil
 }
 
 // enumFieldToString takes an input reflect.Value, which is type asserted to

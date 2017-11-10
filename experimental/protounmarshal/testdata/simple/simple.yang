@@ -1,0 +1,8 @@
+module simple {
+	prefix "s";
+	namespace "urn:s";
+
+	container a {
+		leaf b { type string; }
+	}
+}
