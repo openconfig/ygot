@@ -297,13 +297,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_State) GetExtCo
 	return nil
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_State) GetInvalidReason() openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON {
-	if m != nil {
-		return m.InvalidReason
-	}
-	return openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON_OPENCONFIGRIBBGPTYPESINVALIDROUTEREASON_UNSET
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_State) GetLastModified() *ywrapper.UintValue {
 	if m != nil {
 		return m.LastModified
@@ -544,13 +537,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_UnknownAttributes
 	return fileDescriptor0, []int{0, 0, 0, 0, 0, 0, 0, 1, 1}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetAttrType() uint64 {
-	if m != nil {
-		return m.AttrType
-	}
-	return 0
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetUnknownAttribute() *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_UnknownAttributes_UnknownAttribute {
 	if m != nil {
 		return m.UnknownAttribute
@@ -602,13 +588,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey) GetOrigin()
 	return nil
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey) GetOriginOpenconfigpolicytypesinstallprotocoltype() openconfig_enums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE {
 	if x, ok := m.GetOrigin().(*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey_OriginOpenconfigpolicytypesinstallprotocoltype); ok {
 		return x.OriginOpenconfigpolicytypesinstallprotocoltype
@@ -621,13 +600,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey) GetOriginSt
 		return x.OriginString
 	}
 	return ""
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey) GetPathId() uint64 {
-	if m != nil {
-		return m.PathId
-	}
-	return 0
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey) GetRoute() *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route {
@@ -927,13 +899,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Rou
 	return nil
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route_State) GetInvalidReason() openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON {
-	if m != nil {
-		return m.InvalidReason
-	}
-	return openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON_OPENCONFIGRIBBGPTYPESINVALIDROUTEREASON_UNSET
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route_State) GetLastModified() *ywrapper.UintValue {
 	if m != nil {
 		return m.LastModified
@@ -1096,13 +1061,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Route
 	return fileDescriptor0, []int{0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetAttrType() uint64 {
-	if m != nil {
-		return m.AttrType
-	}
-	return 0
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetUnknownAttribute() *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route_UnknownAttributes_UnknownAttribute {
 	if m != nil {
 		return m.UnknownAttribute
@@ -1126,20 +1084,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Route
 }
 func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_RouteKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0, 0, 0, 1, 0, 0, 0, 1}
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_RouteKey) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_RouteKey) GetPathId() uint64 {
-	if m != nil {
-		return m.PathId
-	}
-	return 0
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_RouteKey) GetRoute() *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route {
@@ -1288,13 +1232,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Rout
 		return m.ExtCommunityIndex
 	}
 	return nil
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route_State) GetInvalidReason() openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON {
-	if m != nil {
-		return m.InvalidReason
-	}
-	return openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON_OPENCONFIGRIBBGPTYPESINVALIDROUTEREASON_UNSET
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route_State) GetLastModified() *ywrapper.UintValue {
@@ -1459,13 +1396,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes
 	return fileDescriptor0, []int{0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetAttrType() uint64 {
-	if m != nil {
-		return m.AttrType
-	}
-	return 0
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetUnknownAttribute() *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route_UnknownAttributes_UnknownAttribute {
 	if m != nil {
 		return m.UnknownAttribute
@@ -1489,20 +1419,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes
 }
 func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_RouteKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0, 0, 0, 1, 0, 1, 0, 1}
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_RouteKey) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_RouteKey) GetPathId() uint64 {
-	if m != nil {
-		return m.PathId
-	}
-	return 0
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_RouteKey) GetRoute() *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route {
@@ -1651,13 +1567,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Ro
 		return m.ExtCommunityIndex
 	}
 	return nil
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route_State) GetInvalidReason() openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON {
-	if m != nil {
-		return m.InvalidReason
-	}
-	return openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON_OPENCONFIGRIBBGPTYPESINVALIDROUTEREASON_UNSET
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route_State) GetLastModified() *ywrapper.UintValue {
@@ -1822,13 +1731,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Rout
 	return fileDescriptor0, []int{0, 0, 0, 0, 1, 0, 2, 0, 0, 1, 1}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetAttrType() uint64 {
-	if m != nil {
-		return m.AttrType
-	}
-	return 0
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetUnknownAttribute() *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route_UnknownAttributes_UnknownAttribute {
 	if m != nil {
 		return m.UnknownAttribute
@@ -1852,20 +1754,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Rout
 }
 func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_RouteKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0, 0, 0, 1, 0, 2, 0, 1}
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_RouteKey) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_RouteKey) GetPathId() uint64 {
-	if m != nil {
-		return m.PathId
-	}
-	return 0
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_RouteKey) GetRoute() *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route {
@@ -2014,13 +1902,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Rou
 		return m.ExtCommunityIndex
 	}
 	return nil
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route_State) GetInvalidReason() openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON {
-	if m != nil {
-		return m.InvalidReason
-	}
-	return openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON_OPENCONFIGRIBBGPTYPESINVALIDROUTEREASON_UNSET
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route_State) GetLastModified() *ywrapper.UintValue {
@@ -2185,13 +2066,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Route
 	return fileDescriptor0, []int{0, 0, 0, 0, 1, 0, 3, 0, 0, 1, 1}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetAttrType() uint64 {
-	if m != nil {
-		return m.AttrType
-	}
-	return 0
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetUnknownAttribute() *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route_UnknownAttributes_UnknownAttribute {
 	if m != nil {
 		return m.UnknownAttribute
@@ -2215,20 +2089,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Route
 }
 func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_RouteKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0, 0, 0, 1, 0, 3, 0, 1}
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_RouteKey) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_RouteKey) GetPathId() uint64 {
-	if m != nil {
-		return m.PathId
-	}
-	return 0
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_RouteKey) GetRoute() *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route {
@@ -2288,13 +2148,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_NeighborKey) String() str
 func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_NeighborKey) ProtoMessage() {}
 func (*BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_NeighborKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0, 0, 0, 1, 1}
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_NeighborKey) GetNeighborAddress() string {
-	if m != nil {
-		return m.NeighborAddress
-	}
-	return ""
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_NeighborKey) GetNeighbor() *BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_Neighbors_Neighbor {
@@ -2480,13 +2333,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_Route_State) GetExtCo
 		return m.ExtCommunityIndex
 	}
 	return nil
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_Route_State) GetInvalidReason() openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON {
-	if m != nil {
-		return m.InvalidReason
-	}
-	return openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON_OPENCONFIGRIBBGPTYPESINVALIDROUTEREASON_UNSET
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_Route_State) GetLastModified() *ywrapper.UintValue {
@@ -2729,13 +2575,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_Route_UnknownAttributes
 	return fileDescriptor0, []int{0, 0, 0, 1, 0, 0, 0, 1, 1}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetAttrType() uint64 {
-	if m != nil {
-		return m.AttrType
-	}
-	return 0
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetUnknownAttribute() *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_Route_UnknownAttributes_UnknownAttribute {
 	if m != nil {
 		return m.UnknownAttribute
@@ -2787,13 +2626,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_RouteKey) GetOrigin()
 	return nil
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_RouteKey) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_RouteKey) GetOriginOpenconfigpolicytypesinstallprotocoltype() openconfig_enums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE {
 	if x, ok := m.GetOrigin().(*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_RouteKey_OriginOpenconfigpolicytypesinstallprotocoltype); ok {
 		return x.OriginOpenconfigpolicytypesinstallprotocoltype
@@ -2806,13 +2638,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_RouteKey) GetOriginSt
 		return x.OriginString
 	}
 	return ""
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_RouteKey) GetPathId() uint64 {
-	if m != nil {
-		return m.PathId
-	}
-	return 0
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_RouteKey) GetRoute() *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_LocRib_Routes_Route {
@@ -3104,13 +2929,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Rou
 	return nil
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route_State) GetInvalidReason() openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON {
-	if m != nil {
-		return m.InvalidReason
-	}
-	return openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON_OPENCONFIGRIBBGPTYPESINVALIDROUTEREASON_UNSET
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route_State) GetLastModified() *ywrapper.UintValue {
 	if m != nil {
 		return m.LastModified
@@ -3273,13 +3091,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Route
 	return fileDescriptor0, []int{0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetAttrType() uint64 {
-	if m != nil {
-		return m.AttrType
-	}
-	return 0
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetUnknownAttribute() *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route_UnknownAttributes_UnknownAttribute {
 	if m != nil {
 		return m.UnknownAttribute
@@ -3303,20 +3114,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Route
 }
 func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_RouteKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0, 0, 1, 1, 0, 0, 0, 1}
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_RouteKey) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_RouteKey) GetPathId() uint64 {
-	if m != nil {
-		return m.PathId
-	}
-	return 0
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_RouteKey) GetRoute() *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPost_Routes_Route {
@@ -3443,13 +3240,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Rout
 		return m.ExtCommunityIndex
 	}
 	return nil
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route_State) GetInvalidReason() openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON {
-	if m != nil {
-		return m.InvalidReason
-	}
-	return openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON_OPENCONFIGRIBBGPTYPESINVALIDROUTEREASON_UNSET
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route_State) GetLastModified() *ywrapper.UintValue {
@@ -3614,13 +3404,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes
 	return fileDescriptor0, []int{0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetAttrType() uint64 {
-	if m != nil {
-		return m.AttrType
-	}
-	return 0
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetUnknownAttribute() *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route_UnknownAttributes_UnknownAttribute {
 	if m != nil {
 		return m.UnknownAttribute
@@ -3644,20 +3427,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes
 }
 func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_RouteKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0, 0, 1, 1, 0, 1, 0, 1}
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_RouteKey) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_RouteKey) GetPathId() uint64 {
-	if m != nil {
-		return m.PathId
-	}
-	return 0
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_RouteKey) GetRoute() *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibInPre_Routes_Route {
@@ -3784,13 +3553,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Ro
 		return m.ExtCommunityIndex
 	}
 	return nil
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route_State) GetInvalidReason() openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON {
-	if m != nil {
-		return m.InvalidReason
-	}
-	return openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON_OPENCONFIGRIBBGPTYPESINVALIDROUTEREASON_UNSET
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route_State) GetLastModified() *ywrapper.UintValue {
@@ -3955,13 +3717,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Rout
 	return fileDescriptor0, []int{0, 0, 0, 1, 1, 0, 2, 0, 0, 1, 1}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetAttrType() uint64 {
-	if m != nil {
-		return m.AttrType
-	}
-	return 0
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetUnknownAttribute() *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route_UnknownAttributes_UnknownAttribute {
 	if m != nil {
 		return m.UnknownAttribute
@@ -3985,20 +3740,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Rout
 }
 func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_RouteKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0, 0, 1, 1, 0, 2, 0, 1}
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_RouteKey) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_RouteKey) GetPathId() uint64 {
-	if m != nil {
-		return m.PathId
-	}
-	return 0
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_RouteKey) GetRoute() *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPost_Routes_Route {
@@ -4125,13 +3866,6 @@ func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Rou
 		return m.ExtCommunityIndex
 	}
 	return nil
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route_State) GetInvalidReason() openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON {
-	if m != nil {
-		return m.InvalidReason
-	}
-	return openconfig_enums.OpenconfigRibBgpTypesINVALIDROUTEREASON_OPENCONFIGRIBBGPTYPESINVALIDROUTEREASON_UNSET
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route_State) GetLastModified() *ywrapper.UintValue {
@@ -4296,13 +4030,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Route
 	return fileDescriptor0, []int{0, 0, 0, 1, 1, 0, 3, 0, 0, 1, 1}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetAttrType() uint64 {
-	if m != nil {
-		return m.AttrType
-	}
-	return 0
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route_UnknownAttributes_UnknownAttributeKey) GetUnknownAttribute() *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route_UnknownAttributes_UnknownAttribute {
 	if m != nil {
 		return m.UnknownAttribute
@@ -4326,20 +4053,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Route
 }
 func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_RouteKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0, 0, 1, 1, 0, 3, 0, 1}
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_RouteKey) GetPrefix() string {
-	if m != nil {
-		return m.Prefix
-	}
-	return ""
-}
-
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_RouteKey) GetPathId() uint64 {
-	if m != nil {
-		return m.PathId
-	}
-	return 0
 }
 
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_RouteKey) GetRoute() *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor_AdjRibOutPre_Routes_Route {
@@ -4387,13 +4100,6 @@ func (*BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_NeighborKey) Descriptor() (
 	return fileDescriptor0, []int{0, 0, 0, 1, 1, 1}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_NeighborKey) GetNeighborAddress() string {
-	if m != nil {
-		return m.NeighborAddress
-	}
-	return ""
-}
-
 func (m *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_NeighborKey) GetNeighbor() *BgpRib_AfiSafis_AfiSafi_Ipv6Unicast_Neighbors_Neighbor {
 	if m != nil {
 		return m.Neighbor
@@ -4412,13 +4118,6 @@ func (*BgpRib_AfiSafis_AfiSafi_State) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0, 0, 2}
 }
 
-func (m *BgpRib_AfiSafis_AfiSafi_State) GetAfiSafiName() openconfig_enums.OpenconfigBgpTypesAFISAFITYPE {
-	if m != nil {
-		return m.AfiSafiName
-	}
-	return openconfig_enums.OpenconfigBgpTypesAFISAFITYPE_OPENCONFIGBGPTYPESAFISAFITYPE_UNSET
-}
-
 type BgpRib_AfiSafis_AfiSafiKey struct {
 	AfiSafiName openconfig_enums.OpenconfigBgpTypesAFISAFITYPE `protobuf:"varint,1,opt,name=afi_safi_name,json=afiSafiName,enum=openconfig.enums.OpenconfigBgpTypesAFISAFITYPE" json:"afi_safi_name,omitempty"`
 	AfiSafi     *BgpRib_AfiSafis_AfiSafi                       `protobuf:"bytes,2,opt,name=afi_safi,json=afiSafi" json:"afi_safi,omitempty"`
@@ -4429,13 +4128,6 @@ func (m *BgpRib_AfiSafis_AfiSafiKey) String() string { return proto.CompactTextS
 func (*BgpRib_AfiSafis_AfiSafiKey) ProtoMessage()    {}
 func (*BgpRib_AfiSafis_AfiSafiKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 0, 1}
-}
-
-func (m *BgpRib_AfiSafis_AfiSafiKey) GetAfiSafiName() openconfig_enums.OpenconfigBgpTypesAFISAFITYPE {
-	if m != nil {
-		return m.AfiSafiName
-	}
-	return openconfig_enums.OpenconfigBgpTypesAFISAFITYPE_OPENCONFIGBGPTYPESAFISAFITYPE_UNSET
 }
 
 func (m *BgpRib_AfiSafis_AfiSafiKey) GetAfiSafi() *BgpRib_AfiSafis_AfiSafi {
@@ -4616,13 +4308,6 @@ func (m *BgpRib_AttrSets_AttrSet_As4Path_Segment_State) GetMember() []*ywrapper.
 	return nil
 }
 
-func (m *BgpRib_AttrSets_AttrSet_As4Path_Segment_State) GetType() openconfig_enums.OpenconfigRibBgpAsPathSegmentType {
-	if m != nil {
-		return m.Type
-	}
-	return openconfig_enums.OpenconfigRibBgpAsPathSegmentType_OPENCONFIGRIBBGPASPATHSEGMENTTYPE_UNSET
-}
-
 type BgpRib_AttrSets_AttrSet_AsPath struct {
 	Segment []*BgpRib_AttrSets_AttrSet_AsPath_Segment `protobuf:"bytes,268345330,rep,name=segment" json:"segment,omitempty"`
 }
@@ -4682,13 +4367,6 @@ func (m *BgpRib_AttrSets_AttrSet_AsPath_Segment_State) GetMember() []*ywrapper.U
 		return m.Member
 	}
 	return nil
-}
-
-func (m *BgpRib_AttrSets_AttrSet_AsPath_Segment_State) GetType() openconfig_enums.OpenconfigRibBgpAsPathSegmentType {
-	if m != nil {
-		return m.Type
-	}
-	return openconfig_enums.OpenconfigRibBgpAsPathSegmentType_OPENCONFIGRIBBGPASPATHSEGMENTTYPE_UNSET
 }
 
 type BgpRib_AttrSets_AttrSet_State struct {
@@ -4759,13 +4437,6 @@ func (m *BgpRib_AttrSets_AttrSet_State) GetNextHop() *ywrapper.StringValue {
 	return nil
 }
 
-func (m *BgpRib_AttrSets_AttrSet_State) GetOrigin() openconfig_enums.OpenconfigRibBgpBgpOriginAttrType {
-	if m != nil {
-		return m.Origin
-	}
-	return openconfig_enums.OpenconfigRibBgpBgpOriginAttrType_OPENCONFIGRIBBGPBGPORIGINATTRTYPE_UNSET
-}
-
 func (m *BgpRib_AttrSets_AttrSet_State) GetOriginatorId() *ywrapper.StringValue {
 	if m != nil {
 		return m.OriginatorId
@@ -4783,13 +4454,6 @@ func (m *BgpRib_AttrSets_AttrSetKey) String() string { return proto.CompactTextS
 func (*BgpRib_AttrSets_AttrSetKey) ProtoMessage()    {}
 func (*BgpRib_AttrSets_AttrSetKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 1, 1}
-}
-
-func (m *BgpRib_AttrSets_AttrSetKey) GetIndex() uint64 {
-	if m != nil {
-		return m.Index
-	}
-	return 0
 }
 
 func (m *BgpRib_AttrSets_AttrSetKey) GetAttrSet() *BgpRib_AttrSets_AttrSet {
@@ -4876,27 +4540,6 @@ func (*BgpRib_Communities_Community_State_CommunityUnion) Descriptor() ([]byte, 
 	return fileDescriptor0, []int{0, 2, 0, 0, 0}
 }
 
-func (m *BgpRib_Communities_Community_State_CommunityUnion) GetCommunityOpenconfigbgptypesbgpwellknownstdcommunity() openconfig_enums.OpenconfigBgpTypesBGPWELLKNOWNSTDCOMMUNITY {
-	if m != nil {
-		return m.CommunityOpenconfigbgptypesbgpwellknownstdcommunity
-	}
-	return openconfig_enums.OpenconfigBgpTypesBGPWELLKNOWNSTDCOMMUNITY_OPENCONFIGBGPTYPESBGPWELLKNOWNSTDCOMMUNITY_UNSET
-}
-
-func (m *BgpRib_Communities_Community_State_CommunityUnion) GetCommunityString() string {
-	if m != nil {
-		return m.CommunityString
-	}
-	return ""
-}
-
-func (m *BgpRib_Communities_Community_State_CommunityUnion) GetCommunityUint64() uint64 {
-	if m != nil {
-		return m.CommunityUint64
-	}
-	return 0
-}
-
 type BgpRib_Communities_CommunityKey struct {
 	Index     uint64                        `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
 	Community *BgpRib_Communities_Community `protobuf:"bytes,2,opt,name=community" json:"community,omitempty"`
@@ -4907,13 +4550,6 @@ func (m *BgpRib_Communities_CommunityKey) String() string { return proto.Compact
 func (*BgpRib_Communities_CommunityKey) ProtoMessage()    {}
 func (*BgpRib_Communities_CommunityKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 2, 1}
-}
-
-func (m *BgpRib_Communities_CommunityKey) GetIndex() uint64 {
-	if m != nil {
-		return m.Index
-	}
-	return 0
 }
 
 func (m *BgpRib_Communities_CommunityKey) GetCommunity() *BgpRib_Communities_Community {
@@ -5001,20 +4637,6 @@ func (*BgpRib_ExtCommunities_ExtCommunity_State_ExtCommunityUnion) Descriptor() 
 	return fileDescriptor0, []int{0, 3, 0, 0, 0}
 }
 
-func (m *BgpRib_ExtCommunities_ExtCommunity_State_ExtCommunityUnion) GetExtCommunityBytes() []byte {
-	if m != nil {
-		return m.ExtCommunityBytes
-	}
-	return nil
-}
-
-func (m *BgpRib_ExtCommunities_ExtCommunity_State_ExtCommunityUnion) GetExtCommunityString() string {
-	if m != nil {
-		return m.ExtCommunityString
-	}
-	return ""
-}
-
 type BgpRib_ExtCommunities_ExtCommunityKey struct {
 	Index        uint64                              `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
 	ExtCommunity *BgpRib_ExtCommunities_ExtCommunity `protobuf:"bytes,2,opt,name=ext_community,json=extCommunity" json:"ext_community,omitempty"`
@@ -5025,13 +4647,6 @@ func (m *BgpRib_ExtCommunities_ExtCommunityKey) String() string { return proto.C
 func (*BgpRib_ExtCommunities_ExtCommunityKey) ProtoMessage()    {}
 func (*BgpRib_ExtCommunities_ExtCommunityKey) Descriptor() ([]byte, []int) {
 	return fileDescriptor0, []int{0, 3, 1}
-}
-
-func (m *BgpRib_ExtCommunities_ExtCommunityKey) GetIndex() uint64 {
-	if m != nil {
-		return m.Index
-	}
-	return 0
 }
 
 func (m *BgpRib_ExtCommunities_ExtCommunityKey) GetExtCommunity() *BgpRib_ExtCommunities_ExtCommunity {
@@ -5183,7 +4798,7 @@ func init() {
 
 var fileDescriptor0 = []byte{
 	// 7634 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x9d, 0x79, 0x7c, 0x14, 0x45,
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xdc, 0x9d, 0x79, 0x7c, 0x14, 0x45,
 	0xfe, 0xf7, 0x7f, 0x4d, 0x90, 0x84, 0x0e, 0x88, 0xb6, 0xbb, 0xaf, 0x67, 0x9e, 0xf1, 0x59, 0x57,
 	0x77, 0xd9, 0x15, 0x56, 0x93, 0xac, 0xca, 0x53, 0xeb, 0xb9, 0xbb, 0x1d, 0xc5, 0x35, 0x2b, 0x92,
 	0xd8, 0x01, 0x94, 0xd5, 0x35, 0x3b, 0x49, 0x3a, 0x61, 0xd8, 0x64, 0x66, 0x9c, 0xe9, 0x20, 0xac,
