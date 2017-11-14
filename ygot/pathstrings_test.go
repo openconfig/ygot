@@ -17,8 +17,7 @@ package ygot
 import (
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
-
+	"github.com/golang/protobuf/proto"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -110,154 +109,20 @@ func TestPathToString(t *testing.T) {
 	}
 }
 
-func TestStringtoPath(t *testing.T) {
+func TestStringToPath(t *testing.T) {
 	tests := []struct {
-		name       string
-		inString   string
-		inPathType []PathType
-		wantPath   *gnmipb.Path
-		wantErr    string
+		name                string
+		in                  string
+		wantStringSlicePath *gnmipb.Path
+		wantStructuredPath  *gnmipb.Path
+		wantSliceErr        string
+		wantStructuredErr   string
+		wantCombinedErr     string
 	}{{
-		name:       "path populating structured path only",
-		inString:   "/interfaces/interface[name=eth0]/subinterfaces/subinterface[index=0]/config/name",
-		inPathType: []PathType{StructuredPath},
-		wantPath: &gnmipb.Path{
-			Elem: []*gnmipb.PathElem{{
-				Name: "interfaces",
-			}, {
-				Name: "interface",
-				Key:  map[string]string{"name": "eth0"},
-			}, {
-				Name: "subinterfaces",
-			}, {
-				Name: "subinterface",
-				Key:  map[string]string{"index": "0"},
-			}, {
-				Name: "config",
-			}, {
-				Name: "name",
-			}},
-		},
-	}, {
-		name:       "path populating string slice path only",
-		inString:   "/acl/acl-sets/acl-set[name=foo][type=IPV4]/config/name",
-		inPathType: []PathType{StringSlicePath},
-		wantPath: &gnmipb.Path{
-			Element: []string{"acl", "acl-sets", "acl-set[name=foo][type=IPV4]", "config", "name"},
-		},
-	}, {
-		name:       "both path types",
-		inString:   "/wavelength-router/media-channels/channel[index=42]",
-		inPathType: []PathType{StringSlicePath, StructuredPath},
-		wantPath: &gnmipb.Path{
-			Element: []string{"wavelength-router", "media-channels", "channel[index=42]"},
-			Elem: []*gnmipb.PathElem{{
-				Name: "wavelength-router",
-			}, {
-				Name: "media-channels",
-			}, {
-				Name: "channel",
-				Key:  map[string]string{"index": "42"},
-			}},
-		},
-	}, {
-		name:     "zero path types requested",
-		inString: "/acl/state/counter-capability",
-		wantErr:  "no path types specified",
-	}, {
-		name:       "bad path - element",
-		inString:   "/foo/bar[42]",
-		inPathType: []PathType{StringSlicePath},
-		wantErr:    "error building string slice path: key value bar[42 does not contain a key=value pair",
-	}, {
-		name:       "bad path - structured",
-		inString:   "/foo/bar[42]",
-		inPathType: []PathType{StructuredPath},
-		wantErr:    "error building structured path: received a key with no equals sign in it, key name: , key value: 42",
-	}}
-
-	for _, tt := range tests {
-		got, err := StringToPath(tt.inString, tt.inPathType...)
-		if err != nil && err.Error() != tt.wantErr {
-			t.Errorf("%s: StringToPath(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inString, tt.inPathType, err, tt.wantErr)
-		}
-
-		if err != nil || tt.wantErr != "" {
-			continue
-		}
-
-		if diff := pretty.Compare(got, tt.wantPath); diff != "" {
-			t.Errorf("%s: StringToPath(%v, %v): did not get expected path, diff(-got,+want):\n%s", tt.name, tt.inString, tt.inPathType, diff)
-		}
-	}
-}
-
-func TestStringToStringSlicePath(t *testing.T) {
-	tests := []struct {
-		name    string
-		in      string
-		want    *gnmipb.Path
-		wantErr string
-	}{{
-		name: `simple path`,
-		in:   `/a/b/c/d`,
-		want: &gnmipb.Path{Element: []string{`a`, `b`, `c`, `d`}},
-	}, {
-		name: `slashes in key`,
-		in:   `/interfaces/interface[name=Ethernet1/2/3]/state`,
-		want: &gnmipb.Path{Element: []string{`interfaces`, `interface[name=Ethernet1/2/3]`, `state`}},
-	}, {
-		name: `open square bracket in key`,
-		in:   `/interfaces/interface[name=[foo]/state`,
-		want: &gnmipb.Path{Element: []string{`interfaces`, `interface[name=[foo]`, `state`}},
-	}, {
-		name: `escaped forward slash in key`,
-		in:   `/element/list[key=\/foo]/bar`,
-		want: &gnmipb.Path{Element: []string{`element`, `list[key=/foo]`, `bar`}},
-	}, {
-		name:    `invalid key`,
-		in:      `/element/list[keynoequals]`,
-		wantErr: "key value list[keynoequals does not contain a key=value pair",
-	}, {
-		name: `multiple keys`,
-		in:   `/network-instances/network-instance/tables/table[protocol=BGP][address-family=*]`,
-		want: &gnmipb.Path{Element: []string{`network-instances`, `network-instance`, `tables`, `table[protocol=BGP][address-family=*]`}},
-	}, {
-		name: `single-level wildcard`,
-		in:   `../*/*/*/state`,
-		want: &gnmipb.Path{Element: []string{`..`, `*`, `*`, `*`, `state`}},
-	}, {
-		name: `multi-level wildcard`,
-		in:   `//config`,
-		want: &gnmipb.Path{Element: []string{``, `config`}},
-	}}
-
-	for _, tt := range tests {
-		got, err := StringToStringSlicePath(tt.in)
-		if err != nil && err.Error() != tt.wantErr {
-			t.Errorf("%s: StringToPath(%s): got err: %v, want: %v", tt.name, tt.in, err, tt.wantErr)
-		}
-
-		if tt.wantErr != "" || err != nil {
-			continue
-		}
-
-		if diff := pretty.Compare(tt.want, got); diff != "" {
-			t.Errorf("%s: StringtoPath(%s): diff (-want, +got):\n%v", tt.name, tt.in, diff)
-		}
-	}
-}
-
-func TestStringToStructuredPath(t *testing.T) {
-	tests := []struct {
-		name    string
-		in      string
-		want    *gnmipb.Path
-		wantErr string
-	}{{
-		name: "simple path",
-		in:   `/a/b/c/d`,
-		want: &gnmipb.Path{
+		name:                "simple path",
+		in:                  "/a/b/c/d",
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"a", "b", "c", "d"}},
+		wantStructuredPath: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{
 				{Name: "a"},
 				{Name: "b"},
@@ -266,80 +131,170 @@ func TestStringToStructuredPath(t *testing.T) {
 			},
 		},
 	}, {
-		name: "path with key",
-		in:   `/a[b=c]/d`,
-		want: &gnmipb.Path{
-			Elem: []*gnmipb.PathElem{{
-				Name: "a",
-				Key: map[string]string{
-					"b": "c",
-				},
-			}, {
-				Name: "d",
-			}},
+		name:                "path with simple key",
+		in:                  "/a/b[c=d]/e",
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"a", "b[c=d]", "e"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b", Key: map[string]string{"c": "d"}},
+				{Name: "e"},
+			},
 		},
 	}, {
-		name: "path with multiple keys",
-		in:   `/a[b=c][d=e]/f`,
-		want: &gnmipb.Path{
-			Elem: []*gnmipb.PathElem{{
-				Name: "a",
-				Key: map[string]string{
-					"b": "c",
-					"d": "e",
-				},
-			}, {
-				Name: "f",
-			}},
+		name:                "path with multiple keys",
+		in:                  "/a/b[c=d][e=f]/g",
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"a", "b[c=d][e=f]", "g"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "a"},
+				{Name: "b", Key: map[string]string{
+					"c": "d",
+					"e": "f",
+				}},
+				{Name: "g"},
+			},
 		},
 	}, {
-		name:    "path with a key with no equals",
-		in:      `/a[badkey]/c`,
-		wantErr: "received a key with no equals sign in it, key name: , key value: badkey",
+		name:              "path with a key missing an equals sign",
+		in:                "/a/b[cd]/e",
+		wantSliceErr:      "error parsing path /a/b[cd]/e: received a key of element b with no name",
+		wantStructuredErr: "error parsing path /a/b[cd]/e: received a key of element b with no name",
 	}, {
-		name: "slashes in key",
-		in:   `/interfaces/interface[name=Ethernet1/2/3]`,
-		want: &gnmipb.Path{
-			Elem: []*gnmipb.PathElem{{
-				Name: "interfaces",
-			}, {
-				Name: "interface",
-				Key: map[string]string{
-					"name": "Ethernet1/2/3",
-				},
-			}},
+		name:                "path with slashes in the key",
+		in:                  `/interfaces/interface[name=Ethernet1/2/3]`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", "interface[name=Ethernet1/2/3]"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "interfaces"},
+				{Name: "interface", Key: map[string]string{"name": "Ethernet1/2/3"}},
+			},
 		},
 	}, {
-		name: "escaped equals in key",
-		in:   `/is/i[name=one\=two]`,
-		want: &gnmipb.Path{
-			Elem: []*gnmipb.PathElem{{
-				Name: "is",
-			}, {
-				Name: "i",
-				Key: map[string]string{
-					"name": `one=two`,
-				},
-			}},
+		name:                "path with escaped equals in the key",
+		in:                  `/interfaces/interface[name=Ethernet\=bar]`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=Ethernet=bar]`}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "interfaces"},
+				{Name: "interface", Key: map[string]string{"name": "Ethernet=bar"}},
+			},
 		},
 	}, {
-		name:    "invalid length key name",
-		in:      `/a[=c]`,
-		wantErr: "received a key with no equals sign in it, key name: , key value: c",
+		name:                "open square bracket in the key",
+		in:                  `/interfaces/interface[name=[foo]/state`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", "interface[name=[foo]", "state"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "interfaces"},
+				{Name: "interface", Key: map[string]string{"name": "[foo"}},
+				{Name: "state"},
+			},
+		},
+	}, {
+		name:                "escaped forward slash in the key",
+		in:                  `/interfaces/interface[name=\/foo]/state`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=\/foo]`, "state"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "interfaces"},
+				{Name: "interface", Key: map[string]string{"name": "/foo"}},
+				{Name: "state"},
+			},
+    },
+		}, {
+			name:                "escaped forward slash in an element name",
+			in:                  `/interfaces/inter\/face[name=foo]`,
+			wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", "inter/face[name=foo]"}},
+			wantStructuredPath: &gnmipb.Path{
+				Elem: []*gnmipb.Path{
+					{Name: "interfaces"},
+					{Name: "inter/face", Name: map[string]string{"name": "foo"}},
+				},
+			},
+		}, {
+			name:                `single-level wildcard`,
+			in:                  `/interfaces/interface/*/state`,
+			wantStringSlicePath: []string{"interfaces", "interface", "*", "state"},
+			wantStructuredPath: &gnmipb.Path{
+				Elem: []*gnmipb.Path{
+					{Name: "interfaces"},
+					{Name: "inteface"},
+					{Name: "*"},
+					{Name: "state"},
+				},
+			},
+		},
+	}, {
+		name:                "multi-level wildcard",
+		in:                  `/interfaces/.../state`,
+		wantStringSlicePath: []string{"interfaces", "...", "state"},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.Path{
+				{Name: "interfaces"},
+				{Name: "..."},
+				{Name: "state"},
+			},
+		},
+	}, {
+		name: "path with escaped backslash in an element",
+		in:   `/foo/bar\\\/baz/hat`,
+	}, {
+		name: "path with escaped backslash in a key",
+		in:   `/foo/bar[baz\\foo=hat]`,
+	}, {
+		name: "additional equals within the key, unescaped",
+		in:   `/foo/bar[baz==bat]`,
+	}, {
+		name: "error - unescaped ] within a key value",
+		in:   `/foo/bar[baz=]bat]`,
+	}, {
+		name: "escaped ] within key value",
+		in:   `/foo/bar[baz=\]bat]`,
+	}, {
+		name: "trailing garbage outside of kv name",
+		in:   `/foo/bar[baz=bat]hat`,
+	}, {
+		name: "relative path",
+		in:   `../foo/bar`,
+	}, {
+		name: "key with null value",
+		in:   `/foo/bar[baz=]/hat`,
 	}}
 
 	for _, tt := range tests {
-		got, err := StringToStructuredPath(tt.in)
-		if (err != nil) && err.Error() != tt.wantErr {
-			t.Errorf("%s: StringToPathElemPath(%v): did not get expected error status, got: %v, wantErr: %v", tt.name, tt.in, err, tt.wantErr)
+		gotSlicePath, sliceErr := StringToStringSlicePath(tt.in)
+		if sliceErr != nil && sliceErr.Error() != tt.wantSliceErr {
+			t.Errorf("%s: StringToStringSlicePath(%v): did not get expected error, got: %v, want: %v", tt.name, tt.in, sliceErr, tt.wantSliceErr)
 		}
 
-		if tt.wantErr != "" || err != nil {
-			continue
+		if sliceErr == nil && !proto.Equal(gotSlicePath, tt.wantStringSlicePath) {
+			t.Errorf("%s: StringToStringSlicePath(%v): did not get expected string slice path, got: %v, want: %v", tt.name, tt.in, gotSlicePath, tt.wantStringSlicePath)
 		}
 
-		if diff := pretty.Compare(got, tt.want); diff != "" {
-			t.Errorf("%s: StringToPathElemPath(%v): did not get expected return value, diff(-got,+want):\n%v", tt.name, tt.in, diff)
+		gotStructuredPath, strErr := StringToStructuredPath(tt.in)
+		if strErr != nil && strErr.Error() != tt.wantStructuredErr {
+			t.Errorf("%s: StringToStructuredPath(%v): did not get expected error, got: %v, want: %v", tt.name, tt.in, strErr, tt.wantStructuredErr)
 		}
+
+		if strErr == nil && !proto.Equal(gotStructuredPath, tt.wantStructuredPath) {
+			t.Errorf("%s: StringToStructuredPath(%v): did not get expected structured path, got: %v, want: %v", tt.name, tt.in, proto.MarshalTextString(gotStructuredPath), proto.MarshalTextString(tt.wantStructuredPath))
+		}
+
+		if strErr != nil || sliceErr != nil {
+			continue // If an error is expected for either of the cases, don't test the combined case.
+		}
+
+		wantCombined := proto.Clone(tt.wantStructuredPath).(*gnmipb.Path)
+		wantCombined.Element = append(wantCombined.Element, tt.wantStringSlicePath.Element...)
+		gotCombinedPath, combinedErr := StringToPath(tt.in, StringSlicePath, StructuredPath)
+		if combinedErr != nil && combinedErr.Error() != tt.wantCombinedErr {
+			t.Errorf("%s: StringToPath(%v, {StringSlicePath, StructuredPath}): did not get expected combined error, got: %v, want: %v", tt.name, tt.in, combinedErr, tt.wantCombinedErr)
+		}
+
+		if combinedErr == nil && !proto.Equal(gotCombinedPath, wantCombined) {
+			t.Errorf("%s: StringToPath(%v, {StringSlicePath, StructuredPath}): did not get expected combined path message, got: %v, want: %v", tt.name, tt.in, proto.MarshalTextString(gotCombinedPath), proto.MarshalTextString(wantCombined))
+		}
+
 	}
 }

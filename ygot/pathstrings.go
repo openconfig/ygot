@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
-	"strings"
 
 	"github.com/openconfig/ygot/util"
 
@@ -123,64 +122,89 @@ func StringToPath(path string, pathTypes ...PathType) (*gnmipb.Path, error) {
 // gnmi.Path. For example, if the Path "/a/b[c=d]/e" is input, it is converted
 // to a gnmi.Path{Element: []string{"a", "b[c=d]", "e"}} which is returned.
 func StringToStringSlicePath(path string) (*gnmipb.Path, error) {
-	parsedPath := &gnmipb.Path{}
-
-	var inKey, inEscape bool
-	var buf bytes.Buffer
-	for i, ch := range path {
-		switch ch {
-		case '\\':
-			if !inEscape {
-				inEscape = true
-				continue
-			}
-		case '[':
-			if !inKey && !inEscape {
-				inKey = true
-			}
-		case ']':
-			if !inEscape {
-				inKey = false
-				if !strings.Contains(buf.String(), "=") {
-					return nil, fmt.Errorf("key value %s does not contain a key=value pair", buf.String())
-				}
-			}
-		case '/':
-			if i == 0 {
-				// Do not take the first path element if the path starts with a "/".
-				continue
-			}
-
-			if !inEscape && !inKey {
-				parsedPath.Element = append(parsedPath.Element, buf.String())
-				buf.Reset()
-				continue
-			}
+	parts := pathStringToElements(path)
+	for _, p := range parts {
+		// Run through extractKV to ensure that the path is valid.
+		if _, _, err := extractKV(p); err != nil {
+			return nil, fmt.Errorf("error parsing path %s: %v", path, err)
 		}
-		if inEscape {
-			// An escape lasts a single character, so leave the escape if we parsed
-			// a character.
-			inEscape = false
-		}
-		buf.WriteRune(ch)
-	}
-	if buf.Len() != 0 {
-		parsedPath.Element = append(parsedPath.Element, buf.String())
 	}
 
-	return parsedPath, nil
+	return &gnmipb.Path{
+		Element: parts,
+	}, nil
 }
 
 // StringToStructuredPath takes a string representing a path, and converts it to
 // a gnmi.Path, using the PathElem element message that is defined in gNMI 0.4.0.
 func StringToStructuredPath(path string) (*gnmipb.Path, error) {
-	parsedPath := &gnmipb.Path{}
+	parts := pathStringToElements(path)
 
+	gpath := &gnmipb.Path{}
+	for _, p := range parts {
+		name, kv, err := extractKV(p)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing path %s: %v", path, err)
+		}
+		gpath.Elem = append(gpath.Elem, &gnmipb.PathElem{
+			Name: name,
+			Key:  kv,
+		})
+	}
+	return gpath, nil
+}
+
+func pathStringToElements(s string) []string {
+	var parts []string
 	var inKey, inEscape bool
 	var buf bytes.Buffer
+	for _, ch := range s {
+		switch ch {
+		case '\\':
+			if !inEscape {
+				inEscape = true
+				continue
+			}
+		case '/':
+			if !inKey && !inEscape {
+				parts = append(parts, buf.String())
+				buf.Reset()
+				continue
+			}
+		case '[':
+			if !inEscape {
+				inKey = true
+			}
+
+		case ']':
+			if !inEscape {
+				inKey = false
+			}
+
+		}
+		if inEscape {
+			inEscape = false
+		}
+		buf.WriteRune(ch)
+	}
+	if buf.Len() != 0 {
+		parts = append(parts, buf.String())
+	}
+
+	if len(parts) > 0 && parts[0] == "" {
+		parts = parts[1:]
+	}
+
+	return parts
+}
+
+func extractKV(in string) (string, map[string]string, error) {
+	var inEscape, inKey, inValue bool
+	var name, currentKey string
+	var buf bytes.Buffer
 	keys := map[string]string{}
-	var currentKey, currentName string
-	for i, ch := range path {
+
+	for _, ch := range in {
 		switch ch {
 		case '\\':
 			if !inEscape {
@@ -188,51 +212,48 @@ func StringToStructuredPath(path string) (*gnmipb.Path, error) {
 				continue
 			}
 		case '[':
-			// If we have a key, then record the current element's name for
-			// inclusion in the PathElem message.
 			if !inKey && !inEscape {
+				// The first [ means that the current buffer contents
+				// are the name of the element - hence we store it.
 				if len(keys) == 0 {
-					// The first [ means that the current
-					// buffer contents are the name of the
-					// element. Store this.
-					currentName = buf.String()
+					if buf.Len() == 0 {
+						return "", nil, errors.New("received a value when the key name was null")
+					}
+					name = buf.String()
+					buf.Reset()
 				}
-				buf.Reset()
 				inKey = true
 				continue
 			}
 		case '=':
-			// When we reach an = inside a key, which is note escaped then
-			// we record the key's name.
-			if inKey && !inEscape {
+			// When we reach a = inside a key, which is not escaped
+			// then the current buffer contents is the key's name.
+			if inKey && !inEscape && !inValue {
 				currentKey = buf.String()
 				buf.Reset()
+				inValue = true
 				continue
 			}
 		case ']':
 			if !inEscape {
-				// If this ] is not escaped, then we have reached the end of a
-				// key, and record its value.
-				if currentKey == "" || buf.Len() == 0 {
-					return nil, fmt.Errorf("received a key with no equals sign in it, key name: %s, key value: %s", currentKey, buf.String())
+				// If this ] is not escaped, then we have reached the end of a key
+				// so we record its value.
+				if currentKey == "" {
+					return "", nil, fmt.Errorf("received a key of element %s with no name", name)
+				}
+
+				if buf.Len() == 0 {
+					return "", nil, fmt.Errorf("received a key %s of element %s with a null value", currentKey, name)
 				}
 
 				inKey = false
+				if _, ok := keys[currentKey]; ok {
+					return "", nil, fmt.Errorf("duplicate key %s for element %s", currentKey, name)
+				}
 				keys[currentKey] = buf.String()
 				buf.Reset()
 				currentKey = ""
-				continue
-			}
-		case '/':
-			if i == 0 {
-				continue
-			}
-
-			if !inEscape && !inKey {
-				parsedPath.Elem = append(parsedPath.Elem, toPathElem(&buf, currentName, keys))
-				keys = map[string]string{}
-				currentKey, currentName = "", ""
-				buf.Reset()
+				inValue = false
 				continue
 			}
 		}
@@ -243,23 +264,15 @@ func StringToStructuredPath(path string) (*gnmipb.Path, error) {
 		buf.WriteRune(ch)
 	}
 
-	// Deal with the last element
-	parsedPath.Elem = append(parsedPath.Elem, toPathElem(&buf, currentName, keys))
-
-	return parsedPath, nil
-}
-
-// toPathElem takes an input buffer, current name, and key map and returns them as a gNMI
-// PathElem message.
-func toPathElem(buf *bytes.Buffer, currentName string, keys map[string]string) *gnmipb.PathElem {
 	if len(keys) == 0 {
-		return &gnmipb.PathElem{
-			Name: buf.String(),
-		}
+		name = buf.String()
 	}
 
-	return &gnmipb.PathElem{
-		Name: currentName,
-		Key:  keys,
+	if len(keys) != 0 && buf.Len() != 0 {
+		// In this case, we have trailing garbage following the key.
+		return "", nil, fmt.Errorf("trailing garbage following keys in element %s, got: %v", name, buf.String())
 	}
+
+	return name, keys, nil
+
 }
