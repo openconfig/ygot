@@ -20,10 +20,23 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/openconfig/ygot/util"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
+)
+
+// PathType is used to indicate a gNMI path type.
+type PathType int64
+
+const (
+	// StructuredPath represents a Path using the structured 'PathElem' message in
+	// the 'elem' field of the gNMI Path message.
+	StructuredPath PathType = iota
+	// StringSlicePath represents a Path using the 'Element' repeated string field
+	// of the gNMI path message.
+	StringSlicePath
 )
 
 // PathToString takes a gNMI Path and provides its string representation. For example,
@@ -36,7 +49,6 @@ import (
 func PathToString(path *gnmipb.Path) (string, error) {
 	p := []string{"/"}
 	if path.Element != nil {
-
 		for i, e := range path.Element {
 			if e == "" {
 				return "", fmt.Errorf("nil element at index %d in %v", i, path.Element)
@@ -70,18 +82,6 @@ func PathToString(path *gnmipb.Path) (string, error) {
 	}
 	return filepath.Join(p...), nil
 }
-
-// PathType is used to indicate a gNMI path type.
-type PathType int64
-
-const (
-	// StructuredPath represents a Path using the structured 'PathElem' message in
-	// the 'elem' field of the gNMI Path message.
-	StructuredPath PathType = iota
-	// StringSlicePath represents a Path using the 'Element' repeated string field
-	// of the gNMI path message.
-	StringSlicePath
-)
 
 // StringToPath takes an input string representing a path in gNMI, and converts
 // it to a gNMI Path message, populated with the specified path encodings.
@@ -120,7 +120,10 @@ func StringToPath(path string, pathTypes ...PathType) (*gnmipb.Path, error) {
 
 // StringToStringSlicePath takes a string representing a path, and converts it into a
 // gnmi.Path. For example, if the Path "/a/b[c=d]/e" is input, it is converted
-// to a gnmi.Path{Element: []string{"a", "b[c=d]", "e"}} which is returned.
+// to a gnmi.Path{Element: []string{"a", "b[c=d]", "e"}} which is returned. Where there
+// are complex predicates that are used within an element, they are not parsed and the
+// contents is left unchanged. This implements the legacy string slice path that are
+// used in gNMI pre-0.4.0. The specification for these paths is at https://goo.gl/uD6g6z.
 func StringToStringSlicePath(path string) (*gnmipb.Path, error) {
 	parts := pathStringToElements(path)
 	for _, p := range parts {
@@ -207,6 +210,8 @@ func extractKV(in string) (string, map[string]string, error) {
 
 	for _, ch := range in {
 		switch {
+		case ch == '[' && !inEscape && !inValue && inKey:
+			return "", nil, fmt.Errorf("received an unescaped [ in key of element %s", name)
 		case ch == '[' && !inEscape && !inKey:
 			inKey = true
 			if len(keys) == 0 {
@@ -217,6 +222,8 @@ func extractKV(in string) (string, map[string]string, error) {
 				buf.Reset()
 			}
 			continue
+		case ch == ']' && !inEscape && !inKey:
+			return "", nil, fmt.Errorf("received an unescaped ] when not in a key for element %s", buf.String())
 		case ch == ']' && !inEscape:
 			inKey = false
 			inValue = false
@@ -249,6 +256,10 @@ func extractKV(in string) (string, map[string]string, error) {
 		return "", nil, fmt.Errorf("trailing garbage following keys in element %s, got: %v", name, buf.String())
 	}
 
+	if strings.Contains(name, " ") {
+		return "", nil, fmt.Errorf("invalid space character included in key name %s", name)
+	}
+
 	return name, keys, nil
 }
 
@@ -256,6 +267,8 @@ func extractKV(in string) (string, map[string]string, error) {
 // to be for an element named e.
 func addKey(keys map[string]string, e, k, v string) error {
 	switch {
+	case strings.Contains(k, " "):
+		k = strings.Replace(k, " ", "", -1)
 	case e == "":
 		return fmt.Errorf("received null element value with key and value %s=%s", k, v)
 	case k == "":

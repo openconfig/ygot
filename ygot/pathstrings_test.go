@@ -312,6 +312,63 @@ func TestStringToPath(t *testing.T) {
 		in:                `/foo/bar[baz=]/hat`,
 		wantSliceErr:      "error parsing path /foo/bar[baz=]/hat: received null value for key baz of element bar",
 		wantStructuredErr: "error parsing path /foo/bar[baz=]/hat: received null value for key baz of element bar",
+	}, {
+		name:              "key with unescaped [ within key",
+		in:                `/foo/bar[[bar=baz]`,
+		wantSliceErr:      "error parsing path /foo/bar[[bar=baz]: received an unescaped [ in key of element bar",
+		wantStructuredErr: "error parsing path /foo/bar[[bar=baz]: received an unescaped [ in key of element bar",
+	}, {
+		name:              "element with unescaped ]",
+		in:                `/foo/bar]`,
+		wantSliceErr:      "error parsing path /foo/bar]: received an unescaped ] when not in a key for element bar",
+		wantStructuredErr: "error parsing path /foo/bar]: received an unescaped ] when not in a key for element bar",
+	}, {
+		name:                "empty string",
+		in:                  "",
+		wantStringSlicePath: &gnmipb.Path{Element: []string{}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{},
+		},
+	}, {
+		name:                "root element",
+		in:                  "/",
+		wantStringSlicePath: &gnmipb.Path{Element: []string{}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{},
+		},
+	}, {
+		name:                "trailing /",
+		in:                  "/foo/bar/",
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", "bar"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "foo"},
+				{Name: "bar"},
+			},
+		},
+	}, {
+		name:                "whitespace in key - stripped",
+		in:                  "foo[bar =baz]",
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo[bar =baz]"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "foo", Key: map[string]string{"bar": "baz"}},
+			},
+		},
+	}, {
+		name:                "whitespace in value",
+		in:                  "foo[bar= baz]",
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo[bar= baz]"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "foo", Key: map[string]string{"bar": " baz"}},
+			},
+		},
+	}, {
+		name:              "whitespace in element name",
+		in:                "foo bar/baz",
+		wantSliceErr:      "error parsing path foo bar/baz: invalid space character included in key name foo bar",
+		wantStructuredErr: "error parsing path foo bar/baz: invalid space character included in key name foo bar",
 	}}
 
 	for _, tt := range tests {
