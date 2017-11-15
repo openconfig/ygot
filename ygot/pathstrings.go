@@ -154,39 +154,36 @@ func StringToStructuredPath(path string) (*gnmipb.Path, error) {
 	return gpath, nil
 }
 
+// pathStringToElements splits the string s, which represents a gNMI string
+// path into its constituent elements. It does not parse keys, which are left
+// unchanged within the path - but removes escape characters from element
+// names. The path returned omits any leading empty elements when splitting
+// on the / character.
 func pathStringToElements(s string) []string {
 	var parts []string
-	var inKey, inEscape bool
 	var buf bytes.Buffer
+
+	var inKey, inEscape bool
+
 	for _, ch := range s {
-		switch ch {
-		case '\\':
-			if !inEscape {
-				inEscape = true
-				continue
-			}
-		case '/':
-			if !inKey && !inEscape {
-				parts = append(parts, buf.String())
-				buf.Reset()
-				continue
-			}
-		case '[':
-			if !inEscape {
-				inKey = true
-			}
-
-		case ']':
-			if !inEscape {
-				inKey = false
-			}
-
+		switch {
+		case ch == '[' && !inEscape:
+			inKey = true
+		case ch == ']' && !inEscape:
+			inKey = false
+		case ch == '\\' && !inEscape && !inKey:
+			inEscape = true
+			continue
+		case ch == '/' && !inEscape && !inKey:
+			parts = append(parts, buf.String())
+			buf.Reset()
+			continue
 		}
-		if inEscape {
-			inEscape = false
-		}
+
 		buf.WriteRune(ch)
+		inEscape = false
 	}
+
 	if buf.Len() != 0 {
 		parts = append(parts, buf.String())
 	}
@@ -198,6 +195,10 @@ func pathStringToElements(s string) []string {
 	return parts
 }
 
+// extractKV extracts key value predicates from the input string in. It returns
+// the name of the element, a map keyed by key name with values of the predicates
+// specified. It removes escape characters from keys and values where they are
+// specified.
 func extractKV(in string) (string, map[string]string, error) {
 	var inEscape, inKey, inValue bool
 	var name, currentKey string
@@ -205,63 +206,38 @@ func extractKV(in string) (string, map[string]string, error) {
 	keys := map[string]string{}
 
 	for _, ch := range in {
-		switch ch {
-		case '\\':
-			if !inEscape {
-				inEscape = true
-				continue
-			}
-		case '[':
-			if !inKey && !inEscape {
-				// The first [ means that the current buffer contents
-				// are the name of the element - hence we store it.
-				if len(keys) == 0 {
-					if buf.Len() == 0 {
-						return "", nil, errors.New("received a value when the key name was null")
-					}
-					name = buf.String()
-					buf.Reset()
-				}
-				inKey = true
-				continue
-			}
-		case '=':
-			// When we reach a = inside a key, which is not escaped
-			// then the current buffer contents is the key's name.
-			if inKey && !inEscape && !inValue {
-				currentKey = buf.String()
-				buf.Reset()
-				inValue = true
-				continue
-			}
-		case ']':
-			if !inEscape {
-				// If this ] is not escaped, then we have reached the end of a key
-				// so we record its value.
-				if currentKey == "" {
-					return "", nil, fmt.Errorf("received a key of element %s with no name", name)
-				}
-
+		switch {
+		case ch == '[' && !inEscape && !inKey:
+			inKey = true
+			if len(keys) == 0 {
 				if buf.Len() == 0 {
-					return "", nil, fmt.Errorf("received a key %s of element %s with a null value", currentKey, name)
+					return "", nil, errors.New("received a value when the element name was null")
 				}
-
-				inKey = false
-				if _, ok := keys[currentKey]; ok {
-					return "", nil, fmt.Errorf("duplicate key %s for element %s", currentKey, name)
-				}
-				keys[currentKey] = buf.String()
+				name = buf.String()
 				buf.Reset()
-				currentKey = ""
-				inValue = false
-				continue
 			}
+			continue
+		case ch == ']' && !inEscape:
+			inKey = false
+			inValue = false
+			if err := addKey(keys, name, currentKey, buf.String()); err != nil {
+				return "", nil, err
+			}
+			buf.Reset()
+			currentKey = ""
+			continue
+		case ch == '\\' && !inEscape:
+			inEscape = true
+			continue
+		case ch == '=' && inKey && !inEscape && !inValue:
+			currentKey = buf.String()
+			buf.Reset()
+			inValue = true
+			continue
 		}
 
-		if inEscape {
-			inEscape = false
-		}
 		buf.WriteRune(ch)
+		inEscape = false
 	}
 
 	if len(keys) == 0 {
@@ -274,5 +250,19 @@ func extractKV(in string) (string, map[string]string, error) {
 	}
 
 	return name, keys, nil
+}
 
+// addKey adds key k with value v to the key's map. The key, value pair is specified
+// to be for an element named e.
+func addKey(keys map[string]string, e, k, v string) error {
+	switch {
+	case e == "":
+		return fmt.Errorf("received null element value with key and value %s=%s", k, v)
+	case k == "":
+		return fmt.Errorf("received null key name for element %s", e)
+	case v == "":
+		return fmt.Errorf("received null value for key %s of element %s", k, e)
+	}
+	keys[k] = v
+	return nil
 }

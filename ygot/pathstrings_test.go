@@ -158,8 +158,8 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:              "path with a key missing an equals sign",
 		in:                "/a/b[cd]/e",
-		wantSliceErr:      "error parsing path /a/b[cd]/e: received a key of element b with no name",
-		wantStructuredErr: "error parsing path /a/b[cd]/e: received a key of element b with no name",
+		wantSliceErr:      "error parsing path /a/b[cd]/e: received null key name for element b",
+		wantStructuredErr: "error parsing path /a/b[cd]/e: received null key name for element b",
 	}, {
 		name:                "path with slashes in the key",
 		in:                  `/interfaces/interface[name=Ethernet1/2/3]`,
@@ -173,11 +173,11 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:                "path with escaped equals in the key",
 		in:                  `/interfaces/interface[name=Ethernet\=bar]`,
-		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=Ethernet=bar]`}},
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=Ethernet\=bar]`}},
 		wantStructuredPath: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{
 				{Name: "interfaces"},
-				{Name: "interface", Key: map[string]string{"name": "Ethernet=bar"}},
+				{Name: "interface", Key: map[string]string{"name": `Ethernet=bar`}},
 			},
 		},
 	}, {
@@ -192,74 +192,126 @@ func TestStringToPath(t *testing.T) {
 			},
 		},
 	}, {
-		name:                "escaped forward slash in the key",
+		name:                `name [name=[\\\]] example from specification`,
+		in:                  `/interfaces/interface[name=[\\\]]`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=[\\\]]`}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "interfaces"},
+				{Name: "interface", Key: map[string]string{"name": `[\]`}},
+			},
+		},
+	}, {
+		name:                "forward slash in key which does not need to be escaped ",
 		in:                  `/interfaces/interface[name=\/foo]/state`,
 		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=\/foo]`, "state"}},
 		wantStructuredPath: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{
 				{Name: "interfaces"},
-				{Name: "interface", Key: map[string]string{"name": "/foo"}},
+				{Name: "interface", Key: map[string]string{"name": `/foo`}},
 				{Name: "state"},
 			},
-    },
-		}, {
-			name:                "escaped forward slash in an element name",
-			in:                  `/interfaces/inter\/face[name=foo]`,
-			wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", "inter/face[name=foo]"}},
-			wantStructuredPath: &gnmipb.Path{
-				Elem: []*gnmipb.Path{
-					{Name: "interfaces"},
-					{Name: "inter/face", Name: map[string]string{"name": "foo"}},
-				},
+		},
+	}, {
+		name:                "escaped forward slash in an element name",
+		in:                  `/interfaces/inter\/face[name=foo]`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", "inter/face[name=foo]"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "interfaces"},
+				{Name: "inter/face", Key: map[string]string{"name": "foo"}},
 			},
-		}, {
-			name:                `single-level wildcard`,
-			in:                  `/interfaces/interface/*/state`,
-			wantStringSlicePath: []string{"interfaces", "interface", "*", "state"},
-			wantStructuredPath: &gnmipb.Path{
-				Elem: []*gnmipb.Path{
-					{Name: "interfaces"},
-					{Name: "inteface"},
-					{Name: "*"},
-					{Name: "state"},
-				},
+		},
+	}, {
+		name:                `single-level wildcard`,
+		in:                  `/interfaces/interface/*/state`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", "interface", "*", "state"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "interfaces"},
+				{Name: "interface"},
+				{Name: "*"},
+				{Name: "state"},
 			},
 		},
 	}, {
 		name:                "multi-level wildcard",
 		in:                  `/interfaces/.../state`,
-		wantStringSlicePath: []string{"interfaces", "...", "state"},
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", "...", "state"}},
 		wantStructuredPath: &gnmipb.Path{
-			Elem: []*gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
 				{Name: "interfaces"},
 				{Name: "..."},
 				{Name: "state"},
 			},
 		},
 	}, {
-		name: "path with escaped backslash in an element",
-		in:   `/foo/bar\\\/baz/hat`,
+		name:                "path with escaped backslash in an element",
+		in:                  `/foo/bar\\\/baz/hat`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", `bar\/baz`, "hat"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "foo"},
+				{Name: `bar/baz`},
+				{Name: "hat"},
+			},
+		},
 	}, {
-		name: "path with escaped backslash in a key",
-		in:   `/foo/bar[baz\\foo=hat]`,
+		name:                "path with escaped backslash in a key",
+		in:                  `/foo/bar[baz\\foo=hat]`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", `bar[baz\\foo=hat]`}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "foo"},
+				{Name: "bar", Key: map[string]string{`baz\foo`: "hat"}},
+			},
+		},
 	}, {
-		name: "additional equals within the key, unescaped",
-		in:   `/foo/bar[baz==bat]`,
+		name:                "additional equals within the key, unescaped",
+		in:                  `/foo/bar[baz==bat]`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", "bar[baz==bat]"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "foo"},
+				{Name: "bar", Key: map[string]string{"baz": "=bat"}},
+			},
+		},
 	}, {
-		name: "error - unescaped ] within a key value",
-		in:   `/foo/bar[baz=]bat]`,
+		name:              "error - unescaped ] within a key value",
+		in:                `/foo/bar[baz=]bat]`,
+		wantSliceErr:      "error parsing path /foo/bar[baz=]bat]: received null value for key baz of element bar",
+		wantStructuredErr: "error parsing path /foo/bar[baz=]bat]: received null value for key baz of element bar",
 	}, {
-		name: "escaped ] within key value",
-		in:   `/foo/bar[baz=\]bat]`,
+		name:                "escaped ] within key value",
+		in:                  `/foo/bar[baz=\]bat]`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", `bar[baz=\]bat]`}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "foo"},
+				{Name: "bar", Key: map[string]string{"baz": "]bat"}},
+			},
+		},
 	}, {
-		name: "trailing garbage outside of kv name",
-		in:   `/foo/bar[baz=bat]hat`,
+		name:              "trailing garbage outside of kv name",
+		in:                `/foo/bar[baz=bat]hat`,
+		wantSliceErr:      "error parsing path /foo/bar[baz=bat]hat: trailing garbage following keys in element bar, got: hat",
+		wantStructuredErr: "error parsing path /foo/bar[baz=bat]hat: trailing garbage following keys in element bar, got: hat",
 	}, {
-		name: "relative path",
-		in:   `../foo/bar`,
+		name:                "relative path",
+		in:                  `../foo/bar`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"..", "foo", "bar"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: ".."},
+				{Name: "foo"},
+				{Name: "bar"},
+			},
+		},
 	}, {
-		name: "key with null value",
-		in:   `/foo/bar[baz=]/hat`,
+		name:              "key with null value",
+		in:                `/foo/bar[baz=]/hat`,
+		wantSliceErr:      "error parsing path /foo/bar[baz=]/hat: received null value for key baz of element bar",
+		wantStructuredErr: "error parsing path /foo/bar[baz=]/hat: received null value for key baz of element bar",
 	}}
 
 	for _, tt := range tests {
