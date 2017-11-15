@@ -18,7 +18,7 @@ message Device {
 
 // PolicyKey represents the /proto-union-list-key/routing-policy/policies/policy YANG schema element.
 message PolicyKey {
-  string policy_name = 1 [(yext.schemapath) = "/routing-policy/policies/policy/config/policy-name"];
+  string policy_name = 1 [(yext.schemapath) = "/routing-policy/policies/policy/config/policy-name|/routing-policy/policies/policy/policy-name"];
   routing_policy.Policy policy = 2;
 }
 

@@ -20,6 +20,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,6 +45,8 @@ var (
 	fakeRootName        = flag.String("fakeroot_name", "Device", "The name of the fake root entity.")
 	annotateSchemaPaths = flag.Bool("add_schemapaths", true, "If set to true, the schema path of each YANG entity is added as a protobuf field option")
 	annotateEnumNames   = flag.Bool("add_enumnames", true, "If set to true, each value within output enums will be annotated with the label in the original YANG schema.")
+	packageHierarchy    = flag.Bool("package_hierarchy", false, "If set to true, an individual protobuf package is output per level of the YANG schema tree.")
+	callerName          = flag.String("caller_name", "proto_generator", "The name of the generator binary that should be recorded in output files.")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
@@ -93,6 +96,7 @@ func main() {
 		PackageName:      *packageName,
 		GenerateFakeRoot: *generateFakeRoot,
 		FakeRootName:     *fakeRootName,
+		Caller:           *callerName,
 		YANGParseOptions: yang.Options{
 			IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
 		},
@@ -102,6 +106,7 @@ func main() {
 			YextPath:            *yextPath,
 			AnnotateSchemaPaths: *annotateSchemaPaths,
 			AnnotateEnumNames:   *annotateEnumNames,
+			NestedMessages:      !*packageHierarchy,
 		},
 	})
 
@@ -124,7 +129,7 @@ func main() {
 
 		f.WriteString(p.Header)
 		for _, m := range p.Messages {
-			f.WriteString(m)
+			f.WriteString(fmt.Sprintf("%s\n", m))
 		}
 		for _, e := range p.Enums {
 			f.WriteString(e)
