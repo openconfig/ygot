@@ -257,7 +257,7 @@ func extractKV(in string) (string, map[string]string, error) {
 	}
 
 	if strings.Contains(name, " ") {
-		return "", nil, fmt.Errorf("invalid space character included in key name %s", name)
+		return "", nil, fmt.Errorf("invalid space character included in element name '%s'", name)
 	}
 
 	return name, keys, nil
@@ -268,7 +268,7 @@ func extractKV(in string) (string, map[string]string, error) {
 func addKey(keys map[string]string, e, k, v string) error {
 	switch {
 	case strings.Contains(k, " "):
-		k = strings.Replace(k, " ", "", -1)
+		return fmt.Errorf("received an invalid space in element %s key name '%s'", e, k)
 	case e == "":
 		return fmt.Errorf("received null element value with key and value %s=%s", k, v)
 	case k == "":

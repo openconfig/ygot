@@ -347,14 +347,10 @@ func TestStringToPath(t *testing.T) {
 			},
 		},
 	}, {
-		name:                "whitespace in key - stripped",
-		in:                  "foo[bar =baz]",
-		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo[bar =baz]"}},
-		wantStructuredPath: &gnmipb.Path{
-			Elem: []*gnmipb.PathElem{
-				{Name: "foo", Key: map[string]string{"bar": "baz"}},
-			},
-		},
+		name:              "whitespace in key",
+		in:                "foo[bar =baz]",
+		wantSliceErr:      "error parsing path foo[bar =baz]: received an invalid space in element foo key name 'bar '",
+		wantStructuredErr: "error parsing path foo[bar =baz]: received an invalid space in element foo key name 'bar '",
 	}, {
 		name:                "whitespace in value",
 		in:                  "foo[bar= baz]",
@@ -367,8 +363,8 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:              "whitespace in element name",
 		in:                "foo bar/baz",
-		wantSliceErr:      "error parsing path foo bar/baz: invalid space character included in key name foo bar",
-		wantStructuredErr: "error parsing path foo bar/baz: invalid space character included in key name foo bar",
+		wantSliceErr:      "error parsing path foo bar/baz: invalid space character included in element name 'foo bar'",
+		wantStructuredErr: "error parsing path foo bar/baz: invalid space character included in element name 'foo bar'",
 	}}
 
 	for _, tt := range tests {
