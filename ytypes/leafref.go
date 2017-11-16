@@ -171,6 +171,7 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path) ([]interface{}, error) {
 // against each value in the leaf-list.
 func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 	// Handle source or destination being empty.
+	pathStr := util.StripModulePrefixesStr(ni.Schema.Type.Path)
 	if util.IsNilOrInvalidValue(ni.FieldValue) || util.IsValueNilOrDefault(ni.FieldValue.Interface()) {
 		if len(matchNodes) == 0 {
 			util.DbgPrint("OK: source value is nil, dest is empty or list")
@@ -181,15 +182,13 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 			util.DbgPrint("OK: both values are nil for leafref")
 			return true, nil
 		}
-		util.DbgPrint("nil value with field name %s at schema %s points to non-nil value %s", ni.StructField.Name, ni.Schema.Path(), util.ValueStr(other))
 		return true, nil
 	}
 	// ni is known not to be empty at this point.
 	nii := ni.FieldValue.Interface()
 	if len(matchNodes) == 0 {
-		e := fmt.Errorf("pointed-to value from field %s value %s schema %s is empty set", ni.StructField.Name, util.ValueStr(nii), ni.Schema.Path())
-		util.DbgPrint("ERR: %s", e)
-		return false, util.NewErrs(e)
+		return false, util.NewErrs(util.DbgErr(fmt.Errorf("pointed-to value with path %s from field %s value %s schema %s is empty set",
+			pathStr, ni.StructField.Name, util.ValueStr(nii), ni.Schema.Path())))
 	}
 
 	// Check if any of the matching data nodes is equal to the referring
@@ -261,7 +260,7 @@ func extractKeyValue(p string) (prefix string, k, v string, err error) {
 	k = strings.TrimSpace(kv[0])
 	v = strings.TrimSpace(kv[1])
 
-	return util.StripModulePrefix(p1[0]), k, v, nil
+	return util.StripModulePrefix(p1[0]), util.StripModulePrefix(k), v, nil
 }
 
 // isKeyValue reports whether p contains a valid key-value leafref path element.
@@ -273,7 +272,7 @@ func isKeyValue(p string) (bool, error) {
 
 	switch {
 	case l1 == 0 || l2 == 0:
-		return false, fmt.Errorf("empty path element (%s)")
+		return false, fmt.Errorf("empty path element (%s)", p)
 	case l1 == 1 && l2 == 1:
 		return false, nil
 	case l1 > 2 || l2 > 2 || l1 == 1 && l2 > 1 || l2 == 1 && l1 > 1:

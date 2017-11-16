@@ -24,5 +24,21 @@
             }
          }
       }
+   },
+   "components": {
+      "component": {
+         "mod-one": {
+            "config": {
+               "name": "mod-one"
+            },
+            "name": "mod-one"
+         },
+         "mod-two": {
+            "config": {
+               "name": "mod-two"
+            },
+            "name": "mod-two"
+         }
+      }
    }
 }

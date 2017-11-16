@@ -59,6 +59,12 @@ func DbgSchema(v ...interface{}) {
 	}
 }
 
+// DbgErr DbgPrints err and returns it.
+func DbgErr(err error) error {
+	DbgPrint("ERR: " + err.Error())
+	return err
+}
+
 // globalIndent is used to control Indent level.
 var globalIndent = ""
 

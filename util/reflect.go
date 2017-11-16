@@ -549,13 +549,13 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 // GetNodes returns an error if the path is not found in the tree, or an element
 // along the path is nil.
 func GetNodes(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
-	return getNodeInternal(schema, root, path)
+	return getNodesInternal(schema, root, path)
 }
 
-// getNodeInternal is the internal implementation of GetNode. In addition to
+// getNodesInternal is the internal implementation of GetNode. In addition to
 // GetNode functionality, it can accept non GoStruct types e.g. map for a keyed
 // list, or a leaf.
-func getNodeInternal(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
+func getNodesInternal(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
 	if IsValueNil(root) {
 		ResetIndent()
 		return nil, nil, nil
@@ -580,25 +580,25 @@ func getNodeInternal(schema *yang.Entry, root interface{}, path *gpb.Path) ([]in
 	case schema.IsContainer() || (schema.IsList() && IsTypeStructPtr(reflect.TypeOf(root))):
 		// Either a container or list schema with struct data node (which could
 		// be an element of a list).
-		return getNodeContainer(schema, root, path)
+		return getNodesContainer(schema, root, path)
 	case schema.IsList():
 		// A list schema with the list data node. Must find the element selected
 		// by the path.
-		return getNodeList(schema, root, path)
+		return getNodesList(schema, root, path)
 	}
 
 	return nil, nil, fmt.Errorf("bad schema type for %s, struct type %T", schema.Name, root)
 }
 
-// getNodeContainer traverses the container root, which must be a struct ptr
+// getNodesContainer traverses the container root, which must be a struct ptr
 // type and matches each field against the first path element in path. If a
 // field matches, it recurses into that field with the remaining path.
-func getNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
-	DbgPrint("getNodeContainer: schema %s, next path %v, value %v", schema.Name, path.GetElem()[0], ValueStr(root))
+func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
+	DbgPrint("getNodesContainer: schema %s, next path %v, value %v", schema.Name, path.GetElem()[0], ValueStr(root))
 
 	rv := reflect.ValueOf(root)
 	if !IsValueStructPtr(rv) {
-		return nil, nil, fmt.Errorf("getNodeContainer: root has type %T, expect struct ptr", root)
+		return nil, nil, fmt.Errorf("getNodesContainer: root has type %T, expect struct ptr", root)
 	}
 
 	v := rv.Elem()
@@ -631,28 +631,28 @@ func getNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]i
 				if IsTypeMap(ft.Type) {
 					to--
 				}
-				return getNodeInternal(cschema, f.Interface(), trimGNMIPathPrefix(path, p[0:to]))
+				return getNodesInternal(cschema, f.Interface(), trimGNMIPathPrefix(path, p[0:to]))
 			}
 		}
 	}
 
-	return nil, nil, fmt.Errorf("could not find path in tree beyond schema node %s, (type %T), remaining path %v", schema.Name, root, path)
+	return nil, nil, DbgErr(fmt.Errorf("could not find path in tree beyond schema node %s, (type %T), remaining path %v", schema.Name, root, path))
 }
 
-// getNodeList traverses the list root, which must be a map of struct
+// getNodesList traverses the list root, which must be a map of struct
 // type and matches each map key against the first path element in path. If the
 // key matches, it recurses into that field with the remaining path.
 // If empty key is specified, all list elements match.
-func getNodeList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
-	DbgPrint("getNodeList: schema %s, next path %v, value %v", schema.Name, path.GetElem()[0], ValueStr(root))
+func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
+	DbgPrint("getNodesList: schema %s, next path %v, value %v", schema.Name, path.GetElem()[0], ValueStr(root))
 
 	rv := reflect.ValueOf(root)
 	if schema.Key == "" {
-		return nil, nil, fmt.Errorf("getNodeList: path %v cannot traverse unkeyed list type %T", path, root)
+		return nil, nil, fmt.Errorf("getNodesList: path %v cannot traverse unkeyed list type %T", path, root)
 	}
 	if !IsValueMap(rv) {
 		// Only keyed lists can be traversed with a path.
-		return nil, nil, fmt.Errorf("getNodeList: root has type %T, expect map", root)
+		return nil, nil, fmt.Errorf("getNodesList: root has type %T, expect map", root)
 	}
 	emptyKey := false
 	if len(path.GetElem()[0].GetKey()) == 0 {
@@ -720,7 +720,7 @@ func getNodeList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interf
 			// Pass in the list schema, but the actual selected element
 			// rather than the whole list.
 			DbgPrint("key matches")
-			n, s, err := getNodeInternal(schema, ev.Interface(), popGNMIPath(path))
+			n, s, err := getNodesInternal(schema, ev.Interface(), popGNMIPath(path))
 			if err != nil {
 				return nil, nil, err
 			}
@@ -732,7 +732,7 @@ func getNodeList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interf
 	}
 
 	if len(matchNodes) == 0 {
-		return nil, nil, fmt.Errorf("could not find path in tree beyond schema node %s, (type %T), remaining path %v", schema.Name, root, path)
+		return nil, nil, nil
 	}
 	return matchNodes, matchSchemas, nil
 }

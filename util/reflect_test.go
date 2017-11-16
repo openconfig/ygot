@@ -1163,7 +1163,7 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			wantErr: `could not find path in tree beyond schema node simple-key-list, (type *util.ListElemStruct1), remaining path elem:<name:"bad-element" > elem:<name:"inner" > elem:<name:"leaf-field" > `,
 		},
 		{
-			desc:       "nil field",
+			desc:       "nil source field",
 			rootStruct: c1,
 			path: &gpb.Path{
 				Elem: []*gpb.PathElem{
@@ -1187,22 +1187,23 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 					},
 				},
 			},
-			want:    nil,
-			wantErr: `could not find path in tree beyond schema node simple-key-list, (type map[string]*util.ListElemStruct1), remaining path elem:<name:"simple-key-list" key:<key:"key1" value:"forty-two" > > elem:<name:"outer2" > elem:<name:"inner" > elem:<name:"leaf-field" > `,
+			want: []interface{}(nil),
 		},
 	}
 
 	for _, tt := range tests {
-		val, _, err := GetNodes(containerWithLeafListSchema, tt.rootStruct, tt.path)
-		if got, want := errToString(err), tt.wantErr; got != want {
-			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
-		}
-		testErrLog(t, tt.desc, err)
-		if err == nil {
-			if got, want := val, tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: struct got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+		t.Run(tt.desc, func(t *testing.T) {
+			val, _, err := GetNodes(containerWithLeafListSchema, tt.rootStruct, tt.path)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
 			}
-		}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := val, tt.want; !reflect.DeepEqual(got, want) {
+					t.Errorf("%s: struct got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
 	}
 }
 

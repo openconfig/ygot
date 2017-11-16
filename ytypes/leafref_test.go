@@ -154,7 +154,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			in: &Container{
 				Container2: &Container2{LeafRefToInt32: Int32(42)},
 			},
-			wantErr: `pointed-to value from field LeafRefToInt32 value 42 (int32 ptr) schema /int32-ref-to-leaf is empty set`,
+			wantErr: `pointed-to value with path ../../int32 from field LeafRefToInt32 value 42 (int32 ptr) schema /int32-ref-to-leaf is empty set`,
 		},
 		{
 			desc: "nil points to int32",
@@ -226,7 +226,7 @@ func TestValidateLeafRefData(t *testing.T) {
 				Key:        Int32(3),
 				Container2: &Container2{LeafRefToList: Int32(43)},
 			},
-			wantErr: `could not find path in tree beyond schema node list, (type map[int32]*ytypes.ListElement), remaining path elem:<name:"list" key:<key:"key" value:"3" > > elem:<name:"int32" > `,
+			wantErr: `pointed-to value with path ../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
 		},
 	}
 	for _, tt := range tests {
@@ -282,7 +282,7 @@ func TestSplitPath(t *testing.T) {
 	}
 }
 
-func TestsplitUnescaped(t *testing.T) {
+func TestSplitUnescaped(t *testing.T) {
 	tests := []struct {
 		desc string
 		in   string
