@@ -17,6 +17,8 @@ package util
 
 import (
 	"github.com/openconfig/goyang/pkg/yang"
+
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 var (
@@ -43,4 +45,43 @@ func stringMapSetToSlice(m map[string]interface{}) []string {
 		out = append(out, k)
 	}
 	return out
+}
+
+// TODO(mostrowski): move below functions into path package.
+
+// pathMatchesPrefix reports whether prefix is a prefix of path.
+func pathMatchesPrefix(path *gpb.Path, prefix []string) bool {
+	if len(path.GetElem()) < len(prefix) {
+		return false
+	}
+	for i := range prefix {
+		if prefix[i] != path.GetElem()[i].GetName() {
+			return false
+		}
+	}
+
+	return true
+}
+
+// trimGNMIPathPrefix returns path with the prefix trimmed. It returns the
+// original path if the prefix does not fully match.
+func trimGNMIPathPrefix(path *gpb.Path, prefix []string) *gpb.Path {
+	if !pathMatchesPrefix(path, prefix) {
+		return path
+	}
+	out := *path
+	out.Elem = out.GetElem()[len(prefix):]
+	return &out
+}
+
+// popGNMIPath returns the supplied GNMI path with the first path element
+// removed. If the path is empty, it returns an empty path.
+func popGNMIPath(path *gpb.Path) *gpb.Path {
+	if len(path.GetElem()) == 0 {
+		return path
+	}
+	return &gpb.Path{
+		Origin: path.GetOrigin(),
+		Elem:   path.GetElem()[1:],
+	}
 }
