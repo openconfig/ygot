@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package ygen
 
 import (
@@ -65,6 +66,8 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoT
 		return &mappedType{nativeType: "ywrapper.IntValue"}, nil
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
 		return &mappedType{nativeType: "ywrapper.UintValue"}, nil
+	case yang.Ybinary:
+		return &mappedType{nativeType: "ywrapper.BytesValue"}, nil
 	case yang.Ybool, yang.Yempty:
 		return &mappedType{nativeType: "ywrapper.BoolValue"}, nil
 	case yang.Ystring:
@@ -133,6 +136,8 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolve
 		return &mappedType{nativeType: "sint64"}, nil
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
 		return &mappedType{nativeType: "uint64"}, nil
+	case yang.Ybinary:
+		return &mappedType{nativeType: "bytes"}, nil
 	case yang.Ybool, yang.Yempty:
 		return &mappedType{nativeType: "bool"}, nil
 	case yang.Ystring:

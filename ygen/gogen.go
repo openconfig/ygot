@@ -665,6 +665,21 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 			return i + 1
 		},
 		"toUpper": strings.ToUpper,
+		"indentLines": func(s string) string {
+			var b bytes.Buffer
+			p := strings.Split(s, "\n")
+			b.WriteRune('\n')
+			for i, l := range p {
+				if l == "" {
+					continue
+				}
+				b.WriteString(fmt.Sprintf("  %s", l))
+				if i != len(p)-1 {
+					b.WriteRune('\n')
+				}
+			}
+			return b.String()
+		},
 	}
 )
 
@@ -684,7 +699,6 @@ func makeTemplate(name, src string) *template.Template {
 // DefaultYgotImportPath, and an unset cfg.GoOptions.YtypesImportPath results in the
 // path for ytypes being set to DefaultYtypesImportPath.
 func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (string, error) {
-
 	// Determine the running binary's name.
 	if cfg.Caller == "" {
 		cfg.Caller = callerName()
@@ -1326,6 +1340,12 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, abs
 			// list, since the YANG specification enforces that keys are direct
 			// children of the list.
 			keyPath := []string{fieldSlicePath[len(fieldSlicePath)-1]}
+			if absolutePaths {
+				// If absolute paths are required, then the 'config' or 'state' container needs to be omitted from
+				// the complete path for the secondary mapping.
+				keyPath = append([]string{""}, fieldSlicePath[1:len(fieldSlicePath)-2]...)
+				keyPath = append(keyPath, fieldSlicePath[len(fieldSlicePath)-1])
+			}
 			mapPaths = append(mapPaths, keyPath)
 			break
 		}

@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 package ygen
 
 import (
@@ -84,6 +85,11 @@ func TestYangTypeToProtoType(t *testing.T) {
 		wantWrapper: &mappedType{nativeType: "ywrapper.StringValue"},
 		wantScalar:  &mappedType{nativeType: "string"},
 	}, {
+		name:        "binary",
+		in:          []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ybinary}}},
+		wantWrapper: &mappedType{nativeType: "ywrapper.BytesValue"},
+		wantScalar:  &mappedType{nativeType: "bytes"},
+	}, {
 		name:        "decimal64",
 		in:          []resolveTypeArgs{{yangType: &yang.YangType{Kind: yang.Ydecimal64}}},
 		wantWrapper: &mappedType{nativeType: "ywrapper.Decimal64Value"},
@@ -91,7 +97,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "unmapped types",
 		in: []resolveTypeArgs{
-			{yangType: &yang.YangType{Kind: yang.Ybinary}},
 			{yangType: &yang.YangType{Kind: yang.Ybits}},
 		},
 		wantErr: true,

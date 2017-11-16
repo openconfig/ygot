@@ -292,7 +292,7 @@ func addNewKeys(existing map[string]interface{}, newKeys []string) {
 
 // stringKeys returns the keys of the supplied map as a slice of strings.
 func stringKeys(m map[string]interface{}) []string {
-	ss := []string{}
+	var ss []string
 	for k := range m {
 		ss = append(ss, k)
 	}
@@ -315,4 +315,63 @@ func listKeyFieldsMap(e *yang.Entry) map[string]bool {
 // path.
 func entrySchemaPath(e *yang.Entry) string {
 	return slicePathToString(append([]string{""}, traverseElementSchemaPath(e)[1:]...))
+}
+
+// isDirectEntryChild determines whether the entry c is a direct child of the
+// entry p within the output code. If compressPaths is set, a check to determine
+// whether c would be a direct child after schema compression is performed.
+func isDirectEntryChild(p, c *yang.Entry, compressPaths bool) bool {
+	ppp := strings.Split(p.Path(), "/")
+	cpp := strings.Split(c.Path(), "/")
+	dc := isPathChild(ppp, cpp)
+
+	// If we are not compressing paths, the child is not a list entry,
+	// or the child path is not a grandchild (i.e., has a path length of >2 greater than its parent)
+	// of the current element, then this cannot be a valid direct child.
+	if !compressPaths || !c.IsList() || len(cpp) > len(ppp)+2 || len(cpp) < len(ppp) {
+		return dc
+	}
+
+	ppe, ok := p.Dir[c.Parent.Name]
+	if !ok {
+		// Can't be a valid child because the parent of the entity doesn't exist
+		// within this container.
+		return false
+	}
+
+	if !hasOnlyChild(ppe) {
+		return false
+	}
+
+	// We are guaranteed to have 1 child (and not zero) since hasOnlyChild will
+	// return false for directories with 0 children.
+	return children(ppe)[0].Path() == c.Path()
+}
+
+// isPathChild takes an input slice of strings representing a path and determines
+// whether b is a child of a within the YANG schema.
+func isPathChild(a, b []string) bool {
+	// If b does not have a greater path length than a, it cannot be a child. If
+	// b has more than one element than a, it must be at least a grandchild.
+	if len(b) <= len(a) || len(b) > len(a)+1 {
+		return false
+	}
+
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// isChildOfModule determines whether the yangDirectory represents a container
+// or list member that is the direct child of a module entry.
+func isChildOfModule(msg *yangDirectory) bool {
+	if msg.isFakeRoot || len(msg.path) == 3 {
+		// If the message has a path length of 3, then it is a top-level entity
+		// within a module, since the  path is in the format []{"", <module>, <element>}.
+		return true
+	}
+	return false
 }
