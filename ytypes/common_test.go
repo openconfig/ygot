@@ -251,7 +251,7 @@ func TestIsFakeRoot(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if got := isFakeRoot(tt.in); got != tt.want {
+		if got := util.IsFakeRoot(tt.in); got != tt.want {
 			t.Errorf("%v: isFakeRoot(%v): did not get expected return value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
 		}
 	}

@@ -34,7 +34,7 @@ func Validate(schema *yang.Entry, value interface{}) util.Errors {
 	}
 
 	var errs util.Errors
-	if isFakeRoot(schema) {
+	if util.IsFakeRoot(schema) {
 		// Leafref validation traverses entire tree from the root. Do this only
 		// once from the fakeroot.
 		errs = ValidateLeafRefData(schema, value)

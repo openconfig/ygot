@@ -393,7 +393,7 @@ func DeepEqualDerefPtrs(a, b interface{}) bool {
 type NodeInfo struct {
 	// Schema is the schema for the node.
 	Schema *yang.Entry
-	// Path is the path from the parent to the current schema node.
+	// Path is the relative path from the parent to the current schema node.
 	PathFromParent []string
 	// Parent is a ptr to the containing node.
 	Parent *NodeInfo
@@ -410,14 +410,16 @@ type NodeInfo struct {
 }
 
 // FieldIteratorFunc is an iteration function for arbitrary field traversals.
-// in, out are passed through from the caller to the iteration and can be used
-// to pass state in and out.
+// in, out are passed through from the caller to the iteration vistior function
+// and can be used to pass state in and out. They are not otherwise touched.
 // It returns a slice of errors encountered while processing the field.
 type FieldIteratorFunc func(ni *NodeInfo, in, out interface{}) Errors
 
 // ForEachField recursively iterates through the fields of value (which may be
 // any Go type) and executes iterFunction on each field. Any nil fields
-// (including value) are traversed in the schema tree only.
+// (including value) are traversed in the schema tree only. This is done to
+// support iterations that need to detect the absence of some data item e.g.
+// leafref.
 //   schema is the schema corresponding to value.
 //   in, out are passed to the iterator function and can be used to carry state
 //     and return results from the iterator.
@@ -475,7 +477,8 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				}
 				nn.PathFromParent = p
 				// In the case of a map/slice, the path is of the form
-				// "container/element".
+				// "container/element" in the compressed schema, so trim off
+				// any extra path elements in this case.
 				if IsTypeSlice(sf.Type) || IsTypeMap(sf.Type) {
 					nn.PathFromParent = p[0:1]
 				}
@@ -484,10 +487,10 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 		}
 
 	case IsTypeSlice(t):
+		// Leaf-list elements share the parent schema with listattr unset.
 		schema := *(ni.Schema)
 		schema.ListAttr = nil
 		var pp []string
-		// Leaf-list elements share the parent schema.
 		if !schema.IsLeafList() {
 			pp = []string{schema.Name}
 		}
@@ -542,9 +545,11 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 }
 
 // GetNodes returns the nodes in the data tree at the indicated path, relative
-// to the supplied root. If for a list node is missing, all values in the list
-// are returned. If the key is partial, all nodes matching the values present
-// in the key are returned.
+// to the supplied root and their corresponding schemas at the same slice index.
+// schema is the schema for root.
+// If the key for a list node is missing, all values in the list are returned.
+// If the key is partial, all nodes matching the values present in the key are
+// returned.
 // If the root is the tree root, the path may be absolute.
 // GetNodes returns an error if the path is not found in the tree, or an element
 // along the path is nil.
@@ -555,6 +560,7 @@ func GetNodes(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface
 // getNodesInternal is the internal implementation of GetNode. In addition to
 // GetNode functionality, it can accept non GoStruct types e.g. map for a keyed
 // list, or a leaf.
+// See GetNodes for parameter and return value descriptions.
 func getNodesInternal(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
 	if IsValueNil(root) {
 		ResetIndent()
@@ -582,8 +588,7 @@ func getNodesInternal(schema *yang.Entry, root interface{}, path *gpb.Path) ([]i
 		// be an element of a list).
 		return getNodesContainer(schema, root, path)
 	case schema.IsList():
-		// A list schema with the list data node. Must find the element selected
-		// by the path.
+		// A list schema with the list parent container node as the root.
 		return getNodesList(schema, root, path)
 	}
 
@@ -640,9 +645,9 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 }
 
 // getNodesList traverses the list root, which must be a map of struct
-// type and matches each map key against the first path element in path. If the
-// key matches, it recurses into that field with the remaining path.
-// If empty key is specified, all list elements match.
+// type and matches each map key against the keys specified in the first
+// PathElem of the Path. If the key matches, it recurses into that field with
+// the remaining path. If empty key is specified, all list elements match.
 func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]interface{}, []*yang.Entry, error) {
 	DbgPrint("getNodesList: schema %s, next path %v, value %v", schema.Name, path.GetElem()[0], ValueStr(root))
 

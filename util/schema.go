@@ -40,6 +40,20 @@ func IsChoiceOrCase(e *yang.Entry) bool {
 	return e.IsChoice() || e.IsCase()
 }
 
+// IsFakeRoot reports whether the supplied yang.Entry represents the synthesised
+// root entity in the generated code.
+func IsFakeRoot(e *yang.Entry) bool {
+	if _, ok := e.Annotation["isFakeRoot"]; ok {
+		return true
+	}
+	return false
+}
+
+// IsUnkeyedList reports whether e is an unkeyed list.
+func IsUnkeyedList(e *yang.Entry) bool {
+	return e.IsList() && e.Key == ""
+}
+
 // SchemaPaths returns all the paths in the path tag.
 func SchemaPaths(f reflect.StructField) ([][]string, error) {
 	var out [][]string
@@ -132,8 +146,8 @@ func ResolveLeafRef(schema *yang.Entry) (*yang.Entry, error) {
 	if schema == nil {
 		return nil, nil
 	}
-	// TODO(mostrowski): this should only be possible in fakeroot. Add an
-	// explicit check for that once data is available in the schema.
+	// fakeroot or test cases may have this unset. They are definitely not
+	// leafrefs.
 	if schema.Type == nil {
 		return schema, nil
 	}

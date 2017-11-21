@@ -132,20 +132,6 @@ func isValueScalar(v reflect.Value) bool {
 	return !util.IsValueStruct(v) && !util.IsValueStructPtr(v) && !util.IsValueMap(v) && !util.IsValueSlice(v)
 }
 
-// isFakeRoot reports whether the supplied yang.Entry represents the synthesised
-// root entity in the generated code.
-func isFakeRoot(e *yang.Entry) bool {
-	if _, ok := e.Annotation["isFakeRoot"]; ok {
-		return true
-	}
-	return false
-}
-
-// isUnkeyedList reports whether e is an unkeyed list.
-func isUnkeyedList(e *yang.Entry) bool {
-	return e.IsList() && e.Key == ""
-}
-
 // childSchema returns the schema for the struct field f, if f contains a valid
 // path tag and the schema path is found in the schema tree. It returns an error
 // if the struct tag is invalid, or nil if tag is valid but the schema is not
@@ -199,8 +185,7 @@ func childSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error)
 		// 1 are eligible for this matching.
 		return nil, nil
 	}
-	entries := make(map[string]*yang.Entry)
-	findFirstNonChoiceOrCase(schema, entries)
+	entries := util.FindFirstNonChoiceOrCase(schema)
 
 	util.DbgSchema("checking for %s against non choice/case entries: %v\n", p[0], stringMapKeys(entries))
 	for name, entry := range entries {
@@ -214,21 +199,6 @@ func childSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error)
 
 	util.DbgSchema(" - no matches\n")
 	return nil, nil
-}
-
-// findFirstNonChoiceOrCase recursively traverses the schema tree and populates
-// m with the set of the first nodes in every path that neither case nor choice
-// nodes. The keys in the map are the schema element names of the matching
-// elements.
-func findFirstNonChoiceOrCase(e *yang.Entry, m map[string]*yang.Entry) {
-	switch {
-	case !util.IsChoiceOrCase(e):
-		m[e.Name] = e
-	case e.IsDir():
-		for _, ch := range e.Dir {
-			findFirstNonChoiceOrCase(ch, m)
-		}
-	}
 }
 
 // schemaTreeRoot returns the root of the schema tree, given any node in that
@@ -252,7 +222,7 @@ func schemaTreeRoot(schema *yang.Entry) *yang.Entry {
 func absoluteSchemaDataPath(schema *yang.Entry) string {
 	out := []string{schema.Name}
 	for s := schema.Parent; s != nil; s = s.Parent {
-		if !util.IsChoiceOrCase(s) && !isFakeRoot(s) {
+		if !util.IsChoiceOrCase(s) && !util.IsFakeRoot(s) {
 			out = append([]string{s.Name}, out...)
 		}
 	}

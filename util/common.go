@@ -81,7 +81,6 @@ func popGNMIPath(path *gpb.Path) *gpb.Path {
 		return path
 	}
 	return &gpb.Path{
-		Origin: path.GetOrigin(),
-		Elem:   path.GetElem()[1:],
+		Elem: path.GetElem()[1:],
 	}
 }
