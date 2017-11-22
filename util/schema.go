@@ -140,9 +140,9 @@ func MatchingNonChoiceCaseSchema(schema *yang.Entry, path []string) *yang.Entry 
 	return s
 }
 
-// ResolveLeafRef returns a ptr to the schema pointed to by the provided
-// leaf-ref schema. It returns schema itself if schema is not a leaf-ref.
-func ResolveLeafRef(schema *yang.Entry) (*yang.Entry, error) {
+// ResolveIfLeafRef returns a ptr to the schema pointed to by the leaf-ref path 
+// in schema if it's a leafref, or schema itself if it's not.
+func ResolveIfLeafRef(schema *yang.Entry) (*yang.Entry, error) {
 	if schema == nil {
 		return nil, nil
 	}

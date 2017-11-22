@@ -618,10 +618,6 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 		if cschema == nil {
 			return nil, nil, fmt.Errorf("could not find schema for type %T, field name %s", root, ft.Name)
 		}
-		cschema, err = ResolveLeafRef(cschema)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error for schema for type %T, field name %s: %s", root, ft.Name, err)
-		}
 
 		DbgPrint("check field name %s", cschema.Name)
 		ps, err := SchemaPaths(ft)
