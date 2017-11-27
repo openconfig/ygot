@@ -43,7 +43,7 @@ const (
 // representing the path.
 func PathToString(path *gnmipb.Path) (string, error) {
 	s, err := PathToStrings(path)
-	return stdpath.Join(s...), err
+	return "/" + stdpath.Join(s...), err
 }
 
 // PathToStrings takes a gNMI Path and provides its string representation. For example,
@@ -54,7 +54,7 @@ func PathToString(path *gnmipb.Path) (string, error) {
 // the path element using the format [name=value]. If the path specifies both pre-
 // and post-0.4.0 paths, the pre-0.4.0 version is returned.
 func PathToStrings(path *gnmipb.Path) ([]string, error) {
-	p := []string{"/"}
+	var p []string
 	if path.Element != nil {
 		for i, e := range path.Element {
 			if e == "" {

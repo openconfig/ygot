@@ -15,6 +15,7 @@
 package ygot
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -106,6 +107,22 @@ func TestPathToString(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("%s: PathToString(%v): got: %s, want: %s", tt.name, tt.in, got, tt.want)
 		}
+	}
+}
+
+func TestPathToStrings(t *testing.T) {
+	in := &gnmipb.Path{Elem: []*gnmipb.PathElem{
+		{Name: "a"},
+		{Name: "b"},
+	}}
+	want := []string{"a", "b"}
+	got, err := PathToStrings(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("PathToStrings(%v): got %q, want %q", in, got, want)
 	}
 }
 
