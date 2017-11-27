@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"path/filepath"
+	stdpath "path"
 	"sort"
 	"strings"
 
@@ -39,28 +39,35 @@ const (
 	StringSlicePath
 )
 
-// PathToString takes a gNMI Path and provides its string representation. For example,
-// the path Path{Element: []string{"one", "two", "three"} is converted to the string
-// "/one/two/three" and returned. Both the pre-0.4.0 "element"-based paths, and the
+// PathToString is like PathToStrings, but returns a single formatted string
+// representing the path.
+func PathToString(path *gnmipb.Path) (string, error) {
+	s, err := PathToStrings(path)
+	return stdpath.Join(s...), err
+}
+
+// PathToStrings takes a gNMI Path and provides its string representation. For example,
+// the path Path{Element: []string{"one", "two", "three"} is converted to the slice
+// ["one", "two", "three"] and returned. Both the pre-0.4.0 "element"-based paths, and the
 //  >0.4.0 paths based on "elem" are supported. In the case that post-0.4.0 paths are
 // specified, keys that are specified in the path are concatenated onto the name of
 // the path element using the format [name=value]. If the path specifies both pre-
 // and post-0.4.0 paths, the pre-0.4.0 version is returned.
-func PathToString(path *gnmipb.Path) (string, error) {
+func PathToStrings(path *gnmipb.Path) ([]string, error) {
 	p := []string{"/"}
 	if path.Element != nil {
 		for i, e := range path.Element {
 			if e == "" {
-				return "", fmt.Errorf("nil element at index %d in %v", i, path.Element)
+				return nil, fmt.Errorf("nil element at index %d in %v", i, path.Element)
 			}
 			p = append(p, e)
 		}
-		return filepath.Join(p...), nil
+		return p, nil
 	}
 
 	for i, e := range path.Elem {
 		if e.Name == "" {
-			return "", fmt.Errorf("nil name for PathElem at index %d", i)
+			return nil, fmt.Errorf("nil name for PathElem at index %d", i)
 		}
 
 		elem := e.Name
@@ -68,7 +75,7 @@ func PathToString(path *gnmipb.Path) (string, error) {
 			var keys []string
 			for k, v := range e.Key {
 				if k == "" {
-					return "", fmt.Errorf("nil key name (value: %s) in element %s", v, e.Name)
+					return nil, fmt.Errorf("nil key name (value: %s) in element %s", v, e.Name)
 				}
 				keys = append(keys, k)
 			}
@@ -80,7 +87,7 @@ func PathToString(path *gnmipb.Path) (string, error) {
 		}
 		p = append(p, elem)
 	}
-	return filepath.Join(p...), nil
+	return p, nil
 }
 
 // StringToPath takes an input string representing a path in gNMI, and converts
