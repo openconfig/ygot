@@ -40,7 +40,7 @@ const (
 )
 
 // PathToString is like PathToStrings, but returns a single formatted string
-// representing the path.
+// representing the path. Path is always treated as absolute.
 func PathToString(path *gnmipb.Path) (string, error) {
 	s, err := PathToStrings(path)
 	return "/" + stdpath.Join(s...), err
