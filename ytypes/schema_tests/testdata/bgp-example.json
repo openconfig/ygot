@@ -133,7 +133,7 @@
                       "PASS-ALL"
                     ],
                     "import-policy": [
-                      "METRO-AR"
+                      "IMPORT_POLICY_1"
                     ]
                   }
                 },
@@ -172,7 +172,7 @@
                 "apply-policy": {
                   "config": {
                     "export-policy": [
-                      "EDGE-CACHE"
+                      "ENTITY_TYPE_1"
                     ],
                     "import-policy": [
                       "PASS-ALL"
@@ -214,9 +214,9 @@
       "policy-definition": [
         {
           "config": {
-            "name": "EDGE-CACHE"
+            "name": "ENTITY_TYPE_1"
           },
-          "name": "EDGE-CACHE"
+          "name": "ENTITY_TYPE_1"
         },
         {
           "config": {
@@ -226,9 +226,9 @@
         },
         {
           "config": {
-            "name": "METRO-AR"
+            "name": "IMPORT_POLICY_1"
           },
-          "name": "METRO-AR"
+          "name": "IMPORT_POLICY_1"
         },
         {
           "config": {

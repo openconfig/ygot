@@ -101,16 +101,26 @@ func TestValidateLeafRefData(t *testing.T) {
 							Path: "../../list[key = current()/../../key]/int32",
 						},
 					},
+					"leaf-list-with-leafref": {
+						Name: "leaf-list-with-leafref",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../../int32",
+						},
+						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+					},
 				},
 			},
 		},
 	}
 
 	type Container2 struct {
-		LeafRefToInt32    *int32 `path:"int32-ref-to-leaf"`
-		LeafRefToEnum     int64  `path:"enum-ref-to-leaf"`
-		LeafRefToLeafList *int32 `path:"int32-ref-to-leaf-list"`
-		LeafRefToList     *int32 `path:"int32-ref-to-list"`
+		LeafRefToInt32         *int32   `path:"int32-ref-to-leaf"`
+		LeafRefToEnum          int64    `path:"enum-ref-to-leaf"`
+		LeafRefToLeafList      *int32   `path:"int32-ref-to-leaf-list"`
+		LeafRefToList          *int32   `path:"int32-ref-to-list"`
+		LeafListLeafRefToInt32 []*int32 `path:"leaf-list-with-leafref"`
 	}
 	type ListElement struct {
 		Key   *int32 `path:"key"`
@@ -229,6 +239,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			wantErr: `pointed-to value with path ../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			errs := ValidateLeafRefData(containerWithLeafListSchema, tt.in)
@@ -393,10 +404,16 @@ func TestExtractKeyValue(t *testing.T) {
 		},
 		{
 			desc:       "path",
-			in:         "b[key = ../a/b/c]",
+			in:         "b[key = current()/../a/b/c]",
 			wantPrefix: "b",
 			wantKey:    "key",
-			wantValue:  "../a/b/c",
+			wantValue:  "current()/../a/b/c",
+		},
+		{
+			desc:       "path",
+			in:         "b[key = ../a/b/c]",
+			wantPrefix: "b",
+			wantErr:    `bad kv string key = ../a/b/c: value must be in quotes or begin with current()/`,
 		},
 		{
 			desc:       "escapes",

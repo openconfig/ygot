@@ -260,6 +260,10 @@ func extractKeyValue(p string) (prefix string, k, v string, err error) {
 	k = strings.TrimSpace(kv[0])
 	v = strings.TrimSpace(kv[1])
 
+	if !strings.HasPrefix(v, "current()/") && !isInQuotes(v) {
+		return "", "", "", fmt.Errorf("bad kv string %s: value must be in quotes or begin with current()/", p2[0])
+	}
+
 	return util.StripModulePrefix(p1[0]), util.StripModulePrefix(k), v, nil
 }
 
