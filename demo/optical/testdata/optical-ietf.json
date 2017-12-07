@@ -1,4 +1,20 @@
 {
+   "openconfig-platform:components": {
+      "component": [
+         {
+            "config": {
+               "name": "mod-one"
+            },
+            "name": "mod-one"
+         },
+         {
+            "config": {
+               "name": "mod-two"
+            },
+            "name": "mod-two"
+         }
+      ]
+   },
    "openconfig-transport-line-protection:aps": {
       "aps-modules": {
          "aps-module": [

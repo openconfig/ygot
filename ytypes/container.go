@@ -177,7 +177,7 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 
 		p := parent
 		switch {
-		case isUnkeyedList(cschema):
+		case util.IsUnkeyedList(cschema):
 			// For unkeyed list, we must pass in the addr of the slice to be
 			// able to append to it.
 			p = f.Addr().Interface()

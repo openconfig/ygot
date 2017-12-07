@@ -297,7 +297,7 @@ func TestUnmarshalContainer(t *testing.T) {
 	var parent ParentContainerStruct
 	badJSONTree := []interface{}{}
 
-	wantErrStr := `unmarshalContainer for schema parent-field: jsonTree [] (type slice): got type []interface {} inside container, expect map[string]interface{}`
+	wantErrStr := `unmarshalContainer for schema parent-field: jsonTree [  ]: got type []interface {} inside container, expect map[string]interface{}`
 	if got, want := errToString(Unmarshal(containerSchema, &parent, badJSONTree)), wantErrStr; got != want {
 		t.Errorf("Unmarshal container with bad json : got error: %s, want error: %s", got, want)
 	}

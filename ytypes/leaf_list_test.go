@@ -223,7 +223,7 @@ func TestUnmarshalLeafList(t *testing.T) {
 		"int32-leaf-list": map[string]interface{}{},
 	}
 
-	wantErrStr := `unmarshalLeafList for schema int32-leaf-list: value map[] (type map): got type map[string]interface {}, expect []interface{}`
+	wantErrStr := `unmarshalLeafList for schema int32-leaf-list: value map[] (map): got type map[string]interface {}, expect []interface{}`
 	if got, want := errToString(Unmarshal(containerWithLeafListSchema, &parent, badJSONTree)), wantErrStr; got != want {
 		t.Errorf("Unmarshal leaf-list with bad json : got error: %s, want error: %s", got, want)
 	}
@@ -240,7 +240,7 @@ func TestUnmarshalLeafList(t *testing.T) {
 	}
 
 	// bad value type
-	wantErr = `unmarshalLeafList for schema valid-leaf-list-schema: value 42 (type int): got type int, expect []interface{}`
+	wantErr = `unmarshalLeafList for schema valid-leaf-list-schema: value 42 (int): got type int, expect []interface{}`
 	if got, want := errToString(unmarshalLeafList(validLeafListSchema, &struct{}{}, int(42))), wantErr; got != want {
 		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}

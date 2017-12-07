@@ -251,14 +251,14 @@ func TestIsFakeRoot(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if got := isFakeRoot(tt.in); got != tt.want {
+		if got := util.IsFakeRoot(tt.in); got != tt.want {
 			t.Errorf("%v: isFakeRoot(%v): did not get expected return value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
 		}
 	}
 }
 
 type StringListElemStruct struct {
-	LeafName *string `path:"leaf-name"`
+	LeafName *string `path:"string"`
 }
 
 func (c *StringListElemStruct) IsYANGGoStruct() {}
@@ -276,14 +276,14 @@ func TestForEachSchemaNode(t *testing.T) {
 		Name: "complex-schema",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
-			"list1": {Kind: yang.DirectoryEntry,
+			"list1": {
+				Kind:     yang.DirectoryEntry,
+				Name:     "list1",
 				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
-				Key:      "key_field_name",
-				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
-					"key_field_name": {
+					"string": {
 						Kind: yang.LeafEntry,
-						Name: "key_field_name",
+						Name: "string",
 						Type: &yang.YangType{Kind: yang.Ystring},
 					},
 				},
@@ -298,7 +298,7 @@ func TestForEachSchemaNode(t *testing.T) {
 						Dir: map[string]*yang.Entry{
 							"case1-leaf1": {
 								Kind: yang.LeafEntry,
-								Name: "Case1Leaf1",
+								Name: "case1-leaf1",
 								Type: &yang.YangType{Kind: yang.Ystring},
 							},
 						},
@@ -331,10 +331,10 @@ func TestForEachSchemaNode(t *testing.T) {
 		},
 	}
 
-	printFieldsIterFunc := func(ni *SchemaNodeInfo, in, out interface{}) (errs []error) {
+	printFieldsIterFunc := func(ni *util.NodeInfo, in, out interface{}) (errs util.Errors) {
 		// Only print basic scalar values, skip everything else.
 		outs := out.(*string)
-		*outs += fmt.Sprintf("%v : %v\n", ni.FieldType.Name, pretty.Sprint(ni.FieldValue.Interface()))
+		*outs += fmt.Sprintf("%v : %v\n", ni.StructField.Name, pretty.Sprint(ni.FieldValue.Interface()))
 		return
 	}
 
@@ -344,7 +344,7 @@ func TestForEachSchemaNode(t *testing.T) {
 	}
 
 	var outStr string
-	var errs util.Errors = ForEachSchemaNode(complexSchema, val, nil, &outStr, printFieldsIterFunc)
+	var errs util.Errors = util.ForEachField(complexSchema, val, nil, &outStr, printFieldsIterFunc)
 	if errs != nil {
 		t.Errorf("ForEachSchemaNode: got error: %s, want error nil", errs)
 	}

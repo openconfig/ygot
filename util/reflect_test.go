@@ -21,6 +21,9 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/goyang/pkg/yang"
+
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 const (
@@ -114,6 +117,33 @@ func TestIsValueNil(t *testing.T) {
 	}
 	if IsValueNil((interface{})(42)) {
 		t.Error("got IsValueNil(interface) true, want false")
+	}
+}
+
+func TestIsValueNilOrDefault(t *testing.T) {
+	if !IsValueNilOrDefault(nil) {
+		t.Error("got IsValueNilOrDefault(nil) false, want true")
+	}
+	if !IsValueNilOrDefault((*int)(nil)) {
+		t.Error("got IsValueNilOrDefault(ptr) false, want true")
+	}
+	if !IsValueNilOrDefault((map[int]int)(nil)) {
+		t.Error("got IsValueNilOrDefault(map) false, want true")
+	}
+	if !IsValueNilOrDefault(([]int)(nil)) {
+		t.Error("got IsValueNilOrDefault(slice) false, want true")
+	}
+	if !IsValueNilOrDefault((interface{})(nil)) {
+		t.Error("got IsValueNilOrDefault(interface) false, want true")
+	}
+	if !IsValueNilOrDefault(int(0)) {
+		t.Error("got IsValueNilOrDefault(int(0)) false, want true")
+	}
+	if !IsValueNilOrDefault("") {
+		t.Error("got IsValueNilOrDefault(\"\") false, want true")
+	}
+	if !IsValueNilOrDefault(false) {
+		t.Error("got IsValueNilOrDefault(false) false, want true")
 	}
 }
 
@@ -649,42 +679,77 @@ func TestInsertIntoMap(t *testing.T) {
 	}
 }
 
+var (
+	// forEachContainerSchema is a schema shared in tests below.
+	forEachContainerSchema = &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"basic-struct": {
+				Name: "basic-struct",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"int32": {
+						Kind: yang.LeafEntry,
+						Name: "int32",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+					"string": {
+						Kind: yang.LeafEntry,
+						Name: "string",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+					"int32ptr": {
+						Kind: yang.LeafEntry,
+						Name: "int32ptr",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+					"stringptr": {
+						Kind: yang.LeafEntry,
+						Name: "stringptr",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+		},
+	}
+)
+
 func TestForEachField(t *testing.T) {
 	type BasicStruct struct {
-		Int32Field     int32
-		StringField    string
-		Int32PtrField  *int32
-		StringPtrField *string
+		Int32Field     int32   `path:"int32"`
+		StringField    string  `path:"string"`
+		Int32PtrField  *int32  `path:"int32ptr"`
+		StringPtrField *string `path:"stringptr"`
 	}
 
 	type StructOfStructs struct {
-		BasicStructField    BasicStruct
-		BasicStructPtrField *BasicStruct
+		BasicStructField    BasicStruct  `path:"basic-struct"`
+		BasicStructPtrField *BasicStruct `path:"basic-struct"`
 	}
 
 	type StructOfSliceOfStructs struct {
-		BasicStructSliceField    []BasicStruct
-		BasicStructPtrSliceField []*BasicStruct
+		BasicStructSliceField    []BasicStruct  `path:"basic-struct"`
+		BasicStructPtrSliceField []*BasicStruct `path:"basic-struct"`
 	}
 
 	type StructOfMapOfStructs struct {
-		BasicStructMapField    map[string]BasicStruct
-		BasicStructPtrMapField map[string]*BasicStruct
+		BasicStructMapField    map[string]BasicStruct  `path:"basic-struct"`
+		BasicStructPtrMapField map[string]*BasicStruct `path:"basic-struct"`
 	}
 
-	printFieldsIterFunc := func(ni *NodeInfo, in, out interface{}) (errs []error) {
+	printFieldsIterFunc := func(ni *NodeInfo, in, out interface{}) (errs Errors) {
 		// Only print basic scalar values, skip everything else.
 		if !IsValueScalar(ni.FieldValue) || IsValueNil(ni.FieldKey) {
 			return
 		}
 		outs := out.(*string)
-		*outs += fmt.Sprintf("%v : %v, ", ni.FieldType.Name, pretty.Sprint(ni.FieldValue.Interface()))
+		*outs += fmt.Sprintf("%v : %v, ", ni.StructField.Name, pretty.Sprint(ni.FieldValue.Interface()))
 		return
 	}
 
-	printMapKeysIterFunc := func(ni *NodeInfo, in, out interface{}) (errs []error) {
-		// Only print basic scalar values, skip everything else.
-		if !IsValueScalar(ni.FieldValue) || IsNilOrInvalidValue(ni.FieldKey) {
+	printMapKeysIterFunc := func(ni *NodeInfo, in, out interface{}) (errs Errors) {
+		if IsNilOrInvalidValue(ni.FieldKey) {
 			return
 		}
 		outs := out.(*string)
@@ -692,7 +757,7 @@ func TestForEachField(t *testing.T) {
 		if !IsNilOrInvalidValue(ni.FieldValue) {
 			s = pretty.Sprint(ni.FieldValue.Interface())
 		}
-		*outs += fmt.Sprintf("%s/%s : %s, ", pretty.Sprint(ni.FieldKey.Interface()), ni.FieldType.Name, s)
+		*outs += fmt.Sprintf("%s/%s : \n%s\n, ", ValueStr(ni.FieldKey.Interface()), ni.StructField.Name, ValueStr(s))
 		return
 	}
 
@@ -701,6 +766,7 @@ func TestForEachField(t *testing.T) {
 
 	tests := []struct {
 		desc         string
+		schema       *yang.Entry
 		parentStruct interface{}
 		in           interface{}
 		out          interface{}
@@ -710,6 +776,7 @@ func TestForEachField(t *testing.T) {
 	}{
 		{
 			desc:         "nil",
+			schema:       nil,
 			parentStruct: nil,
 			in:           nil,
 			iterFunc:     printFieldsIterFunc,
@@ -717,6 +784,7 @@ func TestForEachField(t *testing.T) {
 		},
 		{
 			desc:         "struct",
+			schema:       forEachContainerSchema.Dir["basic-struct"],
 			parentStruct: &basicStruct1,
 			in:           nil,
 			iterFunc:     printFieldsIterFunc,
@@ -724,6 +792,7 @@ func TestForEachField(t *testing.T) {
 		},
 		{
 			desc:         "struct of struct",
+			schema:       forEachContainerSchema,
 			parentStruct: &StructOfStructs{BasicStructField: basicStruct1, BasicStructPtrField: &basicStruct2},
 			in:           nil,
 			iterFunc:     printFieldsIterFunc,
@@ -732,6 +801,7 @@ func TestForEachField(t *testing.T) {
 		},
 		{
 			desc:         "struct of slice of structs",
+			schema:       forEachContainerSchema,
 			parentStruct: &StructOfSliceOfStructs{BasicStructSliceField: []BasicStruct{basicStruct1}, BasicStructPtrSliceField: []*BasicStruct{&basicStruct2}},
 			in:           nil,
 			iterFunc:     printFieldsIterFunc,
@@ -739,6 +809,7 @@ func TestForEachField(t *testing.T) {
 		},
 		{
 			desc:         "struct of map of structs",
+			schema:       forEachContainerSchema,
 			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
 			in:           nil,
 			iterFunc:     printFieldsIterFunc,
@@ -746,18 +817,28 @@ func TestForEachField(t *testing.T) {
 		},
 		{
 			desc:         "map keys",
+			schema:       forEachContainerSchema,
 			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
 			in:           nil,
 			iterFunc:     printMapKeysIterFunc,
-			wantOut: `"basicStruct1"/Int32Field : 42, "basicStruct1"/StringField : "forty two", "basicStruct1"/Int32PtrField : 4242, "basicStruct1"/StringPtrField : "forty two ptr", ` +
-				`"basicStruct2"/Int32Field : 43, "basicStruct2"/StringField : "forty three", "basicStruct2"/Int32PtrField : 4343, "basicStruct2"/StringPtrField : "forty three ptr", `,
+			wantOut: `basicStruct1 (string)/BasicStructMapField : 
+{Int32Field:     42,
+ StringField:    "forty two",
+ Int32PtrField:  4242,
+ StringPtrField: "forty two ptr"} (string)
+, basicStruct2 (string)/BasicStructPtrMapField : 
+{Int32Field:     43,
+ StringField:    "forty three",
+ Int32PtrField:  4343,
+ StringPtrField: "forty three ptr"} (string)
+, `,
 		},
 	}
 
 	for _, tt := range tests {
 		outStr := ""
 		var errs Errors
-		errs = ForEachField(tt.parentStruct, tt.in, &outStr, tt.iterFunc)
+		errs = ForEachField(tt.schema, tt.parentStruct, tt.in, &outStr, tt.iterFunc)
 		if got, want := errs.String(), tt.wantErr; got != want {
 			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
 		}
@@ -772,30 +853,30 @@ func TestForEachField(t *testing.T) {
 
 func TestUpdateFieldUsingForEachField(t *testing.T) {
 	type BasicStruct struct {
-		Int32Field     int32
-		StringField    string
-		Int32PtrField  *int32
-		StringPtrField *string
+		Int32Field     int32   `path:"int32"`
+		StringField    string  `path:"string"`
+		Int32PtrField  *int32  `path:"int32ptr"`
+		StringPtrField *string `path:"stringptr"`
 	}
 
 	type StructOfStructs struct {
-		BasicStructField *BasicStruct
+		BasicStructField *BasicStruct `path:"basic-struct"`
 	}
 
 	basicStruct1 := BasicStruct{Int32Field: int32(42), StringField: "forty two", Int32PtrField: toInt32Ptr(4242), StringPtrField: toStringPtr("forty two ptr")}
 
 	// This doesn't work as a general insert because it won't create fields
 	// that are nil, they must already exist. It only works as an update.
-	setFunc := func(ni *NodeInfo, in, out interface{}) (errs []error) {
-		if ni.FieldType.Name == "BasicStructField" {
-			errs = AppendErr(errs, UpdateField(ni.ParentStruct, "BasicStructField", &basicStruct1))
+	setFunc := func(ni *NodeInfo, in, out interface{}) (errs Errors) {
+		if ni.StructField.Name == "BasicStructField" {
+			errs = AppendErr(errs, UpdateField(ni.Parent.FieldValue.Interface(), "BasicStructField", &basicStruct1))
 		}
 		return
 	}
 
 	a := StructOfStructs{BasicStructField: &BasicStruct{}}
 
-	if errs := ForEachField(&a, nil, nil, setFunc); errs != nil {
+	if errs := ForEachField(forEachContainerSchema, &a, nil, nil, setFunc); errs != nil {
 		t.Fatalf("setFunc got unexpected error: %s", errs)
 	}
 
@@ -846,4 +927,647 @@ func TestStructValueHasNFields(t *testing.T) {
 			t.Errorf("%s: StructValueHasNFields(%#v, %d): did not get expected return, got: %v, want: %v", tt.name, tt.inStruct, tt.inNumber, got, tt.want)
 		}
 	}
+}
+
+// Types below are public to follow ygot generator output. Fields are public
+// for reflect/serialization.
+
+// InnerContainerType1 is a container type for testing.
+type InnerContainerType1 struct {
+	LeafName *int32 `path:"leaf-field"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface method.
+func (*InnerContainerType1) IsYANGGoStruct() {}
+
+// OuterContainerType1 is a container type for testing.
+type OuterContainerType1 struct {
+	Inner        *InnerContainerType1 `path:"inner|config/inner"`
+	InnerAbsPath *InnerContainerType1 `path:"inner-abs-path|config/inner-abs-path"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface method.
+func (*OuterContainerType1) IsYANGGoStruct() {}
+
+// ContainerStruct1 is a list type for testing.
+type ListElemStruct1 struct {
+	Key1   *string              `path:"key1"`
+	Outer  *OuterContainerType1 `path:"outer"`
+	Outer2 *OuterContainerType1 `path:"outer2"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface method.
+func (*ListElemStruct1) IsYANGGoStruct() {}
+
+// ContainerStruct1 is a container type for testing.
+type ContainerStruct1 struct {
+	StructKeyList map[string]*ListElemStruct1 `path:"config/simple-key-list"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface method.
+func (*ContainerStruct1) IsYANGGoStruct() {}
+
+func TestGetNodesSimpleKeyedList(t *testing.T) {
+	containerWithLeafListSchema := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"config": {
+				Name: "config",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"simple-key-list": {
+						Name:     "simple-key-list",
+						Kind:     yang.DirectoryEntry,
+						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						Key:      "key1",
+						Config:   yang.TSTrue,
+						Dir: map[string]*yang.Entry{
+							"key1": {
+								Name: "key1",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Ystring},
+							},
+							"outer": {
+								Name: "outer",
+								Kind: yang.DirectoryEntry,
+								Dir: map[string]*yang.Entry{
+									"inner": {
+										Name: "inner",
+										Kind: yang.DirectoryEntry,
+										Dir: map[string]*yang.Entry{
+											"leaf-field": {
+												Name: "leaf-field",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{
+													Kind: yang.Yleafref,
+													Path: "../../config/inner/leaf-field",
+												},
+											},
+										},
+									},
+									"inner-abs-path": {
+										Name: "inner-abs-path",
+										Kind: yang.DirectoryEntry,
+										Dir: map[string]*yang.Entry{
+											"leaf-field": {
+												Name: "leaf-field",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{
+													Kind: yang.Yleafref,
+													Path: "/config/inner/leaf-field",
+												},
+											},
+										},
+									},
+									"config": {
+										Name: "config",
+										Kind: yang.DirectoryEntry,
+										Dir: map[string]*yang.Entry{
+											"inner": {
+												Name: "inner",
+												Kind: yang.DirectoryEntry,
+												Dir: map[string]*yang.Entry{
+													"leaf-field": {
+														Name: "leaf-field",
+														Kind: yang.LeafEntry,
+														Type: &yang.YangType{Kind: yang.Yint32},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							"outer2": {
+								Name: "outer2",
+								Kind: yang.DirectoryEntry,
+								Dir: map[string]*yang.Entry{
+									"inner": {
+										Name: "inner",
+										Kind: yang.DirectoryEntry,
+										Dir: map[string]*yang.Entry{
+											"leaf-field": {
+												Name: "leaf-field",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{Kind: yang.Yint32},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	c1 := &ContainerStruct1{
+		StructKeyList: map[string]*ListElemStruct1{
+			"forty-two": {
+				Key1: String("forty-two"),
+				Outer: &OuterContainerType1{
+					Inner:        &InnerContainerType1{LeafName: Int32(1234)},
+					InnerAbsPath: &InnerContainerType1{LeafName: Int32(4321)},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		desc       string
+		rootStruct interface{}
+		path       *gpb.Path
+		want       interface{}
+		wantErr    string
+	}{
+		{
+			desc:       "success leaf-ref",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "config",
+					},
+					{
+						Name: "simple-key-list",
+						Key: map[string]string{
+							"key1": "forty-two",
+						},
+					},
+					{
+						Name: "outer",
+					},
+					{
+						Name: "inner",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			want: []interface{}{c1.StructKeyList["forty-two"].Outer.Inner.LeafName},
+		},
+		{
+			desc:       "success absolute leaf-ref",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "config",
+					},
+					{
+						Name: "simple-key-list",
+						Key: map[string]string{
+							"key1": "forty-two",
+						},
+					},
+					{
+						Name: "outer",
+					},
+					{
+						Name: "inner-abs-path",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			want: []interface{}{c1.StructKeyList["forty-two"].Outer.InnerAbsPath.LeafName},
+		},
+		{
+			desc:       "success leaf full path",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "config",
+					},
+					{
+						Name: "simple-key-list",
+						Key: map[string]string{
+							"key1": "forty-two",
+						},
+					},
+					{
+						Name: "outer",
+					},
+					{
+						Name: "config",
+					},
+					{
+						Name: "inner",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			want: []interface{}{c1.StructKeyList["forty-two"].Outer.Inner.LeafName},
+		},
+		{
+			desc:       "bad path",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "config",
+					},
+					{
+						Name: "simple-key-list",
+						Key: map[string]string{
+							"key1": "forty-two",
+						},
+					},
+					{
+						Name: "bad-element",
+					},
+					{
+						Name: "inner",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			want:    nil,
+			wantErr: `could not find path in tree beyond schema node simple-key-list, (type *util.ListElemStruct1), remaining path elem:<name:"bad-element" > elem:<name:"inner" > elem:<name:"leaf-field" > `,
+		},
+		{
+			desc:       "nil source field",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "config",
+					},
+					{
+						Name: "simple-key-list",
+						Key: map[string]string{
+							"key1": "forty-two",
+						},
+					},
+					{
+						Name: "outer2",
+					},
+					{
+						Name: "inner",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			want: []interface{}(nil),
+		},
+		{
+			desc:       "missing key name",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "config",
+					},
+					{
+						Name: "simple-key-list",
+						Key: map[string]string{
+							"bad-key": "forty-two",
+						},
+					},
+					{
+						Name: "outer2",
+					},
+					{
+						Name: "inner",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			want:    []interface{}(nil),
+			wantErr: `gnmi path elem:<name:"simple-key-list" key:<key:"bad-key" value:"forty-two" > > elem:<name:"outer2" > elem:<name:"inner" > elem:<name:"leaf-field" >  does not contain a map entry for the schema key field name key1, parent type map[string]*util.ListElemStruct1`,
+		},
+		{
+			desc:       "missing key value",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "config",
+					},
+					{
+						Name: "simple-key-list",
+						Key: map[string]string{
+							"key1": "bad-value",
+						},
+					},
+					{
+						Name: "outer2",
+					},
+					{
+						Name: "inner",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			want: []interface{}(nil),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			val, _, err := GetNodes(containerWithLeafListSchema, tt.rootStruct, tt.path)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+			}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := val, tt.want; !reflect.DeepEqual(got, want) {
+					t.Errorf("%s: struct got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
+	}
+}
+
+// InnerContainerType2 is a container type for testing.
+type InnerContainerType2 struct {
+	LeafName *int32 `path:"leaf-field"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface method.
+func (*InnerContainerType2) IsYANGGoStruct() {}
+
+// OuterContainerType2 is a container type for testing.
+type OuterContainerType2 struct {
+	Inner *InnerContainerType2 `path:"inner"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface method.
+func (*OuterContainerType2) IsYANGGoStruct() {}
+
+// KeyStruct2 is a key type for testing.
+type KeyStruct2 struct {
+	Key1 string
+	Key2 int32
+}
+
+// ListElemStruct2 is a list type for testing.
+type ListElemStruct2 struct {
+	Key1  *string              `path:"key1"`
+	Key2  *int32               `path:"key2"`
+	Outer *OuterContainerType2 `path:"outer"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface method.
+func (*ListElemStruct2) IsYANGGoStruct() {}
+
+// ContainerStruct2 is a container type for testing.
+type ContainerStruct2 struct {
+	StructKeyList map[KeyStruct2]*ListElemStruct2 `path:"struct-key-list"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface method.
+func (*ContainerStruct2) IsYANGGoStruct() {}
+
+func TestGetNodesStructKeyedList(t *testing.T) {
+	containerWithLeafListSchema := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"struct-key-list": {
+				Name:     "struct-key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key1 key2",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key1": {
+						Name: "key1",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+					"key2": {
+						Name: "key2",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+					"outer": {
+						Name: "outer",
+						Kind: yang.DirectoryEntry,
+						Dir: map[string]*yang.Entry{
+							"inner": {
+								Name: "inner",
+								Kind: yang.DirectoryEntry,
+								Dir: map[string]*yang.Entry{
+									"leaf-field": {
+										Name: "leaf-field",
+										Kind: yang.LeafEntry,
+										Type: &yang.YangType{Kind: yang.Yint32},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	c1 := &ContainerStruct2{
+		StructKeyList: map[KeyStruct2]*ListElemStruct2{
+			{"forty-two", 42}: {
+				Key1:  String("forty-two"),
+				Key2:  Int32(42),
+				Outer: &OuterContainerType2{Inner: &InnerContainerType2{LeafName: Int32(1234)}},
+			},
+			{"forty-three", 43}: {
+				Key1:  String("forty-three"),
+				Key2:  Int32(43),
+				Outer: &OuterContainerType2{Inner: &InnerContainerType2{LeafName: Int32(4321)}},
+			},
+		},
+	}
+
+	// Note that error cases exercise the same logic as simple key test above,
+	// hence they are omitted here.
+	tests := []struct {
+		desc       string
+		rootStruct interface{}
+		path       *gpb.Path
+		want       []interface{}
+		wantErr    string
+	}{
+		{
+			desc:       "success leaf",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "struct-key-list",
+						Key: map[string]string{
+							"key1": "forty-two",
+							"key2": "42",
+						},
+					},
+					{
+						Name: "outer",
+					},
+					{
+						Name: "inner",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			want: []interface{}{c1.StructKeyList[KeyStruct2{"forty-two", 42}].Outer.Inner.LeafName},
+		},
+		{
+			desc:       "success container",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "struct-key-list",
+						Key: map[string]string{
+							"key1": "forty-two",
+							"key2": "42",
+						},
+					},
+					{
+						Name: "outer",
+					},
+					{
+						Name: "inner",
+					},
+				},
+			},
+			want: []interface{}{c1.StructKeyList[KeyStruct2{"forty-two", 42}].Outer.Inner},
+		},
+		{
+			desc:       "empty key value",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "struct-key-list",
+					},
+					{
+						Name: "outer",
+					},
+					{
+						Name: "inner",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			want: []interface{}{
+				c1.StructKeyList[KeyStruct2{"forty-two", 42}].Outer.Inner.LeafName,
+				c1.StructKeyList[KeyStruct2{"forty-three", 43}].Outer.Inner.LeafName,
+			},
+		},
+		{
+			desc:       "partial key value",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "struct-key-list",
+						Key: map[string]string{
+							"key2": "42",
+						},
+					},
+					{
+						Name: "outer",
+					},
+					{
+						Name: "inner",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			want: []interface{}{c1.StructKeyList[KeyStruct2{"forty-two", 42}].Outer.Inner.LeafName},
+		},
+		{
+			desc:       "bad key value",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "struct-key-list",
+						Key: map[string]string{
+							"key1": "bad-value",
+							"key2": "42",
+						},
+					},
+					{
+						Name: "outer",
+					},
+					{
+						Name: "inner",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			want: []interface{}{},
+		},
+		{
+			desc:       "bad path element",
+			rootStruct: c1,
+			path: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "struct-key-list",
+						Key: map[string]string{
+							"key1": "forty-two",
+							"key2": "42",
+						},
+					},
+					{
+						Name: "bad-path-element",
+					},
+					{
+						Name: "inner",
+					},
+					{
+						Name: "leaf-field",
+					},
+				},
+			},
+			wantErr: `could not find path in tree beyond schema node struct-key-list, (type *util.ListElemStruct2), remaining path elem:<name:"bad-path-element" > elem:<name:"inner" > elem:<name:"leaf-field" > `,
+		},
+	}
+
+	for _, tt := range tests {
+		val, _, err := GetNodes(containerWithLeafListSchema, tt.rootStruct, tt.path)
+		if got, want := errToString(err), tt.wantErr; got != want {
+			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+		}
+		testErrLog(t, tt.desc, err)
+		if err == nil {
+			if got, want := sliceToMap(val), sliceToMap(tt.want); (len(want) != 0 || len(got) != 0) && !reflect.DeepEqual(got, want) {
+				t.Errorf("%s: struct got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+			}
+		}
+	}
+}
+
+func sliceToMap(s []interface{}) map[string]int {
+	m := make(map[string]int)
+	for _, v := range s {
+		vs := fmt.Sprint(v)
+		m[vs] = m[vs] + 1
+	}
+	return m
 }

@@ -19,6 +19,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
@@ -58,6 +59,12 @@ func DbgSchema(v ...interface{}) {
 	}
 }
 
+// DbgErr DbgPrints err and returns it.
+func DbgErr(err error) error {
+	DbgPrint("ERR: " + err.Error())
+	return err
+}
+
 // globalIndent is used to control Indent level.
 var globalIndent = ""
 
@@ -71,31 +78,45 @@ func Dedent() {
 	globalIndent = strings.TrimPrefix(globalIndent, ". ")
 }
 
+// ResetIndent sets the indent level to zero.
+func ResetIndent() {
+	globalIndent = ""
+}
+
 // ValueStr returns a string representation of value which may be a value, ptr,
 // or struct type.
 func ValueStr(value interface{}) string {
-	kind := reflect.ValueOf(value).Kind()
+	v := reflect.ValueOf(value)
+	kind := v.Kind()
 	switch kind {
 	case reflect.Ptr:
-		if reflect.ValueOf(value).IsNil() || !reflect.ValueOf(value).IsValid() {
+		if v.IsNil() || !v.IsValid() {
 			return "nil"
 		}
-		return strings.Replace(ValueStr(reflect.ValueOf(value).Elem().Interface()), ")", " ptr)", -1)
-	case reflect.Struct:
+		return strings.Replace(ValueStr(v.Elem().Interface()), ")", " ptr)", -1)
+	case reflect.Slice:
 		var out string
-		structElems := reflect.ValueOf(value)
-		for i := 0; i < structElems.NumField(); i++ {
+		for i := 0; i < v.Len(); i++ {
 			if i != 0 {
 				out += ", "
 			}
-			if !structElems.Field(i).CanInterface() {
+			out += ValueStr(v.Index(i).Interface())
+		}
+		return "[ " + out + " ]"
+	case reflect.Struct:
+		var out string
+		for i := 0; i < v.NumField(); i++ {
+			if i != 0 {
+				out += ", "
+			}
+			if !v.Field(i).CanInterface() {
 				continue
 			}
-			out += ValueStr(structElems.Field(i).Interface())
+			out += ValueStr(v.Field(i).Interface())
 		}
 		return "{ " + out + " }"
 	}
-	out := fmt.Sprintf("%v (type %v)", value, kind)
+	out := fmt.Sprintf("%v (%v)", value, kind)
 	if len(out) > maxValueStrLen {
 		out = out[:maxValueStrLen] + "..."
 	}
@@ -148,4 +169,45 @@ func SchemaTreeString(schema *yang.Entry, prefix string) string {
 		out += SchemaTreeString(ch, prefix+"  ")
 	}
 	return out
+}
+
+// DataSchemaTreesString outputs a combined data/schema tree string where schema
+// is displayed alongside the data tree e.g.
+//  [device (container)]
+//   RoutingPolicy [routing-policy (container)]
+//     DefinedSets [defined-sets (container)]
+//       PrefixSet [prefix-set (list)]
+//       prefix1
+//         prefix1
+//         {255.255.255.0/20 20..24}
+//           IpPrefix : "255.255.255.0/20" [ip-prefix (leaf)]
+//           MasklengthRange : "20..24" [masklength-range (leaf)]
+//         PrefixSetName : "prefix1" [prefix-set-name (leaf)]
+func DataSchemaTreesString(schema *yang.Entry, dataTree interface{}) string {
+	printFieldsIterFunc := func(ni *NodeInfo, in, out interface{}) (errs Errors) {
+		outs := out.(*string)
+		prefix := ""
+		for i := 0; i < len(strings.Split(ni.Schema.Path(), "/")); i++ {
+			prefix += "  "
+		}
+
+		fStr := fmt.Sprintf("%s%s", prefix, ni.StructField.Name)
+		schemaStr := fmt.Sprintf("[%s (%s)]", ni.Schema.Name, SchemaTypeStr(ni.Schema))
+		switch {
+		case IsValueScalar(ni.FieldValue):
+			*outs += fmt.Sprintf("  %s : %s %s\n", fStr, pretty.Sprint(ni.FieldValue.Interface()), schemaStr)
+		case !IsNilOrInvalidValue(ni.FieldKey):
+			*outs += fmt.Sprintf("%s%v\n", prefix, ni.FieldKey)
+		case !IsNilOrInvalidValue(ni.FieldValue):
+			*outs += fmt.Sprintf("%s %s\n", fStr, schemaStr)
+		}
+		return
+	}
+	var outStr string
+	errs := ForEachField(schema, dataTree, nil, &outStr, printFieldsIterFunc)
+	if errs != nil {
+		outStr = errs.String()
+	}
+
+	return outStr
 }

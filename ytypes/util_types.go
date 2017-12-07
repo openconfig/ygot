@@ -78,7 +78,7 @@ func castToEnumValue(ft reflect.Type, value string) (interface{}, error) {
 	}
 
 	for k, v := range m {
-		if stripModulePrefix(v.Name) == stripModulePrefix(value) {
+		if util.StripModulePrefix(v.Name) == util.StripModulePrefix(value) {
 			// Convert to destination enum type.
 			return reflect.ValueOf(k).Convert(ft).Interface(), nil
 		}
