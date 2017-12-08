@@ -37,22 +37,15 @@ func stringMapKeys(m map[string]*yang.Entry) []string {
 	return out
 }
 
-// stringMapSetToSlice converts a string set expressed as a map m, into a slice
-// of strings.
-func stringMapSetToSlice(m map[string]interface{}) []string {
-	var out []string
-	for k := range m {
-		out = append(out, k)
-	}
-	return out
-}
-
 // TODO(mostrowski): move below functions into path package.
 
 // pathMatchesPrefix reports whether prefix is a prefix of path.
 func pathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 	if len(path.GetElem()) < len(prefix) {
 		return false
+	}
+	for len(prefix) != 0 && prefix[len(prefix)-1] == "" {
+		prefix = prefix[:len(prefix)-1]
 	}
 	for i := range prefix {
 		if prefix[i] != path.GetElem()[i].GetName() {
@@ -66,6 +59,9 @@ func pathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 // trimGNMIPathPrefix returns path with the prefix trimmed. It returns the
 // original path if the prefix does not fully match.
 func trimGNMIPathPrefix(path *gpb.Path, prefix []string) *gpb.Path {
+	for len(prefix) != 0 && prefix[len(prefix)-1] == "" {
+		prefix = prefix[:len(prefix)-1]
+	}
 	if !pathMatchesPrefix(path, prefix) {
 		return path
 	}

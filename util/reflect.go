@@ -777,12 +777,3 @@ func getKeyValue(structVal reflect.Value, key string) (interface{}, error) {
 
 	return nil, fmt.Errorf("could not find key field %s in struct type %s", key, structVal.Type())
 }
-
-// derefIfStructPtr returns the dereferenced reflect.Value of value if it is a
-// struct ptr, or value if it is not.
-func derefIfStructPtr(value reflect.Value) reflect.Value {
-	if IsValueStructPtr(value) {
-		return value.Elem()
-	}
-	return value
-}
