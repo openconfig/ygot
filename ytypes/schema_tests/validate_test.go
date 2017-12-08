@@ -202,6 +202,10 @@ func TestValidateLLDP(t *testing.T) {
 			ChassisId: ygot.String("ch1"),
 		},
 	}
+	_, err := dev.NewInterface("eth0")
+	if err != nil {
+		t.Errorf("eth0.NewInterface(): got %v, want nil", err)
+	}
 
 	intf, err := dev.Lldp.NewInterface("eth0")
 	if err != nil {
@@ -400,10 +404,11 @@ func TestValidateRoutingPolicy(t *testing.T) {
 
 func TestUnmarshal(t *testing.T) {
 	tests := []struct {
-		desc         string
-		jsonFilePath string
-		parent       ygot.ValidatedGoStruct
-		wantErr      string
+		desc              string
+		jsonFilePath      string
+		parent            ygot.ValidatedGoStruct
+		wantValidationErr string
+		wantErr           string
 	}{
 		{
 			desc:         "basic",
@@ -416,9 +421,10 @@ func TestUnmarshal(t *testing.T) {
 			parent:       &oc.Device{},
 		},
 		{
-			desc:         "interfaces",
-			jsonFilePath: "interfaces-example.json",
-			parent:       &oc.Device{},
+			desc:              "interfaces",
+			jsonFilePath:      "interfaces-example.json",
+			parent:            &oc.Device{},
+			wantValidationErr: `validation err: field name AggregateId value Bundle-Ether22 (string ptr) schema path /device/interfaces/interface/ethernet/config/aggregate-id has leafref path /interfaces/interface/name not equal to any target nodes`,
 		},
 		{
 			desc:         "local-routing",
@@ -439,30 +445,36 @@ func TestUnmarshal(t *testing.T) {
 		}}
 
 	for _, tt := range tests {
-		j, err := ioutil.ReadFile(filepath.Join(testRoot, "testdata", tt.jsonFilePath))
-		if err != nil {
-			t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.desc, tt.jsonFilePath, err)
-			continue
-		}
+		t.Run(tt.desc, func(t *testing.T) {
+			j, err := ioutil.ReadFile(filepath.Join(testRoot, "testdata", tt.jsonFilePath))
+			if err != nil {
+				t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.desc, tt.jsonFilePath, err)
+				return
+			}
 
-		err = oc.Unmarshal(j, tt.parent)
-		if got, want := errToString(err), tt.wantErr; got != want {
-			t.Errorf("%s: got error: %v, want error: %v ", tt.desc, got, want)
-		}
-		testErrLog(t, tt.desc, err)
-		if err == nil {
-			jo, err := ygot.EmitJSON(tt.parent, emitJSONConfig)
-			if err != nil {
-				t.Fatal(err)
+			err = oc.Unmarshal(j, tt.parent)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: got error: %v, want error: %v ", tt.desc, got, want)
 			}
-			d, err := diffJSON(j, []byte(jo))
-			if err != nil {
-				t.Fatal(err)
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				jo, err := ygot.EmitJSON(tt.parent, emitJSONConfig)
+				if got, want := errToString(err), tt.wantValidationErr; got != want {
+					t.Errorf("%s: got error: %v, want error: %v ", tt.desc, got, want)
+					return
+				}
+				if err != nil {
+					return
+				}
+				d, err := diffJSON(j, []byte(jo))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if d != "" {
+					t.Errorf("%s: diff(-got,+want):\n%s", tt.desc, d)
+				}
 			}
-			if d != "" {
-				t.Errorf("%s: diff(-got,+want):\n%s", tt.desc, d)
-			}
-		}
+		})
 	}
 }
 

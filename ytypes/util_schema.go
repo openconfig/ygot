@@ -19,7 +19,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 )
@@ -128,30 +127,9 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 	return errors
 }
 
-// isChoiceOrCase returns true if the entry is either a 'case' or a 'choice'
-// node within the schema. These are schema nodes only, and the code generation
-// operates on data tree paths.
-func isChoiceOrCase(e *yang.Entry) bool {
-	return e.IsChoice() || e.IsCase()
-}
-
 // isValueScalar reports whether v is a scalar (non-composite) type.
 func isValueScalar(v reflect.Value) bool {
 	return !util.IsValueStruct(v) && !util.IsValueStructPtr(v) && !util.IsValueMap(v) && !util.IsValueSlice(v)
-}
-
-// isFakeRoot reports whether the supplied yang.Entry represents the synthesised
-// root entity in the generated code.
-func isFakeRoot(e *yang.Entry) bool {
-	if _, ok := e.Annotation["isFakeRoot"]; ok {
-		return true
-	}
-	return false
-}
-
-// isUnkeyedList reports whether e is an unkeyed list.
-func isUnkeyedList(e *yang.Entry) bool {
-	return e.IsList() && e.Key == ""
 }
 
 // childSchema returns the schema for the struct field f, if f contains a valid
@@ -181,7 +159,7 @@ func childSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error)
 	util.DbgSchema("traversing schema Dirs...")
 	for ; len(p) > 0; p = p[1:] {
 		util.DbgSchema("/%s", p[0])
-		ns, ok := childSchema.Dir[stripModulePrefix(p[0])]
+		ns, ok := childSchema.Dir[util.StripModulePrefix(p[0])]
 		if !ok {
 			foundSchema = false
 			break
@@ -207,18 +185,13 @@ func childSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error)
 		// 1 are eligible for this matching.
 		return nil, nil
 	}
-	entries := make(map[string]*yang.Entry)
-	for _, ch := range childSchema.Dir {
-		if isChoiceOrCase(ch) {
-			findFirstNonChoiceOrCase(ch, entries)
-		}
-	}
+	entries := util.FindFirstNonChoiceOrCase(schema)
 
 	util.DbgSchema("checking for %s against non choice/case entries: %v\n", p[0], stringMapKeys(entries))
 	for name, entry := range entries {
 		util.DbgSchema("%s ? ", name)
 
-		if stripModulePrefix(name) == p[0] {
+		if util.StripModulePrefix(name) == p[0] {
 			util.DbgSchema(" - match\n")
 			return entry, nil
 		}
@@ -249,27 +222,12 @@ func schemaTreeRoot(schema *yang.Entry) *yang.Entry {
 func absoluteSchemaDataPath(schema *yang.Entry) string {
 	out := []string{schema.Name}
 	for s := schema.Parent; s != nil; s = s.Parent {
-		if !isChoiceOrCase(s) && !isFakeRoot(s) {
+		if !util.IsChoiceOrCase(s) && !util.IsFakeRoot(s) {
 			out = append([]string{s.Name}, out...)
 		}
 	}
 
 	return "/" + strings.Join(out, "/")
-}
-
-// findFirstNonChoiceOrCase recursively traverses the schema tree and populates
-// m with the set of the first nodes in every path that neither case nor choice
-// nodes. The keys in the map are the schema element names of the matching
-// elements.
-func findFirstNonChoiceOrCase(e *yang.Entry, m map[string]*yang.Entry) {
-	switch {
-	case !isChoiceOrCase(e):
-		m[e.Name] = e
-	case e.IsDir():
-		for _, ch := range e.Dir {
-			findFirstNonChoiceOrCase(ch, m)
-		}
-	}
 }
 
 // pathToSchema returns a path to the schema for the struct field f.
@@ -316,7 +274,7 @@ func schemaPaths(schema *yang.Entry, f reflect.StructField) ([][]string, error) 
 	ps := strings.Split(pathTag, "|")
 	for _, p := range ps {
 		sp := removeRootPrefix(strings.Split(p, "/"))
-		out = append(out, stripModulePrefixes(sp))
+		out = append(out, util.StripModulePrefixes(sp))
 	}
 	return out, nil
 }
@@ -355,7 +313,7 @@ func removeNonDataPathElements(parentSchema, schema *yang.Entry, paths [][]strin
 				po = path
 				break
 			}
-			if !isChoiceOrCase(s) {
+			if !util.IsChoiceOrCase(s) {
 				po = append(po, pe)
 			}
 		}
@@ -375,11 +333,11 @@ func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]st
 	// to valid schema paths.
 	pm := map[string]bool{}
 	for _, sp := range dataPaths {
-		pm[stripModulePrefix(sp[0])] = true
+		pm[util.StripModulePrefix(sp[0])] = true
 	}
 	util.DbgSchema("check dataPaths %v against dataTree %v\n", pm, jsonTree)
 	for jf := range jsonTree {
-		if !pm[stripModulePrefix(jf)] {
+		if !pm[util.StripModulePrefix(jf)] {
 			return fmt.Errorf("JSON contains unexpected field %s", jf)
 		}
 	}
@@ -470,7 +428,7 @@ func schemaToStructFieldName(schema *yang.Entry, parent interface{}) (string, *y
 func findSchemaAtPath(schema *yang.Entry, path []string) *yang.Entry {
 	s := schema
 	for i := 0; i < len(path); i++ {
-		pe := stripModulePrefix(path[i])
+		pe := util.StripModulePrefix(path[i])
 		if s.Dir[pe] == nil {
 			return nil
 		}
@@ -489,7 +447,7 @@ func hasRelativePath(schema *yang.Entry, path []string) bool {
 		if s == nil || len(p) == 0 {
 			break
 		}
-		n := stripModulePrefix(p[len(p)-1])
+		n := util.StripModulePrefix(p[len(p)-1])
 		if s.Name != n {
 			return false
 		}
@@ -500,23 +458,6 @@ func hasRelativePath(schema *yang.Entry, path []string) bool {
 	return len(p) == 0
 }
 
-// stripModulePrefixes returns "in" with each element with the format "A:B" changed
-// to "B".
-func stripModulePrefixes(in []string) []string {
-	var out []string
-	for _, v := range in {
-		out = append(out, stripModulePrefix(v))
-	}
-	return out
-}
-
-// stripModulePrefix returns s with any prefix up to and including the last ':'
-// character removed.
-func stripModulePrefix(s string) string {
-	sv := strings.Split(s, ":")
-	return sv[len(sv)-1]
-}
-
 // derefIfStructPtr returns the dereferenced reflect.Value of value if it is a
 // ptr, or value if it is not.
 func derefIfStructPtr(value reflect.Value) reflect.Value {
@@ -524,127 +465,4 @@ func derefIfStructPtr(value reflect.Value) reflect.Value {
 		return value.Elem()
 	}
 	return value
-}
-
-// SchemaNodeInfo describes a node in a YANG schema tree being traversed. It is
-// passed to an function
-type SchemaNodeInfo struct {
-	// NodeInfo is inherited.
-	util.NodeInfo
-	// Path is the path to the current schema node.
-	Path []string
-	// Schema is the schema for the current node being traversed.
-	Schema *yang.Entry
-}
-
-// SchemaNodeIteratorFunc is an iteration function for traversing YANG schema
-// trees.
-// in, out are passed through from the caller to the iteration and can be used
-// to pass state in and out.
-// It returns a slice of errors encountered while processing the field.
-type SchemaNodeIteratorFunc func(ni *SchemaNodeInfo, in, out interface{}) []error
-
-// ForEachSchemaNode recursively iterates through the nodes in schema and
-// executes iterFunction on each field.
-// in, out are passed through from the caller to the iteration and can be used
-// arbitrarily in the iteration function to carry state and results.
-// It returns a slice of errors encountered while processing the struct.
-func ForEachSchemaNode(schema *yang.Entry, value interface{}, in, out interface{}, iterFunction SchemaNodeIteratorFunc) (errs []error) {
-	if util.IsValueNil(value) {
-		return nil
-	}
-	return forEachSchemaNodeInternal(&SchemaNodeInfo{Schema: schema, NodeInfo: util.NodeInfo{FieldValue: reflect.ValueOf(value)}}, in, out, iterFunction)
-}
-
-// forEachSchemaNodeInternal recursively iterates through the nodes in ni.schema
-// and executes iterFunction on each field.
-// in, out are passed through from the caller to the iteration and can be used
-// arbitrarily in the iteration function to carry state and results.
-func forEachSchemaNodeInternal(ni *SchemaNodeInfo, in, out interface{}, iterFunction SchemaNodeIteratorFunc) (errs []error) {
-	if util.IsNilOrInvalidValue(ni.FieldValue) {
-		return nil
-	}
-
-	errs = util.AppendErrs(errs, iterFunction(ni, in, out))
-
-	switch {
-	case util.IsValueStruct(ni.FieldValue) || util.IsValueStructPtr(ni.FieldValue):
-		structElems := derefIfStructPtr(ni.FieldValue)
-		for i := 0; i < structElems.NumField(); i++ {
-			cschema, err := childSchema(ni.Schema, structElems.Type().Field(i))
-			if err != nil {
-				errs = util.AppendErr(errs, fmt.Errorf("%s: %v", structElems.Type().Field(i).Name, err))
-				continue
-			}
-			if cschema == nil {
-				continue
-			}
-			nn := *ni
-			nn.Schema = cschema
-			nn.Path = append(ni.Path, cschema.Name)
-			nn.ParentStruct = ni.FieldValue.Interface()
-			nn.FieldType = structElems.Type().Field(i)
-			nn.FieldValue = structElems.Field(i)
-
-			errs = util.AppendErrs(errs, forEachSchemaNodeInternal(&nn, in, out, iterFunction))
-		}
-
-	case util.IsValueSlice(ni.FieldValue):
-		for i := 0; i < ni.FieldValue.Len(); i++ {
-			nn := *ni
-			nn.FieldValue = ni.FieldValue.Index(i)
-
-			errs = util.AppendErrs(errs, forEachSchemaNodeInternal(&nn, in, out, iterFunction))
-		}
-
-	case util.IsValueMap(ni.FieldValue):
-		for _, key := range ni.FieldValue.MapKeys() {
-			nn := *ni
-			nn.FieldValue = ni.FieldValue.MapIndex(key)
-			nn.FieldKey = key
-			nn.FieldKeys = ni.FieldValue.MapKeys()
-
-			errs = util.AppendErrs(errs, forEachSchemaNodeInternal(&nn, in, out, iterFunction))
-		}
-	}
-
-	return nil
-}
-
-// DataSchemaTreesString outputs a combined data/schema tree string where schema
-// is displayed alongside the data tree e.g.
-//  [device (container)]
-//   RoutingPolicy [routing-policy (container)]
-//     DefinedSets [defined-sets (container)]
-//       PrefixSet [prefix-set (list)]
-//       prefix1
-//         prefix1
-//         {255.255.255.0/20 20..24}
-//           IpPrefix : "255.255.255.0/20" [ip-prefix (leaf)]
-//           MasklengthRange : "20..24" [masklength-range (leaf)]
-//         PrefixSetName : "prefix1" [prefix-set-name (leaf)]
-func DataSchemaTreesString(schema *yang.Entry, dataTree interface{}) string {
-	printFieldsIterFunc := func(ni *SchemaNodeInfo, in, out interface{}) (errs []error) {
-		outs := out.(*string)
-		prefix := ""
-		for i := 0; i < len(ni.Path); i++ {
-			prefix += "  "
-		}
-
-		fStr := fmt.Sprintf("%s%s", prefix, ni.FieldType.Name)
-		schemaStr := fmt.Sprintf("[%s (%s)]", ni.Schema.Name, util.SchemaTypeStr(ni.Schema))
-		switch {
-		case isValueScalar(ni.FieldValue):
-			*outs += fmt.Sprintf("%s : %s %s\n", fStr, pretty.Sprint(ni.FieldValue.Interface()), schemaStr)
-		case !util.IsNilOrInvalidValue(ni.NodeInfo.FieldKey):
-			*outs += fmt.Sprintf("%s%v\n", prefix, ni.NodeInfo.FieldKey)
-
-		case !util.IsNilOrInvalidValue(ni.FieldValue):
-			*outs += fmt.Sprintf("%s %s\n", fStr, schemaStr)
-		}
-		return
-	}
-	var outStr string
-	ForEachSchemaNode(schema, dataTree, nil, &outStr, printFieldsIterFunc)
-	return outStr
 }

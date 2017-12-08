@@ -145,7 +145,7 @@
                   "auto-negotiate": false
                },
                "openconfig-if-aggregate:config": {
-                  "aggregate-id": "Bundle-Ether36"
+                  "aggregate-id": "Bundle-Ether21"
                }
             }
          },
@@ -168,7 +168,7 @@
                   "auto-negotiate": false
                },
                "openconfig-if-aggregate:config": {
-                  "aggregate-id": "Bundle-Ether41"
+                  "aggregate-id": "Bundle-Ether22"
                }
             }
          }

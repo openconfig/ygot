@@ -40,6 +40,9 @@ func NewErrs(err error) Errors {
 // If err is nil, it is not appended.
 func AppendErr(errors []error, err error) Errors {
 	if err == nil {
+		if len(errors) == 0 {
+			return nil
+		}
 		return errors
 	}
 	return append(errors, err)
@@ -53,6 +56,9 @@ func AppendErrs(errors []error, newErrs []error) Errors {
 	}
 	for _, e := range newErrs {
 		errors = AppendErr(errors, e)
+	}
+	if len(errors) == 0 {
+		return nil
 	}
 	return errors
 }

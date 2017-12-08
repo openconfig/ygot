@@ -383,7 +383,7 @@ func TestUnmarshalList(t *testing.T) {
 	}
 
 	// bad value type
-	wantErr = `unmarshalContainer for schema valid-list-schema: jsonTree 42 (type int): got type int inside container, expect map[string]interface{}`
+	wantErr = `unmarshalContainer for schema valid-list-schema: jsonTree 42 (int): got type int inside container, expect map[string]interface{}`
 	if got, want := errToString(unmarshalList(validListSchema, &struct{}{}, int(42))), wantErr; got != want {
 		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
@@ -465,7 +465,7 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 			desc:    "bad value type",
 			schema:  containerWithLeafListSchema,
 			json:    `{"struct-list" : { "leaf-field" : 42 } }`,
-			wantErr: `unmarshalList for schema struct-list: jsonList map[leaf-field:42] (type map): got type map[string]interface {}, expect []interface{}`,
+			wantErr: `unmarshalList for schema struct-list: jsonList map[leaf-field:42] (map): got type map[string]interface {}, expect []interface{}`,
 		},
 	}
 

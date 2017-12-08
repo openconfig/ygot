@@ -19,6 +19,7 @@ import (
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // getJSONTreeValForField returns the JSON subtree of the provided tree that
@@ -59,7 +60,7 @@ func getJSONTreeValForPath(tree interface{}, path []string) (interface{}, bool) 
 	}
 
 	for k, v := range t {
-		if path[0] == stripModulePrefix(k) {
+		if path[0] == util.StripModulePrefix(k) {
 			if ret, ok := getJSONTreeValForPath(v, path[1:]); ok {
 				return ret, true
 			}

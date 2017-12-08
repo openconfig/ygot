@@ -32,24 +32,32 @@ func Validate(schema *yang.Entry, value interface{}) util.Errors {
 	if schema == nil {
 		return util.NewErrs(fmt.Errorf("nil schema for type %T, value %v", value, value))
 	}
+
+	var errs util.Errors
+	if util.IsFakeRoot(schema) {
+		// Leafref validation traverses entire tree from the root. Do this only
+		// once from the fakeroot.
+		errs = ValidateLeafRefData(schema, value)
+	}
+
 	util.DbgPrint("Validate with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
 
 	switch {
 	case schema.IsLeaf():
-		return validateLeaf(schema, value)
+		return util.AppendErrs(errs, validateLeaf(schema, value))
 	case schema.IsContainer():
 		gsv, ok := value.(ygot.GoStruct)
 		if !ok {
-			return util.NewErrs(fmt.Errorf("type %T is not a GoStruct for schema %s", value, schema.Name))
+			return util.AppendErr(errs, fmt.Errorf("type %T is not a GoStruct for schema %s", value, schema.Name))
 		}
-		return validateContainer(schema, gsv)
+		return util.AppendErrs(errs, validateContainer(schema, gsv))
 	case schema.IsLeafList():
-		return validateLeafList(schema, value)
+		return util.AppendErrs(errs, validateLeafList(schema, value))
 	case schema.IsList():
-		return validateList(schema, value)
+		return util.AppendErrs(errs, validateList(schema, value))
 	case schema.IsChoice():
-		return util.NewErrs(fmt.Errorf("cannot pass choice schema %s to Validate", schema.Name))
+		return util.AppendErrs(errs, util.NewErrs(fmt.Errorf("cannot pass choice schema %s to Validate", schema.Name)))
 	}
 
-	return util.NewErrs(fmt.Errorf("unknown schema type for type %T, value %v", value, value))
+	return util.AppendErrs(errs, util.NewErrs(fmt.Errorf("unknown schema type for type %T, value %v", value, value)))
 }
