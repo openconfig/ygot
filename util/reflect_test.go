@@ -1571,7 +1571,7 @@ func TestGetNodesStructKeyedList(t *testing.T) {
 func TestDeepEqualDerefPtrs(t *testing.T) {
 	a, b := 42, 42
 	if !DeepEqualDerefPtrs(&a, &b) {
-		t.Fatal("DeepEqualDerefPtrs: expect that %v == %v", a, b)
+		t.Fatalf("DeepEqualDerefPtrs: expect that %v == %v", a, b)
 	}
 }
 
