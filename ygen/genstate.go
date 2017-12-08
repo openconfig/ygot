@@ -583,7 +583,7 @@ func (s *genState) resolveLeafrefTarget(path string, contextEntry *yang.Entry) (
 		return nil, err
 	}
 
-	e := s.schematree.Get(fixedPath)
+	e := s.schematree.GetLeafValue(fixedPath)
 	if e == nil {
 		return nil, fmt.Errorf("could not resolve leafref path: %v from %v, tree: %v", fixedPath, contextEntry, s.schematree)
 	}
