@@ -54,12 +54,14 @@ func TestValidateStringSchema(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateStringSchema(test.schema)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateStringSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateStringSchema(tt.schema)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateStringSchema(%v) got error: %v, want error? %v", tt.desc, tt.schema, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -121,12 +123,14 @@ func TestValidateStringSchemaRanges(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateStringSchema(yrangeAndPatternToStringSchema(test.schemaName, test.length, test.re))
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateStringSchema got error: %v, want error? %v", test.desc, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateStringSchema(yrangeAndPatternToStringSchema(tt.schemaName, tt.length, tt.re))
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateStringSchema got error: %v, want error? %v", tt.desc, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -289,12 +293,14 @@ func TestValidateString(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateString(yrangeAndPatternToStringSchema(test.schemaName, test.length, test.re), test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: s.validateString(%v) got error: %v, want error? %t", test.desc, test.val, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateString(yrangeAndPatternToStringSchema(tt.schemaName, tt.length, tt.re), tt.val)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: s.validateString(%v) got error: %v, want error? %t", tt.desc, tt.val, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -336,11 +342,13 @@ func TestValidateStringSlice(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateStringSlice(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: s.validateStringSlice(%v) got error: %v, want error? %t", test.desc, test.val, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateStringSlice(tt.schema, tt.val)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: s.validateStringSlice(%v) got error: %v, want error? %t", tt.desc, tt.val, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }

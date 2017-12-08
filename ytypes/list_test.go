@@ -108,12 +108,14 @@ func TestValidateListSchema(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateListSchema(test.schema)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateListSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateListSchema(tt.schema)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateListSchema(%v) got error: %v, want error? %v", tt.desc, tt.schema, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -199,12 +201,14 @@ func TestValidateListNoKey(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		errs := Validate(test.schema, test.val)
-		if got, want := errs.String(), test.wantErr; got != want {
-			t.Errorf("%s: Validate got error: %v, want error: %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, errs)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := Validate(tt.schema, tt.val)
+			if got, want := errs.String(), tt.wantErr; got != want {
+				t.Errorf("%s: Validate got error: %v, want error: %v", tt.desc, got, want)
+			}
+			testErrLog(t, tt.desc, errs)
+		})
 	}
 }
 
@@ -262,12 +266,14 @@ func TestValidateListSimpleKey(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		errs := Validate(listSchema, test.val)
-		if got, want := (errs != nil), test.wantErr; got != want {
-			t.Errorf("%s: b.Validate(%v) got error: %v, want error? %v", test.desc, test.val, errs, test.wantErr)
-		}
-		testErrLog(t, test.desc, errs)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := Validate(listSchema, tt.val)
+			if got, want := (errs != nil), tt.wantErr; got != want {
+				t.Errorf("%s: b.Validate(%v) got error: %v, want error? %v", tt.desc, tt.val, errs, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, errs)
+		})
 	}
 }
 
@@ -355,12 +361,14 @@ func TestValidateListStructKey(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		errs := Validate(listSchemaStructKey, test.val)
-		if got, want := (errs != nil), test.wantErr; got != want {
-			t.Errorf("%s: b.Validate(%v) got error: %v, want error? %v", test.desc, test.val, errs, test.wantErr)
-		}
-		testErrLog(t, test.desc, errs)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := Validate(listSchemaStructKey, tt.val)
+			if got, want := (errs != nil), tt.wantErr; got != want {
+				t.Errorf("%s: b.Validate(%v) got error: %v, want error? %v", tt.desc, tt.val, errs, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, errs)
+		})
 	}
 }
 
@@ -470,25 +478,27 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 	}
 
 	var jsonTree interface{}
-	for _, test := range tests {
-		var parent ContainerStruct
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			var parent ContainerStruct
 
-		if test.json != "" {
-			if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
+			if tt.json != "" {
+				if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
+					t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				}
 			}
-		}
 
-		err := Unmarshal(test.schema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+			err := Unmarshal(tt.schema, &parent, jsonTree)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
 			}
-		}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
+					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
 	}
 }
 
@@ -553,23 +563,25 @@ func TestUnmarshalKeyedList(t *testing.T) {
 	}
 
 	var jsonTree interface{}
-	for _, test := range tests {
-		var parent ContainerStruct
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			var parent ContainerStruct
 
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
-		}
-
-		err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
+				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
 			}
-		}
+
+			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
+			}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
+					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
 	}
 }
 
@@ -648,23 +660,25 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 	}
 
 	var jsonTree interface{}
-	for _, test := range tests {
-		var parent ContainerStruct
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			var parent ContainerStruct
 
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
-		}
-
-		err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
+				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
 			}
-		}
+
+			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
+			}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
+					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
 	}
 }
 
@@ -714,22 +728,24 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 	}
 
 	var jsonTree interface{}
-	for _, test := range tests {
-		var parent ListElemStruct
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			var parent ListElemStruct
 
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
-		}
-
-		err := Unmarshal(listSchema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
+				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
 			}
-		}
+
+			err := Unmarshal(listSchema, &parent, jsonTree)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
+			}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
+					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
 	}
 }

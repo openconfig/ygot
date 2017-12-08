@@ -65,12 +65,14 @@ func TestValidateLeafListSchema(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateLeafListSchema(test.schema)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateListSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateLeafListSchema(tt.schema)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateListSchema(%v) got error: %v, want error? %v", tt.desc, tt.schema, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -111,12 +113,14 @@ func TestValidateLeafList(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		errs := Validate(test.schema, test.val)
-		if got, want := errs.String(), test.wantErr; got != want {
-			t.Errorf("%s: Validate(%v) got error: %v, want error: %v", test.desc, test.val, got, want)
-		}
-		testErrLog(t, test.desc, errs)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := Validate(tt.schema, tt.val)
+			if got, want := errs.String(), tt.wantErr; got != want {
+				t.Errorf("%s: Validate(%v) got error: %v, want error: %v", tt.desc, tt.val, got, want)
+			}
+			testErrLog(t, tt.desc, errs)
+		})
 	}
 
 	// nil value
@@ -197,25 +201,27 @@ func TestUnmarshalLeafList(t *testing.T) {
 	}
 
 	var jsonTree interface{}
-	for _, test := range tests {
-		var parent ContainerStruct
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			var parent ContainerStruct
 
-		if test.json != "" {
-			if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
+			if tt.json != "" {
+				if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
+					t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				}
 			}
-		}
 
-		err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
 			}
-		}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
+					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
 	}
 
 	var parent ContainerStruct

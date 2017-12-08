@@ -161,12 +161,14 @@ func TestValidate(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		errs := Validate(test.schema, test.val)
-		if got, want := errs.String(), test.wantErr; got != want {
-			t.Errorf("%s: Validate got error: %s, want error: %s", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, errs)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := Validate(tt.schema, tt.val)
+			if got, want := errs.String(), tt.wantErr; got != want {
+				t.Errorf("%s: Validate got error: %s, want error: %s", tt.desc, got, want)
+			}
+			testErrLog(t, tt.desc, errs)
+		})
 	}
 
 }

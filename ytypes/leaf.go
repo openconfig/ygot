@@ -39,6 +39,11 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 		return nil
 	}
 
+	// Check that the schema itself is valid.
+	if err := validateLeafSchema(inSchema); err != nil {
+		return util.NewErrs(err)
+	}
+
 	util.DbgPrint("validateLeaf with value %s (%T), schema name %s (%s)", util.ValueStr(value), value, inSchema.Name, inSchema.Type.Kind)
 
 	schema, err := resolveLeafRef(inSchema)
@@ -205,11 +210,11 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
  choices with the same type that are not represented by a named wrapper struct.
 */
 func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
-	util.DbgPrint("validateUnion %s", schema.Name)
 	if util.IsValueNil(value) {
 		return nil
 	}
 
+	util.DbgPrint("validateUnion %s", schema.Name)
 	// Must be a ptr - either a struct ptr or Go value ptr like *string.
 	// Enum types are also represented as a struct for union where the field
 	// has the enum type.
@@ -419,11 +424,11 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}) 
 	}
 
 	var err error
-	util.DbgPrint("unmarshalLeaf value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, inSchema.Name)
-
 	if err := validateLeafSchema(inSchema); err != nil {
 		return err
 	}
+
+	util.DbgPrint("unmarshalLeaf value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, inSchema.Name)
 
 	fieldName, _, err := schemaToStructFieldName(inSchema, parent)
 	if err != nil {

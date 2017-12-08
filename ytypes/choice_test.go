@@ -95,12 +95,14 @@ func TestValidateChoice(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		errs := Validate(containerWithChoiceSchema, test.val)
-		if got, want := (errs != nil), test.wantErr; got != want {
-			t.Errorf("%s: Validate got error: %s, want error? %v", test.desc, errs, test.wantErr)
-		}
-		testErrLog(t, test.desc, errs)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := Validate(containerWithChoiceSchema, tt.val)
+			if got, want := (errs != nil), tt.wantErr; got != want {
+				t.Errorf("%s: Validate got error: %s, want error? %v", tt.desc, errs, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, errs)
+		})
 	}
 }
 
@@ -199,23 +201,24 @@ func TestUnmarshalChoice(t *testing.T) {
 	}
 
 	var jsonTree interface{}
-	for _, test := range tests {
-		var parent ParentContainerStruct
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			var parent ParentContainerStruct
 
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("json unmarshal (%s) : %s", test.desc, err))
-		}
-
-		err := Unmarshal(test.schema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: got error: %v, want error: %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := &parent, test.want; !areEqual(got, want) {
-				t.Errorf("%s: got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
+				t.Fatal(fmt.Sprintf("json unmarshal (%s) : %s", tt.desc, err))
 			}
-		}
-	}
 
+			err := Unmarshal(tt.schema, &parent, jsonTree)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: got error: %v, want error: %v", tt.desc, got, want)
+			}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := &parent, tt.want; !areEqual(got, want) {
+					t.Errorf("%s: got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
+	}
 }
