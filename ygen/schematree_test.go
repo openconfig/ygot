@@ -125,7 +125,7 @@ func TestBuildSchemaTree(t *testing.T) {
 		}
 
 		for _, want := range tt.wantElements {
-			gotElement := got.Get(want.path)
+			gotElement := got.GetLeafValue(want.path)
 			if diff := pretty.Compare(gotElement, want.value); diff != "" {
 				t.Errorf("%s: buildSchemaTree(%v): got incorrect value for element %v, diff(-got,+want)\n:%s", tt.name, tt.inEntries, want.path, diff)
 				continue
