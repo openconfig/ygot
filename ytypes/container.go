@@ -37,6 +37,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 	if err := validateContainerSchema(schema); err != nil {
 		return util.NewErrs(err)
 	}
+
 	util.DbgPrint("validateContainer with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
 
 	extraFields := make(map[string]interface{})
@@ -107,12 +108,12 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interfa
 		return nil
 	}
 
-	util.DbgPrint("unmarshalContainer jsonTree %v, type %T, into parent type %T, schema name %s", util.ValueStr(jsonTree), jsonTree, parent, schema.Name)
-
 	// Check that the schema itself is valid.
 	if err := validateContainerSchema(schema); err != nil {
 		return err
 	}
+
+	util.DbgPrint("unmarshalContainer jsonTree %v, type %T, into parent type %T, schema name %s", util.ValueStr(jsonTree), jsonTree, parent, schema.Name)
 
 	// Since this is a container, the JSON data tree is a map.
 	jt, ok := jsonTree.(map[string]interface{})

@@ -108,12 +108,14 @@ func TestValidateIntSchema(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateIntSchema(test.schema)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateIntSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateIntSchema(tt.schema)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateIntSchema(%v) got error: %v, want error? %v", tt.desc, tt.schema, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -153,15 +155,17 @@ func TestValidateIntSchemaRanges(t *testing.T) {
 
 	yangIntTypes := []yang.TypeKind{yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64}
 
-	for _, test := range tests {
-		for _, ty := range yangIntTypes {
-			err := validateIntSchema(typeAndRangeToIntSchema(test.desc+"-schema", ty, test.ranges))
-			if got, want := (err != nil), test.wantErr; got != want {
-				t.Errorf("%s: validateIntSchema(%v) for %v got error: %v, want error? %v",
-					test.desc, ty, test.ranges, err, test.wantErr)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			for _, ty := range yangIntTypes {
+				err := validateIntSchema(typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges))
+				if got, want := (err != nil), tt.wantErr; got != want {
+					t.Errorf("%s: validateIntSchema(%v) for %v got error: %v, want error? %v",
+						tt.desc, ty, tt.ranges, err, tt.wantErr)
+				}
+				testErrLog(t, tt.desc, err)
 			}
-			testErrLog(t, test.desc, err)
-		}
+		})
 	}
 }
 
@@ -190,14 +194,16 @@ func TestIntRangeOverflow(t *testing.T) {
 	yangIntTypes := []yang.TypeKind{yang.Yint8, yang.Yint16, yang.Yint32,
 		yang.Yuint8, yang.Yuint16, yang.Yuint32}
 
-	for _, test := range tests {
-		for _, ty := range yangIntTypes {
-			err := validateIntSchema(typeAndRangeToIntSchema(test.desc+"-schema", ty, test.ranges(ty)))
-			if err == nil {
-				t.Errorf("%s: validateIntSchema(%v) for %v, got nil, want overflow error",
-					test.desc, ty, test.ranges(ty))
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			for _, ty := range yangIntTypes {
+				err := validateIntSchema(typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges(ty)))
+				if err == nil {
+					t.Errorf("%s: validateIntSchema(%v) for %v, got nil, want overflow error",
+						tt.desc, ty, tt.ranges(ty))
+				}
 			}
-		}
+		})
 	}
 
 }
@@ -323,21 +329,23 @@ func TestValidateInt(t *testing.T) {
 		t.Errorf("TestvalidateInt bad schema type (Ystring): got: nil, want: error")
 	}
 
-	for _, test := range tests {
-		for _, ty := range yangIntTypes {
-			for _, val := range test.inValues {
-				if err := validateInt(typeAndRangeToIntSchema(test.desc+"-schema", ty, test.ranges), toGoType(ty, val)); err != nil {
-					t.Errorf("%s: Validate for %v: %v should be inside ranges %v",
-						test.desc, ty, val, test.ranges)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			for _, ty := range yangIntTypes {
+				for _, val := range tt.inValues {
+					if err := validateInt(typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges), toGoType(ty, val)); err != nil {
+						t.Errorf("%s: Validate for %v: %v should be inside ranges %v",
+							tt.desc, ty, val, tt.ranges)
+					}
+				}
+				for _, val := range tt.outValues {
+					if err := validateInt(typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges), toGoType(ty, val)); err == nil {
+						t.Errorf("%s: Validate for %v: %v should be outside ranges %v",
+							tt.desc, ty, val, tt.ranges)
+					}
 				}
 			}
-			for _, val := range test.outValues {
-				if err := validateInt(typeAndRangeToIntSchema(test.desc+"-schema", ty, test.ranges), toGoType(ty, val)); err == nil {
-					t.Errorf("%s: Validate for %v: %v should be outside ranges %v",
-						test.desc, ty, val, test.ranges)
-				}
-			}
-		}
+		})
 	}
 }
 
@@ -392,21 +400,23 @@ func TestValidateUint(t *testing.T) {
 		t.Errorf("TestvalidateInt bad schema type (Ystring): got: nil, want: error")
 	}
 
-	for _, test := range tests {
-		for _, ty := range yangIntTypes {
-			for _, val := range test.inValues {
-				if err := validateInt(typeAndRangeToIntSchema(test.desc+"-schema", ty, test.ranges), toGoType(ty, val)); err != nil {
-					t.Errorf("%s: Validate for %v: %v should be inside ranges %v",
-						test.desc, ty, val, test.ranges)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			for _, ty := range yangIntTypes {
+				for _, val := range tt.inValues {
+					if err := validateInt(typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges), toGoType(ty, val)); err != nil {
+						t.Errorf("%s: Validate for %v: %v should be inside ranges %v",
+							tt.desc, ty, val, tt.ranges)
+					}
+				}
+				for _, val := range tt.outValues {
+					if err := validateInt(typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges), toGoType(ty, val)); err == nil {
+						t.Errorf("%s: Validate for %v: %v should be outside ranges %v",
+							tt.desc, ty, val, tt.ranges)
+					}
 				}
 			}
-			for _, val := range test.outValues {
-				if err := validateInt(typeAndRangeToIntSchema(test.desc+"-schema", ty, test.ranges), toGoType(ty, val)); err == nil {
-					t.Errorf("%s: Validate for %v: %v should be outside ranges %v",
-						test.desc, ty, val, test.ranges)
-				}
-			}
-		}
+		})
 	}
 }
 
@@ -442,15 +452,17 @@ func TestValidateIntSlice(t *testing.T) {
 	yangIntTypes := []yang.TypeKind{yang.Yint8, yang.Yint16, yang.Yint32,
 		yang.Yuint8, yang.Yuint16, yang.Yuint32}
 
-	for _, test := range tests {
-		for _, ty := range yangIntTypes {
-			err := validateIntSlice(typeAndRangeToIntSchema(test.desc+"-schema", ty, nil), toGoSliceType(ty, test.val))
-			if got, want := (err != nil), test.wantErr; got != want {
-				t.Errorf("%s: validateIntSlice for %v: got: %v, want %v",
-					test.desc, ty, got, want)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			for _, ty := range yangIntTypes {
+				err := validateIntSlice(typeAndRangeToIntSchema(tt.desc+"-schema", ty, nil), toGoSliceType(ty, tt.val))
+				if got, want := (err != nil), tt.wantErr; got != want {
+					t.Errorf("%s: validateIntSlice for %v: got: %v, want %v",
+						tt.desc, ty, got, want)
+				}
+				testErrLog(t, tt.desc, err)
 			}
-			testErrLog(t, test.desc, err)
-		}
+		})
 	}
 }
 

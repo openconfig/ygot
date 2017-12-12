@@ -61,11 +61,13 @@ func TestUnmarshal(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		var parent ParentStruct
+		t.Run(tt.desc, func(t *testing.T) {
+			var parent ParentStruct
 
-		err := Unmarshal(tt.schema, &parent, tt.value)
-		if got, want := errToString(err), tt.wantErr; got != want {
-			t.Errorf("%s: got error: %v, want error: %v", tt.desc, got, want)
-		}
+			err := Unmarshal(tt.schema, &parent, tt.value)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: got error: %v, want error: %v", tt.desc, got, want)
+			}
+		})
 	}
 }
