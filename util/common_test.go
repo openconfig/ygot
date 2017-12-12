@@ -21,7 +21,7 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-// pathNoKeysToGNMIPath conerts the supplied path, which may not contain any
+// pathNoKeysToGNMIPath converts the supplied path, which may not contain any
 // keys, into a GNMI path.
 func pathNoKeysToGNMIPath(path string) *gpb.Path {
 	out := &gpb.Path{}
@@ -31,7 +31,7 @@ func pathNoKeysToGNMIPath(path string) *gpb.Path {
 	return out
 }
 
-// gnmiPathNoKeysToPath conerts the supplied GNMI path, which may not contain
+// gnmiPathNoKeysToPath converts the supplied GNMI path, which may not contain
 // any keys, into a string slice path.
 func gnmiPathNoKeysToPath(path *gpb.Path) string {
 	if path == nil {
