@@ -90,12 +90,14 @@ func TestValidateLeafSchema(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateLeafSchema(test.schema)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateLeafSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateLeafSchema(tt.schema)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateLeafSchema(%v) got error: %v, want error? %v", tt.desc, tt.schema, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -245,12 +247,22 @@ func TestValidateLeaf(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		errs := Validate(test.schema, test.val)
-		if got, want := (errs != nil), test.wantErr; got != want {
-			t.Errorf("%s: Validate(%v) got error: %v, want error? %v", test.desc, test.schema, errs, test.wantErr)
-		}
-		testErrLog(t, test.desc, errs)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := Validate(tt.schema, tt.val)
+			if got, want := (errs != nil), tt.wantErr; got != want {
+				t.Errorf("%s: Validate(%v) got error: %v, want error? %v", tt.desc, tt.schema, errs, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, errs)
+		})
+	}
+
+	// Additional tests through private API.
+	if err := validateLeaf(nil, nil); err != nil {
+		t.Errorf("nil value: got error: %v, want error: nil", err)
+	}
+	if err := validateLeaf(nil, 42); err == nil {
+		t.Errorf("nil schema: got error: nil, want nil schema error")
 	}
 }
 
@@ -459,12 +471,22 @@ func TestValidateLeafUnion(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		errs := Validate(test.schema, test.val)
-		if got, want := (errs != nil), test.wantErr; got != want {
-			t.Errorf("%s: got error: %v, want error? %v", test.desc, errs, test.wantErr)
-		}
-		testErrLog(t, test.desc, errs)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := Validate(tt.schema, tt.val)
+			if got, want := (errs != nil), tt.wantErr; got != want {
+				t.Errorf("%s: got error: %v, want error? %v", tt.desc, errs, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, errs)
+		})
+	}
+
+	// Additional tests through private API.
+	if err := validateUnion(unionContainerSchema, nil); err != nil {
+		t.Errorf("nil value: got error: %v, want error: nil", err)
+	}
+	if err := validateUnion(unionContainerSchema, 42); err == nil {
+		t.Errorf("bad value type: got error: nil, want type error")
 	}
 }
 
@@ -796,72 +818,76 @@ func TestValidateLeafRef(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		errs := Validate(test.schema, test.val)
-		if got, want := (errs != nil), test.wantErr; got != want {
-			t.Errorf("%s: got error: %v, want error? %v", test.desc, errs, test.wantErr)
-		}
-		testErrLog(t, test.desc, errs)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := Validate(tt.schema, tt.val)
+			if got, want := (errs != nil), tt.wantErr; got != want {
+				t.Errorf("%s: got error: %v, want error? %v", tt.desc, errs, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, errs)
+		})
 	}
 }
 
 func TestRemoveXPATHPredicates(t *testing.T) {
 	tests := []struct {
-		name    string
+		desc    string
 		in      string
 		want    string
 		wantErr bool
 	}{{
-		name: "simple predicate",
+		desc: "simple predicate",
 		in:   `/foo/bar[name="eth0"]`,
 		want: "/foo/bar",
 	}, {
-		name: "predicate with path",
+		desc: "predicate with path",
 		in:   `/foo/bar[name="/foo/bar/baz"]/config/hat`,
 		want: "/foo/bar/config/hat",
 	}, {
-		name: "predicate with function",
+		desc: "predicate with function",
 		in:   `/foo/bar[name="current()/../interface"]/config/baz`,
 		want: "/foo/bar/config/baz",
 	}, {
-		name: "multiple predicates",
+		desc: "multiple predicates",
 		in:   `/foo/bar[name="current()/../interface"]/container/list[key="42"]/config/foo`,
 		want: "/foo/bar/container/list/config/foo",
 	}, {
-		name:    "] without [",
+		desc:    "] without [",
 		in:      `/foo/bar]`,
 		wantErr: true,
 	}, {
-		name:    "[ without closure",
+		desc:    "[ without closure",
 		in:      `/foo/bar[`,
 		wantErr: true,
 	}, {
-		name: "multiple predicates, end of string",
+		desc: "multiple predicates, end of string",
 		in:   `/foo/bar/name[e="1"]/bar[j="2"]`,
 		want: "/foo/bar/name/bar",
 	}, {
-		name:    "][ in incorrect order",
+		desc:    "][ in incorrect order",
 		in:      `/foo/bar][`,
 		wantErr: true,
 	}, {
-		name: "empty string",
+		desc: "empty string",
 		in:   ``,
 		want: ``,
 	}, {
-		name: "predicate directly",
+		desc: "predicate directly",
 		in:   `foo[bar="test"]`,
 		want: `foo`,
 	}}
 
 	for _, tt := range tests {
-		got, err := removeXPATHPredicates(tt.in)
-		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: removeXPATHPredicates(%s): got unexpected error, got: %v", tt.name, tt.in, err)
-		}
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := removeXPATHPredicates(tt.in)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("%s: removeXPATHPredicates(%s): got unexpected error, got: %v", tt.desc, tt.in, err)
+			}
 
-		if got != tt.want {
-			t.Errorf("%s: removePredicate(%v): did not get expected value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
-		}
+			if got != tt.want {
+				t.Errorf("%s: removePredicate(%v): did not get expected value, got: %v, want: %v", tt.desc, tt.in, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -1210,23 +1236,25 @@ func TestUnmarshalLeaf(t *testing.T) {
 	}
 
 	var jsonTree interface{}
-	for idx, test := range tests {
-		var parent LeafContainerStruct
+	for idx, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			var parent LeafContainerStruct
 
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
-		}
-
-		err := Unmarshal(containerSchema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s (#%d): Unmarshal got error: %v, want error: %v", test.desc, idx, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s (#%d): Unmarshal got:\n%v\nwant:\n%v\n", test.desc, idx, pretty.Sprint(got), pretty.Sprint(want))
+			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
+				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
 			}
-		}
+
+			err := Unmarshal(containerSchema, &parent, jsonTree)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s (#%d): Unmarshal got error: %v, want error: %v", tt.desc, idx, got, want)
+			}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
+					t.Errorf("%s (#%d): Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, idx, pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
 	}
 
 	// nil schema
@@ -1235,12 +1263,27 @@ func TestUnmarshalLeaf(t *testing.T) {
 	if got, want := errToString(err), wantErr; got != want {
 		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
-
+	// Additional tests through private API.
 	// bad parent type
 	err = unmarshalUnion(containerSchema, LeafContainerStruct{}, "int8-leaf", 42)
 	wantErr = `ytypes.LeafContainerStruct is not a struct ptr in unmarshalUnion`
 	if got, want := errToString(err), wantErr; got != want {
 		t.Errorf("bad parent type: Unmarshal got error: %v, want error: %v", got, want)
+	}
+	if err := unmarshalLeaf(nil, nil, nil); err != nil {
+		t.Errorf("nil value: got error: %v, want error: nil", err)
+	}
+	if err := unmarshalLeaf(nil, nil, map[string]interface{}{}); err == nil {
+		t.Errorf("nil schema: got error: nil, want nil schema error")
+	}
+	if err := unmarshalLeaf(enumLeafSchema, LeafContainerStruct{}, map[string]interface{}{}); err == nil {
+		t.Errorf("bad schema: got error: nil, want nil schema error")
+	}
+	if _, err := unmarshalScalar(nil, nil, "", nil); err != nil {
+		t.Errorf("nil value: got error: %v, want error: nil", err)
+	}
+	if _, err := unmarshalScalar(nil, nil, "", 42); err == nil {
+		t.Errorf("nil schema: got error: nil, want nil schema error")
 	}
 }
 
@@ -1294,75 +1337,79 @@ func TestUnmarshalLeafRef(t *testing.T) {
 	}
 
 	var jsonTree interface{}
-	for _, test := range tests {
-		var parent ContainerStruct
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			var parent ContainerStruct
 
-		if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-			t.Fatal(fmt.Sprintf("%s : %s", test.desc, err))
-		}
-
-		err := Unmarshal(containerSchema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: Unmarshal got error: %v, want error: %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := parent, test.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
+				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
 			}
-		}
+
+			err := Unmarshal(containerSchema, &parent, jsonTree)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
+			}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
+					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
 	}
 }
 
 func TestStripPrefix(t *testing.T) {
 	tests := []struct {
-		name     string
+		desc     string
 		inName   string
 		wantName string
 		wantErr  string
 	}{{
-		name:     "valid with prefix",
+		desc:     "valid with prefix",
 		inName:   "one:two",
 		wantName: "two",
 	}, {
-		name:     "valid without prefix",
+		desc:     "valid without prefix",
 		inName:   "two",
 		wantName: "two",
 	}, {
-		name:    "invalid input",
+		desc:    "invalid input",
 		inName:  "foo:bar:foo",
 		wantErr: "path element did not form a valid name (name, prefix:name): foo:bar:foo",
 	}, {
-		name:     "empty string",
+		desc:     "empty string",
 		inName:   "",
 		wantName: "",
 	}}
 
 	for _, tt := range tests {
-		got, err := stripPrefix(tt.inName)
-		if err != nil && err.Error() != tt.wantErr {
-			t.Errorf("%s: stripPrefix(%v): did not get expected error, got: %v, want: %s", tt.name, tt.inName, got, tt.wantErr)
-		}
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := stripPrefix(tt.inName)
+			if err != nil && err.Error() != tt.wantErr {
+				t.Errorf("%s: stripPrefix(%v): did not get expected error, got: %v, want: %s", tt.desc, tt.inName, got, tt.wantErr)
+			}
 
-		if err != nil {
-			continue
-		}
+			if err != nil {
+				return
+			}
 
-		if got != tt.wantName {
-			t.Errorf("%s: stripPrefix(%v): did not get expected name, got: %s, want: %s", tt.name, tt.inName, got, tt.wantName)
-		}
+			if got != tt.wantName {
+				t.Errorf("%s: stripPrefix(%v): did not get expected name, got: %s, want: %s", tt.desc, tt.inName, got, tt.wantName)
+			}
+		})
 	}
 }
 
 func TestFindLeafRefSchema(t *testing.T) {
 	tests := []struct {
-		name      string
+		desc      string
 		inSchema  *yang.Entry
 		inPathStr string
 		wantEntry *yang.Entry
 		wantErr   string
 	}{{
-		name: "simple reference",
+		desc: "simple reference",
 		inSchema: &yang.Entry{
 			Name: "referencing",
 			Type: &yang.YangType{
@@ -1386,7 +1433,7 @@ func TestFindLeafRefSchema(t *testing.T) {
 			Type: &yang.YangType{Kind: yang.Ystring},
 		},
 	}, {
-		name: "empty path",
+		desc: "empty path",
 		inSchema: &yang.Entry{
 			Name: "referencing",
 			Type: &yang.YangType{
@@ -1395,7 +1442,7 @@ func TestFindLeafRefSchema(t *testing.T) {
 		},
 		wantErr: "leafref schema referencing has empty path",
 	}, {
-		name: "bad xpath predicate, mismatched []s",
+		desc: "bad xpath predicate, mismatched []s",
 		inSchema: &yang.Entry{
 			Name: "referencing",
 			Type: &yang.YangType{
@@ -1406,7 +1453,7 @@ func TestFindLeafRefSchema(t *testing.T) {
 		inPathStr: "/interfaces/interface[name=foo/bar",
 		wantErr:   "Mismatched brackets within substring /interfaces/interface[name=foo/bar of /interfaces/interface[name=foo/bar, [ pos: 21, ] pos: -1",
 	}, {
-		name: "strip prefix error in path",
+		desc: "strip prefix error in path",
 		inSchema: &yang.Entry{
 			Name: "referencing",
 			Type: &yang.YangType{
@@ -1417,7 +1464,7 @@ func TestFindLeafRefSchema(t *testing.T) {
 		inPathStr: "/interface:foo:bar/baz",
 		wantErr:   "leafref schema referencing path /interface:foo:bar/baz: path element did not form a valid name (name, prefix:name): interface:foo:bar",
 	}, {
-		name: "nil reference",
+		desc: "nil reference",
 		inSchema: &yang.Entry{
 			Name: "referencing",
 			Type: &yang.YangType{
@@ -1430,17 +1477,19 @@ func TestFindLeafRefSchema(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := findLeafRefSchema(tt.inSchema, tt.inPathStr)
-		if err != nil && err.Error() != tt.wantErr {
-			t.Errorf("%s: findLeafRefSchema(%v, %s): did not get expected error, got: %v, want: %v", tt.name, tt.inSchema, tt.inPathStr, err, tt.wantErr)
-		}
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := findLeafRefSchema(tt.inSchema, tt.inPathStr)
+			if err != nil && err.Error() != tt.wantErr {
+				t.Errorf("%s: findLeafRefSchema(%v, %s): did not get expected error, got: %v, want: %v", tt.desc, tt.inSchema, tt.inPathStr, err, tt.wantErr)
+			}
 
-		if err != nil {
-			continue
-		}
+			if err != nil {
+				return
+			}
 
-		if diff := pretty.Compare(got, tt.wantEntry); diff != "" {
-			t.Errorf("%s: findLeafRefSchema(%v, %s): did not get expected entry, diff(-got,+want):\n%s", tt.name, tt.inSchema, tt.inPathStr, diff)
-		}
+			if diff := pretty.Compare(got, tt.wantEntry); diff != "" {
+				t.Errorf("%s: findLeafRefSchema(%v, %s): did not get expected entry, diff(-got,+want):\n%s", tt.desc, tt.inSchema, tt.inPathStr, diff)
+			}
+		})
 	}
 }

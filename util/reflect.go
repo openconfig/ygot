@@ -473,7 +473,8 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				if nn.Schema == nil {
 					e := fmt.Errorf("forEachFieldInternal could not find child schema with path %v from schema name %s", p, ni.Schema.Name)
 					DbgPrint(e.Error())
-					return NewErrs(e)
+					log.Errorln(e)
+					continue
 				}
 				nn.PathFromParent = p
 				// In the case of a map/slice, the path is of the form

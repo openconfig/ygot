@@ -87,12 +87,14 @@ func TestValidateContainerSchema(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateContainerSchema(test.schema)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateContainerSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateContainerSchema(tt.schema)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateContainerSchema(%v) got error: %v, want error? %v", tt.desc, tt.schema, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -170,12 +172,22 @@ func TestValidateContainer(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		errs := Validate(test.schema, test.val)
-		if got, want := errs.String(), test.wantErr; got != want {
-			t.Errorf("%s: got error: %v, want error: %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, errs)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := Validate(tt.schema, tt.val)
+			if got, want := errs.String(), tt.wantErr; got != want {
+				t.Errorf("%s: got error: %v, want error: %v", tt.desc, got, want)
+			}
+			testErrLog(t, tt.desc, errs)
+		})
+	}
+
+	// Additional tests through private API.
+	if err := validateContainer(nil, nil); err != nil {
+		t.Errorf("nil value: got error: %v, want error: nil", err)
+	}
+	if err := validateContainer(nil, &ContainerStruct{}); err == nil {
+		t.Errorf("nil schema: got error: nil, want nil schema error")
 	}
 }
 
@@ -273,25 +285,27 @@ func TestUnmarshalContainer(t *testing.T) {
 	}
 
 	var jsonTree interface{}
-	for _, test := range tests {
-		var parent ParentContainerStruct
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			var parent ParentContainerStruct
 
-		if test.json != "" {
-			if err := json.Unmarshal([]byte(test.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("json unmarshal (%s) : %s", test.desc, err))
+			if tt.json != "" {
+				if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
+					t.Fatal(fmt.Sprintf("json unmarshal (%s) : %s", tt.desc, err))
+				}
 			}
-		}
 
-		err := Unmarshal(test.schema, &parent, jsonTree)
-		if got, want := errToString(err), test.wantErr; got != want {
-			t.Errorf("%s: got error: %v, want error: %v", test.desc, got, want)
-		}
-		testErrLog(t, test.desc, err)
-		if err == nil {
-			if got, want := &parent, test.want; !areEqual(got, want) {
-				t.Errorf("%s: got:\n%v\nwant:\n%v\n", test.desc, pretty.Sprint(got), pretty.Sprint(want))
+			err := Unmarshal(tt.schema, &parent, jsonTree)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("%s: got error: %v, want error: %v", tt.desc, got, want)
 			}
-		}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := &parent, tt.want; !areEqual(got, want) {
+					t.Errorf("%s: got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
 	}
 
 	var parent ParentContainerStruct
@@ -300,5 +314,13 @@ func TestUnmarshalContainer(t *testing.T) {
 	wantErrStr := `unmarshalContainer for schema parent-field: jsonTree [  ]: got type []interface {} inside container, expect map[string]interface{}`
 	if got, want := errToString(Unmarshal(containerSchema, &parent, badJSONTree)), wantErrStr; got != want {
 		t.Errorf("Unmarshal container with bad json : got error: %s, want error: %s", got, want)
+	}
+
+	// Additional tests through private API.
+	if err := unmarshalContainer(nil, nil, nil); err != nil {
+		t.Errorf("nil value: got error: %v, want error: nil", err)
+	}
+	if err := unmarshalContainer(nil, nil, map[string]interface{}{}); err == nil {
+		t.Errorf("nil schema: got error: nil, want nil schema error")
 	}
 }

@@ -212,28 +212,30 @@ func TestValidateListAttr(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateListAttr(test.schema, test.value)
-		// TODO(mostrowski): make consistent with rest of structs library.
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: TestValidateListAttr(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
-		}
-		if err != nil {
-			if testErrOutput {
-				t.Logf("%s: %v", test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateListAttr(tt.schema, tt.value)
+			// TODO(mostrowski): make consistent with rest of structs library.
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: TestValidateListAttr(%v) got error: %v, want error? %v", tt.desc, tt.schema, err, tt.wantErr)
 			}
-		}
+			if err != nil {
+				if testErrOutput {
+					t.Logf("%s: %v", tt.desc, err)
+				}
+			}
+		})
 	}
 }
 
 func TestIsFakeRoot(t *testing.T) {
 	tests := []struct {
-		name string
+		desc string
 		in   *yang.Entry
 		want bool
 	}{
 		{
-			name: "explicitly true",
+			desc: "explicitly true",
 			in: &yang.Entry{
 				Name: "entry",
 				Annotation: map[string]interface{}{
@@ -243,7 +245,7 @@ func TestIsFakeRoot(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "unspecified",
+			desc: "unspecified",
 			in: &yang.Entry{
 				Name: "entry",
 			},
@@ -251,9 +253,11 @@ func TestIsFakeRoot(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if got := util.IsFakeRoot(tt.in); got != tt.want {
-			t.Errorf("%v: isFakeRoot(%v): did not get expected return value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
-		}
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := util.IsFakeRoot(tt.in); got != tt.want {
+				t.Errorf("%v: isFakeRoot(%v): did not get expected return value, got: %v, want: %v", tt.desc, tt.in, got, tt.want)
+			}
+		})
 	}
 }
 

@@ -49,12 +49,14 @@ func TestValidateBoolSchema(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateBoolSchema(test.schema)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBoolSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateBoolSchema(tt.schema)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateBoolSchema(%v) got error: %v, want error? %v", tt.desc, tt.schema, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -84,12 +86,14 @@ func TestValidateBool(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateBool(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBool(%v) got error: %v, want error? %v", test.desc, test.val, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateBool(tt.schema, tt.val)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateBool(%v) got error: %v, want error? %v", tt.desc, tt.val, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -125,11 +129,13 @@ func TestValidateSliceBoolType(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateBoolSlice(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBool(%v) got error: %v, want error? %v", test.desc, test.val, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateBoolSlice(tt.schema, tt.val)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateBool(%v) got error: %v, want error? %v", tt.desc, tt.val, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }

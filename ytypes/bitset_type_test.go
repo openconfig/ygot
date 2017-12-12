@@ -63,12 +63,14 @@ func TestValidateBitsetSchema(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateBitsetSchema(test.schema)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBitsetSchema(%v) got error: %v, want error? %v", test.desc, test.schema, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateBitsetSchema(tt.schema)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateBitsetSchema(%v) got error: %v, want error? %v", tt.desc, tt.schema, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -104,12 +106,14 @@ func TestValidateBitset(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateBitset(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBitset(%v) got error: %v, want error? %v", test.desc, test.val, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateBitset(tt.schema, tt.val)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateBitset(%v) got error: %v, want error? %v", tt.desc, tt.val, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
 
@@ -145,11 +149,13 @@ func TestValidateBitsetSlice(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		err := validateBitsetSlice(test.schema, test.val)
-		if got, want := (err != nil), test.wantErr; got != want {
-			t.Errorf("%s: validateBitset(%v) got error: %v, want error? %v", test.desc, test.val, err, test.wantErr)
-		}
-		testErrLog(t, test.desc, err)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := validateBitsetSlice(tt.schema, tt.val)
+			if got, want := (err != nil), tt.wantErr; got != want {
+				t.Errorf("%s: validateBitset(%v) got error: %v, want error? %v", tt.desc, tt.val, err, tt.wantErr)
+			}
+			testErrLog(t, tt.desc, err)
+		})
 	}
 }
