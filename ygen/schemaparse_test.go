@@ -91,6 +91,7 @@ func TestBuildJSONTree(t *testing.T) {
 		inEntries        []*yang.Entry
 		inDirectoryNames map[string]string
 		inFakeRoot       *yang.Entry
+		inCompressed     bool
 		want             string
 		wantErr          string
 	}{{
@@ -99,6 +100,7 @@ func TestBuildJSONTree(t *testing.T) {
 		inDirectoryNames: map[string]string{
 			"/a-module/simple-container": "SimpleContainer",
 		},
+		inCompressed: true,
 		want: `{
     "Name": "",
     "Kind": 0,
@@ -122,6 +124,7 @@ func TestBuildJSONTree(t *testing.T) {
         }
     },
     "Annotation": {
+        "isCompressedSchema": true,
         "isFakeRoot": true
     }
 }`,
@@ -254,7 +257,7 @@ func TestBuildJSONTree(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		gotb, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot)
+		gotb, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot, tt.inCompressed)
 		if err != nil && err.Error() != tt.wantErr {
 			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inEntries, tt.inDirectoryNames, err, tt.wantErr)
 		}
@@ -435,6 +438,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 		inEntries        []*yang.Entry
 		inFakeRoot       *yang.Entry
 		inDirectoryNames map[string]string
+		inCompressed     bool
 		want             map[string]*yang.Entry
 		wantJSONErr      string
 		wantGzipErr      string
@@ -463,7 +467,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		gotByte, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot)
+		gotByte, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot, tt.inCompressed)
 		if err != nil && err.Error() != tt.wantJSONErr {
 			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inEntries, tt.inDirectoryNames, err, tt.wantJSONErr)
 			continue

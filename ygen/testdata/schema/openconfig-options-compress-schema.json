@@ -265,6 +265,7 @@
         }
     },
     "Annotation": {
+      "isCompressedSchema": true,
       "isFakeRoot": true
     }
 }
