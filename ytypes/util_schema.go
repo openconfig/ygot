@@ -260,30 +260,11 @@ func pathToSchema(f reflect.StructField) ([]string, error) {
 	return nil, fmt.Errorf("field %s had path tag %s with |, but no elements of form a/b", f.Name, pathAnnotation)
 }
 
-// schemaPaths returns all the paths in the path tag.
-func schemaPaths(schema *yang.Entry, f reflect.StructField) ([][]string, error) {
-	var out [][]string
-	pathTag, ok := f.Tag.Lookup("path")
-	if !ok || pathTag == "" {
-		return nil, fmt.Errorf("field %s did not specify a path", f.Name)
-	}
-	if pathTag == "" {
-		return out, nil
-	}
-
-	ps := strings.Split(pathTag, "|")
-	for _, p := range ps {
-		sp := removeRootPrefix(strings.Split(p, "/"))
-		out = append(out, util.StripModulePrefixes(sp))
-	}
-	return out, nil
-}
-
 // dataTreePaths returns all the data tree paths corresponding to schemaPaths.
 // Any intermediate nodes not found in the data tree (i.e. choice/case) are
 // removed from the paths.
 func dataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][]string, error) {
-	out, err := schemaPaths(schema, f)
+	out, err := util.SchemaPaths(f)
 	if err != nil {
 		return nil, err
 	}
