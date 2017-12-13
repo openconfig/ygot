@@ -217,6 +217,7 @@
         }
     },
     "Annotation": {
+        "isCompressedSchema": true,
         "isFakeRoot": true,
         "schemapath": "/",
         "structname": "Fakeroot"
