@@ -36,6 +36,27 @@ import (
 	spb "google.golang.org/genproto/googleapis/rpc/status"
 )
 
+// To debug a schema node subtree, any of the following can be used:
+//
+// 1. Print hierarchy without details (good for viewing large subtrees):
+//      fmt.Println(schemaTreeString(oc.SchemaTree["LocalRoutes_Static"], ""))
+//
+// 2. Print in-memory structure representations. Replace is needed due to large
+//    default util.Indentations:
+//      fmt.Println(strings.Replace(pretty.Sprint(oc.SchemaTree["LocalRoutes_Static"].Dir["next-hops"].Dir["next-hop"].Dir["config"].Dir["next-hop"])[0:], "              ", "  ", -1))
+//
+// 3. Detailed representation in JSON format:
+//      j, _ := json.MarshalIndent(oc.SchemaTree["LocalRoutes_Static"].Dir["next-hops"].Dir["next-hop"].Dir["config"].Dir["next-hop"], "", "  ")
+//      fmt.Println(string(j))
+//
+// 4. Combination of schema and data trees:
+//       fmt.Println(ytypes.DataSchemaTreesString(oc.SchemaTree["Device"], dev))
+//
+// 5. Entire schema only in JSON format:
+//       j, _ := json.MarshalIndent(oc.SchemaTree, "", "  ")
+//	     fmt.Println(string(j))
+//
+
 const (
 	// TestRoot is the path to the directory within which the test runs, appended
 	// to any filename that is to be loaded.
@@ -65,22 +86,6 @@ func errToString(err error) string {
 	}
 	return err.Error()
 }
-
-// To debug a schema node subtree, any of the following can be used:
-//
-// 1. Print hierarchy without details (good for viewing large subtrees):
-//      fmt.Println(schemaTreeString(oc.SchemaTree["LocalRoutes_Static"], ""))
-//
-// 2. Print in-memory structure representations. Replace is needed due to large
-//    default util.Indentations:
-//      fmt.Println(strings.Replace(pretty.Sprint(oc.SchemaTree["LocalRoutes_Static"].Dir["next-hops"].Dir["next-hop"].Dir["config"].Dir["next-hop"])[0:], "              ", "  ", -1))
-//
-// 3. Detailed representation in JSON format:
-//      j, _ := json.MarshalIndent(oc.SchemaTree["LocalRoutes_Static"].Dir["next-hops"].Dir["next-hop"].Dir["config"].Dir["next-hop"], "", "  ")
-//      fmt.Println(string(j))
-//
-// 4. Combination of schema and data trees:
-//       fmt.Println(ytypes.DataSchemaTreesString(oc.SchemaTree["Device"], dev))
 
 func TestValidateInterface(t *testing.T) {
 	dev := &oc.Device{}
@@ -745,6 +750,48 @@ func TestGetNode(t *testing.T) {
 			}
 		}
 	}
+}
+
+/* TestLeafrefCurrent validates that the current() function works when
+   leafrefs are validated in a real schema.
+   It uses the following struct as the input:
+   type Mpls_Global_Interface struct {
+        InterfaceId  *string                             `path:"config/interface-id|interface-id" module:"openconfig-mpls"`
+        InterfaceRef *Mpls_Global_Interface_InterfaceRef `path:"interface-ref" module:"openconfig-mpls"`
+        MplsEnabled  *bool                               `path:"config/mpls-enabled" module:"openconfig-mpls"`
+   }
+   where the InterfaceRef container references an interface/subinterface
+   in the /interfaces/interface list.
+*/
+func TestLeafrefCurrent(t *testing.T) {
+	dev := &oc.Device{}
+	i, err := dev.NewInterface("eth0")
+	if err != nil {
+		t.Fatalf("TestLeafrefCurrent: could not create new interface, got: %v, want error: nil", err)
+	}
+	if _, err := i.NewSubinterface(0); err != nil {
+		t.Fatalf("TestLeafrefCurrent: could not create subinterface, got: %v, want error: nil", err)
+	}
+
+	ygot.BuildEmptyTree(dev)
+	mi, err := dev.Mpls.Global.NewInterface("eth0.0")
+	if err != nil {
+		t.Fatalf("TestLeafrefCurrent: could not add new MPLS interface, got: %v, want error: nil", err)
+	}
+	mi.InterfaceRef = &oc.Mpls_Global_Interface_InterfaceRef{
+		Interface:    ygot.String("eth0"),
+		Subinterface: ygot.Uint32(0),
+	}
+
+	if err := dev.Validate(); err != nil {
+		t.Fatalf("TestLeafrefCurrent: could not validate populated interfaces, got: %v, want: nil", err)
+	}
+
+	dev.Mpls.Global.Interface["eth0.0"].InterfaceRef.Subinterface = ygot.Uint32(1)
+	if err := dev.Validate(); err == nil {
+		t.Fatal("TestLeafrefCurrent: did not get expected error for non-existent subinterface, got: nil, want: error")
+	}
+
 }
 
 func toGNMIPath(path []string) *gpb.Path {
