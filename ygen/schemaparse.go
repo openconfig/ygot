@@ -26,7 +26,8 @@ import (
 
 // buildJSON tree takes an input set of modules expressed as a slice of yang.Entry
 // structs, the names of directories within the generated code, and a yang.Entry
-// which corresponds to the fake root and returns a JSON serialised tree of the
+// which corresponds to the fake root, and a boolean indicating whether the current
+// code generation is compressing paths, and returns a JSON serialised tree of the
 // schema for the set of modules. The JSON document that is returned is always
 // rooted on a yang.Entry which corresponds to the root item, and stores all
 // root-level enties (and their subtrees) within the input module set. All
@@ -34,7 +35,7 @@ import (
 // they correspond to in the generated code, and the absolute schema path that
 // the entry corresponds to. In the case that the fake root struct that is provided
 // is nil, a synthetic root entry is used to store the schema tree.
-func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry) ([]byte, error) {
+func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry, compressed bool) ([]byte, error) {
 	rootEntry := &yang.Entry{
 		Dir:        map[string]*yang.Entry{},
 		Annotation: map[string]interface{}{},
@@ -58,6 +59,11 @@ func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry)
 	// Always annotate the root as a fake root, so that it is not treated
 	// as a path element in ytypes.
 	rootEntry.Annotation["isFakeRoot"] = true
+
+	// Annotate the root indicating that compression was enabled.
+	if compressed {
+		rootEntry.Annotation["isCompressedSchema"] = compressed
+	}
 
 	j, err := json.MarshalIndent(rootEntry, "", strings.Repeat(" ", 4))
 	if err != nil {
