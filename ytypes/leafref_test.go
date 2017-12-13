@@ -93,6 +93,15 @@ func TestValidateLeafRefData(t *testing.T) {
 							Path: "../../leaf-list",
 						},
 					},
+					"leaf-list-ref-to-leaf-list": {
+						Name: "leaf-list-ref-to-leaf-list",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../../leaf-list",
+						},
+						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+					},
 					"int32-ref-to-list": {
 						Name: "int32-ref-to-list",
 						Kind: yang.LeafEntry,
@@ -119,6 +128,7 @@ func TestValidateLeafRefData(t *testing.T) {
 		LeafRefToInt32         *int32   `path:"int32-ref-to-leaf"`
 		LeafRefToEnum          int64    `path:"enum-ref-to-leaf"`
 		LeafRefToLeafList      *int32   `path:"int32-ref-to-leaf-list"`
+		LeafListRefToLeafList  []*int32 `path:"leaf-list-ref-to-leaf-list"`
 		LeafRefToList          *int32   `path:"int32-ref-to-list"`
 		LeafListLeafRefToInt32 []*int32 `path:"leaf-list-with-leafref"`
 	}
@@ -202,6 +212,21 @@ func TestValidateLeafRefData(t *testing.T) {
 				Container2: &Container2{LeafRefToLeafList: Int32(43)},
 			},
 			wantErr: `field name LeafRefToLeafList value 43 (int32 ptr) schema path /int32-ref-to-leaf-list has leafref path ../../leaf-list not equal to any target nodes`,
+		},
+		{
+			desc: "leaf-list ref to leaf-list",
+			in: &Container{
+				LeafList:   []*int32{Int32(40), Int32(41), Int32(42)},
+				Container2: &Container2{LeafListRefToLeafList: []*int32{Int32(41), Int32(42)}},
+			},
+		},
+		{
+			desc: "leaf-list ref to leaf-list not subset",
+			in: &Container{
+				LeafList:   []*int32{Int32(40), Int32(41), Int32(42)},
+				Container2: &Container2{LeafListRefToLeafList: []*int32{Int32(41), Int32(42), Int32(43)}},
+			},
+			wantErr: `field name LeafListRefToLeafList value 43 (int32 ptr) schema path /leaf-list-ref-to-leaf-list has leafref path ../../leaf-list not equal to any target nodes`,
 		},
 		{
 			desc: "keyed list match",
