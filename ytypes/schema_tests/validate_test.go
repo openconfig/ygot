@@ -789,7 +789,7 @@ func TestLeafrefCurrent(t *testing.T) {
 
 	dev.Mpls.Global.Interface["eth0.0"].InterfaceRef.Subinterface = ygot.Uint32(1)
 	if err := dev.Validate(); err == nil {
-		t.Fatalf("TestLeafrefCurrent: did not get expected error for non-existent subinterface, got: nil, want: error", err)
+		t.Fatal("TestLeafrefCurrent: did not get expected error for non-existent subinterface, got: nil, want: error")
 	}
 
 }
