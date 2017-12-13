@@ -51,7 +51,7 @@ import (
 //
 // 4. Combination of schema and data trees:
 //       fmt.Println(ytypes.DataSchemaTreesString(oc.SchemaTree["Device"], dev))
-// 
+//
 // 5. Entire schema only in JSON format:
 //       j, _ := json.MarshalIndent(oc.SchemaTree, "", "  ")
 //	     fmt.Println(string(j))
@@ -772,14 +772,14 @@ func TestLeafrefCurrent(t *testing.T) {
 	if _, err := i.NewSubinterface(0); err != nil {
 		t.Fatalf("TestLeafrefCurrent: could not create subinterface, got: %v, want error: nil", err)
 	}
-	
+
 	ygot.BuildEmptyTree(dev)
 	mi, err := dev.Mpls.Global.NewInterface("eth0.0")
 	if err != nil {
 		t.Fatalf("TestLeafrefCurrent: could not add new MPLS interface, got: %v, want error: nil", err)
 	}
 	mi.InterfaceRef = &oc.Mpls_Global_Interface_InterfaceRef{
-		Interface: ygot.String("eth0"),
+		Interface:    ygot.String("eth0"),
 		Subinterface: ygot.Uint32(0),
 	}
 
