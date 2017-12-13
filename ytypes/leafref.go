@@ -154,12 +154,7 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path) ([]interface{}, error) {
 			if root.Parent == nil {
 				return nil, fmt.Errorf("no parent for leafref path at %v, with remaining path %s", ni.Schema.Path(), path)
 			}
-			// If node is a leaf-list, it shares the schema with the leaf,
-			// therefore it's not represented in the schema path.
-			if !root.Schema.IsLeafList() {
-				util.DbgPrint("node is a leaf-list element, not moving up schema path") 				
-				path.Elem = path.GetElem()[len(root.PathFromParent):]
-			}
+			path.Elem = path.GetElem()[len(root.PathFromParent):]
 			util.DbgPrint("going up data tree from type %s to %s, schema path from parent is %v, remaining path %v",
 				root.FieldValue.Type(), root.Parent.FieldValue.Type(), root.PathFromParent, path)
 			root = root.Parent

@@ -98,7 +98,7 @@ func TestValidateLeafRefData(t *testing.T) {
 						Kind: yang.LeafEntry,
 						Type: &yang.YangType{
 							Kind: yang.Yleafref,
-							Path: "../../leaf-list",
+							Path: "../../../leaf-list",
 						},
 						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
 					},
@@ -226,7 +226,7 @@ func TestValidateLeafRefData(t *testing.T) {
 				LeafList:   []*int32{Int32(40), Int32(41), Int32(42)},
 				Container2: &Container2{LeafListRefToLeafList: []*int32{Int32(41), Int32(42), Int32(43)}},
 			},
-			wantErr: `field name LeafListRefToLeafList value 43 (int32 ptr) schema path /leaf-list-ref-to-leaf-list has leafref path ../../leaf-list not equal to any target nodes`,
+			wantErr: `field name LeafListRefToLeafList value 43 (int32 ptr) schema path /leaf-list-ref-to-leaf-list has leafref path ../../../leaf-list not equal to any target nodes`,
 		},
 		{
 			desc: "keyed list match",
