@@ -43,6 +43,9 @@ func IsChoiceOrCase(e *yang.Entry) bool {
 // IsFakeRoot reports whether the supplied yang.Entry represents the synthesised
 // root entity in the generated code.
 func IsFakeRoot(e *yang.Entry) bool {
+	if e == nil {
+		return false
+	}
 	if _, ok := e.Annotation["isFakeRoot"]; ok {
 		return true
 	}
@@ -51,6 +54,9 @@ func IsFakeRoot(e *yang.Entry) bool {
 
 // IsUnkeyedList reports whether e is an unkeyed list.
 func IsUnkeyedList(e *yang.Entry) bool {
+	if e == nil {
+		return false
+	}
 	return e.IsList() && e.Key == ""
 }
 
@@ -60,9 +66,6 @@ func SchemaPaths(f reflect.StructField) ([][]string, error) {
 	pathTag, ok := f.Tag.Lookup("path")
 	if !ok || pathTag == "" {
 		return nil, fmt.Errorf("field %s did not specify a path", f.Name)
-	}
-	if pathTag == "" {
-		return out, nil
 	}
 
 	ps := strings.Split(pathTag, "|")
@@ -314,12 +317,7 @@ func schemaTreeRoot(schema *yang.Entry) *yang.Entry {
 // StripModulePrefixesStr returns "in" with each element with the format "A:B"
 // changed to "B".
 func StripModulePrefixesStr(in string) string {
-	inv := strings.Split(in, "/")
-	var out []string
-	for _, v := range inv {
-		out = append(out, StripModulePrefix(v))
-	}
-	return strings.Join(out, "/")
+	return strings.Join(StripModulePrefixes(strings.Split(in, "/")), "/")
 }
 
 // StripModulePrefixes returns "in" with each element with the format "A:B"
