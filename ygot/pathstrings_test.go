@@ -212,7 +212,7 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:                `name [name=[\\\]] example from specification`,
 		in:                  `/interfaces/interface[name=[\\\]]`,
-		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=[\]]`}},
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=[\\]]`}},
 		wantStructuredPath: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{
 				{Name: "interfaces"},
@@ -312,7 +312,7 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:                "escaped ] within key value",
 		in:                  `/foo/bar[baz=\]bat]`,
-		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", `bar[baz=]bat]`}},
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", `bar[baz=\]bat]`}},
 		wantStructuredPath: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{
 				{Name: "foo"},

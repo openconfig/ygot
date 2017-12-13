@@ -79,6 +79,8 @@ func PathToStrings(path *gnmipb.Path) ([]string, error) {
 	return p, nil
 }
 
+// elemToString returns a formatted string representation of a single Path.Elem
+// item. name and kv correspond to PathElem.Name and PathElem.Key.
 func elemToString(name string, kv map[string]string) (string, error) {
 	if name == "" {
 		return "", errors.New("empty name for PathElem")
@@ -98,6 +100,7 @@ func elemToString(name string, kv map[string]string) (string, error) {
 
 	for _, k := range keys {
 		v := strings.Replace(kv[k], `=`, `\=`, -1)
+		v = strings.Replace(v, `]`, `\]`, -1)
 		name = fmt.Sprintf("%s[%s=%s]", name, k, v)
 	}
 
