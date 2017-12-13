@@ -86,6 +86,15 @@ func ResetIndent() {
 // ValueStr returns a string representation of value which may be a value, ptr,
 // or struct type.
 func ValueStr(value interface{}) string {
+	out := valueStrInternal(value)
+	if len(out) > maxValueStrLen {
+		out = out[:maxValueStrLen] + "..."
+	}
+	return out
+}
+
+// ValueStrInternal is the internal implementation of ValueStr.
+func valueStrInternal(value interface{}) string {
 	v := reflect.ValueOf(value)
 	kind := v.Kind()
 	switch kind {

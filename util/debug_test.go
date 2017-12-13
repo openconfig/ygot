@@ -65,20 +65,23 @@ func TestValueStr(t *testing.T) {
 	saveDebugVals()
 	defer restoreDebugVals()
 
-	maxValueStrLen = 50
-
 	testStruct := struct {
 		A int
 		B string
 		C *string
+		D []string
 	}{
 		A: 42,
 		B: "forty two",
 		C: toStrPtr("forty two"),
+		D: []string{"a", "b", "c"},
 	}
 
-	wantStr := `{ 42 (int), forty two (string), forty two (string ptr) }`
-	if got, want := ValueStr(testStruct), wantStr; got != want {
+	wantStr := `{ 42 (int), forty two (string), forty two (string ptr), [ a (string), b (string), c (string) ] }`
+	maxValueStrLen = len(wantStr) - 1
+	want := wantStr[:len(wantStr)-1] + "..."
+
+	if got := ValueStr(testStruct); got != want {
 		t.Errorf("got:\n%s\nwant:\n%s", got, want)
 	}
 }
