@@ -799,3 +799,49 @@ func diffJSON(a, b []byte) (string, error) {
 
 	return generateUnifiedDiff(strings.Join(asv, "\n"), strings.Join(bsv, "\n"))
 }
+
+/* TestLeafrefCurrent validates that the current() function works when
+   leafrefs are validated in a real schema.
+
+   It uses the following struct as the input:
+
+   type Mpls_Global_Interface struct {
+        InterfaceId  *string                             `path:"config/interface-id|interface-id" module:"openconfig-mpls"`
+        InterfaceRef *Mpls_Global_Interface_InterfaceRef `path:"interface-ref" module:"openconfig-mpls"`
+        MplsEnabled  *bool                               `path:"config/mpls-enabled" module:"openconfig-mpls"`
+   }
+
+   where the InterfaceRef container references an interface/subinterface
+   in the /interfaces/interface list.
+*/
+func TestLeafrefCurrent(t *testing.T) {
+	dev := &oc.Device{}
+	i, err := dev.NewInterface("eth0")
+	if err != nil {
+		t.Fatalf("TestLeafrefCurrent: could not create new interface, got: %v, want error: nil", err)
+	}
+	if _, err := i.NewSubinterface(0); err != nil {
+		t.Fatalf("TestLeafrefCurrent: could not create subinterface, got: %v, want error: nil", err)
+	}
+	
+	ygot.BuildEmptyTree(dev)
+	mi, err := dev.Mpls.Global.NewInterface("eth0.0")
+	if err != nil {
+		t.Fatalf("TestLeafrefCurrent: could not add new MPLS interface, got: %v, want error: nil", err)
+	}
+	mi.InterfaceRef = &oc.Mpls_Global_Interface_InterfaceRef{
+		Interface: ygot.String("eth0"),
+		Subinterface: ygot.Uint32(0),
+	}
+
+	if err := dev.Validate(); err != nil {
+		t.Fatalf("TestLeafrefCurrent: could not validate populated interfaces, got: %v, want: nil", err)
+	}
+
+	dev.Mpls.Global.Interface["eth0.0"].InterfaceRef.Subinterface = ygot.Uint32(1)
+	if err := dev.Validate(); err == nil {
+		t.Fatalf("TestLeafrefCurrent: did not get expected error for non-existent subinterface, got: nil, want: error", err)
+	}
+
+}
+
