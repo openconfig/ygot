@@ -16,6 +16,7 @@ package ygot
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -42,7 +43,7 @@ func TestPathToString(t *testing.T) {
 		name:    "empty path segment",
 		in:      &gnmipb.Path{Element: []string{"x", "", "y", "z"}},
 		want:    "/x//y/z",
-		wantErr: "nil element at index 1 in [x  y z]",
+		wantErr: "empty element at index 1 in [x  y z]",
 	}, {
 		name: "path with attributes",
 		in:   &gnmipb.Path{Element: []string{"q", "r[s=t]", "u"}},
@@ -69,18 +70,18 @@ func TestPathToString(t *testing.T) {
 		}},
 		want: "/a[a=b]/b[c=d][e=f]/g",
 	}, {
-		name: "structured path with nil element",
+		name: "structured path with empty element",
 		in: &gnmipb.Path{Elem: []*gnmipb.PathElem{
 			{Name: "a", Key: map[string]string{"a": "b"}},
 			{Key: map[string]string{"c": "d"}},
 		}},
-		wantErr: "nil name for PathElem at index 1",
+		wantErr: "empty name for PathElem at index 1",
 	}, {
-		name: "structed path with nil key name",
+		name: "structed path with empty key name",
 		in: &gnmipb.Path{Elem: []*gnmipb.PathElem{
 			{Name: "a", Key: map[string]string{"": "d"}},
 		}},
-		wantErr: "nil key name (value: d) in element a",
+		wantErr: "empty key name (value: d) in element a",
 	}, {
 		name: "both path types set",
 		in: &gnmipb.Path{
@@ -96,7 +97,7 @@ func TestPathToString(t *testing.T) {
 
 	for _, tt := range tests {
 		got, err := PathToString(tt.in)
-		if err != nil && err.Error() != tt.wantErr {
+		if err != nil && !strings.Contains(err.Error(), tt.wantErr) {
 			t.Errorf("%s: PathToString(%v): did not get expected error, got: %v, want: %v", tt.name, tt.in, err, tt.wantErr)
 		}
 
@@ -175,8 +176,8 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:              "path with a key missing an equals sign",
 		in:                "/a/b[cd]/e",
-		wantSliceErr:      "error parsing path /a/b[cd]/e: received null key name for element b",
-		wantStructuredErr: "error parsing path /a/b[cd]/e: received null key name for element b",
+		wantSliceErr:      "received null key name for element b",
+		wantStructuredErr: "received null key name for element b",
 	}, {
 		name:                "path with slashes in the key",
 		in:                  `/interfaces/interface[name=Ethernet1/2/3]`,
@@ -211,7 +212,7 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:                `name [name=[\\\]] example from specification`,
 		in:                  `/interfaces/interface[name=[\\\]]`,
-		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=[\\\]]`}},
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=[\\]]`}},
 		wantStructuredPath: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{
 				{Name: "interfaces"},
@@ -221,7 +222,7 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:                "forward slash in key which does not need to be escaped ",
 		in:                  `/interfaces/interface[name=\/foo]/state`,
-		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=\/foo]`, "state"}},
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", `interface[name=/foo]`, "state"}},
 		wantStructuredPath: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{
 				{Name: "interfaces"},
@@ -237,6 +238,16 @@ func TestStringToPath(t *testing.T) {
 			Elem: []*gnmipb.PathElem{
 				{Name: "interfaces"},
 				{Name: "inter/face", Key: map[string]string{"name": "foo"}},
+			},
+		},
+	}, {
+		name:                "escaped forward slash in an attribute",
+		in:                  `/interfaces/interface[name=foo\/bar]`,
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"interfaces", "interface[name=foo/bar]"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{
+				{Name: "interfaces"},
+				{Name: "interface", Key: map[string]string{"name": "foo/bar"}},
 			},
 		},
 	}, {
@@ -265,7 +276,7 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:                "path with escaped backslash in an element",
 		in:                  `/foo/bar\\\/baz/hat`,
-		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", `bar\/baz`, "hat"}},
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", `bar/baz`, "hat"}},
 		wantStructuredPath: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{
 				{Name: "foo"},
@@ -276,7 +287,7 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:                "path with escaped backslash in a key",
 		in:                  `/foo/bar[baz\\foo=hat]`,
-		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", `bar[baz\\foo=hat]`}},
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", `bar[baz\foo=hat]`}},
 		wantStructuredPath: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{
 				{Name: "foo"},
@@ -286,7 +297,7 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:                "additional equals within the key, unescaped",
 		in:                  `/foo/bar[baz==bat]`,
-		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", "bar[baz==bat]"}},
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"foo", "bar[baz=\\=bat]"}},
 		wantStructuredPath: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{
 				{Name: "foo"},
@@ -296,8 +307,8 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:              "error - unescaped ] within a key value",
 		in:                `/foo/bar[baz=]bat]`,
-		wantSliceErr:      "error parsing path /foo/bar[baz=]bat]: received null value for key baz of element bar",
-		wantStructuredErr: "error parsing path /foo/bar[baz=]bat]: received null value for key baz of element bar",
+		wantSliceErr:      "received null value for key baz of element bar",
+		wantStructuredErr: "received null value for key baz of element bar",
 	}, {
 		name:                "escaped ] within key value",
 		in:                  `/foo/bar[baz=\]bat]`,
@@ -311,8 +322,8 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:              "trailing garbage outside of kv name",
 		in:                `/foo/bar[baz=bat]hat`,
-		wantSliceErr:      "error parsing path /foo/bar[baz=bat]hat: trailing garbage following keys in element bar, got: hat",
-		wantStructuredErr: "error parsing path /foo/bar[baz=bat]hat: trailing garbage following keys in element bar, got: hat",
+		wantSliceErr:      "trailing garbage following keys in element bar, got: hat",
+		wantStructuredErr: "trailing garbage following keys in element bar, got: hat",
 	}, {
 		name:                "relative path",
 		in:                  `../foo/bar`,
@@ -327,18 +338,18 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:              "key with null value",
 		in:                `/foo/bar[baz=]/hat`,
-		wantSliceErr:      "error parsing path /foo/bar[baz=]/hat: received null value for key baz of element bar",
-		wantStructuredErr: "error parsing path /foo/bar[baz=]/hat: received null value for key baz of element bar",
+		wantSliceErr:      "received null value for key baz of element bar",
+		wantStructuredErr: "received null value for key baz of element bar",
 	}, {
 		name:              "key with unescaped [ within key",
 		in:                `/foo/bar[[bar=baz]`,
-		wantSliceErr:      "error parsing path /foo/bar[[bar=baz]: received an unescaped [ in key of element bar",
-		wantStructuredErr: "error parsing path /foo/bar[[bar=baz]: received an unescaped [ in key of element bar",
+		wantSliceErr:      "received an unescaped [ in key of element bar",
+		wantStructuredErr: "received an unescaped [ in key of element bar",
 	}, {
 		name:              "element with unescaped ]",
 		in:                `/foo/bar]`,
-		wantSliceErr:      "error parsing path /foo/bar]: received an unescaped ] when not in a key for element bar",
-		wantStructuredErr: "error parsing path /foo/bar]: received an unescaped ] when not in a key for element bar",
+		wantSliceErr:      "received an unescaped ] when not in a key for element bar",
+		wantStructuredErr: "received an unescaped ] when not in a key for element bar",
 	}, {
 		name:                "empty string",
 		in:                  "",
@@ -366,8 +377,8 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:              "whitespace in key",
 		in:                "foo[bar =baz]",
-		wantSliceErr:      "error parsing path foo[bar =baz]: received an invalid space in element foo key name 'bar '",
-		wantStructuredErr: "error parsing path foo[bar =baz]: received an invalid space in element foo key name 'bar '",
+		wantSliceErr:      "received an invalid space in element foo key name 'bar '",
+		wantStructuredErr: "received an invalid space in element foo key name 'bar '",
 	}, {
 		name:                "whitespace in value",
 		in:                  "foo[bar= baz]",
@@ -380,22 +391,22 @@ func TestStringToPath(t *testing.T) {
 	}, {
 		name:              "whitespace in element name",
 		in:                "foo bar/baz",
-		wantSliceErr:      "error parsing path foo bar/baz: invalid space character included in element name 'foo bar'",
-		wantStructuredErr: "error parsing path foo bar/baz: invalid space character included in element name 'foo bar'",
+		wantSliceErr:      "invalid space character included in element name 'foo bar'",
+		wantStructuredErr: "invalid space character included in element name 'foo bar'",
 	}}
 
 	for _, tt := range tests {
 		gotSlicePath, sliceErr := StringToStringSlicePath(tt.in)
-		if sliceErr != nil && sliceErr.Error() != tt.wantSliceErr {
-			t.Errorf("%s: StringToStringSlicePath(%v): did not get expected error, got: %v, want: %v", tt.name, tt.in, sliceErr, tt.wantSliceErr)
+		if sliceErr != nil && !strings.Contains(sliceErr.Error(), tt.wantSliceErr) {
+			t.Errorf("%s: StringToStringSlicePath(%v): did not get expected error, got:\n%v\nwant:\n%v", tt.name, tt.in, sliceErr, tt.wantSliceErr)
 		}
 
 		if sliceErr == nil && !proto.Equal(gotSlicePath, tt.wantStringSlicePath) {
-			t.Errorf("%s: StringToStringSlicePath(%v): did not get expected string slice path, got: %v, want: %v", tt.name, tt.in, gotSlicePath, tt.wantStringSlicePath)
+			t.Errorf("%s: StringToStringSlicePath(%v): did not get expected string slice path, got:\n%v\nwant:\n%v", tt.name, tt.in, gotSlicePath, tt.wantStringSlicePath)
 		}
 
 		gotStructuredPath, strErr := StringToStructuredPath(tt.in)
-		if strErr != nil && strErr.Error() != tt.wantStructuredErr {
+		if strErr != nil && !strings.Contains(strErr.Error(), tt.wantStructuredErr) {
 			t.Errorf("%s: StringToStructuredPath(%v): did not get expected error, got: %v, want: %v", tt.name, tt.in, strErr, tt.wantStructuredErr)
 		}
 

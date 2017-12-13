@@ -58,7 +58,7 @@ func PathToStrings(path *gnmipb.Path) ([]string, error) {
 	if path.Element != nil {
 		for i, e := range path.Element {
 			if e == "" {
-				return nil, fmt.Errorf("nil element at index %d in %v", i, path.Element)
+				return nil, fmt.Errorf("empty element at index %d in %v", i, path.Element)
 			}
 			p = append(p, e)
 		}
@@ -67,27 +67,44 @@ func PathToStrings(path *gnmipb.Path) ([]string, error) {
 
 	for i, e := range path.Elem {
 		if e.Name == "" {
-			return nil, fmt.Errorf("nil name for PathElem at index %d", i)
+			return nil, fmt.Errorf("empty name for PathElem at index %d", i)
 		}
 
-		elem := e.Name
-		if len(e.Key) != 0 {
-			var keys []string
-			for k, v := range e.Key {
-				if k == "" {
-					return nil, fmt.Errorf("nil key name (value: %s) in element %s", v, e.Name)
-				}
-				keys = append(keys, k)
-			}
-			sort.Strings(keys)
-
-			for _, k := range keys {
-				elem = fmt.Sprintf("%s[%s=%s]", elem, k, e.Key[k])
-			}
+		elem, err := elemToString(e.Name, e.Key)
+		if err != nil {
+			return nil, fmt.Errorf("failed formatting PathElem at index %d: %v", i, err)
 		}
 		p = append(p, elem)
 	}
 	return p, nil
+}
+
+// elemToString returns a formatted string representation of a single Path.Elem
+// item. name and kv correspond to PathElem.Name and PathElem.Key.
+func elemToString(name string, kv map[string]string) (string, error) {
+	if name == "" {
+		return "", errors.New("empty name for PathElem")
+	}
+	if len(kv) == 0 {
+		return name, nil
+	}
+
+	var keys []string
+	for k, v := range kv {
+		if k == "" {
+			return "", fmt.Errorf("empty key name (value: %s) in element %s", v, name)
+		}
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		v := strings.Replace(kv[k], `=`, `\=`, -1)
+		v = strings.Replace(v, `]`, `\]`, -1)
+		name = fmt.Sprintf("%s[%s=%s]", name, k, v)
+	}
+
+	return name, nil
 }
 
 // StringToPath takes an input string representing a path in gNMI, and converts
@@ -133,16 +150,21 @@ func StringToPath(path string, pathTypes ...PathType) (*gnmipb.Path, error) {
 // used in gNMI pre-0.4.0. The specification for these paths is at https://goo.gl/uD6g6z.
 func StringToStringSlicePath(path string) (*gnmipb.Path, error) {
 	parts := pathStringToElements(path)
+	gpath := new(gnmipb.Path)
 	for _, p := range parts {
 		// Run through extractKV to ensure that the path is valid.
-		if _, _, err := extractKV(p); err != nil {
-			return nil, fmt.Errorf("error parsing path %s: %v", path, err)
+		name, kv, err := extractKV(p)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing path %q: %v", path, err)
 		}
+		fpath, err := elemToString(name, kv)
+		if err != nil {
+			return nil, fmt.Errorf("error formatting path %q: %v", path, err)
+		}
+		gpath.Element = append(gpath.Element, fpath)
 	}
 
-	return &gnmipb.Path{
-		Element: parts,
-	}, nil
+	return gpath, nil
 }
 
 // StringToStructuredPath takes a string representing a path, and converts it to

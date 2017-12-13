@@ -620,8 +620,8 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 			return nil, nil, fmt.Errorf("could not find schema for type %T, field name %s", root, ft.Name)
 		}
 
-		DbgPrint("check field name %s", cschema.Name)
 		ps, err := SchemaPaths(ft)
+		DbgPrint("check field name %s, paths %v", cschema.Name, ps)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -686,7 +686,7 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 					return nil, nil, err
 				}
 				match = (fmt.Sprint(kv) == pathKey)
-				DbgPrint("check simple key value (%s): %t", pathKey, match)
+				DbgPrint("check simple key value %s==%s ? %t", kv, pathKey, match)
 			} else {
 				// Must compare all the key fields.
 				for i := 0; i < k.NumField(); i++ {
