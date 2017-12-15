@@ -194,12 +194,12 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 	// Check if any of the matching data nodes is equal to the referring
 	// node value. In the case that the referring node is a list, check that
 	// each node in the list is also in the target list.
-	souceNodes := []interface{}{nii}
+	sourceNodes := []interface{}{nii}
 	if ni.FieldValue.Type().Kind() == reflect.Slice {
-		souceNodes = ni.FieldValue.Elem().Interface().([]interface{})
+		sourceNodes = ni.FieldValue.Elem().Interface().([]interface{})
 	}
 
-	for _, sourceNode := range souceNodes {
+	for _, sourceNode := range sourceNodes {
 		match := false
 		for _, other := range matchNodes {
 			if util.IsValueNilOrDefault(other) {
