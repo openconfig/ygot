@@ -210,35 +210,46 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 	}
 
 	// Check if any of the matching data nodes is equal to the referring
-	// node value.
-	match := false
-	for _, other := range matchNodes {
-		if util.IsValueNilOrDefault(other) {
-			continue
-		}
-		ov := reflect.ValueOf(other)
-		switch {
-		case util.IsValueScalar(ov):
-			util.DbgPrint("comparing leafref values %s vs %s", util.ValueStr(nii), util.ValueStr(other))
-			if util.DeepEqualDerefPtrs(nii, other) {
-				util.DbgPrint("values are equal")
-				match = true
-				break
+	// node value. In the case that the referring node is a list, check that
+	// each node in the list is also in the target list.
+	sourceNodes := []interface{}{nii}
+	if ni.FieldValue.Type().Kind() == reflect.Slice {
+		sourceNodes = ni.FieldValue.Elem().Interface().([]interface{})
+	}
+
+	for _, sourceNode := range sourceNodes {
+		match := false
+		for _, other := range matchNodes {
+			if util.IsValueNilOrDefault(other) {
+				continue
 			}
-		case util.IsValueSlice(ov):
-			nii := ni.FieldValue.Interface()
-			util.DbgPrint("checking whether value %s is leafref leaf-list %v", util.ValueStr(nii), util.ValueStr(other))
-			for i := 0; i < ov.Len(); i++ {
-				if util.DeepEqualDerefPtrs(nii, ov.Index(i).Interface()) {
-					util.DbgPrint("value exists in list")
+			ov := reflect.ValueOf(other)
+			switch {
+			case util.IsValueScalar(ov):
+				util.DbgPrint("comparing leafref values %s vs %s", util.ValueStr(sourceNode), util.ValueStr(other))
+				if util.DeepEqualDerefPtrs(sourceNode, other) {
+					util.DbgPrint("values are equal")
 					match = true
 					break
 				}
+			case util.IsValueSlice(ov):
+				sourceNode := ni.FieldValue.Interface()
+				util.DbgPrint("checking whether value %s is leafref leaf-list %v", util.ValueStr(sourceNode), util.ValueStr(other))
+				for i := 0; i < ov.Len(); i++ {
+					if util.DeepEqualDerefPtrs(sourceNode, ov.Index(i).Interface()) {
+						util.DbgPrint("value exists in list")
+						match = true
+						break
+					}
+				}
 			}
+		}
+		if !match {
+			return false, nil
 		}
 	}
 
-	return match, nil
+	return true, nil
 }
 
 // getDataTreeRoot returns the root NodeInfo element for the current node.
