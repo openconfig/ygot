@@ -128,7 +128,7 @@ func leafRefToGNMIPath(root *util.NodeInfo, path string) (*gpb.Path, error) {
 				return nil, fmt.Errorf("expect single node to match value at path %s, got %d", v, len(ns))
 			}
 
-			gp.Key = map[string]string{k: string(j)}
+			gp.Key = map[string]string{k: removeQuotes(string(j))}
 		}
 		out.Elem = append(out.Elem, gp)
 	}
@@ -154,7 +154,7 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path) ([]interface{}, error) {
 			if root.Parent == nil {
 				return nil, fmt.Errorf("no parent for leafref path at %v, with remaining path %s", ni.Schema.Path(), path)
 			}
-			path.Elem = path.GetElem()[len(root.PathFromParent):]
+			path.Elem = removeParentDirPrefix(path.GetElem(), root.PathFromParent)
 			util.DbgPrint("going up data tree from type %s to %s, schema path from parent is %v, remaining path %v",
 				root.FieldValue.Type(), root.Parent.FieldValue.Type(), root.PathFromParent, path)
 			root = root.Parent
@@ -164,6 +164,24 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path) ([]interface{}, error) {
 	util.DbgPrint("root element type %s with remaining path %s", root.FieldValue.Type(), path)
 	nodes, _, err := util.GetNodes(root.Schema, root.FieldValue.Interface(), path)
 	return nodes, err
+}
+
+// removeParentDirPrefix removes the leading .. from path and returns the
+// remaining path from the parent node, restoring any compressed out path
+// elements along the way.
+func removeParentDirPrefix(path []*gpb.PathElem, pathFromParent []string) []*gpb.PathElem {
+	plen := len(pathFromParent)
+	out := path
+	for len(out) > 0 && out[0].GetName() == ".." && plen > 0 {
+		out = out[1:]
+		plen--
+	}
+	// If we are inside a compressed node, restore the compressed out part
+	// of the path when we go up to the parent.
+	for i := 0; i < plen; i++ {
+		out = append([]*gpb.PathElem{{Name: pathFromParent[i]}}, out...)
+	}
+	return out
 }
 
 // matchesNodes reports whether ni matches any of the elements in matchNodes.
@@ -275,7 +293,7 @@ func extractKeyValue(p string) (prefix string, k, v string, err error) {
 		return "", "", "", fmt.Errorf("bad kv string %s: value must be in quotes or begin with current()/", p2[0])
 	}
 
-	return util.StripModulePrefix(p1[0]), util.StripModulePrefix(k), v, nil
+	return util.StripModulePrefix(p1[0]), util.StripModulePrefix(k), util.StripModulePrefix(v), nil
 }
 
 // isKeyValue reports whether p contains a valid key-value leafref path element.
@@ -433,6 +451,12 @@ func splitUnquoted(source, splitStr string) []string {
 // isInQuotes reports whether s starts and ends with the quote character.
 func isInQuotes(s string) bool {
 	return strings.HasPrefix(s, "\"") && strings.HasSuffix(s, "\"")
+}
+
+// removeQuotes removes quotes around s if they are present.
+func removeQuotes(s string) string {
+	out := strings.TrimPrefix(s, "\"")
+	return strings.TrimSuffix(out, "\"")
 }
 
 // pathNoKeysToGNMIPath conerts the supplied path, which may not contain any

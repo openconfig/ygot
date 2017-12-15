@@ -145,6 +145,11 @@ func TestIsValueNilOrDefault(t *testing.T) {
 	if !IsValueNilOrDefault(false) {
 		t.Error("got IsValueNilOrDefault(false) false, want true")
 	}
+	i := 32
+	ip := &i
+	if IsValueNilOrDefault(&ip) {
+		t.Error("got IsValueNilOrDefault(ptr to ptr) false, want true")
+	}
 }
 
 func TestIsValueFuncs(t *testing.T) {
@@ -1560,6 +1565,13 @@ func TestGetNodesStructKeyedList(t *testing.T) {
 				t.Errorf("%s: struct got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
 			}
 		}
+	}
+}
+
+func TestDeepEqualDerefPtrs(t *testing.T) {
+	a, b := 42, 42
+	if !DeepEqualDerefPtrs(&a, &b) {
+		t.Fatalf("DeepEqualDerefPtrs: expect that %v == %v", a, b)
 	}
 }
 
