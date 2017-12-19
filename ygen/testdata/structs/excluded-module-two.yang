@@ -1,0 +1,10 @@
+module excluded-module-two {
+  prefix "e2";
+  namespace "urn:e2";
+
+  leaf e2 { type string; }
+
+  grouping test-container {
+    leaf t2 { type string; }
+  }
+}

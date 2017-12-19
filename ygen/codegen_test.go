@@ -519,6 +519,15 @@ func TestSimpleStructs(t *testing.T) {
 		name:                "module with empty leaf",
 		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/empty.yang")},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/empty.formatted-txt"),
+	}, {
+		name:    "module with excluded modules",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/excluded-module.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot: true,
+			FakeRootName:     "office",
+			ExcludeModules:   []string{"excluded-module-two"},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/excluded-module.formatted-txt"),
 	}}
 
 	for _, tt := range tests {

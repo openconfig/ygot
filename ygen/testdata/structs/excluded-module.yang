@@ -1,0 +1,12 @@
+module excluded-module {
+  prefix "e";
+  namespace "urn:e";
+
+  import excluded-module-two { prefix "e2"; }
+
+  leaf e1 { type string; }
+
+  container e2-import {
+    uses e2:test-container;
+  }
+}
