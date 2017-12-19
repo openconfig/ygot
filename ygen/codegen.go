@@ -685,6 +685,12 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 		return nil, errs
 	}
 
+	// Build a map of excluded modules to simplify lookup.
+	excluded := map[string]bool{}
+	for _, e := range cfg.ExcludeModules {
+		excluded[e] = true
+	}
+
 	// Extract the entities that are eligible to have code generated for
 	// them from the modules that are provided as an argument.
 	dirs := make(map[string]*yang.Entry)
@@ -697,7 +703,7 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 			continue
 		}
 		// Ensure that we do not try and traverse an empty module.
-		if module.Dir != nil {
+		if module.Dir != nil && !excluded[module.Name] {
 			for _, e := range module.Dir {
 				rootElems = append(rootElems, e)
 			}
@@ -723,10 +729,6 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 
 	// For all non-excluded modules, we store these to be
 	// used as the schema tree.
-	excluded := map[string]bool{}
-	for _, e := range cfg.ExcludeModules {
-		excluded[e] = true
-	}
 	ms := []*yang.Entry{}
 	for _, m := range modules {
 		if _, ok := excluded[m.Name]; !ok {
