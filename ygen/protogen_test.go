@@ -440,6 +440,92 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 		},
 	}, {
+		name: "message with list, where the key has the same name as list",
+		inMsg: &yangDirectory{
+			name: "AMessageWithAList",
+			entry: &yang.Entry{
+				Name: "a-message-with-a-list",
+				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
+			},
+			fields: map[string]*yang.Entry{
+				"list": {
+					Name: "list",
+					Parent: &yang.Entry{
+						Name: "a-message-with-a-list",
+					},
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"list": {
+							Name: "list",
+							Type: &yang.YangType{Kind: yang.Ystring},
+						},
+					},
+					Key:      "list",
+					ListAttr: &yang.ListAttr{},
+				},
+			},
+			path: []string{"", "a-message-with-a-list", "list"},
+		},
+		inBasePackage: "base",
+		inEnumPackage: "enums",
+		inUniqueDirectoryNames: map[string]string{
+			"/a-message-with-a-list/list": "List",
+		},
+		inMsgs: map[string]*yangDirectory{
+			"/a-message-with-a-list/list": {
+				name: "List",
+				entry: &yang.Entry{
+					Name: "list",
+					Parent: &yang.Entry{
+						Name: "a-message-with-a-list",
+					},
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"key": {
+							Name: "list",
+							Type: &yang.YangType{Kind: yang.Ystring},
+						},
+					},
+					Key:      "list",
+					ListAttr: &yang.ListAttr{},
+				},
+				fields: map[string]*yang.Entry{
+					"list": {
+						Name: "list",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+		},
+		wantMsgs: map[string]*protoMsg{
+			"AMessageWithAList": {
+				Name:     "AMessageWithAList",
+				YANGPath: "/a-message-with-a-list/list",
+				Fields: []*protoMsgField{{
+					Name:       "list",
+					Type:       "ListKey",
+					Tag:        200573382,
+					IsRepeated: true,
+				}},
+			},
+			"ListKey": {
+				Name:     "ListKey",
+				YANGPath: "/a-message-with-a-list/list",
+				Fields: []*protoMsgField{{
+					Tag:        1,
+					Name:       "list_key",
+					Type:       "string",
+					IsRepeated: false,
+				}, {
+					Tag:  2,
+					Name: "list",
+					Type: "a_message_with_a_list.List",
+				}},
+				Imports: []string{"base/a_message_with_a_list/a_message_with_a_list.proto"},
+			},
+		},
+	}, {
 		name: "message with missing directory",
 		inMsg: &yangDirectory{
 			name:  "foo",

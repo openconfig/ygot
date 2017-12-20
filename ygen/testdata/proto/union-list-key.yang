@@ -1,0 +1,41 @@
+module union-list-key {
+  namespace "u";
+  prefix "u";
+
+  identity ID;
+
+  identity FOO {
+    base ID;
+  }
+
+  identity BAR {
+    base ID;
+  }
+
+  container a {
+    list b {
+      key "c";
+
+      leaf c {
+        type leafref {
+          path "../e";
+        }
+      }
+
+      leaf e {
+        type leafref {
+          path "../d";
+        }
+      }
+
+      leaf d {
+        type union {
+          type string;
+          type identityref {
+            base "ID";
+          }
+        }
+      }
+    }
+  }
+}

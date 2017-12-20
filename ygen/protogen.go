@@ -61,6 +61,34 @@ const (
 	// protoSchemaAnnotationOption specifies the name of the FieldOption used to annotate
 	// schemapaths into a protobuf message.
 	protoSchemaAnnotationOption = "(yext.schemapath)"
+	// protoMatchingListNameKeySuffix defines the suffix that should be added to a list
+	// key's name in the case that it matches the name of the list itself. This is requried
+	// since in the case that we have YANG whereby there is a list that has a key
+	// with the same name as the list, i.e.,:
+	//
+	// list foo {
+	//   key "foo";
+	//   leaf foo { type string; }
+	// }
+	//
+	// Then we need to ensure that we do not generate a message that has the
+	// same field name used twice, i.e.:
+	//
+	// message FooParent {
+	//   message Foo {
+	//     ywrapper.StringValue foo = NN;
+	//   }
+	//   message FooKey {
+	//     string foo = 1;
+	//     Foo foo = 2;
+	//   }
+	//   repeated FooKey foo = NN;
+	// }
+	//
+	// which may otherwise occur. In these cases, rather than rely on
+	// makeNameUnique which would append "_" to the name of the key we explicitly
+	// append _ plus the string defined in protoMatchingListNameKeySuffix to the list name.
+	protoMatchingListNameKeySuffix = "key"
 )
 
 // protoMsgField describes a field of a protobuf message.
@@ -948,7 +976,7 @@ func protoLeafDefinition(leafName string, args *protoDefinitionArgs) (*protoDefi
 		d.enums[d.protoType] = e
 	case isEnumType(args.field.Type):
 		d.globalEnum = true
-	case isUnionType(args.field.Type) && protoType.unionTypes != nil:
+	case protoType.unionTypes != nil:
 		u, err := unionFieldToOneOf(leafName, args.field, protoType, args.cfg.annotateEnumNames)
 		if err != nil {
 			return nil, err
@@ -1088,7 +1116,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 				enumEntry = target
 			}
 
-			if isUnionType(target.Type) && scalarType.unionTypes != nil {
+			if scalarType.unionTypes != nil {
 				unionEntry = target
 			}
 
@@ -1101,8 +1129,16 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 			unionEntry = kf
 		}
 
+		// Make the name of the key unique. We handle the case that the list name
+		// matches the key field name by appending the protoMatchingListNameKeySuffix
+		// to the field name, as described in the definition of protoMatchingListNameKeySuffix.
+		fName := makeNameUnique(safeProtoIdentifierName(k), definedFieldNames)
+		if args.field.Name == k {
+			fName = fmt.Sprintf("%s_%s", fName, protoMatchingListNameKeySuffix)
+		}
+
 		fd := &protoMsgField{
-			Name: makeNameUnique(safeProtoIdentifierName(k), definedFieldNames),
+			Name: fName,
 			Tag:  ctag,
 		}
 		switch {
