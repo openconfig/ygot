@@ -62,7 +62,7 @@ const (
 	// schemapaths into a protobuf message.
 	protoSchemaAnnotationOption = "(yext.schemapath)"
 	// protoMatchingListNameKeySuffix defines the suffix that should be added to a list
-	// key's name in the case that it matches the name of the list itself. This is requried
+	// key's name in the case that it matches the name of the list itself. This is required
 	// since in the case that we have YANG whereby there is a list that has a key
 	// with the same name as the list, i.e.,:
 	//
@@ -976,7 +976,7 @@ func protoLeafDefinition(leafName string, args *protoDefinitionArgs) (*protoDefi
 		d.enums[d.protoType] = e
 	case isEnumType(args.field.Type):
 		d.globalEnum = true
-	case isUnionType(args.field.Type) && protoType.unionTypes != nil:
+	case protoType.unionTypes != nil:
 		u, err := unionFieldToOneOf(leafName, args.field, protoType, args.cfg.annotateEnumNames)
 		if err != nil {
 			return nil, err
@@ -1116,7 +1116,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 				enumEntry = target
 			}
 
-			if isUnionType(target.Type) && scalarType.unionTypes != nil {
+			if scalarType.unionTypes != nil {
 				unionEntry = target
 			}
 

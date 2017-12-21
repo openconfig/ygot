@@ -897,10 +897,12 @@ func TestGenerateProto3(t *testing.T) {
 				AnnotateSchemaPaths: true,
 				NestedMessages:      true,
 			},
+			GenerateFakeRoot: true,
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.enums":          filepath.Join(TestRoot, "testdata", "proto", "union-list-key.enums.formatted-txt"),
 			"openconfig.union_list_key": filepath.Join(TestRoot, "testdata", "proto", "union-list-key.formatted-txt"),
+			"openconfig":                filepath.Join(TestRoot, "testdata", "proto", "union-list-key.uncompressed.formatted-txt"),
 		},
 	}}
 

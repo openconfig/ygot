@@ -24,37 +24,10 @@ message A {
   }
   message BKey {
     oneof c {
-      openconfig.enums.UnionListKeyID c_unionlistkeyid = 399198747;
-      string c_string = 172308081;
+      openconfig.enums.UnionListKeyID c_unionlistkeyid = 330890081;
+      string c_string = 18197531;
     }
     B b = 2;
   }
   repeated BKey b = 88729751 [(yext.schemapath) = "/a/b"];
-}
-
-message Z {
-  message Za {
-    enum Ab {
-      AB_UNSET = 0;
-      AB_A = 1 [(yext.yang_name) = "A"];
-      AB_B = 2 [(yext.yang_name) = "B"];
-    }
-    oneof ab {
-      Ab ab_ab = 331624049;
-      string ab_string = 508594323;
-    }
-  }
-  message ZaKey {
-    enum Zb {
-      ZB_UNSET = 0;
-      ZB_A = 1 [(yext.yang_name) = "A"];
-      ZB_B = 2 [(yext.yang_name) = "B"];
-    }
-    oneof zb {
-      Ab zb_ab = 331624049;
-      string zb_string = 508594323;
-    }
-    Za za = 2;
-  }
-  repeated ZaKey za = 115186393 [(yext.schemapath) = "/z/za"];
 }
