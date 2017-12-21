@@ -16,9 +16,15 @@ import "openconfig/proto_test_e/test/test.proto";
 
 // AnimalKey represents the /proto-test-e/animals/animal YANG schema element.
 message AnimalKey {
+  enum Species {
+    SPECIES_UNSET = 0;
+    SPECIES_TAXIDEA_TAXUS = 1;
+    SPECIES_CERVUS_CANADENSIS = 2;
+    SPECIES_OVIS_CANADENSIS = 3;
+  }
   oneof species {
-    Species species_species = 379647774;
-    string species_string = 155124263;
+    Species species_species = 250459527;
+    string species_string = 236397324;
   }
   animals.Animal animal = 2;
 }

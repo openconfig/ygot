@@ -16,3 +16,10 @@ enum UnionListKeyID {
   UNIONLISTKEYID_BAR = 31272497 [(yext.yang_name) = "BAR"];
   UNIONLISTKEYID_FOO = 266747526 [(yext.yang_name) = "FOO"];
 }
+
+// UnionListKeyZZaAb represents an enumerated type generated for the YANG enumerated type eu.
+enum UnionListKeyZZaAb {
+  UNIONLISTKEY_Z_ZA_AB_UNSET = 0;
+  UNIONLISTKEY_Z_ZA_AB_A = 1 [(yext.yang_name) = "A"];
+  UNIONLISTKEY_Z_ZA_AB_B = 2 [(yext.yang_name) = "B"];
+}
