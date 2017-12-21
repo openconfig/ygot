@@ -1218,6 +1218,16 @@ func enumInProtoUnionField(name string, types []*yang.YangType, annotateEnumName
 			}
 			enums[n] = enum
 		}
+
+		if isUnionType(t) {
+			es, err := enumInProtoUnionField(name, t.Type, annotateEnumNames)
+			if err != nil {
+				return nil, err
+			}
+			for name, enum := range es {
+				enums[name] = enum
+			}
+		}
 	}
 
 	return enums, nil

@@ -39,9 +39,18 @@ message Z {
       AB_A = 1 [(yext.yang_name) = "A"];
       AB_B = 2 [(yext.yang_name) = "B"];
     }
+    enum Ac {
+      AC_UNSET = 0;
+      AC_A = 1 [(yext.yang_name) = "A"];
+      AC_B = 2 [(yext.yang_name) = "B"];
+    }
     oneof ab {
       Ab ab_ab = 331624049;
       string ab_string = 508594323;
+    }
+    oneof ac {
+      Ac ac_ac = 389810075;
+      string ac_string = 248557068;
     }
   }
   message ZaKey {
