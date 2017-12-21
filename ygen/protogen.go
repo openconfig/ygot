@@ -62,7 +62,7 @@ const (
 	// schemapaths into a protobuf message.
 	protoSchemaAnnotationOption = "(yext.schemapath)"
 	// protoMatchingListNameKeySuffix defines the suffix that should be added to a list
-	// key's name in the case that it matches the name of the list itself. This is requried
+	// key's name in the case that it matches the name of the list itself. This is required
 	// since in the case that we have YANG whereby there is a list that has a key
 	// with the same name as the list, i.e.,:
 	//
