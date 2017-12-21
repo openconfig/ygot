@@ -26,6 +26,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 		name                   string
 		in                     []resolveTypeArgs
 		inResolveProtoTypeArgs *resolveProtoTypeArgs
+		inEntries              []*yang.Entry
 		wantWrapper            *mappedType
 		wantScalar             *mappedType
 		wantSame               bool
@@ -271,6 +272,165 @@ func TestYangTypeToProtoType(t *testing.T) {
 		},
 		wantWrapper: &mappedType{nativeType: "string"},
 		wantSame:    true,
+	}, {
+		name: "leafref with bad path",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "/foo/bar",
+			},
+			contextEntry: &yang.Entry{
+				Name: "leaf",
+			},
+		}},
+		wantErr: true,
+	}, {
+		name: "leafref with valid path",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "/foo/bar",
+			},
+			contextEntry: &yang.Entry{
+				Name: "leaf",
+			},
+		}},
+		inEntries: []*yang.Entry{
+			{
+				Name: "foo",
+				Parent: &yang.Entry{
+					Name: "module",
+				},
+				Dir: map[string]*yang.Entry{
+					"bar": {
+						Name: "bar",
+						Type: &yang.YangType{Kind: yang.Ystring},
+						Parent: &yang.Entry{
+							Name: "foo",
+							Parent: &yang.Entry{
+								Name: "module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantWrapper: &mappedType{nativeType: "ywrapper.StringValue"},
+		wantScalar:  &mappedType{nativeType: "string"},
+	}, {
+		name: "leafref to leafref",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "/foo/bar",
+			},
+			contextEntry: &yang.Entry{
+				Name: "leaf",
+			},
+		}},
+		inEntries: []*yang.Entry{
+			{
+				Name: "foo",
+				Parent: &yang.Entry{
+					Name: "module",
+				},
+				Dir: map[string]*yang.Entry{
+					"bar": {
+						Name: "bar",
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "/foo/baz",
+						},
+						Parent: &yang.Entry{
+							Name: "foo",
+							Parent: &yang.Entry{
+								Name: "module",
+							},
+						},
+					},
+					"baz": {
+						Name: "baz",
+						Type: &yang.YangType{
+							Kind:         yang.Yidentityref,
+							IdentityBase: &yang.Identity{Name: "IDENTITY"},
+						},
+						Parent: &yang.Entry{
+							Name: "foo",
+							Parent: &yang.Entry{
+								Name: "module",
+							},
+						},
+						Node: &yang.Leaf{
+							Name: "baz",
+							Parent: &yang.Module{
+								Name: "enum-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantWrapper: &mappedType{nativeType: "basePackage.enumPackage.EnumModule", isEnumeratedValue: true},
+		wantSame:    true,
+	}, {
+		name: "leafref to union",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "/foo/bar",
+			},
+			contextEntry: &yang.Entry{
+				Name: "leaf",
+			},
+		}},
+		inEntries: []*yang.Entry{
+			{
+				Name: "foo",
+				Parent: &yang.Entry{
+					Name: "module",
+				},
+				Dir: map[string]*yang.Entry{
+					"bar": {
+						Name: "bar",
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "/foo/baz",
+						},
+						Parent: &yang.Entry{
+							Name: "foo",
+							Parent: &yang.Entry{
+								Name: "module",
+							},
+						},
+					},
+					"baz": {
+						Name: "baz",
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{{
+								Kind: yang.Ybool,
+							}, {
+								Kind: yang.Ystring,
+							}},
+						},
+						Parent: &yang.Entry{
+							Name: "foo",
+							Parent: &yang.Entry{
+								Name: "module",
+							},
+						},
+						Node: &yang.Leaf{
+							Name: "baz",
+							Parent: &yang.Module{
+								Name: "enum-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantWrapper: &mappedType{unionTypes: map[string]int{"bool": 0, "string": 1}},
+		wantSame:    true,
 	}}
 
 	for _, tt := range tests {
@@ -281,10 +441,21 @@ func TestYangTypeToProtoType(t *testing.T) {
 		}
 
 		s := newGenState()
+		// Seed the schema tree with the injected entries, used to ensure leafrefs can
+		// be resolved.
+		if tt.inEntries != nil {
+			tree, err := buildSchemaTree(tt.inEntries)
+			if err != nil {
+				t.Errorf("%s: buildSchemaTree(%v): got unexpected error, got: %v, want: nil", tt.name, tt.inEntries, err)
+				continue
+			}
+			s.schematree = tree
+		}
+
 		for _, st := range tt.in {
 			gotWrapper, err := s.yangTypeToProtoType(st, rpt)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("%s: yangTypeToProtoType(%v): got unexpected error: %v", tt.name, tt.in, err)
+				t.Errorf("%s: yangTypeToProtoType(%v): got unexpected error, got: %v, want error: %v", tt.name, tt.in, err, tt.wantErr)
 				continue
 			}
 
