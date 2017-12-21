@@ -901,7 +901,7 @@ func TestGenerateProto3(t *testing.T) {
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.enums":          filepath.Join(TestRoot, "testdata", "proto", "union-list-key.enums.formatted-txt"),
-			"openconfig.union_list_key": filepath.Join(TestRoot, "testdata", "proto", "union-list-key.formatted-txt"),
+			"openconfig.union_list_key": filepath.Join(TestRoot, "testdata", "proto", "union-list-key.union_list_key.formatted-txt"),
 			"openconfig":                filepath.Join(TestRoot, "testdata", "proto", "union-list-key.formatted-txt"),
 		},
 	}}
