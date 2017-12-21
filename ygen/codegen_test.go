@@ -886,6 +886,22 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "nested-messages.compressed.enums.formatted-txt"),
 			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "nested-messages.compressed.nested_messages.formatted-txt"),
 		},
+	}, {
+		name: "yang schema with a leafref key to a union with enumeration",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata", "proto", "union-list-key.yang"),
+		},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig.enums":          filepath.Join(TestRoot, "testdata", "proto", "union-list-key.enums.formatted-txt"),
+			"openconfig.union_list_key": filepath.Join(TestRoot, "testdata", "proto", "union-list-key.formatted-txt"),
+		},
 	}}
 
 	for _, tt := range tests {
