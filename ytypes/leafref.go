@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"strings"
 
+	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 
@@ -66,19 +67,30 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}) util.Errors {
 
 		match, err := matchesNodes(ni, matchNodes)
 		if err != nil {
-			return util.NewErrs(err)
+			return leafrefErrOrLog(util.NewErrs(err))
 		}
 		if !match {
 			e := fmt.Errorf("field name %s value %s schema path %s has leafref path %s not equal to any target nodes",
 				ni.StructField.Name, util.ValueStr(ni.FieldValue.Interface()), ni.Schema.Path(), pathStr)
 			util.DbgPrint("ERR: %s", e)
-			return util.NewErrs(e)
+			return leafrefErrOrLog(util.NewErrs(e))
 		}
 
 		return nil
 	}
 
 	return util.ForEachField(schema, value, nil, nil, validateLefRefDataIterFunc)
+}
+
+// leafrefErrOrLog returns an error if the global ValidationOptions specifies
+// that missing data should cause an error to be thrown. If the missing data is to
+// be ignored by leafrefs, it logs the error that would have been returned.
+func leafrefErrOrLog(e util.Errors) util.Errors {
+	if Config == nil || !Config.IgnoreMissingLeafrefData {
+		return e
+	}
+	log.Errorf("%v", e)
+	return nil
 }
 
 // leafRefToGNMIPath takes a leafref path string and transforms any leafref

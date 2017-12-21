@@ -22,6 +22,26 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+// ValidationConfig defines options relating to validation against the YANG
+// schema.
+type ValidationConfig struct {
+	// IgnoreMissingLeafrefData determines whether leafrefs that target a node
+	// that does not exist should return an error to the calling application. When
+	// set to true, no error is returned.
+	//
+	// This functionality is typically used where a partial set of schema information
+	// is populated, but validation is required - for example, configuration for
+	// a protocol within OpenConfig references an interface, but the schema being
+	// validated does not contain the interface definitions.
+	IgnoreMissingLeafrefData bool
+}
+
+var (
+	// Config is used to control the behaviour of the Validate functionality
+	// called against a generated struct.
+	Config *ValidationConfig
+)
+
 // Validate recursively validates the value of the given data tree struct
 // against the given schema.
 func Validate(schema *yang.Entry, value interface{}) util.Errors {
