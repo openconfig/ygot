@@ -51,6 +51,11 @@ func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOpti
 		return util.NewErrs(fmt.Errorf("nil schema for type %T, value %v", value, value))
 	}
 
+	// TODO(robjs): Consider making this function a utility function when
+	// additional validation options are added here. Note that this code
+	// currently will accept multiple of the same option being specified,
+	// and overwrite with the last within the options slice, rather than
+	// explicitly returning an error.
 	var leafrefOpt *LeafrefOptions
 	for _, o := range opts {
 		switch o.(type) {
