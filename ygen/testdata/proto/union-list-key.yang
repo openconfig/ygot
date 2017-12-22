@@ -12,6 +12,38 @@ module union-list-key {
     base ID;
   }
 
+  typedef eu {
+    type union {
+      type enumeration {
+          enum A;
+          enum B;
+      }
+      type string;
+    }
+  }
+
+  typedef eval {
+    type union {
+      type eu;
+      type string;
+    }
+  }
+
+  container z {
+    list za {
+      key "zb";
+
+      leaf zb {
+        type leafref {
+          path "../ab";
+        }
+      }
+
+      leaf ab { type eu; }
+      leaf ac { type eval; }
+    }
+  }
+
   container a {
     list b {
       key "c";

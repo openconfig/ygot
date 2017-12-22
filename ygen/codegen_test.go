@@ -887,7 +887,7 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "nested-messages.compressed.nested_messages.formatted-txt"),
 		},
 	}, {
-		name: "yang schema with union list key",
+		name: "yang schema with a leafref key to a union with enumeration",
 		inFiles: []string{
 			filepath.Join(TestRoot, "testdata", "proto", "union-list-key.yang"),
 		},
@@ -900,9 +900,9 @@ func TestGenerateProto3(t *testing.T) {
 			GenerateFakeRoot: true,
 		},
 		wantOutputFiles: map[string]string{
-			"openconfig.enums":          filepath.Join(TestRoot, "testdata", "proto", "union-list-key.uncompressed.enums.formatted-txt"),
-			"openconfig.union_list_key": filepath.Join(TestRoot, "testdata", "proto", "union-list-key.uncompressed.union_list_key.formatted-txt"),
-			"openconfig":                filepath.Join(TestRoot, "testdata", "proto", "union-list-key.uncompressed.formatted-txt"),
+			"openconfig.enums":          filepath.Join(TestRoot, "testdata", "proto", "union-list-key.enums.formatted-txt"),
+			"openconfig.union_list_key": filepath.Join(TestRoot, "testdata", "proto", "union-list-key.union_list_key.formatted-txt"),
+			"openconfig":                filepath.Join(TestRoot, "testdata", "proto", "union-list-key.formatted-txt"),
 		},
 	}}
 

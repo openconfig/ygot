@@ -1152,7 +1152,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 			km.Enums[tn] = enum
 		case unionEntry != nil:
 			fd.IsOneOf = true
-			u, err := unionFieldToOneOf(fd.Name, kf, scalarType, args.cfg.annotateEnumNames)
+			u, err := unionFieldToOneOf(fd.Name, unionEntry, scalarType, args.cfg.annotateEnumNames)
 			if err != nil {
 				return nil, fmt.Errorf("error generating type for union list key %s in list %s", k, args.field.Path())
 			}
@@ -1217,6 +1217,16 @@ func enumInProtoUnionField(name string, types []*yang.YangType, annotateEnumName
 				return nil, err
 			}
 			enums[n] = enum
+		}
+
+		if isUnionType(t) {
+			es, err := enumInProtoUnionField(name, t.Type, annotateEnumNames)
+			if err != nil {
+				return nil, err
+			}
+			for name, enum := range es {
+				enums[name] = enum
+			}
 		}
 	}
 

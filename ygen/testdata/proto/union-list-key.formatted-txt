@@ -13,4 +13,5 @@ import "openconfig/union_list_key/union_list_key.proto";
 
 message Device {
   union_list_key.A a = 508725416 [(yext.schemapath) = "/a"];
+  union_list_key.Z z = 508725427 [(yext.schemapath) = "/z"];
 }
