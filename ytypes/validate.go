@@ -41,8 +41,7 @@ type LeafrefOptions struct {
 func (LeafrefOptions) IsValidationOption() {}
 
 // Validate recursively validates the value of the given data tree struct
-// against the given schema. The supplied options (opts) are used to determine
-// the behaviour of the validation of the schema.
+// against the given schema.
 func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOption) util.Errors {
 	// Nil value means the field is unset.
 	if util.IsValueNil(value) {
