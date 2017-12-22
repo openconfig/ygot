@@ -25,7 +25,7 @@ import (
 // LeafrefOptions controls the behaviour of validation functions for leaf-ref
 // data types.
 type LeafrefOptions struct {
-	// IgnoreMissingLeafrefData determines whether leafrefs that target a node
+	// IgnoreMissingData determines whether leafrefs that target a node
 	// that does not exist should return an error to the calling application. When
 	// set to true, no error is returned.
 	//
@@ -41,7 +41,8 @@ type LeafrefOptions struct {
 func (LeafrefOptions) IsValidationOption() {}
 
 // Validate recursively validates the value of the given data tree struct
-// against the given schema.
+// against the given schema. The supplied options (opts) are used to determine
+// the behaviour of the validation of the schema.
 func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOption) util.Errors {
 	// Nil value means the field is unset.
 	if util.IsValueNil(value) {

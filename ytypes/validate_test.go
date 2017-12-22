@@ -121,7 +121,7 @@ func TestValidate(t *testing.T) {
 		Name: "device",
 		Kind: yang.DirectoryEntry,
 		Annotation: map[string]interface{}{
-			"isFakeroot": true,
+			"isFakeRoot": true,
 		},
 	}
 	fakerootSchema.Dir = map[string]*yang.Entry{
@@ -214,7 +214,7 @@ func TestValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			errs := Validate(tt.schema, tt.val)
+			errs := Validate(tt.schema, tt.val, tt.opts...)
 			if got, want := errs.String(), tt.wantErr; got != want {
 				t.Errorf("%s: Validate got error: %s, want error: %s", tt.desc, got, want)
 			}

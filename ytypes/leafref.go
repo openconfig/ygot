@@ -37,7 +37,8 @@ import (
 // It returns nil if at least one equality check passes or an error otherwise.
 // It also returns an error if any leafref points to a value outside of the tree
 // rooted at value; therefore it should only be called on the root node of the
-// entire data tree.
+// entire data tree. The supplied LeafrefOptions specify particular behaviours
+// of the leafref validation such as ignoring missing pointed to elements.
 func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOptions) util.Errors {
 	// validateLefRefDataIterFunc is called on every node in the tree through
 	// ForEachField below.
