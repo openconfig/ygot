@@ -793,8 +793,7 @@ func TestLeafrefCurrent(t *testing.T) {
 		t.Fatal("TestLeafrefCurrent: did not get expected error for non-existent subinterface, got: nil, want: error")
 	}
 
-	ytypes.Config = &ytypes.ValidationConfig{IgnoreMissingLeafrefData: true}
-	if err := dev.Validate(); err != nil {
+	if err := dev.Validate(&ytypes.LeafrefOptions{IgnoreMissingData: true}); err != nil {
 		t.Fatalf("TestLeafrefCurrent: did not get nil error when disabling leafref data validation, got: %v, want: nil", err)
 	}
 }

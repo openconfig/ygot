@@ -38,7 +38,7 @@ import (
 // It also returns an error if any leafref points to a value outside of the tree
 // rooted at value; therefore it should only be called on the root node of the
 // entire data tree.
-func ValidateLeafRefData(schema *yang.Entry, value interface{}) util.Errors {
+func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOptions) util.Errors {
 	// validateLefRefDataIterFunc is called on every node in the tree through
 	// ForEachField below.
 	validateLefRefDataIterFunc := func(ni *util.NodeInfo, in, out interface{}) util.Errors {
@@ -67,13 +67,13 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}) util.Errors {
 
 		match, err := matchesNodes(ni, matchNodes)
 		if err != nil {
-			return leafrefErrOrLog(util.NewErrs(err))
+			return leafrefErrOrLog(util.NewErrs(err), opt)
 		}
 		if !match {
 			e := fmt.Errorf("field name %s value %s schema path %s has leafref path %s not equal to any target nodes",
 				ni.StructField.Name, util.ValueStr(ni.FieldValue.Interface()), ni.Schema.Path(), pathStr)
 			util.DbgPrint("ERR: %s", e)
-			return leafrefErrOrLog(util.NewErrs(e))
+			return leafrefErrOrLog(util.NewErrs(e), opt)
 		}
 
 		return nil
@@ -85,8 +85,8 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}) util.Errors {
 // leafrefErrOrLog returns an error if the global ValidationOptions specifies
 // that missing data should cause an error to be thrown. If the missing data is to
 // be ignored by leafrefs, it logs the error that would have been returned.
-func leafrefErrOrLog(e util.Errors) util.Errors {
-	if Config == nil || !Config.IgnoreMissingLeafrefData {
+func leafrefErrOrLog(e util.Errors, opt *LeafrefOptions) util.Errors {
+	if opt == nil || !opt.IgnoreMissingData {
 		return e
 	}
 	log.Errorf("%v", e)

@@ -22,9 +22,9 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
-// ValidationConfig defines options relating to validation against the YANG
-// schema.
-type ValidationConfig struct {
+// LeafrefOptions controls the behaviour of validation functions for leaf-ref
+// data types.
+type LeafrefOptions struct {
 	// IgnoreMissingLeafrefData determines whether leafrefs that target a node
 	// that does not exist should return an error to the calling application. When
 	// set to true, no error is returned.
@@ -33,18 +33,16 @@ type ValidationConfig struct {
 	// is populated, but validation is required - for example, configuration for
 	// a protocol within OpenConfig references an interface, but the schema being
 	// validated does not contain the interface definitions.
-	IgnoreMissingLeafrefData bool
+	IgnoreMissingData bool
 }
 
-var (
-	// Config is used to control the behaviour of the Validate functionality
-	// called against a generated struct.
-	Config *ValidationConfig
-)
+// IsValidationOption ensures that LeafrefOptions implements the ValidationOption
+// interface.
+func (LeafrefOptions) IsValidationOption() {}
 
 // Validate recursively validates the value of the given data tree struct
 // against the given schema.
-func Validate(schema *yang.Entry, value interface{}) util.Errors {
+func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOption) util.Errors {
 	// Nil value means the field is unset.
 	if util.IsValueNil(value) {
 		return nil
@@ -53,11 +51,19 @@ func Validate(schema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(fmt.Errorf("nil schema for type %T, value %v", value, value))
 	}
 
+	var leafrefOpt *LeafrefOptions
+	for _, o := range opts {
+		switch o.(type) {
+		case *LeafrefOptions:
+			leafrefOpt = o.(*LeafrefOptions)
+		}
+	}
+
 	var errs util.Errors
 	if util.IsFakeRoot(schema) {
 		// Leafref validation traverses entire tree from the root. Do this only
 		// once from the fakeroot.
-		errs = ValidateLeafRefData(schema, value)
+		errs = ValidateLeafRefData(schema, value, leafrefOpt)
 	}
 
 	util.DbgPrint("Validate with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)

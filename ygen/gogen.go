@@ -366,8 +366,8 @@ func (*{{ .StructName }}) IsYANGGoStruct() {}
 	// from it.
 	goStructValidatorTemplate = `
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *{{.StructName}}) Validate() error {
-	if err := ytypes.Validate(SchemaTree["{{.StructName}}"], s); err != nil {
+func (s *{{.StructName}}) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["{{.StructName}}"], s, opts...); err != nil {
 		return err
 	}
 	return nil

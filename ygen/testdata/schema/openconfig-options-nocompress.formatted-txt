@@ -71,8 +71,8 @@ type OpenconfigOptions_Bgp struct {
 func (*OpenconfigOptions_Bgp) IsYANGGoStruct() {}
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *OpenconfigOptions_Bgp) Validate() error {
-	if err := ytypes.Validate(SchemaTree["OpenconfigOptions_Bgp"], s); err != nil {
+func (s *OpenconfigOptions_Bgp) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["OpenconfigOptions_Bgp"], s, opts...); err != nil {
 		return err
 	}
 	return nil
@@ -120,8 +120,8 @@ func (t *OpenconfigOptions_Bgp_Neighbors) NewNeighbor(PeerAddress string) (*Open
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *OpenconfigOptions_Bgp_Neighbors) Validate() error {
-	if err := ytypes.Validate(SchemaTree["OpenconfigOptions_Bgp_Neighbors"], s); err != nil {
+func (s *OpenconfigOptions_Bgp_Neighbors) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["OpenconfigOptions_Bgp_Neighbors"], s, opts...); err != nil {
 		return err
 	}
 	return nil
@@ -155,8 +155,8 @@ func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor) ΛListKeyMap() (map[string]in
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *OpenconfigOptions_Bgp_Neighbors_Neighbor) Validate() error {
-	if err := ytypes.Validate(SchemaTree["OpenconfigOptions_Bgp_Neighbors_Neighbor"], s); err != nil {
+func (s *OpenconfigOptions_Bgp_Neighbors_Neighbor) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["OpenconfigOptions_Bgp_Neighbors_Neighbor"], s, opts...); err != nil {
 		return err
 	}
 	return nil
@@ -178,8 +178,8 @@ type OpenconfigOptions_Bgp_Neighbors_Neighbor_Config struct {
 func (*OpenconfigOptions_Bgp_Neighbors_Neighbor_Config) IsYANGGoStruct() {}
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *OpenconfigOptions_Bgp_Neighbors_Neighbor_Config) Validate() error {
-	if err := ytypes.Validate(SchemaTree["OpenconfigOptions_Bgp_Neighbors_Neighbor_Config"], s); err != nil {
+func (s *OpenconfigOptions_Bgp_Neighbors_Neighbor_Config) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["OpenconfigOptions_Bgp_Neighbors_Neighbor_Config"], s, opts...); err != nil {
 		return err
 	}
 	return nil
@@ -203,8 +203,8 @@ type OpenconfigOptions_Bgp_Neighbors_Neighbor_State struct {
 func (*OpenconfigOptions_Bgp_Neighbors_Neighbor_State) IsYANGGoStruct() {}
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *OpenconfigOptions_Bgp_Neighbors_Neighbor_State) Validate() error {
-	if err := ytypes.Validate(SchemaTree["OpenconfigOptions_Bgp_Neighbors_Neighbor_State"], s); err != nil {
+func (s *OpenconfigOptions_Bgp_Neighbors_Neighbor_State) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["OpenconfigOptions_Bgp_Neighbors_Neighbor_State"], s, opts...); err != nil {
 		return err
 	}
 	return nil
