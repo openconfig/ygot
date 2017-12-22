@@ -125,7 +125,7 @@ func TestValidate(t *testing.T) {
 		},
 	}
 	fakerootSchema.Dir = map[string]*yang.Entry{
-		"leaf-one": &yang.Entry{
+		"leaf-one": {
 			Name: "leaf-one",
 			Kind: yang.LeafEntry,
 			Type: &yang.YangType{
@@ -133,7 +133,7 @@ func TestValidate(t *testing.T) {
 			},
 			Parent: fakerootSchema,
 		},
-		"leaf-two": &yang.Entry{
+		"leaf-two": {
 			Name: "leaf-two",
 			Kind: yang.LeafEntry,
 			Type: &yang.YangType{
