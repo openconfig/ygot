@@ -38,10 +38,17 @@ type ValidatedGoStruct interface {
 	// Validate compares the contents of the implementing struct against
 	// the YANG schema, and returns an error if the struct's contents
 	// are not valid, or nil if the struct complies with the schema.
-	Validate() error
+	Validate(...ValidationOption) error
 	// ΛEnumTypeMap returns the set of enumerated types that are contained
 	// in the generated code.
 	ΛEnumTypeMap() map[string][]reflect.Type
+}
+
+// ValidationOption is an interface that is implemented for each struct
+// which presents configuration parameters for validation options through the
+// Validate public API.
+type ValidationOption interface {
+	IsValidationOption()
 }
 
 // KeyHelperGoStruct is an interface which can be implemented by Go structs

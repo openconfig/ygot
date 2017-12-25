@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"strings"
 
+	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 
@@ -36,8 +37,9 @@ import (
 // It returns nil if at least one equality check passes or an error otherwise.
 // It also returns an error if any leafref points to a value outside of the tree
 // rooted at value; therefore it should only be called on the root node of the
-// entire data tree.
-func ValidateLeafRefData(schema *yang.Entry, value interface{}) util.Errors {
+// entire data tree. The supplied LeafrefOptions specify particular behaviours
+// of the leafref validation such as ignoring missing pointed to elements.
+func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOptions) util.Errors {
 	// validateLefRefDataIterFunc is called on every node in the tree through
 	// ForEachField below.
 	validateLefRefDataIterFunc := func(ni *util.NodeInfo, in, out interface{}) util.Errors {
@@ -66,19 +68,30 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}) util.Errors {
 
 		match, err := matchesNodes(ni, matchNodes)
 		if err != nil {
-			return util.NewErrs(err)
+			return leafrefErrOrLog(util.NewErrs(err), opt)
 		}
 		if !match {
 			e := fmt.Errorf("field name %s value %s schema path %s has leafref path %s not equal to any target nodes",
 				ni.StructField.Name, util.ValueStr(ni.FieldValue.Interface()), ni.Schema.Path(), pathStr)
 			util.DbgPrint("ERR: %s", e)
-			return util.NewErrs(e)
+			return leafrefErrOrLog(util.NewErrs(e), opt)
 		}
 
 		return nil
 	}
 
 	return util.ForEachField(schema, value, nil, nil, validateLefRefDataIterFunc)
+}
+
+// leafrefErrOrLog returns an error if the global ValidationOptions specifies
+// that missing data should cause an error to be thrown. If the missing data is to
+// be ignored by leafrefs, it logs the error that would have been returned.
+func leafrefErrOrLog(e util.Errors, opt *LeafrefOptions) util.Errors {
+	if opt == nil || !opt.IgnoreMissingData {
+		return e
+	}
+	log.Errorf("%v", e)
+	return nil
 }
 
 // leafRefToGNMIPath takes a leafref path string and transforms any leafref

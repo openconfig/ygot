@@ -148,6 +148,7 @@ func TestValidateLeafRefData(t *testing.T) {
 	tests := []struct {
 		desc    string
 		in      interface{}
+		opts    *LeafrefOptions
 		wantErr string
 	}{
 		{
@@ -175,6 +176,13 @@ func TestValidateLeafRefData(t *testing.T) {
 				Container2: &Container2{LeafRefToInt32: Int32(42)},
 			},
 			wantErr: `pointed-to value with path ../../int32 from field LeafRefToInt32 value 42 (int32 ptr) schema /int32-ref-to-leaf is empty set`,
+		},
+		{
+			desc: "int32 points to nil with ignore missing data true",
+			in: &Container{
+				Container2: &Container2{LeafRefToInt32: Int32(42)},
+			},
+			opts: &LeafrefOptions{IgnoreMissingData: true},
 		},
 		{
 			desc: "nil points to int32",
@@ -267,7 +275,7 @@ func TestValidateLeafRefData(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			errs := ValidateLeafRefData(containerWithLeafListSchema, tt.in)
+			errs := ValidateLeafRefData(containerWithLeafListSchema, tt.in, tt.opts)
 			if got, want := errs.String(), tt.wantErr; got != want {
 				t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
 			}

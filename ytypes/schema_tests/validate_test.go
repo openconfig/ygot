@@ -28,6 +28,7 @@ import (
 	"github.com/openconfig/ygot/experimental/ygotutils"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
+	"github.com/openconfig/ygot/ytypes"
 	"github.com/pmezard/go-difflib/difflib"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -792,6 +793,9 @@ func TestLeafrefCurrent(t *testing.T) {
 		t.Fatal("TestLeafrefCurrent: did not get expected error for non-existent subinterface, got: nil, want: error")
 	}
 
+	if err := dev.Validate(&ytypes.LeafrefOptions{IgnoreMissingData: true}); err != nil {
+		t.Fatalf("TestLeafrefCurrent: did not get nil error when disabling leafref data validation, got: %v, want: nil", err)
+	}
 }
 
 func toGNMIPath(path []string) *gpb.Path {
