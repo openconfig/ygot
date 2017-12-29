@@ -422,7 +422,7 @@ type mapStructNoPaths struct {
 func (*mapStructNoPaths) IsYANGGoStruct() {}
 
 // Validate implements the ValidatedGoStruct interface.
-func (*mapStructNoPaths) Validate(...ValidationOption) error      { return nil }
+func (*mapStructNoPaths) Validate(...ValidationOption) error                         { return nil }
 func (*mapStructNoPaths) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 // TestEmitJSON validates that the EmitJSON function outputs the expected JSON
@@ -1343,7 +1343,7 @@ type validatedMergeTest struct {
 	Uint32Field *uint32
 }
 
-func (*validatedMergeTest) Validate(...ValidationOption) error      { return nil }
+func (*validatedMergeTest) Validate(...ValidationOption) error                         { return nil }
 func (*validatedMergeTest) IsYANGGoStruct()                         {}
 func (*validatedMergeTest) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
@@ -1352,7 +1352,7 @@ type validatedMergeTestTwo struct {
 	I      interface{}
 }
 
-func (*validatedMergeTestTwo) Validate(...ValidationOption) error      { return nil }
+func (*validatedMergeTestTwo) Validate(...ValidationOption) error                         { return nil }
 func (*validatedMergeTestTwo) IsYANGGoStruct()                         {}
 func (*validatedMergeTestTwo) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
@@ -1361,6 +1361,7 @@ func TestMergeStructs(t *testing.T) {
 		name    string
 		inA     ValidatedGoStruct
 		inB     ValidatedGoStruct
+		inOpts  []MergeOption
 		want    ValidatedGoStruct
 		wantErr string
 	}{{
@@ -1397,10 +1398,28 @@ func TestMergeStructs(t *testing.T) {
 		inA:     &validatedMergeTest{String: String("karbach-hopadillo")},
 		inB:     &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
 		wantErr: "error merging b to new struct: destination value was set when merging, src: blackwater-draw-brewing-co-border-town, dst: karbach-hopadillo",
+	}, {
+		name:   "allow leaf overwrite if equal",
+		inA:    &validatedMergeTest{String: String("new-belgium-sour-saison")},
+		inB:    &validatedMergeTest{String: String("new-belgium-sour-saison")},
+		inOpts: []MergeOption{NewAllowLeafOverwrite(true)},
+		want:   &validatedMergeTest{String: String("new-belgium-sour-saison")},
+	}, {
+		name:   "allow leaf overwrite if unequal",
+		inA:    &validatedMergeTest{String: String("sierra-nevada-sidecar")},
+		inB:    &validatedMergeTest{String: String("deschutes-pacific-wonderland")},
+		inOpts: []MergeOption{NewAllowLeafOverwrite(false)},
+		want:   &validatedMergeTest{String: String("deschutes-pacific-wonderland")},
+	}, {
+		name:    "error - merge leaf overwrite but not equal",
+		inA:     &validatedMergeTest{String: String("schneider-weisse-hopfenweisse")},
+		inB:     &validatedMergeTest{String: String("deschutes-jubelale")},
+		inOpts:  []MergeOption{NewAllowLeafOverwrite(true)},
+		wantErr: "error merging b to new struct: destination value was not equal to source when merging with override, src: deschutes-jubelale, dst: schneider-weisse-hopfenweisse",
 	}}
 
 	for _, tt := range tests {
-		got, err := MergeStructs(tt.inA, tt.inB)
+		got, err := MergeStructs(tt.inA, tt.inB, tt.inOpts...)
 		if err != nil && err.Error() != tt.wantErr {
 			t.Errorf("%s: MergeStructs(%v, %v): did not get expected error status, got: %v, want: %v", tt.name, tt.inA, tt.inB, err, tt.wantErr)
 		}
@@ -1490,7 +1509,7 @@ func TestCopyErrorCases(t *testing.T) {
 		{"non-ptr", reflect.ValueOf(""), reflect.ValueOf(""), "received non-ptr type: string"},
 	}
 	for _, tt := range ptrErrs {
-		if err := copyPtrField(tt.inDst, tt.inSrc); err == nil || err.Error() != tt.wantErr {
+		if err := copyPtrField(tt.inDst, tt.inSrc, nil); err == nil || err.Error() != tt.wantErr {
 			t.Errorf("%s: copyPtrField(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
 		}
 	}
@@ -1576,7 +1595,7 @@ type buildEmptyTreeMergeTest struct {
 	String   *string
 }
 
-func (*buildEmptyTreeMergeTest) Validate(...ValidationOption) error      { return nil }
+func (*buildEmptyTreeMergeTest) Validate(...ValidationOption) error                         { return nil }
 func (*buildEmptyTreeMergeTest) IsYANGGoStruct()                         {}
 func (*buildEmptyTreeMergeTest) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
@@ -1586,7 +1605,7 @@ type buildEmptyTreeMergeTestChild struct {
 	String        *string
 }
 
-func (*buildEmptyTreeMergeTestChild) Validate(...ValidationOption) error      { return nil }
+func (*buildEmptyTreeMergeTestChild) Validate(...ValidationOption) error                         { return nil }
 func (*buildEmptyTreeMergeTestChild) IsYANGGoStruct()                         {}
 func (*buildEmptyTreeMergeTestChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
@@ -1594,7 +1613,7 @@ type buildEmptyTreeMergeTestGrandchild struct {
 	String *string
 }
 
-func (*buildEmptyTreeMergeTestGrandchild) Validate(...ValidationOption) error      { return nil }
+func (*buildEmptyTreeMergeTestGrandchild) Validate(...ValidationOption) error                         { return nil }
 func (*buildEmptyTreeMergeTestGrandchild) IsYANGGoStruct()                         {}
 func (*buildEmptyTreeMergeTestGrandchild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
