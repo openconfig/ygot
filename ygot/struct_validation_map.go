@@ -332,35 +332,14 @@ func MergeJSON(a, b map[string]interface{}) (map[string]interface{}, error) {
 	return o, nil
 }
 
-// MergeOption is an interface that is implemented by all parameters which specify a merge
-// behaviour when merging GoStructs.
-type MergeOption interface {
-	// IsMergeOption is a marker method for these options.
-	IsMergeOption()
-}
-
-// AllowLeafOverwrite allows scalar (leaf) fields to be overwritten in the destination
-// strucft when specified.
-type AllowLeafOverwrite struct {
-	IfEqual bool // IfEqual allows leaves to be overwritten only if their value is equal.
-}
-
-// IsMergeOption marks AllowLeafOverwrite as a valid MergeOption.
-func (*AllowLeafOverwrite) IsMergeOption() {}
-
-// NewAllowLeafOverwrite returns a new AllowLeafOverwrite pointer. The ifeq argument
-// specifies whether merging should only be allowed if the source and destination
-// leaves have equal values.
-func NewAllowLeafOverwrite(ifeq bool) *AllowLeafOverwrite { return &AllowLeafOverwrite{IfEqual: ifeq} }
-
 // MergeStructs takes two input ValidatedGoStructs and merges their contents,
 // returning a new ValidatedGoStruct. If the input structs a and b are of
 // different types, an error is returned.
 //
 // Where two structs contain maps or slices that are populated in both a and b
 // their contents are merged. If a leaf is populated in both a and b, an error
-// is returned unless the AllowLeafOverwrite MergeOption is supplied.
-func MergeStructs(a, b ValidatedGoStruct, opts ...MergeOption) (ValidatedGoStruct, error) {
+// is returned if the value of the leaf is not equal.
+func MergeStructs(a, b ValidatedGoStruct) (ValidatedGoStruct, error) {
 	if reflect.TypeOf(a) != reflect.TypeOf(b) {
 		return nil, fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", a, b)
 	}
@@ -371,7 +350,7 @@ func MergeStructs(a, b ValidatedGoStruct, opts ...MergeOption) (ValidatedGoStruc
 	}
 	n := reflect.ValueOf(tn)
 
-	if err := copyStruct(n.Elem(), reflect.ValueOf(b).Elem(), opts...); err != nil {
+	if err := copyStruct(n.Elem(), reflect.ValueOf(b).Elem()); err != nil {
 		return nil, fmt.Errorf("error merging b to new struct: %v", err)
 	}
 
@@ -389,7 +368,7 @@ func DeepCopy(s GoStruct) (GoStruct, error) {
 }
 
 // copyStruct copies the fields of srcVal into the dstVal struct in-place.
-func copyStruct(dstVal, srcVal reflect.Value, opts ...MergeOption) error {
+func copyStruct(dstVal, srcVal reflect.Value) error {
 	if srcVal.Type() != dstVal.Type() {
 		return fmt.Errorf("cannot copy %s to %s", srcVal.Type().Name(), dstVal.Type().Name())
 	}
@@ -398,15 +377,13 @@ func copyStruct(dstVal, srcVal reflect.Value, opts ...MergeOption) error {
 		return fmt.Errorf("cannot handle non-struct types, src: %v, dst: %v", srcVal.Type().Kind(), dstVal.Type().Kind())
 	}
 
-	lo := leafOverwriteOption(opts)
-
 	for i := 0; i < srcVal.NumField(); i++ {
 		srcField := srcVal.Field(i)
 		dstField := dstVal.Field(i)
 
 		switch srcField.Kind() {
 		case reflect.Ptr:
-			if err := copyPtrField(dstField, srcField, lo); err != nil {
+			if err := copyPtrField(dstField, srcField); err != nil {
 				return err
 			}
 		case reflect.Interface:
@@ -428,26 +405,14 @@ func copyStruct(dstVal, srcVal reflect.Value, opts ...MergeOption) error {
 	return nil
 }
 
-// leafOverwriteOption extracts the first AllowLeafOverwrite option from the supplied
-// slice of MergeOptions.
-func leafOverwriteOption(opts []MergeOption) *AllowLeafOverwrite {
-	for _, l := range opts {
-		switch l.(type) {
-		case *AllowLeafOverwrite:
-			return l.(*AllowLeafOverwrite)
-		}
-	}
-	return nil
-}
-
 // copyPtrField copies srcField to dstField. srcField and dstField must be
 // reflect.Value structs which represent pointers. If the source and destination
 // are struct pointers, then their contents are merged. If the source and
 // destination are non-struct pointers, values are not merged and an error
 // is returned. If the source and destination both have a pointer field, which is
-// populated then an error is returned unless the AllowLeafOverwrite option is
-// supplied.
-func copyPtrField(dstField, srcField reflect.Value, ao *AllowLeafOverwrite) error {
+// populated then an error is returned unless the value of the field is
+// equal in both structs.
+func copyPtrField(dstField, srcField reflect.Value) error {
 
 	if util.IsNilOrInvalidValue(srcField) {
 		return nil
@@ -478,14 +443,8 @@ func copyPtrField(dstField, srcField reflect.Value, ao *AllowLeafOverwrite) erro
 	}
 
 	if !util.IsNilOrInvalidValue(dstField) {
-		if ao == nil {
-			// Return an error when we are overwriting fields in the destination unless
-			// the AllowLeafOverwrite option is specified.
-			return fmt.Errorf("destination value was set when merging, src: %v, dst: %v", srcField.Elem().Interface(), dstField.Elem().Interface())
-		}
-
-		if s, d := srcField.Elem().Interface(), dstField.Elem().Interface(); ao != nil && ao.IfEqual && !reflect.DeepEqual(s, d) {
-			return fmt.Errorf("destination value was not equal to source when merging with override, src: %v, dst: %v", s, d)
+		if s, d := srcField.Elem().Interface(), dstField.Elem().Interface(); !reflect.DeepEqual(s, d) {
+			return fmt.Errorf("destination value was set, but was not equal to source value when merging ptr field, src: %v, dst: %v", s, d)
 		}
 	}
 
@@ -569,10 +528,7 @@ func copyMapField(dstField, srcField reflect.Value) error {
 				existingKeys[k.Interface()] = v
 			}
 
-			// By default, we always set the allow leaf overwrite option for equal keys for merging
-			// maps, since the key value of the map is set within both of the structs. This means that
-			// we must allow leaves to be overwritten.
-			if err := copyStruct(d.Elem(), v.Elem(), NewAllowLeafOverwrite(true)); err != nil {
+			if err := copyStruct(d.Elem(), v.Elem()); err != nil {
 				return err
 			}
 			nm.SetMapIndex(k, d)
