@@ -336,13 +336,9 @@ func MergeJSON(a, b map[string]interface{}) (map[string]interface{}, error) {
 // returning a new ValidatedGoStruct. If the input structs a and b are of
 // different types, an error is returned.
 //
-// In the case that the structs contain a slice, or a map that is already
-// populated in both structs, an error is returned. Merging two lists with
-// identical members will be added in future iterations of this code.
-//
-// TODO(robjs): Fix the unimplemented test cases where two structs of
-// the same type have slices or maps that are already populated.
-// See https://github.com/openconfig/ygot/issues/74.
+// Where two structs contain maps or slices that are populated in both a and b
+// their contents are merged. If a leaf is populated in both a and b, an error
+// is returned if the value of the leaf is not equal.
 func MergeStructs(a, b ValidatedGoStruct) (ValidatedGoStruct, error) {
 	if reflect.TypeOf(a) != reflect.TypeOf(b) {
 		return nil, fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", a, b)
@@ -413,7 +409,9 @@ func copyStruct(dstVal, srcVal reflect.Value) error {
 // reflect.Value structs which represent pointers. If the source and destination
 // are struct pointers, then their contents are merged. If the source and
 // destination are non-struct pointers, values are not merged and an error
-// is returned.
+// is returned. If the source and destination both have a pointer field, which is
+// populated then an error is returned unless the value of the field is
+// equal in both structs.
 func copyPtrField(dstField, srcField reflect.Value) error {
 
 	if util.IsNilOrInvalidValue(srcField) {
@@ -445,8 +443,9 @@ func copyPtrField(dstField, srcField reflect.Value) error {
 	}
 
 	if !util.IsNilOrInvalidValue(dstField) {
-		// Return an error when we are overwriting fields in the destination.
-		return fmt.Errorf("destination value was set when merging, src: %v, dst: %v", srcField.Elem().Interface(), dstField.Elem().Interface())
+		if s, d := srcField.Elem().Interface(), dstField.Elem().Interface(); !reflect.DeepEqual(s, d) {
+			return fmt.Errorf("destination value was set, but was not equal to source value when merging ptr field, src: %v, dst: %v", s, d)
+		}
 	}
 
 	p := reflect.New(srcField.Type().Elem())
