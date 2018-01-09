@@ -79,7 +79,20 @@ func CreateDemoDeviceInstance() (*oc.Device, error) {
 	}
 	c.Type = &oc.Component_Type_Union_E_OpenconfigPlatformTypes_OPENCONFIG_SOFTWARE_COMPONENT{oc.OpenconfigPlatformTypes_OPENCONFIG_SOFTWARE_COMPONENT_OPERATING_SYSTEM}
 
-	return d, nil
+	// Create a second device instance, and populate the OS component under
+	// it. This code demonstrates how ygot.MergeStructs can be used to combine
+	// multiple instances of the same type of struct together, allowing each
+	// subtree to be generated in its own context.
+	secondDev := &oc.Device{}
+	sc, err := secondDev.NewComponent("os")
+	sc.Description = ygot.String("RouterOS 14.0")
+	mergedDev, err := ygot.MergeStructs(d, secondDev)
+	if err != nil {
+		return nil, err
+	}
+	// Since ygot.MergeStructs returns an ygot.ValidatedGoStruct interface, we
+	// must type assert it back to *oc.Device.
+	return mergedDev.(*oc.Device), nil
 }
 
 // EmitJSON outputs the device instance specified as internal format JSON.
