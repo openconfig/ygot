@@ -48,6 +48,7 @@
             },
             "name": "os",
             "state": {
+               "description": "RouterOS 14.0",
                "type": "openconfig-platform-types:OPERATING_SYSTEM"
             }
          }
