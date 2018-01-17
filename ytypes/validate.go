@@ -38,7 +38,7 @@ type LeafrefOptions struct {
 
 // IsValidationOption ensures that LeafrefOptions implements the ValidationOption
 // interface.
-func (LeafrefOptions) IsValidationOption() {}
+func (*LeafrefOptions) IsValidationOption() {}
 
 // Validate recursively validates the value of the given data tree struct
 // against the given schema.
