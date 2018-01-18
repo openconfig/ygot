@@ -62,6 +62,7 @@ func TestGoCodeStructGeneration(t *testing.T) {
 		// defined during the pre-processing of the module, it is used to
 		// determine the names of referenced lists and structs.
 		inUniqueDirectoryNames map[string]string
+		inGenerateRenameMethod bool
 		wantCompressed         wantGoStructOut
 		wantUncompressed       wantGoStructOut
 	}{{
@@ -588,6 +589,7 @@ func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		inUniqueDirectoryNames: map[string]string{
 			"/root-module/tstruct/listWithKey": "ListWithKey",
 		},
+		inGenerateRenameMethod: true,
 		wantCompressed: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
@@ -626,6 +628,22 @@ func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
 	}
 
 	return t.ListWithKey[key], nil
+}
+
+// RenameListWithKey renames an entry in the list ListWithKey within
+// the Tstruct struct. The entry with key old is renamed to new, updating
+// the key within the value.
+func (t *Tstruct) RenameListWithKey(old, new string) error {
+	e, ok := t.ListWithKey[old]
+	if !ok {
+		return fmt.Errorf("key %v not found in ListWithKey", old)
+	}
+
+	n := ygot.DeepCopy(e)
+	n.KeyLeaf = new
+	delete(t.ListWithKey, old)
+	t.ListWithKey[new] = n
+	return nil
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -679,6 +697,22 @@ func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
 	}
 
 	return t.ListWithKey[key], nil
+}
+
+// RenameListWithKey renames an entry in the list ListWithKey within
+// the Tstruct struct. The entry with key old is renamed to new, updating
+// the key within the value.
+func (t *Tstruct) RenameListWithKey(old, new string) error {
+	e, ok := t.ListWithKey[old]
+	if !ok {
+		return fmt.Errorf("key %v not found in ListWithKey", old)
+	}
+
+	n := ygot.DeepCopy(e)
+	n.KeyLeaf = new
+	delete(t.ListWithKey, old)
+	t.ListWithKey[new] = n
+	return nil
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -815,6 +849,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		inUniqueDirectoryNames: map[string]string{
 			"/root-module/tstruct/listWithKey": "ListWithKey",
 		},
+		inGenerateRenameMethod: true,
 		wantCompressed: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
@@ -864,6 +899,22 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 	}
 
 	return t.ListWithKey[key], nil
+}
+
+// RenameListWithKey renames an entry in the list ListWithKey within
+// the Tstruct struct. The entry with key old is renamed to new, updating
+// the key within the value.
+func (t *Tstruct) RenameListWithKey(old, new Tstruct_ListWithKey_Key) error {
+	e, ok := t.ListWithKey[old]
+	if !ok {
+		return fmt.Errorf("key %v not found in ListWithKey", old)
+	}
+
+	n := ygot.DeepCopy(e)
+	n.KeyLeafOne = new.KeyLeafOnen.KeyLeafTwo = new.KeyLeafTwo
+	delete(t.ListWithKey, old)
+	t.ListWithKey[new] = n
+	return nil
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -930,6 +981,22 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 	return t.ListWithKey[key], nil
 }
 
+// RenameListWithKey renames an entry in the list ListWithKey within
+// the Tstruct struct. The entry with key old is renamed to new, updating
+// the key within the value.
+func (t *Tstruct) RenameListWithKey(old, new Tstruct_ListWithKey_Key) error {
+	e, ok := t.ListWithKey[old]
+	if !ok {
+		return fmt.Errorf("key %v not found in ListWithKey", old)
+	}
+
+	n := ygot.DeepCopy(e)
+	n.KeyLeafOne = new.KeyLeafOnen.KeyLeafTwo = new.KeyLeafTwo
+	delete(t.ListWithKey, old)
+	t.ListWithKey[new] = n
+	return nil
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (s *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], s, opts...); err != nil {
@@ -951,7 +1018,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 			// Always generate the JSON schema for this test.
-			got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true)
+			got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inGenerateRenameMethod)
 
 			if len(errs) != 0 && !want.wantErr {
 				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): received unexpected errors: %v",

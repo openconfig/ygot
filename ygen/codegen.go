@@ -99,6 +99,9 @@ type GoOpts struct {
 	// YtypesImportPath specifies the path to ytypes library that should be used
 	// in the generated code.
 	YtypesImportPath string
+	// GenerateRenameMethod specifies whether methods for renaming list entries
+	// should be generated in the output Go code.
+	GenerateRenameMethod bool
 }
 
 // ProtoOpts stores Protobuf specific options for the code generation library.
@@ -341,7 +344,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	codegenErr := NewYANGCodeGeneratorError()
 	var structSnippets []string
 	for _, structName := range orderedStructNames {
-		structOut, errs := writeGoStruct(structNameMap[structName], goStructs, cg.state, cg.Config.CompressOCPaths, cg.Config.GenerateJSONSchema)
+		structOut, errs := writeGoStruct(structNameMap[structName], goStructs, cg.state, cg.Config.CompressOCPaths, cg.Config.GenerateJSONSchema, cg.Config.GoOptions.GenerateRenameMethod)
 		if errs != nil {
 			codegenErr.Errors = append(codegenErr.Errors, errs...)
 			continue
