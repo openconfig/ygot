@@ -59,6 +59,14 @@
                                             "Name": "hold-time",
                                             "Kind": 0,
                                             "Config": 0,
+                                            "Prefix": {
+                                                "Name": "oco",
+                                                "Source": {
+                                                    "Keyword": "prefix",
+                                                    "HasArgument": true,
+                                                    "Argument": "oco"
+                                                }
+                                            },
                                             "Type": {
                                                 "Name": "uint32",
                                                 "Kind": 7,
@@ -82,6 +90,14 @@
                                             "Name": "peer-address",
                                             "Kind": 0,
                                             "Config": 0,
+                                            "Prefix": {
+                                                "Name": "oco",
+                                                "Source": {
+                                                    "Keyword": "prefix",
+                                                    "HasArgument": true,
+                                                    "Argument": "oco"
+                                                }
+                                            },
                                             "Type": {
                                                 "Name": "union",
                                                 "Kind": 19,
@@ -112,6 +128,14 @@
                                     "Name": "peer-address",
                                     "Kind": 0,
                                     "Config": 0,
+                                    "Prefix": {
+                                        "Name": "oco",
+                                        "Source": {
+                                            "Keyword": "prefix",
+                                            "HasArgument": true,
+                                            "Argument": "oco"
+                                        }
+                                    },
                                     "Type": {
                                         "Name": "leafref",
                                         "Kind": 17,
@@ -135,6 +159,14 @@
                                             "Name": "enabled-address-family",
                                             "Kind": 0,
                                             "Config": 0,
+                                            "Prefix": {
+                                                "Name": "oco",
+                                                "Source": {
+                                                    "Keyword": "prefix",
+                                                    "HasArgument": true,
+                                                    "Argument": "oco"
+                                                }
+                                            },
                                             "Type": {
                                                 "Name": "union",
                                                 "Kind": 19,
@@ -181,6 +213,14 @@
                                             "Name": "hold-time",
                                             "Kind": 0,
                                             "Config": 0,
+                                            "Prefix": {
+                                                "Name": "oco",
+                                                "Source": {
+                                                    "Keyword": "prefix",
+                                                    "HasArgument": true,
+                                                    "Argument": "oco"
+                                                }
+                                            },
                                             "Type": {
                                                 "Name": "uint32",
                                                 "Kind": 7,
@@ -204,6 +244,14 @@
                                             "Name": "peer-address",
                                             "Kind": 0,
                                             "Config": 0,
+                                            "Prefix": {
+                                                "Name": "oco",
+                                                "Source": {
+                                                    "Keyword": "prefix",
+                                                    "HasArgument": true,
+                                                    "Argument": "oco"
+                                                }
+                                            },
                                             "Type": {
                                                 "Name": "union",
                                                 "Kind": 19,
@@ -229,6 +277,14 @@
                                             "Name": "session-state",
                                             "Kind": 0,
                                             "Config": 0,
+                                            "Prefix": {
+                                                "Name": "oco",
+                                                "Source": {
+                                                    "Keyword": "prefix",
+                                                    "HasArgument": true,
+                                                    "Argument": "oco"
+                                                }
+                                            },
                                             "Type": {
                                                 "Name": "enumeration",
                                                 "Kind": 14,
