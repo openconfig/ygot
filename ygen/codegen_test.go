@@ -392,9 +392,14 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.yang")},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-no-compress.formatted-txt"),
 	}, {
-		name:                "simple openconfig test, with a list",
-		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.yang")},
-		inConfig:            GeneratorConfig{CompressOCPaths: true},
+		name:    "simple openconfig test, with a list",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.yang")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths: true,
+			GoOptions: GoOpts{
+				GenerateRenameMethod: true,
+			},
+		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.formatted-txt"),
 	}, {
 		name:                "simple openconfig test, with a list that has an enumeration key",

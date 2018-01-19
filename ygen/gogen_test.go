@@ -631,18 +631,26 @@ func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
 }
 
 // RenameListWithKey renames an entry in the list ListWithKey within
-// the Tstruct struct. The entry with key old is renamed to new, updating
+// the Tstruct struct. The entry with key oldk is renamed to newk updating
 // the key within the value.
-func (t *Tstruct) RenameListWithKey(old, new string) error {
-	e, ok := t.ListWithKey[old]
+func (t *Tstruct) RenameListWithKey(oldk, newk string) error {
+	e, ok := t.ListWithKey[oldk]
 	if !ok {
-		return fmt.Errorf("key %v not found in ListWithKey", old)
+		return fmt.Errorf("key %v not found in ListWithKey", oldk)
 	}
 
-	n := ygot.DeepCopy(e)
-	n.KeyLeaf = new
-	delete(t.ListWithKey, old)
-	t.ListWithKey[new] = n
+	ns, err := ygot.DeepCopy(e)
+	if err != nil {
+		return fmt.Errorf("cannot DeepCopy entry %v, got error: %v", oldk, err)
+	}
+	n, ok := ns.(*ListWithKey)
+	if !ok {
+		return fmt.Errorf("wrong type returned in list, got error: %v", err)
+	}
+	n.KeyLeaf = &newk
+
+	delete(t.ListWithKey, oldk)
+	t.ListWithKey[newk] = n
 	return nil
 }
 
@@ -700,18 +708,26 @@ func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
 }
 
 // RenameListWithKey renames an entry in the list ListWithKey within
-// the Tstruct struct. The entry with key old is renamed to new, updating
+// the Tstruct struct. The entry with key oldk is renamed to newk updating
 // the key within the value.
-func (t *Tstruct) RenameListWithKey(old, new string) error {
-	e, ok := t.ListWithKey[old]
+func (t *Tstruct) RenameListWithKey(oldk, newk string) error {
+	e, ok := t.ListWithKey[oldk]
 	if !ok {
-		return fmt.Errorf("key %v not found in ListWithKey", old)
+		return fmt.Errorf("key %v not found in ListWithKey", oldk)
 	}
 
-	n := ygot.DeepCopy(e)
-	n.KeyLeaf = new
-	delete(t.ListWithKey, old)
-	t.ListWithKey[new] = n
+	ns, err := ygot.DeepCopy(e)
+	if err != nil {
+		return fmt.Errorf("cannot DeepCopy entry %v, got error: %v", oldk, err)
+	}
+	n, ok := ns.(*ListWithKey)
+	if !ok {
+		return fmt.Errorf("wrong type returned in list, got error: %v", err)
+	}
+	n.KeyLeaf = &newk
+
+	delete(t.ListWithKey, oldk)
+	t.ListWithKey[newk] = n
 	return nil
 }
 
@@ -902,18 +918,27 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 }
 
 // RenameListWithKey renames an entry in the list ListWithKey within
-// the Tstruct struct. The entry with key old is renamed to new, updating
+// the Tstruct struct. The entry with key oldk is renamed to newk updating
 // the key within the value.
-func (t *Tstruct) RenameListWithKey(old, new Tstruct_ListWithKey_Key) error {
-	e, ok := t.ListWithKey[old]
+func (t *Tstruct) RenameListWithKey(oldk, newk Tstruct_ListWithKey_Key) error {
+	e, ok := t.ListWithKey[oldk]
 	if !ok {
-		return fmt.Errorf("key %v not found in ListWithKey", old)
+		return fmt.Errorf("key %v not found in ListWithKey", oldk)
 	}
 
-	n := ygot.DeepCopy(e)
-	n.KeyLeafOne = new.KeyLeafOnen.KeyLeafTwo = new.KeyLeafTwo
-	delete(t.ListWithKey, old)
-	t.ListWithKey[new] = n
+	ns, err := ygot.DeepCopy(e)
+	if err != nil {
+		return fmt.Errorf("cannot DeepCopy entry %v, got error: %v", oldk, err)
+	}
+	n, ok := ns.(*ListWithKey)
+	if !ok {
+		return fmt.Errorf("wrong type returned in list, got error: %v", err)
+	}
+	n.KeyLeafOne = &newk.KeyLeafOne
+	n.KeyLeafTwo = &newk.KeyLeafTwo
+
+	delete(t.ListWithKey, oldk)
+	t.ListWithKey[newk] = n
 	return nil
 }
 
@@ -982,18 +1007,27 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 }
 
 // RenameListWithKey renames an entry in the list ListWithKey within
-// the Tstruct struct. The entry with key old is renamed to new, updating
+// the Tstruct struct. The entry with key oldk is renamed to newk updating
 // the key within the value.
-func (t *Tstruct) RenameListWithKey(old, new Tstruct_ListWithKey_Key) error {
-	e, ok := t.ListWithKey[old]
+func (t *Tstruct) RenameListWithKey(oldk, newk Tstruct_ListWithKey_Key) error {
+	e, ok := t.ListWithKey[oldk]
 	if !ok {
-		return fmt.Errorf("key %v not found in ListWithKey", old)
+		return fmt.Errorf("key %v not found in ListWithKey", oldk)
 	}
 
-	n := ygot.DeepCopy(e)
-	n.KeyLeafOne = new.KeyLeafOnen.KeyLeafTwo = new.KeyLeafTwo
-	delete(t.ListWithKey, old)
-	t.ListWithKey[new] = n
+	ns, err := ygot.DeepCopy(e)
+	if err != nil {
+		return fmt.Errorf("cannot DeepCopy entry %v, got error: %v", oldk, err)
+	}
+	n, ok := ns.(*ListWithKey)
+	if !ok {
+		return fmt.Errorf("wrong type returned in list, got error: %v", err)
+	}
+	n.KeyLeafOne = &newk.KeyLeafOne
+	n.KeyLeafTwo = &newk.KeyLeafTwo
+
+	delete(t.ListWithKey, oldk)
+	t.ListWithKey[newk] = n
 	return nil
 }
 
