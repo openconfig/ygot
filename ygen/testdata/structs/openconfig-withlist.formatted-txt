@@ -79,27 +79,18 @@ func (t *Model) NewMultiKey(Key1 uint32, Key2 uint64) (*Model_MultiKey, error){
 }
 
 // RenameMultiKey renames an entry in the list MultiKey within
-// the Model struct. The entry with key oldk is renamed to newk updating
+// the Model struct. The entry with key oldK is renamed to newK updating
 // the key within the value.
-func (t *Model) RenameMultiKey(oldk, newk Model_MultiKey_Key) error {
-	e, ok := t.MultiKey[oldk]
+func (t *Model) RenameMultiKey(oldK, newK Model_MultiKey_Key) error {
+	e, ok := t.MultiKey[oldK]
 	if !ok {
-		return fmt.Errorf("key %v not found in MultiKey", oldk)
+		return fmt.Errorf("key %v not found in MultiKey", oldK)
 	}
+	e.Key1 = &newK.Key1
+	e.Key2 = &newK.Key2
 
-	ns, err := ygot.DeepCopy(e)
-	if err != nil {
-		return fmt.Errorf("cannot DeepCopy entry %v, got error: %v", oldk, err)
-	}
-	n, ok := ns.(*Model_MultiKey)
-	if !ok {
-		return fmt.Errorf("wrong type returned in list, got error: %v", err)
-	}
-	n.Key1 = &newk.Key1
-	n.Key2 = &newk.Key2
-
-	delete(t.MultiKey, oldk)
-	t.MultiKey[newk] = n
+	t.MultiKey[newK] = e
+	delete(t.MultiKey, oldK)
 	return nil
 }
 
@@ -131,26 +122,17 @@ func (t *Model) NewSingleKey(Key string) (*Model_SingleKey, error){
 }
 
 // RenameSingleKey renames an entry in the list SingleKey within
-// the Model struct. The entry with key oldk is renamed to newk updating
+// the Model struct. The entry with key oldK is renamed to newK updating
 // the key within the value.
-func (t *Model) RenameSingleKey(oldk, newk string) error {
-	e, ok := t.SingleKey[oldk]
+func (t *Model) RenameSingleKey(oldK, newK string) error {
+	e, ok := t.SingleKey[oldK]
 	if !ok {
-		return fmt.Errorf("key %v not found in SingleKey", oldk)
+		return fmt.Errorf("key %v not found in SingleKey", oldK)
 	}
+	e.Key = &newK
 
-	ns, err := ygot.DeepCopy(e)
-	if err != nil {
-		return fmt.Errorf("cannot DeepCopy entry %v, got error: %v", oldk, err)
-	}
-	n, ok := ns.(*Model_SingleKey)
-	if !ok {
-		return fmt.Errorf("wrong type returned in list, got error: %v", err)
-	}
-	n.Key = &newk
-
-	delete(t.SingleKey, oldk)
-	t.SingleKey[newk] = n
+	t.SingleKey[newK] = e
+	delete(t.SingleKey, oldK)
 	return nil
 }
 

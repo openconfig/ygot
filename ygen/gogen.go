@@ -509,50 +509,41 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 	// a generated Go struct.
 	goListMemberRenameTemplate = `
 // Rename{{ .ListName }} renames an entry in the list {{ .ListName }} within
-// the {{ .Receiver }} struct. The entry with key oldk is renamed to newk updating
+// the {{ .Receiver }} struct. The entry with key oldK is renamed to newK updating
 // the key within the value.
 func (t *{{ .Receiver }}) Rename{{ .ListName }}(
 	{{- if ne .KeyStruct "" -}}
-	oldk, newk {{ .KeyStruct -}}
+	oldK, newK {{ .KeyStruct -}}
   {{- else -}}
 	{{- range $key := .Keys -}}
-	oldk, newk {{ $key.Type -}}
+	oldK, newK {{ $key.Type -}}
 	{{- end -}}
 	{{- end -}}
 ) error {
-	e, ok := t.{{ .ListName }}[oldk]
+	e, ok := t.{{ .ListName }}[oldK]
 	if !ok {
-		return fmt.Errorf("key %v not found in {{ .ListName }}", oldk)
+		return fmt.Errorf("key %v not found in {{ .ListName }}", oldK)
 	}
 
-	ns, err := ygot.DeepCopy(e)
-	if err != nil {
-		return fmt.Errorf("cannot DeepCopy entry %v, got error: %v", oldk, err)
-	}
-	n, ok := ns.(*{{ .ListType }})
-	if !ok {
-		return fmt.Errorf("wrong type returned in list, got error: %v", err)
-	}
 	{{- if ne .KeyStruct "" -}}
 	{{- range $key := .Keys -}}
 	{{- if $key.IsScalarField }}
-	n.{{ $key.Name }} = &newk.{{ $key.Name }}
+	e.{{ $key.Name }} = &newK.{{ $key.Name }}
 	{{- else }}
-	n.{{ $key.Name }} = newk.{{ $key.Name }}
+	e.{{ $key.Name }} = newK.{{ $key.Name }}
 	{{- end -}}
 	{{- end -}}
 	{{ else -}}
-	{{- range $key := .Keys -}}
+	{{- $key := index .Keys 0 -}}
 	{{- if $key.IsScalarField }}
-	n.{{ $key.Name }} = &newk
+	e.{{ $key.Name }} = &newK
 	{{- else }}
-	n.{{ $key.Name }} = newk
-	{{- end -}}
+	e.{{ $key.Name }} = newK
 	{{- end -}}
 	{{- end }}
 
-	delete(t.{{ .ListName }}, oldk)
-	t.{{ .ListName }}[newk] = n
+	t.{{ .ListName }}[newK] = e
+	delete(t.{{ .ListName }}, oldK)
 	return nil
 }
 `
