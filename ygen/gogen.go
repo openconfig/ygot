@@ -504,6 +504,50 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 }
 `
 
+	// goListMemberRenameTemplate provides a template for a function which renames
+	// an entry within a list. It is used to generate functions for each list within
+	// a generated Go struct.
+	goListMemberRenameTemplate = `
+// Rename{{ .ListName }} renames an entry in the list {{ .ListName }} within
+// the {{ .Receiver }} struct. The entry with key oldK is renamed to newK updating
+// the key within the value.
+func (t *{{ .Receiver }}) Rename{{ .ListName }}(
+	{{- if ne .KeyStruct "" -}}
+	oldK, newK {{ .KeyStruct -}}
+  {{- else -}}
+	{{- range $key := .Keys -}}
+	oldK, newK {{ $key.Type -}}
+	{{- end -}}
+	{{- end -}}
+) error {
+	e, ok := t.{{ .ListName }}[oldK]
+	if !ok {
+		return fmt.Errorf("key %v not found in {{ .ListName }}", oldK)
+	}
+
+	{{- if ne .KeyStruct "" -}}
+	{{- range $key := .Keys -}}
+	{{- if $key.IsScalarField }}
+	e.{{ $key.Name }} = &newK.{{ $key.Name }}
+	{{- else }}
+	e.{{ $key.Name }} = newK.{{ $key.Name }}
+	{{- end -}}
+	{{- end -}}
+	{{ else -}}
+	{{- $key := index .Keys 0 -}}
+	{{- if $key.IsScalarField }}
+	e.{{ $key.Name }} = &newK
+	{{- else }}
+	e.{{ $key.Name }} = newK
+	{{- end -}}
+	{{- end }}
+
+	t.{{ .ListName }}[newK] = e
+	delete(t.{{ .ListName }}, oldK)
+	return nil
+}
+`
+
 	// goKeyMapTemplate defines the template for a function that is generated for a YANG
 	// list type. It returns a map[string]interface{} keyed by the YANG leaf identifier of each
 	// key leaf, and containing their values within the struct.
@@ -645,6 +689,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"structValidator":     makeTemplate("structValidator", goStructValidatorTemplate),
 		"listkey":             makeTemplate("listkey", goListKeyTemplate),
 		"newListEntry":        makeTemplate("newListEntry", goNewListMemberTemplate),
+		"renameListEntry":     makeTemplate("renameListEntry", goListMemberRenameTemplate),
 		"enumDefinition":      makeTemplate("enumDefinition", goEnumDefinitionTemplate),
 		"enumMap":             makeTemplate("enumMap", goEnumMapTemplate),
 		"schemaVar":           makeTemplate("schemaVar", schemaVarTemplate),
@@ -758,7 +803,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (strin
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yangDirectory, state *genState, compressOCPaths, generateJSONSchema bool) (goStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yangDirectory, state *genState, compressOCPaths, generateJSONSchema, generateRenameMethod bool) (goStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -1000,6 +1045,12 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 	for _, method := range associatedListMethods {
 		if err := goTemplates["newListEntry"].Execute(&methodBuf, method); err != nil {
 			errs = append(errs, err)
+		}
+
+		if generateRenameMethod {
+			if err := goTemplates["renameListEntry"].Execute(&methodBuf, method); err != nil {
+				errs = append(errs, err)
+			}
 		}
 	}
 

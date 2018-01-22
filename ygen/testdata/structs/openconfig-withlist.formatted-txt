@@ -78,6 +78,22 @@ func (t *Model) NewMultiKey(Key1 uint32, Key2 uint64) (*Model_MultiKey, error){
 	return t.MultiKey[key], nil
 }
 
+// RenameMultiKey renames an entry in the list MultiKey within
+// the Model struct. The entry with key oldK is renamed to newK updating
+// the key within the value.
+func (t *Model) RenameMultiKey(oldK, newK Model_MultiKey_Key) error {
+	e, ok := t.MultiKey[oldK]
+	if !ok {
+		return fmt.Errorf("key %v not found in MultiKey", oldK)
+	}
+	e.Key1 = &newK.Key1
+	e.Key2 = &newK.Key2
+
+	t.MultiKey[newK] = e
+	delete(t.MultiKey, oldK)
+	return nil
+}
+
 // NewSingleKey creates a new entry in the SingleKey list of the
 // Model struct. The keys of the list are populated from the input
 // arguments.
@@ -103,6 +119,21 @@ func (t *Model) NewSingleKey(Key string) (*Model_SingleKey, error){
 	}
 
 	return t.SingleKey[key], nil
+}
+
+// RenameSingleKey renames an entry in the list SingleKey within
+// the Model struct. The entry with key oldK is renamed to newK updating
+// the key within the value.
+func (t *Model) RenameSingleKey(oldK, newK string) error {
+	e, ok := t.SingleKey[oldK]
+	if !ok {
+		return fmt.Errorf("key %v not found in SingleKey", oldK)
+	}
+	e.Key = &newK
+
+	t.SingleKey[newK] = e
+	delete(t.SingleKey, oldK)
+	return nil
 }
 
 // Model_MultiKey represents the /openconfig-withlist/model/b/multi-key YANG schema element.
