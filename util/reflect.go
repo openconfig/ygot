@@ -446,6 +446,15 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	v := ni.FieldValue
 	t := v.Type()
 
+	var schemaPaths [][]string
+	if !reflect.DeepEqual(ni.StructField, reflect.StructField{}) {
+		var err error
+		schemaPaths, err = SchemaPaths(ni.StructField)
+		if len(schemaPaths) == 0 || err != nil {
+			errs = AppendErrs(errs, []error{fmt.Errorf("could not determine schema path for field %v: %v", ni.StructField.Name, err)})
+		}
+	}
+
 	switch {
 	case IsTypeStructPtr(t):
 		t = t.Elem()
@@ -469,12 +478,14 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				return NewErrs(err)
 			}
 			for _, p := range ps {
-				nn.Schema = ChildSchema(ni.Schema, p)
-				if nn.Schema == nil {
-					e := fmt.Errorf("forEachFieldInternal could not find child schema with path %v from schema name %s", p, ni.Schema.Name)
-					DbgPrint(e.Error())
-					log.Errorln(e)
-					continue
+				if ni.Schema != nil {
+					nn.Schema = ChildSchema(ni.Schema, p)
+					if nn.Schema == nil {
+						e := fmt.Errorf("forEachFieldInternal could not find child schema with path %v from schema name %s", p, ni.Schema.Name)
+						DbgPrint(e.Error())
+						log.Errorln(e)
+						continue
+					}
 				}
 				nn.PathFromParent = p
 				// In the case of a map/slice, the path is of the form
@@ -489,19 +500,31 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 
 	case IsTypeSlice(t):
 		// Leaf-list elements share the parent schema with listattr unset.
-		schema := *(ni.Schema)
-		schema.ListAttr = nil
 		var pp []string
-		if !schema.IsLeafList() {
-			pp = []string{schema.Name}
+		var schema yang.Entry
+		if ni.Schema != nil {
+			schema = *(ni.Schema)
+			schema.ListAttr = nil
+			if !schema.IsLeafList() {
+				pp = []string{schema.Name}
+			}
+		} else {
+			// If the slice is a slice of struct pointers, then it is a list,
+			// and hence the name of the element should be appended to the path.
+			if IsTypeStructPtr(ni.FieldValue.Type().Elem()) {
+				pp = append(pp, schemaPaths[0]...)
+			}
 		}
+
 		if IsNilOrInvalidValue(v) {
 			// Traverse the type tree only from this point.
 			nn := &NodeInfo{
 				Parent:         ni,
 				PathFromParent: pp,
-				Schema:         &schema,
 				FieldValue:     reflect.Zero(t.Elem()),
+			}
+			if ni.Schema != nil {
+				ni.Schema = &schema
 			}
 			errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
 		} else {
@@ -509,7 +532,9 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				nn := *ni
 				// The schema for each element is the list schema minus the list
 				// attrs.
-				nn.Schema = &schema
+				if ni.Schema != nil {
+					nn.Schema = &schema
+				}
 				nn.Parent = ni
 				nn.PathFromParent = pp
 				nn.FieldValue = ni.FieldValue.Index(i)
@@ -518,22 +543,34 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 		}
 
 	case IsTypeMap(t):
-		schema := *(ni.Schema)
-		schema.ListAttr = nil
+		var schema yang.Entry
+		if ni.Schema != nil {
+			schema = *(ni.Schema)
+			schema.ListAttr = nil
+		}
 		if IsNilOrInvalidValue(v) {
 			nn := &NodeInfo{
-				Parent:         ni,
-				PathFromParent: []string{schema.Name},
-				Schema:         &schema,
-				FieldValue:     reflect.Zero(t.Elem()),
+				Parent:     ni,
+				FieldValue: reflect.Zero(t.Elem()),
 			}
+			if ni.Schema != nil {
+				nn.PathFromParent = []string{schema.Name}
+				nn.Schema = &schema
+			} else {
+				nn.PathFromParent = append(nn.PathFromParent, schemaPaths[0]...)
+			}
+
 			errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
 		} else {
 			for _, key := range ni.FieldValue.MapKeys() {
 				nn := *ni
-				nn.Schema = &schema
+				if ni.Schema != nil {
+					nn.Schema = &schema
+					nn.PathFromParent = []string{schema.Name}
+				} else {
+					nn.PathFromParent = append(nn.PathFromParent, schemaPaths[0]...)
+				}
 				nn.Parent = ni
-				nn.PathFromParent = []string{schema.Name}
 				nn.FieldValue = ni.FieldValue.MapIndex(key)
 				nn.FieldKey = key
 				nn.FieldKeys = ni.FieldValue.MapKeys()
@@ -543,6 +580,17 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	}
 
 	return errs
+}
+
+// ForEachDataField iterates the value supplied and iterates iterFunction for
+// each data tree node found in the function. No schema information is required
+// to perform the iteration.
+func ForEachDataField(value, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
+	if IsValueNil(value) {
+		return nil
+	}
+
+	return forEachFieldInternal(&NodeInfo{FieldValue: reflect.ValueOf(value)}, in, out, iterFunction)
 }
 
 // GetNodes returns the nodes in the data tree at the indicated path, relative
