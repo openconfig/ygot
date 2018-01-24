@@ -479,19 +479,34 @@ func appendgNMIPathElemKey(v reflect.Value, p *gnmiPath) (*gnmiPath, error) {
 	if err != nil {
 		return nil, err
 	}
-	newElem.Key = map[string]string{}
-	for kn, k := range km {
-		v, err := keyValueAsString(k)
-		if err != nil {
-			return nil, err
-		}
-		newElem.Key[kn] = v
+
+	k, err := keyMapAsStrings(km)
+	if err != nil {
+		return nil, err
 	}
+	newElem.Key = k
 
 	if err := np.SetIndex(np.Len()-1, &newElem); err != nil {
 		return nil, err
 	}
 	return np, nil
+}
+
+// keyMapAsStrings takes an input map[string]interface{}, keyed by the name of
+// a leaf, and with a value of the leaf's value, and returns it as a map[string]string
+// as is required in the gNMI PathElem message. The ΛListKeyMap helper function on
+// a generated KeyHelperGoStruct returns a map[string]interface{} of the form of
+// the input keys argument to this function.
+func keyMapAsStrings(keys map[string]interface{}) (map[string]string, error) {
+	nk := map[string]string{}
+	for kn, k := range keys {
+		v, err := keyValueAsString(k)
+		if err != nil {
+			return nil, err
+		}
+		nk[kn] = v
+	}
+	return nk, nil
 }
 
 // keyValueAsString returns a string representation of the interface{} supplied. If the

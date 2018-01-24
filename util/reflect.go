@@ -407,8 +407,9 @@ type NodeInfo struct {
 	// FieldKey is the key of the map element being traversed. ValueOf(nil) if
 	// type being traversed is not a map.
 	FieldKey reflect.Value
-	// CompletePath is the absolute path to this node based on the tree.
-	CompletePath [][]string
+	// Annotation is a field that can be populated by an iterFunction such that
+	// context can be carried with a node throughout the iteration.
+	Annotation []interface{}
 }
 
 // FieldIteratorFunc is an iteration function for arbitrary field traversals.
@@ -443,11 +444,6 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 		return nil
 	}
 
-	errs = AppendErrs(errs, iterFunction(ni, in, out))
-
-	v := ni.FieldValue
-	t := v.Type()
-
 	var schemaPaths [][]string
 	if !reflect.DeepEqual(ni.StructField, reflect.StructField{}) {
 		var err error
@@ -456,6 +452,13 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 			errs = AppendErrs(errs, []error{fmt.Errorf("could not determine schema path for field %v: %v", ni.StructField.Name, err)})
 		}
 	}
+
+	// Run the iterFunction for the current node that we have been handed. The
+	// function is run for all types of nodes.
+	errs = AppendErrs(errs, iterFunction(ni, in, out))
+
+	v := ni.FieldValue
+	t := v.Type()
 
 	switch {
 	case IsTypeStructPtr(t):
@@ -562,7 +565,6 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 			} else {
 				nn.PathFromParent = append(nn.PathFromParent, schemaPaths[0]...)
 			}
-
 			errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
 		} else {
 			for _, key := range ni.FieldValue.MapKeys() {
