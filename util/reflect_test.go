@@ -784,6 +784,28 @@ func TestForEachField(t *testing.T) {
 		return
 	}
 
+	printMapKeysSchemaAnnotationFunc := func(ni *NodeInfo, in, out interface{}) (errs Errors) {
+		if IsNilOrInvalidValue(ni.FieldKey) {
+			return
+		}
+		outs := out.(*string)
+		s := "nil"
+		if !IsNilOrInvalidValue(ni.FieldValue) {
+			s = pretty.Sprint(ni.FieldValue.Interface())
+		}
+
+		fn, err := SchemaPaths(ni.StructField)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		if l := len(fn); l != 1 {
+			errs = append(errs, fmt.Errorf("invalid schema path length %d for %v", l, ni.StructField.Name))
+		}
+
+		*outs += fmt.Sprintf("%s/%s : \n%s\n, ", ValueStr(ni.FieldKey.Interface()), fn[0][0], ValueStr(s))
+		return
+	}
+
 	basicStruct1 := BasicStruct{Int32Field: int32(42), StringField: "forty two", Int32PtrField: toInt32Ptr(4242), StringPtrField: toStringPtr("forty two ptr")}
 	basicStruct2 := BasicStruct{Int32Field: int32(43), StringField: "forty three", Int32PtrField: toInt32Ptr(4343), StringPtrField: toStringPtr("forty three ptr")}
 
@@ -870,12 +892,30 @@ func TestForEachField(t *testing.T) {
 			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
 			in:           nil,
 			iterFunc:     printMapKeysIterFunc,
-			wantOut: `basicStruct1 (string)/BasicStructMapField :
+			wantOut: `basicStruct1 (string)/BasicStructMapField : 
 {Int32Field:     42,
  StringField:    "forty two",
  Int32PtrField:  4242,
  StringPtrField: "forty two ptr"} (string)
-, basicStruct2 (string)/BasicStructPtrMapField :
+, basicStruct2 (string)/BasicStructPtrMapField : 
+{Int32Field:     43,
+ StringField:    "forty three",
+ Int32PtrField:  4343,
+ StringPtrField: "forty three ptr"} (string)
+, `,
+		},
+		{
+			desc:         "map keys with no struct schema",
+			schema:       nil,
+			in:           nil,
+			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
+			iterFunc:     printMapKeysSchemaAnnotationFunc,
+			wantOut: `basicStruct1 (string)/basic-struct : 
+{Int32Field:     42,
+ StringField:    "forty two",
+ Int32PtrField:  4242,
+ StringPtrField: "forty two ptr"} (string)
+, basicStruct2 (string)/basic-struct : 
 {Int32Field:     43,
  StringField:    "forty three",
  Int32PtrField:  4343,

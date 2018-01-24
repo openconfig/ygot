@@ -17,7 +17,9 @@ package diff
 
 import (
 	"fmt"
+	"reflect"
 
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 
@@ -28,10 +30,43 @@ import (
 // which must be of the same type, as a gNMI Notification message.
 func Diff(original, modified ygot.GoStruct) (*gnmipb.Notification, error) {
 
-	findSetIterFunc := func(ni *util.NodeInfo, in, out interface{}) util.Errors {
-		fmt.Printf("%v -> %v\n", ni.PathFromParent, ni.StructField)
-		return nil
+	type path struct {
+		Paths [][]string
 	}
+
+	findSetIterFunc := func(ni *util.NodeInfo, in, out interface{}) (errs util.Errors) {
+		if reflect.DeepEqual(ni.StructField, reflect.StructField{}) {
+			return
+		}
+		sp, err := util.SchemaPaths(ni.StructField)
+		if err != nil {
+			errs = util.AppendErr(errs, err)
+			return
+		}
+		if len(sp) == 0 {
+			errs = util.AppendErr(errs, fmt.Errorf("invalid schema path for %s", ni.StructField.Name))
+			return
+		}
+
+		fmt.Printf("%v\n", ni.CompletePath)
+
+		/*pPath := parentPath(ni)
+		ePath := [][]string{}
+		for _, p := range sp {
+			ePath = append(ePath, append(pPath, p...))
+		}
+
+		outs := out.(map[*path]interface{})
+		outs[&path{ePath}] = ni.FieldValue.Interface()*/
+		return
+	}
+
+	out := map[*path]interface{}{}
+	if errs := util.ForEachDataField(original, nil, out, findSetIterFunc); errs != nil {
+		return nil, fmt.Errorf("error from original iteration: %v", errs)
+	}
+
+	fmt.Printf("%v\n", pretty.Sprint(out))
 
 	return nil, nil
 }

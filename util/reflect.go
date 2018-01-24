@@ -407,6 +407,8 @@ type NodeInfo struct {
 	// FieldKey is the key of the map element being traversed. ValueOf(nil) if
 	// type being traversed is not a map.
 	FieldKey reflect.Value
+	// CompletePath is the absolute path to this node based on the tree.
+	CompletePath [][]string
 }
 
 // FieldIteratorFunc is an iteration function for arbitrary field traversals.
@@ -473,6 +475,7 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 			if !IsNilOrInvalidValue(v) {
 				nn.FieldValue = v.Field(i)
 			}
+
 			ps, err := SchemaPaths(nn.StructField)
 			if err != nil {
 				return NewErrs(err)
