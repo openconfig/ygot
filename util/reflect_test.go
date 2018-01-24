@@ -720,30 +720,43 @@ var (
 	}
 )
 
-func TestForEachField(t *testing.T) {
-	type BasicStruct struct {
-		Int32Field     int32   `path:"int32"`
-		StringField    string  `path:"string"`
-		Int32PtrField  *int32  `path:"int32ptr"`
-		StringPtrField *string `path:"stringptr"`
-	}
+type PathErrorStruct struct {
+	Field *string
+}
 
-	type StructOfStructs struct {
-		BasicStructField    BasicStruct  `path:"basic-struct"`
-		BasicStructPtrField *BasicStruct `path:"basic-struct"`
-	}
+type BasicStruct struct {
+	Int32Field     int32   `path:"int32"`
+	StringField    string  `path:"string"`
+	Int32PtrField  *int32  `path:"int32ptr"`
+	StringPtrField *string `path:"stringptr"`
+}
 
-	type StructOfSliceOfStructs struct {
-		BasicStructSliceField    []BasicStruct  `path:"basic-struct"`
-		BasicStructPtrSliceField []*BasicStruct `path:"basic-struct"`
-	}
+type PointerOnlyBasicStruct struct {
+	Int32Field     *int32  `path:"int32ptr"`
+	StringPtrField *string `path:"stringptr"`
+}
 
-	type StructOfMapOfStructs struct {
-		BasicStructMapField    map[string]BasicStruct  `path:"basic-struct"`
-		BasicStructPtrMapField map[string]*BasicStruct `path:"basic-struct"`
-	}
+type BasicSliceStruct struct {
+	StringSlice []string `path:"strlist"`
+}
 
-	printFieldsIterFunc := func(ni *NodeInfo, in, out interface{}) (errs Errors) {
+type StructOfStructs struct {
+	BasicStructField    BasicStruct  `path:"basic-struct"`
+	BasicStructPtrField *BasicStruct `path:"basic-struct"`
+}
+
+type StructOfSliceOfStructs struct {
+	BasicStructSliceField    []BasicStruct  `path:"basic-struct"`
+	BasicStructPtrSliceField []*BasicStruct `path:"basic-struct"`
+}
+
+type StructOfMapOfStructs struct {
+	BasicStructMapField    map[string]BasicStruct  `path:"basic-struct"`
+	BasicStructPtrMapField map[string]*BasicStruct `path:"basic-struct"`
+}
+
+var (
+	printFieldsIterFunc = func(ni *NodeInfo, in, out interface{}) (errs Errors) {
 		// Only print basic scalar values, skip everything else.
 		if !IsValueScalar(ni.FieldValue) || IsValueNil(ni.FieldKey) {
 			return
@@ -753,7 +766,7 @@ func TestForEachField(t *testing.T) {
 		return
 	}
 
-	printSchemaAnnotationFieldsIterFunc := func(ni *NodeInfo, in, out interface{}) (errs Errors) {
+	printSchemaAnnotationFieldsIterFunc = func(ni *NodeInfo, in, out interface{}) (errs Errors) {
 		if !IsValueScalar(ni.FieldValue) || IsValueNil(ni.FieldKey) {
 			return
 		}
@@ -771,7 +784,7 @@ func TestForEachField(t *testing.T) {
 		return
 	}
 
-	printMapKeysIterFunc := func(ni *NodeInfo, in, out interface{}) (errs Errors) {
+	printMapKeysIterFunc = func(ni *NodeInfo, in, out interface{}) (errs Errors) {
 		if IsNilOrInvalidValue(ni.FieldKey) {
 			return
 		}
@@ -784,7 +797,7 @@ func TestForEachField(t *testing.T) {
 		return
 	}
 
-	printMapKeysSchemaAnnotationFunc := func(ni *NodeInfo, in, out interface{}) (errs Errors) {
+	printMapKeysSchemaAnnotationFunc = func(ni *NodeInfo, in, out interface{}) (errs Errors) {
 		if IsNilOrInvalidValue(ni.FieldKey) {
 			return
 		}
@@ -806,9 +819,11 @@ func TestForEachField(t *testing.T) {
 		return
 	}
 
-	basicStruct1 := BasicStruct{Int32Field: int32(42), StringField: "forty two", Int32PtrField: toInt32Ptr(4242), StringPtrField: toStringPtr("forty two ptr")}
-	basicStruct2 := BasicStruct{Int32Field: int32(43), StringField: "forty three", Int32PtrField: toInt32Ptr(4343), StringPtrField: toStringPtr("forty three ptr")}
+	basicStruct1 = BasicStruct{Int32Field: int32(42), StringField: "forty two", Int32PtrField: toInt32Ptr(4242), StringPtrField: toStringPtr("forty two ptr")}
+	basicStruct2 = BasicStruct{Int32Field: int32(43), StringField: "forty three", Int32PtrField: toInt32Ptr(4343), StringPtrField: toStringPtr("forty three ptr")}
+)
 
+func TestForEachField(t *testing.T) {
 	tests := []struct {
 		desc         string
 		schema       *yang.Entry
@@ -836,14 +851,6 @@ func TestForEachField(t *testing.T) {
 			wantOut:      `Int32Field : 42, StringField : "forty two", Int32PtrField : 4242, StringPtrField : "forty two ptr", `,
 		},
 		{
-			desc:         "struct without schema",
-			schema:       nil,
-			parentStruct: &basicStruct1,
-			in:           nil,
-			iterFunc:     printSchemaAnnotationFieldsIterFunc,
-			wantOut:      `int32 : 42, string : "forty two", int32ptr : 4242, stringptr : "forty two ptr", `,
-		},
-		{
 			desc:         "struct of struct",
 			schema:       forEachContainerSchema,
 			parentStruct: &StructOfStructs{BasicStructField: basicStruct1, BasicStructPtrField: &basicStruct2},
@@ -853,30 +860,12 @@ func TestForEachField(t *testing.T) {
 				`Int32Field : 43, StringField : "forty three", Int32PtrField : 4343, StringPtrField : "forty three ptr", `,
 		},
 		{
-			desc:         "struct of struct with no schema",
-			schema:       nil,
-			parentStruct: &StructOfStructs{BasicStructField: basicStruct1, BasicStructPtrField: &basicStruct2},
-			in:           nil,
-			iterFunc:     printSchemaAnnotationFieldsIterFunc,
-			wantOut: `int32 : 42, string : "forty two", int32ptr : 4242, stringptr : "forty two ptr", ` +
-				`int32 : 43, string : "forty three", int32ptr : 4343, stringptr : "forty three ptr", `,
-		},
-		{
 			desc:         "struct of slice of structs",
 			schema:       forEachContainerSchema,
 			parentStruct: &StructOfSliceOfStructs{BasicStructSliceField: []BasicStruct{basicStruct1}, BasicStructPtrSliceField: []*BasicStruct{&basicStruct2}},
 			in:           nil,
 			iterFunc:     printFieldsIterFunc,
 			wantOut:      `Int32Field : 42, StringField : "forty two", Int32PtrField : 4242, StringPtrField : "forty two ptr", Int32Field : 43, StringField : "forty three", Int32PtrField : 4343, StringPtrField : "forty three ptr", `,
-		},
-		{
-			desc:         "struct of slice of structs with no schema",
-			schema:       nil,
-			parentStruct: &StructOfSliceOfStructs{BasicStructSliceField: []BasicStruct{basicStruct1}, BasicStructPtrSliceField: []*BasicStruct{&basicStruct2}},
-			in:           nil,
-			iterFunc:     printSchemaAnnotationFieldsIterFunc,
-			wantOut: `int32 : 42, string : "forty two", int32ptr : 4242, stringptr : "forty two ptr", ` +
-				`int32 : 43, string : "forty three", int32ptr : 4343, stringptr : "forty three ptr", `,
 		},
 		{
 			desc:         "struct of map of structs",
@@ -904,9 +893,88 @@ func TestForEachField(t *testing.T) {
  StringPtrField: "forty three ptr"} (string)
 , `,
 		},
+	}
+
+	for _, tt := range tests {
+		outStr := ""
+		var errs Errors
+		errs = ForEachField(tt.schema, tt.parentStruct, tt.in, &outStr, tt.iterFunc)
+		if got, want := errs.String(), tt.wantErr; got != want {
+			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+		}
+		if errs == nil {
+			if got, want := outStr, tt.wantOut; got != want {
+				t.Errorf("%s:\ngot:\n(%v)\nwant:\n(%v)", tt.desc, got, want)
+			}
+		}
+		testErrLog(t, tt.desc, errs)
+	}
+}
+
+func TestForEachDataField(t *testing.T) {
+	tests := []struct {
+		desc         string
+		parentStruct interface{}
+		in           interface{}
+		out          interface{}
+		iterFunc     FieldIteratorFunc
+		wantOut      string
+		wantErr      string
+	}{
+		{
+			desc:         "nil",
+			parentStruct: nil,
+			in:           nil,
+			iterFunc:     printSchemaAnnotationFieldsIterFunc,
+			wantOut:      ``,
+		},
+		{
+			desc:         "nil fields",
+			parentStruct: &PointerOnlyBasicStruct{},
+			in:           nil,
+			iterFunc:     printSchemaAnnotationFieldsIterFunc,
+			wantOut:      ``,
+		},
+		{
+			desc:         "invalid path specification for field",
+			parentStruct: &PathErrorStruct{Field: String("value")},
+			in:           nil,
+			iterFunc:     printSchemaAnnotationFieldsIterFunc,
+			wantOut:      ``,
+			wantErr:      "field Field did not specify a path",
+		},
+		{
+			desc:         "struct without schema",
+			parentStruct: &basicStruct1,
+			in:           nil,
+			iterFunc:     printSchemaAnnotationFieldsIterFunc,
+			wantOut:      `int32 : 42, string : "forty two", int32ptr : 4242, stringptr : "forty two ptr", `,
+		},
+		{
+			desc:         "struct of struct with no schema",
+			parentStruct: &StructOfStructs{BasicStructField: basicStruct1, BasicStructPtrField: &basicStruct2},
+			in:           nil,
+			iterFunc:     printSchemaAnnotationFieldsIterFunc,
+			wantOut: `int32 : 42, string : "forty two", int32ptr : 4242, stringptr : "forty two ptr", ` +
+				`int32 : 43, string : "forty three", int32ptr : 4343, stringptr : "forty three ptr", `,
+		},
+		{
+			desc:         "struct of slice of structs with no schema",
+			parentStruct: &StructOfSliceOfStructs{BasicStructSliceField: []BasicStruct{basicStruct1}, BasicStructPtrSliceField: []*BasicStruct{&basicStruct2}},
+			in:           nil,
+			iterFunc:     printSchemaAnnotationFieldsIterFunc,
+			wantOut: `int32 : 42, string : "forty two", int32ptr : 4242, stringptr : "forty two ptr", ` +
+				`int32 : 43, string : "forty three", int32ptr : 4343, stringptr : "forty three ptr", `,
+		},
+		{
+			desc:         "struct with string leaf-list",
+			parentStruct: &BasicSliceStruct{StringSlice: []string{"one", "two"}},
+			in:           nil,
+			iterFunc:     printSchemaAnnotationFieldsIterFunc,
+			wantOut:      ``,
+		},
 		{
 			desc:         "map keys with no struct schema",
-			schema:       nil,
 			in:           nil,
 			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
 			iterFunc:     printMapKeysSchemaAnnotationFunc,
@@ -927,13 +995,13 @@ func TestForEachField(t *testing.T) {
 	for _, tt := range tests {
 		outStr := ""
 		var errs Errors
-		errs = ForEachField(tt.schema, tt.parentStruct, tt.in, &outStr, tt.iterFunc)
+		errs = ForEachDataField(tt.parentStruct, tt.in, &outStr, tt.iterFunc)
 		if got, want := errs.String(), tt.wantErr; got != want {
-			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+			t.Errorf("%s: ForEachDataField(%v, %#v, ...): did not get expected error, got: %s, want: %s", tt.desc, tt.parentStruct, tt.in, got, want)
 		}
 		if errs == nil {
 			if got, want := outStr, tt.wantOut; got != want {
-				t.Errorf("%s:\ngot:\n(%v)\nwant:\n(%v)", tt.desc, got, want)
+				t.Errorf("%s: ForEachDataField(%v, %#v, ...): did not get expected output, got:\n(%v)\nwant:\n(%v)", tt.desc, tt.parentStruct, tt.in, got, want)
 			}
 		}
 		testErrLog(t, tt.desc, errs)

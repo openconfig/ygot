@@ -73,6 +73,40 @@ func nodeValuePath(ni *util.NodeInfo, schemaPaths [][]string) (*pathSpec, error)
 	return nodeChildPath(cp, schemaPaths)
 }
 
+// nodeRootPath returns the gNMI path of a node at the root of a GoStruct tree -
+// since such nodes do not have a parent, then the path returned is entirely
+// gleaned from the schema path supplied.
+func nodeRootPath(schemaPaths [][]string) *pathSpec {
+	gPaths := []*gnmipb.Path{}
+	for _, sp := range schemaPaths {
+		gPaths = append(gPaths, schemaPathTogNMIPath(sp))
+	}
+
+	return &pathSpec{
+		gNMIPaths: gPaths,
+	}
+}
+
+// nodeChildPath returns the gNMI path of a node that is a child of the supplied
+// parentPath, the schemaPaths of the child are appended to each entry in the
+// parent's path.
+func nodeChildPath(parentPath *pathSpec, schemaPaths [][]string) (*pathSpec, error) {
+	if parentPath == nil || parentPath.gNMIPaths == nil {
+		return nil, fmt.Errorf("could not find annotation for complete path")
+	}
+
+	gPaths := []*gnmipb.Path{}
+	for _, p := range parentPath.gNMIPaths {
+		for _, s := range schemaPaths {
+			gPaths = append(gPaths, joingNMIPaths(p, schemaPathTogNMIPath(s)))
+		}
+	}
+
+	return &pathSpec{
+		gNMIPaths: gPaths,
+	}, nil
+}
+
 // nodeMapPath takes an input list entry (which is a value of a Go map in the
 // generated code) and the path of the YANG list node's parent (which stores the
 // name of the YANG list) and returns the data tree path of the map. For a
@@ -114,40 +148,6 @@ func nodeMapPath(list KeyHelperGoStruct, parentPath *pathSpec) (*pathSpec, error
 		np.Elem[len(p.Elem)-1].Key = strkeys
 		gPaths = append(gPaths, np)
 	}
-	return &pathSpec{
-		gNMIPaths: gPaths,
-	}, nil
-}
-
-// nodeRootPath returns the gNMI path of a node at the root of a GoStruct tree -
-// since such nodes do not have a parent, then the path returned is entirely
-// gleaned from the schema path supplied.
-func nodeRootPath(schemaPaths [][]string) *pathSpec {
-	gPaths := []*gnmipb.Path{}
-	for _, sp := range schemaPaths {
-		gPaths = append(gPaths, schemaPathTogNMIPath(sp))
-	}
-
-	return &pathSpec{
-		gNMIPaths: gPaths,
-	}
-}
-
-// nodeChildPath returns the gNMI path of a node that is a child of the supplied
-// parentPath, the schemaPaths of the child are appended to each entry in the
-// parent's path.
-func nodeChildPath(parentPath *pathSpec, schemaPaths [][]string) (*pathSpec, error) {
-	if parentPath == nil || parentPath.gNMIPaths == nil {
-		return nil, fmt.Errorf("could not find annotation for complete path")
-	}
-
-	gPaths := []*gnmipb.Path{}
-	for _, p := range parentPath.gNMIPaths {
-		for _, s := range schemaPaths {
-			gPaths = append(gPaths, joingNMIPaths(p, schemaPathTogNMIPath(s)))
-		}
-	}
-
 	return &pathSpec{
 		gNMIPaths: gPaths,
 	}, nil
