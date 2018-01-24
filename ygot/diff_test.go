@@ -412,12 +412,12 @@ func TestFindSetLeaves(t *testing.T) {
 			},
 		},
 		want: map[*pathSpec]interface{}{
-			&pathSpec{
+			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{{Name: "string-value"}},
 				}},
 			}: "value-one",
-			&pathSpec{
+			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
 						{Name: "struct-value"},
@@ -425,7 +425,7 @@ func TestFindSetLeaves(t *testing.T) {
 					},
 				}},
 			}: "value-two",
-			&pathSpec{
+			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
 						{Name: "struct-value"},
@@ -441,7 +441,7 @@ func TestFindSetLeaves(t *testing.T) {
 					},
 				}},
 			}: "value-three",
-			&pathSpec{
+			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
 						{Name: "struct-value"},
@@ -467,7 +467,7 @@ func TestFindSetLeaves(t *testing.T) {
 			},
 		},
 		want: map[*pathSpec]interface{}{
-			&pathSpec{
+			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
 						{Name: "map-list", Key: map[string]string{"list-key": "one"}},
@@ -475,7 +475,7 @@ func TestFindSetLeaves(t *testing.T) {
 					},
 				}},
 			}: "one",
-			&pathSpec{
+			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
 						{Name: "map-list", Key: map[string]string{"list-key": "two"}},
