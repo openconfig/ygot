@@ -16,7 +16,6 @@ package ygot
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/ygot/util"
@@ -66,57 +65,9 @@ func nodeValuePath(ni *util.NodeInfo, schemaPaths [][]string) (*pathSpec, error)
 		return nil, err
 	}
 
-	if l, ok := ni.FieldValue.Interface().(KeyHelperGoStruct); ok {
-		return nodeMapPath(l, cp)
-	}
+	// TODO(robjs): Handle lists within structs.
 
 	return nodeChildPath(cp, schemaPaths)
-}
-
-// nodeMapPath takes an input list entry (which is a value of a Go map in the
-// generated code) and the path of the YANG list node's parent (which stores the
-// name of the YANG list) and returns the data tree path of the map. For a
-// struct of the form:
-//
-//  type Foo struct {
-//   YANGList map[string]*Foo_Child `path:"yang-list"`
-//  }
-//
-//  type Foo_Child struct {
-//   KeyValue *string `path:"key-value"`
-//  }
-//
-// The parentPath handed to this function is "/yang-list" since this is the
-// path of the YANGList struct field. The full data tree path of the list entry
-// is formed by appending the key of the Foo_Child struct. In the generated Go
-// code, Foo_Child implements the ListKeyHelper interface, and hence the keys are
-// found by calling the ΛListKeyMap helper function.
-func nodeMapPath(list KeyHelperGoStruct, parentPath *pathSpec) (*pathSpec, error) {
-	keys, err := list.ΛListKeyMap()
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert the keys into a string.
-	strkeys, err := keyMapAsStrings(keys)
-	if err != nil {
-		return nil, fmt.Errorf("cannot convert keys to map[string]string: %v", err)
-	}
-
-	if parentPath == nil || parentPath.gNMIPaths == nil {
-		// we cannot have a list member that does not have a list parent.
-		return nil, fmt.Errorf("invalid list member with no parent")
-	}
-
-	gPaths := []*gnmipb.Path{}
-	for _, p := range parentPath.gNMIPaths {
-		np := proto.Clone(p).(*gnmipb.Path)
-		np.Elem[len(p.Elem)-1].Key = strkeys
-		gPaths = append(gPaths, np)
-	}
-	return &pathSpec{
-		gNMIPaths: gPaths,
-	}, nil
 }
 
 // nodeRootPath returns the gNMI path of a node at the root of a GoStruct tree -
@@ -161,54 +112,4 @@ func getPathSpec(ni *util.NodeInfo) (*pathSpec, error) {
 		}
 	}
 	return nil, fmt.Errorf("could not find path specification annotation")
-}
-
-// findSetLeaves iteratively walks the fields of the supplied GoStruct, s, and
-// returns a map, keyed by the path of the leaves that are set, with a the value
-// that the leaf is set to. YANG lists (Go maps), and containers (Go structs) are
-// not included within the returned map, such that only leaf or leaf-list values
-// that are set are returned.
-//
-// The ForEachDataField helper of the util library is used to perform the iterative
-// walk of the struct - using the out argument to store the set of changed leaves.
-// A specific Annotation is used to store the absolute path of the entity during
-// the walk.
-func findSetLeaves(s GoStruct) (map[*pathSpec]interface{}, error) {
-	findSetIterFunc := func(ni *util.NodeInfo, in, out interface{}) (errs util.Errors) {
-		if reflect.DeepEqual(ni.StructField, reflect.StructField{}) {
-			return
-		}
-
-		sp, err := util.SchemaPaths(ni.StructField)
-		if err != nil {
-			errs = util.AppendErr(errs, err)
-			return
-		}
-		if len(sp) == 0 {
-			errs = util.AppendErr(errs, fmt.Errorf("invalid schema path for %s", ni.StructField.Name))
-			return
-		}
-
-		vp, err := nodeValuePath(ni, sp)
-		if err != nil {
-			return util.NewErrs(err)
-		}
-		ni.Annotation = []interface{}{vp}
-
-		if util.IsNilOrInvalidValue(ni.FieldValue) || util.IsValueStructPtr(ni.FieldValue) || util.IsValueMap(ni.FieldValue) {
-			return
-		}
-
-		outs := out.(map[*pathSpec]interface{})
-		outs[vp] = ni.FieldValue.Interface()
-
-		return
-	}
-
-	out := map[*pathSpec]interface{}{}
-	if errs := util.ForEachDataField(s, nil, out, findSetIterFunc); errs != nil {
-		return nil, fmt.Errorf("error from ForEachDataField iteration: %v", errs)
-	}
-
-	return out, nil
 }

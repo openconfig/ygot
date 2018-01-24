@@ -189,7 +189,6 @@ type basicStructThree struct {
 }
 
 func TestNodeValuePath(t *testing.T) {
-	cmplx := complex(float64(1), float64(2))
 	tests := []struct {
 		desc          string
 		inNI          *util.NodeInfo
@@ -218,63 +217,37 @@ func TestNodeValuePath(t *testing.T) {
 		},
 		wantErr: "could not find path specification annotation",
 	}, {
-		desc: "nodeinfo for list member",
+		desc: "nodeinfo for a child path",
 		inNI: &util.NodeInfo{
 			Parent: &util.NodeInfo{
-				Annotation: []interface{}{&pathSpec{
-					gNMIPaths: []*gnmipb.Path{{
-						Elem: []*gnmipb.PathElem{{
-							Name: "a-list",
+				Annotation: []interface{}{
+					&pathSpec{
+						gNMIPaths: []*gnmipb.Path{{
+							Elem: []*gnmipb.PathElem{{
+								Name: "parent",
+							}},
 						}},
-					}},
-				}},
+					},
+				},
 			},
-			FieldValue: reflect.ValueOf(&basicListMember{ListKey: String("key-value")}),
 		},
+		inSchemaPaths: [][]string{{"foo", "bar"}, {"baz"}},
 		wantPathSpec: &pathSpec{
 			gNMIPaths: []*gnmipb.Path{{
-				Elem: []*gnmipb.PathElem{{Name: "a-list", Key: map[string]string{"list-key": "key-value"}}},
+				Elem: []*gnmipb.PathElem{{Name: "parent"}, {Name: "foo"}, {Name: "bar"}},
+			}, {
+				Elem: []*gnmipb.PathElem{{Name: "parent"}, {Name: "baz"}},
 			}},
 		},
 	}, {
-		desc: "nodeinfo for invalid list member",
+		desc: "nodeinfo for a child path missing annotation path",
 		inNI: &util.NodeInfo{
 			Parent: &util.NodeInfo{
-				Annotation: []interface{}{&pathSpec{
-					gNMIPaths: []*gnmipb.Path{{
-						Elem: []*gnmipb.PathElem{{
-							Name: "a-list",
-						}},
-					}},
-				}},
+				Annotation: []interface{}{},
 			},
-			FieldValue: reflect.ValueOf(&errorListMember{StringValue: String("foo")}),
 		},
-		wantErr: "invalid key map",
-	}, {
-		desc: "nodeinfo for list member with unstringable key",
-		inNI: &util.NodeInfo{
-			Parent: &util.NodeInfo{
-				Annotation: []interface{}{&pathSpec{
-					gNMIPaths: []*gnmipb.Path{{
-						Elem: []*gnmipb.PathElem{{
-							Name: "a-list",
-						}},
-					}},
-				}},
-			},
-			FieldValue: reflect.ValueOf(&badListKeyType{Value: &cmplx}),
-		},
-		wantErr: "cannot convert keys to map[string]string: cannot convert type complex128 to a string for use in a key: (1+2i)",
-	}, {
-		desc: "nodeinfo for list member with no parent",
-		inNI: &util.NodeInfo{
-			Parent: &util.NodeInfo{
-				Annotation: []interface{}{&pathSpec{}},
-			},
-			FieldValue: reflect.ValueOf(&basicListMember{ListKey: String("key-value")}),
-		},
-		wantErr: "invalid list member with no parent",
+		inSchemaPaths: [][]string{{"foo", "bar"}, {"baz"}},
+		wantErr:       "could not find path specification annotation",
 	}}
 
 	for _, tt := range tests {
@@ -285,42 +258,6 @@ func TestNodeValuePath(t *testing.T) {
 		if !reflect.DeepEqual(got, tt.wantPathSpec) {
 			diff := pretty.Compare(got, tt.wantPathSpec)
 			t.Errorf("%s: nodeValuePath(%v, %v): did not get expected paths, diff(-got,+want): %s", tt.desc, tt.inNI, tt.inSchemaPaths, diff)
-		}
-	}
-}
-
-func TestFindSetLeaves(t *testing.T) {
-	tests := []struct {
-		desc     string
-		inStruct GoStruct
-		want     map[*pathSpec]interface{}
-		wantErr  string
-	}{{
-		desc: "test",
-		inStruct: &basicStruct{
-			StringValue: String("value-one"),
-			StructValue: &basicStructTwo{
-				StringValue: String("value-two"),
-				StructValue: &basicStructThree{
-					StringValue: String("value-three"),
-				},
-			},
-		},
-	}, {
-		desc: "test two",
-		inStruct: &basicStruct{
-			MapValue: map[string]*basicListMember{
-				"one": {ListKey: String("one")},
-				"two": {ListKey: String("two")},
-			},
-		},
-	}}
-
-	for _, tt := range tests {
-		_, err := findSetLeaves(tt.inStruct)
-		if err != nil && (err.Error() != tt.wantErr) {
-			t.Errorf("%s: findSetLeaves(%v): did not get expected error: %v", tt.desc, tt.inStruct, err)
-			continue
 		}
 	}
 }
