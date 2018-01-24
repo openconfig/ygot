@@ -214,6 +214,39 @@ func TestNodeValuePath(t *testing.T) {
 		},
 		wantErr: "could not find path specification annotation",
 	}, {
+		desc: "nodeinfo for a child path",
+		inNI: &util.NodeInfo{
+			Parent: &util.NodeInfo{
+				Annotation: []interface{}{
+					&pathSpec{
+						gNMIPaths: []*gnmipb.Path{{
+							Elem: []*gnmipb.PathElem{{
+								Name: "parent",
+							}},
+						}},
+					},
+				},
+			},
+			FieldValue: reflect.ValueOf("foo"),
+		},
+		inSchemaPaths: [][]string{{"foo", "bar"}, {"baz"}},
+		wantPathSpec: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{Name: "parent"}, {Name: "foo"}, {Name: "bar"}},
+			}, {
+				Elem: []*gnmipb.PathElem{{Name: "parent"}, {Name: "baz"}},
+			}},
+		},
+	}, {
+		desc: "nodeinfo for a child path missing annotation path",
+		inNI: &util.NodeInfo{
+			Parent: &util.NodeInfo{
+				Annotation: []interface{}{},
+			},
+		},
+		inSchemaPaths: [][]string{{"foo", "bar"}, {"baz"}},
+		wantErr:       "could not find path specification annotation",
+	}, {
 		desc: "nodeinfo for list member",
 		inNI: &util.NodeInfo{
 			Parent: &util.NodeInfo{
