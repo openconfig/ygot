@@ -902,12 +902,12 @@ func TestForEachField(t *testing.T) {
 			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
 			in:           nil,
 			iterFunc:     printMapKeysIterFunc,
-			wantOut: `basicStruct1 (string)/BasicStructMapField :
+			wantOut: `basicStruct1 (string)/BasicStructMapField : 
 {Int32Field:     42,
  StringField:    "forty two",
  Int32PtrField:  4242,
  StringPtrField: "forty two ptr"} (string)
-, basicStruct2 (string)/BasicStructPtrMapField :
+, basicStruct2 (string)/BasicStructPtrMapField : 
 {Int32Field:     43,
  StringField:    "forty three",
  Int32PtrField:  4343,
@@ -1000,12 +1000,12 @@ func TestForEachDataField(t *testing.T) {
 			in:           nil,
 			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
 			iterFunc:     printMapKeysSchemaAnnotationFunc,
-			wantOut: `basicStruct1 (string)/basic-struct :
+			wantOut: `basicStruct1 (string)/basic-struct : 
 {Int32Field:     42,
  StringField:    "forty two",
  Int32PtrField:  4242,
  StringPtrField: "forty two ptr"} (string)
-, basicStruct2 (string)/basic-struct :
+, basicStruct2 (string)/basic-struct : 
 {Int32Field:     43,
  StringField:    "forty three",
  Int32PtrField:  4343,
