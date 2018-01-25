@@ -21,8 +21,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/kylelemons/godebug/pretty"
-	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/util"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 func TestSchemaPathToGNMIPath(t *testing.T) {

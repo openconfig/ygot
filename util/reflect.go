@@ -428,7 +428,7 @@ type FieldIteratorFunc func(ni *NodeInfo, in, out interface{}) Errors
 //     and return results from the iterator.
 //   iterFunction is executed on each scalar field.
 // It returns a slice of errors encountered while processing the struct.
-func ForEachField(schema *yang.Entry, value interface{}, in, out interface{}, iterFunction FieldIteratorFunc) (errs Errors) {
+func ForEachField(schema *yang.Entry, value interface{}, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
 	if IsValueNil(value) {
 		return nil
 	}
@@ -439,11 +439,12 @@ func ForEachField(schema *yang.Entry, value interface{}, in, out interface{}, it
 // may be any Go type) and executes iterFunction on each field.
 //   in, out are passed through from the caller to the iteration and can be used
 //     arbitrarily in the iteration function to carry state and results.
-func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldIteratorFunc) (errs Errors) {
+func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
 	if IsValueNil(ni) {
 		return nil
 	}
 
+	var errs Errors
 	errs = AppendErrs(errs, iterFunction(ni, in, out))
 
 	v := ni.FieldValue
@@ -548,9 +549,11 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	return errs
 }
 
-// ForEachDataField iterates the value supplied and iterates iterFunction for
-// each data tree node found in the function. No schema information is required
-// to perform the iteration.
+// ForEachDataField iterates the value supplied and calls the iterFunction for
+// each data tree node found in the supplied value. No schema information is required
+// to perform the iteration. The in and out arguments are passed to the iterFunction
+// without inspection by this function, and can be used by the caller to store
+// input and output during the iteration through the data tree.
 func ForEachDataField(value, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
 	if IsValueNil(value) {
 		return nil
@@ -559,17 +562,18 @@ func ForEachDataField(value, in, out interface{}, iterFunction FieldIteratorFunc
 	return forEachDataFieldInternal(&NodeInfo{FieldValue: reflect.ValueOf(value)}, in, out, iterFunction)
 }
 
-func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldIteratorFunc) (errs Errors) {
+func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
 	if IsValueNil(ni) {
-		return
+		return nil
 	}
 
 	if IsNilOrInvalidValue(ni.FieldValue) {
 		// Skip any fields that are nil within the data tree, since we
 		// do not need to iterate on them.
-		return
+		return nil
 	}
 
+	var errs Errors
 	// Run the iterator function for this field.
 	errs = AppendErrs(errs, iterFunction(ni, in, out))
 
@@ -604,8 +608,8 @@ func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction Fi
 				return NewErrs(err)
 			}
 			// In the case that the field expands to >1 different data tree path,
-			// i.e., SchemaPaths above returns more than one path, then we run
-			// this function for each different path. This ensures that the iterator
+			// i.e., SchemaPaths above returns more than one path, then we recurse
+			// for each schema path. This ensures that the iterator
 			// function runs for all expansions of the data tree as well as the GoStruct
 			// fields.
 			for _, p := range ps {
@@ -620,7 +624,7 @@ func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction Fi
 		// Only iterate in the data tree if the slice is of structs, otherwise
 		// for leaf-lists we only run once.
 		if !IsTypeStructPtr(t.Elem()) && !IsTypeStruct(t.Elem()) {
-			return
+			return errs
 		}
 
 		for i := 0; i < ni.FieldValue.Len(); i++ {
@@ -636,7 +640,7 @@ func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction Fi
 	case IsTypeMap(t):
 		// Handle the case of a keyed map, which is a YANG list.
 		if IsNilOrInvalidValue(v) {
-			return
+			return errs
 		}
 		for _, key := range ni.FieldValue.MapKeys() {
 			nn := *ni
