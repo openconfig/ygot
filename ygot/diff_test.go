@@ -96,7 +96,8 @@ func TestJoingNMIPaths(t *testing.T) {
 			Elem: []*gnmipb.PathElem{{
 				Name: "two",
 			}, {
-				Name: "three", Key: map[string]string{"four": "five"},
+				Name: "three",
+				Key:  map[string]string{"four": "five"},
 			}},
 		},
 		want: &gnmipb.Path{
@@ -105,14 +106,16 @@ func TestJoingNMIPaths(t *testing.T) {
 			}, {
 				Name: "two",
 			}, {
-				Name: "three", Key: map[string]string{"four": "five"},
+				Name: "three",
+				Key:  map[string]string{"four": "five"},
 			}},
 		},
 	}, {
 		desc: "list in parent, simple child",
 		inParent: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{{
-				Name: "one", Key: map[string]string{"two": "three"},
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
 			}},
 		},
 		inChild: &gnmipb.Path{
@@ -122,7 +125,8 @@ func TestJoingNMIPaths(t *testing.T) {
 		},
 		want: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{{
-				Name: "one", Key: map[string]string{"two": "three"},
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
 			}, {
 				Name: "four",
 			}},
