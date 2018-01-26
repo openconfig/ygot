@@ -151,7 +151,7 @@ func IsValueScalar(v reflect.Value) bool {
 	return !IsValueStruct(v) && !IsValueMap(v) && !IsValueSlice(v)
 }
 
-// IsInterfaceToStructPtr reports whether v is an interface that contains a
+// IsValueInterfaceToStructPtr reports whether v is an interface that contains a
 // pointer to a struct.
 func IsValueInterfaceToStructPtr(v reflect.Value) bool {
 	return IsValueInterface(v) && IsValueStructPtr(v.Elem())
@@ -615,6 +615,10 @@ func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction Fi
 			for _, p := range ps {
 				nn.PathFromParent = p
 				if IsTypeSlice(sf.Type) || IsTypeMap(sf.Type) {
+					// Since lists can have path compression - where the path contains more
+					// than one element, ensure that the schema path we received is only two
+					// elements long. This protects against compression errors where there are
+					// trailing spaces (e.g., a path tag of config/bar/).
 					nn.PathFromParent = p[0:1]
 				}
 				errs = AppendErrs(errs, forEachDataFieldInternal(nn, in, out, iterFunction))
