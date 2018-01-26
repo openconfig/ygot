@@ -151,7 +151,7 @@ func IsValueScalar(v reflect.Value) bool {
 	return !IsValueStruct(v) && !IsValueMap(v) && !IsValueSlice(v)
 }
 
-// IsInterfaceToStructPtr reports whether v is an interface that contains a
+// IsValueInterfaceToStructPtr reports whether v is an interface that contains a
 // pointer to a struct.
 func IsValueInterfaceToStructPtr(v reflect.Value) bool {
 	return IsValueInterface(v) && IsValueStructPtr(v.Elem())
@@ -407,6 +407,9 @@ type NodeInfo struct {
 	// FieldKey is the key of the map element being traversed. ValueOf(nil) if
 	// type being traversed is not a map.
 	FieldKey reflect.Value
+	// Annotation is a field that can be populated by an iterFunction such that
+	// context can be carried with a node throughout the iteration.
+	Annotation []interface{}
 }
 
 // FieldIteratorFunc is an iteration function for arbitrary field traversals.
@@ -425,7 +428,7 @@ type FieldIteratorFunc func(ni *NodeInfo, in, out interface{}) Errors
 //     and return results from the iterator.
 //   iterFunction is executed on each scalar field.
 // It returns a slice of errors encountered while processing the struct.
-func ForEachField(schema *yang.Entry, value interface{}, in, out interface{}, iterFunction FieldIteratorFunc) (errs Errors) {
+func ForEachField(schema *yang.Entry, value interface{}, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
 	if IsValueNil(value) {
 		return nil
 	}
@@ -436,11 +439,12 @@ func ForEachField(schema *yang.Entry, value interface{}, in, out interface{}, it
 // may be any Go type) and executes iterFunction on each field.
 //   in, out are passed through from the caller to the iteration and can be used
 //     arbitrarily in the iteration function to carry state and results.
-func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldIteratorFunc) (errs Errors) {
+func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
 	if IsValueNil(ni) {
 		return nil
 	}
 
+	var errs Errors
 	errs = AppendErrs(errs, iterFunction(ni, in, out))
 
 	v := ni.FieldValue
@@ -542,6 +546,115 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 		}
 	}
 
+	return errs
+}
+
+// ForEachDataField iterates the value supplied and calls the iterFunction for
+// each data tree node found in the supplied value. No schema information is required
+// to perform the iteration. The in and out arguments are passed to the iterFunction
+// without inspection by this function, and can be used by the caller to store
+// input and output during the iteration through the data tree.
+func ForEachDataField(value, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
+	if IsValueNil(value) {
+		return nil
+	}
+
+	return forEachDataFieldInternal(&NodeInfo{FieldValue: reflect.ValueOf(value)}, in, out, iterFunction)
+}
+
+func forEachDataFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldIteratorFunc) Errors {
+	if IsValueNil(ni) {
+		return nil
+	}
+
+	if IsNilOrInvalidValue(ni.FieldValue) {
+		// Skip any fields that are nil within the data tree, since we
+		// do not need to iterate on them.
+		return nil
+	}
+
+	var errs Errors
+	// Run the iterator function for this field.
+	errs = AppendErrs(errs, iterFunction(ni, in, out))
+
+	v := ni.FieldValue
+	t := v.Type()
+
+	// Determine whether we need to recurse into the field, or whether it is
+	// a leaf or leaf-list, which are not recursed into when traversing the
+	// data tree.
+	switch {
+	case IsTypeStructPtr(t):
+		// A struct pointer in a GoStruct is a pointer to another container within
+		// the YANG, therefore we dereference the pointer and then recurse. If the
+		// pointer is nil, then we do not need to do this since the data tree branch
+		// is unset in the schema.
+		t = t.Elem()
+		v = v.Elem()
+		fallthrough
+	case IsTypeStruct(t):
+		// Handle non-pointer structs by recursing into each field of the struct.
+		for i := 0; i < t.NumField(); i++ {
+			sf := t.Field(i)
+			nn := &NodeInfo{
+				Parent:      ni,
+				StructField: sf,
+				FieldValue:  reflect.Zero(sf.Type),
+			}
+
+			nn.FieldValue = v.Field(i)
+			ps, err := SchemaPaths(nn.StructField)
+			if err != nil {
+				return NewErrs(err)
+			}
+			// In the case that the field expands to >1 different data tree path,
+			// i.e., SchemaPaths above returns more than one path, then we recurse
+			// for each schema path. This ensures that the iterator
+			// function runs for all expansions of the data tree as well as the GoStruct
+			// fields.
+			for _, p := range ps {
+				nn.PathFromParent = p
+				if IsTypeSlice(sf.Type) || IsTypeMap(sf.Type) {
+					// Since lists can have path compression - where the path contains more
+					// than one element, ensure that the schema path we received is only two
+					// elements long. This protects against compression errors where there are
+					// trailing spaces (e.g., a path tag of config/bar/).
+					nn.PathFromParent = p[0:1]
+				}
+				errs = AppendErrs(errs, forEachDataFieldInternal(nn, in, out, iterFunction))
+			}
+		}
+	case IsTypeSlice(t):
+		// Only iterate in the data tree if the slice is of structs, otherwise
+		// for leaf-lists we only run once.
+		if !IsTypeStructPtr(t.Elem()) && !IsTypeStruct(t.Elem()) {
+			return errs
+		}
+
+		for i := 0; i < ni.FieldValue.Len(); i++ {
+			nn := *ni
+			nn.Parent = ni
+			// The name of the list is the same in each of the entries within the
+			// list therefore, we do not need to set the path to be different from
+			// the parent.
+			nn.PathFromParent = ni.PathFromParent
+			nn.FieldValue = ni.FieldValue.Index(i)
+			errs = AppendErrs(errs, forEachDataFieldInternal(&nn, in, out, iterFunction))
+		}
+	case IsTypeMap(t):
+		// Handle the case of a keyed map, which is a YANG list.
+		if IsNilOrInvalidValue(v) {
+			return errs
+		}
+		for _, key := range ni.FieldValue.MapKeys() {
+			nn := *ni
+			nn.Parent = ni
+			nn.FieldValue = ni.FieldValue.MapIndex(key)
+			nn.FieldKey = key
+			nn.FieldKeys = ni.FieldValue.MapKeys()
+			errs = AppendErrs(errs, forEachDataFieldInternal(&nn, in, out, iterFunction))
+		}
+	}
 	return errs
 }
 
