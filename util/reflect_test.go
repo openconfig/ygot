@@ -755,6 +755,9 @@ type StructOfMapOfStructs struct {
 	BasicStructPtrMapField map[string]*BasicStruct `path:"basic-struct"`
 }
 
+// TODO(robjs): Each itererator function that is used below would likely be
+// better using bytes.Buffer as the out type, rather than appending to the
+// string. We should refactor these examples.
 var (
 	printFieldsIterFunc = func(ni *NodeInfo, in, out interface{}) (errs Errors) {
 		// Only print basic scalar values, skip everything else.
@@ -767,7 +770,14 @@ var (
 	}
 
 	printSchemaAnnotationFieldsIterFunc = func(ni *NodeInfo, in, out interface{}) (errs Errors) {
-		if !IsValueScalar(ni.FieldValue) || IsValueNil(ni.FieldKey) {
+		switch {
+		case IsValueNil(ni.FieldValue):
+			return
+		case IsValueSlice(ni.FieldValue):
+			if IsTypeStruct(ni.FieldValue.Type().Elem()) || IsTypeStructPtr(ni.FieldValue.Type().Elem()) {
+				return
+			}
+		case !IsValueScalar(ni.FieldValue):
 			return
 		}
 
@@ -819,8 +829,19 @@ var (
 		return
 	}
 
-	basicStruct1 = BasicStruct{Int32Field: int32(42), StringField: "forty two", Int32PtrField: toInt32Ptr(4242), StringPtrField: toStringPtr("forty two ptr")}
-	basicStruct2 = BasicStruct{Int32Field: int32(43), StringField: "forty three", Int32PtrField: toInt32Ptr(4343), StringPtrField: toStringPtr("forty three ptr")}
+	basicStruct1 = BasicStruct{
+		Int32Field:     int32(42),
+		StringField:    "forty two",
+		Int32PtrField:  toInt32Ptr(4242),
+		StringPtrField: toStringPtr("forty two ptr"),
+	}
+
+	basicStruct2 = BasicStruct{
+		Int32Field:     int32(43),
+		StringField:    "forty three",
+		Int32PtrField:  toInt32Ptr(4343),
+		StringPtrField: toStringPtr("forty three ptr"),
+	}
 )
 
 func TestForEachField(t *testing.T) {
@@ -971,7 +992,8 @@ func TestForEachDataField(t *testing.T) {
 			parentStruct: &BasicSliceStruct{StringSlice: []string{"one", "two"}},
 			in:           nil,
 			iterFunc:     printSchemaAnnotationFieldsIterFunc,
-			wantOut:      ``,
+			wantOut: `strlist : ["one",
+ "two"], `,
 		},
 		{
 			desc:         "map keys with no struct schema",
@@ -999,12 +1021,13 @@ func TestForEachDataField(t *testing.T) {
 		if got, want := errs.String(), tt.wantErr; got != want {
 			t.Errorf("%s: ForEachDataField(%v, %#v, ...): did not get expected error, got: %s, want: %s", tt.desc, tt.parentStruct, tt.in, got, want)
 		}
-		if errs == nil {
-			if got, want := outStr, tt.wantOut; got != want {
-				t.Errorf("%s: ForEachDataField(%v, %#v, ...): did not get expected output, got:\n(%v)\nwant:\n(%v)", tt.desc, tt.parentStruct, tt.in, got, want)
-			}
-		}
 		testErrLog(t, tt.desc, errs)
+		if len(errs) > 0 {
+			continue
+		}
+		if got, want := outStr, tt.wantOut; got != want {
+			t.Errorf("%s: ForEachDataField(%v, %#v, ...): did not get expected output, got:\n(%v)\nwant:\n(%v)", tt.desc, tt.parentStruct, tt.in, got, want)
+		}
 	}
 }
 
