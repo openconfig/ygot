@@ -17,6 +17,7 @@ package ygot
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -190,6 +191,7 @@ type basicStructThree struct {
 }
 
 func TestNodeValuePath(t *testing.T) {
+	cmplx := complex(float64(1), float64(2))
 	tests := []struct {
 		desc          string
 		inNI          *util.NodeInfo
@@ -231,6 +233,7 @@ func TestNodeValuePath(t *testing.T) {
 					},
 				},
 			},
+			FieldValue: reflect.ValueOf("foo"),
 		},
 		inSchemaPaths: [][]string{{"foo", "bar"}, {"baz"}},
 		wantPathSpec: &pathSpec{
@@ -249,16 +252,254 @@ func TestNodeValuePath(t *testing.T) {
 		},
 		inSchemaPaths: [][]string{{"foo", "bar"}, {"baz"}},
 		wantErr:       "could not find path specification annotation",
+	}, {
+		desc: "nodeinfo for list member",
+		inNI: &util.NodeInfo{
+			Parent: &util.NodeInfo{
+				Annotation: []interface{}{&pathSpec{
+					gNMIPaths: []*gnmipb.Path{{
+						Elem: []*gnmipb.PathElem{{
+							Name: "a-list",
+						}},
+					}},
+				}},
+			},
+			FieldValue: reflect.ValueOf(&basicListMember{ListKey: String("key-value")}),
+		},
+		wantPathSpec: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{Name: "a-list", Key: map[string]string{"list-key": "key-value"}}},
+			}},
+		},
+	}, {
+		desc: "nodeinfo for invalid list member",
+		inNI: &util.NodeInfo{
+			Parent: &util.NodeInfo{
+				Annotation: []interface{}{&pathSpec{
+					gNMIPaths: []*gnmipb.Path{{
+						Elem: []*gnmipb.PathElem{{
+							Name: "a-list",
+						}},
+					}},
+				}},
+			},
+			FieldValue: reflect.ValueOf(&errorListMember{StringValue: String("foo")}),
+		},
+		wantErr: "invalid key map",
+	}, {
+		desc: "nodeinfo for list member with unstringable key",
+		inNI: &util.NodeInfo{
+			Parent: &util.NodeInfo{
+				Annotation: []interface{}{&pathSpec{
+					gNMIPaths: []*gnmipb.Path{{
+						Elem: []*gnmipb.PathElem{{
+							Name: "a-list",
+						}},
+					}},
+				}},
+			},
+			FieldValue: reflect.ValueOf(&badListKeyType{Value: &cmplx}),
+		},
+		wantErr: "cannot convert keys to map[string]string",
+	}, {
+		desc: "nodeinfo for list member with no parent",
+		inNI: &util.NodeInfo{
+			Parent: &util.NodeInfo{
+				Annotation: []interface{}{&pathSpec{}},
+			},
+			FieldValue: reflect.ValueOf(&basicListMember{ListKey: String("key-value")}),
+		},
+		wantErr: "invalid list member with no parent",
+	}, {
+		desc: "nodeinfo for child field",
+		inNI: &util.NodeInfo{
+			Parent: &util.NodeInfo{
+				Annotation: []interface{}{&pathSpec{
+					gNMIPaths: []*gnmipb.Path{{
+						Elem: []*gnmipb.PathElem{{
+							Name: "parent",
+						}},
+					}},
+				}},
+			},
+			FieldValue: reflect.ValueOf(&basicStructThree{StringValue: String("value")}),
+		},
+		inSchemaPaths: [][]string{{"string-value-three"}},
+		wantPathSpec: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "parent",
+				}, {
+					Name: "string-value-three",
+				}},
+			}},
+		},
+	}, {
+		desc: "nodeinfo for child field with multiple schema paths",
+		inNI: &util.NodeInfo{
+			Parent: &util.NodeInfo{
+				Annotation: []interface{}{&pathSpec{
+					gNMIPaths: []*gnmipb.Path{{
+						Elem: []*gnmipb.PathElem{{
+							Name: "parent",
+						}},
+					}},
+				}},
+			},
+			FieldValue: reflect.ValueOf(&basicStructThree{StringValue: String("value")}),
+		},
+		inSchemaPaths: [][]string{
+			{"string-value-three"},
+			{"string-value-four"},
+		},
+		wantPathSpec: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "parent",
+				}, {
+					Name: "string-value-three",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "parent",
+				}, {
+					Name: "string-value-four",
+				}},
+			}},
+		},
+	}, {
+		desc: "nodeinfo for child field with missing parent path",
+		inNI: &util.NodeInfo{
+			Parent: &util.NodeInfo{
+				Annotation: []interface{}{&pathSpec{}},
+			},
+			FieldValue: reflect.ValueOf(&basicStructThree{StringValue: String("value")}),
+		},
+		wantErr: "could not find annotation for complete path",
 	}}
 
 	for _, tt := range tests {
 		got, err := nodeValuePath(tt.inNI, tt.inSchemaPaths)
-		if err != nil && err.Error() != tt.wantErr {
+		if err != nil && !strings.Contains(err.Error(), tt.wantErr) {
 			t.Errorf("%s: nodeValuePath(%v, %v): did not get expected error, got: %v, want: %v", tt.desc, tt.inNI, tt.inSchemaPaths, err, tt.wantErr)
 		}
 		if !reflect.DeepEqual(got, tt.wantPathSpec) {
 			diff := pretty.Compare(got, tt.wantPathSpec)
 			t.Errorf("%s: nodeValuePath(%v, %v): did not get expected paths, diff(-got,+want): %s", tt.desc, tt.inNI, tt.inSchemaPaths, diff)
+		}
+	}
+}
+
+type errorStruct struct {
+	Value *string
+}
+
+func (*errorStruct) IsYANGGoStruct() {}
+
+func TestFindSetLeaves(t *testing.T) {
+	tests := []struct {
+		desc     string
+		inStruct GoStruct
+		want     map[*pathSpec]interface{}
+		wantErr  string
+	}{{
+		desc:     "struct with fields missing path annotation",
+		inStruct: &errorStruct{Value: String("foo")},
+		wantErr:  "error from ForEachDataField iteration: field Value did not specify a path",
+	}, {
+		desc: "multi-level string values",
+		inStruct: &basicStruct{
+			StringValue: String("value-one"),
+			StructValue: &basicStructTwo{
+				StringValue: String("value-two"),
+				StructValue: &basicStructThree{
+					StringValue: String("value-three"),
+				},
+			},
+		},
+		want: map[*pathSpec]interface{}{
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{{Name: "string-value"}},
+				}},
+			}: "value-one",
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "struct-value"},
+						{Name: "second-string-value"},
+					},
+				}},
+			}: "value-two",
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "struct-value"},
+						{Name: "struct-three-value"},
+						{Name: "third-string-value"},
+					},
+				}, {
+					Elem: []*gnmipb.PathElem{
+						{Name: "struct-value"},
+						{Name: "struct-three-value"},
+						{Name: "config"},
+						{Name: "third-string-value"},
+					},
+				}},
+			}: "value-three",
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "struct-value"},
+						{Name: "struct-three-value"},
+						{Name: "third-string-value"},
+					},
+				}, {
+					Elem: []*gnmipb.PathElem{
+						{Name: "struct-value"},
+						{Name: "struct-three-value"},
+						{Name: "config"},
+						{Name: "third-string-value"},
+					},
+				}},
+			}: "value-three",
+		},
+	}, {
+		desc: "struct with map",
+		inStruct: &basicStruct{
+			MapValue: map[string]*basicListMember{
+				"one": {ListKey: String("one")},
+				"two": {ListKey: String("two")},
+			},
+		},
+		want: map[*pathSpec]interface{}{
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "map-list", Key: map[string]string{"list-key": "one"}},
+						{Name: "list-key"},
+					},
+				}},
+			}: "one",
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "map-list", Key: map[string]string{"list-key": "two"}},
+						{Name: "list-key"},
+					},
+				}},
+			}: "two",
+		},
+	}}
+
+	for _, tt := range tests {
+		got, err := findSetLeaves(tt.inStruct)
+		if err != nil && (err.Error() != tt.wantErr) {
+			t.Errorf("%s: findSetLeaves(%v): did not get expected error: %v", tt.desc, tt.inStruct, err)
+			continue
+		}
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: findSetLeaves(%v): did not get expected output, diff(-got,+want):\n%s", tt.desc, tt.inStruct, diff)
 		}
 	}
 }
