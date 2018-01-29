@@ -22,6 +22,7 @@ import (
 	"github.com/openconfig/ygot/util"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
+	"github.com/openconfig/gnmi/value"
 )
 
 // schemaPathTogNMIPath takes an input schema path represented as a slice of
@@ -47,10 +48,33 @@ func joingNMIPaths(parent *gnmipb.Path, child *gnmipb.Path) *gnmipb.Path {
 	return p
 }
 
-// pathSpec is a wrapper type used to store a gNMI path for use as a map key.
+// pathSpec is a wrapper type used to store a set of gNMI paths to which
+// a value within a GoStruct corresponds to.
 type pathSpec struct {
 	// gNMIPaths is the set of gNMI paths that the path represents.
 	gNMIPaths []*gnmipb.Path
+}
+
+// Equal compares two pathSpecs, returning true all paths within the pathSpec
+// are matched.
+func (p *pathSpec) Equal(o *pathSpec) bool {
+	if p == nil || o == nil {
+		return p == o
+	}
+
+	for _, path := range p.gNMIPaths {
+		var found bool
+		for _, otherPath := range o.gNMIPaths {
+			if reflect.DeepEqual(path, otherPath) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }
 
 // nodeValuePath takes an input util.NodeInfo struct describing an element within
@@ -211,4 +235,101 @@ func findSetLeaves(s GoStruct) (map[*pathSpec]interface{}, error) {
 	}
 
 	return out, nil
+}
+
+// togNMIValue returns the GoStruct field v as a gNMI TypedValue message. It
+// is a wrapper around the openconfig/gnmi/value FromScalar library function with
+// handling for GoStruct specific types, particularly:
+//  - Enumerated values (YANG enum or identityref leaves) which are returned as
+//    their string value, per the gNMI spec.
+//  - Union values - which are extracted from the interface type that is used
+//    to represent them.
+func togNMIValue(v interface{}) (*gnmipb.TypedValue, error) {
+	if _, ok := v.(GoEnum); ok {
+		estr, _, err := enumFieldToString(reflect.ValueOf(v), false)
+		if err != nil {
+			return nil, fmt.Errorf("cannot convert enum field to string: %v", err)
+		}
+
+		return &gnmipb.TypedValue{
+			Value: &gnmipb.TypedValue_StringVal{estr},
+		}, nil
+	}
+
+	if util.IsValueInterfaceToStructPtr(reflect.ValueOf(v)) {
+		var err error
+		if v, err = unionInterfaceValue(reflect.ValueOf(v), false); err != nil {
+			return nil, fmt.Errorf("cannot resolve union field value: %v", err)
+		}
+	}
+
+	return value.FromScalar(v)
+}
+
+// appendUpdate adds an update to the supplied gNMI Notification message corresponding
+// to the path and value supplied.
+func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error {
+	v, err := togNMIValue(val)
+	if err != nil {
+		return fmt.Errorf("cannot represent field value %s as TypedValue for path %v", v, path)
+	}
+	for _, p := range path.gNMIPaths {
+		n.Update = append(n.Update, &gnmipb.Update{
+			Path: p,
+			Val:  v,
+		})
+	}
+	return nil
+}
+
+func Diff(original, modified GoStruct) (*gnmipb.Notification, error) {
+	origLeaves, err := findSetLeaves(original)
+	if err != nil {
+		return nil, fmt.Errorf("could not extract set leaves from original struct: %v", err)
+	}
+
+	modLeaves, err := findSetLeaves(modified)
+	if err != nil {
+		return nil, fmt.Errorf("could not extract set leaves from modified struct: %v", err)
+	}
+
+	matched := map[*pathSpec]bool{}
+	n := &gnmipb.Notification{}
+	for origPath, origVal := range origLeaves {
+		var origMatched bool
+		for modPath, modVal := range modLeaves {
+			if origPath.Equal(modPath) {
+				// This path is set in both of the structs, so check whether the value
+				// is equal.
+				matched[modPath] = true
+				origMatched = true
+				if !reflect.DeepEqual(origVal, modVal) {
+					// The contents of the value should indicate that value a has changed
+					// to value b.
+					if err := appendUpdate(n, origPath, modVal); err != nil {
+						return nil, err
+					}
+				}
+			}
+		}
+		if !origMatched {
+			// This leaf was set in the original struct, but not in the modified
+			// struct, therefore it has been deleted.
+			for _, p := range origPath.gNMIPaths {
+				n.Delete = append(n.Delete, p)
+			}
+		}
+	}
+
+	// Check that all paths that are in the modified struct have been examined, if
+	// not they are updates.
+	for modPath, modVal := range modLeaves {
+		if !matched[modPath] {
+			if err := appendUpdate(n, modPath, modVal); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return n, nil
 }

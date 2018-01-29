@@ -503,3 +503,169 @@ func TestFindSetLeaves(t *testing.T) {
 		}
 	}
 }
+
+func TestPathSetEqual(t *testing.T) {
+	tests := []struct {
+		desc     string
+		inA, inB *pathSpec
+		want     bool
+	}{{
+		desc: "simple single path, equal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "simple single path, unequal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+				}},
+			}},
+		},
+		want: false,
+	}, {
+		desc: "multiple paths, equal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+				}},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "multiple paths, unequal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "baz",
+				}},
+			}},
+		},
+		want: false,
+	}, {
+		desc: "multiple paths with keys, equal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+					Key:  map[string]string{"baz": "bop"},
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+					Key:  map[string]string{"fish": "chips"},
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+					Key:  map[string]string{"baz": "bop"},
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+					Key:  map[string]string{"fish": "chips"},
+				}},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "multiple paths with keys, equal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+					Key:  map[string]string{"baz": "bop"},
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+					Key:  map[string]string{"fish": "chips"},
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+					Key:  map[string]string{"baz": "bop"},
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+					Key:  map[string]string{"fish": "hat"},
+				}},
+			}},
+		},
+		want: false,
+	}, {
+		desc: "both nil",
+		inA:  nil,
+		inB:  nil,
+		want: true,
+	}, {
+		desc: "compare nil",
+		inA:  &pathSpec{},
+		inB:  nil,
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		if got, want := tt.inA.Equal(tt.inB), tt.want; got != want {
+			t.Errorf("%s: (%#v).Equal(%#v): did not get expected result, got: %v, want: %v", tt.desc, tt.inA, tt.inB, got, want)
+		}
+	}
+}
