@@ -17,6 +17,7 @@ package ygot
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -299,7 +300,7 @@ func TestNodeValuePath(t *testing.T) {
 			},
 			FieldValue: reflect.ValueOf(&badListKeyType{Value: &cmplx}),
 		},
-		wantErr: "cannot convert keys to map[string]string: cannot convert type complex128 to a string for use in a key: (1+2i)",
+		wantErr: "cannot convert keys to map[string]string",
 	}, {
 		desc: "nodeinfo for list member with no parent",
 		inNI: &util.NodeInfo{
@@ -379,7 +380,7 @@ func TestNodeValuePath(t *testing.T) {
 
 	for _, tt := range tests {
 		got, err := nodeValuePath(tt.inNI, tt.inSchemaPaths)
-		if err != nil && err.Error() != tt.wantErr {
+		if err != nil && !strings.Contains(err.Error(), tt.wantErr) {
 			t.Errorf("%s: nodeValuePath(%v, %v): did not get expected error, got: %v, want: %v", tt.desc, tt.inNI, tt.inSchemaPaths, err, tt.wantErr)
 		}
 		if !reflect.DeepEqual(got, tt.wantPathSpec) {
