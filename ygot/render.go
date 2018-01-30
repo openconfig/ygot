@@ -1265,11 +1265,15 @@ func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputCo
 // This function extracts field index 0 of the struct within the interface and returns
 // the value.
 func unionInterfaceValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
-	if !util.IsValueInterfaceToStructPtr(v) {
+	var s reflect.Value
+	switch {
+	case util.IsValueInterfaceToStructPtr(v):
+		s = v.Elem().Elem()
+	case util.IsValueStructPtr(v):
+		s = v.Elem()
+	default:
 		return nil, fmt.Errorf("received a union type which was invalid: %v", v.Kind())
 	}
-
-	s := v.Elem().Elem() // Dereference the struct ptr.
 
 	if !util.IsStructValueWithNFields(s, 1) {
 		return nil, fmt.Errorf("received a union type which did not have one field, had: %v", v.Elem().Elem().NumField())

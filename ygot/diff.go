@@ -19,6 +19,7 @@ import (
 	"reflect"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/ygot/util"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -234,7 +235,23 @@ func findSetLeaves(s GoStruct) (map[*pathSpec]interface{}, error) {
 		return nil, fmt.Errorf("error from ForEachDataField iteration: %v", errs)
 	}
 
-	return out, nil
+	uout := map[*pathSpec]interface{}{}
+	// Deduplicate the list, since the iteration function will be called
+	// multiple times for path tags that have >1 element.
+	for ok, ov := range out {
+		var skip bool
+		for uk := range uout {
+			if ok.Equal(uk) {
+				// This is a duplicate path, so we do not need to append it to the list.
+				skip = true
+			}
+		}
+		if !skip {
+			uout[ok] = ov
+		}
+	}
+
+	return uout, nil
 }
 
 // togNMIValue returns the GoStruct field v as a gNMI TypedValue message. It
@@ -245,22 +262,33 @@ func findSetLeaves(s GoStruct) (map[*pathSpec]interface{}, error) {
 //  - Union values - which are extracted from the interface type that is used
 //    to represent them.
 func togNMIValue(v interface{}) (*gnmipb.TypedValue, error) {
-	if _, ok := v.(GoEnum); ok {
-		estr, _, err := enumFieldToString(reflect.ValueOf(v), false)
-		if err != nil {
-			return nil, fmt.Errorf("cannot convert enum field to string: %v", err)
+	val := reflect.ValueOf(v)
+	switch {
+	case val.Type().Kind() == reflect.Int64:
+		if _, ok := v.(GoEnum); ok {
+			estr, _, err := enumFieldToString(reflect.ValueOf(v), false)
+			if err != nil {
+				return nil, fmt.Errorf("cannot convert enum field to string: %v", err)
+			}
+
+			return &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_StringVal{estr},
+			}, nil
 		}
-
-		return &gnmipb.TypedValue{
-			Value: &gnmipb.TypedValue_StringVal{estr},
-		}, nil
-	}
-
-	if util.IsValueInterfaceToStructPtr(reflect.ValueOf(v)) {
+		// A non-enum implementing int64 is an invalid type, since fields should
+		// be pointers.
+		return nil, fmt.Errorf("invalid enum type")
+	case util.IsValueStructPtr(val):
 		var err error
-		if v, err = unionInterfaceValue(reflect.ValueOf(v), false); err != nil {
+		if v, err = unionInterfaceValue(val, false); err != nil {
 			return nil, fmt.Errorf("cannot resolve union field value: %v", err)
 		}
+	case util.IsValuePtr(val):
+		v = val.Elem().Interface()
+	case val.Type().Name() == EmptyTypeName:
+		v = val.Bool()
+	case val.Type().Name() == BinaryTypeName:
+		v = val.Bytes()
 	}
 
 	return value.FromScalar(v)
@@ -271,7 +299,13 @@ func togNMIValue(v interface{}) (*gnmipb.TypedValue, error) {
 func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error {
 	v, err := togNMIValue(val)
 	if err != nil {
-		return fmt.Errorf("cannot represent field value %s as TypedValue for path %v", v, path)
+		s := pretty.Sprint(path)
+		if len(path.gNMIPaths) != 0 {
+			if ps, err := PathToString(path.gNMIPaths[0]); err == nil {
+				s = ps
+			}
+		}
+		return fmt.Errorf("cannot represent field value %v as TypedValue for path %s: %v", val, s, err)
 	}
 	for _, p := range path.gNMIPaths {
 		n.Update = append(n.Update, &gnmipb.Update{
