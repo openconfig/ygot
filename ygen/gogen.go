@@ -346,6 +346,8 @@ func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
 	goStructTemplate = `
 // {{ .StructName }} represents the {{ .YANGPath }} YANG schema element.
 type {{ .StructName }} struct {
+{{- if .AnnotateStruct }}
+  {{ .AnnotationPrefix }}Metadata *ygot.Annotation 
 {{- range $idx, $field := .Fields }}
 	{{- if $field.IsScalarField }}
 	{{ $field.Name }}	*{{ $field.Type }}	` + "`" + `{{ $field.Tags }}` + "`" + `

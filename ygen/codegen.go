@@ -102,6 +102,14 @@ type GoOpts struct {
 	// GenerateRenameMethod specifies whether methods for renaming list entries
 	// should be generated in the output Go code.
 	GenerateRenameMethod bool
+	// AddAnnotationFields specifies whether annotation fields should be added to
+	// the generated structs. When set to true, a metadata field is added for each
+	// struct, and for each field of each struct. Metadata field's names are
+	// prefixed by the string specified in the AnnotationPrefix argument.
+	AddAnnotationFields bool
+	// AnnotationPrefix specifies the string which is prefixed to the name of
+	// annotation fields. It defaults to Λ.
+	AnnotationPrefix string
 }
 
 // ProtoOpts stores Protobuf specific options for the code generation library.
