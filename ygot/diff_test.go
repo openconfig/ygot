@@ -24,6 +24,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/ygot/util"
 
+	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -665,7 +666,7 @@ func TestDiff(t *testing.T) {
 		desc          string
 		inOrig, inMod GoStruct
 		want          *gnmipb.Notification
-		wantErr       *string
+		wantErrSubStr string
 	}{{
 		desc:   "single path addition in modified",
 		inOrig: &renderExample{},
@@ -992,17 +993,17 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
-		desc:    "invalid original",
-		inOrig:  &invalidGoStructEntity{},
-		inMod:   &invalidGoStructEntity{},
-		wantErr: String("could not extract set leaves from original struct"),
+		desc:          "invalid original",
+		inOrig:        &invalidGoStructEntity{},
+		inMod:         &invalidGoStructEntity{},
+		wantErrSubStr: "could not extract set leaves from original struct",
 	}, {
 		desc:   "invalid enum in modified",
 		inOrig: &badGoStruct{},
 		inMod: &badGoStruct{
 			InvalidEnum: 42,
 		},
-		wantErr: String("cannot represent field value 42 as TypedValue for path /an-enum"),
+		wantErrSubStr: "cannot represent field value 42 as TypedValue for path /an-enum",
 	}, {
 		desc: "invalid enum in original",
 		inOrig: &badGoStruct{
@@ -1011,22 +1012,22 @@ func TestDiff(t *testing.T) {
 		inMod: &badGoStruct{
 			InvalidEnum: 42,
 		},
-		wantErr: String("cannot represent field value 42 as TypedValue for path /an-enum"),
+		wantErrSubStr: "cannot represent field value 42 as TypedValue for path /an-enum",
 	}, {
-		desc:    "different types",
-		inOrig:  &renderExample{},
-		inMod:   &pathElemExample{},
-		wantErr: String("cannot diff structs of different types"),
+		desc:          "different types",
+		inOrig:        &renderExample{},
+		inMod:         &pathElemExample{},
+		wantErrSubStr: "cannot diff structs of different types",
 	}}
 
 	for _, tt := range tests {
 		got, err := Diff(tt.inOrig, tt.inMod)
-		if tt.wantErr != nil && err == nil || tt.wantErr != nil && !strings.Contains(err.Error(), *tt.wantErr) || tt.wantErr == nil && err != nil {
-			t.Errorf("%s: Diff(%s, %s): did not get expected error status, got: %s, want: %s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), err, *tt.wantErr)
+		if diff := errdiff.Substring(err, tt.wantErrSubStr); diff != "" {
+			t.Errorf("%s: Diff(%s, %s): did not get expected error status, got: %s, want: %s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), err, tt.wantErrSubStr)
 			continue
 		}
 
-		if tt.wantErr != nil {
+		if tt.wantErrSubStr != "" {
 			continue
 		}
 		// To re-use the notificationSetEqual helper, we put the want and got into

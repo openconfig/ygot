@@ -1313,17 +1313,17 @@ func notificationSetEqual(a, b []*gnmipb.Notification) bool {
 	}
 
 	matchall := true
-	for _, aelem := range a {
+	for _, aElem := range a {
 		var updateMatched, deleteMatched bool
-		for _, belem := range b {
-			if aelem == nil && belem != nil || belem == nil && aelem != nil || aelem == nil && belem == nil {
+		for _, bElem := range b {
+			if aElem == nil && bElem != nil || bElem == nil && aElem != nil || aElem == nil && bElem == nil {
 				continue
 			}
 
-			if updateSetEqual(aelem.Update, belem.Update) {
+			if updateSetEqual(aElem.Update, bElem.Update) {
 				updateMatched = true
 			}
-			if pathSliceEqual(aelem.Delete, belem.Delete) {
+			if pathSliceEqual(aElem.Delete, bElem.Delete) {
 				deleteMatched = true
 			}
 			if updateMatched && deleteMatched {
@@ -1346,16 +1346,16 @@ func updateSetEqual(a, b []*gnmipb.Update) bool {
 	}
 
 	bMatched := map[*gnmipb.Path]bool{}
-	for _, belem := range b {
-		bMatched[belem.Path] = true
+	for _, bElem := range b {
+		bMatched[bElem.Path] = true
 	}
 
-	for _, aelem := range a {
+	for _, aElem := range a {
 		var matched bool
-		for _, belem := range b {
-			if proto.Equal(aelem, belem) {
+		for _, bElem := range b {
+			if proto.Equal(aElem, bElem) {
 				matched = true
-				delete(bMatched, belem.Path)
+				delete(bMatched, bElem.Path)
 				break
 			}
 		}
@@ -1394,13 +1394,13 @@ func pathSliceEqual(a, b []*gnmipb.Path) bool {
 				}
 				// If the element names are not equal then we consider the keys in
 				// alphabetical order.
-				akeys := stringKeys(a.Key)
-				sort.Strings(akeys)
-				bkeys := stringKeys(b.Key)
-				sort.Strings(bkeys)
+				aKeys := stringKeys(a.Key)
+				sort.Strings(aKeys)
+				bKeys := stringKeys(b.Key)
+				sort.Strings(bKeys)
 
-				for _, ak := range akeys {
-					for _, bk := range bkeys {
+				for _, ak := range aKeys {
+					for _, bk := range bKeys {
 						// If the key names aren't equal - then we use the comparison of the
 						// two strings. The strings.Compare function returns -1 if a < b,
 						// and cmpoptions.SortedSlice requires a "less" function which must

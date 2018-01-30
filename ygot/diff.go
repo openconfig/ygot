@@ -56,7 +56,7 @@ type pathSpec struct {
 	gNMIPaths []*gnmipb.Path
 }
 
-// Equal compares two pathSpecs, returning true all paths within the pathSpec
+// Equal compares two pathSpecs, returning true if all paths within the pathSpec
 // are matched.
 func (p *pathSpec) Equal(o *pathSpec) bool {
 	if p == nil || o == nil {
@@ -76,6 +76,17 @@ func (p *pathSpec) Equal(o *pathSpec) bool {
 		}
 	}
 	return true
+}
+
+// String returns a string representation of the pathSpec p.
+func (p *pathSpec) String() string {
+	s := pretty.Sprint(p)
+	if len(p.gNMIPaths) != 0 {
+		if ps, err := PathToString(p.gNMIPaths[0]); err == nil {
+			s = ps
+		}
+	}
+	return s
 }
 
 // nodeValuePath takes an input util.NodeInfo struct describing an element within
@@ -235,23 +246,23 @@ func findSetLeaves(s GoStruct) (map[*pathSpec]interface{}, error) {
 		return nil, fmt.Errorf("error from ForEachDataField iteration: %v", errs)
 	}
 
-	uout := map[*pathSpec]interface{}{}
+	uOut := map[*pathSpec]interface{}{}
 	// Deduplicate the list, since the iteration function will be called
 	// multiple times for path tags that have >1 element.
 	for ok, ov := range out {
 		var skip bool
-		for uk := range uout {
+		for uk := range uOut {
 			if ok.Equal(uk) {
 				// This is a duplicate path, so we do not need to append it to the list.
 				skip = true
 			}
 		}
 		if !skip {
-			uout[ok] = ov
+			uOut[ok] = ov
 		}
 	}
 
-	return uout, nil
+	return uOut, nil
 }
 
 // togNMIValue returns the GoStruct field v as a gNMI TypedValue message. It
@@ -266,13 +277,13 @@ func togNMIValue(v interface{}) (*gnmipb.TypedValue, error) {
 	switch {
 	case val.Type().Kind() == reflect.Int64:
 		if _, ok := v.(GoEnum); ok {
-			estr, _, err := enumFieldToString(reflect.ValueOf(v), false)
+			eStr, _, err := enumFieldToString(reflect.ValueOf(v), false)
 			if err != nil {
 				return nil, fmt.Errorf("cannot convert enum field to string: %v", err)
 			}
 
 			return &gnmipb.TypedValue{
-				Value: &gnmipb.TypedValue_StringVal{estr},
+				Value: &gnmipb.TypedValue_StringVal{eStr},
 			}, nil
 		}
 		// A non-enum implementing int64 is an invalid type, since fields should
@@ -299,13 +310,7 @@ func togNMIValue(v interface{}) (*gnmipb.TypedValue, error) {
 func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error {
 	v, err := togNMIValue(val)
 	if err != nil {
-		s := pretty.Sprint(path)
-		if len(path.gNMIPaths) != 0 {
-			if ps, err := PathToString(path.gNMIPaths[0]); err == nil {
-				s = ps
-			}
-		}
-		return fmt.Errorf("cannot represent field value %v as TypedValue for path %s: %v", val, s, err)
+		return fmt.Errorf("cannot represent field value %v as TypedValue for path %v: %v", val, path, err)
 	}
 	for _, p := range path.gNMIPaths {
 		n.Update = append(n.Update, &gnmipb.Update{
@@ -316,10 +321,9 @@ func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error
 	return nil
 }
 
-// Diff takes an original and modified GoStruct, which must of the same type
-// and returns a gNMI Notification that contains the diff between them. The
-// GoStructs provided are recursively traversed. The original struct is
-// considered as the "from" data, with the modified struct the "to" such that:
+// Diff takes an original and modified GoStruct, which must be of the same type
+// and returns a gNMI Notification that contains the diff between them. The original
+// struct is considered as the "from" data, with the modified struct the "to" such that:
 //
 //  - The contents of the Update field of the notification indicate that the
 //    field in modified was either not present in original, or had a different
