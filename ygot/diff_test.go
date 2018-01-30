@@ -769,8 +769,8 @@ func TestDiff(t *testing.T) {
 					Value: &gnmipb.TypedValue_LeaflistVal{
 						&gnmipb.ScalarArray{
 							Element: []*gnmipb.TypedValue{
-								&gnmipb.TypedValue{&gnmipb.TypedValue_StringVal{"merlot"}},
-								&gnmipb.TypedValue{&gnmipb.TypedValue_StringVal{"pinot-noir"}},
+								{&gnmipb.TypedValue_StringVal{"merlot"}},
+								{&gnmipb.TypedValue_StringVal{"pinot-noir"}},
 							},
 						},
 					},
@@ -892,8 +892,8 @@ func TestDiff(t *testing.T) {
 					Value: &gnmipb.TypedValue_LeaflistVal{
 						&gnmipb.ScalarArray{
 							Element: []*gnmipb.TypedValue{
-								&gnmipb.TypedValue{&gnmipb.TypedValue_StringVal{"alcase"}},
-								&gnmipb.TypedValue{&gnmipb.TypedValue_StringVal{"anjou"}},
+								{&gnmipb.TypedValue_StringVal{"alcase"}},
+								{&gnmipb.TypedValue_StringVal{"anjou"}},
 							},
 						},
 					},
