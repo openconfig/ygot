@@ -994,15 +994,11 @@ func TestDiff(t *testing.T) {
 	}, {
 		desc:    "invalid original",
 		inOrig:  &invalidGoStructEntity{},
+		inMod:   &invalidGoStructEntity{},
 		wantErr: String("could not extract set leaves from original struct"),
 	}, {
-		desc:    "invalid modified",
-		inOrig:  &renderExample{},
-		inMod:   &invalidGoStructEntity{},
-		wantErr: String("could not extract set leaves from modified struct"),
-	}, {
 		desc:   "invalid enum in modified",
-		inOrig: &renderExample{},
+		inOrig: &badGoStruct{},
 		inMod: &badGoStruct{
 			InvalidEnum: 42,
 		},
@@ -1016,6 +1012,11 @@ func TestDiff(t *testing.T) {
 			InvalidEnum: 42,
 		},
 		wantErr: String("cannot represent field value 42 as TypedValue for path /an-enum"),
+	}, {
+		desc:    "different types",
+		inOrig:  &renderExample{},
+		inMod:   &pathElemExample{},
+		wantErr: String("cannot diff structs of different types"),
 	}}
 
 	for _, tt := range tests {

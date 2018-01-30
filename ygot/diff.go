@@ -316,7 +316,27 @@ func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error
 	return nil
 }
 
+// Diff takes an original and modified GoStruct, which must of the same type
+// and returns a gNMI Notification that contains the diff between them. The
+// GoStructs provided are recursively traversed. The original struct is
+// considered as the "from" data, with the modified struct the "to" such that:
+//
+//  - The contents of the Update field of the notification indicate that the
+//    field in modified was either not present in original, or had a different
+//    field value.
+//  - The paths within the Delete field of the notification indicate that the
+//    field was not present in the modified struct, but was set in the original.
+//
+// The returned gNMI Notification cannot be put on the wire unmodified, since
+// it does not specify a timestamp - and may not contain the absolute paths
+// to the fields specified if a GoStruct that does not represent the root of
+// a YANG schema tree is not supplied as original and modified.
 func Diff(original, modified GoStruct) (*gnmipb.Notification, error) {
+
+	if reflect.TypeOf(original) != reflect.TypeOf(modified) {
+		return nil, fmt.Errorf("cannot diff structs of different types, original: %T, modified: %T", original, modified)
+	}
+
 	origLeaves, err := findSetLeaves(original)
 	if err != nil {
 		return nil, fmt.Errorf("could not extract set leaves from original struct: %v", err)
