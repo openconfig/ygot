@@ -352,7 +352,8 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	codegenErr := NewYANGCodeGeneratorError()
 	var structSnippets []string
 	for _, structName := range orderedStructNames {
-		structOut, errs := writeGoStruct(structNameMap[structName], goStructs, cg.state, cg.Config.CompressOCPaths, cg.Config.GenerateJSONSchema, cg.Config.GoOptions.GenerateRenameMethod)
+		structOut, errs := writeGoStruct(structNameMap[structName], goStructs, cg.state,
+			cg.Config.CompressOCPaths, cg.Config.GenerateJSONSchema, cg.Config.GoOptions)
 		if errs != nil {
 			codegenErr.Errors = append(codegenErr.Errors, errs...)
 			continue

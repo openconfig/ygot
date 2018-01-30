@@ -468,7 +468,7 @@ func addNewChild(m map[string]*yang.Entry, k string, v *yang.Entry, errs []error
 		m[k] = v
 		return errs
 	}
-	errs = append(errs, fmt.Errorf("%s was duplicate", k))
+	errs = append(errs, fmt.Errorf("%s was duplicate", v.Path()))
 	return errs
 }
 
