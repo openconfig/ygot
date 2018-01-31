@@ -392,6 +392,16 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.yang")},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-no-compress.formatted-txt"),
 	}, {
+		name:    "OpenConfig schema test - with annotations",
+		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.yang")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				AddAnnotationFields: true,
+				AnnotationPrefix:    "☃",
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-simple-annotations.formatted-txt"),
+	}, {
 		name:    "OpenConfig schema test - list and associated method (rename, new)",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.yang")},
 		inConfig: GeneratorConfig{

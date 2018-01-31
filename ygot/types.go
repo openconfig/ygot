@@ -92,3 +92,29 @@ type EnumDefinition struct {
 	// defined. Only populated for identity values.
 	DefiningModule string
 }
+
+// Annotation defines an interface that is implemented by optional metadata
+// fields within a GoStruct. Annotations are stored within each struct, and
+// for a struct field, for example:
+//
+//  type GoStructExample struct {
+//     ΛMetadata []*ygot.Annotation `path:"@"`
+//     StringField *string `path:"string-field"`
+//     ΛStringField []*ygot.Annotation `path:"@string-field"`
+//  }
+//
+// The ΛMetadata and ΛStringField fields can be populated with a slice of
+// arbitrary types implementing the Annotation interface.
+//
+// Each Annotation must implement the MarshalJSON and UnmarshalJSON methods,
+// such that its content can be serialised and deserialised from JSON. Using
+// the approach described in RFC7952 can be used to store metadata within
+// RFC7951-serialised JSON.
+type Annotation interface {
+	// MarshalJSON is used to marshal the annotation to JSON. It ensures that
+	// the json.Marshaler interface is implemented.
+	MarshalJSON() ([]byte, error)
+	// UnmarshalJSON is used to unmarshal JSON into the Annotation. It ensures that
+	// the json.Unmarshaler interface is implemented.
+	UnmarshalJSON([]byte) error
+}

@@ -215,6 +215,12 @@ func findSetLeaves(s GoStruct) (map[*pathSpec]interface{}, error) {
 			return
 		}
 
+		// Handle the case of having an annotated struct - in the diff case we
+		// do not process schema annotations.
+		if util.IsYgotAnnotation(ni.StructField) {
+			return
+		}
+
 		sp, err := util.SchemaPaths(ni.StructField)
 		if err != nil {
 			errs = util.AppendErr(errs, err)
@@ -330,6 +336,9 @@ func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error
 //    field value.
 //  - The paths within the Delete field of the notification indicate that the
 //    field was not present in the modified struct, but was set in the original.
+//
+// Annotation fields that are contained within the supplied original or modified
+// GoStruct are skipped.
 //
 // The returned gNMI Notification cannot be put on the wire unmodified, since
 // it does not specify a timestamp - and may not contain the absolute paths

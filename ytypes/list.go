@@ -176,7 +176,15 @@ func validateStructElems(schema *yang.Entry, value interface{}) util.Errors {
 	}
 	// Verify each elements's fields.
 	for i := 0; i < structElems.NumField(); i++ {
-		fieldName := structElems.Type().Field(i).Name
+		ft := structElems.Type().Field(i)
+
+		// If this is an annotation field, then skip it since it does not have
+		// a schema.
+		if util.IsYgotAnnotation(ft) {
+			continue
+		}
+
+		fieldName := ft.Name
 		fieldValue := structElems.Field(i).Interface()
 
 		cschema, err := childSchema(schema, structTypes.Field(i))

@@ -155,7 +155,8 @@ func TestValidateListNoKey(t *testing.T) {
 	}
 
 	type StringListElemStruct struct {
-		LeafName *string `path:"leaf-name"`
+		LeafName   *string `path:"leaf-name"`
+		Annotation *string `ygotAnnotation:"true"`
 	}
 	type BadElemStruct struct {
 		UnknownName *string `path:"unknown-name"`
@@ -236,6 +237,7 @@ func TestValidateListSimpleKey(t *testing.T) {
 	type StringListElemStruct struct {
 		KeyFieldName *string `path:"keyfield-name"`
 		LeafName     *string `path:"leaf-name"`
+		Annotation   *string `ygotAnnotation:"true"`
 	}
 	type BadElemStruct struct {
 		LeafName *string

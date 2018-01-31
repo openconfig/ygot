@@ -55,15 +55,17 @@ func isOK(status spb.Status) bool {
 }
 
 type InnerContainerType1 struct {
-	LeafName *int32 `path:"leaf-field"`
+	LeafName   *int32  `path:"leaf-field"`
+	Annotation *string `ygotAnnotation:"true"`
 }
 type OuterContainerType1 struct {
 	Inner *InnerContainerType1 `path:"inner|config/inner"`
 }
 type ListElemStruct1 struct {
-	Key1   *string              `path:"key1"`
-	Outer  *OuterContainerType1 `path:"outer"`
-	Outer2 *OuterContainerType1 `path:"outer2"`
+	Key1       *string              `path:"key1"`
+	Outer      *OuterContainerType1 `path:"outer"`
+	Outer2     *OuterContainerType1 `path:"outer2"`
+	Annotation *string              `ygotAnnotation:"true"`
 }
 type ContainerStruct1 struct {
 	StructKeyList map[string]*ListElemStruct1 `path:"config/simple-key-list"`

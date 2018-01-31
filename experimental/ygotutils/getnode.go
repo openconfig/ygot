@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -111,6 +112,12 @@ func getNodeContainer(schema *yang.Entry, rootStruct interface{}, path *gpb.Path
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
 		ft := v.Type().Field(i)
+
+		// Skip ygot Annotation fields since they do not have a schema.
+		if util.IsYgotAnnotation(ft) {
+			continue
+		}
+
 		cschema, err := childSchema(schema, ft)
 		if err != nil {
 			return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("error for schema for type %T, field name %s: %s", rootStruct, ft.Name, err))
