@@ -37,6 +37,7 @@ type ContainerStruct struct {
 	Leaf1Name   *string `path:"config/leaf1|leaf1"`
 	Leaf2Name   *string `path:"leaf2"`
 	BadLeafName *string `path:"bad-leaf"`
+	Annotation  *string `ygotAnnotation:"true"`
 }
 
 func (c *ContainerStruct) IsYANGGoStruct() {}

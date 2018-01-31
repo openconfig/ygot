@@ -844,6 +844,26 @@ var (
 	}
 )
 
+type annotatedStruct struct {
+	FieldA     *string `path:"field-a"`
+	Annotation *string `path:"@field-a" ygotAnnotation:"true"`
+}
+
+var (
+	annotatedStructSchema = &yang.Entry{
+		Name: "annotatedStruct",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"field-a": {
+				Name: "field-a",
+				Type: &yang.YangType{
+					Kind: yang.Ystring,
+				},
+			},
+		},
+	}
+)
+
 func TestForEachField(t *testing.T) {
 	tests := []struct {
 		desc         string
@@ -913,6 +933,17 @@ func TestForEachField(t *testing.T) {
  Int32PtrField:  4343,
  StringPtrField: "forty three ptr"} (string)
 , `,
+		},
+		{
+			desc:   "annotated struct",
+			schema: annotatedStructSchema,
+			parentStruct: &annotatedStruct{
+				FieldA:     String("test"),
+				Annotation: String("testtwo"),
+			},
+			in:       nil,
+			iterFunc: printFieldsIterFunc,
+			wantOut:  `FieldA : "test", `,
 		},
 	}
 
@@ -1011,6 +1042,16 @@ func TestForEachDataField(t *testing.T) {
  Int32PtrField:  4343,
  StringPtrField: "forty three ptr"} (string)
 , `,
+		},
+		{
+			desc: "annotated struct",
+			in:   nil,
+			parentStruct: &annotatedStruct{
+				FieldA:     String("baz"),
+				Annotation: String("bop"),
+			},
+			iterFunc: printSchemaAnnotationFieldsIterFunc,
+			wantOut:  `field-a : "baz", @field-a : "bop", `,
 		},
 	}
 

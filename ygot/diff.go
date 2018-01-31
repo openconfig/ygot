@@ -215,6 +215,12 @@ func findSetLeaves(s GoStruct) (map[*pathSpec]interface{}, error) {
 			return
 		}
 
+		// Handle the case of having an annotated struct - in the diff case we
+		// do not process schema annotations.
+		if util.IsYgotAnnotation(ni.StructField) {
+			return
+		}
+
 		sp, err := util.SchemaPaths(ni.StructField)
 		if err != nil {
 			errs = util.AppendErr(errs, err)

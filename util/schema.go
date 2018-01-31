@@ -60,6 +60,12 @@ func IsUnkeyedList(e *yang.Entry) bool {
 	return e.IsList() && e.Key == ""
 }
 
+// IsYgotAnnotation reports whether struct field s is an annotation field.
+func IsYgotAnnotation(s reflect.StructField) bool {
+	_, ok := s.Tag.Lookup("ygotAnnotation")
+	return ok
+}
+
 // SchemaPaths returns all the paths in the path tag.
 func SchemaPaths(f reflect.StructField) ([][]string, error) {
 	var out [][]string

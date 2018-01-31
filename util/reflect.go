@@ -444,6 +444,12 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 		return nil
 	}
 
+	// If the field is an annotation, then we do not process it any further, including
+	// skipping running the iterFunction.
+	if IsYgotAnnotation(ni.StructField) {
+		return nil
+	}
+
 	var errs Errors
 	errs = AppendErrs(errs, iterFunction(ni, in, out))
 
@@ -460,6 +466,12 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	case IsTypeStruct(t):
 		for i := 0; i < t.NumField(); i++ {
 			sf := t.Field(i)
+
+			// Do not handle annotation fields, since they have no schema.
+			if IsYgotAnnotation(sf) {
+				continue
+			}
+
 			nn := &NodeInfo{
 				Parent:      ni,
 				StructField: sf,
@@ -725,6 +737,12 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 	for i := 0; i < v.NumField(); i++ {
 		f := v.Field(i)
 		ft := v.Type().Field(i)
+
+		// Skip annotation fields, since they do not have a schema.
+		if IsYgotAnnotation(ft) {
+			continue
+		}
+
 		cschema, err := FieldSchema(schema, ft)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error for schema for type %T, field name %s: %s", root, ft.Name, err)

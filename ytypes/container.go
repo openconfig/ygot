@@ -143,6 +143,13 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 	for i := 0; i < destv.NumField(); i++ {
 		f := destv.Field(i)
 		ft := destv.Type().Field(i)
+
+		// Skip annotation fields since they do not have a schema.
+		// TODO(robjs): Implement unmarshalling annotations.
+		if util.IsYgotAnnotation(ft) {
+			continue
+		}
+
 		cschema, err := childSchema(schema, ft)
 		if err != nil {
 			return err

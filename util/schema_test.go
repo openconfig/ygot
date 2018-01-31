@@ -214,6 +214,33 @@ func TestIsUnkeyedList(t *testing.T) {
 	}
 }
 
+func TestIsYgotAnnotation(t *testing.T) {
+	type testStruct struct {
+		Yes *string `ygotAnnotation:"true"`
+		No  *string
+	}
+
+	tests := []struct {
+		name string
+		in   reflect.StructField
+		want bool
+	}{{
+		name: "annotated field",
+		in:   reflect.TypeOf(testStruct{}).Field(0),
+		want: true,
+	}, {
+		name: "standard field",
+		in:   reflect.TypeOf(testStruct{}).Field(1),
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		if got := IsYgotAnnotation(tt.in); got != tt.want {
+			t.Errorf("%s: IsYgotAnnotation(%#v): did not get expected result, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		}
+	}
+}
+
 // PathContainerType is a container type for testing.
 type PathContainerType struct {
 	Good      *int32 `path:"a|config/a"`

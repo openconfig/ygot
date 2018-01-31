@@ -397,6 +397,13 @@ type errorStruct struct {
 
 func (*errorStruct) IsYANGGoStruct() {}
 
+type annotatedStruct struct {
+	FieldA  *string `path:"field-a"`
+	ΛFieldA *string `path:"@field-a" ygotAnnotation:"true"`
+}
+
+func (*annotatedStruct) IsYANGGoStruct() {}
+
 func TestFindSetLeaves(t *testing.T) {
 	tests := []struct {
 		desc     string
@@ -474,6 +481,21 @@ func TestFindSetLeaves(t *testing.T) {
 					},
 				}},
 			}: "two",
+		},
+	}, {
+		desc: "struct with annotation",
+		inStruct: &annotatedStruct{
+			FieldA:  String("foo"),
+			ΛFieldA: String("bar"),
+		},
+		want: map[*pathSpec]interface{}{
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{{
+						Name: "field-a",
+					}},
+				}},
+			}: "foo",
 		},
 	}}
 

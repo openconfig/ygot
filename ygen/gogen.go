@@ -863,7 +863,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 		structDef.Fields = append(structDef.Fields, &goStructField{
 			Name: fmt.Sprintf("%sMetadata", annotationPrefix),
 			Type: annotationFieldType,
-			Tags: `path:"@"`,
+			Tags: `path:"@" ygotAnnotation:"true"`,
 		})
 	}
 
@@ -1036,7 +1036,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			}
 		}
 		tagBuf.WriteByte('"')
-		metadataTagBuf.WriteByte('"')
+		metadataTagBuf.WriteString(`" ygotAnnotation:"true"`)
 
 		// Append a tag indicating the module that instantiates this field.
 		im, err := field.InstantiatingModule()
