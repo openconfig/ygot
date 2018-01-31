@@ -45,7 +45,7 @@ var (
 	goyangImportPath = flag.String("goyang_path", ygen.DefaultGoyangImportPath, "The import path to use for goyang's yang package.")
 	generateRename   = flag.Bool("generate_rename", false, "If set to true, rename methods are generated for lists within the Go code.")
 	addAnnotations   = flag.Bool("annotations", false, "If set to true, metadata annotations are added within the generated structs.")
-	annotationPrefix = flag.String("annotation_prefix", "Λ", "String to be appended to each metadata field within the generated structs if annoations is set to true.")
+	annotationPrefix = flag.String("annotation_prefix", ygen.DefaultAnnotationPrefix, "String to be appended to each metadata field within the generated structs if annoations is set to true.")
 )
 
 // writeGoCode takes a ygen.GeneratedGoCode struct and writes the Go code

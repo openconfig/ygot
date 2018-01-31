@@ -849,8 +849,8 @@ type annotatedStruct struct {
 	Annotation *string `path:"@field-a" ygotAnnotation:"true"`
 }
 
-var (
-	annotatedStructSchema = &yang.Entry{
+func TestForEachField(t *testing.T) {
+	annotatedStructSchema := &yang.Entry{
 		Name: "annotatedStruct",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
@@ -862,9 +862,7 @@ var (
 			},
 		},
 	}
-)
 
-func TestForEachField(t *testing.T) {
 	tests := []struct {
 		desc         string
 		schema       *yang.Entry

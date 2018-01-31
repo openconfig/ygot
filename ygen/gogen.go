@@ -46,9 +46,9 @@ const (
 	// DefaultGoyangImportPath is the default path for the goyang/pkg/yang library that
 	// is used in the generated code.
 	DefaultGoyangImportPath string = "github.com/openconfig/goyang/pkg/yang"
-	// defaultMetadataPrefix is the default string that is used to prefix the name
+	// DefaultMetadataPrefix is the default string that is used to prefix the name
 	// of metadata fields in the output Go structs.
-	defaultAnnotationPrefix string = "Λ"
+	DefaultAnnotationPrefix string = "Λ"
 	// annotationFieldType defines the type that should be used for the
 	// annotation/metadata fields within each struct when they are generated.
 	annotationFieldType string = "[]*ygot.Annotation"
@@ -855,7 +855,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 	annotationPrefix := goOpts.AnnotationPrefix
 	// Set the default annotation prefix if it is unset.
 	if goOpts.AnnotationPrefix == "" {
-		annotationPrefix = defaultAnnotationPrefix
+		annotationPrefix = DefaultAnnotationPrefix
 	}
 
 	if goOpts.AddAnnotationFields {

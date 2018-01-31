@@ -337,6 +337,9 @@ func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error
 //  - The paths within the Delete field of the notification indicate that the
 //    field was not present in the modified struct, but was set in the original.
 //
+// Annotation fields that are contained within the supplied original or modified
+// GoStruct are skipped.
+//
 // The returned gNMI Notification cannot be put on the wire unmodified, since
 // it does not specify a timestamp - and may not contain the absolute paths
 // to the fields specified if a GoStruct that does not represent the root of
