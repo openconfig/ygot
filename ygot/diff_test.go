@@ -792,8 +792,8 @@ func TestDiff(t *testing.T) {
 					Value: &gnmipb.TypedValue_LeaflistVal{
 						&gnmipb.ScalarArray{
 							Element: []*gnmipb.TypedValue{
-								{&gnmipb.TypedValue_StringVal{"merlot"}},
-								{&gnmipb.TypedValue_StringVal{"pinot-noir"}},
+								{Value: &gnmipb.TypedValue_StringVal{"merlot"}},
+								{Value: &gnmipb.TypedValue_StringVal{"pinot-noir"}},
 							},
 						},
 					},
@@ -804,21 +804,21 @@ func TestDiff(t *testing.T) {
 						Name: "union-val",
 					}},
 				},
-				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_StringVal{"semillon"}},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"semillon"}},
 			}, {
 				Path: &gnmipb.Path{
 					Elem: []*gnmipb.PathElem{{
 						Name: "binary",
 					}},
 				},
-				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_BytesVal{[]byte{42, 42, 42}}},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte{42, 42, 42}}},
 			}, {
 				Path: &gnmipb.Path{
 					Elem: []*gnmipb.PathElem{{
 						Name: "empty",
 					}},
 				},
-				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_BoolVal{true}},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
 			}},
 		},
 	}, {
@@ -915,8 +915,8 @@ func TestDiff(t *testing.T) {
 					Value: &gnmipb.TypedValue_LeaflistVal{
 						&gnmipb.ScalarArray{
 							Element: []*gnmipb.TypedValue{
-								{&gnmipb.TypedValue_StringVal{"alcase"}},
-								{&gnmipb.TypedValue_StringVal{"anjou"}},
+								{Value: &gnmipb.TypedValue_StringVal{"alcase"}},
+								{Value: &gnmipb.TypedValue_StringVal{"anjou"}},
 							},
 						},
 					},
@@ -927,21 +927,21 @@ func TestDiff(t *testing.T) {
 						Name: "union-val",
 					}},
 				},
-				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_StringVal{"arbois"}},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"arbois"}},
 			}, {
 				Path: &gnmipb.Path{
 					Elem: []*gnmipb.PathElem{{
 						Name: "binary",
 					}},
 				},
-				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_BytesVal{[]byte{42, 42, 42}}},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte{42, 42, 42}}},
 			}, {
 				Path: &gnmipb.Path{
 					Elem: []*gnmipb.PathElem{{
 						Name: "empty",
 					}},
 				},
-				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_BoolVal{true}},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
 			}},
 		},
 	}, {
