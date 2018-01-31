@@ -24,6 +24,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/ygot/util"
 
+	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -447,22 +448,6 @@ func TestFindSetLeaves(t *testing.T) {
 					},
 				}},
 			}: "value-three",
-			{
-				gNMIPaths: []*gnmipb.Path{{
-					Elem: []*gnmipb.PathElem{
-						{Name: "struct-value"},
-						{Name: "struct-three-value"},
-						{Name: "third-string-value"},
-					},
-				}, {
-					Elem: []*gnmipb.PathElem{
-						{Name: "struct-value"},
-						{Name: "struct-three-value"},
-						{Name: "config"},
-						{Name: "third-string-value"},
-					},
-				}},
-			}: "value-three",
 		},
 	}, {
 		desc: "struct with map",
@@ -500,6 +485,556 @@ func TestFindSetLeaves(t *testing.T) {
 		}
 		if diff := pretty.Compare(got, tt.want); diff != "" {
 			t.Errorf("%s: findSetLeaves(%v): did not get expected output, diff(-got,+want):\n%s", tt.desc, tt.inStruct, diff)
+		}
+	}
+}
+
+func TestPathSetEqual(t *testing.T) {
+	tests := []struct {
+		desc     string
+		inA, inB *pathSpec
+		want     bool
+	}{{
+		desc: "simple single path, equal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "simple single path, unequal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+				}},
+			}},
+		},
+		want: false,
+	}, {
+		desc: "multiple paths, equal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+				}},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "multiple paths, unequal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "baz",
+				}},
+			}},
+		},
+		want: false,
+	}, {
+		desc: "multiple paths with keys, equal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+					Key:  map[string]string{"baz": "bop"},
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+					Key:  map[string]string{"fish": "chips"},
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+					Key:  map[string]string{"baz": "bop"},
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+					Key:  map[string]string{"fish": "chips"},
+				}},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "multiple paths with keys, equal",
+		inA: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+					Key:  map[string]string{"baz": "bop"},
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+					Key:  map[string]string{"fish": "chips"},
+				}},
+			}},
+		},
+		inB: &pathSpec{
+			gNMIPaths: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "foo",
+					Key:  map[string]string{"baz": "bop"},
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "bar",
+					Key:  map[string]string{"fish": "hat"},
+				}},
+			}},
+		},
+		want: false,
+	}, {
+		desc: "both nil",
+		inA:  nil,
+		inB:  nil,
+		want: true,
+	}, {
+		desc: "compare nil",
+		inA:  &pathSpec{},
+		inB:  nil,
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		if got, want := tt.inA.Equal(tt.inB), tt.want; got != want {
+			t.Errorf("%s: (%#v).Equal(%#v): did not get expected result, got: %v, want: %v", tt.desc, tt.inA, tt.inB, got, want)
+		}
+	}
+}
+
+type badGoStruct struct {
+	InvalidEnum int64 `path:"an-enum"`
+}
+
+func (*badGoStruct) IsYANGGoStruct() {}
+
+func TestDiff(t *testing.T) {
+	tests := []struct {
+		desc          string
+		inOrig, inMod GoStruct
+		want          *gnmipb.Notification
+		wantErrSubStr string
+	}{{
+		desc:   "single path addition in modified",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			Str: String("cabernet-sauvignon"),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "str",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"cabernet-sauvignon"}},
+			}},
+		},
+	}, {
+		desc: "single path deletion in modified",
+		inOrig: &renderExample{
+			Str: String("chardonnay"),
+		},
+		inMod: &renderExample{},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "str",
+				}},
+			}},
+		},
+	}, {
+		desc: "single path modification",
+		inOrig: &renderExample{
+			Str: String("grenache"),
+		},
+		inMod: &renderExample{
+			Str: String("malbec"),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "str",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"malbec"}},
+			}},
+		},
+	}, {
+		desc:   "multiple path addition, with complex types",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			IntVal:    Int32(42),
+			FloatVal:  Float32(42.42),
+			EnumField: EnumTestVALONE,
+			Ch: &renderExampleChild{
+				Val: Uint64(42),
+			},
+			LeafList: []string{"merlot", "pinot-noir"},
+			UnionVal: &renderExampleUnionString{"semillon"},
+			Binary:   Binary{42, 42, 42},
+			Empty:    true,
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "int-val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{42}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "floatval",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{42.42}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "enum",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "ch",
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{42}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "leaf-list",
+					}},
+				},
+				Val: &gnmipb.TypedValue{
+					Value: &gnmipb.TypedValue_LeaflistVal{
+						&gnmipb.ScalarArray{
+							Element: []*gnmipb.TypedValue{
+								{&gnmipb.TypedValue_StringVal{"merlot"}},
+								{&gnmipb.TypedValue_StringVal{"pinot-noir"}},
+							},
+						},
+					},
+				},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_StringVal{"semillon"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "binary",
+					}},
+				},
+				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_BytesVal{[]byte{42, 42, 42}}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "empty",
+					}},
+				},
+				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_BoolVal{true}},
+			}},
+		},
+	}, {
+		desc: "multiple element set in both - no diff",
+		inOrig: &renderExample{
+			IntVal:    Int32(42),
+			FloatVal:  Float32(42.42),
+			EnumField: EnumTestVALONE,
+			Ch: &renderExampleChild{
+				Val: Uint64(42),
+			},
+			LeafList: []string{"merlot", "pinot-noir"},
+			UnionVal: &renderExampleUnionString{"semillon"},
+			Binary:   Binary{42, 42, 42},
+			Empty:    true,
+		},
+		inMod: &renderExample{
+			IntVal:    Int32(42),
+			FloatVal:  Float32(42.42),
+			EnumField: EnumTestVALONE,
+			Ch: &renderExampleChild{
+				Val: Uint64(42),
+			},
+			LeafList: []string{"merlot", "pinot-noir"},
+			UnionVal: &renderExampleUnionString{"semillon"},
+			Binary:   Binary{42, 42, 42},
+			Empty:    true,
+		},
+		want: &gnmipb.Notification{},
+	}, {
+		desc: "multiple path modify",
+		inOrig: &renderExample{
+			IntVal:    Int32(43),
+			FloatVal:  Float32(43.43),
+			EnumField: EnumTestVALTWO,
+			Ch: &renderExampleChild{
+				Val: Uint64(43),
+			},
+			LeafList: []string{"syrah", "tempranillo"},
+			UnionVal: &renderExampleUnionString{"viognier"},
+			Binary:   Binary{43, 43, 43},
+			Empty:    false,
+		},
+		inMod: &renderExample{
+			IntVal:    Int32(42),
+			FloatVal:  Float32(42.42),
+			EnumField: EnumTestVALONE,
+			Ch: &renderExampleChild{
+				Val: Uint64(42),
+			},
+			LeafList: []string{"alcase", "anjou"},
+			UnionVal: &renderExampleUnionString{"arbois"},
+			Binary:   Binary{42, 42, 42},
+			Empty:    true,
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "int-val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{42}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "floatval",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{42.42}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "enum",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "ch",
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{42}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "leaf-list",
+					}},
+				},
+				Val: &gnmipb.TypedValue{
+					Value: &gnmipb.TypedValue_LeaflistVal{
+						&gnmipb.ScalarArray{
+							Element: []*gnmipb.TypedValue{
+								{&gnmipb.TypedValue_StringVal{"alcase"}},
+								{&gnmipb.TypedValue_StringVal{"anjou"}},
+							},
+						},
+					},
+				},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_StringVal{"arbois"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "binary",
+					}},
+				},
+				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_BytesVal{[]byte{42, 42, 42}}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "empty",
+					}},
+				},
+				Val: &gnmipb.TypedValue{&gnmipb.TypedValue_BoolVal{true}},
+			}},
+		},
+	}, {
+		desc: "add an item to a list",
+		inOrig: &pathElemExample{
+			List: map[string]*pathElemExampleChild{
+				"p1": {Val: String("p1")},
+			},
+		},
+		inMod: &pathElemExample{
+			List: map[string]*pathElemExampleChild{
+				"p1": {Val: String("p1")},
+				"p2": {Val: String("p2")},
+			},
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p2"},
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"p2"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p2"},
+					}, {
+						Name: "config",
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"p2"}},
+			}},
+		},
+	}, {
+		desc: "remove item from list",
+		inOrig: &pathElemExample{
+			List: map[string]*pathElemExampleChild{
+				"p1": {Val: String("p1")},
+				"p2": {Val: String("p2")},
+			},
+		},
+		inMod: &pathElemExample{
+			List: map[string]*pathElemExampleChild{
+				"p1": {Val: String("p1")},
+			},
+		},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "list",
+					Key:  map[string]string{"val": "p2"},
+				}, {
+					Name: "val",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "list",
+					Key:  map[string]string{"val": "p2"},
+				}, {
+					Name: "config",
+				}, {
+					Name: "val",
+				}},
+			}},
+		},
+	}, {
+		desc:          "invalid original",
+		inOrig:        &invalidGoStructEntity{},
+		inMod:         &invalidGoStructEntity{},
+		wantErrSubStr: "could not extract set leaves from original struct",
+	}, {
+		desc:   "invalid enum in modified",
+		inOrig: &badGoStruct{},
+		inMod: &badGoStruct{
+			InvalidEnum: 42,
+		},
+		wantErrSubStr: "cannot represent field value 42 as TypedValue for path /an-enum",
+	}, {
+		desc: "invalid enum in original",
+		inOrig: &badGoStruct{
+			InvalidEnum: 44,
+		},
+		inMod: &badGoStruct{
+			InvalidEnum: 42,
+		},
+		wantErrSubStr: "cannot represent field value 42 as TypedValue for path /an-enum",
+	}, {
+		desc:          "different types",
+		inOrig:        &renderExample{},
+		inMod:         &pathElemExample{},
+		wantErrSubStr: "cannot diff structs of different types",
+	}}
+
+	for _, tt := range tests {
+		got, err := Diff(tt.inOrig, tt.inMod)
+		if diff := errdiff.Substring(err, tt.wantErrSubStr); diff != "" {
+			t.Errorf("%s: Diff(%s, %s): did not get expected error status, got: %s, want: %s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), err, tt.wantErrSubStr)
+			continue
+		}
+
+		if tt.wantErrSubStr != "" {
+			continue
+		}
+		// To re-use the notificationSetEqual helper, we put the want and got into
+		// a slice.
+		if !notificationSetEqual([]*gnmipb.Notification{tt.want}, []*gnmipb.Notification{got}) {
+			diff := pretty.Compare(got, tt.want)
+			t.Errorf("%s: Diff(%s, %s): did not get expected Notification, diff(-got,+want):\n%s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), diff)
 		}
 	}
 }
