@@ -496,6 +496,13 @@ func TestEmitJSON(t *testing.T) {
 		inStruct: &mapStructInvalid{Name: String("aardvark")},
 		wantErr:  "validation err: invalid",
 	}, {
+		name:     "invalid with skip validation",
+		inStruct: &mapStructInvalid{Name: String("aardwolf")},
+		inConfig: &EmitJSONConfig{
+			SkipValidation: true,
+		},
+		wantJSONPath: filepath.Join(TestRoot, "testdata", "invalid-struct.json-txt"),
+	}, {
 		name:     "invalid internal JSON",
 		inStruct: &mapStructNoPaths{Name: String("honey badger")},
 		wantErr:  "ConstructInternalJSON error: Name: field did not specify a path",
@@ -521,7 +528,7 @@ func TestEmitJSON(t *testing.T) {
 
 		wantJSON, ioerr := ioutil.ReadFile(tt.wantJSONPath)
 		if ioerr != nil {
-			t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.name, tt.wantJSONPath, err)
+			t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.name, tt.wantJSONPath, ioerr)
 			continue
 		}
 
