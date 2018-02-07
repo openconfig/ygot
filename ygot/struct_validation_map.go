@@ -218,7 +218,7 @@ type EmitJSONConfig struct {
 // and serialises it to a JSON string. By default, produces the Internal format JSON.
 func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
 	var (
-		vopts []ValidationOption
+		vopts          []ValidationOption
 		skipValidation bool
 	)
 
