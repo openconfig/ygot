@@ -217,8 +217,11 @@ type EmitJSONConfig struct {
 // EmitJSON takes an input ValidatedGoStruct (produced by ygen with validation enabled)
 // and serialises it to a JSON string. By default, produces the Internal format JSON.
 func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
-	var vopts []ValidationOption
-	var skipValidation bool
+	var (
+		vopts []ValidationOption
+		skipValidation bool
+	)
+
 	if opts != nil {
 		vopts = opts.ValidationOpts
 		skipValidation = opts.SkipValidation
