@@ -203,6 +203,10 @@ type EmitJSONConfig struct {
 	// Indent is the string used for indentation within the JSON output. The
 	// default value is three spaces.
 	Indent string
+	// SkipValidation specifies whether the GoStruct supplied to EmitJSON should
+	// be validated before emitting its content. Validation is skipped when it
+	// is set to true.
+	SkipValidation bool
 	// ValidationOpts is the set of options that should be used to determine how
 	// the schema should be validated. This allows fine-grained control of particular
 	// validation rules in the case that a partially populated data instance is
@@ -213,12 +217,17 @@ type EmitJSONConfig struct {
 // EmitJSON takes an input ValidatedGoStruct (produced by ygen with validation enabled)
 // and serialises it to a JSON string. By default, produces the Internal format JSON.
 func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
-	var vopts []ValidationOption
+	var (
+		vopts          []ValidationOption
+		skipValidation bool
+	)
+
 	if opts != nil {
 		vopts = opts.ValidationOpts
+		skipValidation = opts.SkipValidation
 	}
 
-	if err := s.Validate(vopts...); err != nil {
+	if err := s.Validate(vopts...); !skipValidation && err != nil {
 		return "", fmt.Errorf("validation err: %v", err)
 	}
 
