@@ -150,6 +150,54 @@ func initialiseTree(t reflect.Type, v reflect.Value) {
 	}
 }
 
+// PruneEmptyBranches removes branches that have no populated children from the
+// GoStruct s in-place. This allows a YANG container hierarchy that has been
+// initialised with BuildEmptyTree to have those branches that were not populated
+// removed from the tree. All subtrees rooted at the supplied GoStruct are traversed
+// and any encountered GoStruct pointer fields are removed if they equate to
+// the zero value (i.e. are unpopulated).
+func PruneEmptyBranches(s GoStruct) {
+	v := reflect.ValueOf(s).Elem()
+	pruneBranchesInternal(v.Type(), v)
+}
+
+// pruneBranchesInternal implements the logic to remove empty branches from the
+// supplied reflect.Type, reflect.Value which must represent a GoStruct. An empty
+// tree is defined to be a struct that is equal to its zero value. Only struct
+// pointer fields are examined, since these are subtrees within the generated GoStruct
+// types.
+func pruneBranchesInternal(t reflect.Type, v reflect.Value) {
+	for i := 0; i < v.NumField(); i++ {
+		fVal := v.Field(i)
+		fType := t.Field(i)
+		if util.IsTypeStructPtr(fType.Type) {
+			// Create an empty version of the struct that is within the struct pointer.
+			// We can safely call Elem() here since we verified above that this type
+			// as a struct pointer.
+			zVal := reflect.Zero(fType.Type.Elem())
+
+			switch {
+			case fVal.IsNil():
+				// Ensure that if the field value was actually nil, we skip over this
+				// field since its already nil.
+				continue
+			case reflect.DeepEqual(zVal.Interface(), fVal.Elem().Interface()):
+				// In the case that the zero value's interface is the same as the
+				// dereferenced field value's nil value, then we set it to the zero value
+				// of the field type. The fType contains a pointer to the struct, so
+				// reflect.Zero returns nil here.
+				fVal.Set(reflect.Zero(fType.Type))
+				continue
+			default:
+				// If this wasn't an empty struct then we need to recurse to remove
+				// any nil children of this struct.
+				sv := fVal.Elem()
+				pruneBranchesInternal(sv.Type(), sv)
+			}
+		}
+	}
+}
+
 // InitContainer initialises the container cname of the GoStruct s, it can be
 // used to initialise an arbitrary named child container within a YANG
 // structure in a generic manner. This allows the caller to generically

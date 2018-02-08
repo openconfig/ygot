@@ -593,6 +593,97 @@ func TestBuildEmptyTree(t *testing.T) {
 	}
 }
 
+type emptyBranchTestOne struct {
+	String *string
+	Struct *emptyBranchTestOneChild
+}
+
+func (*emptyBranchTestOne) IsYANGGoStruct() {}
+
+type emptyBranchTestOneChild struct {
+	String *string
+	Struct *emptyBranchTestOneGrandchild
+}
+
+func (*emptyBranchTestOneChild) IsYANGGoStruct() {}
+
+type emptyBranchTestOneGrandchild struct {
+	String *string
+}
+
+func (*emptyBranchTestOneGrandchild) IsYANGGoStruct() {}
+
+func TestPruneEmptyBranches(t *testing.T) {
+	tests := []struct {
+		name     string
+		inStruct GoStruct
+		want     GoStruct
+	}{{
+		name:     "struct with no children",
+		inStruct: &emptyBranchTestOne{},
+		want:     &emptyBranchTestOne{},
+	}, {
+		name: "struct with empty child",
+		inStruct: &emptyBranchTestOne{
+			String: String("hello"),
+			Struct: &emptyBranchTestOneChild{},
+		},
+		want: &emptyBranchTestOne{
+			String: String("hello"),
+		},
+	}, {
+		name: "struct with populated child",
+		inStruct: &emptyBranchTestOne{
+			Struct: &emptyBranchTestOneChild{
+				String: String("foo"),
+			},
+		},
+		want: &emptyBranchTestOne{
+			Struct: &emptyBranchTestOneChild{
+				String: String("foo"),
+			},
+		},
+	}, {
+		name: "struct with populated child with unpopulated grandchild",
+		inStruct: &emptyBranchTestOne{
+			Struct: &emptyBranchTestOneChild{
+				String: String("bar"),
+				Struct: &emptyBranchTestOneGrandchild{},
+			},
+		},
+		want: &emptyBranchTestOne{
+			Struct: &emptyBranchTestOneChild{
+				String: String("bar"),
+			},
+		},
+	}, {
+		name: "struct with populated grandchild",
+		inStruct: &emptyBranchTestOne{
+			Struct: &emptyBranchTestOneChild{
+				String: String("bar"),
+				Struct: &emptyBranchTestOneGrandchild{
+					String: String("baz"),
+				},
+			},
+		},
+		want: &emptyBranchTestOne{
+			Struct: &emptyBranchTestOneChild{
+				String: String("bar"),
+				Struct: &emptyBranchTestOneGrandchild{
+					String: String("baz"),
+				},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		PruneEmptyBranches(tt.inStruct)
+		if diff := pretty.Compare(tt.inStruct, tt.want); diff != "" {
+			t.Errorf("%s: PruneEmptyBranches(%#v): did not get expected output, diff(-got,+want):\n%s", tt.name, tt.inStruct, diff)
+		}
+	}
+}
+
 // initContainerTest is a synthesised GoStruct for use in
 // testing InitContainer.
 type initContainerTest struct {
