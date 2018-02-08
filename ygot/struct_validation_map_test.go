@@ -583,6 +583,18 @@ func TestBuildEmptyTree(t *testing.T) {
 			MapVal:    map[string]*emptyTreeTestTwoChild{},
 			StructVal: &emptyTreeTestTwoChild{},
 		},
+	}, {
+		name: "struct with already populated child",
+		inStruct: &emptyTreeTestTwo{
+			StructVal: &emptyTreeTestTwoChild{
+				Val: "foo",
+			},
+		},
+		want: &emptyTreeTestTwo{
+			StructVal: &emptyTreeTestTwoChild{
+				Val: "foo",
+			},
+		},
 	}}
 
 	for _, tt := range tests {
