@@ -936,6 +936,42 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.union_list_key": filepath.Join(TestRoot, "testdata", "proto", "union-list-key.union_list_key.formatted-txt"),
 			"openconfig":                filepath.Join(TestRoot, "testdata", "proto", "union-list-key.formatted-txt"),
 		},
+	}, {
+		name: "protobuf generation with excluded read only fields - compressed",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang"),
+		},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+			},
+			GenerateFakeRoot:   true,
+			ExcludeConfigFalse: true,
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig":                         filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.compressed.formatted-txt"),
+			"openconfig.openconfig_config_false": filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.config_false.compressed.formatted-txt"),
+		},
+	}, {
+		name: "protobuf generation with excluded read only fields - compressed",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang"),
+		},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+			},
+			GenerateFakeRoot:   true,
+			CompressOCPaths:    true,
+			ExcludeConfigFalse: true,
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.uncompressed.formatted-txt"),
+		},
 	}}
 
 	for _, tt := range tests {

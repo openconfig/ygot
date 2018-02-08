@@ -46,6 +46,7 @@ var (
 	generateRename   = flag.Bool("generate_rename", false, "If set to true, rename methods are generated for lists within the Go code.")
 	addAnnotations   = flag.Bool("annotations", false, "If set to true, metadata annotations are added within the generated structs.")
 	annotationPrefix = flag.String("annotation_prefix", ygen.DefaultAnnotationPrefix, "String to be appended to each metadata field within the generated structs if annoations is set to true.")
+	excludeRO        = flag.Bool("exclude_readonly", false, "If set to true, config false fields in the YANG schema are not included in the generated Go code.")
 )
 
 // writeGoCode takes a ygen.GeneratedGoCode struct and writes the Go code
@@ -159,6 +160,7 @@ func main() {
 			AddAnnotationFields:  *addAnnotations,
 			AnnotationPrefix:     *annotationPrefix,
 		},
+		ExcludeConfigFalse: *excludeRO,
 	})
 
 	generatedGoCode, err := cg.GenerateGoCode(generateModules, includePaths)

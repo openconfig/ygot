@@ -47,6 +47,7 @@ var (
 	annotateEnumNames   = flag.Bool("add_enumnames", true, "If set to true, each value within output enums will be annotated with the label in the original YANG schema.")
 	packageHierarchy    = flag.Bool("package_hierarchy", false, "If set to true, an individual protobuf package is output per level of the YANG schema tree.")
 	callerName          = flag.String("caller_name", "proto_generator", "The name of the generator binary that should be recorded in output files.")
+	excludeRO           = flag.Bool("exclude_readonly", false, "If set to true, config false fields in the YANG schema are not included in the generated Protobuf messages.")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
@@ -108,6 +109,7 @@ func main() {
 			AnnotateEnumNames:   *annotateEnumNames,
 			NestedMessages:      !*packageHierarchy,
 		},
+		ExcludeConfigFalse: *excludeRO,
 	})
 
 	generatedProtoCode, err := cg.GenerateProto3(generateModules, includePaths)
