@@ -126,7 +126,8 @@ func enumFieldToString(field reflect.Value, appendModuleName bool) (string, bool
 // provided. This allows the YANG container hierarchy (i.e., any structs within
 // the tree) to be pre-initialised rather than requiring the user to initialise
 // each as it is required. Given that some trees may be large, then some
-// caution should be exercised in initialising an entire tree.
+// caution should be exercised in initialising an entire tree. If struct pointer
+// fields are non-nil, they are considered initialised, and are skipped.
 func BuildEmptyTree(s GoStruct) {
 	initialiseTree(reflect.ValueOf(s).Elem().Type(), reflect.ValueOf(s).Elem())
 }
@@ -138,14 +139,17 @@ func initialiseTree(t reflect.Type, v reflect.Value) {
 		fVal := v.Field(i)
 		fType := t.Field(i)
 
-		if fType.Type.Kind() == reflect.Ptr {
+		if util.IsTypeStructPtr(fType.Type) {
 			// Only initialise nested struct pointers, since all struct fields within
 			// a GoStruct are expected to be pointers, and we do not want to initialise
-			// non-struct values.
-			if pVal := reflect.New(fType.Type.Elem()); pVal.Elem().Type().Kind() == reflect.Struct {
-				initialiseTree(pVal.Elem().Type(), pVal.Elem())
-				fVal.Set(pVal)
+			// non-struct values. If the struct pointer is not nil, it is skipped.
+			if !fVal.IsNil() {
+				continue
 			}
+
+			pVal := reflect.New(fType.Type.Elem())
+			initialiseTree(pVal.Elem().Type(), pVal.Elem())
+			fVal.Set(pVal)
 		}
 	}
 }
