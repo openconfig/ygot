@@ -177,7 +177,7 @@ func pruneBranchesInternal(t reflect.Type, v reflect.Value) {
 		if util.IsTypeStructPtr(fType.Type) {
 			// Create an empty version of the struct that is within the struct pointer.
 			// We can safely call Elem() here since we verified above that this type
-			// as a struct pointer.
+			// is a struct pointer.
 			zVal := reflect.Zero(fType.Type.Elem())
 
 			switch {
