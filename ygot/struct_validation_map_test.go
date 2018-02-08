@@ -553,9 +553,10 @@ func (*emptyTreeTestOne) IsYANGGoStruct() {}
 
 // emptyTreeTestTwo is a test case for TestBuildEmptyTree
 type emptyTreeTestTwo struct {
-	SliceVal  []*emptyTreeTestTwoChild
-	MapVal    map[string]*emptyTreeTestTwoChild
-	StructVal *emptyTreeTestTwoChild
+	SliceVal     []*emptyTreeTestTwoChild
+	MapVal       map[string]*emptyTreeTestTwoChild
+	StructVal    *emptyTreeTestTwoChild
+	StructValTwo *emptyTreeTestTwoChild
 }
 
 // IsYANGGoStruct ensures that emptyTreeTestTwo implements the GoStruct interface
@@ -579,9 +580,23 @@ func TestBuildEmptyTree(t *testing.T) {
 		name:     "struct with children",
 		inStruct: &emptyTreeTestTwo{},
 		want: &emptyTreeTestTwo{
-			SliceVal:  []*emptyTreeTestTwoChild{},
-			MapVal:    map[string]*emptyTreeTestTwoChild{},
-			StructVal: &emptyTreeTestTwoChild{},
+			SliceVal:     []*emptyTreeTestTwoChild{},
+			MapVal:       map[string]*emptyTreeTestTwoChild{},
+			StructVal:    &emptyTreeTestTwoChild{},
+			StructValTwo: &emptyTreeTestTwoChild{},
+		},
+	}, {
+		name: "struct with already populated child",
+		inStruct: &emptyTreeTestTwo{
+			StructVal: &emptyTreeTestTwoChild{
+				Val: "foo",
+			},
+		},
+		want: &emptyTreeTestTwo{
+			StructVal: &emptyTreeTestTwoChild{
+				Val: "foo",
+			},
+			StructValTwo: &emptyTreeTestTwoChild{},
 		},
 	}}
 
