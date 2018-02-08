@@ -543,6 +543,23 @@ func TestSimpleStructs(t *testing.T) {
 			ExcludeModules:   []string{"excluded-module-two"},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/excluded-module.formatted-txt"),
+	}, {
+		name:    "module with excluded config false",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot:   true,
+			ExcludeConfigFalse: true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false-uncompressed.formatted-txt"),
+	}, {
+		name:    "module with excluded config false - with compression",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot:   true,
+			ExcludeConfigFalse: true,
+			CompressOCPaths:    true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false-compressed.formatted-txt"),
 	}}
 
 	for _, tt := range tests {

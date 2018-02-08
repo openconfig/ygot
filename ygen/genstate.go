@@ -168,12 +168,19 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUndersco
 // needed for subsequent code generation. The name of the directory entry that
 // is returned is based on the generatedLanguage that is supplied. The
 // compressPaths and genFakeRoot arguments are used to determine how paths that
-// are included within the generated structs are used.
-func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compressPaths, genFakeRoot bool, lang generatedLanguage) (map[string]*yangDirectory, []error) {
+// are included within the generated structs are used. If the excludeConfigFalse
+// argument is set, those elements within the YANG schema that are marked config
+// false (i.e., are read only) are excluded from the returned directories.
+func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compressPaths, genFakeRoot bool, lang generatedLanguage, excludeConfigFalse bool) (map[string]*yangDirectory, []error) {
 	var errs []error
 	mappedStructs := make(map[string]*yangDirectory)
 
 	for _, e := range entries {
+		// If we are excluding config false (state entries) then skip processing
+		// this element.
+		if excludeConfigFalse && !isConfig(e) {
+			continue
+		}
 		if e.IsList() || e.IsDir() || isRoot(e) {
 			// This should be mapped to a struct in the generated code since it has
 			// child elements in the YANG schema.
@@ -199,7 +206,7 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 
 			// Find the elements that should be rooted on this particular entity.
 			var fieldErr []error
-			elem.fields, fieldErr = findAllChildren(e, compressPaths)
+			elem.fields, fieldErr = findAllChildren(e, compressPaths, excludeConfigFalse)
 			if fieldErr != nil {
 				errs = append(errs, fieldErr...)
 				continue
