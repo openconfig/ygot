@@ -56,6 +56,11 @@
    },
    "openconfig-system:system": {
       "config": {
+         "@hostname": [
+            {
+               "gen-source": "devicedemo"
+            }
+         ],
          "hostname": "rtr02.pop44"
       }
    }

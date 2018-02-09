@@ -18,6 +18,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 
 	log "github.com/golang/glog"
@@ -44,6 +45,23 @@ func main() {
 	fmt.Println(ietfjson)
 }
 
+// ExampleAnnotation is used to demonstrate the ygot.Annotation interface,
+// and the ability for ygot to add annotations to generated structs.
+type ExampleAnnotation struct {
+	GeneratorSource string `json:"gen-source"`
+}
+
+// MarshalJSON marshals the ExampleAnnotation receiver to JSON.
+func (e *ExampleAnnotation) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*e)
+}
+
+// UnmarshalJSON ensures that ExampleAnnotation implements the ygot.Annotation
+// interface. It is stubbed out and unimplemented.
+func (e *ExampleAnnotation) UnmarshalJSON([]byte) error {
+	return fmt.Errorf("unimplemented")
+}
+
 // CreateDemoDeviceInstance creates an example instance of the OpenConfig 'device'
 // construct, demonstrating the population of fields along with the use of the fake
 // root entity 'device' which does not exist in the YANG schema.
@@ -52,6 +70,9 @@ func CreateDemoDeviceInstance() (*oc.Device, error) {
 	d := &oc.Device{
 		System: &oc.System{
 			Hostname: ygot.String("rtr02.pop44"),
+			ΛHostname: []ygot.Annotation{
+				&ExampleAnnotation{GeneratorSource: "devicedemo"},
+			},
 		},
 	}
 

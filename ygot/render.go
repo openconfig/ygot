@@ -1237,6 +1237,10 @@ func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputCo
 // ygot Annotation field ([]ygot.Annotation), and marshals it to JSON to be
 // included in the output JSON.
 func constructJSONAnnotationSlice(v reflect.Value) (interface{}, error) {
+	if v.Len() == 0 {
+		return nil, nil
+	}
+
 	vals := []interface{}{}
 	for i := 0; i < v.Len(); i++ {
 		fv := v.Index(i).Interface().(Annotation)

@@ -1631,8 +1631,9 @@ type diffModAtRootElemTwo struct {
 func (*diffModAtRootElemTwo) IsYANGGoStruct() {}
 
 type annotatedJSONTestStruct struct {
-	Field  *string      `path:"field" module:"bar"`
-	ΛField []Annotation `path:"@field" ygotAnnotation:"true"`
+	Field     *string      `path:"field" module:"bar"`
+	ΛField    []Annotation `path:"@field" ygotAnnotation:"true"`
+	ΛFieldTwo []Annotation `path:"@emptyannotation" ygotAnnotation:"true"`
 }
 
 func (*annotatedJSONTestStruct) IsYANGGoStruct() {}
