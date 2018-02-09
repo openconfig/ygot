@@ -228,14 +228,14 @@ func camelCaseNameExt(exts []*yang.Statement) (string, bool) {
 // entry e, when not compressing paths. It does not recurse into any child nodes
 // other than those that do not represent data tree nodes (i.e., choice and
 // case nodes). Choice and case nodes themselves are not appended to the children
-// list. If the excludeConfigFalse argument is set to true, children that are
+// list. If the excludeState argument is set to true, children that are
 // config false (i.e., read only) in the YANG schema are not returned.
-func findAllChildrenWithoutCompression(e *yang.Entry, excludeConfigFalse bool) (map[string]*yang.Entry, []error) {
+func findAllChildrenWithoutCompression(e *yang.Entry, excludeState bool) (map[string]*yang.Entry, []error) {
 	var errs []error
 	directChildren := map[string]*yang.Entry{}
 	for _, child := range children(e) {
 		// Exclude children that are config false if requested.
-		if excludeConfigFalse && !isConfig(child) {
+		if excludeState && !isConfig(child) {
 			continue
 		}
 
@@ -339,23 +339,23 @@ func findAllChildrenWithoutCompression(e *yang.Entry, excludeConfigFalse bool) (
 // children of the specified node that are not choice or case statements themselves (i.e., leaf-a
 // and leaf-b in the above example).
 //
-// The excludeConfigFalse argument further filters the returned set of children
-// based on their YANG 'config' status. When excludeConfigFalse is true, then
+// The excludeState argument further filters the returned set of children
+// based on their YANG 'config' status. When excludeState is true, then
 // any read-only (config false) node is excluded from the returned set of children.
 // The 'config' status is inherited from a entry's parent if required, as per
 // the rules in RFC6020.
-func findAllChildren(e *yang.Entry, compressOCPaths, excludeConfigFalse bool) (map[string]*yang.Entry, []error) {
+func findAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[string]*yang.Entry, []error) {
 	// If we are asked to exclude 'config false' leaves, and this node is
 	// config false itself, then we can return an empty set of children since
 	// config false is inherited from the parent by all children.
-	if excludeConfigFalse && !isConfig(e) {
+	if excludeState && !isConfig(e) {
 		return nil, nil
 	}
 
 	// If compression is not required, then we do not need to recurse into as many
 	// nodes, so return simply the first level direct children (other than choice or case).
 	if !compressOCPaths {
-		return findAllChildrenWithoutCompression(e, excludeConfigFalse)
+		return findAllChildrenWithoutCompression(e, excludeState)
 	}
 
 	// orderedChildNames is used to provide an ordered list of the name of children
@@ -397,7 +397,7 @@ func findAllChildren(e *yang.Entry, compressOCPaths, excludeConfigFalse bool) (m
 		// If config false values are being excluded, and this child is config
 		// false, then simply skip it from being considered. This check is performed
 		// first to avoid comparisons on this node which are irrelevant.
-		case excludeConfigFalse && !isConfig(e.Dir[currChild]):
+		case excludeState && !isConfig(e.Dir[currChild]):
 			continue
 		// Implement rule 1 from the function documentation - skip over config and state
 		// containers.

@@ -1980,10 +1980,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 
 	for _, tt := range tests {
 		combinations := []struct {
-			lang               generatedLanguage         // lang is the language to run the test for.
-			compress           bool                      // compress indicates whether  path compression should be enabled.
-			excludeConfigFalse bool                      // excludeConfigFalse indicates whether config false values should be excluded.
-			want               map[string]*yangDirectory // want is the expected output of buildDirectoryDefinitions.
+			lang         generatedLanguage         // lang is the language to run the test for.
+			compress     bool                      // compress indicates whether  path compression should be enabled.
+			excludeState bool                      // excludeState indicates whether config false values should be excluded.
+			want         map[string]*yangDirectory // want is the expected output of buildDirectoryDefinitions.
 		}{{
 			lang:     golang,
 			compress: true,
@@ -2001,25 +2001,25 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 			compress: false,
 			want:     tt.wantProtoUncompress,
 		}, {
-			lang:               golang,
-			compress:           true,
-			excludeConfigFalse: true,
-			want:               tt.wantGoCompressStateExcluded,
+			lang:         golang,
+			compress:     true,
+			excludeState: true,
+			want:         tt.wantGoCompressStateExcluded,
 		}, {
-			lang:               golang,
-			compress:           false,
-			excludeConfigFalse: true,
-			want:               tt.wantGoUncompressStateExcluded,
+			lang:         golang,
+			compress:     false,
+			excludeState: true,
+			want:         tt.wantGoUncompressStateExcluded,
 		}, {
-			lang:               protobuf,
-			compress:           true,
-			excludeConfigFalse: true,
-			want:               tt.wantProtoCompressStateExcluded,
+			lang:         protobuf,
+			compress:     true,
+			excludeState: true,
+			want:         tt.wantProtoCompressStateExcluded,
 		}, {
-			lang:               protobuf,
-			compress:           false,
-			excludeConfigFalse: true,
-			want:               tt.wantProtoUncompressStateExcluded,
+			lang:         protobuf,
+			compress:     false,
+			excludeState: true,
+			want:         tt.wantProtoUncompressStateExcluded,
 		}}
 
 		for _, c := range combinations {
@@ -2046,57 +2046,57 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				findMappableEntities(inc, structs, enums, []string{}, c.compress)
 			}
 
-			got, errs := cg.state.buildDirectoryDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, c.lang, c.excludeConfigFalse)
+			got, errs := cg.state.buildDirectoryDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, c.lang, c.excludeState)
 			if errs != nil {
-				t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, ExcludeConfigFalse: %v): could not build struct defs: %v", tt.name, c.compress, langName(c.lang), c.excludeConfigFalse, errs)
+				t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): could not build struct defs: %v", tt.name, c.compress, langName(c.lang), c.excludeState, errs)
 				continue
 			}
 
 			if len(got) != len(c.want) {
-				t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, ExcludeConfigFalse: %v): did not get expected set of structs, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeConfigFalse, dirNames(got), dirNames(c.want))
+				t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): did not get expected set of structs, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, dirNames(got), dirNames(c.want))
 				continue
 			}
 
 			for gotName, gotDir := range got {
 				wantDir, ok := c.want[gotName]
 				if !ok {
-					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, ExcludeConfigFalse: %v): could not find expected struct %s, got: %v, want: %v",
-						tt.name, c.compress, langName(c.lang), c.excludeConfigFalse, gotName, got, c.want)
+					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): could not find expected struct %s, got: %v, want: %v",
+						tt.name, c.compress, langName(c.lang), c.excludeState, gotName, got, c.want)
 					continue
 				}
 
 				if len(gotDir.fields) != len(wantDir.fields) {
-					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, ExcludeConfigFalse: %v): did not get expected set of fields for %s, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeConfigFalse, gotName, fieldNames(gotDir), fieldNames(wantDir))
+					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): did not get expected set of fields for %s, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotName, fieldNames(gotDir), fieldNames(wantDir))
 					continue
 				}
 
 				for fieldk, fieldv := range wantDir.fields {
 					cmpfield, ok := gotDir.fields[fieldk]
 					if !ok {
-						t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, ExcludeConfigFalse: %v): could not find expected field %s in %s, got: %v",
-							tt.name, c.compress, langName(c.lang), c.excludeConfigFalse, fieldk, gotName, gotDir.fields)
+						t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): could not find expected field %s in %s, got: %v",
+							tt.name, c.compress, langName(c.lang), c.excludeState, fieldk, gotName, gotDir.fields)
 						continue
 					}
 
 					if fieldv.Name != cmpfield.Name {
-						t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, ExcludeConfigFalse: %v): field %s of %s did not have expected name, got: %v, want: %v",
-							tt.name, c.compress, langName(c.lang), c.excludeConfigFalse, fieldk, gotName, fieldv.Name, cmpfield.Name)
+						t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): field %s of %s did not have expected name, got: %v, want: %v",
+							tt.name, c.compress, langName(c.lang), c.excludeState, fieldk, gotName, fieldv.Name, cmpfield.Name)
 					}
 
 					if fieldv.Type != nil && cmpfield.Type != nil {
 						if fieldv.Type.Kind != cmpfield.Type.Kind {
-							t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, ExcludeConfigFalse: %v): field %s of %s did not have expected type got: %s, want: %s",
-								tt.name, c.compress, langName(c.lang), c.excludeConfigFalse, fieldk, gotName, fieldv.Type.Kind, cmpfield.Type.Kind)
+							t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): field %s of %s did not have expected type got: %s, want: %s",
+								tt.name, c.compress, langName(c.lang), c.excludeState, fieldk, gotName, fieldv.Type.Kind, cmpfield.Type.Kind)
 						}
 					}
 				}
 
 				if wantDir.path != nil && !reflect.DeepEqual(wantDir.path, gotDir.path) {
-					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, ExcludeConfigFalse: %v): %s did not have matching path, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeConfigFalse, gotName, gotDir.path, wantDir.path)
+					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): %s did not have matching path, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotName, gotDir.path, wantDir.path)
 				}
 
 				if wantDir.name != wantDir.name {
-					t.Errorf("%s buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, ExcludeConfigFalse: %v): %s did not have matching name, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeConfigFalse, gotDir.path, gotDir.name, wantDir.name)
+					t.Errorf("%s buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): %s did not have matching name, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotDir.path, gotDir.name, wantDir.name)
 				}
 			}
 		}

@@ -547,17 +547,17 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "module with excluded config false",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot:   true,
-			ExcludeConfigFalse: true,
+			GenerateFakeRoot: true,
+			ExcludeState:     true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false-uncompressed.formatted-txt"),
 	}, {
 		name:    "module with excluded config false - with compression",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot:   true,
-			ExcludeConfigFalse: true,
-			CompressOCPaths:    true,
+			GenerateFakeRoot: true,
+			ExcludeState:     true,
+			CompressOCPaths:  true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false-compressed.formatted-txt"),
 	}}
@@ -947,8 +947,8 @@ func TestGenerateProto3(t *testing.T) {
 				AnnotateSchemaPaths: true,
 				NestedMessages:      true,
 			},
-			GenerateFakeRoot:   true,
-			ExcludeConfigFalse: true,
+			GenerateFakeRoot: true,
+			ExcludeState:     true,
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig":                         filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.compressed.formatted-txt"),
@@ -965,9 +965,9 @@ func TestGenerateProto3(t *testing.T) {
 				AnnotateSchemaPaths: true,
 				NestedMessages:      true,
 			},
-			GenerateFakeRoot:   true,
-			CompressOCPaths:    true,
-			ExcludeConfigFalse: true,
+			GenerateFakeRoot: true,
+			CompressOCPaths:  true,
+			ExcludeState:     true,
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.uncompressed.formatted-txt"),
