@@ -1254,7 +1254,7 @@ func constructJSONAnnotationSlice(v reflect.Value) (interface{}, error) {
 		// are later marshalled, we therefore unmarshal the []byte into an interface{}
 		var nv interface{}
 		if err := json.Unmarshal(jv, &nv); err != nil {
-			return nil, fmt.Errorf("annotation %v, type %T returned a non-map[string]interface{} JSON type: %v", fv, fv, err)
+			return nil, fmt.Errorf("annotation %v, type %T could not be unmarshalled from JSON: %v", fv, fv, err)
 		}
 		vals = append(vals, nv)
 	}
