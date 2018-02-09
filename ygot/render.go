@@ -15,6 +15,7 @@
 package ygot
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -839,7 +840,14 @@ func constructJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[str
 			continue
 		}
 
-		value, err := constructJSONValue(field, pmod, args)
+		var value interface{}
+
+		if util.IsYgotAnnotation(fType) {
+			value, err = constructJSONAnnotationSlice(field)
+		} else {
+			value, err = constructJSONValue(field, pmod, args)
+		}
+
 		if err != nil {
 			errs.Add(err)
 			continue
@@ -1223,6 +1231,30 @@ func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputCo
 		}
 	}
 	return sl, nil
+}
+
+// constructJSONAnnotationSlice takes a reflect.Value which must represent a
+// ygot Annotation field ([]ygot.Annotation), and marshals it to JSON to be
+// included in the output JSON.
+func constructJSONAnnotationSlice(v reflect.Value) (interface{}, error) {
+	vals := []interface{}{}
+	for i := 0; i < v.Len(); i++ {
+		fv := v.Index(i).Interface().(Annotation)
+		jv, err := fv.MarshalJSON()
+		if err != nil {
+			return nil, fmt.Errorf("cannot marshal annotation %v type %T to JSON: %v", fv, fv, err)
+		}
+
+		// MarshalJSON returns []byte, but we really want to have this as the unmarshalled
+		// value, since constructJSON returns a series of map[string]interface{} Which
+		// are later marshalled, we therefore unmarshal the []byte into an interface{}
+		var nv interface{}
+		if err := json.Unmarshal(jv, &nv); err != nil {
+			return nil, fmt.Errorf("annotation %v, type %T returned a non-map[string]interface{} JSON type: %v", fv, fv, err)
+		}
+		vals = append(vals, nv)
+	}
+	return vals, nil
 }
 
 // unionInterfaceValue takes an input reflect.Value which must contain

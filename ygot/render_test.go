@@ -15,6 +15,7 @@
 package ygot
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
@@ -1629,6 +1630,49 @@ type diffModAtRootElemTwo struct {
 
 func (*diffModAtRootElemTwo) IsYANGGoStruct() {}
 
+type annotatedJSONTestStruct struct {
+	Field  *string      `path:"field" module:"bar"`
+	ΛField []Annotation `path:"@field" ygotAnnotation:"true"`
+}
+
+func (*annotatedJSONTestStruct) IsYANGGoStruct() {}
+
+type testAnnotation struct {
+	AnnotationFieldOne string `json:"field"`
+}
+
+func (t *testAnnotation) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*t)
+}
+
+func (t *testAnnotation) UnmarshalJSON(d []byte) error {
+	return json.Unmarshal(d, *t)
+}
+
+type errorAnnotation struct {
+	AnnotationField string `json:"field"`
+}
+
+func (t *errorAnnotation) MarshalJSON() ([]byte, error) {
+	return nil, fmt.Errorf("injected error")
+}
+
+func (t *errorAnnotation) UnmarshalJSON(d []byte) error {
+	return fmt.Errorf("unimplemented")
+}
+
+type unmarshalableJSON struct {
+	AnnotationField string `json:"field"`
+}
+
+func (t *unmarshalableJSON) MarshalJSON() ([]byte, error) {
+	return []byte("{{"), nil
+}
+
+func (t *unmarshalableJSON) UnmarshalJSON(d []byte) error {
+	return fmt.Errorf("unimplemented")
+}
+
 func TestConstructJSON(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -2148,6 +2192,39 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name: "annotated struct",
+		in: &annotatedJSONTestStruct{
+			Field: String("russian-river"),
+			ΛField: []Annotation{
+				&testAnnotation{AnnotationFieldOne: "alexander-valley"},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"field": "russian-river",
+			"@field": []interface{}{
+				map[string]interface{}{"field": "alexander-valley"},
+			},
+		},
+		wantSame: true,
+	}, {
+		name: "error in annotation - cannot marshal",
+		in: &annotatedJSONTestStruct{
+			Field: String("dry-creek"),
+			ΛField: []Annotation{
+				&errorAnnotation{AnnotationField: "chalk-hill"},
+			},
+		},
+		wantErr: true,
+	}, {
+		name: "error in annotation - unmarshalable",
+		in: &annotatedJSONTestStruct{
+			Field: String("los-carneros"),
+			ΛField: []Annotation{
+				&errorAnnotation{AnnotationField: "knights-valley"},
+			},
+		},
+		wantErr: true,
 	}}
 
 	for _, tt := range tests {
