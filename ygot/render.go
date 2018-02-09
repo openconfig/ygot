@@ -767,7 +767,7 @@ type RFC7951JSONConfig struct {
 // the module name should be appended to entities that are defined in a different
 // module to their parent.
 func ConstructIETFJSON(s GoStruct, args *RFC7951JSONConfig) (map[string]interface{}, error) {
-	return constructJSON(s, "", jsonOutputConfig{
+	return structJSON(s, "", jsonOutputConfig{
 		jType:         RFC7951,
 		rfc7951Config: args,
 	})
@@ -777,7 +777,7 @@ func ConstructIETFJSON(s GoStruct, args *RFC7951JSONConfig) (map[string]interfac
 // to json.Marshal. It uses the loosely specified JSON format document in
 // go/yang-internal-json.
 func ConstructInternalJSON(s GoStruct) (map[string]interface{}, error) {
-	return constructJSON(s, "", jsonOutputConfig{
+	return structJSON(s, "", jsonOutputConfig{
 		jType: Internal,
 	})
 }
@@ -792,14 +792,14 @@ type jsonOutputConfig struct {
 	rfc7951Config *RFC7951JSONConfig
 }
 
-// constructJSON marshals a GoStruct to a map[string]interface{} which can be
+// structJSON marshals a GoStruct to a map[string]interface{} which can be
 // handed to JSON marshal. parentMod specifies the module that the supplied
 // GoStruct is defined within such that RFC7951 format JSON is able to consider
 // whether to append the name of the module to an element. The format of JSON to
 // be produced and whether such module names are appended is controlled through the
 // supplied jsonOutputConfig. Returns an error if the GoStruct cannot be rendered
 // to JSON.
-func constructJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string]interface{}, error) {
+func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string]interface{}, error) {
 	var errs errlist.List
 
 	sval := reflect.ValueOf(s).Elem()
@@ -843,9 +843,9 @@ func constructJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[str
 		var value interface{}
 
 		if util.IsYgotAnnotation(fType) {
-			value, err = constructJSONAnnotationSlice(field)
+			value, err = jsonAnnotationSlice(field)
 		} else {
-			value, err = constructJSONValue(field, pmod, args)
+			value, err = jsonValue(field, pmod, args)
 		}
 
 		if err != nil {
@@ -979,11 +979,11 @@ func keyValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
 	return name, nil
 }
 
-// constructMapJSON takes an input reflect.Value containing a map, and
+// mapJSON takes an input reflect.Value containing a map, and
 // constructs the representation for JSON marshalling that corresponds to it.
 // The module within which the map is defined is specified by the parentMod
 // argument.
-func constructMapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
+func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
 	var errs errlist.List
 	mapKeyMap := map[string]reflect.Value{}
 	// Order of elements determines the order in which keys will be processed.
@@ -1060,7 +1060,7 @@ func constructMapJSON(field reflect.Value, parentMod string, args jsonOutputConf
 			continue
 		}
 
-		val, err := constructJSON(goStruct, parentMod, args)
+		val, err := structJSON(goStruct, parentMod, args)
 		if err != nil {
 			errs.Add(err)
 			continue
@@ -1083,12 +1083,12 @@ func constructMapJSON(field reflect.Value, parentMod string, args jsonOutputConf
 	return vals, nil
 }
 
-// constructJSONValue takes a reflect.Value which represents a struct field and
+// jsonValue takes a reflect.Value which represents a struct field and
 // constructs the representation that can be used to marshal the field to JSON.
 // The module within which the value is defined is specified by the parentMod string,
 // and the type of JSON to be rendered controlled by the value of the jsonOutputConfig
 // provided. Returns an error if one occurs during the mapping process.
-func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
+func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
 	var value interface{}
 	var errs errlist.List
 
@@ -1107,7 +1107,7 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 	switch field.Kind() {
 	case reflect.Map:
 		var err error
-		value, err = constructMapJSON(field, parentMod, args)
+		value, err = mapJSON(field, parentMod, args)
 		if err != nil {
 			errs.Add(err)
 		}
@@ -1120,7 +1120,7 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 			}
 
 			var err error
-			value, err = constructJSON(goStruct, parentMod, args)
+			value, err = structJSON(goStruct, parentMod, args)
 			if err != nil {
 				errs.Add(err)
 			}
@@ -1132,7 +1132,7 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 		}
 	case reflect.Slice:
 		var err error
-		value, err = constructJSONSlice(field, parentMod, args)
+		value, err = jsonSlice(field, parentMod, args)
 		if err != nil {
 			return nil, err
 		}
@@ -1181,12 +1181,12 @@ func constructJSONValue(field reflect.Value, parentMod string, args jsonOutputCo
 	return value, nil
 }
 
-// constructJSONSlice takes an input reflect.Value containing a slice, and
+// jsonSlice takes an input reflect.Value containing a slice, and
 // outputs the JSON that corresponds to it in the requested JSON format. In a
 // GoStruct, a slice may be a binary field, leaf-list or an unkeyed list. The
 // parentMod is used to track the name of the parent module in the case that
 // module names should be appended.
-func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
+func jsonSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
 	if field.Type().Name() == BinaryTypeName {
 		// Handle the case that that we have a Binary ([]byte) value,
 		// which must be returned as a JSON string.
@@ -1202,7 +1202,7 @@ func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputCo
 			if !ok {
 				return nil, fmt.Errorf("invalid member of a slice, %s was not a valid GoStruct", c.Name())
 			}
-			j, err := constructJSON(gs, parentMod, args)
+			j, err := structJSON(gs, parentMod, args)
 			if err != nil {
 				return nil, err
 			}
@@ -1233,10 +1233,10 @@ func constructJSONSlice(field reflect.Value, parentMod string, args jsonOutputCo
 	return sl, nil
 }
 
-// constructJSONAnnotationSlice takes a reflect.Value which must represent a
+// jsonAnnotationSlice takes a reflect.Value which must represent a
 // ygot Annotation field ([]ygot.Annotation), and marshals it to JSON to be
 // included in the output JSON.
-func constructJSONAnnotationSlice(v reflect.Value) (interface{}, error) {
+func jsonAnnotationSlice(v reflect.Value) (interface{}, error) {
 	if v.Len() == 0 {
 		return nil, nil
 	}

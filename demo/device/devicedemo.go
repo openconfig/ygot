@@ -48,7 +48,7 @@ func main() {
 // ExampleAnnotation is used to demonstrate the ygot.Annotation interface,
 // and the ability for ygot to add annotations to generated structs.
 type ExampleAnnotation struct {
-	GeneratorSource string `json:"gen-source"`
+	ConfigSource string `json:"cfg-source"`
 }
 
 // MarshalJSON marshals the ExampleAnnotation receiver to JSON.
@@ -71,7 +71,7 @@ func CreateDemoDeviceInstance() (*oc.Device, error) {
 		System: &oc.System{
 			Hostname: ygot.String("rtr02.pop44"),
 			ΛHostname: []ygot.Annotation{
-				&ExampleAnnotation{GeneratorSource: "devicedemo"},
+				&ExampleAnnotation{ConfigSource: "devicedemo"},
 			},
 		},
 	}

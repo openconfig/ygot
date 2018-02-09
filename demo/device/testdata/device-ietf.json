@@ -58,7 +58,7 @@
       "config": {
          "@hostname": [
             {
-               "gen-source": "devicedemo"
+               "cfg-source": "devicedemo"
             }
          ],
          "hostname": "rtr02.pop44"
