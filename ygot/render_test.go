@@ -2222,7 +2222,7 @@ func TestConstructJSON(t *testing.T) {
 		in: &annotatedJSONTestStruct{
 			Field: String("los-carneros"),
 			ΛField: []Annotation{
-				&errorAnnotation{AnnotationField: "knights-valley"},
+				&unmarshalableJSON{AnnotationField: "knights-valley"},
 			},
 		},
 		wantErr: true,
@@ -2233,6 +2233,7 @@ func TestConstructJSON(t *testing.T) {
 			AppendModuleName: tt.inAppendMod,
 		})
 		if err != nil {
+			fmt.Printf("%v\n", err)
 			if !tt.wantErr {
 				t.Errorf("%s: ConstructIETFJSON(%v): got unexpected error: %v", tt.name, tt.in, err)
 			}
