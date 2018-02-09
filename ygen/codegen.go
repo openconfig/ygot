@@ -81,6 +81,11 @@ type GeneratorConfig struct {
 	GoOptions GoOpts
 	// ProtoOptions stores a struct which contains Protobuf specific options.
 	ProtoOptions ProtoOpts
+	// ExcludeState specifies whether config false values should be
+	// included in the generated code output. When set, all values that are
+	// not writeable (i.e., config false) within the YANG schema and their
+	// children are excluded from the generated code.
+	ExcludeState bool
 }
 
 // GoOpts stores Go specific options for the code generation library.
@@ -323,7 +328,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Store the returned schematree within the state for this code generation.
 	cg.state.schematree = mdef.schemaTree
 
-	goStructs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang)
+	goStructs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang, cg.Config.ExcludeState)
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
@@ -476,7 +481,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
 
-	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf)
+	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf, cg.Config.ExcludeState)
 
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}

@@ -1,0 +1,39 @@
+module openconfig-config-false {
+  namespace "urn:oc:cf";
+  prefix "oc-cf";
+
+  grouping a-config {
+    leaf a { type string; }
+  }
+
+  grouping a-state {
+    leaf b { type string; }
+  }
+
+  grouping cf-top {
+    leaf top {
+      type string;
+      config false;
+    }
+
+    container a {
+      container config {
+        uses a-config;
+      }
+      container state {
+        config false;
+        uses a-state;
+      }
+    }
+
+    container b {
+      list c {
+        config false;
+
+        leaf element { type string; }
+      }
+    }
+  }
+
+  uses cf-top;
+}
