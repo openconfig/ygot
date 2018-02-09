@@ -29,6 +29,7 @@ func TestFindChildren(t *testing.T) {
 	tests := []struct {
 		name             string
 		inElement        *yang.Entry
+		inExcludeState   bool
 		wantCompressed   []yang.Entry
 		wantUncompressed []yang.Entry
 		// wantErr is a map keyed by the CompressOCPaths value of whether errors
@@ -285,11 +286,38 @@ func TestFindChildren(t *testing.T) {
 		wantUncompressed: []yang.Entry{{
 			Name: "config",
 		}},
+	}, {
+		name: "exclude container which is config false",
+		inElement: &yang.Entry{
+			Name:   "container",
+			Kind:   yang.DirectoryEntry,
+			Config: yang.TSFalse,
+			Dir: map[string]*yang.Entry{
+				"field": {Name: "field"},
+			},
+		},
+		inExcludeState:   true,
+		wantCompressed:   []yang.Entry{},
+		wantUncompressed: []yang.Entry{},
+	}, {
+		name: "exclude leaf which is config false",
+		inElement: &yang.Entry{
+			Name:   "container",
+			Kind:   yang.DirectoryEntry,
+			Config: yang.TSTrue,
+			Dir: map[string]*yang.Entry{
+				"config-true":  {Name: "config-true"},
+				"config-false": {Name: "config-false", Config: yang.TSFalse},
+			},
+		},
+		inExcludeState:   true,
+		wantCompressed:   []yang.Entry{{Name: "config-true"}},
+		wantUncompressed: []yang.Entry{{Name: "config-true"}},
 	}}
 
 	for _, tt := range tests {
 		for compress, expected := range map[bool][]yang.Entry{true: tt.wantCompressed, false: tt.wantUncompressed} {
-			elems, errs := findAllChildren(tt.inElement, compress)
+			elems, errs := findAllChildren(tt.inElement, compress, tt.inExcludeState)
 			if tt.wantErr == nil && errs != nil {
 				t.Errorf("%s (compress: %v): errors %v for children of %s", tt.name, compress, errs, tt.inElement.Name)
 			} else {
@@ -300,7 +328,7 @@ func TestFindChildren(t *testing.T) {
 				}
 			}
 
-			retMap := make(map[string]*yang.Entry)
+			retMap := map[string]*yang.Entry{}
 			for _, elem := range elems {
 				retMap[elem.Name] = elem
 			}
