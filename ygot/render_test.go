@@ -2233,7 +2233,6 @@ func TestConstructJSON(t *testing.T) {
 			AppendModuleName: tt.inAppendMod,
 		})
 		if err != nil {
-			fmt.Printf("%v\n", err)
 			if !tt.wantErr {
 				t.Errorf("%s: ConstructIETFJSON(%v): got unexpected error: %v", tt.name, tt.in, err)
 			}
