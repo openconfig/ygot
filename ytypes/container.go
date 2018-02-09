@@ -52,8 +52,14 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 		structTypes := structElems.Type()
 
 		for i := 0; i < structElems.NumField(); i++ {
-			fieldName := structElems.Type().Field(i).Name
+			fieldType := structElems.Type().Field(i)
+			fieldName := fieldType.Name
 			fieldValue := structElems.Field(i).Interface()
+
+			// Skip annotation fields when validating the schema.
+			if util.IsYgotAnnotation(fieldType) {
+				continue
+			}
 
 			cschema, err := childSchema(schema, structTypes.Field(i))
 			switch {
