@@ -325,6 +325,7 @@ type protoMsgConfig struct {
 	annotateSchemaPaths bool   // annotateSchemaPaths uses the yext protobuf field extensions to annotate the paths from the schema into the output protobuf.
 	annotateEnumNames   bool   // annotateEnumNames uses the yext protobuf enum value extensions to annoate the original YANG name for an enum into the output protobuf.
 	nestedMessages      bool   // nestedMessages indicates whether nested messages should be output for the protobuf schema.
+	sortByType          bool   // sortByName indicates whether fields within a message should be sorted by type.
 }
 
 // writeProto3Message outputs the generated Protobuf3 code for a particular protobuf message. It takes:
@@ -398,7 +399,7 @@ func writeProto3MsgNested(msg *yangDirectory, msgs map[string]*yangDirectory, st
 		return nil, append(gerrs, errs...)
 	}
 
-	gmsg, errs := genProto3MsgCode(pkg, msgDefs, false)
+	gmsg, errs := genProto3MsgCode(pkg, msgDefs, false, cfg.sortByType)
 	if errs != nil {
 		return nil, append(gerrs, errs...)
 	}
@@ -500,14 +501,14 @@ func writeProto3MsgSingleMsg(msg *yangDirectory, msgs map[string]*yangDirectory,
 		return nil, errs
 	}
 
-	return genProto3MsgCode(pkg, msgDefs, true)
+	return genProto3MsgCode(pkg, msgDefs, true, cfg.sortByType)
 }
 
 // genProto3MsgCode takes an input package name, and set of protobuf message
 // definitions, and outputs the generated code for the messages. If the
 // pathComment argument is setFunc, each message is output with a comment
 // indicating its path in the YANG schema, otherwise it is included.
-func genProto3MsgCode(pkg string, msgDefs []*protoMsg, pathComment bool) (*generatedProto3Message, util.Errors) {
+func genProto3MsgCode(pkg string, msgDefs []*protoMsg, pathComment, sortByType bool) (*generatedProto3Message, util.Errors) {
 	var b bytes.Buffer
 	var errs util.Errors
 	imports := map[string]interface{}{}
@@ -533,6 +534,11 @@ func genProto3MsgCode(pkg string, msgDefs []*protoMsg, pathComment bool) (*gener
 		msgDef.ChildMsgs = nm
 		msgDef.PathComment = pathComment
 
+		// If requested, sort the fields by type and then name.
+		if sortByType {
+			msgDef.Fields = sortProtoFieldsByType(msgDef.Fields)
+		}
+
 		if err := protoTemplates["msg"].Execute(&b, msgDef); err != nil {
 			return nil, []error{err}
 		}
@@ -551,6 +557,39 @@ func genProto3MsgCode(pkg string, msgDefs []*protoMsg, pathComment bool) (*gener
 		MessageCode:     b.String(),
 		RequiredImports: stringKeys(imports),
 	}, nil
+}
+
+// sortProtoFieldsByType sorts the slice of protoMsgFields supplied by type,
+// and then by name. This allows fields within the proto message to be ordered
+// by type, whilst also being output in a determinstic order.
+func sortProtoFieldsByType(fields []*protoMsgField) []*protoMsgField {
+	ttn := map[string][]string{}
+	types := map[string]interface{}{}
+	fmap := map[string]*protoMsgField{}
+	for _, f := range fields {
+		if _, ok := ttn[f.Type]; !ok {
+			ttn[f.Type] = []string{}
+		}
+		ttn[f.Type] = append(ttn[f.Type], f.Name)
+		fmap[f.Name] = f
+		if _, ok := types[f.Type]; !ok {
+			types[f.Type] = true
+		}
+	}
+
+	typeNames := stringKeys(types)
+	sort.Strings(typeNames)
+
+	tsf := []*protoMsgField{}
+	for _, typeName := range typeNames {
+		fNames := ttn[typeName]
+		sort.Strings(fNames)
+		for _, n := range fNames {
+			tsf = append(tsf, fmap[n])
+		}
+	}
+
+	return tsf
 }
 
 // genProto3Msg takes an input yangDirectory which describes a container or list entry
@@ -700,7 +739,8 @@ func addProtoListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDef
 			// If nested messages are being output, we must ensure that the
 			// generated key message is output within the parent message - hence
 			// it is generated directly here and appended to the child messages.
-			kc, cerrs := genProto3MsgCode(args.parentPkg, []*protoMsg{keyMsg}, false)
+			// Fields within a list key message are never sorted by type.
+			kc, cerrs := genProto3MsgCode(args.parentPkg, []*protoMsg{keyMsg}, false, false)
 			if cerrs != nil {
 				return nil, nil, cerrs
 			}
@@ -781,7 +821,7 @@ func addProtoLeafOrLeafListField(fieldDef *protoMsgField, msgDef *protoMsg, args
 
 	if d.repeatedMsg != nil {
 		if args.cfg.nestedMessages {
-			gm, errs := genProto3MsgCode(args.parentPkg, []*protoMsg{d.repeatedMsg}, false)
+			gm, errs := genProto3MsgCode(args.parentPkg, []*protoMsg{d.repeatedMsg}, false, args.cfg.sortByType)
 			if err != nil {
 				return nil, nil, errs
 			}

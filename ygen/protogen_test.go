@@ -1964,5 +1964,55 @@ func TestStripPackagePrefix(t *testing.T) {
 			t.Errorf("%s: stripPackagePrefix(%s, %s): did not get expected stipped status, got: %v, want: %v", tt.name, tt.inPrefix, tt.inPath, stripped, tt.wantStripped)
 		}
 	}
+}
 
+func TestSortProtoFieldsByType(t *testing.T) {
+	tests := []struct {
+		name string
+		in   []*protoMsgField
+		want []*protoMsgField
+	}{{
+		name: "simple types",
+		in: []*protoMsgField{
+			{Name: "uint-value", Type: "ywrapper.UintValue"},
+			{Name: "string-field", Type: "ywrapper.StringValue"},
+		},
+		want: []*protoMsgField{
+			{Name: "string-field", Type: "ywrapper.StringValue"},
+			{Name: "uint-value", Type: "ywrapper.UintValue"},
+		},
+	}, {
+		name: "sorted by name within a type",
+		in: []*protoMsgField{
+			{Name: "bear", Type: "ywrapper.BoolValue"},
+			{Name: "zebra", Type: "ywrapper.BoolValue"},
+			{Name: "aardvark", Type: "ywrapper.BoolValue"},
+		},
+		want: []*protoMsgField{
+			{Name: "aardvark", Type: "ywrapper.BoolValue"},
+			{Name: "bear", Type: "ywrapper.BoolValue"},
+			{Name: "zebra", Type: "ywrapper.BoolValue"},
+		},
+	}, {
+		name: "sorted by name and type",
+		in: []*protoMsgField{
+			{Name: "wilderbeast", Type: "ywrapper.UintValue"},
+			{Name: "antelope", Type: "ywrapper.StringValue"},
+			{Name: "lion", Type: "ywrapper.UintValue"},
+			{Name: "aardwolf", Type: "ywrapper.StringValue"},
+		},
+		want: []*protoMsgField{
+			{Name: "aardwolf", Type: "ywrapper.StringValue"},
+			{Name: "antelope", Type: "ywrapper.StringValue"},
+			{Name: "lion", Type: "ywrapper.UintValue"},
+			{Name: "wilderbeast", Type: "ywrapper.UintValue"},
+		},
+	}}
+
+	for _, tt := range tests {
+		got := sortProtoFieldsByType(tt.in)
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: sortProtoFieldsByType(%v): did not get expected result, diff(-got,+want):\n%s", tt.name, tt.in, diff)
+		}
+	}
 }

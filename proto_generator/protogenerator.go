@@ -48,6 +48,7 @@ var (
 	packageHierarchy    = flag.Bool("package_hierarchy", false, "If set to true, an individual protobuf package is output per level of the YANG schema tree.")
 	callerName          = flag.String("caller_name", "proto_generator", "The name of the generator binary that should be recorded in output files.")
 	excludeState        = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Protobuf messages.")
+	sortByType          = flag.Bool("sort_by_type", false, "If set to true, fields within the protobuf messages output are sorted by type, then name. If unset, they are sorted by name.")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
@@ -108,6 +109,7 @@ func main() {
 			AnnotateSchemaPaths: *annotateSchemaPaths,
 			AnnotateEnumNames:   *annotateEnumNames,
 			NestedMessages:      !*packageHierarchy,
+			SortFieldsByType:    *sortByType,
 		},
 		ExcludeState: *excludeState,
 	})

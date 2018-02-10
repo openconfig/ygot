@@ -817,6 +817,19 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_test_a.parent.child": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.child.formatted-txt"),
 		},
 	}, {
+		name:    "simple protobuf test with compression and sorted by type",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths: true,
+			ProtoOptions: ProtoOpts{
+				SortFieldsByType: true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig":        filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.sorted.compress.parent.formatted-txt"),
+			"openconfig.parent": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.sorted.compress.parent.child.formatted-txt"),
+		},
+	}, {
 		name:     "yang schema with a list",
 		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.yang")},
 		inConfig: GeneratorConfig{CompressOCPaths: true},
