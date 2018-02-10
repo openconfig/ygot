@@ -1033,6 +1033,24 @@ func TestGenerateProto3(t *testing.T) {
 		wantOutputFiles: map[string]string{
 			"openconfig.cross_ref_src": filepath.Join(TestRoot, "testdata", "proto", "cross-ref-src.formatted-txt"),
 		},
+	}, {
+		name: "multimod with fakeroot and nested",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata", "proto", "fakeroot-multimod-one.yang"),
+			filepath.Join(TestRoot, "testdata", "proto", "fakeroot-multimod-two.yang"),
+		},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				NestedMessages:      true,
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+			},
+			GenerateFakeRoot: true,
+			CompressOCPaths:  true,
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "fakeroot-multimod.formatted-txt"),
+		},
 	}}
 
 	for _, tt := range tests {

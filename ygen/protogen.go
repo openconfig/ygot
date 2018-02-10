@@ -460,11 +460,19 @@ func protobufPackageForMsg(msg *yangDirectory, state *genState, compressPaths, n
 	// based on the top-level message within the schema tree that is created -
 	// we therefore need to derive the name of this message.
 	if nestedMessages {
-		// In the special case that the grandparent of this entry is nil, and
-		// compress paths is enabled, then we are a top-level schema element - so
-		// this message should be in the root package.
-		if e.Parent.Parent == nil && compressPaths {
-			return "", nil
+		if compressPaths {
+			if e.Parent.Parent == nil {
+				// In the special case that the grandparent of this entry is nil, and
+				// compress paths is enabled, then we are a top-level schema element - so
+				// this message should be in the root package.
+				return "", nil
+			}
+			if e.IsList() && e.Parent.Parent.Parent == nil {
+				// If this is a list, and our great-grandparent is a module, then
+				// since the level above this node has been compressed out, then it
+				// is at the root.
+				return "", nil
+			}
 		}
 
 		if e.Parent != nil && e.Parent.Parent != nil {
