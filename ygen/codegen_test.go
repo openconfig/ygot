@@ -48,9 +48,10 @@ func TestNewYANGCodeGeneratorError(t *testing.T) {
 // into Go code from a YANG schema.
 func TestFindMappableEntities(t *testing.T) {
 	tests := []struct {
-		name          string      // name is an identifier for the test.
-		in            *yang.Entry // in is the yang.Entry corresponding to the YANG root element.
-		inSkipModules []string    // inSkipModules is a slice of strings indicating modules to be skipped.
+		name          string        // name is an identifier for the test.
+		in            *yang.Entry   // in is the yang.Entry corresponding to the YANG root element.
+		inSkipModules []string      // inSkipModules is a slice of strings indicating modules to be skipped.
+		inModules     []*yang.Entry // inModules is the set of modules that the code generation is for.
 		// wantCompressed is a map keyed by the string "structs" or "enums" which contains a slice
 		// of the YANG identifiers for the corresponding mappable entities that should be
 		// found. wantCompressed is the set that are expected when CompressOCPaths is set
@@ -332,7 +333,10 @@ func TestFindMappableEntities(t *testing.T) {
 			structs := make(map[string]*yang.Entry)
 			enums := make(map[string]*yang.Entry)
 
-			findMappableEntities(tt.in, structs, enums, tt.inSkipModules, compress)
+			errs := findMappableEntities(tt.in, structs, enums, tt.inSkipModules, compress, tt.inModules)
+			if errs != nil {
+				t.Errorf("%s: findMappableEntities(CompressOCPaths: %v): got unexpected error, got: %v, want: nil", tt.name, compress, errs)
+			}
 
 			structOut := make(map[string]bool)
 			enumOut := make(map[string]bool)
@@ -543,6 +547,23 @@ func TestSimpleStructs(t *testing.T) {
 			ExcludeModules:   []string{"excluded-module-two"},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/excluded-module.formatted-txt"),
+	}, {
+		name:    "module with excluded config false",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot:   true,
+			ExcludeConfigFalse: true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false-uncompressed.formatted-txt"),
+	}, {
+		name:    "module with excluded config false - with compression",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot:   true,
+			ExcludeConfigFalse: true,
+			CompressOCPaths:    true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false-compressed.formatted-txt"),
 	}}
 
 	for _, tt := range tests {
@@ -918,6 +939,42 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.enums":          filepath.Join(TestRoot, "testdata", "proto", "union-list-key.enums.formatted-txt"),
 			"openconfig.union_list_key": filepath.Join(TestRoot, "testdata", "proto", "union-list-key.union_list_key.formatted-txt"),
 			"openconfig":                filepath.Join(TestRoot, "testdata", "proto", "union-list-key.formatted-txt"),
+		},
+	}, {
+		name: "protobuf generation with excluded read only fields - compressed",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang"),
+		},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+			},
+			GenerateFakeRoot:   true,
+			ExcludeConfigFalse: true,
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig":                         filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.compressed.formatted-txt"),
+			"openconfig.openconfig_config_false": filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.config_false.compressed.formatted-txt"),
+		},
+	}, {
+		name: "protobuf generation with excluded read only fields - compressed",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang"),
+		},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames:   true,
+				AnnotateSchemaPaths: true,
+				NestedMessages:      true,
+			},
+			GenerateFakeRoot:   true,
+			CompressOCPaths:    true,
+			ExcludeConfigFalse: true,
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.uncompressed.formatted-txt"),
 		},
 	}}
 

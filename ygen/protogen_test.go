@@ -1313,8 +1313,9 @@ message AMessage {
 	}, {
 		name: "message skipped due to path length",
 		inMsg: &yangDirectory{
-			name: "messagename",
-			path: []string{"one", "two"},
+			name:  "messagename",
+			path:  []string{"one", "two"},
+			entry: &yang.Entry{},
 		},
 		inBasePackageName: "base",
 		inEnumPackageName: "enums",
