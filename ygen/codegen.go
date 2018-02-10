@@ -28,6 +28,7 @@ import (
 
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -481,7 +482,6 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	}
 
 	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf, cg.Config.ExcludeState)
-
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
@@ -711,7 +711,7 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 	// them from the modules that are provided as an argument.
 	dirs := make(map[string]*yang.Entry)
 	enums := make(map[string]*yang.Entry)
-	var rootElems []*yang.Entry
+	var rootElems, treeElems []*yang.Entry
 	for _, module := range modules {
 		errs = append(errs, findMappableEntities(module, dirs, enums, cfg.ExcludeModules, cfg.CompressOCPaths, modules)...)
 		if module == nil {
@@ -719,9 +719,12 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 			continue
 		}
 		// Ensure that we do not try and traverse an empty module.
-		if module.Dir != nil && !excluded[module.Name] {
+		if module.Dir != nil {
 			for _, e := range module.Dir {
-				rootElems = append(rootElems, e)
+				if !excluded[module.Name] {
+					rootElems = append(rootElems, e)
+				}
+				treeElems = append(treeElems, e)
 			}
 		}
 	}
@@ -729,8 +732,10 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 		return nil, errs
 	}
 
-	// Build the schematree for the modules provided.
-	st, err := buildSchemaTree(rootElems)
+	// Build the schematree for the modules provided - we build for all of the
+	// root elements, since we might need to reference a part of the schema that
+	// we are not outputting for leafref lookups.
+	st, err := buildSchemaTree(treeElems)
 	if err != nil {
 		return nil, []error{err}
 	}
@@ -795,36 +800,27 @@ func mappableLeaf(e *yang.Entry) *yang.Entry {
 	return nil
 }
 
-// findMappableEntties finds the descendants of a yang.Entry (e) that should be mapped in
+// findMappableEntities finds the descendants of a yang.Entry (e) that should be mapped in
 // the generated code. The descendants that represent directories are appended to the dirs
 // map (keyed by the schema path). Those that represent enumerated types (identityref, enumeration,
 // unions containing these types, or typedefs containing these types) are appended to the
 // enums map, which is again keyed by schema path. If any child of the entry is in a module
 // defined in excludeModules, it is skipped. If compressPaths is set to true, then names are
-// mapped with path compression enabled.
-func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules []string, compressPaths bool, modules []*yang.Entry) []error {
-	if !strings.HasPrefix(e.Path(), "/") {
-		// This is a malformed path, since the path is defined in the form
-		// /module/container-one.
-		return []error{fmt.Errorf("invalid path for entry %v", e.Path())}
-	}
-
+// mapped with path compression enabled. The set of modules that the current code generation
+// is processing is specified by the modules slice. This function returns slice of errors
+// encountered during processing.
+func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules []string, compressPaths bool, modules []*yang.Entry) util.Errors {
 	// Skip entities who are defined within a module that we have been instructed
 	// not to generate code for.
-	//em, err := e.InstantiatingModule()
-	//if err != nil {
-	//	return []error{fmt.Errorf("cannot determine instantiating module for %s: %v", e.Path(), err)}
-	//}
 	for _, s := range excludeModules {
 		for _, m := range modules {
 			if m.Name == s && m.Namespace().Name == e.Namespace().Name {
 				return nil
 			}
 		}
-		/*if s == em {
-			return nil
-		}*/
 	}
+
+	fmt.Printf("continued for %v\n", e.Path())
 
 	var errs []error
 	for _, ch := range children(e) {

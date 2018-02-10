@@ -147,10 +147,31 @@ func TestFindMappableEntities(t *testing.T) {
 					Name: "ignored-container",
 					Kind: yang.DirectoryEntry,
 					Dir:  map[string]*yang.Entry{},
+					Node: &yang.Container{
+						Name: "ignored-container",
+						Parent: &yang.Module{
+							Namespace: &yang.Value{
+								Name: "module-namespace",
+							},
+						},
+					},
+				},
+			},
+			Node: &yang.Module{
+				Namespace: &yang.Value{
+					Name: "module-namespace",
 				},
 			},
 		},
 		inSkipModules: []string{"module"},
+		inModules: []*yang.Entry{{
+			Name: "module",
+			Node: &yang.Module{
+				Namespace: &yang.Value{
+					Name: "module-namespace",
+				},
+			},
+		}},
 		wantCompressed: map[string][]string{
 			"structs": {},
 			"enums":   {},
@@ -320,8 +341,12 @@ func TestFindMappableEntities(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed:   map[string][]string{"enums": {"choice-case-container-leaf", "choice-case2-leaf", "direct"}},
-		wantUncompressed: map[string][]string{"enums": {"choice-case-container-leaf", "choice-case2-leaf", "direct"}},
+		wantCompressed: map[string][]string{
+			"structs": {"container"},
+			"enums":   {"choice-case-container-leaf", "choice-case2-leaf", "direct"}},
+		wantUncompressed: map[string][]string{
+			"structs": {"container"},
+			"enums":   {"choice-case-container-leaf", "choice-case2-leaf", "direct"}},
 	}}
 
 	for _, tt := range tests {
@@ -339,6 +364,14 @@ func TestFindMappableEntities(t *testing.T) {
 				t.Errorf("%s: findMappableEntities(CompressOCPaths: %v): got unexpected error, got: %v, want: nil", tt.name, compress, errs)
 			}
 
+			entityNames := func(m map[string]bool) []string {
+				o := []string{}
+				for k := range m {
+					o = append(o, k)
+				}
+				return o
+			}
+
 			structOut := make(map[string]bool)
 			enumOut := make(map[string]bool)
 			for _, o := range structs {
@@ -348,15 +381,23 @@ func TestFindMappableEntities(t *testing.T) {
 				enumOut[e.Name] = true
 			}
 
+			if len(expected["structs"]) != len(structOut) {
+				t.Errorf("%s: findMappableEntities(CompressOCPaths: %v): did not get expected number of structs, got: %v, want: %v", tt.name, compress, entityNames(structOut), expected["structs"])
+			}
+
 			for _, e := range expected["structs"] {
 				if !structOut[e] {
-					t.Errorf("%s findMappableEntities(CompressOCPaths: %v): struct %s was not found in %v\n", tt.name, compress, e, structOut)
+					t.Errorf("%s: findMappableEntities(CompressOCPaths: %v): struct %s was not found in %v\n", tt.name, compress, e, structOut)
 				}
+			}
+
+			if len(expected["enums"]) != len(enumOut) {
+				t.Errorf("%s: findMappableEntities(CompressOCPaths: %v): did not get expected number of enums, got: %v, want: %v", tt.name, compress, entityNames(enumOut), expected["enums"])
 			}
 
 			for _, e := range expected["enums"] {
 				if !enumOut[e] {
-					t.Errorf("%s findMappableEntities(CompressOCPaths: %v): enum %s was not found in %v\n", tt.name, compress, e, enumOut)
+					t.Errorf("%s: findMappableEntities(CompressOCPaths: %v): enum %s was not found in %v\n", tt.name, compress, e, enumOut)
 				}
 			}
 		}
@@ -976,6 +1017,21 @@ func TestGenerateProto3(t *testing.T) {
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.uncompressed.formatted-txt"),
+		},
+	}, {
+		name: "protobuf generation with leafref to a module excluded by the test",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata", "proto", "cross-ref-target.yang"),
+			filepath.Join(TestRoot, "testdata", "proto", "cross-ref-src.yang"),
+		},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				NestedMessages: true,
+			},
+			ExcludeModules: []string{"cross-ref-target"},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig.cross_ref_src": filepath.Join(TestRoot, "testdata", "proto", "cross-ref-src.formatted-txt"),
 		},
 	}}
 

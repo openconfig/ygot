@@ -403,6 +403,10 @@ func writeProto3MsgNested(msg *yangDirectory, msgs map[string]*yangDirectory, st
 		return nil, append(gerrs, errs...)
 	}
 
+	if gerrs != nil {
+		return nil, gerrs
+	}
+
 	// Inherit the set of imports that are required for this child. We
 	// skip any that are relative imports as these are only needed for
 	// the case that we have different files per hierarchy level and
