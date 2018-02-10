@@ -820,8 +820,6 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 		}
 	}
 
-	fmt.Printf("continued for %v\n", e.Path())
-
 	var errs []error
 	for _, ch := range children(e) {
 		switch {
