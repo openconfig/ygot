@@ -16,7 +16,6 @@ package ygen
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -326,10 +325,6 @@ func isDirectEntryChild(p, c *yang.Entry, compressPaths bool) bool {
 	cpp := strings.Split(c.Path(), "/")
 	dc := isPathChild(ppp, cpp)
 
-	fmt.Printf("\n\n")
-
-	fmt.Printf("ELEPHANT %s ==> %s? %v %v\n", p.Path(), c.Path(), dc, compressPaths)
-
 	// If we are not compressing paths, then directly return whether the child
 	// is a path of the parent.
 	if !compressPaths {
@@ -343,12 +338,9 @@ func isDirectEntryChild(p, c *yang.Entry, compressPaths bool) bool {
 	// the child path is more specific than or equal to the length of the parent
 	// path in which case this cannot be a child.
 	if len(cpp) > len(ppp)+2 || len(cpp) <= len(ppp) {
-		fmt.Printf("%s -> %s: ret false (%d vs %d)\n", p.Path(), c.Path(), len(cpp), len(ppp))
 		return false
 	}
 
-	fmt.Printf("ELEPHANT hit here with %v and %v\n", c.Path(), p.Path())
-	fmt.Printf("is config/state: %v -> %v\n", c.Parent.Path(), isConfigState(c.Parent))
 	if isConfigState(c.Parent) {
 		// If the parent of this entity was the config/state container, then this
 		// level of the hierarchy will have been removed so we check whether the
@@ -364,7 +356,6 @@ func isDirectEntryChild(p, c *yang.Entry, compressPaths bool) bool {
 		if !ok {
 			// Can't be a valid child because the parent of the entity doesn't exist
 			// within this container.
-			fmt.Printf("ret false\n")
 			return false
 		}
 		if !hasOnlyChild(ppe) {
@@ -375,8 +366,6 @@ func isDirectEntryChild(p, c *yang.Entry, compressPaths bool) bool {
 		// return false for directories with 0 children.
 		return children(ppe)[0].Path() == c.Path()
 	}
-
-	fmt.Printf("ELEPHANT %s -> %s? %v\n", p.Path(), c.Path(), dc)
 
 	return dc
 }

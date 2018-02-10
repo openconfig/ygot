@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	log "github.com/golang/glog"
-	"github.com/kylelemons/godebug/pretty"
 
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
@@ -82,6 +81,11 @@ type GeneratorConfig struct {
 	GoOptions GoOpts
 	// ProtoOptions stores a struct which contains Protobuf specific options.
 	ProtoOptions ProtoOpts
+	// ExcludeState specifies whether config false values should be
+	// included in the generated code output. When set, all values that are
+	// not writeable (i.e., config false) within the YANG schema and their
+	// children are excluded from the generated code.
+	ExcludeState bool
 }
 
 // GoOpts stores Go specific options for the code generation library.
@@ -324,7 +328,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Store the returned schematree within the state for this code generation.
 	cg.state.schematree = mdef.schemaTree
 
-	goStructs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang)
+	goStructs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang, cg.Config.ExcludeState)
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
@@ -476,12 +480,11 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
 
-	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf)
+	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf, cg.Config.ExcludeState)
+
 	if errs != nil {
 		return nil, &YANGCodeGeneratorError{Errors: errs}
 	}
-
-	pretty.Print(protoMsgs)
 
 	genProto := &GeneratedProto3{
 		Packages: map[string]Proto3Package{},
@@ -503,7 +506,6 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		msgMap[k] = m
 	}
 	sort.Strings(msgPaths)
-	pretty.Print(msgPaths)
 
 	basePackageName := cg.Config.PackageName
 	if basePackageName == "" {
@@ -558,8 +560,6 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			continue
 		}
 
-		fmt.Printf("message %s in pkg %s\n", n, genMsg.PackageName)
-
 		if genMsg.PackageName == "" {
 			genMsg.PackageName = basePackageName
 		} else {
@@ -570,8 +570,6 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			pkgImports[genMsg.PackageName] = map[string]interface{}{}
 		}
 		addNewKeys(pkgImports[genMsg.PackageName], genMsg.RequiredImports)
-
-		fmt.Printf("dealing with %s for %s\n", genMsg.PackageName, n)
 
 		// If the package does not already exist within the generated proto3
 		// output, then create it within the package map. This allows different
@@ -813,22 +811,20 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 
 	// Skip entities who are defined within a module that we have been instructed
 	// not to generate code for.
+	//em, err := e.InstantiatingModule()
+	//if err != nil {
+	//	return []error{fmt.Errorf("cannot determine instantiating module for %s: %v", e.Path(), err)}
+	//}
 	for _, s := range excludeModules {
 		for _, m := range modules {
 			if m.Name == s && m.Namespace().Name == e.Namespace().Name {
 				return nil
 			}
 		}
-		/*m, err :=.FindModuleByNamespace(e.Namespace().Name)
-		if err != nil {
-			return []error{fmt.Errorf("cannot determine module for leaf %s when mapping entities: %v", e.Path(), err)}
-		}
-		fmt.Printf("WOLF %s %s == %s? %v\n", e.Path(), m.Name, s, m.Name == s)
-		if m.Name == s {
+		/*if s == em {
 			return nil
 		}*/
 	}
-	fmt.Printf("WOLF didn't skip %v\n", e.Path())
 
 	var errs []error
 	for _, ch := range children(e) {
@@ -876,6 +872,8 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 			dirs[ch.Path()] = ch
 			// Recurse down the tree.
 			errs = append(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules)...)
+		case ch.Kind == yang.AnyDataEntry:
+			continue
 		default:
 			errs = append(errs, fmt.Errorf("unknown type of entry %v in findMappableEntities for %s", e.Kind, e.Path()))
 		}

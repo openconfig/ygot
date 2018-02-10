@@ -373,14 +373,10 @@ func isValidNestedMessage(msg *yangDirectory, compressPaths bool) bool {
 //  - cfg: the configuration for the current code generation.
 // It returns a generated protobuf3 message.
 func writeProto3MsgNested(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
-
-	fmt.Printf("looking at %s in write nested\n", msg.path)
-
 	var gerrs util.Errors
 	var childMsgs []*generatedProto3Message
 	// Find all the children of the current message that should be output.
 	for _, n := range msgs {
-		fmt.Printf("AARDVARK checking message %v\n", n.entry.Path())
 		if isDirectEntryChild(msg.entry, n.entry, cfg.compressPaths) {
 			cmsg, errs := writeProto3MsgNested(n, msgs, state, cfg)
 			if errs != nil {
@@ -395,7 +391,6 @@ func writeProto3MsgNested(msg *yangDirectory, msgs map[string]*yangDirectory, st
 	if err != nil {
 		return nil, append(gerrs, err)
 	}
-	fmt.Printf("writeProto3Msg pkg for %v is %v\n", msg.path, pkg)
 
 	// Generate this message, and its associated messages.
 	msgDefs, errs := genProto3Msg(msg, msgs, state, cfg, pkg, childMsgs)
@@ -473,7 +468,6 @@ func protobufPackageForMsg(msg *yangDirectory, state *genState, compressPaths, n
 			for n = e.Parent; n.Parent.Parent != nil; n = n.Parent {
 			}
 			e = n
-			fmt.Printf("corrected to %s in %s\n", n.Path(), msg.entry.Path())
 		}
 	}
 

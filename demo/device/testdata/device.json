@@ -56,6 +56,11 @@
    },
    "system": {
       "config": {
+         "@hostname": [
+            {
+               "cfg-source": "devicedemo"
+            }
+         ],
          "hostname": "rtr02.pop44"
       }
    }
