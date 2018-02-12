@@ -1320,7 +1320,19 @@ func generateGetOrCreateStruct(buf *bytes.Buffer, structDef generatedGoStruct) e
 	return nil
 }
 
-// ELEPHANT
+// generateGetOrCreateList generates a getter function similar to that created
+// by the generateGetOrCreateStruct function for maps within the generated Go
+// code (which represent YANG lists). It handles both simple and composite key
+// lists.
+//
+// If the list described has a single key, the argument to the function is the
+// non-pointer key value. If the list has a complex type, it is a instance of
+// the generated key type for the list.
+//
+// The generated function returns the existing value if the key exists in the
+// list, or creates a new value using the NewXXX method if it does not exist.
+// The generated function is written to the supplied buffer, using the method
+// argument to determine the list's characteristics in the template.
 func generateGetOrCreateList(buf *bytes.Buffer, method *generatedGoListMethod) error {
 	if err := goTemplates["getOrCreateList"].Execute(buf, method); err != nil {
 		return err
@@ -1328,7 +1340,13 @@ func generateGetOrCreateList(buf *bytes.Buffer, method *generatedGoListMethod) e
 	return nil
 }
 
-// ELEPHANT
+// generateListAppend generates a function which appends a (key, value) to a
+// Go map (YANG list) within the generated code. The argument of the generated
+// function is the map's member type - from which the key values are extracted.
+// The generated function returns an error if the key already exists in the list.
+//
+// The generated function is written to the supplied buffer - using the supplied
+// method argument to determine the list's characteristics in the template.
 func generateListAppend(buf *bytes.Buffer, method *generatedGoListMethod) error {
 	if err := goTemplates["appendList"].Execute(buf, method); err != nil {
 		return err
