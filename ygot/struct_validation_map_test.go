@@ -609,24 +609,34 @@ func TestBuildEmptyTree(t *testing.T) {
 }
 
 type emptyBranchTestOne struct {
-	String *string
-	Struct *emptyBranchTestOneChild
+	String    *string
+	Struct    *emptyBranchTestOneChild
+	StructMap map[string]*emptyBranchTestOneChild
 }
 
 func (*emptyBranchTestOne) IsYANGGoStruct() {}
 
 type emptyBranchTestOneChild struct {
-	String *string
-	Struct *emptyBranchTestOneGrandchild
+	String     *string
+	Enumerated int64
+	Struct     *emptyBranchTestOneGrandchild
 }
 
 func (*emptyBranchTestOneChild) IsYANGGoStruct() {}
 
 type emptyBranchTestOneGrandchild struct {
 	String *string
+	Slice  []string
+	Struct *emptyBranchTestOneGreatGrandchild
 }
 
 func (*emptyBranchTestOneGrandchild) IsYANGGoStruct() {}
+
+type emptyBranchTestOneGreatGrandchild struct {
+	String *string
+}
+
+func (*emptyBranchTestOneGreatGrandchild) IsYANGGoStruct() {}
 
 func TestPruneEmptyBranches(t *testing.T) {
 	tests := []struct {
@@ -686,6 +696,52 @@ func TestPruneEmptyBranches(t *testing.T) {
 				String: String("bar"),
 				Struct: &emptyBranchTestOneGrandchild{
 					String: String("baz"),
+				},
+			},
+		},
+	}, {
+		name: "struct with unpopulated child and grandchild",
+		inStruct: &emptyBranchTestOne{
+			Struct: &emptyBranchTestOneChild{
+				Struct: &emptyBranchTestOneGrandchild{},
+			},
+		},
+		want: &emptyBranchTestOne{},
+	}, {
+		name: "struct with map with unpopulated children",
+		inStruct: &emptyBranchTestOne{
+			StructMap: map[string]*emptyBranchTestOneChild{
+				"value": {
+					String: String("value"),
+					Struct: &emptyBranchTestOneGrandchild{
+						Struct: &emptyBranchTestOneGreatGrandchild{},
+					},
+				},
+			},
+		},
+		want: &emptyBranchTestOne{
+			StructMap: map[string]*emptyBranchTestOneChild{
+				"value": {
+					String: String("value"),
+				},
+			},
+		},
+	}, {
+		name: "struct with slice, and enumerated value",
+		inStruct: &emptyBranchTestOne{
+			Struct: &emptyBranchTestOneChild{
+				Enumerated: 42,
+				Struct: &emptyBranchTestOneGrandchild{
+					Slice:  []string{"one", "two"},
+					Struct: &emptyBranchTestOneGreatGrandchild{},
+				},
+			},
+		},
+		want: &emptyBranchTestOne{
+			Struct: &emptyBranchTestOneChild{
+				Enumerated: 42,
+				Struct: &emptyBranchTestOneGrandchild{
+					Slice: []string{"one", "two"},
 				},
 			},
 		},
