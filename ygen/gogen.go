@@ -372,11 +372,26 @@ func (*{{ .StructName }}) IsYANGGoStruct() {}
 	// from it.
 	goStructValidatorTemplate = `
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *{{.StructName}}) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["{{.StructName}}"], s, opts...); err != nil {
+func (s *{{ .StructName }}) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["{{ .StructName }}"], s, opts...); err != nil {
 		return err
 	}
 	return nil
+}
+`
+
+	// goGetOrCreateStructTemplate is a template that generates a getter
+	// function for a struct field of the receiver struct. The function generated
+	// creates the field if it does not exist.
+	goGetOrCreateStructTemplate = `
+// GetOrCreate{{ .FieldName }} retrieves the value of the {{ .FieldName }} field
+// or returns the existing field if it already exists.
+func (s *{{ .StructName }}) GetOrCreate{{ .FieldName }}() {{ .FieldType }} {
+	if s.{{ .FieldName }} != nil {
+		return s.{{ .FieldName }}
+	}
+	s.{{ .FieldName }} = &{{ .FieldType }}{}
+	return s.{{ .FieldName }}
 }
 `
 	// goListKeyTemplate takes an input generatedGoMultiKeyListStruct, which is used to
@@ -401,15 +416,6 @@ func (s *{{.StructName}}) Validate(opts ...ygot.ValidationOption) error {
 	//
 	// This struct is then used as the key of the map representing the list L, in
 	// the generated struct representing the container A.
-	//
-	// TODO(robjs): Currently, based on OpenConfig conventions, and IETF
-	// YANG conventions, the key of the list is generated when parsing the
-	// parent container of the list, however, currently, this results in
-	// lists that are at the root not having a structure generated for the
-	// key. Since both IETF, vendors and OpenConfig adopts the approach of
-	// having a surrounding container, this is left as a known limitation.
-	// It is intended to be addressed when handling a 'root' entity in the
-	// generated code.
 	goListKeyTemplate = `
 // {{ .KeyStructName }} represents the key for list {{ .ListName }} of element {{ .ParentPath }}.
 type {{ .KeyStructName }} struct {
@@ -508,8 +514,12 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 
 	return t.{{ .ListName }}[key], nil
 }
+`
 
-{{ if .GetOrCreate }}
+	// goGetOrCreateListTemplate defines a template for a function that, for a
+	// particular list key, gets an existing map value, or creates it if it doesn't
+	// exist.
+	goGetOrCreateListTemplate = `
 // GetOrCreate{{ .ListName }} retrieves the value with the specified keys from
 // the receiver {{ .Receiver }}. If the entry does not exist, then it is created.
 // It returns the existing or new list member.
@@ -532,7 +542,34 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 		{{- end -}})
 	return v
 }
-{{ end }}
+`
+
+	// goListAppendTemplate defines a template for a function that takes an
+	// input list member struct, extracts the key value, and appends it to a map.
+	goListAppendTemplate = `
+// Append{{ .ListName }} appends the supplied {{ .ListType }} struct to the
+// list {{ .ListName }} of {{ .Receiver }}. If the key value(s) specified in
+// the supplied {{ .ListType }} already exist in the list, an error is
+// returned.
+func (t *{{ .Receiver }}) Append{{ .ListName }}(v *{{ .ListType }}) error {
+	{{ if ne .KeyStruct "" -}}
+	key := {{ .KeyStruct }}{
+		{{- range $key := .Keys }}
+		{{ $key.Name }}: v.{{ $key.Name }},
+		{{- end }}
+	}
+	{{- else -}}
+	{{- range $key := .Keys -}}
+	key := v.{{ $key.Name }}
+	{{- end -}}
+	{{- end }}
+
+	if _, ok := t.{{ .ListName }}[key]; ok {
+		return fmt.Errorf("duplicate key for list {{ .ListName }} %v", key)
+	}
+	t.{{ .ListName }}[key] = v
+	return nil
+}
 `
 
 	// goListMemberRenameTemplate provides a template for a function which renames
@@ -728,6 +765,9 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"keyHelper":           makeTemplate("keyHelper", goKeyMapTemplate),
 		"enumTypeMap":         makeTemplate("enumTypeMap", goEnumTypeMapTemplate),
 		"enumTypeMapAccessor": makeTemplate("enumTypeMapAccessor", goEnumTypeMapAccessTemplate),
+		"appendList":          makeTemplate("appendList", goListAppendTemplate),
+		"getOrCreateStruct":   makeTemplate("getOrCreateStruct", goGetOrCreateStructTemplate),
+		"getOrCreateList":     makeTemplate("getOrCreateList", goGetOrCreateListTemplate),
 	}
 
 	// templateHelperFunctions specifies a set of functions that are supplied as
