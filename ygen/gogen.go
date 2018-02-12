@@ -46,7 +46,7 @@ const (
 	// DefaultGoyangImportPath is the default path for the goyang/pkg/yang library that
 	// is used in the generated code.
 	DefaultGoyangImportPath string = "github.com/openconfig/goyang/pkg/yang"
-	// DefaultMetadataPrefix is the default string that is used to prefix the name
+	// DefaultAnnotationPrefix is the default string that is used to prefix the name
 	// of metadata fields in the output Go structs.
 	DefaultAnnotationPrefix string = "Λ"
 	// annotationFieldType defines the type that should be used for the
@@ -190,6 +190,10 @@ type goStructField struct {
 	// types.
 	IsScalarField bool
 	Tags          string // Tags specifies the tags that should be used to annotate the field.
+	// IsYANGContainer stores whether the field is a YANG container. This value
+	// is used in templates to determine whether GetOrCreate methods should be
+	// created.
+	IsYANGContainer bool
 }
 
 // goUnionInterface contains a definition of an interface that should
@@ -384,14 +388,14 @@ func (s *{{ .StructName }}) Validate(opts ...ygot.ValidationOption) error {
 	// function for a struct field of the receiver struct. The function generated
 	// creates the field if it does not exist.
 	goGetOrCreateStructTemplate = `
-// GetOrCreate{{ .FieldName }} retrieves the value of the {{ .FieldName }} field
+// GetOrCreate{{ .Field.Name }} retrieves the value of the {{ .Field.Name }} field
 // or returns the existing field if it already exists.
-func (s *{{ .StructName }}) GetOrCreate{{ .FieldName }}() {{ .FieldType }} {
-	if s.{{ .FieldName }} != nil {
-		return s.{{ .FieldName }}
+func (s *{{ .StructName }}) GetOrCreate{{ .Field.Name }}() {{ .Field.Type }} {
+	if s.{{ .Field.Name }} != nil {
+		return s.{{ .Field.Name }}
 	}
-	s.{{ .FieldName }} = &{{ .FieldType }}{}
-	return s.{{ .FieldName }}
+	s.{{ .Field.Name }} = &{{ stripAsteriskPrefix .Field.Type }}{}
+	return s.{{ .Field.Name }}
 }
 `
 	// goListKeyTemplate takes an input generatedGoMultiKeyListStruct, which is used to
@@ -530,12 +534,25 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 	{{- if ne (inc $i) $length -}}, {{ end -}}
   {{- end -}}
   ) (*{{ .ListType }}){
+
+	{{ if ne .KeyStruct "" -}}
+	key := {{ .KeyStruct }}{
+		{{- range $key := .Keys }}
+		{{ $key.Name }}: {{ $key.Name }},
+		{{- end }}
+	}
+	{{- else -}}
+	{{- range $key := .Keys -}}
+	key := {{ $key.Name }}
+	{{- end -}}
+	{{- end }}
+
 	if v, ok := t.{{ .ListName }}[key]; ok {
 		return v
 	}
 	// Safely discard the error from New since we check for the existence
 	// of the list key above. This allows chaining of GetOrCreate methods.
-	v, _ := t.{{ .ListName }}.New{{ .ListName }}(
+	v, _ := t.New{{ .ListName }}(
 		{{- range $i, $key := .Keys -}}
 		{{ $key.Name }}
 		{{- if ne (inc $i) $length -}}, {{ end -}}
@@ -546,6 +563,10 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 
 	// goListAppendTemplate defines a template for a function that takes an
 	// input list member struct, extracts the key value, and appends it to a map.
+	// In this template, since all list keys are specified to be pointer types
+	// within values by default, we must invert the "IsScalarField" check to
+	// ensure that we dereference elements that are pointers in the generated
+	// code.
 	goListAppendTemplate = `
 // Append{{ .ListName }} appends the supplied {{ .ListType }} struct to the
 // list {{ .ListName }} of {{ .Receiver }}. If the key value(s) specified in
@@ -555,18 +576,42 @@ func (t *{{ .Receiver }}) Append{{ .ListName }}(v *{{ .ListType }}) error {
 	{{ if ne .KeyStruct "" -}}
 	key := {{ .KeyStruct }}{
 		{{- range $key := .Keys }}
-		{{ $key.Name }}: v.{{ $key.Name }},
+		{{- if $key.IsScalarField -}}
+			{{ $key.Name }}: *v.{{ $key.Name }},
+		{{- else -}}
+			{{ $key.Name }}: v.{{ $key.Name }},
+		{{- end -}}
+
 		{{- end }}
 	}
 	{{- else -}}
 	{{- range $key := .Keys -}}
-	key := v.{{ $key.Name }}
+		{{- if $key.IsScalarField -}}
+			key := *v.{{ $key.Name }}
+		{{- else -}}
+			key := v.{{ $key.Name }}
+		{{- end -}}
 	{{- end -}}
 	{{- end }}
+
+	// Initialise the list within the receiver struct if it has not already been
+	// created.
+	if t.{{ .ListName }} == nil {
+		{{- if ne .KeyStruct "" }}
+		t.{{ .ListName }} = make(map[{{ .KeyStruct }}]*{{ .ListType }})
+		{{- else }}
+			{{- $listName := .ListName -}}
+			{{- $listType := .ListType -}}
+			{{- range $key := .Keys }}
+		t.{{ $listName }} = make(map[{{ $key.Type }}]*{{ $listType }})
+			{{- end }}
+		{{- end }}
+	}
 
 	if _, ok := t.{{ .ListName }}[key]; ok {
 		return fmt.Errorf("duplicate key for list {{ .ListName }} %v", key)
 	}
+
 	t.{{ .ListName }}[key] = v
 	return nil
 }
@@ -796,6 +841,10 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 			}
 			return b.String()
 		},
+		// stripAsteriskPrefix provides a template helper that removes an asterisk
+		// from the start of a string. It is used to remove "*" from the start of
+		// pointer types.
+		"stripAsteriskPrefix": func(s string) string { return strings.TrimPrefix(s, "*") },
 	}
 )
 
@@ -982,8 +1031,9 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			}
 
 			fieldDef = &goStructField{
-				Name: fieldName,
-				Type: fmt.Sprintf("*%s", structName),
+				Name:            fieldName,
+				Type:            fmt.Sprintf("*%s", structName),
+				IsYANGContainer: true,
 			}
 		case field.IsLeaf() || field.IsLeafList():
 			// This is a leaf or leaf-list, so we map it into the Go type that corresponds to the
@@ -1158,6 +1208,24 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				errs = append(errs, err)
 			}
 		}
+
+		if goOpts.GenerateGetters {
+			if err := generateGetOrCreateList(&methodBuf, method); err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		if goOpts.GenerateAppendMethod {
+			if err := generateListAppend(&methodBuf, method); err != nil {
+				errs = append(errs, err)
+			}
+		}
+	}
+
+	if goOpts.GenerateGetters {
+		if err := generateGetOrCreateStruct(&methodBuf, structDef); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
 	if err := generateGetListKey(&methodBuf, targetStruct, definedNameMap); err != nil {
@@ -1196,7 +1264,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 // appends it to the supplied buffer.
 // Assuming structDef represents the following struct:
 //
-//   struct MyStruct {
+//   type MyStruct struct {
 //     field1 *string
 //   }
 //
@@ -1213,6 +1281,58 @@ func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
 		return err
 	}
 
+	return nil
+}
+
+// generateGetOrCreateStruct generates a getter method for the YANG container
+// (Go struct ptr) fields of structDef, and appends it to the supplied buffer.
+// Assuming that structDef represents the following struct:
+//
+//  type MyStruct struct {
+// 		Container *MyStruct_Container
+//  }
+//
+// the getter function generated for the struct will be:
+//
+//  func (s *MyStruct) GetOrCreateContainer() *MyStruct_Container {
+//    if s.Container != nil {
+//      return s.Container
+//    }
+//    s.Container = &MyStruct_Container{}
+//    return s.Container
+//  }
+func generateGetOrCreateStruct(buf *bytes.Buffer, structDef generatedGoStruct) error {
+	type structFieldWithName struct {
+		StructName string
+		Field      *goStructField
+	}
+	for _, f := range structDef.Fields {
+		if f.IsYANGContainer {
+			tmpStruct := structFieldWithName{
+				StructName: structDef.StructName,
+				Field:      f,
+			}
+			if err := goTemplates["getOrCreateStruct"].Execute(buf, tmpStruct); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// ELEPHANT
+func generateGetOrCreateList(buf *bytes.Buffer, method *generatedGoListMethod) error {
+	if err := goTemplates["getOrCreateList"].Execute(buf, method); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ELEPHANT
+func generateListAppend(buf *bytes.Buffer, method *generatedGoListMethod) error {
+	if err := goTemplates["appendList"].Execute(buf, method); err != nil {
+		return err
+	}
 	return nil
 }
 
