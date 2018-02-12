@@ -169,8 +169,14 @@ func PruneEmptyBranches(s GoStruct) {
 // supplied reflect.Type, reflect.Value which must represent a GoStruct. An empty
 // tree is defined to be a struct that is equal to its zero value. Only struct
 // pointer fields are examined, since these are subtrees within the generated GoStruct
-// types.
-func pruneBranchesInternal(t reflect.Type, v reflect.Value) {
+// types. It returns a bool which indicates whether all fields of the struct were
+// removed.
+func pruneBranchesInternal(t reflect.Type, v reflect.Value) bool {
+	// Track whether all fields of the GoStruct are nil, such that it can
+	// be returned to the caller. This allows parents that have all empty
+	// children to be removed. This is required because BuildEmptyTree will
+	// propagate to all branches.
+	allChildrenPruned := true
 	for i := 0; i < v.NumField(); i++ {
 		fVal := v.Field(i)
 		fType := t.Field(i)
@@ -196,10 +202,62 @@ func pruneBranchesInternal(t reflect.Type, v reflect.Value) {
 				// If this wasn't an empty struct then we need to recurse to remove
 				// any nil children of this struct.
 				sv := fVal.Elem()
-				pruneBranchesInternal(sv.Type(), sv)
+				childPruned := pruneBranchesInternal(sv.Type(), sv)
+				if childPruned {
+					// If all fields of the downstream branches are nil, then
+					// also prune this field.
+					fVal.Set(reflect.Zero(fType.Type))
+				} else {
+					allChildrenPruned = false
+				}
+			}
+			continue
+		}
+
+		// If the struct field wasn't a struct pointer, then we need to check whether it
+		// is the nil value of its type.
+		switch {
+		case util.IsTypeSlice(fType.Type):
+			if (fVal.Len() != 0) && allChildrenPruned {
+				allChildrenPruned = false
+			}
+		case util.IsTypeMap(fType.Type):
+			if fVal.Len() != 0 && allChildrenPruned {
+				allChildrenPruned = false
+			}
+
+			// Recurse into maps where the children may have already been initialised.
+			for _, k := range fVal.MapKeys() {
+				mi := fVal.MapIndex(k)
+				if !util.IsValueStructPtr(mi) {
+					continue
+				}
+				sv := mi.Elem()
+				// We can discard the pruneBranchesInternal return value, since we
+				// know that this map field has len > 0, and therefore cannot be
+				// pruned.
+				_ = pruneBranchesInternal(sv.Type(), sv)
+			}
+		default:
+			// Handle the case of a non-map/slice/struct pointer field.
+			v := fVal
+			t := fType.Type
+			if fType.Type.Kind() == reflect.Ptr {
+				if !v.IsNil() {
+					allChildrenPruned = false
+					continue
+				}
+				// Dereference the pointer to allow a zero check.
+				v = v.Elem()
+				t = t.Elem()
+			}
+			if v.IsValid() && !reflect.DeepEqual(reflect.Zero(t).Interface(), v.Interface()) {
+				allChildrenPruned = false
 			}
 		}
+
 	}
+	return allChildrenPruned
 }
 
 // InitContainer initialises the container cname of the GoStruct s, it can be
