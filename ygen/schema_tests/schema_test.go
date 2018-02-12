@@ -97,8 +97,7 @@ func TestSimpleKeyAppend(t *testing.T) {
 
 func TestMultiKeyAppend(t *testing.T) {
 	in := &exampleoc.Device{}
-	_, err := in.NewNetworkInstance("DEFAULT")
-	if err != nil {
+	if _, err := in.NewNetworkInstance("DEFAULT"); err != nil {
 		t.Errorf("NewNetworkInstance('DEFAULT'): did not get expected error status, got: %v, want: nil", err)
 	}
 

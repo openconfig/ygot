@@ -550,13 +550,16 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 	if v, ok := t.{{ .ListName }}[key]; ok {
 		return v
 	}
-	// Safely discard the error from New since we check for the existence
-	// of the list key above. This allows chaining of GetOrCreate methods.
-	v, _ := t.New{{ .ListName }}(
+	// Panic if we receive an error, since we should have retrieved an existing
+	// list member. This allows chaining of GetOrCreate methods.
+	v, err := t.New{{ .ListName }}(
 		{{- range $i, $key := .Keys -}}
 		{{ $key.Name }}
 		{{- if ne (inc $i) $length -}}, {{ end -}}
 		{{- end -}})
+	if err != nil {
+		panic(fmt.Sprintf("GetOrCreate{{ .ListName }} got unexpected error: %v", err))
+	}
 	return v
 }
 `
@@ -1277,11 +1280,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 //     return nil
 //   }
 func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
-	if err := goTemplates["structValidator"].Execute(buf, structDef); err != nil {
-		return err
-	}
-
-	return nil
+	return goTemplates["structValidator"].Execute(buf, structDef)
 }
 
 // generateGetOrCreateStruct generates a getter method for the YANG container
@@ -1326,7 +1325,7 @@ func generateGetOrCreateStruct(buf *bytes.Buffer, structDef generatedGoStruct) e
 // lists.
 //
 // If the list described has a single key, the argument to the function is the
-// non-pointer key value. If the list has a complex type, it is a instance of
+// non-pointer key value. If the list has a complex type, it is an instance of
 // the generated key type for the list.
 //
 // The generated function returns the existing value if the key exists in the
@@ -1334,10 +1333,7 @@ func generateGetOrCreateStruct(buf *bytes.Buffer, structDef generatedGoStruct) e
 // The generated function is written to the supplied buffer, using the method
 // argument to determine the list's characteristics in the template.
 func generateGetOrCreateList(buf *bytes.Buffer, method *generatedGoListMethod) error {
-	if err := goTemplates["getOrCreateList"].Execute(buf, method); err != nil {
-		return err
-	}
-	return nil
+	return goTemplates["getOrCreateList"].Execute(buf, method)
 }
 
 // generateListAppend generates a function which appends a (key, value) to a
@@ -1348,10 +1344,7 @@ func generateGetOrCreateList(buf *bytes.Buffer, method *generatedGoListMethod) e
 // The generated function is written to the supplied buffer - using the supplied
 // method argument to determine the list's characteristics in the template.
 func generateListAppend(buf *bytes.Buffer, method *generatedGoListMethod) error {
-	if err := goTemplates["appendList"].Execute(buf, method); err != nil {
-		return err
-	}
-	return nil
+	return goTemplates["appendList"].Execute(buf, method)
 }
 
 // generateGetListKey generates a function extracting the keys from a list

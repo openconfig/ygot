@@ -1217,9 +1217,12 @@ func (t *Tstruct) GetOrCreateListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*L
 	if v, ok := t.ListWithKey[key]; ok {
 		return v
 	}
-	// Safely discard the error from New since we check for the existence
-	// of the list key above. This allows chaining of GetOrCreate methods.
-	v, _ := t.NewListWithKey(KeyLeafOne, KeyLeafTwo)
+	// Panic if we receive an error, since we should have retrieved an existing
+	// list member. This allows chaining of GetOrCreate methods.
+	v, err := t.NewListWithKey(KeyLeafOne, KeyLeafTwo)
+	if err != nil {
+		panic(fmt.Sprintf("GetOrCreateListWithKey got unexpected error: %v", err))
+	}
 	return v
 }
 
@@ -1362,9 +1365,12 @@ func (t *Tstruct) GetOrCreateListWithKey(KeyLeaf string) (*ListWithKey){
 	if v, ok := t.ListWithKey[key]; ok {
 		return v
 	}
-	// Safely discard the error from New since we check for the existence
-	// of the list key above. This allows chaining of GetOrCreate methods.
-	v, _ := t.NewListWithKey(KeyLeaf)
+	// Panic if we receive an error, since we should have retrieved an existing
+	// list member. This allows chaining of GetOrCreate methods.
+	v, err := t.NewListWithKey(KeyLeaf)
+	if err != nil {
+		panic(fmt.Sprintf("GetOrCreateListWithKey got unexpected error: %v", err))
+	}
 	return v
 }
 
