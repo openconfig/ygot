@@ -1047,9 +1047,9 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ΩMetadata	[]*ygot.Annotation	` + "`" + `path:"@" ygotAnnotation:"true"` + "`" + `
+	ΩMetadata	[]ygot.Annotation	` + "`" + `path:"@" ygotAnnotation:"true"` + "`" + `
 	F1	*int8	` + "`" + `path:"f1"` + "`" + `
-	ΩF1	[]*ygot.Annotation	` + "`" + `path:"@f1" ygotAnnotation:"true"` + "`" + `
+	ΩF1	[]ygot.Annotation	` + "`" + `path:"@f1" ygotAnnotation:"true"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -1075,9 +1075,9 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ΩMetadata	[]*ygot.Annotation	` + "`" + `path:"@" ygotAnnotation:"true"` + "`" + `
+	ΩMetadata	[]ygot.Annotation	` + "`" + `path:"@" ygotAnnotation:"true"` + "`" + `
 	F1	*int8	` + "`" + `path:"f1"` + "`" + `
-	ΩF1	[]*ygot.Annotation	` + "`" + `path:"@f1" ygotAnnotation:"true"` + "`" + `
+	ΩF1	[]ygot.Annotation	` + "`" + `path:"@f1" ygotAnnotation:"true"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
