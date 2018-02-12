@@ -508,6 +508,31 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 
 	return t.{{ .ListName }}[key], nil
 }
+
+{{ if .GetOrCreate }}
+// GetOrCreate{{ .ListName }} retrieves the value with the specified keys from
+// the receiver {{ .Receiver }}. If the entry does not exist, then it is created.
+// It returns the existing or new list member.
+func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
+  {{- $length := len .Keys -}}
+  {{- range $i, $key := .Keys -}}
+	{{ $key.Name }} {{ $key.Type -}}
+	{{- if ne (inc $i) $length -}}, {{ end -}}
+  {{- end -}}
+  ) (*{{ .ListType }}){
+	if v, ok := t.{{ .ListName }}[key]; ok {
+		return v
+	}
+	// Safely discard the error from New since we check for the existence
+	// of the list key above. This allows chaining of GetOrCreate methods.
+	v, _ := t.{{ .ListName }}.New{{ .ListName }}(
+		{{- range $i, $key := .Keys -}}
+		{{ $key.Name }}
+		{{- if ne (inc $i) $length -}}, {{ end -}}
+		{{- end -}})
+	return v
+}
+{{ end }}
 `
 
 	// goListMemberRenameTemplate provides a template for a function which renames
