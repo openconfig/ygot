@@ -33,17 +33,6 @@ const (
 	TestRoot string = ""
 )
 
-func TestNewYANGCodeGeneratorError(t *testing.T) {
-	e := NewYANGCodeGeneratorError()
-	e.Errors = append(e.Errors, fmt.Errorf("test string"))
-	e.Errors = append(e.Errors, []error{fmt.Errorf("test string two"), fmt.Errorf("string three")}...)
-	want := "errors encountered during code generation:\ntest string\ntest string two\nstring three\n"
-
-	if got := e.Error(); got != want {
-		t.Errorf("NewYANGCodeGenerator did not concatenate errors correctly, got: %s, want: %s", got, want)
-	}
-}
-
 // TestFindMappableEntities tests the extraction of elements that are to be mapped
 // into Go code from a YANG schema.
 func TestFindMappableEntities(t *testing.T) {
@@ -606,6 +595,17 @@ func TestSimpleStructs(t *testing.T) {
 			CompressOCPaths:  true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false-compressed.formatted-txt"),
+	}, {
+		name:    "module with getters and append methods",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot: true,
+			GoOptions: GoOpts{
+				GenerateAppendMethod: true,
+				GenerateGetters:      true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.getters-append.formatted-txt"),
 	}}
 
 	for _, tt := range tests {
