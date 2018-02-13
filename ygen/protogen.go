@@ -338,7 +338,7 @@ type protoMsgConfig struct {
 //  the message.
 func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *genState, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
 	if cfg.nestedMessages {
-		if !isValidNestedMessage(msg, cfg.compressPaths) {
+		if !outputNestedMessage(msg, cfg.compressPaths) {
 			return nil, nil
 		}
 		return writeProto3MsgNested(msg, msgs, state, cfg)
@@ -346,13 +346,13 @@ func writeProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *g
 	return writeProto3MsgSingleMsg(msg, msgs, state, cfg)
 }
 
-// isValidNestedMessage determines whether the message represented by the supplied
+// outputNestedMessage determines whether the message represented by the supplied
 // yangDirectory is a message that should be output when nested messages are being
 // created. The compressPaths argument specifies whether path compression is enabled.
 // Valid messages are those that are direct children of a module, or become a direct
 // child when path compression is enabled (i.e., lists that have their parent
 // surrounding container removed).
-func isValidNestedMessage(msg *yangDirectory, compressPaths bool) bool {
+func outputNestedMessage(msg *yangDirectory, compressPaths bool) bool {
 	// If path compression is enabled, and this entry is a list, then its top-level
 	// parent will have been removed, therefore this is a valid message. The path
 	// is 4 elements long since it is of the form
