@@ -704,16 +704,15 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 			errs = append(errs, errors.New("found a nil module in the returned module set"))
 			continue
 		}
-		// Ensure that we do not try and traverse an empty module.
-		if module.Dir != nil {
-			for _, e := range module.Dir {
-				if !excluded[module.Name] {
-					rootElems = append(rootElems, e)
-				}
-				treeElems = append(treeElems, e)
+
+		for _, e := range module.Dir {
+			if !excluded[module.Name] {
+				rootElems = append(rootElems, e)
 			}
+			treeElems = append(treeElems, e)
 		}
 	}
+
 	if errs != nil {
 		return nil, errs
 	}
