@@ -1,0 +1,8 @@
+module module-in-subdir {
+  prefix "sdm";
+  namespace "http://test.com/sdm";
+
+  grouping b {
+    leaf a { type string; }
+  }
+}
