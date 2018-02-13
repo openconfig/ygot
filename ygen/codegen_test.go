@@ -595,6 +595,17 @@ func TestSimpleStructs(t *testing.T) {
 			CompressOCPaths:  true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false-compressed.formatted-txt"),
+	}, {
+		name:    "module with getters and append methods",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot: true,
+			GoOptions: GoOpts{
+				GenerateAppendMethod: true,
+				GenerateGetters:      true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.getters-append.formatted-txt"),
 	}}
 
 	for _, tt := range tests {

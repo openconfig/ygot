@@ -115,6 +115,14 @@ type GoOpts struct {
 	// AnnotationPrefix specifies the string which is prefixed to the name of
 	// annotation fields. It defaults to Λ.
 	AnnotationPrefix string
+	// GenerateGetters specifies whether GetOrCreate* methods should be created
+	// for struct pointer (YANG container) and map (YANG list) fields of generated
+	// structs.
+	GenerateGetters bool
+	// GenerateAppendList specifies whether Append* methods should be created for
+	// list fields of a struct. These methods take an input list member type, extract
+	// the key and append the supplied value to the list.
+	GenerateAppendMethod bool
 }
 
 // ProtoOpts stores Protobuf specific options for the code generation library.

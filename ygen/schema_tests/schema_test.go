@@ -80,3 +80,66 @@ func TestMultiKeyListRename(t *testing.T) {
 		t.Errorf("did not have correct name in newBGP, got: %v, want: 36040", *ni.Protocol[newBGP].Name)
 	}
 }
+
+func TestSimpleKeyAppend(t *testing.T) {
+	in := &exampleoc.Device{}
+	ni := &exampleoc.NetworkInstance{
+		Name: ygot.String("DEFAULT"),
+	}
+	if err := in.AppendNetworkInstance(ni); err != nil {
+		t.Errorf("AppendNetworkInstance(%v): did not get expected error, got: %v, want: nil", ni, err)
+	}
+
+	if _, ok := in.NetworkInstance["DEFAULT"]; !ok {
+		t.Errorf("AppendNetworkInstance(%v): did not find element after append, got: %v, want: true", ni, ok)
+	}
+}
+
+func TestMultiKeyAppend(t *testing.T) {
+	in := &exampleoc.Device{}
+	if _, err := in.NewNetworkInstance("DEFAULT"); err != nil {
+		t.Errorf("NewNetworkInstance('DEFAULT'): did not get expected error status, got: %v, want: nil", err)
+	}
+
+	p := &exampleoc.NetworkInstance_Protocol{
+		Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+		Name:       ygot.String("15169"),
+	}
+
+	if err := in.NetworkInstance["DEFAULT"].AppendProtocol(p); err != nil {
+		t.Errorf("AppendProtocol(%v): did not get expected error status, got: %v, want: nil", p, err)
+	}
+
+	wantKey := exampleoc.NetworkInstance_Protocol_Key{Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, Name: "15169"}
+	if _, ok := in.NetworkInstance["DEFAULT"].Protocol[wantKey]; !ok {
+		t.Errorf("AppendProtocol(%v): did not find element after append, got: %v, want: true", p, ok)
+	}
+}
+
+func TestGetOrCreateSimpleElement(t *testing.T) {
+	d := &exampleoc.Device{}
+	v := d.GetOrCreateSystem().GetOrCreateDns()
+	v.Search = []string{"rob.sh", "google.com"}
+
+	if got, want := d.System.Dns.Search, []string{"rob.sh", "google.com"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("GetOrCreateSystem().GetOrCreateDns(): got incorrect return value, got: %v, want: %v", got, want)
+	}
+}
+
+func TestGetOrCreateSimpleList(t *testing.T) {
+	d := &exampleoc.Device{}
+	d.GetOrCreateInterface("eth0").GetOrCreateHoldTime().Up = ygot.Uint32(42)
+
+	if got, want := *d.Interface["eth0"].HoldTime.Up, uint32(42); got != want {
+		t.Errorf("GetOrCreateInterface('eth0').GetOrCreateHoldTime().Up: got incorrect return value, got: %v, want: %v", got, want)
+	}
+}
+
+func TestGetOrCreateMultiKeyList(t *testing.T) {
+	d := &exampleoc.Device{}
+	d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ISIS, "0").GetOrCreateIsis().GetOrCreateGlobal().MaxEcmpPaths = ygot.Uint8(42)
+
+	if got, want := *d.NetworkInstance["DEFAULT"].Protocol[exampleoc.NetworkInstance_Protocol_Key{Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ISIS, Name: "0"}].Isis.Global.MaxEcmpPaths, uint8(42); got != want {
+		t.Errorf("GetOrCreateNetworkInstance('DEFAULT').GetOrCreateProtocol(ISIS, '0').GetOrCreateGlobal().MaxEcmpPaths: got incorrect return value, got: %v, want: %v", got, want)
+	}
+}
