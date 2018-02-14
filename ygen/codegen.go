@@ -615,9 +615,7 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 
 	var errs util.Errors
 	for _, name := range yangFiles {
-		if err := moduleSet.Read(name); err != nil {
-			errs = util.AppendErr(errs, err)
-		}
+		errs = util.AppendErr(errs, moduleSet.Read(name))
 	}
 
 	if errs != nil {
