@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
@@ -684,6 +685,72 @@ func TestSimpleStructs(t *testing.T) {
 			t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct code (file: %v), diff:\n%s",
 				tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diff)
 		}
+	}
+}
+
+func TestGenerateErrs(t *testing.T) {
+	tests := []struct {
+		name                  string
+		inFiles               []string
+		inPath                []string
+		inConfig              GeneratorConfig
+		wantGoOK              bool
+		wantGoErrSubstring    string
+		wantProtoOK           bool
+		wantProtoErrSubstring string
+		wantSameErrSubstring  bool
+	}{{
+		name:                 "missing YANG file",
+		inFiles:              []string{filepath.Join(TestRoot, "testdata", "errors", "doesnt-exist.yang")},
+		wantGoErrSubstring:   "no such file",
+		wantSameErrSubstring: true,
+	}, {
+		name:                 "bad YANG file",
+		inFiles:              []string{filepath.Join(TestRoot, "testdata", "errors", "bad-module.yang")},
+		wantGoErrSubstring:   "syntax error",
+		wantSameErrSubstring: true,
+	}, {
+		name:                 "missing import due to path",
+		inFiles:              []string{filepath.Join(TestRoot, "testdata", "errors", "missing-import.yang")},
+		wantGoErrSubstring:   "no such module",
+		wantSameErrSubstring: true,
+	}, {
+		name:        "import satisfied due to path",
+		inFiles:     []string{filepath.Join(TestRoot, "testdata", "errors", "missing-import.yang")},
+		inPath:      []string{filepath.Join(TestRoot, "testdata", "errors", "subdir")},
+		wantGoOK:    true,
+		wantProtoOK: true,
+	}}
+
+	for _, tt := range tests {
+		cg := NewYANGCodeGenerator(&tt.inConfig)
+
+		_, goErr := cg.GenerateGoCode(tt.inFiles, tt.inPath)
+		switch {
+		case tt.wantGoOK && goErr != nil:
+			t.Errorf("%s: cg.GenerateGoCode(%v, %v): got unexpected error, got: %v, want: nil", tt.name, tt.inFiles, tt.inPath, goErr)
+		case tt.wantGoOK:
+		default:
+			if diff := errdiff.Substring(goErr, tt.wantGoErrSubstring); diff != "" {
+				t.Errorf("%s: cg.GenerateGoCode(%v, %v): %v", tt.name, tt.inFiles, tt.inPath, diff)
+			}
+		}
+
+		if tt.wantSameErrSubstring {
+			tt.wantProtoErrSubstring = tt.wantGoErrSubstring
+		}
+
+		_, protoErr := cg.GenerateProto3(tt.inFiles, tt.inPath)
+		switch {
+		case tt.wantProtoOK && protoErr != nil:
+			t.Errorf("%s: cg.GenerateProto3(%v, %v): got unexpected error, got: %v, want: nil", tt.name, tt.inFiles, tt.inPath, protoErr)
+		case tt.wantProtoOK:
+		default:
+			if diff := errdiff.Substring(protoErr, tt.wantProtoErrSubstring); diff != "" {
+				t.Errorf("%s: cg.GenerateProto3(%v, %v): %v", tt.name, tt.inFiles, tt.inPath, diff)
+			}
+		}
+
 	}
 }
 

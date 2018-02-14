@@ -343,7 +343,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		structOut, errs := writeGoStruct(structNameMap[structName], goStructs, cg.state,
 			cg.Config.CompressOCPaths, cg.Config.GenerateJSONSchema, cg.Config.GoOptions)
 		if errs != nil {
-			util.AppendErrs(codegenErr, errs)
+			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
 		}
 		// Append the actual struct definitions that were returned.
@@ -361,7 +361,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 
 	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, false)
 	if errs != nil {
-		util.AppendErrs(codegenErr, errs)
+		codegenErr = util.AppendErrs(codegenErr, errs)
 		return nil, codegenErr
 	}
 
@@ -534,7 +534,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		})
 
 		if errs != nil {
-			util.AppendErrs(yerr, errs)
+			yerr = util.AppendErrs(yerr, errs)
 			continue
 		}
 
@@ -583,7 +583,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			YextPath:               yextPath,
 		})
 		if err != nil {
-			util.AppendErrs(yerr, errs)
+			yerr = util.AppendErrs(yerr, errs)
 			continue
 		}
 		pkg.Header = h
@@ -620,9 +620,7 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 
 	var errs util.Errors
 	for _, name := range yangFiles {
-		if err := moduleSet.Read(name); err != nil {
-			util.AppendErr(errs, err)
-		}
+		errs = util.AppendErr(errs, moduleSet.Read(name))
 	}
 
 	if errs != nil {
@@ -819,12 +817,12 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 			// If this is a config or state container and we are compressing paths
 			// then we do not want to map this container - but we do want to map its
 			// children.
-			util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules))
+			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules))
 		case hasOnlyChild(ch) && children(ch)[0].IsList() && compressPaths:
 			// This is a surrounding container for a list, and we are compressing
 			// paths, so we don't want to map it but again we do want to map its
 			// children.
-			util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules))
+			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules))
 		case isChoiceOrCase(ch):
 			// Don't map for a choice or case node itself, and rather skip over it.
 			// However, we must walk each branch to find the first container that
@@ -845,16 +843,16 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 				if gch.IsContainer() || gch.IsList() {
 					dirs[fmt.Sprintf("%s/%s", ch.Parent.Path(), gch.Name)] = gch
 				}
-				util.AppendErrs(errs, findMappableEntities(gch, dirs, enums, excludeModules, compressPaths, modules))
+				errs = util.AppendErrs(errs, findMappableEntities(gch, dirs, enums, excludeModules, compressPaths, modules))
 			}
 		case ch.IsContainer(), ch.IsList():
 			dirs[ch.Path()] = ch
 			// Recurse down the tree.
-			util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules))
+			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules))
 		case ch.Kind == yang.AnyDataEntry:
 			continue
 		default:
-			util.AppendErr(errs, fmt.Errorf("unknown type of entry %v in findMappableEntities for %s", e.Kind, e.Path()))
+			errs = util.AppendErr(errs, fmt.Errorf("unknown type of entry %v in findMappableEntities for %s", e.Kind, e.Path()))
 		}
 	}
 	return errs
