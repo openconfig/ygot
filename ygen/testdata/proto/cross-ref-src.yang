@@ -1,0 +1,25 @@
+module cross-ref-src {
+  namespace "http://test/src";
+  prefix "s";
+
+  import cross-ref-target { prefix t; }
+  
+  grouping src-config {
+    leaf src {
+      type leafref {
+        path "/t:a/t:b";
+      }
+    }
+  }
+
+
+  container src {
+    container config {
+      uses src-config;
+    }
+    container state {
+      config false;
+      uses src-config;
+    }
+  }
+}

@@ -683,11 +683,11 @@ func TestDirectEntryChild(t *testing.T) {
 	}, {
 		name: "compress paths on, child is not a list",
 		inParent: &yang.Entry{
-			Name: "parent",
+			Name: "parent-nl",
 			Kind: yang.DirectoryEntry,
 			Dir:  map[string]*yang.Entry{},
 			Parent: &yang.Entry{
-				Name: "module",
+				Name: "module-nl",
 			},
 		},
 		inChild: &yang.Entry{
@@ -695,9 +695,9 @@ func TestDirectEntryChild(t *testing.T) {
 			Kind: yang.DirectoryEntry,
 			Dir:  map[string]*yang.Entry{},
 			Parent: &yang.Entry{
-				Name: "parent",
+				Name: "parent-nl",
 				Parent: &yang.Entry{
-					Name: "module",
+					Name: "module-nl",
 				},
 			},
 		},
@@ -732,6 +732,32 @@ func TestDirectEntryChild(t *testing.T) {
 			},
 		},
 		inCompressPaths: true,
+	}, {
+		name: "compress paths on, container in state container",
+		inParent: &yang.Entry{
+			Name: "parent",
+			Kind: yang.DirectoryEntry,
+			Parent: &yang.Entry{
+				Name: "module",
+			},
+		},
+		inChild: &yang.Entry{
+			Name: "counters",
+			Kind: yang.DirectoryEntry,
+			Parent: &yang.Entry{
+				Name: "state",
+				Kind: yang.DirectoryEntry,
+				Dir:  map[string]*yang.Entry{},
+				Parent: &yang.Entry{
+					Name: "parent",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+		},
+		inCompressPaths: true,
+		want:            true,
 	}}
 
 	for _, tt := range tests {

@@ -1,0 +1,8 @@
+module cross-ref-target {
+  namespace "http://test/target";
+  prefix "t";
+ 
+  container a {
+    leaf b { type string; }
+  }
+}

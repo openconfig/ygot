@@ -1,0 +1,15 @@
+module fakeroot-multimod-two {
+  namespace "http://test/two";
+  prefix "two";
+
+  container two {
+    container config {
+      leaf str { type string; }
+    }
+
+    container state {
+      config false;
+      leaf str { type string; }
+    }
+  }
+}

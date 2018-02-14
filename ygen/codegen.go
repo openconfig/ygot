@@ -18,7 +18,6 @@
 package ygen
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"sort"
@@ -28,6 +27,7 @@ import (
 
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -262,35 +262,6 @@ type Proto3Package struct {
 	Enums    []string // Enums is a slice of string containing the generated set of enumerations within the package.
 }
 
-// YANGCodeGeneratorError is a type implementing error that is returned to the
-// caller of the library when errors are encountered during code generation. It
-// implements error such that idiomatic if err != nil testing can be used, and
-// contains a list of errors associted with the code generation call.
-type YANGCodeGeneratorError struct {
-	Errors []error
-}
-
-// NewYANGCodeGeneratorError returns a new instance of the YANGCodeGeneratorError
-// struct with the relevant fields initialised.
-func NewYANGCodeGeneratorError() *YANGCodeGeneratorError {
-	return &YANGCodeGeneratorError{}
-}
-
-// Error is a method of YANGCodeGeneratorError which returns a concatenated
-// string of the errors that are stored within the YANGCodeGeneratorError
-// struct. Its implementation allows a YANGCodeGeneratorError to implement the
-// error interface.
-func (yangErr *YANGCodeGeneratorError) Error() string {
-	var buf bytes.Buffer
-	buf.WriteString("errors encountered during code generation:\n")
-
-	// Concatenate the errors that are stored within the receiver YANGCodeGeneratorError struct.
-	for _, e := range yangErr.Errors {
-		buf.WriteString(fmt.Sprintf("%v\n", e))
-	}
-	return buf.String()
-}
-
 const (
 	// rootElementPath is the synthesised node name that is used for an
 	// element that represents the root. Such an element is generated only
@@ -324,13 +295,13 @@ const (
 //	   of type enumeration, identities, typedefs that reference an enumeration)
 //	   within the specified models.
 // If errors are encountered during code generation, an error is returned.
-func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*GeneratedGoCode, *YANGCodeGeneratorError) {
+func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*GeneratedGoCode, util.Errors) {
 	// Extract the entities to be mapped into structs and enumerations in the output
 	// Go code. Extract the schematree from the modules provided such that it can be
 	// used to reference entities within the tree.
 	mdef, errs := mappedDefinitions(yangFiles, includePaths, &cg.Config)
 	if errs != nil {
-		return nil, &YANGCodeGeneratorError{Errors: errs}
+		return nil, errs
 	}
 
 	// Store the returned schematree within the state for this code generation.
@@ -338,12 +309,12 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 
 	goStructs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang, cg.Config.ExcludeState)
 	if errs != nil {
-		return nil, &YANGCodeGeneratorError{Errors: errs}
+		return nil, errs
 	}
 
 	codeHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config)
-	if errs != nil {
-		return nil, &YANGCodeGeneratorError{Errors: []error{err}}
+	if err != nil {
+		return nil, util.AppendErr(util.Errors{}, err)
 	}
 
 	// orderedStructNames is used to store the structs that have been
@@ -362,13 +333,13 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 
 	// enumTypeMap stores the map of the path to type.
 	enumTypeMap := map[string][]string{}
-	codegenErr := NewYANGCodeGeneratorError()
+	var codegenErr util.Errors
 	var structSnippets []string
 	for _, structName := range orderedStructNames {
 		structOut, errs := writeGoStruct(structNameMap[structName], goStructs, cg.state,
 			cg.Config.CompressOCPaths, cg.Config.GenerateJSONSchema, cg.Config.GoOptions)
 		if errs != nil {
-			codegenErr.Errors = append(codegenErr.Errors, errs...)
+			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
 		}
 		// Append the actual struct definitions that were returned.
@@ -386,7 +357,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 
 	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, false)
 	if errs != nil {
-		codegenErr.Errors = append(codegenErr.Errors, errs...)
+		codegenErr = util.AppendErrs(codegenErr, errs)
 		return nil, codegenErr
 	}
 
@@ -414,7 +385,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	for _, enumName := range orderedEnumNames {
 		enumOut, err := writeGoEnum(enumNameMap[enumName])
 		if err != nil {
-			codegenErr.Errors = append(codegenErr.Errors, err)
+			util.AppendErr(codegenErr, err)
 			continue
 		}
 		enumSnippets = append(enumSnippets, enumOut.constDef)
@@ -426,7 +397,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// string values.
 	enumMap, err := generateEnumMap(enumValueMap)
 	if err != nil {
-		codegenErr.Errors = append(codegenErr.Errors, err)
+		util.AppendErr(codegenErr, err)
 	}
 
 	var rawSchema []byte
@@ -436,22 +407,22 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		var err error
 		rawSchema, err = buildJSONTree(mdef.modules, cg.state.uniqueDirectoryNames, mdef.directoryEntries["/"], cg.Config.CompressOCPaths)
 		if err != nil {
-			codegenErr.Errors = append(codegenErr.Errors, fmt.Errorf("error marshalling JSON schema: %v", err))
+			util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}
 
 		if rawSchema != nil {
 			if jsonSchema, err = writeGoSchema(rawSchema, cg.Config.GoOptions.SchemaVarName); err != nil {
-				codegenErr.Errors = append(codegenErr.Errors, fmt.Errorf("error storing schema variable: %v", err))
+				util.AppendErr(codegenErr, err)
 			}
 		}
 
 		if enumTypeMapCode, err = generateEnumTypeMap(enumTypeMap); err != nil {
-			codegenErr.Errors = append(codegenErr.Errors, err)
+			util.AppendErr(codegenErr, err)
 		}
 	}
 
 	// Return any errors that were encountered during code generation.
-	if len(codegenErr.Errors) != 0 {
+	if len(codegenErr) != 0 {
 		return nil, codegenErr
 	}
 
@@ -471,34 +442,34 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 // yangFiles argument, with included modules being searched for in includePaths.
 // It returns a GeneratedProto3 struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
-func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto3, *YANGCodeGeneratorError) {
-	// TODO(github.com/openconfig/ygot/issues/20): Handle enumerated types in proto messages.
+func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto3, util.Errors) {
 	mdef, errs := mappedDefinitions(yangFiles, includePaths, &cg.Config)
 	if errs != nil {
-		return nil, &YANGCodeGeneratorError{Errors: errs}
+		return nil, errs
 	}
 
 	cg.state.schematree = mdef.schemaTree
 
 	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, true)
 	if errs != nil {
-		return nil, &YANGCodeGeneratorError{Errors: errs}
+		return nil, errs
 	}
 	protoEnums, errs := writeProtoEnums(penums, cg.Config.ProtoOptions.AnnotateEnumNames)
 	if errs != nil {
-		return nil, &YANGCodeGeneratorError{Errors: errs}
+		return nil, errs
 	}
 
 	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf, cg.Config.ExcludeState)
-
 	if errs != nil {
-		return nil, &YANGCodeGeneratorError{Errors: errs}
+		return nil, errs
 	}
 
 	genProto := &GeneratedProto3{
 		Packages: map[string]Proto3Package{},
 	}
-	ye := NewYANGCodeGeneratorError()
+
+	// yerr stores errors encountered during code generation.
+	var yerr util.Errors
 
 	// pkgImports lists the imports that are required for the package that is being
 	// written out.
@@ -558,7 +529,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		})
 
 		if errs != nil {
-			ye.Errors = append(ye.Errors, errs...)
+			yerr = util.AppendErrs(yerr, errs)
 			continue
 		}
 
@@ -607,14 +578,15 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			YextPath:               yextPath,
 		})
 		if err != nil {
-			ye.Errors = append(ye.Errors, errs...)
+			yerr = util.AppendErrs(yerr, errs)
+			continue
 		}
 		pkg.Header = h
 		genProto.Packages[n] = pkg
 	}
 
-	if ye.Errors != nil {
-		return nil, ye
+	if yerr != nil {
+		return nil, yerr
 	}
 
 	return genProto, nil
@@ -625,7 +597,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 // and returns a processed set of yang.Entry pointers which correspond to the
 // generated code for the modules. If errors are returned during the Goyang
 // processing of the modules, these errors are returned.
-func processModules(yangFiles, includePaths []string, options yang.Options) ([]*yang.Entry, []error) {
+func processModules(yangFiles, includePaths []string, options yang.Options) ([]*yang.Entry, util.Errors) {
 	// Append the includePaths to the Goyang path variable, this ensures
 	// that where a YANG module uses an 'include' statement to reference
 	// another module, then Goyang can find this module to process.
@@ -641,15 +613,13 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 	// Initialise the set of YANG modules within the Goyang parsing package.
 	moduleSet := yang.NewModules()
 
-	var processErr []error
+	var errs util.Errors
 	for _, name := range yangFiles {
-		if err := moduleSet.Read(name); err != nil {
-			processErr = append(processErr, err)
-		}
+		errs = util.AppendErr(errs, moduleSet.Read(name))
 	}
 
-	if processErr != nil {
-		return nil, processErr
+	if errs != nil {
+		return nil, errs
 	}
 
 	if errs := moduleSet.Process(); errs != nil {
@@ -704,7 +674,7 @@ type mappedYANGDefinitions struct {
 //	- cfg: the current generator's configuration.
 // It returns a mappedYANGDefinitions struct populated with the directory and enum
 // entries in the input schemas, along with the calculated schema tree.
-func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (*mappedYANGDefinitions, []error) {
+func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (*mappedYANGDefinitions, util.Errors) {
 	modules, errs := processModules(yangFiles, includePaths, cfg.YANGParseOptions)
 	if errs != nil {
 		return nil, errs
@@ -720,26 +690,30 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 	// them from the modules that are provided as an argument.
 	dirs := make(map[string]*yang.Entry)
 	enums := make(map[string]*yang.Entry)
-	var rootElems []*yang.Entry
+	var rootElems, treeElems []*yang.Entry
 	for _, module := range modules {
-		findMappableEntities(module, dirs, enums, cfg.ExcludeModules, cfg.CompressOCPaths)
+		errs = append(errs, findMappableEntities(module, dirs, enums, cfg.ExcludeModules, cfg.CompressOCPaths, modules)...)
 		if module == nil {
 			errs = append(errs, errors.New("found a nil module in the returned module set"))
 			continue
 		}
-		// Ensure that we do not try and traverse an empty module.
-		if module.Dir != nil && !excluded[module.Name] {
-			for _, e := range module.Dir {
+
+		for _, e := range module.Dir {
+			if !excluded[module.Name] {
 				rootElems = append(rootElems, e)
 			}
+			treeElems = append(treeElems, e)
 		}
 	}
+
 	if errs != nil {
 		return nil, errs
 	}
 
-	// Build the schematree for the modules provided.
-	st, err := buildSchemaTree(rootElems)
+	// Build the schematree for the modules provided - we build for all of the
+	// root elements, since we might need to reference a part of the schema that
+	// we are not outputting for leafref lookups.
+	st, err := buildSchemaTree(treeElems)
 	if err != nil {
 		return nil, []error{err}
 	}
@@ -804,29 +778,27 @@ func mappableLeaf(e *yang.Entry) *yang.Entry {
 	return nil
 }
 
-// findMappableEntties finds the descendants of a yang.Entry (e) that should be mapped in
+// findMappableEntities finds the descendants of a yang.Entry (e) that should be mapped in
 // the generated code. The descendants that represent directories are appended to the dirs
 // map (keyed by the schema path). Those that represent enumerated types (identityref, enumeration,
 // unions containing these types, or typedefs containing these types) are appended to the
 // enums map, which is again keyed by schema path. If any child of the entry is in a module
 // defined in excludeModules, it is skipped. If compressPaths is set to true, then names are
-// mapped with path compression enabled.
-func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules []string, compressPaths bool) {
-	pp := strings.Split(e.Path(), "/")
-	if !strings.HasPrefix(e.Path(), "/") {
-		// This is a malformed path, since the path is defined in the form
-		// /module/container-one.
-		return
-	}
-
+// mapped with path compression enabled. The set of modules that the current code generation
+// is processing is specified by the modules slice. This function returns slice of errors
+// encountered during processing.
+func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules []string, compressPaths bool, modules []*yang.Entry) util.Errors {
 	// Skip entities who are defined within a module that we have been instructed
 	// not to generate code for.
 	for _, s := range excludeModules {
-		if s == pp[1] {
-			return
+		for _, m := range modules {
+			if m.Name == s && m.Namespace().Name == e.Namespace().Name {
+				return nil
+			}
 		}
 	}
 
+	var errs util.Errors
 	for _, ch := range children(e) {
 		switch {
 		case ch.IsLeaf(), ch.IsLeafList():
@@ -840,12 +812,12 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 			// If this is a config or state container and we are compressing paths
 			// then we do not want to map this container - but we do want to map its
 			// children.
-			findMappableEntities(ch, dirs, enums, excludeModules, compressPaths)
+			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules))
 		case hasOnlyChild(ch) && children(ch)[0].IsList() && compressPaths:
 			// This is a surrounding container for a list, and we are compressing
 			// paths, so we don't want to map it but again we do want to map its
 			// children.
-			findMappableEntities(ch, dirs, enums, excludeModules, compressPaths)
+			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules))
 		case isChoiceOrCase(ch):
 			// Don't map for a choice or case node itself, and rather skip over it.
 			// However, we must walk each branch to find the first container that
@@ -866,16 +838,19 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 				if gch.IsContainer() || gch.IsList() {
 					dirs[fmt.Sprintf("%s/%s", ch.Parent.Path(), gch.Name)] = gch
 				}
-				findMappableEntities(gch, dirs, enums, excludeModules, compressPaths)
+				errs = util.AppendErrs(errs, findMappableEntities(gch, dirs, enums, excludeModules, compressPaths, modules))
 			}
 		case ch.IsContainer(), ch.IsList():
 			dirs[ch.Path()] = ch
 			// Recurse down the tree.
-			findMappableEntities(ch, dirs, enums, excludeModules, compressPaths)
+			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules))
+		case ch.Kind == yang.AnyDataEntry:
+			continue
 		default:
-			log.Infof("unknown type of entry %v in findMappableEntities for %s", e.Kind, e.Path())
+			errs = util.AppendErr(errs, fmt.Errorf("unknown type of entry %v in findMappableEntities for %s", e.Kind, e.Path()))
 		}
 	}
+	return errs
 }
 
 // findRootEntries finds the entities that are at the root of the YANG schema tree,

@@ -1,0 +1,9 @@
+module missing-import {
+  prefix "p";
+  namespace "http://test.com/p";
+
+  import module-in-subdir { prefix "s"; }
+
+  uses s:b;
+
+}

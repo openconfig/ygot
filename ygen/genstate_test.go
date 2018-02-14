@@ -2042,8 +2042,15 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 			structs := make(map[string]*yang.Entry)
 			enums := make(map[string]*yang.Entry)
 
+			var errs []error
 			for _, inc := range tt.in {
-				findMappableEntities(inc, structs, enums, []string{}, c.compress)
+				// Always provide a nil set of modules to findMappableEntities since this
+				// is only used to skip elements.
+				errs = append(errs, findMappableEntities(inc, structs, enums, []string{}, c.compress, []*yang.Entry{})...)
+			}
+			if errs != nil {
+				t.Errorf("%s: findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v", tt.name, tt.in, structs, enums, c.compress, err)
+				continue
 			}
 
 			got, errs := cg.state.buildDirectoryDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, c.lang, c.excludeState)

@@ -1,0 +1,34 @@
+module fakeroot-multimod-one {
+  namespace "http://test/mmone";
+  prefix "p";
+
+  grouping mmone-config {
+    leaf key { type uint32; }
+  }
+
+  container ones {
+    list one {
+      key "key";
+
+      leaf key {
+        type leafref {
+          path "../config/key";
+        }
+      }
+
+      container config {
+        uses mmone-config;
+      }
+
+      container state {
+        config false;
+        container counters {
+          leaf counter { type uint64; }
+        }
+      }
+    }
+  }
+}
+      
+      
+

@@ -325,27 +325,49 @@ func isDirectEntryChild(p, c *yang.Entry, compressPaths bool) bool {
 	cpp := strings.Split(c.Path(), "/")
 	dc := isPathChild(ppp, cpp)
 
-	// If we are not compressing paths, the child is not a list entry,
-	// or the child path is not a grandchild (i.e., has a path length of >2 greater than its parent)
-	// of the current element, then this cannot be a valid direct child.
-	if !compressPaths || !c.IsList() || len(cpp) > len(ppp)+2 || len(cpp) < len(ppp) {
+	// If we are not compressing paths, then directly return whether the child
+	// is a path of the parent.
+	if !compressPaths {
 		return dc
 	}
 
-	ppe, ok := p.Dir[c.Parent.Name]
-	if !ok {
-		// Can't be a valid child because the parent of the entity doesn't exist
-		// within this container.
+	// If the length of the child path is greater than two larger than the
+	// parent path, then this means that it cannot be a direct child, since all
+	// path compression will remove only one level of hierarchy (config/state or
+	// a surrounding container at maximum). We also check that the length of
+	// the child path is more specific than or equal to the length of the parent
+	// path in which case this cannot be a child.
+	if len(cpp) > len(ppp)+2 || len(cpp) <= len(ppp) {
 		return false
 	}
 
-	if !hasOnlyChild(ppe) {
-		return false
+	if isConfigState(c.Parent) {
+		// If the parent of this entity was the config/state container, then this
+		// level of the hierarchy will have been removed so we check whether the
+		// parent of both are equal and return this.
+		return p.Path() == c.Parent.Parent.Path()
 	}
 
-	// We are guaranteed to have 1 child (and not zero) since hasOnlyChild will
-	// return false for directories with 0 children.
-	return children(ppe)[0].Path() == c.Path()
+	// If the child is a list, then we check whether the parent has only one
+	// child (i.e., is a surrounding container) and then check whether the
+	// single child is the child we were provided.
+	if c.IsList() {
+		ppe, ok := p.Dir[c.Parent.Name]
+		if !ok {
+			// Can't be a valid child because the parent of the entity doesn't exist
+			// within this container.
+			return false
+		}
+		if !hasOnlyChild(ppe) {
+			return false
+		}
+
+		// We are guaranteed to have 1 child (and not zero) since hasOnlyChild will
+		// return false for directories with 0 children.
+		return children(ppe)[0].Path() == c.Path()
+	}
+
+	return dc
 }
 
 // isPathChild takes an input slice of strings representing a path and determines
