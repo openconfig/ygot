@@ -1,0 +1,13 @@
+module exclude-state-ro-list {
+  namespace "http://test.com/esro";
+  prefix "p";
+
+  container a {
+    container b {
+      list c {
+        config false;
+        leaf d { type string; }
+      }
+    }
+  }
+}

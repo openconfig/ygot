@@ -607,6 +607,15 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.getters-append.formatted-txt"),
+	}, {
+		name:    "module with excluded state, with RO list, path compression on",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "exclude-state-ro-list.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot: true,
+			CompressOCPaths:  true,
+			ExcludeState:     true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "exclude-state-ro-list.formatted-txt"),
 	}}
 
 	for _, tt := range tests {
