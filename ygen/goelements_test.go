@@ -313,6 +313,35 @@ func TestFindChildren(t *testing.T) {
 		inExcludeState:   true,
 		wantCompressed:   []yang.Entry{{Name: "config-true"}},
 		wantUncompressed: []yang.Entry{{Name: "config-true"}},
+	}, {
+		name: "exclude read-only list within a container with compression",
+		inElement: &yang.Entry{
+			Name:   "container",
+			Kind:   yang.DirectoryEntry,
+			Config: yang.TSTrue,
+			Dir: map[string]*yang.Entry{
+				"surrounding-container": {
+					Name:   "surrounding-container",
+					Kind:   yang.DirectoryEntry,
+					Config: yang.TSTrue,
+					Dir: map[string]*yang.Entry{
+						"list": {
+							Name:     "list",
+							Config:   yang.TSFalse,
+							Kind:     yang.DirectoryEntry,
+							ListAttr: &yang.ListAttr{},
+							Dir:      map[string]*yang.Entry{},
+						},
+					},
+				},
+			},
+		},
+		inExcludeState: true,
+		wantCompressed: []yang.Entry{},
+		wantUncompressed: []yang.Entry{{
+			Name:   "surrounding-container",
+			Config: yang.TSTrue,
+		}},
 	}}
 
 	for _, tt := range tests {

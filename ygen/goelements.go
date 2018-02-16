@@ -447,6 +447,10 @@ func findAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 			// Implement rule 2 - remove surrounding containers for lists and consider
 			// the list under the surrounding container a direct child.
 			case len(eGrandChildren) == 1 && eGrandChildren[0].IsList():
+				if !isConfig(eGrandChildren[0]) && excludeState {
+					// If the list child is read-only, then it is not a valid child.
+					continue
+				}
 				errs = addNewChild(directChildren, eGrandChildren[0].Name, eGrandChildren[0], errs)
 			// See note in function documentation about choice and case nodes - which are
 			// not valid data tree elements. We therefore skip past any number of nested
