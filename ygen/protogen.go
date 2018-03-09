@@ -811,6 +811,13 @@ func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]stri
 	var errs util.Errors
 	var genEnums []string
 	for _, enum := range enums {
+		// TODO(robjs): Currently, we do not skip enumerations that are within unions
+		// that have been extracted by findEnumSet here. This means that we can end
+		// up with duplicate definitions of enumerations within the generated protobufs.
+		// Particularly, an enum may be defined both inline to a message and within the
+		// global enumerations. Additional logic is required to determine the provenance
+		// of such an enum, since we do not store that it was extracted from a union
+		// within the type (or entry) currently.
 		if isSimpleEnumerationType(enum.entry.Type) || enum.entry.Type.Kind == yang.Yunion {
 			// Skip simple enumerations and those within unions.
 			continue
