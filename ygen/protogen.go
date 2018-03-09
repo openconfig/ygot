@@ -1257,9 +1257,9 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 // enumInProtoUnionField parses an enum that is within a union and returns the generated
 // enumeration that should be included within a protobuf message for it. If annotateEnumNames
 // is set to true, the enumerated value's original names are stored.
-func enumInProtoUnionField(name string, types []*yang.YangType, annotateEnumNames bool) (map[string]*protoMsgEnum, error) {
+func enumInProtoUnionField(name string, etype *yang.YangType, annotateEnumNames bool) (map[string]*protoMsgEnum, error) {
 	enums := map[string]*protoMsgEnum{}
-	for _, t := range types {
+	for _, t := range etype.Type {
 		if isSimpleEnumerationType(t) {
 			n := fmt.Sprintf("%s", yang.CamelCase(name))
 			enum, err := genProtoEnum(&yang.Entry{
@@ -1273,7 +1273,7 @@ func enumInProtoUnionField(name string, types []*yang.YangType, annotateEnumName
 		}
 
 		if isUnionType(t) {
-			es, err := enumInProtoUnionField(name, t.Type, annotateEnumNames)
+			es, err := enumInProtoUnionField(name, t, annotateEnumNames)
 			if err != nil {
 				return nil, err
 			}
@@ -1300,7 +1300,7 @@ type protoUnionField struct {
 // field within the protobuf message. If the annotateEnumNames boolean is set, then any enumerated types
 // within the union have their original names within the YANG schema appended.
 func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *mappedType, annotateEnumNames bool) (*protoUnionField, error) {
-	enums, err := enumInProtoUnionField(fieldName, e.Type.Type, annotateEnumNames)
+	enums, err := enumInProtoUnionField(fieldName, e.Type, annotateEnumNames)
 	if err != nil {
 		return nil, err
 	}

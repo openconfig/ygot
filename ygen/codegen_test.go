@@ -619,81 +619,83 @@ func TestSimpleStructs(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		// Set defaults within the supplied configuration for these tests.
-		if tt.inConfig.Caller == "" {
-			// Set the name of the caller explicitly to avoid issues when
-			// the unit tests are called by external test entities.
-			tt.inConfig.Caller = "codegen-tests"
-		}
-		tt.inConfig.StoreRawSchema = true
+		t.Run(tt.name, func(t *testing.T) {
+			// Set defaults within the supplied configuration for these tests.
+			if tt.inConfig.Caller == "" {
+				// Set the name of the caller explicitly to avoid issues when
+				// the unit tests are called by external test entities.
+				tt.inConfig.Caller = "codegen-tests"
+			}
+			tt.inConfig.StoreRawSchema = true
 
-		cg := NewYANGCodeGenerator(&tt.inConfig)
+			cg := NewYANGCodeGenerator(&tt.inConfig)
 
-		gotGeneratedCode, err := cg.GenerateGoCode(tt.inFiles, tt.inIncludePaths)
-		if err != nil && !tt.wantErr {
-			t.Errorf("%s: cg.GenerateCode(%v, %v): Config: %v, got unexpected error: %v, want: nil",
-				tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
-			continue
-		}
+			gotGeneratedCode, err := cg.GenerateGoCode(tt.inFiles, tt.inIncludePaths)
+			if err != nil && !tt.wantErr {
+				t.Errorf("%s: cg.GenerateCode(%v, %v): Config: %v, got unexpected error: %v, want: nil",
+					tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
+				return
+			}
 
-		wantCode, rferr := ioutil.ReadFile(tt.wantStructsCodeFile)
-		if rferr != nil {
-			t.Errorf("%s: ioutil.ReadFile(%q) error: %v", tt.name, tt.wantStructsCodeFile, rferr)
-			continue
-		}
-
-		// Write all the received structs into a single file such that
-		// it can be compared to the received file.
-		var gotCode bytes.Buffer
-		fmt.Fprint(&gotCode, gotGeneratedCode.Header)
-		for _, gotStruct := range gotGeneratedCode.Structs {
-			fmt.Fprint(&gotCode, gotStruct)
-		}
-
-		for _, gotEnum := range gotGeneratedCode.Enums {
-			fmt.Fprint(&gotCode, gotEnum)
-		}
-
-		// Write generated enumeration map out.
-		fmt.Fprint(&gotCode, gotGeneratedCode.EnumMap)
-
-		if tt.inConfig.GenerateJSONSchema {
-			// Write the schema byte array out.
-			fmt.Fprint(&gotCode, gotGeneratedCode.JSONSchemaCode)
-			fmt.Fprint(&gotCode, gotGeneratedCode.EnumTypeMap)
-
-			wantSchema, rferr := ioutil.ReadFile(tt.wantSchemaFile)
+			wantCode, rferr := ioutil.ReadFile(tt.wantStructsCodeFile)
 			if rferr != nil {
-				t.Errorf("%s: ioutil.ReadFile(%q) error: %v", tt.name, tt.wantSchemaFile, err)
-				continue
+				t.Errorf("%s: ioutil.ReadFile(%q) error: %v", tt.name, tt.wantStructsCodeFile, rferr)
+				return
 			}
 
-			var gotJSON map[string]interface{}
-			if err := json.Unmarshal(gotGeneratedCode.RawJSONSchema, &gotJSON); err != nil {
-				t.Errorf("%s: json.Unmarshal(..., %v), could not unmarshal received JSON: %v", tt.name, gotGeneratedCode.RawJSONSchema, err)
-				continue
+			// Write all the received structs into a single file such that
+			// it can be compared to the received file.
+			var gotCode bytes.Buffer
+			fmt.Fprint(&gotCode, gotGeneratedCode.Header)
+			for _, gotStruct := range gotGeneratedCode.Structs {
+				fmt.Fprint(&gotCode, gotStruct)
 			}
 
-			var wantJSON map[string]interface{}
-			if err := json.Unmarshal(wantSchema, &wantJSON); err != nil {
-				t.Errorf("%s: json.Unmarshal(..., [contents of %s]), could not unmarshal golden JSON file: %v", tt.name, tt.wantSchemaFile, err)
-				continue
+			for _, gotEnum := range gotGeneratedCode.Enums {
+				fmt.Fprint(&gotCode, gotEnum)
 			}
 
-			if !reflect.DeepEqual(gotJSON, wantJSON) {
-				diff, _ := generateUnifiedDiff(string(gotGeneratedCode.RawJSONSchema), string(wantSchema))
-				t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
-			}
-		}
+			// Write generated enumeration map out.
+			fmt.Fprint(&gotCode, gotGeneratedCode.EnumMap)
 
-		if gotCode.String() != string(wantCode) {
-			// Use difflib to generate a unified diff between the
-			// two code snippets such that this is simpler to debug
-			// in the test output.
-			diff, _ := generateUnifiedDiff(gotCode.String(), string(wantCode))
-			t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct code (file: %v), diff:\n%s",
-				tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diff)
-		}
+			if tt.inConfig.GenerateJSONSchema {
+				// Write the schema byte array out.
+				fmt.Fprint(&gotCode, gotGeneratedCode.JSONSchemaCode)
+				fmt.Fprint(&gotCode, gotGeneratedCode.EnumTypeMap)
+
+				wantSchema, rferr := ioutil.ReadFile(tt.wantSchemaFile)
+				if rferr != nil {
+					t.Errorf("%s: ioutil.ReadFile(%q) error: %v", tt.name, tt.wantSchemaFile, err)
+					return
+				}
+
+				var gotJSON map[string]interface{}
+				if err := json.Unmarshal(gotGeneratedCode.RawJSONSchema, &gotJSON); err != nil {
+					t.Errorf("%s: json.Unmarshal(..., %v), could not unmarshal received JSON: %v", tt.name, gotGeneratedCode.RawJSONSchema, err)
+					return
+				}
+
+				var wantJSON map[string]interface{}
+				if err := json.Unmarshal(wantSchema, &wantJSON); err != nil {
+					t.Errorf("%s: json.Unmarshal(..., [contents of %s]), could not unmarshal golden JSON file: %v", tt.name, tt.wantSchemaFile, err)
+					return
+				}
+
+				if !reflect.DeepEqual(gotJSON, wantJSON) {
+					diff, _ := generateUnifiedDiff(string(gotGeneratedCode.RawJSONSchema), string(wantSchema))
+					t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
+				}
+			}
+
+			if gotCode.String() != string(wantCode) {
+				// Use difflib to generate a unified diff between the
+				// two code snippets such that this is simpler to debug
+				// in the test output.
+				diff, _ := generateUnifiedDiff(gotCode.String(), string(wantCode))
+				t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct code (file: %v), diff:\n%s",
+					tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diff)
+			}
+		})
 	}
 }
 
@@ -982,7 +984,7 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_union_list_key.routing_policy.sets":            filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.sets.formatted-txt"),
 		},
 	}, {
-		name:     "yang schema with various types of enums with underscores",
+		name:     "enums: yang schema with various types of enums with underscores",
 		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-enums.yang")},
 		inConfig: GeneratorConfig{},
 		wantOutputFiles: map[string]string{
@@ -990,7 +992,7 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_enums": filepath.Join(TestRoot, "testdata", "proto", "proto-enums.formatted-txt"),
 		},
 	}, {
-		name: "yang schema with identity that adds to previous module",
+		name: "enums: yang schema with identity that adds to previous module",
 		inFiles: []string{
 			filepath.Join(TestRoot, "testdata", "proto", "proto-enums.yang"),
 			filepath.Join(TestRoot, "testdata", "proto", "proto-enums-addid.yang"),
@@ -1130,78 +1132,80 @@ func TestGenerateProto3(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if tt.inConfig.Caller == "" {
-			// Override the caller if it is not set, to ensure that test
-			// output is deterministic.
-			tt.inConfig.Caller = "codegen-tests"
-		}
-
-		cg := NewYANGCodeGenerator(&tt.inConfig)
-		gotProto, err := cg.GenerateProto3(tt.inFiles, tt.inIncludePaths)
-		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: cg.GenerateProto3(%v, %v), config: %v: got unexpected error: %v", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
-			continue
-		}
-
-		if tt.wantErr || err != nil {
-			continue
-		}
-
-		seenPkg := map[string]bool{}
-		for n := range gotProto.Packages {
-			seenPkg[n] = false
-		}
-
-		protoPkgs := func(m map[string]Proto3Package) []string {
-			a := []string{}
-			for k := range m {
-				a = append(a, k)
-			}
-			return a
-		}
-
-		for pkg, wantFile := range tt.wantOutputFiles {
-			wantCode, err := ioutil.ReadFile(wantFile)
-			if err != nil {
-				t.Errorf("%s: ioutil.ReadFile(%v): could not read file for package %s", tt.name, wantFile, pkg)
-				continue
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.inConfig.Caller == "" {
+				// Override the caller if it is not set, to ensure that test
+				// output is deterministic.
+				tt.inConfig.Caller = "codegen-tests"
 			}
 
-			gotPkg, ok := gotProto.Packages[pkg]
-			if !ok {
-				t.Errorf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
-				continue
+			cg := NewYANGCodeGenerator(&tt.inConfig)
+			gotProto, err := cg.GenerateProto3(tt.inFiles, tt.inIncludePaths)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("%s: cg.GenerateProto3(%v, %v), config: %v: got unexpected error: %v", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
+				return
 			}
 
-			// Mark this package as having been seen.
-			seenPkg[pkg] = true
-
-			// Write the returned struct out to a buffer to compare with the
-			// testdata file.
-			var gotCodeBuf bytes.Buffer
-			fmt.Fprintf(&gotCodeBuf, gotPkg.Header)
-
-			for _, gotMsg := range gotPkg.Messages {
-				fmt.Fprintf(&gotCodeBuf, "%s\n", gotMsg)
+			if tt.wantErr || err != nil {
+				return
 			}
 
-			for _, gotEnum := range gotPkg.Enums {
-				fmt.Fprintf(&gotCodeBuf, "%s", gotEnum)
+			seenPkg := map[string]bool{}
+			for n := range gotProto.Packages {
+				seenPkg[n] = false
 			}
 
-			if diff := pretty.Compare(gotCodeBuf.String(), string(wantCode)); diff != "" {
-				if diffl, _ := generateUnifiedDiff(gotCodeBuf.String(), string(wantCode)); diffl != "" {
-					diff = diffl
+			protoPkgs := func(m map[string]Proto3Package) []string {
+				a := []string{}
+				for k := range m {
+					a = append(a, k)
 				}
-				t.Errorf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-got,+want):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
+				return a
 			}
-		}
 
-		for pkg, seen := range seenPkg {
-			if !seen {
-				t.Errorf("%s: cg.GenerateProto3(%v, %v) did not test received package %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg)
+			for pkg, wantFile := range tt.wantOutputFiles {
+				wantCode, err := ioutil.ReadFile(wantFile)
+				if err != nil {
+					t.Errorf("%s: ioutil.ReadFile(%v): could not read file for package %s", tt.name, wantFile, pkg)
+					return
+				}
+
+				gotPkg, ok := gotProto.Packages[pkg]
+				if !ok {
+					t.Errorf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
+					return
+				}
+
+				// Mark this package as having been seen.
+				seenPkg[pkg] = true
+
+				// Write the returned struct out to a buffer to compare with the
+				// testdata file.
+				var gotCodeBuf bytes.Buffer
+				fmt.Fprintf(&gotCodeBuf, gotPkg.Header)
+
+				for _, gotMsg := range gotPkg.Messages {
+					fmt.Fprintf(&gotCodeBuf, "%s\n", gotMsg)
+				}
+
+				for _, gotEnum := range gotPkg.Enums {
+					fmt.Fprintf(&gotCodeBuf, "%s", gotEnum)
+				}
+
+				if diff := pretty.Compare(gotCodeBuf.String(), string(wantCode)); diff != "" {
+					if diffl, _ := generateUnifiedDiff(gotCodeBuf.String(), string(wantCode)); diffl != "" {
+						diff = diffl
+					}
+					t.Errorf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-got,+want):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
+				}
 			}
-		}
+
+			for pkg, seen := range seenPkg {
+				if !seen {
+					t.Errorf("%s: cg.GenerateProto3(%v, %v) did not test received package %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg)
+				}
+			}
+		})
 	}
 }
 
