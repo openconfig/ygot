@@ -82,6 +82,10 @@ func (t *Model) NewMultiKey(Key1 uint32, Key2 uint64) (*Model_MultiKey, error){
 // the Model struct. The entry with key oldK is renamed to newK updating
 // the key within the value.
 func (t *Model) RenameMultiKey(oldK, newK Model_MultiKey_Key) error {
+	if _, ok := t.MultiKey[newK]; ok {
+		return fmt.Errorf("key %v already exists in MultiKey", newK)
+	}
+
 	e, ok := t.MultiKey[oldK]
 	if !ok {
 		return fmt.Errorf("key %v not found in MultiKey", oldK)
@@ -125,6 +129,10 @@ func (t *Model) NewSingleKey(Key string) (*Model_SingleKey, error){
 // the Model struct. The entry with key oldK is renamed to newK updating
 // the key within the value.
 func (t *Model) RenameSingleKey(oldK, newK string) error {
+	if _, ok := t.SingleKey[newK]; ok {
+		return fmt.Errorf("key %v already exists in SingleKey", newK)
+	}
+
 	e, ok := t.SingleKey[oldK]
 	if !ok {
 		return fmt.Errorf("key %v not found in SingleKey", oldK)

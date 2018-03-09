@@ -636,6 +636,10 @@ func (t *{{ .Receiver }}) Rename{{ .ListName }}(
 	{{- end -}}
 	{{- end -}}
 ) error {
+	if _, ok := t.{{ .ListName }}[newK]; ok {
+		return fmt.Errorf("key %v already exists in {{ .ListName }}", newK)
+	}
+
 	e, ok := t.{{ .ListName }}[oldK]
 	if !ok {
 		return fmt.Errorf("key %v not found in {{ .ListName }}", oldK)
