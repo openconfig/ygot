@@ -23,3 +23,10 @@ enum UnionListKeyZZaAb {
   UNIONLISTKEY_Z_ZA_AB_A = 1 [(yext.yang_name) = "A"];
   UNIONLISTKEY_Z_ZA_AB_B = 2 [(yext.yang_name) = "B"];
 }
+
+// UnionListKeyZZaAc represents an enumerated type generated for the YANG enumerated type eval.
+enum UnionListKeyZZaAc {
+  UNIONLISTKEY_Z_ZA_AC_UNSET = 0;
+  UNIONLISTKEY_Z_ZA_AC_A = 1 [(yext.yang_name) = "A"];
+  UNIONLISTKEY_Z_ZA_AC_B = 2 [(yext.yang_name) = "B"];
+}

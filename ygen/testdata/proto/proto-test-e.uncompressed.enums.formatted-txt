@@ -31,3 +31,11 @@ enum ProtoTestEID {
   PROTOTESTEID_UNSET = 0;
   PROTOTESTEID_IDVAL = 77312850;
 }
+
+// ProtoTestETestConfigC represents an enumerated type generated for the YANG enumerated type union.
+enum ProtoTestETestConfigC {
+  PROTOTESTE_TEST_CONFIG_C_UNSET = 0;
+  PROTOTESTE_TEST_CONFIG_C_D = 1;
+  PROTOTESTE_TEST_CONFIG_C_E = 2;
+  PROTOTESTE_TEST_CONFIG_C_F = 3;
+}

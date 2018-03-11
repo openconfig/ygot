@@ -315,7 +315,6 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, no
 				errs = append(errs, err)
 				continue
 			}
-
 			for _, en := range es {
 				if _, ok := genEnums[en.name]; !ok {
 					genEnums[en.name] = en
@@ -443,7 +442,7 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 	// Since the path elements are compiled from leaf back to root, then reverse them to
 	// form the path, this is not strictly required, but aids debugging of the elements.
 	var identifierPath string
-	for i := len(identifierPathElem) - 1; i > 0; i-- {
+	for i := len(identifierPathElem) - 1; i >= 0; i-- {
 		identifierPath = fmt.Sprintf("%s/%s", identifierPath, identifierPathElem[i])
 	}
 

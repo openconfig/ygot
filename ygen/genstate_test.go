@@ -741,6 +741,173 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name: "two enums within the same directory, different definitions",
+		in: map[string]*yang.Entry{
+			"/container/config/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "config",
+					Parent: &yang.Entry{
+						Name:   "container",
+						Parent: &yang.Entry{Name: "base-module"},
+					},
+				},
+			},
+			"/container/config/enumeration-leaf-two": {
+				Name: "enumeration-leaf-two",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf-two",
+					Parent: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "config",
+					Parent: &yang.Entry{
+						Name:   "container",
+						Parent: &yang.Entry{Name: "base-module"},
+					},
+				},
+			},
+			"/container/state/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Parent: &yang.Container{
+						Name: "state",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "state",
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "base-module",
+						},
+					},
+				},
+			},
+			"/container/state/enumeration-leaf-two": {
+				Name: "enumeration-leaf-two",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf-two",
+					Parent: &yang.Container{
+						Name: "state",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "state",
+					Parent: &yang.Entry{
+						Name:   "container",
+						Parent: &yang.Entry{Name: "base-module"},
+					},
+				},
+			},
+		},
+		wantCompressed: map[string]*yangEnum{
+			"BaseModule_Container_EnumerationLeaf": {
+				name: "BaseModule_Container_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"BaseModule_Container_EnumerationLeafTwo": {
+				name: "BaseModule_Container_EnumerationLeafTwo",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf-two",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantUncompressed: map[string]*yangEnum{
+			"BaseModule_Container_State_EnumerationLeaf": {
+				name: "BaseModule_Container_State_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"BaseModule_Container_Config_EnumerationLeaf": {
+				name: "BaseModule_Container_Config_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"BaseModule_Container_State_EnumerationLeafTwo": {
+				name: "BaseModule_Container_State_EnumerationLeafTwo",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf-two",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"BaseModule_Container_Config_EnumerationLeafTwo": {
+				name: "BaseModule_Container_Config_EnumerationLeafTwo",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf-two",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
 	}}
 
 	for _, tt := range tests {
