@@ -27,6 +27,24 @@ module openconfig-unione {
     }
   }
 
+  container dup-enum {
+    container state {
+      leaf A {
+        type enumeration {
+          enum A_A;
+          enum A_B;
+        }
+      }
+
+      leaf B {
+        type enumeration {
+          enum B_A;
+          enum B_B;
+        }
+      }
+    }
+  }
+
   container platform {
     container component {
       container state {

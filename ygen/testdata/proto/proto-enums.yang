@@ -18,6 +18,7 @@ module proto-enums {
       type enumeration {
         enum B_VAL;
       }
+      type string;
     }
   }
 
@@ -26,6 +27,7 @@ module proto-enums {
       type identityref {
         base BASE_IDENTITY;
       }
+      type string;
     }
   }
 
