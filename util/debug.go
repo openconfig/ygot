@@ -70,16 +70,25 @@ var globalIndent = ""
 
 // Indent increases DbgPrint Indent level.
 func Indent() {
+	if !debugLibrary {
+		return
+	}
 	globalIndent += ". "
 }
 
 // Dedent decreases DbgPrint Indent level.
 func Dedent() {
+	if !debugLibrary {
+		return
+	}
 	globalIndent = strings.TrimPrefix(globalIndent, ". ")
 }
 
 // ResetIndent sets the indent level to zero.
 func ResetIndent() {
+	if !debugLibrary {
+		return
+	}
 	globalIndent = ""
 }
 
