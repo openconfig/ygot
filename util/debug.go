@@ -25,7 +25,9 @@ import (
 
 var (
 	// debugLibrary controls the debugging output from the library data tree
-	// traversal.
+	// traversal. Since this setting causes global variables to be manipulated
+	// controlling the output of the library, it MUST NOT be used in a setting
+	// whereby thread-safety is required.
 	debugLibrary = false
 	// debugSchema controls the debugging output from the library from schema
 	// matching code. Generates lots of output, so this should be used
@@ -70,16 +72,25 @@ var globalIndent = ""
 
 // Indent increases DbgPrint Indent level.
 func Indent() {
+	if !debugLibrary {
+		return
+	}
 	globalIndent += ". "
 }
 
 // Dedent decreases DbgPrint Indent level.
 func Dedent() {
+	if !debugLibrary {
+		return
+	}
 	globalIndent = strings.TrimPrefix(globalIndent, ". ")
 }
 
 // ResetIndent sets the indent level to zero.
 func ResetIndent() {
+	if !debugLibrary {
+		return
+	}
 	globalIndent = ""
 }
 
