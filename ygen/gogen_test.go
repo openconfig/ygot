@@ -637,6 +637,10 @@ func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
 // the Tstruct struct. The entry with key oldK is renamed to newK updating
 // the key within the value.
 func (t *Tstruct) RenameListWithKey(oldK, newK string) error {
+	if _, ok := t.ListWithKey[newK]; ok {
+		return fmt.Errorf("key %v already exists in ListWithKey", newK)
+	}
+
 	e, ok := t.ListWithKey[oldK]
 	if !ok {
 		return fmt.Errorf("key %v not found in ListWithKey", oldK)
@@ -705,6 +709,10 @@ func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
 // the Tstruct struct. The entry with key oldK is renamed to newK updating
 // the key within the value.
 func (t *Tstruct) RenameListWithKey(oldK, newK string) error {
+	if _, ok := t.ListWithKey[newK]; ok {
+		return fmt.Errorf("key %v already exists in ListWithKey", newK)
+	}
+
 	e, ok := t.ListWithKey[oldK]
 	if !ok {
 		return fmt.Errorf("key %v not found in ListWithKey", oldK)
@@ -908,6 +916,10 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 // the Tstruct struct. The entry with key oldK is renamed to newK updating
 // the key within the value.
 func (t *Tstruct) RenameListWithKey(oldK, newK Tstruct_ListWithKey_Key) error {
+	if _, ok := t.ListWithKey[newK]; ok {
+		return fmt.Errorf("key %v already exists in ListWithKey", newK)
+	}
+
 	e, ok := t.ListWithKey[oldK]
 	if !ok {
 		return fmt.Errorf("key %v not found in ListWithKey", oldK)
@@ -988,6 +1000,10 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 // the Tstruct struct. The entry with key oldK is renamed to newK updating
 // the key within the value.
 func (t *Tstruct) RenameListWithKey(oldK, newK Tstruct_ListWithKey_Key) error {
+	if _, ok := t.ListWithKey[newK]; ok {
+		return fmt.Errorf("key %v already exists in ListWithKey", newK)
+	}
+
 	e, ok := t.ListWithKey[oldK]
 	if !ok {
 		return fmt.Errorf("key %v not found in ListWithKey", oldK)

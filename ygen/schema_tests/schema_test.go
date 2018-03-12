@@ -45,6 +45,14 @@ func TestSimpleListRename(t *testing.T) {
 	if !reflect.DeepEqual(in.Interface["eth1"].Name, ygot.String("eth1")) {
 		t.Errorf("did not get correct name value, got: %v, want: eth1", *in.Interface["eth1"].Name)
 	}
+
+	if _, err := in.NewInterface("eth2"); err != nil {
+		t.Fatalf("could not create eth2 entry, got: %v, want: nil", err)
+	}
+
+	if err := in.RenameInterface("eth2", "eth1"); err == nil {
+		t.Fatalf("incorrectly overwrote eth1 entry, got: %v, want: error", err)
+	}
 }
 
 func TestMultiKeyListRename(t *testing.T) {
