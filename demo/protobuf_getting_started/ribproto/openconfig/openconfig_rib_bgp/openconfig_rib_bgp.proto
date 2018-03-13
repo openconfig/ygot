@@ -59,8 +59,8 @@ message BgpRib {
             message RouteKey {
               string prefix = 1 [(yext.schemapath) = "/bgp-rib/afi-safis/afi-safi/ipv4-unicast/loc-rib/routes/route/prefix"];
               oneof origin {
-                openconfig.enums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE origin_openconfigpolicytypesinstallprotocoltype = 124650361;
-                string origin_string = 220119466;
+                openconfig.enums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE origin_openconfigpolicytypesinstallprotocoltype = 521134615;
+                string origin_string = 77131532;
               }
               uint64 path_id = 3 [(yext.schemapath) = "/bgp-rib/afi-safis/afi-safi/ipv4-unicast/loc-rib/routes/route/path-id"];
               Route route = 4;
@@ -324,8 +324,8 @@ message BgpRib {
             message RouteKey {
               string prefix = 1 [(yext.schemapath) = "/bgp-rib/afi-safis/afi-safi/ipv6-unicast/loc-rib/routes/route/prefix"];
               oneof origin {
-                openconfig.enums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE origin_openconfigpolicytypesinstallprotocoltype = 58476879;
-                string origin_string = 437458612;
+                openconfig.enums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE origin_openconfigpolicytypesinstallprotocoltype = 465497525;
+                string origin_string = 376223214;
               }
               uint64 path_id = 3 [(yext.schemapath) = "/bgp-rib/afi-safis/afi-safi/ipv6-unicast/loc-rib/routes/route/path-id"];
               Route route = 4;
