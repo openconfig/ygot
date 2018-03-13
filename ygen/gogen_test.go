@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/pmezard/go-difflib/difflib"
@@ -1489,70 +1490,204 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 `,
 		},
 		wantSame: true,
+	}, {
+		name: "getters: struct with field getters",
+		inStructToMap: &yangDirectory{
+			name: "Container",
+			fields: map[string]*yang.Entry{
+				"string-with-default": {
+					Name:    "string-with-default",
+					Type:    &yang.YangType{Kind: yang.Ystring},
+					Default: "default-value",
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "a",
+							Node: &yang.Module{
+								Name: "a",
+							},
+						},
+					},
+				},
+				"string-with-no-default": {
+					Name: "string-with-no-default",
+					Type: &yang.YangType{Kind: yang.Ystring},
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "a",
+							Node: &yang.Module{
+								Name: "a",
+							},
+						},
+					},
+				},
+				"int8-with-default": {
+					Name:    "int8-with-default",
+					Type:    &yang.YangType{Kind: yang.Yint8},
+					Default: "42",
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "a",
+							Node: &yang.Module{
+								Name: "a",
+							},
+						},
+					},
+				},
+				"int8-with-no-default": {
+					Name: "int8-with-no-default",
+					Type: &yang.YangType{Kind: yang.Yint8},
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "a",
+							Node: &yang.Module{
+								Name: "a",
+							},
+						},
+					},
+				},
+				"boolean-with-default": {
+					Name:    "boolean-with-default",
+					Type:    &yang.YangType{Kind: yang.Ybool},
+					Default: "true",
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "a",
+							Node: &yang.Module{
+								Name: "a",
+							},
+						},
+					},
+				},
+				"empty-type": {
+					Name: "empty-type",
+					Type: &yang.YangType{Kind: yang.Yempty},
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "a",
+							Node: &yang.Module{
+								Name: "a",
+							},
+						},
+					},
+				},
+				"string-leaf-list": {
+					Name:     "string-leaf-list",
+					Type:     &yang.YangType{Kind: yang.Ystring},
+					ListAttr: &yang.ListAttr{},
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "a",
+							Node: &yang.Module{
+								Name: "a",
+							},
+						},
+					},
+				},
+				"enum-type": {
+					Name: "enum-type",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Kind: yang.Yenum,
+						Enum: &yang.EnumType{},
+					},
+					Parent: &yang.Entry{
+						Name: "container",
+						Node: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "a",
+							},
+						},
+						Parent: &yang.Entry{
+							Name: "a",
+							Node: &yang.Module{
+								Name: "a",
+							},
+						},
+					},
+					Node: &yang.Enum{
+						Parent: &yang.Module{Name: "base-module"},
+					},
+				},
+			},
+			path: []string{"a", "container"},
+		},
+		inGoOpts: GoOpts{
+			GenerateGetters: true,
+		},
 	}}
 
 	for _, tt := range tests {
-		if tt.wantSame {
-			tt.wantUncompressed = tt.wantCompressed
-		}
-		for compressed, want := range map[bool]wantGoStructOut{true: tt.wantCompressed, false: tt.wantUncompressed} {
-			s := newGenState()
-			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
-
-			// Always generate the JSON schema for this test.
-			got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inGoOpts)
-
-			if len(errs) != 0 && !want.wantErr {
-				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): received unexpected errors: %v",
-					tt.name, compressed, tt.inStructToMap, errs)
-				continue
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.wantSame {
+				tt.wantUncompressed = tt.wantCompressed
 			}
+			for compressed, want := range map[bool]wantGoStructOut{true: tt.wantCompressed, false: tt.wantUncompressed} {
+				s := newGenState()
+				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
-			if len(errs) == 0 && want.wantErr {
-				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): did not receive expected errors",
-					tt.name, compressed, tt.inStructToMap)
-				continue
-			}
+				// Always generate the JSON schema for this test.
+				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inGoOpts)
 
-			// If we wanted an error, then skip the rest of the tests as the generated code will not
-			// be correct.
-			if want.wantErr {
-				continue
-			}
-
-			if diff := pretty.Compare(want.structs, got.structDef); diff != "" {
-				if diffl, err := generateUnifiedDiff(got.structDef, want.structs); err == nil {
-
-					diff = diffl
+				if len(errs) != 0 && !want.wantErr {
+					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): received unexpected errors: %v",
+						tt.name, compressed, tt.inStructToMap, errs)
+					continue
 				}
-				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-got,+want):\n%s",
-					tt.name, compressed, tt.inStructToMap, diff)
-			}
 
-			if diff := pretty.Compare(want.keys, got.listKeys); diff != "" {
-				if diffl, err := generateUnifiedDiff(got.listKeys, want.keys); err == nil {
-					diff = diffl
+				if len(errs) == 0 && want.wantErr {
+					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): did not receive expected errors",
+						tt.name, compressed, tt.inStructToMap)
+					continue
 				}
-				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
-					tt.name, compressed, tt.inStructToMap, diff)
-			}
 
-			if diff := pretty.Compare(want.methods, got.methods); diff != "" {
-				if diffl, err := generateUnifiedDiff(got.methods, want.methods); err == nil {
-					diff = diffl
+				// If we wanted an error, then skip the rest of the tests as the generated code will not
+				// be correct.
+				if want.wantErr {
+					continue
 				}
-				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
-					tt.name, compressed, tt.inStructToMap, diff)
-			}
 
-			if diff := pretty.Compare(want.interfaces, got.interfaces); diff != "" {
-				if diffl, err := generateUnifiedDiff(got.interfaces, want.interfaces); err == nil {
-					diff = diffl
+				if diff := pretty.Compare(want.structs, got.structDef); diff != "" {
+					if diffl, err := generateUnifiedDiff(got.structDef, want.structs); err == nil {
+
+						diff = diffl
+					}
+					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-got,+want):\n%s",
+						tt.name, compressed, tt.inStructToMap, diff)
 				}
-				t.Errorf("%s: writeGoStruct(CompressOCPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
-					tt.name, compressed, tt.inStructToMap, diff)
+
+				if diff := pretty.Compare(want.keys, got.listKeys); diff != "" {
+					if diffl, err := generateUnifiedDiff(got.listKeys, want.keys); err == nil {
+						diff = diffl
+					}
+					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
+						tt.name, compressed, tt.inStructToMap, diff)
+				}
+
+				if diff := pretty.Compare(want.methods, got.methods); diff != "" {
+					if diffl, err := generateUnifiedDiff(got.methods, want.methods); err == nil {
+						diff = diffl
+					}
+					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
+						tt.name, compressed, tt.inStructToMap, diff)
+				}
+
+				if diff := pretty.Compare(want.interfaces, got.interfaces); diff != "" {
+					if diffl, err := generateUnifiedDiff(got.interfaces, want.interfaces); err == nil {
+						diff = diffl
+					}
+					t.Errorf("%s: writeGoStruct(CompressOCPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
+						tt.name, compressed, tt.inStructToMap, diff)
+				}
 			}
-		}
+		})
 	}
 }
 
@@ -1985,5 +2120,213 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 			}
 			t.Errorf("%s: did not get expected generated enum, %s", tt.name, diff)
 		}
+	}
+}
+
+func TestGoDefaultValue(t *testing.T) {
+	tests := []struct {
+		name             string
+		in               *yang.Entry
+		want             string
+		wantErrSubstring string
+	}{{
+		name: "string: no default",
+		in: &yang.Entry{
+			Name: "string",
+			Type: &yang.YangType{
+				Kind: yang.Ystring,
+			},
+		},
+		want: "",
+	}, {
+		name: "string: default",
+		in: &yang.Entry{
+			Name: "string",
+			Type: &yang.YangType{
+				Kind: yang.Ystring,
+			},
+			Default: "default-value",
+		},
+		want: `ygot.String("default-value")`,
+	}, {
+		name: "int8: default",
+		in: &yang.Entry{
+			Name: "int8",
+			Type: &yang.YangType{
+				Kind: yang.Yint8,
+			},
+			Default: "42",
+		},
+		want: "ygot.Int8(42)",
+	}, {
+		name: "int16: default",
+		in: &yang.Entry{
+			Name: "int16",
+			Type: &yang.YangType{
+				Kind: yang.Yint16,
+			},
+			Default: "42",
+		},
+		want: "ygot.Int16(42)",
+	}, {
+		name: "int32: default",
+		in: &yang.Entry{
+			Name: "int32",
+			Type: &yang.YangType{
+				Kind: yang.Yint32,
+			},
+			Default: "42",
+		},
+		want: "ygot.Int32(42)",
+	}, {
+		name: "int64: default",
+		in: &yang.Entry{
+			Name: "int64",
+			Type: &yang.YangType{
+				Kind: yang.Yint64,
+			},
+			Default: "42",
+		},
+		want: "ygot.Int64(42)",
+	}, {
+		name: "int64: bad default",
+		in: &yang.Entry{
+			Name: "int64",
+			Type: &yang.YangType{
+				Kind: yang.Yint64,
+			},
+			Default: "cheese",
+		},
+		wantErrSubstring: "cannot convert cheese to an argument for ygot.Int64",
+	}, {
+		name: "uint8: default",
+		in: &yang.Entry{
+			Name: "uint8",
+			Type: &yang.YangType{
+				Kind: yang.Yuint8,
+			},
+			Default: "42",
+		},
+		want: "ygot.Uint8(42)",
+	}, {
+		name: "uint16: default",
+		in: &yang.Entry{
+			Name: "uint16",
+			Type: &yang.YangType{
+				Kind: yang.Yuint16,
+			},
+			Default: "42",
+		},
+		want: "ygot.Uint16(42)",
+	}, {
+		name: "uint32: default",
+		in: &yang.Entry{
+			Name: "uint32",
+			Type: &yang.YangType{
+				Kind: yang.Yuint32,
+			},
+			Default: "42",
+		},
+		want: "ygot.Uint32(42)",
+	}, {
+		name: "uint64: default",
+		in: &yang.Entry{
+			Name: "uint64",
+			Type: &yang.YangType{
+				Kind: yang.Yuint64,
+			},
+			Default: "42",
+		},
+		want: "ygot.Uint64(42)",
+	}, {
+		name: "uint: bad default",
+		in: &yang.Entry{
+			Name: "baduint",
+			Type: &yang.YangType{
+				Kind: yang.Yuint64,
+			},
+			Default: "not a number",
+		},
+		wantErrSubstring: "cannot convert not a number to an argument for ygot.Uint64",
+	}, {
+		name: "bool: default",
+		in: &yang.Entry{
+			Name: "bool",
+			Type: &yang.YangType{
+				Kind: yang.Ybool,
+			},
+			Default: "true",
+		},
+		want: "ygot.Bool(true)",
+	}, {
+		name: "bool: bad default",
+		in: &yang.Entry{
+			Name: "bool",
+			Type: &yang.YangType{
+				Kind: yang.Ybool,
+			},
+			Default: "fish",
+		},
+		wantErrSubstring: "strconv.ParseBool: parsing",
+	}, {
+		name: "decimal64: default",
+		in: &yang.Entry{
+			Name: "decimal64",
+			Type: &yang.YangType{
+				Kind: yang.Ydecimal64,
+			},
+			Default: "42.42",
+		},
+		want: "ygot.Float64(42.42)",
+	}, {
+		name: "decimal64: bad default",
+		in: &yang.Entry{
+			Name: "bool",
+			Type: &yang.YangType{
+				Kind: yang.Ydecimal64,
+			},
+			Default: "chips",
+		},
+		wantErrSubstring: "strconv.ParseFloat: parsing",
+	}, {
+		name: "enumeration: no default returned",
+		in: &yang.Entry{
+			Name: "enum",
+			Type: &yang.YangType{
+				Kind: yang.Yenum,
+			},
+			Default: "A-VAL",
+		},
+	}, {
+		name: "identityref: no default returned",
+		in: &yang.Entry{
+			Name: "identityref",
+			Type: &yang.YangType{
+				Kind: yang.Yenum,
+			},
+			Default: "B-VAL",
+		},
+	}, {
+		name: "unimplemented, union",
+		in: &yang.Entry{
+			Name: "union",
+			Type: &yang.YangType{
+				Kind: yang.Yunion,
+			},
+			Default: "a default",
+		},
+		wantErrSubstring: "unsupported default value 'a default' for type union for leaf /union",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := goDefaultValue(tt.in)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("%s: goDefaultValue(%v): got unexpected error, %s", tt.name, tt.in, diff)
+			}
+			if got != tt.want {
+				t.Errorf("%s: goDefaultValue(%v): did not get expected result, got: %s, want: %s", tt.name, tt.in, got, tt.want)
+			}
+		})
 	}
 }
