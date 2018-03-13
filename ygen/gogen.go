@@ -403,14 +403,14 @@ func (s *{{ .StructName }}) Validate(opts ...ygot.ValidationOption) error {
 // receiver {{ .StructName }}. If the field is unset, the default value of the field
 // is returned.
 func (s *{{ .StructName }}) Get{{ .Field.Name }}() {{ if .Field.IsScalarField }}*{{- end -}}{{ .Field.Type }} {
-  {{ if ne .Field.Default "" }}
+  {{ if ne .Field.Default "" -}}
   if s.{{ .Field.Name }} ==  {{- if eq .Field.UnsetValue "" }} nil {{- else }} {{ .Field.Type }}({{ .Field.UnsetValue }}) {{- end }} {
     return {{ .Field.Default }}
   }
   return s.{{ .Field.Name }}
   {{- else -}}
   return s.{{ .Field.Name }}
-  {{ end -}}
+  {{- end }}
 }
 `
 
