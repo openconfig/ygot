@@ -104,9 +104,9 @@ func CreateAFTInstance() (*oc.Device, error) {
 	// Each union has a method that is named To_X where the X is the union type, associated
 	// with the struct that the union is within. This attempts to return the right type
 	// based on the input interface.
-	expNull, err := nh.To_NetworkInstance_Afts_LabelEntry_NextHop_PushedMplsLabelStack_Union(oc.OpenconfigAft_NextHop_PoppedMplsLabelStack_IPV4_EXPLICIT_NULL)
+	expNull, err := nh.To_NetworkInstance_Afts_LabelEntry_NextHop_PushedMplsLabelStack_Union(oc.OpenconfigAft_NextHop_PushedMplsLabelStack_IPV4_EXPLICIT_NULL)
 	if err != nil {
-		return nil, err
+    return nil, fmt.Errorf("error converting explicit null to union, got: %v", err)
 	}
 	nh.PushedMplsLabelStack = []oc.NetworkInstance_Afts_LabelEntry_NextHop_PushedMplsLabelStack_Union{
 		&oc.NetworkInstance_Afts_LabelEntry_NextHop_PushedMplsLabelStack_Union_Uint32{42},
