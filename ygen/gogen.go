@@ -1345,6 +1345,14 @@ func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
 	return goTemplates["structValidator"].Execute(buf, structDef)
 }
 
+// goTmplFieldDetails stores a goStructField along with additional details
+// corresponding to it. It is used within templates that handle individual
+// fields.
+type goTmplFieldDetails struct {
+	Field      *goStructField // Field stores the definition of the field with which other details are associated.
+	StructName string         // StructName is the name of the struct that the field is a member of.
+}
+
 // generateGetOrCreateStruct generates a getter method for the YANG container
 // (Go struct ptr) fields of structDef, and appends it to the supplied buffer.
 // Assuming that structDef represents the following struct:
@@ -1363,13 +1371,9 @@ func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
 //    return s.Container
 //  }
 func generateGetOrCreateStruct(buf *bytes.Buffer, structDef generatedGoStruct) error {
-	type structFieldWithName struct {
-		StructName string
-		Field      *goStructField
-	}
 	for _, f := range structDef.Fields {
 		if f.IsYANGContainer {
-			tmpStruct := structFieldWithName{
+			tmpStruct := goTmplFieldDetails{
 				StructName: structDef.StructName,
 				Field:      f,
 			}
@@ -1388,17 +1392,12 @@ func generateGetOrCreateStruct(buf *bytes.Buffer, structDef generatedGoStruct) e
 // the value if the field is set, otherwise returns nil. The generated getters
 // are safe to call with a nil receiver.
 func generateContainerGetters(buf *bytes.Buffer, structDef generatedGoStruct) error {
-	type structFieldWithName struct {
-		StructName string
-		Field      *goStructField
-	}
-
 	for _, f := range structDef.Fields {
 		// Only YANG containers have getters generated for them.
 		if !f.IsYANGContainer {
 			continue
 		}
-		tmpStruct := structFieldWithName{
+		tmpStruct := goTmplFieldDetails{
 			StructName: structDef.StructName,
 			Field:      f,
 		}
