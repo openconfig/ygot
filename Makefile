@@ -11,7 +11,6 @@ generate:
 	cd ${ROOT_DIR}/proto/ywrapper && go generate
 	cd $(ROOT_DIR)/proto/yext && go generate
 	cd $(ROOT_DIR)/demo/uncompressed && go generate
-	cd $(ROOT_DIR)/demo/getters && go generate
 	cd $(ROOT_DIR)/demo/protobuf_getting_started && ./update.sh
 clean:
 	rm -f ${ROOT_DIR}/demo/getting_started/pkg/ocdemo/oc.go
