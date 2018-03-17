@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 	"text/template"
 
@@ -199,12 +198,6 @@ type goStructField struct {
 	// in templates to determine whether GetXXX methods should be created using
 	// the base template.
 	IsYANGList bool
-	// Default stores the default value of a leaf field, as specified within the
-	// YANG schema.
-	Default string
-	// UnsetValue stores the default value of the field if it is unset if it
-	// is not expected to be 'nil'.
-	UnsetValue string
 }
 
 // goUnionInterface contains a definition of an interface that should
@@ -395,22 +388,16 @@ func (s *{{ .StructName }}) Validate(opts ...ygot.ValidationOption) error {
 }
 `
 
-	// goFieldGetterTemplate defines a template that generates a getter function
-	// for the field of a generated struct, if the field has a default value then
-	// this is returned if the field is not set.
-	goFieldGetterTemplate = `
-// Get{{ .Field.Name }} retrieves the value of the {{ .Field.Name }} field of the
-// receiver {{ .StructName }}. If the field is unset, the default value of the field
-// is returned.
-func (s *{{ .StructName }}) Get{{ .Field.Name }}() {{ if .Field.IsScalarField }}*{{- end -}}{{ .Field.Type }} {
-  {{ if ne .Field.Default "" -}}
-  if s.{{ .Field.Name }} ==  {{- if eq .Field.UnsetValue "" }} nil {{- else }} {{ .Field.Type }}({{ .Field.UnsetValue }}) {{- end }} {
-    return {{ .Field.Default }}
-  }
-  return s.{{ .Field.Name }}
-  {{- else -}}
-  return s.{{ .Field.Name }}
-  {{- end }}
+	// goContainerGetterTemplate defines a template that generates a getter function
+	// for the field of a generated struct. It is generated only for YANG containers.
+	goContainerGetterTemplate = `
+// Get{{ .Field.Name }} returns the value of the {{ .Field.Name }} struct pointer
+// from {{ .StructName }}.
+func (s *{{ .StructName }}) Get{{ .Field.Name }}() {{ .Field.Type }} {
+	if s != nil && s.{{ .Field.Name }} != nil {
+		return s.{{ .Field.Name }}
+	}
+	return nil
 }
 `
 
@@ -883,7 +870,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"getOrCreateStruct":   makeTemplate("getOrCreateStruct", goGetOrCreateStructTemplate),
 		"getOrCreateList":     makeTemplate("getOrCreateList", goGetOrCreateListTemplate),
 		"getList":             makeTemplate("getList", goListGetterTemplate),
-		"getField":            makeTemplate("getField", goFieldGetterTemplate),
+		"getContainer":        makeTemplate("getContainer", goContainerGetterTemplate),
 	}
 
 	// templateHelperFunctions specifies a set of functions that are supplied as
@@ -1188,19 +1175,10 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				enumTypeMap[schemapath] = append(enumTypeMap[schemapath], mtype.nativeType)
 			}
 
-			// Resolve the default value of the field for use in the generated getter.
-			defval, err := goDefaultValue(field)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-
 			fieldDef = &goStructField{
 				Name:          fieldName,
 				Type:          fType,
 				IsScalarField: scalarField,
-				Default:       defval,
-				UnsetValue:    yangTypeGoUnsetValue(mtype, field),
 			}
 		default:
 			errs = append(errs, fmt.Errorf("unknown entity type for mapping to Go: %s, Kind: %v", field.Path(), field.Kind))
@@ -1310,7 +1288,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 		if err := generateGetOrCreateStruct(&methodBuf, structDef); err != nil {
 			errs = append(errs, err)
 		}
-		if err := generateFieldGetters(&methodBuf, structDef); err != nil {
+		if err := generateContainerGetters(&methodBuf, structDef); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -1403,64 +1381,28 @@ func generateGetOrCreateStruct(buf *bytes.Buffer, structDef generatedGoStruct) e
 	return nil
 }
 
-// generateFieldGetter generates a GetXXX method for a non-list field of the
-// supplied struct described by structDef. Get methods are generated only for
-// fields that are not YANG lists (i.e., lists, leaf-lists or containers).
+// generateContainerGetters generates GetXXX methods for container fields of the
+// supplied struct described by structDef.
 //
-// The method is defined by the goFieldGetterTemplate code template. This
-// template returns the value of the field if it is set, the default value if
-// one is set, or nil if there is no value/default.
-//
-// For example, for the YANG leaf defined by:
-//
-// container a {
-//   leaf b { type string; }
-// }
-//
-// the method generated is:
-//
-// func (s *A) GetB() *string {
-//   if s.B != nil {
-//     return s.B
-//   }
-//   return nil
-// }
-//
-// For a YANG leaf that has a defined default value is returned, for example:
-//
-// container a {
-//   leaf b {
-//     type string;
-//     default "bar";
-//   }
-// }
-//
-// the method generated is:
-//
-// func (s *A) GetB() *string {
-//   if s.B != nil {
-//     return s.B
-//   }
-//   return ygot.String("bar")
-// }
-func generateFieldGetters(buf *bytes.Buffer, structDef generatedGoStruct) error {
+// The method is defined by the goContainerGetterTemplate. This template returns
+// the value if the field is set, otherwise returns nil. The generated getters
+// are safe to call with a nil receiver.
+func generateContainerGetters(buf *bytes.Buffer, structDef generatedGoStruct) error {
 	type structFieldWithName struct {
 		StructName string
 		Field      *goStructField
 	}
 
 	for _, f := range structDef.Fields {
-		// Lists are handled by the dedicated template for a list, such that
-		// keys are considered. Annotation fields do not have getters generated
-		// for them.
-		if f.IsYANGList || f.Type == annotationFieldType {
+		// Only YANG containers have getters generated for them.
+		if !f.IsYANGContainer {
 			continue
 		}
 		tmpStruct := structFieldWithName{
 			StructName: structDef.StructName,
 			Field:      f,
 		}
-		if err := goTemplates["getField"].Execute(buf, tmpStruct); err != nil {
+		if err := goTemplates["getContainer"].Execute(buf, tmpStruct); err != nil {
 			return err
 		}
 	}
@@ -1863,109 +1805,4 @@ func writeGoSchema(js []byte, schemaVarName string) (string, error) {
 	}
 
 	return buf.String(), nil
-}
-
-// For default values, we call a function from the ygot library to return
-// a pointer of the correct type to the caller of a Getter for a leaf. These
-// constants define the name of the functions to be called.
-const (
-	ygotStringFn = "ygot.String"
-	ygotBoolFn   = "ygot.Bool"
-	ygotFloatFn  = "ygot.Float64"
-	ygotInt8Fn   = "ygot.Int8"
-	ygotInt16Fn  = "ygot.Int16"
-	ygotInt32Fn  = "ygot.Int32"
-	ygotInt64Fn  = "ygot.Int64"
-	ygotUint8Fn  = "ygot.Uint8"
-	ygotUint16Fn = "ygot.Uint16"
-	ygotUint32Fn = "ygot.Uint32"
-	ygotUint64Fn = "ygot.Uint64"
-)
-
-// toYgotInt returns a string calling the function fn with the value v, if
-// and only if the value v can be parsed as a signed integer.
-func toYgotInt(v, fn string) (string, error) {
-	if _, err := strconv.ParseInt(v, 10, 64); err != nil {
-		return "", fmt.Errorf("cannot convert %s to an argument for %s, got error: %v", v, fn, err)
-	}
-	return fmt.Sprintf("%s(%s)", fn, v), nil
-}
-
-// toYgotUint returns a string calling the function fn with the value v, if
-// and only if the value v can be parsed as an unsigned integer.
-func toYgotUint(v, fn string) (string, error) {
-	if _, err := strconv.ParseUint(v, 10, 64); err != nil {
-		return "", fmt.Errorf("cannot convert %s to an argument for %s, got error: %v", v, fn, err)
-	}
-	return fmt.Sprintf("%s(%s)", fn, v), nil
-}
-
-func goDefaultValue(e *yang.Entry) (string, error) {
-	if e.Default == "" {
-		return "", nil
-	}
-
-	switch e.Type.Kind {
-	case yang.Ystring:
-		return fmt.Sprintf(`%s("%s")`, ygotStringFn, e.Default), nil
-	case yang.Ybool:
-		if _, err := strconv.ParseBool(e.Default); err != nil {
-			return "", fmt.Errorf("invalid default value for boolean, got: %v, error: %v", e.Default, err)
-		}
-		return fmt.Sprintf(`%s(%s)`, ygotBoolFn, e.Default), nil
-	case yang.Ydecimal64:
-		if _, err := strconv.ParseFloat(e.Default, 64); err != nil {
-			return "", fmt.Errorf("invalid default value for decimal64, got: %v, error: %v", e.Default, err)
-		}
-		return fmt.Sprintf(`%s(%s)`, ygotFloatFn, e.Default), nil
-	case yang.Yint8:
-		return toYgotInt(e.Default, ygotInt8Fn)
-	case yang.Yint16:
-		return toYgotInt(e.Default, ygotInt16Fn)
-	case yang.Yint32:
-		return toYgotInt(e.Default, ygotInt32Fn)
-	case yang.Yint64:
-		return toYgotInt(e.Default, ygotInt64Fn)
-	case yang.Yuint8:
-		return toYgotUint(e.Default, ygotUint8Fn)
-	case yang.Yuint16:
-		return toYgotUint(e.Default, ygotUint16Fn)
-	case yang.Yuint32:
-		return toYgotUint(e.Default, ygotUint32Fn)
-	case yang.Yuint64:
-		return toYgotUint(e.Default, ygotUint64Fn)
-	case yang.Yenum, yang.Yidentityref:
-		// Enumeration and identityref values are handled by the 'unset' value of
-		// the enumeration being the default in the generated code, such that we
-		// do not handle them here.
-		return "", nil
-	default:
-		// TODO(robjs): In the future, we should support additional types here,
-		// particularly binary and bits values may have defaults. A union may
-		// also have a default, which needs to be mapped to which of the underlying
-		// types in the union it maps to.
-		return "", fmt.Errorf("unsupported default value '%v' for type %s for leaf %s", e.Default, yang.TypeKindToName[e.Type.Kind], e.Path())
-	}
-}
-
-// yangTypeToGoUnsetValue returns the zero-value of the supplied yang.Entry,
-// which has been mapped to the Go type supplied. By default it returns an
-// empty string, which is mapped to nil.
-func yangTypeGoUnsetValue(m *mappedType, field *yang.Entry) string {
-	switch {
-	case field.ListAttr != nil:
-		// All leaf-lists are mapped to slices that have a zero value.
-		return ""
-	case m.isEnumeratedValue:
-		// Enumerated values are mapped to a derived int64 which has the value 0
-		// as the UNSET.
-		// TODO(https://github.com/openconfig/ygot/issues/172): make the default
-		// value of an enum its specified default YANG schema value.
-		return "0"
-	case m.nativeType == ygot.EmptyTypeName:
-		// The YANG empty type is mapped to a bool with a derived type.
-		return "false"
-	default:
-		return ""
-	}
 }

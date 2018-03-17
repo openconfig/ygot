@@ -151,3 +151,17 @@ func TestGetOrCreateMultiKeyList(t *testing.T) {
 		t.Errorf("GetOrCreateNetworkInstance('DEFAULT').GetOrCreateProtocol(ISIS, '0').GetOrCreateGlobal().MaxEcmpPaths: got incorrect return value, got: %v, want: %v", got, want)
 	}
 }
+
+func TestGetters(t *testing.T) {
+	d := &exampleoc.Device{}
+	if got := d.GetSystem().GetAaa(); got != nil {
+		t.Errorf("chained getters: GetSystem().GetAaa() did not return nil, got: %v, want: nil", got)
+	}
+
+	intName := "eth0"
+	_ = d.GetOrCreateInterface(intName)
+	if got := d.GetInterface(intName).Name; got == nil || *got != intName {
+		t.Errorf("get list: GetInterface(%s), did not get expected resut, got: %v, want: %v", intName, got, intName)
+	}
+
+}
