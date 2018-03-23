@@ -392,7 +392,8 @@ func (s *{{ .StructName }}) Validate(opts ...ygot.ValidationOption) error {
 	// for the field of a generated struct. It is generated only for YANG containers.
 	goContainerGetterTemplate = `
 // Get{{ .Field.Name }} returns the value of the {{ .Field.Name }} struct pointer
-// from {{ .StructName }}.
+// from {{ .StructName }}. If the receiver or the field {{ .Field.Name }} is nil, nil
+// is returned such that the Get* methods can be safely chained.
 func (s *{{ .StructName }}) Get{{ .Field.Name }}() {{ .Field.Type }} {
 	if s != nil && s.{{ .Field.Name }} != nil {
 		return s.{{ .Field.Name }}
@@ -541,7 +542,9 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 	// list key, gets an existing map value.
 	goListGetterTemplate = `
 // Get{{ .ListName }} retrieves the value with the specified key from
-// the {{ .ListName }} map field of {{ .Receiver }}.
+// the {{ .ListName }} map field of {{ .Receiver }}. If the receiver is nil, or
+// the specified key is not present in the list, nil is returned such that Get*
+// methods may be safely chained.
 func (t *{{ .Receiver }}) Get{{ .ListName }}(
   {{- $length := len .Keys -}}
   {{- range $i, $key := .Keys -}}
@@ -549,6 +552,10 @@ func (t *{{ .Receiver }}) Get{{ .ListName }}(
 	{{- if ne (inc $i) $length -}}, {{ end -}}
   {{- end -}}
   ) (*{{ .ListType }}){
+
+	if t == nil {
+		return nil
+	}
 
   {{ if ne .KeyStruct "" -}}
 	key := {{ .KeyStruct }}{
@@ -1346,7 +1353,7 @@ func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
 }
 
 // goTmplFieldDetails stores a goStructField along with additional details
-// corresponding to it. It is used within templates that handle individual
+// corresponding to it. It is used withAin templates that handle individual
 // fields.
 type goTmplFieldDetails struct {
 	Field      *goStructField // Field stores the definition of the field with which other details are associated.

@@ -1243,8 +1243,14 @@ func (t *Tstruct) GetOrCreateListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*L
 }
 
 // GetListWithKey retrieves the value with the specified key from
-// the ListWithKey map field of Tstruct.
+// the ListWithKey map field of Tstruct. If the receiver is nil, or
+// the specified key is not present in the list, nil is returned such that Get*
+// methods may be safely chained.
 func (t *Tstruct) GetListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithKey){
+
+	if t == nil {
+		return nil
+	}
 
   key := Tstruct_ListWithKey_Key{
 		KeyLeafOne: KeyLeafOne,
@@ -1406,8 +1412,14 @@ func (t *Tstruct) GetOrCreateListWithKey(KeyLeaf string) (*ListWithKey){
 }
 
 // GetListWithKey retrieves the value with the specified key from
-// the ListWithKey map field of Tstruct.
+// the ListWithKey map field of Tstruct. If the receiver is nil, or
+// the specified key is not present in the list, nil is returned such that Get*
+// methods may be safely chained.
 func (t *Tstruct) GetListWithKey(KeyLeaf string) (*ListWithKey){
+
+	if t == nil {
+		return nil
+	}
 
   key := KeyLeaf
 
@@ -1503,7 +1515,8 @@ func (s *InputStruct) GetOrCreateC1() *InputStruct_C1 {
 }
 
 // GetC1 returns the value of the C1 struct pointer
-// from InputStruct.
+// from InputStruct. If the receiver or the field C1 is nil, nil
+// is returned such that the Get* methods can be safely chained.
 func (s *InputStruct) GetC1() *InputStruct_C1 {
 	if s != nil && s.C1 != nil {
 		return s.C1

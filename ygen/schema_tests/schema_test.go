@@ -152,7 +152,7 @@ func TestGetOrCreateMultiKeyList(t *testing.T) {
 	}
 }
 
-func TestGetters(t *testing.T) {
+func TestGetterChaining(t *testing.T) {
 	d := &exampleoc.Device{}
 	if got := d.GetSystem().GetAaa(); got != nil {
 		t.Errorf("chained getters: GetSystem().GetAaa() did not return nil, got: %v, want: nil", got)
@@ -161,7 +161,10 @@ func TestGetters(t *testing.T) {
 	intName := "eth0"
 	_ = d.GetOrCreateInterface(intName)
 	if got := d.GetInterface(intName).Name; got == nil || *got != intName {
-		t.Errorf("get list: GetInterface(%s), did not get expected resut, got: %v, want: %v", intName, got, intName)
+		t.Errorf("get list: GetInterface(%s), did not get expected result, got: %v, want: %v", intName, got, intName)
 	}
 
+	if got := d.GetInterface("does-not-exist").GetCounters(); got != nil {
+		t.Errorf(`get list with missing key: GetInterface("does-not-exist"), did not get expected result, got: %v, want: nil`, got)
+	}
 }
