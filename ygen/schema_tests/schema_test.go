@@ -158,10 +158,10 @@ func TestGetterChaining(t *testing.T) {
 		t.Errorf("chained getters: GetSystem().GetAaa() did not return nil, got: %v, want: nil", got)
 	}
 
-	intName := "eth0"
-	_ = d.GetOrCreateInterface(intName)
-	if got := d.GetInterface(intName).Name; got == nil || *got != intName {
-		t.Errorf("get list: GetInterface(%s), did not get expected result, got: %v, want: %v", intName, got, intName)
+	want := "eth0"
+	_ = d.GetOrCreateInterface(want)
+	if got := d.GetInterface(want).Name; got == nil || *got != want {
+		t.Errorf("get list: GetInterface(%s), did not get expected result, got: %v, want: %v", want, got, want)
 	}
 
 	if got := d.GetInterface("does-not-exist").GetCounters(); got != nil {
