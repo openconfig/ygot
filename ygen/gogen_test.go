@@ -1242,6 +1242,27 @@ func (t *Tstruct) GetOrCreateListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*L
 	return v
 }
 
+// GetListWithKey retrieves the value with the specified key from
+// the ListWithKey map field of Tstruct. If the receiver is nil, or
+// the specified key is not present in the list, nil is returned such that Get*
+// methods may be safely chained.
+func (t *Tstruct) GetListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithKey){
+
+	if t == nil {
+		return nil
+	}
+
+  key := Tstruct_ListWithKey_Key{
+		KeyLeafOne: KeyLeafOne,
+		KeyLeafTwo: KeyLeafTwo,
+	}
+
+  if lm, ok := t.ListWithKey[key]; ok {
+    return lm
+  }
+  return nil
+}
+
 // AppendListWithKey appends the supplied ListWithKey struct to the
 // list ListWithKey of Tstruct. If the key value(s) specified in
 // the supplied ListWithKey already exist in the list, an error is
@@ -1390,6 +1411,24 @@ func (t *Tstruct) GetOrCreateListWithKey(KeyLeaf string) (*ListWithKey){
 	return v
 }
 
+// GetListWithKey retrieves the value with the specified key from
+// the ListWithKey map field of Tstruct. If the receiver is nil, or
+// the specified key is not present in the list, nil is returned such that Get*
+// methods may be safely chained.
+func (t *Tstruct) GetListWithKey(KeyLeaf string) (*ListWithKey){
+
+	if t == nil {
+		return nil
+	}
+
+  key := KeyLeaf
+
+  if lm, ok := t.ListWithKey[key]; ok {
+    return lm
+  }
+  return nil
+}
+
 // AppendListWithKey appends the supplied ListWithKey struct to the
 // list ListWithKey of Tstruct. If the key value(s) specified in
 // the supplied ListWithKey already exist in the list, an error is
@@ -1475,6 +1514,16 @@ func (s *InputStruct) GetOrCreateC1() *InputStruct_C1 {
 	return s.C1
 }
 
+// GetC1 returns the value of the C1 struct pointer
+// from InputStruct. If the receiver or the field C1 is nil, nil
+// is returned such that the Get* methods can be safely chained.
+func (s *InputStruct) GetC1() *InputStruct_C1 {
+	if s != nil && s.C1 != nil {
+		return s.C1
+	}
+	return nil
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (s *InputStruct) Validate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["InputStruct"], s, opts...); err != nil {
@@ -1492,67 +1541,69 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 	}}
 
 	for _, tt := range tests {
-		if tt.wantSame {
-			tt.wantUncompressed = tt.wantCompressed
-		}
-		for compressed, want := range map[bool]wantGoStructOut{true: tt.wantCompressed, false: tt.wantUncompressed} {
-			s := newGenState()
-			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
-
-			// Always generate the JSON schema for this test.
-			got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inGoOpts)
-
-			if len(errs) != 0 && !want.wantErr {
-				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): received unexpected errors: %v",
-					tt.name, compressed, tt.inStructToMap, errs)
-				continue
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.wantSame {
+				tt.wantUncompressed = tt.wantCompressed
 			}
+			for compressed, want := range map[bool]wantGoStructOut{true: tt.wantCompressed, false: tt.wantUncompressed} {
+				s := newGenState()
+				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
-			if len(errs) == 0 && want.wantErr {
-				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): did not receive expected errors",
-					tt.name, compressed, tt.inStructToMap)
-				continue
-			}
+				// Always generate the JSON schema for this test.
+				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inGoOpts)
 
-			// If we wanted an error, then skip the rest of the tests as the generated code will not
-			// be correct.
-			if want.wantErr {
-				continue
-			}
-
-			if diff := pretty.Compare(want.structs, got.structDef); diff != "" {
-				if diffl, err := generateUnifiedDiff(got.structDef, want.structs); err == nil {
-
-					diff = diffl
+				if len(errs) != 0 && !want.wantErr {
+					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): received unexpected errors: %v",
+						tt.name, compressed, tt.inStructToMap, errs)
+					continue
 				}
-				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-got,+want):\n%s",
-					tt.name, compressed, tt.inStructToMap, diff)
-			}
 
-			if diff := pretty.Compare(want.keys, got.listKeys); diff != "" {
-				if diffl, err := generateUnifiedDiff(got.listKeys, want.keys); err == nil {
-					diff = diffl
+				if len(errs) == 0 && want.wantErr {
+					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): did not receive expected errors",
+						tt.name, compressed, tt.inStructToMap)
+					continue
 				}
-				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
-					tt.name, compressed, tt.inStructToMap, diff)
-			}
 
-			if diff := pretty.Compare(want.methods, got.methods); diff != "" {
-				if diffl, err := generateUnifiedDiff(got.methods, want.methods); err == nil {
-					diff = diffl
+				// If we wanted an error, then skip the rest of the tests as the generated code will not
+				// be correct.
+				if want.wantErr {
+					continue
 				}
-				t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
-					tt.name, compressed, tt.inStructToMap, diff)
-			}
 
-			if diff := pretty.Compare(want.interfaces, got.interfaces); diff != "" {
-				if diffl, err := generateUnifiedDiff(got.interfaces, want.interfaces); err == nil {
-					diff = diffl
+				if diff := pretty.Compare(want.structs, got.structDef); diff != "" {
+					if diffl, err := generateUnifiedDiff(got.structDef, want.structs); err == nil {
+
+						diff = diffl
+					}
+					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-got,+want):\n%s",
+						tt.name, compressed, tt.inStructToMap, diff)
 				}
-				t.Errorf("%s: writeGoStruct(CompressOCPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
-					tt.name, compressed, tt.inStructToMap, diff)
+
+				if diff := pretty.Compare(want.keys, got.listKeys); diff != "" {
+					if diffl, err := generateUnifiedDiff(got.listKeys, want.keys); err == nil {
+						diff = diffl
+					}
+					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
+						tt.name, compressed, tt.inStructToMap, diff)
+				}
+
+				if diff := pretty.Compare(want.methods, got.methods); diff != "" {
+					if diffl, err := generateUnifiedDiff(got.methods, want.methods); err == nil {
+						diff = diffl
+					}
+					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
+						tt.name, compressed, tt.inStructToMap, diff)
+				}
+
+				if diff := pretty.Compare(want.interfaces, got.interfaces); diff != "" {
+					if diffl, err := generateUnifiedDiff(got.interfaces, want.interfaces); err == nil {
+						diff = diffl
+					}
+					t.Errorf("%s: writeGoStruct(CompressOCPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
+						tt.name, compressed, tt.inStructToMap, diff)
+				}
 			}
-		}
+		})
 	}
 }
 

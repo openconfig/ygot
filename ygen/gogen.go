@@ -194,6 +194,10 @@ type goStructField struct {
 	// is used in templates to determine whether GetOrCreate methods should be
 	// created.
 	IsYANGContainer bool
+	// IsYANGList stores whether the field is a YANG list. This value is used
+	// in templates to determine whether GetXXX methods should be created using
+	// the base template.
+	IsYANGList bool
 }
 
 // goUnionInterface contains a definition of an interface that should
@@ -384,6 +388,20 @@ func (s *{{ .StructName }}) Validate(opts ...ygot.ValidationOption) error {
 }
 `
 
+	// goContainerGetterTemplate defines a template that generates a getter function
+	// for the field of a generated struct. It is generated only for YANG containers.
+	goContainerGetterTemplate = `
+// Get{{ .Field.Name }} returns the value of the {{ .Field.Name }} struct pointer
+// from {{ .StructName }}. If the receiver or the field {{ .Field.Name }} is nil, nil
+// is returned such that the Get* methods can be safely chained.
+func (s *{{ .StructName }}) Get{{ .Field.Name }}() {{ .Field.Type }} {
+	if s != nil && s.{{ .Field.Name }} != nil {
+		return s.{{ .Field.Name }}
+	}
+	return nil
+}
+`
+
 	// goGetOrCreateStructTemplate is a template that generates a getter
 	// function for a struct field of the receiver struct. The function generated
 	// creates the field if it does not exist.
@@ -517,6 +535,44 @@ func (t *{{ .Receiver }}) New{{ .ListName }}(
 	}
 
 	return t.{{ .ListName }}[key], nil
+}
+`
+
+	// goListGetterTemplate defines a template for a function that, for a particular
+	// list key, gets an existing map value.
+	goListGetterTemplate = `
+// Get{{ .ListName }} retrieves the value with the specified key from
+// the {{ .ListName }} map field of {{ .Receiver }}. If the receiver is nil, or
+// the specified key is not present in the list, nil is returned such that Get*
+// methods may be safely chained.
+func (t *{{ .Receiver }}) Get{{ .ListName }}(
+  {{- $length := len .Keys -}}
+  {{- range $i, $key := .Keys -}}
+	{{ $key.Name }} {{ $key.Type -}}
+	{{- if ne (inc $i) $length -}}, {{ end -}}
+  {{- end -}}
+  ) (*{{ .ListType }}){
+
+	if t == nil {
+		return nil
+	}
+
+  {{ if ne .KeyStruct "" -}}
+	key := {{ .KeyStruct }}{
+		{{- range $key := .Keys }}
+		{{ $key.Name }}: {{ $key.Name }},
+		{{- end }}
+	}
+	{{- else -}}
+	{{- range $key := .Keys -}}
+	key := {{ $key.Name }}
+	{{- end -}}
+	{{- end }}
+
+  if lm, ok := t.{{ .ListName }}[key]; ok {
+    return lm
+  }
+  return nil
 }
 `
 
@@ -820,6 +876,8 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"appendList":          makeTemplate("appendList", goListAppendTemplate),
 		"getOrCreateStruct":   makeTemplate("getOrCreateStruct", goGetOrCreateStructTemplate),
 		"getOrCreateList":     makeTemplate("getOrCreateList", goGetOrCreateListTemplate),
+		"getList":             makeTemplate("getList", goListGetterTemplate),
+		"getContainer":        makeTemplate("getContainer", goContainerGetterTemplate),
 	}
 
 	// templateHelperFunctions specifies a set of functions that are supplied as
@@ -1013,8 +1071,9 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			}
 
 			fieldDef = &goStructField{
-				Name: fieldName,
-				Type: fieldType,
+				Name:       fieldName,
+				Type:       fieldType,
+				IsYANGList: true,
 			}
 
 			if listMethods != nil {
@@ -1220,6 +1279,9 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			if err := generateGetOrCreateList(&methodBuf, method); err != nil {
 				errs = append(errs, err)
 			}
+			if err := generateListGetter(&methodBuf, method); err != nil {
+				errs = append(errs, err)
+			}
 		}
 
 		if goOpts.GenerateAppendMethod {
@@ -1231,6 +1293,9 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 
 	if goOpts.GenerateGetters {
 		if err := generateGetOrCreateStruct(&methodBuf, structDef); err != nil {
+			errs = append(errs, err)
+		}
+		if err := generateContainerGetters(&methodBuf, structDef); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -1287,6 +1352,14 @@ func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
 	return goTemplates["structValidator"].Execute(buf, structDef)
 }
 
+// goTmplFieldDetails stores a goStructField along with additional details
+// corresponding to it. It is used withAin templates that handle individual
+// fields.
+type goTmplFieldDetails struct {
+	Field      *goStructField // Field stores the definition of the field with which other details are associated.
+	StructName string         // StructName is the name of the struct that the field is a member of.
+}
+
 // generateGetOrCreateStruct generates a getter method for the YANG container
 // (Go struct ptr) fields of structDef, and appends it to the supplied buffer.
 // Assuming that structDef represents the following struct:
@@ -1305,19 +1378,38 @@ func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
 //    return s.Container
 //  }
 func generateGetOrCreateStruct(buf *bytes.Buffer, structDef generatedGoStruct) error {
-	type structFieldWithName struct {
-		StructName string
-		Field      *goStructField
-	}
 	for _, f := range structDef.Fields {
 		if f.IsYANGContainer {
-			tmpStruct := structFieldWithName{
+			tmpStruct := goTmplFieldDetails{
 				StructName: structDef.StructName,
 				Field:      f,
 			}
 			if err := goTemplates["getOrCreateStruct"].Execute(buf, tmpStruct); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+// generateContainerGetters generates GetXXX methods for container fields of the
+// supplied struct described by structDef.
+//
+// The method is defined by the goContainerGetterTemplate. This template returns
+// the value if the field is set, otherwise returns nil. The generated getters
+// are safe to call with a nil receiver.
+func generateContainerGetters(buf *bytes.Buffer, structDef generatedGoStruct) error {
+	for _, f := range structDef.Fields {
+		// Only YANG containers have getters generated for them.
+		if !f.IsYANGContainer {
+			continue
+		}
+		tmpStruct := goTmplFieldDetails{
+			StructName: structDef.StructName,
+			Field:      f,
+		}
+		if err := goTemplates["getContainer"].Execute(buf, tmpStruct); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -1338,6 +1430,14 @@ func generateGetOrCreateStruct(buf *bytes.Buffer, structDef generatedGoStruct) e
 // argument to determine the list's characteristics in the template.
 func generateGetOrCreateList(buf *bytes.Buffer, method *generatedGoListMethod) error {
 	return goTemplates["getOrCreateList"].Execute(buf, method)
+}
+
+// generateListGetter generates a getter function for members of the a YANG list
+// (Go map) field of the input struct. The generated function takes arguments
+// of the same form as those that are given to the GetOrCreate method generated
+// by generateGetOrCreateList.
+func generateListGetter(buf *bytes.Buffer, method *generatedGoListMethod) error {
+	return goTemplates["getList"].Execute(buf, method)
 }
 
 // generateListAppend generates a function which appends a (key, value) to a

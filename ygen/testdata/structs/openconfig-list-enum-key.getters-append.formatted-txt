@@ -50,6 +50,16 @@ func (s *Device) GetOrCreateTop() *OpenconfigListEnumKey_Top {
 	return s.Top
 }
 
+// GetTop returns the value of the Top struct pointer
+// from Device. If the receiver or the field Top is nil, nil
+// is returned such that the Get* methods can be safely chained.
+func (s *Device) GetTop() *OpenconfigListEnumKey_Top {
+	if s != nil && s.Top != nil {
+		return s.Top
+	}
+	return nil
+}
+
 // OpenconfigListEnumKey_Top represents the /openconfig-list-enum-key/top YANG schema element.
 type OpenconfigListEnumKey_Top struct {
 	MultiKey	*OpenconfigListEnumKey_Top_MultiKey	`path:"multi-key" module:"openconfig-list-enum-key"`
@@ -79,6 +89,26 @@ func (s *OpenconfigListEnumKey_Top) GetOrCreateSingleKey() *OpenconfigListEnumKe
 	}
 	s.SingleKey = &OpenconfigListEnumKey_Top_SingleKey{}
 	return s.SingleKey
+}
+
+// GetMultiKey returns the value of the MultiKey struct pointer
+// from OpenconfigListEnumKey_Top. If the receiver or the field MultiKey is nil, nil
+// is returned such that the Get* methods can be safely chained.
+func (s *OpenconfigListEnumKey_Top) GetMultiKey() *OpenconfigListEnumKey_Top_MultiKey {
+	if s != nil && s.MultiKey != nil {
+		return s.MultiKey
+	}
+	return nil
+}
+
+// GetSingleKey returns the value of the SingleKey struct pointer
+// from OpenconfigListEnumKey_Top. If the receiver or the field SingleKey is nil, nil
+// is returned such that the Get* methods can be safely chained.
+func (s *OpenconfigListEnumKey_Top) GetSingleKey() *OpenconfigListEnumKey_Top_SingleKey {
+	if s != nil && s.SingleKey != nil {
+		return s.SingleKey
+	}
+	return nil
 }
 
 // OpenconfigListEnumKey_Top_MultiKey represents the /openconfig-list-enum-key/top/multi-key YANG schema element.
@@ -150,6 +180,27 @@ func (t *OpenconfigListEnumKey_Top_MultiKey) GetOrCreateEkm(K1 E_OpenconfigListE
 	return v
 }
 
+// GetEkm retrieves the value with the specified key from
+// the Ekm map field of OpenconfigListEnumKey_Top_MultiKey. If the receiver is nil, or
+// the specified key is not present in the list, nil is returned such that Get*
+// methods may be safely chained.
+func (t *OpenconfigListEnumKey_Top_MultiKey) GetEkm(K1 E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1, K2 E_OpenconfigListEnumKey_FooIdentity) (*OpenconfigListEnumKey_Top_MultiKey_Ekm){
+
+	if t == nil {
+		return nil
+	}
+
+  key := OpenconfigListEnumKey_Top_MultiKey_Ekm_Key{
+		K1: K1,
+		K2: K2,
+	}
+
+  if lm, ok := t.Ekm[key]; ok {
+    return lm
+  }
+  return nil
+}
+
 // AppendEkm appends the supplied OpenconfigListEnumKey_Top_MultiKey_Ekm struct to the
 // list Ekm of OpenconfigListEnumKey_Top_MultiKey. If the key value(s) specified in
 // the supplied OpenconfigListEnumKey_Top_MultiKey_Ekm already exist in the list, an error is
@@ -203,6 +254,26 @@ func (s *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetOrCreateState() *OpenconfigL
 	}
 	s.State = &OpenconfigListEnumKey_Top_MultiKey_Ekm_State{}
 	return s.State
+}
+
+// GetConfig returns the value of the Config struct pointer
+// from OpenconfigListEnumKey_Top_MultiKey_Ekm. If the receiver or the field Config is nil, nil
+// is returned such that the Get* methods can be safely chained.
+func (s *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetConfig() *OpenconfigListEnumKey_Top_MultiKey_Ekm_Config {
+	if s != nil && s.Config != nil {
+		return s.Config
+	}
+	return nil
+}
+
+// GetState returns the value of the State struct pointer
+// from OpenconfigListEnumKey_Top_MultiKey_Ekm. If the receiver or the field State is nil, nil
+// is returned such that the Get* methods can be safely chained.
+func (s *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetState() *OpenconfigListEnumKey_Top_MultiKey_Ekm_State {
+	if s != nil && s.State != nil {
+		return s.State
+	}
+	return nil
 }
 
 // ΛListKeyMap returns the keys of the OpenconfigListEnumKey_Top_MultiKey_Ekm struct, which is a YANG list entry.
@@ -293,6 +364,24 @@ func (t *OpenconfigListEnumKey_Top_SingleKey) GetOrCreateEks(K E_OpenconfigListE
 	return v
 }
 
+// GetEks retrieves the value with the specified key from
+// the Eks map field of OpenconfigListEnumKey_Top_SingleKey. If the receiver is nil, or
+// the specified key is not present in the list, nil is returned such that Get*
+// methods may be safely chained.
+func (t *OpenconfigListEnumKey_Top_SingleKey) GetEks(K E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K) (*OpenconfigListEnumKey_Top_SingleKey_Eks){
+
+	if t == nil {
+		return nil
+	}
+
+  key := K
+
+  if lm, ok := t.Eks[key]; ok {
+    return lm
+  }
+  return nil
+}
+
 // AppendEks appends the supplied OpenconfigListEnumKey_Top_SingleKey_Eks struct to the
 // list Eks of OpenconfigListEnumKey_Top_SingleKey. If the key value(s) specified in
 // the supplied OpenconfigListEnumKey_Top_SingleKey_Eks already exist in the list, an error is
@@ -344,6 +433,26 @@ func (s *OpenconfigListEnumKey_Top_SingleKey_Eks) GetOrCreateState() *Openconfig
 	}
 	s.State = &OpenconfigListEnumKey_Top_SingleKey_Eks_State{}
 	return s.State
+}
+
+// GetConfig returns the value of the Config struct pointer
+// from OpenconfigListEnumKey_Top_SingleKey_Eks. If the receiver or the field Config is nil, nil
+// is returned such that the Get* methods can be safely chained.
+func (s *OpenconfigListEnumKey_Top_SingleKey_Eks) GetConfig() *OpenconfigListEnumKey_Top_SingleKey_Eks_Config {
+	if s != nil && s.Config != nil {
+		return s.Config
+	}
+	return nil
+}
+
+// GetState returns the value of the State struct pointer
+// from OpenconfigListEnumKey_Top_SingleKey_Eks. If the receiver or the field State is nil, nil
+// is returned such that the Get* methods can be safely chained.
+func (s *OpenconfigListEnumKey_Top_SingleKey_Eks) GetState() *OpenconfigListEnumKey_Top_SingleKey_Eks_State {
+	if s != nil && s.State != nil {
+		return s.State
+	}
+	return nil
 }
 
 // ΛListKeyMap returns the keys of the OpenconfigListEnumKey_Top_SingleKey_Eks struct, which is a YANG list entry.
