@@ -24,6 +24,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/pmezard/go-difflib/difflib"
 
+	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -1490,10 +1491,14 @@ func TestCopyStruct(t *testing.T) {
 		inSrc:   &copyTest{StringField: String("camden-hells")},
 		inDst:   &errorCopyTest{S: String("kernel-table-beer")},
 		wantErr: true,
+	}, {
+		name:    "error, slice fields not unique",
+		inSrc:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
+		inDst:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
+		wantErr: true,
 	}}
 
 	for _, tt := range tests {
-		fmt.Printf("running %s\n", tt.name)
 		dst, src := reflect.ValueOf(tt.inDst).Elem(), reflect.ValueOf(tt.inSrc).Elem()
 		var wantDst reflect.Value
 		if tt.wantDst != nil {
@@ -1600,13 +1605,13 @@ func TestMergeStructs(t *testing.T) {
 	}, {
 		name: "merge fields with slice of structs",
 		inA: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("one")}},
+			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
 		},
 		inB: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("two")}},
+			SliceField: []*validatedMergeTestSliceField{{String("citrus-dream")}},
 		},
 		want: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("one")}, {String("two")}},
+			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
 		},
 	}}
 
@@ -1921,5 +1926,86 @@ func TestBuildEmptyTreeMerge(t *testing.T) {
 			t.Errorf("%s: MergeStructs(%v, %v): did not get expected merge result, diff(-got,+want):\n%s", tt.name, tt.inStructA, tt.inStructB, diff)
 		}
 
+	}
+}
+
+func TestUniqueSlices(t *testing.T) {
+	type stringPtrStruct struct {
+		Foo *string
+	}
+
+	type sliceStruct struct {
+		Bar []string
+	}
+
+	tests := []struct {
+		name             string
+		inA              reflect.Value
+		inB              reflect.Value
+		wantUnique       bool
+		wantErrSubstring string
+	}{{
+		name:       "unique strings",
+		inA:        reflect.ValueOf([]string{"zest-please"}),
+		inB:        reflect.ValueOf([]string{"amarillo-single-hop-ipa"}),
+		wantUnique: true,
+	}, {
+		name:       "unique integers",
+		inA:        reflect.ValueOf([]int{1, 2, 3}),
+		inB:        reflect.ValueOf([]int{4, 5, 6}),
+		wantUnique: true,
+	}, {
+		name:             "error: mismatched types",
+		inA:              reflect.ValueOf([]string{"american-dream"}),
+		inB:              reflect.ValueOf([]int{42}),
+		wantErrSubstring: "a and b do not contain the same type",
+	}, {
+		name:             "error: not slices",
+		inA:              reflect.ValueOf("beer-geek-breakfast"),
+		inB:              reflect.ValueOf([]string{"beer-mile"}),
+		wantErrSubstring: "a and b must both be slices",
+	}, {
+		name:       "not unique, strings",
+		inA:        reflect.ValueOf([]string{"beobrew-ipa", "berliner-weisse"}),
+		inB:        reflect.ValueOf([]string{"beobrew-ipa", "big-worse"}),
+		wantUnique: false,
+	}, {
+		name:       "not unique, integers",
+		inA:        reflect.ValueOf([]int{42, 84, 96}),
+		inB:        reflect.ValueOf([]int{128, 256, 42}),
+		wantUnique: false,
+	}, {
+		name:       "unique, string ptr struct",
+		inA:        reflect.ValueOf([]*stringPtrStruct{{String("belgian-tripel")}}),
+		inB:        reflect.ValueOf([]*stringPtrStruct{{String("black-bear")}}),
+		wantUnique: true,
+	}, {
+		name:       "not unique, string ptr struct",
+		inA:        reflect.ValueOf([]*stringPtrStruct{{String("black-hole")}}),
+		inB:        reflect.ValueOf([]*stringPtrStruct{{String("black-hole")}}),
+		wantUnique: false,
+	}, {
+		name:       "unique, slice ptr struct",
+		inA:        reflect.ValueOf([]*sliceStruct{{[]string{"california-dream"}}}),
+		inB:        reflect.ValueOf([]*sliceStruct{{[]string{"caretaker"}}}),
+		wantUnique: true,
+	}, {
+		name:       "not unique, slice ptr struct",
+		inA:        reflect.ValueOf([]*sliceStruct{{[]string{"chill-pils"}}}),
+		inB:        reflect.ValueOf([]*sliceStruct{{[]string{"chill-pils"}}}),
+		wantUnique: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := uniqueSlices(tt.inA, tt.inB)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("%s: uniqueSlices(%v, %v): did not get expected error, %s", tt.name, tt.inA, tt.inB, diff)
+			}
+
+			if want := tt.wantUnique; got != want {
+				t.Fatalf("%s: uniqueSlices(%v, %v): did not get expected unique status, got: %v, want: %v", tt.name, tt.inA, tt.inB, got, want)
+			}
+		})
 	}
 }
