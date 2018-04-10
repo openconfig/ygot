@@ -696,31 +696,67 @@ func validateMap(srcField, dstField reflect.Value) (*mapType, error) {
 // copySliceField copies srcField into dstField. Both srcField and dstField
 // must have a kind of reflect.Slice kind and contain pointers to structs. If
 // the slice in dstField is populated an error is returned.
-// TODO(robjs): Implement merging of slice fields when they are populated in the
-// dstField, see https://github.com/openconfig/ygot/issues/74.
 func copySliceField(dstField, srcField reflect.Value) error {
-	if dstField.Len() != 0 {
-		return fmt.Errorf("unimplemented: cannot map slice where destination was set, src: %v, dst: %v", srcField.Interface(), dstField.Interface())
-	}
-
-	if !util.IsTypeStructPtr(srcField.Type().Elem()) {
-		dstField.Set(srcField)
+	if dstField.Len() == 0 && srcField.Len() == 0 {
 		return nil
 	}
 
-	if srcField.Len() == 0 {
+	unique, err := uniqueSlices(dstField, srcField)
+	if err != nil {
+		return fmt.Errorf("error checking src and dst for uniqueness, got: %v", err)
+	}
+
+	if !unique {
+		// YANG lists and leaf-lists must be unique.
+		return fmt.Errorf("source and destination lists must be unique, got src: %v, dst: %v", srcField, dstField)
+	}
+
+	if !util.IsTypeStructPtr(srcField.Type().Elem()) {
+		ns := reflect.MakeSlice(reflect.SliceOf(srcField.Type().Elem()), 0, 0)
+		for _, field := range []reflect.Value{dstField, srcField} {
+			for i := 0; i < field.Len(); i++ {
+				v := field.Index(i)
+				ns = reflect.Append(ns, v)
+			}
+		}
+		dstField.Set(ns)
 		return nil
 	}
 
 	ns := reflect.MakeSlice(reflect.SliceOf(srcField.Type().Elem()), 0, 0)
-	for i := 0; i < srcField.Len(); i++ {
-		v := srcField.Index(i)
-		d := reflect.New(v.Type().Elem())
-		if err := copyStruct(d.Elem(), v.Elem()); err != nil {
-			return err
+	for _, field := range []reflect.Value{dstField, srcField} {
+		for i := 0; i < field.Len(); i++ {
+			v := field.Index(i)
+			d := reflect.New(v.Type().Elem())
+			if err := copyStruct(d.Elem(), v.Elem()); err != nil {
+				return err
+			}
+			ns = reflect.Append(ns, d)
 		}
-		ns = reflect.Append(ns, d)
 	}
+
 	dstField.Set(ns)
 	return nil
+}
+
+// uniqueSlices takes two reflect.Values which must represent slices, and determines
+// whether a and b contain the same item. It returns true if the slices have unique
+// members, and false if not.
+func uniqueSlices(a, b reflect.Value) (bool, error) {
+	if !util.IsValueSlice(a) || !util.IsValueSlice(b) {
+		return false, fmt.Errorf("a and b must both be slices, got a: %v, b: %v", a.Type().Kind(), b.Type().Kind())
+	}
+
+	if a.Type().Elem() != b.Type().Elem() {
+		return false, fmt.Errorf("a and b do not contain the same type, got a: %v, b: %v", a.Type().Elem().Kind(), b.Type().Elem().Kind())
+	}
+
+	for i := 0; i < a.Len(); i++ {
+		for j := 0; j < b.Len(); j++ {
+			if reflect.DeepEqual(a.Index(i).Interface(), b.Index(j).Interface()) {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
 }
