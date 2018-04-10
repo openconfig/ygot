@@ -1289,7 +1289,9 @@ func TestCopyStruct(t *testing.T) {
 		inDst: &copyTest{
 			StringSlice: []string{"feral-brewing-co-hop-hog", "balter-brewing-xpa"},
 		},
-		wantErr: true, // Input combination not supported, destination slice must be nil.
+		wantDst: &copyTest{
+			StringSlice: []string{"feral-brewing-co-hop-hog", "balter-brewing-xpa", "stone-and-wood-pacific", "pirate-life-brewing-iipa"},
+		},
 	}, {
 		name: "string map",
 		inSrc: &copyTest{
@@ -1426,7 +1428,7 @@ func TestCopyStruct(t *testing.T) {
 			}},
 		},
 	}, {
-		name: "unimplemented: struct slice with overlapping contents",
+		name: "struct slice with overlapping contents",
 		inSrc: &copyTest{
 			StructSlice: []*copyTest{{
 				StringField: String("pirate-life-brewing-ipa"),
@@ -1437,7 +1439,13 @@ func TestCopyStruct(t *testing.T) {
 				StringField: String("gage-roads-little-dove"),
 			}},
 		},
-		wantErr: true, // Input combination unimplemented, destination slice must be nil.
+		wantDst: &copyTest{
+			StructSlice: []*copyTest{{
+				StringField: String("gage-roads-little-dove"),
+			}, {
+				StringField: String("pirate-life-brewing-ipa"),
+			}},
+		},
 	}, {
 		name:    "error, integer in interface",
 		inSrc:   &errorCopyTest{I: 42},
@@ -1485,6 +1493,7 @@ func TestCopyStruct(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
+		fmt.Printf("running %s\n", tt.name)
 		dst, src := reflect.ValueOf(tt.inDst).Elem(), reflect.ValueOf(tt.inSrc).Elem()
 		var wantDst reflect.Value
 		if tt.wantDst != nil {
@@ -1524,6 +1533,18 @@ type validatedMergeTestTwo struct {
 func (*validatedMergeTestTwo) Validate(...ValidationOption) error      { return nil }
 func (*validatedMergeTestTwo) IsYANGGoStruct()                         {}
 func (*validatedMergeTestTwo) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
+type validatedMergeTestWithSlice struct {
+	SliceField []*validatedMergeTestSliceField
+}
+
+func (*validatedMergeTestWithSlice) Validate(...ValidationOption) error      { return nil }
+func (*validatedMergeTestWithSlice) IsYANGGoStruct()                         {}
+func (*validatedMergeTestWithSlice) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
+type validatedMergeTestSliceField struct {
+	String *string
+}
 
 func TestMergeStructs(t *testing.T) {
 	tests := []struct {
@@ -1576,6 +1597,17 @@ func TestMergeStructs(t *testing.T) {
 		inA:     &validatedMergeTest{String: String("schneider-weisse-hopfenweisse")},
 		inB:     &validatedMergeTest{String: String("deschutes-jubelale")},
 		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field, src: deschutes-jubelale, dst: schneider-weisse-hopfenweisse",
+	}, {
+		name: "merge fields with slice of structs",
+		inA: &validatedMergeTestWithSlice{
+			SliceField: []*validatedMergeTestSliceField{{String("one")}},
+		},
+		inB: &validatedMergeTestWithSlice{
+			SliceField: []*validatedMergeTestSliceField{{String("two")}},
+		},
+		want: &validatedMergeTestWithSlice{
+			SliceField: []*validatedMergeTestSliceField{{String("one")}, {String("two")}},
+		},
 	}}
 
 	for _, tt := range tests {

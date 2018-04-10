@@ -699,12 +699,19 @@ func validateMap(srcField, dstField reflect.Value) (*mapType, error) {
 // TODO(robjs): Implement merging of slice fields when they are populated in the
 // dstField, see https://github.com/openconfig/ygot/issues/74.
 func copySliceField(dstField, srcField reflect.Value) error {
-	if dstField.Len() != 0 {
-		return fmt.Errorf("unimplemented: cannot map slice where destination was set, src: %v, dst: %v", srcField.Interface(), dstField.Interface())
-	}
+	//if dstField.Len() != 0 {
+	//	return fmt.Errorf("unimplemented: cannot map slice where destination was set, src: %v, dst: %v", srcField.Interface(), dstField.Interface())
+	//}
 
 	if !util.IsTypeStructPtr(srcField.Type().Elem()) {
-		dstField.Set(srcField)
+		ns := reflect.MakeSlice(reflect.SliceOf(srcField.Type().Elem()), 0, 0)
+		for _, field := range []reflect.Value{dstField, srcField} {
+			for i := 0; i < field.Len(); i++ {
+				v := field.Index(i)
+				ns = reflect.Append(ns, v)
+			}
+		}
+		dstField.Set(ns)
 		return nil
 	}
 
@@ -713,14 +720,17 @@ func copySliceField(dstField, srcField reflect.Value) error {
 	}
 
 	ns := reflect.MakeSlice(reflect.SliceOf(srcField.Type().Elem()), 0, 0)
-	for i := 0; i < srcField.Len(); i++ {
-		v := srcField.Index(i)
-		d := reflect.New(v.Type().Elem())
-		if err := copyStruct(d.Elem(), v.Elem()); err != nil {
-			return err
+	for _, field := range []reflect.Value{dstField, srcField} {
+		for i := 0; i < field.Len(); i++ {
+			v := field.Index(i)
+			d := reflect.New(v.Type().Elem())
+			if err := copyStruct(d.Elem(), v.Elem()); err != nil {
+				return err
+			}
+			ns = reflect.Append(ns, d)
 		}
-		ns = reflect.Append(ns, d)
 	}
+
 	dstField.Set(ns)
 	return nil
 }
