@@ -1267,7 +1267,6 @@ func (t *Tstruct) GetListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 // DeleteListWithKey deletes the value with the specified keys from
 // the receiver Tstruct.
 func (t *Tstruct) DeleteListWithKey(KeyLeafOne string, KeyLeafTwo int8) {
-
 	key := Tstruct_ListWithKey_Key{
 		KeyLeafOne: KeyLeafOne,
 		KeyLeafTwo: KeyLeafTwo,
@@ -1446,7 +1445,6 @@ func (t *Tstruct) GetListWithKey(KeyLeaf string) (*ListWithKey){
 // DeleteListWithKey deletes the value with the specified keys from
 // the receiver Tstruct.
 func (t *Tstruct) DeleteListWithKey(KeyLeaf string) {
-
 	key := KeyLeaf
 
 	delete(t.ListWithKey, key)

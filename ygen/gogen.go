@@ -632,7 +632,6 @@ func (t *{{ .Receiver }}) Delete{{ .ListName }}(
 	{{- if ne (inc $i) $length -}}, {{ end -}}
   {{- end -}}
   ) {
-
 	{{ if ne .KeyStruct "" -}}
 	key := {{ .KeyStruct }}{
 		{{- range $key := .Keys }}

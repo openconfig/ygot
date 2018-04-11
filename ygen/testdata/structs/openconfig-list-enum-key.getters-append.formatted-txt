@@ -204,7 +204,6 @@ func (t *OpenconfigListEnumKey_Top_MultiKey) GetEkm(K1 E_OpenconfigListEnumKey_T
 // DeleteEkm deletes the value with the specified keys from
 // the receiver OpenconfigListEnumKey_Top_MultiKey.
 func (t *OpenconfigListEnumKey_Top_MultiKey) DeleteEkm(K1 E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1, K2 E_OpenconfigListEnumKey_FooIdentity) {
-
 	key := OpenconfigListEnumKey_Top_MultiKey_Ekm_Key{
 		K1: K1,
 		K2: K2,
@@ -397,7 +396,6 @@ func (t *OpenconfigListEnumKey_Top_SingleKey) GetEks(K E_OpenconfigListEnumKey_T
 // DeleteEks deletes the value with the specified keys from
 // the receiver OpenconfigListEnumKey_Top_SingleKey.
 func (t *OpenconfigListEnumKey_Top_SingleKey) DeleteEks(K E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K) {
-
 	key := K
 
 	delete(t.Eks, key)
