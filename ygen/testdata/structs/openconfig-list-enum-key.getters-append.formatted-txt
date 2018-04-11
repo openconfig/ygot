@@ -201,6 +201,18 @@ func (t *OpenconfigListEnumKey_Top_MultiKey) GetEkm(K1 E_OpenconfigListEnumKey_T
   return nil
 }
 
+// DeleteEkm deletes the value with the specified keys from
+// the receiver OpenconfigListEnumKey_Top_MultiKey.
+func (t *OpenconfigListEnumKey_Top_MultiKey) DeleteEkm(K1 E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1, K2 E_OpenconfigListEnumKey_FooIdentity) {
+
+	key := OpenconfigListEnumKey_Top_MultiKey_Ekm_Key{
+		K1: K1,
+		K2: K2,
+	}
+
+	delete(t.Ekm, key)
+}
+
 // AppendEkm appends the supplied OpenconfigListEnumKey_Top_MultiKey_Ekm struct to the
 // list Ekm of OpenconfigListEnumKey_Top_MultiKey. If the key value(s) specified in
 // the supplied OpenconfigListEnumKey_Top_MultiKey_Ekm already exist in the list, an error is
@@ -380,6 +392,15 @@ func (t *OpenconfigListEnumKey_Top_SingleKey) GetEks(K E_OpenconfigListEnumKey_T
     return lm
   }
   return nil
+}
+
+// DeleteEks deletes the value with the specified keys from
+// the receiver OpenconfigListEnumKey_Top_SingleKey.
+func (t *OpenconfigListEnumKey_Top_SingleKey) DeleteEks(K E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K) {
+
+	key := K
+
+	delete(t.Eks, key)
 }
 
 // AppendEks appends the supplied OpenconfigListEnumKey_Top_SingleKey_Eks struct to the

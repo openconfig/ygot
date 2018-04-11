@@ -1168,6 +1168,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		inGoOpts: GoOpts{
 			GenerateAppendMethod: true,
 			GenerateGetters:      true,
+			GenerateDeleteMethod: true,
 		},
 		wantCompressed: wantGoStructOut{
 			structs: `
@@ -1263,6 +1264,18 @@ func (t *Tstruct) GetListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
   return nil
 }
 
+// DeleteListWithKey deletes the value with the specified keys from
+// the receiver Tstruct.
+func (t *Tstruct) DeleteListWithKey(KeyLeafOne string, KeyLeafTwo int8) {
+
+	key := Tstruct_ListWithKey_Key{
+		KeyLeafOne: KeyLeafOne,
+		KeyLeafTwo: KeyLeafTwo,
+	}
+
+	delete(t.ListWithKey, key)
+}
+
 // AppendListWithKey appends the supplied ListWithKey struct to the
 // list ListWithKey of Tstruct. If the key value(s) specified in
 // the supplied ListWithKey already exist in the list, an error is
@@ -1351,6 +1364,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		inGoOpts: GoOpts{
 			GenerateAppendMethod: true,
 			GenerateGetters:      true,
+			GenerateDeleteMethod: true,
 		},
 		wantCompressed: wantGoStructOut{
 			structs: `
@@ -1427,6 +1441,15 @@ func (t *Tstruct) GetListWithKey(KeyLeaf string) (*ListWithKey){
     return lm
   }
   return nil
+}
+
+// DeleteListWithKey deletes the value with the specified keys from
+// the receiver Tstruct.
+func (t *Tstruct) DeleteListWithKey(KeyLeaf string) {
+
+	key := KeyLeaf
+
+	delete(t.ListWithKey, key)
 }
 
 // AppendListWithKey appends the supplied ListWithKey struct to the

@@ -620,6 +620,35 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 }
 `
 
+	// goDeleteListTemplate defines a template for a function that, for a
+	// particular list key, deletes an existing map value.
+	goDeleteListTemplate = `
+// Delete{{ .ListName }} deletes the value with the specified keys from
+// the receiver {{ .Receiver }}.
+func (t *{{ .Receiver }}) Delete{{ .ListName }}(
+  {{- $length := len .Keys -}}
+  {{- range $i, $key := .Keys -}}
+	{{ $key.Name }} {{ $key.Type -}}
+	{{- if ne (inc $i) $length -}}, {{ end -}}
+  {{- end -}}
+  ) {
+
+	{{ if ne .KeyStruct "" -}}
+	key := {{ .KeyStruct }}{
+		{{- range $key := .Keys }}
+		{{ $key.Name }}: {{ $key.Name }},
+		{{- end }}
+	}
+	{{- else -}}
+	{{- range $key := .Keys -}}
+	key := {{ $key.Name }}
+	{{- end -}}
+	{{- end }}
+
+	delete(t.{{ .ListName }}, key)
+}
+`
+
 	// goListAppendTemplate defines a template for a function that takes an
 	// input list member struct, extracts the key value, and appends it to a map.
 	// In this template, since all list keys are specified to be pointer types
@@ -876,6 +905,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"appendList":          makeTemplate("appendList", goListAppendTemplate),
 		"getOrCreateStruct":   makeTemplate("getOrCreateStruct", goGetOrCreateStructTemplate),
 		"getOrCreateList":     makeTemplate("getOrCreateList", goGetOrCreateListTemplate),
+		"deleteList":          makeTemplate("deleteList", goDeleteListTemplate),
 		"getList":             makeTemplate("getList", goListGetterTemplate),
 		"getContainer":        makeTemplate("getContainer", goContainerGetterTemplate),
 	}
@@ -1284,6 +1314,12 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			}
 		}
 
+		if goOpts.GenerateDeleteMethod {
+			if err := generateListDelete(&methodBuf, method); err != nil {
+				errs = append(errs, err)
+			}
+		}
+
 		if goOpts.GenerateAppendMethod {
 			if err := generateListAppend(&methodBuf, method); err != nil {
 				errs = append(errs, err)
@@ -1438,6 +1474,14 @@ func generateGetOrCreateList(buf *bytes.Buffer, method *generatedGoListMethod) e
 // by generateGetOrCreateList.
 func generateListGetter(buf *bytes.Buffer, method *generatedGoListMethod) error {
 	return goTemplates["getList"].Execute(buf, method)
+}
+
+// generateListDelete generates a delete function for members of the a YANG list
+// (Go map) field of the input struct. The generated function takes arguments
+// of the same form as those that are given to the GetOrCreate method generated
+// by generateGetOrCreateList.
+func generateListDelete(buf *bytes.Buffer, method *generatedGoListMethod) error {
+	return goTemplates["deleteList"].Execute(buf, method)
 }
 
 // generateListAppend generates a function which appends a (key, value) to a

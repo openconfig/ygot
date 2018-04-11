@@ -597,13 +597,14 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false-compressed.formatted-txt"),
 	}, {
-		name:    "module with getters and append methods",
+		name:    "module with getters, delete and append methods",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.yang")},
 		inConfig: GeneratorConfig{
 			GenerateFakeRoot: true,
 			GoOptions: GoOpts{
 				GenerateAppendMethod: true,
 				GenerateGetters:      true,
+				GenerateDeleteMethod: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.getters-append.formatted-txt"),
