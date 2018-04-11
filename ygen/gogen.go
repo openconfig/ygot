@@ -624,7 +624,8 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 	// particular list key, deletes an existing map value.
 	goDeleteListTemplate = `
 // Delete{{ .ListName }} deletes the value with the specified keys from
-// the receiver {{ .Receiver }}.
+// the receiver {{ .Receiver }}. If there is no such element, the function
+// is a no-op.
 func (t *{{ .Receiver }}) Delete{{ .ListName }}(
   {{- $length := len .Keys -}}
   {{- range $i, $key := .Keys -}}

@@ -1265,7 +1265,8 @@ func (t *Tstruct) GetListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 }
 
 // DeleteListWithKey deletes the value with the specified keys from
-// the receiver Tstruct.
+// the receiver Tstruct. If there is no such element, the function
+// is a no-op.
 func (t *Tstruct) DeleteListWithKey(KeyLeafOne string, KeyLeafTwo int8) {
 	key := Tstruct_ListWithKey_Key{
 		KeyLeafOne: KeyLeafOne,
@@ -1443,7 +1444,8 @@ func (t *Tstruct) GetListWithKey(KeyLeaf string) (*ListWithKey){
 }
 
 // DeleteListWithKey deletes the value with the specified keys from
-// the receiver Tstruct.
+// the receiver Tstruct. If there is no such element, the function
+// is a no-op.
 func (t *Tstruct) DeleteListWithKey(KeyLeaf string) {
 	key := KeyLeaf
 
