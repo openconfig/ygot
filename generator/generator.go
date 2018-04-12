@@ -49,6 +49,7 @@ var (
 	excludeState     = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Go code.")
 	generateAppend   = flag.Bool("generate_append", false, "If set to true, append methods are generated for YANG lists (Go maps) within the Go code.")
 	generateGetters  = flag.Bool("generate_getters", false, "If set to true, getter methdos that retrieve or create an element are generated for YANG container (Go struct pointer) or list (Go map) fields within the generated code.")
+	generateDelete   = flag.Bool("generate_delete", false, "If set to true, delete methods are generated for YANG lists (Go maps) within the Go code.")
 )
 
 // writeGoCode takes a ygen.GeneratedGoCode struct and writes the Go code
@@ -162,6 +163,7 @@ func main() {
 			AddAnnotationFields:  *addAnnotations,
 			AnnotationPrefix:     *annotationPrefix,
 			GenerateGetters:      *generateGetters,
+			GenerateDeleteMethod: *generateDelete,
 			GenerateAppendMethod: *generateAppend,
 		},
 		ExcludeState: *excludeState,

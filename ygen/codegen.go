@@ -119,6 +119,9 @@ type GoOpts struct {
 	// for struct pointer (YANG container) and map (YANG list) fields of generated
 	// structs.
 	GenerateGetters bool
+	// GenerateDeleteMethod specifies whether Delete* methods should be created for
+	// map (YANG list) fields of generated structs.
+	GenerateDeleteMethod bool
 	// GenerateAppendList specifies whether Append* methods should be created for
 	// list fields of a struct. These methods take an input list member type, extract
 	// the key and append the supplied value to the list.
