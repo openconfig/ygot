@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package test;
+import "github.com/openconfig/ygot/proto/yext/yext.proto";
+
+
+message AMessage {
+  BMessage set = 1 [(yext.schemapath) = "/b"];
+  BMessage unset = 2;
+  CMessage nested = 3 [(yext.schemapath) = "/b/c"];
+  message CMessage {
+    DMessage nested = 4 [(yext.schemapath) = "/b/c/d"];
+    message DMessage {
+      string field = 1 [(yext.schemapath) = "/b/c/d/field"];
+    }
+  }
+}
+
+message BMessage {
+  string field = 1;
+}
