@@ -1,3 +1,3 @@
 package main
 
-import _ "github.com/openconfig/yang_protobuf/protoc-gen-yanggo/yang"
+import _ "github.com/openconfig/ygot/experimental/yangproto/protoc-gen-yanggo/yang"

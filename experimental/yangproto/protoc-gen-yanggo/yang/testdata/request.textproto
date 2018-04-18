@@ -1,4 +1,4 @@
-file_to_generate: "github.com/openconfig/yang_protobuf/protoc-gen-yanggo/yang/pkg/testproto/test.proto"
+file_to_generate: "github.com/openconfig/ygot/experimental/yangproto/protoc-gen-yanggo/yang/pkg/testproto/test.proto"
 parameter: "plugins=yang"
 proto_file: <
   name: "google/protobuf/descriptor.proto"
@@ -10822,7 +10822,7 @@ proto_file: <
   syntax: "proto3"
 >
 proto_file: <
-  name: "github.com/openconfig/yang_protobuf/protoc-gen-yanggo/yang/pkg/testproto/test.proto"
+  name: "github.com/openconfig/ygot/experimental/yangproto/protoc-gen-yanggo/yang/pkg/testproto/test.proto"
   package: "test"
   dependency: "github.com/openconfig/ygot/proto/yext/yext.proto"
   message_type: <
