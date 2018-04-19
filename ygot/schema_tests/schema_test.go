@@ -21,8 +21,11 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/ygot"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 func TestBuildEmptyEthernet(t *testing.T) {
@@ -106,5 +109,40 @@ func TestBuildEmptyDevice(t *testing.T) {
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("did not get expected device struct, diff(-got,+want):\n%s", diff)
+	}
+}
+
+func TestDiff(t *testing.T) {
+
+	tests := []struct {
+		desc             string
+		inOrig           ygot.GoStruct
+		inMod            ygot.GoStruct
+		want             *gnmipb.Notification
+		wantErrSubstring string
+	}{{
+		desc:   "diff BGP neigbour",
+		inOrig: &exampleoc.NetworkInstance_Protocol_Bgp{},
+		inMod: func() *exampleoc.NetworkInstance_Protocol_Bgp {
+			d := &exampleoc.Device{}
+			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+			n := b.GetOrCreateNeighbor("192.0.2.1")
+			n.PeerAs = ygot.Uint32(29636)
+			n.PeerType = exampleoc.OpenconfigBgp_PeerType_EXTERNAL
+			return b
+		}(),
+		want: &gnmipb.Notification{},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := ygot.Diff(tt.inOrig, tt.inMod)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("ygot.Diff(%#v, %#v): did not get expected error, %s", tt.inOrig, tt.inMod, diff)
+			}
+			if diff := pretty.Compare(got, tt.want); diff != "" {
+				t.Fatalf("ygot.Diff(%#v, %#v); did not get expected diff output, dif(-got,+want):\n%s", tt.inOrig, tt.inMod, diff)
+			}
+		})
 	}
 }
