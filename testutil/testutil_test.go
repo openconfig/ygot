@@ -15,10 +15,326 @@
 package testutil
 
 import (
+	"fmt"
 	"testing"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
+
+func TestNotificationLess(t *testing.T) {
+	tests := []struct {
+		name string
+		inA  *gnmipb.Notification
+		inB  *gnmipb.Notification
+		want bool
+	}{{
+		name: "equal",
+		inA: &gnmipb.Notification{
+			Timestamp: 42,
+			Prefix: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "two",
+					}},
+				},
+			}},
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "three",
+				}},
+			}},
+		},
+		inB: &gnmipb.Notification{
+			Timestamp: 42,
+			Prefix: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "two",
+					}},
+				},
+			}},
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "three",
+				}},
+			}},
+		},
+		want: true,
+	}, {
+		name: "timestamp: a < b",
+		inA: &gnmipb.Notification{
+			Timestamp: 0,
+		},
+		inB: &gnmipb.Notification{
+			Timestamp: 42,
+		},
+		want: true,
+	}, {
+		name: "timestamp: b < a",
+		inA: &gnmipb.Notification{
+			Timestamp: 42,
+		},
+		inB: &gnmipb.Notification{
+			Timestamp: 0,
+		},
+		want: false,
+	}, {
+		name: "prefix: a < b",
+		inA: &gnmipb.Notification{
+			Timestamp: 42,
+			Prefix: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}, {
+					Name: "two",
+				}},
+			},
+		},
+		inB: &gnmipb.Notification{
+			Timestamp: 42,
+			Prefix: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+		},
+		want: true,
+	}, {
+		name: "prefix: b < a",
+		inA: &gnmipb.Notification{
+			Timestamp: 42,
+			Prefix: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+		},
+		inB: &gnmipb.Notification{
+			Timestamp: 42,
+			Prefix: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "zzz",
+				}},
+			},
+		},
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := notificationLess(tt.inA, tt.inB); got != tt.want {
+				t.Fatalf("notificationLess(%#v, %#v): did not get expected result, got: %v, want: %v", tt.inA, tt.inB, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestUpdateLess(t *testing.T) {
+	tests := []struct {
+		name string
+		inA  *gnmipb.Update
+		inB  *gnmipb.Update
+		want bool
+	}{{
+		name: "updates equal",
+		inA: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 42,
+		},
+		inB: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 42,
+		},
+		want: true,
+	}, {
+		name: "path: a < b",
+		inA: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 42,
+		},
+		inB: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}, {
+					Name: "two",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 42,
+		},
+		want: true,
+	}, {
+		name: "path: b < a",
+		inA: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}, {
+					Name: "two",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 42,
+		},
+		inB: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 42,
+		},
+		want: false,
+	}, {
+		name: "typed value: a < b",
+		inA: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{24},
+			},
+			Duplicates: 42,
+		},
+		inB: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 42,
+		},
+		want: true,
+	}, {
+		name: "typed value: b < a",
+		inA: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 42,
+		},
+		inB: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{0},
+			},
+			Duplicates: 42,
+		},
+		want: false,
+	}, {
+		name: "duplicates: a < b",
+		inA: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 42,
+		},
+		inB: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 84,
+		},
+		want: true,
+	}, {
+		name: "duplicates: b < a",
+		inA: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 42,
+		},
+		inB: &gnmipb.Update{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			},
+			Val: &gnmipb.TypedValue{
+				Value: &gnmipb.TypedValue_UintVal{42},
+			},
+			Duplicates: 0,
+		},
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fmt.Printf("run %s\n", tt.name)
+			if got := updateLess(tt.inA, tt.inB); got != tt.want {
+				t.Fatalf("updateLess(%#v, %#v): did not get expected result, got: %v, want: %v", tt.inA, tt.inB, got, tt.want)
+			}
+		})
+	}
+}
 
 func TestPathLess(t *testing.T) {
 	tests := []struct {

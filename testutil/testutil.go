@@ -21,9 +21,102 @@ import (
 	"reflect"
 	"sort"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/gnmi/value"
 )
+
+type updateSet []*gnmipb.Update
+
+func (u updateSet) Len() int           { return len(u) }
+func (u updateSet) Less(i, j int) bool { return updateLess(u[i], u[j]) }
+func (u updateSet) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
+
+type pathSet []*gnmipb.Path
+
+func (p pathSet) Len() int           { return len(p) }
+func (p pathSet) Less(i, j int) bool { return pathLess(p[i], p[j]) }
+func (p pathSet) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+func notificationLess(a, b *gnmipb.Notification) bool {
+	if proto.Equal(a, b) {
+		return true
+	}
+
+	if a.Timestamp != b.Timestamp {
+		return a.Timestamp < b.Timestamp
+	}
+
+	if !proto.Equal(a.Prefix, b.Prefix) {
+		return pathLess(a.Prefix, b.Prefix)
+	}
+
+	if !cmp.Equal(a.Update, b.Update, cmpopts.SortSlices(updateLess)) {
+		if len(a.Update) < len(b.Update) {
+			return true
+		}
+		if len(b.Update) < len(a.Update) {
+			return false
+		}
+
+		sort.Sort(updateSet(a.Update))
+		sort.Sort(updateSet(b.Update))
+
+		for _, uA := range a.Update {
+			for _, uB := range b.Update {
+				if !proto.Equal(uA, uB) {
+					return updateLess(uA, uB)
+				}
+			}
+		}
+	}
+
+	if !cmp.Equal(a.Delete, b.Delete, cmpopts.SortSlices(pathLess)) {
+		if len(a.Delete) < len(b.Delete) {
+			return true
+		}
+
+		if len(b.Delete) < len(a.Delete) {
+			return false
+		}
+
+		sort.Sort(pathSet(a.Delete))
+		sort.Sort(pathSet(b.Delete))
+		for _, dA := range a.Delete {
+			for _, dB := range b.Delete {
+				if !proto.Equal(dA, dB) {
+					return pathLess(dA, dB)
+				}
+			}
+		}
+	}
+
+	return true
+}
+
+// updateLess compares two gNMI Update messages and returns true if a < b.
+// The less-than comparison is done by first comparing the paths of the updates,
+// and subquently comparing the typedValue fields of the updates, followed by
+// the duplicates fields. If all fields are equal,
+func updateLess(a, b *gnmipb.Update) bool {
+	if proto.Equal(a, b) {
+		// If the two values are equal, return true to avoid the expense of checking
+		// each field.
+		return true
+	}
+
+	if !proto.Equal(a.Path, b.Path) {
+		return pathLess(a.Path, b.Path)
+	}
+
+	if !proto.Equal(a.Val, b.Val) {
+		return typedValueLess(a.Val, b.Val)
+	}
+
+	return a.Duplicates < b.Duplicates
+}
 
 // pathLess provides a function which determines whether a gNMI Path messages
 // A is less than the gNMI Path message b. It can be used to allow sorting of
