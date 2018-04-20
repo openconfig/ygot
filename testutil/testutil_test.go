@@ -115,7 +115,7 @@ func TestNotificationLess(t *testing.T) {
 			Timestamp: 42,
 			Prefix: &gnmipb.Path{
 				Elem: []*gnmipb.PathElem{{
-					Name: "one",
+					Name: "zzz",
 				}},
 			},
 		},
@@ -123,10 +123,191 @@ func TestNotificationLess(t *testing.T) {
 			Timestamp: 42,
 			Prefix: &gnmipb.Path{
 				Elem: []*gnmipb.PathElem{{
-					Name: "zzz",
+					Name: "aaa",
 				}},
 			},
 		},
+		want: false,
+	}, {
+		name: "update: a < b length",
+		inA: &gnmipb.Notification{
+			Timestamp: 42,
+		},
+		inB: &gnmipb.Notification{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Duplicates: 0,
+			}},
+		},
+		want: true,
+	}, {
+		name: "update: b < a length",
+		inA: &gnmipb.Notification{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Duplicates: 0,
+			}},
+		},
+		inB: &gnmipb.Notification{
+			Timestamp: 42,
+		},
+		want: false,
+	}, {
+		name: "update: a < b multiple updates",
+		inA: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "one-z",
+					}},
+				},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "two-q",
+					}},
+				},
+			}},
+		},
+		inB: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "two-a",
+					}},
+				},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "one-z",
+					}},
+				},
+			}},
+		},
+		want: true,
+	}, {
+		name: "update: a < b multiple updates, different order",
+		inA: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "one-z",
+					}},
+				},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "two-q",
+					}},
+				},
+			}},
+		},
+		inB: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "one-z",
+					}},
+				},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "two-a",
+					}},
+				},
+			}},
+		},
+		want: true,
+	}, {
+		name: "delete: a < b, length",
+		inA: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			}},
+		},
+		inB: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "two",
+				}},
+			}},
+		},
+		want: true,
+	}, {
+		name: "delete: b < a, length",
+		inA: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "two",
+				}},
+			}},
+		},
+		inB: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			}},
+		},
+		want: false,
+	}, {
+		name: "delete: a < b, path",
+		inA: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}, {
+					Name: "two",
+				}},
+			}},
+		},
+		inB: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			}},
+		},
+		want: true,
+	}, {
+		name: "delete: b < a, path",
+		inA: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			}},
+		},
+		inB: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}, {
+					Name: "two",
+				}},
+			}},
+		},
+		want: false,
+	}, {
+		name: "nil: both nil",
+		want: true,
+	}, {
+		name: "nil: a nil, b not",
+		inB:  &gnmipb.Notification{Timestamp: 42},
+		want: true,
+	}, {
+		name: "nil: a not, b nil",
+		inA:  &gnmipb.Notification{Timestamp: 42},
 		want: false,
 	}}
 
@@ -176,6 +357,8 @@ func TestUpdateLess(t *testing.T) {
 			Path: &gnmipb.Path{
 				Elem: []*gnmipb.PathElem{{
 					Name: "one",
+				}, {
+					Name: "two",
 				}},
 			},
 			Val: &gnmipb.TypedValue{
@@ -187,8 +370,6 @@ func TestUpdateLess(t *testing.T) {
 			Path: &gnmipb.Path{
 				Elem: []*gnmipb.PathElem{{
 					Name: "one",
-				}, {
-					Name: "two",
 				}},
 			},
 			Val: &gnmipb.TypedValue{
@@ -203,8 +384,6 @@ func TestUpdateLess(t *testing.T) {
 			Path: &gnmipb.Path{
 				Elem: []*gnmipb.PathElem{{
 					Name: "one",
-				}, {
-					Name: "two",
 				}},
 			},
 			Val: &gnmipb.TypedValue{
@@ -216,6 +395,8 @@ func TestUpdateLess(t *testing.T) {
 			Path: &gnmipb.Path{
 				Elem: []*gnmipb.PathElem{{
 					Name: "one",
+				}, {
+					Name: "two",
 				}},
 			},
 			Val: &gnmipb.TypedValue{

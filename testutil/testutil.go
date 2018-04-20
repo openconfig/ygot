@@ -41,6 +41,13 @@ func (p pathSet) Less(i, j int) bool { return pathLess(p[i], p[j]) }
 func (p pathSet) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
 func notificationLess(a, b *gnmipb.Notification) bool {
+	switch {
+	case a == nil && b != nil || a == nil && b == nil:
+		return true
+	case b == nil && a != nil:
+		return false
+	}
+
 	if proto.Equal(a, b) {
 		return true
 	}
@@ -131,7 +138,7 @@ func pathLess(a, b *gnmipb.Path) bool {
 		ae, be := a.Elem[i], b.Elem[i]
 		if ae.Name != be.Name {
 			// If the name of the path element is not equal, then use
-			// string comparison to determine whether a < b.
+			// string comparison to determine whether a < b
 			return ae.Name < be.Name
 		}
 
