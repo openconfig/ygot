@@ -53,6 +53,7 @@ func NotificationSetEqual(a, b []*gnmipb.Notification) bool {
 	return true
 }
 
+// notificationMatch tracks whether a gNMI notification pair has matched.
 type notificationMatch struct {
 	timestamp bool
 	prefix    bool
@@ -60,6 +61,8 @@ type notificationMatch struct {
 	delete    bool
 }
 
+// matched determines whether the receiver notificationMatch n represents
+// a matched pair.
 func (n *notificationMatch) matched() bool {
 	return n.timestamp && n.prefix && n.update && n.delete
 }
