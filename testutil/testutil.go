@@ -31,7 +31,7 @@ import (
 func pathLess(a, b *gnmipb.Path) bool {
 	if len(a.Elem) != len(b.Elem) {
 		// Less specific paths are less than more specific ones.
-		return len(a.Elem) < len(b.Elem)
+		return len(a.Elem) > len(b.Elem)
 	}
 
 	for i := 0; i < len(a.Elem); i++ {

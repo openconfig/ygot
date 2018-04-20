@@ -145,13 +145,13 @@ func TestPathLess(t *testing.T) {
 		inA: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{{
 				Name: "a",
+			}, {
+				Name: "b",
 			}},
 		},
 		inB: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{{
 				Name: "a",
-			}, {
-				Name: "b",
 			}},
 		},
 		want: true,
@@ -160,13 +160,13 @@ func TestPathLess(t *testing.T) {
 		inA: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{{
 				Name: "a",
-			}, {
-				Name: "b",
 			}},
 		},
 		inB: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{{
 				Name: "a",
+			}, {
+				Name: "b",
 			}},
 		},
 		want: false,
