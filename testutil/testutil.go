@@ -28,19 +28,42 @@ import (
 	"github.com/openconfig/gnmi/value"
 )
 
+// NotificationSetEqual compares the contents of a and b and returns true if
+// they are equal. Order of the slices is ignored.
+func NotificationSetEqual(a, b []*gnmipb.Notification) bool {
+	return cmp.Equal(a, b, cmpopts.SortSlices(NotificationLess))
+}
+
+// UpdateSetEqual compares the contents of a and b and returns true if they are
+// equal. Order of the slices is ignored.
+func UpdateSetEqual(a, b []*gnmipb.Update) bool {
+	return cmp.Equal(a, b, cmpopts.SortSlices(UpdateLess))
+}
+
+// updateSet is an alias for a slice of gNMI Update messages.
 type updateSet []*gnmipb.Update
 
+// Len, Less, and Swap implement the sort.Interface interface.
 func (u updateSet) Len() int           { return len(u) }
-func (u updateSet) Less(i, j int) bool { return updateLess(u[i], u[j]) }
+func (u updateSet) Less(i, j int) bool { return UpdateLess(u[i], u[j]) }
 func (u updateSet) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
 
+// pathSet is an alias for a slice of gNMI Path messages.
 type pathSet []*gnmipb.Path
 
+// Len, Less, and Swap implement the sort.Interface interface.
 func (p pathSet) Len() int           { return len(p) }
-func (p pathSet) Less(i, j int) bool { return pathLess(p[i], p[j]) }
+func (p pathSet) Less(i, j int) bool { return PathLess(p[i], p[j]) }
 func (p pathSet) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 
-func notificationLess(a, b *gnmipb.Notification) bool {
+// NotificationLess compares the two notifications a and b, returning true if
+// a is less than b, and false if not. Less is defined by:
+//  - Comparing the timestamp.
+//  - If equal timestamps, comparing the prefix using PathLess.
+//  - If equal prefixes, comparing the Updates using UpdateLess.
+//  - If equal updates, comparing the Deletes using deleteLess.
+// If all fields are equal, a < b.
+func NotificationLess(a, b *gnmipb.Notification) bool {
 	switch {
 	case a == nil && b != nil || a == nil && b == nil:
 		return true
@@ -57,10 +80,10 @@ func notificationLess(a, b *gnmipb.Notification) bool {
 	}
 
 	if !proto.Equal(a.Prefix, b.Prefix) {
-		return pathLess(a.Prefix, b.Prefix)
+		return PathLess(a.Prefix, b.Prefix)
 	}
 
-	if !cmp.Equal(a.Update, b.Update, cmpopts.SortSlices(updateLess)) {
+	if !cmp.Equal(a.Update, b.Update, cmpopts.SortSlices(UpdateLess)) {
 		if len(a.Update) < len(b.Update) {
 			return true
 		}
@@ -74,13 +97,13 @@ func notificationLess(a, b *gnmipb.Notification) bool {
 		for _, uA := range a.Update {
 			for _, uB := range b.Update {
 				if !proto.Equal(uA, uB) {
-					return updateLess(uA, uB)
+					return UpdateLess(uA, uB)
 				}
 			}
 		}
 	}
 
-	if !cmp.Equal(a.Delete, b.Delete, cmpopts.SortSlices(pathLess)) {
+	if !cmp.Equal(a.Delete, b.Delete, cmpopts.SortSlices(PathLess)) {
 		if len(a.Delete) < len(b.Delete) {
 			return true
 		}
@@ -94,7 +117,7 @@ func notificationLess(a, b *gnmipb.Notification) bool {
 		for _, dA := range a.Delete {
 			for _, dB := range b.Delete {
 				if !proto.Equal(dA, dB) {
-					return pathLess(dA, dB)
+					return PathLess(dA, dB)
 				}
 			}
 		}
@@ -103,11 +126,11 @@ func notificationLess(a, b *gnmipb.Notification) bool {
 	return true
 }
 
-// updateLess compares two gNMI Update messages and returns true if a < b.
+// UpdateLess compares two gNMI Update messages and returns true if a < b.
 // The less-than comparison is done by first comparing the paths of the updates,
 // and subquently comparing the typedValue fields of the updates, followed by
 // the duplicates fields. If all fields are equal,
-func updateLess(a, b *gnmipb.Update) bool {
+func UpdateLess(a, b *gnmipb.Update) bool {
 	if proto.Equal(a, b) {
 		// If the two values are equal, return true to avoid the expense of checking
 		// each field.
@@ -115,7 +138,7 @@ func updateLess(a, b *gnmipb.Update) bool {
 	}
 
 	if !proto.Equal(a.Path, b.Path) {
-		return pathLess(a.Path, b.Path)
+		return PathLess(a.Path, b.Path)
 	}
 
 	if !proto.Equal(a.Val, b.Val) {
@@ -125,10 +148,10 @@ func updateLess(a, b *gnmipb.Update) bool {
 	return a.Duplicates < b.Duplicates
 }
 
-// pathLess provides a function which determines whether a gNMI Path messages
+// PathLess provides a function which determines whether a gNMI Path messages
 // A is less than the gNMI Path message b. It can be used to allow sorting of
 // gNMI path messages - for example, in cmpopts.SortSlices.
-func pathLess(a, b *gnmipb.Path) bool {
+func PathLess(a, b *gnmipb.Path) bool {
 	if len(a.Elem) != len(b.Elem) {
 		// Less specific paths are less than more specific ones.
 		return len(a.Elem) > len(b.Elem)

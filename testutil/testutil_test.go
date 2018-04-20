@@ -15,11 +15,137 @@
 package testutil
 
 import (
-	"fmt"
 	"testing"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
+
+func TestNotificationSetEqual(t *testing.T) {
+	tests := []struct {
+		name string
+		inA  []*gnmipb.Notification
+		inB  []*gnmipb.Notification
+		want bool
+	}{{
+		name: "equal sets, length one",
+		inA: []*gnmipb.Notification{{
+			Timestamp: 42,
+		}},
+		inB: []*gnmipb.Notification{{
+			Timestamp: 42,
+		}},
+		want: true,
+	}, {
+		name: "unequal sets, length one",
+		inA: []*gnmipb.Notification{{
+			Timestamp: 42,
+		}},
+		inB: []*gnmipb.Notification{{
+			Timestamp: 84,
+		}},
+		want: false,
+	}, {
+		name: "equal sets: length two",
+		inA: []*gnmipb.Notification{{
+			Timestamp: 42,
+		}, {
+			Timestamp: 4242,
+		}},
+		inB: []*gnmipb.Notification{{
+			Timestamp: 42,
+		}, {
+			Timestamp: 4242,
+		}},
+		want: true,
+	}, {
+		name: "equal sets: length  different order",
+		inA: []*gnmipb.Notification{{
+			Timestamp: 4242,
+		}, {
+			Timestamp: 42,
+		}},
+		inB: []*gnmipb.Notification{{
+			Timestamp: 42,
+		}, {
+			Timestamp: 4242,
+		}},
+		want: true,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NotificationSetEqual(tt.inA, tt.inB); got != tt.want {
+				t.Fatalf("NotificationSetEqual(%#v, %#v): did not get expected result, got: %v, want: %v", tt.inA, tt.inB, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestUpdateSetEqual(t *testing.T) {
+	tests := []struct {
+		name string
+		inA  []*gnmipb.Update
+		inB  []*gnmipb.Update
+		want bool
+	}{{
+		name: "equal - length one",
+		inA:  []*gnmipb.Update{{Duplicates: 42}},
+		inB:  []*gnmipb.Update{{Duplicates: 42}},
+		want: true,
+	}, {
+		name: "equal - length two",
+		inA: []*gnmipb.Update{{
+			Duplicates: 42,
+		}, {
+			Duplicates: 84,
+		}},
+		inB: []*gnmipb.Update{{
+			Duplicates: 42,
+		}, {
+			Duplicates: 84,
+		}},
+		want: true,
+	}, {
+		name: "equal - length two, different order",
+		inA: []*gnmipb.Update{{
+			Duplicates: 84,
+		}, {
+			Duplicates: 42,
+		}},
+		inB: []*gnmipb.Update{{
+			Duplicates: 42,
+		}, {
+			Duplicates: 84,
+		}},
+		want: true,
+	}, {
+		name: "unequal - length one",
+		inA:  []*gnmipb.Update{{Duplicates: 42}},
+		inB:  []*gnmipb.Update{{Duplicates: 128}},
+		want: false,
+	}, {
+		name: "unequal - length two",
+		inA: []*gnmipb.Update{{
+			Duplicates: 42,
+		}, {
+			Duplicates: 84,
+		}},
+		inB: []*gnmipb.Update{{
+			Duplicates: 42,
+		}, {
+			Duplicates: 96,
+		}},
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := UpdateSetEqual(tt.inA, tt.inB); got != tt.want {
+				t.Fatalf("UpdateSetEqual(%v, %v): did not get expected result, got: %v, want: %v", tt.inA, tt.inB, got, tt.want)
+			}
+		})
+	}
+}
 
 func TestNotificationLess(t *testing.T) {
 	tests := []struct {
@@ -299,6 +425,68 @@ func TestNotificationLess(t *testing.T) {
 		},
 		want: false,
 	}, {
+		name: "delete: a < b - multiple paths",
+		inA: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}, {
+					Name: "three",
+				}},
+			}},
+		},
+		inB: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}, {
+					Name: "two",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}, {
+					Name: "three",
+				}},
+			}},
+		},
+		want: true,
+	}, {
+		name: "delete: b < a, multiple paths",
+		inA: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}, {
+					Name: "two",
+				}},
+			}},
+		},
+		inB: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}, {
+					Name: "two",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "one",
+				}, {
+					Name: "three",
+				}},
+			}},
+		},
+		want: false,
+	}, {
 		name: "nil: both nil",
 		want: true,
 	}, {
@@ -313,8 +501,8 @@ func TestNotificationLess(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := notificationLess(tt.inA, tt.inB); got != tt.want {
-				t.Fatalf("notificationLess(%#v, %#v): did not get expected result, got: %v, want: %v", tt.inA, tt.inB, got, tt.want)
+			if got := NotificationLess(tt.inA, tt.inB); got != tt.want {
+				t.Fatalf("NotificationLess(%#v, %#v): did not get expected result, got: %v, want: %v", tt.inA, tt.inB, got, tt.want)
 			}
 		})
 	}
@@ -509,9 +697,8 @@ func TestUpdateLess(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fmt.Printf("run %s\n", tt.name)
-			if got := updateLess(tt.inA, tt.inB); got != tt.want {
-				t.Fatalf("updateLess(%#v, %#v): did not get expected result, got: %v, want: %v", tt.inA, tt.inB, got, tt.want)
+			if got := UpdateLess(tt.inA, tt.inB); got != tt.want {
+				t.Fatalf("UpdateLess(%#v, %#v): did not get expected result, got: %v, want: %v", tt.inA, tt.inB, got, tt.want)
 			}
 		})
 	}
@@ -758,7 +945,7 @@ func TestPathLess(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := pathLess(tt.inA, tt.inB); got != tt.want {
+			if got := PathLess(tt.inA, tt.inB); got != tt.want {
 				t.Fatalf("PathLess(%#v, %#v): did not get expected result, got: %v, want: %v", tt.inA, tt.inB, got, tt.want)
 			}
 		})
