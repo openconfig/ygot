@@ -31,7 +31,37 @@ import (
 // NotificationSetEqual compares the contents of a and b and returns true if
 // they are equal. Order of the slices is ignored.
 func NotificationSetEqual(a, b []*gnmipb.Notification) bool {
-	return cmp.Equal(a, b, cmpopts.SortSlices(NotificationLess))
+	for _, an := range a {
+		var matched bool
+		for _, bn := range b {
+			n := &notificationMatch{
+				timestamp: an.Timestamp == bn.Timestamp,
+				prefix:    proto.Equal(an.Prefix, bn.Prefix),
+				update:    cmp.Equal(an.Update, bn.Update, cmpopts.SortSlices(UpdateLess)),
+				delete:    cmp.Equal(an.Delete, bn.Delete, cmpopts.SortSlices(PathLess)),
+			}
+
+			if n.matched() {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	return true
+}
+
+type notificationMatch struct {
+	timestamp bool
+	prefix    bool
+	update    bool
+	delete    bool
+}
+
+func (n *notificationMatch) matched() bool {
+	return n.timestamp && n.prefix && n.update && n.delete
 }
 
 // UpdateSetEqual compares the contents of a and b and returns true if they are
@@ -189,6 +219,18 @@ func PathLess(a, b *gnmipb.Path) bool {
 				// equality.
 				return av < bv
 			}
+		}
+	}
+
+	// Handle comparison of paths that are based on the "element" rather than
+	// "elem".
+	for len(a.Element) != len(b.Element) {
+		return len(a.Element) > len(b.Element)
+	}
+
+	for i := 0; i < len(a.Element); i++ {
+		if ae, be := a.Element[i], b.Element[i]; ae != be {
+			return ae < be
 		}
 	}
 

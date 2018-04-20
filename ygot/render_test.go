@@ -18,14 +18,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"sort"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
+	"github.com/openconfig/ygot/testutil"
 )
 
 func TestPathElemBasics(t *testing.T) {
@@ -1299,64 +1297,11 @@ func TestTogNMINotifications(t *testing.T) {
 		// there is no order to the map of fields that are returned by the struct
 		// output.
 
-		if !notificationSetEqual(got, tt.want) {
+		if !testutil.NotificationSetEqual(got, tt.want) {
 			diff := pretty.Compare(got, tt.want)
 			t.Errorf("%s: TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
 		}
 	}
-}
-
-// stringKeys returns the keys of a map[string]string as a slice.
-func stringKeys(m map[string]string) []string {
-	ss := []string{}
-	for k := range m {
-		ss = append(ss, k)
-	}
-	return ss
-}
-
-// pathSliceEqual checks whether two slices of gNMI Paths are equal, ignoring
-// order. Equality of the paths within the slice are considered on an element
-// by element basis - with equality being considered as having the same element
-// name, and the same element keys and values.
-func pathSliceEqual(a, b []*gnmipb.Path) bool {
-	pathIsLess := func(a, b *gnmipb.Path) bool {
-		for _, a := range a.Elem {
-			for _, b := range b.Elem {
-				if a.Name != b.Name {
-					return a.Name < b.Name
-				}
-				// If the element names are not equal then we consider the keys in
-				// alphabetical order.
-				aKeys := stringKeys(a.Key)
-				sort.Strings(aKeys)
-				bKeys := stringKeys(b.Key)
-				sort.Strings(bKeys)
-
-				for _, ak := range aKeys {
-					for _, bk := range bKeys {
-						// If the key names aren't equal - then we use the comparison of the
-						// two strings. The strings.Compare function returns -1 if a < b,
-						// and cmpoptions.SortedSlice requires a "less" function which must
-						// return true if a < b.
-						if ak != bk {
-							return ak < bk
-						}
-						// If the key names were equal, then we move on to comparing the
-						// keys.
-						if av, bv := a.Key[ak], b.Key[bk]; av != bv {
-							return av < bv
-						}
-					}
-				}
-			}
-		}
-		// If we get to this point, all of the elements and path values were equal -
-		// so we're dealing with the same path. Determinstically return true so that
-		// in the case of equality, a < b.
-		return true
-	}
-	return cmp.Equal(a, b, cmpopts.SortSlices(pathIsLess))
 }
 
 // exampleDevice and the following structs are a set of structs used for more
