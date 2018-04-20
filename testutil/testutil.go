@@ -21,8 +21,9 @@ import (
 	"reflect"
 	"sort"
 
-	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/gnmi/value"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // pathLess provides a function which determines whether a gNMI Path messages
