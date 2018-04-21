@@ -1580,7 +1580,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 				}
 
 				if diff := pretty.Compare(want.structs, got.structDef); diff != "" {
-					if diffl, err := testutil.testutil.GenerateUnifiedDiff(got.structDef, want.structs); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.structDef, want.structs); err == nil {
 
 						diff = diffl
 					}
@@ -1589,7 +1589,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 				}
 
 				if diff := pretty.Compare(want.keys, got.listKeys); diff != "" {
-					if diffl, err := testutil.testutil.GenerateUnifiedDiff(got.listKeys, want.keys); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.listKeys, want.keys); err == nil {
 						diff = diffl
 					}
 					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
@@ -1597,7 +1597,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 				}
 
 				if diff := pretty.Compare(want.methods, got.methods); diff != "" {
-					if diffl, err := testutil.testutil.GenerateUnifiedDiff(got.methods, want.methods); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.methods, want.methods); err == nil {
 						diff = diffl
 					}
 					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
@@ -1605,7 +1605,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 				}
 
 				if diff := pretty.Compare(want.interfaces, got.interfaces); diff != "" {
-					if diffl, err := testutil.testutil.GenerateUnifiedDiff(got.interfaces, want.interfaces); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.interfaces, want.interfaces); err == nil {
 						diff = diffl
 					}
 					t.Errorf("%s: writeGoStruct(CompressOCPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
@@ -1789,7 +1789,7 @@ const (
 
 		if diff := pretty.Compare(tt.want, got); diff != "" {
 			fmt.Println(diff)
-			if diffl, err := testutil.testutil.GenerateUnifiedDiff(got.constDef, tt.want.constDef); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(got.constDef, tt.want.constDef); err == nil {
 				diff = diffl
 			}
 			t.Errorf("%s: writeGoEnum(%v): got incorrect output, diff(-got,+want):\n%s",
@@ -2040,7 +2040,7 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 
 		if tt.wantMap != got {
 			diff := fmt.Sprintf("got: %s, want %s", got, tt.wantMap)
-			if diffl, err := testutil.testutil.GenerateUnifiedDiff(got, tt.wantMap); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(got, tt.wantMap); err == nil {
 				diff = "diff (-got, +want):\n" + diffl
 			}
 			t.Errorf("%s: did not get expected generated enum, %s", tt.name, diff)
