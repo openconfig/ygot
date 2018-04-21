@@ -22,6 +22,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/util"
 
 	"github.com/openconfig/gnmi/errdiff"
@@ -850,6 +851,35 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:   "no change",
+		inOrig: &renderExample{},
+		inMod:  &renderExample{},
+		want:   &gnmipb.Notification{},
+	}, {
+		desc: "leaf only change with enum in same container",
+		inOrig: &renderExample{
+			Ch: &renderExampleChild{
+				Val: Uint64(42),
+			},
+		},
+		inMod: &renderExample{
+			Ch: &renderExampleChild{
+				Val: Uint64(84),
+			},
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "ch",
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{84}},
+			}},
+		},
+	}, {
 		desc:   "multiple path addition, with complex types",
 		inOrig: &renderExample{},
 		inMod: &renderExample{
@@ -1236,9 +1266,9 @@ func TestDiff(t *testing.T) {
 		if tt.wantErrSubStr != "" {
 			continue
 		}
-		// To re-use the notificationSetEqual helper, we put the want and got into
+		// To re-use the NotificationSetEqual helper, we put the want and got into
 		// a slice.
-		if !notificationSetEqual([]*gnmipb.Notification{tt.want}, []*gnmipb.Notification{got}) {
+		if !testutil.NotificationSetEqual([]*gnmipb.Notification{tt.want}, []*gnmipb.Notification{got}) {
 			diff := pretty.Compare(got, tt.want)
 			t.Errorf("%s: Diff(%s, %s): did not get expected Notification, diff(-got,+want):\n%s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), diff)
 		}
