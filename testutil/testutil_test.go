@@ -926,6 +926,17 @@ func TestPathLess(t *testing.T) {
 		inB  *gnmipb.Path
 		want bool
 	}{{
+		name: "nil a, non-nil b",
+		inB:  &gnmipb.Path{},
+		want: true,
+	}, {
+		name: "nil b, non-nil a",
+		inA:  &gnmipb.Path{},
+		want: false,
+	}, {
+		name: "both nil",
+		want: false,
+	}, {
 		name: "equal - a < b",
 		inA: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{{
