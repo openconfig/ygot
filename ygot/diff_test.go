@@ -799,6 +799,7 @@ func TestDiff(t *testing.T) {
 	tests := []struct {
 		desc          string
 		inOrig, inMod GoStruct
+		inOpts        []DiffOpt
 		want          *gnmipb.Notification
 		wantErrSubStr string
 	}{{
@@ -1152,10 +1153,81 @@ func TestDiff(t *testing.T) {
 		inOrig:        &renderExample{},
 		inMod:         &pathElemExample{},
 		wantErrSubStr: "cannot diff structs of different types",
+	}, {
+		desc:   "multiple paths - addition - without single path",
+		inOrig: &multiPathStruct{},
+		inMod:  &multiPathStruct{TwoPaths: String("foo")},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "two-path",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"foo"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "config",
+					}, {
+						Name: "two-path",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"foo"}},
+			}},
+		},
+	}, {
+		desc:   "multiple paths - addition - with single path option",
+		inOrig: &multiPathStruct{},
+		inMod:  &multiPathStruct{TwoPaths: String("foo")},
+		inOpts: []DiffOpt{
+			&DiffPathOpt{MapToSinglePath: true},
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "two-path",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"foo"}},
+			}},
+		},
+	}, {
+		desc:   "multiple paths - deletion - without single path option",
+		inOrig: &multiPathStruct{TwoPaths: String("foo")},
+		inMod:  &multiPathStruct{},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "config",
+				}, {
+					Name: "two-path",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "two-path",
+				}},
+			}},
+		},
+	}, {
+		desc:   "multiple paths - deletion - with single path option",
+		inOrig: &multiPathStruct{TwoPaths: String("foo")},
+		inMod:  &multiPathStruct{},
+		inOpts: []DiffOpt{
+			&DiffPathOpt{MapToSinglePath: true},
+		},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "two-path",
+				}},
+			}},
+		},
 	}}
 
 	for _, tt := range tests {
-		got, err := Diff(tt.inOrig, tt.inMod)
+		got, err := Diff(tt.inOrig, tt.inMod, tt.inOpts...)
 		if diff := errdiff.Substring(err, tt.wantErrSubStr); diff != "" {
 			t.Errorf("%s: Diff(%s, %s): did not get expected error status, got: %s, want: %s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), err, tt.wantErrSubStr)
 			continue
