@@ -1253,22 +1253,22 @@ func TestLeastSpecificPath(t *testing.T) {
 	}{{
 		name: "shortest path first in slice",
 		in: [][]string{
-			[]string{"one"},
-			[]string{"one", "two"},
+			{"one"},
+			{"one", "two"},
 		},
 		want: []string{"one"},
 	}, {
 		name: "shortest path second in slice",
 		in: [][]string{
-			[]string{"one", "two"},
-			[]string{"one"},
+			{"one", "two"},
+			{"one"},
 		},
 		want: []string{"one"},
 	}, {
 		name: "equal length, first used",
 		in: [][]string{
-			[]string{"one"},
-			[]string{"two"},
+			{"one"},
+			{"two"},
 		},
 		want: []string{"one"},
 	}, {
