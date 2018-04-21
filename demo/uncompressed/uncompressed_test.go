@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
-	"github.com/pmezard/go-difflib/difflib"
+	"github.com/openconfig/ygot/testutil"
 )
 
 const (
@@ -28,20 +28,6 @@ const (
 	// is possible to determine where to load test files from.
 	TestRoot string = ""
 )
-
-// generateUnifiedDiff takes two strings and generates a diff that can be
-// shown to the user in a test error message.
-func generateUnifiedDiff(want, got string) (string, error) {
-	diffl := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(got),
-		B:        difflib.SplitLines(want),
-		FromFile: "got",
-		ToFile:   "want",
-		Context:  3,
-		Eol:      "\n",
-	}
-	return difflib.GetUnifiedDiffString(diffl)
-}
 
 func TestUncompressedDemo(t *testing.T) {
 	u, err := BuildDemo()
@@ -81,7 +67,7 @@ func TestUncompressedDemo(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(tt.got, string(want)); diff != "" {
-			if diffl, err := generateUnifiedDiff(tt.got, string(want)); err != nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(tt.got, string(want)); err != nil {
 				diff = diffl
 			}
 			t.Errorf("%s: Demo JSON output of %v, did not get expected JSON, diff(-got,+want):\n%s", tt.name, u, diff)

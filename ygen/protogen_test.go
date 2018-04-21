@@ -21,6 +21,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 )
 
 func protoMsgEq(a, b *protoMsg) bool {
@@ -1416,7 +1417,7 @@ message MessageName {
 			}
 
 			if diff := pretty.Compare(got.MessageCode, want.MessageCode); diff != "" {
-				if diffl, err := generateUnifiedDiff(got.MessageCode, want.MessageCode); err == nil {
+				if diffl, err := testutil.GenerateUnifiedDiff(got.MessageCode, want.MessageCode); err == nil {
 					diff = diffl
 				}
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)

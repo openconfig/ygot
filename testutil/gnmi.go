@@ -35,10 +35,10 @@ func NotificationSetEqual(a, b []*gnmipb.Notification) bool {
 		var matched bool
 		for _, bn := range b {
 			n := &notificationMatch{
-				timestamp: an.Timestamp == bn.Timestamp,
-				prefix:    proto.Equal(an.Prefix, bn.Prefix),
-				update:    cmp.Equal(an.Update, bn.Update, cmpopts.SortSlices(UpdateLess)),
-				delete:    cmp.Equal(an.Delete, bn.Delete, cmpopts.SortSlices(PathLess)),
+				timestamp: an.GetTimestamp() == bn.GetTimestamp(),
+				prefix:    proto.Equal(an.GetPrefix(), bn.GetPrefix()),
+				update:    cmp.Equal(an.GetUpdate(), bn.GetUpdate(), cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty()),
+				delete:    cmp.Equal(an.GetDelete(), bn.GetDelete(), cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty()),
 			}
 
 			if n.matched() {
@@ -70,7 +70,7 @@ func (n *notificationMatch) matched() bool {
 // UpdateSetEqual compares the contents of a and b and returns true if they are
 // equal. Order of the slices is ignored.
 func UpdateSetEqual(a, b []*gnmipb.Update) bool {
-	return cmp.Equal(a, b, cmpopts.SortSlices(UpdateLess))
+	return cmp.Equal(a, b, cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty())
 }
 
 // updateSet is an alias for a slice of gNMI Update messages.
@@ -95,17 +95,22 @@ func (p pathSet) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 //  - If equal timestamps, comparing the prefix using PathLess.
 //  - If equal prefixes, comparing the Updates using UpdateLess.
 //  - If equal updates, comparing the Deletes using deleteLess.
-// If all fields are equal, a < b.
+// If all fields are equal, the function returns false to ensure that the
+// irreflexive property required by cmpopts.SortSlices is implemented.
 func NotificationLess(a, b *gnmipb.Notification) bool {
 	switch {
-	case a == nil && b != nil || a == nil && b == nil:
+	case a == nil && b != nil:
 		return true
+	case a == nil && b == nil:
+		// Ensure notification less meets the irreflexive property required by
+		// cmpopts.
+		return false
 	case b == nil && a != nil:
 		return false
 	}
 
 	if proto.Equal(a, b) {
-		return true
+		return false
 	}
 
 	if a.Timestamp != b.Timestamp {
@@ -116,7 +121,7 @@ func NotificationLess(a, b *gnmipb.Notification) bool {
 		return PathLess(a.Prefix, b.Prefix)
 	}
 
-	if !cmp.Equal(a.Update, b.Update, cmpopts.SortSlices(UpdateLess)) {
+	if !cmp.Equal(a.Update, b.Update, cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty()) {
 		if len(a.Update) < len(b.Update) {
 			return true
 		}
@@ -124,11 +129,13 @@ func NotificationLess(a, b *gnmipb.Notification) bool {
 			return false
 		}
 
-		sort.Sort(updateSet(a.Update))
-		sort.Sort(updateSet(b.Update))
+		// Don't modify the original data.
+		sortedA, sortedB := proto.Clone(a).(*gnmipb.Notification), proto.Clone(b).(*gnmipb.Notification)
+		sort.Sort(updateSet(sortedA.Update))
+		sort.Sort(updateSet(sortedB.Update))
 
-		for _, uA := range a.Update {
-			for _, uB := range b.Update {
+		for _, uA := range sortedA.Update {
+			for _, uB := range sortedB.Update {
 				if !proto.Equal(uA, uB) {
 					return UpdateLess(uA, uB)
 				}
@@ -136,7 +143,7 @@ func NotificationLess(a, b *gnmipb.Notification) bool {
 		}
 	}
 
-	if !cmp.Equal(a.Delete, b.Delete, cmpopts.SortSlices(PathLess)) {
+	if !cmp.Equal(a.Delete, b.Delete, cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty()) {
 		if len(a.Delete) < len(b.Delete) {
 			return true
 		}
@@ -145,10 +152,13 @@ func NotificationLess(a, b *gnmipb.Notification) bool {
 			return false
 		}
 
-		sort.Sort(pathSet(a.Delete))
-		sort.Sort(pathSet(b.Delete))
-		for _, dA := range a.Delete {
-			for _, dB := range b.Delete {
+		// Again, don't modify the original data.
+		sortedA, sortedB := proto.Clone(a).(*gnmipb.Notification), proto.Clone(b).(*gnmipb.Notification)
+		sort.Sort(pathSet(sortedA.Delete))
+		sort.Sort(pathSet(sortedB.Delete))
+
+		for _, dA := range sortedA.Delete {
+			for _, dB := range sortedB.Delete {
 				if !proto.Equal(dA, dB) {
 					return PathLess(dA, dB)
 				}
@@ -162,12 +172,12 @@ func NotificationLess(a, b *gnmipb.Notification) bool {
 // UpdateLess compares two gNMI Update messages and returns true if a < b.
 // The less-than comparison is done by first comparing the paths of the updates,
 // and subquently comparing the typedValue fields of the updates, followed by
-// the duplicates fields. If all fields are equal,
+// the duplicates fields. If all fields are equal, returns false.
 func UpdateLess(a, b *gnmipb.Update) bool {
 	if proto.Equal(a, b) {
 		// If the two values are equal, return true to avoid the expense of checking
 		// each field.
-		return true
+		return false
 	}
 
 	if !proto.Equal(a.Path, b.Path) {
@@ -185,6 +195,19 @@ func UpdateLess(a, b *gnmipb.Update) bool {
 // A is less than the gNMI Path message b. It can be used to allow sorting of
 // gNMI path messages - for example, in cmpopts.SortSlices.
 func PathLess(a, b *gnmipb.Path) bool {
+	switch {
+	case a == nil && b == nil:
+		return false
+	case a == nil && b != nil:
+		return true
+	case b == nil && a != nil:
+		return false
+	}
+
+	if proto.Equal(a, b) {
+		return false
+	}
+
 	if len(a.Elem) != len(b.Elem) {
 		// Less specific paths are less than more specific ones.
 		return len(a.Elem) > len(b.Elem)
@@ -244,8 +267,8 @@ func PathLess(a, b *gnmipb.Path) bool {
 	}
 
 	// If the two Path messages are entirely equal, then deterministically
-	// return a < b.
-	return true
+	// return b < a per the irreflexive property.
+	return false
 }
 
 // stringKeys returns a slice of the keys of the supplied map m.
@@ -264,8 +287,8 @@ func stringKeys(m map[string]string) []string {
 // strings specified.
 //
 // If nil input is provided for either a or b, the nil value is considered
-// less than the non-nil value. If both values are nil, a is considered less
-// than b.
+// less than the non-nil value. If both values are nil, b is considered less
+// than a to implement the irreflexive property required by cmpopts.
 func typedValueLess(a, b *gnmipb.TypedValue) bool {
 	switch {
 	case a == nil && b != nil:
@@ -273,7 +296,7 @@ func typedValueLess(a, b *gnmipb.TypedValue) bool {
 	case b == nil && a != nil:
 		return true
 	case a == nil && b == nil:
-		return true
+		return false
 	}
 
 	// If the two types are not the same, then use their string representations

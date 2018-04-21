@@ -26,10 +26,10 @@ import (
 	"testing"
 
 	"github.com/openconfig/ygot/experimental/ygotutils"
+	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
-	"github.com/pmezard/go-difflib/difflib"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	oc "github.com/openconfig/ygot/exampleoc"
@@ -813,20 +813,6 @@ func isOK(status spb.Status) bool {
 	return status.GetCode() == int32(scpb.Code_OK)
 }
 
-// generateUnifiedDiff takes two strings and generates a diff that can be
-// shown to the user in a test error message.
-func generateUnifiedDiff(want, got string) (string, error) {
-	diffl := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(got),
-		B:        difflib.SplitLines(want),
-		FromFile: "got",
-		ToFile:   "want",
-		Context:  3,
-		Eol:      "\n",
-	}
-	return difflib.GetUnifiedDiffString(diffl)
-}
-
 func diffJSON(a, b []byte) (string, error) {
 	var aj, bj map[string]interface{}
 	if err := json.Unmarshal(a, &aj); err != nil {
@@ -848,5 +834,5 @@ func diffJSON(a, b []byte) (string, error) {
 	sort.Strings(asv)
 	sort.Strings(bsv)
 
-	return generateUnifiedDiff(strings.Join(asv, "\n"), strings.Join(bsv, "\n"))
+	return testutil.GenerateUnifiedDiff(strings.Join(asv, "\n"), strings.Join(bsv, "\n"))
 }
