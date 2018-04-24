@@ -70,6 +70,113 @@ func TestNotificationSetEqual(t *testing.T) {
 			Timestamp: 4242,
 		}},
 		want: true,
+	}, {
+		name: "integration example - same order",
+		inA: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "key"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+			}, {
+				Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "config", "key"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+			}},
+		}},
+		inB: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "key"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+			}, {
+				Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "config", "key"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+			}},
+		}},
+		want: true,
+	}, {
+		name: "integration example - different order",
+		inA: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "key"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+			}, {
+				Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "config", "key"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+			}},
+		}},
+		inB: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "config", "key"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+			}, {
+				Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "key"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+			}},
+		}},
+		want: true,
+	}, {
+		name: "equal: pathelem integration example",
+		inA: []*gnmipb.Notification{{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "neighbors",
+					}, {
+						Name: "neighbor",
+						Key:  map[string]string{"neighbor-address": "192.0.2.1"},
+					}, {
+						Name: "config",
+					}, {
+						Name: "neighbor-address",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"192.0.2.1"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "neighbors",
+					}, {
+						Name: "neighbor",
+						Key:  map[string]string{"neighbor-address": "192.0.2.1"},
+					}, {
+						Name: "neighbor-address",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"192.0.2.1"}},
+			}},
+		}},
+		inB: []*gnmipb.Notification{{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "neighbors",
+					}, {
+						Name: "neighbor",
+						Key:  map[string]string{"neighbor-address": "192.0.2.1"},
+					}, {
+						Name: "neighbor-address",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"192.0.2.1"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "neighbors",
+					}, {
+						Name: "neighbor",
+						Key:  map[string]string{"neighbor-address": "192.0.2.1"},
+					}, {
+						Name: "config",
+					}, {
+						Name: "neighbor-address",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"192.0.2.1"}},
+			}},
+		}},
+		want: true,
 	}}
 
 	for _, tt := range tests {
@@ -136,6 +243,114 @@ func TestUpdateSetEqual(t *testing.T) {
 			Duplicates: 96,
 		}},
 		want: false,
+	}, {
+		name: "equal: integration example",
+		inA: []*gnmipb.Update{{
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}, {
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "config", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}},
+		inB: []*gnmipb.Update{{
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}, {
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "config", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}},
+		want: true,
+	}, {
+		name: "equal: integration example",
+		inA: []*gnmipb.Update{{
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}, {
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "config", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}},
+		inB: []*gnmipb.Update{{
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "config", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}, {
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}},
+		want: true,
+	}, {
+		name: "equal: integration example - different order",
+		inA: []*gnmipb.Update{{
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}, {
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "config", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}},
+		inB: []*gnmipb.Update{{
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}, {
+			Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "config", "key"}},
+			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+		}},
+		want: true,
+	}, {
+		name: "equal: pathelem integration example",
+		inA: []*gnmipb.Update{{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "neighbors",
+				}, {
+					Name: "neighbor",
+					Key:  map[string]string{"neighbor-address": "192.0.2.1"},
+				}, {
+					Name: "config",
+				}, {
+					Name: "neighbor-address",
+				}},
+			},
+			Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"192.0.2.1"}},
+		}, {
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "neighbors",
+				}, {
+					Name: "neighbor",
+					Key:  map[string]string{"neighbor-address": "192.0.2.1"},
+				}, {
+					Name: "neighbor-address",
+				}},
+			},
+			Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"192.0.2.1"}},
+		}},
+		inB: []*gnmipb.Update{{
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "neighbors",
+				}, {
+					Name: "neighbor",
+					Key:  map[string]string{"neighbor-address": "192.0.2.1"},
+				}, {
+					Name: "neighbor-address",
+				}},
+			},
+			Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"192.0.2.1"}},
+		}, {
+			Path: &gnmipb.Path{
+				Elem: []*gnmipb.PathElem{{
+					Name: "neighbors",
+				}, {
+					Name: "neighbor",
+					Key:  map[string]string{"neighbor-address": "192.0.2.1"},
+				}, {
+					Name: "config",
+				}, {
+					Name: "neighbor-address",
+				}},
+			},
+			Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"192.0.2.1"}},
+		}},
+		want: true,
 	}}
 
 	for _, tt := range tests {
@@ -195,7 +410,7 @@ func TestNotificationLess(t *testing.T) {
 				}},
 			}},
 		},
-		want: true,
+		want: false,
 	}, {
 		name: "timestamp: a < b",
 		inA: &gnmipb.Notification{
@@ -488,7 +703,7 @@ func TestNotificationLess(t *testing.T) {
 		want: false,
 	}, {
 		name: "nil: both nil",
-		want: true,
+		want: false,
 	}, {
 		name: "nil: a nil, b not",
 		inB:  &gnmipb.Notification{Timestamp: 42},
@@ -538,7 +753,7 @@ func TestUpdateLess(t *testing.T) {
 			},
 			Duplicates: 42,
 		},
-		want: true,
+		want: false,
 	}, {
 		name: "path: a < b",
 		inA: &gnmipb.Update{
@@ -711,6 +926,17 @@ func TestPathLess(t *testing.T) {
 		inB  *gnmipb.Path
 		want bool
 	}{{
+		name: "nil a, non-nil b",
+		inB:  &gnmipb.Path{},
+		want: true,
+	}, {
+		name: "nil b, non-nil a",
+		inA:  &gnmipb.Path{},
+		want: false,
+	}, {
+		name: "both nil",
+		want: false,
+	}, {
 		name: "equal - a < b",
 		inA: &gnmipb.Path{
 			Elem: []*gnmipb.PathElem{{
@@ -722,7 +948,7 @@ func TestPathLess(t *testing.T) {
 				Name: "one",
 			}},
 		},
-		want: true,
+		want: false,
 	}, {
 		name: "a < b due to path element name",
 		inA: &gnmipb.Path{
@@ -763,7 +989,7 @@ func TestPathLess(t *testing.T) {
 				Key:  map[string]string{"a": "a"},
 			}},
 		},
-		want: true,
+		want: false,
 	}, {
 		name: "a < b due to path elem key name",
 		inA: &gnmipb.Path{
@@ -902,7 +1128,7 @@ func TestPathLess(t *testing.T) {
 			}},
 			Origin: "a",
 		},
-		want: true,
+		want: false,
 	}, {
 		name: "a < b due to origin",
 		inA: &gnmipb.Path{
@@ -939,6 +1165,42 @@ func TestPathLess(t *testing.T) {
 				Name: "b",
 			}},
 			Origin: "a",
+		},
+		want: false,
+	}, {
+		name: "path element: a < b based on path value",
+		inA: &gnmipb.Path{
+			Element: []string{"a"},
+		},
+		inB: &gnmipb.Path{
+			Element: []string{"z"},
+		},
+		want: true,
+	}, {
+		name: "path element: b < a based on path value",
+		inA: &gnmipb.Path{
+			Element: []string{"z"},
+		},
+		inB: &gnmipb.Path{
+			Element: []string{"a"},
+		},
+		want: false,
+	}, {
+		name: "path element: a < b based on path length",
+		inA: &gnmipb.Path{
+			Element: []string{"a", "z"},
+		},
+		inB: &gnmipb.Path{
+			Element: []string{"z"},
+		},
+		want: true,
+	}, {
+		name: "path element: b < a based on path length",
+		inA: &gnmipb.Path{
+			Element: []string{"a"},
+		},
+		inB: &gnmipb.Path{
+			Element: []string{"z", "q"},
 		},
 		want: false,
 	}}
@@ -1001,8 +1263,8 @@ func TestTypedValueLess(t *testing.T) {
 		},
 		want: false,
 	}, {
-		name: "a and b nil: a < b",
-		want: true,
+		name: "a and b nil: b < a",
+		want: false,
 	}, {
 		name: "a nil, b non-nil: b < a",
 		inB:  &gnmipb.TypedValue{},

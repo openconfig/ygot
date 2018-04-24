@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 )
 
 func TestGzipToSchema(t *testing.T) {
@@ -98,7 +99,7 @@ func TestGzipToSchema(t *testing.T) {
 			if err != nil {
 				t.Errorf("%s: GzipToSchema(%v): did not get expected output, and JSON generation failed: %v", tt.name, tt.in, err)
 			}
-			diff, _ := generateUnifiedDiff(string(gotj), string(wantj))
+			diff, _ := testutil.GenerateUnifiedDiff(string(gotj), string(wantj))
 			t.Errorf("%s: GzipToSchema(%v): did not get expected output, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 		}
 	}
