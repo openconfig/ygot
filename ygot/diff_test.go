@@ -405,10 +405,21 @@ type annotatedStruct struct {
 
 func (*annotatedStruct) IsYANGGoStruct() {}
 
+type multiPathStruct struct {
+	OnePath          *string `path:"one-path"`
+	TwoPaths         *string `path:"two-path|config/two-path"`
+	TwoPathsReversed *string `path:"config/revtwo-path|revtwo-path"`
+	// >2 paths doesn't exist in generated code at the time of writing.
+	ThreePaths *string `path:"three-path|config/three-path|state/three-path"`
+}
+
+func (*multiPathStruct) IsYANGGoStruct() {}
+
 func TestFindSetLeaves(t *testing.T) {
 	tests := []struct {
 		desc     string
 		inStruct GoStruct
+		inOpts   []DiffOpt
 		want     map[*pathSpec]interface{}
 		wantErr  string
 	}{{
@@ -498,10 +509,111 @@ func TestFindSetLeaves(t *testing.T) {
 				}},
 			}: "foo",
 		},
+	}, {
+		desc: "struct with multiple paths for fields: no single path option",
+		inStruct: &multiPathStruct{
+			OnePath:          String("foo"),
+			TwoPaths:         String("bar"),
+			TwoPathsReversed: String("quux"),
+			ThreePaths:       String("baz"),
+		},
+		want: map[*pathSpec]interface{}{
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "one-path"},
+					},
+				}},
+			}: "foo",
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "two-path"},
+					},
+				}, {
+					Elem: []*gnmipb.PathElem{
+						{Name: "config"},
+						{Name: "two-path"},
+					},
+				}},
+			}: "bar",
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "config"},
+						{Name: "revtwo-path"},
+					},
+				}, {
+					Elem: []*gnmipb.PathElem{
+						{Name: "revtwo-path"},
+					},
+				}},
+			}: "quux",
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "three-path"},
+					},
+				}, {
+					Elem: []*gnmipb.PathElem{
+						{Name: "config"},
+						{Name: "three-path"},
+					},
+				}, {
+					Elem: []*gnmipb.PathElem{
+						{Name: "state"},
+						{Name: "three-path"},
+					},
+				}},
+			}: "baz",
+		},
+	}, {
+		desc: "struct with multiple paths for fields: single path set",
+		inStruct: &multiPathStruct{
+			OnePath:          String("foo"),
+			TwoPaths:         String("bar"),
+			TwoPathsReversed: String("quux"),
+			ThreePaths:       String("baz"),
+		},
+		inOpts: []DiffOpt{
+			&DiffPathOpt{
+				MapToSinglePath: true,
+			},
+		},
+		want: map[*pathSpec]interface{}{
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "one-path"},
+					},
+				}},
+			}: "foo",
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "two-path"},
+					},
+				}},
+			}: "bar",
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "revtwo-path"},
+					},
+				}},
+			}: "quux",
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{
+						{Name: "three-path"},
+					},
+				}},
+			}: "baz",
+		},
 	}}
 
 	for _, tt := range tests {
-		got, err := findSetLeaves(tt.inStruct)
+		got, err := findSetLeaves(tt.inStruct, tt.inOpts...)
 		if err != nil && (err.Error() != tt.wantErr) {
 			t.Errorf("%s: findSetLeaves(%v): did not get expected error: %v", tt.desc, tt.inStruct, err)
 			continue
@@ -688,6 +800,7 @@ func TestDiff(t *testing.T) {
 	tests := []struct {
 		desc          string
 		inOrig, inMod GoStruct
+		inOpts        []DiffOpt
 		want          *gnmipb.Notification
 		wantErrSubStr string
 	}{{
@@ -1070,10 +1183,81 @@ func TestDiff(t *testing.T) {
 		inOrig:        &renderExample{},
 		inMod:         &pathElemExample{},
 		wantErrSubStr: "cannot diff structs of different types",
+	}, {
+		desc:   "multiple paths - addition - without single path",
+		inOrig: &multiPathStruct{},
+		inMod:  &multiPathStruct{TwoPaths: String("foo")},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "two-path",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"foo"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "config",
+					}, {
+						Name: "two-path",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"foo"}},
+			}},
+		},
+	}, {
+		desc:   "multiple paths - addition - with single path option",
+		inOrig: &multiPathStruct{},
+		inMod:  &multiPathStruct{TwoPaths: String("foo")},
+		inOpts: []DiffOpt{
+			&DiffPathOpt{MapToSinglePath: true},
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "two-path",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"foo"}},
+			}},
+		},
+	}, {
+		desc:   "multiple paths - deletion - without single path option",
+		inOrig: &multiPathStruct{TwoPaths: String("foo")},
+		inMod:  &multiPathStruct{},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "config",
+				}, {
+					Name: "two-path",
+				}},
+			}, {
+				Elem: []*gnmipb.PathElem{{
+					Name: "two-path",
+				}},
+			}},
+		},
+	}, {
+		desc:   "multiple paths - deletion - with single path option",
+		inOrig: &multiPathStruct{TwoPaths: String("foo")},
+		inMod:  &multiPathStruct{},
+		inOpts: []DiffOpt{
+			&DiffPathOpt{MapToSinglePath: true},
+		},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "two-path",
+				}},
+			}},
+		},
 	}}
 
 	for _, tt := range tests {
-		got, err := Diff(tt.inOrig, tt.inMod)
+		got, err := Diff(tt.inOrig, tt.inMod, tt.inOpts...)
 		if diff := errdiff.Substring(err, tt.wantErrSubStr); diff != "" {
 			t.Errorf("%s: Diff(%s, %s): did not get expected error status, got: %s, want: %s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), err, tt.wantErrSubStr)
 			continue
@@ -1087,6 +1271,43 @@ func TestDiff(t *testing.T) {
 		if !testutil.NotificationSetEqual([]*gnmipb.Notification{tt.want}, []*gnmipb.Notification{got}) {
 			diff := pretty.Compare(got, tt.want)
 			t.Errorf("%s: Diff(%s, %s): did not get expected Notification, diff(-got,+want):\n%s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), diff)
+		}
+	}
+}
+
+func TestLeastSpecificPath(t *testing.T) {
+	tests := []struct {
+		name string
+		in   [][]string
+		want []string
+	}{{
+		name: "shortest path first in slice",
+		in: [][]string{
+			{"one"},
+			{"one", "two"},
+		},
+		want: []string{"one"},
+	}, {
+		name: "shortest path second in slice",
+		in: [][]string{
+			{"one", "two"},
+			{"one"},
+		},
+		want: []string{"one"},
+	}, {
+		name: "equal length, first used",
+		in: [][]string{
+			{"one"},
+			{"two"},
+		},
+		want: []string{"one"},
+	}, {
+		name: "nil input",
+	}}
+
+	for _, tt := range tests {
+		if got := leastSpecificPath(tt.in); !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("%s: leastSpecificPath(%v): did not get expected value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
 		}
 	}
 }

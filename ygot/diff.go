@@ -209,7 +209,9 @@ func getPathSpec(ni *util.NodeInfo) (*pathSpec, error) {
 // walk of the struct - using the out argument to store the set of changed leaves.
 // A specific Annotation is used to store the absolute path of the entity during
 // the walk.
-func findSetLeaves(s GoStruct) (map[*pathSpec]interface{}, error) {
+func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, error) {
+	pathOpt := hasDiffPathOpt(opts)
+
 	findSetIterFunc := func(ni *util.NodeInfo, in, out interface{}) (errs util.Errors) {
 		if reflect.DeepEqual(ni.StructField, reflect.StructField{}) {
 			return
@@ -229,6 +231,12 @@ func findSetLeaves(s GoStruct) (map[*pathSpec]interface{}, error) {
 		if len(sp) == 0 {
 			errs = util.AppendErr(errs, fmt.Errorf("invalid schema path for %s", ni.StructField.Name))
 			return
+		}
+
+		// If the path options specify that each value should only be mapped to
+		// a single path, then choose the most specific path.
+		if pathOpt != nil && pathOpt.MapToSinglePath {
+			sp = [][]string{leastSpecificPath(sp)}
 		}
 
 		vp, err := nodeValuePath(ni, sp)
@@ -279,6 +287,37 @@ func findSetLeaves(s GoStruct) (map[*pathSpec]interface{}, error) {
 	}
 
 	return uOut, nil
+}
+
+// hasDiffPathOpt extracts a DiffPathOpt from the opts slice provided. In
+// the case that there are multiple DiffPathOpt structs within opts slice, the
+// first is returned.
+func hasDiffPathOpt(opts []DiffOpt) *DiffPathOpt {
+	for _, o := range opts {
+		switch o.(type) {
+		case *DiffPathOpt:
+			return o.(*DiffPathOpt)
+		}
+	}
+	return nil
+}
+
+// leastSpecificPath returns the path with the shortest length from the supplied
+// paths slice. If the slice contains two paths that are equal in length, the
+// first one encountered in the slice is returned.
+func leastSpecificPath(paths [][]string) []string {
+	var shortPath []string
+	for _, p := range paths {
+		if shortPath == nil {
+			shortPath = p
+		}
+
+		if len(p) < len(shortPath) {
+			shortPath = p
+		}
+	}
+
+	return shortPath
 }
 
 // togNMIValue returns the GoStruct field v as a gNMI TypedValue message. It
@@ -337,6 +376,31 @@ func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error
 	return nil
 }
 
+// DiffOpt is an interface that is implemented by the options to the Diff
+// function. It allows user specified options to be propagated to the diff
+// method.
+type DiffOpt interface {
+	// IsDiffOpt is a marker method for each DiffOpt.
+	IsDiffOpt()
+}
+
+// DiffPathOpt is a DiffOpt that allows control of the path behaviour of the
+// Diff function.
+type DiffPathOpt struct {
+	// MapToSinglePath specifies whether a single ygot.GoStruct field should
+	// be mapped to more than one value. If set to true, when a struct tag
+	// annotation specifies more than one path (e.g., `path:"foo|config/foo"`)
+	// only the shortest path is mapped to.
+	//
+	// This option is primarily used where path compression has been used in the
+	// generated structs, which can result in duplication of list key leaves in
+	// the diff output.
+	MapToSinglePath bool
+}
+
+// IsDiffOpt marks DiffPathOpt as a diff option.
+func (*DiffPathOpt) IsDiffOpt() {}
+
 // Diff takes an original and modified GoStruct, which must be of the same type
 // and returns a gNMI Notification that contains the diff between them. The original
 // struct is considered as the "from" data, with the modified struct the "to" such that:
@@ -350,22 +414,26 @@ func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error
 // Annotation fields that are contained within the supplied original or modified
 // GoStruct are skipped.
 //
+// A set of options for diff's behaviour, as specified by the supplied DiffOpts
+// can be used to modify the behaviour of the Diff function per the individual
+// option's specification.
+//
 // The returned gNMI Notification cannot be put on the wire unmodified, since
 // it does not specify a timestamp - and may not contain the absolute paths
 // to the fields specified if a GoStruct that does not represent the root of
 // a YANG schema tree is not supplied as original and modified.
-func Diff(original, modified GoStruct) (*gnmipb.Notification, error) {
+func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, error) {
 
 	if reflect.TypeOf(original) != reflect.TypeOf(modified) {
 		return nil, fmt.Errorf("cannot diff structs of different types, original: %T, modified: %T", original, modified)
 	}
 
-	origLeaves, err := findSetLeaves(original)
+	origLeaves, err := findSetLeaves(original, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("could not extract set leaves from original struct: %v", err)
 	}
 
-	modLeaves, err := findSetLeaves(modified)
+	modLeaves, err := findSetLeaves(modified, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("could not extract set leaves from modified struct: %v", err)
 	}

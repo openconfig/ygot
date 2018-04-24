@@ -271,6 +271,11 @@ type GNMINotificationsConfig struct {
 // Notification messages, marked with the specified timestamp. The configuration
 // provided determines the path format utilised, and the prefix to be included
 // in the message if relevant.
+//
+// TODO(robjs): When we have deprecated the string slice paths, then this function
+// can be simplified to remove support for them - including removing the gnmiPath
+// abstraction. It can also be refactored to simply use the findSetleaves function
+// which has a cleaner implementation using the reworked iterfunction util.
 func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*gnmipb.Notification, error) {
 
 	var pfx *gnmiPath
