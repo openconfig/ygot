@@ -20,27 +20,13 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
-	"github.com/pmezard/go-difflib/difflib"
+	"github.com/openconfig/ygot/testutil"
 )
 
 const (
 	// TestRoot overrides the root path at which this test is running.
 	TestRoot string = ""
 )
-
-// generateUnifiedDiff takes two strings and generates a diff that can be
-// shown to the user in a test error message.
-func generateUnifiedDiff(want, got string) (string, error) {
-	diffl := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(want),
-		B:        difflib.SplitLines(got),
-		FromFile: "got",
-		ToFile:   "want",
-		Context:  3,
-		Eol:      "\n",
-	}
-	return difflib.GetUnifiedDiffString(diffl)
-}
 
 // TestDeviceDemo is a simple test which compares the output of the device demo
 // to a known good configuration.
@@ -82,7 +68,7 @@ func TestDeviceDemo(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(tt.got, string(want)); diff != "" {
-			if diffl, err := generateUnifiedDiff(tt.got, string(want)); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(tt.got, string(want)); err == nil {
 				diff = diffl
 			}
 			t.Errorf("%s: TestDeviceDemo: CreateDemoDeviceInstance(): got incorrect output, diff(-got,+want):\n%s", tt.name, diff)

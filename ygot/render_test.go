@@ -737,7 +737,8 @@ func (*renderExampleUnionInvalid) IsRenderUnionExample() {}
 
 // renderExampleChild is a child of the renderExample struct.
 type renderExampleChild struct {
-	Val *uint64 `path:"val"`
+	Val  *uint64  `path:"val"`
+	Enum EnumTest `path:"enum"`
 }
 
 // IsYANGGoStruct implements the GoStruct interface.
@@ -778,6 +779,21 @@ func (EnumTest) ΛMap() map[string]map[int64]EnumDefinition {
 		},
 	}
 }
+
+const (
+	// EnumTestUNSET is used to represent the unset value of the
+	// /c/test enumerated value across a number of tests.
+	EnumTestUNSET EnumTest = 0
+	// EnumTestVALONE is used to represent VAL_ONE of the /c/test
+	// enumerated leaf in the schema-with-list test.
+	EnumTestVALONE EnumTest = 1
+	// EnumTestVALTWO is used to represent VAL_TWO of the /c/test
+	// enumerated leaf in the schema-with-list test.
+	EnumTestVALTWO EnumTest = 2
+	// EnumTestVALTHREE is an an enum value that does not have
+	// a corresponding string mapping.
+	EnumTestVALTHREE EnumTest = 3
+)
 
 // pathElemExample is an example struct used for rendering using gNMI PathElems.
 type pathElemExample struct {
@@ -861,18 +877,6 @@ type pathElemExampleMultiKeyChildKey struct {
 	Foo string `path:"foo"`
 	Bar uint16 `path:"bar"`
 }
-
-const (
-	// EnumTestVALONE is used to represent VAL_ONE of the /c/test
-	// enumerated leaf in the schema-with-list test.
-	EnumTestVALONE EnumTest = 1
-	// EnumTestVALTWO is used to represent VAL_TWO of the /c/test
-	// enumerated leaf in the schema-with-list test.
-	EnumTestVALTWO EnumTest = 2
-	// EnumTestVALTHREE is an an enum value that does not have
-	// a corresponding string mapping.
-	EnumTestVALTHREE = 3
-)
 
 func TestTogNMINotifications(t *testing.T) {
 	tests := []struct {
@@ -1065,7 +1069,7 @@ func TestTogNMINotifications(t *testing.T) {
 		inStruct: &renderExample{
 			Str:    String("beeblebrox"),
 			IntVal: Int32(42),
-			Ch:     &renderExampleChild{Uint64(42)},
+			Ch:     &renderExampleChild{Val: Uint64(42)},
 		},
 		inConfig: GNMINotificationsConfig{
 			StringSlicePrefix: []string{"base"},

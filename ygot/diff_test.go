@@ -738,6 +738,35 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:   "no change",
+		inOrig: &renderExample{},
+		inMod:  &renderExample{},
+		want:   &gnmipb.Notification{},
+	}, {
+		desc: "leaf only change with enum in same container",
+		inOrig: &renderExample{
+			Ch: &renderExampleChild{
+				Val: Uint64(42),
+			},
+		},
+		inMod: &renderExample{
+			Ch: &renderExampleChild{
+				Val: Uint64(84),
+			},
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "ch",
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{84}},
+			}},
+		},
+	}, {
 		desc:   "multiple path addition, with complex types",
 		inOrig: &renderExample{},
 		inMod: &renderExample{
