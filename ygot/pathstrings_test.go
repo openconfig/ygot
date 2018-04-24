@@ -393,6 +393,22 @@ func TestStringToPath(t *testing.T) {
 		in:                "foo bar/baz",
 		wantSliceErr:      "invalid space character included in element name 'foo bar'",
 		wantStructuredErr: "invalid space character included in element name 'foo bar'",
+	}, {
+		name:                "bgp example",
+		in:                  "neighbors/neighbor[neighbor-address=192.0.2.1]/config/neighbor-address",
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"neighbors", "neighbor[neighbor-address=192.0.2.1]", "config", "neighbor-address"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{{
+				Name: "neighbors",
+			}, {
+				Name: "neighbor",
+				Key:  map[string]string{"neighbor-address": "192.0.2.1"},
+			}, {
+				Name: "config",
+			}, {
+				Name: "neighbor-address",
+			}},
+		},
 	}}
 
 	for _, tt := range tests {

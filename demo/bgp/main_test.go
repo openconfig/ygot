@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
-	"github.com/pmezard/go-difflib/difflib"
+	"github.com/openconfig/ygot/testutil"
 )
 
 const (
@@ -28,20 +28,6 @@ const (
 	// is possible to determine where to load test files from.
 	TestRoot string = ""
 )
-
-// generateUnifiedDiff takes two strings and generates a diff that can be
-// shown to the user in a test error message.
-func generateUnifiedDiff(want, got string) (string, error) {
-	diffl := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(want),
-		B:        difflib.SplitLines(got),
-		FromFile: "got",
-		ToFile:   "want",
-		Context:  3,
-		Eol:      "\n",
-	}
-	return difflib.GetUnifiedDiffString(diffl)
-}
 
 // TestBGPDemo is a simple test which compares the output of the BGP demo
 // to a known good configuration. It is intended as an integration test
@@ -86,7 +72,7 @@ func TestBGPDemo(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(tt.got, string(want)); diff != "" {
-			if diffl, err := generateUnifiedDiff(tt.got, string(want)); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(tt.got, string(want)); err == nil {
 				diff = diffl
 			}
 			t.Errorf("TestBGPDemo %s: CreateDemoBGPInstance(): got incorrect output using structs lib, diff(-got,+want):\n%s", tt.name, diff)

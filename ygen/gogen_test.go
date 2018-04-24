@@ -21,23 +21,9 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
-	"github.com/pmezard/go-difflib/difflib"
 )
-
-// generateUnifiedDiff takes two strings and generates a diff that can be
-// shown to the user in a test error message.
-func generateUnifiedDiff(got, want string) (string, error) {
-	diffl := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(got),
-		B:        difflib.SplitLines(want),
-		FromFile: "got",
-		ToFile:   "want",
-		Context:  3,
-		Eol:      "\n",
-	}
-	return difflib.GetUnifiedDiffString(diffl)
-}
 
 // wantGoStructOut is used to store the expected output of a writeGoStructs
 // call.
@@ -1594,7 +1580,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 				}
 
 				if diff := pretty.Compare(want.structs, got.structDef); diff != "" {
-					if diffl, err := generateUnifiedDiff(got.structDef, want.structs); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.structDef, want.structs); err == nil {
 
 						diff = diffl
 					}
@@ -1603,7 +1589,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 				}
 
 				if diff := pretty.Compare(want.keys, got.listKeys); diff != "" {
-					if diffl, err := generateUnifiedDiff(got.listKeys, want.keys); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.listKeys, want.keys); err == nil {
 						diff = diffl
 					}
 					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
@@ -1611,7 +1597,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 				}
 
 				if diff := pretty.Compare(want.methods, got.methods); diff != "" {
-					if diffl, err := generateUnifiedDiff(got.methods, want.methods); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.methods, want.methods); err == nil {
 						diff = diffl
 					}
 					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
@@ -1619,7 +1605,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 				}
 
 				if diff := pretty.Compare(want.interfaces, got.interfaces); diff != "" {
-					if diffl, err := generateUnifiedDiff(got.interfaces, want.interfaces); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.interfaces, want.interfaces); err == nil {
 						diff = diffl
 					}
 					t.Errorf("%s: writeGoStruct(CompressOCPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
@@ -1803,7 +1789,7 @@ const (
 
 		if diff := pretty.Compare(tt.want, got); diff != "" {
 			fmt.Println(diff)
-			if diffl, err := generateUnifiedDiff(got.constDef, tt.want.constDef); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(got.constDef, tt.want.constDef); err == nil {
 				diff = diffl
 			}
 			t.Errorf("%s: writeGoEnum(%v): got incorrect output, diff(-got,+want):\n%s",
@@ -2054,7 +2040,7 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 
 		if tt.wantMap != got {
 			diff := fmt.Sprintf("got: %s, want %s", got, tt.wantMap)
-			if diffl, err := generateUnifiedDiff(got, tt.wantMap); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(got, tt.wantMap); err == nil {
 				diff = "diff (-got, +want):\n" + diffl
 			}
 			t.Errorf("%s: did not get expected generated enum, %s", tt.name, diff)
