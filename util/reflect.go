@@ -552,7 +552,7 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 			for _, key := range ni.FieldValue.MapKeys() {
 				nn := *ni
 				nn.Schema = &schema
-				nn.Parent = ni
+				nn.Parent = ni.Parent
 				nn.PathFromParent = []string{schema.Name}
 				nn.FieldValue = ni.FieldValue.MapIndex(key)
 				nn.FieldKey = key
