@@ -21,15 +21,193 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/openconfig/gnmi/value"
-
+	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
+	"github.com/openconfig/gnmi/value"
 )
 
-// pathLess provides a function which determines whether a gNMI Path messages
+// NotificationSetEqual compares the contents of a and b and returns true if
+// they are equal. Order of the slices is ignored.
+func NotificationSetEqual(a, b []*gnmipb.Notification) bool {
+	for _, an := range a {
+		var matched bool
+		for _, bn := range b {
+			n := &notificationMatch{
+				timestamp: an.GetTimestamp() == bn.GetTimestamp(),
+				prefix:    proto.Equal(an.GetPrefix(), bn.GetPrefix()),
+				update:    cmp.Equal(an.GetUpdate(), bn.GetUpdate(), cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty()),
+				delete:    cmp.Equal(an.GetDelete(), bn.GetDelete(), cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty()),
+			}
+
+			if n.matched() {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	return true
+}
+
+// notificationMatch tracks whether a gNMI notification pair has matched.
+type notificationMatch struct {
+	timestamp bool
+	prefix    bool
+	update    bool
+	delete    bool
+}
+
+// matched determines whether the receiver notificationMatch n represents
+// a matched pair.
+func (n *notificationMatch) matched() bool {
+	return n.timestamp && n.prefix && n.update && n.delete
+}
+
+// UpdateSetEqual compares the contents of a and b and returns true if they are
+// equal. Order of the slices is ignored.
+func UpdateSetEqual(a, b []*gnmipb.Update) bool {
+	return cmp.Equal(a, b, cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty())
+}
+
+// updateSet is an alias for a slice of gNMI Update messages.
+type updateSet []*gnmipb.Update
+
+// Len, Less, and Swap implement the sort.Interface interface.
+func (u updateSet) Len() int           { return len(u) }
+func (u updateSet) Less(i, j int) bool { return UpdateLess(u[i], u[j]) }
+func (u updateSet) Swap(i, j int)      { u[i], u[j] = u[j], u[i] }
+
+// pathSet is an alias for a slice of gNMI Path messages.
+type pathSet []*gnmipb.Path
+
+// Len, Less, and Swap implement the sort.Interface interface.
+func (p pathSet) Len() int           { return len(p) }
+func (p pathSet) Less(i, j int) bool { return PathLess(p[i], p[j]) }
+func (p pathSet) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
+// NotificationLess compares the two notifications a and b, returning true if
+// a is less than b, and false if not. Less is defined by:
+//  - Comparing the timestamp.
+//  - If equal timestamps, comparing the prefix using PathLess.
+//  - If equal prefixes, comparing the Updates using UpdateLess.
+//  - If equal updates, comparing the Deletes using deleteLess.
+// If all fields are equal, the function returns false to ensure that the
+// irreflexive property required by cmpopts.SortSlices is implemented.
+func NotificationLess(a, b *gnmipb.Notification) bool {
+	switch {
+	case a == nil && b != nil:
+		return true
+	case a == nil && b == nil:
+		// Ensure notification less meets the irreflexive property required by
+		// cmpopts.
+		return false
+	case b == nil && a != nil:
+		return false
+	}
+
+	if proto.Equal(a, b) {
+		return false
+	}
+
+	if a.Timestamp != b.Timestamp {
+		return a.Timestamp < b.Timestamp
+	}
+
+	if !proto.Equal(a.Prefix, b.Prefix) {
+		return PathLess(a.Prefix, b.Prefix)
+	}
+
+	if !cmp.Equal(a.Update, b.Update, cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty()) {
+		if len(a.Update) < len(b.Update) {
+			return true
+		}
+		if len(b.Update) < len(a.Update) {
+			return false
+		}
+
+		// Don't modify the original data.
+		sortedA, sortedB := proto.Clone(a).(*gnmipb.Notification), proto.Clone(b).(*gnmipb.Notification)
+		sort.Sort(updateSet(sortedA.Update))
+		sort.Sort(updateSet(sortedB.Update))
+
+		for _, uA := range sortedA.Update {
+			for _, uB := range sortedB.Update {
+				if !proto.Equal(uA, uB) {
+					return UpdateLess(uA, uB)
+				}
+			}
+		}
+	}
+
+	if !cmp.Equal(a.Delete, b.Delete, cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty()) {
+		if len(a.Delete) < len(b.Delete) {
+			return true
+		}
+
+		if len(b.Delete) < len(a.Delete) {
+			return false
+		}
+
+		// Again, don't modify the original data.
+		sortedA, sortedB := proto.Clone(a).(*gnmipb.Notification), proto.Clone(b).(*gnmipb.Notification)
+		sort.Sort(pathSet(sortedA.Delete))
+		sort.Sort(pathSet(sortedB.Delete))
+
+		for _, dA := range sortedA.Delete {
+			for _, dB := range sortedB.Delete {
+				if !proto.Equal(dA, dB) {
+					return PathLess(dA, dB)
+				}
+			}
+		}
+	}
+
+	return true
+}
+
+// UpdateLess compares two gNMI Update messages and returns true if a < b.
+// The less-than comparison is done by first comparing the paths of the updates,
+// and subquently comparing the typedValue fields of the updates, followed by
+// the duplicates fields. If all fields are equal, returns false.
+func UpdateLess(a, b *gnmipb.Update) bool {
+	if proto.Equal(a, b) {
+		// If the two values are equal, return true to avoid the expense of checking
+		// each field.
+		return false
+	}
+
+	if !proto.Equal(a.Path, b.Path) {
+		return PathLess(a.Path, b.Path)
+	}
+
+	if !proto.Equal(a.Val, b.Val) {
+		return typedValueLess(a.Val, b.Val)
+	}
+
+	return a.Duplicates < b.Duplicates
+}
+
+// PathLess provides a function which determines whether a gNMI Path messages
 // A is less than the gNMI Path message b. It can be used to allow sorting of
 // gNMI path messages - for example, in cmpopts.SortSlices.
-func pathLess(a, b *gnmipb.Path) bool {
+func PathLess(a, b *gnmipb.Path) bool {
+	switch {
+	case a == nil && b == nil:
+		return false
+	case a == nil && b != nil:
+		return true
+	case b == nil && a != nil:
+		return false
+	}
+
+	if proto.Equal(a, b) {
+		return false
+	}
+
 	if len(a.Elem) != len(b.Elem) {
 		// Less specific paths are less than more specific ones.
 		return len(a.Elem) > len(b.Elem)
@@ -39,7 +217,7 @@ func pathLess(a, b *gnmipb.Path) bool {
 		ae, be := a.Elem[i], b.Elem[i]
 		if ae.Name != be.Name {
 			// If the name of the path element is not equal, then use
-			// string comparison to determine whether a < b.
+			// string comparison to determine whether a < b
 			return ae.Name < be.Name
 		}
 
@@ -70,6 +248,18 @@ func pathLess(a, b *gnmipb.Path) bool {
 		}
 	}
 
+	// Handle comparison of paths that are based on the "element" rather than
+	// "elem".
+	for len(a.Element) != len(b.Element) {
+		return len(a.Element) > len(b.Element)
+	}
+
+	for i := 0; i < len(a.Element); i++ {
+		if ae, be := a.Element[i], b.Element[i]; ae != be {
+			return ae < be
+		}
+	}
+
 	// If the origin is not equal, then use comparison between the origin
 	// string.
 	if a.Origin != b.Origin {
@@ -77,8 +267,8 @@ func pathLess(a, b *gnmipb.Path) bool {
 	}
 
 	// If the two Path messages are entirely equal, then deterministically
-	// return a < b.
-	return true
+	// return b < a per the irreflexive property.
+	return false
 }
 
 // stringKeys returns a slice of the keys of the supplied map m.
@@ -97,8 +287,8 @@ func stringKeys(m map[string]string) []string {
 // strings specified.
 //
 // If nil input is provided for either a or b, the nil value is considered
-// less than the non-nil value. If both values are nil, a is considered less
-// than b.
+// less than the non-nil value. If both values are nil, b is considered less
+// than a to implement the irreflexive property required by cmpopts.
 func typedValueLess(a, b *gnmipb.TypedValue) bool {
 	switch {
 	case a == nil && b != nil:
@@ -106,7 +296,7 @@ func typedValueLess(a, b *gnmipb.TypedValue) bool {
 	case b == nil && a != nil:
 		return true
 	case a == nil && b == nil:
-		return true
+		return false
 	}
 
 	// If the two types are not the same, then use their string representations

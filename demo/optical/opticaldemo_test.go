@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
-	"github.com/pmezard/go-difflib/difflib"
+	"github.com/openconfig/ygot/testutil"
 )
 
 const (
@@ -28,20 +28,6 @@ const (
 	// such that local files can be loaded.
 	TestRoot string = ""
 )
-
-// generateUnifiedDiff takes two strings and generates a diff that can be
-// shown to the user in a test error message.
-func generateUnifiedDiff(want, got string) (string, error) {
-	diffl := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(got),
-		B:        difflib.SplitLines(want),
-		FromFile: "got",
-		ToFile:   "want",
-		Context:  3,
-		Eol:      "\n",
-	}
-	return difflib.GetUnifiedDiffString(diffl)
-}
 
 // TestOpticalDemo is a simple test which compares the output of the device demo
 // to a known good configuration.
@@ -82,7 +68,7 @@ func TestOpticalDemoJSON(t *testing.T) {
 			continue
 		}
 		if diff := pretty.Compare(tt.got, string(want)); diff != "" {
-			if diffl, err := generateUnifiedDiff(tt.got, string(want)); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(tt.got, string(want)); err == nil {
 				diff = diffl
 			}
 			t.Errorf("TestOpticalDemo %s: CreateDemoOpticalInstance(): got incorrect output, diff(-got,+want):\n%s", tt.name, diff)

@@ -22,6 +22,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -264,7 +265,7 @@ func TestBuildJSONTree(t *testing.T) {
 
 		got := string(gotb)
 		if diff := pretty.Compare(got, tt.want); diff != "" {
-			if diffl, err := generateUnifiedDiff(got, tt.want); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(got, tt.want); err == nil {
 				diff = diffl
 			}
 			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected JSON tree, diff(-got,+want):\n%s", tt.name, tt.inEntries, tt.inDirectoryNames, diff)
@@ -489,7 +490,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 			// Use JSON serialisation for test debugging output.
 			gotj, _ := json.MarshalIndent(got, "", strings.Repeat(" ", 4))
 			wantj, _ := json.MarshalIndent(tt.want, "", strings.Repeat(" ", 4))
-			diff, _ := generateUnifiedDiff(string(gotj), string(wantj))
+			diff, _ := testutil.GenerateUnifiedDiff(string(gotj), string(wantj))
 			t.Errorf("%s: GzipToSchema(...): did not get expected output, diff(-got,+want):\n%s", tt.name, diff)
 		}
 	}
