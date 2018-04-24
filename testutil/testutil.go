@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package testutil contains a set of utilities that are useful within
-// testing of ygot-related data.
+// tests of ygot-related data.
 package testutil
 
 import (
