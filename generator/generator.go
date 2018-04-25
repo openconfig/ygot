@@ -18,6 +18,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -30,12 +31,31 @@ import (
 	"github.com/openconfig/ygot/ygen"
 )
 
+const (
+	// enumMapFn is the filename to be used for the enum map when Go code is output to a directory.
+	enumMapFn = "enum_map.go"
+	// enumFn is the filename to be used for the enum code when Go code is output to a directory.
+	enumFn = "enum.go"
+	// schemaFn is the filename to be used for the schema code when outputting to a directory.
+	schemaFn = "schema.go"
+	// interfaceFn is the filename to be used for interface code when outputting to a directory.
+	interfaceFn = "union.go"
+	// methodFn is the filename to be used for methods related to the structs when outputting
+	// to a directory.
+	methodFn = "methods.go"
+	// structBaseFn is the base filename to be used for files containing structs when outputting
+	// to a directory. Structs are divided alphabetically and the first character appended to the
+	// base specified in this value - e.g., structs beginning with "A" are stored in {structBaseFnA}.go.
+	structBaseFn = "structs_"
+)
+
 var (
 	yangPaths        = flag.String("path", "", "Comma separated list of paths to be recursively searched for included modules or submodules within the defined YANG modules.")
 	compressPaths    = flag.Bool("compress_paths", false, "If set to true, the schema's paths are compressed, according to OpenConfig YANG module conventions.")
 	excludeModules   = flag.String("exclude_modules", "", "Comma separated set of module names that should be excluded from code generation this can be used to ensure overlapping namespaces can be ignored.")
 	packageName      = flag.String("package_name", "ocstructs", "The name of the Go package that should be generated.")
 	outputFile       = flag.String("output_file", "", "The file that the generated Go code should be written to.")
+	outputDir        = flag.String("output_dir", "", "The directory that the Go package should be written to.")
 	ignoreCircDeps   = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
 	generateFakeRoot = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
 	fakeRootName     = flag.String("fakeroot_name", "", "The name of the fake root entity.")
@@ -52,19 +72,22 @@ var (
 	generateDelete   = flag.Bool("generate_delete", false, "If set to true, delete methods are generated for YANG lists (Go maps) within the Go code.")
 )
 
-// writeGoCode takes a ygen.GeneratedGoCode struct and writes the Go code
+// writeGoCodeSingleFile takes a ygen.GeneratedGoCode struct and writes the Go code
 // snippets contained within it to the io.Writer, w, provided as an argument.
 // The output includes a package header which is generated.
-func writeGoCode(w io.Writer, goCode *ygen.GeneratedGoCode) error {
+func writeGoCodeSingleFile(w io.Writer, goCode *ygen.GeneratedGoCode) error {
 	// Write the package header to the supplier writer.
-	fmt.Fprint(w, goCode.Header)
+	fmt.Fprint(w, goCode.CommonHeader)
+	fmt.Fprint(w, goCode.OneOffHeader)
 
 	// Write the returned Go code out. First the Structs - which is the struct
 	// definitions for the generated YANG entity, followed by the enumerations.
-	for _, codeSnippets := range [][]string{goCode.Structs, goCode.Enums} {
-		for _, snippet := range codeSnippets {
-			fmt.Fprintln(w, snippet)
-		}
+	for _, snippet := range goCode.Structs {
+		fmt.Fprintln(w, snippet.String())
+	}
+
+	for _, snippet := range goCode.Enums {
+		fmt.Fprintln(w, snippet)
 	}
 
 	// Write the generated enumeration map out.
@@ -77,6 +100,88 @@ func writeGoCode(w io.Writer, goCode *ygen.GeneratedGoCode) error {
 
 	if len(goCode.EnumTypeMap) > 0 {
 		fmt.Fprintln(w, goCode.EnumTypeMap)
+	}
+
+	return nil
+}
+
+// writeIfNotEmpty writes the string s to b if it has a non-zero length.
+func writeIfNotEmpty(b *bytes.Buffer, s string) {
+	if len(s) != 0 {
+		b.WriteString(s)
+	}
+}
+
+// codeOut describes an output file for Go code.
+type codeOut struct {
+	// contents is the code that is contained in the output file.
+	contents string
+	// oneoffHeader indicates whether the one-off header should be included in this
+	// file.
+	oneoffHeader bool
+}
+
+// makeOutputSpec generates a map, keyed by filename, to a codeOut struct containing
+// the code to be output to that filename. It allows division of a ygen.GeneratedGoCode
+// struct into a set of source files. It divides the methods, interfaces, and enumeration
+// code snippets into their own files. Structs are output into files dependent on the
+// first letter of their name within the code.
+func makeOutputSpec(goCode *ygen.GeneratedGoCode) map[string]codeOut {
+	var methodCode, interfaceCode bytes.Buffer
+	structCode := map[byte]*bytes.Buffer{}
+	for _, s := range goCode.Structs {
+		// Index by the first character of the struct.
+		fc := s.StructName[0]
+		if _, ok := structCode[fc]; !ok {
+			structCode[fc] = &bytes.Buffer{}
+		}
+		cs := structCode[fc]
+		writeIfNotEmpty(cs, s.StructDef)
+		writeIfNotEmpty(cs, fmt.Sprintf("%s\n", s.ListKeys))
+		writeIfNotEmpty(&methodCode, fmt.Sprintf("%s\n", s.Methods))
+		writeIfNotEmpty(&interfaceCode, fmt.Sprintf("%s\n", s.Interfaces))
+	}
+
+	emap := &bytes.Buffer{}
+	writeIfNotEmpty(emap, goCode.EnumMap)
+	if emap.Len() != 0 {
+		emap.WriteString("\n")
+	}
+	writeIfNotEmpty(emap, goCode.EnumTypeMap)
+
+	out := map[string]codeOut{
+		enumMapFn:   {contents: emap.String()},
+		schemaFn:    {contents: goCode.JSONSchemaCode},
+		interfaceFn: {contents: interfaceCode.String()},
+		methodFn:    {contents: methodCode.String(), oneoffHeader: true},
+		enumFn:      {contents: strings.Join(goCode.Enums, "\n")},
+	}
+
+	for fn, code := range structCode {
+		out[fmt.Sprintf("%s%c.go", structBaseFn, fn)] = codeOut{
+			contents: code.String(),
+		}
+	}
+
+	return out
+}
+
+// writeGoCodeMultipleFiles writes the input goCode to a set of files as specified
+// by specification returned by output spec.
+func writeGoCodeMultipleFiles(dir string, goCode *ygen.GeneratedGoCode) error {
+	out := makeOutputSpec(goCode)
+
+	for fn, f := range out {
+		if len(f.contents) == 0 {
+			continue
+		}
+		fh := openFile(filepath.Join(dir, fn))
+		defer syncFile(fh)
+		fmt.Fprintln(fh, goCode.CommonHeader)
+		if f.oneoffHeader {
+			fmt.Fprintln(fh, goCode.OneOffHeader)
+		}
+		fmt.Fprintln(fh, f.contents)
 	}
 
 	return nil
@@ -118,30 +223,8 @@ func main() {
 		}
 	}
 
-	// If no output file is specified, we output to os.Stdout, otherwise
-	// we write to the specified file.
-	var outfh *os.File
-	switch *outputFile {
-	case "":
-		outfh = os.Stdout
-	default:
-		fileOut, err := os.Create(*outputFile)
-		if err != nil {
-			log.Exitf("Error: could not open output file: %v\n", err)
-		}
-
-		// Assign the newly created filehandle to the outfh, and ensure
-		// that it is synced and closed before exit of main.
-		outfh = fileOut
-		defer func() {
-			if err := outfh.Sync(); err != nil {
-				log.Exitf("Error: could not sync file output: %v\n", err)
-			}
-
-			if err := outfh.Close(); err != nil {
-				log.Exitf("Error: could not close output file: %v\n", err)
-			}
-		}()
+	if *outputFile != "" && *outputDir != "" {
+		log.Exitf("Error: cannot specify both outputFile (%s) and outputDir (%s)")
 	}
 
 	// Perform the code generation.
@@ -174,6 +257,44 @@ func main() {
 		log.Exitf("ERROR Generating Code: %s\n", err)
 	}
 
-	// Write out the Go code to the specified file handle.
-	writeGoCode(outfh, generatedGoCode)
+	// If no output file is specified, we output to os.Stdout, otherwise
+	// we write to the specified file.
+	if *outputFile != "" {
+		var outfh *os.File
+		switch *outputFile {
+		case "":
+			outfh = os.Stdout
+		default:
+			// Assign the newly created filehandle to the outfh, and ensure
+			// that it is synced and closed before exit of main.
+			outfh = openFile(*outputFile)
+			defer syncFile(outfh)
+		}
+
+		writeGoCodeSingleFile(outfh, generatedGoCode)
+	}
+
+	// Write the Go code to a series of output files.
+	writeGoCodeMultipleFiles(*outputDir, generatedGoCode)
+}
+
+// openFile opens a file with the supplied name, logging and exiting if it cannot
+// be opened.
+func openFile(fn string) *os.File {
+	fileOut, err := os.Create(fn)
+	if err != nil {
+		log.Exitf("Error: could not open output file: %v\n", err)
+	}
+	return fileOut
+}
+
+// syncFile synchronises the supplied os.File and closes it.
+func syncFile(fh *os.File) {
+	if err := fh.Sync(); err != nil {
+		log.Exitf("Error: could not sync file output: %v\n", err)
+	}
+
+	if err := fh.Close(); err != nil {
+		log.Exitf("Error: could not close output file: %v\n", err)
+	}
 }

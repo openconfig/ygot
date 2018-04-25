@@ -228,10 +228,11 @@ type yangEnum struct {
 // map values being maps of the int64 identifier for each value of the enumeration to the name of
 // the element, as used in the YANG schema.
 type GeneratedGoCode struct {
-	Structs []string // Structs is the generated set of structs representing containers or lists in the input YANG models.
-	Enums   []string // Enums is the generated set of enum definitions corresponding to identities and enumerations in the input YANG models.
-	Header  string   // Header is the package-level header or the generated code.
-	EnumMap string   // EnumMap is a Go map that allows the YANG string values of enumerated types to be resolved.
+	Structs      []GoStructCodeSnippet // Structs is the generated set of structs representing containers or lists in the input YANG models.
+	Enums        []string              // Enums is the generated set of enum definitions corresponding to identities and enumerations in the input YANG models.
+	CommonHeader string                // CommonHeader is the header that should be used for all output Go files.
+	OneOffHeader string                // OneOffHeader defines the header that should be included in only one output Go file - such as package init statements.
+	EnumMap      string                // EnumMap is a Go map that allows the YANG string values of enumerated types to be resolved.
 	// JSONSchemaCode contains code defining a variable storing a serialised JSON schema for the
 	// generated Go structs. When deserialised it consists of a map[string]*yang.Entry. The
 	// entries are the root level yang.Entry definitions along with their corresponding
@@ -315,7 +316,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	codeHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config)
+	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config)
 	if err != nil {
 		return nil, util.AppendErr(util.Errors{}, err)
 	}
@@ -337,7 +338,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// enumTypeMap stores the map of the path to type.
 	enumTypeMap := map[string][]string{}
 	var codegenErr util.Errors
-	var structSnippets []string
+	var structSnippets []GoStructCodeSnippet
 	for _, structName := range orderedStructNames {
 		structOut, errs := writeGoStruct(structNameMap[structName], goStructs, cg.state,
 			cg.Config.CompressOCPaths, cg.Config.GenerateJSONSchema, cg.Config.GoOptions)
@@ -345,11 +346,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
 		}
-		// Append the actual struct definitions that were returned.
-		structSnippets = append(structSnippets, structOut.structDef)
-		structSnippets = appendIfNotEmpty(structSnippets, structOut.listKeys)
-		structSnippets = appendIfNotEmpty(structSnippets, structOut.methods)
-		structSnippets = appendIfNotEmpty(structSnippets, structOut.interfaces)
+		structSnippets = append(structSnippets, structOut)
 
 		// Copy the contents of the enumTypeMap for the struct into the global
 		// map.
@@ -430,7 +427,8 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}
 
 	return &GeneratedGoCode{
-		Header:         codeHeader,
+		CommonHeader:   commonHeader,
+		OneOffHeader:   oneoffHeader,
 		Structs:        structSnippets,
 		Enums:          enumSnippets,
 		EnumMap:        enumMap,
