@@ -249,8 +249,18 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 			return
 		}
 
+		ival := ni.FieldValue.Interface()
+
+		// If this is an enumerated value in the output structs, then check whether
+		// it is set. Only include values that are set to a non-zero value.
+		if _, isEnum := ival.(GoEnum); isEnum {
+			if ni.FieldValue.Int() == 0 {
+				return
+			}
+		}
+
 		outs := out.(map[*pathSpec]interface{})
-		outs[vp] = ni.FieldValue.Interface()
+		outs[vp] = ival
 
 		return
 	}

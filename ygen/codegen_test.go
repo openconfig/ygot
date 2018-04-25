@@ -26,6 +26,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 )
 
 const (
@@ -684,7 +685,7 @@ func TestSimpleStructs(t *testing.T) {
 				}
 
 				if !reflect.DeepEqual(gotJSON, wantJSON) {
-					diff, _ := generateUnifiedDiff(string(gotGeneratedCode.RawJSONSchema), string(wantSchema))
+					diff, _ := testutil.GenerateUnifiedDiff(string(gotGeneratedCode.RawJSONSchema), string(wantSchema))
 					t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
 				}
 			}
@@ -693,7 +694,7 @@ func TestSimpleStructs(t *testing.T) {
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
-				diff, _ := generateUnifiedDiff(gotCode.String(), string(wantCode))
+				diff, _ := testutil.GenerateUnifiedDiff(gotCode.String(), string(wantCode))
 				t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct code (file: %v), diff:\n%s",
 					tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diff)
 			}
@@ -1195,7 +1196,7 @@ func TestGenerateProto3(t *testing.T) {
 				}
 
 				if diff := pretty.Compare(gotCodeBuf.String(), string(wantCode)); diff != "" {
-					if diffl, _ := generateUnifiedDiff(gotCodeBuf.String(), string(wantCode)); diffl != "" {
+					if diffl, _ := testutil.GenerateUnifiedDiff(gotCodeBuf.String(), string(wantCode)); diffl != "" {
 						diff = diffl
 					}
 					t.Errorf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-got,+want):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
