@@ -60,9 +60,10 @@ func TestGenerateCode(t *testing.T) {
 		}
 
 		var b bytes.Buffer
-		fmt.Fprintf(&b, got.Header)
+		fmt.Fprintf(&b, got.CommonHeader)
+		fmt.Fprintf(&b, got.OneOffHeader)
 		for _, s := range got.Structs {
-			fmt.Fprintf(&b, s)
+			fmt.Fprintf(&b, s.String())
 		}
 
 		for _, e := range got.Enums {
