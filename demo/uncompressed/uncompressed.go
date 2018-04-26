@@ -24,7 +24,7 @@ import (
 )
 
 // Generate rule to create the example structs:
-//go:generate go run ../../generator/generator.go -path=yang -output_file=pkg/demo/uncompressed.go -package_name=demo -generate_fakeroot -fakeroot_name=root yang/example.yang 
+//go:generate go run ../../generator/generator.go -path=yang -output_file=pkg/demo/uncompressed.go -package_name=demo -generate_fakeroot -fakeroot_name=root yang/example.yang
 
 func main() {
 	e, err := BuildDemo()
