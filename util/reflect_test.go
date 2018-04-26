@@ -318,12 +318,15 @@ func isInListOfInterface(lv []interface{}, v interface{}) bool {
 	return false
 }
 
+type derivedBool bool
+
 func TestUpdateField(t *testing.T) {
 	type BasicStruct struct {
 		IntField       int
 		StringField    string
 		IntPtrField    *int8
 		StringPtrField *string
+		BoolField      derivedBool
 	}
 
 	type StructOfStructs struct {
@@ -344,6 +347,13 @@ func TestUpdateField(t *testing.T) {
 			fieldName:    "IntField",
 			fieldValue:   42,
 			wantVal:      &BasicStruct{IntField: 42},
+		},
+		{
+			desc:         "derived bool",
+			parentStruct: &BasicStruct{},
+			fieldName:    "BoolField",
+			fieldValue:   true,
+			wantVal:      &BasicStruct{BoolField: derivedBool(true)},
 		},
 		{
 			desc:         "int with nil",

@@ -415,6 +415,10 @@ func validateLeafSchema(schema *yang.Entry) error {
 	return nil
 }
 
+// YANGEmpty is a derived type which is used to represent the YANG
+// empty type.
+type YANGEmpty bool
+
 // unmarshalLeaf unmarshals a scalar value (determined by json.Unmarshal) into
 // the parent containing the leaf.
 //   schema points to the schema for the leaf type.
@@ -463,6 +467,14 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}) 
 		// Binary is a slice field which is treated as a scalar.
 		return util.InsertIntoStruct(parent, fieldName, v)
 	}
+
+	if ykind == yang.Yempty {
+		// Empty is a derived type of bool which is treated as a scalar. We
+		// insert it here to avoid strict type checking against the generated
+		// code.
+		return util.UpdateField(parent, fieldName, v)
+	}
+
 	return util.UpdateField(parent, fieldName, v)
 }
 
@@ -714,6 +726,15 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 			return nil, fmt.Errorf("error in DecodeString for \n%v\n for schema %s: %v", value, schema.Name, err)
 		}
 		return []byte(v), nil
+
+	case yang.Yempty:
+		// If an empty leaf is included in the JSON, then we expect it to have a value of [null]. If it does not
+		// this is an error.
+		v, ok := value.([]interface{})
+		if !ok || len(v) != 1 || v[0] != nil {
+			return nil, fmt.Errorf("error parsing %v for schema %s: empty leaves must be [null]", value, schema.Name)
+		}
+		return true, nil
 
 	case yang.Ybits:
 		// TODO(mostrowski)
