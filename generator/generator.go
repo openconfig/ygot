@@ -272,6 +272,7 @@ func main() {
 		}
 
 		writeGoCodeSingleFile(outfh, generatedGoCode)
+		return
 	}
 
 	// Write the Go code to a series of output files.
