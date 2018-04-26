@@ -134,8 +134,10 @@ func yangToJSONType(t yang.TypeKind) reflect.Type {
 		return reflect.TypeOf(float64(0))
 	case yang.Ybinary, yang.Ydecimal64, yang.Yenum, yang.Yidentityref, yang.Yint64, yang.Yuint64, yang.Ystring:
 		return reflect.TypeOf(string(""))
-	case yang.Ybool, yang.Yempty:
+	case yang.Ybool:
 		return reflect.TypeOf(bool(false))
+	case yang.Yempty:
+		return reflect.TypeOf([]interface{}{})
 	case yang.Yunion:
 		return reflect.TypeOf(nil)
 	default:

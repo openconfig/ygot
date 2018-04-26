@@ -15,12 +15,15 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/ygot/testutil"
+
+	yb "github.com/openconfig/ygot/demo/uncompressed/pkg/demo"
 )
 
 const (
@@ -71,6 +74,28 @@ func TestUncompressedDemo(t *testing.T) {
 				diff = diffl
 			}
 			t.Errorf("%s: Demo JSON output of %v, did not get expected JSON, diff(-got,+want):\n%s", tt.name, u, diff)
+		}
+	}
+}
+
+func TestUnmarshal(t *testing.T) {
+	tests := []struct {
+		name    string
+		in      []byte
+		wantErr bool
+	}{{
+		name:    "unmarshal empty",
+		in:      []byte(`{"married": [null]}`),
+		wantErr: false,
+	}}
+
+	for _, tt := range tests {
+		if err := yb.Unmarshal([]byte(`{"married": [null]}`), &yb.Root{}); err != nil {
+			fmt.Printf("for test %s got error: %v", tt.name, err)
+			if !tt.wantErr {
+				t.Errorf("%s: did not get expected unmarshal error, got: %v, want: %v", tt.name, err != nil, tt.wantErr)
+			}
+
 		}
 	}
 }

@@ -4,6 +4,8 @@ module network {
 
   leaf person { type string; }
 
+  leaf married { type empty; }
+
   list country {
     key "name";
 
