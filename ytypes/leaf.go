@@ -734,7 +734,7 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 		if !ok || len(v) != 1 || v[0] != nil {
 			return nil, fmt.Errorf("error parsing %v for schema %s: empty leaves must be [null]", value, schema.Name)
 		}
-		return YANGEmpty(true), nil
+		return true, nil
 
 	case yang.Ybits:
 		// TODO(mostrowski)

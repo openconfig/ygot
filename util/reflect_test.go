@@ -318,12 +318,15 @@ func isInListOfInterface(lv []interface{}, v interface{}) bool {
 	return false
 }
 
+type derivedBool bool
+
 func TestUpdateField(t *testing.T) {
 	type BasicStruct struct {
 		IntField       int
 		StringField    string
 		IntPtrField    *int8
 		StringPtrField *string
+		BoolField      derivedBool
 	}
 
 	type StructOfStructs struct {
@@ -344,6 +347,13 @@ func TestUpdateField(t *testing.T) {
 			fieldName:    "IntField",
 			fieldValue:   42,
 			wantVal:      &BasicStruct{IntField: 42},
+		},
+		{
+			desc:         "derived bool",
+			parentStruct: &BasicStruct{},
+			fieldName:    "BoolField",
+			fieldValue:   true,
+			wantVal:      &BasicStruct{BoolField: derivedBool(true)},
 		},
 		{
 			desc:         "int with nil",
@@ -1029,7 +1039,7 @@ func TestForEachDataField(t *testing.T) {
 			in:           nil,
 			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
 			iterFunc:     printMapKeysSchemaAnnotationFunc,
-			wantOut: `basicStruct1 (string)/basic-struct : 
+      wantOut: `basicStruct1 (string)/basic-struct : 
 {Int32Field:     42,
  StringField:    "forty two",
  Int32PtrField:  4242,

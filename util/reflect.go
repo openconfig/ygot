@@ -223,6 +223,7 @@ func UpdateField(parentStruct interface{}, fieldName string, fieldValue interfac
 	if ft.Type.Kind() == reflect.Slice {
 		return InsertIntoSliceStructField(parentStruct, fieldName, fieldValue)
 	}
+
 	return InsertIntoStruct(parentStruct, fieldName, fieldValue)
 }
 
@@ -242,6 +243,14 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 	ft, ok := pt.Elem().FieldByName(fieldName)
 	if !ok {
 		return fmt.Errorf("parent type %T does not have a field name %s", parentStruct, fieldName)
+	}
+
+	// YANG empty fields are represented as a derived bool value defined in the
+	// generated code. Here we cast the value to the type in the generated code.
+	if ft.Type.Kind() == reflect.Bool && t.Kind() == reflect.Bool {
+		nv := reflect.New(ft.Type).Elem()
+		nv.SetBool(v.Bool())
+		v = nv
 	}
 
 	n := v
