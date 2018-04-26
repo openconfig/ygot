@@ -143,9 +143,16 @@ func TestYangToJSONType(t *testing.T) {
 		{
 			desc: "to bool",
 			ykinds: []yang.TypeKind{
-				yang.Ybool, yang.Yempty,
+				yang.Ybool,
 			},
 			want: reflect.Bool,
+		},
+		{
+			desc: "to []interface{}",
+			ykinds: []yang.TypeKind{
+				yang.Yempty,
+			},
+			want: reflect.Slice,
 		},
 	}
 

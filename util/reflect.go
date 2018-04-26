@@ -357,9 +357,11 @@ func isFieldTypeCompatible(ft reflect.StructField, v reflect.Value) bool {
 		}
 		return v.Type() == ft.Type
 	}
+
 	if !v.IsValid() {
 		return false
 	}
+
 	return v.Type() == ft.Type
 }
 

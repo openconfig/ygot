@@ -101,10 +101,6 @@ func TestValidateLeafSchema(t *testing.T) {
 	}
 }
 
-// YANGEmpty is a derived type which is used to represent the YANG
-// empty type.
-type YANGEmpty bool
-
 func TestValidateLeaf(t *testing.T) {
 	tests := []struct {
 		desc    string
@@ -907,6 +903,7 @@ type LeafContainerStruct struct {
 	EnumLeaf    EnumType      `path:"enum-leaf"`
 	UnionLeaf   UnionLeafType `path:"union-leaf"`
 	UnionLeaf2  *string       `path:"union-leaf2"`
+	EmptyLeaf   YANGEmpty     `path:"empty-leaf"`
 }
 
 type UnionLeafType interface {
@@ -1148,6 +1145,16 @@ func TestUnmarshalLeaf(t *testing.T) {
 			json:    `{"decimal-leaf" : 42.42}`,
 			wantErr: `got float64 type for field decimal-leaf, expect string`,
 		},
+		{
+			desc: "empty valid type",
+			json: `{"empty-leaf": [null]}`,
+			want: LeafContainerStruct{EmptyLeaf: true},
+		},
+		{
+			desc:    "empty bad type",
+			json:    `{"empty-leaf": "fish"}`,
+			wantErr: "got string type for field empty-leaf, expect slice",
+		},
 	}
 
 	containerSchema := &yang.Entry{
@@ -1225,6 +1232,7 @@ func TestUnmarshalLeaf(t *testing.T) {
 		typeToLeafSchema("binary-leaf", yang.Ybinary),
 		typeToLeafSchema("bool-leaf", yang.Ybool),
 		typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
+		typeToLeafSchema("empty-leaf", yang.Yempty),
 		enumLeafSchema,
 		unionSchema,
 		unionNoStructSchema,
