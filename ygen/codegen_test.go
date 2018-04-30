@@ -648,9 +648,10 @@ func TestSimpleStructs(t *testing.T) {
 			// Write all the received structs into a single file such that
 			// it can be compared to the received file.
 			var gotCode bytes.Buffer
-			fmt.Fprint(&gotCode, gotGeneratedCode.Header)
+			fmt.Fprint(&gotCode, gotGeneratedCode.CommonHeader)
+			fmt.Fprint(&gotCode, gotGeneratedCode.OneOffHeader)
 			for _, gotStruct := range gotGeneratedCode.Structs {
-				fmt.Fprint(&gotCode, gotStruct)
+				fmt.Fprint(&gotCode, gotStruct.String())
 			}
 
 			for _, gotEnum := range gotGeneratedCode.Enums {

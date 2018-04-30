@@ -1579,33 +1579,32 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 					continue
 				}
 
-				if diff := pretty.Compare(want.structs, got.structDef); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.structDef, want.structs); err == nil {
-
+				if diff := pretty.Compare(want.structs, got.StructDef); diff != "" {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.StructDef, want.structs); err == nil {
 						diff = diffl
 					}
 					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-got,+want):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
-				if diff := pretty.Compare(want.keys, got.listKeys); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.listKeys, want.keys); err == nil {
+				if diff := pretty.Compare(want.keys, got.ListKeys); diff != "" {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.ListKeys, want.keys); err == nil {
 						diff = diffl
 					}
 					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
-				if diff := pretty.Compare(want.methods, got.methods); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.methods, want.methods); err == nil {
+				if diff := pretty.Compare(want.methods, got.Methods); diff != "" {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.Methods, want.methods); err == nil {
 						diff = diffl
 					}
 					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
-				if diff := pretty.Compare(want.interfaces, got.interfaces); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.interfaces, want.interfaces); err == nil {
+				if diff := pretty.Compare(want.interfaces, got.Interfaces); diff != "" {
+					if diffl, err := testutil.GenerateUnifiedDiff(got.Interfaces, want.interfaces); err == nil {
 						diff = diffl
 					}
 					t.Errorf("%s: writeGoStruct(CompressOCPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
