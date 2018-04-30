@@ -72,13 +72,13 @@ func buildRouteProto(pfx *ipv4Prefix) *ocpb.Device {
 					Index: 1,
 					AttrSet: &ocrpb.BgpRib_AttrSets_AttrSet{
 						State: &ocrpb.BgpRib_AttrSets_AttrSet_State{
-							AtomicAggregate: &ywpb.BoolValue{pfx.atomicAggregate},
-							Index:           &ywpb.UintValue{1},
-							LocalPref:       &ywpb.UintValue{pfx.localPref},
-							Med:             &ywpb.UintValue{pfx.med},
-							NextHop:         &ywpb.StringValue{pfx.nextHop},
+							AtomicAggregate: &ywpb.BoolValue{Value: pfx.atomicAggregate},
+							Index:           &ywpb.UintValue{Value: 1},
+							LocalPref:       &ywpb.UintValue{Value: pfx.localPref},
+							Med:             &ywpb.UintValue{Value: pfx.med},
+							NextHop:         &ywpb.StringValue{Value: pfx.nextHop},
 							Origin:          pfx.origin,
-							OriginatorId:    &ywpb.StringValue{pfx.originatorID},
+							OriginatorId:    &ywpb.StringValue{Value: pfx.originatorID},
 						},
 					},
 				}},
@@ -96,10 +96,10 @@ func buildRouteProto(pfx *ipv4Prefix) *ocpb.Device {
 										PathId: 1,
 										Route: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route{
 											State: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_State{
-												PathId:    &ywpb.UintValue{1},
-												Prefix:    &ywpb.StringValue{pfx.prefix},
+												PathId:    &ywpb.UintValue{Value: 1},
+												Prefix:    &ywpb.StringValue{Value: pfx.prefix},
 												Origin:    &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_State_OriginOpenconfigpolicytypesinstallprotocoltype{ocenums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP},
-												AttrIndex: &ywpb.UintValue{1},
+												AttrIndex: &ywpb.UintValue{Value: 1},
 											},
 										},
 									}},
