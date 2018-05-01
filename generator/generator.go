@@ -224,7 +224,7 @@ func main() {
 	}
 
 	if *outputFile != "" && *outputDir != "" {
-		log.Exitf("Error: cannot specify both outputFile (%s) and outputDir (%s)")
+		log.Exitf("Error: cannot specify both outputFile (%s) and outputDir (%s)", *outputFile, *outputDir)
 	}
 
 	// Perform the code generation.
