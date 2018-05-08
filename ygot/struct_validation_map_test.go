@@ -262,6 +262,38 @@ func TestEnumFieldToString(t *testing.T) {
 	}
 }
 
+func TestEnumName(t *testing.T) {
+	tests := []struct {
+		name             string
+		in               GoEnum
+		want             string
+		wantErrSubstring string
+	}{{
+		name: "simple enumeration",
+		in:   EONE,
+		want: "VAL_ONE",
+	}, {
+		name: "unset",
+		in:   EUNSET,
+		want: "",
+	}, {
+		name:             "bad enumeration",
+		in:               BONE,
+		wantErrSubstring: "cannot map enumerated value as type badEnumTest was unknown",
+	}}
+
+	for _, tt := range tests {
+		got, err := EnumName(tt.in)
+		if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+			t.Errorf("%s: EnumName(%v): did not get expected error, %s", tt.name, tt.in, diff)
+		}
+
+		if got != tt.want {
+			t.Errorf("%s: EnumName(%v): did not get expected value, got: %s, want: %s", tt.name, tt.in, got, tt.want)
+		}
+	}
+}
+
 // mapStructTestOne is the base struct used for the simple-schema test.
 type mapStructTestOne struct {
 	Child *mapStructTestOneChild `path:"child" module:"test-one"`
