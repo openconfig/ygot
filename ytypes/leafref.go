@@ -85,12 +85,17 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOpti
 
 // leafrefErrOrLog returns an error if the global ValidationOptions specifies
 // that missing data should cause an error to be thrown. If the missing data is to
-// be ignored by leafrefs, it logs the error that would have been returned.
+// be ignored by leafrefs, it logs the error that would have been returned if the
+// Log field of the LeafrefOptions is set to true.
 func leafrefErrOrLog(e util.Errors, opt *LeafrefOptions) util.Errors {
 	if opt == nil || !opt.IgnoreMissingData {
 		return e
 	}
-	log.Errorf("%v", e)
+
+	if opt.Log {
+		log.Errorf("%v", e)
+	}
+
 	return nil
 }
 

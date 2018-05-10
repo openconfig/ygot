@@ -34,6 +34,9 @@ type LeafrefOptions struct {
 	// a protocol within OpenConfig references an interface, but the schema being
 	// validated does not contain the interface definitions.
 	IgnoreMissingData bool
+	// Log specifies whether log entries should be created where a leafref
+	// cannot be successfully resolved.
+	Log bool
 }
 
 // IsValidationOption ensures that LeafrefOptions implements the ValidationOption
