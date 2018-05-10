@@ -75,6 +75,14 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath) ([]*gnmiPa
 	return mapPaths, nil
 }
 
+// EnumName returns the string name of an input GoEnum e. If the enumeration is
+// unset, the name returned is an empty string, otherwise it is the name defined
+// within the YANG schema.
+func EnumName(e GoEnum) (string, error) {
+	name, _, err := enumFieldToString(reflect.ValueOf(e), false)
+	return name, err
+}
+
 // enumFieldToString takes an input reflect.Value, which is type asserted to
 // be a GoEnum, and resolves the string name corresponding to the value within
 // the YANG schema. Returns the string name of the enum, a bool indicating
