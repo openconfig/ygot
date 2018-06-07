@@ -21,10 +21,27 @@ import (
 	"github.com/openconfig/ygot/util"
 )
 
+// UnmarshalOpt is an interface used for any option to be supplied
+// to the Unmarshal function. Types implementing it can be used to
+// control the behaviour of JSON unmarshalling.
+type UnmarshalOpt interface {
+	IsUnmarshalOpt()
+}
+
+// IgnoreExtraFields is an unmarshal option that controls the
+// behaviour of the Unmarshal function when additional fields are
+// found in the input JSON. By default, an error will be returned,
+// by specifying the IgnoreExtraFields option to Unmarshal, extra
+// fields will be discarded.
+type IgnoreExtraFields struct{}
+
+// IsUnmarshalOpt marks IgnoreExtraFields as a valid UnmarshalOpt.
+func (*IgnoreExtraFields) IsUnmarshalOpt() {}
+
 // Unmarshal recursively unmarshals JSON data tree in value into the given
 // parent, using the given schema. Any values already in the parent that are
 // not present in value are preserved.
-func Unmarshal(schema *yang.Entry, parent interface{}, value interface{}) error {
+func Unmarshal(schema *yang.Entry, parent interface{}, value interface{}, opts ...UnmarshalOpt) error {
 	util.Indent()
 	defer util.Dedent()
 
@@ -43,11 +60,22 @@ func Unmarshal(schema *yang.Entry, parent interface{}, value interface{}) error 
 	case schema.IsLeafList():
 		return unmarshalLeafList(schema, parent, value)
 	case schema.IsList():
-		return unmarshalList(schema, parent, value)
+		return unmarshalList(schema, parent, value, opts...)
 	case schema.IsChoice():
 		return fmt.Errorf("cannot pass choice schema %s to Unmarshal", schema.Name)
 	case schema.IsContainer():
-		return unmarshalContainer(schema, parent, value)
+		return unmarshalContainer(schema, parent, value, opts...)
 	}
 	return fmt.Errorf("unknown schema type for type %T, value %v", value, value)
+}
+
+// hasIgnoreExtraFields determines whether the supplied slice of UnmarshalOpts contains
+// the IgnoreExtraFields option.
+func hasIgnoreExtraFields(opts []UnmarshalOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*IgnoreExtraFields); ok {
+			return true
+		}
+	}
+	return false
 }

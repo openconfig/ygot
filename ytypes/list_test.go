@@ -543,6 +543,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 		desc    string
 		json    string
 		want    ContainerStruct
+		opts    []UnmarshalOpt
 		wantErr string
 	}{
 		{
@@ -562,6 +563,18 @@ func TestUnmarshalKeyedList(t *testing.T) {
 			json:    `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
 			wantErr: `parent container key-list (type *ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
 		},
+		{
+			desc: "ignore unknown field",
+			json: `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
+			opts: []UnmarshalOpt{&IgnoreExtraFields{}},
+			want: ContainerStruct{
+				KeyList: map[string]*ListElemStruct{
+					"forty-two": {
+						Key: ygot.String("forty-two"),
+					},
+				},
+			},
+		},
 	}
 
 	var jsonTree interface{}
@@ -573,7 +586,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
 			}
 
-			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
+			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree, tt.opts...)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
 			}

@@ -276,7 +276,9 @@ func nameMatchesPath(fieldName string, path []string) (bool, error) {
 //   schema is the schema of the schema node corresponding to the struct being
 //     unmamshaled into
 //   jsonList is a JSON list
-func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{}) error {
+//   opts... are a set of ytypes.UnmarshalOptionst that are used to control
+//     the behaviour of the unmarshal function.
+func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{}, opts ...UnmarshalOpt) error {
 	if util.IsValueNil(jsonList) {
 		return nil
 	}
@@ -293,7 +295,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{})
 	if util.IsTypeStructPtr(t) {
 		// May be trying to unmarshal a single list element rather than the
 		// whole list.
-		return unmarshalContainerWithListSchema(schema, parent, jsonList)
+		return unmarshalContainerWithListSchema(schema, parent, jsonList, opts...)
 	}
 
 	// jsonList represents a JSON array, which is a Go slice.
@@ -328,7 +330,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{})
 		jt := le.(map[string]interface{})
 		newVal := reflect.New(listElementType.Elem())
 		util.DbgPrint("creating a new list element val of type %v", newVal.Type())
-		if err := unmarshalStruct(schema, newVal.Interface(), jt); err != nil {
+		if err := unmarshalStruct(schema, newVal.Interface(), jt, opts...); err != nil {
 			return err
 		}
 
@@ -395,8 +397,9 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 // using a list schema. This can happen because in OC schemas, list elements
 // share the list schema so if a user attempts to unmarshal a list element vs.
 // the whole list, the supplied schema is the same - the only difference is
-// that in the latter case the target is a struct ptr.
-func unmarshalContainerWithListSchema(schema *yang.Entry, parent interface{}, value interface{}) error {
+// that in the latter case the target is a struct ptr. The supplied opts control
+// the behaviour of the unmarshal function.
+func unmarshalContainerWithListSchema(schema *yang.Entry, parent interface{}, value interface{}, opts ...UnmarshalOpt) error {
 
 	if !util.IsTypeStructPtr(reflect.TypeOf(parent)) {
 		return fmt.Errorf("unmarshalContainerWithListSchema value %v, type %T, into parent type %T, schema name %s: parent must be a struct ptr",
@@ -406,7 +409,7 @@ func unmarshalContainerWithListSchema(schema *yang.Entry, parent interface{}, va
 	// with ListAttrs unset.
 	newSchema := *schema
 	newSchema.ListAttr = nil
-	return Unmarshal(&newSchema, parent, value)
+	return Unmarshal(&newSchema, parent, value, opts...)
 }
 
 // getKeyValue returns the value from the structVal field whose last path
