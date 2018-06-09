@@ -46,8 +46,10 @@ func init() {
 // Unmarshal unmarshals data, which must be RFC7951 JSON format, into
 // destStruct, which must be non-nil and the correct GoStruct type. It returns
 // an error if the destStruct is not found in the schema or the data cannot be
-// unmarshaled.
-func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
+// unmarshaled. The supplied options (opts) are used to control the behaviour
+// of the unmarshal function - for example, determining whether errors are
+// thrown for unknown fields in the input JSON.
+func Unmarshal(data []byte, destStruct ygot.GoStruct, opts ...ytypes.UnmarshalOpt) error {
 	tn := reflect.TypeOf(destStruct).Elem().Name()
 	schema, ok := SchemaTree[tn]
 	if !ok {
@@ -57,7 +59,7 @@ func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
 	if err := json.Unmarshal([]byte(data), &jsonTree); err != nil {
 		return err
 	}
-	return ytypes.Unmarshal(schema, destStruct, jsonTree)
+	return ytypes.Unmarshal(schema, destStruct, jsonTree, opts...)
 }
 
 // Bgp represents the /openconfig-options/bgp YANG schema element.

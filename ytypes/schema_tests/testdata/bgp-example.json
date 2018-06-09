@@ -145,8 +145,7 @@
                   "prefix-limit": {
                     "config": {
                       "max-prefixes": 20000,
-                      "restart-timer": "0",
-                      "shutdown-threshold-pct": 75
+                      "restart-timer": "0"
                     }
                   }
                 },
@@ -187,8 +186,7 @@
                   "prefix-limit": {
                     "config": {
                       "max-prefixes": 1000,
-                      "restart-timer": "0",
-                      "shutdown-threshold-pct": 75
+                      "restart-timer": "0"
                     }
                   }
                 },

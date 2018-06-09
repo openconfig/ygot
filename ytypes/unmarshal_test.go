@@ -39,6 +39,7 @@ func TestUnmarshal(t *testing.T) {
 		desc    string
 		schema  *yang.Entry
 		value   interface{}
+		opts    []UnmarshalOpt
 		wantErr string
 	}{
 		{
@@ -58,16 +59,23 @@ func TestUnmarshal(t *testing.T) {
 			value:   "{}",
 			wantErr: `cannot pass choice schema choice to Unmarshal`,
 		},
+		{
+			desc:   "passing options to Unmarshal",
+			schema: validSchema,
+			value:  nil,
+			opts:   []UnmarshalOpt{&IgnoreExtraFields{}},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			var parent ParentStruct
 
-			err := Unmarshal(tt.schema, &parent, tt.value)
+			err := Unmarshal(tt.schema, &parent, tt.value, tt.opts...)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: got error: %v, want error: %v", tt.desc, got, want)
 			}
+
 		})
 	}
 }

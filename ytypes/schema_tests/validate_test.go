@@ -413,8 +413,10 @@ func TestUnmarshal(t *testing.T) {
 		desc              string
 		jsonFilePath      string
 		parent            ygot.ValidatedGoStruct
+		opts              []ytypes.UnmarshalOpt
 		wantValidationErr string
 		wantErr           string
+		outjsonFilePath   string // outjsonFilePath is the output JSON expected, when not specified it is assumed input == output.
 	}{
 		{
 			desc:         "basic",
@@ -442,6 +444,13 @@ func TestUnmarshal(t *testing.T) {
 			jsonFilePath: "policy-example.json",
 			parent:       &oc.Device{},
 		},
+		{
+			desc:            "basic with extra fields",
+			jsonFilePath:    "basic-extra.json",
+			parent:          &oc.Device{},
+			opts:            []ytypes.UnmarshalOpt{&ytypes.IgnoreExtraFields{}},
+			outjsonFilePath: "basic.json",
+		},
 	}
 
 	emitJSONConfig := &ygot.EmitJSONConfig{
@@ -452,13 +461,23 @@ func TestUnmarshal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
+
 			j, err := ioutil.ReadFile(filepath.Join(testRoot, "testdata", tt.jsonFilePath))
 			if err != nil {
 				t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.desc, tt.jsonFilePath, err)
 				return
 			}
 
-			err = oc.Unmarshal(j, tt.parent)
+			wantj := j
+			if tt.outjsonFilePath != "" {
+				rj, err := ioutil.ReadFile(filepath.Join(testRoot, "testdata", tt.outjsonFilePath))
+				if err != nil {
+					t.Errorf("%s: ioutil.ReadFile(%s): could not open file: %v", tt.desc, tt.outjsonFilePath, err)
+				}
+				wantj = rj
+			}
+
+			err = oc.Unmarshal(j, tt.parent, tt.opts...)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: got error: %v, want error: %v ", tt.desc, got, want)
 			}
@@ -472,7 +491,7 @@ func TestUnmarshal(t *testing.T) {
 				if err != nil {
 					return
 				}
-				d, err := diffJSON(j, []byte(jo))
+				d, err := diffJSON(wantj, []byte(jo))
 				if err != nil {
 					t.Fatal(err)
 				}
