@@ -33,6 +33,10 @@ func TestPathToString(t *testing.T) {
 		want    string
 		wantErr string
 	}{{
+		name:    "nil path",
+		in:      nil,
+		wantErr: "received nil path",
+	}, {
 		name: "root path",
 		in:   &gnmipb.Path{Element: []string{}},
 		want: "/",
@@ -456,6 +460,10 @@ func TestPathToSchemaPath(t *testing.T) {
 		want             string
 		wantErrSubstring string
 	}{{
+		name:             "nil path",
+		inPath:           nil,
+		wantErrSubstring: "received nil path",
+	}, {
 		name: "element path",
 		inPath: &gnmipb.Path{
 			Element: []string{"one", "two", "three"},

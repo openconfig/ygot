@@ -50,6 +50,10 @@ func PathToString(path *gnmipb.Path) (string, error) {
 // The YANG schema path removes any keys (i.e., predicates) from the path, using
 // only the name.
 func PathToSchemaPath(path *gnmipb.Path) (string, error) {
+	if path == nil {
+		return "", fmt.Errorf("received nil path in PathToSchemaPath")
+	}
+
 	if path.Element != nil {
 		var sp []string
 		for _, e := range path.Element {
@@ -81,6 +85,10 @@ func PathToSchemaPath(path *gnmipb.Path) (string, error) {
 // the path element using the format [name=value]. If the path specifies both pre-
 // and post-0.4.0 paths, the pre-0.4.0 version is returned.
 func PathToStrings(path *gnmipb.Path) ([]string, error) {
+	if path == nil {
+		return nil, fmt.Errorf("received nil path in PathToStrings")
+	}
+
 	if path.Element != nil {
 		return elementsToString(path.Element)
 	}
