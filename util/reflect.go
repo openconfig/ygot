@@ -924,7 +924,7 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 func pathStructTagKey(f reflect.StructField) string {
 	p, err := pathToSchema(f)
 	if err != nil {
-		log.Errorln("struct field %s does not have a path tag, bad schema?", f.Name)
+		log.Errorf("struct field %s does not have a path tag, bad schema?", f.Name)
 		return ""
 	}
 	return p[len(p)-1]
