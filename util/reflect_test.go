@@ -694,6 +694,64 @@ func TestInsertIntoMap(t *testing.T) {
 	}
 }
 
+func TestInitializeStructField(t *testing.T) {
+	type testStruct struct {
+		// Following two fields exist to exercise
+		// initializing pointer fields
+		IPtr *int
+		SPtr *string
+		// Following field exists to exercise
+		// initializing composite fields
+		MPtr map[string]int
+		// Following fields exist to exercise
+		// skipping initializing a slice and
+		// non pointer field
+		SlPtr []string
+		I     int
+	}
+
+	tests := []struct {
+		i    interface{}
+		f    string
+		skip bool
+	}{
+		{i: &testStruct{}, f: "IPtr"},
+		{i: &testStruct{}, f: "SPtr"},
+		{i: &testStruct{}, f: "MPtr"},
+		{i: &testStruct{}, f: "SlPtr", skip: true},
+		{i: &testStruct{}, f: "I", skip: true},
+	}
+
+	for _, tt := range tests {
+		v := reflect.ValueOf(tt.i)
+		if IsValuePtr(v) {
+			v = v.Elem()
+		}
+		fv := v.FieldByName(tt.f)
+		err := InitializeStructField(tt.i, tt.f)
+		if err != nil {
+			t.Errorf("got %v, want no error", err)
+		}
+		if !tt.skip && fv.IsNil() {
+			t.Errorf("got nil, want initialized field value: %q", tt.f)
+		}
+	}
+}
+
+func TestInitializeStructFieldForSameField(t *testing.T) {
+	type testStruct struct {
+		MPtr map[string]string
+	}
+	tt := &testStruct{}
+	InitializeStructField(tt, "MPtr")
+	tt.MPtr["forty"] = "two"
+	InitializeStructField(tt, "MPtr")
+	v, ok := tt.MPtr["forty"]
+	if !ok || v != "two" {
+		t.Errorf("unable to find (forty, two) pair in the map")
+	}
+}
+
 var (
 	// forEachContainerSchema is a schema shared in tests below.
 	forEachContainerSchema = &yang.Entry{

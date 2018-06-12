@@ -15,6 +15,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -352,6 +353,39 @@ func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, f
 		fv.Set(reflect.MakeMap(fv.Type()))
 	}
 	fv.SetMapIndex(reflect.ValueOf(key), n.Elem())
+
+	return nil
+}
+
+// InitializeStructField initializes the given field in the given struct. Only
+// pointer fields and some of the composite types are initialized(Map).
+// It initializes to zero value of the underlying type if the field is a pointer.
+// If the field is a slice, no need to initialize as appending a new element
+// will do the same thing. Note that if the field is initialized already, this
+// function doesn't re-initialize it.
+func InitializeStructField(parent interface{}, fieldName string) error {
+	if parent == nil {
+		return errors.New("parent is nil")
+	}
+	pV := reflect.ValueOf(parent)
+	if IsValuePtr(pV) {
+		pV = pV.Elem()
+	}
+
+	if !IsValueStruct(pV) {
+		return fmt.Errorf("%T is not a struct kind", parent)
+	}
+
+	fV := pV.FieldByName(fieldName)
+	if !fV.IsValid() {
+		return fmt.Errorf("invalid %T %v field value", parent, fieldName)
+	}
+	switch {
+	case IsValuePtr(fV) && fV.IsNil():
+		fV.Set(reflect.New(fV.Type().Elem()))
+	case IsValueMap(fV) && fV.IsNil():
+		fV.Set(reflect.MakeMap(fV.Type()))
+	}
 
 	return nil
 }
