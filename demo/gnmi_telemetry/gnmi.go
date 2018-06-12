@@ -49,7 +49,7 @@ func main() {
 		}
 
 		if len(g) != 1 {
-			log.Exitf("Unexpected number of notifications returned %s", len(g))
+			log.Exitf("Unexpected number of notifications returned %d", len(g))
 		}
 		fmt.Printf("%v\n", proto.MarshalTextString(g[0]))
 	}
@@ -106,7 +106,7 @@ func CreateAFTInstance() (*oc.Device, error) {
 	// based on the input interface.
 	expNull, err := nh.To_NetworkInstance_Afts_LabelEntry_NextHop_PushedMplsLabelStack_Union(oc.OpenconfigAft_NextHop_PushedMplsLabelStack_IPV4_EXPLICIT_NULL)
 	if err != nil {
-    return nil, fmt.Errorf("error converting explicit null to union, got: %v", err)
+		return nil, fmt.Errorf("error converting explicit null to union, got: %v", err)
 	}
 	nh.PushedMplsLabelStack = []oc.NetworkInstance_Afts_LabelEntry_NextHop_PushedMplsLabelStack_Union{
 		&oc.NetworkInstance_Afts_LabelEntry_NextHop_PushedMplsLabelStack_Union_Uint32{42},
