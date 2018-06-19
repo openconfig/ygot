@@ -17,6 +17,7 @@ package ytypes
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
@@ -85,6 +86,52 @@ func castToEnumValue(ft reflect.Type, value string) (interface{}, error) {
 	}
 
 	return nil, nil
+}
+
+// StringToType converts given string to given type which can be one of
+// the following;
+// - int, int8, int16, int32, int64
+// - uint, uint8, uint16, uint32, uint64
+// - string
+// - GoEnum type
+// Function can be extended to support other types as well. If the given string
+// carries an incompatible or overflowing value for the given type, function
+// returns error.
+// Note that castToEnumValue returns (nil, nil) if the given string is carrying
+// an invalid enum string. Function checks not only error, but also value in this
+// case.
+func StringToType(t reflect.Type, s string) (reflect.Value, error) {
+	if t.Implements(reflect.TypeOf((*ygot.GoEnum)(nil)).Elem()) {
+		i, err := castToEnumValue(t, s)
+		if err != nil || i == nil {
+			return reflect.ValueOf(nil), fmt.Errorf("no enum matching with %s: %v", s, err)
+		}
+		return reflect.ValueOf(i), nil
+	}
+
+	switch t.Kind() {
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		u, err := strconv.ParseUint(s, 10, int(t.Size())*8)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert given string to %v", t.Kind())
+		}
+		// Although Convert can panic, we know that the type is an unsigned integer type and
+		// u must be a valid uint type of the same length -- it is therefore impossible that
+		// Convert fails here.
+		return reflect.ValueOf(u).Convert(t), nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		u, err := strconv.ParseInt(s, 10, int(t.Size())*8)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert given string to %v", t.Kind())
+		}
+		// Although Convert can panic, we know that the type is an integer type and
+		// u must be a valid int type of the same length -- it is therefore impossible that
+		// Convert fails here.
+		return reflect.ValueOf(u).Convert(t), nil
+	case reflect.String:
+		return reflect.ValueOf(s), nil
+	}
+	return reflect.ValueOf(nil), fmt.Errorf("no matching type to cast")
 }
 
 // yangBuiltinTypeToGoType returns a pointer to the Go built-in value with
