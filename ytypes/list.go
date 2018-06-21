@@ -355,6 +355,79 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 	return nil
 }
 
+// makeValForInsert is used to create a value with the type extracted from
+// given map. The returned value is populated according to the supplied "keys"
+// map, which is assumed to be the map[string]string keys field from a gNMI
+// PathElem protobuf message. Output of this function can be passed to
+// makeKeyForInsert to produce a key to use while inserting into map. The
+// function returns an error if a key name is not a valid schema tag in the
+// supplied schema. Also, function uses the last schema tag if there is more
+// than one by assuming it is direct descendant.
+// - schema: schema of the map.
+// - parent: value of the map.
+// - keys: dictionary received as part of Key field of gNMI PathElem.
+func makeValForInsert(schema *yang.Entry, parent interface{}, keys map[string]string) (reflect.Value, error) {
+	rv, rt := reflect.ValueOf(parent), reflect.TypeOf(parent)
+	if !util.IsValueMap(rv) {
+		return reflect.ValueOf(nil), fmt.Errorf("%T is not a reflect.Map kind", parent)
+	}
+	// key is a non-pointer type
+	keyT := rt.Key()
+	// element is pointer type
+	elmT := rt.Elem()
+
+	if !util.IsTypeStructPtr(elmT) {
+		return reflect.ValueOf(nil), fmt.Errorf("%v is not a pointer to a struct", elmT)
+	}
+
+	// Create an instance of map value type. Element is dereferenced as it is a pointer.
+	val := reflect.New(elmT.Elem())
+	// Helper to update the field corresponding to schema key.
+	setKey := func(schemaKey string, fieldVal string) error {
+		fn, err := schemaNameToFieldName(val.Elem(), schemaKey)
+		if err != nil {
+			return err
+		}
+
+		fv := val.Elem().FieldByName(fn)
+		ft := fv.Type()
+		if util.IsValuePtr(fv) {
+			ft = ft.Elem()
+		}
+
+		nv, err := StringToType(ft, fieldVal)
+		if err != nil {
+			return err
+		}
+		return util.InsertIntoStruct(val.Interface(), fn, nv.Interface())
+	}
+
+	if util.IsTypeStruct(keyT) {
+		for i := 0; i < keyT.NumField(); i++ {
+			schKey, err := directDescendantSchema(keyT.Field(i))
+			if err != nil {
+				return reflect.ValueOf(nil), err
+			}
+			schVal, ok := keys[schKey]
+			if !ok {
+				return reflect.ValueOf(nil), fmt.Errorf("missing %v key in %v", schKey, keys)
+			}
+			if err := setKey(schKey, schVal); err != nil {
+				return reflect.ValueOf(nil), err
+			}
+		}
+		return val, nil
+	}
+	v, ok := keys[schema.Key]
+	if !ok {
+		return reflect.ValueOf(nil), fmt.Errorf("missing %v key in %v", schema.Key, keys)
+	}
+	if err := setKey(schema.Key, v); err != nil {
+		return reflect.ValueOf(nil), err
+	}
+	return val, nil
+}
+
 // makeKeyForInsert returns a key for inserting a struct newVal into the parent,
 // which must be a map.
 func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.Value) (reflect.Value, error) {
@@ -375,6 +448,9 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 			if fv.Type().Kind() == reflect.Ptr {
 				// Ptr values are deferenced in key struct.
 				nv = nv.Elem()
+			}
+			if !nv.IsValid() {
+				return reflect.ValueOf(nil), fmt.Errorf("%v field doesn't have a valid value", kfn)
 			}
 			util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
 			newKey.FieldByName(kfn).Set(nv)

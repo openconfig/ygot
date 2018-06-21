@@ -113,7 +113,7 @@ func StringToType(t reflect.Type, s string) (reflect.Value, error) {
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		u, err := strconv.ParseUint(s, 10, int(t.Size())*8)
 		if err != nil {
-			return reflect.ValueOf(nil), fmt.Errorf("unable to convert given string to %v", t.Kind())
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", s, t.Kind())
 		}
 		// Although Convert can panic, we know that the type is an unsigned integer type and
 		// u must be a valid uint type of the same length -- it is therefore impossible that
@@ -122,7 +122,7 @@ func StringToType(t reflect.Type, s string) (reflect.Value, error) {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		u, err := strconv.ParseInt(s, 10, int(t.Size())*8)
 		if err != nil {
-			return reflect.ValueOf(nil), fmt.Errorf("unable to convert given string to %v", t.Kind())
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", s, t.Kind())
 		}
 		// Although Convert can panic, we know that the type is an integer type and
 		// u must be a valid int type of the same length -- it is therefore impossible that
@@ -131,7 +131,7 @@ func StringToType(t reflect.Type, s string) (reflect.Value, error) {
 	case reflect.String:
 		return reflect.ValueOf(s), nil
 	}
-	return reflect.ValueOf(nil), fmt.Errorf("no matching type to cast")
+	return reflect.ValueOf(nil), fmt.Errorf("no matching type to cast for %v", t)
 }
 
 // yangBuiltinTypeToGoType returns a pointer to the Go built-in value with
