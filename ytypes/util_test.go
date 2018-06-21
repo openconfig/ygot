@@ -227,3 +227,56 @@ func TestStringToType(t *testing.T) {
 		}
 	}
 }
+
+func TestDirectDescendantSchema(t *testing.T) {
+	tests := []struct {
+		desc    string
+		s       interface{}
+		w       string
+		wantErr bool
+	}{
+		{
+			desc: "simple schema tag",
+			s: struct {
+				f string `path:"key"`
+			}{},
+			w: "key",
+		},
+		{
+			desc: "multiple schema tag",
+			s: struct {
+				f string `path:"config/key|key"`
+			}{},
+			w: "key",
+		},
+		{
+			desc: "in the middle direct descendant",
+			s: struct {
+				f string `path:"config/key|key|state/key"`
+			}{},
+			w: "key",
+		},
+		{
+			desc: "missing schema tag",
+			s: struct {
+				f string
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			k, e := directDescendantSchema(reflect.TypeOf(tt.s).Field(0))
+			if (e != nil) != tt.wantErr {
+				t.Fatalf("#%d got %v, want error %v", i, e, tt.wantErr)
+			}
+			if e != nil {
+				return
+			}
+			if tt.w != k {
+				t.Errorf("#%d got %v, want %v", i, k, tt.w)
+			}
+		})
+	}
+}
