@@ -806,14 +806,14 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 			return nil, nil, err
 		}
 		for _, p := range ps {
-			if pathMatchesPrefix(path, p) {
+			if PathMatchesPrefix(path, p) {
 				// don't trim whole prefix  for keyed list since name and key
 				// are a in the same element.
 				to := len(p)
 				if IsTypeMap(ft.Type) {
 					to--
 				}
-				return getNodesInternal(cschema, f.Interface(), trimGNMIPathPrefix(path, p[0:to]))
+				return getNodesInternal(cschema, f.Interface(), TrimGNMIPathPrefix(path, p[0:to]))
 			}
 		}
 	}
@@ -902,7 +902,7 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 			// Pass in the list schema, but the actual selected element
 			// rather than the whole list.
 			DbgPrint("key matches")
-			n, s, err := getNodesInternal(schema, ev.Interface(), popGNMIPath(path))
+			n, s, err := getNodesInternal(schema, ev.Interface(), PopGNMIPath(path))
 			if err != nil {
 				return nil, nil, err
 			}

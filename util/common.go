@@ -39,8 +39,8 @@ func stringMapKeys(m map[string]*yang.Entry) []string {
 
 // TODO(mostrowski): move below functions into path package.
 
-// pathMatchesPrefix reports whether prefix is a prefix of path.
-func pathMatchesPrefix(path *gpb.Path, prefix []string) bool {
+// PathMatchesPrefix reports whether prefix is a prefix of path.
+func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 	if len(path.GetElem()) < len(prefix) {
 		return false
 	}
@@ -56,13 +56,13 @@ func pathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 	return true
 }
 
-// trimGNMIPathPrefix returns path with the prefix trimmed. It returns the
+// TrimGNMIPathPrefix returns path with the prefix trimmed. It returns the
 // original path if the prefix does not fully match.
-func trimGNMIPathPrefix(path *gpb.Path, prefix []string) *gpb.Path {
+func TrimGNMIPathPrefix(path *gpb.Path, prefix []string) *gpb.Path {
 	for len(prefix) != 0 && prefix[len(prefix)-1] == "" {
 		prefix = prefix[:len(prefix)-1]
 	}
-	if !pathMatchesPrefix(path, prefix) {
+	if !PathMatchesPrefix(path, prefix) {
 		return path
 	}
 	out := *path
@@ -70,9 +70,9 @@ func trimGNMIPathPrefix(path *gpb.Path, prefix []string) *gpb.Path {
 	return &out
 }
 
-// popGNMIPath returns the supplied GNMI path with the first path element
+// PopGNMIPath returns the supplied GNMI path with the first path element
 // removed. If the path is empty, it returns an empty path.
-func popGNMIPath(path *gpb.Path) *gpb.Path {
+func PopGNMIPath(path *gpb.Path) *gpb.Path {
 	if len(path.GetElem()) == 0 {
 		return path
 	}
