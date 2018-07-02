@@ -114,7 +114,7 @@ func TestPathMatchesPrefix(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := pathMatchesPrefix(pathNoKeysToGNMIPath(tt.path), strings.Split(tt.prefix, "/")), tt.want; got != want {
+			if got, want := PathMatchesPrefix(pathNoKeysToGNMIPath(tt.path), strings.Split(tt.prefix, "/")), tt.want; got != want {
 				t.Errorf("%s: got: %v want: %v", tt.desc, got, want)
 			}
 		})
@@ -182,7 +182,7 @@ func TestTrimGNMIPathPrefix(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			path := pathNoKeysToGNMIPath(tt.path)
 			prefix := strings.Split(tt.prefix, "/")
-			got := gnmiPathNoKeysToPath(trimGNMIPathPrefix(path, prefix))
+			got := gnmiPathNoKeysToPath(TrimGNMIPathPrefix(path, prefix))
 			if got != tt.want {
 				t.Errorf("%s: got: %s want: %s", tt.desc, got, tt.want)
 			}
@@ -220,7 +220,7 @@ func TestPopGNMIPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := gnmiPathNoKeysToPath(popGNMIPath(pathNoKeysToGNMIPath(tt.path))), tt.want; got != want {
+			if got, want := gnmiPathNoKeysToPath(PopGNMIPath(pathNoKeysToGNMIPath(tt.path))), tt.want; got != want {
 				t.Errorf("%s: got: %s want: %s", tt.desc, got, want)
 			}
 		})

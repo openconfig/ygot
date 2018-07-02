@@ -469,6 +469,33 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 	return newKey, nil
 }
 
+// insertAndGetKey creates key and value from the supplied keys map. It inserts
+// key and value into the given root which must be a map with the supplied schema.
+func insertAndGetKey(schema *yang.Entry, root interface{}, keys map[string]string) (interface{}, error) {
+	switch {
+	case schema.Key == "":
+		return nil, fmt.Errorf("unkeyed list can't be traversed, type %T, keys %v", root, keys)
+	case !util.IsValueMap(reflect.ValueOf(root)):
+		return nil, fmt.Errorf("root has type %T, want map", root)
+	}
+
+	// TODO(yusufsn): When the key is a leafref, its target should be filled out.
+	mapVal, err := makeValForInsert(schema, root, keys)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create map value for insert, root %T, keys %v: %v", root, keys, err)
+	}
+	mapKey, err := makeKeyForInsert(schema, root, mapVal)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create map key for insert, root %T, keys %v: %v", root, keys, err)
+	}
+	err = util.InsertIntoMap(root, mapKey.Interface(), mapVal.Interface())
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert into map %T, keys %v: %v", root, keys, err)
+	}
+
+	return mapKey.Interface(), nil
+}
+
 // unmarshalContainerWithListSchema unmarshals a container data tree element
 // using a list schema. This can happen because in OC schemas, list elements
 // share the list schema so if a user attempts to unmarshal a list element vs.

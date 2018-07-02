@@ -424,7 +424,7 @@ func mapValuePath(key, value reflect.Value, parentPath *gnmiPath) (*gnmiPath, er
 	}
 
 	if parentPath.isStringSlicePath() {
-		keyval, err := keyValueAsString(key.Interface())
+		keyval, err := KeyValueAsString(key.Interface())
 		if err != nil {
 			return nil, fmt.Errorf("can't append path element key: %v", err)
 		}
@@ -506,7 +506,7 @@ func appendgNMIPathElemKey(v reflect.Value, p *gnmiPath) (*gnmiPath, error) {
 func keyMapAsStrings(keys map[string]interface{}) (map[string]string, error) {
 	nk := map[string]string{}
 	for kn, k := range keys {
-		v, err := keyValueAsString(k)
+		v, err := KeyValueAsString(k)
 		if err != nil {
 			return nil, err
 		}
@@ -515,10 +515,10 @@ func keyMapAsStrings(keys map[string]interface{}) (map[string]string, error) {
 	return nk, nil
 }
 
-// keyValueAsString returns a string representation of the interface{} supplied. If the
+// KeyValueAsString returns a string representation of the interface{} supplied. If the
 // type provided cannot be represented as a string for use in a gNMI path, an error is
 // returned.
-func keyValueAsString(v interface{}) (string, error) {
+func KeyValueAsString(v interface{}) (string, error) {
 	kv := reflect.ValueOf(v)
 	if _, isEnum := v.(GoEnum); isEnum {
 		name, _, err := enumFieldToString(kv, false)
@@ -538,7 +538,7 @@ func keyValueAsString(v interface{}) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return keyValueAsString(iv)
+		return KeyValueAsString(iv)
 	}
 
 	return "", fmt.Errorf("cannot convert type %v to a string for use in a key: %v", kv.Kind(), v)
