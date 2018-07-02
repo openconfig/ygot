@@ -22,6 +22,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/testutil"
 )
@@ -2419,6 +2420,60 @@ func TestLeaflistToSlice(t *testing.T) {
 
 		if !reflect.DeepEqual(got, tt.wantSlice) {
 			t.Errorf("%s: leaflistToSlice(%v): did not get expected slice, got: %v, want: %v", tt.name, tt.inVal.Interface(), got, tt.wantSlice)
+		}
+	}
+}
+
+func TestKeyValueAsString(t *testing.T) {
+	tests := []struct {
+		i                interface{}
+		want             string
+		wantErrSubstring string
+	}{
+		{
+			i:    int16(42),
+			want: "42",
+		},
+		{
+			i:    uint16(42),
+			want: "42",
+		},
+		{
+			i:    int16(-42),
+			want: "-42",
+		},
+		{
+			i:    string("42"),
+			want: "42",
+		},
+		{
+			i:    EnumTest(2),
+			want: "VAL_TWO",
+		},
+		{
+			i:                EnumTest(42),
+			wantErrSubstring: "cannot map enumerated value as type EnumTest has unknown value 42",
+		},
+		{
+			i:                interface{}(nil),
+			wantErrSubstring: "cannot convert type invalid to a string for use in a key",
+		},
+		{
+			i:    &renderExampleUnionString{"hello"},
+			want: "hello",
+		},
+	}
+
+	for _, tt := range tests {
+		s, e := KeyValueAsString(tt.i)
+		if diff := errdiff.Substring(e, tt.wantErrSubstring); diff != "" {
+			t.Errorf("got %v, want %v", e, tt.wantErrSubstring)
+			if e != nil {
+				continue
+			}
+		}
+		if !reflect.DeepEqual(s, tt.want) {
+			t.Errorf("got %v, want %v", s, tt.want)
 		}
 	}
 }
