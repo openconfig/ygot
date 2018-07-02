@@ -48,11 +48,11 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
-			"config": &yang.Entry{
+			"config": {
 				Name: "config",
 				Kind: yang.DirectoryEntry,
 				Dir: map[string]*yang.Entry{
-					"simple-key-list": &yang.Entry{
+					"simple-key-list": {
 						Name:     "simple-key-list",
 						Kind:     yang.DirectoryEntry,
 						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
@@ -68,25 +68,25 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 								Name: "outer",
 								Kind: yang.DirectoryEntry,
 								Dir: map[string]*yang.Entry{
-									"config": &yang.Entry{
+									"config": {
 										Name: "config",
 										Kind: yang.DirectoryEntry,
 										Dir: map[string]*yang.Entry{
-											"inner": &yang.Entry{
+											"inner": {
 												Name: "inner",
 												Kind: yang.DirectoryEntry,
 												Dir: map[string]*yang.Entry{
-													"int32-leaf-field": &yang.Entry{
+													"int32-leaf-field": {
 														Name: "leaf-field",
 														Kind: yang.LeafEntry,
 														Type: &yang.YangType{Kind: yang.Yint32},
 													},
-													"string-leaf-field": &yang.Entry{
+													"string-leaf-field": {
 														Name: "leaf-field",
 														Kind: yang.LeafEntry,
 														Type: &yang.YangType{Kind: yang.Ystring},
 													},
-													"enum-leaf-field": &yang.Entry{
+													"enum-leaf-field": {
 														Name: "leaf-field",
 														Kind: yang.LeafEntry,
 														Type: &yang.YangType{Kind: yang.Yenum},
@@ -107,11 +107,11 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
-			"config": &yang.Entry{
+			"config": {
 				Name: "config",
 				Kind: yang.DirectoryEntry,
 				Dir: map[string]*yang.Entry{
-					"simple-key-list": &yang.Entry{
+					"simple-key-list": {
 						Name:     "simple-key-list",
 						Kind:     yang.DirectoryEntry,
 						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
@@ -127,25 +127,25 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 								Name: "outer",
 								Kind: yang.DirectoryEntry,
 								Dir: map[string]*yang.Entry{
-									"config": &yang.Entry{
+									"config": {
 										Name: "config",
 										Kind: yang.DirectoryEntry,
 										Dir: map[string]*yang.Entry{
-											"inner": &yang.Entry{
+											"inner": {
 												Name: "inner",
 												Kind: yang.DirectoryEntry,
 												Dir: map[string]*yang.Entry{
-													"int32-leaf-field": &yang.Entry{
+													"int32-leaf-field": {
 														Name: "leaf-field",
 														Kind: yang.LeafEntry,
 														Type: &yang.YangType{Kind: yang.Yint32},
 													},
-													"string-leaf-field": &yang.Entry{
+													"string-leaf-field": {
 														Name: "leaf-field",
 														Kind: yang.LeafEntry,
 														Type: &yang.YangType{Kind: yang.Ystring},
 													},
-													"enum-leaf-field": &yang.Entry{
+													"enum-leaf-field": {
 														Name: "leaf-field",
 														Kind: yang.LeafEntry,
 														Type: &yang.YangType{Kind: yang.Yenum},
@@ -351,7 +351,7 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
-			"struct-key-list": &yang.Entry{
+			"struct-key-list": {
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
 				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
@@ -377,25 +377,25 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 						Name: "outer",
 						Kind: yang.DirectoryEntry,
 						Dir: map[string]*yang.Entry{
-							"config": &yang.Entry{
+							"config": {
 								Name: "config",
 								Kind: yang.DirectoryEntry,
 								Dir: map[string]*yang.Entry{
-									"inner": &yang.Entry{
+									"inner": {
 										Name: "inner",
 										Kind: yang.DirectoryEntry,
 										Dir: map[string]*yang.Entry{
-											"int32-leaf-field": &yang.Entry{
+											"int32-leaf-field": {
 												Name: "leaf-field",
 												Kind: yang.LeafEntry,
 												Type: &yang.YangType{Kind: yang.Yint32},
 											},
-											"string-leaf-field": &yang.Entry{
+											"string-leaf-field": {
 												Name: "leaf-field",
 												Kind: yang.LeafEntry,
 												Type: &yang.YangType{Kind: yang.Ystring},
 											},
-											"enum-leaf-field": &yang.Entry{
+											"enum-leaf-field": {
 												Name: "leaf-field",
 												Kind: yang.LeafEntry,
 												Type: &yang.YangType{Kind: yang.Yenum},
@@ -424,7 +424,7 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 			inSchema: containerWithLeafListSchema,
 			inParent: &ContainerStruct3{
 				StructKeyList: map[KeyStruct]*ListElemStruct3{
-					{"forty-two", 42, 42}: &ListElemStruct3{
+					{"forty-two", 42, 42}: {
 						Key1:    ygot.String("forty-two"),
 						Key2:    ygot.Int32(42),
 						EnumKey: EnumType(42),
@@ -440,7 +440,7 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 			inSchema: containerWithLeafListSchema,
 			inParent: &ContainerStruct3{
 				StructKeyList: map[KeyStruct]*ListElemStruct3{
-					{"forty-two", 42, EnumType(42)}: &ListElemStruct3{
+					{"forty-two", 42, EnumType(42)}: {
 						Key1:    ygot.String("forty-two"),
 						Key2:    ygot.Int32(42),
 						EnumKey: EnumType(42),
@@ -504,25 +504,25 @@ func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 				Name: "outer",
 				Kind: yang.DirectoryEntry,
 				Dir: map[string]*yang.Entry{
-					"config": &yang.Entry{
+					"config": {
 						Name: "config",
 						Kind: yang.DirectoryEntry,
 						Dir: map[string]*yang.Entry{
-							"inner": &yang.Entry{
+							"inner": {
 								Name: "inner",
 								Kind: yang.DirectoryEntry,
 								Dir: map[string]*yang.Entry{
-									"int32-leaf-field": &yang.Entry{
+									"int32-leaf-field": {
 										Name: "int32-leaf-field",
 										Kind: yang.LeafEntry,
 										Type: &yang.YangType{Kind: yang.Yint32},
 									},
-									"string-leaf-field": &yang.Entry{
+									"string-leaf-field": {
 										Name: "string-leaf-field",
 										Kind: yang.LeafEntry,
 										Type: &yang.YangType{Kind: yang.Ystring},
 									},
-									"enum-leaf-field": &yang.Entry{
+									"enum-leaf-field": {
 										Name: "enum-leaf-field",
 										Kind: yang.LeafEntry,
 										Type: &yang.YangType{Kind: yang.Yenum},
