@@ -213,6 +213,51 @@ func TestIsValueFuncs(t *testing.T) {
 	}
 }
 
+func TestValuesAreSameType(t *testing.T) {
+	type EnumType int64
+
+	tests := []struct {
+		inDesc string
+		inV1   interface{}
+		inV2   interface{}
+		want   bool
+	}{
+		{
+			inDesc: "success both are int32 types",
+			inV1:   int32(42),
+			inV2:   int32(43),
+			want:   true,
+		},
+		{
+			inDesc: "fail unmatching int types",
+			inV1:   int16(42),
+			inV2:   int32(43),
+			want:   false,
+		},
+		{
+			inDesc: "fail unmatching int and string type",
+			inV1:   int32(42),
+			inV2:   "42",
+			want:   false,
+		},
+		{
+			inDesc: "fail EnumType and int64 types",
+			inV1:   EnumType(42),
+			inV2:   int64(43),
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.inDesc, func(t *testing.T) {
+			got := ValuesAreSameType(reflect.ValueOf(tt.inV1), reflect.ValueOf(tt.inV2))
+			if got != tt.want {
+				t.Errorf("got %v, want %v for comparing %T against %T", got, tt.want, tt.inV1, tt.inV2)
+			}
+		})
+	}
+}
+
 func TestIsTypeFuncs(t *testing.T) {
 	testInt := int(42)
 	testStruct := struct{}{}
