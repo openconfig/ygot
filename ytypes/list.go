@@ -435,7 +435,7 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 	listKeyType := reflect.TypeOf(parentMap).Key()
 	newKey := reflect.New(listKeyType).Elem()
 
-	if listKeyType.Kind() == reflect.Struct {
+	if util.IsTypeStruct(listKeyType) {
 		// For struct key type, copy the key fields from the new list entry
 		// struct newVal into the key struct.
 		for i := 0; i < newKey.NumField(); i++ {
@@ -453,18 +453,29 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 				return reflect.ValueOf(nil), fmt.Errorf("%v field doesn't have a valid value", kfn)
 			}
 			util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
-			newKey.FieldByName(kfn).Set(nv)
+			newKeyField := newKey.FieldByName(kfn)
+			if !util.ValuesAreSameType(newKeyField, nv) {
+				return reflect.ValueOf(nil), fmt.Errorf("%v is not assignable to %v", nv.Type(), newKeyField.Type())
+			}
+			newKeyField.Set(nv)
 		}
-	} else {
-		// Simple key type. Get the value from the new value struct,
-		// given the key string.
-		kv, err := getKeyValue(newVal.Elem(), schema.Key)
-		if err != nil {
-			return reflect.ValueOf(nil), err
-		}
-		util.DbgPrint("key value is %v.", kv)
-		newKey.Set(reflect.ValueOf(kv))
+
+		return newKey, nil
 	}
+
+	// Simple key type. Get the value from the new value struct,
+	// given the key string.
+	kv, err := getKeyValue(newVal.Elem(), schema.Key)
+	if err != nil {
+		return reflect.ValueOf(nil), err
+	}
+	util.DbgPrint("key value is %v.", kv)
+
+	rvKey := reflect.ValueOf(kv)
+	if !util.ValuesAreSameType(newKey, rvKey) {
+		return reflect.ValueOf(nil), fmt.Errorf("%v is not assignable to %v", rvKey.Type(), newKey.Type())
+	}
+	newKey.Set(rvKey)
 
 	return newKey, nil
 }

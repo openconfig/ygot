@@ -152,6 +152,12 @@ func IsValueScalar(v reflect.Value) bool {
 	return !IsValueStruct(v) && !IsValueMap(v) && !IsValueSlice(v)
 }
 
+// ValuesAreSameType returns true if v1 and v2 has the same reflect.Type,
+// otherwise it returns false.
+func ValuesAreSameType(v1 reflect.Value, v2 reflect.Value) bool {
+	return v1.Type() == v2.Type()
+}
+
 // IsValueInterfaceToStructPtr reports whether v is an interface that contains a
 // pointer to a struct.
 func IsValueInterfaceToStructPtr(v reflect.Value) bool {
