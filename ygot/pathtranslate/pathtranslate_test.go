@@ -71,15 +71,15 @@ func TestInstantiationOfTranslator(t *testing.T) {
 			inDesc:    "success with unique schema paths for keyed lists",
 			inSchemas: []*yang.Entry{simpleSchema},
 			wantRules: map[string][]string{
-				"/a/b/simpleKeyedLists/simpleKeyedList": []string{"k1"},
+				"/a/b/simpleKeyedLists/simpleKeyedList": {"k1"},
 			},
 		},
 		{
 			inDesc:    "success with struct keyed schema",
 			inSchemas: []*yang.Entry{simpleSchema, structKeyedSchema},
 			wantRules: map[string][]string{
-				"/a/b/simpleKeyedLists/simpleKeyedList":                                  []string{"k1"},
-				"/a/b/simpleKeyedLists/simpleKeyedList/structKeyedLists/structKeyedList": []string{"k1", "k2", "k3"},
+				"/a/b/simpleKeyedLists/simpleKeyedList":                                  {"k1"},
+				"/a/b/simpleKeyedLists/simpleKeyedList/structKeyedLists/structKeyedList": {"k1", "k2", "k3"},
 			},
 		},
 		{
