@@ -17,12 +17,12 @@ script:
         - go tool vet ./util
         - go tool vet -composites=false ./ygot
         - go tool vet ./ygen
-        - go tool vet ./ytypes
+        - go tool vet .ygot/ytypes
         - go tool vet ./pathtranslate
         - diff -u <(echo -n) <(gofmt -d -s ./util)
         - diff -u <(echo -n) <(gofmt -d -s ./ygot)
         - diff -u <(echo -n) <(gofmt -d -s ./ygen)
         - diff -u <(echo -n) <(gofmt -d -s ./ytypes)
-        - diff -u <(echo -n) <(gofmt -d -s ./pathtranslate)
+        - diff -u <(echo -n) <(gofmt -d -s .ygot/pathtranslate)
 after_success:
         - ./scripts/coverage.sh
