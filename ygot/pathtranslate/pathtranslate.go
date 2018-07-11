@@ -25,9 +25,7 @@ import (
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-var (
-	seperator = "/"
-)
+const separator = "/"
 
 // PathTranslator stores the rules required to rewrite a given path as gNMI PathElem.
 type PathTranslator struct {
@@ -54,7 +52,7 @@ func NewPathTranslator(schemaTree []*yang.Entry) (*PathTranslator, error) {
 }
 
 // resolveUntilRoot concatenates the schema names of the given schema and its
-// ancestors. '/' is used as seperator. The root schema in the tree is ignored
+// ancestors. '/' is used as separator. The root schema in the tree is ignored
 // as it is an artificially inserted schema.
 func resolveUntilRoot(schema *yang.Entry) string {
 	path := []string{}
@@ -71,7 +69,7 @@ func resolveUntilRoot(schema *yang.Entry) string {
 		o := len(path) - 1 - i
 		path[i], path[o] = path[o], path[i]
 	}
-	return strings.Join(path, seperator)
+	return strings.Join(path, separator)
 }
 
 // PathElem receives a path as string slice and generates slice of gNMI PathElem
@@ -82,7 +80,7 @@ func (r *PathTranslator) PathElem(p []string) ([]*gnmipb.PathElem, error) {
 	// When keys are consumed, they are set as true in "used" slice.
 	used := make([]bool, len(p))
 
-	// Keeps the path elements seeen so far by appending with a seperator.
+	// Keeps the path elements seeen so far by appending with a separator.
 	var pathSoFar string
 
 	var res []*gnmipb.PathElem
@@ -91,7 +89,7 @@ func (r *PathTranslator) PathElem(p []string) ([]*gnmipb.PathElem, error) {
 		if used[i] {
 			continue
 		}
-		pathSoFar = pathSoFar + seperator + p[i]
+		pathSoFar = pathSoFar + separator + p[i]
 
 		keyNames, ok := r.rules[pathSoFar]
 		// If pathSoFar isn't in rule list, this can be an arbitrary element or
