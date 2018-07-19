@@ -268,6 +268,15 @@ func TestValidateListSimpleKey(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			desc: "mismatched key",
+			val: map[string]*StringListElemStruct{
+				"fish": {
+					KeyFieldName: ygot.String("chips"),
+				},
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -359,6 +368,16 @@ func TestValidateListStructKey(t *testing.T) {
 				{"elem1_key_val", 0}: {
 					Key1:     ygot.String("elem1_key_val"),
 					LeafName: ygot.String("elem1_leaf_name"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			desc: "mismatched key",
+			val: map[KeyStruct]*StringListElemStruct{
+				{"fish", 1}: {
+					Key1: ygot.String("chips"),
+					Key2: ygot.Int32(2),
 				},
 			},
 			wantErr: true,
