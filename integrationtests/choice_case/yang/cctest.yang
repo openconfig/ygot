@@ -1,0 +1,44 @@
+module choicecase {
+  prefix "cc";
+  namespace "urn:cc";
+  
+  container parent-cont {
+    leaf message-type {
+      mandatory true;
+      type enumeration {
+        enum request {
+          description
+            "Request message";
+        }
+        enum response {
+          description
+            "Response message";
+        }
+        enum error {
+          description
+            "Response message";
+        }
+      }
+      description "Message type";
+    }
+  
+    choice message-payload {
+      mandatory true;
+      container payload {
+        leaf shutdown-event {
+          type empty;
+        }
+      }
+      leaf ok {
+        type empty;
+      }
+      container error {
+        leaf error-number {
+          mandatory true;
+          type uint32;
+          description "Internal error number";
+        }
+      }
+    }
+  }
+}
