@@ -30,10 +30,6 @@ import (
 // Type retrieveNodeArgs contains the set of parameters that changes
 // behavior of how retrieveNode works.
 type retrieveNodeArgs struct {
-	// If create is set to true, retrieveNode initializes all the nodes
-	// along the path. It also creates and inserts a key into the map
-	// if it is missing in the keyed list node.
-	create bool
 	// If delete is set to true, retrieve node deletes the node at the
 	// to supplied path.
 	delete bool
@@ -42,9 +38,9 @@ type retrieveNodeArgs struct {
 	// in the keyed list are treated as match. If some of the keys are
 	// provided, it returns the nodes corresponding to provided keys.
 	partialKeyMatch bool
-	// If dontModifyRoot is set to true, retrieveNode traverses the GoStruct
-	// without initializing nodes or inserting keys into maps.
-	dontModifyRoot bool
+	// If modifyRoot is set to true, retrieveNode traverses the GoStruct
+	// and initialies nodes or inserting keys into maps if they do not exist.
+	modifyRoot bool
 	// If val is set to a non-nil value, leaf/leaflist node corresponding
 	// to the given path is updated with this value.
 	val interface{}
@@ -77,7 +73,7 @@ func retrieveNode(schema *yang.Entry, root interface{}, path *gpb.Path, args ret
 
 // retrieveNodeContainer is an internal function and operates on GoStruct. It retrieves
 // the node by the supplied path from the root which must have the schema supplied.
-// It recurses by calling retrieveNode. If create is set to true, nodes along the path are initialized
+// It recurses by calling retrieveNode. If modifyRoot is set to true, nodes along the path are initialized
 // if they are nil. If val isn't nil, then it is set on the leaf or leaflist node.
 // Note that root is modified even if function returns error status.
 func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path, args retrieveNodeArgs) ([]interface{}, []*yang.Entry, error) {
@@ -127,7 +123,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				return nil, nil, status.Errorf(codes.Unimplemented, "setting leaf/leaflist node is unimplemented")
 			}
 
-			if args.create {
+			if args.modifyRoot {
 				if err := util.InitializeStructField(root, ft.Name); err != nil {
 					return nil, nil, status.Errorf(codes.Unknown, "failed to initialize struct field %s in %T, child schema %v, path %v", ft.Name, root, cschema, path)
 				}
@@ -165,6 +161,21 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path *gpb.Path, args
 
 		// Handle lists with a single key.
 		if !util.IsValueStruct(k) {
+			// Handle the special case that we have zero keys specified only when we are handling lists
+			// with partial keys specified.
+			if len(path.GetElem()[0].GetKey()) == 0 && args.partialKeyMatch {
+				nodes, schemas, err := retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), args)
+				if err != nil {
+					return nil, nil, err
+				}
+
+				matchNodes = append(matchNodes, nodes...)
+				matchSchemas = append(matchSchemas, schemas...)
+
+				continue
+			}
+
+			// Otherwise, check for equality of the key.
 			pathKey, ok := path.GetElem()[0].GetKey()[schema.Key]
 			if !ok {
 				return nil, nil, status.Errorf(codes.NotFound, "schema key %s is not found in gNMI path %v, root %T", schema.Key, path, root)
@@ -202,8 +213,12 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path *gpb.Path, args
 			// If key isn't found in the path key, treat it as error if partialKeyMatch is set to false.
 			// Otherwise, continue searching other keys of key struct and count the value as match
 			// if other keys are also match.
-			if !ok && !args.partialKeyMatch {
+			switch {
+			case !ok && !args.partialKeyMatch:
 				return nil, nil, status.Errorf(codes.NotFound, "gNMI path %v does not contain a map entry for schema %v, root %T", path, schemaKey, root)
+			case !ok && args.partialKeyMatch:
+				// If the key wasn't specified, then skip the comparison of value.
+				continue
 			}
 			keyAsString, err := ygot.KeyValueAsString(fieldValue.Interface())
 			if err != nil {
@@ -228,7 +243,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path *gpb.Path, args
 		}
 	}
 
-	if len(matchNodes) == 0 && args.create {
+	if len(matchNodes) == 0 && args.modifyRoot {
 		key, err := insertAndGetKey(schema, root, path.GetElem()[0].GetKey())
 		if err != nil {
 			return nil, nil, err
@@ -251,11 +266,84 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path *gpb.Path, args
 // Function returns the value and schema of the node as well as error.
 // Note that this function may modify the supplied root even if the function fails.
 func GetOrCreateNode(schema *yang.Entry, root interface{}, path *gpb.Path) (interface{}, *yang.Entry, error) {
-	nodes, schemas, err := retrieveNode(schema, root, path, retrieveNodeArgs{create: true})
+	nodes, schemas, err := retrieveNode(schema, root, path, retrieveNodeArgs{modifyRoot: true})
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// There must be a result as this function initializes nodes along the supplied path.
 	return nodes[0], schemas[0], nil
+}
+
+// TreeNode wraps an individual entry within a YANG data tree to return to a caller.
+type TreeNode struct {
+	// Schema is the schema entry for the data tree node, specified as a goyang Entry struct.
+	Schema *yang.Entry
+	// Data is the data node found at the path.
+	Data interface{}
+}
+
+// sliceTreeNode returns a slice of TreeNodes corresponding to the input data and schema slices. The
+// data and schema slices must have the same order, such that an entry at index 0 corresponds to
+// the same node within the YANG data tree.
+func sliceTreeNode(data []interface{}, schema []*yang.Entry) ([]*TreeNode, error) {
+	if len(data) != len(schema) {
+		return nil, fmt.Errorf("invalid input, slices are different lengths data %d, schema %d", len(data), len(schema))
+	}
+
+	tn := []*TreeNode{}
+	for i := range data {
+		tn = append(tn, &TreeNode{
+			Schema: schema[i],
+			Data:   data[i],
+		})
+	}
+	return tn, nil
+}
+
+// GetNode retrieves the node specified by the supplied path from the specified root, whose schema must
+// also be supplied. It takes a set of options which can be used to specify get behaviours, such as
+// allowing partial match. If there are no matches for the path, an error is returned.
+func GetNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetNodeOpt) ([]*TreeNode, error) {
+	nodes, schemas, err := retrieveNode(schema, root, path, retrieveNodeArgs{
+		// We never want to modify the input root, so we specify modifyRoot.
+		modifyRoot:      false,
+		partialKeyMatch: hasPartialKeyMatch(opts),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	tn, err := sliceTreeNode(nodes, schemas)
+	if err != nil {
+		return nil, status.Newf(codes.Internal, "invalid GetNode result: %v", err).Err()
+	}
+
+	return tn, nil
+}
+
+// GetNodeOpt defines an interface that can be used to supply arguments to functions using GetNode.
+type GetNodeOpt interface {
+	// IsGetNodeOpt is a marker method that is used to identify an instance of GetNodeOpt.
+	IsGetNodeOpt()
+}
+
+// GetPartialKeyMatch specifies that a match within GetNode should be allowed to partially match
+// keys for list entries.
+type GetPartialKeyMatch struct{}
+
+// IsGetNodeOpt implements the GetNodeOpt interface.
+func (*GetPartialKeyMatch) IsGetNodeOpt() {}
+
+// hasPartialKeyMatch determines whether there is an instance of GetPartialKeyMatch within the supplied
+// GetNodeOpt slice. It is used to determine whether partial key matches should be allowed in an operation
+// involving a GetNode.
+func hasPartialKeyMatch(opts []GetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*GetPartialKeyMatch); ok {
+			return true
+		}
+	}
+	return false
 }
