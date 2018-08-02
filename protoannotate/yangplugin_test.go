@@ -12,7 +12,7 @@ import (
 
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/golang/protobuf/protoc-gen-go/generator"
-	pb "github.com/openconfig/ygot/experimental/yangproto/protoc-gen-yanggo/yang/pkg/testproto"
+	pb "github.com/openconfig/ygot/protoannotate/pkg/testproto"
 )
 
 // toDescriptorProto takes a pb.AMessage message and extracts its file descriptor
