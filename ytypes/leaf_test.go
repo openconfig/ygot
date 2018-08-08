@@ -1088,10 +1088,6 @@ func TestUnmarshalLeaf(t *testing.T) {
 				},
 			},
 		},
-		//
-		//UnionLeafSlice      []UnionLeafType `path:"union-leaflist"`
-		//UnionLeafSingleType []string        `path:"union-stleaflist"`
-
 		{
 			desc:    "bad field",
 			json:    `{"bad-field" : "42"}`,
