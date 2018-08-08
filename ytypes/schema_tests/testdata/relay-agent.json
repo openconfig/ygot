@@ -1,0 +1,37 @@
+{
+  "openconfig-relay-agent:relay-agent": {
+    "dhcp": {
+      "config": {
+        "enable-relay-agent": true
+      },
+      "interfaces": {
+        "interface": [
+          {
+            "config": {
+              "enable": true,
+              "helper-address": ["172.20.0.67", "192.0.2.1"],
+              "id": "Ethernet3/46"
+            },
+            "id": "Ethernet3/46",
+            "interface-ref": {
+              "config": {
+                "interface": "Ethernet3/46"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "openconfig-interfaces:interfaces": {
+    "interface": [
+      {
+        "name": "Ethernet3/46",
+        "config": {
+          "name": "Ethernet3/46"
+        }
+      }
+    ]
+  }
+}
+
