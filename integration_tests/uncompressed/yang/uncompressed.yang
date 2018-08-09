@@ -1,0 +1,59 @@
+module uncompressed {
+  prefix "u";
+  namespace "github.com/openconfig/ygot/integration_test/uncompressed";
+
+  container root-container {
+    container target-lists {
+      list target-list {
+        key "key";
+
+        leaf key { type leafref { path "../config/key"; } }
+
+        container config {
+          uses target-list-config;
+        }
+
+        container state {
+          config false;
+          uses target-list-config;
+        }
+      }
+    }
+
+    container referencing-lists {
+      list referencing-list {
+        key "key";
+
+        leaf key { type leafref { path "../config/key"; } }
+
+        container config {
+          uses referencing-list-config;
+        }
+
+        container state {
+          config false;
+          uses referencing-list-config;
+        }
+      }
+    }
+  }
+
+  grouping target-list-config {
+    leaf key { type string; }
+  }
+
+  grouping referencing-list-config {
+    leaf key { type string; }
+    leaf relative-reference {
+      type leafref {
+        path "../../../../target-lists/target-list/key";
+      }
+    }
+
+    leaf absolute-reference {
+      type leafref {
+        path "/root-container/target-lists/target-list/key";
+      }
+    }
+  }
+}

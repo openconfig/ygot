@@ -27,6 +27,8 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+const CompressedSchemaAnnotation string = "isCompressedSchema"
+
 // IsTypeStruct reports whether t is a struct type.
 func IsTypeStruct(t reflect.Type) bool {
 	return t.Kind() == reflect.Struct
@@ -603,7 +605,17 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 			for _, key := range ni.FieldValue.MapKeys() {
 				nn := *ni
 				nn.Schema = &schema
-				nn.Parent = ni.Parent
+				// If this is a compressed schema, then there is a nuance to how
+				// we need to traverse the tree - since there is a "missing"
+				// level of the hierarchy. We therefore set the parent to be
+				// ourselves, so that we consume one more element of a relative
+				// path.
+				switch isCompressedSchema(&schema) {
+				case true:
+					nn.Parent = ni
+				default:
+					nn.Parent = ni.Parent
+				}
 				nn.PathFromParent = []string{schema.Name}
 				nn.FieldValue = ni.FieldValue.MapIndex(key)
 				nn.FieldKey = key
@@ -614,6 +626,18 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	}
 
 	return errs
+}
+
+// isCompressedSchema determines whether the yang.Entry s provided is part of a
+// generated set of structs that have schema compression enabled. It traverses
+// to the schema root, and determines the presence of an annotation with the name
+// CompressedSchemaAnnotation which is added by ygen.
+func isCompressedSchema(s *yang.Entry) bool {
+	var e *yang.Entry
+	for e = s; e.Parent != nil; e = e.Parent {
+	}
+	_, ok := e.Annotation[CompressedSchemaAnnotation]
+	return ok
 }
 
 // ForEachDataField iterates the value supplied and calls the iterFunction for
