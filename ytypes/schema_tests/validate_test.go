@@ -451,6 +451,12 @@ func TestUnmarshal(t *testing.T) {
 			opts:            []ytypes.UnmarshalOpt{&ytypes.IgnoreExtraFields{}},
 			outjsonFilePath: "basic.json",
 		},
+		{
+			desc:            "relay agent leaf-list of single type union",
+			jsonFilePath:    "relay-agent.json",
+			parent:          &oc.Device{},
+			outjsonFilePath: "relay-agent.json",
+		},
 	}
 
 	emitJSONConfig := &ygot.EmitJSONConfig{

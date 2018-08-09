@@ -888,22 +888,24 @@ func TestRemoveXPATHPredicates(t *testing.T) {
 }
 
 type LeafContainerStruct struct {
-	Int8Leaf    *int8         `path:"int8-leaf"`
-	Uint8Leaf   *uint8        `path:"uint8-leaf"`
-	Int16Leaf   *int16        `path:"int16-leaf"`
-	Uint16Leaf  *uint16       `path:"uint16-leaf"`
-	Int32Leaf   *int32        `path:"int32-leaf"`
-	Uint32Leaf  *uint32       `path:"uint32-leaf"`
-	Int64Leaf   *int64        `path:"int64-leaf"`
-	Uint64Leaf  *uint64       `path:"uint64-leaf"`
-	StringLeaf  *string       `path:"string-leaf"`
-	BinaryLeaf  []byte        `path:"binary-leaf"`
-	BoolLeaf    *bool         `path:"bool-leaf"`
-	DecimalLeaf *float64      `path:"decimal-leaf"`
-	EnumLeaf    EnumType      `path:"enum-leaf"`
-	UnionLeaf   UnionLeafType `path:"union-leaf"`
-	UnionLeaf2  *string       `path:"union-leaf2"`
-	EmptyLeaf   YANGEmpty     `path:"empty-leaf"`
+	Int8Leaf            *int8           `path:"int8-leaf"`
+	Uint8Leaf           *uint8          `path:"uint8-leaf"`
+	Int16Leaf           *int16          `path:"int16-leaf"`
+	Uint16Leaf          *uint16         `path:"uint16-leaf"`
+	Int32Leaf           *int32          `path:"int32-leaf"`
+	Uint32Leaf          *uint32         `path:"uint32-leaf"`
+	Int64Leaf           *int64          `path:"int64-leaf"`
+	Uint64Leaf          *uint64         `path:"uint64-leaf"`
+	StringLeaf          *string         `path:"string-leaf"`
+	BinaryLeaf          []byte          `path:"binary-leaf"`
+	BoolLeaf            *bool           `path:"bool-leaf"`
+	DecimalLeaf         *float64        `path:"decimal-leaf"`
+	EnumLeaf            EnumType        `path:"enum-leaf"`
+	UnionLeaf           UnionLeafType   `path:"union-leaf"`
+	UnionLeaf2          *string         `path:"union-leaf2"`
+	EmptyLeaf           YANGEmpty       `path:"empty-leaf"`
+	UnionLeafSlice      []UnionLeafType `path:"union-leaflist"`
+	UnionLeafSingleType []string        `path:"union-stleaflist"`
 }
 
 type UnionLeafType interface {
@@ -944,7 +946,8 @@ func (*UnionLeafType_EnumType2) ΛMap() map[string]map[int64]ygot.EnumDefinition
 
 func (*LeafContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
-		"/container-schema/union-leaf": {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-leaf":     {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-leaflist": {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
 	}
 }
 
@@ -1059,6 +1062,31 @@ func TestUnmarshalLeaf(t *testing.T) {
 			desc: "union no struct success, correct type, value unvalidated",
 			json: `{"union-leaf2" : "ccc"}`,
 			want: LeafContainerStruct{UnionLeaf2: ygot.String("ccc")},
+		},
+		{
+			desc: "leaf-list of single type union success, single value",
+			json: `{"union-stleaflist": ["ccc"]}`,
+			want: LeafContainerStruct{UnionLeafSingleType: []string{"ccc"}},
+		},
+		{
+			desc: "leaf-list of single type union success, multi-value",
+			json: `{"union-stleaflist": ["ccc", "ddd"]}`,
+			want: LeafContainerStruct{UnionLeafSingleType: []string{"ccc", "ddd"}},
+		},
+		{
+			desc: "leaf-list of union success, single value",
+			json: `{"union-leaflist": ["E_VALUE_FORTY_THREE"]}`,
+			want: LeafContainerStruct{UnionLeafSlice: []UnionLeafType{&UnionLeafType_EnumType2{EnumType2: 43}}},
+		},
+		{
+			desc: "leaf-list of union success, multi-value",
+			json: `{"union-leaflist": ["E_VALUE_FORTY_THREE", "eeee"]}`,
+			want: LeafContainerStruct{
+				UnionLeafSlice: []UnionLeafType{
+					&UnionLeafType_EnumType2{EnumType2: 43},
+					&UnionLeafType_String{"eeee"},
+				},
+			},
 		},
 		{
 			desc:    "bad field",
@@ -1199,9 +1227,54 @@ func TestUnmarshalLeaf(t *testing.T) {
 		},
 	}
 
+	unionLeafListSchema := &yang.Entry{
+		Name:     "union-leaflist",
+		Kind:     yang.LeafEntry,
+		ListAttr: &yang.ListAttr{},
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
+				},
+				{
+					Kind: yang.Yuint32,
+				},
+				{
+					Kind: yang.Yenum,
+				},
+				{
+					Kind: yang.Yidentityref,
+				},
+			},
+		},
+	}
+
 	unionNoStructSchema := &yang.Entry{
 		Name: "union-leaf2",
 		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					// Note that Validate is not called as part of Unmarshal,
+					// therefore any string pattern will actually match.
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
+				},
+				{
+					Kind:    yang.Ystring,
+					Pattern: []string{"b+"},
+				},
+			},
+		},
+	}
+
+	unionSTLeafListSchema := &yang.Entry{
+		Name:     "union-stleaflist",
+		Kind:     yang.LeafEntry,
+		ListAttr: &yang.ListAttr{},
 		Type: &yang.YangType{
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
@@ -1236,6 +1309,8 @@ func TestUnmarshalLeaf(t *testing.T) {
 		enumLeafSchema,
 		unionSchema,
 		unionNoStructSchema,
+		unionLeafListSchema,
+		unionSTLeafListSchema,
 	}
 
 	for _, s := range leafSchemas {
