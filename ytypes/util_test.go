@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 )
 
 func TestYangBuiltinTypeToGoType(t *testing.T) {
@@ -143,9 +144,16 @@ func TestYangToJSONType(t *testing.T) {
 		{
 			desc: "to bool",
 			ykinds: []yang.TypeKind{
-				yang.Ybool, yang.Yempty,
+				yang.Ybool,
 			},
 			want: reflect.Bool,
+		},
+		{
+			desc: "to []interface{}",
+			ykinds: []yang.TypeKind{
+				yang.Yempty,
+			},
+			want: reflect.Slice,
 		},
 	}
 
@@ -159,5 +167,116 @@ func TestYangToJSONType(t *testing.T) {
 
 	if got := yangToJSONType(yang.Yunion); got != nil {
 		t.Errorf("got: %v, want: nil", got)
+	}
+}
+
+type testEnum int64
+
+const (
+	Enum1 testEnum = 1
+	Enum2 testEnum = 2
+	Enum3 testEnum = 3
+)
+
+func (testEnum) IsYANGGoEnum() {}
+
+func (testEnum) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum }
+
+var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
+	"testEnum": {
+		1: {Name: "test_enum1"},
+		2: {Name: "test_enum2"},
+		3: {Name: "test_enum3"},
+	},
+}
+
+type testStruct struct {
+	Test testEnum
+}
+
+func TestStringToType(t *testing.T) {
+	ts := testStruct{}
+	tests := []struct {
+		s       string
+		t       reflect.Type
+		wantErr bool
+	}{
+		{s: "123", t: reflect.TypeOf(uint16(10))},
+		{s: "123", t: reflect.TypeOf(uint32(20))},
+		{s: "123", t: reflect.TypeOf(int16(-30))},
+		// invalid value for the type
+		{s: "fortytwo", t: reflect.TypeOf(uint16(0)), wantErr: true},
+		// overflowing value for the type
+		{s: "257", t: reflect.TypeOf(uint8(0)), wantErr: true},
+		{s: "test_enum3", t: reflect.TypeOf(ts.Test)},
+		// invalid enum for the enum type
+		{s: "fortytwo", t: reflect.TypeOf(ts.Test), wantErr: true},
+	}
+
+	for i, tt := range tests {
+		v, e := StringToType(tt.t, tt.s)
+		if (e != nil) != tt.wantErr {
+			t.Errorf("#%d got %v, want error %v", i+1, e, tt.wantErr)
+			continue
+		}
+		if e != nil {
+			continue
+		}
+		if v.Type() != tt.t {
+			t.Errorf("#%d got %v, want %v type", i+1, v.Type(), tt.t)
+		}
+	}
+}
+
+func TestDirectDescendantSchema(t *testing.T) {
+	tests := []struct {
+		desc    string
+		s       interface{}
+		w       string
+		wantErr bool
+	}{
+		{
+			desc: "simple schema tag",
+			s: struct {
+				f string `path:"key"`
+			}{},
+			w: "key",
+		},
+		{
+			desc: "multiple schema tag",
+			s: struct {
+				f string `path:"config/key|key"`
+			}{},
+			w: "key",
+		},
+		{
+			desc: "in the middle direct descendant",
+			s: struct {
+				f string `path:"config/key|key|state/key"`
+			}{},
+			w: "key",
+		},
+		{
+			desc: "missing schema tag",
+			s: struct {
+				f string
+			}{},
+			wantErr: true,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			k, e := directDescendantSchema(reflect.TypeOf(tt.s).Field(0))
+			if (e != nil) != tt.wantErr {
+				t.Fatalf("#%d got %v, want error %v", i, e, tt.wantErr)
+			}
+			if e != nil {
+				return
+			}
+			if tt.w != k {
+				t.Errorf("#%d got %v, want %v", i, k, tt.w)
+			}
+		})
 	}
 }

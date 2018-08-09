@@ -260,6 +260,27 @@ func pathToSchema(f reflect.StructField) ([]string, error) {
 	return nil, fmt.Errorf("field %s had path tag %s with |, but no elements of form a/b", f.Name, pathAnnotation)
 }
 
+// directDescendantSchema returns the direct descendant schema for the struct
+// field f. Paths are embedded in the "path" struct tag and can be either simple:
+//   e.g. "path:a"
+// or composite e.g.
+//   e.g. "path:config/a|a"
+// Function checks for presence of first schema without '/' and returns it.
+func directDescendantSchema(f reflect.StructField) (string, error) {
+	pathAnnotation, ok := f.Tag.Lookup("path")
+	if !ok {
+		return "", fmt.Errorf("field %s did not specify a path", f.Name)
+	}
+	paths := strings.Split(pathAnnotation, "|")
+
+	for _, pth := range paths {
+		if len(strings.Split(pth, "/")) == 1 {
+			return pth, nil
+		}
+	}
+	return "", fmt.Errorf("failed to find a schema path for %v", f)
+}
+
 // dataTreePaths returns all the data tree paths corresponding to schemaPaths.
 // Any intermediate nodes not found in the data tree (i.e. choice/case) are
 // removed from the paths.

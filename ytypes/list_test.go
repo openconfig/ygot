@@ -20,7 +20,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
@@ -543,6 +545,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 		desc    string
 		json    string
 		want    ContainerStruct
+		opts    []UnmarshalOpt
 		wantErr string
 	}{
 		{
@@ -562,6 +565,18 @@ func TestUnmarshalKeyedList(t *testing.T) {
 			json:    `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
 			wantErr: `parent container key-list (type *ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
 		},
+		{
+			desc: "ignore unknown field",
+			json: `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
+			opts: []UnmarshalOpt{&IgnoreExtraFields{}},
+			want: ContainerStruct{
+				KeyList: map[string]*ListElemStruct{
+					"forty-two": {
+						Key: ygot.String("forty-two"),
+					},
+				},
+			},
+		},
 	}
 
 	var jsonTree interface{}
@@ -573,7 +588,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
 			}
 
-			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
+			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree, tt.opts...)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
 			}
@@ -747,6 +762,493 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
 					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
 				}
+			}
+		})
+	}
+}
+
+func TestStructMapKeyValueCreation(t *testing.T) {
+	containerWithLeafListSchema := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"struct-key-list": {
+				Name:     "struct-key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key1 key2 key3",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key1": {
+						Kind: yang.LeafEntry,
+						Name: "key1",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+					"key2": {
+						Kind: yang.LeafEntry,
+						Name: "key2",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+					"key3": {
+						Kind: yang.LeafEntry,
+						Name: "key3",
+						Type: &yang.YangType{Kind: yang.Yenum},
+					},
+					"leaf-field": {
+						Kind: yang.LeafEntry,
+						Name: "leaf-field",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+			},
+		},
+	}
+
+	type KeyStruct struct {
+		Key1    string   `path:"key1"`
+		Key2    int32    `path:"key2"`
+		EnumKey EnumType `path:"key3"`
+	}
+
+	type ListElemStruct struct {
+		Key1     *string  `path:"key1"`
+		Key2     *int32   `path:"key2"`
+		EnumKey  EnumType `path:"key3"`
+		LeafName *int32   `path:"leaf-field"`
+	}
+
+	type ContainerStruct struct {
+		StructKeyList map[KeyStruct]*ListElemStruct `path:"struct-key-list"`
+	}
+
+	tests := []struct {
+		desc         string
+		keys         map[string]string
+		want         KeyStruct
+		errSubstring string
+	}{
+		{
+			desc: "success",
+			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO"},
+			want: KeyStruct{Key1: "int0", Key2: 42, EnumKey: 42},
+		},
+		// note that an extra key in the map is just ignored as long as the mandatory keys present.
+		{
+			desc:         "not existing key",
+			keys:         map[string]string{"key4": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO"},
+			errSubstring: "missing key1",
+		},
+		{
+			desc:         "overflowing key",
+			keys:         map[string]string{"key1": "int0", "key2": "14294967296", "key3": "E_VALUE_FORTY_TWO"},
+			errSubstring: "unable to convert",
+		},
+		{
+			desc:         "upper case key",
+			keys:         map[string]string{"Key1": "int0", "key2": "14294967296", "key3": "E_VALUE_FORTY_TWO"},
+			errSubstring: "missing key1",
+		},
+		{
+			desc:         "missing key",
+			keys:         map[string]string{"key2": "42", "key3": "E_VALUE_FORTY_TWO"},
+			errSubstring: "missing key1",
+		},
+		{
+			desc:         "incorrect type for key2",
+			keys:         map[string]string{"key1": "int0", "key2": "forty_two", "key3": "E_VALUE_FORTY_TWO"},
+			errSubstring: "unable to convert",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			parent := &ContainerStruct{}
+			util.InitializeStructField(parent, "StructKeyList")
+			v, e := makeValForInsert(containerWithLeafListSchema, parent.StructKeyList, tt.keys)
+			if diff := errdiff.Substring(e, tt.errSubstring); diff != "" {
+				t.Fatalf("got %v, want error %v", e, tt.errSubstring)
+			}
+			if e != nil {
+				return
+			}
+			k, e := makeKeyForInsert(containerWithLeafListSchema, parent.StructKeyList, v)
+			if diff := errdiff.Substring(e, tt.errSubstring); diff != "" {
+				t.Fatalf("got %v, want error %v", e, tt.errSubstring)
+			}
+			if e != nil {
+				return
+			}
+			if diff := cmp.Diff(k.Interface(), tt.want); diff != "" {
+				t.Errorf("got %v, want %v: diff %v", k, tt.want, diff)
+			}
+		})
+	}
+}
+
+type simpleStruct struct {
+	KeyList interface{} `path:"key-list"`
+}
+
+type ListUintStruct struct {
+	Key *uint32 `path:"key"`
+}
+
+type ListStringStruct struct {
+	Key *string `path:"key"`
+}
+
+func (l *ListUintStruct) String() string {
+	return fmt.Sprintf("Key: %d", *l.Key)
+}
+
+func TestSimpleMapKeyValueCreation(t *testing.T) {
+	tests := []struct {
+		desc         string
+		keys         map[string]string
+		inSchema     *yang.Entry
+		container    *simpleStruct
+		want         interface{}
+		errSubstring string
+	}{
+		{
+			desc: "success - uint32 <key,value> creation",
+			keys: map[string]string{"key": "42"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+				},
+			},
+			container: &simpleStruct{KeyList: map[uint32]*ListUintStruct{}},
+			want:      uint32(42),
+		},
+		{
+			desc: "incorrect type - uint32 <key,value> creation",
+			keys: map[string]string{"key": "-42"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[uint32]*ListUintStruct{}},
+			errSubstring: "unable to convert",
+		},
+		{
+			desc: "overflowing type - uint32 <key,value> creation",
+			keys: map[string]string{"key": "14294967296"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[uint32]*ListUintStruct{}},
+			errSubstring: "unable to convert",
+		},
+		{
+			desc: "incorrect type - uint32 <key,value> creation",
+			keys: map[string]string{"key": "test"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[uint32]*ListUintStruct{}},
+			errSubstring: "unable to convert",
+		},
+		{
+			desc: "success - string <key,value> creation",
+			keys: map[string]string{"key": "test0"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+					"leaf-field": {
+						Kind: yang.LeafEntry,
+						Name: "leaf-field",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+			},
+			container: &simpleStruct{KeyList: map[string]*ListStringStruct{}},
+			want:      "test0",
+		},
+		{
+			desc: "missing key - string <key,value> creation",
+			keys: map[string]string{"missing_key": "test0"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+					"leaf-field": {
+						Kind: yang.LeafEntry,
+						Name: "leaf-field",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[string]*ListStringStruct{}},
+			errSubstring: "missing key",
+		},
+		{
+			desc:         "parent is not reflect.Map kind",
+			container:    &simpleStruct{KeyList: int32(42)},
+			errSubstring: "int32 is not a reflect.Map kind",
+		},
+		{
+			desc:         "map value is not pointer type",
+			container:    &simpleStruct{KeyList: map[string]string{}},
+			errSubstring: "string is not a pointer to a struct",
+		},
+		{
+			desc: "fail map value doesn't have the key with the tag specified in path",
+			keys: map[string]string{"missing-key": "42"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "missing-key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"missing-key": {
+						Kind: yang.LeafEntry,
+						Name: "missing-key",
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[uint32]*ListUintStruct{}},
+			errSubstring: "does not contain a field with tag missing-key",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			util.InitializeStructField(tt.container, "KeyList")
+			v, e := makeValForInsert(tt.inSchema, tt.container.KeyList, tt.keys)
+			if diff := errdiff.Substring(e, tt.errSubstring); diff != "" {
+				t.Fatalf("got %v, want error %v", e, tt.errSubstring)
+			}
+			if e != nil {
+				return
+			}
+			k, e := makeKeyForInsert(tt.inSchema, tt.container.KeyList, v)
+			if diff := errdiff.Substring(e, tt.errSubstring); diff != "" {
+				t.Fatalf("got %v, want error %v", e, tt.errSubstring)
+			}
+			if e != nil {
+				return
+			}
+			if k.Interface() != tt.want {
+				t.Errorf("got %v, want %v", k.Interface(), tt.want)
+			}
+		})
+	}
+}
+
+func TestInsertAndGetKey(t *testing.T) {
+	type KeyStruct struct {
+		Key1    int32    `path:"key1"` // Key1 type doesn't match with the type of Key1 in ListElemStruct
+		Key2    int32    `path:"key2"`
+		EnumKey EnumType `path:"key3"`
+	}
+
+	type ListElemStruct struct {
+		Key1    *string  `path:"key1"`
+		Key2    *int32   `path:"key2"`
+		EnumKey EnumType `path:"key3"`
+	}
+
+	tests := []struct {
+		inDesc           string
+		inSchema         *yang.Entry
+		inParent         interface{}
+		inKeys           map[string]string
+		want             interface{}
+		wantErrSubstring string
+	}{
+		{
+			inDesc: "success creating key and value for uint32 key type",
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+				},
+			},
+			inParent: map[uint32]*ListUintStruct{},
+			inKeys:   map[string]string{"key": "42"},
+			want:     &ListUintStruct{Key: ygot.Uint32(42)},
+		},
+		{
+			inDesc: "fail missing key in the schema",
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Config:   yang.TSTrue,
+				Dir:      map[string]*yang.Entry{},
+			},
+			wantErrSubstring: "unkeyed list can't be traversed",
+		},
+		{
+			inDesc: "fail non-map root",
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+				},
+			},
+			inParent:         []*ListUintStruct{},
+			wantErrSubstring: "root has type []*ytypes.ListUintStruct, want map",
+		},
+		{
+			inDesc: "fail missing key in keys map",
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "missing-key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"missing-key": {
+						Kind: yang.LeafEntry,
+						Name: "missing-key",
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+				},
+			},
+			inParent:         map[uint32]*ListUintStruct{},
+			wantErrSubstring: "missing missing-key key in map[]",
+		},
+		{
+			inDesc: "fail creating key due to not matching type",
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yuint32},
+					},
+				},
+			},
+			inParent:         map[string]*ListUintStruct{},
+			inKeys:           map[string]string{"key": "42"},
+			wantErrSubstring: "uint32 is not assignable to string",
+		},
+		{
+			inDesc: "fail creating key due to not maching key type - struct key",
+			inSchema: &yang.Entry{
+				Name:     "struct-key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key1 key2 key3",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key1": {
+						Kind: yang.LeafEntry,
+						Name: "key1",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+					"key2": {
+						Kind: yang.LeafEntry,
+						Name: "key2",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+					"key3": {
+						Kind: yang.LeafEntry,
+						Name: "key3",
+						Type: &yang.YangType{Kind: yang.Yenum},
+					},
+				},
+			},
+			inParent:         map[KeyStruct]*ListElemStruct{},
+			inKeys:           map[string]string{"key1": "42", "key2": "42", "key3": "E_VALUE_FORTY_TWO"},
+			wantErrSubstring: "string is not assignable to int32",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.inDesc, func(t *testing.T) {
+			got, err := insertAndGetKey(tt.inSchema, tt.inParent, tt.inKeys)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("got %v, want error %v", err, tt.wantErrSubstring)
+			}
+			if err != nil {
+				return
+			}
+			val := reflect.ValueOf(tt.inParent).MapIndex(reflect.ValueOf(got)).Interface()
+			if !reflect.DeepEqual(val, tt.want) {
+				t.Errorf("got %v, want %v", val, tt.want)
 			}
 		})
 	}

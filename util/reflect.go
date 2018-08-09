@@ -15,6 +15,7 @@
 package util
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -151,6 +152,12 @@ func IsValueScalar(v reflect.Value) bool {
 	return !IsValueStruct(v) && !IsValueMap(v) && !IsValueSlice(v)
 }
 
+// ValuesAreSameType returns true if v1 and v2 has the same reflect.Type,
+// otherwise it returns false.
+func ValuesAreSameType(v1 reflect.Value, v2 reflect.Value) bool {
+	return v1.Type() == v2.Type()
+}
+
 // IsValueInterfaceToStructPtr reports whether v is an interface that contains a
 // pointer to a struct.
 func IsValueInterfaceToStructPtr(v reflect.Value) bool {
@@ -223,6 +230,7 @@ func UpdateField(parentStruct interface{}, fieldName string, fieldValue interfac
 	if ft.Type.Kind() == reflect.Slice {
 		return InsertIntoSliceStructField(parentStruct, fieldName, fieldValue)
 	}
+
 	return InsertIntoStruct(parentStruct, fieldName, fieldValue)
 }
 
@@ -242,6 +250,14 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 	ft, ok := pt.Elem().FieldByName(fieldName)
 	if !ok {
 		return fmt.Errorf("parent type %T does not have a field name %s", parentStruct, fieldName)
+	}
+
+	// YANG empty fields are represented as a derived bool value defined in the
+	// generated code. Here we cast the value to the type in the generated code.
+	if ft.Type.Kind() == reflect.Bool && t.Kind() == reflect.Bool {
+		nv := reflect.New(ft.Type).Elem()
+		nv.SetBool(v.Bool())
+		v = nv
 	}
 
 	n := v
@@ -347,6 +363,39 @@ func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, f
 	return nil
 }
 
+// InitializeStructField initializes the given field in the given struct. Only
+// pointer fields and some of the composite types are initialized(Map).
+// It initializes to zero value of the underlying type if the field is a pointer.
+// If the field is a slice, no need to initialize as appending a new element
+// will do the same thing. Note that if the field is initialized already, this
+// function doesn't re-initialize it.
+func InitializeStructField(parent interface{}, fieldName string) error {
+	if parent == nil {
+		return errors.New("parent is nil")
+	}
+	pV := reflect.ValueOf(parent)
+	if IsValuePtr(pV) {
+		pV = pV.Elem()
+	}
+
+	if !IsValueStruct(pV) {
+		return fmt.Errorf("%T is not a struct kind", parent)
+	}
+
+	fV := pV.FieldByName(fieldName)
+	if !fV.IsValid() {
+		return fmt.Errorf("invalid %T %v field value", parent, fieldName)
+	}
+	switch {
+	case IsValuePtr(fV) && fV.IsNil():
+		fV.Set(reflect.New(fV.Type().Elem()))
+	case IsValueMap(fV) && fV.IsNil():
+		fV.Set(reflect.MakeMap(fV.Type()))
+	}
+
+	return nil
+}
+
 // isFieldTypeCompatible reports whether f.Set(v) can be called successfully on
 // a struct field f corresponding to ft. It is assumed that f is exported and
 // addressable.
@@ -357,9 +406,11 @@ func isFieldTypeCompatible(ft reflect.StructField, v reflect.Value) bool {
 		}
 		return v.Type() == ft.Type
 	}
+
 	if !v.IsValid() {
 		return false
 	}
+
 	return v.Type() == ft.Type
 }
 
@@ -761,14 +812,14 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 			return nil, nil, err
 		}
 		for _, p := range ps {
-			if pathMatchesPrefix(path, p) {
+			if PathMatchesPrefix(path, p) {
 				// don't trim whole prefix  for keyed list since name and key
 				// are a in the same element.
 				to := len(p)
 				if IsTypeMap(ft.Type) {
 					to--
 				}
-				return getNodesInternal(cschema, f.Interface(), trimGNMIPathPrefix(path, p[0:to]))
+				return getNodesInternal(cschema, f.Interface(), TrimGNMIPathPrefix(path, p[0:to]))
 			}
 		}
 	}
@@ -857,7 +908,7 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 			// Pass in the list schema, but the actual selected element
 			// rather than the whole list.
 			DbgPrint("key matches")
-			n, s, err := getNodesInternal(schema, ev.Interface(), popGNMIPath(path))
+			n, s, err := getNodesInternal(schema, ev.Interface(), PopGNMIPath(path))
 			if err != nil {
 				return nil, nil, err
 			}
@@ -879,7 +930,7 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 func pathStructTagKey(f reflect.StructField) string {
 	p, err := pathToSchema(f)
 	if err != nil {
-		log.Errorln("struct field %s does not have a path tag, bad schema?", f.Name)
+		log.Errorf("struct field %s does not have a path tag, bad schema?", f.Name)
 		return ""
 	}
 	return p[len(p)-1]

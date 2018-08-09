@@ -46,6 +46,8 @@ func (EnumType) ΛMap() map[string]map[int64]ygot.EnumDefinition {
 	return globalEnumMap
 }
 
+func (EnumType) IsYANGGoEnum() {}
+
 // EnumType2 is used as an enum type in various tests in the ytypes package.
 type EnumType2 int64
 

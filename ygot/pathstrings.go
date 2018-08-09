@@ -46,6 +46,37 @@ func PathToString(path *gnmipb.Path) (string, error) {
 	return "/" + stdpath.Join(s...), err
 }
 
+// PathToSchemaPath returns the supplied Path as its corresponding schema path.
+// The YANG schema path removes any keys (i.e., predicates) from the path, using
+// only the name.
+func PathToSchemaPath(path *gnmipb.Path) (string, error) {
+	if path == nil {
+		return "", fmt.Errorf("received nil path in PathToSchemaPath")
+	}
+
+	if path.Element != nil {
+		var sp []string
+		for _, e := range path.Element {
+			elem, _, err := extractKV(e)
+			if err != nil {
+				return "", fmt.Errorf("cannot extract element name from %s, %v", e, err)
+			}
+			sp = append(sp, elem)
+		}
+		s, err := elementsToString(sp)
+		return "/" + stdpath.Join(s...), err
+	}
+
+	var p []string
+	for i, e := range path.Elem {
+		if e.Name == "" {
+			return "", fmt.Errorf("empty name for PathElem at index %d", i)
+		}
+		p = append(p, e.Name)
+	}
+	return "/" + stdpath.Join(p...), nil
+}
+
 // PathToStrings takes a gNMI Path and provides its string representation. For example,
 // the path Path{Element: []string{"one", "two", "three"} is converted to the slice
 // ["one", "two", "three"] and returned. Both the pre-0.4.0 "element"-based paths, and the
@@ -54,17 +85,15 @@ func PathToString(path *gnmipb.Path) (string, error) {
 // the path element using the format [name=value]. If the path specifies both pre-
 // and post-0.4.0 paths, the pre-0.4.0 version is returned.
 func PathToStrings(path *gnmipb.Path) ([]string, error) {
-	var p []string
-	if path.Element != nil {
-		for i, e := range path.Element {
-			if e == "" {
-				return nil, fmt.Errorf("empty element at index %d in %v", i, path.Element)
-			}
-			p = append(p, e)
-		}
-		return p, nil
+	if path == nil {
+		return nil, fmt.Errorf("received nil path in PathToStrings")
 	}
 
+	if path.Element != nil {
+		return elementsToString(path.Element)
+	}
+
+	var p []string
 	for i, e := range path.Elem {
 		if e.Name == "" {
 			return nil, fmt.Errorf("empty name for PathElem at index %d", i)
@@ -75,6 +104,19 @@ func PathToStrings(path *gnmipb.Path) ([]string, error) {
 			return nil, fmt.Errorf("failed formatting PathElem at index %d: %v", i, err)
 		}
 		p = append(p, elem)
+	}
+	return p, nil
+}
+
+// elementsToString ensures a string slice is a valid path, returning it if
+// it is.
+func elementsToString(element []string) ([]string, error) {
+	var p []string
+	for i, e := range element {
+		if e == "" {
+			return nil, fmt.Errorf("empty element at index %d in %v", i, element)
+		}
+		p = append(p, e)
 	}
 	return p, nil
 }

@@ -18,14 +18,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"sort"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
+	"github.com/openconfig/ygot/testutil"
 )
 
 func TestPathElemBasics(t *testing.T) {
@@ -739,7 +738,8 @@ func (*renderExampleUnionInvalid) IsRenderUnionExample() {}
 
 // renderExampleChild is a child of the renderExample struct.
 type renderExampleChild struct {
-	Val *uint64 `path:"val"`
+	Val  *uint64  `path:"val"`
+	Enum EnumTest `path:"enum"`
 }
 
 // IsYANGGoStruct implements the GoStruct interface.
@@ -780,6 +780,21 @@ func (EnumTest) ΛMap() map[string]map[int64]EnumDefinition {
 		},
 	}
 }
+
+const (
+	// EnumTestUNSET is used to represent the unset value of the
+	// /c/test enumerated value across a number of tests.
+	EnumTestUNSET EnumTest = 0
+	// EnumTestVALONE is used to represent VAL_ONE of the /c/test
+	// enumerated leaf in the schema-with-list test.
+	EnumTestVALONE EnumTest = 1
+	// EnumTestVALTWO is used to represent VAL_TWO of the /c/test
+	// enumerated leaf in the schema-with-list test.
+	EnumTestVALTWO EnumTest = 2
+	// EnumTestVALTHREE is an an enum value that does not have
+	// a corresponding string mapping.
+	EnumTestVALTHREE EnumTest = 3
+)
 
 // pathElemExample is an example struct used for rendering using gNMI PathElems.
 type pathElemExample struct {
@@ -863,18 +878,6 @@ type pathElemExampleMultiKeyChildKey struct {
 	Foo string `path:"foo"`
 	Bar uint16 `path:"bar"`
 }
-
-const (
-	// EnumTestVALONE is used to represent VAL_ONE of the /c/test
-	// enumerated leaf in the schema-with-list test.
-	EnumTestVALONE EnumTest = 1
-	// EnumTestVALTWO is used to represent VAL_TWO of the /c/test
-	// enumerated leaf in the schema-with-list test.
-	EnumTestVALTWO EnumTest = 2
-	// EnumTestVALTHREE is an an enum value that does not have
-	// a corresponding string mapping.
-	EnumTestVALTHREE = 3
-)
 
 func TestTogNMINotifications(t *testing.T) {
 	tests := []struct {
@@ -1067,7 +1070,7 @@ func TestTogNMINotifications(t *testing.T) {
 		inStruct: &renderExample{
 			Str:    String("beeblebrox"),
 			IntVal: Int32(42),
-			Ch:     &renderExampleChild{Uint64(42)},
+			Ch:     &renderExampleChild{Val: Uint64(42)},
 		},
 		inConfig: GNMINotificationsConfig{
 			StringSlicePrefix: []string{"base"},
@@ -1299,131 +1302,11 @@ func TestTogNMINotifications(t *testing.T) {
 		// there is no order to the map of fields that are returned by the struct
 		// output.
 
-		if !notificationSetEqual(got, tt.want) {
+		if !testutil.NotificationSetEqual(got, tt.want) {
 			diff := pretty.Compare(got, tt.want)
 			t.Errorf("%s: TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
 		}
 	}
-}
-
-// notificationSetEqual checks whether two slices of gNMI Notification messages are
-// equal, ignoring the order of the Notifications.
-func notificationSetEqual(a, b []*gnmipb.Notification) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	matchall := true
-	for _, aElem := range a {
-		var updateMatched, deleteMatched bool
-		for _, bElem := range b {
-			if aElem == nil && bElem != nil || bElem == nil && aElem != nil || aElem == nil && bElem == nil {
-				continue
-			}
-
-			if updateSetEqual(aElem.Update, bElem.Update) {
-				updateMatched = true
-			}
-			if pathSliceEqual(aElem.Delete, bElem.Delete) {
-				deleteMatched = true
-			}
-			if updateMatched && deleteMatched {
-				break
-			}
-		}
-		if !updateMatched || !deleteMatched {
-			matchall = false
-		}
-	}
-
-	return matchall
-}
-
-// updateSetEqual checks whether two slices of gNMI Updates are equal, ignoring their
-// order.
-func updateSetEqual(a, b []*gnmipb.Update) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
-	bMatched := map[*gnmipb.Path]bool{}
-	for _, bElem := range b {
-		bMatched[bElem.Path] = true
-	}
-
-	for _, aElem := range a {
-		var matched bool
-		for _, bElem := range b {
-			if proto.Equal(aElem, bElem) {
-				matched = true
-				delete(bMatched, bElem.Path)
-				break
-			}
-		}
-
-		if !matched {
-			return false
-		}
-	}
-
-	if len(bMatched) != 0 {
-		return false
-	}
-
-	return true
-}
-
-// stringKeys returns the keys of a map[string]string as a slice.
-func stringKeys(m map[string]string) []string {
-	ss := []string{}
-	for k := range m {
-		ss = append(ss, k)
-	}
-	return ss
-}
-
-// pathSliceEqual checks whether two slices of gNMI Paths are equal, ignoring
-// order. Equality of the paths within the slice are considered on an element
-// by element basis - with equality being considered as having the same element
-// name, and the same element keys and values.
-func pathSliceEqual(a, b []*gnmipb.Path) bool {
-	pathIsLess := func(a, b *gnmipb.Path) bool {
-		for _, a := range a.Elem {
-			for _, b := range b.Elem {
-				if a.Name != b.Name {
-					return a.Name < b.Name
-				}
-				// If the element names are not equal then we consider the keys in
-				// alphabetical order.
-				aKeys := stringKeys(a.Key)
-				sort.Strings(aKeys)
-				bKeys := stringKeys(b.Key)
-				sort.Strings(bKeys)
-
-				for _, ak := range aKeys {
-					for _, bk := range bKeys {
-						// If the key names aren't equal - then we use the comparison of the
-						// two strings. The strings.Compare function returns -1 if a < b,
-						// and cmpoptions.SortedSlice requires a "less" function which must
-						// return true if a < b.
-						if ak != bk {
-							return ak < bk
-						}
-						// If the key names were equal, then we move on to comparing the
-						// keys.
-						if av, bv := a.Key[ak], b.Key[bk]; av != bv {
-							return av < bv
-						}
-					}
-				}
-			}
-		}
-		// If we get to this point, all of the elements and path values were equal -
-		// so we're dealing with the same path. Determinstically return true so that
-		// in the case of equality, a < b.
-		return true
-	}
-	return cmp.Equal(a, b, cmpopts.SortSlices(pathIsLess))
 }
 
 // exampleDevice and the following structs are a set of structs used for more
@@ -2537,6 +2420,60 @@ func TestLeaflistToSlice(t *testing.T) {
 
 		if !reflect.DeepEqual(got, tt.wantSlice) {
 			t.Errorf("%s: leaflistToSlice(%v): did not get expected slice, got: %v, want: %v", tt.name, tt.inVal.Interface(), got, tt.wantSlice)
+		}
+	}
+}
+
+func TestKeyValueAsString(t *testing.T) {
+	tests := []struct {
+		i                interface{}
+		want             string
+		wantErrSubstring string
+	}{
+		{
+			i:    int16(42),
+			want: "42",
+		},
+		{
+			i:    uint16(42),
+			want: "42",
+		},
+		{
+			i:    int16(-42),
+			want: "-42",
+		},
+		{
+			i:    string("42"),
+			want: "42",
+		},
+		{
+			i:    EnumTest(2),
+			want: "VAL_TWO",
+		},
+		{
+			i:                EnumTest(42),
+			wantErrSubstring: "cannot map enumerated value as type EnumTest has unknown value 42",
+		},
+		{
+			i:                interface{}(nil),
+			wantErrSubstring: "cannot convert type invalid to a string for use in a key",
+		},
+		{
+			i:    &renderExampleUnionString{"hello"},
+			want: "hello",
+		},
+	}
+
+	for _, tt := range tests {
+		s, e := KeyValueAsString(tt.i)
+		if diff := errdiff.Substring(e, tt.wantErrSubstring); diff != "" {
+			t.Errorf("got %v, want %v", e, tt.wantErrSubstring)
+			if e != nil {
+				continue
+			}
+		}
+		if !reflect.DeepEqual(s, tt.want) {
+			t.Errorf("got %v, want %v", s, tt.want)
 		}
 	}
 }

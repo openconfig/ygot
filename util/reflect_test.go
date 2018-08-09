@@ -213,6 +213,51 @@ func TestIsValueFuncs(t *testing.T) {
 	}
 }
 
+func TestValuesAreSameType(t *testing.T) {
+	type EnumType int64
+
+	tests := []struct {
+		inDesc string
+		inV1   interface{}
+		inV2   interface{}
+		want   bool
+	}{
+		{
+			inDesc: "success both are int32 types",
+			inV1:   int32(42),
+			inV2:   int32(43),
+			want:   true,
+		},
+		{
+			inDesc: "fail unmatching int types",
+			inV1:   int16(42),
+			inV2:   int32(43),
+			want:   false,
+		},
+		{
+			inDesc: "fail unmatching int and string type",
+			inV1:   int32(42),
+			inV2:   "42",
+			want:   false,
+		},
+		{
+			inDesc: "fail EnumType and int64 types",
+			inV1:   EnumType(42),
+			inV2:   int64(43),
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.inDesc, func(t *testing.T) {
+			got := ValuesAreSameType(reflect.ValueOf(tt.inV1), reflect.ValueOf(tt.inV2))
+			if got != tt.want {
+				t.Errorf("got %v, want %v for comparing %T against %T", got, tt.want, tt.inV1, tt.inV2)
+			}
+		})
+	}
+}
+
 func TestIsTypeFuncs(t *testing.T) {
 	testInt := int(42)
 	testStruct := struct{}{}
@@ -318,12 +363,15 @@ func isInListOfInterface(lv []interface{}, v interface{}) bool {
 	return false
 }
 
+type derivedBool bool
+
 func TestUpdateField(t *testing.T) {
 	type BasicStruct struct {
 		IntField       int
 		StringField    string
 		IntPtrField    *int8
 		StringPtrField *string
+		BoolField      derivedBool
 	}
 
 	type StructOfStructs struct {
@@ -344,6 +392,13 @@ func TestUpdateField(t *testing.T) {
 			fieldName:    "IntField",
 			fieldValue:   42,
 			wantVal:      &BasicStruct{IntField: 42},
+		},
+		{
+			desc:         "derived bool",
+			parentStruct: &BasicStruct{},
+			fieldName:    "BoolField",
+			fieldValue:   true,
+			wantVal:      &BasicStruct{BoolField: derivedBool(true)},
 		},
 		{
 			desc:         "int with nil",
@@ -681,6 +736,64 @@ func TestInsertIntoMap(t *testing.T) {
 	wantErr := `InsertIntoMap parent type is *struct {}, must be map`
 	if got, want := errToString(InsertIntoMap(&badParent, key, value)), wantErr; got != want {
 		t.Fatalf("got error: %s, want error: %s", got, want)
+	}
+}
+
+func TestInitializeStructField(t *testing.T) {
+	type testStruct struct {
+		// Following two fields exist to exercise
+		// initializing pointer fields
+		IPtr *int
+		SPtr *string
+		// Following field exists to exercise
+		// initializing composite fields
+		MPtr map[string]int
+		// Following fields exist to exercise
+		// skipping initializing a slice and
+		// non pointer field
+		SlPtr []string
+		I     int
+	}
+
+	tests := []struct {
+		i    interface{}
+		f    string
+		skip bool
+	}{
+		{i: &testStruct{}, f: "IPtr"},
+		{i: &testStruct{}, f: "SPtr"},
+		{i: &testStruct{}, f: "MPtr"},
+		{i: &testStruct{}, f: "SlPtr", skip: true},
+		{i: &testStruct{}, f: "I", skip: true},
+	}
+
+	for _, tt := range tests {
+		v := reflect.ValueOf(tt.i)
+		if IsValuePtr(v) {
+			v = v.Elem()
+		}
+		fv := v.FieldByName(tt.f)
+		err := InitializeStructField(tt.i, tt.f)
+		if err != nil {
+			t.Errorf("got %v, want no error", err)
+		}
+		if !tt.skip && fv.IsNil() {
+			t.Errorf("got nil, want initialized field value: %q", tt.f)
+		}
+	}
+}
+
+func TestInitializeStructFieldForSameField(t *testing.T) {
+	type testStruct struct {
+		MPtr map[string]string
+	}
+	tt := &testStruct{}
+	InitializeStructField(tt, "MPtr")
+	tt.MPtr["forty"] = "two"
+	InitializeStructField(tt, "MPtr")
+	v, ok := tt.MPtr["forty"]
+	if !ok || v != "two" {
+		t.Errorf("unable to find (forty, two) pair in the map")
 	}
 }
 

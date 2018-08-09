@@ -276,7 +276,9 @@ func nameMatchesPath(fieldName string, path []string) (bool, error) {
 //   schema is the schema of the schema node corresponding to the struct being
 //     unmamshaled into
 //   jsonList is a JSON list
-func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{}) error {
+//   opts... are a set of ytypes.UnmarshalOptionst that are used to control
+//     the behaviour of the unmarshal function.
+func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{}, opts ...UnmarshalOpt) error {
 	if util.IsValueNil(jsonList) {
 		return nil
 	}
@@ -293,7 +295,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{})
 	if util.IsTypeStructPtr(t) {
 		// May be trying to unmarshal a single list element rather than the
 		// whole list.
-		return unmarshalContainerWithListSchema(schema, parent, jsonList)
+		return unmarshalContainerWithListSchema(schema, parent, jsonList, opts...)
 	}
 
 	// jsonList represents a JSON array, which is a Go slice.
@@ -328,7 +330,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{})
 		jt := le.(map[string]interface{})
 		newVal := reflect.New(listElementType.Elem())
 		util.DbgPrint("creating a new list element val of type %v", newVal.Type())
-		if err := unmarshalStruct(schema, newVal.Interface(), jt); err != nil {
+		if err := unmarshalStruct(schema, newVal.Interface(), jt, opts...); err != nil {
 			return err
 		}
 
@@ -353,6 +355,79 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{})
 	return nil
 }
 
+// makeValForInsert is used to create a value with the type extracted from
+// given map. The returned value is populated according to the supplied "keys"
+// map, which is assumed to be the map[string]string keys field from a gNMI
+// PathElem protobuf message. Output of this function can be passed to
+// makeKeyForInsert to produce a key to use while inserting into map. The
+// function returns an error if a key name is not a valid schema tag in the
+// supplied schema. Also, function uses the last schema tag if there is more
+// than one by assuming it is direct descendant.
+// - schema: schema of the map.
+// - parent: value of the map.
+// - keys: dictionary received as part of Key field of gNMI PathElem.
+func makeValForInsert(schema *yang.Entry, parent interface{}, keys map[string]string) (reflect.Value, error) {
+	rv, rt := reflect.ValueOf(parent), reflect.TypeOf(parent)
+	if !util.IsValueMap(rv) {
+		return reflect.ValueOf(nil), fmt.Errorf("%T is not a reflect.Map kind", parent)
+	}
+	// key is a non-pointer type
+	keyT := rt.Key()
+	// element is pointer type
+	elmT := rt.Elem()
+
+	if !util.IsTypeStructPtr(elmT) {
+		return reflect.ValueOf(nil), fmt.Errorf("%v is not a pointer to a struct", elmT)
+	}
+
+	// Create an instance of map value type. Element is dereferenced as it is a pointer.
+	val := reflect.New(elmT.Elem())
+	// Helper to update the field corresponding to schema key.
+	setKey := func(schemaKey string, fieldVal string) error {
+		fn, err := schemaNameToFieldName(val.Elem(), schemaKey)
+		if err != nil {
+			return err
+		}
+
+		fv := val.Elem().FieldByName(fn)
+		ft := fv.Type()
+		if util.IsValuePtr(fv) {
+			ft = ft.Elem()
+		}
+
+		nv, err := StringToType(ft, fieldVal)
+		if err != nil {
+			return err
+		}
+		return util.InsertIntoStruct(val.Interface(), fn, nv.Interface())
+	}
+
+	if util.IsTypeStruct(keyT) {
+		for i := 0; i < keyT.NumField(); i++ {
+			schKey, err := directDescendantSchema(keyT.Field(i))
+			if err != nil {
+				return reflect.ValueOf(nil), err
+			}
+			schVal, ok := keys[schKey]
+			if !ok {
+				return reflect.ValueOf(nil), fmt.Errorf("missing %v key in %v", schKey, keys)
+			}
+			if err := setKey(schKey, schVal); err != nil {
+				return reflect.ValueOf(nil), err
+			}
+		}
+		return val, nil
+	}
+	v, ok := keys[schema.Key]
+	if !ok {
+		return reflect.ValueOf(nil), fmt.Errorf("missing %v key in %v", schema.Key, keys)
+	}
+	if err := setKey(schema.Key, v); err != nil {
+		return reflect.ValueOf(nil), err
+	}
+	return val, nil
+}
+
 // makeKeyForInsert returns a key for inserting a struct newVal into the parent,
 // which must be a map.
 func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.Value) (reflect.Value, error) {
@@ -360,7 +435,7 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 	listKeyType := reflect.TypeOf(parentMap).Key()
 	newKey := reflect.New(listKeyType).Elem()
 
-	if listKeyType.Kind() == reflect.Struct {
+	if util.IsTypeStruct(listKeyType) {
 		// For struct key type, copy the key fields from the new list entry
 		// struct newVal into the key struct.
 		for i := 0; i < newKey.NumField(); i++ {
@@ -374,29 +449,71 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 				// Ptr values are deferenced in key struct.
 				nv = nv.Elem()
 			}
+			if !nv.IsValid() {
+				return reflect.ValueOf(nil), fmt.Errorf("%v field doesn't have a valid value", kfn)
+			}
 			util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
-			newKey.FieldByName(kfn).Set(nv)
+			newKeyField := newKey.FieldByName(kfn)
+			if !util.ValuesAreSameType(newKeyField, nv) {
+				return reflect.ValueOf(nil), fmt.Errorf("%v is not assignable to %v", nv.Type(), newKeyField.Type())
+			}
+			newKeyField.Set(nv)
 		}
-	} else {
-		// Simple key type. Get the value from the new value struct,
-		// given the key string.
-		kv, err := getKeyValue(newVal.Elem(), schema.Key)
-		if err != nil {
-			return reflect.ValueOf(nil), err
-		}
-		util.DbgPrint("key value is %v.", kv)
-		newKey.Set(reflect.ValueOf(kv))
+
+		return newKey, nil
 	}
 
+	// Simple key type. Get the value from the new value struct,
+	// given the key string.
+	kv, err := getKeyValue(newVal.Elem(), schema.Key)
+	if err != nil {
+		return reflect.ValueOf(nil), err
+	}
+	util.DbgPrint("key value is %v.", kv)
+
+	rvKey := reflect.ValueOf(kv)
+	if !util.ValuesAreSameType(newKey, rvKey) {
+		return reflect.ValueOf(nil), fmt.Errorf("%v is not assignable to %v", rvKey.Type(), newKey.Type())
+	}
+	newKey.Set(rvKey)
+
 	return newKey, nil
+}
+
+// insertAndGetKey creates key and value from the supplied keys map. It inserts
+// key and value into the given root which must be a map with the supplied schema.
+func insertAndGetKey(schema *yang.Entry, root interface{}, keys map[string]string) (interface{}, error) {
+	switch {
+	case schema.Key == "":
+		return nil, fmt.Errorf("unkeyed list can't be traversed, type %T, keys %v", root, keys)
+	case !util.IsValueMap(reflect.ValueOf(root)):
+		return nil, fmt.Errorf("root has type %T, want map", root)
+	}
+
+	// TODO(yusufsn): When the key is a leafref, its target should be filled out.
+	mapVal, err := makeValForInsert(schema, root, keys)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create map value for insert, root %T, keys %v: %v", root, keys, err)
+	}
+	mapKey, err := makeKeyForInsert(schema, root, mapVal)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create map key for insert, root %T, keys %v: %v", root, keys, err)
+	}
+	err = util.InsertIntoMap(root, mapKey.Interface(), mapVal.Interface())
+	if err != nil {
+		return nil, fmt.Errorf("failed to insert into map %T, keys %v: %v", root, keys, err)
+	}
+
+	return mapKey.Interface(), nil
 }
 
 // unmarshalContainerWithListSchema unmarshals a container data tree element
 // using a list schema. This can happen because in OC schemas, list elements
 // share the list schema so if a user attempts to unmarshal a list element vs.
 // the whole list, the supplied schema is the same - the only difference is
-// that in the latter case the target is a struct ptr.
-func unmarshalContainerWithListSchema(schema *yang.Entry, parent interface{}, value interface{}) error {
+// that in the latter case the target is a struct ptr. The supplied opts control
+// the behaviour of the unmarshal function.
+func unmarshalContainerWithListSchema(schema *yang.Entry, parent interface{}, value interface{}, opts ...UnmarshalOpt) error {
 
 	if !util.IsTypeStructPtr(reflect.TypeOf(parent)) {
 		return fmt.Errorf("unmarshalContainerWithListSchema value %v, type %T, into parent type %T, schema name %s: parent must be a struct ptr",
@@ -406,7 +523,7 @@ func unmarshalContainerWithListSchema(schema *yang.Entry, parent interface{}, va
 	// with ListAttrs unset.
 	newSchema := *schema
 	newSchema.ListAttr = nil
-	return Unmarshal(&newSchema, parent, value)
+	return Unmarshal(&newSchema, parent, value, opts...)
 }
 
 // getKeyValue returns the value from the structVal field whose last path

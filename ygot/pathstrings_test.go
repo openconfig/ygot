@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -32,6 +33,10 @@ func TestPathToString(t *testing.T) {
 		want    string
 		wantErr string
 	}{{
+		name:    "nil path",
+		in:      nil,
+		wantErr: "received nil path",
+	}, {
 		name: "root path",
 		in:   &gnmipb.Path{Element: []string{}},
 		want: "/",
@@ -393,6 +398,22 @@ func TestStringToPath(t *testing.T) {
 		in:                "foo bar/baz",
 		wantSliceErr:      "invalid space character included in element name 'foo bar'",
 		wantStructuredErr: "invalid space character included in element name 'foo bar'",
+	}, {
+		name:                "bgp example",
+		in:                  "neighbors/neighbor[neighbor-address=192.0.2.1]/config/neighbor-address",
+		wantStringSlicePath: &gnmipb.Path{Element: []string{"neighbors", "neighbor[neighbor-address=192.0.2.1]", "config", "neighbor-address"}},
+		wantStructuredPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{{
+				Name: "neighbors",
+			}, {
+				Name: "neighbor",
+				Key:  map[string]string{"neighbor-address": "192.0.2.1"},
+			}, {
+				Name: "config",
+			}, {
+				Name: "neighbor-address",
+			}},
+		},
 	}}
 
 	for _, tt := range tests {
@@ -429,5 +450,94 @@ func TestStringToPath(t *testing.T) {
 			t.Errorf("%s: StringToPath(%v, {StringSlicePath, StructuredPath}): did not get expected combined path message, got: %v, want: %v", tt.name, tt.in, proto.MarshalTextString(gotCombinedPath), proto.MarshalTextString(wantCombined))
 		}
 
+	}
+}
+
+func TestPathToSchemaPath(t *testing.T) {
+	tests := []struct {
+		name             string
+		inPath           *gnmipb.Path
+		want             string
+		wantErrSubstring string
+	}{{
+		name:             "nil path",
+		inPath:           nil,
+		wantErrSubstring: "received nil path",
+	}, {
+		name: "element path",
+		inPath: &gnmipb.Path{
+			Element: []string{"one", "two", "three"},
+		},
+		want: "/one/two/three",
+	}, {
+		name: "element path with predicates",
+		inPath: &gnmipb.Path{
+			Element: []string{"interfaces", "interface[name=eth0]", "config", "description"},
+		},
+		want: "/interfaces/interface/config/description",
+	}, {
+		name: "elem path with no keys",
+		inPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}, {
+				Name: "three",
+			}},
+		},
+		want: "/one/two/three",
+	}, {
+		name: "elem path with keys",
+		inPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{{
+				Name: "interfaces",
+			}, {
+				Name: "interface",
+				Key:  map[string]string{"name": "eth0"},
+			}, {
+				Name: "config",
+			}, {
+				Name: "description",
+			}},
+		},
+		want: "/interfaces/interface/config/description",
+	}, {
+		name: "zero length element",
+		inPath: &gnmipb.Path{
+			Element: []string{"one", ""},
+		},
+		wantErrSubstring: "empty element at index",
+	}, {
+		name: "element with invalid predicate",
+		inPath: &gnmipb.Path{
+			Element: []string{"one[]"},
+		},
+		wantErrSubstring: "cannot extract element",
+	}, {
+		name: "zero length elem",
+		inPath: &gnmipb.Path{
+			Elem: []*gnmipb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "",
+			}},
+		},
+		wantErrSubstring: "empty name for PathElem",
+	}}
+
+	for _, tt := range tests {
+		got, err := PathToSchemaPath(tt.inPath)
+		if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+			t.Errorf("%s: PathToSchemaPath(%s): did not get expected error, %s", tt.name, proto.MarshalTextString(tt.inPath), diff)
+		}
+
+		if err != nil {
+			continue
+		}
+
+		if got != tt.want {
+			t.Errorf("%s: PathToSchemaPath(%s): did not get expected path, got: %s, want: %s", tt.name, proto.MarshalTextString(tt.inPath), got, tt.want)
+		}
 	}
 }

@@ -22,10 +22,10 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
-	"github.com/pmezard/go-difflib/difflib"
 
 	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
+	"github.com/openconfig/ygot/testutil"
 )
 
 const (
@@ -33,20 +33,6 @@ const (
 	// to any filename that is to be loaded.
 	TestRoot string = ""
 )
-
-// generateUnifiedDiff takes two strings and generates a diff that can be
-// shown to the user in a test error message.
-func generateUnifiedDiff(want, got string) (string, error) {
-	diffl := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(got),
-		B:        difflib.SplitLines(want),
-		FromFile: "got",
-		ToFile:   "want",
-		Context:  3,
-		Eol:      "\n",
-	}
-	return difflib.GetUnifiedDiffString(diffl)
-}
 
 // errToString returns an error as a string.
 func errToString(err error) string {
@@ -272,6 +258,38 @@ func TestEnumFieldToString(t *testing.T) {
 
 		if gotSet != tt.wantSet {
 			t.Errorf("%s: enumFieldToString(%v, %v): did not get expected set status, got: %v, want: %v", tt.name, tt.inField, tt.inAppendModuleName, gotSet, tt.wantSet)
+		}
+	}
+}
+
+func TestEnumName(t *testing.T) {
+	tests := []struct {
+		name             string
+		in               GoEnum
+		want             string
+		wantErrSubstring string
+	}{{
+		name: "simple enumeration",
+		in:   EONE,
+		want: "VAL_ONE",
+	}, {
+		name: "unset",
+		in:   EUNSET,
+		want: "",
+	}, {
+		name:             "bad enumeration",
+		in:               BONE,
+		wantErrSubstring: "cannot map enumerated value as type badEnumTest was unknown",
+	}}
+
+	for _, tt := range tests {
+		got, err := EnumName(tt.in)
+		if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+			t.Errorf("%s: EnumName(%v): did not get expected error, %s", tt.name, tt.in, diff)
+		}
+
+		if got != tt.want {
+			t.Errorf("%s: EnumName(%v): did not get expected value, got: %s, want: %s", tt.name, tt.in, got, tt.want)
 		}
 	}
 }
@@ -534,7 +552,7 @@ func TestEmitJSON(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(got, string(wantJSON)); diff != "" {
-			if diffl, err := generateUnifiedDiff(got, string(wantJSON)); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(got, string(wantJSON)); err == nil {
 				diff = diffl
 			}
 			t.Errorf("%s: EmitJSON(%v, nil): got invalid JSON, diff(-got,+want):\n%s", tt.name, tt.inStruct, diff)

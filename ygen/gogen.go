@@ -65,7 +65,7 @@ const (
 //
 // For structs, some additional output is also generated. For example, if a struct
 // storing the characteristics of a YANG container A is input, then the resulting
-// goStructCodeSnippet struct will contain the definition of the Go struct
+// GoStructCodeSnippet struct will contain the definition of the Go struct
 // used to create an instance of A in the structDef string. The listKeys string
 // contains any structs that are used as the key to a multi-key list. The methods
 // string contains any functions that are generated with A as the receiver.
@@ -136,30 +136,43 @@ const (
 // Calling code can then set any identityref with a base of BASE-IDENTITY
 // by setting a value to one of these constants.
 
-// goStructCodeSnippet is used to store the generated code snippets associated with
+// GoStructCodeSnippet is used to store the generated code snippets associated with
 // a particular Go struct entity (generated from a container or list).
-type goStructCodeSnippet struct {
-	// structDef stores the code snippet that represents the struct that is
+type GoStructCodeSnippet struct {
+	// StructName is the name of the struct that is contained within the snippet.
+	// It is stored such that callers can identify the struct to control where it
+	// is output.
+	StructName string
+	// StructDef stores the code snippet that represents the struct that is
 	// the input when code generation is performed.
-	structDef string
-	// listKeys stores code snippets that are associated with structs that are
+	StructDef string
+	// ListKeys stores code snippets that are associated with structs that are
 	// generated to represent the keys of multi-key lists. In the case that the
 	// Go struct for which the code is being generated does not contain a list
 	// with multiple keys, this string is empty.
-	listKeys string
-	// methods contains code snippsets that represent functions that have the
+	ListKeys string
+	// Methods contains code snippsets that represent functions that have the
 	// input struct as a receiver, that help the user create new entries within
 	// lists, without needing to populate the keys of the list.
-	methods string
-	// interfaces contains code snippets that represent interfaces that are
+	Methods string
+	// Interfaces contains code snippets that represent interfaces that are
 	// used within the generated struct. Used when there are interfaces that
 	// represent multi-type unions generated.
-	interfaces string
-	// enumMap contains a map, keyed by a schema path (represented as a string)
+	Interfaces string
+	// enumTypeMap contains a map, keyed by a schema path (represented as a string)
 	// to the underlying type names selected for that leaf. A slice of strings
 	// is used for the type to handle cases where there is more than one enumerated
 	// type returned for a leaf.
 	enumTypeMap map[string][]string
+}
+
+// String returns the contents of the receiver GoStructCodeSnippet as a string.
+func (g GoStructCodeSnippet) String() string {
+	var b bytes.Buffer
+	for _, s := range []string{g.StructDef, g.ListKeys, g.Methods, g.Interfaces} {
+		writeIfNotEmpty(&b, s)
+	}
+	return b.String()
 }
 
 // goEnumCodeSnippet is used to store the generated code snippets associated with
@@ -273,8 +286,8 @@ type generatedGoEnumeration struct {
 }
 
 var (
-	// goHeaderTemplate is populated and output at the top of the generated code package
-	goHeaderTemplate = `
+	// goCommonHeaderTemplate is populated and output at the top of the generated code package
+	goCommonHeaderTemplate = `
 {{- /**/ -}}
 /*
 Package {{ .PackageName }} is a generated package which contains definitions
@@ -306,7 +319,11 @@ import (
 	"{{ .GoOptions.YtypesImportPath }}"
 {{- end }}
 )
+`
 
+	// goOneOffHeaderTemplate defines the template for package code that should
+	// be output in only one file.
+	goOneOffHeaderTemplate = `
 // {{ .BinaryTypeName }} is a type that is used for fields that have a YANG type of
 // binary. It is used such that binary fields can be distinguished from
 // leaf-lists of uint8s (which are mapped to []uint8, equivalent to
@@ -334,8 +351,10 @@ func init() {
 // Unmarshal unmarshals data, which must be RFC7951 JSON format, into
 // destStruct, which must be non-nil and the correct GoStruct type. It returns
 // an error if the destStruct is not found in the schema or the data cannot be
-// unmarshaled.
-func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
+// unmarshaled. The supplied options (opts) are used to control the behaviour
+// of the unmarshal function - for example, determining whether errors are
+// thrown for unknown fields in the input JSON.
+func Unmarshal(data []byte, destStruct ygot.GoStruct, opts ...ytypes.UnmarshalOpt) error {
 	tn := reflect.TypeOf(destStruct).Elem().Name()
 	schema, ok := SchemaTree[tn]
 	if !ok {
@@ -345,7 +364,7 @@ func Unmarshal(data []byte, destStruct ygot.GoStruct) error {
 	if err := json.Unmarshal([]byte(data), &jsonTree); err != nil {
 		return err
 	}
-	return ytypes.Unmarshal(schema, destStruct, jsonTree)
+	return ytypes.Unmarshal(schema, destStruct, jsonTree, opts...)
 }
 
 {{- end }}
@@ -889,7 +908,8 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 
 	// The set of built templates that are to be referenced during code generation.
 	goTemplates = map[string]*template.Template{
-		"header":              makeTemplate("header", goHeaderTemplate),
+		"commonHeader":        makeTemplate("commonHeader", goCommonHeaderTemplate),
+		"oneoffHeader":        makeTemplate("oneoffHeader", goOneOffHeaderTemplate),
 		"struct":              makeTemplate("struct", goStructTemplate),
 		"structValidator":     makeTemplate("structValidator", goStructValidatorTemplate),
 		"listkey":             makeTemplate("listkey", goListKeyTemplate),
@@ -958,7 +978,10 @@ func makeTemplate(name, src string) *template.Template {
 // an unset cfg.GoOptions.GoyangImportPath results in the goyang path being set to
 // DefaultYgotImportPath, and an unset cfg.GoOptions.YtypesImportPath results in the
 // path for ytypes being set to DefaultYtypesImportPath.
-func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (string, error) {
+// The header returned is split into two strings, the common header is a header that
+// should be used for all files within the output package. The one off header should
+// be included in only one file of the package.
+func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (string, string, error) {
 	// Determine the running binary's name.
 	if cfg.Caller == "" {
 		cfg.Caller = callerName()
@@ -1002,23 +1025,29 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (strin
 		EmptyTypeName:    ygot.EmptyTypeName,
 	}
 
-	var buf bytes.Buffer
-	if err := goTemplates["header"].Execute(&buf, s); err != nil {
-		return "", err
+	var common bytes.Buffer
+	if err := goTemplates["commonHeader"].Execute(&common, s); err != nil {
+		return "", "", err
 	}
-	return buf.String(), nil
+
+	var oneoff bytes.Buffer
+	if err := goTemplates["oneoffHeader"].Execute(&oneoff, s); err != nil {
+		return "", "", err
+	}
+
+	return common.String(), oneoff.String(), nil
 }
 
 // writeGoStruct generates code snippets for targetStruct. The parameter goStructElements
 // contains other yangDirectory structs for which code is being generated, that may be referenced
 // during the generation of the code corresponding to targetStruct (e.g., to determine a
-// child container's struct name). writeGoStruct returns a goStructCodeSnippet which contains
+// child container's struct name). writeGoStruct returns a GoStructCodeSnippet which contains
 //	1. The generated struct for targetStruct (structDef)
 //	2. Additional generated structs that are keys for any multi-key lists that are children
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yangDirectory, state *genState, compressOCPaths, generateJSONSchema bool, goOpts GoOpts) (goStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yangDirectory, state *genState, compressOCPaths, generateJSONSchema bool, goOpts GoOpts) (GoStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -1359,11 +1388,12 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 		}
 	}
 
-	return goStructCodeSnippet{
-		structDef:   structBuf.String(),
-		methods:     methodBuf.String(),
-		listKeys:    listkeyBuf.String(),
-		interfaces:  interfaceBuf.String(),
+	return GoStructCodeSnippet{
+		StructName:  structDef.StructName,
+		StructDef:   structBuf.String(),
+		Methods:     methodBuf.String(),
+		ListKeys:    listkeyBuf.String(),
+		Interfaces:  interfaceBuf.String(),
 		enumTypeMap: enumTypeMap,
 	}, errs
 }
@@ -1855,4 +1885,11 @@ func writeGoSchema(js []byte, schemaVarName string) (string, error) {
 	}
 
 	return buf.String(), nil
+}
+
+// writeIfNotEmpty writes the string s to b if it has a non-zero length.
+func writeIfNotEmpty(b *bytes.Buffer, s string) {
+	if len(s) != 0 {
+		b.WriteString(s)
+	}
 }

@@ -1,11 +1,14 @@
 language: go
 go:
         - 1.8.x
+        - 1.9.x
+        - 1.10.x
         - master
 before_install:
         - ./scripts/install_protobuf.sh
-        - export PATH=$PATH:$HOME/protobuf/bin
+        - export PATH=$PATH:$HOME/protobuf/bin:$GOPATH/bin
 install:
+        - go get -u golang.org/x/tools/cmd/goimports
         - go get -u github.com/golang/protobuf/protoc-gen-go
         - make install
 script:
@@ -15,9 +18,11 @@ script:
         - go tool vet -composites=false ./ygot
         - go tool vet ./ygen
         - go tool vet ./ytypes
+        - go tool vet ./ygot/pathtranslate
         - diff -u <(echo -n) <(gofmt -d -s ./util)
         - diff -u <(echo -n) <(gofmt -d -s ./ygot)
         - diff -u <(echo -n) <(gofmt -d -s ./ygen)
         - diff -u <(echo -n) <(gofmt -d -s ./ytypes)
+        - diff -u <(echo -n) <(gofmt -d -s ./ygot/pathtranslate)
 after_success:
         - ./scripts/coverage.sh
