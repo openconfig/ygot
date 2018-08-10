@@ -18,6 +18,14 @@ enum ProtoTestEAnimalsAnimalConfigSpecies {
   PROTOTESTE_ANIMALS_ANIMAL_CONFIG_SPECIES_OVIS_CANADENSIS = 3;
 }
 
+// ProtoTestEAnimalsAnimalStateSpecies represents an enumerated type generated for the YANG enumerated type union.
+enum ProtoTestEAnimalsAnimalStateSpecies {
+  PROTOTESTE_ANIMALS_ANIMAL_STATE_SPECIES_UNSET = 0;
+  PROTOTESTE_ANIMALS_ANIMAL_STATE_SPECIES_TAXIDEA_TAXUS = 1;
+  PROTOTESTE_ANIMALS_ANIMAL_STATE_SPECIES_CERVUS_CANADENSIS = 2;
+  PROTOTESTE_ANIMALS_ANIMAL_STATE_SPECIES_OVIS_CANADENSIS = 3;
+}
+
 // ProtoTestEBarsBarBaz represents an enumerated type generated for the YANG enumerated type union.
 enum ProtoTestEBarsBarBaz {
   PROTOTESTE_BARS_BAR_BAZ_UNSET = 0;
@@ -38,4 +46,12 @@ enum ProtoTestETestConfigC {
   PROTOTESTE_TEST_CONFIG_C_D = 1;
   PROTOTESTE_TEST_CONFIG_C_E = 2;
   PROTOTESTE_TEST_CONFIG_C_F = 3;
+}
+
+// ProtoTestETestStateC represents an enumerated type generated for the YANG enumerated type union.
+enum ProtoTestETestStateC {
+  PROTOTESTE_TEST_STATE_C_UNSET = 0;
+  PROTOTESTE_TEST_STATE_C_D = 1;
+  PROTOTESTE_TEST_STATE_C_E = 2;
+  PROTOTESTE_TEST_STATE_C_F = 3;
 }

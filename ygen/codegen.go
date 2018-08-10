@@ -771,9 +771,14 @@ func mappableLeaf(e *yang.Entry) *yang.Entry {
 		// Check for leaves that include a union that itself
 		// includes an identityref or enumerated value.
 		types = append(types, enumeratedUnionTypes(e.Type.Type)...)
+		// Mark this leaf as containing enumerated union types.
+		if containsEnum(types) {
+			addAnnotation(e, unionMarker, true)
+		}
 	}
 
 	if types != nil {
+
 		return e
 	}
 	return nil

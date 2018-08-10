@@ -138,6 +138,17 @@ func removePrefix(s string) string {
 	return strings.Split(s, ":")[1]
 }
 
+// parentCodeModuleName returns the name of the module that defined the name
+// preferring its annotated CamelCase name if one exists.
+func parentCodeModuleName(node yang.Node) string {
+	var definingMod yang.Node
+	definingMod = yang.RootNode(node)
+	if name, ok := camelCaseNameExt(definingMod.Exts()); ok {
+		return name
+	}
+	return parentModuleName(node)
+}
+
 // parentModuleName returns the name of the module that defined the yang.Node
 // supplied as the node argument. If the discovered root node of the node is found
 // to be a submodule, the name of the parent module is returned.
@@ -149,11 +160,6 @@ func parentModuleName(node yang.Node) string {
 		mod := definingMod.(*yang.Module)
 		definingMod = mod.BelongsTo
 	}
-
-	if name, ok := camelCaseNameExt(definingMod.Exts()); ok {
-		return name
-	}
-
 	return definingMod.NName()
 }
 
@@ -268,15 +274,6 @@ func enumeratedUnionTypes(types []*yang.YangType) []*yang.YangType {
 		}
 	}
 	return eTypes
-}
-
-// appendIfNotEmpty appends a string s to a slice of strings if the string s is
-// not nil, similarly to append it returns the modified slice.
-func appendIfNotEmpty(slice []string, s string) []string {
-	if s != "" {
-		return append(slice, s)
-	}
-	return slice
 }
 
 // addNewKeys appends entries from the newKeys string slice to the
@@ -394,6 +391,26 @@ func isChildOfModule(msg *yangDirectory) bool {
 		// If the message has a path length of 3, then it is a top-level entity
 		// within a module, since the  path is in the format []{"", <module>, <element>}.
 		return true
+	}
+	return false
+}
+
+// addAnnotation pushes the annotation with the value provided to the supplied
+// entry.
+func addAnnotation(e *yang.Entry, name string, value interface{}) {
+	if e.Annotation == nil {
+		e.Annotation = map[string]interface{}{}
+	}
+	e.Annotation[name] = value
+}
+
+// containsEnum checks whether a slice of yang.YangTypes contains a type
+// "enumeration" from the YANG schema.
+func containsEnum(types []*yang.YangType) bool {
+	for _, t := range types {
+		if t.Kind == yang.Yenum {
+			return true
+		}
 	}
 	return false
 }

@@ -2276,3 +2276,196 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveEnumName(t *testing.T) {
+
+	tests := []struct {
+		name                             string
+		inPreviousEntry                  *yang.Entry // inPreviousEntry is another entry that has already been parsed. It allows the state in resolveEnumName to be populated.
+		inEntry                          *yang.Entry
+		inCompressPaths, inNoUnderscores bool
+		inDefinedGlobals                 map[string]bool // Injected set of globally defined names.
+		want                             string
+	}{{
+		name: "single entry",
+		inEntry: &yang.Entry{
+			Name: "leaf-name",
+			Node: &yang.Container{
+				Name: "parent-grouping",
+				Parent: &yang.Module{
+					Name: "module",
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "parent-container",
+				Parent: &yang.Entry{
+					Name: "module",
+				},
+			},
+		},
+		want: "Module_ParentContainer_LeafName",
+	}, {
+		name: "single entry with compression",
+		inEntry: &yang.Entry{
+			Name: "leaf-name",
+			Node: &yang.Container{
+				Name: "config",
+				Parent: &yang.Container{
+					Name: "parent-container",
+					Parent: &yang.Module{
+						Name: "module",
+					},
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "config",
+				Parent: &yang.Entry{
+					Name: "parent-container",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+		},
+		inCompressPaths: true,
+		want:            "Module_ParentContainer_LeafName",
+	}, {
+		name: "config and state with compression",
+		inPreviousEntry: &yang.Entry{
+			Name: "leaf-name",
+			Node: &yang.Container{
+				Name: "config",
+				Parent: &yang.Container{
+					Name: "parent-container",
+					Parent: &yang.Module{
+						Name: "module",
+					},
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "config",
+				Parent: &yang.Entry{
+					Name: "parent-container",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+		},
+		inEntry: &yang.Entry{
+			Name: "leaf-name",
+			Node: &yang.Container{
+				Name: "state",
+				Parent: &yang.Container{
+					Name: "parent-container",
+					Parent: &yang.Module{
+						Name: "module",
+					},
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "state",
+				Parent: &yang.Entry{
+					Name: "parent-container",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+		},
+		want: "Module_ParentContainer_State_LeafName",
+	}, {
+		name: "common grouping - not a union",
+		inPreviousEntry: &yang.Entry{
+			Name: "leaf-name",
+			Node: &yang.Grouping{
+				Name: "grouping-one",
+				Parent: &yang.Module{
+					Name: "module",
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "config",
+				Parent: &yang.Entry{
+					Name: "parent-container-one",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+		},
+		inEntry: &yang.Entry{
+			Name: "leaf-name",
+			Node: &yang.Grouping{
+				Name: "grouping-one",
+				Parent: &yang.Module{
+					Name: "module",
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "state",
+				Parent: &yang.Entry{
+					Name: "parent-container",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+		},
+		want: "Module_ParentContainerOne_Config_LeafName",
+	}, {
+		name: "common grouping - union enum",
+		inPreviousEntry: &yang.Entry{
+			Name: "leaf-name",
+			Node: &yang.Grouping{
+				Name: "grouping-one",
+				Parent: &yang.Module{
+					Name: "module",
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "config",
+				Parent: &yang.Entry{
+					Name: "parent-container-one",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+		},
+		inEntry: &yang.Entry{
+			Name: "leaf-name",
+			Node: &yang.Grouping{
+				Name: "grouping-one",
+				Parent: &yang.Module{
+					Name: "module",
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "state",
+				Parent: &yang.Entry{
+					Name: "parent-container",
+					Parent: &yang.Entry{
+						Name: "module",
+					},
+				},
+			},
+			Annotation: map[string]interface{}{unionMarker: true},
+		},
+		want: "Module_ParentContainer_State_LeafName",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := newGenState()
+			if e := tt.inPreviousEntry; e != nil {
+				_ = s.resolveEnumName(e, tt.inCompressPaths, tt.inNoUnderscores)
+			}
+
+			if got := s.resolveEnumName(tt.inEntry, tt.inCompressPaths, tt.inNoUnderscores); got != tt.want {
+				t.Fatalf("did not get expected name, got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+
+}

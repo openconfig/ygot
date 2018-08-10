@@ -1691,6 +1691,49 @@ const (
 			},
 		},
 	}, {
+		name: "enum from identityref in submodule",
+		in: &yangEnum{
+			name: "ID_VAL",
+			entry: &yang.Entry{
+				Type: &yang.YangType{
+					IdentityBase: &yang.Identity{
+						Values: []*yang.Identity{
+							{Name: "VALUE_A", Parent: &yang.Module{Name: "incorrect", BelongsTo: &yang.BelongsTo{Name: "correct"}}},
+						},
+					},
+				},
+			},
+		},
+		want: goEnumCodeSnippet{
+			constDef: `
+// E_ID_VAL is a derived int64 type which is used to represent
+// the enumerated node ID_VAL. An additional value named
+// ID_VAL_UNSET is added to the enumeration which is used as
+// the nil value, indicating that the enumeration was not explicitly set by
+// the program importing the generated structures.
+type E_ID_VAL int64
+
+// IsYANGGoEnum ensures that ID_VAL implements the yang.GoEnum
+// interface. This ensures that ID_VAL can be identified as a
+// mapped type for a YANG enumeration.
+func (E_ID_VAL) IsYANGGoEnum() {}
+
+// ΛMap returns the value lookup map associated with  ID_VAL.
+func (E_ID_VAL) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+const (
+	// ID_VAL_UNSET corresponds to the value UNSET of ID_VAL
+	ID_VAL_UNSET E_ID_VAL = 0
+	// ID_VAL_VALUE_A corresponds to the value VALUE_A of ID_VAL
+	ID_VAL_VALUE_A E_ID_VAL = 1
+)
+`,
+			name: "ID_VAL",
+			valToString: map[int64]ygot.EnumDefinition{
+				1: {Name: "VALUE_A", DefiningModule: "correct"},
+			},
+		},
+	}, {
 		name: "enum from enumeration",
 		in: &yangEnum{
 			name: "EnumeratedValueTwo",
@@ -1781,18 +1824,15 @@ const (
 	for _, tt := range tests {
 		got, err := writeGoEnum(tt.in)
 		if err != nil {
-			t.Errorf("%s: writeGoEnum(%v): got unexpected error: %v",
-				tt.name, tt.in, err)
+			t.Errorf("%s: writeGoEnum(%v): got unexpected error: %v", tt.name, tt.in, err)
 			continue
 		}
 
 		if diff := pretty.Compare(tt.want, got); diff != "" {
-			fmt.Println(diff)
 			if diffl, err := testutil.GenerateUnifiedDiff(got.constDef, tt.want.constDef); err == nil {
 				diff = diffl
 			}
-			t.Errorf("%s: writeGoEnum(%v): got incorrect output, diff(-got,+want):\n%s",
-				tt.name, tt.in, diff)
+			t.Errorf("%s: writeGoEnum(%v): got incorrect output, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 		}
 	}
 }

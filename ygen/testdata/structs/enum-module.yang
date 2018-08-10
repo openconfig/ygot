@@ -1,0 +1,72 @@
+module enum-module {
+  prefix "e";
+  namespace "urn:e";
+
+  include enum-submodule;
+
+  import enum-types { prefix "t"; }
+
+  description
+    "This module tests for enumerations that are defined in
+     a submodule to ensure their DefiningModule is set correctly
+     and a union containing an enum used in a common grouping
+     is generated as two different Go enums.";
+
+  identity SO_LONG_AND_THANKS_FOR_ALL_THE_FISH { base t:ID; }
+
+  typedef cenum {
+    type union {
+      type enumeration {
+        enum A;
+        enum B;
+      }
+      type string;
+    }
+  }
+
+  grouping common-group {
+    leaf cgl {
+      type cenum;
+    }
+
+    leaf cde {
+      type identityref {
+        base t:ID;
+      }
+    }
+  }
+
+  container a-lists {
+    list a-list {
+      key "cgl";
+
+      leaf cgl {
+        type leafref {
+          path "../state/cgl";
+        }
+      }
+
+      container state {
+        config false;
+        uses common-group;
+      }
+    }
+  }
+
+  container b-lists {
+    list b-list {
+      key "cgl";
+
+      leaf cgl {
+        type leafref {
+          path "../state/cgl";
+        }
+      }
+
+      container state {
+        config false;
+        uses common-group;
+      }
+    }
+  }
+}

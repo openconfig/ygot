@@ -105,6 +105,11 @@ func newGenState() *genState {
 	}
 }
 
+// unionMarker is an annotation added to enumerated types to indicate that they
+// are within a union. This allows specific code generation to be used in
+// resolving their names, preventing changes across code generations.
+const unionMarker string = "enumerationInUnion"
+
 // enumeratedUnionEntry takes an input YANG union yang.Entry and returns the set of enumerated
 // values that should be generated for the entry. New yang.Entry instances are synthesised within
 // the yangEnums returned such that enumerations can be generated directly from the output of
@@ -119,6 +124,7 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUndersco
 		var en *yangEnum
 		switch {
 		case t.IdentityBase != nil:
+			fmt.Printf("%s is a identityref\n", e.Path())
 			en = &yangEnum{
 				name: s.identityrefBaseTypeFromIdentity(t.IdentityBase, noUnderscores),
 				entry: &yang.Entry{
@@ -131,17 +137,24 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUndersco
 				},
 			}
 		case t.Enum != nil:
+			fmt.Printf("%s is an enumeration\n", e.Path())
 			var enumName string
-			if _, chBuiltin := yang.TypeKindFromName[t.Name]; chBuiltin {
+			switch _, chBuiltin := yang.TypeKindFromName[t.Name]; chBuiltin {
+			case true:
+				fmt.Printf("%s uses resolveEnumName\n", e.Path())
+				//if e.Annotation == nil {
+				//	e.Annotation = map[string]interface{}{}
+				//}
+				//e.Annotation[unionMarker] = true
 				enumName = s.resolveEnumName(e, compressPaths, noUnderscores)
-			} else {
+			default:
 				var err error
 				enumName, err = s.resolveTypedefEnumeratedName(e, noUnderscores)
 				if err != nil {
 					return nil, err
 				}
 			}
-
+			fmt.Printf("mapped %s to %s\n", e.Path(), enumName)
 			en = &yangEnum{
 				name: enumName,
 				entry: &yang.Entry{
@@ -151,7 +164,9 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUndersco
 						Kind: yang.Yenum,
 						Enum: t.Enum,
 					},
-					Annotation: map[string]interface{}{"valuePrefix": traverseElementSchemaPath(e)},
+					Annotation: map[string]interface{}{
+						"valuePrefix": traverseElementSchemaPath(e),
+					},
 				},
 			}
 		}
@@ -252,7 +267,8 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, no
 	var enumNames []string
 	var errs []error
 
-	if compressPaths {
+	switch {
+	case compressPaths:
 		// Don't generate output for an element that exists both in the config and state containers,
 		// i.e., /interfaces/interface/config/enum and /interfaces/interface/state/enum should not
 		// both have code generated for them. Since there may be containers underneath state then
@@ -263,7 +279,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, no
 		// the path, therefore the below algorithm replaces only one element.
 		for path, e := range entries {
 			parts := strings.Split(path, "/")
-
+			fmt.Printf("looking at %v...", parts)
 			var newPath []string
 			for _, p := range parts {
 				if p == "state" {
@@ -277,17 +293,21 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, no
 				// code generated for it.
 				validEnums[path] = e
 				enumNames = append(enumNames, path)
-			} else {
-				// Else, if we changed the path, then we changed a state container for
-				// a config container, and we should check whether the config leaf
-				// exists. Only when it doesn't do we consider this enum.
-				if _, ok := entries[joinPath(newPath)]; !ok {
-					validEnums[path] = e
-					enumNames = append(enumNames, path)
-				}
+				fmt.Printf("appended @281\n")
+				continue
 			}
+			// If we changed the path, then we changed a state container for
+			// a config container, and we should check whether the config leaf
+			// exists. Only when it doesn't do we consider this enum.
+			if _, ok := entries[joinPath(newPath)]; !ok {
+				validEnums[path] = e
+				enumNames = append(enumNames, path)
+				fmt.Printf("appended @290\n")
+				continue
+			}
+			fmt.Printf("excluded.\n")
 		}
-	} else {
+	default:
 		// No de-duplication occurs when path compression is disabled.
 		validEnums = entries
 		for n := range validEnums {
@@ -311,6 +331,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, no
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
 			es, err := s.enumeratedUnionEntry(e, compressPaths, noUnderscores)
+			fmt.Printf("@338 looking at %v (at %s)...", es, e.Path())
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -318,8 +339,12 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, no
 			for _, en := range es {
 				if _, ok := genEnums[en.name]; !ok {
 					genEnums[en.name] = en
+					fmt.Printf("appended %s...", en.name)
+				} else {
+					fmt.Printf("skipped %s...", en.name)
 				}
 			}
+			fmt.Printf("\n")
 		case e.Type.Name == "identityref":
 			// This is an identityref - we do not want to generate code for an
 			// identityref but rather for the base identity. This means that we reduce
@@ -330,11 +355,15 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, no
 				continue
 			}
 			idBaseName := s.resolveIdentityRefBaseType(e, noUnderscores)
+			fmt.Printf("@338 looking at %v (at %s)...", idBaseName, e.Path())
 			if _, ok := genEnums[idBaseName]; !ok {
 				genEnums[idBaseName] = &yangEnum{
 					name:  idBaseName,
 					entry: e,
 				}
+				fmt.Printf("appended\n")
+			} else {
+				fmt.Printf("skipped\n")
 			}
 		case e.Type.Name == "enumeration":
 			// We simply want to map this enumeration into a new name. Since we do
@@ -389,7 +418,7 @@ func (s *genState) resolveIdentityRefBaseType(idr *yang.Entry, noUnderscores boo
 // from the name returned such that the enumerated type name is compliant with
 // language styles where underscores are not allowed in names.
 func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity, noUnderscores bool) string {
-	definingModName := parentModuleName(i)
+	definingModName := parentCodeModuleName(i)
 
 	// As per a typedef that includes an enumeration, there is a many to one
 	// relationship between leaves and an identity value, therefore, we want to
@@ -431,23 +460,33 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 	//
 	// The path that is used for the enumeration is therefore taking the goyang
 	// "Node" hierarchy - we walk back up the tree until such time as we find
-	// a node that is not within the same module (parentModuleName(parent) !=
-	// parentModuleName(currentNode)), and use this as the unique path.
-	definingModName := parentModuleName(e.Node)
+	// a node that is not within the same module (parentCodeModuleName(parent) !=
+	// parentCodeModuleName(currentNode)), and use this as the unique path.
+	definingModName := parentCodeModuleName(e.Node)
 	var identifierPathElem []string
 	for elem := e.Node; elem.ParentNode() != nil && parentModuleName(elem) == definingModName; elem = elem.ParentNode() {
 		identifierPathElem = append(identifierPathElem, elem.NName())
 	}
 
+	fmt.Printf("%s identifier path elem was %v\n", e.Path(), identifierPathElem)
 	// Since the path elements are compiled from leaf back to root, then reverse them to
 	// form the path, this is not strictly required, but aids debugging of the elements.
 	var identifierPath string
 	for i := len(identifierPathElem) - 1; i >= 0; i-- {
 		identifierPath = fmt.Sprintf("%s/%s", identifierPath, identifierPathElem[i])
 	}
+	fmt.Printf("%s identifier path was %s --> %v\n", e.Path(), identifierPath, e.Annotation)
 
 	// If the leaf had already been encountered, then return the previously generated
-	// name, rather than generating a new name.
+	// name, rather than generating a new name. We skip this step if we are in a union
+	// since it means that the type name is defined based on the leaf's path, rather
+	// than the type, and hence this results in flakes if the same leaf within a
+	// particular grouping is re-used.
+	if _, ok := e.Annotation[unionMarker]; ok {
+		identifierPath = e.Path()
+	}
+	fmt.Printf("%s identifier path is now %s\n", e.Path(), identifierPath)
+
 	if definedName, ok := s.uniqueEnumeratedLeafNames[identifierPath]; ok {
 		return definedName
 	}
@@ -463,7 +502,9 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 		if noUnderscores {
 			name = strings.Replace(name, "_", "", -1)
 		}
+		fmt.Printf("%s->before: %s\n", e.Path(), name)
 		uniqueName := makeNameUnique(name, s.definedGlobals)
+		fmt.Printf("%s->after: %s\n", e.Path(), uniqueName)
 		s.uniqueEnumeratedLeafNames[identifierPath] = uniqueName
 		return uniqueName
 	}
@@ -487,6 +528,7 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 // Go code.
 func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores bool) (string, error) {
 	typeName := e.Type.Name
+	fmt.Printf("%s went through resolveTypedefEnumeratedName, %v\n", e.Path(), e.Annotation)
 
 	// Handle the case whereby we have been handed an enumeration that is within a
 	// union. We need to synthesise the name of the type here such that it is based on
@@ -512,7 +554,7 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores boo
 		return "", fmt.Errorf("nil Node in enum type %s", e.Name)
 	}
 
-	definingModName := parentModuleName(e.Node)
+	definingModName := parentCodeModuleName(e.Node)
 	// Since there can be many leaves that refer to the same typedef, then we do not generate
 	// a name for each of them, but rather use a common name, we use the non-CamelCase lookup
 	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef

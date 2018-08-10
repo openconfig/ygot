@@ -553,6 +553,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		// to be extracted.
 		return s.goUnionType(args, compressOCPaths)
 	case yang.Yenum:
+		fmt.Printf("call hierarchy for %s passes through yangTypeToGoType -> %v\n", args.contextEntry.Path(), args.contextEntry.Annotation)
 		// Enumeration types need to be resolved to a particular data path such
 		// that a created enumered Go type can be used to set their value. Hand
 		// the leaf to the resolveEnumName function to determine the name.

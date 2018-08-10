@@ -1734,7 +1734,7 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 				Name: v,
 				// Append the defining module by looking at the root node of the
 				// identity - i.e., the module that defined it.
-				DefiningModule: yang.RootNode(valLookup[v]).Name,
+				DefiningModule: parentModuleName(valLookup[v]),
 			}
 		}
 	default:
@@ -1801,6 +1801,12 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, abs
 		// isKey to true so that the struct field can be mapped to the
 		// leafref leaf within the schema as well as the target of the
 		// leafref.
+		if k.Parent == nil || k.Parent.Parent == nil {
+			return nil, fmt.Errorf("%s had a nil parent, or grandparent, invalid OpenConfig schema", k.Path())
+		}
+		if _, ok := k.Parent.Parent.Dir[k.Name]; !ok {
+			return nil, fmt.Errorf("cannot find the key %s in the schema for %s", k.Name, k.Path())
+		}
 		if reflect.DeepEqual(traverseElementSchemaPath(k), fieldSlicePath) && k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref {
 			// The path of the key element is simply the name of the leaf under the
 			// list, since the YANG specification enforces that keys are direct
