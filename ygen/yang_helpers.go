@@ -410,3 +410,8 @@ func isChildOfModule(msg *yangDirectory) bool {
 	}
 	return false
 }
+
+func isYANGBaseType(t *yang.YangType) bool {
+	_, builtin := yang.TypeKindFromName[t.Name]
+	return builtin
+}

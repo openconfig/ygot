@@ -111,7 +111,8 @@ type resolveTypeArgs struct {
 	// user-defined type (typedef) that in turn has enumerated values - the
 	// context of the yang.Entry is required such that the leaf's context
 	// can be established.
-	contextEntry *yang.Entry
+	contextEntry      *yang.Entry
+	isTypedefWithEnum bool
 }
 
 // TODO(robjs): When adding support for other language outputs, we should restructure
@@ -560,7 +561,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 			return nil, fmt.Errorf("cannot map enum without context")
 		}
 		return &mappedType{
-			nativeType:        fmt.Sprintf("E_%s", s.resolveEnumName(args.contextEntry, compressOCPaths, false)),
+			nativeType:        fmt.Sprintf("E_%s", s.resolveEnumName(args.contextEntry, compressOCPaths, false, args.isTypedefWithEnum)),
 			isEnumeratedValue: true,
 		}, nil
 	case yang.Yidentityref:
@@ -675,6 +676,8 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 		return errs
 	}
 
+	var inTypedef bool
+	_ = inTypedef
 	var mtype *mappedType
 	switch subtype.Kind {
 	case yang.Yidentityref:
@@ -685,9 +688,18 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 		mtype = &mappedType{
 			nativeType: fmt.Sprintf("E_%s", s.identityrefBaseTypeFromIdentity(subtype.IdentityBase, false)),
 		}
+	case yang.Yenum:
+		//fmt.Printf("DEBUG %s went through this path\n", ctx.Path())
+		if ctx != nil && !isYANGBaseType(ctx.Type) {
+			fmt.Printf("DEBUG  %s -> %v\n", ctx.Path(), ctx.Type)
+			inTypedef = true
+		}
+		//fmt.Printf("DEBUG: %v %v %v\n", s.uniqueEnumeratedTypedefNames, s.uniqueEnumeratedLeafNames, s.uniqueIdentityNames)
+		fallthrough
 	default:
 		var err error
-		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: subtype, contextEntry: ctx}, compressOCPaths)
+
+		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: subtype, contextEntry: ctx, isTypedefWithEnum: inTypedef}, compressOCPaths)
 		if err != nil {
 			errs = append(errs, err)
 			return errs

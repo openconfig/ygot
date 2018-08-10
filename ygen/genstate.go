@@ -133,7 +133,7 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUndersco
 		case t.Enum != nil:
 			var enumName string
 			if _, chBuiltin := yang.TypeKindFromName[t.Name]; chBuiltin {
-				enumName = s.resolveEnumName(e, compressPaths, noUnderscores)
+				enumName = s.resolveEnumName(e, compressPaths, noUnderscores, false)
 			} else {
 				var err error
 				enumName, err = s.resolveTypedefEnumeratedName(e, noUnderscores)
@@ -417,7 +417,7 @@ func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity, noUnderscor
 // multiple times, and hence de-duplication of unique name generation is required.
 // If noUnderscores is set to true, then underscores are omitted from the
 // output name.
-func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores bool) string {
+func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores, inTypedef bool) string {
 	// It is possible, given a particular enumerated leaf, for it to appear
 	// multiple times in the schema. For example, through being defined in
 	// a grouping which is instantiated in two places. In these cases, the
@@ -458,8 +458,7 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 		// State or Config so would not be unique. The proposed name is
 		// handed to makeNameUnique to ensure that it does not clash with
 		// other defined names.
-		name := fmt.Sprintf("%s_%s_%s", yang.CamelCase(definingModName),
-			yang.CamelCase(e.Parent.Parent.Name), yang.CamelCase(e.Name))
+		name := fmt.Sprintf("%s_%s_%s", yang.CamelCase(definingModName), yang.CamelCase(e.Parent.Parent.Name), yang.CamelCase(e.Name))
 		if noUnderscores {
 			name = strings.Replace(name, "_", "", -1)
 		}
@@ -547,7 +546,7 @@ func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string
 	// types which is defined in RFC6020/RFC7950) then we establish what the type
 	// that we must actually perform the mapping for is. By default, start with
 	// the type that is specified in the schema.
-	if _, builtin := yang.TypeKindFromName[args.yangType.Name]; !builtin {
+	if !isYANGBaseType(args.yangType) {
 		switch args.yangType.Kind {
 		case yang.Yenum, yang.Yidentityref:
 			// In the case of a typedef that specifies an enumeration or identityref
