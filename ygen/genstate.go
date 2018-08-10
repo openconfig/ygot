@@ -133,7 +133,7 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUndersco
 		case t.Enum != nil:
 			var enumName string
 			if _, chBuiltin := yang.TypeKindFromName[t.Name]; chBuiltin {
-				enumName = s.resolveEnumName(e, compressPaths, noUnderscores, false)
+				enumName = s.resolveEnumName(e, compressPaths, noUnderscores)
 			} else {
 				var err error
 				enumName, err = s.resolveTypedefEnumeratedName(e, noUnderscores)
@@ -343,7 +343,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, no
 			// in two places, then we do not want to have multiple enumerated types
 			// that represent this leaf), then we do not have errors if duplicates
 			// occur, we simply perform de-duplication at this stage.
-			enumName := s.resolveEnumName(e, compressPaths, noUnderscores, false)
+			enumName := s.resolveEnumName(e, compressPaths, noUnderscores)
 			if _, ok := genEnums[enumName]; !ok {
 				genEnums[enumName] = &yangEnum{
 					name:  enumName,
@@ -417,7 +417,7 @@ func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity, noUnderscor
 // multiple times, and hence de-duplication of unique name generation is required.
 // If noUnderscores is set to true, then underscores are omitted from the
 // output name.
-func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores, inTypedef bool) string {
+func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores bool) string {
 	// It is possible, given a particular enumerated leaf, for it to appear
 	// multiple times in the schema. For example, through being defined in
 	// a grouping which is instantiated in two places. In these cases, the
@@ -446,14 +446,22 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores, 
 		identifierPath = fmt.Sprintf("%s/%s", identifierPath, identifierPathElem[i])
 	}
 
-	// If the leaf had already been encountered, then return the previously generated
-	// name, rather than generating a new name.
+	// For leaves that have an enumeration within a typedef that is within a union,
+	// we do not want to just use the place in the schema definition for de-duplication,
+	// since it becomes confusing for the user to have non-contextual names within
+	// this context. We therefore rewrite the identifier path to have the context
+	// that we are in. By default, we just use the name of the node, but in OpenConfig
+	// schemas we rely on the grandparent name.
 	if !isYANGBaseType(e.Type) {
-		newID := fmt.Sprintf("%s%s", e.Parent.Parent.Name, identifierPath)
-		fmt.Printf("DEBUG rewrote %s->%s\n", identifierPath, newID)
-		identifierPath = newID
+		idPfx := e.Name
+		if compressPaths && e.Parent != nil && e.Parent.Parent != nil {
+			idPfx = e.Parent.Parent.Name
+		}
+		identifierPath = fmt.Sprintf("%s%s", idPfx, identifierPath)
 	}
 
+	// If the leaf had already been encountered, then return the previously generated
+	// name, rather than generating a new name.
 	if definedName, ok := s.uniqueEnumeratedLeafNames[identifierPath]; ok {
 		return definedName
 	}
