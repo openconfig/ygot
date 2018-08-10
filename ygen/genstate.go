@@ -343,7 +343,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, no
 			// in two places, then we do not want to have multiple enumerated types
 			// that represent this leaf), then we do not have errors if duplicates
 			// occur, we simply perform de-duplication at this stage.
-			enumName := s.resolveEnumName(e, compressPaths, noUnderscores)
+			enumName := s.resolveEnumName(e, compressPaths, noUnderscores, false)
 			if _, ok := genEnums[enumName]; !ok {
 				genEnums[enumName] = &yangEnum{
 					name:  enumName,
@@ -448,6 +448,12 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores, 
 
 	// If the leaf had already been encountered, then return the previously generated
 	// name, rather than generating a new name.
+	if !isYANGBaseType(e.Type) {
+		newID := fmt.Sprintf("%s%s", e.Parent.Parent.Name, identifierPath)
+		fmt.Printf("DEBUG rewrote %s->%s\n", identifierPath, newID)
+		identifierPath = newID
+	}
+
 	if definedName, ok := s.uniqueEnumeratedLeafNames[identifierPath]; ok {
 		return definedName
 	}
