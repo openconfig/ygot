@@ -635,7 +635,6 @@ func TestSimpleStructs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			genCode := func() (*GeneratedGoCode, string, map[string]interface{}) {
-
 				// Set defaults within the supplied configuration for these tests.
 				if tt.inConfig.Caller == "" {
 					// Set the name of the caller explicitly to avoid issues when
@@ -1161,6 +1160,15 @@ func TestGenerateProto3(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
+			sortedPkgNames := func(pkgs map[string]string) []string {
+				wantPkgs := []string{}
+				for k := range tt.wantOutputFiles {
+					wantPkgs = append(wantPkgs, k)
+				}
+				sort.Strings(wantPkgs)
+				return wantPkgs
+			}
+
 			genCode := func() *GeneratedProto3 {
 				if tt.inConfig.Caller == "" {
 					// Override the caller if it is not set, to ensure that test
@@ -1198,12 +1206,7 @@ func TestGenerateProto3(t *testing.T) {
 				return a
 			}
 
-			wantPkgs := []string{}
-			for k := range tt.wantOutputFiles {
-				wantPkgs = append(wantPkgs, k)
-			}
-			sort.Strings(wantPkgs)
-
+			wantPkgs := sortedPkgNames(tt.wantOutputFiles)
 			for _, pkg := range wantPkgs {
 				wantFile := tt.wantOutputFiles[pkg]
 				wantCode, err := ioutil.ReadFile(wantFile)
@@ -1253,12 +1256,7 @@ func TestGenerateProto3(t *testing.T) {
 				got := genCode()
 				var gotCodeBuf bytes.Buffer
 
-				wantPkgs := []string{}
-				for k := range tt.wantOutputFiles {
-					wantPkgs = append(wantPkgs, k)
-				}
-				sort.Strings(wantPkgs)
-
+				wantPkgs := sortedPkgNames(tt.wantOutputFiles)
 				for _, pkg := range wantPkgs {
 					gotPkg, ok := got.Packages[pkg]
 					if !ok {
