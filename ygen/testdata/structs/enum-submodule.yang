@@ -1,0 +1,22 @@
+submodule enum-submodule {
+
+  belongs-to enum-module {
+    prefix "e";
+  }
+
+  import enum-types { prefix "t"; }
+
+  description
+    "This submodule defines an identity and an enum to
+    check their references.";
+
+  identity FORTY_TWO { base t:ID; }
+
+  container c {
+    leaf cl {
+      type enumeration {
+        enum X;
+      }
+    }
+  }
+}
