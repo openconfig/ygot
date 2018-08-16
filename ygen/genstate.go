@@ -446,6 +446,20 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 		identifierPath = fmt.Sprintf("%s/%s", identifierPath, identifierPathElem[i])
 	}
 
+	// For leaves that have an enumeration within a typedef that is within a union,
+	// we do not want to just use the place in the schema definition for de-duplication,
+	// since it becomes confusing for the user to have non-contextual names within
+	// this context. We therefore rewrite the identifier path to have the context
+	// that we are in. By default, we just use the name of the node, but in OpenConfig
+	// schemas we rely on the grandparent name.
+	if !isYANGBaseType(e.Type) {
+		idPfx := e.Name
+		if compressPaths && e.Parent != nil && e.Parent.Parent != nil {
+			idPfx = e.Parent.Parent.Name
+		}
+		identifierPath = fmt.Sprintf("%s%s", idPfx, identifierPath)
+	}
+
 	// If the leaf had already been encountered, then return the previously generated
 	// name, rather than generating a new name.
 	if definedName, ok := s.uniqueEnumeratedLeafNames[identifierPath]; ok {
@@ -458,8 +472,7 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 		// State or Config so would not be unique. The proposed name is
 		// handed to makeNameUnique to ensure that it does not clash with
 		// other defined names.
-		name := fmt.Sprintf("%s_%s_%s", yang.CamelCase(definingModName),
-			yang.CamelCase(e.Parent.Parent.Name), yang.CamelCase(e.Name))
+		name := fmt.Sprintf("%s_%s_%s", yang.CamelCase(definingModName), yang.CamelCase(e.Parent.Parent.Name), yang.CamelCase(e.Name))
 		if noUnderscores {
 			name = strings.Replace(name, "_", "", -1)
 		}
@@ -547,7 +560,7 @@ func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string
 	// types which is defined in RFC6020/RFC7950) then we establish what the type
 	// that we must actually perform the mapping for is. By default, start with
 	// the type that is specified in the schema.
-	if _, builtin := yang.TypeKindFromName[args.yangType.Name]; !builtin {
+	if !isYANGBaseType(args.yangType) {
 		switch args.yangType.Kind {
 		case yang.Yenum, yang.Yidentityref:
 			// In the case of a typedef that specifies an enumeration or identityref
