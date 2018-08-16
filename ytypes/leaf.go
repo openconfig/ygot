@@ -547,8 +547,23 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		if err != nil {
 			return fmt.Errorf("could not unmarshal %v into type %s", value, yk)
 		}
-		destUnionFieldV.Set(reflect.ValueOf(ygot.ToPtr(goValue)))
+
+		if !util.IsTypeSlice(destUnionFieldElemT) {
+			destUnionFieldV.Set(reflect.ValueOf(ygot.ToPtr(goValue)))
+			return nil
+		}
+
+		// Handle the case whereby the single-type union is actually a leaf-list,
+		// such that the representation in the struct is a slice, rather than a
+		// scalar.
+		sl := reflect.MakeSlice(destUnionFieldElemT, 0, 0)
+		if !destUnionFieldV.IsNil() {
+			// Ensure that we handle the case where there is an existing slice.
+			sl = destUnionFieldV
+		}
+		destUnionFieldV.Set(reflect.Append(sl, reflect.ValueOf(goValue)))
 		return nil
+
 	}
 
 	// For each possible union type, try to unmarshal the JSON value. If it can

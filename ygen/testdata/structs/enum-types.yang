@@ -1,0 +1,10 @@
+module enum-types {
+  prefix "t";
+  namespace "urn:t";
+
+  description
+    "This module defines an identity to act as a common
+     base across enum-types.";
+
+  identity ID;
+}
