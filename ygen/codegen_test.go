@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
@@ -33,6 +34,9 @@ const (
 	// TestRoot is the root of the test directory such that this is not
 	// repeated when referencing files.
 	TestRoot string = ""
+	// deflakeRuns specifies the number of runs of code generation that
+	// should be performed to check for flakes.
+	deflakeRuns int = 10
 )
 
 // TestFindMappableEntities tests the extraction of elements that are to be mapped
@@ -630,81 +634,90 @@ func TestSimpleStructs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set defaults within the supplied configuration for these tests.
-			if tt.inConfig.Caller == "" {
-				// Set the name of the caller explicitly to avoid issues when
-				// the unit tests are called by external test entities.
-				tt.inConfig.Caller = "codegen-tests"
-			}
-			tt.inConfig.StoreRawSchema = true
+			genCode := func() (*GeneratedGoCode, string, map[string]interface{}) {
+				// Set defaults within the supplied configuration for these tests.
+				if tt.inConfig.Caller == "" {
+					// Set the name of the caller explicitly to avoid issues when
+					// the unit tests are called by external test entities.
+					tt.inConfig.Caller = "codegen-tests"
+				}
+				tt.inConfig.StoreRawSchema = true
 
-			cg := NewYANGCodeGenerator(&tt.inConfig)
+				cg := NewYANGCodeGenerator(&tt.inConfig)
 
-			gotGeneratedCode, err := cg.GenerateGoCode(tt.inFiles, tt.inIncludePaths)
-			if err != nil && !tt.wantErr {
-				t.Errorf("%s: cg.GenerateCode(%v, %v): Config: %v, got unexpected error: %v, want: nil",
-					tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
-				return
-			}
-
-			wantCode, rferr := ioutil.ReadFile(tt.wantStructsCodeFile)
-			if rferr != nil {
-				t.Errorf("%s: ioutil.ReadFile(%q) error: %v", tt.name, tt.wantStructsCodeFile, rferr)
-				return
-			}
-
-			// Write all the received structs into a single file such that
-			// it can be compared to the received file.
-			var gotCode bytes.Buffer
-			fmt.Fprint(&gotCode, gotGeneratedCode.CommonHeader)
-			fmt.Fprint(&gotCode, gotGeneratedCode.OneOffHeader)
-			for _, gotStruct := range gotGeneratedCode.Structs {
-				fmt.Fprint(&gotCode, gotStruct.String())
-			}
-
-			for _, gotEnum := range gotGeneratedCode.Enums {
-				fmt.Fprint(&gotCode, gotEnum)
-			}
-
-			// Write generated enumeration map out.
-			fmt.Fprint(&gotCode, gotGeneratedCode.EnumMap)
-
-			if tt.inConfig.GenerateJSONSchema {
-				// Write the schema byte array out.
-				fmt.Fprint(&gotCode, gotGeneratedCode.JSONSchemaCode)
-				fmt.Fprint(&gotCode, gotGeneratedCode.EnumTypeMap)
-
-				wantSchema, rferr := ioutil.ReadFile(tt.wantSchemaFile)
-				if rferr != nil {
-					t.Errorf("%s: ioutil.ReadFile(%q) error: %v", tt.name, tt.wantSchemaFile, err)
-					return
+				gotGeneratedCode, err := cg.GenerateGoCode(tt.inFiles, tt.inIncludePaths)
+				if err != nil && !tt.wantErr {
+					t.Fatalf("%s: cg.GenerateCode(%v, %v): Config: %v, got unexpected error: %v, want: nil", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
 				}
 
+				// Write all the received structs into a single file such that
+				// it can be compared to the received file.
+				var gotCode bytes.Buffer
+				fmt.Fprint(&gotCode, gotGeneratedCode.CommonHeader)
+				fmt.Fprint(&gotCode, gotGeneratedCode.OneOffHeader)
+				for _, gotStruct := range gotGeneratedCode.Structs {
+					fmt.Fprint(&gotCode, gotStruct.String())
+				}
+
+				for _, gotEnum := range gotGeneratedCode.Enums {
+					fmt.Fprint(&gotCode, gotEnum)
+				}
+
+				// Write generated enumeration map out.
+				fmt.Fprint(&gotCode, gotGeneratedCode.EnumMap)
+
 				var gotJSON map[string]interface{}
-				if err := json.Unmarshal(gotGeneratedCode.RawJSONSchema, &gotJSON); err != nil {
-					t.Errorf("%s: json.Unmarshal(..., %v), could not unmarshal received JSON: %v", tt.name, gotGeneratedCode.RawJSONSchema, err)
-					return
+				if tt.inConfig.GenerateJSONSchema {
+					// Write the schema byte array out.
+					fmt.Fprint(&gotCode, gotGeneratedCode.JSONSchemaCode)
+					fmt.Fprint(&gotCode, gotGeneratedCode.EnumTypeMap)
+
+					if err := json.Unmarshal(gotGeneratedCode.RawJSONSchema, &gotJSON); err != nil {
+						t.Fatalf("%s: json.Unmarshal(..., %v), could not unmarshal received JSON: %v", tt.name, gotGeneratedCode.RawJSONSchema, err)
+					}
+				}
+				return gotGeneratedCode, gotCode.String(), gotJSON
+			}
+
+			gotGeneratedCode, gotCode, gotJSON := genCode()
+
+			if tt.wantSchemaFile != "" {
+				wantSchema, rferr := ioutil.ReadFile(tt.wantSchemaFile)
+				if rferr != nil {
+					t.Fatalf("%s: ioutil.ReadFile(%q) error: %v", tt.name, tt.wantSchemaFile, rferr)
 				}
 
 				var wantJSON map[string]interface{}
 				if err := json.Unmarshal(wantSchema, &wantJSON); err != nil {
-					t.Errorf("%s: json.Unmarshal(..., [contents of %s]), could not unmarshal golden JSON file: %v", tt.name, tt.wantSchemaFile, err)
-					return
+					t.Fatalf("%s: json.Unmarshal(..., [contents of %s]), could not unmarshal golden JSON file: %v", tt.name, tt.wantSchemaFile, err)
 				}
 
 				if !reflect.DeepEqual(gotJSON, wantJSON) {
 					diff, _ := testutil.GenerateUnifiedDiff(string(gotGeneratedCode.RawJSONSchema), string(wantSchema))
-					t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
+					t.Fatalf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
 				}
 			}
 
-			if gotCode.String() != string(wantCode) {
+			wantCode, rferr := ioutil.ReadFile(tt.wantStructsCodeFile)
+			if rferr != nil {
+				t.Fatalf("%s: ioutil.ReadFile(%q) error: %v", tt.name, tt.wantStructsCodeFile, rferr)
+			}
+
+			if gotCode != string(wantCode) {
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
-				diff, _ := testutil.GenerateUnifiedDiff(gotCode.String(), string(wantCode))
+				diff, _ := testutil.GenerateUnifiedDiff(gotCode, string(wantCode))
 				t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct code (file: %v), diff:\n%s",
 					tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diff)
+			}
+
+			for i := 0; i < deflakeRuns; i++ {
+				_, gotAttempt, _ := genCode()
+				if gotAttempt != gotCode {
+					diff, _ := testutil.GenerateUnifiedDiff(gotCode, gotAttempt)
+					t.Fatalf("flaky code generation, diff:\n%s", diff)
+				}
 			}
 		})
 	}
@@ -844,36 +857,38 @@ func TestFindRootEntries(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		for compress, wantChildren := range map[bool][]string{true: tt.wantCompressRootChildren, false: tt.wantUncompressRootChildren} {
-			if err := createFakeRoot(tt.inStructs, tt.inRootElems, tt.inRootName, compress); err != nil {
-				t.Errorf("%s: cg.createFakeRoot(%v), CompressOCPaths: %v, got unexpected error: %v", tt.name, tt.inStructs, compress, err)
-				continue
-			}
-
-			rootElem, ok := tt.inStructs["/"]
-			if !ok {
-				t.Errorf("%s: cg.createFakeRoot(%v), CompressOCPaths: %v, could not find root element", tt.name, tt.inStructs, compress)
-				continue
-			}
-
-			gotChildren := map[string]bool{}
-			for n := range rootElem.Dir {
-				gotChildren[n] = true
-			}
-
-			for _, ch := range wantChildren {
-				if _, ok := rootElem.Dir[ch]; !ok {
-					t.Errorf("%s: cg.createFakeRoot(%v), CompressOCPaths: %v, could not find child %v in %v", tt.name, tt.inStructs, compress, ch, rootElem.Dir)
+		t.Run(tt.name, func(t *testing.T) {
+			for compress, wantChildren := range map[bool][]string{true: tt.wantCompressRootChildren, false: tt.wantUncompressRootChildren} {
+				if err := createFakeRoot(tt.inStructs, tt.inRootElems, tt.inRootName, compress); err != nil {
+					t.Errorf("cg.createFakeRoot(%v), CompressOCPaths: %v, got unexpected error: %v", tt.inStructs, compress, err)
+					continue
 				}
-				gotChildren[ch] = false
-			}
 
-			for ch, ok := range gotChildren {
-				if ok == true {
-					t.Errorf("%s: cg.findRootentries(%v), CompressOCPaths: %v, did not expect child %v", tt.name, tt.inStructs, compress, ch)
+				rootElem, ok := tt.inStructs["/"]
+				if !ok {
+					t.Errorf("cg.createFakeRoot(%v), CompressOCPaths: %v, could not find root element", tt.inStructs, compress)
+					continue
+				}
+
+				gotChildren := map[string]bool{}
+				for n := range rootElem.Dir {
+					gotChildren[n] = true
+				}
+
+				for _, ch := range wantChildren {
+					if _, ok := rootElem.Dir[ch]; !ok {
+						t.Errorf("cg.createFakeRoot(%v), CompressOCPaths: %v, could not find child %v in %v", tt.inStructs, compress, ch, rootElem.Dir)
+					}
+					gotChildren[ch] = false
+				}
+
+				for ch, ok := range gotChildren {
+					if ok == true {
+						t.Errorf("cg.findRootentries(%v), CompressOCPaths: %v, did not expect child %v", tt.inStructs, compress, ch)
+					}
 				}
 			}
-		}
+		})
 	}
 }
 
@@ -1144,22 +1159,39 @@ func TestGenerateProto3(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.inConfig.Caller == "" {
-				// Override the caller if it is not set, to ensure that test
-				// output is deterministic.
-				tt.inConfig.Caller = "codegen-tests"
+
+			sortedPkgNames := func(pkgs map[string]string) []string {
+				wantPkgs := []string{}
+				for k := range tt.wantOutputFiles {
+					wantPkgs = append(wantPkgs, k)
+				}
+				sort.Strings(wantPkgs)
+				return wantPkgs
 			}
 
-			cg := NewYANGCodeGenerator(&tt.inConfig)
-			gotProto, err := cg.GenerateProto3(tt.inFiles, tt.inIncludePaths)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("%s: cg.GenerateProto3(%v, %v), config: %v: got unexpected error: %v", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
-				return
+			genCode := func() *GeneratedProto3 {
+				if tt.inConfig.Caller == "" {
+					// Override the caller if it is not set, to ensure that test
+					// output is deterministic.
+					tt.inConfig.Caller = "codegen-tests"
+				}
+
+				cg := NewYANGCodeGenerator(&tt.inConfig)
+				gotProto, err := cg.GenerateProto3(tt.inFiles, tt.inIncludePaths)
+				if (err != nil) != tt.wantErr {
+					t.Fatalf("cg.GenerateProto3(%v, %v), config: %v: got unexpected error: %v", tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
+				}
+
+				if tt.wantErr || err != nil {
+					return nil
+				}
+
+				return gotProto
 			}
 
-			if tt.wantErr || err != nil {
-				return
-			}
+			gotProto := genCode()
+
+			allCode := bytes.Buffer{}
 
 			seenPkg := map[string]bool{}
 			for n := range gotProto.Packages {
@@ -1174,7 +1206,9 @@ func TestGenerateProto3(t *testing.T) {
 				return a
 			}
 
-			for pkg, wantFile := range tt.wantOutputFiles {
+			wantPkgs := sortedPkgNames(tt.wantOutputFiles)
+			for _, pkg := range wantPkgs {
+				wantFile := tt.wantOutputFiles[pkg]
 				wantCode, err := ioutil.ReadFile(wantFile)
 				if err != nil {
 					t.Errorf("%s: ioutil.ReadFile(%v): could not read file for package %s", tt.name, wantFile, pkg)
@@ -1183,8 +1217,7 @@ func TestGenerateProto3(t *testing.T) {
 
 				gotPkg, ok := gotProto.Packages[pkg]
 				if !ok {
-					t.Errorf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
-					return
+					t.Fatalf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
 				}
 
 				// Mark this package as having been seen.
@@ -1203,17 +1236,44 @@ func TestGenerateProto3(t *testing.T) {
 					fmt.Fprintf(&gotCodeBuf, "%s", gotEnum)
 				}
 
+				allCode.WriteString(gotCodeBuf.String())
+
 				if diff := pretty.Compare(gotCodeBuf.String(), string(wantCode)); diff != "" {
 					if diffl, _ := testutil.GenerateUnifiedDiff(gotCodeBuf.String(), string(wantCode)); diffl != "" {
 						diff = diffl
 					}
-					t.Errorf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-got,+want):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
+					t.Fatalf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-got,+want):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
 				}
 			}
 
 			for pkg, seen := range seenPkg {
 				if !seen {
 					t.Errorf("%s: cg.GenerateProto3(%v, %v) did not test received package %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg)
+				}
+			}
+
+			for i := 0; i < deflakeRuns; i++ {
+				got := genCode()
+				var gotCodeBuf bytes.Buffer
+
+				wantPkgs := sortedPkgNames(tt.wantOutputFiles)
+				for _, pkg := range wantPkgs {
+					gotPkg, ok := got.Packages[pkg]
+					if !ok {
+						t.Fatalf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
+					}
+					fmt.Fprintf(&gotCodeBuf, gotPkg.Header)
+					for _, gotMsg := range gotPkg.Messages {
+						fmt.Fprintf(&gotCodeBuf, "%s\n", gotMsg)
+					}
+					for _, gotEnum := range gotPkg.Enums {
+						fmt.Fprintf(&gotCodeBuf, "%s", gotEnum)
+					}
+				}
+
+				if diff := pretty.Compare(gotCodeBuf.String(), allCode.String()); diff != "" {
+					diff, _ = testutil.GenerateUnifiedDiff(gotCodeBuf.String(), allCode.String())
+					t.Fatalf("flaky code generation iter: %d, diff(-got,+want):\n%s", i, diff)
 				}
 			}
 		})

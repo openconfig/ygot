@@ -283,15 +283,6 @@ func enumeratedUnionTypes(types []*yang.YangType) []*yang.YangType {
 	return eTypes
 }
 
-// appendIfNotEmpty appends a string s to a slice of strings if the string s is
-// not nil, similarly to append it returns the modified slice.
-func appendIfNotEmpty(slice []string, s string) []string {
-	if s != "" {
-		return append(slice, s)
-	}
-	return slice
-}
-
 // addNewKeys appends entries from the newKeys string slice to the
 // existing map if the entry is not an existing key. The existing
 // map is modified in place.
@@ -409,4 +400,11 @@ func isChildOfModule(msg *yangDirectory) bool {
 		return true
 	}
 	return false
+}
+
+// isYANGBaseType determines whether the supplied YangType is a built-in type
+// in YANG, or a derived type (i.e., typedef).
+func isYANGBaseType(t *yang.YangType) bool {
+	_, builtin := yang.TypeKindFromName[t.Name]
+	return builtin
 }
