@@ -687,6 +687,7 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 		}
 	default:
 		var err error
+
 		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: subtype, contextEntry: ctx}, compressOCPaths)
 		if err != nil {
 			errs = append(errs, err)

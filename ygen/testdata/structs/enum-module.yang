@@ -31,4 +31,44 @@ module enum-module {
       }
     }
   }
+
+  container a-lists {
+    list a-list {
+      key "value";
+
+      leaf value {
+        type leafref {
+          path "../state/value";
+        }
+      }
+
+      container state {
+        config false;
+        uses common-value;
+      }
+    }
+  }
+
+  container b-lists {
+    list b-list {
+      key "value";
+  
+      leaf value {
+        type leafref {
+          path "../state/value";
+        }
+      }
+
+      container state {
+        config false;
+        uses common-value;
+      }
+    }
+  }
+
+  grouping common-value {
+    leaf value {
+      type t:td;
+    }
+  }
 }
