@@ -1731,10 +1731,8 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 		for i, v := range valNames {
 			values[int64(i)+1] = safeGoEnumeratedValueName(v)
 			origValues[int64(i)+1] = ygot.EnumDefinition{
-				Name: v,
-				// Append the defining module by looking at the root node of the
-				// identity - i.e., the module that defined it.
-				DefiningModule: yang.RootNode(valLookup[v]).Name,
+				Name:           v,
+				DefiningModule: parentModuleName(valLookup[v]),
 			}
 		}
 	default:

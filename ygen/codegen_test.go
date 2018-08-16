@@ -618,6 +618,14 @@ func TestSimpleStructs(t *testing.T) {
 			ExcludeState:     true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "exclude-state-ro-list.formatted-txt"),
+	}, {
+		name:           "enumeration behaviour - resolution across submodules and grouping re-use within union",
+		inFiles:        []string{filepath.Join(TestRoot, "testdata", "structs", "enum-module.yang")},
+		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
+		inConfig: GeneratorConfig{
+			CompressOCPaths: true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.formatted-txt"),
 	}}
 
 	for _, tt := range tests {

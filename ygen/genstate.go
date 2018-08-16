@@ -389,7 +389,7 @@ func (s *genState) resolveIdentityRefBaseType(idr *yang.Entry, noUnderscores boo
 // from the name returned such that the enumerated type name is compliant with
 // language styles where underscores are not allowed in names.
 func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity, noUnderscores bool) string {
-	definingModName := parentModuleName(i)
+	definingModName := parentModulePrettyName(i)
 
 	// As per a typedef that includes an enumeration, there is a many to one
 	// relationship between leaves and an identity value, therefore, we want to
@@ -431,11 +431,11 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 	//
 	// The path that is used for the enumeration is therefore taking the goyang
 	// "Node" hierarchy - we walk back up the tree until such time as we find
-	// a node that is not within the same module (parentModuleName(parent) !=
-	// parentModuleName(currentNode)), and use this as the unique path.
-	definingModName := parentModuleName(e.Node)
+	// a node that is not within the same module (parentModulePrettyName(parent) !=
+	// parentModulePrettyName(currentNode)), and use this as the unique path.
+	definingModName := parentModulePrettyName(e.Node)
 	var identifierPathElem []string
-	for elem := e.Node; elem.ParentNode() != nil && parentModuleName(elem) == definingModName; elem = elem.ParentNode() {
+	for elem := e.Node; elem.ParentNode() != nil && parentModulePrettyName(elem) == definingModName; elem = elem.ParentNode() {
 		identifierPathElem = append(identifierPathElem, elem.NName())
 	}
 
@@ -512,7 +512,7 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores boo
 		return "", fmt.Errorf("nil Node in enum type %s", e.Name)
 	}
 
-	definingModName := parentModuleName(e.Node)
+	definingModName := parentModulePrettyName(e.Node)
 	// Since there can be many leaves that refer to the same typedef, then we do not generate
 	// a name for each of them, but rather use a common name, we use the non-CamelCase lookup
 	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef
