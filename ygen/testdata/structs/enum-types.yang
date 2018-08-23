@@ -1,0 +1,21 @@
+module enum-types {
+  prefix "t";
+  namespace "urn:t";
+
+  description
+    "This module defines an identity to act as a common
+     base across enum-types.";
+
+  identity ID;
+
+  typedef td {
+    type union {
+      type uint32;
+      type enumeration {
+        enum A;
+        enum B;
+        enum C;
+      }
+    }
+  }
+}

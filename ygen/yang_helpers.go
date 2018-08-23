@@ -138,10 +138,9 @@ func removePrefix(s string) string {
 	return strings.Split(s, ":")[1]
 }
 
-// parentModuleName returns the name of the module that defined the yang.Node
-// supplied as the node argument. If the discovered root node of the node is found
-// to be a submodule, the name of the parent module is returned.
-func parentModuleName(node yang.Node) string {
+// definingModule returns the name of the module that defined the yang.Node
+// supplied. If node is within a submodule, the parent module name is returned.
+func definingModule(node yang.Node) yang.Node {
 	var definingMod yang.Node
 	definingMod = yang.RootNode(node)
 	if definingMod.Kind() == "submodule" {
@@ -149,7 +148,21 @@ func parentModuleName(node yang.Node) string {
 		mod := definingMod.(*yang.Module)
 		definingMod = mod.BelongsTo
 	}
+	return definingMod
+}
 
+// parentModuleName returns the name of the module or submodule that defined
+// the supplied node.
+func parentModuleName(node yang.Node) string {
+	return definingModule(node).NName()
+}
+
+// parentModulePrettyName returns the name of the module that defined the yang.Node
+// supplied as the node argument. If the discovered root node of the node is found
+// to be a submodule, the name of the parent module is returned. If the root has
+// a camel case extension, this is returned rather than the actual module name.
+func parentModulePrettyName(node yang.Node) string {
+	definingMod := definingModule(node)
 	if name, ok := camelCaseNameExt(definingMod.Exts()); ok {
 		return name
 	}
@@ -270,15 +283,6 @@ func enumeratedUnionTypes(types []*yang.YangType) []*yang.YangType {
 	return eTypes
 }
 
-// appendIfNotEmpty appends a string s to a slice of strings if the string s is
-// not nil, similarly to append it returns the modified slice.
-func appendIfNotEmpty(slice []string, s string) []string {
-	if s != "" {
-		return append(slice, s)
-	}
-	return slice
-}
-
 // addNewKeys appends entries from the newKeys string slice to the
 // existing map if the entry is not an existing key. The existing
 // map is modified in place.
@@ -396,4 +400,11 @@ func isChildOfModule(msg *yangDirectory) bool {
 		return true
 	}
 	return false
+}
+
+// isYANGBaseType determines whether the supplied YangType is a built-in type
+// in YANG, or a derived type (i.e., typedef).
+func isYANGBaseType(t *yang.YangType) bool {
+	_, builtin := yang.TypeKindFromName[t.Name]
+	return builtin
 }

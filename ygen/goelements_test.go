@@ -1411,10 +1411,9 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 		s := newGenState()
 		gotTypes := make(map[string]*mappedType)
 		for _, leaf := range tt.inLeaves {
-			mtype, err := s.yangTypeToGoType(resolveTypeArgs{leaf.Type, leaf}, tt.inCompressOCPaths)
+			mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths)
 			if err != nil {
-				t.Errorf("%s: yangTypeToGoType(%v, %v): got unexpected err: %v, want: nil",
-					tt.name, leaf.Type, leaf, err)
+				t.Errorf("%s: yangTypeToGoType(%v, %v): got unexpected err: %v, want: nil", tt.name, leaf.Type, leaf, err)
 				continue
 			}
 			gotTypes[leaf.Path()] = mtype

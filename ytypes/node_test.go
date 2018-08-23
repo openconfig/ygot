@@ -875,6 +875,21 @@ func TestGetNode(t *testing.T) {
 			Schema: multiKeyListSchema,
 		}},
 	}, {
+		desc:     "multiple key list with >1 element",
+		inSchema: rootSchema,
+		inData: &RootStruct{
+			Multilist: map[MultiListKey]*MultiListEntry{
+				{Keyone: 1, Keytwo: 2}:     {Keyone: ygot.Uint32(1), Keytwo: ygot.Uint32(2)},
+				{Keyone: 10, Keytwo: 20}:   {Keyone: ygot.Uint32(10), Keytwo: ygot.Uint32(20)},
+				{Keyone: 100, Keytwo: 200}: {Keyone: ygot.Uint32(100), Keytwo: ygot.Uint32(200)},
+			},
+		},
+		inPath: mustPath("/multilist[keyone=1][keytwo=2]"),
+		wantTreeNodes: []*TreeNode{{
+			Data:   &MultiListEntry{Keyone: ygot.Uint32(1), Keytwo: ygot.Uint32(2)},
+			Schema: multiKeyListSchema,
+		}},
+	}, {
 		desc:     "multiple key list, partial match not allowed",
 		inSchema: rootSchema,
 		inData: &RootStruct{
