@@ -736,6 +736,12 @@ type renderExampleUnionInvalid struct {
 
 func (*renderExampleUnionInvalid) IsRenderUnionExample() {}
 
+type renderExampleUnionEnum struct {
+	Enum EnumTest
+}
+
+func (*renderExampleUnionEnum) IsRenderUnionExample() {}
+
 // renderExampleChild is a child of the renderExample struct.
 type renderExampleChild struct {
 	Val  *uint64  `path:"val"`
@@ -2109,6 +2115,23 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 		wantErr: true,
+	}, {
+		name:     "unset enum",
+		in:       &renderExample{EnumField: EnumTestUNSET},
+		wantIETF: map[string]interface{}{},
+		wantSame: true,
+	}, {
+		name: "set enum in union",
+		in:   &renderExample{UnionVal: &renderExampleUnionEnum{EnumTestVALONE}},
+		wantIETF: map[string]interface{}{
+			"union-val": "VAL_ONE",
+		},
+		wantSame: true,
+	}, {
+		name:     "unset enum in union",
+		in:       &renderExample{UnionVal: &renderExampleUnionEnum{EnumTestUNSET}},
+		wantIETF: map[string]interface{}{},
+		wantSame: true,
 	}}
 
 	for _, tt := range tests {

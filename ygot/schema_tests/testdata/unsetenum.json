@@ -1,0 +1,26 @@
+{
+   "acl": {
+      "acl-sets": {
+         "acl-set": [
+            {
+               "acl-entries": {
+                  "acl-entry": [
+                     {
+                        "config": {
+                           "sequence-id": 100
+                        },
+                        "sequence-id": 100
+                     }
+                  ]
+               },
+               "config": {
+                  "name": "set",
+                  "type": "ACL_IPV6"
+               },
+               "name": "set",
+               "type": "ACL_IPV6"
+            }
+         ]
+      }
+   }
+}

@@ -1342,11 +1342,17 @@ func unionPtrValue(v reflect.Value, appendModuleName bool) (interface{}, error) 
 // the relevant type where required.
 func resolveUnionVal(v interface{}, appendModuleName bool) (interface{}, error) {
 	if _, isEnum := v.(GoEnum); isEnum {
-		var err error
-		v, _, err = enumFieldToString(reflect.ValueOf(v), appendModuleName)
+		val, set, err := enumFieldToString(reflect.ValueOf(v), appendModuleName)
 		if err != nil {
 			return nil, err
 		}
+
+		// If the enum isn't set, then we return a nil value
+		// such that it is not included in the output JSON.
+		if !set {
+			return nil, nil
+		}
+		v = val
 	}
 	return v, nil
 }
