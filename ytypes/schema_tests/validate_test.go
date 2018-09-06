@@ -645,6 +645,7 @@ func TestNewNode(t *testing.T) {
 	}
 }
 
+// TODO(robjs): Remove this testing once we have removed the ygot utils experimental package.
 func TestGetNode(t *testing.T) {
 	testDevice := &oc.Device{
 		Bgp: &oc.Bgp{
