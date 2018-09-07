@@ -476,6 +476,22 @@ func appendgNMIPathElemKey(v reflect.Value, p *gnmiPath) (*gnmiPath, error) {
 		return nil, fmt.Errorf("nil value received for element %v", p)
 	}
 
+	k, err := PathKeyFromStruct(v)
+	if err != nil {
+		return nil, fmt.Errorf("cannot extract keys: %v", err)
+	}
+	newElem.Key = k
+
+	if err := np.SetIndex(np.Len()-1, &newElem); err != nil {
+		return nil, err
+	}
+	return np, nil
+}
+
+// PathKeyFromStruct returns a map[string]string which represents the keys for a YANG
+// list element. The provided reflect.Value must implement the KeyHelperGoStruct interface,
+// and hence be a struct which represents a list member within the schema.
+func PathKeyFromStruct(v reflect.Value) (map[string]string, error) {
 	gs, ok := v.Interface().(KeyHelperGoStruct)
 	if !ok {
 		return nil, fmt.Errorf("cannot render to gNMI PathElem for structs that do not implement KeyHelperGoStruct, got: %T (%s)", v.Type().Name(), v.Interface())
@@ -490,12 +506,7 @@ func appendgNMIPathElemKey(v reflect.Value, p *gnmiPath) (*gnmiPath, error) {
 	if err != nil {
 		return nil, err
 	}
-	newElem.Key = k
-
-	if err := np.SetIndex(np.Len()-1, &newElem); err != nil {
-		return nil, err
-	}
-	return np, nil
+	return k, nil
 }
 
 // keyMapAsStrings takes an input map[string]interface{}, keyed by the name of
@@ -1342,11 +1353,17 @@ func unionPtrValue(v reflect.Value, appendModuleName bool) (interface{}, error) 
 // the relevant type where required.
 func resolveUnionVal(v interface{}, appendModuleName bool) (interface{}, error) {
 	if _, isEnum := v.(GoEnum); isEnum {
-		var err error
-		v, _, err = enumFieldToString(reflect.ValueOf(v), appendModuleName)
+		val, set, err := enumFieldToString(reflect.ValueOf(v), appendModuleName)
 		if err != nil {
 			return nil, err
 		}
+
+		// If the enum isn't set, then we return a nil value
+		// such that it is not included in the output JSON.
+		if !set {
+			return nil, nil
+		}
+		v = val
 	}
 	return v, nil
 }
