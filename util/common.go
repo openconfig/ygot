@@ -16,6 +16,7 @@
 package util
 
 import (
+	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/goyang/pkg/yang"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -56,6 +57,20 @@ func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 	return true
 }
 
+// PathMatchesPathElemPrefix checks whether prefix is a prefix of path. Both paths
+// must use the gNMI >=0.4.0 PathElem path format.
+func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
+	if len(path.GetElem()) < len(prefix.GetElem()) || path.Origin != prefix.Origin {
+		return false
+	}
+	for i, v := range prefix.Elem {
+		if !proto.Equal(v, path.GetElem()[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // TrimGNMIPathPrefix returns path with the prefix trimmed. It returns the
 // original path if the prefix does not fully match.
 func TrimGNMIPathPrefix(path *gpb.Path, prefix []string) *gpb.Path {
@@ -68,6 +83,47 @@ func TrimGNMIPathPrefix(path *gpb.Path, prefix []string) *gpb.Path {
 	out := *path
 	out.Elem = out.GetElem()[len(prefix):]
 	return &out
+}
+
+// TrimGNMIPathElemPrefix returns the path with the prefix trimmed. It returns
+// the original path if the prefix does not match.
+func TrimGNMIPathElemPrefix(path, prefix *gpb.Path) *gpb.Path {
+	if prefix == nil {
+		return path
+	}
+	if !PathMatchesPathElemPrefix(path, prefix) {
+		return path
+	}
+	out := proto.Clone(path).(*gpb.Path)
+	out.Elem = out.GetElem()[len(prefix.GetElem()):]
+	return out
+}
+
+// FindPathElemPrefix finds the longest common prefix of the paths specified.
+func FindPathElemPrefix(paths []*gpb.Path) *gpb.Path {
+	var prefix *gpb.Path
+	i := 0
+	for {
+		var elem *gpb.PathElem
+		for _, e := range paths {
+			switch {
+			case i >= len(e.Elem):
+				return prefix
+			case elem == nil:
+				// Only happens on the first iteration through the
+				// loop, so we use this as the base element to
+				// compare the other paths to.
+				elem = e.Elem[i]
+			case !proto.Equal(e.Elem[i], elem):
+				return prefix
+			}
+		}
+		if prefix == nil {
+			prefix = &gpb.Path{}
+		}
+		prefix.Elem = append(prefix.Elem, elem)
+		i++
+	}
 }
 
 // PopGNMIPath returns the supplied GNMI path with the first path element

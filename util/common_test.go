@@ -18,11 +18,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/golang/protobuf/proto"
+
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // pathNoKeysToGNMIPath converts the supplied path, which may not contain any
-// keys, into a GNMI path.
+// keys, into a GNMI path. We cannot use the ygot helpers such that we avoid
+// a circular dependency with the util package.
 func pathNoKeysToGNMIPath(path string) *gpb.Path {
 	out := &gpb.Path{}
 	for _, p := range strings.Split(path, "/") {
@@ -32,7 +35,8 @@ func pathNoKeysToGNMIPath(path string) *gpb.Path {
 }
 
 // gnmiPathNoKeysToPath converts the supplied GNMI path, which may not contain
-// any keys, into a string slice path.
+// any keys, into a string slice path. We cannot use the ygot helpers such that
+// we avoid a circular dependency with the util package.
 func gnmiPathNoKeysToPath(path *gpb.Path) string {
 	if path == nil {
 		return ""
@@ -224,5 +228,225 @@ func TestPopGNMIPath(t *testing.T) {
 				t.Errorf("%s: got: %s want: %s", tt.desc, got, want)
 			}
 		})
+	}
+}
+
+func TestPathMatchesPathElemPrefix(t *testing.T) {
+	tests := []struct {
+		desc     string
+		inPath   *gpb.Path
+		inPrefix *gpb.Path
+		want     bool
+	}{{
+		desc: "valid prefix with no keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		inPrefix: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid prefix with keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}, {
+				Name: "four",
+			}},
+		},
+		inPrefix: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "not a prefix",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "fourteen",
+			}, {
+				Name: "twelve",
+			}},
+		},
+		inPrefix: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+			}},
+		},
+	}, {
+		desc: "not a prefix due to origin",
+		inPath: &gpb.Path{
+			Origin: "openconfig",
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		inPrefix: &gpb.Path{
+			Origin: "google",
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}},
+		},
+	}, {
+		desc: "not a prefix due to keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"four": "five"},
+			}, {
+				Name: "six",
+			}},
+		},
+		inPrefix: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"seven": "eight"},
+			}},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := PathMatchesPathElemPrefix(tt.inPath, tt.inPrefix); got != tt.want {
+				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTrimGNMIPathElemPrefix(t *testing.T) {
+	tests := []struct {
+		desc     string
+		inPath   *gpb.Path
+		inPrefix *gpb.Path
+		want     *gpb.Path
+	}{{
+		desc: "not a prefix",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		inPrefix: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+			}},
+		},
+		want: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+	}, {
+		desc: "prefix with keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}, {
+				Name: "four",
+			}},
+		},
+		inPrefix: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}},
+		},
+		want: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "four",
+			}},
+		},
+	}, {
+		desc: "prefix longer",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "short",
+			}},
+		},
+		inPrefix: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "short",
+			}, {
+				Name: "long",
+			}},
+		},
+		want: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "short",
+			}},
+		},
+	}, {
+		desc: "nil prefix",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "foo",
+			}},
+		},
+		want: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "foo",
+			}},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := TrimGNMIPathElemPrefix(tt.inPath, tt.inPrefix); !proto.Equal(got, tt.want) {
+				t.Fatalf("did not get expected path, got: %s, want: %s", proto.MarshalTextString(got), proto.MarshalTextString(tt.want))
+			}
+		})
+	}
+}
+
+func TestFindPathElemPrefix(t *testing.T) {
+	tests := []struct {
+		name    string
+		inPaths []*gpb.Path
+		want    *gpb.Path
+	}{{
+		name: "no common prefix",
+		inPaths: []*gpb.Path{
+			pathNoKeysToGNMIPath("one/two"),
+			pathNoKeysToGNMIPath("three/four"),
+		},
+	}, {
+		name: "common prefix two paths",
+		inPaths: []*gpb.Path{
+			pathNoKeysToGNMIPath("one/two"),
+			pathNoKeysToGNMIPath("one/two/three/four/five"),
+		},
+		want: pathNoKeysToGNMIPath("one/two"),
+	}, {
+		name: "common prefix three paths, none match",
+		inPaths: []*gpb.Path{
+			pathNoKeysToGNMIPath("one/two/three"),
+			pathNoKeysToGNMIPath("one/two/four"),
+			pathNoKeysToGNMIPath("one/two/five"),
+		},
+		want: pathNoKeysToGNMIPath("one/two"),
+	}}
+
+	for _, tt := range tests {
+		if got := FindPathElemPrefix(tt.inPaths); !proto.Equal(got, tt.want) {
+			t.Errorf("%s: FindPathElemPrefix(%v): did not get expected prefix, got: %s, want: %s", tt.name, tt.inPaths, proto.MarshalTextString(got), proto.MarshalTextString(tt.want))
+		}
 	}
 }

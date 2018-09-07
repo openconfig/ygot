@@ -23,8 +23,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
-	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/testutil"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 func TestPathElemBasics(t *testing.T) {
@@ -2498,5 +2499,79 @@ func TestKeyValueAsString(t *testing.T) {
 		if !reflect.DeepEqual(s, tt.want) {
 			t.Errorf("got %v, want %v", s, tt.want)
 		}
+	}
+}
+
+func TestEncodeTypedValue(t *testing.T) {
+	tests := []struct {
+		name             string
+		inVal            interface{}
+		inEnc            gnmipb.Encoding
+		want             *gnmipb.TypedValue
+		wantErrSubstring string
+	}{{
+		name:  "simple string encoding",
+		inVal: "hello",
+		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
+	}, {
+		name:  "enumeration",
+		inVal: EnumTestVALONE,
+		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
+	}, {
+		name:  "binary",
+		inVal: Binary([]byte{0x00, 0x01}),
+		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte{0x00, 0x01}}},
+	}, {
+		name:  "leaf-list",
+		inVal: []string{"one", "two"},
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
+			&gnmipb.ScalarArray{
+				Element: []*gnmipb.TypedValue{{
+					Value: &gnmipb.TypedValue_StringVal{"one"},
+				}, {
+					Value: &gnmipb.TypedValue_StringVal{"two"},
+				}},
+			},
+		}},
+	}, {
+		name:  "pointer val",
+		inVal: string("val"),
+		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"val"}},
+	}, {
+		name: "struct val - ietf json",
+		inVal: &ietfRenderExample{
+			F1: String("hello"),
+		},
+		inEnc: gnmipb.Encoding_JSON_IETF,
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`{
+  "f1mod:f1": "hello"
+}`)}},
+	}, {
+		name: "struct val - internal json",
+		inVal: &ietfRenderExample{
+			F1: String("hi"),
+		},
+		inEnc: gnmipb.Encoding_JSON,
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{[]byte(`{
+  "f1": "hi"
+}`)}},
+	}, {
+		name:             "unsupported encoding",
+		inVal:            &ietfRenderExample{},
+		inEnc:            gnmipb.Encoding_PROTO,
+		wantErrSubstring: "invalid encoding",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := EncodeTypedValue(tt.inVal, tt.inEnc)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("did not get expected error, %s", diff)
+			}
+
+			if !proto.Equal(got, tt.want) {
+				t.Fatalf("did not get expected value, got: %v, want: %v", got, tt.want)
+			}
+		})
 	}
 }
