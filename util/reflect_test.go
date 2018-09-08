@@ -1910,3 +1910,51 @@ func sliceToMap(s []interface{}) map[string]int {
 	}
 	return m
 }
+
+func TestIsCompressedSchema(t *testing.T) {
+	tests := []struct {
+		name string
+		in   *yang.Entry
+		want bool
+	}{{
+		name: "simple entry - root",
+		in: &yang.Entry{
+			Annotation: map[string]interface{}{
+				CompressedSchemaAnnotation: true,
+			},
+		},
+		want: true,
+	}, {
+		name: "simple entry - not compressed - root",
+		in:   &yang.Entry{},
+	}, {
+		name: "child entry - compressed",
+		in: &yang.Entry{
+			Parent: &yang.Entry{
+				Parent: &yang.Entry{
+					Parent: &yang.Entry{
+						Parent: &yang.Entry{},
+					},
+				},
+			},
+			Annotation: map[string]interface{}{
+				CompressedSchemaAnnotation: true,
+			},
+		},
+	}, {
+		name: "child entry - not compressed",
+		in: &yang.Entry{
+			Parent: &yang.Entry{
+				Parent: &yang.Entry{},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := IsCompressedSchema(tt.in); got != tt.want {
+				t.Fatalf("incorrect result, got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}

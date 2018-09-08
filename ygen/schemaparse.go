@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // buildJSON tree takes an input set of modules expressed as a slice of yang.Entry
@@ -62,7 +63,7 @@ func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry,
 
 	// Annotate the root indicating that compression was enabled.
 	if compressed {
-		rootEntry.Annotation["isCompressedSchema"] = compressed
+		rootEntry.Annotation[util.CompressedSchemaAnnotation] = compressed
 	}
 
 	j, err := json.MarshalIndent(rootEntry, "", strings.Repeat(" ", 4))

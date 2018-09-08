@@ -17,7 +17,6 @@
 package schematest
 
 import (
-	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -42,7 +41,7 @@ func TestBuildEmptyEthernet(t *testing.T) {
 	}
 
 	if diff := pretty.Compare(got, wantEmpty); diff != "" {
-		fmt.Printf("did not get expected output after BuildEmptyTree, diff(-got,+want):\n%s", diff)
+		t.Fatalf("did not get expected output after BuildEmptyTree, diff(-got,+want):\n%s", diff)
 	}
 
 	got.AutoNegotiate = ygot.Bool(true)
@@ -53,7 +52,7 @@ func TestBuildEmptyEthernet(t *testing.T) {
 	}
 
 	if diff := pretty.Compare(got, wantPruned); diff != "" {
-		fmt.Printf("did not get expected output after PruneEmptyBranches, diff(-got,+want):\n%s", diff)
+		t.Fatalf("did not get expected output after PruneEmptyBranches, diff(-got,+want):\n%s", diff)
 	}
 }
 
