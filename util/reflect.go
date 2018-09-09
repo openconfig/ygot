@@ -27,6 +27,10 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+// CompressedSchemaAnnotation stores the name of the annotation indicating
+// whether a set of structs were built with -compress_path. It is appended
+// to the yang.Entry struct of the root entity of the structs within the
+// SchemaTree.
 const CompressedSchemaAnnotation string = "isCompressedSchema"
 
 // IsTypeStruct reports whether t is a struct type.
