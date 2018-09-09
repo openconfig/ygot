@@ -599,39 +599,95 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath
 		if err != nil {
 			return nil, err
 		}
-		u := &gnmipb.Update{Path: ppath}
 
-		switch val := reflect.ValueOf(v); val.Kind() {
-		case reflect.Slice:
-			switch {
-			case reflect.TypeOf(v).Name() == BinaryTypeName:
-				// This is a binary type which is defined as a []byte, so
-				// we encode it as bytes.
-				u.Val = &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{val.Bytes()}}
-			default:
-				sval, err := leaflistToSlice(val, false)
-				if err != nil {
-					return nil, err
-				}
-
-				arr, err := sliceToScalarArray(sval)
-				if err != nil {
-					return nil, err
-				}
-				u.Val = &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{arr}}
-			}
-		default:
-			val, err := value.FromScalar(v)
-			if err != nil {
-				return nil, err
-			}
-			u.Val = val
+		val, err := EncodeTypedValue(v, gnmipb.Encoding_JSON)
+		if err != nil {
+			return nil, err
 		}
 
-		n.Update = append(n.Update, u)
+		n.Update = append(n.Update, &gnmipb.Update{
+			Path: ppath,
+			Val:  val,
+		})
 	}
 
 	return []*gnmipb.Notification{n}, nil
+}
+
+// EncodeTypedValue encodes val into a gNMI TypedValue message, using the specified encoding
+// type if the value is a struct.
+func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue, error) {
+	switch v := val.(type) {
+	case GoStruct:
+		return marshalStruct(v, enc)
+	case GoEnum:
+		en, err := EnumName(v)
+		if err != nil {
+			return nil, fmt.Errorf("cannot marshal enum, %v", err)
+		}
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{en}}, nil
+	}
+
+	vv := reflect.ValueOf(val)
+	if vv.Kind() == reflect.Slice {
+		if vv.Type().Name() == BinaryTypeName {
+			// This is a binary type which is defiend as a []byte, so we encode it as the bytes.
+			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{vv.Bytes()}}, nil
+		}
+		sval, err := leaflistToSlice(vv, false)
+		if err != nil {
+			return nil, err
+		}
+
+		arr, err := sliceToScalarArray(sval)
+		if err != nil {
+			return nil, err
+		}
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{arr}}, nil
+	}
+
+	if util.IsValuePtr(vv) {
+		vv = vv.Elem()
+	}
+
+	return value.FromScalar(vv.Interface())
+}
+
+// marshalStruct encodes the struct s according to the encoding specified by enc. It
+// is returned as a TypedValue gNMI message.
+func marshalStruct(s GoStruct, enc gnmipb.Encoding) (*gnmipb.TypedValue, error) {
+	var (
+		j     map[string]interface{}
+		err   error
+		encfn func(s string) *gnmipb.TypedValue
+	)
+
+	switch enc {
+	case gnmipb.Encoding_JSON:
+		j, err = ConstructInternalJSON(s)
+		encfn = func(s string) *gnmipb.TypedValue {
+			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{[]byte(s)}}
+		}
+	case gnmipb.Encoding_JSON_IETF:
+		// We always append the module name when marshalling within a Notification.
+		j, err = ConstructIETFJSON(s, &RFC7951JSONConfig{AppendModuleName: true})
+		encfn = func(s string) *gnmipb.TypedValue {
+			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(s)}}
+		}
+	default:
+		return nil, fmt.Errorf("invalid encoding %v", gnmipb.Encoding_name[int32(enc)])
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	js, err := json.MarshalIndent(j, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("cannot encode JSON, %v", err)
+	}
+
+	return encfn(string(js)), nil
 }
 
 // leaflistToSlice takes a reflect.Value that represents a leaf list in the YANG schema

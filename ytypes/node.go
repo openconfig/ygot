@@ -201,10 +201,6 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			}
 
 			if fmt.Sprint(kv) == pathKey {
-				if err != nil {
-					return nil, status.Errorf(codes.Unknown, "failed to extract path element at %v: %v", traversedPath, err)
-				}
-
 				return retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
 			}
 			continue

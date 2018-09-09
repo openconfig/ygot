@@ -143,6 +143,10 @@ func TestGetNodeFull(t *testing.T) {
 				t.Fatalf("did not get expected error, %v", diff)
 			}
 
+			if err != nil {
+				return
+			}
+
 			if diff := cmp.Diff(got, tt.wantNodes, ignoreSchema, cmpopts.EquateEmpty(), sortNodes); diff != "" {
 				t.Fatalf("did not get expected result, diff(-got,+want):\n%s", diff)
 			}
