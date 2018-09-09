@@ -27,6 +27,8 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+const CompressedSchemaAnnotation string = "isCompressedSchema"
+
 // IsTypeStruct reports whether t is a struct type.
 func IsTypeStruct(t reflect.Type) bool {
 	return t.Kind() == reflect.Struct
@@ -614,6 +616,18 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	}
 
 	return errs
+}
+
+// IsCompressedSchema determines whether the yang.Entry s provided is part of a
+// generated set of structs that have schema compression enabled. It traverses
+// to the schema root, and determines the presence of an annotation with the name
+// CompressedSchemaAnnotation which is added by ygen.
+func IsCompressedSchema(s *yang.Entry) bool {
+	var e *yang.Entry
+	for e = s; e.Parent != nil; e = e.Parent {
+	}
+	_, ok := e.Annotation[CompressedSchemaAnnotation]
+	return ok
 }
 
 // ForEachDataField iterates the value supplied and calls the iterFunction for

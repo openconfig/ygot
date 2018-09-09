@@ -12,6 +12,7 @@ generate:
 	cd $(ROOT_DIR)/proto/yext && go generate
 	cd $(ROOT_DIR)/demo/uncompressed && go generate
 	cd $(ROOT_DIR)/demo/protobuf_getting_started && ./update.sh
+	cd $(ROOT_DIR)/integration_tests/uncompressed && go generate
 clean:
 	rm -f ${ROOT_DIR}/demo/getting_started/pkg/ocdemo/oc.go
 	rm -f ${ROOT_DIR}/demo/uncompressed/pkg/demo/uncompressed.go

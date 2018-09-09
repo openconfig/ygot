@@ -172,10 +172,31 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path) ([]interface{}, error) {
 			if root.Parent == nil {
 				return nil, fmt.Errorf("no parent for leafref path at %v, with remaining path %s", ni.Schema.Path(), path)
 			}
-			path.Elem = removeParentDirPrefix(path.GetElem(), root.PathFromParent)
-			util.DbgPrint("going up data tree from type %s to %s, schema path from parent is %v, remaining path %v",
-				root.FieldValue.Type(), root.Parent.FieldValue.Type(), root.PathFromParent, path)
-			root = root.Parent
+			if !util.IsCompressedSchema(root.Schema) && root.Schema.IsList() && util.IsValueMap(root.FieldValue) {
+				// If we are in an uncompressed schema, then we have one more level of the data tree than
+				// the YANG expects, since our data tree layout is:
+				// struct (parent container)
+				//  --> map (the list)
+				//  --> struct (the list member)
+				//
+				// In YANG, .. from the list member struct gets us to the parent container, but for us
+				// we have only reached the map. This means that we end up over-consuming the ".."s. To
+				// avoid this issue, if we are in an uncompressed schema, and in a list, and we find
+				// that we're looking at the map, we consume another level of the data tree. This gets
+				// us to the parent container with ".." as would be expected.
+				//
+				// This is NOT required for the compressed schema, because in this case, we have removed
+				// a level of the data tree. So the parent container in the above example will have been
+				// removed. This is enforced by ygen. In this case, we do want to consume the extra level
+				// of ..s in the list case, such that we do not end up under-consuming them.
+				root = root.Parent
+				continue
+			} else {
+				path.Elem = removeParentDirPrefix(path.GetElem(), root.PathFromParent)
+				util.DbgPrint("going up data tree from type %s to %s, schema path from parent is %v, remaining path %v",
+					root.FieldValue.Type(), root.Parent.FieldValue.Type(), root.PathFromParent, path)
+				root = root.Parent
+			}
 		}
 	}
 
