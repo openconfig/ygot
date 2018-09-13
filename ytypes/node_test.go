@@ -1,24 +1,25 @@
 package ytypes
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/kylelemons/godebug/pretty"
-	"github.com/openconfig/gnmi/errdiff"
-	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/ygot"
+	"google3/net/proto2/go/proto"
+	"google3/third_party/golang/godebug/pretty/pretty"
+	"google3/third_party/golang/goyang/pkg/yang/yang"
+	"google3/third_party/golang/ygot/ygot/ygot"
+	"google3/third_party/openconfig/gnmi/errdiff/errdiff"
 
-	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	gpb "google3/third_party/openconfig/gnmi/proto/gnmi/gnmi_go_proto"
 )
 
 type InnerContainerType1 struct {
-	Int32LeafName  *int32   `path:"int32-leaf-field"`
-	StringLeafName *string  `path:"string-leaf-field"`
-	EnumLeafName   EnumType `path:"enum-leaf-field"`
-	Annotation     *string  `ygotAnnotation:"true"`
+	Int32LeafName  *int32            `path:"int32-leaf-field"`
+	StringLeafName *string           `path:"string-leaf-field"`
+	EnumLeafName   EnumType          `path:"enum-leaf-field"`
+	Annotation     []ygot.Annotation `path:"@annotation" ygotAnnotation:"true"`
 }
 
 func (*InnerContainerType1) IsYANGGoStruct() {}
@@ -32,7 +33,7 @@ func (*OuterContainerType1) IsYANGGoStruct() {}
 type ListElemStruct1 struct {
 	Key1       *string              `path:"key1"`
 	Outer      *OuterContainerType1 `path:"outer"`
-	Annotation *string              `ygotAnnotation:"true"`
+	Annotation []ygot.Annotation    `path:"@annotation" ygotAnnotation:"true"`
 }
 
 func (l *ListElemStruct1) ΛListKeyMap() (map[string]interface{}, error) {
@@ -52,7 +53,7 @@ func (*ContainerStruct1) IsYANGGoStruct() {}
 type ListElemStruct2 struct {
 	Key1       *uint32              `path:"key1"`
 	Outer      *OuterContainerType1 `path:"outer"`
-	Annotation *string              `ygotAnnotation:"true"`
+	Annotation []ygot.Annotation    `path:"@annotation" ygotAnnotation:"true"`
 }
 
 func (l *ListElemStruct2) ΛListKeyMap() (map[string]interface{}, error) {
@@ -339,13 +340,13 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 		t.Run(tt.inDesc, func(t *testing.T) {
 			got, _, err := GetOrCreateNode(tt.inSchema, tt.inParent, tt.inPath)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
-				t.Fatalf("#%d: %s\ngot %v\nwant %v\n", i, tt.inDesc, err, tt.wantErrSubstring)
+				t.Fatalf("#%d: %s\ngot %v\nwant %v", i, tt.inDesc, err, tt.wantErrSubstring)
 			}
 			if err != nil {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v\n", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
 			}
 		})
 	}
@@ -511,55 +512,53 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 		t.Run(tt.inDesc, func(t *testing.T) {
 			got, _, err := GetOrCreateNode(tt.inSchema, tt.inParent, tt.inPath)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
-				t.Fatalf("#%d: %s\ngot %v\nwant %v\n", i, tt.inDesc, err, tt.wantErrSubstring)
+				t.Fatalf("#%d: %s\ngot %v\nwant %v", i, tt.inDesc, err, tt.wantErrSubstring)
 			}
 			if err != nil {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v\n", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
 			}
 		})
 	}
 }
 
-func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
-	simpleSchema := &yang.Entry{
-		Name: "list-elem-struct1",
-		Kind: yang.DirectoryEntry,
-		Dir: map[string]*yang.Entry{
-			"key1": {
-				Name: "key1",
-				Kind: yang.LeafEntry,
-				Type: &yang.YangType{Kind: yang.Ystring},
-			},
-			"outer": {
-				Name: "outer",
-				Kind: yang.DirectoryEntry,
-				Dir: map[string]*yang.Entry{
-					"config": {
-						Name: "config",
-						Kind: yang.DirectoryEntry,
-						Dir: map[string]*yang.Entry{
-							"inner": {
-								Name: "inner",
-								Kind: yang.DirectoryEntry,
-								Dir: map[string]*yang.Entry{
-									"int32-leaf-field": {
-										Name: "int32-leaf-field",
-										Kind: yang.LeafEntry,
-										Type: &yang.YangType{Kind: yang.Yint32},
-									},
-									"string-leaf-field": {
-										Name: "string-leaf-field",
-										Kind: yang.LeafEntry,
-										Type: &yang.YangType{Kind: yang.Ystring},
-									},
-									"enum-leaf-field": {
-										Name: "enum-leaf-field",
-										Kind: yang.LeafEntry,
-										Type: &yang.YangType{Kind: yang.Yenum},
-									},
+var simpleSchema *yang.Entry = &yang.Entry{
+	Name: "list-elem-struct1",
+	Kind: yang.DirectoryEntry,
+	Dir: map[string]*yang.Entry{
+		"key1": {
+			Name: "key1",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{Kind: yang.Ystring},
+		},
+		"outer": {
+			Name: "outer",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"config": {
+					Name: "config",
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"inner": {
+							Name: "inner",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"int32-leaf-field": {
+									Name: "int32-leaf-field",
+									Kind: yang.LeafEntry,
+									Type: &yang.YangType{Kind: yang.Yint32},
+								},
+								"string-leaf-field": {
+									Name: "string-leaf-field",
+									Kind: yang.LeafEntry,
+									Type: &yang.YangType{Kind: yang.Ystring},
+								},
+								"enum-leaf-field": {
+									Name: "enum-leaf-field",
+									Kind: yang.LeafEntry,
+									Type: &yang.YangType{Kind: yang.Yenum},
 								},
 							},
 						},
@@ -567,8 +566,10 @@ func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 				},
 			},
 		},
-	}
+	},
+}
 
+func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 	tests := []struct {
 		inDesc           string
 		inSchema         *yang.Entry
@@ -645,13 +646,13 @@ func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 		t.Run(tt.inDesc, func(t *testing.T) {
 			got, _, err := GetOrCreateNode(tt.inSchema, tt.inParent, tt.inPath)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
-				t.Fatalf("#%d: %s\ngot %v\nwant %v\n", i, tt.inDesc, err, tt.wantErrSubstring)
+				t.Fatalf("#%d: %s\ngot %v\nwant %v", i, tt.inDesc, err, tt.wantErrSubstring)
 			}
 			if err != nil {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v\n", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
 			}
 		})
 	}
@@ -1027,6 +1028,97 @@ func TestGetNode(t *testing.T) {
 	}
 }
 
+// ExampleAnnotation is used to test SetNode on Annotation nodes.
+type ExampleAnnotation struct {
+	ConfigSource string `json:"cfg-source"`
+}
+
+// MarshalJSON marshals the ExampleAnnotation receiver to JSON.
+func (e *ExampleAnnotation) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*e)
+}
+
+// UnmarshalJSON ensures that ExampleAnnotation implements the ygot.Annotation
+// interface. It is stubbed out and unimplemented.
+func (e *ExampleAnnotation) UnmarshalJSON([]byte) error {
+	return fmt.Errorf("unimplemented")
+}
+
+func TestSetNodeWithSimpleSchema(t *testing.T) {
+	tests := []struct {
+		inDesc           string
+		inSchema         *yang.Entry
+		inParent         interface{}
+		inPath           *gpb.Path
+		inVal            interface{}
+		wantErrSubstring string
+		want             interface{}
+	}{
+		{
+			inDesc:   "success setting string field in top node",
+			inSchema: simpleSchema,
+			inParent: &ListElemStruct1{},
+			inPath:   mustPath("/key1"),
+			inVal:    ygot.String("hello"),
+			want:     ygot.String("hello"),
+		},
+		{
+			inDesc:   "success setting annotation in top node",
+			inSchema: simpleSchema,
+			inParent: &ListElemStruct1{},
+			inPath:   mustPath("/@annotation"),
+			inVal:    &ExampleAnnotation{ConfigSource: "devicedemo"},
+			want:     []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+		},
+		{
+			inDesc:   "success setting int32 field in inner node",
+			inSchema: simpleSchema,
+			inParent: &ListElemStruct1{},
+			inPath:   mustPath("/outer/inner/int32-leaf-field"),
+			inVal:    ygot.Int32(42),
+			want:     ygot.Int32(42),
+		},
+		{
+			inDesc:           "failed to set value on invalid node",
+			inSchema:         simpleSchema,
+			inParent:         &ListElemStruct1{},
+			inPath:           mustPath("/invalidkey"),
+			inVal:            ygot.String("hello"),
+			wantErrSubstring: "no match found in *ytypes.ListElemStruct1",
+		},
+		{
+			inDesc:           "failed to set value with invalid type",
+			inSchema:         simpleSchema,
+			inParent:         &ListElemStruct1{},
+			inPath:           mustPath("/@annotation"),
+			inVal:            struct{ field string }{"hello"},
+			wantErrSubstring: "failed to update struct field Annotation",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.inDesc, func(t *testing.T) {
+			err := SetNode(tt.inSchema, tt.inParent, tt.inPath, tt.inVal)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("got %v\nwant %v", err, tt.wantErrSubstring)
+			}
+			if err != nil {
+				return
+			}
+			treeNode, err := GetNode(tt.inSchema, tt.inParent, tt.inPath)
+			if err != nil {
+				t.Fatalf("unexpected error returned from GetNode: %v", err)
+			}
+			if len(treeNode) != 1 {
+				t.Fatalf("did not get exactly one tree node: %v", treeNode)
+			}
+			got := treeNode[0].Data
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("got: %v\nwant: %v", pretty.Sprint(got), pretty.Sprint(tt.want))
+			}
+		})
+	}
+}
+
 func TestRetrieveNodeError(t *testing.T) {
 	tests := []struct {
 		desc             string
@@ -1139,14 +1231,6 @@ func TestRetrieveContainerListError(t *testing.T) {
 		inTestFunc:       retrieveNodeContainer,
 		wantErrSubstring: "could not find schema",
 	}, {
-		desc:             "error case of setting a leaf - unimplemented",
-		inSchema:         rootSchema,
-		inRoot:           &Root{},
-		inPath:           &gpb.Path{Elem: []*gpb.PathElem{{Name: "ok"}}},
-		inArgs:           retrieveNodeArgs{val: "flounder"},
-		inTestFunc:       retrieveNodeContainer,
-		wantErrSubstring: "setting leaf/leaflist node is unimplemented",
-	}, {
 		desc:             "error case - leafref unresolved",
 		inSchema:         lrSchema,
 		inRoot:           &UnresolvedLeafRef{},
@@ -1187,3 +1271,4 @@ func TestRetrieveContainerListError(t *testing.T) {
 		})
 	}
 }
+

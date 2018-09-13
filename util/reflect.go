@@ -424,11 +424,14 @@ func isFieldTypeCompatible(ft reflect.StructField, v reflect.Value) bool {
 // a struct field f with type t. It is assumed that f is exported and
 // addressable.
 func isValueTypeCompatible(t reflect.Type, v reflect.Value) bool {
-	if !v.IsValid() {
+	switch {
+	case !v.IsValid():
 		return t.Kind() == reflect.Ptr
+	case t.Kind() != reflect.Interface:
+		return v.Type().Kind() == t.Kind()
+	default:
+		return v.Type().Implements(t)
 	}
-
-	return v.Type().Kind() == t.Kind()
 }
 
 // DeepEqualDerefPtrs compares the values of a and b. If either value is a ptr,

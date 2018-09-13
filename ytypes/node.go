@@ -18,14 +18,14 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"google3/net/proto2/go/proto"
+	"google3/third_party/golang/goyang/pkg/yang/yang"
+	"google3/third_party/golang/grpc/codes/codes"
+	"google3/third_party/golang/grpc/status/status"
+	"google3/third_party/golang/ygot/util/util"
+	"google3/third_party/golang/ygot/ygot/ygot"
 
-	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	gpb "google3/third_party/openconfig/gnmi/proto/gnmi/gnmi_go_proto"
 )
 
 // Type retrieveNodeArgs contains the set of parameters that changes
@@ -93,19 +93,17 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 	for i := 0; i < v.NumField(); i++ {
 		fv, ft := v.Field(i), v.Type().Field(i)
 
-		if util.IsYgotAnnotation(ft) {
-			continue
-		}
-
 		cschema, err := childSchema(schema, ft)
-		switch {
-		case err != nil:
-			return nil, status.Errorf(codes.Unknown, "failed to get child schema for %T, field %s: %s", root, ft.Name, err)
-		case cschema == nil:
-			return nil, status.Errorf(codes.NotFound, "could not find schema for type %T, field %s", root, ft.Name)
-		default:
-			if cschema, err = resolveLeafRef(cschema); err != nil {
-				return nil, status.Errorf(codes.Unknown, "failed to resolve schema for %T, field %s: %s", root, ft.Name, err)
+		if !util.IsYgotAnnotation(ft) {
+			switch {
+			case err != nil:
+				return nil, status.Errorf(codes.Unknown, "failed to get child schema for %T, field %s: %s", root, ft.Name, err)
+			case cschema == nil:
+				return nil, status.Errorf(codes.NotFound, "could not find schema for type %T, field %s", root, ft.Name)
+			default:
+				if cschema, err = resolveLeafRef(cschema); err != nil {
+					return nil, status.Errorf(codes.Unknown, "failed to resolve schema for %T, field %s: %s", root, ft.Name, err)
+				}
 			}
 		}
 
@@ -122,15 +120,18 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			if util.IsTypeMap(ft.Type) {
 				to--
 			}
-			// If the node is a leaf node and path is exhausted, check whether val is set to a non-nil value. If
-			// these are satisfied, the leaf value is updated.
-			if (cschema.IsLeaf() || cschema.IsLeafList()) && len(path.Elem) == to && !util.IsValueNil(args.val) {
-				return nil, status.Errorf(codes.Unimplemented, "setting leaf/leaflist node is unimplemented")
-			}
 
 			if args.modifyRoot {
 				if err := util.InitializeStructField(root, ft.Name); err != nil {
 					return nil, status.Errorf(codes.Unknown, "failed to initialize struct field %s in %T, child schema %v, path %v", ft.Name, root, cschema, path)
+				}
+			}
+
+			// If the node is an annotation node or a leaf node and path is exhausted, check whether val is set to a non-nil value.
+			// If these are satisfied, the leaf value is updated.
+			if (util.IsYgotAnnotation(ft) || cschema.IsLeaf() || cschema.IsLeafList()) && len(path.Elem) == to && !util.IsValueNil(args.val) {
+				if err := util.UpdateField(root, ft.Name, args.val); err != nil {
+					return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v, because of %v", ft.Name, root, args.val, err)
 				}
 			}
 			np := &gpb.Path{}
@@ -348,3 +349,15 @@ func appendElem(p *gpb.Path, e *gpb.PathElem) *gpb.Path {
 	np.Elem = append(np.Elem, e)
 	return np
 }
+
+// SetNode sets the value of the node specified by the supplied path from the specified root,
+// whose schema must also be supplied. It will ensure that the node's ancestors are initialized.
+func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface{}) error {
+	_, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
+		modifyRoot: true,
+		val:        val,
+	})
+
+	return err
+}
+

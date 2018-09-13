@@ -518,11 +518,25 @@ func TestUpdateField(t *testing.T) {
 	}
 }
 
+
+type testInterface interface {
+	isTestInterface()
+}
+
+type testImpl struct {
+	testField int32
+}
+
+func (testImpl) isTestInterface() {}
+
+type nonTestImpl struct{}
+
 func TestInsertIntoSliceStructField(t *testing.T) {
 	type BasicStruct struct {
-		IntSliceField    []int
-		IntPtrSliceField []*int8
-		NonSliceField    int
+		IntSliceField       []int
+		IntPtrSliceField    []*int8
+		InterfaceSliceField []testInterface
+		NonSliceField       int
 	}
 
 	tests := []struct {
@@ -553,6 +567,29 @@ func TestInsertIntoSliceStructField(t *testing.T) {
 			fieldName:    "IntPtrSliceField",
 			fieldValue:   nil,
 			wantVal:      &BasicStruct{IntPtrSliceField: []*int8{nil}},
+		},
+		{
+			desc:         "slice of testInterface",
+			parentStruct: &BasicStruct{InterfaceSliceField: []testInterface{testImpl{}}},
+			fieldName:    "InterfaceSliceField",
+			fieldValue:   testImpl{testField: 1},
+			wantVal: &BasicStruct{
+				InterfaceSliceField: []testInterface{testImpl{}, testImpl{testField: 1}}},
+		},
+		{
+			desc:         "slice of testInterface, nil value",
+			parentStruct: &BasicStruct{},
+			fieldName:    "InterfaceSliceField",
+			fieldValue:   testImpl{},
+			wantVal:      &BasicStruct{InterfaceSliceField: []testInterface{testImpl{}}},
+		},
+		{
+			desc:         "slice of testInterface, bad value",
+			parentStruct: &BasicStruct{},
+			fieldName:    "InterfaceSliceField",
+			fieldValue:   nonTestImpl{},
+			wantErr: "cannot assign value {} (type util.nonTestImpl) to struct field " +
+				"InterfaceSliceField (type util.testInterface) in struct *util.BasicStruct",
 		},
 		{
 			desc:         "missing field",
