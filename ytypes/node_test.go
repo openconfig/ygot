@@ -6,11 +6,11 @@ import (
 	"reflect"
 	"testing"
 
-	"google3/net/proto2/go/proto"
-	"google3/third_party/golang/godebug/pretty/pretty"
-	"google3/third_party/golang/goyang/pkg/yang/yang"
-	"google3/third_party/golang/ygot/ygot/ygot"
-	"google3/third_party/openconfig/gnmi/errdiff/errdiff"
+	"github.com/golang/protobuf/proto"
+	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
+	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 
 	gpb "google3/third_party/openconfig/gnmi/proto/gnmi/gnmi_go_proto"
 )

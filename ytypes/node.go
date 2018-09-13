@@ -18,14 +18,13 @@ import (
 	"fmt"
 	"reflect"
 
-	"google3/net/proto2/go/proto"
-	"google3/third_party/golang/goyang/pkg/yang/yang"
-	"google3/third_party/golang/grpc/codes/codes"
-	"google3/third_party/golang/grpc/status/status"
-	"google3/third_party/golang/ygot/util/util"
-	"google3/third_party/golang/ygot/ygot/ygot"
-
-	gpb "google3/third_party/openconfig/gnmi/proto/gnmi/gnmi_go_proto"
+	"github.com/golang/protobuf/proto"
+	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygot"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+ 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // Type retrieveNodeArgs contains the set of parameters that changes
