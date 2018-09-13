@@ -12,7 +12,7 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 
-	gpb "google3/third_party/openconfig/gnmi/proto/gnmi/gnmi_go_proto"
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 type InnerContainerType1 struct {
