@@ -518,7 +518,6 @@ func TestUpdateField(t *testing.T) {
 	}
 }
 
-
 type testInterface interface {
 	isTestInterface()
 }

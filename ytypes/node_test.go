@@ -1271,4 +1271,3 @@ func TestRetrieveContainerListError(t *testing.T) {
 		})
 	}
 }
-

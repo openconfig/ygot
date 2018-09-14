@@ -360,4 +360,3 @@ func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface
 
 	return err
 }
-
