@@ -351,12 +351,37 @@ func appendElem(p *gpb.Path, e *gpb.PathElem) *gpb.Path {
 }
 
 // SetNode sets the value of the node specified by the supplied path from the specified root,
-// whose schema must also be supplied. It will ensure that the node's ancestors are initialized.
-func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface{}) error {
+// whose schema must also be supplied. It takes a set of options which can be used to specify set behaviours, such as
+// whether or not to ensure that the node's ancestors are initialized.
+func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface{}, opts ...SetNodeOpt) error {
 	_, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
-		modifyRoot: true,
+		modifyRoot: hasInitMissingElements(opts),
 		val:        val,
 	})
 
 	return err
+}
+
+// SetNodeOpt defines an interface that can be used to supply arguments to functions using SetNode.
+type SetNodeOpt interface {
+	// IsSetNodeOpt is a marker method that is used to identify an instance of SetNodeOpt.
+	IsSetNodeOpt()
+}
+
+// InitMissingElements signals SetNode to initialize the node's ancestors and to ensure that keys are added
+// into keyed lists(maps) if they are missing, before updating the node.
+type InitMissingElements struct{}
+
+// IsSetNodeOpt implements the SetNodeOpt interface.
+func (*InitMissingElements) IsSetNodeOpt() {}
+
+// hasInitMissingElements determines whether there is an instance of InitMissingElements within the supplied
+// SetNodeOpt slice. It is used to determine whether to initialize the node's ancestors before updating the node.
+func hasInitMissingElements(opts []SetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*InitMissingElements); ok {
+			return true
+		}
+	}
+	return false
 }

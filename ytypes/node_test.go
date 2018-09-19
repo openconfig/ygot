@@ -1051,6 +1051,7 @@ func TestSetNodeWithSimpleSchema(t *testing.T) {
 		inParent         interface{}
 		inPath           *gpb.Path
 		inVal            interface{}
+		inOpts           []SetNodeOpt
 		wantErrSubstring string
 		want             interface{}
 	}{
@@ -1071,12 +1072,30 @@ func TestSetNodeWithSimpleSchema(t *testing.T) {
 			want:     []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
 		},
 		{
+			inDesc:   "success setting annotation in inner node",
+			inSchema: simpleSchema,
+			inParent: &ListElemStruct1{},
+			inPath:   mustPath("/outer/inner/@annotation"),
+			inVal:    &ExampleAnnotation{ConfigSource: "devicedemo"},
+			inOpts:   []SetNodeOpt{&InitMissingElements{}},
+			want:     []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+		},
+		{
 			inDesc:   "success setting int32 field in inner node",
 			inSchema: simpleSchema,
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/outer/inner/int32-leaf-field"),
 			inVal:    ygot.Int32(42),
+			inOpts:   []SetNodeOpt{&InitMissingElements{}},
 			want:     ygot.Int32(42),
+		},
+		{
+			inDesc:           "failed to set annotation in uninitialized node without InitMissingElements in SetNodeOpt",
+			inSchema:         simpleSchema,
+			inParent:         &ListElemStruct1{},
+			inPath:           mustPath("/outer/inner/@annotation"),
+			inVal:            &ExampleAnnotation{ConfigSource: "devicedemo"},
+			wantErrSubstring: "could not find children",
 		},
 		{
 			inDesc:           "failed to set value on invalid node",
@@ -1097,7 +1116,7 @@ func TestSetNodeWithSimpleSchema(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.inDesc, func(t *testing.T) {
-			err := SetNode(tt.inSchema, tt.inParent, tt.inPath, tt.inVal)
+			err := SetNode(tt.inSchema, tt.inParent, tt.inPath, tt.inVal, tt.inOpts...)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("got %v\nwant %v", err, tt.wantErrSubstring)
 			}
