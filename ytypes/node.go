@@ -15,7 +15,6 @@
 package ytypes
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/golang/protobuf/proto"
@@ -201,7 +200,11 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 				return nil, status.Errorf(codes.Unknown, "failed to get key value for %v, path %v: %v", listElemV.Interface(), path, err)
 			}
 
-			if fmt.Sprint(kv) == pathKey {
+			keyAsString, err := ygot.KeyValueAsString(kv)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "failed to convert %v to a string, path %v: %v", kv, path, err)
+			}
+			if keyAsString == pathKey {
 				return retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
 			}
 			continue

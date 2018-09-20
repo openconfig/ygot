@@ -67,6 +67,15 @@ type ContainerStruct2 struct {
 	StructKeyList map[uint32]*ListElemStruct2 `path:"config/simple-key-list"`
 }
 
+type ListElemEnumKey struct {
+	Key1          EnumType `path:"key1"`
+	Int32LeafName *int32   `path:"int32-leaf-field"`
+}
+
+type ContainerEnumKey struct {
+	StructKeyList map[EnumType]*ListElemEnumKey `path:"config/simple-key-list"`
+}
+
 func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 	containerWithStringKey := &yang.Entry{
 		Name: "container",
@@ -179,6 +188,33 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 										},
 									},
 								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	containerWithEnumKey := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"config": {
+				Name: "config",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"simple-key-list": {
+						Name:     "simple-key-list",
+						Kind:     yang.DirectoryEntry,
+						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						Key:      "key1",
+						Config:   yang.TSTrue,
+						Dir: map[string]*yang.Entry{
+							"key1": {
+								Name: "key1",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Yenum},
 							},
 						},
 					},
@@ -333,6 +369,31 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			inSchema: containerWithUInt32Key,
 			inPath:   mustPath("/config/simple-key-list[key1=42]/outer/inner"),
 			want:     &InnerContainerType1{Int32LeafName: ygot.Int32(42)},
+		},
+		{
+			inDesc:           "fail finding with incorrect enum key",
+			inSchema:         containerWithEnumKey,
+			inParent:         &ContainerEnumKey{},
+			inPath:           mustPath("/config/simple-key-list[key1=42]"),
+			wantErrSubstring: "no enum matching with 42",
+		},
+		{
+			inDesc:   "success finding enum key",
+			inSchema: containerWithEnumKey,
+			inParent: &ContainerEnumKey{},
+			inPath:   mustPath("/config/simple-key-list[key1=E_VALUE_FORTY_TWO]"),
+			want:     &ListElemEnumKey{Key1: 42},
+		},
+		{
+			inDesc:   "success finding existing enum key",
+			inSchema: containerWithEnumKey,
+			inParent: &ContainerEnumKey{
+				StructKeyList: map[EnumType]*ListElemEnumKey{
+					42: {Key1: 42, Int32LeafName: ygot.Int32(99)},
+				},
+			},
+			inPath: mustPath("/config/simple-key-list[key1=E_VALUE_FORTY_TWO]"),
+			want:   &ListElemEnumKey{Key1: 42, Int32LeafName: ygot.Int32(99)},
 		},
 	}
 
