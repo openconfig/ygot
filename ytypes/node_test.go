@@ -1096,14 +1096,14 @@ func TestSetNode(t *testing.T) {
 			inParent: &ContainerStruct1{
 				StructKeyList: map[string]*ListElemStruct1{
 					"forty-two": {
-						Key1: ygot.String("forty-two"),
+						Key1:  ygot.String("forty-two"),
 						Outer: &OuterContainerType1{},
 					},
 				},
 			},
-			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/@annotation"),
-			inVal:    &ExampleAnnotation{ConfigSource: "devicedemo"},
-			want:     []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			inPath: mustPath("/config/simple-key-list[key1=forty-two]/@annotation"),
+			inVal:  &ExampleAnnotation{ConfigSource: "devicedemo"},
+			want:   []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
 		},
 		{
 			inDesc:   "failed to set annotation in invalid list element",
@@ -1111,8 +1111,8 @@ func TestSetNode(t *testing.T) {
 			inParent: &ContainerStruct1{
 				StructKeyList: map[string]*ListElemStruct1{},
 			},
-			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/@annotation"),
-			inVal:    &ExampleAnnotation{ConfigSource: "devicedemo"},
+			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/@annotation"),
+			inVal:            &ExampleAnnotation{ConfigSource: "devicedemo"},
 			wantErrSubstring: "unable to find any nodes for the given path",
 		},
 		{
