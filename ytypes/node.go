@@ -354,15 +354,23 @@ func appendElem(p *gpb.Path, e *gpb.PathElem) *gpb.Path {
 }
 
 // SetNode sets the value of the node specified by the supplied path from the specified root,
-// whose schema must also be supplied. It takes a set of options which can be used to specify set behaviours, such as
-// whether or not to ensure that the node's ancestors are initialized.
+// whose schema must also be supplied. It takes a set of options which can be used to specify set
+// behaviours, such as whether or not to ensure that the node's ancestors are initialized.
 func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface{}, opts ...SetNodeOpt) error {
-	_, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
+	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
 		modifyRoot: hasInitMissingElements(opts),
 		val:        val,
 	})
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	if len(nodes) == 0 {
+		return status.Errorf(codes.NotFound, "unable to find any nodes for the given path %v", path)
+	}
+
+	return nil
 }
 
 // SetNodeOpt defines an interface that can be used to supply arguments to functions using SetNode.

@@ -76,54 +76,52 @@ type ContainerEnumKey struct {
 	StructKeyList map[EnumType]*ListElemEnumKey `path:"config/simple-key-list"`
 }
 
-func TestGetOrCreateNodeSimpleKey(t *testing.T) {
-	containerWithStringKey := &yang.Entry{
-		Name: "container",
-		Kind: yang.DirectoryEntry,
-		Dir: map[string]*yang.Entry{
-			"config": {
-				Name: "config",
-				Kind: yang.DirectoryEntry,
-				Dir: map[string]*yang.Entry{
-					"simple-key-list": {
-						Name:     "simple-key-list",
-						Kind:     yang.DirectoryEntry,
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
-						Key:      "key1",
-						Config:   yang.TSTrue,
-						Dir: map[string]*yang.Entry{
-							"key1": {
-								Name: "key1",
-								Kind: yang.LeafEntry,
-								Type: &yang.YangType{Kind: yang.Ystring},
-							},
-							"outer": {
-								Name: "outer",
-								Kind: yang.DirectoryEntry,
-								Dir: map[string]*yang.Entry{
-									"config": {
-										Name: "config",
-										Kind: yang.DirectoryEntry,
-										Dir: map[string]*yang.Entry{
-											"inner": {
-												Name: "inner",
-												Kind: yang.DirectoryEntry,
-												Dir: map[string]*yang.Entry{
-													"int32-leaf-field": {
-														Name: "leaf-field",
-														Kind: yang.LeafEntry,
-														Type: &yang.YangType{Kind: yang.Yint32},
-													},
-													"string-leaf-field": {
-														Name: "leaf-field",
-														Kind: yang.LeafEntry,
-														Type: &yang.YangType{Kind: yang.Ystring},
-													},
-													"enum-leaf-field": {
-														Name: "leaf-field",
-														Kind: yang.LeafEntry,
-														Type: &yang.YangType{Kind: yang.Yenum},
-													},
+var containerWithStringKey = &yang.Entry{
+	Name: "container",
+	Kind: yang.DirectoryEntry,
+	Dir: map[string]*yang.Entry{
+		"config": {
+			Name: "config",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"simple-key-list": {
+					Name:     "simple-key-list",
+					Kind:     yang.DirectoryEntry,
+					ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+					Key:      "key1",
+					Config:   yang.TSTrue,
+					Dir: map[string]*yang.Entry{
+						"key1": {
+							Name: "key1",
+							Kind: yang.LeafEntry,
+							Type: &yang.YangType{Kind: yang.Ystring},
+						},
+						"outer": {
+							Name: "outer",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"config": {
+									Name: "config",
+									Kind: yang.DirectoryEntry,
+									Dir: map[string]*yang.Entry{
+										"inner": {
+											Name: "inner",
+											Kind: yang.DirectoryEntry,
+											Dir: map[string]*yang.Entry{
+												"int32-leaf-field": {
+													Name: "leaf-field",
+													Kind: yang.LeafEntry,
+													Type: &yang.YangType{Kind: yang.Yint32},
+												},
+												"string-leaf-field": {
+													Name: "leaf-field",
+													Kind: yang.LeafEntry,
+													Type: &yang.YangType{Kind: yang.Ystring},
+												},
+												"enum-leaf-field": {
+													Name: "leaf-field",
+													Kind: yang.LeafEntry,
+													Type: &yang.YangType{Kind: yang.Yenum},
 												},
 											},
 										},
@@ -135,7 +133,10 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 				},
 			},
 		},
-	}
+	},
+}
+
+func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 	containerWithUInt32Key := &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,
@@ -1105,7 +1106,7 @@ func (e *ExampleAnnotation) UnmarshalJSON([]byte) error {
 	return fmt.Errorf("unimplemented")
 }
 
-func TestSetNodeWithSimpleSchema(t *testing.T) {
+func TestSetNode(t *testing.T) {
 	tests := []struct {
 		inDesc           string
 		inSchema         *yang.Entry
@@ -1149,6 +1150,31 @@ func TestSetNodeWithSimpleSchema(t *testing.T) {
 			inVal:    ygot.Int32(42),
 			inOpts:   []SetNodeOpt{&InitMissingElements{}},
 			want:     ygot.Int32(42),
+		},
+		{
+			inDesc:   "success setting annotation in list element",
+			inSchema: containerWithStringKey,
+			inParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:  ygot.String("forty-two"),
+						Outer: &OuterContainerType1{},
+					},
+				},
+			},
+			inPath: mustPath("/config/simple-key-list[key1=forty-two]/@annotation"),
+			inVal:  &ExampleAnnotation{ConfigSource: "devicedemo"},
+			want:   []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+		},
+		{
+			inDesc:   "failed to set annotation in invalid list element",
+			inSchema: containerWithStringKey,
+			inParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{},
+			},
+			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/@annotation"),
+			inVal:            &ExampleAnnotation{ConfigSource: "devicedemo"},
+			wantErrSubstring: "unable to find any nodes for the given path",
 		},
 		{
 			inDesc:           "failed to set annotation in uninitialized node without InitMissingElements in SetNodeOpt",
