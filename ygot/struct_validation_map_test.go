@@ -15,6 +15,7 @@
 package ygot
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -1569,6 +1570,30 @@ type validatedMergeTestSliceField struct {
 	String *string
 }
 
+type validatedMergeTestWithAnnotationSlice struct {
+	SliceField []Annotation `ygotAnnotation:"true"`
+}
+
+func (*validatedMergeTestWithAnnotationSlice) Validate(...ValidationOption) error      { return nil }
+func (*validatedMergeTestWithAnnotationSlice) IsYANGGoStruct()                         {}
+func (*validatedMergeTestWithAnnotationSlice) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+
+// ExampleAnnotation is used to test MergeStructs with Annotation slices.
+type ExampleAnnotation struct {
+	ConfigSource string `json:"cfg-source"`
+}
+
+// MarshalJSON marshals the ExampleAnnotation receiver to JSON.
+func (e *ExampleAnnotation) MarshalJSON() ([]byte, error) {
+	return json.Marshal(*e)
+}
+
+// UnmarshalJSON ensures that ExampleAnnotation implements the ygot.Annotation
+// interface. It is stubbed out and unimplemented.
+func (e *ExampleAnnotation) UnmarshalJSON([]byte) error {
+	return fmt.Errorf("unimplemented")
+}
+
 func TestMergeStructs(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -1631,12 +1656,35 @@ func TestMergeStructs(t *testing.T) {
 		want: &validatedMergeTestWithSlice{
 			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
 		},
+	}, {
+		name: "merge fields with duplicate slices of annotations",
+		inA: &validatedMergeTestWithAnnotationSlice{
+			SliceField: []Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+		},
+		inB: &validatedMergeTestWithAnnotationSlice{
+			SliceField: []Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+		},
+		want: &validatedMergeTestWithAnnotationSlice{
+			SliceField: []Annotation{
+				&ExampleAnnotation{ConfigSource: "devicedemo"},
+				&ExampleAnnotation{ConfigSource: "devicedemo"},
+			},
+		},
+	}, {
+		name: "error - merge fields with slice with duplicate strings",
+		inA: &validatedMergeTestWithSlice{
+			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+		},
+		inB: &validatedMergeTestWithSlice{
+			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+		},
+		wantErr: "error merging b to new struct: source and destination lists must be unique",
 	}}
 
 	for _, tt := range tests {
 		got, err := MergeStructs(tt.inA, tt.inB)
-		if err != nil && err.Error() != tt.wantErr {
-			t.Errorf("%s: MergeStructs(%v, %v): did not get expected error status, got: %v, want: %v", tt.name, tt.inA, tt.inB, err, tt.wantErr)
+		if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
+			t.Errorf("%s: MergeStructs(%v, %v): did not get expected error status, %s", tt.name, tt.inA, tt.inB, diff)
 		}
 
 		if diff := pretty.Compare(got, tt.want); diff != "" {
