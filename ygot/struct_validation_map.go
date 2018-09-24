@@ -709,14 +709,16 @@ func copySliceField(dstField, srcField reflect.Value) error {
 		return nil
 	}
 
-	unique, err := uniqueSlices(dstField, srcField)
-	if err != nil {
-		return fmt.Errorf("error checking src and dst for uniqueness, got: %v", err)
-	}
+	if _, ok := srcField.Interface().([]Annotation); !ok {
+		unique, err := uniqueSlices(dstField, srcField)
+		if err != nil {
+			return fmt.Errorf("error checking src and dst for uniqueness, got: %v", err)
+		}
 
-	if !unique {
-		// YANG lists and leaf-lists must be unique.
-		return fmt.Errorf("source and destination lists must be unique, got src: %v, dst: %v", srcField, dstField)
+		if !unique {
+			// YANG lists and leaf-lists must be unique.
+			return fmt.Errorf("source and destination lists must be unique, got src: %v, dst: %v", srcField, dstField)
+		}
 	}
 
 	if !util.IsTypeStructPtr(srcField.Type().Elem()) {
