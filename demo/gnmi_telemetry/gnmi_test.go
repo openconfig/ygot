@@ -46,7 +46,7 @@ func TestRenderToGNMINotifications(t *testing.T) {
 
 		if len(gotProtos) != 1 {
 			t.Errorf("%s: renderToGNMINotifications(%v, %v, %v): did not get expected number of returned protos, got: %d, want: 1", tt.name, tt.inStruct, tt.inTimestamp, tt.inUsePathElem, len(gotProtos))
-      continue
+			continue
 		}
 
 		wantData, err := ioutil.ReadFile(tt.wantProtoFile)

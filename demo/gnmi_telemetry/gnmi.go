@@ -79,8 +79,10 @@ func CreateAFTInstance() (*oc.Device, error) {
 	if err != nil {
 		return nil, err
 	}
+	ip4.NextHopGroup = ygot.Uint64(42)
 
-	nh4, err := ip4.NewNextHop(42)
+	// Create the NextHopGroup and NextHop.
+	nh4, err := addUnaryNextHop(ni, 42)
 	if err != nil {
 		return nil, err
 	}
@@ -90,12 +92,11 @@ func CreateAFTInstance() (*oc.Device, error) {
 	// types for the interface that implements the union within NewLabelEntry.
 	// Since these types have a single fied, then we can use the anonymous
 	// initialiser.
-	mpls, err := ni.Afts.NewLabelEntry(&oc.NetworkInstance_Afts_LabelEntry_Label_Union_Uint32{128})
-	if err != nil {
+	if _, err := ni.Afts.NewLabelEntry(&oc.NetworkInstance_Afts_LabelEntry_Label_Union_Uint32{128}); err != nil {
 		return nil, err
 	}
 
-	nh, err := mpls.NewNextHop(0)
+	nh, err := addUnaryNextHop(ni, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -104,15 +105,30 @@ func CreateAFTInstance() (*oc.Device, error) {
 	// Each union has a method that is named To_X where the X is the union type, associated
 	// with the struct that the union is within. This attempts to return the right type
 	// based on the input interface.
-	expNull, err := nh.To_NetworkInstance_Afts_LabelEntry_NextHop_PushedMplsLabelStack_Union(oc.OpenconfigAft_NextHop_PushedMplsLabelStack_IPV4_EXPLICIT_NULL)
+	expNull, err := nh.To_NetworkInstance_Afts_NextHop_PushedMplsLabelStack_Union(oc.OpenconfigAft_NextHop_PushedMplsLabelStack_IPV4_EXPLICIT_NULL)
 	if err != nil {
 		return nil, fmt.Errorf("error converting explicit null to union, got: %v", err)
 	}
-	nh.PushedMplsLabelStack = []oc.NetworkInstance_Afts_LabelEntry_NextHop_PushedMplsLabelStack_Union{
-		&oc.NetworkInstance_Afts_LabelEntry_NextHop_PushedMplsLabelStack_Union_Uint32{42},
-		&oc.NetworkInstance_Afts_LabelEntry_NextHop_PushedMplsLabelStack_Union_Uint32{84},
+	nh.PushedMplsLabelStack = []oc.NetworkInstance_Afts_NextHop_PushedMplsLabelStack_Union{
+		&oc.NetworkInstance_Afts_NextHop_PushedMplsLabelStack_Union_Uint32{42},
+		&oc.NetworkInstance_Afts_NextHop_PushedMplsLabelStack_Union_Uint32{84},
 		expNull,
 	}
 
 	return d, nil
+}
+
+// addUnaryNextHop adds a next-hop-group and next-hop with the specified ID to the
+// network instance provided.
+func addUnaryNextHop(ni *oc.NetworkInstance, id uint64) (*oc.NetworkInstance_Afts_NextHop, error) {
+	g, err := ni.GetOrCreateAfts().NewNextHopGroup(id)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create next-hop-group, %v", err)
+	}
+
+	if _, err := g.NewNextHop(id); err != nil {
+		return nil, fmt.Errorf("cannot create next-hop, %v", err)
+	}
+
+	return ni.GetOrCreateAfts().GetOrCreateNextHop(id), nil
 }

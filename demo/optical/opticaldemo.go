@@ -66,8 +66,8 @@ func CreateDemoOpticalInstance() (*oc.Device, error) {
 
 	modules := []*apsModuleInput{{
 		Name:      "mod-one",
-		Hyst:      []float64{-42.42, -84.84},
-		Thresh:    []float64{-96.96, -128.128},
+		Hyst:      []float64{-42.42},
+		Thresh:    []float64{-96.96},
 		Revertive: false,
 	}, {
 		Name:      "mod-two",
@@ -87,16 +87,8 @@ func CreateDemoOpticalInstance() (*oc.Device, error) {
 			a.PrimarySwitchHysteresis = ygot.Float64(m.Hyst[0])
 		}
 
-		if len(m.Hyst) > 1 {
-			a.SecondarySwitchHysteresis = ygot.Float64(m.Hyst[1])
-		}
-
 		if len(m.Thresh) >= 1 {
 			a.PrimarySwitchThreshold = ygot.Float64(m.Thresh[0])
-		}
-
-		if len(m.Thresh) > 1 {
-			a.SecondarySwitchThreshold = ygot.Float64(m.Thresh[1])
 		}
 	}
 	return d, nil

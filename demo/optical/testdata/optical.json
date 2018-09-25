@@ -7,9 +7,7 @@
                   "name": "mod-one",
                   "primary-switch-hysteresis": -42.42,
                   "primary-switch-threshold": -96.96,
-                  "revertive": false,
-                  "secondary-switch-hysteresis": -84.84,
-                  "secondary-switch-threshold": -128.128
+                  "revertive": false
                },
                "name": "mod-one"
             },
