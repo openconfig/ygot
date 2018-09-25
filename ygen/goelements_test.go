@@ -713,7 +713,7 @@ func TestYangTypeToGoType(t *testing.T) {
 		want: &mappedType{
 			nativeType: "string",
 			unionTypes: map[string]int{"string": 0},
-			zeroValue: `""`,
+			zeroValue:  `""`,
 		},
 	}, {
 		name: "derived identityref",

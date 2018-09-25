@@ -803,7 +803,7 @@ func TestLeafrefCurrent(t *testing.T) {
 	}
 
 	ygot.BuildEmptyTree(ni)
-	mi, err :=ni.Mpls.Global.NewInterface("eth0.0")
+	mi, err := ni.Mpls.Global.NewInterface("eth0.0")
 	if err != nil {
 		t.Fatalf("TestLeafrefCurrent: could not add new MPLS interface, got: %v, want error: nil", err)
 	}
