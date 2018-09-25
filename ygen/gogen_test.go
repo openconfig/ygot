@@ -1596,7 +1596,11 @@ func (*Container) IsYANGGoStruct() {}
 			methods: `
 // GetLeaf retrieves the value of the leaf Leaf from the Container
 // struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset.
+// the Go zero value if the field is explicitly unset. If the caller explicitly does
+// not care if Leaf is set, it can safely use t.GetLeaf()
+// to retrieve the value. In the case that the caller has different actions based on
+// whether the leaf is set or unset, it should use 'if t.Leaf == nil'
+// before retrieving the leaf's value.
 func (t *Container) GetLeaf() string {
 	if t == nil || t.Leaf == nil {
 		return ""

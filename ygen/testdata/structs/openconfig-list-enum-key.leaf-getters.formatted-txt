@@ -128,7 +128,11 @@ func (*Top_Ekm) IsYANGGoStruct() {}
 
 // GetK1 retrieves the value of the leaf K1 from the Top_Ekm
 // struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset.
+// the Go zero value if the field is explicitly unset. If the caller explicitly does
+// not care if K1 is set, it can safely use t.GetK1()
+// to retrieve the value. In the case that the caller has different actions based on
+// whether the leaf is set or unset, it should use 'if t.K1 == nil'
+// before retrieving the leaf's value.
 func (t *Top_Ekm) GetK1() E_OpenconfigListEnumKey_Ekm_K1 {
 	if t == nil || t.K1 ==  0 {
 		return 0
@@ -138,7 +142,11 @@ func (t *Top_Ekm) GetK1() E_OpenconfigListEnumKey_Ekm_K1 {
 
 // GetK2 retrieves the value of the leaf K2 from the Top_Ekm
 // struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset.
+// the Go zero value if the field is explicitly unset. If the caller explicitly does
+// not care if K2 is set, it can safely use t.GetK2()
+// to retrieve the value. In the case that the caller has different actions based on
+// whether the leaf is set or unset, it should use 'if t.K2 == nil'
+// before retrieving the leaf's value.
 func (t *Top_Ekm) GetK2() E_OpenconfigListEnumKey_FooIdentity {
 	if t == nil || t.K2 ==  0 {
 		return 0
@@ -168,7 +176,11 @@ func (*Top_Eks) IsYANGGoStruct() {}
 
 // GetK retrieves the value of the leaf K from the Top_Eks
 // struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset.
+// the Go zero value if the field is explicitly unset. If the caller explicitly does
+// not care if K is set, it can safely use t.GetK()
+// to retrieve the value. In the case that the caller has different actions based on
+// whether the leaf is set or unset, it should use 'if t.K == nil'
+// before retrieving the leaf's value.
 func (t *Top_Eks) GetK() E_OpenconfigListEnumKey_Eks_K {
 	if t == nil || t.K ==  0 {
 		return 0
