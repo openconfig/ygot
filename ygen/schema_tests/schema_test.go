@@ -168,3 +168,28 @@ func TestGetterChaining(t *testing.T) {
 		t.Errorf(`get list with missing key: GetInterface("does-not-exist"), did not get expected result, got: %v, want: nil`, got)
 	}
 }
+
+func TestLeafGetter(t *testing.T) {
+	d := &exampleoc.Device{}
+	d.GetOrCreateInterface("eth0").GetOrCreateHoldTime().Up = ygot.Uint32(42)
+
+	if got := d.GetInterface("eth0").GetHoldTime().GetUp(); got != 42 {
+		t.Errorf("did not get holdtime up leaf correctly, got: %v, want: 42", got)
+	}
+
+	if got := d.GetInterface("eth0").GetHoldTime().GetDown(); got != 0 {
+		t.Errorf("did not get holdtime down leaf correctly, got: %v, want: 0", got)
+	}
+
+	if got := d.GetInterface("eth0").GetName(); got != "eth0" {
+		t.Errorf("did not get interface name correctly, got: %v, want: eth0", got)
+	}
+
+	if got := d.GetInterface("eth0").GetDescription(); got != "" {
+		t.Errorf("did not get interface name correctly, got: %v, want:"+`""`, got)
+	}
+
+	if got := d.GetInterface("eth0").GetCounters().GetInErrors(); got != 0 {
+		t.Errorf("did not handle nil receiver correctly, got: %v, want: 0", got)
+	}
+}

@@ -19,6 +19,7 @@ go run ../generator/generator.go -path=public,deps -output_file=oc.go \
   -generate_rename \
   -generate_append \
   -generate_getters \
+  -generate_leaf_getters \
   -annotations \
   public/release/models/network-instance/openconfig-network-instance.yang \
   public/release/models/optical-transport/openconfig-optical-amplifier.yang \

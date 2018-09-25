@@ -24,6 +24,7 @@ import (
 
 	log "github.com/golang/glog"
 
+	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 )
@@ -285,6 +286,23 @@ type generatedGoEnumeration struct {
 	Values map[int64]string
 }
 
+// generatedLeafGetter is used to represent the parameters required to generate a
+// getter for a leaf within the generated Go code.
+type generatedLeafGetter struct {
+	// Name is the name of the field. It is used as a suffix to Get to generate
+	// the getter.
+	Name string
+	// Type is the type of the field, returned by the generated method.
+	Type string
+	// Zero is the value that should be returned if the field is set to nil.
+	Zero string
+	// IsPtr stores whether the value is a pointer, such that it can be checked
+	// against nil, or against the zero value.
+	IsPtr bool
+	// Receiver is the name of the receiver for the getter method.
+	Receiver string
+}
+
 var (
 	// goCommonHeaderTemplate is populated and output at the top of the generated code package
 	goCommonHeaderTemplate = `
@@ -399,8 +417,8 @@ func (*{{ .StructName }}) IsYANGGoStruct() {}
 	// from it.
 	goStructValidatorTemplate = `
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *{{ .StructName }}) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["{{ .StructName }}"], s, opts...); err != nil {
+func (t *{{ .StructName }}) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["{{ .StructName }}"], t, opts...); err != nil {
 		return err
 	}
 	return nil
@@ -413,9 +431,9 @@ func (s *{{ .StructName }}) Validate(opts ...ygot.ValidationOption) error {
 // Get{{ .Field.Name }} returns the value of the {{ .Field.Name }} struct pointer
 // from {{ .StructName }}. If the receiver or the field {{ .Field.Name }} is nil, nil
 // is returned such that the Get* methods can be safely chained.
-func (s *{{ .StructName }}) Get{{ .Field.Name }}() {{ .Field.Type }} {
-	if s != nil && s.{{ .Field.Name }} != nil {
-		return s.{{ .Field.Name }}
+func (t *{{ .StructName }}) Get{{ .Field.Name }}() {{ .Field.Type }} {
+	if t != nil && t.{{ .Field.Name }} != nil {
+		return t.{{ .Field.Name }}
 	}
 	return nil
 }
@@ -427,12 +445,12 @@ func (s *{{ .StructName }}) Get{{ .Field.Name }}() {{ .Field.Type }} {
 	goGetOrCreateStructTemplate = `
 // GetOrCreate{{ .Field.Name }} retrieves the value of the {{ .Field.Name }} field
 // or returns the existing field if it already exists.
-func (s *{{ .StructName }}) GetOrCreate{{ .Field.Name }}() {{ .Field.Type }} {
-	if s.{{ .Field.Name }} != nil {
-		return s.{{ .Field.Name }}
+func (t *{{ .StructName }}) GetOrCreate{{ .Field.Name }}() {{ .Field.Type }} {
+	if t.{{ .Field.Name }} != nil {
+		return t.{{ .Field.Name }}
 	}
-	s.{{ .Field.Name }} = &{{ stripAsteriskPrefix .Field.Type }}{}
-	return s.{{ .Field.Name }}
+	t.{{ .Field.Name }} = &{{ stripAsteriskPrefix .Field.Type }}{}
+	return t.{{ .Field.Name }}
 }
 `
 	// goListKeyTemplate takes an input generatedGoMultiKeyListStruct, which is used to
@@ -636,6 +654,24 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 		panic(fmt.Sprintf("GetOrCreate{{ .ListName }} got unexpected error: %v", err))
 	}
 	return v
+}
+`
+
+	// goLeafGetterTemplate defines a template for a function that, for a
+	// particular leaf, generates a getter method.
+	goLeafGetterTemplate = `
+// Get{{ .Name }} retrieves the value of the leaf {{ .Name }} from the {{ .Receiver }}
+// struct. Caution should be exercised whilst using this method since it will return
+// the Go zero value if the field is explicitly unset. If the caller explicitly does
+// not care if {{ .Name }} is set, it can safely use t.Get{{ .Name }}()
+// to retrieve the value. In the case that the caller has different actions based on
+// whether the leaf is set or unset, it should use 'if t.{{ .Name }} == nil'
+// before retrieving the leaf's value.
+func (t *{{ .Receiver }}) Get{{ .Name }}() {{ .Type }} {
+	if t == nil || t.{{ .Name }} == {{ if .IsPtr -}} nil {{- else }} {{ .Zero }} {{- end }} {
+		return {{ .Zero }}
+	}
+	return {{ if .IsPtr -}} * {{- end -}} t.{{ .Name }}
 }
 `
 
@@ -928,6 +964,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"deleteList":          makeTemplate("deleteList", goDeleteListTemplate),
 		"getList":             makeTemplate("getList", goListGetterTemplate),
 		"getContainer":        makeTemplate("getContainer", goContainerGetterTemplate),
+		"getLeaf":             makeTemplate("getLeaf", goLeafGetterTemplate),
 	}
 
 	// templateHelperFunctions specifies a set of functions that are supplied as
@@ -1068,6 +1105,11 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 	// existing list member to be appended to the list.
 	var associatedListMethods []*generatedGoListMethod
 
+	// associatedLeafGetters is a slice of structs which define the set of leaf getters
+	// to generated for the struct. It is only populated if the GenerateLeafGetters option
+	// is set to true.
+	var associatedLeafGetters []*generatedLeafGetter
+
 	// Sort the list of fields into alphabetical order to ensure determinstic output of code,
 	// and minimise diffs.
 	var fieldNames []string
@@ -1175,6 +1217,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			scalarField := true
 			fType := mtype.nativeType
 			schemapath := entrySchemaPath(field)
+			zeroValue := mtype.zeroValue
 
 			if len(mtype.unionTypes) > 1 {
 				// If this is a union that has more than one subtype, then we need
@@ -1224,6 +1267,9 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				// code using a slice of the type that the element was mapped to.
 				fType = fmt.Sprintf("[]%s", fType)
 				scalarField = false
+				// Slices have a nil zero value rather than the value of their
+				// underlying type.
+				zeroValue = "nil"
 			case mtype.isEnumeratedValue == true, mtype.nativeType == "interface{}", mtype.nativeType == ygot.BinaryTypeName, mtype.nativeType == ygot.EmptyTypeName:
 				// If the value is an enumerated value, then we did not represent it
 				// as a pointer within the struct, so mark it as a scalar field such
@@ -1239,6 +1285,19 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				// Any enumerated type is stored in the enumMap to allow for type
 				// resolution from a schema path.
 				enumTypeMap[schemapath] = append(enumTypeMap[schemapath], mtype.nativeType)
+			}
+
+			if goOpts.GenerateLeafGetters {
+				// If we are generating leaf getters, then append the relevant information
+				// to the associatedLeafGetters slice to be generated along with other
+				// associated methods.
+				associatedLeafGetters = append(associatedLeafGetters, &generatedLeafGetter{
+					Name:     fieldName,
+					Type:     fType,
+					Zero:     zeroValue,
+					IsPtr:    scalarField,
+					Receiver: targetStruct.name,
+				})
 			}
 
 			fieldDef = &goStructField{
@@ -1365,6 +1424,12 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 		}
 	}
 
+	if goOpts.GenerateLeafGetters {
+		if err := generateLeafGetters(&methodBuf, associatedLeafGetters); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
 	if err := generateGetListKey(&methodBuf, targetStruct, definedNameMap); err != nil {
 		errs = append(errs, err)
 	}
@@ -1408,7 +1473,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 //
 // the validation function generated for the struct will be:
 //
-//   func (s *MyStruct) Validate(value interface{}) error {
+//   func (t *MyStruct) Validate(value interface{}) error {
 //     if err := ytypes.Validate(schemaMap["MyStruct"], value); err != nil {
 //       return err
 //     }
@@ -1479,6 +1544,18 @@ func generateContainerGetters(buf *bytes.Buffer, structDef generatedGoStruct) er
 		}
 	}
 	return nil
+}
+
+// generateLeafGetters generates GetXXX methods for the leaf fields described by
+// the supplied slice of generatedLeafGetter structs.
+func generateLeafGetters(buf *bytes.Buffer, leaves []*generatedLeafGetter) error {
+	var errs errlist.List
+	for _, l := range leaves {
+		if err := goTemplates["getLeaf"].Execute(buf, l); err != nil {
+			errs.Add(err)
+		}
+	}
+	return errs.Err()
 }
 
 // generateGetOrCreateList generates a getter function similar to that created
@@ -1588,10 +1665,7 @@ func generateGetListKey(buf *bytes.Buffer, s *yangDirectory, nameMap map[string]
 		h.Keys = append(h.Keys, nameMap[k])
 	}
 
-	if err := goTemplates["keyHelper"].Execute(buf, h); err != nil {
-		return err
-	}
-	return nil
+	return goTemplates["keyHelper"].Execute(buf, h)
 }
 
 // yangListFieldToGoType takes a yang.Entry (listField) and returns a string corresponding to the Go
@@ -1849,10 +1923,7 @@ func generateEnumTypeMap(enumTypeMap map[string][]string) (string, error) {
 // generateEnumTypeMapAccessor generates a function which returns the defined
 // enumTypeMap for a struct.
 func generateEnumTypeMapAccessor(b *bytes.Buffer, s generatedGoStruct) error {
-	if err := goTemplates["enumTypeMapAccessor"].Execute(b, s); err != nil {
-		return err
-	}
-	return nil
+	return goTemplates["enumTypeMapAccessor"].Execute(b, s)
 }
 
 // writeGoSchema generates Go code which serialises the rawSchema byte slice

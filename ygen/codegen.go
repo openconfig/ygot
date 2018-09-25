@@ -126,6 +126,13 @@ type GoOpts struct {
 	// list fields of a struct. These methods take an input list member type, extract
 	// the key and append the supplied value to the list.
 	GenerateAppendMethod bool
+	// GenerateLeafGetters specifies whether Get* methods should be created for
+	// leaf fields of a struct. Care should be taken with this option since a Get
+	// method returns the *Go* zero value for a particular entity if the field is
+	// unset. This means that it is not possible for a caller of method to know
+	// whether a field has been explicitly set to the zero value (i.e., an integer
+	// field is set to 0), or whether the field was actually unset.
+	GenerateLeafGetters bool
 }
 
 // ProtoOpts stores Protobuf specific options for the code generation library.

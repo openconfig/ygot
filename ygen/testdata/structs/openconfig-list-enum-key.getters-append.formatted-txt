@@ -42,20 +42,20 @@ func (*Device) IsYANGGoStruct() {}
 
 // GetOrCreateTop retrieves the value of the Top field
 // or returns the existing field if it already exists.
-func (s *Device) GetOrCreateTop() *OpenconfigListEnumKey_Top {
-	if s.Top != nil {
-		return s.Top
+func (t *Device) GetOrCreateTop() *OpenconfigListEnumKey_Top {
+	if t.Top != nil {
+		return t.Top
 	}
-	s.Top = &OpenconfigListEnumKey_Top{}
-	return s.Top
+	t.Top = &OpenconfigListEnumKey_Top{}
+	return t.Top
 }
 
 // GetTop returns the value of the Top struct pointer
 // from Device. If the receiver or the field Top is nil, nil
 // is returned such that the Get* methods can be safely chained.
-func (s *Device) GetTop() *OpenconfigListEnumKey_Top {
-	if s != nil && s.Top != nil {
-		return s.Top
+func (t *Device) GetTop() *OpenconfigListEnumKey_Top {
+	if t != nil && t.Top != nil {
+		return t.Top
 	}
 	return nil
 }
@@ -73,30 +73,30 @@ func (*OpenconfigListEnumKey_Top) IsYANGGoStruct() {}
 
 // GetOrCreateMultiKey retrieves the value of the MultiKey field
 // or returns the existing field if it already exists.
-func (s *OpenconfigListEnumKey_Top) GetOrCreateMultiKey() *OpenconfigListEnumKey_Top_MultiKey {
-	if s.MultiKey != nil {
-		return s.MultiKey
+func (t *OpenconfigListEnumKey_Top) GetOrCreateMultiKey() *OpenconfigListEnumKey_Top_MultiKey {
+	if t.MultiKey != nil {
+		return t.MultiKey
 	}
-	s.MultiKey = &OpenconfigListEnumKey_Top_MultiKey{}
-	return s.MultiKey
+	t.MultiKey = &OpenconfigListEnumKey_Top_MultiKey{}
+	return t.MultiKey
 }
 
 // GetOrCreateSingleKey retrieves the value of the SingleKey field
 // or returns the existing field if it already exists.
-func (s *OpenconfigListEnumKey_Top) GetOrCreateSingleKey() *OpenconfigListEnumKey_Top_SingleKey {
-	if s.SingleKey != nil {
-		return s.SingleKey
+func (t *OpenconfigListEnumKey_Top) GetOrCreateSingleKey() *OpenconfigListEnumKey_Top_SingleKey {
+	if t.SingleKey != nil {
+		return t.SingleKey
 	}
-	s.SingleKey = &OpenconfigListEnumKey_Top_SingleKey{}
-	return s.SingleKey
+	t.SingleKey = &OpenconfigListEnumKey_Top_SingleKey{}
+	return t.SingleKey
 }
 
 // GetMultiKey returns the value of the MultiKey struct pointer
 // from OpenconfigListEnumKey_Top. If the receiver or the field MultiKey is nil, nil
 // is returned such that the Get* methods can be safely chained.
-func (s *OpenconfigListEnumKey_Top) GetMultiKey() *OpenconfigListEnumKey_Top_MultiKey {
-	if s != nil && s.MultiKey != nil {
-		return s.MultiKey
+func (t *OpenconfigListEnumKey_Top) GetMultiKey() *OpenconfigListEnumKey_Top_MultiKey {
+	if t != nil && t.MultiKey != nil {
+		return t.MultiKey
 	}
 	return nil
 }
@@ -104,9 +104,9 @@ func (s *OpenconfigListEnumKey_Top) GetMultiKey() *OpenconfigListEnumKey_Top_Mul
 // GetSingleKey returns the value of the SingleKey struct pointer
 // from OpenconfigListEnumKey_Top. If the receiver or the field SingleKey is nil, nil
 // is returned such that the Get* methods can be safely chained.
-func (s *OpenconfigListEnumKey_Top) GetSingleKey() *OpenconfigListEnumKey_Top_SingleKey {
-	if s != nil && s.SingleKey != nil {
-		return s.SingleKey
+func (t *OpenconfigListEnumKey_Top) GetSingleKey() *OpenconfigListEnumKey_Top_SingleKey {
+	if t != nil && t.SingleKey != nil {
+		return t.SingleKey
 	}
 	return nil
 }
@@ -250,30 +250,30 @@ func (*OpenconfigListEnumKey_Top_MultiKey_Ekm) IsYANGGoStruct() {}
 
 // GetOrCreateConfig retrieves the value of the Config field
 // or returns the existing field if it already exists.
-func (s *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetOrCreateConfig() *OpenconfigListEnumKey_Top_MultiKey_Ekm_Config {
-	if s.Config != nil {
-		return s.Config
+func (t *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetOrCreateConfig() *OpenconfigListEnumKey_Top_MultiKey_Ekm_Config {
+	if t.Config != nil {
+		return t.Config
 	}
-	s.Config = &OpenconfigListEnumKey_Top_MultiKey_Ekm_Config{}
-	return s.Config
+	t.Config = &OpenconfigListEnumKey_Top_MultiKey_Ekm_Config{}
+	return t.Config
 }
 
 // GetOrCreateState retrieves the value of the State field
 // or returns the existing field if it already exists.
-func (s *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetOrCreateState() *OpenconfigListEnumKey_Top_MultiKey_Ekm_State {
-	if s.State != nil {
-		return s.State
+func (t *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetOrCreateState() *OpenconfigListEnumKey_Top_MultiKey_Ekm_State {
+	if t.State != nil {
+		return t.State
 	}
-	s.State = &OpenconfigListEnumKey_Top_MultiKey_Ekm_State{}
-	return s.State
+	t.State = &OpenconfigListEnumKey_Top_MultiKey_Ekm_State{}
+	return t.State
 }
 
 // GetConfig returns the value of the Config struct pointer
 // from OpenconfigListEnumKey_Top_MultiKey_Ekm. If the receiver or the field Config is nil, nil
 // is returned such that the Get* methods can be safely chained.
-func (s *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetConfig() *OpenconfigListEnumKey_Top_MultiKey_Ekm_Config {
-	if s != nil && s.Config != nil {
-		return s.Config
+func (t *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetConfig() *OpenconfigListEnumKey_Top_MultiKey_Ekm_Config {
+	if t != nil && t.Config != nil {
+		return t.Config
 	}
 	return nil
 }
@@ -281,9 +281,9 @@ func (s *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetConfig() *OpenconfigListEnum
 // GetState returns the value of the State struct pointer
 // from OpenconfigListEnumKey_Top_MultiKey_Ekm. If the receiver or the field State is nil, nil
 // is returned such that the Get* methods can be safely chained.
-func (s *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetState() *OpenconfigListEnumKey_Top_MultiKey_Ekm_State {
-	if s != nil && s.State != nil {
-		return s.State
+func (t *OpenconfigListEnumKey_Top_MultiKey_Ekm) GetState() *OpenconfigListEnumKey_Top_MultiKey_Ekm_State {
+	if t != nil && t.State != nil {
+		return t.State
 	}
 	return nil
 }
@@ -438,30 +438,30 @@ func (*OpenconfigListEnumKey_Top_SingleKey_Eks) IsYANGGoStruct() {}
 
 // GetOrCreateConfig retrieves the value of the Config field
 // or returns the existing field if it already exists.
-func (s *OpenconfigListEnumKey_Top_SingleKey_Eks) GetOrCreateConfig() *OpenconfigListEnumKey_Top_SingleKey_Eks_Config {
-	if s.Config != nil {
-		return s.Config
+func (t *OpenconfigListEnumKey_Top_SingleKey_Eks) GetOrCreateConfig() *OpenconfigListEnumKey_Top_SingleKey_Eks_Config {
+	if t.Config != nil {
+		return t.Config
 	}
-	s.Config = &OpenconfigListEnumKey_Top_SingleKey_Eks_Config{}
-	return s.Config
+	t.Config = &OpenconfigListEnumKey_Top_SingleKey_Eks_Config{}
+	return t.Config
 }
 
 // GetOrCreateState retrieves the value of the State field
 // or returns the existing field if it already exists.
-func (s *OpenconfigListEnumKey_Top_SingleKey_Eks) GetOrCreateState() *OpenconfigListEnumKey_Top_SingleKey_Eks_State {
-	if s.State != nil {
-		return s.State
+func (t *OpenconfigListEnumKey_Top_SingleKey_Eks) GetOrCreateState() *OpenconfigListEnumKey_Top_SingleKey_Eks_State {
+	if t.State != nil {
+		return t.State
 	}
-	s.State = &OpenconfigListEnumKey_Top_SingleKey_Eks_State{}
-	return s.State
+	t.State = &OpenconfigListEnumKey_Top_SingleKey_Eks_State{}
+	return t.State
 }
 
 // GetConfig returns the value of the Config struct pointer
 // from OpenconfigListEnumKey_Top_SingleKey_Eks. If the receiver or the field Config is nil, nil
 // is returned such that the Get* methods can be safely chained.
-func (s *OpenconfigListEnumKey_Top_SingleKey_Eks) GetConfig() *OpenconfigListEnumKey_Top_SingleKey_Eks_Config {
-	if s != nil && s.Config != nil {
-		return s.Config
+func (t *OpenconfigListEnumKey_Top_SingleKey_Eks) GetConfig() *OpenconfigListEnumKey_Top_SingleKey_Eks_Config {
+	if t != nil && t.Config != nil {
+		return t.Config
 	}
 	return nil
 }
@@ -469,9 +469,9 @@ func (s *OpenconfigListEnumKey_Top_SingleKey_Eks) GetConfig() *OpenconfigListEnu
 // GetState returns the value of the State struct pointer
 // from OpenconfigListEnumKey_Top_SingleKey_Eks. If the receiver or the field State is nil, nil
 // is returned such that the Get* methods can be safely chained.
-func (s *OpenconfigListEnumKey_Top_SingleKey_Eks) GetState() *OpenconfigListEnumKey_Top_SingleKey_Eks_State {
-	if s != nil && s.State != nil {
-		return s.State
+func (t *OpenconfigListEnumKey_Top_SingleKey_Eks) GetState() *OpenconfigListEnumKey_Top_SingleKey_Eks_State {
+	if t != nil && t.State != nil {
+		return t.State
 	}
 	return nil
 }

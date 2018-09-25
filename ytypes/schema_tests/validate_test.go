@@ -792,6 +792,8 @@ func TestGetNode(t *testing.T) {
 */
 func TestLeafrefCurrent(t *testing.T) {
 	dev := &oc.Device{}
+	ni := dev.GetOrCreateNetworkInstance("DEFAULT")
+
 	i, err := dev.NewInterface("eth0")
 	if err != nil {
 		t.Fatalf("TestLeafrefCurrent: could not create new interface, got: %v, want error: nil", err)
@@ -800,12 +802,12 @@ func TestLeafrefCurrent(t *testing.T) {
 		t.Fatalf("TestLeafrefCurrent: could not create subinterface, got: %v, want error: nil", err)
 	}
 
-	ygot.BuildEmptyTree(dev)
-	mi, err := dev.Mpls.Global.NewInterface("eth0.0")
+	ygot.BuildEmptyTree(ni)
+	mi, err := ni.Mpls.Global.NewInterface("eth0.0")
 	if err != nil {
 		t.Fatalf("TestLeafrefCurrent: could not add new MPLS interface, got: %v, want error: nil", err)
 	}
-	mi.InterfaceRef = &oc.Mpls_Global_Interface_InterfaceRef{
+	mi.InterfaceRef = &oc.NetworkInstance_Mpls_Global_Interface_InterfaceRef{
 		Interface:    ygot.String("eth0"),
 		Subinterface: ygot.Uint32(0),
 	}
@@ -814,7 +816,7 @@ func TestLeafrefCurrent(t *testing.T) {
 		t.Fatalf("TestLeafrefCurrent: could not validate populated interfaces, got: %v, want: nil", err)
 	}
 
-	dev.Mpls.Global.Interface["eth0.0"].InterfaceRef.Subinterface = ygot.Uint32(1)
+	ni.Mpls.Global.Interface["eth0.0"].InterfaceRef.Subinterface = ygot.Uint32(1)
 	if err := dev.Validate(); err == nil {
 		t.Fatal("TestLeafrefCurrent: did not get expected error for non-existent subinterface, got: nil, want: error")
 	}

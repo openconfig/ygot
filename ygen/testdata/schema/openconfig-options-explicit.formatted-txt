@@ -74,8 +74,8 @@ type Fakeroot struct {
 func (*Fakeroot) IsYANGGoStruct() {}
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *Fakeroot) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["Fakeroot"], s, opts...); err != nil {
+func (t *Fakeroot) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["Fakeroot"], t, opts...); err != nil {
 		return err
 	}
 	return nil
@@ -96,8 +96,8 @@ type Parent struct {
 func (*Parent) IsYANGGoStruct() {}
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *Parent) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["Parent"], s, opts...); err != nil {
+func (t *Parent) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["Parent"], t, opts...); err != nil {
 		return err
 	}
 	return nil
@@ -121,8 +121,8 @@ type Parent_Child struct {
 func (*Parent_Child) IsYANGGoStruct() {}
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *Parent_Child) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["Parent_Child"], s, opts...); err != nil {
+func (t *Parent_Child) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["Parent_Child"], t, opts...); err != nil {
 		return err
 	}
 	return nil
@@ -143,8 +143,8 @@ type RemoteContainer struct {
 func (*RemoteContainer) IsYANGGoStruct() {}
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *RemoteContainer) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["RemoteContainer"], s, opts...); err != nil {
+func (t *RemoteContainer) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["RemoteContainer"], t, opts...); err != nil {
 		return err
 	}
 	return nil

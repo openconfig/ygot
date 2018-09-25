@@ -100,8 +100,8 @@ func (t *Bgp) NewNeighbor(PeerAddress string) (*Bgp_Neighbor, error){
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *Bgp) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["Bgp"], s, opts...); err != nil {
+func (t *Bgp) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["Bgp"], t, opts...); err != nil {
 		return err
 	}
 	return nil
@@ -136,8 +136,8 @@ func (t *Bgp_Neighbor) ΛListKeyMap() (map[string]interface{}, error) {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (s *Bgp_Neighbor) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["Bgp_Neighbor"], s, opts...); err != nil {
+func (t *Bgp_Neighbor) Validate(opts ...ygot.ValidationOption) error {
+	if err := ytypes.Validate(SchemaTree["Bgp_Neighbor"], t, opts...); err != nil {
 		return err
 	}
 	return nil
