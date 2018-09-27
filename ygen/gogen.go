@@ -1225,6 +1225,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			fType := mtype.nativeType
 			schemapath := entrySchemaPath(field)
 			zeroValue := mtype.zeroValue
+			defaultValue := goLeafDefault(field, mtype)
 
 			if len(mtype.unionTypes) > 1 {
 				// If this is a union that has more than one subtype, then we need
@@ -1304,6 +1305,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 					Zero:     zeroValue,
 					IsPtr:    scalarField,
 					Receiver: targetStruct.name,
+					Default:  defaultValue,
 				})
 			}
 
@@ -1978,12 +1980,26 @@ func goLeafDefault(e *yang.Entry, t *mappedType) *string {
 		if t.isEnumeratedValue {
 			return ygot.String(fmt.Sprintf("%s_%s", strings.TrimPrefix(t.nativeType, goEnumPrefix), e.Default))
 		}
-		return ygot.String(e.Default)
+		return quoteDefault(&e.Default, t.nativeType)
 	}
 
 	if t.defaultValue != nil {
-		return t.defaultValue
+		return quoteDefault(t.defaultValue, t.nativeType)
 	}
 
 	return nil
+}
+
+// quoteDefault adds quotation marks to the value string if the goType specified
+// is a string, and hence requires quoting.
+func quoteDefault(value *string, goType string) *string {
+	if value == nil {
+		return nil
+	}
+
+	if goType == "string" {
+		return ygot.String(fmt.Sprintf(`"%s"`, *value))
+	}
+
+	return value
 }

@@ -853,12 +853,3 @@ func (s *genState) buildListKey(e *yang.Entry, compressOCPaths bool) (*yangListA
 
 	return listattr, errs
 }
-
-// typeDefaultValue returns the default value of the type t if it is specified.
-// nil is returned if no default is specified.
-func typeDefaultValue(t *yang.YangType) *string {
-	if t.Default == "" {
-		return nil
-	}
-	return ygot.String(t.Default)
-}

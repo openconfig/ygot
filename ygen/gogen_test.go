@@ -1679,7 +1679,7 @@ func (*Container) IsYANGGoStruct() {}
 // before retrieving the leaf's value.
 func (t *Container) GetLeaf() string {
 	if t == nil || t.Leaf == nil {
-		return ""
+		return "DEFAULT VALUE"
 	}
 	return *t.Leaf
 }
@@ -2205,12 +2205,19 @@ func TestGoLeafDefault(t *testing.T) {
 		inType *mappedType
 		want   *string
 	}{{
-		name: "default in leaf",
+		name: "quoted default in leaf",
 		inLeaf: &yang.Entry{
 			Default: "a-default-value",
 		},
 		inType: &mappedType{nativeType: "string"},
-		want:   ygot.String("a-default-value"),
+		want:   ygot.String(`"a-default-value"`),
+	}, {
+		name: "unquoted default in leaf",
+		inLeaf: &yang.Entry{
+			Default: "42",
+		},
+		inType: &mappedType{nativeType: "int32"},
+		want:   ygot.String("42"),
 	}, {
 		name:   "no default",
 		inLeaf: &yang.Entry{},

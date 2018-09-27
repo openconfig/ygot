@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 )
 
 // children returns all child elements of a directory element e that are not
@@ -407,4 +408,13 @@ func isChildOfModule(msg *yangDirectory) bool {
 func isYANGBaseType(t *yang.YangType) bool {
 	_, builtin := yang.TypeKindFromName[t.Name]
 	return builtin
+}
+
+// typeDefaultValue returns the default value of the type t if it is specified.
+// nil is returned if no default is specified.
+func typeDefaultValue(t *yang.YangType) *string {
+	if t.Default == "" {
+		return nil
+	}
+	return ygot.String(t.Default)
 }
