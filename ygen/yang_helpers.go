@@ -16,9 +16,11 @@ package ygen
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 )
 
 // children returns all child elements of a directory element e that are not
@@ -407,4 +409,31 @@ func isChildOfModule(msg *yangDirectory) bool {
 func isYANGBaseType(t *yang.YangType) bool {
 	_, builtin := yang.TypeKindFromName[t.Name]
 	return builtin
+}
+
+// typeDefaultValue returns the default value of the type t if it is specified.
+// nil is returned if no default is specified.
+func typeDefaultValue(t *yang.YangType) *string {
+	if t.Default == "" {
+		return nil
+	}
+	return ygot.String(t.Default)
+}
+
+// enumDefaultValue sanitises a default value specified for an enumeration
+// which can be specified as prefix:value in the YANG schema. The baseName
+// is used as the generated enumeration name stripping any prefix specified,
+// (allowing removal of the enumeration type prefix if required). The default
+// value in the form <sanitised_baseName>_<sanitised_defVal> is returned as
+// a pointer.
+func enumDefaultValue(baseName, defVal, prefix string) *string {
+	if strings.Contains(defVal, ":") {
+		defVal = strings.Split(defVal, ":")[1]
+	}
+
+	if prefix != "" {
+		baseName = strings.TrimPrefix(baseName, prefix)
+	}
+
+	return ygot.String(fmt.Sprintf("%s_%s", baseName, defVal))
 }
