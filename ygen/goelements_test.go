@@ -19,6 +19,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 )
 
 // TestFindChildren tests the findAllChildren function to ensure that the
@@ -621,6 +622,10 @@ func TestYangTypeToGoType(t *testing.T) {
 		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32"},
 		want: &mappedType{nativeType: "int32", zeroValue: "0"},
 	}, {
+		name: "int32 with default",
+		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32", Default: "42"},
+		want: &mappedType{nativeType: "int32", zeroValue: "0", defaultValue: ygot.String("42")},
+	}, {
 		name: "decimal64",
 		in:   &yang.YangType{Kind: yang.Ydecimal64, Name: "decimal64"},
 		want: &mappedType{nativeType: "float64", zeroValue: "0.0"},
@@ -736,6 +741,27 @@ func TestYangTypeToGoType(t *testing.T) {
 			zeroValue:         "0",
 		},
 	}, {
+		name: "derived identityref",
+		in:   &yang.YangType{Kind: yang.Yidentityref, Name: "derived-identityref", Default: "AARDVARK"},
+		ctx: &yang.Entry{
+			Type: &yang.YangType{
+				Name: "derived-identityref",
+				IdentityBase: &yang.Identity{
+					Name:   "base-identity",
+					Parent: &yang.Module{Name: "base-module"},
+				},
+			},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{Name: "base-module"},
+			},
+		},
+		want: &mappedType{
+			nativeType:        "E_BaseModule_DerivedIdentityref",
+			isEnumeratedValue: true,
+			zeroValue:         "0",
+			defaultValue:      ygot.String("BaseModule_DerivedIdentityref_AARDVARK"),
+		},
+	}, {
 		name: "enumeration",
 		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration"},
 		ctx: &yang.Entry{
@@ -753,6 +779,26 @@ func TestYangTypeToGoType(t *testing.T) {
 			nativeType:        "E_BaseModule_EnumerationLeaf",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
+		},
+	}, {
+		name: "enumeration with default",
+		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Default: "prefix:BLUE"},
+		ctx: &yang.Entry{
+			Name: "enumeration-leaf",
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Enum: &yang.EnumType{},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Enum{
+				Parent: &yang.Module{Name: "base-module"},
+			},
+		},
+		want: &mappedType{
+			nativeType:        "E_BaseModule_EnumerationLeaf",
+			isEnumeratedValue: true,
+			zeroValue:         "0",
+			defaultValue:      ygot.String("BaseModule_EnumerationLeaf_BLUE"),
 		},
 	}, {
 		name: "typedef enumeration",
@@ -773,6 +819,27 @@ func TestYangTypeToGoType(t *testing.T) {
 			nativeType:        "E_BaseModule_DerivedEnumeration",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
+		},
+	}, {
+		name: "typedef enumeration with default",
+		in:   &yang.YangType{Kind: yang.Yenum, Name: "derived-enumeration", Default: "FISH"},
+		ctx: &yang.Entry{
+			Name: "enumeration-leaf",
+			Type: &yang.YangType{
+				Name: "derived-enumeration",
+				Enum: &yang.EnumType{},
+			},
+			Node: &yang.Enum{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		},
+		want: &mappedType{
+			nativeType:        "E_BaseModule_DerivedEnumeration",
+			isEnumeratedValue: true,
+			zeroValue:         "0",
+			defaultValue:      ygot.String("BaseModule_DerivedEnumeration_FISH"),
 		},
 	}, {
 		name: "identityref",
@@ -798,6 +865,32 @@ func TestYangTypeToGoType(t *testing.T) {
 			nativeType:        "E_TestModule_BaseIdentity",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
+		},
+	}, {
+		name: "identityref with default",
+		in:   &yang.YangType{Kind: yang.Yidentityref, Name: "identityref", Default: "CHIPS"},
+		ctx: &yang.Entry{
+			Name: "identityref",
+			Type: &yang.YangType{
+				Name: "identityref",
+				IdentityBase: &yang.Identity{
+					Name: "base-identity",
+					Parent: &yang.Module{
+						Name: "test-module",
+					},
+				},
+			},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{
+					Name: "test-module",
+				},
+			},
+		},
+		want: &mappedType{
+			nativeType:        "E_TestModule_BaseIdentity",
+			isEnumeratedValue: true,
+			zeroValue:         "0",
+			defaultValue:      ygot.String("TestModule_BaseIdentity_CHIPS"),
 		},
 	}, {
 		name: "enumeration with compress paths",
