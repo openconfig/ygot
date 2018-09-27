@@ -364,9 +364,20 @@ var (
 
 func init() {
 	var err error
-	if SchemaTree, err = ygot.GzipToSchema(ySchema); err != nil {
+	if SchemaTree, err = UnzipSchema(); err != nil {
 		panic("schema error: " +  err.Error())
 	}
+}
+
+// UnzipSchema unzips the zipped schema and returns a map of yang.Entry nodes,
+// keyed by the name of the struct that the yang.Entry describes the schema for.
+func UnzipSchema() (map[string]*yang.Entry, error) {
+	var schemaTree map[string]*yang.Entry
+	var err error
+	if schemaTree, err = ygot.GzipToSchema(ySchema); err != nil {
+		return nil, fmt.Errorf("could not unzip the schema; %v", err)
+	}
+	return schemaTree, nil
 }
 
 // Unmarshal unmarshals data, which must be RFC7951 JSON format, into
