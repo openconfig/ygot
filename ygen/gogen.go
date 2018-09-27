@@ -2009,7 +2009,7 @@ func quoteDefault(value *string, goType string) *string {
 	}
 
 	if goType == "string" {
-		return ygot.String(fmt.Sprintf(`"%s"`, *value))
+		return ygot.String(fmt.Sprintf("%q", *value))
 	}
 
 	return value

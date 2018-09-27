@@ -428,7 +428,7 @@ func typeDefaultValue(t *yang.YangType) *string {
 // a pointer.
 func enumDefaultValue(baseName, defVal, prefix string) *string {
 	if strings.Contains(defVal, ":") {
-		defVal = strings.SplitN(defVal, ":", -1)[1]
+		defVal = strings.Split(defVal, ":")[1]
 	}
 
 	if prefix != "" {
