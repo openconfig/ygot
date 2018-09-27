@@ -782,7 +782,7 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "enumeration with default",
-		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Default: "BLUE"},
+		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Default: "prefix:BLUE"},
 		ctx: &yang.Entry{
 			Name: "enumeration-leaf",
 			Type: &yang.YangType{

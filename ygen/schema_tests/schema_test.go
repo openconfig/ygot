@@ -192,4 +192,8 @@ func TestLeafGetter(t *testing.T) {
 	if got := d.GetInterface("eth0").GetCounters().GetInErrors(); got != 0 {
 		t.Errorf("did not handle nil receiver correctly, got: %v, want: 0", got)
 	}
+
+  if got := d.GetInterface("eth0").GetEnabled(); got != true {
+    t.Errorf("did not correctly return the default for a leaf, got: %v, want: true", got)
+  }
 }

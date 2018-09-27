@@ -1978,7 +1978,7 @@ func writeIfNotEmpty(b *bytes.Buffer, s string) {
 func goLeafDefault(e *yang.Entry, t *mappedType) *string {
 	if e.Default != "" {
 		if t.isEnumeratedValue {
-			return ygot.String(fmt.Sprintf("%s_%s", strings.TrimPrefix(t.nativeType, goEnumPrefix), e.Default))
+			return enumDefaultValue(t.nativeType, e.Default, goEnumPrefix)
 		}
 		return quoteDefault(&e.Default, t.nativeType)
 	}

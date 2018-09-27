@@ -550,7 +550,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		// here.
 		mtype.zeroValue = "0"
 		if defVal != nil {
-			mtype.defaultValue = ygot.String(strings.TrimPrefix(fmt.Sprintf("%s_%s", mtype.nativeType, *defVal), goEnumPrefix))
+			mtype.defaultValue = enumDefaultValue(mtype.nativeType, *defVal, goEnumPrefix)
 		}
 
 		return mtype, nil
@@ -597,7 +597,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		}
 		n := s.resolveEnumName(args.contextEntry, compressOCPaths, false)
 		if defVal != nil {
-			defVal = ygot.String(fmt.Sprintf("%s_%s", n, *defVal))
+			defVal = enumDefaultValue(n, *defVal, "")
 		}
 		return &mappedType{
 			nativeType:        fmt.Sprintf("E_%s", n),
@@ -614,7 +614,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		}
 		n := s.resolveIdentityRefBaseType(args.contextEntry, false)
 		if defVal != nil {
-			defVal = ygot.String(fmt.Sprintf("%s_%s", n, *defVal))
+			defVal = enumDefaultValue(n, *defVal, "")
 		}
 		return &mappedType{
 			nativeType:        fmt.Sprintf("E_%s", n),
