@@ -296,6 +296,9 @@ type generatedLeafGetter struct {
 	Type string
 	// Zero is the value that should be returned if the field is set to nil.
 	Zero string
+	// Default is the default value specified in the YANG schema for the type
+	// or leaf.
+	Default *string
 	// IsPtr stores whether the value is a pointer, such that it can be checked
 	// against nil, or against the zero value.
 	IsPtr bool
@@ -669,7 +672,11 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 // before retrieving the leaf's value.
 func (t *{{ .Receiver }}) Get{{ .Name }}() {{ .Type }} {
 	if t == nil || t.{{ .Name }} == {{ if .IsPtr -}} nil {{- else }} {{ .Zero }} {{- end }} {
+		{{- if .Default }}
+		return {{ .Default }}
+		{{- else }}
 		return {{ .Zero }}
+		{{- end }}
 	}
 	return {{ if .IsPtr -}} * {{- end -}} t.{{ .Name }}
 }
@@ -1961,4 +1968,22 @@ func writeIfNotEmpty(b *bytes.Buffer, s string) {
 	if len(s) != 0 {
 		b.WriteString(s)
 	}
+}
+
+// goLeafDefault returns the default value of the leaf e if specified. If it
+// is unspecified, the value specified by the type is returned if it is not nil,
+// otherwise nil is returned to indicate no default was specified.
+func goLeafDefault(e *yang.Entry, t *mappedType) *string {
+	if e.Default != "" {
+		if t.isEnumeratedValue {
+			return ygot.String(fmt.Sprintf("%s_%s", strings.TrimPrefix(t.nativeType, goEnumPrefix), e.Default))
+		}
+		return ygot.String(e.Default)
+	}
+
+	if t.defaultValue != nil {
+		return t.defaultValue
+	}
+
+	return nil
 }
