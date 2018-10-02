@@ -296,6 +296,9 @@ type generatedLeafGetter struct {
 	Type string
 	// Zero is the value that should be returned if the field is set to nil.
 	Zero string
+	// Default is the default value specified in the YANG schema for the type
+	// or leaf.
+	Default *string
 	// IsPtr stores whether the value is a pointer, such that it can be checked
 	// against nil, or against the zero value.
 	IsPtr bool
@@ -680,7 +683,11 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 // before retrieving the leaf's value.
 func (t *{{ .Receiver }}) Get{{ .Name }}() {{ .Type }} {
 	if t == nil || t.{{ .Name }} == {{ if .IsPtr -}} nil {{- else }} {{ .Zero }} {{- end }} {
+		{{- if .Default }}
+		return {{ .Default }}
+		{{- else }}
 		return {{ .Zero }}
+		{{- end }}
 	}
 	return {{ if .IsPtr -}} * {{- end -}} t.{{ .Name }}
 }
@@ -1229,6 +1236,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			fType := mtype.nativeType
 			schemapath := entrySchemaPath(field)
 			zeroValue := mtype.zeroValue
+			defaultValue := goLeafDefault(field, mtype)
 
 			if len(mtype.unionTypes) > 1 {
 				// If this is a union that has more than one subtype, then we need
@@ -1308,6 +1316,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 					Zero:     zeroValue,
 					IsPtr:    scalarField,
 					Receiver: targetStruct.name,
+					Default:  defaultValue,
 				})
 			}
 
@@ -1972,4 +1981,36 @@ func writeIfNotEmpty(b *bytes.Buffer, s string) {
 	if len(s) != 0 {
 		b.WriteString(s)
 	}
+}
+
+// goLeafDefault returns the default value of the leaf e if specified. If it
+// is unspecified, the value specified by the type is returned if it is not nil,
+// otherwise nil is returned to indicate no default was specified.
+func goLeafDefault(e *yang.Entry, t *mappedType) *string {
+	if e.Default != "" {
+		if t.isEnumeratedValue {
+			return enumDefaultValue(t.nativeType, e.Default, goEnumPrefix)
+		}
+		return quoteDefault(&e.Default, t.nativeType)
+	}
+
+	if t.defaultValue != nil {
+		return quoteDefault(t.defaultValue, t.nativeType)
+	}
+
+	return nil
+}
+
+// quoteDefault adds quotation marks to the value string if the goType specified
+// is a string, and hence requires quoting.
+func quoteDefault(value *string, goType string) *string {
+	if value == nil {
+		return nil
+	}
+
+	if goType == "string" {
+		return ygot.String(fmt.Sprintf("%q", *value))
+	}
+
+	return value
 }
