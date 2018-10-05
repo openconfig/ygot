@@ -994,6 +994,21 @@ func TestGetNode(t *testing.T) {
 		inPath:           mustPath("/list"),
 		wantErrSubstring: "schema key key is not found in gNMI path",
 	}, {
+		desc:     "simple list, unspecified key, partial match",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			List: map[string]*listEntry{
+				"one": {Key: ygot.String("one")},
+			},
+		},
+		inPath: mustPath("/list"),
+		inArgs: []GetNodeOpt{&GetPartialKeyMatch{}},
+		wantTreeNodes: []*TreeNode{{
+			Data:   &listEntry{Key: ygot.String("one")},
+			Schema: simpleListSchema,
+			Path:   mustPath("/list[key=one]"),
+		}},
+	}, {
 		desc:     "simple list, all entries",
 		inSchema: rootSchema,
 		inData: &rootStruct{
@@ -1353,12 +1368,6 @@ func TestRetrieveContainerListError(t *testing.T) {
 		inSchema:         &yang.Entry{Name: "foo", Key: "bar"},
 		inTestFunc:       retrieveNodeList,
 		wantErrSubstring: "path length is 0",
-	}, {
-		desc:             "no key",
-		inSchema:         &yang.Entry{Name: "baz", Key: "bap"},
-		inPath:           &gpb.Path{Elem: []*gpb.PathElem{{Name: "bat"}}},
-		inTestFunc:       retrieveNodeList,
-		wantErrSubstring: "points to a list without a key element",
 	}, {
 		desc:             "root is not a map",
 		inSchema:         &yang.Entry{Name: "ant", Key: "bear"},

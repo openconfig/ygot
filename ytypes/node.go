@@ -157,8 +157,6 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 		return nil, status.Errorf(codes.InvalidArgument, "unkeyed list can't be traversed, type %T, path %v", root, path)
 	case len(path.GetElem()) == 0:
 		return nil, status.Errorf(codes.InvalidArgument, "path length is 0, schema %v, root %v", schema, root)
-	case path.GetElem()[0].GetKey() == nil:
-		return nil, status.Errorf(codes.InvalidArgument, "path %v at %T points to a list without a key element", path, root)
 	case !util.IsValueMap(rv):
 		return nil, status.Errorf(codes.InvalidArgument, "root has type %T, expect map", root)
 	}
