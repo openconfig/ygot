@@ -44,7 +44,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(err)
 	}
 
-	util.DbgPrint("validateLeaf with value %s (%T), schema name %s (%s)", util.ValueStr(value), value, inSchema.Name, inSchema.Type.Kind)
+	util.DbgPrint("validateLeaf with value %s (%T), schema name %s (%s)", util.ValueStrDebug(value), value, inSchema.Name, inSchema.Type.Kind)
 
 	schema, err := resolveLeafRef(inSchema)
 	if err != nil {
@@ -432,7 +432,7 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}) 
 		return err
 	}
 
-	util.DbgPrint("unmarshalLeaf value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, inSchema.Name)
+	util.DbgPrint("unmarshalLeaf value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, inSchema.Name)
 
 	fieldName, _, err := schemaToStructFieldName(inSchema, parent)
 	if err != nil {
@@ -505,7 +505,7 @@ with field String set to "forty-two".
 */
 
 func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, value interface{}) error {
-	util.DbgPrint("unmarshalUnion value %v, type %T, into parent type %T field name %s, schema name %s", util.ValueStr(value), value, parent, fieldName, schema.Name)
+	util.DbgPrint("unmarshalUnion value %v, type %T, into parent type %T field name %s, schema name %s", util.ValueStrDebug(value), value, parent, fieldName, schema.Name)
 	parentV, parentT := reflect.ValueOf(parent), reflect.TypeOf(parent)
 	if !util.IsTypeStructPtr(parentT) {
 		return fmt.Errorf("%T is not a struct ptr in unmarshalUnion", parent)
@@ -605,7 +605,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 // setFieldWithTypedValue sets the field destV that has type ft and the given
 // parent type with v, which must be a compatible enum type.
 func setFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT reflect.Type, v interface{}) error {
-	util.DbgPrint("setFieldWithTypedValue value %v into type %s", util.ValueStr(v), destElemT)
+	util.DbgPrint("setFieldWithTypedValue value %v into type %s", util.ValueStrDebug(v), destElemT)
 	if destElemT.Kind() == reflect.Slice {
 		// leaf-list case
 		destElemT = destElemT.Elem()

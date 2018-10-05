@@ -52,7 +52,7 @@ func Unmarshal(schema *yang.Entry, parent interface{}, value interface{}, opts .
 	if schema == nil {
 		return fmt.Errorf("nil schema for parent type %T, value %v (%T)", parent, value, value)
 	}
-	util.DbgPrint("Unmarshal value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, schema.Name)
+	util.DbgPrint("Unmarshal value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, schema.Name)
 
 	switch {
 	case schema.IsLeaf():

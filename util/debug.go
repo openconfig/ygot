@@ -94,6 +94,18 @@ func ResetIndent() {
 	globalIndent = ""
 }
 
+// ValueStrDebug returns "<not calculated>" if the package global variable
+// debugLibrary is not set. Otherwise, it is the same as ValueStr.
+// Use this function instead of ValueStr for debugging purpose, e.g. when the
+// output is passed to DbgPrint, because ValueStr calls can be the bottleneck
+// for large input.
+func ValueStrDebug(value interface{}) string {
+	if !debugLibrary {
+		return "<not calculated>"
+	}
+	return ValueStr(value)
+}
+
 // ValueStr returns a string representation of value which may be a value, ptr,
 // or struct type.
 func ValueStr(value interface{}) string {

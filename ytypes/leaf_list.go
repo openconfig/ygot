@@ -38,7 +38,7 @@ func validateLeafList(schema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(err)
 	}
 
-	util.DbgPrint("validateLeafList with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
+	util.DbgPrint("validateLeafList with value %v, type %T, schema name %s", util.ValueStrDebug(value), value, schema.Name)
 
 	switch reflect.TypeOf(value).Kind() {
 	case reflect.Slice:
@@ -94,7 +94,7 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 		return err
 	}
 
-	util.DbgPrint("unmarshalLeafList value %v, type %T, into parent type %T, schema name %s", util.ValueStr(value), value, parent, schema.Name)
+	util.DbgPrint("unmarshalLeafList value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, schema.Name)
 
 	leafList, ok := value.([]interface{})
 	if !ok {
