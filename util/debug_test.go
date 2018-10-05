@@ -59,6 +59,35 @@ func TestDbgSchema(t *testing.T) {
 	DbgSchema("test debug <this should not be truncated>\n")
 }
 
+func TestValueStrDebug(t *testing.T) {
+	saveDebugVals()
+	defer restoreDebugVals()
+
+	tests := []struct {
+		debug bool
+		input interface{}
+		want  string
+	}{
+		{
+			debug: true,
+			input: struct{}{},
+			want:  "{  }",
+		},
+		{
+			debug: false,
+			input: struct{}{},
+			want:  "<not calculated>",
+		},
+	}
+
+	for _, tt := range tests {
+		debugLibrary = tt.debug
+		if got, want := ValueStrDebug(tt.input), tt.want; got != want {
+			t.Errorf("For debugLibrary = %v, got : %s, want: %s", tt.debug, got, want)
+		}
+	}
+}
+
 func TestValueStr(t *testing.T) {
 	toStrPtr := func(s string) *string { return &s }
 
