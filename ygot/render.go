@@ -656,6 +656,10 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 // marshalStruct encodes the struct s according to the encoding specified by enc. It
 // is returned as a TypedValue gNMI message.
 func marshalStruct(s GoStruct, enc gnmipb.Encoding) (*gnmipb.TypedValue, error) {
+	if reflect.ValueOf(s).IsNil() {
+		return nil, nil
+	}
+
 	var (
 		j     map[string]interface{}
 		err   error

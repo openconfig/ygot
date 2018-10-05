@@ -2560,6 +2560,11 @@ func TestEncodeTypedValue(t *testing.T) {
 		inVal:            &ietfRenderExample{},
 		inEnc:            gnmipb.Encoding_PROTO,
 		wantErrSubstring: "invalid encoding",
+	}, {
+		name:  "nil struct",
+		inVal: (*ietfRenderExample)(nil),
+		inEnc: gnmipb.Encoding_JSON_IETF,
+		want:  nil,
 	}}
 
 	for _, tt := range tests {

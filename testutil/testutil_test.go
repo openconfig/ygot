@@ -20,6 +20,49 @@ import (
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+func TestGetResponseEqual(t *testing.T) {
+	tests := []struct {
+		name string
+		inA  *gnmipb.GetResponse
+		inB  *gnmipb.GetResponse
+		want bool
+	}{{
+		name: "equal notifications",
+		inA: &gnmipb.GetResponse{
+			Notification: []*gnmipb.Notification{{
+				Timestamp: 42,
+			}},
+		},
+		inB: &gnmipb.GetResponse{
+			Notification: []*gnmipb.Notification{{
+				Timestamp: 42,
+			}},
+		},
+		want: true,
+	}, {
+		name: "unequal notifications",
+		inA: &gnmipb.GetResponse{
+			Notification: []*gnmipb.Notification{{
+				Timestamp: 42,
+			}},
+		},
+		inB: &gnmipb.GetResponse{
+			Notification: []*gnmipb.Notification{{
+				Timestamp: 84,
+			}},
+		},
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := GetResponseEqual(tt.inA, tt.inB); got != tt.want {
+				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNotificationSetEqual(t *testing.T) {
 	tests := []struct {
 		name string
