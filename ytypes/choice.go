@@ -32,7 +32,7 @@ import (
 // element in such cases. It returns all the field names that were selected in
 // the data tree from the Choice schema.
 func validateChoice(schema *yang.Entry, structValue ygot.GoStruct) (selected []string, errors []error) {
-	util.DbgPrint("validateChoice with value %s, schema name %s\n", util.ValueStr(structValue), schema.Name)
+	util.DbgPrint("validateChoice with value %s, schema name %s\n", util.ValueStrDebug(structValue), schema.Name)
 	// Validate that multiple cases are not selected. Since choice is always
 	// inside a container, there's no need to validate each individual field
 	// since that is part of container validation.

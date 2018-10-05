@@ -64,7 +64,7 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOpti
 		}
 
 		pathStr := util.StripModulePrefixesStr(schema.Type.Path)
-		util.DbgPrint("Verifying leafref at %s, matching nodes are: %v", pathStr, util.ValueStr(matchNodes))
+		util.DbgPrint("Verifying leafref at %s, matching nodes are: %v", pathStr, util.ValueStrDebug(matchNodes))
 
 		match, err := matchesNodes(ni, matchNodes)
 		if err != nil {
@@ -265,7 +265,7 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 			ov := reflect.ValueOf(other)
 			switch {
 			case util.IsValueScalar(ov):
-				util.DbgPrint("comparing leafref values %s vs %s", util.ValueStr(sourceNode), util.ValueStr(other))
+				util.DbgPrint("comparing leafref values %s vs %s", util.ValueStrDebug(sourceNode), util.ValueStrDebug(other))
 				if util.DeepEqualDerefPtrs(sourceNode, other) {
 					util.DbgPrint("values are equal")
 					match = true
@@ -273,7 +273,7 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 				}
 			case util.IsValueSlice(ov):
 				sourceNode := ni.FieldValue.Interface()
-				util.DbgPrint("checking whether value %s is leafref leaf-list %v", util.ValueStr(sourceNode), util.ValueStr(other))
+				util.DbgPrint("checking whether value %s is leafref leaf-list %v", util.ValueStrDebug(sourceNode), util.ValueStrDebug(other))
 				for i := 0; i < ov.Len(); i++ {
 					if util.DeepEqualDerefPtrs(sourceNode, ov.Index(i).Interface()) {
 						util.DbgPrint("value exists in list")

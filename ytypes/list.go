@@ -287,7 +287,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 		return err
 	}
 
-	util.DbgPrint("unmarshalList jsonList %v, type %T, into parent type %T, schema name %s", util.ValueStr(jsonList), jsonList, parent, schema.Name)
+	util.DbgPrint("unmarshalList jsonList %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(jsonList), jsonList, parent, schema.Name)
 
 	// Parent must be a map, slice ptr, or struct ptr.
 	t := reflect.TypeOf(parent)
