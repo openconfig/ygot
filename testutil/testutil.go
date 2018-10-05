@@ -24,9 +24,16 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/gnmi/value"
+
+	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
+
+// GetResponseEqual compares the contents of a and b and returns true if they
+// are equal. Extensions in the GetResponse are ignored.
+func GetResponseEqual(a, b *gnmipb.GetResponse) bool {
+	return NotificationSetEqual(a.Notification, b.Notification)
+}
 
 // NotificationSetEqual compares the contents of a and b and returns true if
 // they are equal. Order of the slices is ignored.
