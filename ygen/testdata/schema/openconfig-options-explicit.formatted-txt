@@ -51,7 +51,7 @@ func Schema() (*ytypes.Schema, error) {
 	}
 
 	return &ytypes.Schema{
-		Root: &FakeRoot{},
+		Root: &Fakeroot{},
 		SchemaTree: uzp,
 		Unmarshal: Unmarshal,
 	}, nil
