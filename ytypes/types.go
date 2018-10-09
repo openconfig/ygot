@@ -1,5 +1,10 @@
 package ytypes
 
+import (
+	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
+)
+
 // Schema specifies the common types that are part of a generated ygot schema, such that
 // it can be referenced and handled in calling application code.
 type Schema struct {
