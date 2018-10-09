@@ -323,7 +323,15 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config)
+	var rootName string
+	if rootName = resolveRootName(cg.Config.FakeRootName, defaultRootName, cg.Config.GenerateFakeRoot); rootName != "" {
+		if r, ok := goStructs[fmt.Sprintf("/%s", rootName)]; ok {
+			rootName = r.name
+		}
+	}
+
+	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config, rootName)
+
 	if err != nil {
 		return nil, util.AppendErr(util.Errors{}, err)
 	}

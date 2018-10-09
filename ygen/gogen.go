@@ -369,6 +369,20 @@ func init() {
 	}
 }
 
+// Schema returns the details of the generated schema.
+func Schema() (*ytypes.Schema, error) {
+	uzp, err := UnzipSchema()
+	if err != nil {
+		return nil, fmt.Errorf("cannot unzip schema, %v", err)
+	}
+
+	return &ytypes.Schema{
+		Root: {{ .FakeRootName }},
+		SchemaTree: uzp,
+		Unmarshal: Unmarshal,
+	}, nil
+}
+
 // UnzipSchema unzips the zipped schema and returns a map of yang.Entry nodes,
 // keyed by the name of the struct that the yang.Entry describes the schema for.
 func UnzipSchema() (map[string]*yang.Entry, error) {
@@ -1032,11 +1046,14 @@ func makeTemplate(name, src string) *template.Template {
 // is not set, then it is set to the value of DefaultYgotImportPath. In a similar manner
 // an unset cfg.GoOptions.GoyangImportPath results in the goyang path being set to
 // DefaultYgotImportPath, and an unset cfg.GoOptions.YtypesImportPath results in the
-// path for ytypes being set to DefaultYtypesImportPath.
+// path for ytypes being set to DefaultYtypesImportPath. The supplied rootName is the
+// name of the fake root struct, if it was produced - and is used to output a schema
+// definition in the file header.
+//
 // The header returned is split into two strings, the common header is a header that
 // should be used for all files within the output package. The one off header should
 // be included in only one file of the package.
-func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (string, string, error) {
+func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootName string) (string, string, error) {
 	// Determine the running binary's name.
 	if cfg.Caller == "" {
 		cfg.Caller = callerName()
@@ -1068,6 +1085,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (strin
 		GoOptions        GoOpts   // GoOptions stores additional Go-specific options for the output code, including package paths.
 		BinaryTypeName   string   // BinaryTypeName is the name of the type used for YANG binary types.
 		EmptyTypeName    string   // EmptyTypeName is the name of the type used for YANG empty types.
+		FakeRootName     string   // FakeRootName is the name of the fake root struct in the YANG type
 	}{
 		PackageName:      cfg.PackageName,
 		YANGFiles:        yangFiles,
@@ -1078,6 +1096,11 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig) (strin
 		GoOptions:        cfg.GoOptions,
 		BinaryTypeName:   ygot.BinaryTypeName,
 		EmptyTypeName:    ygot.EmptyTypeName,
+	}
+
+	s.FakeRootName = "nil"
+	if cfg.GenerateFakeRoot && rootName != "" {
+		s.FakeRootName = fmt.Sprintf("&%s{}", rootName)
 	}
 
 	var common bytes.Buffer
