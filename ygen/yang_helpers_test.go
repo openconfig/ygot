@@ -766,3 +766,33 @@ func TestDirectEntryChild(t *testing.T) {
 		}
 	}
 }
+
+func TestResolveRootName(t *testing.T) {
+	tests := []struct {
+		name           string
+		inName         string
+		inDefName      string
+		inGenerateRoot bool
+		want           string
+	}{{
+		name:           "generate root false",
+		inGenerateRoot: false,
+	}, {
+		name:           "name specified",
+		inName:         "value",
+		inDefName:      "invalid",
+		inGenerateRoot: true,
+		want:           "value",
+	}, {
+		name:           "name not specified",
+		inDefName:      "default",
+		inGenerateRoot: true,
+		want:           "default",
+	}}
+
+	for _, tt := range tests {
+		if got := resolveRootName(tt.inName, tt.inDefName, tt.inGenerateRoot); got != tt.want {
+			t.Errorf("%s: resolveRootName(%s, %s, %v): did not get expected result, got: %s, want: %s", tt.name, tt.inName, tt.inDefName, tt.inGenerateRoot, got, tt.want)
+		}
+	}
+}

@@ -437,3 +437,19 @@ func enumDefaultValue(baseName, defVal, prefix string) *string {
 
 	return ygot.String(fmt.Sprintf("%s_%s", baseName, defVal))
 }
+
+// resolveRootName resolves the name of the fakeroot by taking configuration
+// and the default values, along with a boolean indicating whether the fake
+// root is to be generated. It returns an empty string if the root is not
+// to be generated.
+func resolveRootName(name, defName string, generateRoot bool) string {
+	if !generateRoot {
+		return ""
+	}
+
+	if name == "" {
+		return defName
+	}
+
+	return name
+}

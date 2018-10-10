@@ -43,6 +43,20 @@ func init() {
 	}
 }
 
+// Schema returns the details of the generated schema.
+func Schema() (*ytypes.Schema, error) {
+	uzp, err := UnzipSchema()
+	if err != nil {
+		return nil, fmt.Errorf("cannot unzip schema, %v", err)
+	}
+
+	return &ytypes.Schema{
+		Root: &Device{},
+		SchemaTree: uzp,
+		Unmarshal: Unmarshal,
+	}, nil
+}
+
 // UnzipSchema unzips the zipped schema and returns a map of yang.Entry nodes,
 // keyed by the name of the struct that the yang.Entry describes the schema for.
 func UnzipSchema() (map[string]*yang.Entry, error) {

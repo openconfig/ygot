@@ -2522,6 +2522,10 @@ func TestEncodeTypedValue(t *testing.T) {
 		inVal: Binary([]byte{0x00, 0x01}),
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte{0x00, 0x01}}},
 	}, {
+		name:  "nil scalar",
+		inVal: nil,
+		want:  nil,
+	}, {
 		name:  "leaf-list",
 		inVal: []string{"one", "two"},
 		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
