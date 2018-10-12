@@ -1537,7 +1537,7 @@ func (t *testAnnotation) MarshalJSON() ([]byte, error) {
 }
 
 func (t *testAnnotation) UnmarshalJSON(d []byte) error {
-	return json.Unmarshal(d, *t)
+	return json.Unmarshal(d, t)
 }
 
 type errorAnnotation struct {
