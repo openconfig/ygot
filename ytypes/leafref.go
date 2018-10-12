@@ -40,6 +40,12 @@ import (
 // entire data tree. The supplied LeafrefOptions specify particular behaviours
 // of the leafref validation such as ignoring missing pointed to elements.
 func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOptions) util.Errors {
+	// If the IgnoreMissingData flag is set, then we do not need to iterate through nodes,
+	// so immediately return no error.
+	if opt != nil && opt.IgnoreMissingData {
+		return nil
+	}
+
 	// validateLefRefDataIterFunc is called on every node in the tree through
 	// ForEachField below.
 	validateLefRefDataIterFunc := func(ni *util.NodeInfo, in, out interface{}) util.Errors {
@@ -88,7 +94,7 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOpti
 // be ignored by leafrefs, it logs the error that would have been returned if the
 // Log field of the LeafrefOptions is set to true.
 func leafrefErrOrLog(e util.Errors, opt *LeafrefOptions) util.Errors {
-	if opt == nil || !opt.IgnoreMissingData {
+	if opt == nil {
 		return e
 	}
 
