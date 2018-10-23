@@ -16,10 +16,11 @@ import (
 )
 
 type InnerContainerType1 struct {
-	Int32LeafName  *int32            `path:"int32-leaf-field"`
-	StringLeafName *string           `path:"string-leaf-field"`
-	EnumLeafName   EnumType          `path:"enum-leaf-field"`
-	Annotation     []ygot.Annotation `path:"@annotation" ygotAnnotation:"true"`
+	Int32LeafName     *int32            `path:"int32-leaf-field"`
+	Int32LeafListName []int32           `path:"int32-leaf-list"`
+	StringLeafName    *string           `path:"string-leaf-field"`
+	EnumLeafName      EnumType          `path:"enum-leaf-field"`
+	Annotation        []ygot.Annotation `path:"@annotation" ygotAnnotation:"true"`
 }
 
 func (*InnerContainerType1) IsYANGGoStruct() {}
@@ -112,6 +113,12 @@ var containerWithStringKey = &yang.Entry{
 													Name: "leaf-field",
 													Kind: yang.LeafEntry,
 													Type: &yang.YangType{Kind: yang.Yint32},
+												},
+												"int32-leaf-list": {
+													Name:     "int32-leaf-list",
+													Kind:     yang.LeafEntry,
+													ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+													Type:     &yang.YangType{Kind: yang.Yint32},
 												},
 												"string-leaf-field": {
 													Name: "leaf-field",
@@ -486,6 +493,12 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 												Kind: yang.LeafEntry,
 												Type: &yang.YangType{Kind: yang.Yint32},
 											},
+											"int32-leaf-list": {
+												Name:     "int32-leaf-list",
+												Kind:     yang.LeafEntry,
+												ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+												Type:     &yang.YangType{Kind: yang.Yint32},
+											},
 											"string-leaf-field": {
 												Name: "leaf-field",
 												Kind: yang.LeafEntry,
@@ -611,6 +624,12 @@ var simpleSchema *yang.Entry = &yang.Entry{
 									Name: "int32-leaf-field",
 									Kind: yang.LeafEntry,
 									Type: &yang.YangType{Kind: yang.Yint32},
+								},
+								"int32-leaf-list": {
+									Name:     "int32-leaf-list",
+									Kind:     yang.LeafEntry,
+									ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+									Type:     &yang.YangType{Kind: yang.Yint32},
 								},
 								"string-leaf-field": {
 									Name: "string-leaf-field",
@@ -793,6 +812,7 @@ type grandchildContainer struct {
 
 type rootStruct struct {
 	Leaf      *string                          `path:"leaf"`
+	LeafList  []int32                          `path:"int32-leaf-list"`
 	Container *childContainer                  `path:"container"`
 	List      map[string]*listEntry            `path:"list"`
 	Multilist map[multiListKey]*multiListEntry `path:"multilist"`
@@ -815,6 +835,14 @@ func TestGetNode(t *testing.T) {
 		Parent: rootSchema,
 	}
 	rootSchema.Dir["leaf"] = leafSchema
+
+	leafListSchema := &yang.Entry{
+		Name:     "int32-leaf-list",
+		Kind:     yang.LeafEntry,
+		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		Type:     &yang.YangType{Kind: yang.Yint32},
+	}
+	rootSchema.Dir["int32-leaf-list"] = leafListSchema
 
 	childContainerSchema := &yang.Entry{
 		Name:   "container",
@@ -937,6 +965,18 @@ func TestGetNode(t *testing.T) {
 			Data:   ygot.String("foo"),
 			Schema: leafSchema,
 			Path:   mustPath("/leaf"),
+		}},
+	}, {
+		desc:     "simple get leaf list",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			LeafList: []int32{42, 43},
+		},
+		inPath: mustPath("/int32-leaf-list"),
+		wantTreeNodes: []*TreeNode{{
+			Data:   []int32{42, 43},
+			Schema: leafListSchema,
+			Path:   mustPath("/int32-leaf-list"),
 		}},
 	}, {
 		desc:     "simple get container",
@@ -1165,6 +1205,30 @@ func TestSetNode(t *testing.T) {
 			inVal:    ygot.Int32(42),
 			inOpts:   []SetNodeOpt{&InitMissingElements{}},
 			want:     ygot.Int32(42),
+		},
+		{
+			inDesc:   "success setting int32 leaf list field",
+			inSchema: simpleSchema,
+			inParent: &ListElemStruct1{},
+			inPath:   mustPath("/outer/inner/int32-leaf-list"),
+			inVal:    int32(42),
+			inOpts:   []SetNodeOpt{&InitMissingElements{}},
+			want:     []int32{42},
+		},
+		{
+			inDesc:   "success setting int32 leaf list field for an existing leaf list",
+			inSchema: simpleSchema,
+			inParent: &ListElemStruct1{
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafListName: []int32{42},
+					},
+				},
+			},
+			inPath: mustPath("/outer/inner/int32-leaf-list"),
+			inVal:  int32(43),
+			inOpts: []SetNodeOpt{&InitMissingElements{}},
+			want:   []int32{42, 43},
 		},
 		{
 			inDesc:   "success setting annotation in list element",
