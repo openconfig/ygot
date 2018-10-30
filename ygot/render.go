@@ -629,11 +629,18 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 	}
 
 	vv := reflect.ValueOf(val)
-	if vv.Kind() == reflect.Slice {
-		if vv.Type().Name() == BinaryTypeName {
-			// This is a binary type which is defiend as a []byte, so we encode it as the bytes.
-			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{vv.Bytes()}}, nil
-		}
+	switch {
+	case util.IsValueNil(vv) || !vv.IsValid():
+		return nil, nil
+	case vv.Type().Kind() == reflect.Int64:
+		// Invalid int64 that is not an enum.
+		return nil, fmt.Errorf("cannot represent field value %v as TypedValue", val)
+	case vv.Type().Name() == BinaryTypeName:
+		// This is a binary type which is defiend as a []byte, so we encode it as the bytes.
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{vv.Bytes()}}, nil
+	case vv.Type().Name() == EmptyTypeName:
+		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{vv.Bool()}}, nil
+	case vv.Kind() == reflect.Slice:
 		sval, err := leaflistToSlice(vv, false)
 		if err != nil {
 			return nil, err
@@ -644,14 +651,14 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 			return nil, err
 		}
 		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{arr}}, nil
-	}
-
-	if util.IsValuePtr(vv) {
+	case util.IsValueStructPtr(vv):
+		nv, err := unionInterfaceValue(vv, false)
+		if err != nil {
+			return nil, fmt.Errorf("cannot resolve union field value: %v", err)
+		}
+		vv = reflect.ValueOf(nv)
+	case util.IsValuePtr(vv):
 		vv = vv.Elem()
-	}
-
-	if util.IsValueNil(vv) || !vv.IsValid() {
-		return nil, nil
 	}
 
 	return value.FromScalar(vv.Interface())

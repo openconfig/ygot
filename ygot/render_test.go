@@ -705,6 +705,7 @@ type renderExample struct {
 	InvalidMap    map[string]*invalidGoStruct         `path:"invalid-gostruct-map"`
 	InvalidPtr    *invalidGoStruct                    `path:"invalid-gostruct"`
 	Empty         YANGEmpty                           `path:"empty"`
+	EnumLeafList  []EnumTest                          `path:"enum-leaflist"`
 }
 
 // IsYANGGoStruct ensures that the renderExample type implements the GoStruct
@@ -2518,9 +2519,39 @@ func TestEncodeTypedValue(t *testing.T) {
 		inVal: EnumTestVALONE,
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
 	}, {
+		name:  "leaf-list of enumeration",
+		inVal: []EnumTest{EnumTestVALONE},
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
+			&gnmipb.ScalarArray{
+				Element: []*gnmipb.TypedValue{{
+					Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"},
+				}},
+			},
+		}},
+	}, {
+		name:  "leaf-list of string",
+		inVal: []string{"one", "two"},
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
+			&gnmipb.ScalarArray{
+				Element: []*gnmipb.TypedValue{{
+					Value: &gnmipb.TypedValue_StringVal{"one"},
+				}, {
+					Value: &gnmipb.TypedValue_StringVal{"two"},
+				}},
+			},
+		}},
+	}, {
+		name:             "invalid enum",
+		inVal:            int64(42),
+		wantErrSubstring: "cannot represent field value 42 as TypedValue",
+	}, {
 		name:  "binary",
 		inVal: Binary([]byte{0x00, 0x01}),
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte{0x00, 0x01}}},
+	}, {
+		name:  "empty",
+		inVal: YANGEmpty(true),
+		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
 	}, {
 		name:  "nil scalar",
 		inVal: nil,

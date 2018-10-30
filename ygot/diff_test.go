@@ -1254,6 +1254,28 @@ func TestDiff(t *testing.T) {
 				}},
 			}},
 		},
+	}, {
+		desc:   "leaf-list of enumerations change",
+		inOrig: &renderExample{},
+		inMod:  &renderExample{EnumLeafList: []EnumTest{EnumTestVALONE}},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "enum-leaflist",
+					}},
+				},
+				Val: &gnmipb.TypedValue{
+					Value: &gnmipb.TypedValue_LeaflistVal{
+						&gnmipb.ScalarArray{
+							Element: []*gnmipb.TypedValue{{
+								Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"},
+							}},
+						},
+					},
+				},
+			}},
+		},
 	}}
 
 	for _, tt := range tests {
