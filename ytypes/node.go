@@ -98,7 +98,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			case err != nil:
 				return nil, status.Errorf(codes.Unknown, "failed to get child schema for %T, field %s: %s", root, ft.Name, err)
 			case cschema == nil:
-				return nil, status.Errorf(codes.NotFound, "could not find schema for type %T, field %s", root, ft.Name)
+				return nil, status.Errorf(codes.InvalidArgument, "could not find schema for type %T, field %s", root, ft.Name)
 			default:
 				if cschema, err = resolveLeafRef(cschema); err != nil {
 					return nil, status.Errorf(codes.Unknown, "failed to resolve schema for %T, field %s: %s", root, ft.Name, err)
@@ -144,7 +144,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 		}
 	}
 
-	return nil, status.Errorf(codes.NotFound, "no match found in %T, for path %v", root, path)
+	return nil, status.Errorf(codes.InvalidArgument, "no match found in %T, for path %v", root, path)
 }
 
 // retrieveNodeList is an internal function and operates on a map. It returns the nodes matching

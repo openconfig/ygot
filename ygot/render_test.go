@@ -926,6 +926,11 @@ func TestTogNMINotifications(t *testing.T) {
 		},
 		wantErr: true,
 	}, {
+		name:        "nil value",
+		inTimestamp: 42,
+		inStruct:    nil,
+		wantErr:     true,
+	}, {
 		name:        "no path tags on struct",
 		inTimestamp: 42,
 		inStruct:    &invalidGoStructEntity{NoPath: String("foo")},

@@ -63,6 +63,284 @@ func TestGetResponseEqual(t *testing.T) {
 	}
 }
 
+func TestSubscribeResponseEqual(t *testing.T) {
+	tests := []struct {
+		name string
+		inA  *gnmipb.SubscribeResponse
+		inB  *gnmipb.SubscribeResponse
+		want bool
+	}{{
+		name: "unequal - sync response",
+		inA: &gnmipb.SubscribeResponse{
+			Response: &gnmipb.SubscribeResponse_SyncResponse{true},
+		},
+		inB: &gnmipb.SubscribeResponse{
+			Response: &gnmipb.SubscribeResponse_SyncResponse{false},
+		},
+		want: false,
+	}, {
+		name: "equal - sync response",
+		inA: &gnmipb.SubscribeResponse{
+			Response: &gnmipb.SubscribeResponse_SyncResponse{true},
+		},
+		inB: &gnmipb.SubscribeResponse{
+			Response: &gnmipb.SubscribeResponse_SyncResponse{true},
+		},
+		want: true,
+	}, {
+		name: "unequal - sync response cf. update",
+		inA: &gnmipb.SubscribeResponse{
+			Response: &gnmipb.SubscribeResponse_SyncResponse{true},
+		},
+		inB: &gnmipb.SubscribeResponse{
+			Response: &gnmipb.SubscribeResponse_Update{},
+		},
+		want: false,
+	}, {
+		name: "equal - updates equal",
+		inA: &gnmipb.SubscribeResponse{
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p1",
+							}},
+						},
+					}},
+				},
+			},
+		},
+		inB: &gnmipb.SubscribeResponse{
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p1",
+							}},
+						},
+					}},
+				},
+			},
+		},
+		want: true,
+	}, {
+		name: "unequal - updates",
+		inA: &gnmipb.SubscribeResponse{
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p1",
+							}},
+						},
+					}},
+				},
+			},
+		},
+		inB: &gnmipb.SubscribeResponse{
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p2",
+							}},
+						},
+					}},
+				},
+			},
+		},
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := SubscribeResponseEqual(tt.inA, tt.inB); got != tt.want {
+				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestSubscribeResponseSetEqual(t *testing.T) {
+	tests := []struct {
+		name string
+		inA  []*gnmipb.SubscribeResponse
+		inB  []*gnmipb.SubscribeResponse
+		want bool
+	}{{
+		name: "equal, same order",
+		inA: []*gnmipb.SubscribeResponse{{
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p1",
+							}},
+						},
+					}},
+				},
+			},
+		}, {
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p2",
+							}},
+						},
+					}},
+				},
+			},
+		}},
+		inB: []*gnmipb.SubscribeResponse{{
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p1",
+							}},
+						},
+					}},
+				},
+			},
+		}, {
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p2",
+							}},
+						},
+					}},
+				},
+			},
+		}},
+		want: true,
+	}, {
+		name: "equal - different order",
+		inA: []*gnmipb.SubscribeResponse{{
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p1",
+							}},
+						},
+					}},
+				},
+			},
+		}, {
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p2",
+							}},
+						},
+					}},
+				},
+			},
+		}},
+		inB: []*gnmipb.SubscribeResponse{{
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p2",
+							}},
+						},
+					}},
+				},
+			},
+		}, {
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p1",
+							}},
+						},
+					}},
+				},
+			},
+		}},
+		want: true,
+	}, {
+		name: "not equal",
+		inA: []*gnmipb.SubscribeResponse{{
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p1",
+							}},
+						},
+					}},
+				},
+			},
+		}, {
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p2",
+							}},
+						},
+					}},
+				},
+			},
+		}},
+		inB: []*gnmipb.SubscribeResponse{{
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "p1",
+							}},
+						},
+					}},
+				},
+			},
+		}, {
+			Response: &gnmipb.SubscribeResponse_Update{
+				&gnmipb.Notification{
+					Update: []*gnmipb.Update{{
+						Path: &gnmipb.Path{
+							Elem: []*gnmipb.PathElem{{
+								Name: "NOT EQUAL",
+							}},
+						},
+					}},
+				},
+			},
+		}},
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := SubscribeResponseSetEqual(tt.inA, tt.inB); got != tt.want {
+				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestNotificationSetEqual(t *testing.T) {
 	tests := []struct {
 		name string
