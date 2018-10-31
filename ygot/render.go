@@ -311,12 +311,13 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 		return fmt.Errorf("invalid parent specified: %v", parent)
 	}
 
-	if s == nil {
-		errs.Add(fmt.Errorf("input struct for %v was nil", parent))
+	sval := reflect.ValueOf(s)
+	if s == nil || util.IsValueNil(sval) || !sval.IsValid() || !util.IsValueStructPtr(sval) {
+		errs.Add(fmt.Errorf("input struct for %v was not valid", parent))
 		return errs.Err()
 	}
+	sval = sval.Elem()
 
-	sval := reflect.ValueOf(s).Elem()
 	stype := sval.Type()
 
 	for i := 0; i < sval.NumField(); i++ {
