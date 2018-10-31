@@ -35,6 +35,37 @@ func GetResponseEqual(a, b *gnmipb.GetResponse) bool {
 	return NotificationSetEqual(a.Notification, b.Notification)
 }
 
+// SubscribeResponseEqual compares the contents of a and b and returns true if
+// they are equal. Extensions in the SubscribeResponse are ignored.
+func SubscribeResponseEqual(a, b *gnmipb.SubscribeResponse) bool {
+	switch {
+	case a.GetUpdate() != nil && b.GetUpdate() == nil, b.GetUpdate() != nil && a.GetUpdate() == nil:
+		return false
+	case a.GetUpdate() != nil && b.GetUpdate() != nil:
+		return NotificationSetEqual([]*gnmipb.Notification{a.GetUpdate()}, []*gnmipb.Notification{b.GetUpdate()})
+	default:
+		return a.GetSyncResponse() == b.GetSyncResponse()
+	}
+}
+
+// SubscribeResponseSetEqual compares the contents of the slices of SubscribeResponse
+// messages in a and b and returns true if they are equal. Order of the slices is
+// ignored.
+func SubscribeResponseSetEqual(a, b []*gnmipb.SubscribeResponse) bool {
+	for _, ar := range a {
+		var matched bool
+		for _, br := range b {
+			if SubscribeResponseEqual(ar, br) {
+				matched = true
+			}
+		}
+		if !matched {
+			return false
+		}
+	}
+	return true
+}
+
 // NotificationSetEqual compares the contents of a and b and returns true if
 // they are equal. Order of the slices is ignored.
 func NotificationSetEqual(a, b []*gnmipb.Notification) bool {
