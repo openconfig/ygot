@@ -660,6 +660,9 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 		vv = reflect.ValueOf(nv)
 	case util.IsValuePtr(vv):
 		vv = vv.Elem()
+		if util.IsNilOrInvalidValue(vv) {
+			return nil, nil
+		}
 	}
 
 	return value.FromScalar(vv.Interface())
