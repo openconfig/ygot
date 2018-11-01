@@ -2605,6 +2605,11 @@ func TestEncodeTypedValue(t *testing.T) {
 		inVal: (*ietfRenderExample)(nil),
 		inEnc: gnmipb.Encoding_JSON_IETF,
 		want:  nil,
+	}, {
+		name:  "nil pointer",
+		inVal: (*string)(nil),
+		inEnc: gnmipb.Encoding_JSON_IETF,
+		want:  nil,
 	}}
 
 	for _, tt := range tests {
