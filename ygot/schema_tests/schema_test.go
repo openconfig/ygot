@@ -168,6 +168,24 @@ func TestDiff(t *testing.T) {
 				Val:  mustTypedValue("EXTERNAL"),
 			}},
 		},
+	}, {
+		desc:   "diff STP",
+		inOrig: &exampleoc.Device{},
+		inMod: func() *exampleoc.Device {
+			d := &exampleoc.Device{}
+			e := d.GetOrCreateStp().GetOrCreateGlobal()
+			e.EnabledProtocol = []exampleoc.E_OpenconfigSpanningTreeTypes_STP_PROTOCOL{
+				exampleoc.OpenconfigSpanningTreeTypes_STP_PROTOCOL_MSTP,
+				exampleoc.OpenconfigSpanningTreeTypes_STP_PROTOCOL_RSTP,
+			}
+			return d
+		}(),
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: mustPath("/stp/global/config/enabled-protocol"),
+				Val:  mustTypedValue([]string{"MSTP", "RSTP"}),
+			}},
+		},
 	}}
 
 	for _, tt := range tests {
