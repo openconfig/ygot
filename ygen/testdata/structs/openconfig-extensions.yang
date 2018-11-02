@@ -1,0 +1,7 @@
+module openconfig-extensions {
+  namespace "urn:oc-ext";
+  prefix "oc-ext";
+  extension openconfig-version {
+    argument "ver";
+  }
+} 

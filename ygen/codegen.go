@@ -29,6 +29,8 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
+
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // YANGCodeGenerator is a structure that is used to pass arguments as to
@@ -133,6 +135,12 @@ type GoOpts struct {
 	// whether a field has been explicitly set to the zero value (i.e., an integer
 	// field is set to 0), or whether the field was actually unset.
 	GenerateLeafGetters bool
+	// GNMIProtoPath specifies the path to the generated gNMI protobuf, which
+	// is used to store the catalogue entries for generated modules.
+	GNMIProtoPath string
+	// IncludeModelData specifies whether gNMI ModelData messages should be generated
+	// in the output code.
+	IncludeModelData bool
 }
 
 // ProtoOpts stores Protobuf specific options for the code generation library.
@@ -330,7 +338,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		}
 	}
 
-	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config, rootName)
+	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config, rootName, mdef.modelData)
 
 	if err != nil {
 		return nil, util.AppendErr(util.Errors{}, err)
@@ -679,6 +687,9 @@ type mappedYANGDefinitions struct {
 	// modules is the set of parsed YANG modules that are being processed as part of the
 	// code generatio, expressed as a slice of yang.Entry pointers.
 	modules []*yang.Entry
+	// modelData stores the details of the set of modules that were parsed to produce
+	// the code. It is optionally returned in the generated code.
+	modelData []*gpb.ModelData
 }
 
 // mappedDefinitions find the set of directory and enumeration entities
@@ -704,8 +715,8 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 
 	// Extract the entities that are eligible to have code generated for
 	// them from the modules that are provided as an argument.
-	dirs := make(map[string]*yang.Entry)
-	enums := make(map[string]*yang.Entry)
+	dirs := map[string]*yang.Entry{}
+	enums := map[string]*yang.Entry{}
 	var rootElems, treeElems []*yang.Entry
 	for _, module := range modules {
 		errs = append(errs, findMappableEntities(module, dirs, enums, cfg.ExcludeModules, cfg.CompressOCPaths, modules)...)
@@ -720,8 +731,8 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 			}
 			treeElems = append(treeElems, e)
 		}
-	}
 
+	}
 	if errs != nil {
 		return nil, errs
 	}
@@ -751,11 +762,17 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 		}
 	}
 
+	modelData, err := findModelData(modules)
+	if err != nil {
+		return nil, util.NewErrs(fmt.Errorf("cannot extract model data, %v", err))
+	}
+
 	return &mappedYANGDefinitions{
 		directoryEntries: dirs,
 		enumEntries:      enums,
 		schemaTree:       st,
 		modules:          ms,
+		modelData:        modelData,
 	}, nil
 }
 
