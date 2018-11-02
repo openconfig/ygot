@@ -126,13 +126,28 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				}
 			}
 
-			// If the node is an annotation node or a leaf node and path is exhausted, check whether val is set to a non-nil value.
-			// If these are satisfied, the leaf value is updated.
-			if (util.IsYgotAnnotation(ft) || cschema.IsLeaf() || cschema.IsLeafList()) && len(path.Elem) == to && !util.IsValueNil(args.val) {
-				if err := util.UpdateField(root, ft.Name, args.val); err != nil {
-					return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v, because of %v", ft.Name, root, args.val, err)
+			// If val in args is set to a non-nil value and the path is exhausted, we
+			// may be dealing with a leaf or leaf list node. We should set the val
+			// to the corresponding field in GoStruct. If the field is an annotation,
+			// the field doesn't have a schema, so it is handled seperately.
+			if !util.IsValueNil(args.val) && len(path.Elem) == to {
+				switch {
+				case util.IsYgotAnnotation(ft):
+					if err := util.UpdateField(root, ft.Name, args.val); err != nil {
+						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v, because of %v", ft.Name, root, args.val, err)
+					}
+				case cschema.IsLeaf() || cschema.IsLeafList():
+					// With GNMIEncoding, unmarshalGeneric can only unmarshal leaf or leaf list
+					// nodes. Schema provided must be the schema of the leaf or leaf list node.
+					// root must be the reference of container leaf/leaf list belongs to.
+					if err := unmarshalGeneric(cschema, root, args.val, GNMIEncoding); err != nil {
+						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %T; %v", ft.Name, root, args.val, err)
+					}
+				default:
+					return nil, status.Errorf(codes.Unknown, "path points to %v which has non-leaf schema %v", ft.Type, cschema)
 				}
 			}
+
 			np := &gpb.Path{}
 			if traversedPath != nil {
 				np = proto.Clone(traversedPath).(*gpb.Path)

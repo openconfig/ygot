@@ -15,6 +15,7 @@
 package ytypes
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -40,8 +41,28 @@ func (*IgnoreExtraFields) IsUnmarshalOpt() {}
 
 // Unmarshal recursively unmarshals JSON data tree in value into the given
 // parent, using the given schema. Any values already in the parent that are
-// not present in value are preserved.
+// not present in value are preserved. If provided schema is a leaf or leaf
+// list, parent must be referencing the parent GoStruct.
 func Unmarshal(schema *yang.Entry, parent interface{}, value interface{}, opts ...UnmarshalOpt) error {
+	return unmarshalGeneric(schema, parent, value, JSONEncoding, opts...)
+}
+
+// Encoding specifies how the value provided to UnmarshalGeneric function is encoded.
+type Encoding int
+
+const (
+	// JSONEncoding indicates that provided value is JSON encoded.
+	JSONEncoding = iota
+
+	// GNMIEncoding indicates that provided value is gNMI TypedValue.
+	GNMIEncoding
+)
+
+// unmarshalGeneric unmarshals the provided value encoded with the given
+// encoding type into the parent with the provided schema. When encoding mode
+// is GNMIEncoding, the schema needs to be pointing to a leaf or leaf list
+// schema.
+func unmarshalGeneric(schema *yang.Entry, parent interface{}, value interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	util.Indent()
 	defer util.Dedent()
 
@@ -54,17 +75,21 @@ func Unmarshal(schema *yang.Entry, parent interface{}, value interface{}, opts .
 	}
 	util.DbgPrint("Unmarshal value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, schema.Name)
 
+	if enc == GNMIEncoding && !(schema.IsLeaf() || schema.IsLeafList()) {
+		return errors.New("unmarshalling a non leaf node isn't supported in GNMIEncoding mode")
+	}
+
 	switch {
 	case schema.IsLeaf():
-		return unmarshalLeaf(schema, parent, value)
+		return unmarshalLeaf(schema, parent, value, enc)
 	case schema.IsLeafList():
-		return unmarshalLeafList(schema, parent, value)
+		return unmarshalLeafList(schema, parent, value, enc)
 	case schema.IsList():
-		return unmarshalList(schema, parent, value, opts...)
+		return unmarshalList(schema, parent, value, enc, opts...)
 	case schema.IsChoice():
 		return fmt.Errorf("cannot pass choice schema %s to Unmarshal", schema.Name)
 	case schema.IsContainer():
-		return unmarshalContainer(schema, parent, value, opts...)
+		return unmarshalContainer(schema, parent, value, enc, opts...)
 	}
 	return fmt.Errorf("unknown schema type for type %T, value %v", value, value)
 }

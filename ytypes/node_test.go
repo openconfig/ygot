@@ -1177,8 +1177,16 @@ func TestSetNode(t *testing.T) {
 			inSchema: simpleSchema,
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/key1"),
-			inVal:    ygot.String("hello"),
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
 			want:     ygot.String("hello"),
+		},
+		{
+			inDesc:           "fail setting value for node with non-leaf schema",
+			inSchema:         simpleSchema,
+			inParent:         &ListElemStruct1{},
+			inPath:           mustPath("/outer"),
+			inVal:            &gpb.TypedValue{},
+			wantErrSubstring: "path points to *ytypes.OuterContainerType1 which has non-leaf schema",
 		},
 		{
 			inDesc:   "success setting annotation in top node",
@@ -1202,7 +1210,7 @@ func TestSetNode(t *testing.T) {
 			inSchema: simpleSchema,
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/outer/inner/int32-leaf-field"),
-			inVal:    ygot.Int32(42),
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
 			inOpts:   []SetNodeOpt{&InitMissingElements{}},
 			want:     ygot.Int32(42),
 		},
@@ -1211,9 +1219,13 @@ func TestSetNode(t *testing.T) {
 			inSchema: simpleSchema,
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/outer/inner/int32-leaf-list"),
-			inVal:    int32(42),
-			inOpts:   []SetNodeOpt{&InitMissingElements{}},
-			want:     []int32{42},
+			inVal: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+					}},
+			}}, inOpts: []SetNodeOpt{&InitMissingElements{}},
+			want: []int32{42},
 		},
 		{
 			inDesc:   "success setting int32 leaf list field for an existing leaf list",
@@ -1226,7 +1238,12 @@ func TestSetNode(t *testing.T) {
 				},
 			},
 			inPath: mustPath("/outer/inner/int32-leaf-list"),
-			inVal:  int32(43),
+			inVal: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_IntVal{IntVal: 43}},
+					}},
+			}},
 			inOpts: []SetNodeOpt{&InitMissingElements{}},
 			want:   []int32{42, 43},
 		},
