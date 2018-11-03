@@ -54,6 +54,13 @@ type retrieveNodeArgs struct {
 func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
 	switch {
 	case path == nil || len(path.Elem) == 0:
+		// When args.val is non-nil and the schema isn't nil, further check whether
+		// the node has a non-leaf schema. Setting a non-leaf schema isn't allowed.
+		if !util.IsValueNil(args.val) && schema != nil {
+			if !(schema.IsLeaf() || schema.IsLeafList()) {
+				return nil, status.Errorf(codes.Unknown, "path %v points to a node with non-leaf schema %v", traversedPath, schema)
+			}
+		}
 		return []*TreeNode{{
 			Path:   traversedPath,
 			Schema: schema,
@@ -143,8 +150,6 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 					if err := unmarshalGeneric(cschema, root, args.val, GNMIEncoding); err != nil {
 						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %T; %v", ft.Name, root, args.val, err)
 					}
-				default:
-					return nil, status.Errorf(codes.Unknown, "path points to %v which has non-leaf schema %v", ft.Type, cschema)
 				}
 			}
 

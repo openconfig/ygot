@@ -1818,7 +1818,7 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 					IntVal: 42,
 				},
 			},
-			wantErr: "TypedValue_IntVal, expect *gpb.TypedValue_LeaflistVal set in *gpb.TypedValue",
+			wantErr: "expect *gpb.TypedValue_LeaflistVal set in *gpb.TypedValue",
 		},
 		{
 			desc:     "fail unmarshalling int8 leaf list field with TypedValue_StringVal",
@@ -1828,7 +1828,7 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 					StringVal: "forty two",
 				},
 			},
-			wantErr: "TypedValue_StringVal, expect *gpb.TypedValue_LeaflistVal set in *gpb.TypedValue",
+			wantErr: "expect *gpb.TypedValue_LeaflistVal set in *gpb.TypedValue",
 		},
 	}
 	for _, tt := range tests {
