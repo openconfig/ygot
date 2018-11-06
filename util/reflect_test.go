@@ -555,10 +555,10 @@ func TestIsValueTypeComaptible(t *testing.T) {
 		inValue: reflect.ValueOf(testImpl{}),
 		inType:  reflect.TypeOf(testInterfaceStruct{}).FieldByIndex([]int{0}).Type,
 		want:    true,
-  }, {
-    name: "does not implement interface",
-    inValue: reflect.ValueOf(nonTestImpl{}),
-    inType: reflect.TypeOf(testInterfaceStruct{}).FieldByIndex([]int{0}).Type,
+	}, {
+		name:    "does not implement interface",
+		inValue: reflect.ValueOf(nonTestImpl{}),
+		inType:  reflect.TypeOf(testInterfaceStruct{}).FieldByIndex([]int{0}).Type,
 	}}
 
 	for _, tt := range tests {
