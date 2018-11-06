@@ -648,7 +648,7 @@ func TestSimpleStructs(t *testing.T) {
 			GenerateFakeRoot: true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-list-uncompressed.formatted-txt"),
-
+	}, {
 		name:    "with model data",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-versioned-mod.yang")},
 		inConfig: GeneratorConfig{
