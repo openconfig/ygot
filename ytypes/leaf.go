@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"math/big"
 	"reflect"
 	"strconv"
 	"strings"
@@ -26,6 +27,8 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
+
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-7.6.
@@ -422,7 +425,7 @@ type YANGEmpty bool
 // unmarshalLeaf unmarshals a scalar value (determined by json.Unmarshal) into
 // the parent containing the leaf.
 //   schema points to the schema for the leaf type.
-func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}) error {
+func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, enc Encoding) error {
 	if util.IsValueNil(value) {
 		return nil
 	}
@@ -447,11 +450,7 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}) 
 	ykind := schema.Type.Kind
 
 	if ykind == yang.Yunion {
-		return unmarshalUnion(schema, parent, fieldName, value)
-	}
-
-	if reflect.ValueOf(value).Type() != yangToJSONType(ykind) {
-		return fmt.Errorf("got %T type for field %s, expect %v", value, schema.Name, yangToJSONType(ykind).Kind())
+		return unmarshalUnion(schema, parent, fieldName, value, enc)
 	}
 
 	if ykind == yang.Ybits {
@@ -459,7 +458,7 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}) 
 		return nil
 	}
 
-	v, err := unmarshalScalar(parent, schema, fieldName, value)
+	v, err := unmarshalScalar(parent, schema, fieldName, value, enc)
 	if err != nil {
 		return err
 	}
@@ -504,7 +503,7 @@ RouteReflectorClusterId set with the type Bgp_Neighbor_RouteReflector_RouteRefle
 with field String set to "forty-two".
 */
 
-func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, value interface{}) error {
+func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, value interface{}, enc Encoding) error {
 	util.DbgPrint("unmarshalUnion value %v, type %T, into parent type %T field name %s, schema name %s", util.ValueStrDebug(value), value, parent, fieldName, schema.Name)
 	parentV, parentT := reflect.ValueOf(parent), reflect.TypeOf(parent)
 	if !util.IsTypeStructPtr(parentT) {
@@ -543,7 +542,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 			return fmt.Errorf("got %v types for union schema %s for type %T, expect just one type", sks, fieldName, parent)
 		}
 		yk := sks[0]
-		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value)
+		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value, enc)
 		if err != nil {
 			return fmt.Errorf("could not unmarshal %v into type %s", value, yk)
 		}
@@ -566,7 +565,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 
 	}
 
-	// For each possible union type, try to unmarshal the JSON value. If it can
+	// For each possible union type, try to unmarshal the value. If it can be
 	// unmarshaled, try to resolve the resulting type into a union struct type.
 	// Note that values can resolve into more than one struct type depending on
 	// the value and its range. In this case, no attempt is made to find the
@@ -574,7 +573,20 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	// Try to unmarshal to enum types first, since the case of union of string
 	// and enum could unmarshal into either. Only string values can be enum
 	// types.
-	valueStr, ok := value.(string)
+	var valueStr string
+	var ok bool
+	switch enc {
+	case GNMIEncoding:
+		var sv *gpb.TypedValue_StringVal
+		if sv, ok = value.(*gpb.TypedValue).GetValue().(*gpb.TypedValue_StringVal); ok {
+			valueStr = sv.StringVal
+		}
+	case JSONEncoding:
+		valueStr, ok = value.(string)
+	default:
+		return fmt.Errorf("unknown encoding %v", enc)
+	}
+
 	if ok {
 		for _, et := range ets {
 			util.DbgPrint("try to unmarshal into enum type %s", et)
@@ -592,7 +604,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	for _, sk := range sks {
 		util.DbgPrint("try to unmarshal into type %s", sk)
 		sch := yangKindToLeafEntry(sk)
-		gv, err := unmarshalScalar(parent, sch, fieldName, value)
+		gv, err := unmarshalScalar(parent, sch, fieldName, value, enc)
 		if err == nil {
 			return setFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, gv)
 		}
@@ -717,7 +729,7 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 //     Required if the unmarshaled type is an enum.
 //   fieldName is the name of the field being unmarshaled.
 //     Required if the unmarshaled type is an enum.
-func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, value interface{}) (interface{}, error) {
+func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, value interface{}, enc Encoding) (interface{}, error) {
 	if util.IsValueNil(value) {
 		return nil, nil
 	}
@@ -728,10 +740,30 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 
 	util.DbgPrint("unmarshalScalar value %v, type %T, into parent type %T field %s", value, value, parent, fieldName)
 
+	switch enc {
+	case JSONEncoding:
+		return sanitizeJSON(parent, schema, fieldName, value)
+	case GNMIEncoding:
+		tv, ok := value.(*gpb.TypedValue)
+		if !ok {
+			return nil, fmt.Errorf("got %T type, want gNMI TypedValue as value type", value)
+		}
+		return sanitizeGNMI(parent, schema, fieldName, tv)
+	}
+
+	return nil, fmt.Errorf("unknown encoding mode; %v", enc)
+}
+
+// sanitizeJSON decodes the JSON encoded value into the type of corresponding
+// field in GoStruct. Parent is the parent struct containing the field being
+// unmarshaled. schema is *yang.Entry corresponding to the field. fieldName
+// is the name of the field being written in GoStruct. value is the JSON
+// encoded value.
+func sanitizeJSON(parent interface{}, schema *yang.Entry, fieldName string, value interface{}) (interface{}, error) {
 	ykind := schema.Type.Kind
 
 	if ykind != yang.Yunion && reflect.ValueOf(value).Type() != yangToJSONType(ykind) {
-		return nil, fmt.Errorf("unmarshalScalar got %T type for field %s, expect %T", value, schema.Name, yangToJSONType(ykind))
+		return nil, fmt.Errorf("got %T type for field %s, expect %v", value, schema.Name, yangToJSONType(ykind).Kind())
 	}
 
 	switch ykind {
@@ -807,6 +839,86 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 	}
 
 	return nil, fmt.Errorf("unmarshalScalar: unsupported type %v in schema node %s", ykind, schema.Name)
+}
+
+// sanitizeGNMI decodes the GNMI TypedValue encoded value into the type of
+// corresponding field in GoStruct. Parent is the parent struct containing the
+// field being unmarshaled. schema is *yang.Entry corresponding to the field.
+// fieldName is the name of the field being written in GoStruct. value is the
+// JSON encoded value.
+func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *gpb.TypedValue) (interface{}, error) {
+	ykind := schema.Type.Kind
+
+	if !gNMIToYANGTypeMatches(ykind, tv) {
+		return nil, fmt.Errorf("%T cannot be unmarshalled into %v, value is %v", tv.GetValue(), yang.TypeKindToName[ykind], tv.GetValue())
+	}
+
+	switch ykind {
+	case yang.Ybool:
+		return tv.GetBoolVal(), nil
+	case yang.Ystring:
+		return tv.GetStringVal(), nil
+	case yang.Yenum, yang.Yidentityref:
+		return enumStringToValue(parent, fieldName, tv.GetStringVal())
+	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:
+		gt := reflect.TypeOf(yangBuiltinTypeToGoType(ykind))
+		vs := fmt.Sprintf("%v", tv.GetIntVal())
+		rv, err := StringToType(gt, vs)
+		if err != nil {
+			return nil, fmt.Errorf("StringToType(%q, %v) failed; %v", vs, gt, err)
+		}
+		return rv.Interface(), nil
+	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
+		gt := reflect.TypeOf(yangBuiltinTypeToGoType(ykind))
+		vs := fmt.Sprintf("%v", tv.GetUintVal())
+		rv, err := StringToType(gt, vs)
+		if err != nil {
+			return nil, fmt.Errorf("StringToType(%q, %v) failed; %v", vs, gt, err)
+		}
+		return rv.Interface(), nil
+	case yang.Ybinary:
+		return tv.GetBytesVal(), nil
+	case yang.Ydecimal64:
+		switch v := tv.GetValue().(type) {
+		case *gpb.TypedValue_DecimalVal:
+			prec := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(v.DecimalVal.Precision)), nil)
+			// Second return value indicates whether returned float64 value exactly
+			// represents the division. We don't want to fail unmarshalling as float64
+			// is the best type in ygot that can represent a decimal64. So, second
+			// return value is just ignored.
+			fv, _ := new(big.Rat).SetFrac(big.NewInt(v.DecimalVal.Digits), prec).Float64()
+			return fv, nil
+		case *gpb.TypedValue_FloatVal:
+			return float64(v.FloatVal), nil
+		}
+	}
+	return nil, fmt.Errorf("unexpected type %v for %T gNMI value", yang.TypeKindToName[ykind], tv.GetValue())
+}
+
+// gNMIToYANGTypeMatches checks whether the provided yang.TypeKind can be set
+// by using the provided gNMI TypedValue. gNMI TypedValue oneof fields can
+// carry more than one sizes of the same type per gNMI specification:
+// https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-specification.md#223-node-values
+func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue) bool {
+	var ok bool
+	switch ykind {
+	case yang.Ybool:
+		_, ok = tv.GetValue().(*gpb.TypedValue_BoolVal)
+	case yang.Ystring, yang.Yenum, yang.Yidentityref:
+		_, ok = tv.GetValue().(*gpb.TypedValue_StringVal)
+	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:
+		_, ok = tv.GetValue().(*gpb.TypedValue_IntVal)
+	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
+		_, ok = tv.GetValue().(*gpb.TypedValue_UintVal)
+	case yang.Ybinary:
+		_, ok = tv.GetValue().(*gpb.TypedValue_BytesVal)
+	case yang.Ydecimal64:
+		_, ok = tv.GetValue().(*gpb.TypedValue_DecimalVal)
+		if !ok {
+			_, ok = tv.GetValue().(*gpb.TypedValue_FloatVal)
+		}
+	}
+	return ok
 }
 
 // isValueInterfacePtrToEnum reports whether v is an interface ptr to enum type.

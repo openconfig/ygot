@@ -111,7 +111,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 //   jsonTree is a JSON data tree which must be a map[string]interface{}.
 //   opts is the set of options that should be used when unmarshalling the JSON
 //     into the supplied parent.
-func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interface{}, opts ...UnmarshalOpt) error {
+func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	if util.IsValueNil(jsonTree) {
 		return nil
 	}
@@ -135,7 +135,7 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interfa
 		return fmt.Errorf("unmarshalContainer got parent type %T, expect struct ptr", parent)
 	}
 
-	return unmarshalStruct(schema, parent, jt, opts...)
+	return unmarshalStruct(schema, parent, jt, enc, opts...)
 }
 
 // unmarshalStruct unmarshals a JSON tree into a struct.
@@ -143,7 +143,7 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interfa
 //     unmarshalled into.
 //   parent is the parent struct, which must be a struct ptr.
 //   jsonTree is a JSON data tree which must be a map[string]interface{}.
-func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string]interface{}, opts ...UnmarshalOpt) error {
+func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string]interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	destv := reflect.ValueOf(parent).Elem()
 	var allSchemaPaths [][]string
 	// Range over the parent struct fields. For each field, check if the data
@@ -203,7 +203,7 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 			// current container.
 			p = f.Interface()
 		}
-		if err := Unmarshal(cschema, p, jsonValue, opts...); err != nil {
+		if err := unmarshalGeneric(cschema, p, jsonValue, enc, opts...); err != nil {
 			return err
 		}
 	}
