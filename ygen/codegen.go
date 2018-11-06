@@ -731,7 +731,6 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 			}
 			treeElems = append(treeElems, e)
 		}
-
 	}
 	if errs != nil {
 		return nil, errs

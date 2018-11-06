@@ -54,7 +54,7 @@ const (
 	// annotationFieldType defines the type that should be used for the
 	// annotation/metadata fields within each struct when they are generated.
 	annotationFieldType string = "[]ygot.Annotation"
-	// DefaultGNMIImportPath is the default inport path that is used for the gNMI generated
+	// DefaultGNMIImportPath is the default import path that is used for the gNMI generated
 	// Go protobuf code in the generated output.
 	DefaultGNMIImportPath string = "github.com/openconfig/gnmi/proto/gnmi"
 )

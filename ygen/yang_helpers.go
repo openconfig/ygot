@@ -484,6 +484,7 @@ func findModelData(mods []*yang.Entry) ([]*gpb.ModelData, error) {
 		for _, e := range mNode.Exts() {
 			if p := strings.Split(e.Keyword, ":"); len(p) == 2 && p[1] == "openconfig-version" {
 				md.Version = e.Argument
+				break
 			}
 		}
 
