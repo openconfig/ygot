@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"reflect"
 
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
@@ -81,11 +82,13 @@ func validateLeafListSchema(schema *yang.Entry) error {
 	return nil
 }
 
-// unmarshalLeafList unmarshals a JSON leaf list slice into a Go slice parent.
+// unmarshalLeafList unmarshals given value into a Go slice parent.
 //   schema is the schema of the schema node corresponding to the field being
 //     unmamshaled into
-//   value is a JSON array, represented as Go slice
-func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}) error {
+//   enc is the encoding type used to encode the value
+//   value is a JSON array if enc is JSONEncoding, represented as Go slice
+//   value is a gNMI TypedValue if enc is GNMIEncoding, represented as TypedValue_LeafListVal
+func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}, enc Encoding) error {
 	if util.IsValueNil(value) {
 		return nil
 	}
@@ -96,20 +99,38 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 
 	util.DbgPrint("unmarshalLeafList value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, schema.Name)
 
-	leafList, ok := value.([]interface{})
-	if !ok {
-		return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect []interface{}",
-			schema.Name, util.ValueStr(value), value)
-	}
-
 	// The leaf schema is just the leaf-list schema without the list attrs.
 	leafSchema := *schema
 	leafSchema.ListAttr = nil
 
-	for _, leaf := range leafList {
-		if err := Unmarshal(&leafSchema, parent, leaf); err != nil {
-			return err
+	switch enc {
+	case GNMIEncoding:
+		if _, ok := value.(*gpb.TypedValue); !ok {
+			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect *gpb.TypedValue", schema.Name, util.ValueStr(value), value)
 		}
+		tv := value.(*gpb.TypedValue)
+		sa, ok := tv.GetValue().(*gpb.TypedValue_LeaflistVal)
+		if !ok {
+			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect *gpb.TypedValue_LeaflistVal set in *gpb.TypedValue", schema.Name, util.ValueStr(value), tv.GetValue())
+		}
+		for _, v := range sa.LeaflistVal.GetElement() {
+			if err := unmarshalGeneric(&leafSchema, parent, v, enc); err != nil {
+				return err
+			}
+		}
+	case JSONEncoding:
+		leafList, ok := value.([]interface{})
+		if !ok {
+			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect []interface{}", schema.Name, util.ValueStr(value), value)
+		}
+
+		for _, leaf := range leafList {
+			if err := unmarshalGeneric(&leafSchema, parent, leaf, enc); err != nil {
+				return err
+			}
+		}
+	default:
+		return fmt.Errorf("unknown encoding %v", enc)
 	}
 
 	return nil
