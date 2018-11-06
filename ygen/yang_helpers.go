@@ -17,10 +17,13 @@ package ygen
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
+
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // children returns all child elements of a directory element e that are not
@@ -452,4 +455,43 @@ func resolveRootName(name, defName string, generateRoot bool) string {
 	}
 
 	return name
+}
+
+type modelDataProto []*gpb.ModelData
+
+func (m modelDataProto) Less(a, b int) bool { return m[a].Name < m[b].Name }
+func (m modelDataProto) Len() int           { return len(m) }
+func (m modelDataProto) Swap(a, b int)      { m[a], m[b] = m[b], m[a] }
+
+// findModelData takes an input slice of yang.Entry pointers, which are assumed to
+// represent YANG modules, and returns the gNMI ModelData that corresponds with each
+// of the input modules.
+func findModelData(mods []*yang.Entry) ([]*gpb.ModelData, error) {
+	modelData := modelDataProto{}
+	for _, mod := range mods {
+		mNode, ok := mod.Node.(*yang.Module)
+		if !ok || mNode == nil {
+			return nil, fmt.Errorf("nil node, or not a module for node %s", mod.Name)
+		}
+		md := &gpb.ModelData{
+			Name: mod.Name,
+		}
+
+		if mNode.Organization != nil {
+			md.Organization = mNode.Organization.Statement().Argument
+		}
+
+		for _, e := range mNode.Exts() {
+			if p := strings.Split(e.Keyword, ":"); len(p) == 2 && p[1] == "openconfig-version" {
+				md.Version = e.Argument
+				break
+			}
+		}
+
+		modelData = append(modelData, md)
+	}
+
+	sort.Sort(modelData)
+
+	return modelData, nil
 }
