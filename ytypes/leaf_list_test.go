@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
@@ -143,7 +145,196 @@ func TestValidateLeafList(t *testing.T) {
 	}
 }
 
-func TestUnmarshalLeafList(t *testing.T) {
+type LeafListContainer struct {
+	Int32LeafList  []*int32        `path:"int32-leaf-list"`
+	EnumLeafList   []EnumType      `path:"enum-leaf-list"`
+	UnionLeafSlice []UnionLeafType `path:"union-leaflist"`
+}
+
+func (*LeafListContainer) ΛEnumTypeMap() map[string][]reflect.Type {
+	return map[string][]reflect.Type{
+		"/container-schema/union-leaflist": {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+	}
+}
+
+func (*LeafListContainer) To_UnionLeafType(i interface{}) (UnionLeafType, error) {
+	switch v := i.(type) {
+	case string:
+		return &UnionLeafType_String{v}, nil
+	case uint32:
+		return &UnionLeafType_Uint32{v}, nil
+	case EnumType:
+		return &UnionLeafType_EnumType{v}, nil
+	case EnumType2:
+		return &UnionLeafType_EnumType2{v}, nil
+	default:
+		return nil, fmt.Errorf("cannot convert %v to To_UnionLeafType, unknown union type, got: %T, want any of [string, uint32]", i, i)
+	}
+}
+
+func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
+	containerSchema := &yang.Entry{
+		Name: "container-schema",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"leaf": {
+				Name: "leaf",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Kind:    yang.Ystring,
+					Pattern: []string{"b+"},
+				},
+			},
+		},
+	}
+	int32LeafListSchema := &yang.Entry{
+		Parent:   containerSchema,
+		Name:     "int32-leaf-list",
+		Kind:     yang.LeafEntry,
+		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		Type:     &yang.YangType{Kind: yang.Yint32},
+	}
+
+	enumLeafListSchema := &yang.Entry{
+		Parent:   containerSchema,
+		Name:     "enum-leaf-list",
+		Kind:     yang.LeafEntry,
+		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		Type:     &yang.YangType{Kind: yang.Yenum},
+	}
+
+	unionLeafListSchema := &yang.Entry{
+		Parent:   containerSchema,
+		Name:     "union-leaflist",
+		Kind:     yang.LeafEntry,
+		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
+				},
+				{
+					Kind: yang.Yuint32,
+				},
+				{
+					Kind: yang.Yenum,
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		desc    string
+		sch     *yang.Entry
+		val     interface{}
+		want    LeafListContainer
+		wantErr string
+	}{
+		{
+			desc: "nil success",
+			want: LeafListContainer{},
+		},
+		{
+			desc: "int32 success",
+			sch:  int32LeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_IntVal{IntVal: -42}},
+						{Value: &gpb.TypedValue_IntVal{IntVal: 0}},
+						{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+					},
+				},
+			}},
+			want: LeafListContainer{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
+		},
+		{
+			desc: "enum success",
+			sch:  enumLeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_StringVal{StringVal: "E_VALUE_FORTY_TWO"}},
+					},
+				},
+			}},
+			want: LeafListContainer{EnumLeafList: []EnumType{42}},
+		},
+		{
+			desc: "unionleaf success",
+			sch:  unionLeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_StringVal{StringVal: "forty two"}},
+						{Value: &gpb.TypedValue_StringVal{StringVal: "E_VALUE_FORTY_TWO"}},
+						{Value: &gpb.TypedValue_UintVal{UintVal: 42}},
+					},
+				},
+			}},
+			want: LeafListContainer{UnionLeafSlice: []UnionLeafType{
+				&UnionLeafType_String{String: "forty two"},
+				&UnionLeafType_EnumType{EnumType: EnumType(42)},
+				&UnionLeafType_Uint32{Uint32: 42},
+			}},
+		},
+		{
+			desc: "fail unionleaf no suitable type",
+			sch:  unionLeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+					},
+				},
+			}},
+			wantErr: "could not find suitable union type to unmarshal value int_val:42",
+		},
+		{
+			desc: "bad array element",
+			sch:  int32LeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+						{Value: &gpb.TypedValue_IntVal{IntVal: 4294967296}},
+					},
+				},
+			}},
+			wantErr: `unable to convert "4294967296" to int32`,
+		},
+		{
+			desc: "bad value type",
+			sch:  enumLeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+					},
+				},
+			}},
+			wantErr: "TypedValue_IntVal cannot be unmarshalled into enumeration, value is &{42}",
+		},
+	}
+
+	for _, tt := range tests {
+		var parent LeafListContainer
+		err := unmarshalGeneric(tt.sch, &parent, tt.val, GNMIEncoding)
+		if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
+			t.Errorf("%s: unmarshalGeneric(%v, %v, %v): diff(-got,+want):\n%s", tt.desc, tt.sch, parent, tt.val, diff)
+		}
+		if err != nil {
+			continue
+		}
+		if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
+			t.Errorf("%s: unmarshalGeneric got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+		}
+	}
+}
+
+func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 	containerWithLeafListSchema := &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,
@@ -235,19 +426,19 @@ func TestUnmarshalLeafList(t *testing.T) {
 	}
 
 	// nil value
-	if got := unmarshalLeafList(nil, nil, nil); got != nil {
+	if got := unmarshalLeafList(nil, nil, nil, JSONEncoding); got != nil {
 		t.Errorf("nil value: Unmarshal got error: %v, want error: nil", got)
 	}
 
 	// nil schema
 	wantErr := `list schema is nil`
-	if got, want := errToString(unmarshalLeafList(nil, nil, []struct{}{})), wantErr; got != want {
+	if got, want := errToString(unmarshalLeafList(nil, nil, []struct{}{}, JSONEncoding)), wantErr; got != want {
 		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 
 	// bad value type
 	wantErr = `unmarshalLeafList for schema valid-leaf-list-schema: value 42 (int): got type int, expect []interface{}`
-	if got, want := errToString(unmarshalLeafList(validLeafListSchema, &struct{}{}, int(42))), wantErr; got != want {
+	if got, want := errToString(unmarshalLeafList(validLeafListSchema, &struct{}{}, int(42), JSONEncoding)), wantErr; got != want {
 		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 }

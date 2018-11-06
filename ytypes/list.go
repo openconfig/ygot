@@ -278,7 +278,7 @@ func nameMatchesPath(fieldName string, path []string) (bool, error) {
 //   jsonList is a JSON list
 //   opts... are a set of ytypes.UnmarshalOptionst that are used to control
 //     the behaviour of the unmarshal function.
-func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{}, opts ...UnmarshalOpt) error {
+func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	if util.IsValueNil(jsonList) {
 		return nil
 	}
@@ -330,7 +330,7 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 		jt := le.(map[string]interface{})
 		newVal := reflect.New(listElementType.Elem())
 		util.DbgPrint("creating a new list element val of type %v", newVal.Type())
-		if err := unmarshalStruct(schema, newVal.Interface(), jt, opts...); err != nil {
+		if err := unmarshalStruct(schema, newVal.Interface(), jt, enc, opts...); err != nil {
 			return err
 		}
 
