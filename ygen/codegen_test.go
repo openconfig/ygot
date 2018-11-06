@@ -641,6 +641,13 @@ func TestSimpleStructs(t *testing.T) {
 			CompressOCPaths: true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.leaf-getters.formatted-txt"),
+	}, {
+		name:    "uncompressed module with two different enums",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "enum-list-uncompressed.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot: true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-list-uncompressed.formatted-txt"),
 	}}
 
 	for _, tt := range tests {

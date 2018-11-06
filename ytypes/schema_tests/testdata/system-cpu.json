@@ -1,0 +1,20 @@
+{
+  "openconfig-system:system": {
+    "cpus": {
+      "cpu": [
+        {
+          "index": "ALL",
+          "state": {
+            "index": "ALL"
+          }
+        },
+        {
+          "index": 42,
+          "state": {
+            "index": 42
+          }
+        }
+      ]
+    }
+  }
+}

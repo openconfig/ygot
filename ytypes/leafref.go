@@ -287,6 +287,15 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 						break
 					}
 				}
+			case util.IsValueStructPtr(ov):
+				// TODO(robjs): clean this up.
+				// This is an interface value, which is represented as a struct pointer.
+				ovv := ov.Elem().FieldByIndex([]int{0})
+				svv := ni.FieldValue.Elem().Elem().FieldByIndex([]int{0})
+				if reflect.DeepEqual(ovv.Interface(), svv.Interface()) {
+					match = true
+					break
+				}
 			}
 		}
 		if !match {

@@ -316,7 +316,7 @@ func InsertIntoSliceStructField(parentStruct interface{}, fieldName string, fiel
 	if !n.IsValid() {
 		n = reflect.Zero(et)
 	}
-	if !isValueTypeCompatible(et, n) {
+	if !IsValueTypeCompatible(et, n) {
 		return fmt.Errorf("cannot assign value %v (type %T) to struct field %s (type %v) in struct %T", fieldValue, fieldValue, fieldName, et, parentStruct)
 	}
 
@@ -420,10 +420,10 @@ func isFieldTypeCompatible(ft reflect.StructField, v reflect.Value) bool {
 	return v.Type() == ft.Type
 }
 
-// isValueTypeCompatible reports whether f.Set(v) can be called successfully on
+// IsValueTypeCompatible reports whether f.Set(v) can be called successfully on
 // a struct field f with type t. It is assumed that f is exported and
 // addressable.
-func isValueTypeCompatible(t reflect.Type, v reflect.Value) bool {
+func IsValueTypeCompatible(t reflect.Type, v reflect.Value) bool {
 	switch {
 	case !v.IsValid():
 		return t.Kind() == reflect.Ptr

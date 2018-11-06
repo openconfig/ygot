@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
@@ -64,6 +65,29 @@ func TestValidateLeafRefData(t *testing.T) {
 				Name: "enum",
 				Kind: yang.LeafEntry,
 				Type: &yang.YangType{Kind: yang.Yint64},
+			},
+			"union": {
+				Name: "union",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Name: "union1-type",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{
+						{
+							Name:    "string",
+							Kind:    yang.Ystring,
+							Pattern: []string{"a+"},
+						},
+						{
+							Name: "int16",
+							Kind: yang.Yint16,
+						},
+						{
+							Name: "enum",
+							Kind: yang.Yenum,
+						},
+					},
+				},
 			},
 			"container2": {
 				Name: "container2",
@@ -119,6 +143,14 @@ func TestValidateLeafRefData(t *testing.T) {
 						},
 						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
 					},
+					"leaf-ref-to-union": {
+						Name: "leaf-ref-to-union",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../../union",
+						},
+					},
 				},
 			},
 		},
@@ -131,6 +163,7 @@ func TestValidateLeafRefData(t *testing.T) {
 		LeafListRefToLeafList  []*int32 `path:"leaf-list-ref-to-leaf-list"`
 		LeafRefToList          *int32   `path:"int32-ref-to-list"`
 		LeafListLeafRefToInt32 []*int32 `path:"leaf-list-with-leafref"`
+		LeafRefToUnion         Union1   `path:"leaf-ref-to-union"`
 	}
 	type ListElement struct {
 		Key   *int32 `path:"key"`
@@ -143,6 +176,7 @@ func TestValidateLeafRefData(t *testing.T) {
 		Key        *int32                 `path:"key"`
 		Int64      int64                  `path:"enum"`
 		Container2 *Container2            `path:"container2"`
+		Union      Union1                 `path:"union"`
 	}
 
 	tests := []struct {
@@ -270,6 +304,34 @@ func TestValidateLeafRefData(t *testing.T) {
 				Container2: &Container2{LeafRefToList: Int32(43)},
 			},
 			wantErr: `pointed-to value with path ../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
+		},
+		{
+			desc: "union leafref - string",
+			in: &Container{
+				Union: &Union1String{"val"},
+				Container2: &Container2{
+					LeafRefToUnion: &Union1String{"val"},
+				},
+			},
+		},
+		{
+			desc: "union leafref - integer",
+			in: &Container{
+				Union: &Union1Int16{42},
+				Container2: &Container2{
+					LeafRefToUnion: &Union1Int16{42},
+				},
+			},
+		},
+		{
+			desc: "union leafref - failure",
+			in: &Container{
+				Union: &Union1Int16{42},
+				Container2: &Container2{
+					LeafRefToUnion: &Union1Int16{4444},
+				},
+			},
+			wantErr: "field name LeafRefToUnion value { 4444 (int16 ptr) } schema path /leaf-ref-to-union has leafref path ../../union not equal to any target nodes",
 		},
 	}
 
@@ -476,6 +538,80 @@ func TestExtractKeyValue(t *testing.T) {
 				t.Errorf("%s value: got: %v, want: %v", tt.desc, got, want)
 			}
 		})
+	}
+}
+
+func TestIsKeyValue(t *testing.T) {
+	tests := []struct {
+		name             string
+		in               string
+		want             bool
+		wantErrSubstring string
+	}{{
+		name: "no quotes",
+		in:   "foo[baz=bar]",
+		want: true,
+	}, {
+		name: "quotes",
+		in:   `foo[bar="baz"]`,
+		want: true,
+	}, {
+		name:             "no key",
+		in:               "",
+		wantErrSubstring: "empty path element",
+	}, {
+		name:             "malformed",
+		in:               "foo]",
+		wantErrSubstring: "malformed path element",
+	}, {
+		name:             "trailing chars",
+		in:               "foo[bar=baz]trailing",
+		wantErrSubstring: "trailing chars after",
+	}}
+
+	for _, tt := range tests {
+		got, err := isKeyValue(tt.in)
+		if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+			t.Errorf("%s: isKeyValue(%v): did not get expected error, %s", tt.name, tt.in, diff)
+		}
+
+		if err != nil {
+			continue
+		}
+
+		if got != tt.want {
+			t.Errorf("%s: isKeyValue(%v): did not get expected value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		}
+	}
+}
+
+func TestPathMatchesPrefix(t *testing.T) {
+	tests := []struct {
+		name     string
+		inPath   []string
+		inPrefix []string
+		want     bool
+	}{{
+		name:     "short path",
+		inPath:   []string{"one"},
+		inPrefix: []string{"two", "three"},
+		want:     false,
+	}, {
+		name:     "path does not match",
+		inPath:   []string{"one", "two", "three"},
+		inPrefix: []string{"one", "four"},
+		want:     false,
+	}, {
+		name:     "path matches prefix",
+		inPath:   []string{"one", "two"},
+		inPrefix: []string{"one"},
+		want:     true,
+	}}
+
+	for _, tt := range tests {
+		if got := pathMatchesPrefix(tt.inPath, tt.inPrefix); got != tt.want {
+			t.Errorf("%s: pathMatchesPrefix(%v, %v): did not get expected output, got: %v, want: %v", tt.name, tt.inPath, tt.inPrefix, got, tt.want)
+		}
 	}
 }
 

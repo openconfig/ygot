@@ -455,7 +455,7 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 			util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
 			newKeyField := newKey.FieldByName(kfn)
 			if !util.ValuesAreSameType(newKeyField, nv) {
-				return reflect.ValueOf(nil), fmt.Errorf("%v is not assignable to %v", nv.Type(), newKeyField.Type())
+				return reflect.ValueOf(nil), fmt.Errorf("multi-key %v is not assignable to %v", nv.Type(), newKeyField.Type())
 			}
 			newKeyField.Set(nv)
 		}
@@ -472,8 +472,11 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 	util.DbgPrint("key value is %v.", kv)
 
 	rvKey := reflect.ValueOf(kv)
-	if !util.ValuesAreSameType(newKey, rvKey) {
-		return reflect.ValueOf(nil), fmt.Errorf("%v is not assignable to %v", rvKey.Type(), newKey.Type())
+
+	switch {
+	case util.IsTypeInterface(listKeyType) && util.IsValueTypeCompatible(listKeyType, newKey), util.ValuesAreSameType(newKey, rvKey):
+	default:
+		return reflect.ValueOf(nil), fmt.Errorf("single-key %v is not assignable to %v", rvKey.Type(), newKey.Type())
 	}
 	newKey.Set(rvKey)
 
