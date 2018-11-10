@@ -116,5 +116,5 @@ type Annotation interface {
 	MarshalJSON() ([]byte, error)
 	// UnmarshalJSON is used to unmarshal JSON into the Annotation. It ensures that
 	// the json.Unmarshaler interface is implemented.
-	UnmarshalJSON([]byte) error
+	//UnmarshalJSON([]byte) error
 }

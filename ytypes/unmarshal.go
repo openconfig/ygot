@@ -15,8 +15,10 @@
 package ytypes
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
@@ -38,6 +40,16 @@ type IgnoreExtraFields struct{}
 
 // IsUnmarshalOpt marks IgnoreExtraFields as a valid UnmarshalOpt.
 func (*IgnoreExtraFields) IsUnmarshalOpt() {}
+
+// AnnotationTypes specifies the Go types that are used for
+// annotations. Unmarshal will attempt to unmarshal each annotation into
+// the specified types.
+type AnnotationTypes struct {
+	Types []reflect.Type
+}
+
+// IsUnmarshalOpt marks AnnotationTypes as a valid UnmarshalOpt.
+func (*AnnotationTypes) IsUnmarshalOpt() {}
 
 // Unmarshal recursively unmarshals JSON data tree in value into the given
 // parent, using the given schema. Any values already in the parent that are
@@ -103,4 +115,81 @@ func hasIgnoreExtraFields(opts []UnmarshalOpt) bool {
 		}
 	}
 	return false
+}
+
+func annotationTypes(opts []UnmarshalOpt) *AnnotationTypes {
+	for _, o := range opts {
+		if v, ok := o.(*AnnotationTypes); ok {
+			return v
+		}
+	}
+	return nil
+}
+
+func unmarshalAnnotation(parent reflect.Value, fieldName string, annContents interface{}, opts ...UnmarshalOpt) error {
+	at := annotationTypes(opts)
+	if at == nil {
+		// If no annotationTypes were supplied, we cannot unmarshal, so return nil.
+		return nil
+	}
+
+	var errs []error
+	addErr := func(err error) { errs = append(errs, err) }
+
+	jsonC, ok := annContents.([]byte)
+	if !ok {
+		return fmt.Errorf("invalid type %T for annotation contents", annContents)
+	}
+	_, _ = addErr, jsonC
+
+	for _, t := range at.Types {
+		/*if !reflect.TypeOf((*ygot.Annotation)(nil)).Implements(t) {
+			return fmt.Errorf("invalid annotation type %s supplied", t.Name())
+		}*/
+
+		//target := reflect.New(t).Elem()
+		//fmt.Printf("target is %T\n", target.Interface())
+		//unmarshalMethod := target.MethodByName("FromJSON")
+		//meth := target
+		//if !util.IsValueStructPtr(target) && util.IsValuePtr(target) {
+		//	meth = target.Elem()
+		//}
+		/*unmarshalMethod := target.MethodByName("ToJSON")
+		if !meth.IsValid() {
+			return fmt.Errorf("annotation type %s does not have ToJSON method", t)
+		}
+
+		cr := unmarshalMethod.Call([]reflect.Value{reflect.ValueOf(annContents)})
+		if len(cr) != 1 {
+			return fmt.Errorf("method UnmarshalJSON for %s returns too many values %d", t.Name(), len(cr))
+		}
+
+		err, ok := cr[0].Interface().(error)
+		if !ok {
+			return fmt.Errorf("method UnmarshalJSON for %s does not return an error, but a %T", t.Name(), cr[0].Interface())
+		}
+
+		if err != nil {
+			fmt.Printf("error %v\n", err)
+			addErr(err)
+			continue
+		}*/
+
+		target := reflect.New(t)
+		fmt.Printf("target is %T %v\n", target.Interface(), target.Interface())
+		if err := json.Unmarshal(jsonC, target.Interface()); err != nil {
+			fmt.Printf("got %v\n", err)
+			addErr(err)
+			// We must ignore this error since we do not know what type of annotation was used, so a failure
+			// is OK.
+			continue
+		}
+
+		if err := util.InsertIntoSliceStructField(parent.Interface(), fieldName, target.Elem().Interface()); err != nil {
+			return fmt.Errorf("cannot insert type %s into parent struct, %v", t.Name(), err)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("no valid type found for annotation %v, errors: %v", annContents, errs)
 }

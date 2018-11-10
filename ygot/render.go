@@ -933,6 +933,7 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 
 		var value interface{}
 
+		fmt.Printf("fType is %T\n", field.Interface())
 		if util.IsYgotAnnotation(fType) {
 			value, err = jsonAnnotationSlice(field)
 		} else {
@@ -1332,6 +1333,8 @@ func jsonAnnotationSlice(v reflect.Value) (interface{}, error) {
 		return nil, nil
 	}
 
+	fmt.Printf("val is %v\n", v.Index(0).Interface())
+
 	vals := []interface{}{}
 	for i := 0; i < v.Len(); i++ {
 		fv := v.Index(i).Interface().(Annotation)
@@ -1340,6 +1343,7 @@ func jsonAnnotationSlice(v reflect.Value) (interface{}, error) {
 			return nil, fmt.Errorf("cannot marshal annotation %v type %T to JSON: %v", fv, fv, err)
 		}
 
+		fmt.Printf("looking at %s\n", jv)
 		// MarshalJSON returns []byte, but we really want to have this as the unmarshalled
 		// value, since constructJSON returns a series of map[string]interface{} Which
 		// are later marshalled, we therefore unmarshal the []byte into an interface{}
