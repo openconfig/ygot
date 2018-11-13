@@ -14,7 +14,7 @@ git clone https://github.com/openconfig/public.git
 mkdir deps
 cp ../demo/getting_started/yang/{ietf,iana}* deps
 go run ../generator/generator.go -path=public,deps -output_file=oc.go \
-  -package_name=exampleoc -generate_fakeroot -fakeroot_name=device \
+  -package_name=uexampleoc -generate_fakeroot -fakeroot_name=device \
   -exclude_modules=ietf-interfaces \
   -generate_rename \
   -generate_append \
