@@ -957,9 +957,9 @@ var (
 )
 `
 
-	// unionInterfaceTemplate defines a template that outputs an interface
-	// definition that corresponds to a multi-type union in YANG.
-	unionInterfaceTemplate = `
+	// unionTypeTemplate outputs the type that corresponds to a multi-type union
+	// in the YANG schema.
+	unionTypeTemplate = `
 // {{ .Name }} is an interface that is implemented by valid types for the union
 // for the leaf {{ .LeafPath }} within the YANG schema.
 type {{ .Name }} interface {
@@ -978,6 +978,14 @@ type {{ $intfName }}_{{ $typeName }} struct {
 // implements the {{ $intfName }} interface.
 func (*{{ $intfName }}_{{ $typeName }}) Is_{{ $intfName }}() {}
 {{ end }}
+`
+
+	// unionHelperTemplate defines a template that defines a helper method
+	// with a particular receiver type that allows an input type to be converted
+	// to its corresponding type in the union type.
+	unionHelperTemplate = `
+{{- $intfName := .Name -}}
+{{- $path := .LeafPath -}}
 // To_{{ .Name }} takes an input interface{} and attempts to convert it to a struct
 // which implements the {{ .Name }} union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
@@ -1011,7 +1019,8 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"enumDefinition":      makeTemplate("enumDefinition", goEnumDefinitionTemplate),
 		"enumMap":             makeTemplate("enumMap", goEnumMapTemplate),
 		"schemaVar":           makeTemplate("schemaVar", schemaVarTemplate),
-		"unionIntf":           makeTemplate("unionIntf", unionInterfaceTemplate),
+		"unionHelper":         makeTemplate("unionHelper", unionHelperTemplate),
+		"unionType":           makeTemplate("unionType", unionTypeTemplate),
 		"keyHelper":           makeTemplate("keyHelper", goKeyMapTemplate),
 		"enumTypeMap":         makeTemplate("enumTypeMap", goEnumTypeMapTemplate),
 		"enumTypeMapAccessor": makeTemplate("enumTypeMapAccessor", goEnumTypeMapAccessTemplate),
@@ -1296,8 +1305,8 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				// to ensure that we do not map this as a pointer type (since its
 				// field type is an interface), and generate the relevant interface.
 				scalarField = false
-
-				if _, ok := state.generatedUnions[mtype.nativeType]; !ok {
+				_, ok := state.generatedUnionInterfaces[targetStruct.name][mtype.nativeType]
+				if !ok {
 					// If the union type has not already been generated, then create it.
 					// This is to handle cases whereby we can have two types that are
 					// mapped to the same unique name -- such as in the case that we
@@ -1327,8 +1336,14 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 					}
 					// Sort the names of the types into determinstic order.
 					sort.Strings(intf.TypeNames)
-					genUnions = append(genUnions, intf)
-					state.generatedUnions[mtype.nativeType] = true
+
+					if _, ok := state.generatedUnionInterfaces[targetStruct.name]; !ok {
+						state.generatedUnionInterfaces[targetStruct.name] = map[string]bool{}
+					}
+					if _, ok := state.generatedUnionInterfaces[targetStruct.name][mtype.nativeType]; !ok {
+						genUnions = append(genUnions, intf)
+						state.generatedUnionInterfaces[targetStruct.name][mtype.nativeType] = true
+					}
 				}
 			}
 
@@ -1511,9 +1526,16 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 	// are used for multi-type unions within the struct.
 	var interfaceBuf bytes.Buffer
 	for _, intf := range genUnions {
-		if err := goTemplates["unionIntf"].Execute(&interfaceBuf, intf); err != nil {
+		if _, ok := state.generatedUnions[intf.Name]; !ok {
+			if err := goTemplates["unionType"].Execute(&interfaceBuf, intf); err != nil {
+				errs = append(errs, err)
+			}
+			state.generatedUnions[intf.Name] = true
+		}
+		if err := goTemplates["unionHelper"].Execute(&interfaceBuf, intf); err != nil {
 			errs = append(errs, err)
 		}
+
 	}
 
 	if generateJSONSchema {

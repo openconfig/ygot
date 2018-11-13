@@ -33,6 +33,7 @@ import (
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	oc "github.com/openconfig/ygot/exampleoc"
+	uoc "github.com/openconfig/ygot/uexampleoc"
 	scpb "google.golang.org/genproto/googleapis/rpc/code"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
 )
@@ -414,6 +415,7 @@ func TestUnmarshal(t *testing.T) {
 		jsonFilePath      string
 		parent            ygot.ValidatedGoStruct
 		opts              []ytypes.UnmarshalOpt
+		unmarshalFn       ytypes.UnmarshalFunc
 		wantValidationErr string
 		wantErr           string
 		outjsonFilePath   string // outjsonFilePath is the output JSON expected, when not specified it is assumed input == output.
@@ -422,32 +424,38 @@ func TestUnmarshal(t *testing.T) {
 			desc:         "basic",
 			jsonFilePath: "basic.json",
 			parent:       &oc.Device{},
+			unmarshalFn:  oc.Unmarshal,
 		},
 		{
 			desc:         "bgp",
 			jsonFilePath: "bgp-example.json",
 			parent:       &oc.Device{},
+			unmarshalFn:  oc.Unmarshal,
 		},
 		{
 			desc:              "interfaces",
 			jsonFilePath:      "interfaces-example.json",
 			parent:            &oc.Device{},
+			unmarshalFn:       oc.Unmarshal,
 			wantValidationErr: `validation err: field name AggregateId value Bundle-Ether22 (string ptr) schema path /device/interfaces/interface/ethernet/config/aggregate-id has leafref path /interfaces/interface/name not equal to any target nodes`,
 		},
 		{
 			desc:         "local-routing",
 			jsonFilePath: "local-routing-example.json",
 			parent:       &oc.Device{},
+			unmarshalFn:  oc.Unmarshal,
 		},
 		{
 			desc:         "policy",
 			jsonFilePath: "policy-example.json",
 			parent:       &oc.Device{},
+			unmarshalFn:  oc.Unmarshal,
 		},
 		{
 			desc:            "basic with extra fields",
 			jsonFilePath:    "basic-extra.json",
 			parent:          &oc.Device{},
+			unmarshalFn:     oc.Unmarshal,
 			opts:            []ytypes.UnmarshalOpt{&ytypes.IgnoreExtraFields{}},
 			outjsonFilePath: "basic.json",
 		},
@@ -455,7 +463,22 @@ func TestUnmarshal(t *testing.T) {
 			desc:            "relay agent leaf-list of single type union",
 			jsonFilePath:    "relay-agent.json",
 			parent:          &oc.Device{},
+			unmarshalFn:     oc.Unmarshal,
 			outjsonFilePath: "relay-agent.json",
+		},
+		{
+			desc:            "unmarshal list with union key",
+			jsonFilePath:    "system-cpu.json",
+			parent:          &oc.Device{},
+			unmarshalFn:     oc.Unmarshal,
+			outjsonFilePath: "system-cpu.json",
+		},
+		{
+			desc:            "unmarshal list with union key - uncompressed",
+			jsonFilePath:    "system-cpu.json",
+			parent:          &uoc.Device{},
+			unmarshalFn:     uoc.Unmarshal,
+			outjsonFilePath: "system-cpu.json",
 		},
 	}
 
@@ -463,7 +486,8 @@ func TestUnmarshal(t *testing.T) {
 		Format: ygot.RFC7951,
 		RFC7951Config: &ygot.RFC7951JSONConfig{
 			AppendModuleName: true,
-		}}
+		},
+	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
@@ -483,7 +507,7 @@ func TestUnmarshal(t *testing.T) {
 				wantj = rj
 			}
 
-			err = oc.Unmarshal(j, tt.parent, tt.opts...)
+			err = tt.unmarshalFn(j, tt.parent, tt.opts...)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: got error: %v, want error: %v ", tt.desc, got, want)
 			}

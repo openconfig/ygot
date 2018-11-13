@@ -278,13 +278,13 @@ type Union1 interface {
 }
 
 type Union1String struct {
-	String *string
+	String string
 }
 
 func (Union1String) IsUnion1() {}
 
 type Union1Int16 struct {
-	Int16 *int16
+	Int16 int16
 }
 
 func (Union1Int16) IsUnion1() {}
@@ -412,12 +412,12 @@ func TestValidateLeafUnion(t *testing.T) {
 		{
 			desc:   "success string",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1String{String: ygot.String("aaa")}},
+			val:    &UnionContainer{UnionField: &Union1String{"aaa"}},
 		},
 		{
 			desc:   "success int16",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1Int16{Int16: ygot.Int16(1)}},
+			val:    &UnionContainer{UnionField: &Union1Int16{1}},
 		},
 		{
 			desc:   "success enum",
@@ -427,7 +427,7 @@ func TestValidateLeafUnion(t *testing.T) {
 		{
 			desc:    "bad regex",
 			schema:  unionContainerSchema,
-			val:     &UnionContainer{UnionField: &Union1String{String: ygot.String("bbb")}},
+			val:     &UnionContainer{UnionField: &Union1String{"bbb"}},
 			wantErr: true,
 		},
 		{

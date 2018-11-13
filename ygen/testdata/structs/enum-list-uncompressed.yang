@@ -1,0 +1,30 @@
+module enum-test-uncompressed {
+  prefix "et";
+  namespace "urn:et";
+
+  container a {
+    list b {
+      key "c";
+      
+      leaf c {
+        type leafref {
+          path "../state/c";
+        }
+      }
+
+      container state {
+        config false;
+        
+        leaf c {
+          type union {
+            type enumeration {
+              enum ONE;
+              enum TWO;
+            }
+            type uint8;
+          }
+        }
+      }
+    }
+  }
+}

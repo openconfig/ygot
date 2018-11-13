@@ -642,6 +642,13 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.leaf-getters.formatted-txt"),
 	}, {
+		name:    "uncompressed module with two different enums",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "enum-list-uncompressed.yang")},
+		inConfig: GeneratorConfig{
+			GenerateFakeRoot: true,
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-list-uncompressed.formatted-txt"),
+	}, {
 		name:    "with model data",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-versioned-mod.yang")},
 		inConfig: GeneratorConfig{

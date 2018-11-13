@@ -530,6 +530,44 @@ func (testImpl) isTestInterface() {}
 
 type nonTestImpl struct{}
 
+type testInterfaceStruct struct {
+	T testInterface
+}
+
+func TestIsValueTypeComaptible(t *testing.T) {
+	tests := []struct {
+		name    string
+		inValue reflect.Value
+		inType  reflect.Type
+		want    bool
+	}{{
+		name:    "same type",
+		inValue: reflect.ValueOf("string"),
+		inType:  reflect.TypeOf("string"),
+		want:    true,
+	}, {
+		name:    "same type - ptr",
+		inValue: reflect.ValueOf(String("string")),
+		inType:  reflect.TypeOf(String("string")),
+		want:    true,
+	}, {
+		name:    "implements interface",
+		inValue: reflect.ValueOf(testImpl{}),
+		inType:  reflect.TypeOf(testInterfaceStruct{}).FieldByIndex([]int{0}).Type,
+		want:    true,
+	}, {
+		name:    "does not implement interface",
+		inValue: reflect.ValueOf(nonTestImpl{}),
+		inType:  reflect.TypeOf(testInterfaceStruct{}).FieldByIndex([]int{0}).Type,
+	}}
+
+	for _, tt := range tests {
+		if got := IsValueTypeCompatible(tt.inType, tt.inValue); got != tt.want {
+			t.Errorf("%s: IsValueTypeCompatible(%v, %v): did not get expected result, got: %v, want: %v", tt.name, tt.inType, tt.inValue, got, tt.want)
+		}
+	}
+}
+
 func TestInsertIntoSliceStructField(t *testing.T) {
 	type BasicStruct struct {
 		IntSliceField       []int

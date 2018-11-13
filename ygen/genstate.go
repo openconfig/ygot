@@ -83,6 +83,12 @@ type genState struct {
 	// where two entities re-use a union that has already been created (e.g.,
 	// a leafref to a union) then it is output only once in the generated code.
 	generatedUnions map[string]bool
+	// generatedUnionInterface stores a map of maps that store the To_XXX methods
+	// that have been built for a particular receiver struct. These methods are
+	// generated as helpers for union types, and must be output once per receiver
+	// struct in which they are used. The first map is keyed on the receiver type,
+	// whilst the latter is keyed on the interface name.
+	generatedUnionInterfaces map[string]map[string]bool
 }
 
 // newGenState creates a new genState instance, initialised with the default state
@@ -102,6 +108,7 @@ func newGenState() *genState {
 		uniqueProtoMsgNames:          make(map[string]map[string]bool),
 		uniqueProtoPackages:          make(map[string]string),
 		generatedUnions:              make(map[string]bool),
+		generatedUnionInterfaces:     make(map[string]map[string]bool),
 	}
 }
 
