@@ -14,11 +14,11 @@ install:
 script:
         - go test ./...
         - go test -race ./...
-        - go tool vet ./util
-        - go tool vet -composites=false ./ygot
-        - go tool vet ./ygen
-        - go tool vet ./ytypes
-        - go tool vet ./ygot/pathtranslate
+        - go vet ./util
+        - go vet -composites=false ./ygot
+        - go vet ./ygen
+        - go vet ./ytypes
+        - go vet ./ygot/pathtranslate
         - diff -u <(echo -n) <(gofmt -d -s ./util)
         - diff -u <(echo -n) <(gofmt -d -s ./ygot)
         - diff -u <(echo -n) <(gofmt -d -s ./ygen)
