@@ -17,6 +17,7 @@
 package testutil
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sort"
@@ -29,10 +30,67 @@ import (
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+// ComparerOpt is an interface that all comparison options must implement.
+type ComparerOpt interface {
+	IsComparerOpt()
+}
+
+// IgnoreTimestamp is a comparison option that ignores timestamp values in
+// gNMI messages.
+type IgnoreTimestamp struct{}
+
+// IsComparerOpt marks IgnoreTimestamp as a ComparerOpt.
+func (*IgnoreTimestamp) IsComparerOpt() {}
+
+// hasIgnoreTimestamp determines whether the opt slice contains at least one
+// instance of the IgnoreTimestamp option.
+func hasIgnoreTimestamp(opts []ComparerOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*IgnoreTimestamp); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// CustomComparer allows for a comparer for a particular type to be
+// overloaded such that an external caller can inject a new way to
+// compare a specific field of a gNMI message. It is a map, keyed by
+// a reflect.Type of the message field, with a value of a cmp.Option
+// produced by cmp.Comparer().
+type CustomComparer map[reflect.Type]cmp.Option
+
+// IsComparerOpt marks CustomComparer as a ComparerOpt.
+func (CustomComparer) IsComparerOpt() {}
+
+// comparers resolves the comparers that are to be used for a particular
+// operation -- it uses a default set and augments or replaces entries
+// with those in any CustomComparer that is found within the opts slice.
+func comparers(opts []ComparerOpt) []cmp.Option {
+	cmps := map[reflect.Type]cmp.Option{
+		reflect.TypeOf(&gnmipb.TypedValue_JsonIetfVal{}): cmp.Comparer(JSONIETFComparer),
+	}
+
+	for _, o := range opts {
+		if cc, ok := o.(CustomComparer); ok {
+			for t, v := range cc {
+				cmps[t] = v
+			}
+		}
+	}
+
+	currCmps := []cmp.Option{}
+	for _, o := range cmps {
+		currCmps = append(currCmps, o)
+	}
+	return currCmps
+}
+
 // GetResponseEqual compares the contents of a and b and returns true if they
-// are equal. Extensions in the GetResponse are ignored.
-func GetResponseEqual(a, b *gnmipb.GetResponse) bool {
-	return NotificationSetEqual(a.Notification, b.Notification)
+// are equal. Extensions in the GetResponse are ignored. The supplied ComparerOpt
+// options are used to influnce the equality comparison between a and b.
+func GetResponseEqual(a, b *gnmipb.GetResponse, opts ...ComparerOpt) bool {
+	return NotificationSetEqual(a.Notification, b.Notification, opts...)
 }
 
 // SubscribeResponseEqual compares the contents of a and b and returns true if
@@ -67,16 +125,28 @@ func SubscribeResponseSetEqual(a, b []*gnmipb.SubscribeResponse) bool {
 }
 
 // NotificationSetEqual compares the contents of a and b and returns true if
-// they are equal. Order of the slices is ignored.
-func NotificationSetEqual(a, b []*gnmipb.Notification) bool {
+// they are equal. Order of the slices is ignored. The set of ComparerOpts
+// supplied are used to influnce the equality comparison between members
+// of a and b.
+func NotificationSetEqual(a, b []*gnmipb.Notification, opts ...ComparerOpt) bool {
+	ignoreTS := hasIgnoreTimestamp(opts)
+	cmps := comparers(opts)
+	cmps = append(cmps, []cmp.Option{cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty()}...)
+
 	for _, an := range a {
 		var matched bool
 		for _, bn := range b {
 			n := &notificationMatch{
-				timestamp: an.GetTimestamp() == bn.GetTimestamp(),
+				timestamp: true,
 				prefix:    proto.Equal(an.GetPrefix(), bn.GetPrefix()),
-				update:    cmp.Equal(an.GetUpdate(), bn.GetUpdate(), cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty()),
-				delete:    cmp.Equal(an.GetDelete(), bn.GetDelete(), cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty()),
+				update: cmp.Equal(an.GetUpdate(), bn.GetUpdate(),
+					cmps...,
+				),
+				delete: cmp.Equal(an.GetDelete(), bn.GetDelete(), cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty()),
+			}
+
+			if !ignoreTS {
+				n.timestamp = (an.GetTimestamp() == bn.GetTimestamp())
 			}
 
 			if n.matched() {
@@ -89,6 +159,22 @@ func NotificationSetEqual(a, b []*gnmipb.Notification) bool {
 		}
 	}
 	return true
+}
+
+// JSONIETFComparer compares the two provided JSON IETF TypedValues to
+// determine whether their contents are the same. If either value is
+// invalid JSON, the function returns false.
+func JSONIETFComparer(a, b *gnmipb.TypedValue_JsonIetfVal) bool {
+	aj, bj := map[string]interface{}{}, map[string]interface{}{}
+	if err := json.Unmarshal(a.JsonIetfVal, &aj); err != nil {
+		return false
+	}
+
+	if err := json.Unmarshal(b.JsonIetfVal, &bj); err != nil {
+		return false
+	}
+
+	return reflect.DeepEqual(aj, bj)
 }
 
 // notificationMatch tracks whether a gNMI notification pair has matched.
