@@ -16,13 +16,13 @@ package testutil
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
-	"github.com/openconfig/gnmi/errdiff"
+	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/openconfig/ygot/exampleoc"
-	"github.com/openconfig/ygot/uexampleoc"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -41,7 +41,6 @@ func jsonIETF(s string) *gnmipb.TypedValue {
 		},
 	}
 }
-
 func TestGetResponseEqual(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -76,12 +75,12 @@ func TestGetResponseEqual(t *testing.T) {
 		},
 		want: false,
 	}, {
-		name: "equal with IETF JSON",
+		name: "custom comparer for path",
 		inA: &gnmipb.GetResponse{
 			Notification: []*gnmipb.Notification{{
 				Timestamp: 0,
 				Update: []*gnmipb.Update{{
-					Path: mustPath("/system/config"),
+					Path: mustPath("/fish:system/fish:config"),
 					Val:  jsonIETF(`{"hostname": "dev1"}`),
 				}},
 			}},
@@ -90,21 +89,25 @@ func TestGetResponseEqual(t *testing.T) {
 			Notification: []*gnmipb.Notification{{
 				Timestamp: 0,
 				Update: []*gnmipb.Update{{
-					Path: mustPath("/system"),
-					Val: jsonIETF(`{
-						"config": {
-							"hostname": "dev1",
-							"ignored-val": "dev2"
-						}
-					}`),
+					Path: mustPath("/system/config"),
+					Val:  jsonIETF(`{"hostname": "dev1"}`),
 				}},
 			}},
 		},
 		inOpts: []ComparerOpt{
-			&UnmarshalIETFJSON{
-				root:      &uexampleoc.Device{},
-				schema:    uexampleoc.SchemaTree["Device"],
-				unmarshal: uexampleoc.Unmarshal,
+			CustomComparer{
+				reflect.TypeOf(&gnmipb.Path{}): cmp.Comparer(func(a, b *gnmipb.Path) bool {
+					for _, p := range []*gnmipb.Path{a, b} {
+						for _, e := range p.Elem {
+							// Remove anything before a ":"
+							if pp := strings.Split(e.Name, ":"); len(pp) == 2 {
+								e.Name = pp[1]
+							}
+						}
+					}
+
+					return proto.Equal(a, b)
+				}),
 			},
 		},
 		want: true,
@@ -623,39 +626,6 @@ func TestNotificationSetEqual(t *testing.T) {
 			}},
 		}},
 		want: false,
-	}, {
-		name: "equal sets: unmarshalled JSON",
-		inA: []*gnmipb.Notification{{
-			Timestamp: 42,
-			Update: []*gnmipb.Update{{
-				Path: mustPath("/system"),
-				Val: jsonIETF(`{
-					"config": {
-						"hostname": "box42.pop42"
-					}
-				}`),
-			}},
-		}},
-		inB: []*gnmipb.Notification{{
-			Timestamp: 42,
-			Update: []*gnmipb.Update{{
-				Path: mustPath("/system"),
-				Val: jsonIETF(`{
-					"config": {
-						"hostname": "box42.pop42",
-						"extra-field": "IGNORE"
-					}
-				}`),
-			}},
-		}},
-		inOpts: []ComparerOpt{
-			&UnmarshalIETFJSON{
-				root:      &exampleoc.Device{},
-				schema:    exampleoc.SchemaTree["Device"],
-				unmarshal: exampleoc.Unmarshal,
-			},
-		},
-		want: true,
 	}, {
 		name: "unequal sets: unmarshalled JSON",
 		inA: []*gnmipb.Notification{{
@@ -1990,232 +1960,6 @@ func TestTypedValueLess(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := typedValueLess(tt.inA, tt.inB); got != tt.want {
 				t.Fatalf("typedValueLess(%#v, %#v): did not get expected value, got: %v, want: %v", tt.inA, tt.inB, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestUpdateComparer(t *testing.T) {
-	commonSpec := &UnmarshalIETFJSON{
-		root:      &uexampleoc.Device{},
-		schema:    uexampleoc.SchemaTree["Device"],
-		unmarshal: uexampleoc.Unmarshal,
-	}
-
-	tests := []struct {
-		desc             string
-		inA              *gnmipb.Update
-		inB              *gnmipb.Update
-		inSpec           *UnmarshalIETFJSON
-		wantDiff         *gnmipb.Notification
-		wantEqual        bool
-		wantErrSubstring string
-	}{{
-		desc: "simple, updates equal",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`{"hostname": "system-1"}`),
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`{"hostname": "system-1"}`),
-		},
-		inSpec:    commonSpec,
-		wantEqual: true,
-	}, {
-		desc: "simple, updates not equal",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`{"hostname": "system-1"}`),
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`{"hostname": "bus"}`),
-		},
-		inSpec:    commonSpec,
-		wantEqual: false,
-		wantDiff: &gnmipb.Notification{
-			Update: []*gnmipb.Update{{
-				Path: mustPath("/system/config/hostname"),
-				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"bus"}},
-			}},
-		},
-	}, {
-		desc: "equal with ignored extra leaves",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`{"hostname": "system-1"}`),
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`{"hostname": "system-1", "vendor-ext": 42}`),
-		},
-		inSpec:    commonSpec,
-		wantEqual: true,
-	}, {
-		desc: "error: bad JSON in A",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`invalid`),
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`{"hostname": "system-1"}`),
-		},
-		inSpec:           commonSpec,
-		wantEqual:        false,
-		wantErrSubstring: "cannot unmarshal JSON for struct A",
-	}, {
-		desc: "error: bad JSON in B",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`{"hostname": "system-1"}`),
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`zap`),
-		},
-		inSpec:           commonSpec,
-		wantEqual:        false,
-		wantErrSubstring: "cannot unmarshal JSON for struct B",
-	}, {
-		desc: "error: unmarshal leaf into A",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config/hostname"),
-			Val:  jsonIETF(`"fish"`),
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config/hostname"),
-			Val:  jsonIETF(`"fish"`),
-		},
-		inSpec:           commonSpec,
-		wantEqual:        false,
-		wantErrSubstring: "does not correspond to a struct",
-	}, {
-		desc: "error: unmarshal leaf into B",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`{"hostname": "cheese"}`),
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config/hostname"),
-			Val:  jsonIETF(`"fish"`),
-		},
-		inSpec:           commonSpec,
-		wantEqual:        false,
-		wantErrSubstring: "does not correspond to a struct",
-	}, {
-		desc: "equal: not IETF JSON",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config/hostname"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config/hostname"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
-		},
-		inSpec:    commonSpec,
-		wantEqual: true,
-	}, {
-		desc: "not equal: different paths",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config/domain-name"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config/hostname"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
-		},
-		inSpec:    commonSpec,
-		wantEqual: false,
-	}, {
-		desc: "equal: nil values",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config/domain-name"),
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config/domain-name"),
-		},
-		inSpec:    commonSpec,
-		wantEqual: true,
-	}, {
-		desc: "not equal: one value nil",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config/domain-name"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config/domain-name"),
-		},
-		inSpec:    commonSpec,
-		wantEqual: false,
-	}, {
-		desc: "not equal: different types",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config/hostname"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"fish"}},
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config/hostname"),
-			Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{42}},
-		},
-		inSpec:    commonSpec,
-		wantEqual: false,
-	}, {
-		desc: "error: invalid path in A",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config/fish"),
-			Val:  jsonIETF(`"value"`),
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config/hostname"),
-			Val:  jsonIETF(`"value"`),
-		},
-		inSpec:           commonSpec,
-		wantErrSubstring: `cannot retrieve struct for path elem:<name:"system" > elem:<name:"config" > elem:<name:"fish" >`,
-	}, {
-		desc: "error: invalid path in B",
-		inA: &gnmipb.Update{
-			Path: mustPath("/system/config"),
-			Val:  jsonIETF(`{"hostname": "system-1"}`),
-		},
-		inB: &gnmipb.Update{
-			Path: mustPath("/system/config/chips"),
-			Val:  jsonIETF(`"value"`),
-		},
-		inSpec:           commonSpec,
-		wantErrSubstring: `cannot retrieve struct for path elem:<name:"system" > elem:<name:"config" > elem:<name:"chips" >`,
-	}, {
-		desc:             "error: nil spec",
-		inA:              &gnmipb.Update{},
-		inB:              &gnmipb.Update{},
-		inSpec:           nil,
-		wantErrSubstring: "JSON specification is not valid",
-	}, {
-		desc:             "error: invalid spec",
-		inA:              &gnmipb.Update{},
-		inB:              &gnmipb.Update{},
-		inSpec:           &UnmarshalIETFJSON{},
-		wantErrSubstring: "JSON specification is not valid",
-	}}
-
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			gotDiff, gotEqual, err := updateComparer(tt.inA, tt.inB, tt.inSpec)
-			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
-				t.Fatalf("did not get expected error, %s", diff)
-			}
-
-			if err != nil {
-				return
-			}
-
-			if gotEqual != tt.wantEqual {
-				t.Errorf("did not get expected equal status, got: %v, want: %v", gotEqual, tt.wantEqual)
-			}
-
-			if diff := pretty.Compare(gotDiff, tt.wantDiff); diff != "" {
-				t.Errorf("did not get expected diff, diff(-got,+want):\n%s", diff)
 			}
 		})
 	}

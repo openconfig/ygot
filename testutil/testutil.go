@@ -22,12 +22,6 @@ import (
 	"reflect"
 	"sort"
 
-	log "github.com/golang/glog"
-
-	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/ygot"
-	"github.com/openconfig/ygot/ytypes"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -59,34 +53,37 @@ func hasIgnoreTimestamp(opts []ComparerOpt) bool {
 	return false
 }
 
-// UnmarshalIETFJSON is a comparison option that specifies that JSON IETF values
-// should be unmarshalled into the ygot GoStruct supplied using the specified
-// unmarshalling function. The equality between values is subsequently taken
-// using the ygot Diff function.
-type UnmarshalIETFJSON struct {
-	schema    *yang.Entry          // schmea is the root struct's schema.
-	root      ygot.GoStruct        // root is the root into which to unmarshal the JSON.
-	unmarshal ytypes.UnmarshalFunc // unmarshal is the Unmarshal function from the generated code.
-}
+// CustomComparer allows for a comparer for a particular type to be
+// overloaded such that an external caller can inject a new way to
+// compare a specific field of a gNMI message. It is a map, keyed by
+// a reflect.Type of the message field, with a value of a cmp.Option
+// produced by cmp.Comparer().
+type CustomComparer map[reflect.Type]cmp.Option
 
-// IsComparerOpt marks UnmarshalIETFJSON as a comparer option.
-func (*UnmarshalIETFJSON) IsComparerOpt() {}
+// IsComparerOpt marks CustomComparer as a ComparerOpt.
+func (CustomComparer) IsComparerOpt() {}
 
-// IsValid determines whether all required fields of the UnmarshalIETFJSON struct
-// have been populated.
-func (u *UnmarshalIETFJSON) IsValid() bool {
-	return u.schema != nil && u.root != nil && u.unmarshal != nil
-}
+// comparers resolves the comparers that are to be used for a particular
+// operation -- it uses a default set and augments or replaces entries
+// with those in any CustomComparer that is found within the opts slice.
+func comparers(opts []ComparerOpt) []cmp.Option {
+	cmps := map[reflect.Type]cmp.Option{
+		reflect.TypeOf(&gnmipb.TypedValue_JsonIetfVal{}): cmp.Comparer(JSONIETFComparer),
+	}
 
-// hasUnmarshalIETFJSON determines whether the opts slice contains at least one
-// instance of the UnmarshalIETFJSON option.
-func hasUnmarshalIETFJSON(opts []ComparerOpt) (*UnmarshalIETFJSON, bool) {
 	for _, o := range opts {
-		if uj, ok := o.(*UnmarshalIETFJSON); ok {
-			return uj, true
+		if cc, ok := o.(CustomComparer); ok {
+			for t, v := range cc {
+				cmps[t] = v
+			}
 		}
 	}
-	return nil, false
+
+	currCmps := []cmp.Option{}
+	for _, o := range cmps {
+		currCmps = append(currCmps, o)
+	}
+	return currCmps
 }
 
 // GetResponseEqual compares the contents of a and b and returns true if they
@@ -133,16 +130,8 @@ func SubscribeResponseSetEqual(a, b []*gnmipb.SubscribeResponse) bool {
 // of a and b.
 func NotificationSetEqual(a, b []*gnmipb.Notification, opts ...ComparerOpt) bool {
 	ignoreTS := hasIgnoreTimestamp(opts)
-	jsonComparer := cmp.Comparer(JSONIETFComparer)
-	if unmarshalJS, ok := hasUnmarshalIETFJSON(opts); ok {
-		jsonComparer = cmp.Comparer(func(a, b *gnmipb.Update) bool {
-			_, equal, err := updateComparer(a, b, unmarshalJS)
-			if err != nil {
-				log.Errorf("cannot compare updates for Notifications, got err: %v", err)
-			}
-			return equal
-		})
-	}
+	cmps := comparers(opts)
+	cmps = append(cmps, []cmp.Option{cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty()}...)
 
 	for _, an := range a {
 		var matched bool
@@ -151,9 +140,7 @@ func NotificationSetEqual(a, b []*gnmipb.Notification, opts ...ComparerOpt) bool
 				timestamp: true,
 				prefix:    proto.Equal(an.GetPrefix(), bn.GetPrefix()),
 				update: cmp.Equal(an.GetUpdate(), bn.GetUpdate(),
-					cmpopts.SortSlices(UpdateLess),
-					cmpopts.EquateEmpty(),
-					jsonComparer, // Check equality of JSON IETF values using a JSON unmarshal function.
+					cmps...,
 				),
 				delete: cmp.Equal(an.GetDelete(), bn.GetDelete(), cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty()),
 			}
@@ -504,108 +491,4 @@ func boolLess(a, b bool) bool {
 		return false
 	}
 	return true
-}
-
-func updateComparer(a, b *gnmipb.Update, jsonSpec *UnmarshalIETFJSON) (*gnmipb.Notification, bool, error) {
-	if jsonSpec == nil || !jsonSpec.IsValid() {
-		return nil, false, fmt.Errorf("JSON specification is not valid, %v", jsonSpec)
-	}
-
-	av, bv := a.GetVal().GetValue(), b.GetVal().GetValue()
-	switch {
-	case av == nil && bv == nil:
-		// Equal, since both values are nil
-		return nil, true, nil
-	case av == nil, bv == nil:
-		// Not equal, since one value is nil and the other is not.
-		return nil, false, nil
-	}
-
-	if reflect.TypeOf(av) != reflect.TypeOf(bv) {
-		// Not equal due to the type of TypedValue specified being different.
-		return nil, false, nil
-	}
-
-	_, aOK := av.(*gnmipb.TypedValue_JsonIetfVal)
-	_, bOK := av.(*gnmipb.TypedValue_JsonIetfVal)
-	if !aOK || !bOK {
-		// One or both of the updates doesn't contain a JSON IETF typed value
-		// so revert to using cmp.Equal to test their equality.
-		return nil, cmp.Equal(a, b, cmpopts.EquateEmpty()), nil
-	}
-
-	// Create a new root, since GetOrCreateNode can modify the root even during
-	// a failure.
-	rootA, err := newStruct(jsonSpec.root)
-	if err != nil {
-		return nil, false, fmt.Errorf("cannot create new root struct, got err: %v", err)
-	}
-
-	aInterface, _, err := ytypes.GetOrCreateNode(jsonSpec.schema, rootA, a.Path)
-	if err != nil {
-		return nil, false, fmt.Errorf("cannot retrieve struct for path %s, err: %v", a.Path, err)
-	}
-
-	aStruct, ok := aInterface.(ygot.GoStruct)
-	if !ok {
-		return nil, false, fmt.Errorf("path %s with IETF JSON does not correspond to a struct", a.Path)
-	}
-
-	rootB, err := newStruct(jsonSpec.root)
-	if err != nil {
-		return nil, false, fmt.Errorf("cannot create new root struct, got err: %v", err)
-	}
-
-	bInterface, _, err := ytypes.GetOrCreateNode(jsonSpec.schema, rootB, b.Path)
-	if err != nil {
-		return nil, false, fmt.Errorf("cannot retrieve struct for path %s, err: %v", b.Path, err)
-	}
-
-	bStruct, ok := bInterface.(ygot.GoStruct)
-	if !ok {
-		return nil, false, fmt.Errorf("path %s with IETF JSON does not correspond to a struct", b.Path)
-	}
-
-	if err := unmarshalStruct(a.GetVal(), aStruct, jsonSpec.unmarshal); err != nil {
-		return nil, false, fmt.Errorf("cannot unmarshal JSON for struct A, got err: %v", err)
-	}
-
-	if err := unmarshalStruct(b.GetVal(), bStruct, jsonSpec.unmarshal); err != nil {
-		return nil, false, fmt.Errorf("cannot unmarshal JSON for struct B, got err: %v", err)
-	}
-
-	diff, err := ygot.Diff(rootA, rootB)
-	if err != nil {
-		return nil, false, fmt.Errorf("cannot diff structs after unmarshalling, got err: %v", err)
-	}
-
-	if len(diff.Update) == 0 && len(diff.Delete) == 0 {
-		// No diffs after unmarshalling -- so these values are equal.
-		return nil, true, nil
-	}
-
-	return diff, false, nil
-}
-
-// newStruct returns a new copy of the supplied ygot.GoStruct.
-func newStruct(t ygot.GoStruct) (ygot.GoStruct, error) {
-	ni := reflect.New(reflect.TypeOf(t).Elem())
-	n, ok := ni.Interface().(ygot.GoStruct)
-	if !ok {
-		return nil, fmt.Errorf("cannot create new instance of %T", t)
-	}
-	return n, nil
-}
-
-// unmarshalStruct unmarshal the JSON IETF field of the supplied TypedValue into
-// the dst GoStruct using the supplied Unmarshal function.
-func unmarshalStruct(v *gnmipb.TypedValue, dst ygot.GoStruct, ufn ytypes.UnmarshalFunc) error {
-	jsonval, ok := v.GetValue().(*gnmipb.TypedValue_JsonIetfVal)
-	if !ok {
-		return fmt.Errorf("value did not contain IETF JSON")
-	}
-	if err := ufn(jsonval.JsonIetfVal, dst, &ytypes.IgnoreExtraFields{}); err != nil {
-		return fmt.Errorf("cannot unmarshal %v", err)
-	}
-	return nil
 }
