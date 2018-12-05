@@ -40,7 +40,7 @@ func TestSchema(t *testing.T) {
 		in: &Schema{
 			Root: &schemaRoot{},
 			SchemaTree: map[string]*yang.Entry{
-				"schemaRoot": &yang.Entry{Name: "test"},
+				"schemaRoot": {Name: "test"},
 			},
 			Unmarshal: func([]byte, ygot.GoStruct, ...UnmarshalOpt) error { return nil },
 		},
