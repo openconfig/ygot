@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package testcmp contains a functions that can be used alongside the Go cmp
+// or ygot testutil packages to provide comparisons between particular gNMI
+// or ygot data structures with more intelligence than the base cmp or proto.Equal
+// functions.
 package testcmp
 
 import (
