@@ -315,7 +315,7 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 					},
 				},
 			}},
-			wantErr: "TypedValue_IntVal cannot be unmarshalled into enumeration, value is &{42}",
+			wantErr: "failed to unmarshal &{42} into enumeration",
 		},
 	}
 
