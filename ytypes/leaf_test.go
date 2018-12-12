@@ -1685,7 +1685,7 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 					IntVal: 42,
 				},
 			},
-			wantErr: "TypedValue_IntVal cannot be unmarshalled into string, value is &{42}",
+			wantErr: "failed to unmarshal &{42} into string",
 		},
 		{
 			desc:     "success gNMI IntVal to Yint8",

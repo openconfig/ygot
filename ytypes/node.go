@@ -148,7 +148,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 					// nodes. Schema provided must be the schema of the leaf or leaf list node.
 					// root must be the reference of container leaf/leaf list belongs to.
 					if err := unmarshalGeneric(cschema, root, args.val, GNMIEncoding); err != nil {
-						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %T; %v", ft.Name, root, args.val, err)
+						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
 					}
 				}
 			}

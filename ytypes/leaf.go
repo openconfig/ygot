@@ -850,7 +850,7 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 	ykind := schema.Type.Kind
 
 	if !gNMIToYANGTypeMatches(ykind, tv) {
-		return nil, fmt.Errorf("%T cannot be unmarshalled into %v, value is %v", tv.GetValue(), yang.TypeKindToName[ykind], tv.GetValue())
+		return nil, fmt.Errorf("failed to unmarshal %v into %v", tv.GetValue(), yang.TypeKindToName[ykind])
 	}
 
 	switch ykind {
@@ -892,7 +892,7 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 			return float64(v.FloatVal), nil
 		}
 	}
-	return nil, fmt.Errorf("unexpected type %v for %T gNMI value", yang.TypeKindToName[ykind], tv.GetValue())
+	return nil, fmt.Errorf("%v type isn't expected for GNMIEncoding", yang.TypeKindToName[ykind])
 }
 
 // gNMIToYANGTypeMatches checks whether the provided yang.TypeKind can be set
