@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -134,8 +135,8 @@ func TestPrefixErrors(t *testing.T) {
 	}, {
 		name:   "prefixed",
 		inErrs: Errors{errors.New("one"), errors.New("two")},
-		inPfx:  "a ",
-		want:   Errors{errors.New("a one"), errors.New("a two")},
+		inPfx:  "a",
+		want:   Errors{errors.New("a: one"), errors.New("a: two")},
 	}}
 
 	for _, tt := range tests {
@@ -166,8 +167,25 @@ func TestUniqueErrors(t *testing.T) {
 		want: Errors{errors.New("one"), errors.New("two")},
 	}}
 
+	sortErrors := func(errs Errors) Errors {
+		m := map[string]error{}
+		keys := []string{}
+		for _, err := range errs {
+			k := fmt.Sprintf("%v\n", err)
+			m[k] = err
+			keys = append(keys, k)
+		}
+
+		sort.Strings(keys)
+		var n Errors
+		for _, k := range keys {
+			n = append(n, m[k])
+		}
+		return n
+	}
+
 	for _, tt := range tests {
-		if got := UniqueErrors(tt.in); !reflect.DeepEqual(got, tt.want) {
+		if got := UniqueErrors(tt.in); !reflect.DeepEqual(sortErrors(got), sortErrors(tt.want)) {
 			t.Errorf("%s: UniqueErrors(%v): did not get expected result, got: %v, want: %v", tt.name, tt.in, got, tt.want)
 		}
 	}
