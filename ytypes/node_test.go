@@ -1438,7 +1438,7 @@ func TestRetrieveContainerListError(t *testing.T) {
 		inRoot:           &UnresolvedLeafRef{},
 		inPath:           &gpb.Path{Elem: []*gpb.PathElem{{Name: "leaf"}}},
 		inTestFunc:       retrieveNodeContainer,
-		wantErrSubstring: "failed to resolve schema",
+		wantErrSubstring: "no match found",
 	}, {
 		desc:             "no list key",
 		inSchema:         &yang.Entry{Name: "foo"},

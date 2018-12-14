@@ -392,6 +392,7 @@ func resolveLeafRef(schema *yang.Entry) (*yang.Entry, error) {
 // It returns empty string and nil error if the field does not exist in the
 // parent struct.
 func schemaToStructFieldName(schema *yang.Entry, parent interface{}) (string, *yang.Entry, error) {
+
 	v := reflect.ValueOf(parent)
 	if util.IsNilOrInvalidValue(v) {
 		return "", nil, fmt.Errorf("parent field is nil in schemaToStructFieldName for node %s", schema.Name)
@@ -417,6 +418,7 @@ func schemaToStructFieldName(schema *yang.Entry, parent interface{}) (string, *y
 		if hasRelativePath(schema, p) {
 			return fieldName, schema, nil
 		}
+		fmt.Printf("looking for %s in %s\n", p, schema.Path())
 		if ns := findSchemaAtPath(schema, p); ns != nil {
 			return fieldName, ns, nil
 		}
