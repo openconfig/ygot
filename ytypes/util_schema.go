@@ -418,7 +418,6 @@ func schemaToStructFieldName(schema *yang.Entry, parent interface{}) (string, *y
 		if hasRelativePath(schema, p) {
 			return fieldName, schema, nil
 		}
-		fmt.Printf("looking for %s in %s\n", p, schema.Path())
 		if ns := findSchemaAtPath(schema, p); ns != nil {
 			return fieldName, ns, nil
 		}

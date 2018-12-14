@@ -15,7 +15,6 @@
 package ytypes
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/golang/protobuf/proto"
@@ -107,10 +106,6 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				return nil, status.Errorf(codes.Unknown, "failed to get child schema for %T, field %s: %s", root, ft.Name, err)
 			case cschema == nil:
 				return nil, status.Errorf(codes.InvalidArgument, "could not find schema for type %T, field %s", root, ft.Name)
-			default:
-				/*if cschema, err = resolveLeafRef(cschema); err != nil {
-					return nil, status.Errorf(codes.Unknown, "failed to resolve schema for %T, field %s: %s", root, ft.Name, err)
-				}*/
 			}
 		}
 
@@ -148,7 +143,6 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 					// With GNMIEncoding, unmarshalGeneric can only unmarshal leaf or leaf list
 					// nodes. Schema provided must be the schema of the leaf or leaf list node.
 					// root must be the reference of container leaf/leaf list belongs to.
-					fmt.Printf("calling unmarshalGeneric with schema %s and root %T %#v\n", cschema.Path(), root, root)
 					if err := unmarshalGeneric(cschema, root, args.val, GNMIEncoding); err != nil {
 						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
 					}

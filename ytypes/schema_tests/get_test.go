@@ -166,26 +166,3 @@ func TestGetNodeFull(t *testing.T) {
 		})
 	}
 }
-
-
-func mustSchema(f func() (ytypes.Schema, error)) ytypes.Schema {
-	s, err := f()
-	if err != nil {
-		panic(err)
-	}
-	return s
-}
-
-func TestSetNodeFull(t *testing.T) {
-	tests := []struct {
-		desc string
-		inSchema ytypes.Schema
-		inVal interface{}
-		inOpts []ytypes.SetNodeOpt
-		wantErrSubstring string
-	}{{
-		desc: "unmarshal leafref - mismatched name",
-		inSchema: mustSchema(oc.Schema),
-		inVal: &gpb.TypedValue
-	}}
-}
