@@ -16,6 +16,7 @@
 package validate
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -31,6 +32,7 @@ import (
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 
+	"github.com/openconfig/gnmi/errdiff"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	oc "github.com/openconfig/ygot/exampleoc"
 	uoc "github.com/openconfig/ygot/uexampleoc"
@@ -113,6 +115,9 @@ func TestValidateInterface(t *testing.T) {
 	if err := dev.Validate(); err == nil {
 		t.Errorf("bad key: got nil, want error")
 	} else {
+		if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
+			t.Errorf("did not get expected vlan-id error, %s", diff)
+		}
 		testErrLog(t, "bad key", err)
 	}
 
@@ -143,7 +148,19 @@ func TestValidateInterface(t *testing.T) {
 	if err := vlan0.Validate(); err == nil {
 		t.Errorf("bad vlan-id value: got nil, want error")
 	} else {
+		if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
+			t.Errorf("did not get expected vlan-id error, %s", diff)
+		}
 		testErrLog(t, "bad vlan-id value", err)
+	}
+
+	// Validate that we get two errors.
+	if errs := dev.Validate(); len(errs.(util.Errors)) != 2 {
+		var b bytes.Buffer
+		for _, err := range errs.(util.Errors) {
+			b.WriteString(fmt.Sprintf("	[%s]\n", err))
+		}
+		t.Errorf("did not get expected errors when validating device, got:\n %s (len: %d), want 5 errors", b.String(), len(errs.(util.Errors)))
 	}
 }
 

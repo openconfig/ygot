@@ -69,7 +69,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 			case cschema != nil:
 				// Regular named child.
 				if errs := Validate(cschema, fieldValue); errs != nil {
-					errors = util.AppendErrs(util.AppendErr(errors, fmt.Errorf("%s/", fieldName)), errs)
+					errors = util.AppendErrs(errors, util.PrefixErrors(errs, cschema.Path()))
 				}
 			case !structElems.Field(i).IsNil():
 				// Either an element in choice schema subtree, or bad field.
@@ -101,7 +101,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 		errors = util.AppendErr(errors, fmt.Errorf("fields %v are not found in the container schema %s", stringMapSetToSlice(extraFields), schema.Name))
 	}
 
-	return errors
+	return util.UniqueErrors(errors)
 }
 
 // unmarshalContainer unmarshals a JSON tree into a struct.
