@@ -34,10 +34,11 @@ func errToString(err error) string {
 }
 
 type ContainerStruct struct {
-	Leaf1Name   *string `path:"config/leaf1|leaf1"`
-	Leaf2Name   *string `path:"leaf2"`
-	BadLeafName *string `path:"bad-leaf"`
-	Annotation  *string `path:"@annotation" ygotAnnotation:"true"`
+	Leaf1Name   *string                     `path:"config/leaf1|leaf1"`
+	Leaf2Name   *string                     `path:"leaf2"`
+	BadLeafName *string                     `path:"bad-leaf"`
+	Annotation  *string                     `path:"@annotation" ygotAnnotation:"true"`
+	ChildList   map[string]*ContainerStruct `path:"child-list"`
 }
 
 func (c *ContainerStruct) IsYANGGoStruct() {}
@@ -124,6 +125,35 @@ func TestValidateContainer(t *testing.T) {
 				Name: "leaf2",
 				Type: &yang.YangType{Kind: yang.Ystring},
 			},
+			"child-list": {
+				Name:     "child-list",
+				Kind:     yang.DirectoryEntry,
+				Key:      "leaf2",
+				ListAttr: &yang.ListAttr{},
+				Dir: map[string]*yang.Entry{
+					"config": {
+						Dir: map[string]*yang.Entry{
+							"leaf1": {
+								Kind: yang.LeafEntry,
+								Name: "leaf1",
+								Type: &yang.YangType{Kind: yang.Ystring},
+							},
+						},
+					},
+					"leaf2": {
+						Kind: yang.LeafEntry,
+						Name: "leaf2",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+					"bad-leaf": {
+						Kind: yang.LeafEntry,
+						Name: "bad-leaf",
+						Type: &yang.YangType{Kind: yang.Ystring, Pattern: []string{"^a.*"}},
+					},
+					// Placeholder due to re-using the ContainerStruct type.
+					"child-list": {Name: "child-list"},
+				},
+			},
 		},
 	}
 
@@ -170,6 +200,24 @@ func TestValidateContainer(t *testing.T) {
 			schema:  containerSchema,
 			val:     &BadStruct{UnknownName: ygot.String("Unknown")},
 			wantErr: `fields [UnknownName] are not found in the container schema container-schema`,
+		},
+		{
+			desc:   "child list",
+			schema: containerSchema,
+			val: &ContainerStruct{
+				ChildList: map[string]*ContainerStruct{
+					"Child1": {
+						Leaf2Name:   ygot.String("Child1"),
+						BadLeafName: ygot.String("fish"),
+					},
+					"Child2": {
+						Leaf2Name:   ygot.String("Child2"),
+						BadLeafName: ygot.String("fish"),
+					},
+				},
+			},
+			// Should just get one error back with the error, not two.
+			wantErr: `/child-list: "fish" does not match regular expression pattern "^a.*$" for schema bad-leaf`,
 		},
 	}
 

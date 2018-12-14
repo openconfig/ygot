@@ -39,8 +39,9 @@ type EmptyContainerStruct struct {
 func (*EmptyContainerStruct) IsYANGGoStruct() {}
 
 type FakeRootStruct struct {
-	LeafOne *string `path:"leaf-one"`
-	LeafTwo *string `path:"leaf-two"`
+	LeafOne   *string `path:"leaf-one"`
+	LeafTwo   *string `path:"leaf-two"`
+	LeafThree *string `path:"leaf-three"`
 }
 
 func (*FakeRootStruct) IsYANGGoStruct() {}
@@ -142,14 +143,23 @@ func TestValidate(t *testing.T) {
 			},
 			Parent: fakerootSchema,
 		},
+		"leaf-three": {
+			Name: "leaf-three",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Kind:    yang.Ystring,
+				Pattern: []string{"^a.*"},
+			},
+		},
 	}
 
 	tests := []struct {
-		desc    string
-		val     interface{}
-		schema  *yang.Entry
-		opts    []ygot.ValidationOption
-		wantErr string
+		desc       string
+		val        interface{}
+		schema     *yang.Entry
+		opts       []ygot.ValidationOption
+		wantErr    string
+		wantErrLen int
 	}{
 		{
 			desc:   "leaf",
@@ -178,6 +188,16 @@ func TestValidate(t *testing.T) {
 				LeafTwo: ygot.String("two"),
 			},
 			opts: []ygot.ValidationOption{&LeafrefOptions{IgnoreMissingData: true}},
+		},
+		{
+			desc:   "two errors",
+			schema: fakerootSchema,
+			val: &FakeRootStruct{
+				LeafTwo:   ygot.String("two"),
+				LeafThree: ygot.String("fish"),
+			},
+			wantErr:    `pointed-to value with path ../leaf-one from field LeafTwo value two (string ptr) schema /device/leaf-two is empty set, /leaf-three: "fish" does not match regular expression pattern "^a.*$" for schema leaf-three`, // Check that there is an error
+			wantErrLen: 2,
 		},
 		{
 			desc:   "empty container",
@@ -218,6 +238,13 @@ func TestValidate(t *testing.T) {
 			if got, want := errs.String(), tt.wantErr; got != want {
 				t.Errorf("%s: Validate got error: %s, want error: %s", tt.desc, got, want)
 			}
+
+			if tt.wantErrLen != 0 {
+				if len(errs) != tt.wantErrLen {
+					t.Errorf("%s: Validate did not get expected number of errors, got: %d, want: %d", tt.desc, len(errs), tt.wantErrLen)
+				}
+			}
+
 			testErrLog(t, tt.desc, errs)
 		})
 	}
