@@ -130,6 +130,35 @@ func TestSet(t *testing.T) {
 			},
 			Data: ygot.String("XCVR-1-2"),
 		},
+	}, {
+		desc:     "bad path",
+		inSchema: mustSchema(uexampleoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "doesnt-exist",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_IntVal{42},
+		},
+		wantErrSubstring: "no match found",
+	}, {
+		desc:     "wrong type",
+		inSchema: mustSchema(uexampleoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "system",
+			}, {
+				Name: "config",
+			}, {
+				Name: "hostname",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_UintVal{42},
+		},
+		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantErrSubstring: "failed to unmarshal &{42} into string",
 	}}
 
 	for _, tt := range tests {
