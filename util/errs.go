@@ -14,6 +14,10 @@
 
 package util
 
+import (
+	"fmt"
+)
+
 // Errors is a slice of error.
 type Errors []error
 
@@ -77,4 +81,29 @@ func ToString(errors []error) string {
 		out += e.Error()
 	}
 	return out
+}
+
+// PrefixErrors prefixes each error within the supplied Errors slice with the
+// string pfx.
+func PrefixErrors(errs Errors, pfx string) Errors {
+	var nerr Errors
+	for _, err := range errs {
+		nerr = append(nerr, fmt.Errorf("%s: %s", pfx, err))
+	}
+	return nerr
+}
+
+// Unique errors returns the unique errors from the supplied Errors slice. Errors
+// are considered equal if they have equal stringified values.
+func UniqueErrors(errs Errors) Errors {
+	u := map[string]error{}
+	for _, err := range errs {
+		u[fmt.Sprintf("%v", err)] = err
+	}
+
+	var ne Errors
+	for _, err := range u {
+		ne = append(ne, err)
+	}
+	return ne
 }

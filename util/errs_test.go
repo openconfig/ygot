@@ -15,7 +15,9 @@
 package util
 
 import (
+	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -118,5 +120,55 @@ func TestAppendErrsInFunction(t *testing.T) {
 
 	if got, want := Errors(myErrorSliceFunc()).String(), wantStr; got != want {
 		t.Errorf("got: %s, want: %s", got, want)
+	}
+}
+
+func TestPrefixErrors(t *testing.T) {
+	tests := []struct {
+		name   string
+		inErrs Errors
+		inPfx  string
+		want   Errors
+	}{{
+		name: "empty",
+	}, {
+		name:   "prefixed",
+		inErrs: Errors{errors.New("one"), errors.New("two")},
+		inPfx:  "a ",
+		want:   Errors{errors.New("a one"), errors.New("a two")},
+	}}
+
+	for _, tt := range tests {
+		if got := PrefixErrors(tt.inErrs, tt.inPfx); !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("%s: PrefixErrors(%v, %s): did not get expected result, got: %v, want: %v", tt.name, tt.inErrs, tt.inPfx, got, tt.want)
+		}
+	}
+}
+
+func TestUniqueErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		in   Errors
+		want Errors
+	}{{
+		name: "empty",
+	}, {
+		name: "single error",
+		in:   Errors{errors.New("one")},
+		want: Errors{errors.New("one")},
+	}, {
+		name: "deduplicated",
+		in:   Errors{errors.New("one"), errors.New("one")},
+		want: Errors{errors.New("one")},
+	}, {
+		name: "not equal",
+		in:   Errors{errors.New("one"), errors.New("two")},
+		want: Errors{errors.New("one"), errors.New("two")},
+	}}
+
+	for _, tt := range tests {
+		if got := UniqueErrors(tt.in); !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("%s: UniqueErrors(%v): did not get expected result, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		}
 	}
 }
