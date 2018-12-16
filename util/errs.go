@@ -93,7 +93,7 @@ func PrefixErrors(errs Errors, pfx string) Errors {
 	return nerr
 }
 
-// Unique errors returns the unique errors from the supplied Errors slice. Errors
+// UniqueErrors returns the unique errors from the supplied Errors slice. Errors
 // are considered equal if they have equal stringified values.
 func UniqueErrors(errs Errors) Errors {
 	u := map[string]error{}
