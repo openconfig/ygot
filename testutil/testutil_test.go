@@ -459,7 +459,7 @@ func TestNotificationSetEqual(t *testing.T) {
 		inB: []*gnmipb.Notification{{
 			Timestamp: 84,
 		}},
-		inOpts: []ComparerOpt{&IgnoreTimestamp{}},
+		inOpts: []ComparerOpt{IgnoreTimestamp{}},
 		want:   true,
 	}, {
 		name: "integration example - same order",
