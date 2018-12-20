@@ -333,7 +333,7 @@ func TestIntegration(t *testing.T) {
 		inB: &gnmipb.Notification{
 			Timestamp: 84,
 		},
-		inOpts: []testutil.ComparerOpt{&testutil.IgnoreTimestamp{}},
+		inOpts: []testutil.ComparerOpt{testutil.IgnoreTimestamp{}},
 		want:   true,
 	}, {
 		desc: "Notification Set with OC comparer",

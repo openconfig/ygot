@@ -40,13 +40,13 @@ type ComparerOpt interface {
 type IgnoreTimestamp struct{}
 
 // IsComparerOpt marks IgnoreTimestamp as a ComparerOpt.
-func (*IgnoreTimestamp) IsComparerOpt() {}
+func (IgnoreTimestamp) IsComparerOpt() {}
 
 // hasIgnoreTimestamp determines whether the opt slice contains at least one
 // instance of the IgnoreTimestamp option.
 func hasIgnoreTimestamp(opts []ComparerOpt) bool {
 	for _, o := range opts {
-		if _, ok := o.(*IgnoreTimestamp); ok {
+		if _, ok := o.(IgnoreTimestamp); ok {
 			return true
 		}
 	}
