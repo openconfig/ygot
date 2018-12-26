@@ -134,6 +134,15 @@ func TestGetNodeFull(t *testing.T) {
 				Description: ygot.String("eth1"),
 			},
 		}},
+	}, {
+		name: "nil interfaces",
+		inRoot: func() *oc.Device {
+			d := &oc.Device{}
+			return d
+		}(),
+		inSchema:         rootSchema,
+		inPath:           mustPath("/interfaces/interface[name=eth0]"),
+		wantErrSubstring: "NotFound",
 	}}
 
 	ignoreSchema := cmpopts.IgnoreFields(ytypes.TreeNode{}, "Schema")

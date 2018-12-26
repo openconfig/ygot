@@ -761,7 +761,11 @@ func treeNodesEqual(got, want []*TreeNode) error {
 			}
 		}
 		if !match {
-			return fmt.Errorf("no match for %#v (path: %s) in %v", w, proto.MarshalTextString(w.Path), got)
+			paths := []string{}
+			for _, g := range got {
+				paths = append(paths, fmt.Sprintf("< %s | %#v >", proto.CompactTextString(g.Path), g))
+			}
+			return fmt.Errorf("no match for %#v (path: %s) in %v", w, proto.CompactTextString(w.Path), paths)
 		}
 	}
 	return nil
@@ -965,6 +969,26 @@ func TestGetNode(t *testing.T) {
 			Data:   ygot.String("foo"),
 			Schema: leafSchema,
 			Path:   mustPath("/leaf"),
+		}},
+	}, {
+		desc:     "simple get leaf with no results",
+		inSchema: rootSchema,
+		inData:   &rootStruct{},
+		inPath:   mustPath("/leaf"),
+		wantTreeNodes: []*TreeNode{{
+			Schema: leafSchema,
+			Data:   (*string)(nil),
+			Path:   mustPath("/leaf"),
+		}},
+	}, {
+		desc:     "simple get container with no results",
+		inSchema: rootSchema,
+		inData:   &rootStruct{},
+		inPath:   mustPath("/container"),
+		wantTreeNodes: []*TreeNode{{
+			Data:   (*childContainer)(nil),
+			Schema: childContainerSchema,
+			Path:   mustPath("/container"),
 		}},
 	}, {
 		desc:     "simple get leaf list",
