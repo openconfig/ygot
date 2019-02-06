@@ -3,67 +3,209 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:107b233e45174dbab5b1324201d092ea9448e58243ab9f039e4c0f332e121e3a"
   name = "github.com/golang/glog"
   packages = ["."]
+  pruneopts = ""
   revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
 
 [[projects]]
-  branch = "master"
+  digest = "1:3dd078fda7500c341bc26cfbc6c6a34614f295a2457149fc1045cab767cbcf18"
   name = "github.com/golang/protobuf"
-  packages = ["proto","protoc-gen-go/descriptor","ptypes/any"]
-  revision = "ab9f9a6dab164b7d1246e0e688b0ab7b94d8553e"
+  packages = [
+    "proto",
+    "protoc-gen-go/descriptor",
+    "protoc-gen-go/generator",
+    "protoc-gen-go/generator/internal/remap",
+    "protoc-gen-go/plugin",
+    "ptypes",
+    "ptypes/any",
+    "ptypes/duration",
+    "ptypes/timestamp",
+  ]
+  pruneopts = ""
+  revision = "aa810b61a9c79d51363740d207bb46cf8e620ed5"
+  version = "v1.2.0"
+
+[[projects]]
+  digest = "1:f9f45f75f332e03fc7e9fe9188ea4e1ce4d14779ef34fa1b023da67518e36327"
+  name = "github.com/google/go-cmp"
+  packages = [
+    "cmp",
+    "cmp/cmpopts",
+    "cmp/internal/diff",
+    "cmp/internal/function",
+    "cmp/internal/value",
+  ]
+  pruneopts = ""
+  revision = "3af367b6b30c263d47e8895973edcca9a49cf029"
+  version = "v0.2.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:ee97ec8a00b2424570c1ce53d7b410e96fbd4c241b29df134276ff6aa3750335"
   name = "github.com/kylelemons/godebug"
-  packages = ["diff","pretty"]
+  packages = [
+    "diff",
+    "pretty",
+  ]
+  pruneopts = ""
   revision = "d65d576e9348f5982d7f6d83682b694e731a45c6"
 
 [[projects]]
   branch = "master"
+  digest = "1:06ee57a6252cc9c3a1650be9888e8df796d86947ec75bff7e2c4ac5689baa086"
   name = "github.com/openconfig/gnmi"
-  packages = ["ctree","errlist","proto/gnmi","value"]
-  revision = "d1e6f297652918f9b65c77f36bbd644b21a9fc0b"
+  packages = [
+    "ctree",
+    "errdiff",
+    "errlist",
+    "proto/gnmi",
+    "proto/gnmi_ext",
+    "value",
+  ]
+  pruneopts = ""
+  revision = "33a1865c302903e7a2e06f35960e6bc31e84b9f6"
 
 [[projects]]
   branch = "master"
+  digest = "1:27036abeee7f23440e1468d18e53366ff2f9a9358ad2f6f5d5955326ed1622ca"
   name = "github.com/openconfig/goyang"
-  packages = ["pkg/indent","pkg/yang"]
-  revision = "c3ce856084b58eb1aedacb4086e748732485c832"
+  packages = [
+    "pkg/indent",
+    "pkg/yang",
+  ]
+  pruneopts = ""
+  revision = "824134edf40c0206a9a4cd0fec2e40b8c0ed9b41"
 
 [[projects]]
+  digest = "1:256484dbbcd271f9ecebc6795b2df8cad4c458dd0f5fd82a8c2fa0c29f233411"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
+  pruneopts = ""
   revision = "792786c7400a136282c1664665ae0a8db921c6c2"
   version = "v1.0.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:1d52dac9bdc355f83ad9916bc657baa7d8735a108ae749da8e8d3513a1b15f28"
   name = "golang.org/x/net"
-  packages = ["context","http2","http2/hpack","idna","internal/timeseries","lex/httplex","trace"]
-  revision = "57efc9c3d9f91fb3277f8da1cff370539c4d3dc5"
+  packages = [
+    "context",
+    "http/httpguts",
+    "http2",
+    "http2/hpack",
+    "idna",
+    "internal/timeseries",
+    "trace",
+  ]
+  pruneopts = ""
+  revision = "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
 
 [[projects]]
   branch = "master"
+  digest = "1:489610147902fe0c7229218c749bb25a8a9ecce0d726ae4f8662517319f32554"
+  name = "golang.org/x/sys"
+  packages = ["unix"]
+  pruneopts = ""
+  revision = "41f3e6584952bb034a481797859f6ab34b6803bd"
+
+[[projects]]
+  digest = "1:5acd3512b047305d49e8763eef7ba423901e85d5dd2fd1e71778a0ea8de10bd4"
   name = "golang.org/x/text"
-  packages = ["internal/gen","internal/triegen","internal/ucd","secure/bidirule","transform","unicode/bidi","unicode/cldr","unicode/norm","unicode/rangetable"]
-  revision = "ac87088df8ef557f1e32cd00ed0b6fbc3f7ddafb"
+  packages = [
+    "collate",
+    "collate/build",
+    "internal/colltab",
+    "internal/gen",
+    "internal/tag",
+    "internal/triegen",
+    "internal/ucd",
+    "language",
+    "secure/bidirule",
+    "transform",
+    "unicode/bidi",
+    "unicode/cldr",
+    "unicode/norm",
+    "unicode/rangetable",
+  ]
+  pruneopts = ""
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:91f75dc679abcf04b29b064a5b9c40a0b0561c86c322010fbf6fc08040cc48bc"
   name = "google.golang.org/genproto"
-  packages = ["googleapis/rpc/status"]
-  revision = "ee236bd376b077c7a89f260c026c4735b195e459"
+  packages = [
+    "googleapis/rpc/code",
+    "googleapis/rpc/status",
+  ]
+  pruneopts = ""
+  revision = "4b09977fb92221987e99d190c8f88f2c92727a29"
 
 [[projects]]
+  digest = "1:39d4d828b87d58d114fdc211f0638f32dcae84019fe17d6b48f9b697f4b60213"
   name = "google.golang.org/grpc"
-  packages = [".","codes","connectivity","credentials","grpclb/grpc_lb_v1","grpclog","internal","keepalive","metadata","naming","peer","stats","status","tap","transport"]
-  revision = "b3ddf786825de56a4178401b7e174ee332173b66"
-  version = "v1.5.2"
+  packages = [
+    ".",
+    "balancer",
+    "balancer/base",
+    "balancer/roundrobin",
+    "binarylog/grpc_binarylog_v1",
+    "codes",
+    "connectivity",
+    "credentials",
+    "credentials/internal",
+    "encoding",
+    "encoding/proto",
+    "grpclog",
+    "internal",
+    "internal/backoff",
+    "internal/binarylog",
+    "internal/channelz",
+    "internal/envconfig",
+    "internal/grpcrand",
+    "internal/grpcsync",
+    "internal/syscall",
+    "internal/transport",
+    "keepalive",
+    "metadata",
+    "naming",
+    "peer",
+    "resolver",
+    "resolver/dns",
+    "resolver/passthrough",
+    "stats",
+    "status",
+    "tap",
+  ]
+  pruneopts = ""
+  revision = "a02b0774206b209466313a0b525d2c738fe407eb"
+  version = "v1.18.0"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "92f7d7c41a7fb2906886a4ea1cae5a4400acba6b7a8724bfc0489211a7f09a2c"
+  input-imports = [
+    "github.com/golang/glog",
+    "github.com/golang/protobuf/proto",
+    "github.com/golang/protobuf/protoc-gen-go/descriptor",
+    "github.com/golang/protobuf/protoc-gen-go/generator",
+    "github.com/google/go-cmp/cmp",
+    "github.com/google/go-cmp/cmp/cmpopts",
+    "github.com/kylelemons/godebug/pretty",
+    "github.com/openconfig/gnmi/ctree",
+    "github.com/openconfig/gnmi/errdiff",
+    "github.com/openconfig/gnmi/errlist",
+    "github.com/openconfig/gnmi/proto/gnmi",
+    "github.com/openconfig/gnmi/value",
+    "github.com/openconfig/goyang/pkg/yang",
+    "github.com/pmezard/go-difflib/difflib",
+    "google.golang.org/genproto/googleapis/rpc/code",
+    "google.golang.org/genproto/googleapis/rpc/status",
+    "google.golang.org/grpc/codes",
+    "google.golang.org/grpc/status",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
