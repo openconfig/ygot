@@ -101,6 +101,9 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			"forty-two": &ListElemStruct1{
 				Key1:  ygot.String("forty-two"),
 				Outer: &OuterContainerType1{Inner: &InnerContainerType1{LeafName: ygot.Int32(1234)}},
+			}, "forty-three": &ListElemStruct1{
+				Key1:  ygot.String("forty-three"),
+				Outer: &OuterContainerType1{Inner: &InnerContainerType1{LeafName: ygot.Int32(1234)}},
 			},
 		},
 	}
@@ -137,7 +140,7 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 					},
 				},
 			},
-			want:       []interface{}{c1.StructKeyList["forty-two"].Outer.Inner.LeafName},
+			want:       []interface{}{c1.StructKeyList["forty-two"].Outer.Inner.LeafName, c1.StructKeyList["forty-two"].Outer.Inner.LeafName},
 			wantStatus: nil,
 		},
 		{
@@ -232,13 +235,15 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 	for _, tt := range tests {
 		var val []interface{}
 		var status []spb.Status
-		GetNodes(containerWithLeafListSchema, tt.rootStruct, tt.path, func(g interface{}) {
+		fmt.Println("query")
+		GetNodes(containerWithLeafListSchema, tt.rootStruct, tt.path, func(p *gpb.Path, g interface{}) {
 			switch v := g.(type) {
 			case spb.Status:
 				// fmt.Println("got status", v)
 				status = append(status, v)
 			case interface{}:
 				// fmt.Println("got value", v)
+				fmt.Println(v)
 				val = append(val, v)
 			default:
 				fmt.Println("got unknown element", g)
@@ -312,6 +317,11 @@ func TestGetNodesStructKeyedList(t *testing.T) {
 				Key2:    ygot.Int32(42),
 				EnumKey: 43,
 				Outer:   &OuterContainerType2{Inner: &InnerContainerType2{LeafName: ygot.Int32(1234)}},
+			}, {"forty-two", 43, 43}: &ListElemStruct2{
+				Key1:    ygot.String("forty-two"),
+				Key2:    ygot.Int32(43),
+				EnumKey: 43,
+				Outer:   &OuterContainerType2{Inner: &InnerContainerType2{LeafName: ygot.Int32(1234)}},
 			},
 		},
 	}
@@ -382,7 +392,7 @@ func TestGetNodesStructKeyedList(t *testing.T) {
 						Name: "struct-key-list",
 						Key: map[string]string{
 							"key1": "forty-two",
-							"key2": "42",
+							"key2": "*",
 							"key3": "*",
 						},
 					},
@@ -402,13 +412,14 @@ func TestGetNodesStructKeyedList(t *testing.T) {
 	for _, tt := range tests {
 		var val []interface{}
 		var status []spb.Status
-		GetNodes(containerWithLeafListSchema, tt.rootStruct, tt.path, func(g interface{}) {
+		fmt.Println("Query")
+		GetNodes(containerWithLeafListSchema, tt.rootStruct, tt.path, func(p *gpb.Path, g interface{}) {
 			switch v := g.(type) {
 			case spb.Status:
 				// fmt.Println("got status", v)
 				status = append(status, v)
 			case interface{}:
-				// fmt.Println("got value", v)
+				fmt.Println("got value", v)
 				val = append(val, v)
 			default:
 				fmt.Println("got unknown element", g)

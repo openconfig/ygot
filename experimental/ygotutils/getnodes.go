@@ -19,29 +19,31 @@ import (
 // be absolute.
 // It returns an error if the path is not found in the tree, or an element along
 // the path is nil.
-func GetNodes(schema *yang.Entry, rootStruct ygot.GoStruct, path *gpb.Path, callback func(interface{})) {
+func GetNodes(schema *yang.Entry, rootStruct ygot.GoStruct, path *gpb.Path, callback func(*gpb.Path, interface{})) {
 	// node, _, status :=
-	getNodesInternal(schema, rootStruct, path, callback)
+	calculated := &gpb.Path{Target: path.Target}
+	getNodesInternal(schema, rootStruct, path, calculated, callback)
 	//return node, status
 }
 
 // getNodesInternal is the internal implementation of GetNode. In
 // addition to GetNode functionality, it can accept non GoStruct types e.g.
 // map for a keyed list, or a leaf.
-func getNodesInternal(schema *yang.Entry, rootStruct interface{}, path *gpb.Path, callback func(interface{})) {
+func getNodesInternal(schema *yang.Entry, rootStruct interface{}, path *gpb.Path, calculated *gpb.Path, callback func(*gpb.Path, interface{})) {
 	if len(path.GetElem()) == 0 {
 		zeroIndent()
-		callback(rootStruct)
+		fmt.Println("out:", calculated.Elem)
+		callback(calculated, rootStruct)
 		return
 		//return rootStruct, schema, statusOK
 	}
 	if isNil(rootStruct) {
-		callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("nil data element type %T, remaining path %v", rootStruct, path)))
+		callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("nil data element type %T, remaining path %v", rootStruct, path)))
 		return
 		// return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("nil data element type %T, remaining path %v", rootStruct, path))
 	}
 	if schema == nil {
-		callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("nil schema for data element type %T, remaining path %v", rootStruct, path)))
+		callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("nil schema for data element type %T, remaining path %v", rootStruct, path)))
 		return
 		// return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("nil schema for data element type %T, remaining path %v", rootStruct, path))
 	}
@@ -58,15 +60,15 @@ func getNodesInternal(schema *yang.Entry, rootStruct interface{}, path *gpb.Path
 	case schema.IsContainer() || (schema.IsList() && IsTypeStructPtr(reflect.TypeOf(rootStruct))):
 		// Either a container or list schema with struct data node (which could
 		// be an element of a list).
-		getNodesContainer(schema, rootStruct, path, callback)
+		getNodesContainer(schema, rootStruct, path, calculated, callback)
 		return
 	case schema.IsList():
 		// A list schema with the list data node. Must find the element selected
 		// by the path.
-		getNodesList(schema, rootStruct, path, callback)
+		getNodesList(schema, rootStruct, path, calculated, callback)
 		return
 	}
-	callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("bad schema type for %s, struct type %T", schema.Name, rootStruct)))
+	callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("bad schema type for %s, struct type %T", schema.Name, rootStruct)))
 	//return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("bad schema type for %s, struct type %T", schema.Name, rootStruct))
 }
 
@@ -74,12 +76,12 @@ func getNodesInternal(schema *yang.Entry, rootStruct interface{}, path *gpb.Path
 // struct ptr type and matches each field against the first path element in
 // path. If a field matches, it recurses into that field with the remaining
 // path.
-func getNodesContainer(schema *yang.Entry, rootStruct interface{}, path *gpb.Path, callback func(interface{})) {
+func getNodesContainer(schema *yang.Entry, rootStruct interface{}, path *gpb.Path, calculated *gpb.Path, callback func(*gpb.Path, interface{})) {
 	dbgPrintln("getNodeContainer: schema %s, next path %v, value %v", schema.Name, path.GetElem()[0], valueStr(rootStruct))
 
 	rv := reflect.ValueOf(rootStruct)
 	if !IsValueStructPtr(rv) {
-		callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeContainer: rootStruct has type %T, expect struct ptr", rootStruct)))
+		callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeContainer: rootStruct has type %T, expect struct ptr", rootStruct)))
 		return
 		//	return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeContainer: rootStruct has type %T, expect struct ptr", rootStruct))
 	}
@@ -97,18 +99,18 @@ func getNodesContainer(schema *yang.Entry, rootStruct interface{}, path *gpb.Pat
 
 		cschema, err := childSchema(schema, ft)
 		if err != nil {
-			callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("error for schema for type %T, field name %s: %s", rootStruct, ft.Name, err)))
+			callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("error for schema for type %T, field name %s: %s", rootStruct, ft.Name, err)))
 			return
 			// return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("error for schema for type %T, field name %s: %s", rootStruct, ft.Name, err))
 		}
 		if cschema == nil {
-			callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("could not find schema for type %T, field name %s", rootStruct, ft.Name)))
+			callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("could not find schema for type %T, field name %s", rootStruct, ft.Name)))
 			return
 			// return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("could not find schema for type %T, field name %s", rootStruct, ft.Name))
 		}
 		cschema, err = resolveLeafRef(cschema)
 		if err != nil {
-			callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("error for schema for type %T, field name %s: %s", rootStruct, ft.Name, err)))
+			callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("error for schema for type %T, field name %s: %s", rootStruct, ft.Name, err)))
 			return
 			//return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("error for schema for type %T, field name %s: %s", rootStruct, ft.Name, err))
 		}
@@ -116,7 +118,7 @@ func getNodesContainer(schema *yang.Entry, rootStruct interface{}, path *gpb.Pat
 		dbgPrintln("check field name %s", cschema.Name)
 		ps, err := schemaPaths(ft)
 		if err != nil {
-			callback(errToStatus(err))
+			callback(nil, errToStatus(err))
 			return
 			// return nil, nil, errToStatus(err)
 		}
@@ -128,35 +130,40 @@ func getNodesContainer(schema *yang.Entry, rootStruct interface{}, path *gpb.Pat
 				if IsTypeMap(ft.Type) {
 					to--
 				}
-				getNodesInternal(cschema, f.Interface(), trimGNMIPathPrefix(path, p[0:to]), callback)
+				pathElem := &gpb.PathElem{Name: path.Elem[0].Name}
+				newcalculated := &gpb.Path{Target: calculated.Target}
+				newcalculated.Elem = append(newcalculated.Elem, calculated.Elem[:len(calculated.Elem)]...)
+				newcalculated.Elem = append(newcalculated.Elem, pathElem)
+
+				getNodesInternal(cschema, f.Interface(), trimGNMIPathPrefix(path, p[0:to]), newcalculated, callback)
 				return
 			}
 		}
 	}
-	callback(toStatus(scpb.Code_NOT_FOUND, fmt.Sprintf("could not find path in tree beyond schema node %s, (type %T), remaining path %v", schema.Name, rootStruct, path)))
+	callback(nil, toStatus(scpb.Code_NOT_FOUND, fmt.Sprintf("could not find path in tree beyond schema node %s, (type %T), remaining path %v", schema.Name, rootStruct, path)))
 	// return nil, nil, toStatus(scpb.Code_NOT_FOUND, fmt.Sprintf("could not find path in tree beyond schema node %s, (type %T), remaining path %v", schema.Name, rootStruct, path))
 }
 
 // getNodeList traverses the list rootStruct, which must be a map of struct
 // type and matches each map key against the first path element in path. If the
 // key matches completely, it recurses into that field with the remaining path.
-func getNodesList(schema *yang.Entry, rootStruct interface{}, path *gpb.Path, callback func(interface{})) {
+func getNodesList(schema *yang.Entry, rootStruct interface{}, path *gpb.Path, calculated *gpb.Path, callback func(*gpb.Path, interface{})) {
 	dbgPrintln("getNodeList: schema %s, next path %v, value %v", schema.Name, path.GetElem()[0], valueStr(rootStruct))
 
 	rv := reflect.ValueOf(rootStruct)
 	if schema.Key == "" {
-		callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeList: path %v cannot traverse unkeyed list type %T", path, rootStruct)))
+		callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeList: path %v cannot traverse unkeyed list type %T", path, rootStruct)))
 		return
 		// return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeList: path %v cannot traverse unkeyed list type %T", path, rootStruct))
 	}
 	if path.GetElem()[0].GetKey() == nil {
-		callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeList: path %v at %T points to list but does not specify a key element", path, rootStruct)))
+		callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeList: path %v at %T points to list but does not specify a key element", path, rootStruct)))
 		return
 		// return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeList: path %v at %T points to list but does not specify a key element", path, rootStruct))
 	}
 	if !IsValueMap(rv) {
 		// Only keyed lists can be traversed with a path.
-		callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeList: rootStruct has type %T, expect map", rootStruct)))
+		callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeList: rootStruct has type %T, expect map", rootStruct)))
 		return
 		// return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("getNodeList: rootStruct has type %T, expect map", rootStruct))
 	}
@@ -168,11 +175,12 @@ func getNodesList(schema *yang.Entry, rootStruct interface{}, path *gpb.Path, ca
 		ev := rv.MapIndex(k)
 		dbgPrintln("checking key %v, value %v", k.Interface(), valueStr(ev.Interface()))
 		match := true
+		keys := map[string]string{}
 		if !IsValueStruct(k) {
 			// Compare just the single value of the key represented as a string.
 			pathKey, ok := path.GetElem()[0].GetKey()[schema.Key]
 			if !ok {
-				callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("gnmi path %v does not contain a map entry for the schema key field name %s, parent type %T",
+				callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("gnmi path %v does not contain a map entry for the schema key field name %s, parent type %T",
 					path, schema.Key, rootStruct)))
 				return
 				// return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("gnmi path %v does not contain a map entry for the schema key field name %s, parent type %T",
@@ -180,19 +188,20 @@ func getNodesList(schema *yang.Entry, rootStruct interface{}, path *gpb.Path, ca
 			}
 			kv, err := getKeyValue(ev.Elem(), schema.Key)
 			if err != nil {
-				callback(errToStatus(err))
+				callback(nil, errToStatus(err))
 				return
 				// return nil, nil, errToStatus(err)
 			}
 			dbgPrintln("check simple key value %s", pathKey)
 			match = (pathKey == "*") || (fmt.Sprint(kv) == pathKey)
+			keys[schema.Key] = fmt.Sprint(kv)
 		} else {
 			// Must compare all the key fields.
 			for i := 0; i < k.NumField(); i++ {
 				kfn := listKeyType.Field(i).Name
 				fv := ev.Elem().FieldByName(kfn)
 				if !fv.IsValid() {
-					callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("element struct type %s does not contain key field %s", k.Type(), kfn)))
+					callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("element struct type %s does not contain key field %s", k.Type(), kfn)))
 					return
 					// return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("element struct type %s does not contain key field %s", k.Type(), kfn))
 				}
@@ -203,19 +212,20 @@ func getNodesList(schema *yang.Entry, rootStruct interface{}, path *gpb.Path, ca
 				}
 				kf, ok := listElementType.FieldByName(kfn)
 				if !ok {
-					callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("element struct type %s does not contain key field %s", k.Type(), kfn)))
+					callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("element struct type %s does not contain key field %s", k.Type(), kfn)))
 					return
 					// return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("element struct type %s does not contain key field %s", k.Type(), kfn))
 				}
 				pathKey, ok := path.GetElem()[0].GetKey()[pathStructTagKey(kf)]
 				if !ok {
-					callback(toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("gnmi path %v does not contain a map entry for the schema key field name %s, parent type %T",
+					callback(nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("gnmi path %v does not contain a map entry for the schema key field name %s, parent type %T",
 						path, schema.Key, rootStruct)))
 					return
 					// return nil, nil, toStatus(scpb.Code_INVALID_ARGUMENT, fmt.Sprintf("gnmi path %v does not contain a map entry for the schema key field name %s, parent type %T",
 					// 	path, schema.Key, rootStruct))
 				}
-				if pathKey != fmt.Sprint(k.Field(i).Interface()) {
+				keys[kfn] = fmt.Sprint(k.Field(i).Interface())
+				if pathKey != "*" && pathKey != fmt.Sprint(k.Field(i).Interface()) {
 					match = false
 					break
 				}
@@ -227,7 +237,13 @@ func getNodesList(schema *yang.Entry, rootStruct interface{}, path *gpb.Path, ca
 			// Pass in the list schema, but the actual selected element
 			// rather than the whole list.
 			dbgPrintln("whole key matches")
-			getNodesInternal(schema, ev.Interface(), popGNMIPath(path), callback)
+			pathElem := &gpb.PathElem{Name: path.Elem[0].Name}
+			pathElem.Key = keys
+			newcalculated := &gpb.Path{Target: calculated.Target}
+			newcalculated.Elem = append(newcalculated.Elem, calculated.Elem[:len(calculated.Elem)-1]...)
+			newcalculated.Elem = append(newcalculated.Elem, pathElem)
+
+			getNodesInternal(schema, ev.Interface(), popGNMIPath(path), newcalculated, callback)
 			//return
 		}
 	}
