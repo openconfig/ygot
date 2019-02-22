@@ -108,6 +108,7 @@ func main() {
 			AnnotateSchemaPaths: *annotateSchemaPaths,
 			AnnotateEnumNames:   *annotateEnumNames,
 			NestedMessages:      !*packageHierarchy,
+			EnumPackageName:     *enumPackageName,
 		},
 		ExcludeState: *excludeState,
 	})
