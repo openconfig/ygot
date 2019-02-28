@@ -1057,6 +1057,7 @@ func TestGetNode(t *testing.T) {
 			},
 		},
 		inPath: mustPath("/list[key=*]"),
+		inArgs: []GetNodeOpt{&GetHandleWildcards{}},
 		wantTreeNodes: []*TreeNode{{
 			Data: &listEntry{
 				Key: ygot.String("one"),
@@ -1124,6 +1125,7 @@ func TestGetNode(t *testing.T) {
 			},
 		},
 		inPath: mustPath("/multilist[keyone=1][keytwo=2]"),
+		inArgs: []GetNodeOpt{&GetHandleWildcards{}},
 		wantTreeNodes: []*TreeNode{{
 			Data:   &multiListEntry{Keyone: ygot.Uint32(1), Keytwo: ygot.Uint32(2)},
 			Schema: multiKeyListSchema,
@@ -1139,6 +1141,7 @@ func TestGetNode(t *testing.T) {
 			},
 		},
 		inPath: mustPath("/multilist[keyone=*][keytwo=*]"),
+		inArgs: []GetNodeOpt{&GetHandleWildcards{}},
 		wantTreeNodes: []*TreeNode{{
 			Data:   &multiListEntry{Keyone: ygot.Uint32(1), Keytwo: ygot.Uint32(2)},
 			Schema: multiKeyListSchema,
@@ -1158,6 +1161,7 @@ func TestGetNode(t *testing.T) {
 			},
 		},
 		inPath: mustPath("/multilist[keyone=*][keytwo=2]"),
+		inArgs: []GetNodeOpt{&GetHandleWildcards{}},
 		wantTreeNodes: []*TreeNode{{
 			Data:   &multiListEntry{Keyone: ygot.Uint32(1), Keytwo: ygot.Uint32(2)},
 			Schema: multiKeyListSchema,
@@ -1173,6 +1177,7 @@ func TestGetNode(t *testing.T) {
 			},
 		},
 		inPath: mustPath("/multilist[keyone=*][keytwo=2]"),
+		inArgs: []GetNodeOpt{&GetHandleWildcards{}},
 		wantTreeNodes: []*TreeNode{{
 			Data:   &multiListEntry{Keyone: ygot.Uint32(1), Keytwo: ygot.Uint32(2)},
 			Schema: multiKeyListSchema,

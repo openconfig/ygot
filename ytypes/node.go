@@ -33,6 +33,8 @@ type retrieveNodeArgs struct {
 	// If delete is set to true, retrieve node deletes the node at the
 	// to supplied path.
 	delete bool
+	// If set to true, retrieveNode handles wildcards. e.g. key=*
+	handleWildcards bool
 	// If partialKeyMatch is set to true, retrieveNode tolerates missing
 	// key(s) in the given path. If no key is provided, all the nodes
 	// in the keyed list are treated as match. If some of the keys are
@@ -218,7 +220,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "failed to convert %v to a string, path %v: %v", kv, path, err)
 			}
-			if pathKey == "*" || keyAsString == pathKey {
+			if (args.handleWildcards && pathKey == "*") || keyAsString == pathKey {
 				pe := path.GetElem()[0]
 				pathElem := &gpb.PathElem{
 					Key:  map[string]string{},
@@ -271,7 +273,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			if err != nil {
 				return nil, status.Errorf(codes.Unknown, "failed to convert the field value to string, field %v: %v", fieldName, err)
 			}
-			if pathKey != "*" && pathKey != keyAsString {
+			if !(args.handleWildcards && pathKey == "*") && pathKey != keyAsString {
 				match = false
 				break
 			}
@@ -342,6 +344,7 @@ func GetNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetNo
 		// We never want to modify the input root, so we specify modifyRoot.
 		modifyRoot:      false,
 		partialKeyMatch: hasPartialKeyMatch(opts),
+		handleWildcards: hasHandleWildcards(opts),
 	})
 }
 
@@ -364,6 +367,23 @@ func (*GetPartialKeyMatch) IsGetNodeOpt() {}
 func hasPartialKeyMatch(opts []GetNodeOpt) bool {
 	for _, o := range opts {
 		if _, ok := o.(*GetPartialKeyMatch); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// GetHandleWildcards specifies that a match within GetNode should be allowed to use wildekarts.
+type GetHandleWildcards struct{}
+
+// IsGetNodeOpt implements the GetNodeOpt interface.
+func (*GetHandleWildcards) IsGetNodeOpt() {}
+
+// hasHandleWildcards determines whether there is an instance of GetHandleWildcards within the supplied
+// GetNodeOpt slice.
+func hasHandleWildcards(opts []GetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*GetHandleWildcards); ok {
 			return true
 		}
 	}
