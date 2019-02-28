@@ -218,8 +218,22 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			if err != nil {
 				return nil, status.Errorf(codes.InvalidArgument, "failed to convert %v to a string, path %v: %v", kv, path, err)
 			}
-			if keyAsString == pathKey {
-				return retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
+			if pathKey == "*" || keyAsString == pathKey {
+				pe := path.GetElem()[0]
+				pathElem := &gpb.PathElem{
+					Key:  map[string]string{},
+					Name: pe.Name,
+				}
+				for k, v := range pe.Key {
+					pathElem.GetKey()[k] = v
+				}
+				pathElem.GetKey()[schema.Key] = keyAsString
+				nodes, err := retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, pathElem), args)
+				if err != nil {
+					return nil, err
+				}
+
+				matches = append(matches, nodes...)
 			}
 			continue
 		}
@@ -257,7 +271,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			if err != nil {
 				return nil, status.Errorf(codes.Unknown, "failed to convert the field value to string, field %v: %v", fieldName, err)
 			}
-			if pathKey != keyAsString {
+			if pathKey != "*" && pathKey != keyAsString {
 				match = false
 				break
 			}
