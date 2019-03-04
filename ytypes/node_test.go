@@ -1048,6 +1048,29 @@ func TestGetNode(t *testing.T) {
 			Path:   mustPath("/list[key=one]"),
 		}},
 	}, {
+		desc:     "incorrectly spelled key name, * match",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			List: map[string]*listEntry{
+				"one": {Key: ygot.String("one")},
+				"two": {Key: ygot.String("two")},
+			},
+		},
+		inPath:           mustPath("/list[keyfalse=*]"),
+		wantErrSubstring: "schema key key is not found in gNMI path",
+	}, {
+		desc:     "incorrectly spelled key name simple, * match (wildcard match)",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			List: map[string]*listEntry{
+				"one": {Key: ygot.String("one")},
+				"two": {Key: ygot.String("two")},
+			},
+		},
+		inPath:           mustPath("/list[keyfalse=*]"),
+		inArgs:           []GetNodeOpt{&GetHandleWildcards{}},
+		wantErrSubstring: "schema key key is not found in gNMI path",
+	}, {
 		desc:     "simple list, * match",
 		inSchema: rootSchema,
 		inData: &rootStruct{
@@ -1125,6 +1148,20 @@ func TestGetNode(t *testing.T) {
 			},
 		},
 		inPath: mustPath("/multilist[keyone=1][keytwo=2]"),
+		wantTreeNodes: []*TreeNode{{
+			Data:   &multiListEntry{Keyone: ygot.Uint32(1), Keytwo: ygot.Uint32(2)},
+			Schema: multiKeyListSchema,
+			Path:   mustPath("/multilist[keyone=1][keytwo=2]"),
+		}},
+	}, {
+		desc:     "multiple key list (handle wildcards)",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			Multilist: map[multiListKey]*multiListEntry{
+				{Keyone: 1, Keytwo: 2}: {Keyone: ygot.Uint32(1), Keytwo: ygot.Uint32(2)},
+			},
+		},
+		inPath: mustPath("/multilist[keyone=1][keytwo=2]"),
 		inArgs: []GetNodeOpt{&GetHandleWildcards{}},
 		wantTreeNodes: []*TreeNode{{
 			Data:   &multiListEntry{Keyone: ygot.Uint32(1), Keytwo: ygot.Uint32(2)},
@@ -1151,6 +1188,29 @@ func TestGetNode(t *testing.T) {
 			Schema: multiKeyListSchema,
 			Path:   mustPath("/multilist[keyone=3][keytwo=4]"),
 		}},
+	}, {
+		desc:     "incorrectly spelled key name *,* match",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			Multilist: map[multiListKey]*multiListEntry{
+				{Keyone: 1, Keytwo: 2}: {Keyone: ygot.Uint32(1), Keytwo: ygot.Uint32(2)},
+				{Keyone: 3, Keytwo: 4}: {Keyone: ygot.Uint32(3), Keytwo: ygot.Uint32(4)},
+			},
+		},
+		inPath:           mustPath("/multilist[keythree=*][keytwo=*]"),
+		wantErrSubstring: "does not contain a map entry for schema keyone",
+	}, {
+		desc:     "incorrectly spelled key name *,* match (wildcard match)",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			Multilist: map[multiListKey]*multiListEntry{
+				{Keyone: 1, Keytwo: 2}: {Keyone: ygot.Uint32(1), Keytwo: ygot.Uint32(2)},
+				{Keyone: 3, Keytwo: 4}: {Keyone: ygot.Uint32(3), Keytwo: ygot.Uint32(4)},
+			},
+		},
+		inPath:           mustPath("/multilist[keythree=*][keytwo=*]"),
+		inArgs:           []GetNodeOpt{&GetHandleWildcards{}},
+		wantErrSubstring: "does not contain a map entry for schema keyone",
 	}, {
 		desc:     "multiple key list, *,2 match",
 		inSchema: rootSchema,

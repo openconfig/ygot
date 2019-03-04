@@ -188,54 +188,47 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 
 		// Handle lists with a single key.
 		if !util.IsValueStruct(k) {
-			// Handle the special case that we have zero keys specified only when we are handling lists
-			// with partial keys specified.
-			if len(path.GetElem()[0].GetKey()) == 0 && args.partialKeyMatch {
-				keys, err := ygot.PathKeyFromStruct(listElemV)
-				if err != nil {
-					return nil, status.Errorf(codes.Unknown, "could not get path keys at %v: %v", traversedPath, err)
+			match := false
+			switch {
+			case len(path.GetElem()[0].GetKey()) == 0 && args.partialKeyMatch:
+				// Handle the special case that we have zero keys specified only when we are handling lists
+				// with partial keys specified.
+				match = true
+			default:
+				// Otherwise, check for equality of the key.
+				pathKey, ok := path.GetElem()[0].GetKey()[schema.Key]
+				if !ok {
+					return nil, status.Errorf(codes.NotFound, "schema key %s is not found in gNMI path %v, root %T", schema.Key, path, root)
 				}
+
+				kv, err := getKeyValue(listElemV.Elem(), schema.Key)
+				if err != nil {
+					return nil, status.Errorf(codes.Unknown, "failed to get key value for %v, path %v: %v", listElemV.Interface(), path, err)
+				}
+
+				keyAsString, err := ygot.KeyValueAsString(kv)
+				if err != nil {
+					return nil, status.Errorf(codes.InvalidArgument, "failed to convert %v to a string, path %v: %v", kv, path, err)
+				}
+
+				if (args.handleWildcards && pathKey == "*") || keyAsString == pathKey {
+					match = true
+				}
+			}
+			if match {
+				keys, err := ygot.PathKeyFromStruct(listElemV)
+				// if err != nil {
+				// 	return nil, status.Errorf(codes.Unknown, "could not get path keys at %v: %v", traversedPath, err)
+				// }
+
 				nodes, err := retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
 				if err != nil {
 					return nil, err
 				}
 
-				matches = append(matches, nodes...)
-
-				continue
-			}
-
-			// Otherwise, check for equality of the key.
-			pathKey, ok := path.GetElem()[0].GetKey()[schema.Key]
-			if !ok {
-				return nil, status.Errorf(codes.NotFound, "schema key %s is not found in gNMI path %v, root %T", schema.Key, path, root)
-			}
-
-			kv, err := getKeyValue(listElemV.Elem(), schema.Key)
-			if err != nil {
-				return nil, status.Errorf(codes.Unknown, "failed to get key value for %v, path %v: %v", listElemV.Interface(), path, err)
-			}
-
-			keyAsString, err := ygot.KeyValueAsString(kv)
-			if err != nil {
-				return nil, status.Errorf(codes.InvalidArgument, "failed to convert %v to a string, path %v: %v", kv, path, err)
-			}
-			if (args.handleWildcards && pathKey == "*") || keyAsString == pathKey {
-				pe := path.GetElem()[0]
-				pathElem := &gpb.PathElem{
-					Key:  map[string]string{},
-					Name: pe.Name,
+				if nodes != nil {
+					matches = append(matches, nodes...)
 				}
-				for k, v := range pe.Key {
-					pathElem.GetKey()[k] = v
-				}
-				pathElem.GetKey()[schema.Key] = keyAsString
-				nodes, err := retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, pathElem), args)
-				if err != nil {
-					return nil, err
-				}
-
-				matches = append(matches, nodes...)
 			}
 			continue
 		}
