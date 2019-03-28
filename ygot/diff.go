@@ -17,6 +17,8 @@ package ygot
 import (
 	"fmt"
 	"reflect"
+	"sort"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 	"github.com/kylelemons/godebug/pretty"
@@ -210,6 +212,7 @@ func getPathSpec(ni *util.NodeInfo) (*pathSpec, error) {
 // the walk.
 func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, error) {
 	pathOpt := hasDiffPathOpt(opts)
+	preventDupicatePath := map[string]bool{}
 
 	findSetIterFunc := func(ni *util.NodeInfo, in, out interface{}) (errs util.Errors) {
 		if reflect.DeepEqual(ni.StructField, reflect.StructField{}) {
@@ -242,6 +245,19 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 		if err != nil {
 			return util.NewErrs(err)
 		}
+		//prevent duplicate key
+		keys := make([]string, len(vp.gNMIPaths))
+		for i, paths := range vp.gNMIPaths {
+			s, _ := PathToString(paths)
+			keys[i] = s
+		}
+		sort.Strings(keys)
+		key := strings.Join(keys, "/")
+		if _, in := preventDupicatePath[key]; in == true {
+			return
+		}
+		preventDupicatePath[key] = true
+
 		ni.Annotation = []interface{}{vp}
 
 		if util.IsNilOrInvalidValue(ni.FieldValue) || util.IsValueStructPtr(ni.FieldValue) || util.IsValueMap(ni.FieldValue) {
@@ -269,23 +285,7 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 		return nil, fmt.Errorf("error from ForEachDataField iteration: %v", errs)
 	}
 
-	uOut := map[*pathSpec]interface{}{}
-	// Deduplicate the list, since the iteration function will be called
-	// multiple times for path tags that have >1 element.
-	for ok, ov := range out {
-		var skip bool
-		for uk := range uOut {
-			if ok.Equal(uk) {
-				// This is a duplicate path, so we do not need to append it to the list.
-				skip = true
-			}
-		}
-		if !skip {
-			uOut[ok] = ov
-		}
-	}
-
-	return uOut, nil
+	return out, nil
 }
 
 // hasDiffPathOpt extracts a DiffPathOpt from the opts slice provided. In
