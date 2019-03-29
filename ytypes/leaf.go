@@ -886,7 +886,7 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 			// represents the division. We don't want to fail unmarshalling as float64
 			// is the best type in ygot that can represent a decimal64. So, second
 			// return value is just ignored.
-			fv, _ := new(big.Rat).SetFrac(big.NewInt(v.DecimalVal.Digits), prec).Float64()
+			fv, _ := new(big.Rat).SetFrac(big.NewInt(int64(v.DecimalVal.Digits)), prec).Float64()
 			return fv, nil
 		case *gpb.TypedValue_FloatVal:
 			return float64(v.FloatVal), nil
