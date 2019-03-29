@@ -212,7 +212,7 @@ func getPathSpec(ni *util.NodeInfo) (*pathSpec, error) {
 // the walk.
 func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, error) {
 	pathOpt := hasDiffPathOpt(opts)
-	preventDupicatePath := map[string]bool{}
+	processedPaths := map[string]bool{}
 
 	findSetIterFunc := func(ni *util.NodeInfo, in, out interface{}) (errs util.Errors) {
 		if reflect.DeepEqual(ni.StructField, reflect.StructField{}) {
@@ -245,18 +245,22 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 		if err != nil {
 			return util.NewErrs(err)
 		}
+
 		//prevent duplicate key
 		keys := make([]string, len(vp.gNMIPaths))
 		for i, paths := range vp.gNMIPaths {
-			s, _ := PathToString(paths)
+			s, err := PathToString(paths)
+			if err != nil {
+				return util.NewErrs(err)
+			}
 			keys[i] = s
 		}
 		sort.Strings(keys)
 		key := strings.Join(keys, "/")
-		if _, in := preventDupicatePath[key]; in == true {
+		if _, ok := processedPaths[key]; ok == true {
 			return
 		}
-		preventDupicatePath[key] = true
+		processedPaths[key] = true
 
 		ni.Annotation = []interface{}{vp}
 
