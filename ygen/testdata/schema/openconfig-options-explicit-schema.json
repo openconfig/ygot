@@ -95,6 +95,80 @@
                                     }
                                 }
                             },
+                            "Uses": [
+                                {
+                                    "Uses": {
+                                        "Name": "parent-config"
+                                    },
+                                    "Grouping": {
+                                        "Name": "parent-config",
+                                        "Kind": 1,
+                                        "Config": 0,
+                                        "Prefix": {
+                                            "Name": "ocs",
+                                            "Source": {
+                                                "Keyword": "prefix",
+                                                "HasArgument": true,
+                                                "Argument": "ocs"
+                                            }
+                                        },
+                                        "Dir": {
+                                            "four": {
+                                                "Name": "four",
+                                                "Kind": 0,
+                                                "Config": 0,
+                                                "Prefix": {
+                                                    "Name": "ocs",
+                                                    "Source": {
+                                                        "Keyword": "prefix",
+                                                        "HasArgument": true,
+                                                        "Argument": "ocs"
+                                                    }
+                                                },
+                                                "Type": {
+                                                    "Name": "binary",
+                                                    "Kind": 9
+                                                }
+                                            },
+                                            "one": {
+                                                "Name": "one",
+                                                "Kind": 0,
+                                                "Config": 0,
+                                                "Prefix": {
+                                                    "Name": "ocs",
+                                                    "Source": {
+                                                        "Keyword": "prefix",
+                                                        "HasArgument": true,
+                                                        "Argument": "ocs"
+                                                    }
+                                                },
+                                                "Type": {
+                                                    "Name": "string",
+                                                    "Kind": 18
+                                                }
+                                            },
+                                            "three": {
+                                                "Name": "three",
+                                                "Kind": 0,
+                                                "Config": 0,
+                                                "Prefix": {
+                                                    "Name": "ocs",
+                                                    "Source": {
+                                                        "Keyword": "prefix",
+                                                        "HasArgument": true,
+                                                        "Argument": "ocs"
+                                                    }
+                                                },
+                                                "Type": {
+                                                    "Name": "enumeration",
+                                                    "Kind": 14,
+                                                    "Enum": {}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ],
                             "Annotation": {
                                 "schemapath": "/openconfig-simple/parent/child/config"
                             }
@@ -182,6 +256,80 @@
                                     }
                                 }
                             },
+                            "Uses": [
+                                {
+                                    "Uses": {
+                                        "Name": "parent-config"
+                                    },
+                                    "Grouping": {
+                                        "Name": "parent-config",
+                                        "Kind": 1,
+                                        "Config": 0,
+                                        "Prefix": {
+                                            "Name": "ocs",
+                                            "Source": {
+                                                "Keyword": "prefix",
+                                                "HasArgument": true,
+                                                "Argument": "ocs"
+                                            }
+                                        },
+                                        "Dir": {
+                                            "four": {
+                                                "Name": "four",
+                                                "Kind": 0,
+                                                "Config": 0,
+                                                "Prefix": {
+                                                    "Name": "ocs",
+                                                    "Source": {
+                                                        "Keyword": "prefix",
+                                                        "HasArgument": true,
+                                                        "Argument": "ocs"
+                                                    }
+                                                },
+                                                "Type": {
+                                                    "Name": "binary",
+                                                    "Kind": 9
+                                                }
+                                            },
+                                            "one": {
+                                                "Name": "one",
+                                                "Kind": 0,
+                                                "Config": 0,
+                                                "Prefix": {
+                                                    "Name": "ocs",
+                                                    "Source": {
+                                                        "Keyword": "prefix",
+                                                        "HasArgument": true,
+                                                        "Argument": "ocs"
+                                                    }
+                                                },
+                                                "Type": {
+                                                    "Name": "string",
+                                                    "Kind": 18
+                                                }
+                                            },
+                                            "three": {
+                                                "Name": "three",
+                                                "Kind": 0,
+                                                "Config": 0,
+                                                "Prefix": {
+                                                    "Name": "ocs",
+                                                    "Source": {
+                                                        "Keyword": "prefix",
+                                                        "HasArgument": true,
+                                                        "Argument": "ocs"
+                                                    }
+                                                },
+                                                "Type": {
+                                                    "Name": "enumeration",
+                                                    "Kind": 14,
+                                                    "Enum": {}
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            ],
                             "Annotation": {
                                 "schemapath": "/openconfig-simple/parent/child/state"
                             }
