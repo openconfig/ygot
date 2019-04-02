@@ -139,8 +139,17 @@ func TestPrefixErrors(t *testing.T) {
 		want:   Errors{errors.New("a: one"), errors.New("a: two")},
 	}}
 
+	errsEqual := func(a, b []error) bool {
+		for i := range a {
+			if b[i].Error() != a[i].Error() {
+				return false
+			}
+		}
+		return true
+	}
+
 	for _, tt := range tests {
-		if got := PrefixErrors(tt.inErrs, tt.inPfx); !reflect.DeepEqual(got, tt.want) {
+		if got := PrefixErrors(tt.inErrs, tt.inPfx); !errsEqual(got, tt.want) {
 			t.Errorf("%s: PrefixErrors(%v, %s): did not get expected result, got: %v, want: %v", tt.name, tt.inErrs, tt.inPfx, got, tt.want)
 		}
 	}
