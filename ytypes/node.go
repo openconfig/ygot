@@ -185,25 +185,18 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 	listElemT := rv.Type().Elem()
 	for _, k := range rv.MapKeys() {
 		listElemV := rv.MapIndex(k)
-		keys := map[string]string{}
 
 		// Handle lists with a single key.
 		if !util.IsValueStruct(k) {
 			match := false
-			var newTraversedPath *gpb.Path
+			recalculatePath := false
 
 			switch {
 			case len(path.GetElem()[0].GetKey()) == 0 && args.partialKeyMatch:
 				// Handle the special case that we have zero keys specified only when we are handling lists
 				// with partial keys specified.
 				match = true
-
-				var err error
-				keys, err = ygot.PathKeyFromStruct(listElemV)
-				if err != nil {
-					return nil, status.Errorf(codes.Unknown, "could not get path keys at %v: %v", traversedPath, err)
-				}
-				newTraversedPath = appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys})
+				recalculatePath = true
 			default:
 				// Otherwise, check for equality of the key.
 				pathKey, ok := path.GetElem()[0].GetKey()[schema.Key]
@@ -223,19 +216,23 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 
 				if args.handleWildcards && pathKey == "*" {
 					match = true
-					var err error
-					keys, err = ygot.PathKeyFromStruct(listElemV)
+					recalculatePath = true
+				} else if keyAsString == pathKey {
+					match = true
+				}
+			}
+			if match {
+				var newTraversedPath *gpb.Path
+				if recalculatePath {
+					keys, err := ygot.PathKeyFromStruct(listElemV)
 					if err != nil {
 						return nil, status.Errorf(codes.Unknown, "could not get path keys at %v: %v", traversedPath, err)
 					}
 					newTraversedPath = appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys})
+				} else {
+					newTraversedPath = appendElem(traversedPath, path.GetElem()[0])
 				}
-				if keyAsString == pathKey {
-					match = true
-					newTraversedPath = appendElem(newTraversedPath, path.GetElem()[0])
-				}
-			}
-			if match {
+
 				nodes, err := retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), newTraversedPath, args)
 				if err != nil {
 					return nil, err
