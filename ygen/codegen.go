@@ -135,6 +135,9 @@ type GoOpts struct {
 	// whether a field has been explicitly set to the zero value (i.e., an integer
 	// field is set to 0), or whether the field was actually unset.
 	GenerateLeafGetters bool
+	// GenerateLeafSetters specifies whether Set* methods should be created for
+	// leaf fields of a struct.
+	GenerateLeafSetters bool
 	// GNMIProtoPath specifies the path to the generated gNMI protobuf, which
 	// is used to store the catalogue entries for generated modules.
 	GNMIProtoPath string

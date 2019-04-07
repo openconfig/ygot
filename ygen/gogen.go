@@ -310,6 +310,26 @@ type generatedLeafGetter struct {
 	Receiver string
 }
 
+// generatedLeafSetter is used to represent the parameters required to generate a
+// setter for a leaf within the generated Go code.
+type generatedLeafSetter struct {
+	// Name is the name of the field. It is used as a suffix to Get to generate
+	// the getter.
+	Name string
+	// Type is the type of the field, returned by the generated method.
+	Type string
+	// Zero is the value that should be returned if the field is set to nil.
+	Zero string
+	// Default is the default value specified in the YANG schema for the type
+	// or leaf.
+	Default *string
+	// IsPtr stores whether the value is a pointer, such that it can be checked
+	// against nil, or against the zero value.
+	IsPtr bool
+	// Receiver is the name of the receiver for the getter method.
+	Receiver string
+}
+
 var (
 	// goCommonHeaderTemplate is populated and output at the top of the generated code package
 	goCommonHeaderTemplate = `
@@ -732,6 +752,17 @@ func (t *{{ .Receiver }}) Get{{ .Name }}() {{ .Type }} {
 }
 `
 
+	// goLeafSetterTemplate defines a template for a function that, for a
+	// particular leaf, generates a getter method.
+	goLeafSetterTemplate = `
+// Set{{ .Name }} retrieves the value of the leaf {{ .Name }} from the {{ .Receiver }}
+// struct. 
+
+func (t *{{ .Receiver }}) Set{{ .Name }}() {{ .Type }} {
+	
+}
+`
+
 	// goDeleteListTemplate defines a template for a function that, for a
 	// particular list key, deletes an existing map value.
 	goDeleteListTemplate = `
@@ -1031,6 +1062,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		"getList":             makeTemplate("getList", goListGetterTemplate),
 		"getContainer":        makeTemplate("getContainer", goContainerGetterTemplate),
 		"getLeaf":             makeTemplate("getLeaf", goLeafGetterTemplate),
+		"setLeaf":             makeTemplate("setLeaf", goLeafSetterTemplate),
 	}
 
 	// templateHelperFunctions specifies a set of functions that are supplied as
@@ -1189,6 +1221,11 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 	// to generated for the struct. It is only populated if the GenerateLeafGetters option
 	// is set to true.
 	var associatedLeafGetters []*generatedLeafGetter
+
+	// associatedLeafSetters is a slice of structs which define the set of leaf setters
+	// to generated for the struct. It is only populated if the GenerateLeafSetters option
+	// is set to true.
+	var associatedLeafSetters []*generatedLeafSetter
 
 	// Sort the list of fields into alphabetical order to ensure determinstic output of code,
 	// and minimise diffs.
@@ -1388,6 +1425,20 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 				})
 			}
 
+			if goOpts.GenerateLeafSetters {
+				// If we are generating leaf getters, then append the relevant information
+				// to the associatedLeafGetters slice to be generated along with other
+				// associated methods.
+				associatedLeafSetters = append(associatedLeafSetters, &generatedLeafSetter{
+					Name:     fieldName,
+					Type:     fType,
+					Zero:     zeroValue,
+					IsPtr:    scalarField,
+					Receiver: targetStruct.name,
+					Default:  defaultValue,
+				})
+			}
+
 			fieldDef = &goStructField{
 				Name:          fieldName,
 				Type:          fType,
@@ -1514,6 +1565,12 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 
 	if goOpts.GenerateLeafGetters {
 		if err := generateLeafGetters(&methodBuf, associatedLeafGetters); err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if goOpts.GenerateLeafSetters {
+		if err := generateLeafSetters(&methodBuf, associatedLeafSetters); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -1647,6 +1704,18 @@ func generateLeafGetters(buf *bytes.Buffer, leaves []*generatedLeafGetter) error
 	var errs errlist.List
 	for _, l := range leaves {
 		if err := goTemplates["getLeaf"].Execute(buf, l); err != nil {
+			errs.Add(err)
+		}
+	}
+	return errs.Err()
+}
+
+// generateLeafSetters generates SetXXX methods for the leaf fields described by
+// the supplied slice of generatedLeafSetter structs.
+func generateLeafSetters(buf *bytes.Buffer, leaves []*generatedLeafSetter) error {
+	var errs errlist.List
+	for _, l := range leaves {
+		if err := goTemplates["setLeaf"].Execute(buf, l); err != nil {
 			errs.Add(err)
 		}
 	}
