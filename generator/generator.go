@@ -71,6 +71,7 @@ var (
 	generateGetters     = flag.Bool("generate_getters", false, "If set to true, getter methdos that retrieve or create an element are generated for YANG container (Go struct pointer) or list (Go map) fields within the generated code.")
 	generateDelete      = flag.Bool("generate_delete", false, "If set to true, delete methods are generated for YANG lists (Go maps) within the Go code.")
 	generateLeafGetters = flag.Bool("generate_leaf_getters", false, "If set to true, getters for YANG leaves are generated within the Go code. Caution should be exercised when using leaf getters, since values that are explicitly set to the Go default/zero value are not distinguishable from those that are unset when retrieved via the GetXXX method.")
+	generateLeafSetters = flag.Bool("generate_leaf_setters", false, "If set to true, setters for YANG leaves are generated within the Go code.")
 	includeModelData    = flag.Bool("include_model_data", false, "If set to true, a slice of gNMI ModelData messages are included in the generated Go code containing the details of the input schemas from which the code was generated.")
 )
 
@@ -251,6 +252,7 @@ func main() {
 			GenerateDeleteMethod: *generateDelete,
 			GenerateAppendMethod: *generateAppend,
 			GenerateLeafGetters:  *generateLeafGetters,
+			GenerateLeafSetters:  *generateLeafSetters,
 			IncludeModelData:     *includeModelData,
 		},
 		ExcludeState: *excludeState,
