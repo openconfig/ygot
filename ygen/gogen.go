@@ -757,12 +757,11 @@ func (t *{{ .Receiver }}) Get{{ .Name }}() {{ .Type }} {
 	goLeafSetterTemplate = `
 // Set{{ .Name }} sets the value of the leaf {{ .Name }} from the {{ .Receiver }}
 // struct. 
-func (t *{{ .Receiver }}) Set{{ .Name }}(val string) {{ .Type }} {
+func (t *{{ .Receiver }}) Set{{ .Name }}(val string) {
 	if t == nil || val == "" {
-		return false
+		return
 	}
 	t.{{ .Name }} = ygot.String(val)
-	return true
 }
 `
 
