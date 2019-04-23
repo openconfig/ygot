@@ -269,6 +269,7 @@ func safeGoEnumeratedValueName(name string) string {
 		"/", "_",
 		"+", "_PLUS",
 		"*", "_ASTERISK",
+		":", "_COLON",
 		" ", "_")
 	return replacer.Replace(name)
 }

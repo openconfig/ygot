@@ -17,7 +17,6 @@ package util
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"sort"
 	"testing"
 )
@@ -124,6 +123,18 @@ func TestAppendErrsInFunction(t *testing.T) {
 	}
 }
 
+// errsEqual is a helper function which compares two slices of errors. It is
+// required to ensure that error list equality can be implemented whilst the error
+// type changes in Go's master branch.
+func errsEqual(a, b []error) bool {
+	for i := range a {
+		if b[i].Error() != a[i].Error() {
+			return false
+		}
+	}
+	return true
+}
+
 func TestPrefixErrors(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -140,7 +151,7 @@ func TestPrefixErrors(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if got := PrefixErrors(tt.inErrs, tt.inPfx); !reflect.DeepEqual(got, tt.want) {
+		if got := PrefixErrors(tt.inErrs, tt.inPfx); !errsEqual(got, tt.want) {
 			t.Errorf("%s: PrefixErrors(%v, %s): did not get expected result, got: %v, want: %v", tt.name, tt.inErrs, tt.inPfx, got, tt.want)
 		}
 	}
@@ -185,7 +196,7 @@ func TestUniqueErrors(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if got := UniqueErrors(tt.in); !reflect.DeepEqual(sortErrors(got), sortErrors(tt.want)) {
+		if got := UniqueErrors(tt.in); !errsEqual(sortErrors(got), sortErrors(tt.want)) {
 			t.Errorf("%s: UniqueErrors(%v): did not get expected result, got: %v, want: %v", tt.name, tt.in, got, tt.want)
 		}
 	}

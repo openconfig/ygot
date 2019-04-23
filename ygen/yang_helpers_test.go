@@ -461,6 +461,7 @@ func TestSafeGoEnumeratedValueName(t *testing.T) {
 		{"DAYS1-3", "DAYS1_3"},
 		{"FISH CHIPS", "FISH_CHIPS"},
 		{"FOO*", "FOO_ASTERISK"},
+		{"FOO:", "FOO_COLON"},
 	}
 
 	for _, tt := range tests {
