@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/idefixcert/ygot/ygot"
 	oc "github.com/openconfig/ygot/exampleoc"
+	"github.com/openconfig/ygot/ygot"
 )
 
 func BenchmarkDiff(b *testing.B) {
@@ -19,8 +19,7 @@ func BenchmarkDiff(b *testing.B) {
 		return
 	}
 	deviceA := &oc.Device{}
-	err = oc.Unmarshal(jsonA, deviceA)
-	if err != nil {
+	if err := oc.Unmarshal(jsonA, deviceA); err != nil {
 		b.Errorf("ioutil.ReadFile(%s): could unmarschal: %v", jsonFileA, err)
 		return
 	}
@@ -31,8 +30,7 @@ func BenchmarkDiff(b *testing.B) {
 		return
 	}
 	deviceB := &oc.Device{}
-	err = oc.Unmarshal(jsonB, deviceB)
-	if err != nil {
+	if err := oc.Unmarshal(jsonB, deviceB); err != nil {
 		b.Errorf("ioutil.ReadFile(%s): could unmarschal: %v", jsonFileB, err)
 		return
 	}
