@@ -1380,15 +1380,6 @@ func TestSetNode(t *testing.T) {
 			want:     ygot.Int32(42),
 		},
 		{
-			inDesc:   "success setting int32 field in inner node",
-			inSchema: simpleSchema,
-			inParent: &ListElemStruct1{},
-			inPath:   mustPath("/outer/inner"),
-			inVal:    &gpb.TypedValue{int32-leaf-field  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
-			inOpts:   []SetNodeOpt{&InitMissingElements{}},
-			want:     ygot.Int32(42),
-		},
-		{
 			inDesc:   "success setting int32 leaf list field",
 			inSchema: simpleSchema,
 			inParent: &ListElemStruct1{},
