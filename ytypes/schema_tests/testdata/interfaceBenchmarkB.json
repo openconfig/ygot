@@ -1,0 +1,4539 @@
+{
+    "openconfig-interfaces:interfaces": {
+      "interface": [
+        {
+          "config": {
+            "name": "ifc-0/0/0/1"
+          },
+          "name": "ifc-0/0/0/1",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/1"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/1",
+            "enabled": true,
+            "last-change": "1555741052000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/1",
+            "oper-status": "UP",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/10"
+          },
+          "name": "ifc-0/0/0/10",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/10"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/10",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/10",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/11"
+          },
+          "name": "ifc-0/0/0/11",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/11"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/11",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/11",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/12"
+          },
+          "name": "ifc-0/0/0/12",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/12"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/12",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/12",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/13"
+          },
+          "name": "ifc-0/0/0/13",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/13"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/13",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/13",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/14"
+          },
+          "name": "ifc-0/0/0/14",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/14"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/14",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/14",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/15"
+          },
+          "name": "ifc-0/0/0/15",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/15"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/15",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/15",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/16"
+          },
+          "name": "ifc-0/0/0/16",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/16"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/16",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/16",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/17"
+          },
+          "name": "ifc-0/0/0/17",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/17"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/17",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/17",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/18"
+          },
+          "name": "ifc-0/0/0/18",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/18"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/18",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/18",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/19"
+          },
+          "name": "ifc-0/0/0/19",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/19"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/19",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/19",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/2"
+          },
+          "name": "ifc-0/0/0/2",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/2"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/2",
+            "enabled": true,
+            "last-change": "1554810325000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/2",
+            "oper-status": "UP",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/20"
+          },
+          "name": "ifc-0/0/0/20",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/20"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/20",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/20",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/21"
+          },
+          "name": "ifc-0/0/0/21",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/21"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/21",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/21",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/22"
+          },
+          "name": "ifc-0/0/0/22",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/22"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/22",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/22",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/23"
+          },
+          "name": "ifc-0/0/0/23",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/23"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/23",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/23",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/24"
+          },
+          "name": "ifc-0/0/0/24",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/24"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/24",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/24",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/25"
+          },
+          "name": "ifc-0/0/0/25",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/25"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/25",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/25",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/26"
+          },
+          "name": "ifc-0/0/0/26",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/26"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/26",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/26",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/27"
+          },
+          "name": "ifc-0/0/0/27",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/27"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/27",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/27",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/28"
+          },
+          "name": "ifc-0/0/0/28",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/28"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/28",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/28",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/29"
+          },
+          "name": "ifc-0/0/0/29",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/29"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/29",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/29",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/3"
+          },
+          "name": "ifc-0/0/0/3",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/3"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/3",
+            "enabled": true,
+            "last-change": "1554810325000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/3",
+            "oper-status": "UP",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/30"
+          },
+          "name": "ifc-0/0/0/30",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/30"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/30",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/30",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/31"
+          },
+          "name": "ifc-0/0/0/31",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/31"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/31",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/31",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/32"
+          },
+          "name": "ifc-0/0/0/32",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/32"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/32",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/32",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/33"
+          },
+          "name": "ifc-0/0/0/33",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/33"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/33",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/33",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/34"
+          },
+          "name": "ifc-0/0/0/34",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/34"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/34",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/34",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/35"
+          },
+          "name": "ifc-0/0/0/35",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/35"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/35",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/35",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/36"
+          },
+          "name": "ifc-0/0/0/36",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/36"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/36",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/36",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/37"
+          },
+          "name": "ifc-0/0/0/37",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/37"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/37",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/37",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/38"
+          },
+          "name": "ifc-0/0/0/38",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/38"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/38",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/38",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/39"
+          },
+          "name": "ifc-0/0/0/39",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/39"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/39",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/39",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/4"
+          },
+          "name": "ifc-0/0/0/4",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/4"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/4",
+            "enabled": true,
+            "last-change": "1554810325000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/4",
+            "oper-status": "UP",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/40"
+          },
+          "name": "ifc-0/0/0/40",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/40"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/40",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/40",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/41"
+          },
+          "name": "ifc-0/0/0/41",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/41"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/41",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/41",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/42"
+          },
+          "name": "ifc-0/0/0/42",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/42"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/42",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/42",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/43"
+          },
+          "name": "ifc-0/0/0/43",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/43"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/43",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/43",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/44"
+          },
+          "name": "ifc-0/0/0/44",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/44"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/44",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/44",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/45"
+          },
+          "name": "ifc-0/0/0/45",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/45"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/45",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/45",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/46"
+          },
+          "name": "ifc-0/0/0/46",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/46"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/46",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/46",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/47"
+          },
+          "name": "ifc-0/0/0/47",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/47"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/47",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/47",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/48"
+          },
+          "name": "ifc-0/0/0/48",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/48"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/48",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/48",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/49"
+          },
+          "name": "ifc-0/0/0/49",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/49"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/49",
+            "enabled": true,
+            "last-change": "1555672656000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/49",
+            "oper-status": "UP",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/5"
+          },
+          "name": "ifc-0/0/0/5",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/5"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/5",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/5",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/50"
+          },
+          "name": "ifc-0/0/0/50",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/50"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/50",
+            "enabled": true,
+            "last-change": "1555672656000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/50",
+            "oper-status": "UP",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/51"
+          },
+          "name": "ifc-0/0/0/51",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/51"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/51",
+            "enabled": true,
+            "last-change": "1555672637000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/51",
+            "oper-status": "UP",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/52"
+          },
+          "name": "ifc-0/0/0/52",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/52"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/52",
+            "enabled": true,
+            "last-change": "1555672637000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/52",
+            "oper-status": "UP",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/53"
+          },
+          "name": "ifc-0/0/0/53",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/53"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/53",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/53",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/54"
+          },
+          "name": "ifc-0/0/0/54",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/54"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/54",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/54",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/6"
+          },
+          "name": "ifc-0/0/0/6",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/6"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/6",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/6",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/7"
+          },
+          "name": "ifc-0/0/0/7",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/7"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/7",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/7",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/8"
+          },
+          "name": "ifc-0/0/0/8",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/8"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/8",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/8",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "name": "ifc-0/0/0/9"
+          },
+          "name": "ifc-0/0/0/9",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "lag-speed": 0,
+              "member": [
+                "ifp-0/0/9"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for ifp-0/0/9",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifc-0/0/0/9",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        },
+        {
+          "config": {
+            "description": "Physical interface #1 from node 0, chip 0",
+            "enabled": true,
+            "mtu": 9216,
+            "name": "ifp-0/0/1"
+          },
+          "name": "ifp-0/0/1",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:01",
+              "mac-address": "b8:6a:97:a5:92:01",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/1",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #1 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1555741052000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/1",
+            "oper-status": "UP",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/10"
+          },
+          "name": "ifp-0/0/10",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:0a",
+              "mac-address": "b8:6a:97:a5:92:0a",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/10",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #10 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/10",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/11"
+          },
+          "name": "ifp-0/0/11",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:0b",
+              "mac-address": "b8:6a:97:a5:92:0b",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/11",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #11 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/11",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/12"
+          },
+          "name": "ifp-0/0/12",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:0c",
+              "mac-address": "b8:6a:97:a5:92:0c",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/12",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #12 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/12",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/13"
+          },
+          "name": "ifp-0/0/13",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:0d",
+              "mac-address": "b8:6a:97:a5:92:0d",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/13",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #13 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/13",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/14"
+          },
+          "name": "ifp-0/0/14",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:0e",
+              "mac-address": "b8:6a:97:a5:92:0e",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/14",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #14 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/14",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/15"
+          },
+          "name": "ifp-0/0/15",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:0f",
+              "mac-address": "b8:6a:97:a5:92:0f",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/15",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #15 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/15",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/16"
+          },
+          "name": "ifp-0/0/16",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:10",
+              "mac-address": "b8:6a:97:a5:92:10",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/16",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #16 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/16",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/17"
+          },
+          "name": "ifp-0/0/17",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:11",
+              "mac-address": "b8:6a:97:a5:92:11",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/17",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #17 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/17",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/18"
+          },
+          "name": "ifp-0/0/18",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:12",
+              "mac-address": "b8:6a:97:a5:92:12",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/18",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #18 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/18",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/19"
+          },
+          "name": "ifp-0/0/19",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:13",
+              "mac-address": "b8:6a:97:a5:92:13",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/19",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #19 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/19",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/2"
+          },
+          "name": "ifp-0/0/2",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:02",
+              "mac-address": "b8:6a:97:a5:92:02",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/2",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #2 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810325000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/2",
+            "oper-status": "UP",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/20"
+          },
+          "name": "ifp-0/0/20",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:14",
+              "mac-address": "b8:6a:97:a5:92:14",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/20",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #20 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/20",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/21"
+          },
+          "name": "ifp-0/0/21",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:15",
+              "mac-address": "b8:6a:97:a5:92:15",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/21",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #21 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/21",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/22"
+          },
+          "name": "ifp-0/0/22",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:16",
+              "mac-address": "b8:6a:97:a5:92:16",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/22",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #22 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/22",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/23"
+          },
+          "name": "ifp-0/0/23",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:17",
+              "mac-address": "b8:6a:97:a5:92:17",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/23",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #23 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/23",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/24"
+          },
+          "name": "ifp-0/0/24",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:18",
+              "mac-address": "b8:6a:97:a5:92:18",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/24",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #24 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/24",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/25"
+          },
+          "name": "ifp-0/0/25",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:19",
+              "mac-address": "b8:6a:97:a5:92:19",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/25",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #25 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/25",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/26"
+          },
+          "name": "ifp-0/0/26",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:1a",
+              "mac-address": "b8:6a:97:a5:92:1a",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/26",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #26 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/26",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/27"
+          },
+          "name": "ifp-0/0/27",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:1b",
+              "mac-address": "b8:6a:97:a5:92:1b",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/27",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #27 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/27",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/28"
+          },
+          "name": "ifp-0/0/28",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:1c",
+              "mac-address": "b8:6a:97:a5:92:1c",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/28",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #28 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/28",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/29"
+          },
+          "name": "ifp-0/0/29",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:1d",
+              "mac-address": "b8:6a:97:a5:92:1d",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/29",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #29 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/29",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/3"
+          },
+          "name": "ifp-0/0/3",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:03",
+              "mac-address": "b8:6a:97:a5:92:03",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/3",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #3 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810325000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/3",
+            "oper-status": "UP",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/30"
+          },
+          "name": "ifp-0/0/30",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:1e",
+              "mac-address": "b8:6a:97:a5:92:1e",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/30",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #30 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/30",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/31"
+          },
+          "name": "ifp-0/0/31",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:1f",
+              "mac-address": "b8:6a:97:a5:92:1f",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/31",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #31 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/31",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/32"
+          },
+          "name": "ifp-0/0/32",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:20",
+              "mac-address": "b8:6a:97:a5:92:20",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/32",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #32 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/32",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/33"
+          },
+          "name": "ifp-0/0/33",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:21",
+              "mac-address": "b8:6a:97:a5:92:21",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/33",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #33 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/33",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/34"
+          },
+          "name": "ifp-0/0/34",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:22",
+              "mac-address": "b8:6a:97:a5:92:22",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/34",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #34 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/34",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "description": "Physical interface #35 from node 0, chip 0",
+            "enabled": true,
+            "mtu": 9216,
+            "name": "ifp-0/0/35"
+          },
+          "name": "ifp-0/0/35",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:23",
+              "mac-address": "b8:6a:97:a5:92:23",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/35",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #35 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1555563853000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/35",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/36"
+          },
+          "name": "ifp-0/0/36",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:24",
+              "mac-address": "b8:6a:97:a5:92:24",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/36",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #36 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/36",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/37"
+          },
+          "name": "ifp-0/0/37",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:25",
+              "mac-address": "b8:6a:97:a5:92:25",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/37",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #37 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/37",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/38"
+          },
+          "name": "ifp-0/0/38",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:26",
+              "mac-address": "b8:6a:97:a5:92:26",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/38",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #38 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/38",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/39"
+          },
+          "name": "ifp-0/0/39",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:27",
+              "mac-address": "b8:6a:97:a5:92:27",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/39",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #39 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/39",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/4"
+          },
+          "name": "ifp-0/0/4",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:04",
+              "mac-address": "b8:6a:97:a5:92:04",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/4",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #4 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810325000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/4",
+            "oper-status": "UP",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/40"
+          },
+          "name": "ifp-0/0/40",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:28",
+              "mac-address": "b8:6a:97:a5:92:28",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/40",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #40 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/40",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/41"
+          },
+          "name": "ifp-0/0/41",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:29",
+              "mac-address": "b8:6a:97:a5:92:29",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/41",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #41 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/41",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/42"
+          },
+          "name": "ifp-0/0/42",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:2a",
+              "mac-address": "b8:6a:97:a5:92:2a",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/42",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #42 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/42",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/43"
+          },
+          "name": "ifp-0/0/43",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:2b",
+              "mac-address": "b8:6a:97:a5:92:2b",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/43",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #43 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/43",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/44"
+          },
+          "name": "ifp-0/0/44",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:2c",
+              "mac-address": "b8:6a:97:a5:92:2c",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/44",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #44 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/44",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/45"
+          },
+          "name": "ifp-0/0/45",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:2d",
+              "mac-address": "b8:6a:97:a5:92:2d",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/45",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #45 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/45",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/46"
+          },
+          "name": "ifp-0/0/46",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:2e",
+              "mac-address": "b8:6a:97:a5:92:2e",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/46",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #46 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/46",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/47"
+          },
+          "name": "ifp-0/0/47",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:2f",
+              "mac-address": "b8:6a:97:a5:92:2f",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/47",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #47 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/47",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/48"
+          },
+          "name": "ifp-0/0/48",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:30",
+              "mac-address": "b8:6a:97:a5:92:30",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/48",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #48 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/48",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/49"
+          },
+          "name": "ifp-0/0/49",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:31",
+              "mac-address": "b8:6a:97:a5:92:31",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/49",
+              "port-speed": "openconfig-if-ethernet:SPEED_100GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #49 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1555672656000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/49",
+            "oper-status": "UP",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/5"
+          },
+          "name": "ifp-0/0/5",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:05",
+              "mac-address": "b8:6a:97:a5:92:05",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/5",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #5 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/5",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/50"
+          },
+          "name": "ifp-0/0/50",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:32",
+              "mac-address": "b8:6a:97:a5:92:32",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/50",
+              "port-speed": "openconfig-if-ethernet:SPEED_100GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #50 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1555672656000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/50",
+            "oper-status": "UP",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/51"
+          },
+          "name": "ifp-0/0/51",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:33",
+              "mac-address": "b8:6a:97:a5:92:33",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/51",
+              "port-speed": "openconfig-if-ethernet:SPEED_100GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #51 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1555672637000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/51",
+            "oper-status": "UP",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/52"
+          },
+          "name": "ifp-0/0/52",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:34",
+              "mac-address": "b8:6a:97:a5:92:34",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/52",
+              "port-speed": "openconfig-if-ethernet:SPEED_100GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #52 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1555672637000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/52",
+            "oper-status": "UP",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/53"
+          },
+          "name": "ifp-0/0/53",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:35",
+              "mac-address": "b8:6a:97:a5:92:35",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/53",
+              "port-speed": "openconfig-if-ethernet:SPEED_100GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #53 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/53",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/54"
+          },
+          "name": "ifp-0/0/54",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:36",
+              "mac-address": "b8:6a:97:a5:92:36",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/54",
+              "port-speed": "openconfig-if-ethernet:SPEED_100GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #54 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/54",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/6"
+          },
+          "name": "ifp-0/0/6",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:06",
+              "mac-address": "b8:6a:97:a5:92:06",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/6",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #6 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/6",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/7"
+          },
+          "name": "ifp-0/0/7",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:07",
+              "mac-address": "b8:6a:97:a5:92:07",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/7",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #7 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/7",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/8"
+          },
+          "name": "ifp-0/0/8",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:08",
+              "mac-address": "b8:6a:97:a5:92:08",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/8",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #8 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/8",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "ifp-0/0/9"
+          },
+          "name": "ifp-0/0/9",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "auto-negotiate": false,
+              "counters": {
+                "in-8021q-frames": "0",
+                "in-crc-errors": "0",
+                "in-fragment-frames": "0",
+                "in-jabber-frames": "0",
+                "in-mac-pause-frames": "0",
+                "in-oversize-frames": "0",
+                "in-undersize-frames": "0",
+                "out-8021q-frames": "0",
+                "out-mac-pause-frames": "0"
+              },
+              "hw-mac-address": "b8:6a:97:a5:92:09",
+              "mac-address": "b8:6a:97:a5:92:09",
+              "openconfig-if-aggregate:aggregate-id": "ifc-0/0/0/9",
+              "port-speed": "openconfig-if-ethernet:SPEED_10GB"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "counters": {
+              "in-broadcast-pkts": "0",
+              "in-discards": "0",
+              "in-errors": "0",
+              "in-fcs-errors": "0",
+              "in-multicast-pkts": "0",
+              "in-octets": "0",
+              "in-pkts": "0",
+              "in-unicast-pkts": "0",
+              "in-unknown-protos": "0",
+              "out-broadcast-pkts": "0",
+              "out-discards": "0",
+              "out-errors": "0",
+              "out-multicast-pkts": "0",
+              "out-octets": "0",
+              "out-pkts": "0",
+              "out-unicast-pkts": "0"
+            },
+            "description": "Physical interface #9 from node 0, chip 0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "mtu": 9216,
+            "name": "ifp-0/0/9",
+            "oper-status": "DOWN",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "lo-0/0/0"
+          },
+          "name": "lo-0/0/0",
+          "openconfig-if-ethernet:ethernet": {
+            "state": {
+              "openconfig-if-aggregate:aggregate-id": "lo-0/0/0/0"
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "name": "lo-0/0/0",
+            "oper-status": "UP",
+            "type": "iana-if-type:ethernetCsmacd"
+          }
+        },
+        {
+          "config": {
+            "name": "lo-0/0/0/0"
+          },
+          "name": "lo-0/0/0/0",
+          "openconfig-if-aggregate:aggregation": {
+            "state": {
+              "member": [
+                "lo-0/0/0"
+              ],
+              "min-links": 1
+            }
+          },
+          "state": {
+            "admin-status": "UP",
+            "description": "Container interface for lo-0/0/0",
+            "enabled": true,
+            "last-change": "1554810323000000000",
+            "logical": false,
+            "loopback-mode": false,
+            "name": "lo-0/0/0/0",
+            "oper-status": "UP",
+            "type": "iana-if-type:ieee8023adLag"
+          }
+        }
+      ]
+    }
+  }
