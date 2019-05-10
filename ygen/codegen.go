@@ -88,6 +88,34 @@ type GeneratorConfig struct {
 	// not writeable (i.e., config false) within the YANG schema and their
 	// children are excluded from the generated code.
 	ExcludeState bool
+	// SkipEnumDeduplication specifies whether leaves of type 'enumeration' that
+	// are used in multiple places in the schema should share a common type within
+	// the generated code that is output by ygen. By default (false), a common type
+	// is used.
+	//
+	// This behaviour is useful in scenarios where there is no difference between
+	// two types, and the leaf is mirrored in a logical way (e.g., the OpenConfig
+	// config/state split). For example:
+	//
+	// grouping foo-config {
+	//	leaf enabled {
+	//		type enumeration {
+	//			enum A;
+	//			enum B;
+	//			enum C;
+	//		}
+	//	 }
+	// }
+	//
+	//  container config { uses foo-config; }
+	//  container state { uses foo-config; }
+	//
+	// will result in a single enumeration type (ModuleName_Config_Enabled) being
+	// output when de-duplication is enabled.
+	//
+	// When it is disabled, two different enumerations (ModuleName_(State|Config)_Enabled)
+	// will be output in the generated code.
+	SkipEnumDeduplication bool
 }
 
 // GoOpts stores Go specific options for the code generation library.
@@ -326,7 +354,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Store the returned schematree within the state for this code generation.
 	cg.state.schematree = mdef.schemaTree
 
-	goStructs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang, cg.Config.ExcludeState)
+	goStructs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang, cg.Config.ExcludeState, cg.Config.SkipEnumDeduplication)
 	if errs != nil {
 		return nil, errs
 	}
@@ -363,8 +391,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var codegenErr util.Errors
 	var structSnippets []GoStructCodeSnippet
 	for _, structName := range orderedStructNames {
-		structOut, errs := writeGoStruct(structNameMap[structName], goStructs, cg.state,
-			cg.Config.CompressOCPaths, cg.Config.GenerateJSONSchema, cg.Config.GoOptions)
+		structOut, errs := writeGoStruct(structNameMap[structName], goStructs, cg.state, cg.Config.CompressOCPaths, cg.Config.GenerateJSONSchema, cg.Config.GoOptions, cg.Config.SkipEnumDeduplication)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
@@ -378,7 +405,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		}
 	}
 
-	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, false)
+	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, false, cg.Config.SkipEnumDeduplication)
 	if errs != nil {
 		codegenErr = util.AppendErrs(codegenErr, errs)
 		return nil, codegenErr
@@ -474,7 +501,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 	cg.state.schematree = mdef.schemaTree
 
-	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, true)
+	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.CompressOCPaths, true, cg.Config.SkipEnumDeduplication)
 	if errs != nil {
 		return nil, errs
 	}
@@ -483,7 +510,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf, cg.Config.ExcludeState)
+	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, protobuf, cg.Config.ExcludeState, cg.Config.SkipEnumDeduplication)
 	if errs != nil {
 		return nil, errs
 	}

@@ -28,13 +28,14 @@ import (
 // CompressOCPaths set to both true and false.
 func TestFindEnumSet(t *testing.T) {
 	tests := []struct {
-		name              string
-		in                map[string]*yang.Entry
-		inOmitUnderscores bool
-		wantCompressed    map[string]*yangEnum
-		wantUncompressed  map[string]*yangEnum
-		wantSame          bool // Whether to expect same compressed/uncompressed output
-		wantErr           bool
+		name                    string
+		in                      map[string]*yang.Entry
+		inOmitUnderscores       bool
+		inSkipEnumDeduplication bool
+		wantCompressed          map[string]*yangEnum
+		wantUncompressed        map[string]*yangEnum
+		wantSame                bool // Whether to expect same compressed/uncompressed output
+		wantErr                 bool
 	}{{
 		name: "simple identityref",
 		in: map[string]*yang.Entry{
@@ -908,6 +909,90 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name: "two enums with deduplication disabled",
+		in: map[string]*yang.Entry{
+			"/container/config/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Grouping{
+						Name: "foo",
+						Parent: &yang.Module{
+							Name: "base-module",
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "config",
+					Parent: &yang.Entry{
+						Name:   "container",
+						Parent: &yang.Entry{Name: "base-module"},
+					},
+				},
+			},
+			"/container/state/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Grouping{
+						Name: "foo",
+						Parent: &yang.Module{
+							Name: "base-module",
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "state",
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "base-module",
+						},
+					},
+				},
+			},
+		},
+		inSkipEnumDeduplication: true,
+		wantCompressed: map[string]*yangEnum{
+			"BaseModule_Container_EnumerationLeaf": {
+				name: "BaseModule_Container_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantUncompressed: map[string]*yangEnum{
+			"BaseModule_Container_State_EnumerationLeaf": {
+				name: "BaseModule_Container_State_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"BaseModule_Container_Config_EnumerationLeaf": {
+				name: "BaseModule_Container_Config_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
 	}}
 
 	for _, tt := range tests {
@@ -921,7 +1006,7 @@ func TestFindEnumSet(t *testing.T) {
 			cg := NewYANGCodeGenerator(&GeneratorConfig{
 				CompressOCPaths: compressed,
 			})
-			entries, errs := cg.state.findEnumSet(tt.in, cg.Config.CompressOCPaths, tt.inOmitUnderscores)
+			entries, errs := cg.state.findEnumSet(tt.in, cg.Config.CompressOCPaths, tt.inOmitUnderscores, tt.inSkipEnumDeduplication)
 
 			if (errs != nil) != tt.wantErr {
 				t.Errorf("%s findEnumSet(%v, %v): did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", tt.name, tt.in, cg.Config.CompressOCPaths, errs, len(errs), tt.wantErr)
@@ -1102,6 +1187,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 	tests := []struct {
 		name                             string
 		in                               []*yang.Entry
+		inSkipEnumDedup                  bool
 		wantGoCompress                   map[string]*yangDirectory
 		wantGoUncompress                 map[string]*yangDirectory
 		wantGoCompressStateExcluded      map[string]*yangDirectory
@@ -2220,7 +2306,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				continue
 			}
 
-			got, errs := cg.state.buildDirectoryDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, c.lang, c.excludeState)
+			got, errs := cg.state.buildDirectoryDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, c.lang, c.excludeState, tt.inSkipEnumDedup)
 			if errs != nil {
 				t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): could not build struct defs: %v", tt.name, c.compress, langName(c.lang), c.excludeState, errs)
 				continue

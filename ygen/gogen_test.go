@@ -49,6 +49,7 @@ func TestGoCodeStructGeneration(t *testing.T) {
 		// determine the names of referenced lists and structs.
 		inUniqueDirectoryNames map[string]string
 		inGoOpts               GoOpts
+		inSkipEnumDedup        bool
 		wantCompressed         wantGoStructOut
 		wantUncompressed       wantGoStructOut
 		wantSame               bool
@@ -1710,7 +1711,7 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 				// Always generate the JSON schema for this test.
-				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inGoOpts)
+				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inGoOpts, tt.inSkipEnumDedup)
 
 				if len(errs) != 0 && !want.wantErr {
 					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): received unexpected errors: %v",

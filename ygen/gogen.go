@@ -1158,13 +1158,25 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 // writeGoStruct generates code snippets for targetStruct. The parameter goStructElements
 // contains other yangDirectory structs for which code is being generated, that may be referenced
 // during the generation of the code corresponding to targetStruct (e.g., to determine a
-// child container's struct name). writeGoStruct returns a GoStructCodeSnippet which contains
+// child container's struct name).
+//
+// writeGoStruct takes the following additional arguments:
+//  - state - the current generator state, as a genState pointer.
+//  - compressOCPaths - a bool indicating whether OpenConfig path compression is enabled for
+//    this schema.
+//  - generateJSONSchema - a bool indicating whether the generated code should include the
+//    JSON representation of the YANG schema for this element.
+//  - goOpts - Go specific code generation options as a GoOpts struct.
+//  - skipEnumDedup -- a boolean that indicates whether leaves of type enumeration  that are
+//    used in multiple places in the schema tree should share a common underlying type.
+//
+// writeGoStruct returns a GoStructCodeSnippet which contains
 //	1. The generated struct for targetStruct (structDef)
 //	2. Additional generated structs that are keys for any multi-key lists that are children
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yangDirectory, state *genState, compressOCPaths, generateJSONSchema bool, goOpts GoOpts) (GoStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yangDirectory, state *genState, compressOCPaths, generateJSONSchema bool, goOpts GoOpts, skipEnumDedup bool) (GoStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -1285,7 +1297,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 		case field.IsLeaf() || field.IsLeafList():
 			// This is a leaf or leaf-list, so we map it into the Go type that corresponds to the
 			// YANG type that the leaf represents.
-			mtype, err := state.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressOCPaths)
+			mtype, err := state.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressOCPaths, skipEnumDedup)
 			if err != nil {
 				errs = append(errs, err)
 				continue

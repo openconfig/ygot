@@ -533,8 +533,13 @@ func addNewChild(m map[string]*yang.Entry, k string, v *yang.Entry, errs []error
 // A resolveTypeArgs structure is used as the input argument which specifies a
 // pointer to the YangType; and optionally context required to resolve the name
 // of the type. The compressOCPaths argument specifies whether compression of
-// OpenConfig paths is to be enabled.
-func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) (*mappedType, error) {
+// OpenConfig paths is to be enabled. The skipEnumDedup argument specifies whether
+// the current schema is set to deduplicate enumerations that are logically defined
+// once in the YANG schema, but instantiated in multiple places.
+// The skipEnumDedup argument specifies whether leaves of type enumeration that are
+// used more than once in the schema should share a common type. By default, a single
+// type for each leaf is created.
+func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, skipEnumDedup bool) (*mappedType, error) {
 	defVal := typeDefaultValue(args.yangType)
 	// Handle the case of a typedef which is actually an enumeration.
 	mtype, err := s.enumeratedTypedefTypeName(args, goEnumPrefix, false)
@@ -587,7 +592,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 	case yang.Yunion:
 		// A YANG Union is a leaf that can take multiple values - its subtypes need
 		// to be extracted.
-		return s.goUnionType(args, compressOCPaths)
+		return s.goUnionType(args, compressOCPaths, skipEnumDedup)
 	case yang.Yenum:
 		// Enumeration types need to be resolved to a particular data path such
 		// that a created enumered Go type can be used to set their value. Hand
@@ -595,7 +600,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enum without context")
 		}
-		n := s.resolveEnumName(args.contextEntry, compressOCPaths, false)
+		n := s.resolveEnumName(args.contextEntry, compressOCPaths, false, skipEnumDedup)
 		if defVal != nil {
 			defVal = enumDefaultValue(n, *defVal, "")
 		}
@@ -631,7 +636,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		if err != nil {
 			return nil, err
 		}
-		return s.yangTypeToGoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths)
+		return s.yangTypeToGoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths, skipEnumDedup)
 	case yang.Ybinary:
 		// Map binary fields to the Binary type defined in the output code,
 		// this is used to ensure that we can distinguish a binary field from
@@ -675,8 +680,12 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 // The compressOCPaths argument specifies whether OpenConfig path compression
 // is enabled such that the name of enumerated types can be calculated correctly.
 //
+// The skipEnumDedup argument specifies whether the code generation should aim
+// to use a common type for enumerations that are logically defined once in the schema
+// but used in multiple places.
+//
 // goUnionType returns an error if mapping is not possible.
-func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*mappedType, error) {
+func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnumDedup bool) (*mappedType, error) {
 	var errs []error
 	unionTypes := make(map[string]int)
 
@@ -685,7 +694,7 @@ func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*map
 	// whether a particular type is valid when creating mapping code can easily
 	// check, rather than iterating the slice of strings.
 	for _, subtype := range args.yangType.Type {
-		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, compressOCPaths)...)
+		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, compressOCPaths, skipEnumDedup)...)
 	}
 
 	if errs != nil {
@@ -720,14 +729,16 @@ func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*map
 // functions to check whether a particular type is a valid type for a leaf. Since
 // a union itself may contain unions, the supplied union is recursed. The
 // compressOCPaths argument specifies whether OpenConfig path compression is enabled
-// such that the name of enumerated types can be correctly calculated.
-func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, compressOCPaths bool) []error {
+// such that the name of enumerated types can be correctly calculated. The skipEnumDedup
+// argument specifies whether the current code generation is de-duplicating enumerations
+// where they are used in more than one place in the schema.
+func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, compressOCPaths, skipEnumDedup bool) []error {
 	var errs []error
 	// If subtype.Type is not empty then this means that this type is defined to
 	// be a union itself.
 	if subtype.Type != nil {
 		for _, st := range subtype.Type {
-			errs = append(errs, s.goUnionSubTypes(st, ctx, currentTypes, compressOCPaths)...)
+			errs = append(errs, s.goUnionSubTypes(st, ctx, currentTypes, compressOCPaths, skipEnumDedup)...)
 		}
 		return errs
 	}
@@ -746,7 +757,7 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 	default:
 		var err error
 
-		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: subtype, contextEntry: ctx}, compressOCPaths)
+		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: subtype, contextEntry: ctx}, compressOCPaths, skipEnumDedup)
 		if err != nil {
 			errs = append(errs, err)
 			return errs
@@ -770,7 +781,14 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 // identifier, with a value of a mappedType struct which indicates how that key leaf
 // is to be represented in Go. The key elements themselves are returned in the keyElems
 // slice.
-func (s *genState) buildListKey(e *yang.Entry, compressOCPaths bool) (*yangListAttr, []error) {
+// The compressOCPaths argument specifies whether path compression for OpenConfig schemas
+// should be enabled within the generated code. The skipEnumDedup argument specifies to the
+// code generation whether to try to output a single type for an enumeration that is logically
+// defined once in the output code, but instantiated in multiple places in the schema tree.
+// The skipEnumDedup argument specifies whether leaves of type 'enumeration' which are used
+// more than once in the schema should use a common output type in the generated Go code. By default
+// a type is shared.
+func (s *genState) buildListKey(e *yang.Entry, compressOCPaths, skipEnumDedup bool) (*yangListAttr, []error) {
 	if !e.IsList() {
 		return nil, []error{fmt.Errorf("%s is not a list", e.Name)}
 	}
@@ -844,7 +862,7 @@ func (s *genState) buildListKey(e *yang.Entry, compressOCPaths bool) (*yangListA
 		}
 
 		listattr.keyElems = append(listattr.keyElems, keyleaf)
-		keyType, err := s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, compressOCPaths)
+		keyType, err := s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, compressOCPaths, skipEnumDedup)
 		if err != nil {
 			errs = append(errs, err)
 		}
