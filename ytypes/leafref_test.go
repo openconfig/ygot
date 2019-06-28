@@ -16,10 +16,12 @@ package ytypes
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 )
 
 func TestValidateLeafRefData(t *testing.T) {
@@ -683,3 +685,126 @@ func TestPathMatchesPrefix(t *testing.T) {
 }
 
 func Int32(i int32) *int32 { return &i }
+
+type genericList struct {
+	Key *uint32 `path:"key"`
+	Val *uint32 `path:"val"`
+}
+
+type root struct {
+	Target map[uint32]*genericList `path:"target"`
+	Ref    map[uint32]*genericList `path:"ref"`
+}
+
+func TestLeafrefValidateCurrent(t *testing.T) {
+	// This test checks against an uncompressed schema to determine whether we are able to validate references
+	// correctly. It covers an ugly bit of logic concerning having two entries for lists in the data tree (one
+	// which is the member of the list, and one which is the map.
+	//
+	// TODO(robjs): Seriously think about whether we should refactor here, this code is very complex to understand
+	// and even harder to debug. :-( I think we made a mistake here.
+
+	rootSchema := &yang.Entry{
+		Name: "root",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+		Annotation: map[string]interface{}{
+			"isFakeRoot": true,
+		},
+	}
+	targetListSchema := &yang.Entry{
+		Name:     "target",
+		Key:      "key",
+		Kind:     yang.DirectoryEntry,
+		ListAttr: &yang.ListAttr{},
+		Parent:   rootSchema,
+	}
+	rootSchema.Dir["target"] = targetListSchema
+	targetListSchema.Dir = map[string]*yang.Entry{
+		"key": &yang.Entry{
+			Name:   "key",
+			Kind:   yang.LeafEntry,
+			Type:   &yang.YangType{Kind: yang.Yuint32},
+			Parent: targetListSchema,
+		},
+		"val": &yang.Entry{
+			Name:   "val",
+			Kind:   yang.LeafEntry,
+			Type:   &yang.YangType{Kind: yang.Yuint32},
+			Parent: targetListSchema,
+		},
+	}
+
+	refListSchema := &yang.Entry{
+		Name:     "ref",
+		Kind:     yang.DirectoryEntry,
+		Key:      "key",
+		ListAttr: &yang.ListAttr{},
+		Parent:   rootSchema,
+	}
+	rootSchema.Dir["ref"] = refListSchema
+	refListSchema.Dir = map[string]*yang.Entry{
+		"key": &yang.Entry{
+			Name:   "key",
+			Kind:   yang.LeafEntry,
+			Type:   &yang.YangType{Kind: yang.Yuint32},
+			Parent: refListSchema,
+		},
+		"val": &yang.Entry{
+			Name: "val",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "../../target[key=current()/../key]/val",
+			},
+			Parent: refListSchema,
+		},
+	}
+
+	tests := []struct {
+		desc             string
+		inSchema         *yang.Entry
+		inValue          interface{}
+		inOpts           *LeafrefOptions
+		wantErrSubstring string
+	}{{
+		desc:     "succeeding relative reference",
+		inSchema: rootSchema,
+		inValue: &root{
+			Target: map[uint32]*genericList{
+				1: {ygot.Uint32(1), ygot.Uint32(42)},
+				2: {ygot.Uint32(2), ygot.Uint32(422)},
+			},
+			Ref: map[uint32]*genericList{
+				1: {ygot.Uint32(1), ygot.Uint32(42)},
+				2: {ygot.Uint32(2), ygot.Uint32(422)},
+			},
+		},
+	}, {
+		desc:     "failing relative reference",
+		inSchema: rootSchema,
+		inValue: &root{
+			Target: map[uint32]*genericList{
+				1: {ygot.Uint32(1), ygot.Uint32(42)},
+				2: {ygot.Uint32(2), ygot.Uint32(422)},
+			},
+			Ref: map[uint32]*genericList{
+				1: {ygot.Uint32(1), ygot.Uint32(422)}, // this should fail -- since we're looking for /target[key=1]/value = 422 which isn't there in the data.
+				2: {ygot.Uint32(2), ygot.Uint32(422)},
+			},
+		},
+		wantErrSubstring: "not equal to any target nodes",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := ValidateLeafRefData(tt.inSchema, tt.inValue, tt.inOpts)
+			switch {
+			case errs == nil && tt.wantErrSubstring != "":
+				t.Fatalf("unexpectedly got nil errors, want: %s", tt.wantErrSubstring)
+			case tt.wantErrSubstring != "" && !strings.Contains(errs.String(), tt.wantErrSubstring):
+				t.Fatalf("did not get expected error, got: %s, want error containing: %s", errs, tt.wantErrSubstring)
+			}
+		})
+	}
+}
