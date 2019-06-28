@@ -24,9 +24,30 @@ import (
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
+
+// This type's purpose is to memoize leafref query results - there are
+// frequently identical queries, some of which can be very expensive since the
+// tree could be deep and wide. Memoizing allows us to give up some memory for
+// speed.
+type nodeQueryMemo map[nodeQueryKey]nodeQueryVal
+
+// Key for the nodeQueryMemo.
+// The memo's key uniquely identifies a node
+// Thus, node+path uniquely identifies a query.
+type nodeQueryKey struct {
+	node reflect.Value
+	path string
+}
+
+// Type to store query results for nodeQueryMemo given each unique query.
+type nodeQueryVal struct {
+	nodes []interface{}
+	e     error
+}
 
 // ValidateLeafRefData traverses the entire tree with root value and the given
 // corresponding schema. For the referring node A, the leafref will point to a
@@ -46,9 +67,9 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOpti
 		return nil
 	}
 
-	// validateLefRefDataIterFunc is called on every node in the tree through
+	// validateLeafRefDataIterFunc is called on every node in the tree through
 	// ForEachField below.
-	validateLefRefDataIterFunc := func(ni *util.NodeInfo, in, out interface{}) util.Errors {
+	validateLeafRefDataIterFunc := func(ni *util.NodeInfo, in, out interface{}) util.Errors {
 		if util.IsValueNil(ni) || util.IsNilOrInvalidValue(ni.FieldValue) {
 			return nil
 		}
@@ -60,11 +81,15 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOpti
 			return nil
 		}
 
-		gNMIPath, err := leafRefToGNMIPath(ni, schema.Type.Path)
+		nodeQueryMemoPtr, ok := in.(*nodeQueryMemo)
+		if !ok {
+			return util.NewErrs(fmt.Errorf("expected input to validateLeafRefDataIterFunc to be type *nodeQueryMemo, but got %T", in))
+		}
+		gNMIPath, err := leafRefToGNMIPath(ni, schema.Type.Path, nodeQueryMemoPtr)
 		if err != nil {
 			return util.NewErrs(err)
 		}
-		matchNodes, err := dataNodesAtPath(ni, gNMIPath)
+		matchNodes, err := dataNodesAtPath(ni, gNMIPath, nodeQueryMemoPtr)
 		if err != nil {
 			return util.NewErrs(err)
 		}
@@ -86,7 +111,7 @@ func ValidateLeafRefData(schema *yang.Entry, value interface{}, opt *LeafrefOpti
 		return nil
 	}
 
-	return util.ForEachField(schema, value, nil, nil, validateLefRefDataIterFunc)
+	return util.ForEachField(schema, value, &nodeQueryMemo{}, nil, validateLeafRefDataIterFunc)
 }
 
 // leafrefErrOrLog returns an error if the global ValidationOptions specifies
@@ -109,7 +134,7 @@ func leafrefErrOrLog(e util.Errors, opt *LeafrefOptions) util.Errors {
 // path references of the form a[k1 = ../path/to/val and k2 = ...] to a GNMI
 // path where the key values are the values being referenced i.e.
 // ../path/to/val above is replaced with the actual value at that path.
-func leafRefToGNMIPath(root *util.NodeInfo, path string) (*gpb.Path, error) {
+func leafRefToGNMIPath(root *util.NodeInfo, path string, nodeQueryMemoPtr *nodeQueryMemo) (*gpb.Path, error) {
 	pv := splitPath(path)
 	out := &gpb.Path{}
 
@@ -135,7 +160,7 @@ func leafRefToGNMIPath(root *util.NodeInfo, path string) (*gpb.Path, error) {
 			v = strings.TrimPrefix(v, "current()/")
 
 			gp.Key = make(map[string]string)
-			ns, err := dataNodesAtPath(root, pathNoKeysToGNMIPath(v))
+			ns, err := dataNodesAtPath(root, pathNoKeysToGNMIPath(v), nodeQueryMemoPtr)
 			var j []byte
 			switch len(ns) {
 			case 0:
@@ -162,7 +187,7 @@ func leafRefToGNMIPath(root *util.NodeInfo, path string) (*gpb.Path, error) {
 
 // dataNodesAtPath returns all nodes that match the given path from the given
 // node.
-func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path) ([]interface{}, error) {
+func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, nodeQueryMemoPtr *nodeQueryMemo) ([]interface{}, error) {
 	util.DbgPrint("DataNodeAtPath got leafref with path %s from node path %s, field name %s", path, ni.Schema.Path(), ni.StructField.Name)
 	if path == nil || len(path.GetElem()) == 0 {
 		return []interface{}{ni}, nil
@@ -207,7 +232,27 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path) ([]interface{}, error) {
 	}
 
 	util.DbgPrint("root element type %s with remaining path %s", root.FieldValue.Type(), path)
+
+	// Check whether we have already done a lookup for the path specified by 'path' from this root before
+	// -- if so, return it from the cache rather than walking the tree again
+
+	// First, create the query's unique signature (nodeQueryKey)
+	node := reflect.ValueOf(root.FieldValue.Interface())
+	strPath, err := ygot.PathToString(path)
+	if err != nil {
+		return nil, err
+	}
+	// value of qKey uniquely-identifies a query
+	qKey := nodeQueryKey{node: node, path: strPath}
+
+	// Now, check for the query in the memo map.
+	memo := *nodeQueryMemoPtr
+	qVal, ok := memo[qKey]
+	if ok {
+		return qVal.nodes, qVal.e
+	}
 	nodes, _, err := util.GetNodes(root.Schema, root.FieldValue.Interface(), path)
+	memo[qKey] = nodeQueryVal{nodes: nodes, e: err}
 	return nodes, err
 }
 
@@ -513,7 +558,7 @@ func removeQuotes(s string) string {
 	return strings.TrimSuffix(out, "\"")
 }
 
-// pathNoKeysToGNMIPath conerts the supplied path, which may not contain any
+// pathNoKeysToGNMIPath converts the supplied path, which may not contain any
 // keys, into a GNMI path.
 func pathNoKeysToGNMIPath(path string) *gpb.Path {
 	out := &gpb.Path{}
