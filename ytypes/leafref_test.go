@@ -721,13 +721,13 @@ func TestLeafrefValidateCurrent(t *testing.T) {
 	}
 	rootSchema.Dir["target"] = targetListSchema
 	targetListSchema.Dir = map[string]*yang.Entry{
-		"key": &yang.Entry{
+		"key": {
 			Name:   "key",
 			Kind:   yang.LeafEntry,
 			Type:   &yang.YangType{Kind: yang.Yuint32},
 			Parent: targetListSchema,
 		},
-		"val": &yang.Entry{
+		"val": {
 			Name:   "val",
 			Kind:   yang.LeafEntry,
 			Type:   &yang.YangType{Kind: yang.Yuint32},
@@ -744,13 +744,13 @@ func TestLeafrefValidateCurrent(t *testing.T) {
 	}
 	rootSchema.Dir["ref"] = refListSchema
 	refListSchema.Dir = map[string]*yang.Entry{
-		"key": &yang.Entry{
+		"key": {
 			Name:   "key",
 			Kind:   yang.LeafEntry,
 			Type:   &yang.YangType{Kind: yang.Yuint32},
 			Parent: refListSchema,
 		},
-		"val": &yang.Entry{
+		"val": {
 			Name: "val",
 			Kind: yang.LeafEntry,
 			Type: &yang.YangType{
