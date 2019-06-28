@@ -134,6 +134,25 @@ func TestValidateLeafRefData(t *testing.T) {
 							Path: "../../list[key = current()/../../key]/int32",
 						},
 					},
+					"key": {
+						Name: "key",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+					"container3": {
+						Name: "container3",
+						Kind: yang.DirectoryEntry,
+						Dir: map[string]*yang.Entry{
+							"int32-ref-to-list": {
+								Name: "int32-ref-to-list",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{
+									Kind: yang.Yleafref,
+									Path: "../../../list[key = current()/../../key]/int32",
+								},
+							},
+						},
+					},
 					"leaf-list-with-leafref": {
 						Name: "leaf-list-with-leafref",
 						Kind: yang.LeafEntry,
@@ -156,14 +175,19 @@ func TestValidateLeafRefData(t *testing.T) {
 		},
 	}
 
+	type Container3 struct {
+		LeafRefToList *int32 `path:"int32-ref-to-list"`
+	}
 	type Container2 struct {
-		LeafRefToInt32         *int32   `path:"int32-ref-to-leaf"`
-		LeafRefToEnum          int64    `path:"enum-ref-to-leaf"`
-		LeafRefToLeafList      *int32   `path:"int32-ref-to-leaf-list"`
-		LeafListRefToLeafList  []*int32 `path:"leaf-list-ref-to-leaf-list"`
-		LeafRefToList          *int32   `path:"int32-ref-to-list"`
-		LeafListLeafRefToInt32 []*int32 `path:"leaf-list-with-leafref"`
-		LeafRefToUnion         Union1   `path:"leaf-ref-to-union"`
+		LeafRefToInt32         *int32      `path:"int32-ref-to-leaf"`
+		LeafRefToEnum          int64       `path:"enum-ref-to-leaf"`
+		LeafRefToLeafList      *int32      `path:"int32-ref-to-leaf-list"`
+		LeafListRefToLeafList  []*int32    `path:"leaf-list-ref-to-leaf-list"`
+		LeafRefToList          *int32      `path:"int32-ref-to-list"`
+		Key                    *int32      `path:"key"`
+		Container3             *Container3 `path:"container3"`
+		LeafListLeafRefToInt32 []*int32    `path:"leaf-list-with-leafref"`
+		LeafRefToUnion         Union1      `path:"leaf-ref-to-union"`
 	}
 	type ListElement struct {
 		Key   *int32 `path:"key"`
@@ -304,6 +328,49 @@ func TestValidateLeafRefData(t *testing.T) {
 				Container2: &Container2{LeafRefToList: Int32(43)},
 			},
 			wantErr: `pointed-to value with path ../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
+		},
+		{
+			// The idea for this test is that since "current()/../../key" depends on context,
+			// the implementation should be getting distinct values for these correctly.
+			desc: "different level keyed list, bad value on upper node",
+			in: &Container{
+				List: map[int32]*ListElement{
+					1: {Int32(1), Int32(42)},
+					2: {Int32(2), Int32(43)},
+				},
+				Key: Int32(3),
+				Container2: &Container2{
+					Key:           Int32(2),
+					LeafRefToList: Int32(43),
+					Container3: &Container3{
+						LeafRefToList: Int32(43),
+					},
+				},
+			},
+			wantErr: `pointed-to value with path ../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
+		},
+		{
+			// By swapping which of the upper/lower nodes is pointing to a bad value,
+			// we make the testing more robust to implementation details, which may
+			// allow one of these to pass.
+			// e.g. it caches the results for "current()/../../key", but visits
+			// the nodes in a certain order to make one of the tests pass.
+			desc: "different level keyed list, bad value on lower node",
+			in: &Container{
+				List: map[int32]*ListElement{
+					1: {Int32(1), Int32(42)},
+					2: {Int32(2), Int32(43)},
+				},
+				Key: Int32(2),
+				Container2: &Container2{
+					Key:           Int32(3),
+					LeafRefToList: Int32(43),
+					Container3: &Container3{
+						LeafRefToList: Int32(43),
+					},
+				},
+			},
+			wantErr: `pointed-to value with path ../../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
 		},
 		{
 			desc: "union leafref - string",
