@@ -1980,6 +1980,10 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, abs
 		// isKey to true so that the struct field can be mapped to the
 		// leafref leaf within the schema as well as the target of the
 		// leafref.
+		if k.Parent == nil || k.Parent.Parent == nil || k.Parent.Parent.Dir[k.Name] == nil || k.Parent.Parent.Dir[k.Name].Type == nil {
+			return nil, fmt.Errorf("invalid compressed schema, could not find the key %s or the grandparent of %s", k.Name, k.Path())
+		}
+
 		if reflect.DeepEqual(traverseElementSchemaPath(k), fieldSlicePath) && k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref {
 			// The path of the key element is simply the name of the leaf under the
 			// list, since the YANG specification enforces that keys are direct

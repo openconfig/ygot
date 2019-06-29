@@ -16,10 +16,12 @@ package ytypes
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/ygot"
 )
 
 func TestValidateLeafRefData(t *testing.T) {
@@ -134,6 +136,25 @@ func TestValidateLeafRefData(t *testing.T) {
 							Path: "../../list[key = current()/../../key]/int32",
 						},
 					},
+					"key": {
+						Name: "key",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+					"container3": {
+						Name: "container3",
+						Kind: yang.DirectoryEntry,
+						Dir: map[string]*yang.Entry{
+							"int32-ref-to-list": {
+								Name: "int32-ref-to-list",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{
+									Kind: yang.Yleafref,
+									Path: "../../../list[key = current()/../../key]/int32",
+								},
+							},
+						},
+					},
 					"leaf-list-with-leafref": {
 						Name: "leaf-list-with-leafref",
 						Kind: yang.LeafEntry,
@@ -156,14 +177,19 @@ func TestValidateLeafRefData(t *testing.T) {
 		},
 	}
 
+	type Container3 struct {
+		LeafRefToList *int32 `path:"int32-ref-to-list"`
+	}
 	type Container2 struct {
-		LeafRefToInt32         *int32   `path:"int32-ref-to-leaf"`
-		LeafRefToEnum          int64    `path:"enum-ref-to-leaf"`
-		LeafRefToLeafList      *int32   `path:"int32-ref-to-leaf-list"`
-		LeafListRefToLeafList  []*int32 `path:"leaf-list-ref-to-leaf-list"`
-		LeafRefToList          *int32   `path:"int32-ref-to-list"`
-		LeafListLeafRefToInt32 []*int32 `path:"leaf-list-with-leafref"`
-		LeafRefToUnion         Union1   `path:"leaf-ref-to-union"`
+		LeafRefToInt32         *int32      `path:"int32-ref-to-leaf"`
+		LeafRefToEnum          int64       `path:"enum-ref-to-leaf"`
+		LeafRefToLeafList      *int32      `path:"int32-ref-to-leaf-list"`
+		LeafListRefToLeafList  []*int32    `path:"leaf-list-ref-to-leaf-list"`
+		LeafRefToList          *int32      `path:"int32-ref-to-list"`
+		Key                    *int32      `path:"key"`
+		Container3             *Container3 `path:"container3"`
+		LeafListLeafRefToInt32 []*int32    `path:"leaf-list-with-leafref"`
+		LeafRefToUnion         Union1      `path:"leaf-ref-to-union"`
 	}
 	type ListElement struct {
 		Key   *int32 `path:"key"`
@@ -304,6 +330,49 @@ func TestValidateLeafRefData(t *testing.T) {
 				Container2: &Container2{LeafRefToList: Int32(43)},
 			},
 			wantErr: `pointed-to value with path ../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
+		},
+		{
+			// The idea for this test is that since "current()/../../key" depends on context,
+			// the implementation should be getting distinct values for these correctly.
+			desc: "different level keyed list, bad value on upper node",
+			in: &Container{
+				List: map[int32]*ListElement{
+					1: {Int32(1), Int32(42)},
+					2: {Int32(2), Int32(43)},
+				},
+				Key: Int32(3),
+				Container2: &Container2{
+					Key:           Int32(2),
+					LeafRefToList: Int32(43),
+					Container3: &Container3{
+						LeafRefToList: Int32(43),
+					},
+				},
+			},
+			wantErr: `pointed-to value with path ../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
+		},
+		{
+			// By swapping which of the upper/lower nodes is pointing to a bad value,
+			// we make the testing more robust to implementation details, which may
+			// allow one of these to pass.
+			// e.g. it caches the results for "current()/../../key", but visits
+			// the nodes in a certain order to make one of the tests pass.
+			desc: "different level keyed list, bad value on lower node",
+			in: &Container{
+				List: map[int32]*ListElement{
+					1: {Int32(1), Int32(42)},
+					2: {Int32(2), Int32(43)},
+				},
+				Key: Int32(2),
+				Container2: &Container2{
+					Key:           Int32(3),
+					LeafRefToList: Int32(43),
+					Container3: &Container3{
+						LeafRefToList: Int32(43),
+					},
+				},
+			},
+			wantErr: `pointed-to value with path ../../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
 		},
 		{
 			desc: "union leafref - string",
@@ -616,3 +685,126 @@ func TestPathMatchesPrefix(t *testing.T) {
 }
 
 func Int32(i int32) *int32 { return &i }
+
+type genericList struct {
+	Key *uint32 `path:"key"`
+	Val *uint32 `path:"val"`
+}
+
+type root struct {
+	Target map[uint32]*genericList `path:"target"`
+	Ref    map[uint32]*genericList `path:"ref"`
+}
+
+func TestLeafrefValidateCurrent(t *testing.T) {
+	// This test checks against an uncompressed schema to determine whether we are able to validate references
+	// correctly. It covers an ugly bit of logic concerning having two entries for lists in the data tree (one
+	// which is the member of the list, and one which is the map.
+	//
+	// TODO(robjs): Seriously think about whether we should refactor here, this code is very complex to understand
+	// and even harder to debug. :-( I think we made a mistake here.
+
+	rootSchema := &yang.Entry{
+		Name: "root",
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+		Annotation: map[string]interface{}{
+			"isFakeRoot": true,
+		},
+	}
+	targetListSchema := &yang.Entry{
+		Name:     "target",
+		Key:      "key",
+		Kind:     yang.DirectoryEntry,
+		ListAttr: &yang.ListAttr{},
+		Parent:   rootSchema,
+	}
+	rootSchema.Dir["target"] = targetListSchema
+	targetListSchema.Dir = map[string]*yang.Entry{
+		"key": {
+			Name:   "key",
+			Kind:   yang.LeafEntry,
+			Type:   &yang.YangType{Kind: yang.Yuint32},
+			Parent: targetListSchema,
+		},
+		"val": {
+			Name:   "val",
+			Kind:   yang.LeafEntry,
+			Type:   &yang.YangType{Kind: yang.Yuint32},
+			Parent: targetListSchema,
+		},
+	}
+
+	refListSchema := &yang.Entry{
+		Name:     "ref",
+		Kind:     yang.DirectoryEntry,
+		Key:      "key",
+		ListAttr: &yang.ListAttr{},
+		Parent:   rootSchema,
+	}
+	rootSchema.Dir["ref"] = refListSchema
+	refListSchema.Dir = map[string]*yang.Entry{
+		"key": {
+			Name:   "key",
+			Kind:   yang.LeafEntry,
+			Type:   &yang.YangType{Kind: yang.Yuint32},
+			Parent: refListSchema,
+		},
+		"val": {
+			Name: "val",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "../../target[key=current()/../key]/val",
+			},
+			Parent: refListSchema,
+		},
+	}
+
+	tests := []struct {
+		desc             string
+		inSchema         *yang.Entry
+		inValue          interface{}
+		inOpts           *LeafrefOptions
+		wantErrSubstring string
+	}{{
+		desc:     "succeeding relative reference",
+		inSchema: rootSchema,
+		inValue: &root{
+			Target: map[uint32]*genericList{
+				1: {ygot.Uint32(1), ygot.Uint32(42)},
+				2: {ygot.Uint32(2), ygot.Uint32(422)},
+			},
+			Ref: map[uint32]*genericList{
+				1: {ygot.Uint32(1), ygot.Uint32(42)},
+				2: {ygot.Uint32(2), ygot.Uint32(422)},
+			},
+		},
+	}, {
+		desc:     "failing relative reference",
+		inSchema: rootSchema,
+		inValue: &root{
+			Target: map[uint32]*genericList{
+				1: {ygot.Uint32(1), ygot.Uint32(42)},
+				2: {ygot.Uint32(2), ygot.Uint32(422)},
+			},
+			Ref: map[uint32]*genericList{
+				1: {ygot.Uint32(1), ygot.Uint32(422)}, // this should fail -- since we're looking for /target[key=1]/value = 422 which isn't there in the data.
+				2: {ygot.Uint32(2), ygot.Uint32(422)},
+			},
+		},
+		wantErrSubstring: "not equal to any target nodes",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := ValidateLeafRefData(tt.inSchema, tt.inValue, tt.inOpts)
+			switch {
+			case errs == nil && tt.wantErrSubstring != "":
+				t.Fatalf("unexpectedly got nil errors, want: %s", tt.wantErrSubstring)
+			case tt.wantErrSubstring != "" && !strings.Contains(errs.String(), tt.wantErrSubstring):
+				t.Fatalf("did not get expected error, got: %s, want error containing: %s", errs, tt.wantErrSubstring)
+			}
+		})
+	}
+}
