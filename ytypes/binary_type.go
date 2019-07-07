@@ -37,8 +37,8 @@ func validateBinary(schema *yang.Entry, value interface{}) error {
 	}
 
 	// Check that type of value is the type expected from the schema.
-	valueT := reflect.TypeOf(value)
-	if valueT.Name() != ygot.BinaryTypeName || valueT.Kind() != reflect.Slice || valueT.Elem().Kind() != reflect.Uint8 {
+	t := reflect.TypeOf(value)
+	if t.Name() != ygot.BinaryTypeName || t.Kind() != reflect.Slice || t.Elem().Kind() != reflect.Uint8 {
 		return fmt.Errorf("non binary type %T with value %v for schema %s", value, value, schema.Name)
 	}
 
@@ -61,16 +61,16 @@ func validateBinarySlice(schema *yang.Entry, value interface{}) error {
 	}
 
 	// Check that type of value is the type expected from the schema.
-	valueT := reflect.TypeOf(value)
-	if valueT.Kind() != reflect.Slice || valueT.Elem().Name() != ygot.BinaryTypeName {
+	t := reflect.TypeOf(value)
+	if t == nil || t.Kind() != reflect.Slice || t.Elem().Name() != ygot.BinaryTypeName {
 		return fmt.Errorf("non []Binary type %T with value: %v for schema %s", value, value, schema.Name)
 	}
 
 	// Each slice element must be valid and unique.
-	valueV := reflect.ValueOf(value)
-	tbl := make(map[string]bool, valueV.Len())
-	for i := 0; i < valueV.Len(); i++ {
-		val := valueV.Index(i)
+	v := reflect.ValueOf(value)
+	tbl := make(map[string]bool, v.Len())
+	for i := 0; i < v.Len(); i++ {
+		val := v.Index(i)
 		if err := validateBinary(schema, val.Interface()); err != nil {
 			return fmt.Errorf("invalid element at index %d: %v", i, err)
 		}

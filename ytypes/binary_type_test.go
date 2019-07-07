@@ -139,6 +139,18 @@ func TestValidateBinary(t *testing.T) {
 			val:        Binary("a09Z+/"),
 		},
 		{
+			desc:       "success - nil binary",
+			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
+			schemaName: "range-2-to-10",
+			val:        Binary(nil),
+		},
+		{
+			desc:       "success - nil",
+			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
+			schemaName: "range-2-to-10",
+			val:        nil,
+		},
+		{
 			desc:       "bad schema",
 			length:     yang.YRange{Min: yang.FromInt(20), Max: yang.FromInt(10)},
 			schemaName: "bad-range",
