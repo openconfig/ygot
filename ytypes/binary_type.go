@@ -16,9 +16,11 @@ package ytypes
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygot"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.8.
@@ -35,12 +37,13 @@ func validateBinary(schema *yang.Entry, value interface{}) error {
 	}
 
 	// Check that type of value is the type expected from the schema.
-	binaryVal, ok := value.([]byte)
-	if !ok {
+	valueT := reflect.TypeOf(value)
+	if valueT.Name() != ygot.BinaryTypeName || valueT.Kind() != reflect.Slice || valueT.Elem().Kind() != reflect.Uint8 {
 		return fmt.Errorf("non binary type %T with value %v for schema %s", value, value, schema.Name)
 	}
 
 	// Check that the length is within the allowed range.
+	binaryVal := reflect.ValueOf(value).Bytes()
 	allowedRanges := schema.Type.Length
 	if !lengthOk(allowedRanges, uint64(len(binaryVal))) {
 		return fmt.Errorf("length %d is outside range %v for schema %s", len(binaryVal), allowedRanges, schema.Name)
@@ -58,21 +61,24 @@ func validateBinarySlice(schema *yang.Entry, value interface{}) error {
 	}
 
 	// Check that type of value is the type expected from the schema.
-	slice, ok := value.([][]byte)
-	if !ok {
-		return fmt.Errorf("non []string type %T with value: %v for schema %s", value, value, schema.Name)
+	valueT := reflect.TypeOf(value)
+	if valueT.Kind() != reflect.Slice || valueT.Elem().Name() != ygot.BinaryTypeName {
+		return fmt.Errorf("non []Binary type %T with value: %v for schema %s", value, value, schema.Name)
 	}
 
 	// Each slice element must be valid and unique.
-	tbl := make(map[string]bool, len(slice))
-	for i, val := range slice {
-		if err := validateBinary(schema, val); err != nil {
+	valueV := reflect.ValueOf(value)
+	tbl := make(map[string]bool, valueV.Len())
+	for i := 0; i < valueV.Len(); i++ {
+		val := valueV.Index(i)
+		if err := validateBinary(schema, val.Interface()); err != nil {
 			return fmt.Errorf("invalid element at index %d: %v", i, err)
 		}
-		if tbl[string(val)] {
-			return fmt.Errorf("duplicate binary type: %v for schema %s", val, schema.Name)
+		binaryVal := val.Bytes()
+		if tbl[string(binaryVal)] {
+			return fmt.Errorf("duplicate binary type: %v for schema %s", binaryVal, schema.Name)
 		}
-		tbl[string(val)] = true
+		tbl[string(binaryVal)] = true
 	}
 	return nil
 }

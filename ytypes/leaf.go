@@ -79,7 +79,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 
 	switch ykind {
 	case yang.Ybinary:
-		return util.NewErrs(validateBinary(schema, rv))
+		return util.NewErrs(validateBinary(schema, value))
 	case yang.Ybits:
 		return nil
 		// TODO(mostrowski): restore when representation is decided.
@@ -418,9 +418,11 @@ func validateLeafSchema(schema *yang.Entry) error {
 	return nil
 }
 
-// YANGEmpty is a derived type which is used to represent the YANG
-// empty type.
+// YANGEmpty is a derived type which is used to represent the YANG empty type.
 type YANGEmpty bool
+
+// Binary is a derived type which is used to represent the YANG binary type.
+type Binary []byte
 
 // unmarshalLeaf unmarshals a scalar value (determined by json.Unmarshal) into
 // the parent containing the leaf.
