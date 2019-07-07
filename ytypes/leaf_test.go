@@ -49,7 +49,7 @@ func yrangeToLeafSchema(name string, yr yang.YRange) *yang.Entry {
 		Name: name,
 		Kind: yang.LeafEntry,
 		Type: &yang.YangType{
-			Kind: yang.Ybinary,
+			Kind:   yang.Ybinary,
 			Length: yang.YangRange{yr},
 		},
 	}
