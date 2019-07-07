@@ -854,7 +854,7 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 	}
 
 	switch ykind {
-	case yang.Ybool:
+	case yang.Ybool, yang.Yempty:
 		return tv.GetBoolVal(), nil
 	case yang.Ystring:
 		return tv.GetStringVal(), nil
@@ -902,7 +902,7 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue) bool {
 	var ok bool
 	switch ykind {
-	case yang.Ybool:
+	case yang.Ybool, yang.Yempty:
 		_, ok = tv.GetValue().(*gpb.TypedValue_BoolVal)
 	case yang.Ystring, yang.Yenum, yang.Yidentityref:
 		_, ok = tv.GetValue().(*gpb.TypedValue_StringVal)

@@ -1658,6 +1658,16 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantVal: &LeafContainerStruct{BoolLeaf: ygot.Bool(true)},
 		},
 		{
+			desc:     "success gNMI BoolVal to Yempty",
+			inSchema: typeToLeafSchema("empty-leaf", yang.Yempty),
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_BoolVal{
+					BoolVal: true,
+				},
+			},
+			wantVal: &LeafContainerStruct{EmptyLeaf: YANGEmpty(true)},
+		},
+		{
 			desc:     "success gNMI StringVal to Ystring",
 			inSchema: typeToLeafSchema("string-leaf", yang.Ystring),
 			inVal: &gpb.TypedValue{
