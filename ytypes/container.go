@@ -71,7 +71,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 				if errs := Validate(cschema, fieldValue); errs != nil {
 					errors = util.AppendErrs(errors, util.PrefixErrors(errs, cschema.Path()))
 				}
-			case !structElems.Field(i).IsNil():
+			case !util.IsValueNilOrDefault(structElems.Field(i).Interface()):
 				// Either an element in choice schema subtree, or bad field.
 				// If the former, it will be found in the choice check below.
 				extraFields[fieldName] = nil
