@@ -37,8 +37,7 @@ func validateBinary(schema *yang.Entry, value interface{}) error {
 	}
 
 	// Check that type of value is the type expected from the schema.
-	t := reflect.TypeOf(value)
-	if t.Name() != ygot.BinaryTypeName || t.Kind() != reflect.Slice || t.Elem().Kind() != reflect.Uint8 {
+	if !isBinaryType(reflect.TypeOf(value)) {
 		return fmt.Errorf("non binary type %T with value %v for schema %s", value, value, schema.Name)
 	}
 
@@ -61,8 +60,7 @@ func validateBinarySlice(schema *yang.Entry, value interface{}) error {
 	}
 
 	// Check that type of value is the type expected from the schema.
-	t := reflect.TypeOf(value)
-	if t == nil || t.Kind() != reflect.Slice || t.Elem().Name() != ygot.BinaryTypeName {
+	if !isBinarySliceType(reflect.TypeOf(value)) {
 		return fmt.Errorf("non []Binary type %T with value: %v for schema %s", value, value, schema.Name)
 	}
 
@@ -98,4 +96,14 @@ func validateBinarySchema(schema *yang.Entry) error {
 		return fmt.Errorf("binary schema %s has wrong type %v", schema.Name, schema.Type.Kind)
 	}
 	return validateLengthSchema(schema)
+}
+
+// isBinaryType reports whether input t is a Binary type derived from []byte.
+func isBinaryType(t reflect.Type) bool {
+	return t != nil && t.Name() == ygot.BinaryTypeName && t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8
+}
+
+// isBinarySliceType reports whether input t is a []Binary type
+func isBinarySliceType(t reflect.Type) bool {
+	return t != nil && t.Kind() == reflect.Slice && isBinaryType(t.Elem())
 }

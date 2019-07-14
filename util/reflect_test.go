@@ -605,6 +605,13 @@ func TestInsertIntoStruct(t *testing.T) {
 			wantVal:      &BasicStruct{ByteSliceField: derivedByteSlice([]byte("forty two"))},
 		},
 		{
+			desc:         "derived []byte with []uint8 value",
+			parentStruct: &BasicStruct{},
+			fieldName:    "ByteSliceField",
+			fieldValue:   []uint8("forty two"),
+			wantVal:      &BasicStruct{ByteSliceField: derivedByteSlice([]byte("forty two"))},
+		},
+		{
 			desc:         "[]string to derived []byte field error",
 			parentStruct: &BasicStruct{},
 			fieldName:    "ByteSliceField",
