@@ -31,6 +31,21 @@ type ChoiceStruct struct {
 
 func (c *ChoiceStruct) IsYANGGoStruct() {}
 
+type BadChoiceStruct struct {
+	StringLeaf    *string `path:"string-leaf"`
+	BadNoPathLeaf *int32  ``
+}
+
+func (*BadChoiceStruct) IsYANGGoStruct() {}
+
+type ChoiceEmptyEnumStringStruct struct {
+	EmptyLeaf  YANGEmpty `path:"empty-leaf"`
+	EnumLeaf   EnumType  `path:"enum-leaf"`
+	StringLeaf *string   `path:"string-leaf"`
+}
+
+func (*ChoiceEmptyEnumStringStruct) IsYANGGoStruct() {}
+
 func TestValidateChoice(t *testing.T) {
 	containerWithChoiceSchema := &yang.Entry{
 		Name: "container-with-choice-schema",
@@ -79,25 +94,136 @@ func TestValidateChoice(t *testing.T) {
 		},
 	}
 
+	containerWithBadChoiceSchema := &yang.Entry{
+		Name: "container-with-bad-choice-schema",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"choice1": {
+				Name: "choice1",
+				Kind: yang.ChoiceEntry,
+				Dir: map[string]*yang.Entry{
+					"case1": {
+						Name: "case1",
+						Kind: yang.CaseEntry,
+						Dir: map[string]*yang.Entry{
+							"string-leaf": {
+								Name: "string-leaf",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Ystring},
+							},
+						},
+					},
+					"case2": {
+						Name: "case2",
+						Kind: yang.CaseEntry,
+						Dir: map[string]*yang.Entry{
+							"bad-no-path-leaf": {
+								Name: "bad-no-path-leaf",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Yint32},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	containerWithChoiceEmptyEnumStringSchema := &yang.Entry{
+		Name: "container-with-choice-empty-enum-string-schema",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"choice1": {
+				Name: "choice1",
+				Kind: yang.ChoiceEntry,
+				Dir: map[string]*yang.Entry{
+					"case1": {
+						Name: "case1",
+						Kind: yang.CaseEntry,
+						Dir: map[string]*yang.Entry{
+							"empty-leaf": {
+								Name: "empty-leaf",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Yempty},
+							},
+						},
+					},
+					"case2": {
+						Name: "case2",
+						Kind: yang.CaseEntry,
+						Dir: map[string]*yang.Entry{
+							"enum-leaf": {
+								Name: "enum-leaf",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Yenum},
+							},
+						},
+					},
+					"case3": {
+						Name: "case3",
+						Kind: yang.CaseEntry,
+						Dir: map[string]*yang.Entry{
+							"string-leaf": {
+								Name: "string-leaf",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Ystring},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	tests := []struct {
 		desc    string
 		val     interface{}
+		schema  *yang.Entry
 		wantErr bool
 	}{
 		{
-			desc: "success",
-			val:  &ChoiceStruct{Case1Leaf1: ygot.String("Case1Leaf1Value")},
+			desc:   "success",
+			schema: containerWithChoiceSchema,
+			val:    &ChoiceStruct{Case1Leaf1: ygot.String("Case1Leaf1Value")},
 		},
 		{
 			desc:    "multiple cases selected",
+			schema:  containerWithChoiceSchema,
 			val:     &ChoiceStruct{Case1Leaf1: ygot.String("Case1Leaf1Value"), Case21Leaf1: ygot.String("Case21Leaf1Value")},
+			wantErr: true,
+		},
+		{
+			desc:   "success - #189 - empty",
+			schema: containerWithChoiceEmptyEnumStringSchema,
+			val:    &ChoiceEmptyEnumStringStruct{EmptyLeaf: YANGEmpty(true)},
+		},
+		{
+			desc:   "success - #189 - enum",
+			schema: containerWithChoiceEmptyEnumStringSchema,
+			val:    &ChoiceEmptyEnumStringStruct{EnumLeaf: EnumType(42)},
+		},
+		{
+			desc:   "success - #189 - string & unset enum/empty",
+			schema: containerWithChoiceEmptyEnumStringSchema,
+			val:    &ChoiceEmptyEnumStringStruct{EmptyLeaf: YANGEmpty(false), EnumLeaf: EnumType(0), StringLeaf: ygot.String("")},
+		},
+		{
+			desc:    "multiple cases selected - #189",
+			schema:  containerWithChoiceEmptyEnumStringSchema,
+			val:     &ChoiceEmptyEnumStringStruct{EmptyLeaf: YANGEmpty(true), EnumLeaf: EnumType(0), StringLeaf: ygot.String("")},
+			wantErr: true,
+		},
+		{
+			desc:    "bad struct missing path tag",
+			schema:  containerWithBadChoiceSchema,
+			val:     &BadChoiceStruct{BadNoPathLeaf: ygot.Int32(42)},
 			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			errs := Validate(containerWithChoiceSchema, tt.val)
+			errs := Validate(tt.schema, tt.val)
 			if got, want := (errs != nil), tt.wantErr; got != want {
 				t.Errorf("%s: Validate got error: %s, want error? %v", tt.desc, errs, tt.wantErr)
 			}

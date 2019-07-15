@@ -34,11 +34,13 @@ func errToString(err error) string {
 }
 
 type ContainerStruct struct {
-	Leaf1Name   *string                     `path:"config/leaf1|leaf1"`
-	Leaf2Name   *string                     `path:"leaf2"`
-	BadLeafName *string                     `path:"bad-leaf"`
-	Annotation  *string                     `path:"@annotation" ygotAnnotation:"true"`
-	ChildList   map[string]*ContainerStruct `path:"child-list"`
+	Leaf1Name        *string                     `path:"config/leaf1|leaf1"`
+	Leaf2Name        *string                     `path:"leaf2"`
+	BadLeafName      *string                     `path:"bad-leaf"`
+	BadEmptyLeafName YANGEmpty                   `path:"bad-leaf-empty"`
+	BadEnumLeafName  EnumType                    `path:"bad-leaf-enum"`
+	Annotation       *string                     `path:"@annotation" ygotAnnotation:"true"`
+	ChildList        map[string]*ContainerStruct `path:"child-list"`
 }
 
 func (c *ContainerStruct) IsYANGGoStruct() {}
@@ -150,6 +152,16 @@ func TestValidateContainer(t *testing.T) {
 						Name: "bad-leaf",
 						Type: &yang.YangType{Kind: yang.Ystring, Pattern: []string{"^a.*"}},
 					},
+					"bad-leaf-empty": {
+						Kind: yang.LeafEntry,
+						Name: "bad-leaf-empty",
+						Type: &yang.YangType{Kind: yang.Yempty},
+					},
+					"bad-leaf-enum": {
+						Kind: yang.LeafEntry,
+						Name: "bad-leaf-enum",
+						Type: &yang.YangType{Kind: yang.Yenum},
+					},
 					// Placeholder due to re-using the ContainerStruct type.
 					"child-list": {Name: "child-list"},
 				},
@@ -182,6 +194,22 @@ func TestValidateContainer(t *testing.T) {
 				BadLeafName: ygot.String("value"),
 			},
 			wantErr: `fields [BadLeafName] are not found in the container schema container-schema`,
+		},
+		{
+			desc:   "bad field - #189 - empty",
+			schema: containerSchema,
+			val: &ContainerStruct{
+				BadEmptyLeafName: YANGEmpty(true),
+			},
+			wantErr: `fields [BadEmptyLeafName] are not found in the container schema container-schema`,
+		},
+		{
+			desc:   "bad field - #189 - enum",
+			schema: containerSchema,
+			val: &ContainerStruct{
+				BadEnumLeafName: EnumType(42),
+			},
+			wantErr: `fields [BadEnumLeafName] are not found in the container schema container-schema`,
 		},
 		{
 			desc:    "bad value type",
