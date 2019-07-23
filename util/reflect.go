@@ -472,6 +472,33 @@ type NodeInfo struct {
 	Annotation []interface{}
 }
 
+// PathQueryMemo caches nodes retrieved from (string) path queries. This memo
+// may be useful if an algorithm may do multiple queries against the same path
+// from the same node, any of which could be very expensive since the tree could
+// be deep and wide.
+type PathQueryMemo map[string]PathQueryResult
+
+// PathQueryResult stores a datanode query result.
+type PathQueryResult struct {
+	Nodes []interface{}
+	Err   error
+}
+
+// PathQueryNodeMemo caches previous path queries done against a particular node.
+// Parent pointer allows looking up the memos of its ancestor nodes.
+type PathQueryNodeMemo struct {
+	Parent *PathQueryNodeMemo
+	Memo   PathQueryMemo
+}
+
+// GetRoot returns the PathQueryNodeMemo of the current node's tree's root.
+func (node *PathQueryNodeMemo) GetRoot() *PathQueryNodeMemo {
+	for node.Parent != nil {
+		node = node.Parent
+	}
+	return node
+}
+
 // FieldIteratorFunc is an iteration function for arbitrary field traversals.
 // in, out are passed through from the caller to the iteration vistior function
 // and can be used to pass state in and out. They are not otherwise touched.
@@ -517,6 +544,16 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	var errs Errors
 	errs = AppendErrs(errs, iterFunction(ni, in, out))
 
+	// Special processing where an "in" input value is provided.
+	var newPathQueryMemo func() *PathQueryNodeMemo
+	switch v := in.(type) {
+	case *PathQueryNodeMemo: // Memoization of path queries requested.
+		newPathQueryMemo = func() *PathQueryNodeMemo {
+			return &PathQueryNodeMemo{Parent: v, Memo: PathQueryMemo{}}
+		}
+	default:
+	}
+
 	v := ni.FieldValue
 	t := v.Type()
 
@@ -548,6 +585,7 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 			if err != nil {
 				return NewErrs(err)
 			}
+
 			for _, p := range ps {
 				nn.Schema = ChildSchema(ni.Schema, p)
 				if nn.Schema == nil {
@@ -563,7 +601,12 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				if IsTypeSlice(sf.Type) || IsTypeMap(sf.Type) {
 					nn.PathFromParent = p[0:1]
 				}
-				errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+				switch in.(type) {
+				case *PathQueryNodeMemo: // Memoization of path queries requested.
+					errs = AppendErrs(errs, forEachFieldInternal(nn, newPathQueryMemo(), out, iterFunction))
+				default:
+					errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+				}
 			}
 		}
 
@@ -583,7 +626,12 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				Schema:         &schema,
 				FieldValue:     reflect.Zero(t.Elem()),
 			}
-			errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+			switch in.(type) {
+			case *PathQueryNodeMemo: // Memoization of path queries requested.
+				errs = AppendErrs(errs, forEachFieldInternal(nn, newPathQueryMemo(), out, iterFunction))
+			default:
+				errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+			}
 		} else {
 			for i := 0; i < ni.FieldValue.Len(); i++ {
 				nn := *ni
@@ -593,7 +641,12 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				nn.Parent = ni
 				nn.PathFromParent = pp
 				nn.FieldValue = ni.FieldValue.Index(i)
-				errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+				switch in.(type) {
+				case *PathQueryNodeMemo: // Memoization of path queries requested.
+					errs = AppendErrs(errs, forEachFieldInternal(&nn, newPathQueryMemo(), out, iterFunction))
+				default:
+					errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+				}
 			}
 		}
 
@@ -607,7 +660,12 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				Schema:         &schema,
 				FieldValue:     reflect.Zero(t.Elem()),
 			}
-			errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+			switch in.(type) {
+			case *PathQueryNodeMemo: // Memoization of path queries requested.
+				errs = AppendErrs(errs, forEachFieldInternal(nn, newPathQueryMemo(), out, iterFunction))
+			default:
+				errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+			}
 		} else {
 			for _, key := range ni.FieldValue.MapKeys() {
 				nn := *ni
@@ -617,7 +675,12 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				nn.FieldValue = ni.FieldValue.MapIndex(key)
 				nn.FieldKey = key
 				nn.FieldKeys = ni.FieldValue.MapKeys()
-				errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+				switch in.(type) {
+				case *PathQueryNodeMemo: // Memoization of path queries requested.
+					errs = AppendErrs(errs, forEachFieldInternal(&nn, newPathQueryMemo(), out, iterFunction))
+				default:
+					errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+				}
 			}
 		}
 	}
