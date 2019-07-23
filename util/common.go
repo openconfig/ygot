@@ -57,6 +57,29 @@ func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 	return true
 }
 
+// PathElemsEqual replaces the proto.Equal() check for PathElems.
+// This significantly improves comparison speed.
+func PathElemsEqual(this, other *gpb.PathElem) bool {
+	// This check allows avoiding to deal with any null PathElems later on.
+	if this == nil || other == nil {
+		return this == nil && other == nil
+	}
+
+	if this.Name != other.Name {
+		return false
+	}
+	if len(this.Key) != len(other.Key) {
+		return false
+	}
+
+	for k, v := range this.Key {
+		if vo, ok := other.Key[k]; !ok || vo != v {
+			return false
+		}
+	}
+	return true
+}
+
 // PathMatchesPathElemPrefix checks whether prefix is a prefix of path. Both paths
 // must use the gNMI >=0.4.0 PathElem path format.
 func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
@@ -64,7 +87,7 @@ func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
 		return false
 	}
 	for i, v := range prefix.Elem {
-		if !proto.Equal(v, path.GetElem()[i]) {
+		if !PathElemsEqual(v, path.GetElem()[i]) {
 			return false
 		}
 	}
@@ -114,7 +137,7 @@ func FindPathElemPrefix(paths []*gpb.Path) *gpb.Path {
 				// loop, so we use this as the base element to
 				// compare the other paths to.
 				elem = e.Elem[i]
-			case !proto.Equal(e.Elem[i], elem):
+			case !PathElemsEqual(e.Elem[i], elem):
 				return prefix
 			}
 		}
