@@ -24,6 +24,14 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+// addParents adds parent pointers for a schema tree.
+func addParents(e *yang.Entry) {
+	for _, c := range e.Dir {
+		c.Parent = e
+		addParents(c)
+	}
+}
+
 func TestValidateLeafRefData(t *testing.T) {
 	containerWithLeafListSchema := &yang.Entry{
 		Name: "container",
@@ -415,6 +423,202 @@ func TestValidateLeafRefData(t *testing.T) {
 	}
 }
 
+func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
+	// YANG Schema (details mostly matches):
+	// container root {
+	//   container examples {
+	//     list example {
+	//
+	//       key "conf";
+	//       description
+	//         "top-level list for the example data";
+	//
+	//       leaf conf {
+	//         type leafref {
+	//           path "../config/conf";
+	//         }
+	//       }
+	//
+	//       container config {
+	//         leaf conf {
+	//           type uint32;
+	//         }
+	//         leaf conf-ref {
+	//           type leafref {
+	//             path "../conf";
+	//           }
+	//         }
+	//         leaf conf2-ref {
+	//           type leafref {
+	//             path "../../../../conf2";
+	//           }
+	//         }
+	//       }
+	//     }
+	//   }
+	//   leaf conf2 {
+	//     type string;
+	//   }
+	// }
+	containerWithListSchema := &yang.Entry{
+		Kind: yang.LeafEntry,
+		Dir: map[string]*yang.Entry{
+			"root": {
+				Name: "root",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"examples": {
+						Name: "examples",
+						Kind: yang.DirectoryEntry,
+						Dir: map[string]*yang.Entry{
+							"example": {
+								Name:     "example",
+								Kind:     yang.DirectoryEntry,
+								ListAttr: &yang.ListAttr{},
+								Dir: map[string]*yang.Entry{
+									"conf": {
+										Name: "conf",
+										Kind: yang.LeafEntry,
+										Type: &yang.YangType{
+											Kind: yang.Yleafref,
+											Path: "../config/conf",
+										},
+									},
+									"config": {
+										Name: "config",
+										Kind: yang.DirectoryEntry,
+										Dir: map[string]*yang.Entry{
+											"conf": {
+												Name: "conf",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{Kind: yang.Yint32},
+											},
+											"conf-ref": {
+												Name: "conf-ref",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{
+													Kind: yang.Yleafref,
+													Path: "../conf",
+												},
+											},
+											"conf2-ref": {
+												Name: "conf2-ref",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{
+													Kind: yang.Yleafref,
+													Path: "../../../../conf2",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					"conf2": {
+						Name: "conf2",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+		},
+		Annotation: map[string]interface{}{"isCompressedSchema": true, "isFakeRoot": true},
+	}
+	// Set the parent pointers
+	addParents(containerWithListSchema)
+
+	rootSchema := containerWithListSchema.Dir["root"]
+
+	type RootExample struct {
+		Conf     *uint32 `path:"config/conf|conf" module:"openconfig-network-instance"`
+		ConfRef  *uint32 `path:"config/conf-ref" module:"openconfig-network-instance"`
+		Conf2Ref *string `path:"config/conf2-ref" module:"openconfig-network-instance"`
+	}
+
+	type Root struct {
+		Conf2   *string                 `path:"conf2" module:"openconfig-network-instance"`
+		Example map[uint32]*RootExample `path:"examples/example" module:"openconfig-network-instance"`
+	}
+
+	tests := []struct {
+		desc    string
+		in      interface{}
+		opts    *LeafrefOptions
+		wantErr string
+	}{
+		{
+			desc: "nil",
+			in:   nil,
+		},
+		{
+			desc: "list key leafref (conf)",
+			in: &Root{
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42)}},
+			},
+		},
+		{
+			desc: "ref to leaf outside of list (conf2)",
+			in: &Root{
+				Conf2:   String("hitchhiker"),
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), Conf2Ref: String("hitchhiker")}},
+			},
+		},
+		{
+			desc: "ref to leaf outside of list (conf2) unequal",
+			in: &Root{
+				Conf2:   String("hitchhiker"),
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), Conf2Ref: String("haichhicker")}},
+			},
+			wantErr: `field name Conf2Ref value haichhicker (string ptr) schema path //root/examples/example/config/conf2-ref has leafref path ../../../../conf2 not equal to any target nodes`,
+		},
+		{
+			desc: "ref to leaf outside of list (conf2) points to nil",
+			in: &Root{
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), Conf2Ref: String("hitchhiker")}},
+			},
+			wantErr: `pointed-to value with path ../../../../conf2 from field Conf2Ref value hitchhiker (string ptr) schema //root/examples/example/config/conf2-ref is empty set`,
+		},
+		{
+			desc: "ref to leaf outside of list (conf2) points to nil with ignore missing data true",
+			in: &Root{
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), Conf2Ref: String("hitchhiker")}},
+			},
+			opts: &LeafrefOptions{IgnoreMissingData: true},
+		},
+		{
+			desc: "nil points to conf2",
+			in: &Root{
+				Conf2:   String("hitchhiker"),
+				Example: map[uint32]*RootExample{},
+			},
+		},
+		{
+			desc: "conf-ref",
+			in: &Root{
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), ConfRef: Uint32(42)}},
+			},
+		},
+		{
+			desc: "conf-ref unequal to conf",
+			in: &Root{
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), ConfRef: Uint32(43)}},
+			},
+			wantErr: `field name ConfRef value 43 (uint32 ptr) schema path //root/examples/example/config/conf-ref has leafref path ../conf not equal to any target nodes`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			errs := ValidateLeafRefData(rootSchema, tt.in, tt.opts)
+			if got, want := errs.String(), tt.wantErr; got != want {
+				t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+			}
+			testErrLog(t, tt.desc, errs)
+		})
+	}
+}
+
 func TestSplitPath(t *testing.T) {
 	tests := []struct {
 		desc string
@@ -684,7 +888,9 @@ func TestPathMatchesPrefix(t *testing.T) {
 	}
 }
 
-func Int32(i int32) *int32 { return &i }
+func Int32(i int32) *int32    { return &i }
+func Uint32(i uint32) *uint32 { return &i }
+func String(s string) *string { return &s }
 
 type genericList struct {
 	Key *uint32 `path:"key"`
