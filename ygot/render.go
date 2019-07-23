@@ -22,7 +22,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/util"
@@ -241,7 +240,7 @@ func (g *gnmiPath) StripPrefix(pfx *gnmiPath) (*gnmiPath, error) {
 	}
 
 	for i, e := range pfx.pathElemPath {
-		if !proto.Equal(g.pathElemPath[i], e) {
+		if !util.PathElemsEqual(g.pathElemPath[i], e) {
 			return nil, fmt.Errorf("prefix is not a prefix of the supplied path, %v is not a subset of %v", pfx, g)
 		}
 	}

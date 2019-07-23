@@ -231,6 +231,102 @@ func TestPopGNMIPath(t *testing.T) {
 	}
 }
 
+func TestPathElemsEqual(t *testing.T) {
+	tests := []struct {
+		desc string
+		lhs  *gpb.PathElem
+		rhs  *gpb.PathElem
+		want bool
+	}{{
+		desc: "equal names with no keys",
+		lhs: &gpb.PathElem{
+			Name: "one",
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+		},
+		want: true,
+	}, {
+		desc: "equal names and keys",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		want: true,
+	}, {
+		desc: "names don't match",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		rhs: &gpb.PathElem{
+			Name: "two",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+	}, {
+		desc: "keys don't match",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "six"},
+		},
+	}, {
+		desc: "keys don't have same length",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three"},
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+	}, {
+		desc: "keys don't have same length the other way",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three"},
+		},
+	}, {
+		desc: "lhs PathElem is nil",
+		lhs:  nil,
+		rhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+	}, {
+		desc: "rhs PathElem is nil",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		rhs: nil,
+	}, {
+		desc: "both PathElems are nil",
+		lhs:  nil,
+		rhs:  nil,
+		want: true,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := PathElemsEqual(tt.lhs, tt.rhs); got != tt.want {
+				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPathMatchesPathElemPrefix(t *testing.T) {
 	tests := []struct {
 		desc     string
