@@ -44,6 +44,17 @@ func typeToLeafSchema(name string, t yang.TypeKind) *yang.Entry {
 	}
 }
 
+func yrangeToLeafSchema(name string, yr yang.YRange) *yang.Entry {
+	return &yang.Entry{
+		Name: name,
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind:   yang.Ybinary,
+			Length: yang.YangRange{yr},
+		},
+	}
+}
+
 var (
 	validLeafSchema = &yang.Entry{
 		Name: "valid-leaf",
@@ -151,6 +162,12 @@ func TestValidateLeaf(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			desc:    "int bad type - enum",
+			schema:  typeToLeafSchema("int64", yang.Yint64),
+			val:     int64(0),
+			wantErr: true,
+		},
+		{
 			desc:   "empty type",
 			schema: typeToLeafSchema("empty", yang.Yempty),
 			val:    YANGEmpty(true),
@@ -164,7 +181,7 @@ func TestValidateLeaf(t *testing.T) {
 		{
 			desc:    "slice in non-binary type",
 			schema:  typeToLeafSchema("binary", yang.Ystring),
-			val:     []byte{1, 2, 3},
+			val:     Binary([]byte{1, 2, 3}),
 			wantErr: true,
 		},
 		// TODO(mostrowski): restore when representation is decided.
@@ -181,12 +198,29 @@ func TestValidateLeaf(t *testing.T) {
 		{
 			desc:   "binary success",
 			schema: typeToLeafSchema("binary", yang.Ybinary),
-			val:    []byte("value"),
+			val:    Binary("value"),
+		},
+		{
+			desc:   "binary success with length",
+			schema: yrangeToLeafSchema("binary", yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(4)}),
+			val:    Binary("aaa"),
 		},
 		{
 			desc:    "binary bad type",
 			schema:  typeToLeafSchema("binary", yang.Ybinary),
 			val:     ygot.Int32(1),
+			wantErr: true,
+		},
+		{
+			desc:    "binary too short",
+			schema:  yrangeToLeafSchema("binary", yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(4)}),
+			val:     Binary("a"),
+			wantErr: true,
+		},
+		{
+			desc:    "binary too long",
+			schema:  yrangeToLeafSchema("binary", yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(4)}),
+			val:     Binary("aaaaaaaa"),
 			wantErr: true,
 		},
 		{
@@ -198,6 +232,12 @@ func TestValidateLeaf(t *testing.T) {
 			desc:    "bool bad type",
 			schema:  typeToLeafSchema("bool", yang.Ybool),
 			val:     ygot.Int32(1),
+			wantErr: true,
+		},
+		{
+			desc:    "bool bad type - empty",
+			schema:  typeToLeafSchema("bool", yang.Ybool),
+			val:     YANGEmpty(true),
 			wantErr: true,
 		},
 		{
@@ -901,7 +941,7 @@ type LeafContainerStruct struct {
 	Int64Leaf           *int64          `path:"int64-leaf"`
 	Uint64Leaf          *uint64         `path:"uint64-leaf"`
 	StringLeaf          *string         `path:"string-leaf"`
-	BinaryLeaf          []byte          `path:"binary-leaf"`
+	BinaryLeaf          Binary          `path:"binary-leaf"`
 	BoolLeaf            *bool           `path:"bool-leaf"`
 	DecimalLeaf         *float64        `path:"decimal-leaf"`
 	EnumLeaf            EnumType        `path:"enum-leaf"`
@@ -1030,7 +1070,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		{
 			desc: "binary success",
 			json: `{"binary-leaf" : "` + base64testStringEncoded + `"}`,
-			want: LeafContainerStruct{BinaryLeaf: []byte(base64testString)},
+			want: LeafContainerStruct{BinaryLeaf: Binary(base64testString)},
 		},
 		{
 			desc: "bool success",
@@ -1768,6 +1808,16 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 				},
 			},
 			wantVal: &LeafContainerStruct{DecimalLeaf: ygot.Float64(0.42)},
+		},
+		{
+			desc:     "success gNMI BytesVal to Ybinary",
+			inSchema: typeToLeafSchema("binary-leaf", yang.Ybinary),
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_BytesVal{
+					BytesVal: []byte("value"),
+				},
+			},
+			wantVal: &LeafContainerStruct{BinaryLeaf: Binary([]byte("value"))},
 		},
 		{
 			desc:     "success unmarshalling union leaf string field",
