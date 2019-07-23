@@ -463,20 +463,20 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 	containerWithListSchema := &yang.Entry{
 		Kind: yang.LeafEntry,
 		Dir: map[string]*yang.Entry{
-			"root": &yang.Entry{
+			"root": {
 				Name: "root",
 				Kind: yang.DirectoryEntry,
 				Dir: map[string]*yang.Entry{
-					"examples": &yang.Entry{
+					"examples": {
 						Name: "examples",
 						Kind: yang.DirectoryEntry,
 						Dir: map[string]*yang.Entry{
-							"example": &yang.Entry{
+							"example": {
 								Name:     "example",
 								Kind:     yang.DirectoryEntry,
 								ListAttr: &yang.ListAttr{},
 								Dir: map[string]*yang.Entry{
-									"conf": &yang.Entry{
+									"conf": {
 										Name: "conf",
 										Kind: yang.LeafEntry,
 										Type: &yang.YangType{
@@ -484,16 +484,16 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 											Path: "../config/conf",
 										},
 									},
-									"config": &yang.Entry{
+									"config": {
 										Name: "config",
 										Kind: yang.DirectoryEntry,
 										Dir: map[string]*yang.Entry{
-											"conf": &yang.Entry{
+											"conf": {
 												Name: "conf",
 												Kind: yang.LeafEntry,
 												Type: &yang.YangType{Kind: yang.Yint32},
 											},
-											"conf-ref": &yang.Entry{
+											"conf-ref": {
 												Name: "conf-ref",
 												Kind: yang.LeafEntry,
 												Type: &yang.YangType{
@@ -501,7 +501,7 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 													Path: "../conf",
 												},
 											},
-											"conf2-ref": &yang.Entry{
+											"conf2-ref": {
 												Name: "conf2-ref",
 												Kind: yang.LeafEntry,
 												Type: &yang.YangType{
@@ -515,7 +515,7 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 							},
 						},
 					},
-					"conf2": &yang.Entry{
+					"conf2": {
 						Name: "conf2",
 						Kind: yang.LeafEntry,
 						Type: &yang.YangType{Kind: yang.Ystring},
