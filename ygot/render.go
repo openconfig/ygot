@@ -323,18 +323,18 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 		fval := sval.Field(i)
 		ftype := stype.Field(i)
 
-		mapPaths, err := structTagToLibPaths(ftype, parent)
-		if err != nil {
-			errs.Add(fmt.Errorf("%v->%s: %v", parent, ftype.Name, err))
-			continue
-		}
-
 		// Handle nil values, and enumerations specifically.
 		switch fval.Kind() {
 		case reflect.Map, reflect.Slice, reflect.Ptr, reflect.Interface:
 			if fval.IsNil() {
 				continue
 			}
+		}
+
+		mapPaths, err := structTagToLibPaths(ftype, parent)
+		if err != nil {
+			errs.Add(fmt.Errorf("%v->%s: %v", parent, ftype.Name, err))
+			continue
 		}
 
 		switch fval.Kind() {
