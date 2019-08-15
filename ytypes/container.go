@@ -61,7 +61,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 				continue
 			}
 
-			cschema, err := childSchema(schema, structTypes.Field(i))
+			cschema, err := util.ChildSchema(schema, structTypes.Field(i))
 			switch {
 			case err != nil:
 				errors = util.AppendErr(errors, fmt.Errorf("%s: %v", fieldName, err))
@@ -158,7 +158,7 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 			continue
 		}
 
-		cschema, err := childSchema(schema, ft)
+		cschema, err := util.ChildSchema(schema, ft)
 		if err != nil {
 			return err
 		}

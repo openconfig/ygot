@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // resolveProtoTypeArgs specifies input parameters required for resolving types
@@ -270,7 +271,7 @@ func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeAr
 // mapping subtypes.
 func (s *genState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]*yang.YangType, pargs resolveProtoTypeArgs) []error {
 	var errs []error
-	if isUnionType(subtype) {
+	if util.IsUnionType(subtype) {
 		for _, st := range subtype.Type {
 			errs = append(errs, s.protoUnionSubTypes(st, ctx, currentTypes, pargs)...)
 		}
@@ -342,7 +343,7 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 	parent := e.Parent
 	// In the case of path compression, then the parent of a list is the parent
 	// one level up, as is the case for if there are config and state containers.
-	if compressPaths && e.IsList() || compressPaths && isConfigState(e) {
+	if compressPaths && e.IsList() || compressPaths && util.IsConfigState(e) {
 		parent = e.Parent.Parent
 	}
 
@@ -354,7 +355,7 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 
 	parts := []string{}
 	for p := parent; p != nil; p = p.Parent {
-		if compressPaths && !isOCCompressedValidElement(p) || !compressPaths && isChoiceOrCase(p) {
+		if compressPaths && !util.IsOCCompressedValidElement(p) || !compressPaths && util.IsChoiceOrCase(p) {
 			// If compress paths is enabled, and this entity would not
 			// have been included in the generated protobuf output, therefore
 			// we also exclude it from the package name.

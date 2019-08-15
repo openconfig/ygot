@@ -43,7 +43,7 @@ func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry,
 	}
 	for _, m := range ms {
 		annotateChildren(m, dn)
-		for _, ch := range children(m) {
+		for _, ch := range util.Children(m) {
 			if _, ex := rootEntry.Dir[ch.Name]; ex {
 				return nil, fmt.Errorf("overlapping root children for key %s", ch.Name)
 			}
@@ -82,7 +82,7 @@ func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry,
 // The children of e are recursively annotated.
 func annotateChildren(e *yang.Entry, dn map[string]string) {
 	annotateEntry(e, dn)
-	for _, ch := range children(e) {
+	for _, ch := range util.Children(e) {
 		annotateEntry(ch, dn)
 		if ch.IsDir() {
 			ch.Annotation["schemapath"] = ch.Path()

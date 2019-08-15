@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -167,7 +168,7 @@ func (s *genState) pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRo
 			// element to the path if the element itself would have code generated
 			// for it - this compresses out surrounding containers, config/state
 			// containers and root modules.
-			if compressOCPaths && isOCCompressedValidElement(element) || !compressOCPaths && !isChoiceOrCase(element) {
+			if compressOCPaths && util.IsOCCompressedValidElement(element) || !compressOCPaths && !util.IsChoiceOrCase(element) {
 				pathElements = append(pathElements, element)
 			}
 			element = element.Parent
@@ -262,16 +263,16 @@ func camelCaseNameExt(exts []*yang.Statement) (string, bool) {
 func findAllChildrenWithoutCompression(e *yang.Entry, excludeState bool) (map[string]*yang.Entry, []error) {
 	var errs []error
 	directChildren := map[string]*yang.Entry{}
-	for _, child := range children(e) {
+	for _, child := range util.Children(e) {
 		// Exclude children that are config false if requested.
-		if excludeState && !isConfig(child) {
+		if excludeState && !util.IsConfig(child) {
 			continue
 		}
 
 		// For each child, if it is a case or choice, then find the set of nodes that
 		// are not choice or case nodes and append them to the directChildren map,
 		// so they are effectively skipped over.
-		if isChoiceOrCase(child) {
+		if util.IsChoiceOrCase(child) {
 			errs = addNonChoiceChildren(directChildren, child, errs)
 		} else {
 			errs = addNewChild(directChildren, child.Name, child, errs)
@@ -377,7 +378,7 @@ func findAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 	// If we are asked to exclude 'config false' leaves, and this node is
 	// config false itself, then we can return an empty set of children since
 	// config false is inherited from the parent by all children.
-	if excludeState && !isConfig(e) {
+	if excludeState && !util.IsConfig(e) {
 		return nil, nil
 	}
 
@@ -408,7 +409,7 @@ func findAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 
 	// For all other entries in the directory, then append them after "config"
 	// (appended above) to the orderedChildren list.
-	for _, child := range children(e) {
+	for _, child := range util.Children(e) {
 		if child.Name != "config" {
 			orderedChildNames = append(orderedChildNames, child.Name)
 		}
@@ -426,16 +427,16 @@ func findAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 		// If config false values are being excluded, and this child is config
 		// false, then simply skip it from being considered. This check is performed
 		// first to avoid comparisons on this node which are irrelevant.
-		case excludeState && !isConfig(e.Dir[currChild]):
+		case excludeState && !util.IsConfig(e.Dir[currChild]):
 			continue
 		// Implement rule 1 from the function documentation - skip over config and state
 		// containers.
-		case isConfigState(e.Dir[currChild]):
+		case util.IsConfigState(e.Dir[currChild]):
 			// Recurse into this directory so that we extract its children and
 			// present them as being at a higher-layer. This allows the "config"
 			// and "state" container to be removed from the schema.
 			// For example, /foo/bar/config/{a,b,c} becomes /foo/bar/{a,b,c}.
-			for _, configStateChild := range children(e.Dir[currChild]) {
+			for _, configStateChild := range util.Children(e.Dir[currChild]) {
 				// If we get an error for the state container then we ignore it as we
 				// expect that there are duplicates here for applied configuration leaves
 				// (those that appear both in the "config" and "state" container).
@@ -445,7 +446,7 @@ func findAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 					// routing policy model. We must ignore the error that is returned
 					// in this case, since if the choice/case is already defined in the
 					// config container then it will be duplicate.
-					if isChoiceOrCase(configStateChild) {
+					if util.IsChoiceOrCase(configStateChild) {
 						_ = addNonChoiceChildren(directChildren, configStateChild, nil)
 					} else {
 						_ = addNewChild(directChildren, configStateChild.Name, configStateChild, nil)
@@ -453,7 +454,7 @@ func findAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 				} else {
 					// Handle the specific case of having a choice underneath a config
 					// or state container as this occurs in the routing policy model.
-					if isChoiceOrCase(configStateChild) {
+					if util.IsChoiceOrCase(configStateChild) {
 						errs = addNonChoiceChildren(directChildren, configStateChild, errs)
 					} else {
 						errs = addNewChild(directChildren, configStateChild.Name, configStateChild, errs)
@@ -471,12 +472,12 @@ func findAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 			//
 			// eGrandChildren is a slice of the elements that are children of the
 			// directory that was a child of e.
-			eGrandChildren := children(e.Dir[currChild])
+			eGrandChildren := util.Children(e.Dir[currChild])
 			switch {
 			// Implement rule 2 - remove surrounding containers for lists and consider
 			// the list under the surrounding container a direct child.
 			case len(eGrandChildren) == 1 && eGrandChildren[0].IsList():
-				if !isConfig(eGrandChildren[0]) && excludeState {
+				if !util.IsConfig(eGrandChildren[0]) && excludeState {
 					// If the list child is read-only, then it is not a valid child.
 					continue
 				}
@@ -484,7 +485,7 @@ func findAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 			// See note in function documentation about choice and case nodes - which are
 			// not valid data tree elements. We therefore skip past any number of nested
 			// choice/case statements and treat the first data tree elements as direct children.
-			case isChoiceOrCase(e.Dir[currChild]):
+			case util.IsChoiceOrCase(e.Dir[currChild]):
 				errs = addNonChoiceChildren(directChildren, e.Dir[currChild], errs)
 			default:
 				// This is simply a normal container so map it into the hierarchy
@@ -508,8 +509,7 @@ func findAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 // element, an error is appended to the errs slice, which is returned by the
 // function.
 func addNonChoiceChildren(m map[string]*yang.Entry, e *yang.Entry, errs []error) []error {
-	nch := make(map[string]*yang.Entry)
-	findFirstNonChoice(e, nch)
+	nch := util.FindFirstNonChoiceOrCase(e)
 	for _, n := range nch {
 		errs = addNewChild(m, n.Name, n, errs)
 	}
@@ -646,6 +646,15 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 	}
 }
 
+// typeDefaultValue returns the default value of the type t if it is specified.
+// nil is returned if no default is specified.
+func typeDefaultValue(t *yang.YangType) *string {
+	if t == nil || t.Default == "" {
+		return nil
+	}
+	return ygot.String(t.Default)
+}
+
 // goUnionType maps a YANG union to a set of Go types that should be used to
 // represent it. In the simple case that the union contains only one
 // subtype - e.g., is a union of string, string then the single type that
@@ -777,7 +786,7 @@ func (s *genState) buildListKey(e *yang.Entry, compressOCPaths bool) (*yangListA
 
 	if e.Key == "" {
 		// A null key is not valid if we have a config true list, so return an error
-		if isConfig(e) {
+		if util.IsConfig(e) {
 			return nil, []error{fmt.Errorf("No key specified for a config true list: %s", e.Name)}
 		}
 		// This is a keyless list so return an empty yangListAttr but no error, downstream
@@ -824,7 +833,7 @@ func (s *genState) buildListKey(e *yang.Entry, compressOCPaths bool) (*yangListA
 					// end, we extract the name of the config/state container. However, in
 					// some cases, it can be prefixed, so we need to remove the prefixes
 					// from the path.
-					dir := removePrefix(refparts[len(refparts)-2])
+					dir := util.StripModulePrefix(refparts[len(refparts)-2])
 					d, ok := e.Dir[dir]
 					if !ok {
 						return nil, []error{
@@ -832,7 +841,7 @@ func (s *genState) buildListKey(e *yang.Entry, compressOCPaths bool) (*yangListA
 								k, keyleaf.Path(), dir, refparts),
 						}
 					}
-					targetLeaf := removePrefix(refparts[len(refparts)-1])
+					targetLeaf := util.StripModulePrefix(refparts[len(refparts)-1])
 					if _, ok := d.Dir[targetLeaf]; !ok {
 						return nil, []error{
 							fmt.Errorf("Key %s had leafref key (%s) that did not exist at (%v)", k, keyleaf.Path(), refparts),

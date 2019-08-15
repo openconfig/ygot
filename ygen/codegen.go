@@ -208,6 +208,17 @@ func (y *yangDirectory) isList() bool {
 	return y.listAttr != nil
 }
 
+// isChildOfModule determines whether the Directory represents a container
+// or list member that is the direct child of a module entry.
+func (y *yangDirectory) isChildOfModule() bool {
+	if y.isFakeRoot || len(y.path) == 3 {
+		// If the message has a path length of 3, then it is a top-level entity
+		// within a module, since the  path is in the format []{"", <module>, <element>}.
+		return true
+	}
+	return false
+}
+
 // yangListAttr is used to store the additional elements for a Go struct that
 // are required if the struct represents a YANG list. It stores the name of
 // the key elements, and their associated types, along with pointers to those
@@ -761,7 +772,7 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 		}
 	}
 
-	modelData, err := findModelData(modules)
+	modelData, err := util.FindModelData(modules)
 	if err != nil {
 		return nil, util.NewErrs(fmt.Errorf("cannot extract model data, %v", err))
 	}
@@ -792,16 +803,16 @@ func mappableLeaf(e *yang.Entry) *yang.Entry {
 
 	var types []*yang.YangType
 	switch {
-	case isEnumType(e.Type):
+	case util.IsEnumeratedType(e.Type):
 		// Handle the case that this leaf is an enumeration or identityref itself.
 		// This also handles cases where the leaf is a typedef that is an enumeration
-		// or identityref, since the isEnumType check does not use the name of the
+		// or identityref, since the util.IsEnumeratedType check does not use the name of the
 		// type.
 		types = append(types, e.Type)
-	case isUnionType(e.Type):
+	case util.IsUnionType(e.Type):
 		// Check for leaves that include a union that itself
 		// includes an identityref or enumerated value.
-		types = append(types, enumeratedUnionTypes(e.Type.Type)...)
+		types = append(types, util.EnumeratedUnionTypes(e.Type.Type)...)
 	}
 
 	if types != nil {
@@ -831,7 +842,7 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 	}
 
 	var errs util.Errors
-	for _, ch := range children(e) {
+	for _, ch := range util.Children(e) {
 		switch {
 		case ch.IsLeaf(), ch.IsLeafList():
 			// Leaves are not mapped as directories so do not map them unless we find
@@ -840,22 +851,21 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 			if e := mappableLeaf(ch); e != nil {
 				enums[ch.Path()] = e
 			}
-		case isConfigState(ch) && compressPaths:
+		case util.IsConfigState(ch) && compressPaths:
 			// If this is a config or state container and we are compressing paths
 			// then we do not want to map this container - but we do want to map its
 			// children.
 			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules))
-		case hasOnlyChild(ch) && children(ch)[0].IsList() && compressPaths:
+		case util.HasOnlyChild(ch) && util.Children(ch)[0].IsList() && compressPaths:
 			// This is a surrounding container for a list, and we are compressing
 			// paths, so we don't want to map it but again we do want to map its
 			// children.
 			errs = util.AppendErrs(errs, findMappableEntities(ch, dirs, enums, excludeModules, compressPaths, modules))
-		case isChoiceOrCase(ch):
+		case util.IsChoiceOrCase(ch):
 			// Don't map for a choice or case node itself, and rather skip over it.
 			// However, we must walk each branch to find the first container that
 			// exists there (if one does) to provide a mapping.
-			nonchoice := map[string]*yang.Entry{}
-			findFirstNonChoice(ch, nonchoice)
+			nonchoice := util.FindFirstNonChoiceOrCase(ch)
 			for _, gch := range nonchoice {
 				// The first entry that is not a choice or case could be a leaf
 				// so we need to check whether it is an enumerated leaf that

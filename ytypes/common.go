@@ -17,18 +17,7 @@ package ytypes
 
 import (
 	"reflect"
-
-	"github.com/openconfig/goyang/pkg/yang"
 )
-
-// stringMapKeys returns the keys for map m.
-func stringMapKeys(m map[string]*yang.Entry) []string {
-	var out []string
-	for k := range m {
-		out = append(out, k)
-	}
-	return out
-}
 
 // stringMapSetToSlice converts a string set expressed as a map m, into a slice
 // of strings.

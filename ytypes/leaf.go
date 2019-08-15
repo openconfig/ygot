@@ -15,13 +15,11 @@
 package ytypes
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"math/big"
 	"reflect"
 	"strconv"
-	"strings"
 
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
@@ -49,7 +47,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 
 	util.DbgPrint("validateLeaf with value %s (%T), schema name %s (%s)", util.ValueStrDebug(value), value, inSchema.Name, inSchema.Type.Kind)
 
-	schema, err := resolveLeafRef(inSchema)
+	schema, err := util.ResolveIfLeafRef(inSchema)
 	if err != nil {
 		return util.NewErrs(err)
 	}
@@ -310,97 +308,6 @@ func findMatchingSchemasInUnion(ytype *yang.YangType, value interface{}) []*yang
 	return matches
 }
 
-// stripPrefix removes the prefix from a YANG path element. For example, removing
-// foo from "foo:bar". Such qualified paths are used in YANG modules where remote
-// paths are referenced.
-func stripPrefix(name string) (string, error) {
-	ps := strings.Split(name, ":")
-	switch len(ps) {
-	case 1:
-		return name, nil
-	case 2:
-		return ps[1], nil
-	}
-	return "", fmt.Errorf("path element did not form a valid name (name, prefix:name): %v", name)
-}
-
-// removeXPATHPredicates removes predicates from an XPath string. e.g.,
-// removeXPATHPredicates(/foo/bar[name="foo"]/config/baz -> /foo/bar/config/baz.
-func removeXPATHPredicates(s string) (string, error) {
-	var b bytes.Buffer
-	for i := 0; i < len(s); {
-		ss := s[i:]
-		si, ei := strings.Index(ss, "["), strings.Index(ss, "]")
-		switch {
-		case si == -1 && ei == -1:
-			// This substring didn't contain a [] pair, therefore write it
-			// to the buffer.
-			b.WriteString(ss)
-			// Move to the last character of the substring.
-			i += len(ss)
-		case si == -1 || ei == -1:
-			// This substring contained a mismatched pair of []s.
-			return "", fmt.Errorf("Mismatched brackets within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
-		case si > ei:
-			// This substring contained a ] before a [.
-			return "", fmt.Errorf("Incorrect ordering of [] within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
-		default:
-			// This substring contained a matched set of []s.
-			b.WriteString(ss[0:si])
-			i += ei + 1
-		}
-	}
-
-	return b.String(), nil
-}
-
-// findLeafRefSchema returns a schema Entry at the path pathStr relative to
-// schema if it exists, or an error otherwise.
-// pathStr has either:
-//  - the relative form "../a/b/../b/c", where ".." indicates the parent of the
-//    node, or
-//  - the absolute form "/a/b/c", which indicates the absolute path from the
-//    root of the schema tree.
-func findLeafRefSchema(schema *yang.Entry, pathStr string) (*yang.Entry, error) {
-	if pathStr == "" {
-		return nil, fmt.Errorf("leafref schema %s has empty path", schema.Name)
-	}
-
-	refSchema := schema
-	pathStr, err := removeXPATHPredicates(pathStr)
-	if err != nil {
-		return nil, err
-	}
-	path := strings.Split(pathStr, "/")
-
-	// For absolute path, reset to root of the schema tree.
-	if pathStr[0] == '/' {
-		refSchema = schemaTreeRoot(schema)
-		path = path[1:]
-	}
-
-	for i := 0; i < len(path); i++ {
-		pe, err := stripPrefix(path[i])
-		if err != nil {
-			return nil, fmt.Errorf("leafref schema %s path %s: %v", schema.Name, pathStr, err)
-		}
-
-		if pe == ".." {
-			if refSchema.Parent == nil {
-				return nil, fmt.Errorf("parent of %s is nil for leafref schema %s with path %s", refSchema.Name, schema.Name, pathStr)
-			}
-			refSchema = refSchema.Parent
-			continue
-		}
-		if refSchema.Dir[pe] == nil {
-			return nil, fmt.Errorf("schema node %s is nil for leafref schema %s with path %s", pe, schema.Name, pathStr)
-		}
-		refSchema = refSchema.Dir[pe]
-	}
-
-	return refSchema, nil
-}
-
 // validateLeafSchema validates the given leaf type schema. This is a sanity
 // check validation rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
@@ -444,7 +351,7 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, 
 		return err
 	}
 
-	schema, err := resolveLeafRef(inSchema)
+	schema, err := util.ResolveIfLeafRef(inSchema)
 	if err != nil {
 		return err
 	}
@@ -678,7 +585,7 @@ func getUnionTypesNotEnums(schema *yang.Entry, yt *yang.YangType) ([]*yang.YangT
 		// Enum types handled separately.
 		return nil, nil
 	case yang.Yleafref:
-		ns, err := findLeafRefSchema(schema, yt.Path)
+		ns, err := util.FindLeafRefSchema(schema, yt.Path)
 		if err != nil {
 			return nil, err
 		}

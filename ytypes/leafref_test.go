@@ -619,48 +619,6 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 	}
 }
 
-func TestSplitPath(t *testing.T) {
-	tests := []struct {
-		desc string
-		in   string
-		want []string
-	}{
-		{
-			desc: "simple",
-			in:   "a/b/c",
-			want: []string{"a", "b", "c"},
-		},
-		{
-			desc: "blank",
-			in:   "a//b",
-			want: []string{"a", "", "b"},
-		},
-		{
-			desc: "lead trail slash",
-			in:   "/a/b/c/",
-			want: []string{"", "a", "b", "c", ""},
-		},
-		{
-			desc: "escape slash",
-			in:   `a/\/b/c`,
-			want: []string{"a", `\/b`, "c"},
-		},
-		{
-			desc: "internal key slashes",
-			in:   `a/b[key1 = ../x/y key2 = "z"]/c`,
-			want: []string{"a", `b[key1 = ../x/y key2 = "z"]`, "c"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := splitPath(tt.in), tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %v, want: %v", tt.desc, got, want)
-			}
-		})
-	}
-}
-
 func TestSplitUnescaped(t *testing.T) {
 	tests := []struct {
 		desc string

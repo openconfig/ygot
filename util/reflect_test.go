@@ -22,6 +22,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -1221,11 +1222,13 @@ func TestForEachField(t *testing.T) {
 		var errs Errors
 		errs = ForEachField(tt.schema, tt.parentStruct, tt.in, &outStr, tt.iterFunc)
 		if got, want := errs.String(), tt.wantErr; got != want {
-			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+			diff, _ := testutil.GenerateUnifiedDiff(got, want)
+			t.Errorf("%s:\n%s", tt.desc, diff)
 		}
 		if errs == nil {
 			if got, want := outStr, tt.wantOut; got != want {
-				t.Errorf("%s:\ngot:\n(%v)\nwant:\n(%v)", tt.desc, got, want)
+				diff, _ := testutil.GenerateUnifiedDiff(got, want)
+				t.Errorf("%s:\n%s", tt.desc, diff)
 			}
 		}
 		testErrLog(t, tt.desc, errs)
@@ -1329,14 +1332,16 @@ func TestForEachDataField(t *testing.T) {
 		var errs Errors
 		errs = ForEachDataField(tt.parentStruct, tt.in, &outStr, tt.iterFunc)
 		if got, want := errs.String(), tt.wantErr; got != want {
-			t.Errorf("%s: ForEachDataField(%v, %#v, ...): did not get expected error, got: %s, want: %s", tt.desc, tt.parentStruct, tt.in, got, want)
+			diff, _ := testutil.GenerateUnifiedDiff(got, want)
+			t.Errorf("%s: ForEachDataField(%v, %#v, ...): \n%s", tt.desc, tt.parentStruct, tt.in, diff)
 		}
 		testErrLog(t, tt.desc, errs)
 		if len(errs) > 0 {
 			continue
 		}
 		if got, want := outStr, tt.wantOut; got != want {
-			t.Errorf("%s: ForEachDataField(%v, %#v, ...): did not get expected output, got:\n(%v)\nwant:\n(%v)", tt.desc, tt.parentStruct, tt.in, got, want)
+			diff, _ := testutil.GenerateUnifiedDiff(got, want)
+			t.Errorf("%s: ForEachDataField(%v, %#v, ...): \n%s", tt.desc, tt.parentStruct, tt.in, diff)
 		}
 	}
 }
@@ -2067,52 +2072,4 @@ func sliceToMap(s []interface{}) map[string]int {
 		m[vs] = m[vs] + 1
 	}
 	return m
-}
-
-func TestIsCompressedSchema(t *testing.T) {
-	tests := []struct {
-		name string
-		in   *yang.Entry
-		want bool
-	}{{
-		name: "simple entry - root",
-		in: &yang.Entry{
-			Annotation: map[string]interface{}{
-				CompressedSchemaAnnotation: true,
-			},
-		},
-		want: true,
-	}, {
-		name: "simple entry - not compressed - root",
-		in:   &yang.Entry{},
-	}, {
-		name: "child entry - compressed",
-		in: &yang.Entry{
-			Parent: &yang.Entry{
-				Parent: &yang.Entry{
-					Parent: &yang.Entry{
-						Parent: &yang.Entry{},
-					},
-				},
-			},
-			Annotation: map[string]interface{}{
-				CompressedSchemaAnnotation: true,
-			},
-		},
-	}, {
-		name: "child entry - not compressed",
-		in: &yang.Entry{
-			Parent: &yang.Entry{
-				Parent: &yang.Entry{},
-			},
-		},
-	}}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := IsCompressedSchema(tt.in); got != tt.want {
-				t.Fatalf("incorrect result, got: %v, want: %v", got, tt.want)
-			}
-		})
-	}
 }

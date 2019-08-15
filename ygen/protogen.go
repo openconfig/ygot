@@ -361,7 +361,7 @@ func outputNestedMessage(msg *yangDirectory, compressPaths bool) bool {
 		return true
 	}
 
-	return isChildOfModule(msg)
+	return msg.isChildOfModule()
 }
 
 // writeProto3MsgNested returns a nested set of protobuf messages for the message
@@ -377,7 +377,7 @@ func writeProto3MsgNested(msg *yangDirectory, msgs map[string]*yangDirectory, st
 	var childMsgs []*generatedProto3Message
 	// Find all the children of the current message that should be output.
 	for _, n := range msgs {
-		if isDirectEntryChild(msg.entry, n.entry, cfg.compressPaths) {
+		if util.IsDirectEntryChild(msg.entry, n.entry, cfg.compressPaths) {
 			cmsg, errs := writeProto3MsgNested(n, msgs, state, cfg)
 			if errs != nil {
 				gerrs = append(gerrs, errs...)
@@ -570,7 +570,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 		// msg.name is already specified to be CamelCase in the form we expect it
 		// to be for the protobuf message name.
 		Name:      msg.name,
-		YANGPath:  slicePathToString(msg.path),
+		YANGPath:  util.SlicePathToString(msg.path),
 		Enums:     map[string]*protoMsgEnum{},
 		ChildMsgs: childMsgs,
 	}
@@ -585,8 +585,8 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 	sort.Strings(fNames)
 
 	skipFields := map[string]bool{}
-	if isKeyedList(msg.entry) {
-		skipFields = listKeyFieldsMap(msg.entry)
+	if util.IsKeyedList(msg.entry) {
+		skipFields = util.ListKeyFieldsMap(msg.entry)
 	}
 	for _, name := range fNames {
 		// Skip fields that we are explicitly not asked to include.
@@ -644,7 +644,7 @@ func genProto3Msg(msg *yangDirectory, msgs map[string]*yangDirectory, state *gen
 			if repeatedMsg != nil {
 				msgDefs = append(msgDefs, repeatedMsg)
 			}
-		case isAnydata(field):
+		case util.IsAnydata(field):
 			fieldDef.Type = protoAnyType
 			imports[protoAnyPackage] = true
 		default:
@@ -818,7 +818,7 @@ func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]stri
 		// global enumerations. Additional logic is required to determine the provenance
 		// of such an enum, since we do not store that it was extracted from a union
 		// within the type (or entry) currently.
-		if isSimpleEnumerationType(enum.entry.Type) || enum.entry.Type.Kind == yang.Yunion {
+		if util.IsSimpleEnumerationType(enum.entry.Type) || enum.entry.Type.Kind == yang.Yunion {
 			// Skip simple enumerations and those within unions.
 			continue
 		}
@@ -826,7 +826,7 @@ func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]stri
 		// Make the name of the enum upper case to follow Protobuf enum convention.
 		p := &protoEnum{Name: enum.name}
 		switch {
-		case isIdentityrefLeaf(enum.entry):
+		case util.IsIdentityrefLeaf(enum.entry):
 			// For an identityref the values are based on
 			// the name of the identities that correspond with the base, and the value
 			// is gleaned from the YANG schema.
@@ -955,7 +955,7 @@ func protoListDefinition(args *protoDefinitionArgs) (*protoMsgListField, *protoM
 
 	var listKeyMsg *protoMsg
 	var listDef *protoMsgListField
-	if !isKeyedList(listMsg.entry) {
+	if !util.IsKeyedList(listMsg.entry) {
 		// In proto3 we represent unkeyed lists as a
 		// repeated field of the list message.
 		listDef = &protoMsgListField{
@@ -1023,7 +1023,7 @@ func protoLeafDefinition(leafName string, args *protoDefinitionArgs) (*protoDefi
 	}
 
 	switch {
-	case isSimpleEnumerationType(args.field.Type):
+	case util.IsSimpleEnumerationType(args.field.Type):
 		// For fields that are simple enumerations within a message, then we embed an enumeration
 		// within the Protobuf message.
 		e, err := genProtoEnum(args.field, args.cfg.annotateEnumNames)
@@ -1034,7 +1034,7 @@ func protoLeafDefinition(leafName string, args *protoDefinitionArgs) (*protoDefi
 		d.protoType = makeNameUnique(protoType.nativeType, args.definedFieldNames)
 		d.enums = map[string]*protoMsgEnum{}
 		d.enums[d.protoType] = e
-	case isEnumType(args.field.Type):
+	case util.IsEnumeratedType(args.field.Type):
 		d.globalEnum = true
 	case protoType.unionTypes != nil:
 		u, err := unionFieldToOneOf(leafName, args.field, protoType, args.cfg.annotateEnumNames)
@@ -1172,7 +1172,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 				return nil, fmt.Errorf("error generating type for list %s key %s: type %v", args.field.Path(), k, kf.Type)
 			}
 
-			if isSimpleEnumerationType(target.Type) {
+			if util.IsSimpleEnumerationType(target.Type) {
 				enumEntry = target
 			}
 
@@ -1180,12 +1180,12 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 				unionEntry = target
 			}
 
-			if isIdentityrefLeaf(target) {
+			if util.IsIdentityrefLeaf(target) {
 				km.Imports = append(km.Imports, importPath(args.cfg.baseImportPath, args.cfg.basePackageName, args.cfg.enumPackageName))
 			}
-		case isSimpleEnumerationType(kf.Type):
+		case util.IsSimpleEnumerationType(kf.Type):
 			enumEntry = kf
-		case isUnionType(kf.Type) && scalarType.unionTypes != nil:
+		case util.IsUnionType(kf.Type) && scalarType.unionTypes != nil:
 			unionEntry = kf
 		}
 
@@ -1267,7 +1267,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 func enumInProtoUnionField(name string, etype *yang.YangType, annotateEnumNames bool) (map[string]*protoMsgEnum, error) {
 	enums := map[string]*protoMsgEnum{}
 	for _, t := range etype.Type {
-		if isSimpleEnumerationType(t) {
+		if util.IsSimpleEnumerationType(t) {
 			n := fmt.Sprintf("%s", yang.CamelCase(name))
 			enum, err := genProtoEnum(&yang.Entry{
 				Name: n,
@@ -1279,7 +1279,7 @@ func enumInProtoUnionField(name string, etype *yang.YangType, annotateEnumNames 
 			enums[n] = enum
 		}
 
-		if isUnionType(t) {
+		if util.IsUnionType(t) {
 			es, err := enumInProtoUnionField(name, t, annotateEnumNames)
 			if err != nil {
 				return nil, err
@@ -1392,7 +1392,7 @@ func protoSchemaPathAnnotation(msg *yangDirectory, field *yang.Entry, compressPa
 	var b bytes.Buffer
 	b.WriteRune('"')
 	for i, p := range smapp {
-		b.WriteString(slicePathToString(p))
+		b.WriteString(util.SlicePathToString(p))
 		if i != len(smapp)-1 {
 			b.WriteString("|")
 		}
