@@ -379,6 +379,10 @@ func TestRemoveXPATHPredicates(t *testing.T) {
 		in:   `/foo/bar[name="current()/../interface"]/container/list[key="42"]/config/foo`,
 		want: "/foo/bar/container/list/config/foo",
 	}, {
+		desc: "a real example",
+		in:   `/oc-if:interfaces/oc-if:interface[oc-if:name=current()/../interface]/oc-if:subinterfaces/oc-if:subinterface/oc-if:index`,
+		want: "/oc-if:interfaces/oc-if:interface/oc-if:subinterfaces/oc-if:subinterface/oc-if:index",
+	}, {
 		desc:    "] without [",
 		in:      `/foo/bar]`,
 		wantErr: true,
@@ -469,6 +473,57 @@ func TestFindLeafRefSchema(t *testing.T) {
 		},
 		inPathStr: "/interfaces/interface[name=foo/bar",
 		wantErr:   "Mismatched brackets within substring /interfaces/interface[name=foo/bar of /interfaces/interface[name=foo/bar, [ pos: 21, ] pos: -1",
+	}, {
+		desc: "with xpath predicate",
+		inSchema: &yang.Entry{
+			Name: "module",
+			Kind: yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"interfaces": {
+					Name: "interfaces",
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"interface": {
+							Name:     "interface",
+							Kind:     yang.DirectoryEntry,
+							ListAttr: &yang.ListAttr{},
+							Dir: map[string]*yang.Entry{
+								"name": {
+									Name: "name",
+									Kind: yang.LeafEntry,
+									Type: &yang.YangType{
+										Kind: yang.Yleafref,
+										Path: "../state/name",
+									},
+								},
+								"state": {
+									Name: "state",
+									Kind: yang.DirectoryEntry,
+									Dir: map[string]*yang.Entry{
+										"name": {
+											Name: "name",
+											Kind: yang.LeafEntry,
+											Type: &yang.YangType{Kind: yang.Ystring},
+										},
+									},
+								},
+								"subinterface": {
+									Name: "subinterface",
+									Kind: yang.LeafEntry,
+									Type: &yang.YangType{Kind: yang.Ystring},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		inPathStr: "/oc-if:interfaces/oc-if:interface[oc-if:name=current()/../interface]/oc-if:subinterface",
+		wantEntry: &yang.Entry{
+			Name: "subinterface",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{Kind: yang.Ystring},
+		},
 	}, {
 		desc: "strip prefix error in path",
 		inSchema: &yang.Entry{

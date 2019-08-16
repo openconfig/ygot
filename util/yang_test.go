@@ -1222,6 +1222,14 @@ func TestValidateLeafRefData(t *testing.T) {
 						Kind: yang.LeafEntry,
 						Type: &yang.YangType{Kind: yang.Yint32},
 					},
+					"int32-ref": {
+						Name: "int32-ref",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../int32",
+						},
+					},
 				},
 			},
 			"int32": {
@@ -1249,6 +1257,14 @@ func TestValidateLeafRefData(t *testing.T) {
 						Type: &yang.YangType{
 							Kind: yang.Yleafref,
 							Path: "../../int32",
+						},
+					},
+					"int32-ref-to-ref": {
+						Name: "int32-ref-to-ref",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../../oc:list[key=current()/../int32-ref-to-leaf]/oc:int32-ref",
 						},
 					},
 					"enum-ref-to-leaf": {
@@ -1358,6 +1374,11 @@ func TestValidateLeafRefData(t *testing.T) {
 			desc: "container2/int32-ref-to-leaf",
 			in:   containerWithLeafListSchema.Dir["container2"].Dir["int32-ref-to-leaf"],
 			want: containerWithLeafListSchema.Dir["int32"],
+		},
+		{
+			desc: "container2/int32-ref-to-ref",
+			in:   containerWithLeafListSchema.Dir["container2"].Dir["int32-ref-to-ref"],
+			want: containerWithLeafListSchema.Dir["list"].Dir["int32"],
 		},
 		{
 			desc: "container2/enum-ref-to-leaf",
