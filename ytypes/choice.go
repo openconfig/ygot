@@ -63,7 +63,7 @@ func IsCaseSelected(schema *yang.Entry, value interface{}) (selected []string, e
 	for i := 0; i < v.NumField(); i++ {
 		if !util.IsValueNilOrDefault(v.Field(i).Interface()) {
 			fieldType := v.Type().Field(i)
-			cs, err := childSchema(schema, fieldType)
+			cs, err := util.ChildSchema(schema, fieldType)
 			if err != nil {
 				errors = util.AppendErr(errors, err)
 				continue

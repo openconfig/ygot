@@ -27,6 +27,7 @@ import (
 	"github.com/openconfig/gnmi/errlist"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -1171,7 +1172,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 	// generated.
 	structDef := generatedGoStruct{
 		StructName: targetStruct.name,
-		YANGPath:   slicePathToString(targetStruct.path),
+		YANGPath:   util.SlicePathToString(targetStruct.path),
 	}
 
 	// associatedListKeyStructs is a slice containing the key structures for any multi-keyed
@@ -1296,7 +1297,7 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 			// This is done to allow checks against nil.
 			scalarField := true
 			fType := mtype.nativeType
-			schemapath := entrySchemaPath(field)
+			schemapath := util.SchemaTreePathNoModule(field)
 			zeroValue := mtype.zeroValue
 			defaultValue := goLeafDefault(field, mtype)
 
@@ -1412,10 +1413,10 @@ func writeGoStruct(targetStruct *yangDirectory, goStructElements map[string]*yan
 		var metadataTagBuf bytes.Buffer
 		metadataTagBuf.WriteString(`path:"`)
 		for i, p := range schemaMapPaths {
-			tagBuf.WriteString(slicePathToString(p))
+			tagBuf.WriteString(util.SlicePathToString(p))
 
 			p[len(p)-1] = fmt.Sprintf("@%s", p[len(p)-1])
-			metadataTagBuf.WriteString(slicePathToString(p))
+			metadataTagBuf.WriteString(util.SlicePathToString(p))
 
 			if i != len(schemaMapPaths)-1 {
 				tagBuf.WriteRune('|')
@@ -1842,7 +1843,7 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 		listKeyStructName = fmt.Sprintf("%s_%s_Key", parent.name, listFieldName)
 		multiListKey = &generatedGoMultiKeyListStruct{
 			KeyStructName: listKeyStructName,
-			ParentPath:    slicePathToString(parent.path),
+			ParentPath:    util.SlicePathToString(parent.path),
 			ListName:      listFieldName,
 			Keys:          listKeys,
 		}
@@ -1934,7 +1935,7 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 // the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
 // path is also returned.
 func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, absolutePaths bool) ([][]string, error) {
-	fieldSlicePath := traverseElementSchemaPath(field)
+	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
 	var childPath, parentPath []string
 
 	if absolutePaths {
@@ -1972,7 +1973,7 @@ func findMapPaths(parent *yangDirectory, field *yang.Entry, compressOCPaths, abs
 			return nil, fmt.Errorf("invalid compressed schema, could not find the key %s or the grandparent of %s", k.Name, k.Path())
 		}
 
-		if reflect.DeepEqual(traverseElementSchemaPath(k), fieldSlicePath) && k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref {
+		if reflect.DeepEqual(util.SchemaPathNoChoiceCase(k), fieldSlicePath) && k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref {
 			// The path of the key element is simply the name of the leaf under the
 			// list, since the YANG specification enforces that keys are direct
 			// children of the list.

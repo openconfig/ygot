@@ -12,31 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package util implements utlity functions used in ygot.
 package util
 
 import (
+	"fmt"
+	"sort"
+	"strings"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/goyang/pkg/yang"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
-
-var (
-	// YangMaxNumber represents the maximum value for any integer type.
-	YangMaxNumber = yang.Number{Kind: yang.MaxNumber}
-	// YangMinNumber represents the minimum value for any integer type.
-	YangMinNumber = yang.Number{Kind: yang.MinNumber}
-)
-
-// stringMapKeys returns the keys for map m.
-func stringMapKeys(m map[string]*yang.Entry) []string {
-	var out []string
-	for k := range m {
-		out = append(out, k)
-	}
-	return out
-}
 
 // TODO(mostrowski): move below functions into path package.
 
@@ -158,4 +145,43 @@ func PopGNMIPath(path *gpb.Path) *gpb.Path {
 	return &gpb.Path{
 		Elem: path.GetElem()[1:],
 	}
+}
+
+type modelDataProto []*gpb.ModelData
+
+func (m modelDataProto) Less(a, b int) bool { return m[a].Name < m[b].Name }
+func (m modelDataProto) Len() int           { return len(m) }
+func (m modelDataProto) Swap(a, b int)      { m[a], m[b] = m[b], m[a] }
+
+// FindModelData takes an input slice of yang.Entry pointers, which are assumed to
+// represent YANG modules, and returns the gNMI ModelData that corresponds with each
+// of the input modules.
+func FindModelData(mods []*yang.Entry) ([]*gpb.ModelData, error) {
+	modelData := modelDataProto{}
+	for _, mod := range mods {
+		mNode, ok := mod.Node.(*yang.Module)
+		if !ok || mNode == nil {
+			return nil, fmt.Errorf("nil node, or not a module for node %s", mod.Name)
+		}
+		md := &gpb.ModelData{
+			Name: mod.Name,
+		}
+
+		if mNode.Organization != nil {
+			md.Organization = mNode.Organization.Statement().Argument
+		}
+
+		for _, e := range mNode.Exts() {
+			if p := strings.Split(e.Keyword, ":"); len(p) == 2 && p[1] == "openconfig-version" {
+				md.Version = e.Argument
+				break
+			}
+		}
+
+		modelData = append(modelData, md)
+	}
+
+	sort.Sort(modelData)
+
+	return modelData, nil
 }

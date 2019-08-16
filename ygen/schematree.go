@@ -21,6 +21,7 @@ import (
 
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // buildSchemaTree maps a set of yang.Entry pointers into a ctree structure.
@@ -58,7 +59,7 @@ func buildSchemaTree(entries []*yang.Entry) (*ctree.Tree, error) {
 // schemaTreeChildrenAdd adds the children of the supplied yang.Entry to the
 // supplied ctree.Tree recursively.
 func schemaTreeChildrenAdd(t *ctree.Tree, e *yang.Entry) error {
-	for _, ch := range children(e) {
+	for _, ch := range util.Children(e) {
 		chPath := strings.Split(ch.Path(), "/")
 		// chPath is of the form []string{"", "module", "entity", "child"}
 		if !ch.IsDir() {
@@ -157,7 +158,7 @@ func fixSchemaTreePath(path string, caller *yang.Entry) ([]string, error) {
 		return nil, fmt.Errorf("calling node must be specified when mapping relative path: %v", parts)
 	}
 
-	cpathparts := strings.Split(schemaTreePath(caller), "/")
+	cpathparts := strings.Split(util.SchemaTreePath(caller), "/")
 	if len(cpathparts) < 2 {
 		// This caller was a module, which is not a valid context for an XPATH
 		return nil, fmt.Errorf("invalid calling node with path %v, was a module: %v", caller.Path(), path)
@@ -181,12 +182,4 @@ func fixSchemaTreePath(path string, caller *yang.Entry) ([]string, error) {
 	parts = append(callerPath, remainingPath...)
 
 	return parts, nil
-}
-
-// schemaTreePath returns the schema tree path of the supplied yang.Entry
-// skipping any nodes that are themselves not in the path (e.g., choice
-// and case). The path is returned as a string prefixed with the module
-// name (similarly to the behaviour of (*yang.Entry).Path()).
-func schemaTreePath(e *yang.Entry) string {
-	return fmt.Sprintf("/%s", slicePathToString(traverseElementSchemaPath(e)))
 }

@@ -116,7 +116,7 @@ func leafrefErrOrLog(e util.Errors, opt *LeafrefOptions) util.Errors {
 // path where the key values are the values being referenced i.e.
 // ../path/to/val above is replaced with the actual value at that path.
 func leafRefToGNMIPath(root *util.NodeInfo, path string, pathQueryNode *util.PathQueryNodeMemo) (*gpb.Path, error) {
-	pv := splitPath(path)
+	pv := util.SplitPath(path)
 	out := &gpb.Path{}
 
 	for _, p := range pv {
@@ -395,42 +395,6 @@ func isKeyValue(p string) (bool, error) {
 	}
 
 	return true, nil
-}
-
-// splitPath splits path across unescaped /.
-// Any / inside square brackets are ignored.
-func splitPath(path string) []string {
-	var prev rune
-	var out []string
-	var w bytes.Buffer
-	skip := false
-
-	for _, r := range path {
-		switch {
-		case r == '[' && prev != '\\':
-			skip = true
-
-		case r == ']' && prev != '\\':
-			skip = false
-		}
-
-		if !skip && r == '/' && prev != '\\' {
-			out = append(out, w.String())
-			w.Reset()
-		} else {
-			w.WriteRune(r)
-		}
-		prev = r
-	}
-
-	if w.Len() != 0 {
-		out = append(out, w.String())
-	}
-	if prev == '/' {
-		out = append(out, "")
-	}
-
-	return out
 }
 
 // splitUnescaped splits source across splitCh. If splitCh is immedaitely

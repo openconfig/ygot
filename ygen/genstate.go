@@ -22,6 +22,7 @@ import (
 
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -122,7 +123,7 @@ func newGenState() *genState {
 func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores bool) ([]*yangEnum, error) {
 	var es []*yangEnum
 
-	for _, t := range enumeratedUnionTypes(e.Type.Type) {
+	for _, t := range util.EnumeratedUnionTypes(e.Type.Type) {
 		var en *yangEnum
 		switch {
 		case t.IdentityBase != nil:
@@ -158,7 +159,7 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUndersco
 						Kind: yang.Yenum,
 						Enum: t.Enum,
 					},
-					Annotation: map[string]interface{}{"valuePrefix": traverseElementSchemaPath(e)},
+					Annotation: map[string]interface{}{"valuePrefix": util.SchemaPathNoChoiceCase(e)},
 				},
 			}
 		}
@@ -185,10 +186,10 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 	for _, e := range entries {
 		// If we are excluding config false (state entries) then skip processing
 		// this element.
-		if excludeState && !isConfig(e) {
+		if excludeState && !util.IsConfig(e) {
 			continue
 		}
-		if e.IsList() || e.IsDir() || isRoot(e) {
+		if e.IsList() || e.IsDir() || util.IsRoot(e) {
 			// This should be mapped to a struct in the generated code since it has
 			// child elements in the YANG schema.
 			elem := &yangDirectory{
@@ -220,7 +221,7 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 			}
 
 			// Determine the path of the element from the schema.
-			elem.path = strings.Split(schemaTreePath(e), "/")
+			elem.path = strings.Split(util.SchemaTreePath(e), "/")
 
 			// Mark this struct as the fake root if it is specified to be.
 			if e.Node != nil && e.Node.NName() == rootElementNodeName {
@@ -229,7 +230,7 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 
 			// Handle structures that will represent the container which is duplicated
 			// inside a list. This involves extracting the key elements of the list
-			// and returning a yangListAttr structure that describes how they should
+			// and returning a YangListAttr structure that describes how they should
 			// be represented.
 			if e.IsList() {
 				lattr, listErr := s.buildListKey(e, compressPaths)
@@ -278,7 +279,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, no
 				}
 				newPath = append(newPath, p)
 			}
-			if path == joinPath(newPath) {
+			if path == util.SlicePathToString(newPath) {
 				// If the path remains the same - i.e., we did not replace state with
 				// config, then the enumeration is valid, such that code should have
 				// code generated for it.
@@ -288,7 +289,7 @@ func (s *genState) findEnumSet(entries map[string]*yang.Entry, compressPaths, no
 				// Else, if we changed the path, then we changed a state container for
 				// a config container, and we should check whether the config leaf
 				// exists. Only when it doesn't do we consider this enum.
-				if _, ok := entries[joinPath(newPath)]; !ok {
+				if _, ok := entries[util.SlicePathToString(newPath)]; !ok {
 					validEnums[path] = e
 					enumNames = append(enumNames, path)
 				}
@@ -459,7 +460,7 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 	// this context. We therefore rewrite the identifier path to have the context
 	// that we are in. By default, we just use the name of the node, but in OpenConfig
 	// schemas we rely on the grandparent name.
-	if !isYANGBaseType(e.Type) {
+	if !util.IsYANGBaseType(e.Type) {
 		idPfx := e.Name
 		if compressPaths && e.Parent != nil && e.Parent.Parent != nil {
 			idPfx = e.Parent.Parent.Name
@@ -490,7 +491,7 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 
 	// If this was we don't compress the paths, then we write out the entire path.
 	var nbuf bytes.Buffer
-	for i, p := range traverseElementSchemaPath(e) {
+	for i, p := range util.SchemaPathNoChoiceCase(e) {
 		if i != 0 && !noUnderscores {
 			nbuf.WriteRune('_')
 		}
@@ -512,7 +513,7 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores boo
 	// union. We need to synthesise the name of the type here such that it is based on
 	// type name, plus the fact that it is an enumeration.
 	if e.Type.Kind == yang.Yunion {
-		enumTypes := enumeratedUnionTypes(e.Type.Type)
+		enumTypes := util.EnumeratedUnionTypes(e.Type.Type)
 
 		switch len(enumTypes) {
 		case 1:
@@ -567,7 +568,7 @@ func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string
 	// types which is defined in RFC6020/RFC7950) then we establish what the type
 	// that we must actually perform the mapping for is. By default, start with
 	// the type that is specified in the schema.
-	if !isYANGBaseType(args.yangType) {
+	if !util.IsYANGBaseType(args.yangType) {
 		switch args.yangType.Kind {
 		case yang.Yenum, yang.Yidentityref:
 			// In the case of a typedef that specifies an enumeration or identityref

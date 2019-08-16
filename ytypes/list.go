@@ -187,7 +187,7 @@ func validateStructElems(schema *yang.Entry, value interface{}) util.Errors {
 		fieldName := ft.Name
 		fieldValue := structElems.Field(i).Interface()
 
-		cschema, err := childSchema(schema, structTypes.Field(i))
+		cschema, err := util.ChildSchema(schema, structTypes.Field(i))
 		if err != nil {
 			errors = util.AppendErr(errors, err)
 			continue
@@ -241,7 +241,7 @@ func validateListSchema(schema *yang.Entry) error {
 // key field name.
 func schemaNameToFieldName(structElems reflect.Value, schemaKeyFieldName string) (string, error) {
 	for i := 0; i < structElems.NumField(); i++ {
-		ps, err := pathToSchema(structElems.Type().Field(i))
+		ps, err := util.RelativeSchemaPath(structElems.Type().Field(i))
 		if err != nil {
 			return "", err
 		}
@@ -537,7 +537,7 @@ func unmarshalContainerWithListSchema(schema *yang.Entry, parent interface{}, va
 func getKeyValue(structVal reflect.Value, key string) (interface{}, error) {
 	for i := 0; i < structVal.NumField(); i++ {
 		f := structVal.Type().Field(i)
-		p, err := pathToSchema(f)
+		p, err := util.RelativeSchemaPath(f)
 		if err != nil {
 			return nil, err
 		}
