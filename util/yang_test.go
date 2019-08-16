@@ -22,6 +22,48 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
+func TestSchemaTreeRoot(t *testing.T) {
+	module := &yang.Entry{
+		Name: "module",
+	}
+	tests := []struct {
+		name    string
+		want    *yang.Entry
+		inChild *yang.Entry
+	}{{
+		name: "simple chained entries",
+		want: module,
+		inChild: &yang.Entry{
+			Name: "child",
+			Parent: &yang.Entry{
+				Name:   "parent",
+				Parent: module,
+			},
+		},
+	}, {
+		name: "single-leveled chain",
+		want: module,
+		inChild: &yang.Entry{
+			Name:   "child",
+			Parent: module,
+		},
+	}, {
+		name:    "no parent",
+		want:    module,
+		inChild: module,
+	}, {
+		name:    "nil schema",
+		want:    nil,
+		inChild: nil,
+	}}
+
+	for _, tt := range tests {
+		if got := SchemaTreeRoot(tt.inChild); got != tt.want {
+			t.Errorf("%s: SchemaTreeRoot(%v): didn't determine root correctly, got: %v, want: %v", tt.name, tt.inChild, got, tt.want)
+		}
+	}
+}
+
 // TestYangHelperChecks tests a known set of input data against the helper
 // functions that check the type of a particular element in yanghelpers.go.
 func TestYangHelperChecks(t *testing.T) {
@@ -548,6 +590,210 @@ func TestIsCompressedSchema(t *testing.T) {
 	}
 }
 
+func TestIsYangTypes(t *testing.T) {
+	tests := []struct {
+		desc           string
+		schema         *yang.Entry
+		wantLeafRef    bool
+		wantUnion      bool
+		wantEnumerated bool
+		wantAnydata    bool
+		wantSimpleEnum bool
+	}{
+		{
+			desc:           "nil schema",
+			schema:         nil,
+			wantLeafRef:    false,
+			wantUnion:      false,
+			wantEnumerated: false,
+			wantAnydata:    false,
+			wantSimpleEnum: false,
+		},
+		{
+			desc:           "nil Type",
+			schema:         &yang.Entry{},
+			wantLeafRef:    false,
+			wantUnion:      false,
+			wantEnumerated: false,
+			wantAnydata:    false,
+			wantSimpleEnum: false,
+		},
+		{
+			desc: "int32 type",
+			schema: &yang.Entry{
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Kind: yang.Yint32,
+				},
+			},
+			wantLeafRef:    false,
+			wantUnion:      false,
+			wantEnumerated: false,
+			wantAnydata:    false,
+			wantSimpleEnum: false,
+		},
+		{
+			desc: "leafref type",
+			schema: &yang.Entry{
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Kind: yang.Yleafref,
+				},
+			},
+			wantLeafRef:    true,
+			wantUnion:      false,
+			wantEnumerated: false,
+			wantAnydata:    false,
+			wantSimpleEnum: false,
+		},
+		{
+			desc: "union type",
+			schema: &yang.Entry{
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{{
+						Name:    "string",
+						Pattern: []string{"^a.*$"},
+						Kind:    yang.Ystring,
+						Length: yang.YangRange{{
+							Min: yang.FromInt(10),
+							Max: yang.FromInt(20),
+						},
+						},
+					}, {
+						Name:    "string",
+						Pattern: []string{"^b.*$"},
+						Kind:    yang.Ystring,
+						Length: yang.YangRange{{
+							Min: yang.FromInt(10),
+							Max: yang.FromInt(20),
+						},
+						},
+					},
+					},
+				}},
+			wantLeafRef:    false,
+			wantUnion:      true,
+			wantEnumerated: false,
+			wantAnydata:    false,
+			wantSimpleEnum: false,
+		},
+		{
+			desc: "union type with one type entry",
+			schema: &yang.Entry{
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{{
+						Name:    "string",
+						Pattern: []string{"^a.*$"},
+						Kind:    yang.Ystring,
+						Length: yang.YangRange{{
+							Min: yang.FromInt(10),
+							Max: yang.FromInt(20),
+						},
+						},
+					},
+					},
+				}},
+			wantLeafRef:    false,
+			wantUnion:      true,
+			wantEnumerated: false,
+			wantAnydata:    false,
+			wantSimpleEnum: false,
+		},
+		{
+			desc: "union type with no type entries (invalid)",
+			schema: &yang.Entry{
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{},
+				}},
+			wantLeafRef:    false,
+			wantUnion:      false,
+			wantEnumerated: false,
+			wantAnydata:    false,
+			wantSimpleEnum: false,
+		},
+		{
+			desc: "simple enum",
+			schema: &yang.Entry{
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Kind: yang.Yenum,
+					Name: yang.TypeKindToName[yang.Yenum],
+				},
+			},
+			wantLeafRef:    false,
+			wantUnion:      false,
+			wantEnumerated: true,
+			wantAnydata:    false,
+			wantSimpleEnum: false,
+		},
+		{
+			desc: "identityref",
+			schema: &yang.Entry{
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Kind: yang.Yidentityref,
+				},
+			},
+			wantLeafRef:    false,
+			wantUnion:      false,
+			wantEnumerated: true,
+			wantAnydata:    false,
+			wantSimpleEnum: false,
+		},
+		{
+			desc: "anydata",
+			schema: &yang.Entry{
+				Kind: yang.AnyDataEntry,
+			},
+			wantLeafRef:    false,
+			wantUnion:      false,
+			wantEnumerated: false,
+			wantAnydata:    true,
+			wantSimpleEnum: false,
+		},
+		{
+			desc: "non-simple enum",
+			schema: &yang.Entry{
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Kind: yang.Yenum,
+					Name: "union-enum",
+				},
+			},
+			wantLeafRef:    false,
+			wantUnion:      false,
+			wantEnumerated: true,
+			wantAnydata:    false,
+			wantSimpleEnum: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got, want := IsLeafRef(tt.schema), tt.wantLeafRef; got != want {
+				t.Errorf("IsLeafRef got: %v want: %v", got, want)
+			}
+			if got, want := IsAnydata(tt.schema), tt.wantAnydata; got != want {
+				t.Errorf("IsAnydata got: %v want: %v", got, want)
+			}
+			if tt.schema != nil { // These functions take in type as the parameter.
+				if got, want := IsUnionType(tt.schema.Type), tt.wantUnion; got != want {
+					t.Errorf("IsUnionType got: %v want: %v", got, want)
+				}
+				if got, want := IsEnumeratedType(tt.schema.Type), tt.wantEnumerated; got != want {
+					t.Errorf("IsEnumeratedType got: %v want: %v", got, want)
+				}
+			}
+		})
+	}
+}
+
 func TestIsChoiceOrCase(t *testing.T) {
 	tests := []struct {
 		desc   string
@@ -588,7 +834,7 @@ func TestIsChoiceOrCase(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			if got, want := IsChoiceOrCase(tt.schema), tt.want; got != want {
-				t.Errorf("%s: got: %v want: %v", tt.desc, got, want)
+				t.Errorf("got: %v want: %v", got, want)
 			}
 		})
 	}
@@ -626,7 +872,7 @@ func TestIsFakeRoot(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			if got, want := IsFakeRoot(tt.schema), tt.want; got != want {
-				t.Errorf("%s: got: %v want: %v", tt.desc, got, want)
+				t.Errorf("got: %v want: %v", got, want)
 			}
 		})
 	}
@@ -682,10 +928,10 @@ func TestIsOrNotKeyedList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			if got, want := IsKeyedList(tt.schema), tt.wantKeyedList; got != want {
-				t.Errorf("%s: got: %v wantKeyedList: %v", tt.desc, got, want)
+				t.Errorf("got: %v wantKeyedList: %v", got, want)
 			}
 			if got, want := IsUnkeyedList(tt.schema), tt.wantUnkeyedList; got != want {
-				t.Errorf("%s: got: %v wantUnkeyedList: %v", tt.desc, got, want)
+				t.Errorf("got: %v wantUnkeyedList: %v", got, want)
 			}
 		})
 	}
@@ -715,6 +961,141 @@ func TestIsYgotAnnotation(t *testing.T) {
 		if got := IsYgotAnnotation(tt.in); got != tt.want {
 			t.Errorf("%s: IsYgotAnnotation(%#v): did not get expected result, got: %v, want: %v", tt.name, tt.in, got, tt.want)
 		}
+	}
+}
+
+func TestEnumeratedUnionTypes(t *testing.T) {
+	tests := []struct {
+		desc  string
+		types []*yang.YangType
+		want  []*yang.YangType
+	}{
+		{
+			desc: "single-level with no enumerated types",
+			types: []*yang.YangType{{
+				Name:    "string",
+				Pattern: []string{"^a.*$"},
+				Kind:    yang.Ystring,
+				Length: yang.YangRange{{
+					Min: yang.FromInt(10),
+					Max: yang.FromInt(20),
+				},
+				},
+			}, {
+				Name: "int",
+				Kind: yang.Yint32,
+			}},
+			want: []*yang.YangType{},
+		},
+		{
+			desc: "single-level with mixed types",
+			types: []*yang.YangType{{
+				Name:    "string",
+				Pattern: []string{"^a.*$"},
+				Kind:    yang.Ystring,
+				Length: yang.YangRange{{
+					Min: yang.FromInt(10),
+					Max: yang.FromInt(20),
+				},
+				},
+			}, {
+				Name: "int",
+				Kind: yang.Yint32,
+			}, {
+				Name: "iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "union-enum",
+				Kind: yang.Yenum,
+			}},
+			want: []*yang.YangType{{
+				Name: "iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "union-enum",
+				Kind: yang.Yenum,
+			}},
+		},
+		{
+			desc:  "empty",
+			types: []*yang.YangType{},
+			want:  []*yang.YangType{},
+		},
+		{
+			desc: "multi-level with mixed types",
+			types: []*yang.YangType{{
+				Name:    "string",
+				Pattern: []string{"^a.*$"},
+				Kind:    yang.Ystring,
+				Length: yang.YangRange{{
+					Min: yang.FromInt(10),
+					Max: yang.FromInt(20),
+				},
+				},
+			}, {
+				Name: "int",
+				Kind: yang.Yint32,
+			}, {
+				Name: "iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Name:    "string",
+					Pattern: []string{"^a.*$"},
+					Kind:    yang.Ystring,
+					Length: yang.YangRange{{
+						Min: yang.FromInt(10),
+						Max: yang.FromInt(20),
+					},
+					},
+				}, {
+					Name: "inner-int",
+					Kind: yang.Yint32,
+				}, {
+					Name: "inner-iref",
+					Kind: yang.Yidentityref,
+				}, {
+					Name: "union-enum",
+					Kind: yang.Yenum,
+				}},
+			}},
+			want: []*yang.YangType{{
+				Name: "inner-iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "union-enum",
+				Kind: yang.Yenum,
+			}},
+		},
+	}
+
+	itemsEqual := func(a, b []*yang.YangType) bool {
+		if len(a) != len(b) {
+			return false
+		}
+		m := make(map[string]*yang.YangType)
+		for _, v := range a {
+			m[v.Name] = v
+		}
+		for _, bv := range b {
+			if _, ok := m[bv.Name]; !ok {
+				return false
+			}
+		}
+		return true
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got, want := EnumeratedUnionTypes(tt.types), tt.want; !itemsEqual(got, want) {
+				t.Errorf("EnumeratedUnionTypes got: %v want: %v", pretty.Sprint(got), pretty.Sprint(want))
+			}
+		})
 	}
 }
 
@@ -1021,13 +1402,59 @@ func TestValidateLeafRefData(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			s, err := ResolveIfLeafRef(tt.in)
 			if got, want := errToString(err), tt.wantErr; got != want {
-				t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+				t.Errorf("got error: %s, want error: %s", got, want)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
 				if got, want := s, tt.want; got != want {
-					t.Errorf("%s: struct got:\n%v\n want:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+					t.Errorf("struct got:\n%v\n want:\n%v\n", pretty.Sprint(got), pretty.Sprint(want))
 				}
+			}
+		})
+	}
+}
+
+func TestListKeyFieldsMap(t *testing.T) {
+	tests := []struct {
+		desc  string
+		entry *yang.Entry
+		want  map[string]bool
+	}{{
+		desc: "empty",
+		entry: &yang.Entry{
+			Key: "",
+		},
+		want: map[string]bool{},
+	}, {
+		desc: "one one-letter key",
+		entry: &yang.Entry{
+			Key: "a",
+		},
+		want: map[string]bool{"a": true},
+	}, {
+		desc: "two one-letter keys",
+		entry: &yang.Entry{
+			Key: "a b",
+		},
+		want: map[string]bool{"a": true, "b": true},
+	}, {
+		desc: "one multi-letter key",
+		entry: &yang.Entry{
+			Key: "abc",
+		},
+		want: map[string]bool{"abc": true},
+	}, {
+		desc: "three variable letter keys",
+		entry: &yang.Entry{
+			Key: "ab a abc",
+		},
+		want: map[string]bool{"a": true, "ab": true, "abc": true},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got, want := ListKeyFieldsMap(tt.entry), tt.want; !reflect.DeepEqual(got, want) {
+				t.Errorf("ListKeyFieldsMap(%v): did not get expected map, got: %v\nwant: %v\n", tt.entry, pretty.Sprint(got), pretty.Sprint(want))
 			}
 		})
 	}

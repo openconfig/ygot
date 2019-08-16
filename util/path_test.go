@@ -19,13 +19,67 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
+func TestRelativeSchemaPath(t *testing.T) {
+	tests := []struct {
+		desc      string
+		fieldName string
+		want      []string
+		wantErr   string
+	}{
+		{
+			desc:      "Good",
+			fieldName: "Good",
+			want:      []string{"config", "a"},
+		},
+		{
+			desc:      "Single",
+			fieldName: "Single",
+			want:      []string{"a"},
+		},
+		{
+			desc:      "NoPath",
+			fieldName: "NoPath",
+			wantErr:   `field NoPath did not specify a path`,
+		},
+		{
+			desc:      "EmptyPath",
+			fieldName: "EmptyPath",
+			wantErr:   `field EmptyPath did not specify a path`,
+		},
+	}
+
+	pct := reflect.TypeOf(PathContainerType{})
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			ft, ok := pct.FieldByName(tt.fieldName)
+			if !ok {
+				t.Fatal("could not find field A")
+			}
+			sp, err := RelativeSchemaPath(ft)
+			if got, want := errToString(err), tt.wantErr; got != want {
+				t.Errorf("error: %s, want error: %s", got, want)
+			}
+			testErrLog(t, tt.desc, err)
+			if err == nil {
+				if got, want := sp, tt.want; !reflect.DeepEqual(got, want) {
+					t.Errorf("got:%v want: %v", pretty.Sprint(got), pretty.Sprint(want))
+				}
+			}
+		})
+	}
+}
+
 // PathContainerType is a container type for testing.
 type PathContainerType struct {
 	Good      *int32 `path:"a|config/a"`
+	Single    *int32 `path:"a"`
 	NoPath    *int32
 	EmptyPath *int32 `path:""`
 }
@@ -67,12 +121,12 @@ func TestSchemaPaths(t *testing.T) {
 			}
 			sp, err := SchemaPaths(ft)
 			if got, want := errToString(err), tt.wantErr; got != want {
-				t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+				t.Errorf("got error: %s, want error: %s", got, want)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
 				if got, want := sp, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s: struct got:%v want: %v", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+					t.Errorf("struct got:%v want: %v", pretty.Sprint(got), pretty.Sprint(want))
 				}
 			}
 		})
@@ -150,7 +204,15 @@ func TestSchemaTreePath(t *testing.T) {
 	}
 }
 
-func TestFirstChild(t *testing.T) {
+// addParents adds parent pointers for a schema tree.
+func addParents(e *yang.Entry) {
+	for _, c := range e.Dir {
+		c.Parent = e
+		addParents(c)
+	}
+}
+
+func getContainerWithChoiceSchema() *yang.Entry {
 	containerWithChoiceSchema := &yang.Entry{
 		Name: "container-with-choice-schema",
 		Kind: yang.DirectoryEntry,
@@ -197,7 +259,13 @@ func TestFirstChild(t *testing.T) {
 			},
 		},
 	}
+	addParents(containerWithChoiceSchema)
 
+	return containerWithChoiceSchema
+}
+
+func TestFirstChild(t *testing.T) {
+	containerWithChoiceSchema := getContainerWithChoiceSchema()
 	tests := []struct {
 		desc string
 		path string
@@ -238,7 +306,51 @@ func TestFirstChild(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			cs := FirstChild(containerWithChoiceSchema, strings.Split(tt.path, "/"))
 			if got, want := cs, tt.want; got != want {
-				t.Errorf("%s: got:\n%s\nwant:\n%s\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				t.Errorf("got:\n%s\nwant:\n%s\n", pretty.Sprint(got), pretty.Sprint(want))
+			}
+		})
+	}
+}
+
+func TestSchemaPathNoChoiceCase(t *testing.T) {
+	containerWithChoiceSchema := getContainerWithChoiceSchema()
+
+	tests := []struct {
+		desc  string
+		entry *yang.Entry
+		want  []string
+	}{
+		{
+			desc:  "nil entry",
+			entry: nil,
+			want:  []string{},
+		},
+		{
+			desc:  "choice entry",
+			entry: containerWithChoiceSchema.Dir["choice1"],
+			want:  []string{"container-with-choice-schema"},
+		},
+		{
+			desc:  "case entry",
+			entry: containerWithChoiceSchema.Dir["choice1"].Dir["case1"],
+			want:  []string{"container-with-choice-schema"},
+		},
+		{
+			desc:  "case1-leaf1",
+			entry: containerWithChoiceSchema.Dir["choice1"].Dir["case1"].Dir["case1-leaf1"],
+			want:  []string{"container-with-choice-schema", "case1-leaf1"},
+		},
+		{
+			desc:  "case21-leaf",
+			entry: containerWithChoiceSchema.Dir["choice1"].Dir["case2"].Dir["case2_choice1"].Dir["case21"].Dir["case21-leaf"],
+			want:  []string{"container-with-choice-schema", "case21-leaf"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got, want := SchemaPathNoChoiceCase(tt.entry), tt.want; !cmp.Equal(got, want, cmpopts.EquateEmpty()) {
+				t.Errorf("got:\n%s\nwant:\n%s\n", pretty.Sprint(got), pretty.Sprint(want))
 			}
 		})
 	}
@@ -296,11 +408,11 @@ func TestRemoveXPATHPredicates(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			got, err := removeXPATHPredicates(tt.in)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("%s: removeXPATHPredicates(%s): got unexpected error, got: %v", tt.desc, tt.in, err)
+				t.Errorf("removeXPATHPredicates(%s): got unexpected error, got: %v", tt.in, err)
 			}
 
 			if got != tt.want {
-				t.Errorf("%s: removePredicate(%v): did not get expected value, got: %v, want: %v", tt.desc, tt.in, got, tt.want)
+				t.Errorf("removePredicate(%v): did not get expected value, got: %v, want: %v", tt.in, got, tt.want)
 			}
 		})
 	}
@@ -385,7 +497,7 @@ func TestFindLeafRefSchema(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			got, err := FindLeafRefSchema(tt.inSchema, tt.inPathStr)
 			if err != nil && err.Error() != tt.wantErr {
-				t.Errorf("%s: FindLeafRefSchema(%v, %s): did not get expected error, got: %v, want: %v", tt.desc, tt.inSchema, tt.inPathStr, err, tt.wantErr)
+				t.Errorf("FindLeafRefSchema(%v, %s): did not get expected error, got: %v, want: %v", tt.inSchema, tt.inPathStr, err, tt.wantErr)
 			}
 
 			if err != nil {
@@ -393,7 +505,7 @@ func TestFindLeafRefSchema(t *testing.T) {
 			}
 
 			if diff := pretty.Compare(got, tt.wantEntry); diff != "" {
-				t.Errorf("%s: FindLeafRefSchema(%v, %s): did not get expected entry, diff(-got,+want):\n%s", tt.desc, tt.inSchema, tt.inPathStr, diff)
+				t.Errorf("FindLeafRefSchema(%v, %s): did not get expected entry, diff(-got,+want):\n%s", tt.inSchema, tt.inPathStr, diff)
 			}
 		})
 	}
@@ -427,7 +539,7 @@ func TestStripModulePrefix(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			got, err := stripModulePrefixWithCheck(tt.inName)
 			if err != nil && err.Error() != tt.wantErr {
-				t.Errorf("%s: stripModulePrefixWithCheck(%v): did not get expected error, got: %v, want: %s", tt.desc, tt.inName, got, tt.wantErr)
+				t.Errorf("stripModulePrefixWithCheck(%v): did not get expected error, got: %v, want: %s", tt.inName, got, tt.wantErr)
 			}
 
 			if err != nil {
@@ -435,11 +547,11 @@ func TestStripModulePrefix(t *testing.T) {
 			}
 
 			if got != tt.wantName {
-				t.Errorf("%s: stripModulePrefixWithCheck(%v): did not get expected name, got: %s, want: %s", tt.desc, tt.inName, got, tt.wantName)
+				t.Errorf("stripModulePrefixWithCheck(%v): did not get expected name, got: %s, want: %s", tt.inName, got, tt.wantName)
 			}
 
 			if got, want := StripModulePrefix(tt.inName), tt.wantName; got != want {
-				t.Errorf("%s: StripModulePrefix(%v): did not get expected name, got: %s, want: %s", tt.desc, tt.inName, got, want)
+				t.Errorf("StripModulePrefix(%v): did not get expected name, got: %s, want: %s", tt.inName, got, want)
 			}
 
 		})
@@ -487,7 +599,7 @@ func TestStripModulePrefixesStr(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			if got, want := StripModulePrefixesStr(tt.path), tt.want; got != want {
-				t.Errorf("%s: got: %v want: %v", tt.desc, got, want)
+				t.Errorf("got: %v want: %v", got, want)
 			}
 		})
 	}
@@ -529,7 +641,7 @@ func TestSplitPath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			if got, want := SplitPath(tt.in), tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %v, want: %v", tt.desc, got, want)
+				t.Errorf("got: %v, want: %v", got, want)
 			}
 		})
 	}
