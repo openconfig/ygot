@@ -56,8 +56,8 @@ func protoMsgEq(a, b *protoMsg) bool {
 func TestGenProto3Msg(t *testing.T) {
 	tests := []struct {
 		name                   string
-		inMsg                  *yangDirectory
-		inMsgs                 map[string]*yangDirectory
+		inMsg                  *Directory
+		inMsgs                 map[string]*Directory
 		inUniqueDirectoryNames map[string]string
 		inCompressPaths        bool
 		inBasePackage          string
@@ -70,14 +70,14 @@ func TestGenProto3Msg(t *testing.T) {
 		wantErr                bool
 	}{{
 		name: "simple message with only scalar fields",
-		inMsg: &yangDirectory{
-			name: "MessageName",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "MessageName",
+			Entry: &yang.Entry{
 				Name: "message-name",
 				Dir:  map[string]*yang.Entry{},
 				Kind: yang.DirectoryEntry,
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"field-one": {
 					Name: "field-one",
 					Type: &yang.YangType{Kind: yang.Ystring},
@@ -87,7 +87,7 @@ func TestGenProto3Msg(t *testing.T) {
 					Type: &yang.YangType{Kind: yang.Yint8},
 				},
 			},
-			path: []string{"", "root", "message-name"},
+			Path: []string{"", "root", "message-name"},
 		},
 		inBasePackage: "base",
 		inEnumPackage: "enums",
@@ -108,21 +108,21 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "simple message with child messages, ensure no difference in logic",
-		inMsg: &yangDirectory{
-			name: "MessageName",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "MessageName",
+			Entry: &yang.Entry{
 				Name: "message-name",
 				Dir:  map[string]*yang.Entry{},
 				Kind: yang.DirectoryEntry,
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"field-one": {
 					Name: "field-one",
 					Type: &yang.YangType{Kind: yang.Ystring},
 				},
 			},
 
-			path: []string{"", "root", "message-name"},
+			Path: []string{"", "root", "message-name"},
 		},
 		inBasePackage: "base",
 		inEnumPackage: "enums",
@@ -144,14 +144,14 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "simple message with union leaf and leaf-list",
-		inMsg: &yangDirectory{
-			name: "MessageName",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "MessageName",
+			Entry: &yang.Entry{
 				Name: "message-name",
 				Dir:  map[string]*yang.Entry{},
 				Kind: yang.DirectoryEntry,
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"field-one": {
 					Name: "field-one",
 					Type: &yang.YangType{
@@ -185,7 +185,7 @@ func TestGenProto3Msg(t *testing.T) {
 					},
 				},
 			},
-			path: []string{"", "root", "message-name"},
+			Path: []string{"", "root", "message-name"},
 		},
 		inBasePackage: "base",
 		inEnumPackage: "enums",
@@ -231,14 +231,14 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "simple message with leaf-list and a message child, compression on",
-		inMsg: &yangDirectory{
-			name: "AMessage",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "AMessage",
+			Entry: &yang.Entry{
 				Name: "a-message",
 				Dir:  map[string]*yang.Entry{},
 				Kind: yang.DirectoryEntry,
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"leaf-list": {
 					Name:     "leaf-list",
 					Type:     &yang.YangType{Kind: yang.Ystring},
@@ -256,12 +256,12 @@ func TestGenProto3Msg(t *testing.T) {
 					},
 				},
 			},
-			path: []string{"", "root", "a-message"},
+			Path: []string{"", "root", "a-message"},
 		},
-		inMsgs: map[string]*yangDirectory{
+		inMsgs: map[string]*Directory{
 			"/root/a-message/container-child": {
-				name: "ContainerChild",
-				entry: &yang.Entry{
+				Name: "ContainerChild",
+				Entry: &yang.Entry{
 					Name: "container-child",
 					Parent: &yang.Entry{
 						Name: "a-message",
@@ -294,14 +294,14 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "simple message with leaf-list and a message child, compression off",
-		inMsg: &yangDirectory{
-			name: "AMessage",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "AMessage",
+			Entry: &yang.Entry{
 				Name: "a-message",
 				Dir:  map[string]*yang.Entry{},
 				Kind: yang.DirectoryEntry,
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"leaf-list": {
 					Name:     "leaf-list",
 					Type:     &yang.YangType{Kind: yang.Ystring},
@@ -319,12 +319,12 @@ func TestGenProto3Msg(t *testing.T) {
 					},
 				},
 			},
-			path: []string{"", "root", "a-message"},
+			Path: []string{"", "root", "a-message"},
 		},
-		inMsgs: map[string]*yangDirectory{
+		inMsgs: map[string]*Directory{
 			"/root/a-message/container-child": {
-				name: "ContainerChild",
-				entry: &yang.Entry{
+				Name: "ContainerChild",
+				Entry: &yang.Entry{
 					Name: "container-child",
 					Parent: &yang.Entry{
 						Name: "a-message",
@@ -356,14 +356,14 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "message with list",
-		inMsg: &yangDirectory{
-			name: "AMessageWithAList",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "AMessageWithAList",
+			Entry: &yang.Entry{
 				Name: "a-message-with-a-list",
 				Dir:  map[string]*yang.Entry{},
 				Kind: yang.DirectoryEntry,
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"list": {
 					Name: "list",
 					Parent: &yang.Entry{
@@ -380,17 +380,17 @@ func TestGenProto3Msg(t *testing.T) {
 					ListAttr: &yang.ListAttr{},
 				},
 			},
-			path: []string{"", "a-message-with-a-list", "list"},
+			Path: []string{"", "a-message-with-a-list", "list"},
 		},
 		inBasePackage: "base",
 		inEnumPackage: "enums",
 		inUniqueDirectoryNames: map[string]string{
 			"/a-message-with-a-list/list": "List",
 		},
-		inMsgs: map[string]*yangDirectory{
+		inMsgs: map[string]*Directory{
 			"/a-message-with-a-list/list": {
-				name: "List",
-				entry: &yang.Entry{
+				Name: "List",
+				Entry: &yang.Entry{
 					Name: "list",
 					Parent: &yang.Entry{
 						Name: "a-message-with-a-list",
@@ -405,7 +405,7 @@ func TestGenProto3Msg(t *testing.T) {
 					Key:      "key",
 					ListAttr: &yang.ListAttr{},
 				},
-				fields: map[string]*yang.Entry{
+				Fields: map[string]*yang.Entry{
 					"key": {
 						Name: "key",
 						Type: &yang.YangType{Kind: yang.Ystring},
@@ -442,14 +442,14 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "message with list, where the key has the same name as list",
-		inMsg: &yangDirectory{
-			name: "AMessageWithAList",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "AMessageWithAList",
+			Entry: &yang.Entry{
 				Name: "a-message-with-a-list",
 				Dir:  map[string]*yang.Entry{},
 				Kind: yang.DirectoryEntry,
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"list": {
 					Name: "list",
 					Parent: &yang.Entry{
@@ -466,17 +466,17 @@ func TestGenProto3Msg(t *testing.T) {
 					ListAttr: &yang.ListAttr{},
 				},
 			},
-			path: []string{"", "a-message-with-a-list", "list"},
+			Path: []string{"", "a-message-with-a-list", "list"},
 		},
 		inBasePackage: "base",
 		inEnumPackage: "enums",
 		inUniqueDirectoryNames: map[string]string{
 			"/a-message-with-a-list/list": "List",
 		},
-		inMsgs: map[string]*yangDirectory{
+		inMsgs: map[string]*Directory{
 			"/a-message-with-a-list/list": {
-				name: "List",
-				entry: &yang.Entry{
+				Name: "List",
+				Entry: &yang.Entry{
 					Name: "list",
 					Parent: &yang.Entry{
 						Name: "a-message-with-a-list",
@@ -491,7 +491,7 @@ func TestGenProto3Msg(t *testing.T) {
 					Key:      "list",
 					ListAttr: &yang.ListAttr{},
 				},
-				fields: map[string]*yang.Entry{
+				Fields: map[string]*yang.Entry{
 					"list": {
 						Name: "list",
 						Type: &yang.YangType{Kind: yang.Ystring},
@@ -528,10 +528,10 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "message with missing directory",
-		inMsg: &yangDirectory{
-			name:  "foo",
-			entry: &yang.Entry{Name: "foo"},
-			fields: map[string]*yang.Entry{
+		inMsg: &Directory{
+			Name:  "foo",
+			Entry: &yang.Entry{Name: "foo"},
+			Fields: map[string]*yang.Entry{
 				"bar": {
 					Name: "bar",
 					Kind: yang.DirectoryEntry,
@@ -542,14 +542,14 @@ func TestGenProto3Msg(t *testing.T) {
 		wantErr: true,
 	}, {
 		name: "message with an unimplemented mapping",
-		inMsg: &yangDirectory{
-			name: "MessageWithInvalidContents",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "MessageWithInvalidContents",
+			Entry: &yang.Entry{
 				Name: "message-with-invalid-contents",
 				Dir:  map[string]*yang.Entry{},
 				Kind: yang.DirectoryEntry,
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"unimplemented": {
 					Name: "unimplemented",
 					Kind: yang.LeafEntry,
@@ -563,19 +563,19 @@ func TestGenProto3Msg(t *testing.T) {
 					},
 				},
 			},
-			path: []string{"", "messasge-with-invalid-contents", "unimplemented"},
+			Path: []string{"", "messasge-with-invalid-contents", "unimplemented"},
 		},
 		wantErr: true,
 	}, {
 		name: "message with any anydata field",
-		inMsg: &yangDirectory{
-			name: "MessageWithAnydata",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "MessageWithAnydata",
+			Entry: &yang.Entry{
 				Name: "message-with-anydata",
 				Kind: yang.DirectoryEntry,
 				Dir:  map[string]*yang.Entry{},
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"any-data": {
 					Name: "any-data",
 					Kind: yang.AnyDataEntry,
@@ -586,7 +586,7 @@ func TestGenProto3Msg(t *testing.T) {
 					Type: &yang.YangType{Kind: yang.Ystring},
 				},
 			},
-			path: []string{"", "message-with-anydata"},
+			Path: []string{"", "message-with-anydata"},
 		},
 		inBasePackage: "base",
 		inEnumPackage: "enums",
@@ -608,9 +608,9 @@ func TestGenProto3Msg(t *testing.T) {
 		},
 	}, {
 		name: "message with annotate schema paths enabled",
-		inMsg: &yangDirectory{
-			name: "MessageWithAnnotations",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "MessageWithAnnotations",
+			Entry: &yang.Entry{
 				Name: "message-with-annotations",
 				Kind: yang.DirectoryEntry,
 				Dir:  map[string]*yang.Entry{},
@@ -621,7 +621,7 @@ func TestGenProto3Msg(t *testing.T) {
 					},
 				},
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"leaf": {
 					Name: "leaf",
 					Kind: yang.LeafEntry,
@@ -634,7 +634,7 @@ func TestGenProto3Msg(t *testing.T) {
 					},
 				},
 			},
-			path: []string{"", "one", "two"},
+			Path: []string{"", "one", "two"},
 		},
 		inBasePackage:         "base",
 		inEnumPackage:         "enums",
@@ -736,8 +736,8 @@ func TestWriteProtoMsg(t *testing.T) {
 
 	tests := []struct {
 		name                   string
-		inMsg                  *yangDirectory
-		inMsgs                 map[string]*yangDirectory
+		inMsg                  *Directory
+		inMsgs                 map[string]*Directory
 		inBasePackageName      string
 		inEnumPackageName      string
 		inBaseImportPath       string
@@ -749,9 +749,9 @@ func TestWriteProtoMsg(t *testing.T) {
 		wantUncompressErr      bool
 	}{{
 		name: "simple message with scalar fields",
-		inMsg: &yangDirectory{
-			name: "MessageName",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "MessageName",
+			Entry: &yang.Entry{
 				Name: "message-name",
 				Kind: yang.DirectoryEntry,
 				Dir:  map[string]*yang.Entry{},
@@ -767,13 +767,13 @@ func TestWriteProtoMsg(t *testing.T) {
 				},
 				Node: &yang.Container{Name: "message-name"},
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"field-one": {
 					Name: "field-one",
 					Type: &yang.YangType{Kind: yang.Ystring},
 				},
 			},
-			path: []string{"", "module", "container", "message-name"},
+			Path: []string{"", "module", "container", "message-name"},
 		},
 		inBasePackageName: "base",
 		inEnumPackageName: "enums",
@@ -795,9 +795,9 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with other messages embedded",
-		inMsg: &yangDirectory{
-			name: "MessageName",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "MessageName",
+			Entry: &yang.Entry{
 				Name: "message-name",
 				Kind: yang.DirectoryEntry,
 				Parent: &yang.Entry{
@@ -805,7 +805,7 @@ message MessageName {
 					Kind: yang.DirectoryEntry,
 				},
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"child": {
 					Name: "child",
 					Kind: yang.DirectoryEntry,
@@ -820,12 +820,12 @@ message MessageName {
 					},
 				},
 			},
-			path: []string{"", "module", "message-name"},
+			Path: []string{"", "module", "message-name"},
 		},
-		inMsgs: map[string]*yangDirectory{
+		inMsgs: map[string]*Directory{
 			"/module/message-name/child": {
-				name: "Child",
-				entry: &yang.Entry{
+				Name: "Child",
+				Entry: &yang.Entry{
 					Name: "child",
 					Kind: yang.DirectoryEntry,
 					Parent: &yang.Entry{
@@ -861,9 +861,9 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with other messages embedded - with nested messages",
-		inMsg: &yangDirectory{
-			name: "MessageName",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "MessageName",
+			Entry: &yang.Entry{
 				Name: "message-name",
 				Kind: yang.DirectoryEntry,
 				Parent: &yang.Entry{
@@ -871,7 +871,7 @@ message MessageName {
 					Kind: yang.DirectoryEntry,
 				},
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"child": {
 					Name: "child",
 					Kind: yang.DirectoryEntry,
@@ -886,12 +886,12 @@ message MessageName {
 					},
 				},
 			},
-			path: []string{"", "module", "message-name"},
+			Path: []string{"", "module", "message-name"},
 		},
-		inMsgs: map[string]*yangDirectory{
+		inMsgs: map[string]*Directory{
 			"/module/message-name/child": {
-				name: "Child",
-				entry: &yang.Entry{
+				Name: "Child",
+				Entry: &yang.Entry{
 					Name: "child",
 					Kind: yang.DirectoryEntry,
 					Parent: &yang.Entry{
@@ -903,8 +903,8 @@ message MessageName {
 						},
 					},
 				},
-				path: []string{"", "module", "message-name", "child"},
-				fields: map[string]*yang.Entry{
+				Path: []string{"", "module", "message-name", "child"},
+				Fields: map[string]*yang.Entry{
 					"leaf": {
 						Name: "leaf",
 						Type: &yang.YangType{Kind: yang.Ystring},
@@ -937,9 +937,9 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with an enumeration leaf",
-		inMsg: &yangDirectory{
-			name: "MessageName",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "MessageName",
+			Entry: &yang.Entry{
 				Name: "message-name",
 				Kind: yang.DirectoryEntry,
 				Parent: &yang.Entry{
@@ -947,7 +947,7 @@ message MessageName {
 					Kind: yang.DirectoryEntry,
 				},
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"enum": {
 					Name: "enum",
 					Kind: yang.LeafEntry,
@@ -964,7 +964,7 @@ message MessageName {
 					},
 				},
 			},
-			path: []string{"", "module", "message-name"},
+			Path: []string{"", "module", "message-name"},
 		},
 		inBasePackageName: "base",
 		inEnumPackageName: "enums",
@@ -996,9 +996,9 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with a list",
-		inMsg: &yangDirectory{
-			name: "AMessage",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "AMessage",
+			Entry: &yang.Entry{
 				Name: "a-message",
 				Kind: yang.DirectoryEntry,
 				Parent: &yang.Entry{
@@ -1006,7 +1006,7 @@ message MessageName {
 					Kind: yang.DirectoryEntry,
 				},
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"list": {
 					Name:     "list",
 					Kind:     yang.DirectoryEntry,
@@ -1035,10 +1035,10 @@ message MessageName {
 				},
 			},
 		},
-		inMsgs: map[string]*yangDirectory{
+		inMsgs: map[string]*Directory{
 			"/module/a-message/surrounding-container/list": {
-				name: "List",
-				entry: &yang.Entry{
+				Name: "List",
+				Entry: &yang.Entry{
 					Name:     "list",
 					Kind:     yang.DirectoryEntry,
 					ListAttr: &yang.ListAttr{},
@@ -1064,7 +1064,7 @@ message MessageName {
 						},
 					},
 				},
-				fields: map[string]*yang.Entry{
+				Fields: map[string]*yang.Entry{
 					"keyfield": {
 						Name: "keyfield",
 						Type: &yang.YangType{
@@ -1109,9 +1109,9 @@ message AMessage {
 		},
 	}, {
 		name: "simple message with a list - nested messages",
-		inMsg: &yangDirectory{
-			name: "AMessage",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "AMessage",
+			Entry: &yang.Entry{
 				Name: "a-message",
 				Kind: yang.DirectoryEntry,
 				Parent: &yang.Entry{
@@ -1119,7 +1119,7 @@ message AMessage {
 					Kind: yang.DirectoryEntry,
 				},
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"list": {
 					Name:     "list",
 					Kind:     yang.DirectoryEntry,
@@ -1147,12 +1147,12 @@ message AMessage {
 					},
 				},
 			},
-			path: []string{"", "module", "a-message"},
+			Path: []string{"", "module", "a-message"},
 		},
-		inMsgs: map[string]*yangDirectory{
+		inMsgs: map[string]*Directory{
 			"/module/a-message/surrounding-container/list": {
-				name: "List",
-				entry: &yang.Entry{
+				Name: "List",
+				Entry: &yang.Entry{
 					Name:     "list",
 					Kind:     yang.DirectoryEntry,
 					ListAttr: &yang.ListAttr{},
@@ -1178,7 +1178,7 @@ message AMessage {
 						},
 					},
 				},
-				fields: map[string]*yang.Entry{
+				Fields: map[string]*yang.Entry{
 					"keyfield": {
 						Name: "keyfield",
 						Type: &yang.YangType{
@@ -1216,9 +1216,9 @@ message AMessage {
 		},
 	}, {
 		name: "simple message with unkeyed list - nested messages",
-		inMsg: &yangDirectory{
-			name: "AMessage",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "AMessage",
+			Entry: &yang.Entry{
 				Name: "a-message",
 				Kind: yang.DirectoryEntry,
 				Parent: &yang.Entry{
@@ -1226,7 +1226,7 @@ message AMessage {
 					Kind: yang.DirectoryEntry,
 				},
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"list": {
 					Name:     "list",
 					Kind:     yang.DirectoryEntry,
@@ -1253,12 +1253,12 @@ message AMessage {
 					},
 				},
 			},
-			path: []string{"", "module", "a-message"},
+			Path: []string{"", "module", "a-message"},
 		},
-		inMsgs: map[string]*yangDirectory{
+		inMsgs: map[string]*Directory{
 			"/module/a-message/surrounding-container/list": {
-				name: "List",
-				entry: &yang.Entry{
+				Name: "List",
+				Entry: &yang.Entry{
 					Name:     "list",
 					Kind:     yang.DirectoryEntry,
 					ListAttr: &yang.ListAttr{},
@@ -1283,7 +1283,7 @@ message AMessage {
 						},
 					},
 				},
-				fields: map[string]*yang.Entry{
+				Fields: map[string]*yang.Entry{
 					"keyfield": {
 						Name: "keyfield",
 						Type: &yang.YangType{
@@ -1313,10 +1313,10 @@ message AMessage {
 		},
 	}, {
 		name: "message skipped due to path length",
-		inMsg: &yangDirectory{
-			name:  "messagename",
-			path:  []string{"one", "two"},
-			entry: &yang.Entry{},
+		inMsg: &Directory{
+			Name:  "messagename",
+			Path:  []string{"one", "two"},
+			Entry: &yang.Entry{},
 		},
 		inBasePackageName: "base",
 		inEnumPackageName: "enums",
@@ -1325,9 +1325,9 @@ message AMessage {
 		wantUncompress:    nil,
 	}, {
 		name: "simple message with an identityref leaf",
-		inMsg: &yangDirectory{
-			name: "MessageName",
-			entry: &yang.Entry{
+		inMsg: &Directory{
+			Name: "MessageName",
+			Entry: &yang.Entry{
 				Name: "message-name",
 				Kind: yang.DirectoryEntry,
 				Parent: &yang.Entry{
@@ -1335,7 +1335,7 @@ message AMessage {
 					Kind: yang.DirectoryEntry,
 				},
 			},
-			fields: map[string]*yang.Entry{
+			Fields: map[string]*yang.Entry{
 				"identityref": {
 					Name: "identityref",
 					Kind: yang.LeafEntry,
@@ -1361,7 +1361,7 @@ message AMessage {
 					},
 				},
 			},
-			path: []string{"", "module-name", "message-name"},
+			Path: []string{"", "module-name", "message-name"},
 		},
 		inBasePackageName: "base",
 		inEnumPackageName: "enums",
@@ -1446,9 +1446,9 @@ func TestGenListKeyProto(t *testing.T) {
 				Key:      "key",
 				Dir:      map[string]*yang.Entry{},
 			},
-			directory: &yangDirectory{
-				name: "List",
-				fields: map[string]*yang.Entry{
+			directory: &Directory{
+				Name: "List",
+				Fields: map[string]*yang.Entry{
 					"key": {
 						Name: "key",
 						Type: &yang.YangType{
@@ -1457,7 +1457,7 @@ func TestGenListKeyProto(t *testing.T) {
 					},
 				},
 			},
-			definedDirectories: map[string]*yangDirectory{},
+			definedDirectories: map[string]*Directory{},
 			state: &genState{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
@@ -1495,9 +1495,9 @@ func TestGenListKeyProto(t *testing.T) {
 				Key:      "key",
 				Dir:      map[string]*yang.Entry{},
 			},
-			directory: &yangDirectory{
-				name: "List",
-				fields: map[string]*yang.Entry{
+			directory: &Directory{
+				Name: "List",
+				Fields: map[string]*yang.Entry{
 					"key": {
 						Name: "key",
 						Type: &yang.YangType{
@@ -1510,7 +1510,7 @@ func TestGenListKeyProto(t *testing.T) {
 					},
 				},
 			},
-			definedDirectories: map[string]*yangDirectory{},
+			definedDirectories: map[string]*Directory{},
 			state: &genState{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
@@ -1557,9 +1557,9 @@ func TestGenListKeyProto(t *testing.T) {
 				Key:      "key",
 				Dir:      map[string]*yang.Entry{},
 			},
-			directory: &yangDirectory{
-				name: "List",
-				fields: map[string]*yang.Entry{
+			directory: &Directory{
+				Name: "List",
+				Fields: map[string]*yang.Entry{
 					"key": {
 						Name: "key",
 						Type: &yang.YangType{
@@ -1572,7 +1572,7 @@ func TestGenListKeyProto(t *testing.T) {
 					},
 				},
 			},
-			definedDirectories: map[string]*yangDirectory{},
+			definedDirectories: map[string]*Directory{},
 			state: &genState{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
@@ -1766,7 +1766,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		name                string
 		inName              string
 		inEntry             *yang.Entry
-		inMappedType        *mappedType
+		inMappedType        *MappedType
 		inAnnotateEnumNames bool
 		wantFields          []*protoMsgField
 		wantEnums           map[string]*protoMsgEnum
@@ -1784,7 +1784,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				},
 			},
 		},
-		inMappedType: &mappedType{
+		inMappedType: &MappedType{
 			unionTypes: map[string]int{
 				"string": 0,
 				"sint64": 0,
@@ -1812,7 +1812,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				},
 			},
 		},
-		inMappedType: &mappedType{
+		inMappedType: &MappedType{
 			unionTypes: map[string]int{
 				"string":             0,
 				"ywrapper.Decimal64": 1,
@@ -1844,7 +1844,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				},
 			},
 		},
-		inMappedType: &mappedType{
+		inMappedType: &MappedType{
 			unionTypes: map[string]int{
 				"SomeEnumType": 0,
 				"string":       1,
@@ -1883,7 +1883,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			Parent:   &yang.Entry{Name: "parent"},
 			ListAttr: &yang.ListAttr{},
 		},
-		inMappedType: &mappedType{
+		inMappedType: &MappedType{
 			unionTypes: map[string]int{
 				"string": 0,
 				"uint64": 1,

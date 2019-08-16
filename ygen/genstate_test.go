@@ -1103,14 +1103,14 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 	tests := []struct {
 		name                             string
 		in                               []*yang.Entry
-		wantGoCompress                   map[string]*yangDirectory
-		wantGoUncompress                 map[string]*yangDirectory
-		wantGoCompressStateExcluded      map[string]*yangDirectory
-		wantGoUncompressStateExcluded    map[string]*yangDirectory
-		wantProtoCompress                map[string]*yangDirectory
-		wantProtoUncompress              map[string]*yangDirectory
-		wantProtoCompressStateExcluded   map[string]*yangDirectory
-		wantProtoUncompressStateExcluded map[string]*yangDirectory
+		wantGoCompress                   map[string]*Directory
+		wantGoUncompress                 map[string]*Directory
+		wantGoCompressStateExcluded      map[string]*Directory
+		wantGoUncompressStateExcluded    map[string]*Directory
+		wantProtoCompress                map[string]*Directory
+		wantProtoUncompress              map[string]*Directory
+		wantProtoCompressStateExcluded   map[string]*Directory
+		wantProtoUncompressStateExcluded map[string]*Directory
 	}{{
 		name: "basic struct generation test",
 		in: []*yang.Entry{{
@@ -1155,134 +1155,134 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				},
 			},
 		}},
-		wantGoCompress: map[string]*yangDirectory{
+		wantGoCompress: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 		},
-		wantGoCompressStateExcluded: map[string]*yangDirectory{
+		wantGoCompressStateExcluded: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 		},
-		wantGoUncompress: map[string]*yangDirectory{
+		wantGoUncompress: map[string]*Directory{
 			"/module/s1": {
-				name: "Module_S1",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1",
+				Fields: map[string]*yang.Entry{
 					"config": {Name: "config"},
 					"state":  {Name: "state"},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/config": {
-				name: "Module_S1_Config",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1_Config",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1", "config"},
+				Path: []string{"", "module", "s1", "config"},
 			},
 			"/module/s1/state": {
-				name: "Module_S1_State",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1_State",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 				},
-				path: []string{"", "module", "s1", "state"},
+				Path: []string{"", "module", "s1", "state"},
 			},
 		},
-		wantGoUncompressStateExcluded: map[string]*yangDirectory{
+		wantGoUncompressStateExcluded: map[string]*Directory{
 			"/module/s1": {
-				name: "Module_S1",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1",
+				Fields: map[string]*yang.Entry{
 					"config": {Name: "config"},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/config": {
-				name: "Module_S1_Config",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1_Config",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1", "config"},
+				Path: []string{"", "module", "s1", "config"},
 			},
 		},
-		wantProtoCompress: map[string]*yangDirectory{
+		wantProtoCompress: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 		},
-		wantProtoCompressStateExcluded: map[string]*yangDirectory{
+		wantProtoCompressStateExcluded: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 		},
-		wantProtoUncompress: map[string]*yangDirectory{
+		wantProtoUncompress: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
 					"config": {Name: "config"},
 					"state":  {Name: "state"},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/config": {
-				name: "Config",
-				fields: map[string]*yang.Entry{
+				Name: "Config",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1", "config"},
+				Path: []string{"", "module", "s1", "config"},
 			},
 			"/module/s1/state": {
-				name: "State",
-				fields: map[string]*yang.Entry{
+				Name: "State",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 				},
-				path: []string{"", "module", "s1", "state"},
+				Path: []string{"", "module", "s1", "state"},
 			},
 		},
-		wantProtoUncompressStateExcluded: map[string]*yangDirectory{
+		wantProtoUncompressStateExcluded: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
 					"config": {Name: "config"},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/config": {
-				name: "Config",
-				fields: map[string]*yang.Entry{
+				Name: "Config",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1", "config"},
+				Path: []string{"", "module", "s1", "config"},
 			},
 		},
 	}, {
@@ -1309,36 +1309,36 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				},
 			},
 		}},
-		wantGoUncompress: map[string]*yangDirectory{
+		wantGoUncompress: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1",
+				Fields: map[string]*yang.Entry{
 					"read-only":  {Name: "read-only", Type: &yang.YangType{Kind: yang.Ystring}},
 					"read-write": {Name: "read-write", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 			},
 		},
-		wantGoUncompressStateExcluded: map[string]*yangDirectory{
+		wantGoUncompressStateExcluded: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1",
+				Fields: map[string]*yang.Entry{
 					"read-write": {Name: "read-write", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 			},
 		},
-		wantProtoUncompress: map[string]*yangDirectory{
+		wantProtoUncompress: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
 					"read-only":  {Name: "read-only", Type: &yang.YangType{Kind: yang.Ystring}},
 					"read-write": {Name: "read-write", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 			},
 		},
-		wantProtoUncompressStateExcluded: map[string]*yangDirectory{
+		wantProtoUncompressStateExcluded: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
 					"read-write": {Name: "read-write", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 			},
@@ -1456,170 +1456,170 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				},
 			},
 		},
-		wantGoCompress: map[string]*yangDirectory{
+		wantGoCompress: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
 					"l1":              {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2":              {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3":              {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 					"outer-container": {Name: "outer-container"},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/outer-container": {
-				name: "S1_OuterContainer",
-				fields: map[string]*yang.Entry{
+				Name: "S1_OuterContainer",
+				Fields: map[string]*yang.Entry{
 					"inner-container": {Name: "inner-container"},
 				},
-				path: []string{"", "module", "s1", "outer-container"},
+				Path: []string{"", "module", "s1", "outer-container"},
 			},
 			"/module/s1/outer-container/inner-container": {
-				name: "S1_OuterContainer_InnerContainer",
-				fields: map[string]*yang.Entry{
+				Name: "S1_OuterContainer_InnerContainer",
+				Fields: map[string]*yang.Entry{
 					"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1", "outer-container", "inner-container"},
+				Path: []string{"", "module", "s1", "outer-container", "inner-container"},
 			},
 		},
-		wantGoUncompress: map[string]*yangDirectory{
+		wantGoUncompress: map[string]*Directory{
 			"/module/s1": {
-				name: "Module_S1",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1",
+				Fields: map[string]*yang.Entry{
 					"config":          {Name: "config"},
 					"state":           {Name: "state"},
 					"outer-container": {Name: "outer-container"},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/config": {
-				name: "Module_S1_Config",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1_Config",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1", "config"},
+				Path: []string{"", "module", "s1", "config"},
 			},
 			"/module/s1/state": {
-				name: "Module_S1_State",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1_State",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 				},
-				path: []string{"", "module", "s1", "state"},
+				Path: []string{"", "module", "s1", "state"},
 			},
 			"/module/s1/outer-container": {
-				name:   "Module_S1_OuterContainer",
-				fields: map[string]*yang.Entry{"inner-container": {Name: "inner-container"}},
-				path:   []string{"", "module", "s1", "outer-container"},
+				Name:   "Module_S1_OuterContainer",
+				Fields: map[string]*yang.Entry{"inner-container": {Name: "inner-container"}},
+				Path:   []string{"", "module", "s1", "outer-container"},
 			},
 			"/module/s1/outer-container/inner-container": {
-				name: "Module_S1_OuterContainer_InnerContainer",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1_OuterContainer_InnerContainer",
+				Fields: map[string]*yang.Entry{
 					"config": {Name: "config"},
 					"state":  {Name: "state"},
 				},
-				path: []string{"", "module", "s1", "outer-container", "inner-container"},
+				Path: []string{"", "module", "s1", "outer-container", "inner-container"},
 			},
 			"/module/s1/outer-container/inner-container/config": {
-				name: "Module_S1_OuterContainer_InnerContainer_Config",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1_OuterContainer_InnerContainer_Config",
+				Fields: map[string]*yang.Entry{
 					"inner-leaf": {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
-				path: []string{"", "module", "s1", "outer-container", "inner-container", "config"},
+				Path: []string{"", "module", "s1", "outer-container", "inner-container", "config"},
 			},
 			"/module/s1/outer-container/inner-container/state": {
-				name: "Module_S1_OuterContainer_InnerContainer_State",
-				fields: map[string]*yang.Entry{
+				Name: "Module_S1_OuterContainer_InnerContainer_State",
+				Fields: map[string]*yang.Entry{
 					"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1", "outer-container", "inner-container", "state"},
+				Path: []string{"", "module", "s1", "outer-container", "inner-container", "state"},
 			},
 		},
-		wantProtoCompress: map[string]*yangDirectory{
+		wantProtoCompress: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
 					"l1":              {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2":              {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3":              {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 					"outer-container": {Name: "outer-container"},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/outer-container": {
-				name: "OuterContainer",
-				fields: map[string]*yang.Entry{
+				Name: "OuterContainer",
+				Fields: map[string]*yang.Entry{
 					"inner-container": {Name: "inner-container"},
 				},
-				path: []string{"", "module", "s1", "outer-container"},
+				Path: []string{"", "module", "s1", "outer-container"},
 			},
 			"/module/s1/outer-container/inner-container": {
-				name: "InnerContainer",
-				fields: map[string]*yang.Entry{
+				Name: "InnerContainer",
+				Fields: map[string]*yang.Entry{
 					"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1", "outer-container", "inner-container"},
+				Path: []string{"", "module", "s1", "outer-container", "inner-container"},
 			},
 		},
-		wantProtoUncompress: map[string]*yangDirectory{
+		wantProtoUncompress: map[string]*Directory{
 			"/module/s1": {
-				name: "S1",
-				fields: map[string]*yang.Entry{
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
 					"config":          {Name: "config"},
 					"state":           {Name: "state"},
 					"outer-container": {Name: "outer-container"},
 				},
-				path: []string{"", "module", "s1"},
+				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/config": {
-				name: "Config",
-				fields: map[string]*yang.Entry{
+				Name: "Config",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1", "config"},
+				Path: []string{"", "module", "s1", "config"},
 			},
 			"/module/s1/state": {
-				name: "State",
-				fields: map[string]*yang.Entry{
+				Name: "State",
+				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 				},
-				path: []string{"", "module", "s1", "state"},
+				Path: []string{"", "module", "s1", "state"},
 			},
 			"/module/s1/outer-container": {
-				name:   "OuterContainer",
-				fields: map[string]*yang.Entry{"inner-container": {Name: "inner-container"}},
-				path:   []string{"", "module", "s1", "outer-container"},
+				Name:   "OuterContainer",
+				Fields: map[string]*yang.Entry{"inner-container": {Name: "inner-container"}},
+				Path:   []string{"", "module", "s1", "outer-container"},
 			},
 			"/module/s1/outer-container/inner-container": {
-				name: "InnerContainer",
-				fields: map[string]*yang.Entry{
+				Name: "InnerContainer",
+				Fields: map[string]*yang.Entry{
 					"config": {Name: "config"},
 					"state":  {Name: "state"},
 				},
-				path: []string{"", "module", "s1", "outer-container", "inner-container"},
+				Path: []string{"", "module", "s1", "outer-container", "inner-container"},
 			},
 			"/module/s1/outer-container/inner-container/config": {
-				name: "Config",
-				fields: map[string]*yang.Entry{
+				Name: "Config",
+				Fields: map[string]*yang.Entry{
 					"inner-leaf": {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
-				path: []string{"", "module", "s1", "outer-container", "inner-container", "config"},
+				Path: []string{"", "module", "s1", "outer-container", "inner-container", "config"},
 			},
 			"/module/s1/outer-container/inner-container/state": {
-				name: "State",
-				fields: map[string]*yang.Entry{
+				Name: "State",
+				Fields: map[string]*yang.Entry{
 					"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "s1", "outer-container", "inner-container", "state"},
+				Path: []string{"", "module", "s1", "outer-container", "inner-container", "state"},
 			},
 		},
 	}, {
@@ -1750,40 +1750,40 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				},
 			},
 		},
-		wantGoCompress: map[string]*yangDirectory{
+		wantGoCompress: map[string]*Directory{
 			"/module/top-container": {
-				name: "TopContainer",
-				fields: map[string]*yang.Entry{
+				Name: "TopContainer",
+				Fields: map[string]*yang.Entry{
 					"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
 					"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "top-container"},
+				Path: []string{"", "module", "top-container"},
 			},
 		},
-		wantGoUncompress: map[string]*yangDirectory{
+		wantGoUncompress: map[string]*Directory{
 			"/module/top-container": {
-				name: "Module_TopContainer",
-				fields: map[string]*yang.Entry{
+				Name: "Module_TopContainer",
+				Fields: map[string]*yang.Entry{
 					"config": {Name: "config"},
 					"state":  {Name: "state"},
 				},
-				path: []string{"", "module", "top-container"},
+				Path: []string{"", "module", "top-container"},
 			},
 			"/module/top-container/config": {
-				name: "Module_TopContainer_Config",
-				fields: map[string]*yang.Entry{
+				Name: "Module_TopContainer_Config",
+				Fields: map[string]*yang.Entry{
 					"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
 					"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "top-container", "config"},
+				Path: []string{"", "module", "top-container", "config"},
 			},
 			"/module/top-container/state": {
-				name: "Module_TopContainer_State",
-				fields: map[string]*yang.Entry{
+				Name: "Module_TopContainer_State",
+				Fields: map[string]*yang.Entry{
 					"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
 					"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
-				path: []string{"", "module", "top-container", "state"},
+				Path: []string{"", "module", "top-container", "state"},
 			},
 		},
 	}, {
@@ -1862,32 +1862,32 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 			},
 			Parent: &yang.Entry{Name: "module"},
 		}},
-		wantGoCompress: map[string]*yangDirectory{
+		wantGoCompress: map[string]*Directory{
 			"/module/container/list": {
-				name: "Container_List",
-				fields: map[string]*yang.Entry{
+				Name: "Container_List",
+				Fields: map[string]*yang.Entry{
 					"key": {Name: "key", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 			},
 		},
-		wantGoUncompress: map[string]*yangDirectory{
+		wantGoUncompress: map[string]*Directory{
 			"/module/container/list": {
-				name: "Module_Container_List",
-				fields: map[string]*yang.Entry{
+				Name: "Module_Container_List",
+				Fields: map[string]*yang.Entry{
 					"key":    {Name: "key", Type: &yang.YangType{Kind: yang.Yleafref}},
 					"config": {Name: "config"},
 					"state":  {Name: "state"},
 				},
 			},
 			"/module/container/list/config": {
-				name: "Module_Container_List_Config",
-				fields: map[string]*yang.Entry{
+				Name: "Module_Container_List_Config",
+				Fields: map[string]*yang.Entry{
 					"key": {Name: "key", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 			},
 			"/module/container/list/state": {
-				name: "Module_Container_List_State",
-				fields: map[string]*yang.Entry{
+				Name: "Module_Container_List_State",
+				Fields: map[string]*yang.Entry{
 					"key": {Name: "key", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 			},
@@ -2032,10 +2032,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				},
 			},
 		},
-		wantGoCompress: map[string]*yangDirectory{
+		wantGoCompress: map[string]*Directory{
 			"/module/container": {
-				name: "Container",
-				fields: map[string]*yang.Entry{
+				Name: "Container",
+				Fields: map[string]*yang.Entry{
 					"second-container": {Name: "second-container"},
 					"third-container":  {Name: "third-container"},
 				},
@@ -2044,85 +2044,85 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 			// here, we need to check that the processing recursed correctly into the
 			// container.
 			"/module/container/choice-node/case-one/second-container": {
-				name:   "Container_SecondContainer",
-				fields: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
+				Name:   "Container_SecondContainer",
+				Fields: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
 			},
 			"/module/container/choice-node/case-two/third-container": {
-				name:   "Container_ThirdContainer",
-				fields: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
+				Name:   "Container_ThirdContainer",
+				Fields: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
 			},
 		},
-		wantGoUncompress: map[string]*yangDirectory{
+		wantGoUncompress: map[string]*Directory{
 			"/module/container": {
-				name: "Module_Container",
-				fields: map[string]*yang.Entry{
+				Name: "Module_Container",
+				Fields: map[string]*yang.Entry{
 					"second-container": {Name: "second-container"},
 					"third-container":  {Name: "third-container"},
 				},
 			},
 			"/module/container/choice-node/case-one/second-container": {
-				name:   "Module_Container_SecondContainer",
-				fields: map[string]*yang.Entry{"config": {Name: "config"}},
+				Name:   "Module_Container_SecondContainer",
+				Fields: map[string]*yang.Entry{"config": {Name: "config"}},
 			},
 			"/module/container/choice-node/case-two/third-container": {
-				name:   "Module_Container_ThirdContainer",
-				fields: map[string]*yang.Entry{"config": {Name: "config"}},
+				Name:   "Module_Container_ThirdContainer",
+				Fields: map[string]*yang.Entry{"config": {Name: "config"}},
 			},
 			"/module/container/choice-node/case-one/second-container/config": {
-				name:   "Module_Container_SecondContainer_Config",
-				fields: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
+				Name:   "Module_Container_SecondContainer_Config",
+				Fields: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
 			},
 			"/module/container/choice-node/case-two/third-container/config": {
-				name:   "Module_Container_ThirdContainer_Config",
-				fields: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
+				Name:   "Module_Container_ThirdContainer_Config",
+				Fields: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
 			},
 		},
-		wantProtoCompress: map[string]*yangDirectory{
+		wantProtoCompress: map[string]*Directory{
 			"/module/container": {
-				name: "Container",
-				fields: map[string]*yang.Entry{
+				Name: "Container",
+				Fields: map[string]*yang.Entry{
 					"second-container": {Name: "second-container"},
 					"third-container":  {Name: "third-container"},
 				},
 			},
 			"/module/container/choice-node/case-one/second-container": {
-				name:   "SecondContainer",
-				fields: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
+				Name:   "SecondContainer",
+				Fields: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
 			},
 			"/module/container/choice-node/case-two/third-container": {
-				name:   "ThirdContainer",
-				fields: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
+				Name:   "ThirdContainer",
+				Fields: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
 			},
 		},
-		wantProtoUncompress: map[string]*yangDirectory{
+		wantProtoUncompress: map[string]*Directory{
 			"/module/container": {
-				name: "Container",
-				fields: map[string]*yang.Entry{
+				Name: "Container",
+				Fields: map[string]*yang.Entry{
 					"second-container": {Name: "second-container"},
 					"third-container":  {Name: "third-container"},
 				},
 			},
 			"/module/container/choice-node/case-one/second-container": {
-				name:   "SecondContainer",
-				fields: map[string]*yang.Entry{"config": {Name: "config"}},
+				Name:   "SecondContainer",
+				Fields: map[string]*yang.Entry{"config": {Name: "config"}},
 			},
 			"/module/container/choice-node/case-two/third-container": {
-				name:   "ThirdContainer",
-				fields: map[string]*yang.Entry{"config": {Name: "config"}},
+				Name:   "ThirdContainer",
+				Fields: map[string]*yang.Entry{"config": {Name: "config"}},
 			},
 			"/module/container/choice-node/case-one/second-container/config": {
-				name:   "Module_Container_SecondContainer_Config",
-				fields: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
+				Name:   "Config",
+				Fields: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one"}},
 			},
 			"/module/container/choice-node/case-two/third-container/config": {
-				name:   "Module_Container_ThirdContainer_Config",
-				fields: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
+				Name:   "Config",
+				Fields: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two"}},
 			},
 		},
 	}}
 
 	// Simple helper functions for error messages
-	dirNames := func(dirs map[string]*yangDirectory) []string {
+	dirNames := func(dirs map[string]*Directory) []string {
 		names := []string{}
 		for k := range dirs {
 			names = append(names, k)
@@ -2130,9 +2130,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 		return names
 	}
 
-	fieldNames := func(dir *yangDirectory) []string {
+	fieldNames := func(dir *Directory) []string {
 		names := []string{}
-		for k := range dir.fields {
+		for k := range dir.Fields {
 			names = append(names, k)
 		}
 		return names
@@ -2148,10 +2148,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 
 	for _, tt := range tests {
 		combinations := []struct {
-			lang         generatedLanguage         // lang is the language to run the test for.
-			compress     bool                      // compress indicates whether  path compression should be enabled.
-			excludeState bool                      // excludeState indicates whether config false values should be excluded.
-			want         map[string]*yangDirectory // want is the expected output of buildDirectoryDefinitions.
+			lang         generatedLanguage     // lang is the language to run the test for.
+			compress     bool                  // compress indicates whether  path compression should be enabled.
+			excludeState bool                  // excludeState indicates whether config false values should be excluded.
+			want         map[string]*Directory // want is the expected output of buildDirectoryDefinitions.
 		}{{
 			lang:     golang,
 			compress: true,
@@ -2240,16 +2240,16 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					continue
 				}
 
-				if len(gotDir.fields) != len(wantDir.fields) {
+				if len(gotDir.Fields) != len(wantDir.Fields) {
 					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): did not get expected set of fields for %s, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotName, fieldNames(gotDir), fieldNames(wantDir))
 					continue
 				}
 
-				for fieldk, fieldv := range wantDir.fields {
-					cmpfield, ok := gotDir.fields[fieldk]
+				for fieldk, fieldv := range wantDir.Fields {
+					cmpfield, ok := gotDir.Fields[fieldk]
 					if !ok {
 						t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): could not find expected field %s in %s, got: %v",
-							tt.name, c.compress, langName(c.lang), c.excludeState, fieldk, gotName, gotDir.fields)
+							tt.name, c.compress, langName(c.lang), c.excludeState, fieldk, gotName, gotDir.Fields)
 						continue
 					}
 
@@ -2266,12 +2266,12 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					}
 				}
 
-				if wantDir.path != nil && !reflect.DeepEqual(wantDir.path, gotDir.path) {
-					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): %s did not have matching path, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotName, gotDir.path, wantDir.path)
+				if wantDir.Path != nil && !reflect.DeepEqual(wantDir.Path, gotDir.Path) {
+					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): %s did not have matching path, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotName, gotDir.Path, wantDir.Path)
 				}
 
-				if wantDir.name != wantDir.name {
-					t.Errorf("%s buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): %s did not have matching name, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotDir.path, gotDir.name, wantDir.name)
+				if wantDir.Name != wantDir.Name {
+					t.Errorf("%s buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): %s did not have matching name, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotDir.Path, gotDir.Name, wantDir.Name)
 				}
 			}
 		}

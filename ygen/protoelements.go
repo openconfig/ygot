@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
 )
 
@@ -50,7 +51,7 @@ type resolveProtoTypeArgs struct {
 //
 // See https://github.com/openconfig/ygot/blob/master/docs/yang-to-protobuf-transformations-spec.md
 // for additional details as to the transformation from YANG to Protobuf.
-func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*mappedType, error) {
+func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
 	// Handle typedef cases.
 	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
 	if err != nil {
@@ -64,17 +65,17 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoT
 
 	switch args.yangType.Kind {
 	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:
-		return &mappedType{nativeType: "ywrapper.IntValue"}, nil
+		return &MappedType{NativeType: "ywrapper.IntValue"}, nil
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
-		return &mappedType{nativeType: "ywrapper.UintValue"}, nil
+		return &MappedType{NativeType: "ywrapper.UintValue"}, nil
 	case yang.Ybinary:
-		return &mappedType{nativeType: "ywrapper.BytesValue"}, nil
+		return &MappedType{NativeType: "ywrapper.BytesValue"}, nil
 	case yang.Ybool, yang.Yempty:
-		return &mappedType{nativeType: "ywrapper.BoolValue"}, nil
+		return &MappedType{NativeType: "ywrapper.BoolValue"}, nil
 	case yang.Ystring:
-		return &mappedType{nativeType: "ywrapper.StringValue"}, nil
+		return &MappedType{NativeType: "ywrapper.StringValue"}, nil
 	case yang.Ydecimal64:
-		return &mappedType{nativeType: "ywrapper.Decimal64Value"}, nil
+		return &MappedType{NativeType: "ywrapper.Decimal64Value"}, nil
 	case yang.Yleafref:
 		// We look up the leafref in the schema tree to be able to
 		// determine what type to map to.
@@ -91,8 +92,8 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoT
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
 		}
-		return &mappedType{
-			nativeType:        yang.CamelCase(args.contextEntry.Name),
+		return &MappedType{
+			NativeType:        yang.CamelCase(args.contextEntry.Name),
 			isEnumeratedValue: true,
 		}, nil
 	case yang.Yidentityref:
@@ -101,8 +102,8 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoT
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
-		return &mappedType{
-			nativeType:        s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase),
+		return &MappedType{
+			NativeType:        s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase),
 			isEnumeratedValue: true,
 		}, nil
 	case yang.Yunion:
@@ -121,7 +122,7 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoT
 // yangTypeToProtoScalarType takes an input resolveTypeArgs and returns the protobuf
 // in-built type that is used to represent it. It is used within list keys where the
 // value cannot be nil/unset.
-func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*mappedType, error) {
+func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
 	// Handle typedef cases.
 	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
 	if err != nil {
@@ -134,19 +135,19 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolve
 	}
 	switch args.yangType.Kind {
 	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:
-		return &mappedType{nativeType: "sint64"}, nil
+		return &MappedType{NativeType: "sint64"}, nil
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
-		return &mappedType{nativeType: "uint64"}, nil
+		return &MappedType{NativeType: "uint64"}, nil
 	case yang.Ybinary:
-		return &mappedType{nativeType: "bytes"}, nil
+		return &MappedType{NativeType: "bytes"}, nil
 	case yang.Ybool, yang.Yempty:
-		return &mappedType{nativeType: "bool"}, nil
+		return &MappedType{NativeType: "bool"}, nil
 	case yang.Ystring:
-		return &mappedType{nativeType: "string"}, nil
+		return &MappedType{NativeType: "string"}, nil
 	case yang.Ydecimal64:
 		// Decimal64 continues to be a message even when we are mapping scalars
 		// as there is not an equivalent Protobuf type.
-		return &mappedType{nativeType: "ywrapper.Decimal64Value"}, nil
+		return &MappedType{NativeType: "ywrapper.Decimal64Value"}, nil
 	case yang.Yleafref:
 		target, err := s.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
@@ -161,16 +162,16 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolve
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
 		}
-		return &mappedType{
-			nativeType:        yang.CamelCase(args.contextEntry.Name),
+		return &MappedType{
+			NativeType:        yang.CamelCase(args.contextEntry.Name),
 			isEnumeratedValue: true,
 		}, nil
 	case yang.Yidentityref:
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
-		return &mappedType{
-			nativeType:        s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase),
+		return &MappedType{
+			NativeType:        s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase),
 			isEnumeratedValue: true,
 		}, nil
 	case yang.Yunion:
@@ -202,8 +203,8 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolve
 //	int32 a_int32 = NN;
 // }
 //
-// The mappedType's unionTypes can be output through a template into the oneof.
-func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*mappedType, error) {
+// The MappedType's unionTypes can be output through a template into the oneof.
+func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
 	unionTypes := make(map[string]*yang.YangType)
 	if errs := s.protoUnionSubTypes(args.yangType, args.contextEntry, unionTypes, pargs); errs != nil {
 		return nil, fmt.Errorf("errors mapping element: %v", errs)
@@ -215,13 +216,13 @@ func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeAr
 			// Handle the case whereby there is an identityref and we simply
 			// want to return the type that has been resolved.
 			if t.Kind == yang.Yidentityref || t.Kind == yang.Yenum {
-				return &mappedType{
-					nativeType:        st,
+				return &MappedType{
+					NativeType:        st,
 					isEnumeratedValue: true,
 				}, nil
 			}
 
-			var n *mappedType
+			var n *MappedType
 			var err error
 			// Resolve the type of the single type within the union according to whether
 			// we want scalar types or not. This is used in contexts where there may
@@ -246,7 +247,7 @@ func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeAr
 		}
 	}
 
-	// Rewrite the map to be the expected format for the mappedType return value,
+	// Rewrite the map to be the expected format for the MappedType return value,
 	// we sort the keys into alphabetical order to avoid test flakes.
 	keys := []string{}
 	for k := range unionTypes {
@@ -259,7 +260,7 @@ func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeAr
 		rtypes[k] = len(rtypes)
 	}
 
-	return &mappedType{
+	return &MappedType{
 		unionTypes: rtypes,
 	}, nil
 }
@@ -278,13 +279,13 @@ func (s *genState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, c
 		return errs
 	}
 
-	var mtype *mappedType
+	var mtype *MappedType
 	switch subtype.Kind {
 	case yang.Yidentityref:
 		// Handle the case that the context entry is not the correct entry to deal with. This occurs when the subtype is
 		// an identityref.
-		mtype = &mappedType{
-			nativeType:        s.protoIdentityName(pargs, subtype.IdentityBase),
+		mtype = &MappedType{
+			NativeType:        s.protoIdentityName(pargs, subtype.IdentityBase),
 			isEnumeratedValue: true,
 		}
 	default:
@@ -297,8 +298,8 @@ func (s *genState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, c
 
 	// Only append the type if it not one that is currently in the list. The proto oneof only has the
 	// base type that is included.
-	if _, ok := currentTypes[mtype.nativeType]; !ok {
-		currentTypes[mtype.nativeType] = subtype
+	if _, ok := currentTypes[mtype.NativeType]; !ok {
+		currentTypes[mtype.NativeType] = subtype
 	}
 
 	return errs
@@ -318,7 +319,7 @@ func (s *genState) protoMsgName(e *yang.Entry, compressPaths bool) string {
 		s.uniqueProtoMsgNames[pkg] = make(map[string]bool)
 	}
 
-	n := makeNameUnique(yang.CamelCase(e.Name), s.uniqueProtoMsgNames[pkg])
+	n := genutil.MakeNameUnique(yang.CamelCase(e.Name), s.uniqueProtoMsgNames[pkg])
 	s.uniqueProtoMsgNames[pkg][n] = true
 
 	// Record that this was the proto message name that was used.
@@ -371,7 +372,7 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 
 	// Make the name unique since foo.bar.baz-bat and foo.bar.baz_bat will
 	// become the same name in the safeProtoIdentifierName transformation above.
-	n := makeNameUnique(strings.Join(parts, "."), s.definedGlobals)
+	n := genutil.MakeNameUnique(strings.Join(parts, "."), s.definedGlobals)
 	s.definedGlobals[n] = true
 
 	// Record the mapping between this entry's parent and the defined
