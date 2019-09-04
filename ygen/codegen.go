@@ -392,6 +392,11 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}, nil
 }
 
+// generateEnumCode takes a map of enumerated-type entries keyed by their
+// names, and returns a slice of their definition snippets and an enum
+// string-value look-up snippet. The look-up snippet defines a map keyed by the
+// enums' type names, whose value is another map which can be used to look up a
+// given enum value's string representation given its integer representation.
 func generateEnumCode(goEnums map[string]*yangEnum) ([]string, string, util.Errors) {
 	// orderedEnumNames is used to get the enumerated types that have been
 	// identified in alphabetical order, such that they are returned in a
@@ -676,8 +681,8 @@ type mappedYANGDefinitions struct {
 //	- includePaths: the set of paths that are to be searched for included or
 //	  imported YANG modules.
 //	- cfg: the current generator's configuration.
-// It returns a mappedYANGDefinitions struct populated with the directory & enum
-// entries in the input schemas and the calculated schema tree.
+// It returns a mappedYANGDefinitions struct populated with the directory, enum
+// entries in the input schemas as well as the calculated schema tree.
 func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (*mappedYANGDefinitions, util.Errors) {
 	modules, errs := processModules(yangFiles, includePaths, cfg.YANGParseOptions)
 	if errs != nil {
