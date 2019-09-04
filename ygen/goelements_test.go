@@ -22,452 +22,6 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
-// TestFindChildren tests the findAllChildren function to ensure that the
-// child nodes that are extracted from a YANG schema instance correctly. The
-// test is run with the schema compression flag on and off - such that both
-// a simplified and unsimplified schema can be tested.
-func TestFindChildren(t *testing.T) {
-	tests := []struct {
-		name             string
-		inElement        *yang.Entry
-		inExcludeState   bool
-		wantCompressed   []yang.Entry
-		wantUncompressed []yang.Entry
-		// wantErr is a map keyed by the CompressOCPaths value of whether errors
-		// are expected. i.e., wantErr[true] = false means that an error is not
-		// expected when the test is run with CompressOCPaths == true.
-		wantErr map[bool]bool
-	}{{
-		name: "interface",
-		inElement: &yang.Entry{
-			Name:     "interface",
-			ListAttr: &yang.ListAttr{},
-			Dir: map[string]*yang.Entry{
-				"config": {
-					Name:   "config",
-					Type:   &yang.YangType{},
-					Config: yang.TSTrue,
-					Dir: map[string]*yang.Entry{
-						"type": {
-							Name:   "type",
-							Config: yang.TSTrue,
-							Type: &yang.YangType{
-								Kind: yang.Ystring,
-							},
-						},
-						"name": {
-							Name:   "name",
-							Config: yang.TSTrue,
-							Type: &yang.YangType{
-								Kind: yang.Ystring,
-							},
-						},
-					},
-				},
-				"state": {
-					Name:   "state",
-					Type:   &yang.YangType{},
-					Config: yang.TSFalse,
-					Dir: map[string]*yang.Entry{
-						"type": {
-							Name:   "type",
-							Config: yang.TSFalse,
-							Type: &yang.YangType{
-								Kind: yang.Ystring,
-							},
-						},
-						"name": {
-							Name:   "name",
-							Config: yang.TSFalse,
-							Type:   &yang.YangType{Kind: yang.Ystring},
-						},
-						"admin-status": {
-							Name:   "admin-status",
-							Config: yang.TSFalse,
-							Type:   &yang.YangType{Kind: yang.Ystring},
-						},
-					},
-				},
-				"name": {
-					Name:   "name",
-					Config: yang.TSTrue,
-					Type:   &yang.YangType{Kind: yang.Yleafref},
-				},
-			},
-		},
-		wantCompressed: []yang.Entry{
-			{
-				Name:   "name",
-				Config: yang.TSTrue,
-				Type: &yang.YangType{
-					Kind: yang.Ystring,
-				},
-			},
-			{
-				Name:   "type",
-				Config: yang.TSTrue,
-				Type:   &yang.YangType{Kind: yang.Ystring},
-			},
-			{
-				Name:   "admin-status",
-				Config: yang.TSFalse,
-				Type: &yang.YangType{
-					Kind: yang.Ystring,
-				},
-			},
-		},
-		wantUncompressed: []yang.Entry{
-			{
-				Name:   "config",
-				Config: yang.TSTrue,
-				Type:   &yang.YangType{},
-			},
-			{
-				Name:   "state",
-				Config: yang.TSFalse,
-				Type:   &yang.YangType{},
-			},
-			{
-				Name:   "name",
-				Config: yang.TSTrue,
-				Type:   &yang.YangType{Kind: yang.Yleafref},
-			},
-		},
-	}, {
-		name: "surrounding-container",
-		inElement: &yang.Entry{
-			Name:   "root",
-			Config: yang.TSTrue,
-			Type:   &yang.YangType{},
-			Dir: map[string]*yang.Entry{
-				"plural": {
-					Name:   "plural",
-					Config: yang.TSTrue,
-					Type:   &yang.YangType{},
-					Dir: map[string]*yang.Entry{
-						"singular": {
-							Name:     "singular",
-							Config:   yang.TSTrue,
-							Dir:      map[string]*yang.Entry{},
-							Type:     &yang.YangType{},
-							ListAttr: &yang.ListAttr{},
-						},
-					},
-				},
-			},
-		},
-		wantCompressed: []yang.Entry{
-			{
-				Name:   "singular",
-				Config: yang.TSTrue,
-				Type:   &yang.YangType{},
-			},
-		},
-		wantUncompressed: []yang.Entry{
-			{
-				Name:   "plural",
-				Config: yang.TSTrue,
-				Type:   &yang.YangType{},
-			},
-		},
-	}, {
-		name: "duplicate-elements",
-		inElement: &yang.Entry{
-			Name:   "root",
-			Config: yang.TSTrue,
-			Type:   &yang.YangType{},
-			Kind:   yang.DirectoryEntry,
-			Dir: map[string]*yang.Entry{
-				"name": {Name: "name"},
-				"config": {
-					Name:   "config",
-					Config: yang.TSTrue,
-					Type:   &yang.YangType{},
-					Kind:   yang.DirectoryEntry,
-					Dir: map[string]*yang.Entry{
-						"name": {Name: "name"},
-					},
-				},
-			},
-		},
-		wantErr: map[bool]bool{true: true},
-	}, {
-		name: "choice entry",
-		inElement: &yang.Entry{
-			Name: "choice-node",
-			Kind: yang.ChoiceEntry,
-			Dir: map[string]*yang.Entry{
-				"case-one": {
-					Name: "case-one",
-					Kind: yang.CaseEntry,
-					Dir: map[string]*yang.Entry{
-						"option": {
-							Name: "option",
-							Type: &yang.YangType{},
-						},
-					},
-				},
-			},
-		},
-		wantCompressed: []yang.Entry{
-			{
-				Name: "option",
-				Type: &yang.YangType{},
-			},
-		},
-		wantUncompressed: []yang.Entry{
-			{
-				Name: "option",
-				Type: &yang.YangType{},
-			},
-		},
-	}, {
-		name: "choice entry within state",
-		inElement: &yang.Entry{
-			Name: "container",
-			Kind: yang.DirectoryEntry,
-			Dir: map[string]*yang.Entry{
-				"state": {
-					Name: "state",
-					Kind: yang.DirectoryEntry,
-					Dir: map[string]*yang.Entry{
-						"choice": {
-							Kind: yang.ChoiceEntry,
-							Dir: map[string]*yang.Entry{
-								"case": {
-									Kind: yang.CaseEntry,
-									Dir: map[string]*yang.Entry{
-										"string": {
-											Name: "string",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		wantCompressed: []yang.Entry{{
-			Name: "string",
-		}},
-		wantUncompressed: []yang.Entry{{
-			Name: "state",
-		}},
-	}, {
-		name: "choice entry within config",
-		inElement: &yang.Entry{
-			Name: "container",
-			Kind: yang.DirectoryEntry,
-			Dir: map[string]*yang.Entry{
-				"config": {
-					Name: "config",
-					Kind: yang.DirectoryEntry,
-					Dir: map[string]*yang.Entry{
-						"choice": {
-							Kind: yang.ChoiceEntry,
-							Dir: map[string]*yang.Entry{
-								"case": {
-									Kind: yang.CaseEntry,
-									Dir: map[string]*yang.Entry{
-										"string": {
-											Name: "string",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		wantCompressed: []yang.Entry{{
-			Name: "string",
-		}},
-		wantUncompressed: []yang.Entry{{
-			Name: "config",
-		}},
-	}, {
-		name: "exclude container which is config false",
-		inElement: &yang.Entry{
-			Name:   "container",
-			Kind:   yang.DirectoryEntry,
-			Config: yang.TSFalse,
-			Dir: map[string]*yang.Entry{
-				"field": {Name: "field"},
-			},
-		},
-		inExcludeState:   true,
-		wantCompressed:   []yang.Entry{},
-		wantUncompressed: []yang.Entry{},
-	}, {
-		name: "exclude leaf which is config false",
-		inElement: &yang.Entry{
-			Name:   "container",
-			Kind:   yang.DirectoryEntry,
-			Config: yang.TSTrue,
-			Dir: map[string]*yang.Entry{
-				"config-true":  {Name: "config-true"},
-				"config-false": {Name: "config-false", Config: yang.TSFalse},
-			},
-		},
-		inExcludeState:   true,
-		wantCompressed:   []yang.Entry{{Name: "config-true"}},
-		wantUncompressed: []yang.Entry{{Name: "config-true"}},
-	}, {
-		name: "exclude read-only list within a container with compression",
-		inElement: &yang.Entry{
-			Name:   "container",
-			Kind:   yang.DirectoryEntry,
-			Config: yang.TSTrue,
-			Dir: map[string]*yang.Entry{
-				"surrounding-container": {
-					Name:   "surrounding-container",
-					Kind:   yang.DirectoryEntry,
-					Config: yang.TSTrue,
-					Dir: map[string]*yang.Entry{
-						"list": {
-							Name:     "list",
-							Config:   yang.TSFalse,
-							Kind:     yang.DirectoryEntry,
-							ListAttr: &yang.ListAttr{},
-							Dir:      map[string]*yang.Entry{},
-						},
-					},
-				},
-			},
-		},
-		inExcludeState: true,
-		wantCompressed: []yang.Entry{},
-		wantUncompressed: []yang.Entry{{
-			Name:   "surrounding-container",
-			Config: yang.TSTrue,
-		}},
-	}}
-
-	for _, tt := range tests {
-		for compress, expected := range map[bool][]yang.Entry{true: tt.wantCompressed, false: tt.wantUncompressed} {
-			elems, errs := findAllChildren(tt.inElement, compress, tt.inExcludeState)
-			if tt.wantErr == nil && errs != nil {
-				t.Errorf("%s (compress: %v): errors %v for children of %s", tt.name, compress, errs, tt.inElement.Name)
-			} else {
-				if expErr, ok := tt.wantErr[compress]; ok {
-					if (errs != nil) != expErr {
-						t.Errorf("%s (compress: %v): did not get expected error", tt.name, compress)
-					}
-				}
-			}
-
-			retMap := map[string]*yang.Entry{}
-			for _, elem := range elems {
-				retMap[elem.Name] = elem
-			}
-
-			for _, expectEntry := range expected {
-				if elem, ok := retMap[expectEntry.Name]; ok {
-					delete(retMap, expectEntry.Name)
-					if elem.Config != expectEntry.Config {
-						t.Errorf("%s (compress: %v): element %s had wrong config status %s", tt.name, compress,
-							expectEntry.Name, elem.Config)
-					}
-					if elem.Type != nil && elem.Type.Kind != expectEntry.Type.Kind {
-						t.Errorf("%s (compress: %v): element %s had wrong type %s", tt.name,
-							compress, expectEntry.Name, elem.Type.Kind)
-					}
-				} else {
-					t.Errorf("%s (compress: %v): could not find expected child %s in %s", tt.name, compress,
-						expectEntry.Name, tt.inElement.Name)
-				}
-			}
-
-			if len(retMap) != 0 && expected != nil {
-				t.Errorf("%s (compress: %v): got unexpected entries, got: %v, want: nil", tt.name, compress, retMap)
-			}
-		}
-	}
-}
-
-// TestCamelCase tests the functionality that is provided by makeNameUnique and
-// entryCamelCaseName- ensuring
-// that following being converted to CamelCase, a name is unique within the set of
-// entities that have been generated already by the YANGCodeGenerator implementation.
-func TestCamelCase(t *testing.T) {
-	tests := []struct {
-		name        string        // name is the test name.
-		inPrevNames []*yang.Entry // inPrevNames is a set of names that have already been processed.
-		inEntry     *yang.Entry   // inName is the name that we are testing.
-		wantName    string        // wantName is the name that we expect for inName post conversion.
-	}{{
-		name:     "basic CamelCase test",
-		inEntry:  &yang.Entry{Name: "leaf-one"},
-		wantName: "LeafOne",
-	}, {
-		name:     "single word",
-		inEntry:  &yang.Entry{Name: "leaf"},
-		wantName: "Leaf",
-	}, {
-		name:     "already camelcase",
-		inEntry:  &yang.Entry{Name: "AlreadyCamelCase"},
-		wantName: "AlreadyCamelCase",
-	}, {
-		name:        "already defined",
-		inPrevNames: []*yang.Entry{{Name: "interfaces"}},
-		inEntry:     &yang.Entry{Name: "interfaces"},
-		wantName:    "Interfaces_",
-	}, {
-		name:        "already defined twice",
-		inPrevNames: []*yang.Entry{{Name: "interfaces"}, {Name: "interfaces"}},
-		inEntry:     &yang.Entry{Name: "Interfaces"},
-		wantName:    "Interfaces__",
-	}, {
-		name: "camelcase extension",
-		inEntry: &yang.Entry{
-			Name: "foobar",
-			Exts: []*yang.Statement{{
-				Keyword:     "some-module:camelcase-name",
-				HasArgument: true,
-				Argument:    "FooBar",
-			}},
-		},
-		wantName: "FooBar",
-	}, {
-		name:        "camelcase extension with clashing name",
-		inPrevNames: []*yang.Entry{{Name: "FishChips"}},
-		inEntry: &yang.Entry{
-			Name: "fish-chips",
-			Exts: []*yang.Statement{{
-				Keyword:     "anothermodule:camelcase-name",
-				HasArgument: true,
-				Argument:    `"FishChips\n"`,
-			}},
-		},
-		wantName: "FishChips_",
-	}, {
-		name: "non-camelcase extension",
-		inEntry: &yang.Entry{
-			Name: "little-creatures",
-			Exts: []*yang.Statement{{
-				Keyword:     "amod:other-ext",
-				HasArgument: true,
-				Argument:    "true\n",
-			}},
-		},
-		wantName: "LittleCreatures",
-	}}
-
-	for _, tt := range tests {
-		ctx := make(map[string]bool)
-		for _, prevName := range tt.inPrevNames {
-			_ = makeNameUnique(entryCamelCaseName(prevName), ctx)
-		}
-
-		if got := makeNameUnique(entryCamelCaseName(tt.inEntry), ctx); got != tt.wantName {
-			t.Errorf("%s: did not get expected name for %v (after defining %v): %s",
-				tt.name, tt.inEntry, tt.inPrevNames, got)
-		}
-	}
-}
-
 // TestUnionSubTypes extracts the types which make up a YANG union from a
 // Goyang YangType struct.
 func TestUnionSubTypes(t *testing.T) {
@@ -615,48 +169,48 @@ func TestYangTypeToGoType(t *testing.T) {
 		ctx          *yang.Entry
 		inEntries    []*yang.Entry
 		compressPath bool
-		want         *mappedType
+		want         *MappedType
 		wantErr      bool
 	}{{
 		name: "simple lookup resolution",
 		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32"},
-		want: &mappedType{nativeType: "int32", zeroValue: "0"},
+		want: &MappedType{NativeType: "int32", zeroValue: "0"},
 	}, {
 		name: "int32 with default",
 		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32", Default: "42"},
-		want: &mappedType{nativeType: "int32", zeroValue: "0", defaultValue: ygot.String("42")},
+		want: &MappedType{NativeType: "int32", zeroValue: "0", defaultValue: ygot.String("42")},
 	}, {
 		name: "decimal64",
 		in:   &yang.YangType{Kind: yang.Ydecimal64, Name: "decimal64"},
-		want: &mappedType{nativeType: "float64", zeroValue: "0.0"},
+		want: &MappedType{NativeType: "float64", zeroValue: "0.0"},
 	}, {
 		name: "binary lookup resolution",
 		in:   &yang.YangType{Kind: yang.Ybinary, Name: "binary"},
-		want: &mappedType{nativeType: "Binary", zeroValue: "nil"},
+		want: &MappedType{NativeType: "Binary", zeroValue: "nil"},
 	}, {
 		name: "unknown lookup resolution",
 		in:   &yang.YangType{Kind: yang.YinstanceIdentifier, Name: "instanceIdentifier"},
-		want: &mappedType{nativeType: "interface{}", zeroValue: "nil"},
+		want: &MappedType{NativeType: "interface{}", zeroValue: "nil"},
 	}, {
 		name: "simple empty resolution",
 		in:   &yang.YangType{Kind: yang.Yempty, Name: "empty"},
-		want: &mappedType{nativeType: "YANGEmpty", zeroValue: "false"},
+		want: &MappedType{NativeType: "YANGEmpty", zeroValue: "false"},
 	}, {
 		name: "simple boolean resolution",
 		in:   &yang.YangType{Kind: yang.Ybool, Name: "bool"},
-		want: &mappedType{nativeType: "bool", zeroValue: "false"},
+		want: &MappedType{NativeType: "bool", zeroValue: "false"},
 	}, {
 		name: "simple int64 resolution",
 		in:   &yang.YangType{Kind: yang.Yint64, Name: "int64"},
-		want: &mappedType{nativeType: "int64", zeroValue: "0"},
+		want: &MappedType{NativeType: "int64", zeroValue: "0"},
 	}, {
 		name: "simple uint8 resolution",
 		in:   &yang.YangType{Kind: yang.Yuint8, Name: "uint8"},
-		want: &mappedType{nativeType: "uint8", zeroValue: "0"},
+		want: &MappedType{NativeType: "uint8", zeroValue: "0"},
 	}, {
 		name: "simple uint16 resolution",
 		in:   &yang.YangType{Kind: yang.Yuint16, Name: "uint16"},
-		want: &mappedType{nativeType: "uint16", zeroValue: "0"},
+		want: &MappedType{NativeType: "uint16", zeroValue: "0"},
 	}, {
 		name:    "leafref without valid path",
 		in:      &yang.YangType{Kind: yang.Yleafref, Name: "leafref"},
@@ -701,8 +255,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: &mappedType{
-			nativeType: "Module_Container_Leaf_Union",
+		want: &MappedType{
+			NativeType: "Module_Container_Leaf_Union",
 			unionTypes: map[string]int{"string": 0, "int8": 1},
 			zeroValue:  "nil",
 		},
@@ -715,8 +269,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				{Kind: yang.Ystring, Name: "string"},
 			},
 		},
-		want: &mappedType{
-			nativeType: "string",
+		want: &MappedType{
+			NativeType: "string",
 			unionTypes: map[string]int{"string": 0},
 			zeroValue:  `""`,
 		},
@@ -735,8 +289,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		want: &mappedType{
-			nativeType:        "E_BaseModule_DerivedIdentityref",
+		want: &MappedType{
+			NativeType:        "E_BaseModule_DerivedIdentityref",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
 		},
@@ -755,8 +309,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		want: &mappedType{
-			nativeType:        "E_BaseModule_DerivedIdentityref",
+		want: &MappedType{
+			NativeType:        "E_BaseModule_DerivedIdentityref",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
 			defaultValue:      ygot.String("BaseModule_DerivedIdentityref_AARDVARK"),
@@ -775,8 +329,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		want: &mappedType{
-			nativeType:        "E_BaseModule_EnumerationLeaf",
+		want: &MappedType{
+			NativeType:        "E_BaseModule_EnumerationLeaf",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
 		},
@@ -794,8 +348,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		want: &mappedType{
-			nativeType:        "E_BaseModule_EnumerationLeaf",
+		want: &MappedType{
+			NativeType:        "E_BaseModule_EnumerationLeaf",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
 			defaultValue:      ygot.String("BaseModule_EnumerationLeaf_BLUE"),
@@ -815,8 +369,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: &mappedType{
-			nativeType:        "E_BaseModule_DerivedEnumeration",
+		want: &MappedType{
+			NativeType:        "E_BaseModule_DerivedEnumeration",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
 		},
@@ -835,8 +389,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: &mappedType{
-			nativeType:        "E_BaseModule_DerivedEnumeration",
+		want: &MappedType{
+			NativeType:        "E_BaseModule_DerivedEnumeration",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
 			defaultValue:      ygot.String("BaseModule_DerivedEnumeration_FISH"),
@@ -861,8 +415,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: &mappedType{
-			nativeType:        "E_TestModule_BaseIdentity",
+		want: &MappedType{
+			NativeType:        "E_TestModule_BaseIdentity",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
 		},
@@ -886,8 +440,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				},
 			},
 		},
-		want: &mappedType{
-			nativeType:        "E_TestModule_BaseIdentity",
+		want: &MappedType{
+			NativeType:        "E_TestModule_BaseIdentity",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
 			defaultValue:      ygot.String("TestModule_BaseIdentity_CHIPS"),
@@ -908,8 +462,8 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		compressPath: true,
-		want: &mappedType{
-			nativeType:        "E_BaseModule_Container_Eleaf",
+		want: &MappedType{
+			NativeType:        "E_BaseModule_Container_Eleaf",
 			isEnumeratedValue: true,
 			zeroValue:         "0",
 		},
@@ -925,7 +479,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		compressPath: true,
-		want:         &mappedType{nativeType: "E_BaseMod_Container_Eleaf", isEnumeratedValue: true, zeroValue: "0"},
+		want:         &MappedType{NativeType: "E_BaseMod_Container_Eleaf", isEnumeratedValue: true, zeroValue: "0"},
 	}, {
 		name: "leafref",
 		in:   &yang.YangType{Kind: yang.Yleafref, Name: "leafref", Path: "../c"},
@@ -967,7 +521,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Entry{Name: "module"},
 			},
 		},
-		want: &mappedType{nativeType: "uint32", zeroValue: "0"},
+		want: &MappedType{NativeType: "uint32", zeroValue: "0"},
 	}}
 
 	for _, tt := range tests {
@@ -1005,7 +559,7 @@ func TestYangTypeToGoType(t *testing.T) {
 	}
 }
 
-// TestBuildListKey takes an input yang.Entry and ensures that the correct yangListAttr
+// TestBuildListKey takes an input yang.Entry and ensures that the correct YangListAttr
 // struct is returned representing the keys of the list e.
 func TestBuildListKey(t *testing.T) {
 	tests := []struct {
@@ -1013,7 +567,7 @@ func TestBuildListKey(t *testing.T) {
 		in         *yang.Entry   // in is the yang.Entry of the test list.
 		inCompress bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
 		inEntries  []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
-		want       yangListAttr  // want is the expected yangListAttr output.
+		want       YangListAttr  // want is the expected YangListAttr output.
 		wantErr    bool          // wantErr is a boolean indicating whether errors are expected from buildListKeys
 	}{{
 		name: "non-list",
@@ -1062,11 +616,11 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-		want: yangListAttr{
-			keys: map[string]*mappedType{
-				"keyleaf": {nativeType: "string"},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleaf": {NativeType: "string"},
 			},
-			keyElems: []*yang.Entry{
+			KeyElems: []*yang.Entry{
 				{
 					Name: "keyleaf",
 					Type: &yang.YangType{Kind: yang.Ystring},
@@ -1090,7 +644,7 @@ func TestBuildListKey(t *testing.T) {
 			Config:   yang.TSFalse,
 			Dir:      map[string]*yang.Entry{},
 		},
-		want: yangListAttr{},
+		want: YangListAttr{},
 	}, {
 		name: "list with invalid leafref path",
 		in: &yang.Entry{
@@ -1181,11 +735,11 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		inCompress: true,
-		want: yangListAttr{
-			keys: map[string]*mappedType{
-				"keyleafref": {nativeType: "string"},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleafref": {NativeType: "string"},
 			},
-			keyElems: []*yang.Entry{
+			KeyElems: []*yang.Entry{
 				{
 					Name: "keyleafref",
 					Type: &yang.YangType{Kind: yang.Ystring},
@@ -1209,12 +763,12 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-		want: yangListAttr{
-			keys: map[string]*mappedType{
-				"key1": {nativeType: "string"},
-				"key2": {nativeType: "string"},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"key1": {NativeType: "string"},
+				"key2": {NativeType: "string"},
 			},
-			keyElems: []*yang.Entry{
+			KeyElems: []*yang.Entry{
 				{
 					Name: "key1",
 					Type: &yang.YangType{Kind: yang.Ystring},
@@ -1262,12 +816,12 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		inCompress: true,
-		want: yangListAttr{
-			keys: map[string]*mappedType{
-				"key1": {nativeType: "string"},
-				"key2": {nativeType: "int8"},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"key1": {NativeType: "string"},
+				"key2": {NativeType: "int8"},
 			},
-			keyElems: []*yang.Entry{
+			KeyElems: []*yang.Entry{
 				{
 					Name: "key2",
 					Type: &yang.YangType{Kind: yang.Yint8},
@@ -1304,11 +858,11 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		inCompress: true,
-		want: yangListAttr{
-			keys: map[string]*mappedType{
-				"keyleafref": {nativeType: "string"},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleafref": {NativeType: "string"},
 			},
-			keyElems: []*yang.Entry{
+			KeyElems: []*yang.Entry{
 				{
 					Name: "keyleafref",
 					Type: &yang.YangType{Kind: yang.Ystring},
@@ -1365,11 +919,11 @@ func TestBuildListKey(t *testing.T) {
 				Parent: &yang.Entry{Name: "module"},
 			},
 		},
-		want: yangListAttr{
-			keys: map[string]*mappedType{
-				"keyleafref": {nativeType: "string"},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleafref": {NativeType: "string"},
 			},
-			keyElems: []*yang.Entry{
+			KeyElems: []*yang.Entry{
 				{
 					Name: "keyleafref",
 					Type: &yang.YangType{Kind: yang.Ystring},
@@ -1402,14 +956,14 @@ func TestBuildListKey(t *testing.T) {
 			continue
 		}
 
-		for name, gtype := range got.keys {
-			elem, ok := tt.want.keys[name]
+		for name, gtype := range got.Keys {
+			elem, ok := tt.want.Keys[name]
 			if !ok {
 				t.Errorf("%s: could not find key %s", tt.name, name)
 				continue
 			}
-			if elem.nativeType != gtype.nativeType {
-				t.Errorf("%s: key %s had the wrong type %s", tt.name, name, gtype.nativeType)
+			if elem.NativeType != gtype.NativeType {
+				t.Errorf("%s: key %s had the wrong type %s", tt.name, name, gtype.NativeType)
 			}
 		}
 	}
@@ -1427,8 +981,8 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 		// instance used for the test.
 		inCompressOCPaths bool
 		// wantTypes is a map, keyed by the path of the yang.Entry within inLeaves and
-		// describing the mappedType that is expected to be output.
-		wantTypes map[string]*mappedType
+		// describing the MappedType that is expected to be output.
+		wantTypes map[string]*MappedType
 	}{{
 		name: "identity with multiple identityref leaves",
 		inLeaves: []*yang.Entry{{
@@ -1468,9 +1022,9 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 				},
 			},
 		}},
-		wantTypes: map[string]*mappedType{
-			"/test-module/leaf-one": {nativeType: "E_TestModule_BaseIdentity", isEnumeratedValue: true, zeroValue: "0"},
-			"/test-module/leaf-two": {nativeType: "E_TestModule_BaseIdentity", isEnumeratedValue: true, zeroValue: "0"},
+		wantTypes: map[string]*MappedType{
+			"/test-module/leaf-one": {NativeType: "E_TestModule_BaseIdentity", isEnumeratedValue: true, zeroValue: "0"},
+			"/test-module/leaf-two": {NativeType: "E_TestModule_BaseIdentity", isEnumeratedValue: true, zeroValue: "0"},
 		},
 	}, {
 		name: "typedef with multiple references",
@@ -1505,15 +1059,15 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 				},
 			},
 		}},
-		wantTypes: map[string]*mappedType{
-			"/base-module/leaf-one": {nativeType: "E_BaseModule_DefinedType", isEnumeratedValue: true, zeroValue: "0"},
-			"/base-module/leaf-two": {nativeType: "E_BaseModule_DefinedType", isEnumeratedValue: true, zeroValue: "0"},
+		wantTypes: map[string]*MappedType{
+			"/base-module/leaf-one": {NativeType: "E_BaseModule_DefinedType", isEnumeratedValue: true, zeroValue: "0"},
+			"/base-module/leaf-two": {NativeType: "E_BaseModule_DefinedType", isEnumeratedValue: true, zeroValue: "0"},
 		},
 	}}
 
 	for _, tt := range tests {
 		s := newGenState()
-		gotTypes := make(map[string]*mappedType)
+		gotTypes := make(map[string]*MappedType)
 		for _, leaf := range tt.inLeaves {
 			mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths)
 			if err != nil {

@@ -40,10 +40,10 @@ type wantGoStructOut struct {
 func TestGoCodeStructGeneration(t *testing.T) {
 	tests := []struct {
 		name          string
-		inStructToMap *yangDirectory
+		inStructToMap *Directory
 		// inMappableEntities is the set of other mappable entities that are
 		// in the same module as the struct to map
-		inMappableEntities map[string]*yangDirectory
+		inMappableEntities map[string]*Directory
 		// inUniqueDirectoryNames is the set of names of structs that have been
 		// defined during the pre-processing of the module, it is used to
 		// determine the names of referenced lists and structs.
@@ -54,9 +54,9 @@ func TestGoCodeStructGeneration(t *testing.T) {
 		wantSame               bool
 	}{{
 		name: "simple single leaf mapping test",
-		inStructToMap: &yangDirectory{
-			name: "Tstruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "Tstruct",
+			Fields: map[string]*yang.Entry{
 				"f1": {
 					Name: "f1",
 					Type: &yang.YangType{Kind: yang.Yint8},
@@ -97,7 +97,7 @@ func TestGoCodeStructGeneration(t *testing.T) {
 					},
 				},
 			},
-			path: []string{"", "root-module", "tstruct"},
+			Path: []string{"", "root-module", "tstruct"},
 		},
 		wantCompressed: wantGoStructOut{
 			structs: `
@@ -155,9 +155,9 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		},
 	}, {
 		name: "struct with a multi-type union",
-		inStructToMap: &yangDirectory{
-			name: "InputStruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "InputStruct",
+			Fields: map[string]*yang.Entry{
 				"u1": {
 					Name: "u1",
 					Parent: &yang.Entry{
@@ -179,7 +179,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 					},
 				},
 			},
-			path: []string{"", "module", "input-struct"},
+			Path: []string{"", "module", "input-struct"},
 		},
 		inUniqueDirectoryNames: map[string]string{"/module/input-struct": "InputStruct"},
 		wantCompressed: wantGoStructOut{
@@ -318,9 +318,9 @@ func (t *InputStruct) To_Module_InputStruct_U1_Union(i interface{}) (Module_Inpu
 		},
 	}, {
 		name: "nested container in struct",
-		inStructToMap: &yangDirectory{
-			name: "InputStruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "InputStruct",
+			Fields: map[string]*yang.Entry{
 				"c1": {
 					Name: "c1",
 					Dir:  map[string]*yang.Entry{},
@@ -337,7 +337,7 @@ func (t *InputStruct) To_Module_InputStruct_U1_Union(i interface{}) (Module_Inpu
 					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
 				},
 			},
-			path: []string{"", "root-module", "input-struct"},
+			Path: []string{"", "root-module", "input-struct"},
 		},
 		inUniqueDirectoryNames: map[string]string{"/root-module/input-struct/c1": "InputStruct_C1"},
 		wantCompressed: wantGoStructOut{
@@ -394,9 +394,9 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 		},
 	}, {
 		name: "struct with missing struct referenced",
-		inStructToMap: &yangDirectory{
-			name: "AStruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "AStruct",
+			Fields: map[string]*yang.Entry{
 				"elem": {
 					Name: "elem",
 					Dir:  map[string]*yang.Entry{},
@@ -413,15 +413,15 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
 				},
 			},
-			path: []string{"", "root-module", "a-struct"},
+			Path: []string{"", "root-module", "a-struct"},
 		},
 		wantCompressed:   wantGoStructOut{wantErr: true},
 		wantUncompressed: wantGoStructOut{wantErr: true},
 	}, {
 		name: "struct with missing list referenced",
-		inStructToMap: &yangDirectory{
-			name: "BStruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "BStruct",
+			Fields: map[string]*yang.Entry{
 				"list": {
 					Name:     "list",
 					Kind:     yang.DirectoryEntry,
@@ -439,15 +439,15 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
 				},
 			},
-			path: []string{"", "root-module", "b-struct"},
+			Path: []string{"", "root-module", "b-struct"},
 		},
 		wantCompressed:   wantGoStructOut{wantErr: true},
 		wantUncompressed: wantGoStructOut{wantErr: true},
 	}, {
 		name: "struct with keyless list",
-		inStructToMap: &yangDirectory{
-			name: "QStruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "QStruct",
+			Fields: map[string]*yang.Entry{
 				"a-list": {
 					Name:     "a-list",
 					ListAttr: &yang.ListAttr{},
@@ -465,11 +465,11 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
 				},
 			},
-			path: []string{"", "root-module", "q-struct"},
+			Path: []string{"", "root-module", "q-struct"},
 		},
-		inMappableEntities: map[string]*yangDirectory{
+		inMappableEntities: map[string]*Directory{
 			"/root-module/q-struct/a-list": {
-				name: "QStruct_AList",
+				Name: "QStruct_AList",
 			},
 		},
 		inUniqueDirectoryNames: map[string]string{
@@ -529,9 +529,9 @@ func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		},
 	}, {
 		name: "struct with single key list",
-		inStructToMap: &yangDirectory{
-			name: "Tstruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "Tstruct",
+			Fields: map[string]*yang.Entry{
 				"listWithKey": {
 					Name:     "listWithKey",
 					ListAttr: &yang.ListAttr{},
@@ -555,22 +555,22 @@ func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
 				},
 			},
-			path: []string{"", "root-module", "tstruct"},
+			Path: []string{"", "root-module", "tstruct"},
 		},
-		inMappableEntities: map[string]*yangDirectory{
+		inMappableEntities: map[string]*Directory{
 			"/root-module/tstruct/listWithKey": {
-				name: "ListWithKey",
-				listAttr: &yangListAttr{
-					keys: map[string]*mappedType{
-						"keyLeaf": {nativeType: "string"},
+				Name: "ListWithKey",
+				ListAttr: &YangListAttr{
+					Keys: map[string]*MappedType{
+						"keyLeaf": {NativeType: "string"},
 					},
-					keyElems: []*yang.Entry{
+					KeyElems: []*yang.Entry{
 						{
 							Name: "keyLeaf",
 						},
 					},
 				},
-				path: []string{"", "root-module", "tstruct", "listWithKey"},
+				Path: []string{"", "root-module", "tstruct", "listWithKey"},
 			},
 		},
 		inUniqueDirectoryNames: map[string]string{
@@ -725,9 +725,9 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		},
 	}, {
 		name: "missing list definition element",
-		inStructToMap: &yangDirectory{
-			name: "Tstruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "Tstruct",
+			Fields: map[string]*yang.Entry{
 				"listWithKey": {
 					Name:     "listWithKey",
 					ListAttr: &yang.ListAttr{},
@@ -751,18 +751,18 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
 				},
 			},
-			path: []string{"", "root-module", "tstruct"},
+			Path: []string{"", "root-module", "tstruct"},
 		},
-		inMappableEntities: map[string]*yangDirectory{
+		inMappableEntities: map[string]*Directory{
 			"/root-module/tstruct/listWithKey": {},
 		},
 		wantCompressed:   wantGoStructOut{wantErr: true},
 		wantUncompressed: wantGoStructOut{wantErr: true},
 	}, {
 		name: "unknown kind",
-		inStructToMap: &yangDirectory{
-			name: "AStruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "AStruct",
+			Fields: map[string]*yang.Entry{
 				"anydata": {
 					Name: "anydata",
 					Kind: yang.AnyDataEntry,
@@ -773,9 +773,9 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		wantUncompressed: wantGoStructOut{wantErr: true},
 	}, {
 		name: "unknown field type",
-		inStructToMap: &yangDirectory{
-			name: "AStruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "AStruct",
+			Fields: map[string]*yang.Entry{
 				"idd": {
 					Name: "idd",
 					Type: &yang.YangType{Kind: yang.Yidentityref},
@@ -791,15 +791,15 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 					},
 				},
 			},
-			path: []string{"", "mod", "container-two", "container"},
+			Path: []string{"", "mod", "container-two", "container"},
 		},
 		wantCompressed:   wantGoStructOut{wantErr: true},
 		wantUncompressed: wantGoStructOut{wantErr: true},
 	}, {
 		name: "struct with multi-key list",
-		inStructToMap: &yangDirectory{
-			name: "Tstruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "Tstruct",
+			Fields: map[string]*yang.Entry{
 				"listWithKey": {
 					Name:     "listWithKey",
 					ListAttr: &yang.ListAttr{},
@@ -827,18 +827,18 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
 				},
 			},
-			path: []string{"", "root-module", "tstruct"},
+			Path: []string{"", "root-module", "tstruct"},
 		},
-		inMappableEntities: map[string]*yangDirectory{
+		inMappableEntities: map[string]*Directory{
 			"/root-module/tstruct/listWithKey": {
-				name: "ListWithKey",
-				listAttr: &yangListAttr{
-					keys: map[string]*mappedType{
-						"keyLeafOne": {nativeType: "string"},
-						"keyLeafTwo": {nativeType: "int8"},
+				Name: "ListWithKey",
+				ListAttr: &YangListAttr{
+					Keys: map[string]*MappedType{
+						"keyLeafOne": {NativeType: "string"},
+						"keyLeafTwo": {NativeType: "int8"},
 					},
 				},
-				path: []string{"", "root-module", "tstruct", "listWithKey"},
+				Path: []string{"", "root-module", "tstruct", "listWithKey"},
 			},
 		},
 		inUniqueDirectoryNames: map[string]string{
@@ -1017,9 +1017,9 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		},
 	}, {
 		name: "annotated struct",
-		inStructToMap: &yangDirectory{
-			name: "Tstruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "Tstruct",
+			Fields: map[string]*yang.Entry{
 				"f1": {
 					Name: "f1",
 					Type: &yang.YangType{Kind: yang.Yint8},
@@ -1040,7 +1040,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 					},
 				},
 			},
-			path: []string{"", "root-module", "tstruct"},
+			Path: []string{"", "root-module", "tstruct"},
 		},
 		inGoOpts: GoOpts{
 			AddAnnotationFields: true,
@@ -1104,9 +1104,9 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		},
 	}, {
 		name: "struct with multi-key list - append and getters",
-		inStructToMap: &yangDirectory{
-			name: "Tstruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "Tstruct",
+			Fields: map[string]*yang.Entry{
 				"listWithKey": {
 					Name:     "listWithKey",
 					ListAttr: &yang.ListAttr{},
@@ -1134,18 +1134,18 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
 				},
 			},
-			path: []string{"", "root-module", "tstruct"},
+			Path: []string{"", "root-module", "tstruct"},
 		},
-		inMappableEntities: map[string]*yangDirectory{
+		inMappableEntities: map[string]*Directory{
 			"/root-module/tstruct/listWithKey": {
-				name: "ListWithKey",
-				listAttr: &yangListAttr{
-					keys: map[string]*mappedType{
-						"keyLeafOne": {nativeType: "string"},
-						"keyLeafTwo": {nativeType: "int8"},
+				Name: "ListWithKey",
+				ListAttr: &YangListAttr{
+					Keys: map[string]*MappedType{
+						"keyLeafOne": {NativeType: "string"},
+						"keyLeafTwo": {NativeType: "int8"},
 					},
 				},
-				path: []string{"", "root-module", "tstruct", "listWithKey"},
+				Path: []string{"", "root-module", "tstruct", "listWithKey"},
 			},
 		},
 		inUniqueDirectoryNames: map[string]string{
@@ -1300,9 +1300,9 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		wantSame: true,
 	}, {
 		name: "struct with single key list - append and getters",
-		inStructToMap: &yangDirectory{
-			name: "Tstruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "Tstruct",
+			Fields: map[string]*yang.Entry{
 				"listWithKey": {
 					Name:     "listWithKey",
 					ListAttr: &yang.ListAttr{},
@@ -1326,22 +1326,22 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
 				},
 			},
-			path: []string{"", "root-module", "tstruct"},
+			Path: []string{"", "root-module", "tstruct"},
 		},
-		inMappableEntities: map[string]*yangDirectory{
+		inMappableEntities: map[string]*Directory{
 			"/root-module/tstruct/listWithKey": {
-				name: "ListWithKey",
-				listAttr: &yangListAttr{
-					keys: map[string]*mappedType{
-						"keyLeaf": {nativeType: "string"},
+				Name: "ListWithKey",
+				ListAttr: &YangListAttr{
+					Keys: map[string]*MappedType{
+						"keyLeaf": {NativeType: "string"},
 					},
-					keyElems: []*yang.Entry{
+					KeyElems: []*yang.Entry{
 						{
 							Name: "keyLeaf",
 						},
 					},
 				},
-				path: []string{"", "root-module", "tstruct", "listWithKey"},
+				Path: []string{"", "root-module", "tstruct", "listWithKey"},
 			},
 		},
 		inUniqueDirectoryNames: map[string]string{
@@ -1475,9 +1475,9 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		wantSame: true,
 	}, {
 		name: "struct with child container - getters generated",
-		inStructToMap: &yangDirectory{
-			name: "InputStruct",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "InputStruct",
+			Fields: map[string]*yang.Entry{
 				"c1": {
 					Name: "c1",
 					Dir:  map[string]*yang.Entry{},
@@ -1494,7 +1494,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
 				},
 			},
-			path: []string{"", "root-module", "input-struct"},
+			Path: []string{"", "root-module", "input-struct"},
 		},
 		inUniqueDirectoryNames: map[string]string{"/root-module/input-struct/c1": "InputStruct_C1"},
 		inGoOpts: GoOpts{
@@ -1549,9 +1549,9 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 		wantSame: true,
 	}, {
 		name: "container with leaf getters",
-		inStructToMap: &yangDirectory{
-			name: "Container",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "Container",
+			Fields: map[string]*yang.Entry{
 				"leaf": {
 					Name: "leaf",
 					Kind: yang.LeafEntry,
@@ -1576,7 +1576,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 					},
 				},
 			},
-			path: []string{"foo", "bar"},
+			Path: []string{"foo", "bar"},
 		},
 		inGoOpts: GoOpts{
 			GenerateLeafGetters: true,
@@ -1624,9 +1624,9 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 		wantSame: true,
 	}, {
 		name: "leaf getter with default value",
-		inStructToMap: &yangDirectory{
-			name: "Container",
-			fields: map[string]*yang.Entry{
+		inStructToMap: &Directory{
+			Name: "Container",
+			Fields: map[string]*yang.Entry{
 				"leaf": {
 					Name:    "leaf",
 					Kind:    yang.LeafEntry,
@@ -1652,7 +1652,7 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 					},
 				},
 			},
-			path: []string{"foo", "bar"},
+			Path: []string{"foo", "bar"},
 		},
 		inGoOpts: GoOpts{
 			GenerateLeafGetters: true,
@@ -1953,7 +1953,7 @@ const (
 func TestFindMapPaths(t *testing.T) {
 	tests := []struct {
 		name              string
-		inStruct          *yangDirectory
+		inStruct          *Directory
 		inField           *yang.Entry
 		inCompressOCPaths bool
 		inAbsolutePaths   bool
@@ -1961,9 +1961,9 @@ func TestFindMapPaths(t *testing.T) {
 		wantErr           bool
 	}{{
 		name: "first-level container with path compression off",
-		inStruct: &yangDirectory{
-			name: "AContainer",
-			path: []string{"", "a-module", "a-container"},
+		inStruct: &Directory{
+			Name: "AContainer",
+			Path: []string{"", "a-module", "a-container"},
 		},
 		inField: &yang.Entry{
 			Name: "field-a",
@@ -1977,9 +1977,9 @@ func TestFindMapPaths(t *testing.T) {
 		wantPaths: [][]string{{"field-a"}},
 	}, {
 		name: "invalid parent path",
-		inStruct: &yangDirectory{
-			name: "AContainer",
-			path: []string{"", "a-module", "a-container"},
+		inStruct: &Directory{
+			Name: "AContainer",
+			Path: []string{"", "a-module", "a-container"},
 		},
 		inField: &yang.Entry{
 			Name: "field-q",
@@ -1990,9 +1990,9 @@ func TestFindMapPaths(t *testing.T) {
 		wantErr: true,
 	}, {
 		name: "first-level container with path compression on",
-		inStruct: &yangDirectory{
-			name: "BContainer",
-			path: []string{"", "a-module", "b-container"},
+		inStruct: &Directory{
+			Name: "BContainer",
+			Path: []string{"", "a-module", "b-container"},
 		},
 		inField: &yang.Entry{
 			Name: "field-b",
@@ -2010,9 +2010,9 @@ func TestFindMapPaths(t *testing.T) {
 		wantPaths:         [][]string{{"config", "field-b"}},
 	}, {
 		name: "container with absolute paths on",
-		inStruct: &yangDirectory{
-			name: "BContainer",
-			path: []string{"", "a-module", "b-container", "c-container"},
+		inStruct: &Directory{
+			Name: "BContainer",
+			Path: []string{"", "a-module", "b-container", "c-container"},
 		},
 		inField: &yang.Entry{
 			Name: "field-d",
@@ -2030,19 +2030,19 @@ func TestFindMapPaths(t *testing.T) {
 		wantPaths:       [][]string{{"", "b-container", "c-container", "field-d"}},
 	}, {
 		name: "top-level module - not valid to map",
-		inStruct: &yangDirectory{
-			name: "CContainer",
-			path: []string{"", "c-container"}, // Does not have a valid module.
+		inStruct: &Directory{
+			Name: "CContainer",
+			Path: []string{"", "c-container"}, // Does not have a valid module.
 		},
 		inField: &yang.Entry{},
 		wantErr: true,
 	}, {
 		name: "list with leafref key",
-		inStruct: &yangDirectory{
-			name: "DList",
-			path: []string{"", "d-module", "d-container", "d-list"},
-			listAttr: &yangListAttr{
-				keyElems: []*yang.Entry{
+		inStruct: &Directory{
+			Name: "DList",
+			Path: []string{"", "d-module", "d-container", "d-list"},
+			ListAttr: &YangListAttr{
+				KeyElems: []*yang.Entry{
 					{
 						Name: "d-key",
 						Type: &yang.YangType{
@@ -2202,36 +2202,36 @@ func TestGoLeafDefault(t *testing.T) {
 	tests := []struct {
 		name   string
 		inLeaf *yang.Entry
-		inType *mappedType
+		inType *MappedType
 		want   *string
 	}{{
 		name: "quoted default in leaf",
 		inLeaf: &yang.Entry{
 			Default: "a-default-value",
 		},
-		inType: &mappedType{nativeType: "string"},
+		inType: &MappedType{NativeType: "string"},
 		want:   ygot.String(`"a-default-value"`),
 	}, {
 		name: "unquoted default in leaf",
 		inLeaf: &yang.Entry{
 			Default: "42",
 		},
-		inType: &mappedType{nativeType: "int32"},
+		inType: &MappedType{NativeType: "int32"},
 		want:   ygot.String("42"),
 	}, {
 		name:   "no default",
 		inLeaf: &yang.Entry{},
-		inType: &mappedType{nativeType: "int32"},
+		inType: &MappedType{NativeType: "int32"},
 	}, {
 		name:   "default in type",
 		inLeaf: &yang.Entry{},
-		inType: &mappedType{nativeType: "int32", defaultValue: ygot.String("0")},
+		inType: &MappedType{NativeType: "int32", defaultValue: ygot.String("0")},
 		want:   ygot.String("0"),
 	}, {
 		name:   "enumerated default in leaf",
 		inLeaf: &yang.Entry{Default: "FORTY_TWO"},
-		inType: &mappedType{
-			nativeType:        fmt.Sprintf("%sEnumType", goEnumPrefix),
+		inType: &MappedType{
+			NativeType:        fmt.Sprintf("%sEnumType", goEnumPrefix),
 			isEnumeratedValue: true,
 		},
 		want: ygot.String("EnumType_FORTY_TWO"),

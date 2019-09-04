@@ -22,9 +22,16 @@ import (
 
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
+
+// TODO(wenbli): Look at separating genState from its methods so that ygen's
+// internal functionality becomes more modular, and can be more accessible to
+// other generation libraries. For example, by refactoring out
+// buildDirectoryDefinitions from genState, the method, along with Directory
+// and its associated methods, can all move to genutil for general use.
 
 // genState is used to store the state that is created throughout the code
 // generation and must be shared between multiple entities.
@@ -172,16 +179,16 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUndersco
 
 // buildDirectoryDefinitions extracts the yang.Entry instances from a map of
 // entries that need struct or message definitions built for them. It resolves
-// each yang.Entry to a yangDirectory which contains the elements that are
+// each yang.Entry to a Directory which contains the elements that are
 // needed for subsequent code generation. The name of the directory entry that
 // is returned is based on the generatedLanguage that is supplied. The
 // compressPaths and genFakeRoot arguments are used to determine how paths that
 // are included within the generated structs are used. If the excludeState
 // argument is set, those elements within the YANG schema that are marked config
 // false (i.e., are read only) are excluded from the returned directories.
-func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compressPaths, genFakeRoot bool, lang generatedLanguage, excludeState bool) (map[string]*yangDirectory, []error) {
+func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compressPaths, genFakeRoot bool, lang generatedLanguage, excludeState bool) (map[string]*Directory, []error) {
 	var errs []error
-	mappedStructs := make(map[string]*yangDirectory)
+	mappedStructs := make(map[string]*Directory)
 
 	for _, e := range entries {
 		// If we are excluding config false (state entries) then skip processing
@@ -192,8 +199,8 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 		if e.IsList() || e.IsDir() || util.IsRoot(e) {
 			// This should be mapped to a struct in the generated code since it has
 			// child elements in the YANG schema.
-			elem := &yangDirectory{
-				entry: e,
+			elem := &Directory{
+				Entry: e,
 			}
 
 			// Encode the name of the struct according to the language specified
@@ -202,11 +209,11 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 			case protobuf:
 				// In the case of protobuf the message name is simply the camel
 				// case name that is specified.
-				elem.name = s.protoMsgName(e, compressPaths)
+				elem.Name = s.protoMsgName(e, compressPaths)
 			case golang:
 				// For Go, we map the name of the struct to the path elements
 				// in CamelCase separated by underscores.
-				elem.name = s.goStructName(e, compressPaths, genFakeRoot)
+				elem.Name = s.goStructName(e, compressPaths, genFakeRoot)
 			default:
 				errs = append(errs, fmt.Errorf("unknown generating language specified for %s, got: %v", e.Name, lang))
 				continue
@@ -214,18 +221,18 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 
 			// Find the elements that should be rooted on this particular entity.
 			var fieldErr []error
-			elem.fields, fieldErr = findAllChildren(e, compressPaths, excludeState)
+			elem.Fields, fieldErr = genutil.FindAllChildren(e, compressPaths, excludeState)
 			if fieldErr != nil {
 				errs = append(errs, fieldErr...)
 				continue
 			}
 
 			// Determine the path of the element from the schema.
-			elem.path = strings.Split(util.SchemaTreePath(e), "/")
+			elem.Path = strings.Split(util.SchemaTreePath(e), "/")
 
 			// Mark this struct as the fake root if it is specified to be.
 			if e.Node != nil && e.Node.NName() == rootElementNodeName {
-				elem.isFakeRoot = true
+				elem.IsFakeRoot = true
 			}
 
 			// Handle structures that will represent the container which is duplicated
@@ -238,7 +245,7 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 					errs = append(errs, listErr...)
 					continue
 				}
-				elem.listAttr = lattr
+				elem.ListAttr = lattr
 			}
 			mappedStructs[e.Path()] = elem
 		} else {
@@ -397,7 +404,7 @@ func (s *genState) resolveIdentityRefBaseType(idr *yang.Entry, noUnderscores boo
 // from the name returned such that the enumerated type name is compliant with
 // language styles where underscores are not allowed in names.
 func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity, noUnderscores bool) string {
-	definingModName := parentModulePrettyName(i)
+	definingModName := genutil.ParentModulePrettyName(i)
 
 	// As per a typedef that includes an enumeration, there is a many to one
 	// relationship between leaves and an identity value, therefore, we want to
@@ -414,7 +421,7 @@ func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity, noUnderscor
 	}
 	// The name of an identityref base type must be unique within the entire generated
 	// code, so the context of name generation is global.
-	uniqueName := makeNameUnique(name, s.definedGlobals)
+	uniqueName := genutil.MakeNameUnique(name, s.definedGlobals)
 	s.uniqueIdentityNames[identityKey] = uniqueName
 	return uniqueName
 }
@@ -439,11 +446,11 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 	//
 	// The path that is used for the enumeration is therefore taking the goyang
 	// "Node" hierarchy - we walk back up the tree until such time as we find
-	// a node that is not within the same module (parentModulePrettyName(parent) !=
-	// parentModulePrettyName(currentNode)), and use this as the unique path.
-	definingModName := parentModulePrettyName(e.Node)
+	// a node that is not within the same module (ParentModulePrettyName(parent) !=
+	// ParentModulePrettyName(currentNode)), and use this as the unique path.
+	definingModName := genutil.ParentModulePrettyName(e.Node)
 	var identifierPathElem []string
-	for elem := e.Node; elem.ParentNode() != nil && parentModulePrettyName(elem) == definingModName; elem = elem.ParentNode() {
+	for elem := e.Node; elem.ParentNode() != nil && genutil.ParentModulePrettyName(elem) == definingModName; elem = elem.ParentNode() {
 		identifierPathElem = append(identifierPathElem, elem.NName())
 	}
 
@@ -478,13 +485,13 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 		// If we compress paths then the name of this enum is of the form
 		// ModuleName_GrandParent_Leaf - we use GrandParent since Parent is
 		// State or Config so would not be unique. The proposed name is
-		// handed to makeNameUnique to ensure that it does not clash with
+		// handed to genutil.MakeNameUnique to ensure that it does not clash with
 		// other defined names.
 		name := fmt.Sprintf("%s_%s_%s", yang.CamelCase(definingModName), yang.CamelCase(e.Parent.Parent.Name), yang.CamelCase(e.Name))
 		if noUnderscores {
 			name = strings.Replace(name, "_", "", -1)
 		}
-		uniqueName := makeNameUnique(name, s.definedGlobals)
+		uniqueName := genutil.MakeNameUnique(name, s.definedGlobals)
 		s.uniqueEnumeratedLeafNames[identifierPath] = uniqueName
 		return uniqueName
 	}
@@ -497,7 +504,7 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores b
 		}
 		nbuf.WriteString(yang.CamelCase(p))
 	}
-	uniqueName := makeNameUnique(nbuf.String(), s.definedGlobals)
+	uniqueName := genutil.MakeNameUnique(nbuf.String(), s.definedGlobals)
 	s.uniqueEnumeratedLeafNames[identifierPath] = uniqueName
 	return uniqueName
 }
@@ -533,7 +540,7 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores boo
 		return "", fmt.Errorf("nil Node in enum type %s", e.Name)
 	}
 
-	definingModName := parentModulePrettyName(e.Node)
+	definingModName := genutil.ParentModulePrettyName(e.Node)
 	// Since there can be many leaves that refer to the same typedef, then we do not generate
 	// a name for each of them, but rather use a common name, we use the non-CamelCase lookup
 	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef
@@ -549,7 +556,7 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores boo
 	if noUnderscores {
 		name = strings.Replace(name, "_", "", -1)
 	}
-	uniqueName := makeNameUnique(name, s.definedGlobals)
+	uniqueName := genutil.MakeNameUnique(name, s.definedGlobals)
 	s.uniqueEnumeratedTypedefNames[typedefKey] = uniqueName
 	return uniqueName, nil
 }
@@ -558,12 +565,12 @@ func (s *genState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores boo
 // a typedef which is either an identityref or an enumeration). The resolved
 // name is prefixed with the prefix supplied. If the type that was supplied
 // within the resolveTypeArgs struct is not a type definition which includes an
-// enumerated type, the mappedType returned is nil, otherwise it is populated.
+// enumerated type, the MappedType returned is nil, otherwise it is populated.
 // If noUnderscores is set to true, underscores are omitted from the name
 // of the enumerated typedef.
 // It returns an error if the type does include an enumerated typedef, but this
 // typedef is invalid.
-func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores bool) (*mappedType, error) {
+func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores bool) (*MappedType, error) {
 	// If the type that is specified is not a built-in type (i.e., one of those
 	// types which is defined in RFC6020/RFC7950) then we establish what the type
 	// that we must actually perform the mapping for is. By default, start with
@@ -583,8 +590,8 @@ func (s *genState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string
 				return nil, err
 			}
 
-			return &mappedType{
-				nativeType:        fmt.Sprintf("%s%s", prefix, tn),
+			return &MappedType{
+				NativeType:        fmt.Sprintf("%s%s", prefix, tn),
 				isEnumeratedValue: true,
 			}, nil
 		}

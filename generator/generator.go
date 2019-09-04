@@ -28,6 +28,7 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/ygen"
 )
 
@@ -60,9 +61,9 @@ var (
 	generateFakeRoot    = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
 	fakeRootName        = flag.String("fakeroot_name", "", "The name of the fake root entity.")
 	generateSchema      = flag.Bool("include_schema", true, "If set to true, the YANG schema will be encoded as JSON and stored in the generated code artefact.")
-	ygotImportPath      = flag.String("ygot_path", ygen.DefaultYgotImportPath, "The import path to use for ygot.")
-	ytypesImportPath    = flag.String("ytypes_path", ygen.DefaultYtypesImportPath, "The import path to use for ytypes.")
-	goyangImportPath    = flag.String("goyang_path", ygen.DefaultGoyangImportPath, "The import path to use for goyang's yang package.")
+	ygotImportPath      = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
+	ytypesImportPath    = flag.String("ytypes_path", genutil.GoDefaultYtypesImportPath, "The import path to use for ytypes.")
+	goyangImportPath    = flag.String("goyang_path", genutil.GoDefaultGoyangImportPath, "The import path to use for goyang's yang package.")
 	generateRename      = flag.Bool("generate_rename", false, "If set to true, rename methods are generated for lists within the Go code.")
 	addAnnotations      = flag.Bool("annotations", false, "If set to true, metadata annotations are added within the generated structs.")
 	annotationPrefix    = flag.String("annotation_prefix", ygen.DefaultAnnotationPrefix, "String to be appended to each metadata field within the generated structs if annoations is set to true.")

@@ -56,7 +56,7 @@ whenever the path of an entity is required (e.g., in YANG name generation).
 The logic to extract which entities are valid to have code
 generation performed for them (skipping `config`/`state` containers, and
 surrounding containers for lists) is found in
-`go_elements.go`:`findAllChildren`.
+`go_elements.go`:`FindAllChildren`.
 
 ## YANG Entities Mapped to Go Entities
 
@@ -190,13 +190,13 @@ YANG Lists are output as `map` fields within the Go structures, with a key type 
 container c {
 	list foo {
 		key "fookey";
-	
+
 		leaf fookey { type string; }
 	}
-	
+
 	list bar {
 		key "barkey1 barkey2";
-		
+
 		leaf barkey1 { type string; }
 		leaf barkey2 { type string; }
 		leaf barmember { type string; }
@@ -225,7 +225,7 @@ type C_Bar struct {
 	Barkey1	*string	`path:"barkey1"`
 	Barkey2	*string	`path:"barkey2"`
 	Barmember	*string	`path:"barmmember"`
-} 
+}
 ```
 
 Such that the `Foo` field is a map, keyed on the type of the key leaf (`fookey`). For lists with multiple keys, a specific key `struct` is generated (`C_Bar_Key` in the above example), with fields that correspond to the key fields of the YANG list.

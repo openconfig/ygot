@@ -192,46 +192,6 @@ func NewYANGCodeGenerator(c *GeneratorConfig) *YANGCodeGenerator {
 	return cg
 }
 
-// yangDirectory represents a directory entry that code is to be generated for. It stores the
-// fields that are required to output the relevant code for the entity.
-type yangDirectory struct {
-	name       string                 // name is the name of the struct to be generated.
-	entry      *yang.Entry            // entry is the yang.Entry that corresponds to the schema element being converted to a struct.
-	fields     map[string]*yang.Entry // fields is a map, keyed by the YANG node identifier, of the entries that are the struct fields.
-	path       []string               // path is a slice of strings indicating the element's path.
-	listAttr   *yangListAttr          // listAttr is used to store characteristics of structs that represent YANG lists.
-	isFakeRoot bool                   // isFakeRoot indicates that the struct is a fake root struct, so specific mapping rules should be implemented.
-}
-
-// isList returns true if the yangDirectory describes a list.
-func (y *yangDirectory) isList() bool {
-	return y.listAttr != nil
-}
-
-// isChildOfModule determines whether the Directory represents a container
-// or list member that is the direct child of a module entry.
-func (y *yangDirectory) isChildOfModule() bool {
-	if y.isFakeRoot || len(y.path) == 3 {
-		// If the message has a path length of 3, then it is a top-level entity
-		// within a module, since the  path is in the format []{"", <module>, <element>}.
-		return true
-	}
-	return false
-}
-
-// yangListAttr is used to store the additional elements for a Go struct that
-// are required if the struct represents a YANG list. It stores the name of
-// the key elements, and their associated types, along with pointers to those
-// elements.
-type yangListAttr struct {
-	// keys is a map, keyed by the name of the key leaf, with values of the type
-	// of the key of a YANG list.
-	keys map[string]*mappedType
-	// keyElems is a slice containing the pointers to yang.Entry structs that
-	// make up the list key.
-	keyElems []*yang.Entry
-}
-
 // yangEnum represents an enumerated type in YANG that is to be output in the
 // Go code. The enumerated type may be a YANG 'identity' or enumeration.
 type yangEnum struct {
@@ -337,44 +297,38 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Store the returned schematree within the state for this code generation.
 	cg.state.schematree = mdef.schemaTree
 
-	goStructs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang, cg.Config.ExcludeState)
+	directory, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, golang, cg.Config.ExcludeState)
 	if errs != nil {
 		return nil, errs
 	}
 
 	var rootName string
 	if rootName = resolveRootName(cg.Config.FakeRootName, defaultRootName, cg.Config.GenerateFakeRoot); rootName != "" {
-		if r, ok := goStructs[fmt.Sprintf("/%s", rootName)]; ok {
-			rootName = r.name
+		if r, ok := directory[fmt.Sprintf("/%s", rootName)]; ok {
+			rootName = r.Name
 		}
 	}
 
+	// Code generation begins
+	var codegenErr util.Errors
 	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config, rootName, mdef.modelData)
 
 	if err != nil {
-		return nil, util.AppendErr(util.Errors{}, err)
+		return nil, util.AppendErr(codegenErr, err)
 	}
 
-	// orderedStructNames is used to store the structs that have been
-	// identified in alphabetical order, such that they are returned in a
-	// deterministic order to the calling application. This ensures that if
-	// the slice is simply output in order, then the diffs generated are
-	// minimised (i.e., diffs are not generated simply due to reordering of
-	// the maps used).
-	var orderedStructNames []string
-	structNameMap := make(map[string]*yangDirectory)
-	for _, goStruct := range goStructs {
-		orderedStructNames = append(orderedStructNames, goStruct.name)
-		structNameMap[goStruct.name] = goStruct
+	// Alphabetically order directories to produce deterministic output.
+	orderedDirNames, dirNameMap, err := GetOrderedDirectories(directory)
+
+	if err != nil {
+		return nil, util.AppendErr(codegenErr, err)
 	}
-	sort.Strings(orderedStructNames)
 
 	// enumTypeMap stores the map of the path to type.
 	enumTypeMap := map[string][]string{}
-	var codegenErr util.Errors
 	var structSnippets []GoStructCodeSnippet
-	for _, structName := range orderedStructNames {
-		structOut, errs := writeGoStruct(structNameMap[structName], goStructs, cg.state,
+	for _, directoryName := range orderedDirNames {
+		structOut, errs := writeGoStruct(dirNameMap[directoryName], directory, cg.state,
 			cg.Config.CompressOCPaths, cg.Config.GenerateJSONSchema, cg.Config.GoOptions)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
@@ -395,43 +349,9 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		return nil, codegenErr
 	}
 
-	// orderedEnumNames is used to store the enumerated types that have been
-	// identified in alphabetical order, such that they are returned in a
-	// deterministic order to the calling application. This ensures that
-	// the diffs are minimised, similarly to the use of orderedStructNames
-	// above.
-	var orderedEnumNames []string
-	enumNameMap := make(map[string]*yangEnum)
-	for _, goEnum := range goEnums {
-		orderedEnumNames = append(orderedEnumNames, goEnum.name)
-		enumNameMap[goEnum.name] = goEnum
-	}
-	sort.Strings(orderedEnumNames)
-
-	var enumSnippets []string
-	// enumValueMap is used to store a map of the different enumerations
-	// that are included in the generated code. It is keyed by the name
-	// of the generated enumeration type, with the values being a map,
-	// keyed by value number to the string that is used in the YANG schema
-	// for the enumeration. The value number is an int64 which is the value
-	// of the constant that represents the enumeration type.
-	enumValueMap := map[string]map[int64]ygot.EnumDefinition{}
-	for _, enumName := range orderedEnumNames {
-		enumOut, err := writeGoEnum(enumNameMap[enumName])
-		if err != nil {
-			util.AppendErr(codegenErr, err)
-			continue
-		}
-		enumSnippets = append(enumSnippets, enumOut.constDef)
-		enumValueMap[enumOut.name] = enumOut.valToString
-	}
-
-	// Generate the constant map which provides mappings between the
-	// enums for which code was generated and their corresponding
-	// string values.
-	enumMap, err := generateEnumMap(enumValueMap)
-	if err != nil {
-		util.AppendErr(codegenErr, err)
+	enumSnippets, enumMap, errs := generateEnumCode(goEnums)
+	if errs != nil {
+		codegenErr = util.AppendErrs(codegenErr, errs)
 	}
 
 	var rawSchema []byte
@@ -470,6 +390,57 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		RawJSONSchema:  rawSchema,
 		EnumTypeMap:    enumTypeMapCode,
 	}, nil
+}
+
+// generateEnumCode takes a map of enumerated-type entries keyed by their
+// names, and returns a slice of their definition snippets and an enum
+// string-value look-up snippet. The look-up snippet defines a map keyed by the
+// enums' type names, whose value is another map which can be used to look up a
+// given enum value's string representation given its integer representation.
+func generateEnumCode(goEnums map[string]*yangEnum) ([]string, string, util.Errors) {
+	// orderedEnumNames is used to get the enumerated types that have been
+	// identified in alphabetical order, such that they are returned in a
+	// deterministic order to the calling application. This ensures that
+	// the diffs are minimised, similarly to the purpose of GetOrderedDirectories.
+	var orderedEnumNames []string
+	enumNameMap := make(map[string]*yangEnum)
+
+	for _, goEnum := range goEnums {
+		orderedEnumNames = append(orderedEnumNames, goEnum.name)
+		enumNameMap[goEnum.name] = goEnum
+	}
+	sort.Strings(orderedEnumNames)
+
+	var enumSnippets []string
+	// enumValueMap is used to store a map of the different enumerations
+	// that are included in the generated code. It is keyed by the name
+	// of the generated enumeration type, with the values being a map,
+	// keyed by value number to the string that is used in the YANG schema
+	// for the enumeration. The value number is an int64 which is the value
+	// of the constant that represents the enumeration type.
+	enumValueMap := map[string]map[int64]ygot.EnumDefinition{}
+	errs := util.Errors{}
+	for _, enumName := range orderedEnumNames {
+		enumOut, err := writeGoEnum(enumNameMap[enumName])
+		if err != nil {
+			util.AppendErr(errs, err)
+			continue
+		}
+		enumSnippets = append(enumSnippets, enumOut.constDef)
+		enumValueMap[enumOut.name] = enumOut.valToString
+	}
+
+	// Generate the constant map which provides mappings between the
+	// enums for which code was generated and their corresponding
+	// string values.
+	enumMap, err := generateEnumMap(enumValueMap)
+	if err != nil {
+		util.AppendErr(errs, err)
+	}
+	if len(errs) == 0 {
+		errs = nil
+	}
+	return enumSnippets, enumMap, errs
 }
 
 // GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
@@ -514,9 +485,9 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	// sorting the message paths. We use the path rather than the name as the
 	// proto message name may not be unique.
 	msgPaths := []string{}
-	msgMap := map[string]*yangDirectory{}
+	msgMap := map[string]*Directory{}
 	for _, m := range protoMsgs {
-		k := strings.Join(m.path, "/")
+		k := strings.Join(m.Path, "/")
 		msgPaths = append(msgPaths, k)
 		msgMap[k] = m
 	}
@@ -661,7 +632,7 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 		return nil, errs
 	}
 
-	// Build the unique set of modules that are to be processed.
+	// Deduplicate the modules that are to be processed.
 	var modNames []string
 	mods := make(map[string]*yang.Module)
 	for _, m := range moduleSet.Modules {
@@ -703,15 +674,15 @@ type mappedYANGDefinitions struct {
 	modelData []*gpb.ModelData
 }
 
-// mappedDefinitions find the set of directory and enumeration entities
+// mappedDefinitions finds the set of directory and enumeration entities
 // that are mapped to objects within output code in a language agnostic manner.
 // It takes:
 //	- yangFiles: an input set of YANG schema files and the paths that
 //	- includePaths: the set of paths that are to be searched for included or
 //	  imported YANG modules.
 //	- cfg: the current generator's configuration.
-// It returns a mappedYANGDefinitions struct populated with the directory and enum
-// entries in the input schemas, along with the calculated schema tree.
+// It returns a mappedYANGDefinitions struct populated with the directory, enum
+// entries in the input schemas as well as the calculated schema tree.
 func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (*mappedYANGDefinitions, util.Errors) {
 	modules, errs := processModules(yangFiles, includePaths, cfg.YANGParseOptions)
 	if errs != nil {
