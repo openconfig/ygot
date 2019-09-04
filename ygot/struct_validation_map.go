@@ -629,10 +629,7 @@ func copyMapField(dstField, srcField reflect.Value) error {
 	srcKeys := srcField.MapKeys()
 	dstKeys := dstField.MapKeys()
 
-	// TODO(robjs): When we move to go1.9+ only support in ygot, we can use the
-	// following to make a map of a particular size.
-	// nm := reflect.MakeMapWithSize(reflect.MapOf((keys[0]).Type(), srcField.MapIndex(keys[0]).Type()), srcField.Len())
-	nm := reflect.MakeMap(reflect.MapOf(m.key, m.value))
+	nm := reflect.MakeMapWithSize(reflect.MapOf(m.key, m.value), srcField.Len())
 
 	mapsToMap := []struct {
 		keys  []reflect.Value
