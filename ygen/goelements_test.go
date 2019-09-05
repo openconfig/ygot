@@ -174,43 +174,43 @@ func TestYangTypeToGoType(t *testing.T) {
 	}{{
 		name: "simple lookup resolution",
 		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32"},
-		want: &MappedType{NativeType: "int32", zeroValue: "0"},
+		want: &MappedType{NativeType: "int32", ZeroValue: "0"},
 	}, {
 		name: "int32 with default",
 		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32", Default: "42"},
-		want: &MappedType{NativeType: "int32", zeroValue: "0", defaultValue: ygot.String("42")},
+		want: &MappedType{NativeType: "int32", ZeroValue: "0", DefaultValue: ygot.String("42")},
 	}, {
 		name: "decimal64",
 		in:   &yang.YangType{Kind: yang.Ydecimal64, Name: "decimal64"},
-		want: &MappedType{NativeType: "float64", zeroValue: "0.0"},
+		want: &MappedType{NativeType: "float64", ZeroValue: "0.0"},
 	}, {
 		name: "binary lookup resolution",
 		in:   &yang.YangType{Kind: yang.Ybinary, Name: "binary"},
-		want: &MappedType{NativeType: "Binary", zeroValue: "nil"},
+		want: &MappedType{NativeType: "Binary", ZeroValue: "nil"},
 	}, {
 		name: "unknown lookup resolution",
 		in:   &yang.YangType{Kind: yang.YinstanceIdentifier, Name: "instanceIdentifier"},
-		want: &MappedType{NativeType: "interface{}", zeroValue: "nil"},
+		want: &MappedType{NativeType: "interface{}", ZeroValue: "nil"},
 	}, {
 		name: "simple empty resolution",
 		in:   &yang.YangType{Kind: yang.Yempty, Name: "empty"},
-		want: &MappedType{NativeType: "YANGEmpty", zeroValue: "false"},
+		want: &MappedType{NativeType: "YANGEmpty", ZeroValue: "false"},
 	}, {
 		name: "simple boolean resolution",
 		in:   &yang.YangType{Kind: yang.Ybool, Name: "bool"},
-		want: &MappedType{NativeType: "bool", zeroValue: "false"},
+		want: &MappedType{NativeType: "bool", ZeroValue: "false"},
 	}, {
 		name: "simple int64 resolution",
 		in:   &yang.YangType{Kind: yang.Yint64, Name: "int64"},
-		want: &MappedType{NativeType: "int64", zeroValue: "0"},
+		want: &MappedType{NativeType: "int64", ZeroValue: "0"},
 	}, {
 		name: "simple uint8 resolution",
 		in:   &yang.YangType{Kind: yang.Yuint8, Name: "uint8"},
-		want: &MappedType{NativeType: "uint8", zeroValue: "0"},
+		want: &MappedType{NativeType: "uint8", ZeroValue: "0"},
 	}, {
 		name: "simple uint16 resolution",
 		in:   &yang.YangType{Kind: yang.Yuint16, Name: "uint16"},
-		want: &MappedType{NativeType: "uint16", zeroValue: "0"},
+		want: &MappedType{NativeType: "uint16", ZeroValue: "0"},
 	}, {
 		name:    "leafref without valid path",
 		in:      &yang.YangType{Kind: yang.Yleafref, Name: "leafref"},
@@ -257,8 +257,8 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType: "Module_Container_Leaf_Union",
-			unionTypes: map[string]int{"string": 0, "int8": 1},
-			zeroValue:  "nil",
+			UnionTypes: map[string]int{"string": 0, "int8": 1},
+			ZeroValue:  "nil",
 		},
 	}, {
 		name: "string-only union",
@@ -271,8 +271,8 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType: "string",
-			unionTypes: map[string]int{"string": 0},
-			zeroValue:  `""`,
+			UnionTypes: map[string]int{"string": 0},
+			ZeroValue:  `""`,
 		},
 	}, {
 		name: "derived identityref",
@@ -291,8 +291,8 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_DerivedIdentityref",
-			isEnumeratedValue: true,
-			zeroValue:         "0",
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
 		},
 	}, {
 		name: "derived identityref",
@@ -311,9 +311,9 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_DerivedIdentityref",
-			isEnumeratedValue: true,
-			zeroValue:         "0",
-			defaultValue:      ygot.String("BaseModule_DerivedIdentityref_AARDVARK"),
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+			DefaultValue:      ygot.String("BaseModule_DerivedIdentityref_AARDVARK"),
 		},
 	}, {
 		name: "enumeration",
@@ -331,8 +331,8 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_EnumerationLeaf",
-			isEnumeratedValue: true,
-			zeroValue:         "0",
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
 		},
 	}, {
 		name: "enumeration with default",
@@ -350,9 +350,9 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_EnumerationLeaf",
-			isEnumeratedValue: true,
-			zeroValue:         "0",
-			defaultValue:      ygot.String("BaseModule_EnumerationLeaf_BLUE"),
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+			DefaultValue:      ygot.String("BaseModule_EnumerationLeaf_BLUE"),
 		},
 	}, {
 		name: "typedef enumeration",
@@ -371,8 +371,8 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_DerivedEnumeration",
-			isEnumeratedValue: true,
-			zeroValue:         "0",
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
 		},
 	}, {
 		name: "typedef enumeration with default",
@@ -391,9 +391,9 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_DerivedEnumeration",
-			isEnumeratedValue: true,
-			zeroValue:         "0",
-			defaultValue:      ygot.String("BaseModule_DerivedEnumeration_FISH"),
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+			DefaultValue:      ygot.String("BaseModule_DerivedEnumeration_FISH"),
 		},
 	}, {
 		name: "identityref",
@@ -417,8 +417,8 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_TestModule_BaseIdentity",
-			isEnumeratedValue: true,
-			zeroValue:         "0",
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
 		},
 	}, {
 		name: "identityref with default",
@@ -442,9 +442,9 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_TestModule_BaseIdentity",
-			isEnumeratedValue: true,
-			zeroValue:         "0",
-			defaultValue:      ygot.String("TestModule_BaseIdentity_CHIPS"),
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+			DefaultValue:      ygot.String("TestModule_BaseIdentity_CHIPS"),
 		},
 	}, {
 		name: "enumeration with compress paths",
@@ -464,8 +464,8 @@ func TestYangTypeToGoType(t *testing.T) {
 		compressPath: true,
 		want: &MappedType{
 			NativeType:        "E_BaseModule_Container_Eleaf",
-			isEnumeratedValue: true,
-			zeroValue:         "0",
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
 		},
 	}, {
 		name: "enumeration in submodule",
@@ -479,7 +479,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		compressPath: true,
-		want:         &MappedType{NativeType: "E_BaseMod_Container_Eleaf", isEnumeratedValue: true, zeroValue: "0"},
+		want:         &MappedType{NativeType: "E_BaseMod_Container_Eleaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}, {
 		name: "leafref",
 		in:   &yang.YangType{Kind: yang.Yleafref, Name: "leafref", Path: "../c"},
@@ -521,7 +521,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Entry{Name: "module"},
 			},
 		},
-		want: &MappedType{NativeType: "uint32", zeroValue: "0"},
+		want: &MappedType{NativeType: "uint32", ZeroValue: "0"},
 	}}
 
 	for _, tt := range tests {
@@ -1023,8 +1023,8 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 			},
 		}},
 		wantTypes: map[string]*MappedType{
-			"/test-module/leaf-one": {NativeType: "E_TestModule_BaseIdentity", isEnumeratedValue: true, zeroValue: "0"},
-			"/test-module/leaf-two": {NativeType: "E_TestModule_BaseIdentity", isEnumeratedValue: true, zeroValue: "0"},
+			"/test-module/leaf-one": {NativeType: "E_TestModule_BaseIdentity", IsEnumeratedValue: true, ZeroValue: "0"},
+			"/test-module/leaf-two": {NativeType: "E_TestModule_BaseIdentity", IsEnumeratedValue: true, ZeroValue: "0"},
 		},
 	}, {
 		name: "typedef with multiple references",
@@ -1060,8 +1060,8 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 			},
 		}},
 		wantTypes: map[string]*MappedType{
-			"/base-module/leaf-one": {NativeType: "E_BaseModule_DefinedType", isEnumeratedValue: true, zeroValue: "0"},
-			"/base-module/leaf-two": {NativeType: "E_BaseModule_DefinedType", isEnumeratedValue: true, zeroValue: "0"},
+			"/base-module/leaf-one": {NativeType: "E_BaseModule_DefinedType", IsEnumeratedValue: true, ZeroValue: "0"},
+			"/base-module/leaf-two": {NativeType: "E_BaseModule_DefinedType", IsEnumeratedValue: true, ZeroValue: "0"},
 		},
 	}}
 

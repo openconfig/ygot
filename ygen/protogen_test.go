@@ -1785,7 +1785,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			},
 		},
 		inMappedType: &MappedType{
-			unionTypes: map[string]int{
+			UnionTypes: map[string]int{
 				"string": 0,
 				"sint64": 0,
 			},
@@ -1813,7 +1813,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			},
 		},
 		inMappedType: &MappedType{
-			unionTypes: map[string]int{
+			UnionTypes: map[string]int{
 				"string":             0,
 				"ywrapper.Decimal64": 1,
 			},
@@ -1845,7 +1845,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			},
 		},
 		inMappedType: &MappedType{
-			unionTypes: map[string]int{
+			UnionTypes: map[string]int{
 				"SomeEnumType": 0,
 				"string":       1,
 			},
@@ -1884,7 +1884,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			ListAttr: &yang.ListAttr{},
 		},
 		inMappedType: &MappedType{
-			unionTypes: map[string]int{
+			UnionTypes: map[string]int{
 				"string": 0,
 				"uint64": 1,
 			},

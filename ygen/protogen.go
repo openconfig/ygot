@@ -1037,7 +1037,7 @@ func protoLeafDefinition(leafName string, args *protoDefinitionArgs) (*protoDefi
 		d.enums[d.protoType] = e
 	case util.IsEnumeratedType(args.field.Type):
 		d.globalEnum = true
-	case protoType.unionTypes != nil:
+	case protoType.UnionTypes != nil:
 		u, err := unionFieldToOneOf(leafName, args.field, protoType, args.cfg.annotateEnumNames)
 		if err != nil {
 			return nil, err
@@ -1177,7 +1177,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 				enumEntry = target
 			}
 
-			if scalarType.unionTypes != nil {
+			if scalarType.UnionTypes != nil {
 				unionEntry = target
 			}
 
@@ -1186,7 +1186,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 			}
 		case util.IsSimpleEnumerationType(kf.Type):
 			enumEntry = kf
-		case util.IsUnionType(kf.Type) && scalarType.unionTypes != nil:
+		case util.IsUnionType(kf.Type) && scalarType.UnionTypes != nil:
 			unionEntry = kf
 		}
 
@@ -1314,7 +1314,7 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *MappedType, annot
 	}
 
 	var typeNames []string
-	for tn := range mtype.unionTypes {
+	for tn := range mtype.UnionTypes {
 		typeNames = append(typeNames, tn)
 	}
 	sort.Strings(typeNames)

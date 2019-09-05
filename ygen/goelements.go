@@ -75,7 +75,7 @@ var (
 )
 
 // MappedType is used to store the Go type that a leaf entity in YANG is
-// mapped to. The NativeType is always populated for any leaf. unionTypes is populated
+// mapped to. The NativeType is always populated for any leaf. UnionTypes is populated
 // when the type may have subtypes (i.e., is a union). enumValues is populated
 // when the type is an enumerated type.
 //
@@ -86,27 +86,27 @@ var (
 type MappedType struct {
 	// NativeType is the type which is to be used for the mapped entity.
 	NativeType string
-	// unionTypes is a map, keyed by the Go type, of the types specified
+	// UnionTypes is a map, keyed by the Go type, of the types specified
 	// as valid for a union. The value of the map indicates the order
 	// of the type, since order is important for unions in YANG. Where
 	// two types are mapped to the same Go type (e.g., string) then
 	// only the order of the first is maintained. Since the generated
 	// code from the structs maintains only type validation, this
 	// is not currently a limitation.
-	unionTypes map[string]int
-	// isEnumeratedValue specifies whether the NativeType that is returned
+	UnionTypes map[string]int
+	// IsEnumeratedValue specifies whether the NativeType that is returned
 	// is a generated enumerated value. Such entities are reflected as
 	// derived types with constant values, and are hence not represented
 	// as pointers in the output code.
-	isEnumeratedValue bool
-	// zeroValue stores the value that should be used for the type if
+	IsEnumeratedValue bool
+	// ZeroValue stores the value that should be used for the type if
 	// it is unset. This is used only in contexts where the nil pointer
 	// cannot be used, such as leaf getters.
-	zeroValue string
-	// defaultValue stores the default value for the type if is specified.
+	ZeroValue string
+	// DefaultValue stores the default value for the type if is specified.
 	// It is represented as a string pointer to ensure that default values
 	// of the empty string can be distinguished from unset defaults.
-	defaultValue *string
+	DefaultValue *string
 }
 
 // resolveTypeArgs is a structure used as an input argument to the yangTypeToGoType
@@ -205,9 +205,9 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		// mtype is set to non-nil when this was a valid enumeration
 		// within a typedef. We explicitly set the zero and default values
 		// here.
-		mtype.zeroValue = "0"
+		mtype.ZeroValue = "0"
 		if defVal != nil {
-			mtype.defaultValue = enumDefaultValue(mtype.NativeType, *defVal, goEnumPrefix)
+			mtype.DefaultValue = enumDefaultValue(mtype.NativeType, *defVal, goEnumPrefix)
 		}
 
 		return mtype, nil
@@ -216,31 +216,31 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 	// Perform the actual mapping of the type to the Go type.
 	switch args.yangType.Kind {
 	case yang.Yint8:
-		return &MappedType{NativeType: "int8", zeroValue: goZeroValues["int8"], defaultValue: defVal}, nil
+		return &MappedType{NativeType: "int8", ZeroValue: goZeroValues["int8"], DefaultValue: defVal}, nil
 	case yang.Yint16:
-		return &MappedType{NativeType: "int16", zeroValue: goZeroValues["int16"], defaultValue: defVal}, nil
+		return &MappedType{NativeType: "int16", ZeroValue: goZeroValues["int16"], DefaultValue: defVal}, nil
 	case yang.Yint32:
-		return &MappedType{NativeType: "int32", zeroValue: goZeroValues["int32"], defaultValue: defVal}, nil
+		return &MappedType{NativeType: "int32", ZeroValue: goZeroValues["int32"], DefaultValue: defVal}, nil
 	case yang.Yint64:
-		return &MappedType{NativeType: "int64", zeroValue: goZeroValues["int64"], defaultValue: defVal}, nil
+		return &MappedType{NativeType: "int64", ZeroValue: goZeroValues["int64"], DefaultValue: defVal}, nil
 	case yang.Yuint8:
-		return &MappedType{NativeType: "uint8", zeroValue: goZeroValues["uint8"], defaultValue: defVal}, nil
+		return &MappedType{NativeType: "uint8", ZeroValue: goZeroValues["uint8"], DefaultValue: defVal}, nil
 	case yang.Yuint16:
-		return &MappedType{NativeType: "uint16", zeroValue: goZeroValues["uint16"], defaultValue: defVal}, nil
+		return &MappedType{NativeType: "uint16", ZeroValue: goZeroValues["uint16"], DefaultValue: defVal}, nil
 	case yang.Yuint32:
-		return &MappedType{NativeType: "uint32", zeroValue: goZeroValues["uint32"], defaultValue: defVal}, nil
+		return &MappedType{NativeType: "uint32", ZeroValue: goZeroValues["uint32"], DefaultValue: defVal}, nil
 	case yang.Yuint64:
-		return &MappedType{NativeType: "uint64", zeroValue: goZeroValues["uint64"], defaultValue: defVal}, nil
+		return &MappedType{NativeType: "uint64", ZeroValue: goZeroValues["uint64"], DefaultValue: defVal}, nil
 	case yang.Ybool:
-		return &MappedType{NativeType: "bool", zeroValue: goZeroValues["bool"], defaultValue: defVal}, nil
+		return &MappedType{NativeType: "bool", ZeroValue: goZeroValues["bool"], DefaultValue: defVal}, nil
 	case yang.Yempty:
 		// Empty is a YANG type that either exists or doesn't, therefore
 		// map it to a boolean to indicate its presence or not. The empty
 		// type name uses a specific name in the generated code, such that
 		// it can be identified for marshalling.
-		return &MappedType{NativeType: ygot.EmptyTypeName, zeroValue: goZeroValues[ygot.EmptyTypeName]}, nil
+		return &MappedType{NativeType: ygot.EmptyTypeName, ZeroValue: goZeroValues[ygot.EmptyTypeName]}, nil
 	case yang.Ystring:
-		return &MappedType{NativeType: "string", zeroValue: goZeroValues["string"], defaultValue: defVal}, nil
+		return &MappedType{NativeType: "string", ZeroValue: goZeroValues["string"], DefaultValue: defVal}, nil
 	case yang.Yunion:
 		// A YANG Union is a leaf that can take multiple values - its subtypes need
 		// to be extracted.
@@ -258,9 +258,9 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		}
 		return &MappedType{
 			NativeType:        fmt.Sprintf("E_%s", n),
-			isEnumeratedValue: true,
-			zeroValue:         "0",
-			defaultValue:      defVal,
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+			DefaultValue:      defVal,
 		}, nil
 	case yang.Yidentityref:
 		// Identityref leaves are mapped according to the base identity that they
@@ -275,12 +275,12 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		}
 		return &MappedType{
 			NativeType:        fmt.Sprintf("E_%s", n),
-			isEnumeratedValue: true,
-			zeroValue:         "0",
-			defaultValue:      defVal,
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+			DefaultValue:      defVal,
 		}, nil
 	case yang.Ydecimal64:
-		return &MappedType{NativeType: "float64", zeroValue: goZeroValues["float64"]}, nil
+		return &MappedType{NativeType: "float64", ZeroValue: goZeroValues["float64"]}, nil
 	case yang.Yleafref:
 		// This is a leafref, so we check what the type of the leaf that it
 		// references is by looking it up in the schematree.
@@ -297,13 +297,13 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		// Map binary fields to the Binary type defined in the output code,
 		// this is used to ensure that we can distinguish a binary field from
 		// a leaf-list of uint8s which is not possible if mapping to []byte.
-		return &MappedType{NativeType: ygot.BinaryTypeName, zeroValue: goZeroValues[ygot.BinaryTypeName], defaultValue: defVal}, nil
+		return &MappedType{NativeType: ygot.BinaryTypeName, ZeroValue: goZeroValues[ygot.BinaryTypeName], DefaultValue: defVal}, nil
 	default:
 		// Return an empty interface for the types that we do not currently
 		// support. Back-end validation is required for these types.
 		// TODO(robjs): Missing types currently bits. These
 		// should be added.
-		return &MappedType{NativeType: "interface{}", zeroValue: goZeroValues["interface{}"]}, nil
+		return &MappedType{NativeType: "interface{}", ZeroValue: goZeroValues["interface{}"]}, nil
 	}
 }
 
@@ -331,7 +331,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 //	}
 //
 // Is returned with a goType of Bar_Foo_Union (where Bar_Foo is the schema
-// path to an element). The unionTypes are specified to be string and int8.
+// path to an element). The UnionTypes are specified to be string and int8.
 //
 // The compressOCPaths argument specifies whether OpenConfig path compression
 // is enabled such that the name of enumerated types can be calculated correctly.
@@ -339,14 +339,14 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 // goUnionType returns an error if mapping is not possible.
 func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*MappedType, error) {
 	var errs []error
-	unionTypes := make(map[string]int)
+	UnionTypes := make(map[string]int)
 
 	// Extract the subtypes that are defined into a map which is keyed on the
 	// mapped type. A map is used such that other functions that rely checking
 	// whether a particular type is valid when creating mapping code can easily
 	// check, rather than iterating the slice of strings.
 	for _, subtype := range args.yangType.Type {
-		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, compressOCPaths)...)
+		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, UnionTypes, compressOCPaths)...)
 	}
 
 	if errs != nil {
@@ -355,23 +355,23 @@ func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*Map
 
 	// Zero value is set to nil, other than in cases where there is a single type in
 	// the union.
-	zeroValue := "nil"
+	ZeroValue := "nil"
 
 	NativeType := fmt.Sprintf("%s_Union", s.pathToCamelCaseName(args.contextEntry, compressOCPaths, false))
-	if len(unionTypes) == 1 {
-		for MappedType := range unionTypes {
+	if len(UnionTypes) == 1 {
+		for MappedType := range UnionTypes {
 			NativeType = MappedType
 		}
 		if zv, ok := goZeroValues[NativeType]; ok {
-			zeroValue = zv
+			ZeroValue = zv
 		}
 
 	}
 
 	return &MappedType{
 		NativeType: NativeType,
-		unionTypes: unionTypes,
-		zeroValue:  zeroValue,
+		UnionTypes: UnionTypes,
+		ZeroValue:  ZeroValue,
 	}, nil
 }
 
@@ -402,7 +402,7 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 		// leaf that refers to the union, not the specific subtype that is now being examined.
 		mtype = &MappedType{
 			NativeType: fmt.Sprintf("E_%s", s.identityrefBaseTypeFromIdentity(subtype.IdentityBase, false)),
-			zeroValue:  "0",
+			ZeroValue:  "0",
 		}
 	default:
 		var err error

@@ -1280,10 +1280,10 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			scalarField := true
 			fType := mtype.NativeType
 			schemapath := util.SchemaTreePathNoModule(field)
-			zeroValue := mtype.zeroValue
-			defaultValue := goLeafDefault(field, mtype)
+			ZeroValue := mtype.ZeroValue
+			DefaultValue := goLeafDefault(field, mtype)
 
-			if len(mtype.unionTypes) > 1 {
+			if len(mtype.UnionTypes) > 1 {
 				// If this is a union that has more than one subtype, then we need
 				// to ensure that we do not map this as a pointer type (since its
 				// field type is an interface), and generate the relevant interface.
@@ -1300,7 +1300,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 						ParentReceiver: targetStruct.Name,
 					}
 
-					for t := range mtype.unionTypes {
+					for t := range mtype.UnionTypes {
 						// If the type within the union is not a builtin type then we store
 						// it within the enumMap, since it is an enumerated type.
 						if _, builtin := validGoBuiltinTypes[t]; !builtin {
@@ -1338,8 +1338,8 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 				scalarField = false
 				// Slices have a nil zero value rather than the value of their
 				// underlying type.
-				zeroValue = "nil"
-			case mtype.isEnumeratedValue == true, mtype.NativeType == "interface{}", mtype.NativeType == ygot.BinaryTypeName, mtype.NativeType == ygot.EmptyTypeName:
+				ZeroValue = "nil"
+			case mtype.IsEnumeratedValue == true, mtype.NativeType == "interface{}", mtype.NativeType == ygot.BinaryTypeName, mtype.NativeType == ygot.EmptyTypeName:
 				// If the value is an enumerated value, then we did not represent it
 				// as a pointer within the struct, so mark it as a scalar field such
 				// that the template does not attempt to prefix it with an asterisk.
@@ -1350,7 +1350,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			}
 
 			definedNameMap[fName].IsPtr = scalarField
-			if mtype.isEnumeratedValue {
+			if mtype.IsEnumeratedValue {
 				// Any enumerated type is stored in the enumMap to allow for type
 				// resolution from a schema path.
 				enumTypeMap[schemapath] = append(enumTypeMap[schemapath], mtype.NativeType)
@@ -1363,10 +1363,10 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 				associatedLeafGetters = append(associatedLeafGetters, &generatedLeafGetter{
 					Name:     fieldName,
 					Type:     fType,
-					Zero:     zeroValue,
+					Zero:     ZeroValue,
 					IsPtr:    scalarField,
 					Receiver: targetStruct.Name,
-					Default:  defaultValue,
+					Default:  DefaultValue,
 				})
 			}
 
@@ -1803,7 +1803,7 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 		}
 		// All list key values should be represented as pointers, other than those that
 		// are enumerated values, and hence we mark IsScalarField as true for these.
-		if !listElem.ListAttr.Keys[keName].isEnumeratedValue && len(listElem.ListAttr.Keys[keName].unionTypes) < 2 {
+		if !listElem.ListAttr.Keys[keName].IsEnumeratedValue && len(listElem.ListAttr.Keys[keName].UnionTypes) < 2 {
 			keyField.IsScalarField = true
 		}
 		listKeys = append(listKeys, keyField)
@@ -2042,14 +2042,14 @@ func writeGoSchema(js []byte, schemaVarName string) (string, error) {
 // otherwise nil is returned to indicate no default was specified.
 func goLeafDefault(e *yang.Entry, t *MappedType) *string {
 	if e.Default != "" {
-		if t.isEnumeratedValue {
+		if t.IsEnumeratedValue {
 			return enumDefaultValue(t.NativeType, e.Default, goEnumPrefix)
 		}
 		return quoteDefault(&e.Default, t.NativeType)
 	}
 
-	if t.defaultValue != nil {
-		return quoteDefault(t.defaultValue, t.NativeType)
+	if t.DefaultValue != nil {
+		return quoteDefault(t.DefaultValue, t.NativeType)
 	}
 
 	return nil

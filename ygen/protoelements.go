@@ -94,7 +94,7 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoT
 		}
 		return &MappedType{
 			NativeType:        yang.CamelCase(args.contextEntry.Name),
-			isEnumeratedValue: true,
+			IsEnumeratedValue: true,
 		}, nil
 	case yang.Yidentityref:
 		// TODO(https://github.com/openconfig/ygot/issues/33) - refactor to allow
@@ -104,7 +104,7 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoT
 		}
 		return &MappedType{
 			NativeType:        s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase),
-			isEnumeratedValue: true,
+			IsEnumeratedValue: true,
 		}, nil
 	case yang.Yunion:
 		return s.protoUnionType(args, pargs)
@@ -164,7 +164,7 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolve
 		}
 		return &MappedType{
 			NativeType:        yang.CamelCase(args.contextEntry.Name),
-			isEnumeratedValue: true,
+			IsEnumeratedValue: true,
 		}, nil
 	case yang.Yidentityref:
 		if args.contextEntry == nil {
@@ -172,7 +172,7 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolve
 		}
 		return &MappedType{
 			NativeType:        s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase),
-			isEnumeratedValue: true,
+			IsEnumeratedValue: true,
 		}, nil
 	case yang.Yunion:
 		return s.protoUnionType(args, pargs)
@@ -203,22 +203,22 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolve
 //	int32 a_int32 = NN;
 // }
 //
-// The MappedType's unionTypes can be output through a template into the oneof.
+// The MappedType's UnionTypes can be output through a template into the oneof.
 func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
-	unionTypes := make(map[string]*yang.YangType)
-	if errs := s.protoUnionSubTypes(args.yangType, args.contextEntry, unionTypes, pargs); errs != nil {
+	UnionTypes := make(map[string]*yang.YangType)
+	if errs := s.protoUnionSubTypes(args.yangType, args.contextEntry, UnionTypes, pargs); errs != nil {
 		return nil, fmt.Errorf("errors mapping element: %v", errs)
 	}
 
 	// Handle the case that there is just one protobuf type within the union.
-	if len(unionTypes) == 1 {
-		for st, t := range unionTypes {
+	if len(UnionTypes) == 1 {
+		for st, t := range UnionTypes {
 			// Handle the case whereby there is an identityref and we simply
 			// want to return the type that has been resolved.
 			if t.Kind == yang.Yidentityref || t.Kind == yang.Yenum {
 				return &MappedType{
 					NativeType:        st,
-					isEnumeratedValue: true,
+					IsEnumeratedValue: true,
 				}, nil
 			}
 
@@ -250,7 +250,7 @@ func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeAr
 	// Rewrite the map to be the expected format for the MappedType return value,
 	// we sort the keys into alphabetical order to avoid test flakes.
 	keys := []string{}
-	for k := range unionTypes {
+	for k := range UnionTypes {
 		keys = append(keys, k)
 	}
 
@@ -261,7 +261,7 @@ func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeAr
 	}
 
 	return &MappedType{
-		unionTypes: rtypes,
+		UnionTypes: rtypes,
 	}, nil
 }
 
@@ -286,7 +286,7 @@ func (s *genState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, c
 		// an identityref.
 		mtype = &MappedType{
 			NativeType:        s.protoIdentityName(pargs, subtype.IdentityBase),
-			isEnumeratedValue: true,
+			IsEnumeratedValue: true,
 		}
 	default:
 		var err error
