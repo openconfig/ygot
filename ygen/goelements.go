@@ -339,56 +339,51 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 // goUnionType returns an error if mapping is not possible.
 func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*MappedType, error) {
 	var errs []error
-	unionTypes := make(map[string]int)
+	unionMappedTypes := make(map[int]*MappedType)
 
 	// Extract the subtypes that are defined into a map which is keyed on the
 	// mapped type. A map is used such that other functions that rely checking
 	// whether a particular type is valid when creating mapping code can easily
 	// check, rather than iterating the slice of strings.
+	unionTypes := make(map[string]int)
 	for _, subtype := range args.yangType.Type {
-		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, compressOCPaths)...)
+		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, unionMappedTypes, compressOCPaths)...)
 	}
 
 	if errs != nil {
 		return nil, fmt.Errorf("errors mapping element: %v", errs)
 	}
 
-	// Zero value is set to nil, other than in cases where there is a single type in
-	// the union.
-	zeroValue := "nil"
-
-	NativeType := fmt.Sprintf("%s_Union", s.pathToCamelCaseName(args.contextEntry, compressOCPaths, false))
-	if len(unionTypes) == 1 {
-		for MappedType := range unionTypes {
-			NativeType = MappedType
-		}
-		if zv, ok := goZeroValues[NativeType]; ok {
-			zeroValue = zv
-		}
-
+	resolvedType := &MappedType{
+		NativeType: fmt.Sprintf("%s_Union", s.pathToCamelCaseName(args.contextEntry, compressOCPaths, false)),
+		// Zero value is set to nil, other than in cases where there is
+		// a single type in the union.
+		ZeroValue: "nil",
+	}
+	// If there is only one type inside the union, then promote it to replace the union type.
+	if len(unionMappedTypes) == 1 {
+		resolvedType = unionMappedTypes[0]
 	}
 
-	return &MappedType{
-		NativeType: NativeType,
-		UnionTypes: unionTypes,
-		ZeroValue:  zeroValue,
-	}, nil
+	resolvedType.UnionTypes = unionTypes
+
+	return resolvedType, nil
 }
 
 // goUnionSubTypes extracts all the possible subtypes of a YANG union leaf,
-// and returns map keyed by the mapped type along with any errors that occur. A
-// map is returned in preference to a slice such that it is easier for calling
-// functions to check whether a particular type is a valid type for a leaf. Since
-// a union itself may contain unions, the supplied union is recursed. The
-// compressOCPaths argument specifies whether OpenConfig path compression is enabled
-// such that the name of enumerated types can be correctly calculated.
-func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, compressOCPaths bool) []error {
+// returning any errors that occur. In case of nested unions, the entire union
+// is flattened, and identical types are de-duped. currentTypes keeps track of
+// this unique set of types, along with the order they're seen, and
+// unionMappedTypes records the entire type information for each. The
+// compressOCPaths argument specifies whether OpenConfig path compression is
+// enabled such that the name of enumerated types can be correctly calculated.
+func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths bool) []error {
 	var errs []error
 	// If subtype.Type is not empty then this means that this type is defined to
 	// be a union itself.
 	if subtype.Type != nil {
 		for _, st := range subtype.Type {
-			errs = append(errs, s.goUnionSubTypes(st, ctx, currentTypes, compressOCPaths)...)
+			errs = append(errs, s.goUnionSubTypes(st, ctx, currentTypes, unionMappedTypes, compressOCPaths)...)
 		}
 		return errs
 	}
@@ -400,9 +395,16 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 		// to map enumerated types to their module. This occurs in the case that the subtype
 		// is an identityref - in this case, the context entry that we are carrying is the
 		// leaf that refers to the union, not the specific subtype that is now being examined.
+		baseType := s.identityrefBaseTypeFromIdentity(subtype.IdentityBase, false)
+		defVal := genutil.TypeDefaultValue(subtype)
+		if defVal != nil {
+			defVal = enumDefaultValue(baseType, *defVal, "")
+		}
 		mtype = &MappedType{
-			NativeType: fmt.Sprintf("E_%s", s.identityrefBaseTypeFromIdentity(subtype.IdentityBase, false)),
-			ZeroValue:  "0",
+			NativeType:        fmt.Sprintf("E_%s", baseType),
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+			DefaultValue:      defVal,
 		}
 	default:
 		var err error
@@ -419,7 +421,9 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 	// typedefs that are strings underneath, as the Go code will
 	// simply represent this as one string.
 	if _, ok := currentTypes[mtype.NativeType]; !ok {
-		currentTypes[mtype.NativeType] = len(currentTypes)
+		index := len(currentTypes)
+		currentTypes[mtype.NativeType] = index
+		unionMappedTypes[index] = mtype
 	}
 	return errs
 }
