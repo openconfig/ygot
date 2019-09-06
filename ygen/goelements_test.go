@@ -191,10 +191,10 @@ func TestUnionSubTypes(t *testing.T) {
 		wantMtypes: map[int]*MappedType{
 			0: {
 				NativeType:        "E_BaseModule_BaseIdentity",
-				unionTypes:        nil,
-				isEnumeratedValue: true,
-				zeroValue:         "0",
-				defaultValue:      ygot.String("BaseModule_BaseIdentity_CHIPS"),
+				UnionTypes:        nil,
+				IsEnumeratedValue: true,
+				ZeroValue:         "0",
+				DefaultValue:      ygot.String("BaseModule_BaseIdentity_CHIPS"),
 			},
 		},
 	}}
@@ -458,10 +458,10 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_UnionLeaf",
-			unionTypes:        map[string]int{"E_BaseModule_UnionLeaf": 0},
-			isEnumeratedValue: true,
-			zeroValue:         "0",
-			defaultValue:      ygot.String("BaseModule_UnionLeaf_BLUE"),
+			UnionTypes:        map[string]int{"E_BaseModule_UnionLeaf": 0},
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+			DefaultValue:      ygot.String("BaseModule_UnionLeaf_BLUE"),
 		},
 	}, {
 		name: "typedef enumeration",
@@ -511,9 +511,9 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_UnionLeaf",
-			unionTypes:        map[string]int{"E_BaseModule_UnionLeaf": 0},
-			isEnumeratedValue: true,
-			zeroValue:         "0",
+			UnionTypes:        map[string]int{"E_BaseModule_UnionLeaf": 0},
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
 		},
 	}, {
 		name: "typedef enumeration with default",
@@ -631,10 +631,10 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_BaseIdentity",
-			unionTypes:        map[string]int{"E_BaseModule_BaseIdentity": 0},
-			isEnumeratedValue: true,
-			zeroValue:         "0",
-			defaultValue:      ygot.String("BaseModule_BaseIdentity_CHIPS"),
+			UnionTypes:        map[string]int{"E_BaseModule_BaseIdentity": 0},
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+			DefaultValue:      ygot.String("BaseModule_BaseIdentity_CHIPS"),
 		},
 	}, {
 		name: "enumeration with compress paths",

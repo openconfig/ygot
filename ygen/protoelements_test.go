@@ -157,7 +157,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 		}},
 		wantWrapper: &MappedType{
 			NativeType:        "UnionLeaf",
-			isEnumeratedValue: true,
+			IsEnumeratedValue: true,
 		},
 		wantSame: true,
 	}, {
@@ -190,7 +190,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 		}},
 		wantWrapper: &MappedType{
 			NativeType:        "UnionLeaf",
-			isEnumeratedValue: true,
+			IsEnumeratedValue: true,
 		},
 		wantSame: true,
 	}, {
@@ -264,7 +264,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 		}},
 		wantWrapper: &MappedType{
 			NativeType:        "basePackage.enumPackage.BaseModuleBaseIdentity",
-			isEnumeratedValue: true,
+			IsEnumeratedValue: true,
 		},
 		wantSame: true,
 	}, {
