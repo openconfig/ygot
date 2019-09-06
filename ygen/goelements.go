@@ -331,7 +331,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 //	}
 //
 // Is returned with a goType of Bar_Foo_Union (where Bar_Foo is the schema
-// path to an element). The UnionTypes are specified to be string and int8.
+// path to an element). The unionTypes are specified to be string and int8.
 //
 // The compressOCPaths argument specifies whether OpenConfig path compression
 // is enabled such that the name of enumerated types can be calculated correctly.
@@ -339,14 +339,14 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 // goUnionType returns an error if mapping is not possible.
 func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*MappedType, error) {
 	var errs []error
-	UnionTypes := make(map[string]int)
+	unionTypes := make(map[string]int)
 
 	// Extract the subtypes that are defined into a map which is keyed on the
 	// mapped type. A map is used such that other functions that rely checking
 	// whether a particular type is valid when creating mapping code can easily
 	// check, rather than iterating the slice of strings.
 	for _, subtype := range args.yangType.Type {
-		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, UnionTypes, compressOCPaths)...)
+		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, compressOCPaths)...)
 	}
 
 	if errs != nil {
@@ -355,23 +355,23 @@ func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*Map
 
 	// Zero value is set to nil, other than in cases where there is a single type in
 	// the union.
-	ZeroValue := "nil"
+	zeroValue := "nil"
 
 	NativeType := fmt.Sprintf("%s_Union", s.pathToCamelCaseName(args.contextEntry, compressOCPaths, false))
-	if len(UnionTypes) == 1 {
-		for MappedType := range UnionTypes {
+	if len(unionTypes) == 1 {
+		for MappedType := range unionTypes {
 			NativeType = MappedType
 		}
 		if zv, ok := goZeroValues[NativeType]; ok {
-			ZeroValue = zv
+			zeroValue = zv
 		}
 
 	}
 
 	return &MappedType{
 		NativeType: NativeType,
-		UnionTypes: UnionTypes,
-		ZeroValue:  ZeroValue,
+		UnionTypes: unionTypes,
+		ZeroValue:  zeroValue,
 	}, nil
 }
 

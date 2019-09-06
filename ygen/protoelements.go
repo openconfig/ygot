@@ -205,14 +205,14 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolve
 //
 // The MappedType's UnionTypes can be output through a template into the oneof.
 func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
-	UnionTypes := make(map[string]*yang.YangType)
-	if errs := s.protoUnionSubTypes(args.yangType, args.contextEntry, UnionTypes, pargs); errs != nil {
+	unionTypes := make(map[string]*yang.YangType)
+	if errs := s.protoUnionSubTypes(args.yangType, args.contextEntry, unionTypes, pargs); errs != nil {
 		return nil, fmt.Errorf("errors mapping element: %v", errs)
 	}
 
 	// Handle the case that there is just one protobuf type within the union.
-	if len(UnionTypes) == 1 {
-		for st, t := range UnionTypes {
+	if len(unionTypes) == 1 {
+		for st, t := range unionTypes {
 			// Handle the case whereby there is an identityref and we simply
 			// want to return the type that has been resolved.
 			if t.Kind == yang.Yidentityref || t.Kind == yang.Yenum {
@@ -250,7 +250,7 @@ func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeAr
 	// Rewrite the map to be the expected format for the MappedType return value,
 	// we sort the keys into alphabetical order to avoid test flakes.
 	keys := []string{}
-	for k := range UnionTypes {
+	for k := range unionTypes {
 		keys = append(keys, k)
 	}
 

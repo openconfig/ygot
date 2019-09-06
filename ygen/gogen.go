@@ -1280,8 +1280,8 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			scalarField := true
 			fType := mtype.NativeType
 			schemapath := util.SchemaTreePathNoModule(field)
-			ZeroValue := mtype.ZeroValue
-			DefaultValue := goLeafDefault(field, mtype)
+			zeroValue := mtype.ZeroValue
+			defaultValue := goLeafDefault(field, mtype)
 
 			if len(mtype.UnionTypes) > 1 {
 				// If this is a union that has more than one subtype, then we need
@@ -1338,7 +1338,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 				scalarField = false
 				// Slices have a nil zero value rather than the value of their
 				// underlying type.
-				ZeroValue = "nil"
+				zeroValue = "nil"
 			case mtype.IsEnumeratedValue == true, mtype.NativeType == "interface{}", mtype.NativeType == ygot.BinaryTypeName, mtype.NativeType == ygot.EmptyTypeName:
 				// If the value is an enumerated value, then we did not represent it
 				// as a pointer within the struct, so mark it as a scalar field such
@@ -1363,10 +1363,10 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 				associatedLeafGetters = append(associatedLeafGetters, &generatedLeafGetter{
 					Name:     fieldName,
 					Type:     fType,
-					Zero:     ZeroValue,
+					Zero:     zeroValue,
 					IsPtr:    scalarField,
 					Receiver: targetStruct.Name,
-					Default:  DefaultValue,
+					Default:  defaultValue,
 				})
 			}
 
