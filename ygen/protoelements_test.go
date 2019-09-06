@@ -114,7 +114,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		},
-		wantWrapper: &MappedType{unionTypes: map[string]int{"string": 0, "uint64": 1}},
+		wantWrapper: &MappedType{UnionTypes: map[string]int{"string": 0, "uint64": 1}},
 		wantSame:    true,
 	}, {
 		name: "union with only strings",
@@ -151,7 +151,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 		}},
 		wantWrapper: &MappedType{
 			NativeType:        "basePackage.enumPackage.BaseModuleDerivedIdentityref",
-			isEnumeratedValue: true,
+			IsEnumeratedValue: true,
 		},
 		wantSame: true,
 	}, {
@@ -181,7 +181,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 		}},
 		wantWrapper: &MappedType{
 			NativeType:        "EnumerationLeaf",
-			isEnumeratedValue: true,
+			IsEnumeratedValue: true,
 		},
 		wantSame: true,
 	}, {
@@ -201,7 +201,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		}},
-		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.BaseModuleDerivedEnumeration", isEnumeratedValue: true},
+		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.BaseModuleDerivedEnumeration", IsEnumeratedValue: true},
 		wantSame:    true,
 	}, {
 		name: "identityref",
@@ -225,7 +225,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		}},
-		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.TestModuleBaseIdentity", isEnumeratedValue: true},
+		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.TestModuleBaseIdentity", IsEnumeratedValue: true},
 		wantSame:    true,
 	}, {
 		name: "identityref with underscore in identity name",
@@ -249,7 +249,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		}},
-		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.TestModuleBASEIDENTITY", isEnumeratedValue: true},
+		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.TestModuleBASEIDENTITY", IsEnumeratedValue: true},
 		wantSame:    true,
 	}, {
 		name: "single type union with scalars requested",
@@ -370,7 +370,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		},
-		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.EnumModule", isEnumeratedValue: true},
+		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.EnumModule", IsEnumeratedValue: true},
 		wantSame:    true,
 	}, {
 		name: "leafref to union",
@@ -429,7 +429,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		},
-		wantWrapper: &MappedType{unionTypes: map[string]int{"bool": 0, "string": 1}},
+		wantWrapper: &MappedType{UnionTypes: map[string]int{"bool": 0, "string": 1}},
 		wantSame:    true,
 	}}
 
