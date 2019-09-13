@@ -2270,7 +2270,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): %s did not have matching path, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotName, gotDir.Path, wantDir.Path)
 				}
 
-				if wantDir.Name != wantDir.Name {
+				if gotDir.Name != wantDir.Name {
 					t.Errorf("%s buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): %s did not have matching name, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotDir.Path, gotDir.Name, wantDir.Name)
 				}
 			}
