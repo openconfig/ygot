@@ -60,7 +60,7 @@ type GeneratorConfig struct {
 	// string is not specified, the location of the library is utilised.
 	Caller string
 	// YANGParseOptions provides the options that should be handed to the
-	// //third_party/golang/goyang/pkg/yang library. These specify how the
+	// github.com/openconfig/goyang/pkg/yang library. These specify how the
 	// input YANG files should be parsed.
 	YANGParseOptions yang.Options
 	// GenerateFakeRoot specifies whether an entity that represents the
