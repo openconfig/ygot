@@ -2045,7 +2045,7 @@ func TestFindMapPaths(t *testing.T) {
 		inStruct: &Directory{
 			Name:   "CContainer",
 			Path:   []string{"", "c-container"}, // Does not have a valid module.
-			Fields: map[string]*yang.Entry{"top": &yang.Entry{}},
+			Fields: map[string]*yang.Entry{"top": {}},
 		},
 		inField: "top",
 		wantErr: true,
