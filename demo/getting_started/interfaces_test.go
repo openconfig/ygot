@@ -26,9 +26,13 @@ func TestGenerateCode(t *testing.T) {
 	}{{
 		name: "openconfig interfaces",
 		inConfig: &ygen.GeneratorConfig{
-			CompressOCPaths:    true,
-			ExcludeModules:     []string{"ietf-interfaces"},
-			GenerateFakeRoot:   true,
+			ParseOptions: ygen.ParseOpts{
+				ExcludeModules: []string{"ietf-interfaces"},
+			},
+			TransformationOptions: ygen.TransformationOpts{
+				CompressOCPaths:  true,
+				GenerateFakeRoot: true,
+			},
 			GenerateJSONSchema: true,
 		},
 		inFiles: []string{
@@ -39,9 +43,13 @@ func TestGenerateCode(t *testing.T) {
 	}, {
 		name: "openconfig interfaces with no compression",
 		inConfig: &ygen.GeneratorConfig{
-			CompressOCPaths:    false,
-			ExcludeModules:     []string{"ietf-interfaces"},
-			GenerateFakeRoot:   true,
+			ParseOptions: ygen.ParseOpts{
+				ExcludeModules: []string{"ietf-interfaces"},
+			},
+			TransformationOptions: ygen.TransformationOpts{
+				CompressOCPaths:  false,
+				GenerateFakeRoot: true,
+			},
 			GenerateJSONSchema: true,
 		},
 		inFiles: []string{

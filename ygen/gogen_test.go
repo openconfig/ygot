@@ -1954,7 +1954,7 @@ func TestFindMapPaths(t *testing.T) {
 	tests := []struct {
 		name              string
 		inStruct          *Directory
-		inField           *yang.Entry
+		inField           string
 		inCompressOCPaths bool
 		inAbsolutePaths   bool
 		wantPaths         [][]string
@@ -1964,48 +1964,57 @@ func TestFindMapPaths(t *testing.T) {
 		inStruct: &Directory{
 			Name: "AContainer",
 			Path: []string{"", "a-module", "a-container"},
-		},
-		inField: &yang.Entry{
-			Name: "field-a",
-			Parent: &yang.Entry{
-				Name: "a-container",
-				Parent: &yang.Entry{
-					Name: "a-module",
+			Fields: map[string]*yang.Entry{
+				"field-a": {
+					Name: "field-a",
+					Parent: &yang.Entry{
+						Name: "a-container",
+						Parent: &yang.Entry{
+							Name: "a-module",
+						},
+					},
 				},
 			},
 		},
+		inField:   "field-a",
 		wantPaths: [][]string{{"field-a"}},
 	}, {
-		name: "invalid parent path",
+		name: "invalid parent path - shorter than directory path",
 		inStruct: &Directory{
 			Name: "AContainer",
 			Path: []string{"", "a-module", "a-container"},
-		},
-		inField: &yang.Entry{
-			Name: "field-q",
-			Parent: &yang.Entry{
-				Name: "q-container",
+			Fields: map[string]*yang.Entry{
+				"field-q": {
+					Name: "field-q",
+					Parent: &yang.Entry{
+						Name: "q-container",
+					},
+				},
 			},
 		},
+		inField: "field-q",
 		wantErr: true,
 	}, {
 		name: "first-level container with path compression on",
 		inStruct: &Directory{
 			Name: "BContainer",
 			Path: []string{"", "a-module", "b-container"},
-		},
-		inField: &yang.Entry{
-			Name: "field-b",
-			Parent: &yang.Entry{
-				Name: "config",
-				Parent: &yang.Entry{
-					Name: "b-container",
+			Fields: map[string]*yang.Entry{
+				"field-b": {
+					Name: "field-b",
 					Parent: &yang.Entry{
-						Name: "a-module",
+						Name: "config",
+						Parent: &yang.Entry{
+							Name: "b-container",
+							Parent: &yang.Entry{
+								Name: "a-module",
+							},
+						},
 					},
 				},
 			},
 		},
+		inField:           "field-b",
 		inCompressOCPaths: true,
 		wantPaths:         [][]string{{"config", "field-b"}},
 	}, {
@@ -2013,28 +2022,32 @@ func TestFindMapPaths(t *testing.T) {
 		inStruct: &Directory{
 			Name: "BContainer",
 			Path: []string{"", "a-module", "b-container", "c-container"},
-		},
-		inField: &yang.Entry{
-			Name: "field-d",
-			Parent: &yang.Entry{
-				Name: "c-container",
-				Parent: &yang.Entry{
-					Name: "b-container",
+			Fields: map[string]*yang.Entry{
+				"field-d": {
+					Name: "field-d",
 					Parent: &yang.Entry{
-						Name: "a-module",
+						Name: "c-container",
+						Parent: &yang.Entry{
+							Name: "b-container",
+							Parent: &yang.Entry{
+								Name: "a-module",
+							},
+						},
 					},
 				},
 			},
 		},
+		inField:         "field-d",
 		inAbsolutePaths: true,
 		wantPaths:       [][]string{{"", "b-container", "c-container", "field-d"}},
 	}, {
 		name: "top-level module - not valid to map",
 		inStruct: &Directory{
-			Name: "CContainer",
-			Path: []string{"", "c-container"}, // Does not have a valid module.
+			Name:   "CContainer",
+			Path:   []string{"", "c-container"}, // Does not have a valid module.
+			Fields: map[string]*yang.Entry{"top": &yang.Entry{}},
 		},
-		inField: &yang.Entry{},
+		inField: "top",
 		wantErr: true,
 	}, {
 		name: "list with leafref key",
@@ -2070,32 +2083,35 @@ func TestFindMapPaths(t *testing.T) {
 					},
 				},
 			},
-		},
-		inField: &yang.Entry{
-			Name: "d-key",
-			Type: &yang.YangType{
-				Kind: yang.Yleafref,
-			},
-			Parent: &yang.Entry{
-				Name: "config",
-				Parent: &yang.Entry{
-					Name: "d-list",
-					Kind: yang.DirectoryEntry,
-					Dir: map[string]*yang.Entry{
-						"d-key": {
-							Name: "d-key",
-							Type: &yang.YangType{Kind: yang.Yleafref},
-						},
+			Fields: map[string]*yang.Entry{
+				"d-key": {
+					Name: "d-key",
+					Type: &yang.YangType{
+						Kind: yang.Yleafref,
 					},
 					Parent: &yang.Entry{
-						Name: "d-container",
+						Name: "config",
 						Parent: &yang.Entry{
-							Name: "d-module",
+							Name: "d-list",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"d-key": {
+									Name: "d-key",
+									Type: &yang.YangType{Kind: yang.Yleafref},
+								},
+							},
+							Parent: &yang.Entry{
+								Name: "d-container",
+								Parent: &yang.Entry{
+									Name: "d-module",
+								},
+							},
 						},
 					},
 				},
 			},
 		},
+		inField:           "d-key",
 		inCompressOCPaths: true,
 		wantPaths: [][]string{
 			{"config", "d-key"},

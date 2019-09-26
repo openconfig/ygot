@@ -24,6 +24,8 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
@@ -426,7 +428,7 @@ func TestSimpleStructs(t *testing.T) {
 	tests := []yangTestCase{{
 		name:                "simple openconfig test, with compression",
 		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.yang")},
-		inConfig:            GeneratorConfig{CompressOCPaths: true},
+		inConfig:            GeneratorConfig{TransformationOptions: TransformationOpts{CompressOCPaths: true}},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple.formatted-txt"),
 	}, {
 		name:                "simple openconfig test, with no compression",
@@ -446,7 +448,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "OpenConfig schema test - list and associated method (rename, new)",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.yang")},
 		inConfig: GeneratorConfig{
-			CompressOCPaths: true,
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths: true,
+			},
 			GoOptions: GoOpts{
 				GenerateRenameMethod: true,
 			},
@@ -455,33 +459,39 @@ func TestSimpleStructs(t *testing.T) {
 	}, {
 		name:                "simple openconfig test, with a list that has an enumeration key",
 		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-list-enum-key.yang")},
-		inConfig:            GeneratorConfig{CompressOCPaths: true},
+		inConfig:            GeneratorConfig{TransformationOptions: TransformationOpts{CompressOCPaths: true}},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-list-enum-key.formatted-txt"),
 	}, {
 		name:                "openconfig test with a identityref union",
 		inFiles:             []string{filepath.Join(TestRoot, "testdata/structs/openconfig-unione.yang")},
-		inConfig:            GeneratorConfig{CompressOCPaths: true},
+		inConfig:            GeneratorConfig{TransformationOptions: TransformationOpts{CompressOCPaths: true}},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-unione.formatted-txt"),
 	}, {
 		name:    "openconfig tests with fakeroot",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot.yang")},
 		inConfig: GeneratorConfig{
-			CompressOCPaths:  true,
-			GenerateFakeRoot: true,
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths:  true,
+				GenerateFakeRoot: true,
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot.formatted-txt"),
 	}, {
 		name:    "openconfig noncompressed tests with fakeroot",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot: true,
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot-nc.formatted-txt"),
 	}, {
 		name:    "schema test with compression",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
 		inConfig: GeneratorConfig{
-			CompressOCPaths:    true,
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths: true,
+			},
 			GenerateJSONSchema: true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/schema/openconfig-options-compress.formatted-txt"),
@@ -498,8 +508,10 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "schema test with fakeroot",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
 		inConfig: GeneratorConfig{
-			CompressOCPaths:    true,
-			GenerateFakeRoot:   true,
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths:  true,
+				GenerateFakeRoot: true,
+			},
 			GenerateJSONSchema: true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/schema/openconfig-options-compress-fakeroot.formatted-txt"),
@@ -508,7 +520,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "schema test with fakeroot and no compression",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot:   true,
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
 			GenerateJSONSchema: true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/schema/openconfig-options-nocompress-fakeroot.formatted-txt"),
@@ -517,15 +531,19 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "schema test with camelcase annotations",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-camelcase.yang")},
 		inConfig: GeneratorConfig{
-			CompressOCPaths:  true,
-			GenerateFakeRoot: true,
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths:  true,
+				GenerateFakeRoot: true,
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-camelcase-compress.formatted-txt"),
 	}, {
 		name:    "structs test with camelcase annotations",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-enumcamelcase.yang")},
 		inConfig: GeneratorConfig{
-			CompressOCPaths: true,
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths: true,
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-enumcamelcase-compress.formatted-txt"),
 	}, {
@@ -539,18 +557,22 @@ func TestSimpleStructs(t *testing.T) {
 			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-augment.yang"),
 		},
 		inConfig: GeneratorConfig{
-			CompressOCPaths:  true,
-			GenerateFakeRoot: true,
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths:  true,
+				GenerateFakeRoot: true,
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-augmented.formatted-txt"),
 	}, {
 		name:    "variable and import explicitly specified",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
-			CompressOCPaths:    true,
-			GenerateFakeRoot:   true,
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths:  true,
+				GenerateFakeRoot: true,
+				FakeRootName:     "fakeroot",
+			},
 			Caller:             "testcase",
-			FakeRootName:       "fakeroot",
 			StoreRawSchema:     true,
 			GenerateJSONSchema: true,
 			GoOptions: GoOpts{
@@ -566,9 +588,11 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "module with entities at the root",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/root-entities.yang")},
 		inConfig: GeneratorConfig{
-			Caller:           "testcase",
-			FakeRootName:     "fakeroot",
-			GenerateFakeRoot: true,
+			TransformationOptions: TransformationOpts{
+				FakeRootName:     "fakeroot",
+				GenerateFakeRoot: true,
+			},
+			Caller: "testcase",
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/root-entities.formatted-txt"),
 	}, {
@@ -579,33 +603,47 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "module with excluded modules",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/structs/excluded-module.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot: true,
-			FakeRootName:     "office",
-			ExcludeModules:   []string{"excluded-module-two"},
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+				FakeRootName:     "office",
+			},
+			ParseOptions: ParseOpts{
+				ExcludeModules: []string{"excluded-module-two"},
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/excluded-module.formatted-txt"),
 	}, {
 		name:    "module with excluded config false",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot: true,
-			ExcludeState:     true,
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeState: true,
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false-uncompressed.formatted-txt"),
 	}, {
 		name:    "module with excluded config false - with compression",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot: true,
-			ExcludeState:     true,
-			CompressOCPaths:  true,
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+				CompressOCPaths:  true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeState: true,
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false-compressed.formatted-txt"),
 	}, {
 		name:    "module with getters, delete and append methods",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot: true,
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
 			GoOptions: GoOpts{
 				GenerateAppendMethod: true,
 				GenerateGetters:      true,
@@ -617,9 +655,13 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "module with excluded state, with RO list, path compression on",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "exclude-state-ro-list.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot: true,
-			CompressOCPaths:  true,
-			ExcludeState:     true,
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+				CompressOCPaths:  true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeState: true,
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "exclude-state-ro-list.formatted-txt"),
 	}, {
@@ -627,36 +669,44 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles:        []string{filepath.Join(TestRoot, "testdata", "structs", "enum-module.yang")},
 		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
 		inConfig: GeneratorConfig{
-			CompressOCPaths: true,
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths: true,
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.formatted-txt"),
 	}, {
 		name:    "module with leaf getters",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot: true,
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+				CompressOCPaths:  true,
+			},
 			GoOptions: GoOpts{
 				GenerateLeafGetters: true,
 			},
-			CompressOCPaths: true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.leaf-getters.formatted-txt"),
 	}, {
 		name:    "uncompressed module with two different enums",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "enum-list-uncompressed.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot: true,
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-list-uncompressed.formatted-txt"),
 	}, {
 		name:    "with model data",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "structs", "openconfig-versioned-mod.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot: true,
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+				CompressOCPaths:  true,
+			},
 			GoOptions: GoOpts{
 				IncludeModelData: true,
 			},
-			CompressOCPaths: true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-versioned-mod.formatted-txt"),
 	}}
@@ -818,6 +868,341 @@ func TestGenerateErrs(t *testing.T) {
 	}
 }
 
+func TestGetDirectories(t *testing.T) {
+	tests := []struct {
+		name           string
+		inFiles        []string
+		inIncludePaths []string
+		inConfig       *DirectoryGenConfig
+		want           map[string]*Directory
+	}{{
+		name:           "simple openconfig test",
+		inFiles:        []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.yang")},
+		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
+		inConfig: &DirectoryGenConfig{
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths: true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeModules: []string{},
+			},
+		},
+		want: map[string]*Directory{
+			"/openconfig-simple/parent": {
+				Name: "Parent",
+				Fields: map[string]*yang.Entry{
+					"child": {Name: "child", Type: nil},
+				},
+				Path: []string{"", "openconfig-simple", "parent"},
+			},
+			"/openconfig-simple/parent/child": {
+				Name: "Parent_Child",
+				Fields: map[string]*yang.Entry{
+					"one":   {Name: "one", Type: &yang.YangType{Kind: yang.Ystring}},
+					"two":   {Name: "two", Type: &yang.YangType{Kind: yang.Ystring}},
+					"three": {Name: "three", Type: &yang.YangType{Kind: yang.Yenum}},
+					"four":  {Name: "four", Type: &yang.YangType{Kind: yang.Ybinary}},
+				},
+				Path: []string{"", "openconfig-simple", "parent", "child"},
+			},
+			"/openconfig-simple/remote-container": {
+				Name: "RemoteContainer",
+				Fields: map[string]*yang.Entry{
+					"a-leaf": {Name: "a-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+				},
+				Path: []string{"", "openconfig-simple", "remote-container"},
+			},
+		},
+	}, {
+		name:           "enum openconfig test with enum-types module excluded",
+		inFiles:        []string{filepath.Join(TestRoot, "testdata/structs/enum-module.yang")},
+		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
+		inConfig: &DirectoryGenConfig{
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths: true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeModules: []string{"enum-types"},
+			},
+		},
+		want: map[string]*Directory{
+			"/enum-module/parent": {
+				Name: "Parent",
+				Fields: map[string]*yang.Entry{
+					"child": {Name: "child", Type: nil},
+				},
+				Path: []string{"", "enum-module", "parent"},
+			},
+			"/enum-module/c": {
+				Name: "C",
+				Fields: map[string]*yang.Entry{
+					"cl": {Name: "cl", Type: &yang.YangType{Kind: yang.Yenum}},
+				},
+				Path: []string{"", "enum-module", "c"},
+			},
+			"/enum-module/parent/child": {
+				Name: "Parent_Child",
+				Fields: map[string]*yang.Entry{
+					"id": {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+				},
+				Path: []string{"", "enum-module", "parent", "child"},
+			},
+			"/enum-module/a-lists/a-list": {
+				Name: "AList",
+				Fields: map[string]*yang.Entry{
+					"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+				},
+				Path: []string{"", "enum-module", "a-lists", "a-list"},
+			},
+			"/enum-module/b-lists/b-list": {
+				Name: "BList",
+				Fields: map[string]*yang.Entry{
+					"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+				},
+				Path: []string{"", "enum-module", "b-lists", "b-list"},
+			},
+		},
+	}, {
+		name:           "enum openconfig test with enum-types module and state excluded",
+		inFiles:        []string{filepath.Join(TestRoot, "testdata/structs/enum-module.yang")},
+		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
+		inConfig: &DirectoryGenConfig{
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths: true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeState:   true,
+				ExcludeModules: []string{"enum-types"},
+			},
+		},
+		want: map[string]*Directory{
+			"/enum-module/parent": {
+				Name: "Parent",
+				Fields: map[string]*yang.Entry{
+					"child": {Name: "child", Type: nil},
+				},
+				Path: []string{"", "enum-module", "parent"},
+			},
+			"/enum-module/c": {
+				Name: "C",
+				Fields: map[string]*yang.Entry{
+					"cl": {Name: "cl", Type: &yang.YangType{Kind: yang.Yenum}},
+				},
+				Path: []string{"", "enum-module", "c"},
+			},
+			"/enum-module/parent/child": {
+				Name: "Parent_Child",
+				Fields: map[string]*yang.Entry{
+					"id": {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+				},
+				Path: []string{"", "enum-module", "parent", "child"},
+			},
+			"/enum-module/a-lists/a-list": {
+				Name:   "AList",
+				Fields: map[string]*yang.Entry{}, // Key is only part of state and thus is excluded.
+				Path:   []string{"", "enum-module", "a-lists", "a-list"},
+			},
+			"/enum-module/b-lists/b-list": {
+				Name:   "BList",
+				Fields: map[string]*yang.Entry{},
+				Path:   []string{"", "enum-module", "b-lists", "b-list"},
+			},
+		},
+	}, {
+		name:           "simple openconfig test with openconfig-simple module excluded",
+		inFiles:        []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.yang")},
+		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
+		inConfig: &DirectoryGenConfig{
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths: true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeModules: []string{"openconfig-simple"},
+			},
+		},
+		want: map[string]*Directory{},
+	}, {
+		name:           "simple openconfig test with fakeroot",
+		inFiles:        []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.yang")},
+		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
+		inConfig: &DirectoryGenConfig{
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths:  true,
+				GenerateFakeRoot: true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeModules: []string{},
+			},
+		},
+		want: map[string]*Directory{
+			"/device": {
+				Name: "Device",
+				Fields: map[string]*yang.Entry{
+					"parent":           {Name: "parent", Type: nil},
+					"remote-container": {Name: "remote-container", Type: nil},
+				},
+				Path: []string{"", "device"},
+			},
+			"/openconfig-simple/parent": {
+				Name: "Parent",
+				Fields: map[string]*yang.Entry{
+					"child": {Name: "child", Type: nil},
+				},
+				Path: []string{"", "openconfig-simple", "parent"},
+			},
+			"/openconfig-simple/parent/child": {
+				Name: "Parent_Child",
+				Fields: map[string]*yang.Entry{
+					"one":   {Name: "one", Type: &yang.YangType{Kind: yang.Ystring}},
+					"two":   {Name: "two", Type: &yang.YangType{Kind: yang.Ystring}},
+					"three": {Name: "three", Type: &yang.YangType{Kind: yang.Yenum}},
+					"four":  {Name: "four", Type: &yang.YangType{Kind: yang.Ybinary}},
+				},
+				Path: []string{"", "openconfig-simple", "parent", "child"},
+			},
+			"/openconfig-simple/remote-container": {
+				Name: "RemoteContainer",
+				Fields: map[string]*yang.Entry{
+					"a-leaf": {Name: "a-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+				},
+				Path: []string{"", "openconfig-simple", "remote-container"},
+			},
+		},
+	}, {
+		name:           "enum openconfig test with enum-types module excluded with fakeroot",
+		inFiles:        []string{filepath.Join(TestRoot, "testdata/structs/enum-module.yang")},
+		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
+		inConfig: &DirectoryGenConfig{
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths:  true,
+				GenerateFakeRoot: true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeModules: []string{"enum-types"},
+			},
+		},
+		want: map[string]*Directory{
+			"/device": {
+				Name: "Device",
+				Fields: map[string]*yang.Entry{
+					"parent": {Name: "parent", Type: nil},
+					"c":      {Name: "c", Type: nil},
+					"a-list": {Name: "a-list", Type: nil},
+					"b-list": {Name: "b-list", Type: nil},
+				},
+				Path: []string{"", "device"},
+			},
+			"/enum-module/parent": {
+				Name: "Parent",
+				Fields: map[string]*yang.Entry{
+					"child": {Name: "child", Type: nil},
+				},
+				Path: []string{"", "enum-module", "parent"},
+			},
+			"/enum-module/c": {
+				Name: "C",
+				Fields: map[string]*yang.Entry{
+					"cl": {Name: "cl", Type: &yang.YangType{Kind: yang.Yenum}},
+				},
+				Path: []string{"", "enum-module", "c"},
+			},
+			"/enum-module/parent/child": {
+				Name: "Parent_Child",
+				Fields: map[string]*yang.Entry{
+					"id": {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+				},
+				Path: []string{"", "enum-module", "parent", "child"},
+			},
+			"/enum-module/a-lists/a-list": {
+				Name: "AList",
+				Fields: map[string]*yang.Entry{
+					"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+				},
+				Path: []string{"", "enum-module", "a-lists", "a-list"},
+			},
+			"/enum-module/b-lists/b-list": {
+				Name: "BList",
+				Fields: map[string]*yang.Entry{
+					"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+				},
+				Path: []string{"", "enum-module", "b-lists", "b-list"},
+			},
+		},
+	}, {
+		name:           "simple openconfig test with openconfig-simple module excluded with fakeroot",
+		inFiles:        []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.yang")},
+		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
+		inConfig: &DirectoryGenConfig{
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths:  true,
+				GenerateFakeRoot: true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeModules: []string{"openconfig-simple"},
+			},
+		},
+		want: map[string]*Directory{
+			"/device": {
+				Name:   "Device",
+				Fields: map[string]*yang.Entry{},
+				Path:   []string{"", "device"},
+			},
+		},
+	}}
+
+	// Simple helper function for error messages
+	fieldNames := func(dir *Directory) []string {
+		names := []string{}
+		for k := range dir.Fields {
+			names = append(names, k)
+		}
+		return names
+	}
+
+	for _, tt := range tests {
+		c := tt.inConfig
+		t.Run(fmt.Sprintf("%s:GetDirectories(CompressOCPaths:%v,ExcludeState:%v,GenerateFakeRoot:%v)", tt.name, c.TransformationOptions.CompressOCPaths, c.ParseOptions.ExcludeState, c.TransformationOptions.GenerateFakeRoot), func(t *testing.T) {
+			got, errs := c.GetDirectories(tt.inFiles, tt.inIncludePaths)
+			if errs != nil {
+				t.Fatal(errs)
+			}
+
+			// This checks the "Name" and "Path" attributes of the output Directories.
+			if diff := cmp.Diff(tt.want, got, cmpopts.IgnoreFields(Directory{}, "Entry", "Fields", "ListAttr", "IsFakeRoot")); diff != "" {
+				t.Errorf("(-want +got):\n%s", diff)
+			}
+
+			// Verify certain fields of the "Fields" attribute -- there are too many fields to ignore to use cmp.Diff for comparison.
+			for gotDirName, gotDir := range got {
+				// Note that any missing or extra Directories would've been caught with the previous check.
+				wantDir := tt.want[gotDirName]
+				if len(gotDir.Fields) != len(wantDir.Fields) {
+					t.Fatalf("Did not get expected set of fields, got: %v, want: %v", fieldNames(gotDir), fieldNames(wantDir))
+				}
+				for fieldk, wantField := range wantDir.Fields {
+					gotField, ok := gotDir.Fields[fieldk]
+					if !ok {
+						t.Errorf("Could not find expected field %q in %q, gotDir.Fields: %v", fieldk, gotDirName, gotDir.Fields)
+						continue // Fatal error for this field only.
+					}
+
+					if gotField.Name != wantField.Name {
+						t.Errorf("Field %q of %q did not have expected name, got: %v, want: %v", fieldk, gotDirName, gotField.Name, wantField.Name)
+					}
+
+					if gotField.Type != nil && wantField.Type != nil && gotField.Type.Kind != wantField.Type.Kind {
+						t.Errorf("Field %q of %q did not have expected type, got: %v, want: %v", fieldk, gotDirName, gotField.Type.Kind, wantField.Type.Kind)
+					}
+				}
+			}
+			// The other attributes are not tested, as most of the
+			// work is passed to mappedDefinitions() and
+			// buildDirectoryDefinitions(), making a good sanity
+			// check here sufficient.
+		})
+	}
+}
+
 func TestFindRootEntries(t *testing.T) {
 	tests := []struct {
 		name                       string
@@ -935,7 +1320,9 @@ func TestGenerateProto3(t *testing.T) {
 		name:    "simple protobuf test with compression",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
 		inConfig: GeneratorConfig{
-			CompressOCPaths: true,
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths: true,
+			},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig":        filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.compress.parent.formatted-txt"),
@@ -952,7 +1339,7 @@ func TestGenerateProto3(t *testing.T) {
 	}, {
 		name:     "yang schema with a list",
 		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.yang")},
-		inConfig: GeneratorConfig{CompressOCPaths: true},
+		inConfig: GeneratorConfig{TransformationOptions: TransformationOpts{CompressOCPaths: true}},
 		wantOutputFiles: map[string]string{
 			"openconfig":        filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.formatted-txt"),
 			"openconfig.device": filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.compress.device.formatted-txt"),
@@ -1011,8 +1398,10 @@ func TestGenerateProto3(t *testing.T) {
 		name:    "yang schema with fake root, path compression and union list key",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.yang")},
 		inConfig: GeneratorConfig{
-			CompressOCPaths:  true,
-			GenerateFakeRoot: true,
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths:  true,
+				GenerateFakeRoot: true,
+			},
 			ProtoOptions: ProtoOpts{
 				AnnotateSchemaPaths: true,
 			},
@@ -1025,7 +1414,9 @@ func TestGenerateProto3(t *testing.T) {
 		name:    "yang schema with fakeroot, and union list key",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.yang")},
 		inConfig: GeneratorConfig{
-			GenerateFakeRoot: true,
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
 			ProtoOptions: ProtoOpts{
 				AnnotateSchemaPaths: true,
 			},
@@ -1067,12 +1458,14 @@ func TestGenerateProto3(t *testing.T) {
 			filepath.Join(TestRoot, "testdata", "proto", "nested-messages.yang"),
 		},
 		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
 			ProtoOptions: ProtoOpts{
 				AnnotateEnumNames:   true,
 				AnnotateSchemaPaths: true,
 				NestedMessages:      true,
 			},
-			GenerateFakeRoot: true,
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig":                 filepath.Join(TestRoot, "testdata", "proto", "nested-messages.openconfig.formatted-txt"),
@@ -1085,13 +1478,15 @@ func TestGenerateProto3(t *testing.T) {
 			filepath.Join(TestRoot, "testdata", "proto", "nested-messages.yang"),
 		},
 		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressOCPaths:  true,
+				GenerateFakeRoot: true,
+			},
 			ProtoOptions: ProtoOpts{
 				AnnotateEnumNames:   true,
 				AnnotateSchemaPaths: true,
 				NestedMessages:      true,
 			},
-			CompressOCPaths:  true,
-			GenerateFakeRoot: true,
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "nested-messages.compressed.enums.formatted-txt"),
@@ -1103,12 +1498,14 @@ func TestGenerateProto3(t *testing.T) {
 			filepath.Join(TestRoot, "testdata", "proto", "union-list-key.yang"),
 		},
 		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
 			ProtoOptions: ProtoOpts{
 				AnnotateEnumNames:   true,
 				AnnotateSchemaPaths: true,
 				NestedMessages:      true,
 			},
-			GenerateFakeRoot: true,
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.enums":          filepath.Join(TestRoot, "testdata", "proto", "union-list-key.enums.formatted-txt"),
@@ -1121,13 +1518,17 @@ func TestGenerateProto3(t *testing.T) {
 			filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang"),
 		},
 		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeState: true,
+			},
 			ProtoOptions: ProtoOpts{
 				AnnotateEnumNames:   true,
 				AnnotateSchemaPaths: true,
 				NestedMessages:      true,
 			},
-			GenerateFakeRoot: true,
-			ExcludeState:     true,
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig":                         filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.compressed.formatted-txt"),
@@ -1139,14 +1540,18 @@ func TestGenerateProto3(t *testing.T) {
 			filepath.Join(TestRoot, "testdata", "structs", "openconfig-config-false.yang"),
 		},
 		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+				CompressOCPaths:  true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeState: true,
+			},
 			ProtoOptions: ProtoOpts{
 				AnnotateEnumNames:   true,
 				AnnotateSchemaPaths: true,
 				NestedMessages:      true,
 			},
-			GenerateFakeRoot: true,
-			CompressOCPaths:  true,
-			ExcludeState:     true,
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.uncompressed.formatted-txt"),
@@ -1158,10 +1563,12 @@ func TestGenerateProto3(t *testing.T) {
 			filepath.Join(TestRoot, "testdata", "proto", "cross-ref-src.yang"),
 		},
 		inConfig: GeneratorConfig{
+			ParseOptions: ParseOpts{
+				ExcludeModules: []string{"cross-ref-target"},
+			},
 			ProtoOptions: ProtoOpts{
 				NestedMessages: true,
 			},
-			ExcludeModules: []string{"cross-ref-target"},
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig.cross_ref_src": filepath.Join(TestRoot, "testdata", "proto", "cross-ref-src.formatted-txt"),
@@ -1173,13 +1580,15 @@ func TestGenerateProto3(t *testing.T) {
 			filepath.Join(TestRoot, "testdata", "proto", "fakeroot-multimod-two.yang"),
 		},
 		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+				CompressOCPaths:  true,
+			},
 			ProtoOptions: ProtoOpts{
 				NestedMessages:      true,
 				AnnotateEnumNames:   true,
 				AnnotateSchemaPaths: true,
 			},
-			GenerateFakeRoot: true,
-			CompressOCPaths:  true,
 		},
 		wantOutputFiles: map[string]string{
 			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "fakeroot-multimod.formatted-txt"),

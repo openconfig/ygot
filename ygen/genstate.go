@@ -179,13 +179,14 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUndersco
 
 // buildDirectoryDefinitions extracts the yang.Entry instances from a map of
 // entries that need struct or message definitions built for them. It resolves
-// each yang.Entry to a Directory which contains the elements that are
-// needed for subsequent code generation. The name of the directory entry that
-// is returned is based on the generatedLanguage that is supplied. The
+// each yang.Entry to a Directory which contains the elements that are needed
+// for subsequent code generation. The name of the directory entry that is
+// returned is based on the generatedLanguage that is supplied. The
 // compressPaths and genFakeRoot arguments are used to determine how paths that
 // are included within the generated structs are used. If the excludeState
-// argument is set, those elements within the YANG schema that are marked config
-// false (i.e., are read only) are excluded from the returned directories.
+// argument is set, those elements within the YANG schema that are marked
+// config false (i.e., are read only) are excluded from the returned
+// directories.
 func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compressPaths, genFakeRoot bool, lang generatedLanguage, excludeState bool) (map[string]*Directory, []error) {
 	var errs []error
 	mappedStructs := make(map[string]*Directory)

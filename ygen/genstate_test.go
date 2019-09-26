@@ -920,12 +920,14 @@ func TestFindEnumSet(t *testing.T) {
 		}
 		for compressed, wanted := range map[bool]map[string]*yangEnum{true: tt.wantCompressed, false: wantUncompressed} {
 			cg := NewYANGCodeGenerator(&GeneratorConfig{
-				CompressOCPaths: compressed,
+				TransformationOptions: TransformationOpts{
+					CompressOCPaths: compressed,
+				},
 			})
-			entries, errs := cg.state.findEnumSet(tt.in, cg.Config.CompressOCPaths, tt.inOmitUnderscores)
+			entries, errs := cg.state.findEnumSet(tt.in, cg.Config.TransformationOptions.CompressOCPaths, tt.inOmitUnderscores)
 
 			if (errs != nil) != tt.wantErr {
-				t.Errorf("%s findEnumSet(%v, %v): did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", tt.name, tt.in, cg.Config.CompressOCPaths, errs, len(errs), tt.wantErr)
+				t.Errorf("%s findEnumSet(%v, %v): did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", tt.name, tt.in, cg.Config.TransformationOptions.CompressOCPaths, errs, len(errs), tt.wantErr)
 				continue
 			}
 
@@ -2197,7 +2199,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 			}
 
 			cg := NewYANGCodeGenerator(&GeneratorConfig{
-				CompressOCPaths: c.compress,
+				TransformationOptions: TransformationOpts{
+					CompressOCPaths: c.compress,
+				},
 			})
 
 			st, err := buildSchemaTree(tt.in)
@@ -2221,7 +2225,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				continue
 			}
 
-			got, errs := cg.state.buildDirectoryDefinitions(structs, cg.Config.CompressOCPaths, cg.Config.GenerateFakeRoot, c.lang, c.excludeState)
+			got, errs := cg.state.buildDirectoryDefinitions(structs, cg.Config.TransformationOptions.CompressOCPaths, cg.Config.TransformationOptions.GenerateFakeRoot, c.lang, c.excludeState)
 			if errs != nil {
 				t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): could not build struct defs: %v", tt.name, c.compress, langName(c.lang), c.excludeState, errs)
 				continue
