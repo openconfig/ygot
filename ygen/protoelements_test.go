@@ -130,6 +130,70 @@ func TestYangTypeToProtoType(t *testing.T) {
 		wantWrapper: &MappedType{NativeType: "ywrapper.StringValue"},
 		wantSame:    true,
 	}, {
+		name: "enumeration in union as the lone type with default",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Name: "union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{
+					{Kind: yang.Yenum, Name: "enumeration", Default: "prefix:BLUE"},
+				},
+			},
+			contextEntry: &yang.Entry{
+				Name: "union-leaf",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Name: "union",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{
+						{Kind: yang.Yenum, Name: "enumeration", Default: "prefix:BLUE"},
+					},
+				},
+				Parent: &yang.Entry{Name: "base-module"},
+				Node: &yang.Enum{
+					Parent: &yang.Module{Name: "base-module"},
+				},
+			},
+		}},
+		wantWrapper: &MappedType{
+			NativeType:        "UnionLeaf",
+			IsEnumeratedValue: true,
+		},
+		wantSame: true,
+	}, {
+		name: "typedef enumeration in union as the lone type",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Name: "union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{
+					{Kind: yang.Yenum, Name: "enumeration"},
+				},
+			},
+			contextEntry: &yang.Entry{
+				Name: "union-leaf",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Name: "union",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{
+						{Kind: yang.Yenum, Name: "enumeration"},
+					},
+				},
+				Parent: &yang.Entry{Name: "base-module"},
+				Node: &yang.Enum{
+					Parent: &yang.Module{
+						Name: "base-module",
+					},
+				},
+			},
+		}},
+		wantWrapper: &MappedType{
+			NativeType:        "UnionLeaf",
+			IsEnumeratedValue: true,
+		},
+		wantSame: true,
+	}, {
 		name: "derived identityref",
 		in: []resolveTypeArgs{{
 			yangType: &yang.YangType{
@@ -151,6 +215,55 @@ func TestYangTypeToProtoType(t *testing.T) {
 		}},
 		wantWrapper: &MappedType{
 			NativeType:        "basePackage.enumPackage.BaseModuleDerivedIdentityref",
+			IsEnumeratedValue: true,
+		},
+		wantSame: true,
+	}, {
+		name: "identityref in union as the lone type with default",
+		in: []resolveTypeArgs{{
+			yangType: &yang.YangType{
+				Name: "union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Kind:    yang.Yidentityref,
+					Name:    "identityref",
+					Default: "prefix:CHIPS",
+					IdentityBase: &yang.Identity{
+						Name: "base-identity",
+						Parent: &yang.Module{
+							Name: "base-module",
+						},
+					},
+				}},
+			},
+			contextEntry: &yang.Entry{
+				Name: "union-leaf",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Name: "identityref",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{{
+						Kind:    yang.Yidentityref,
+						Name:    "identityref",
+						Default: "prefix:CHIPS",
+						IdentityBase: &yang.Identity{
+							Name: "base-identity",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					}},
+				},
+				Parent: &yang.Entry{Name: "base-module"},
+				Node: &yang.Leaf{
+					Parent: &yang.Module{
+						Name: "base-module",
+					},
+				},
+			},
+		}},
+		wantWrapper: &MappedType{
+			NativeType:        "basePackage.enumPackage.BaseModuleBaseIdentity",
 			IsEnumeratedValue: true,
 		},
 		wantSame: true,

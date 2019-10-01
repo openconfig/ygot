@@ -17,6 +17,8 @@ package ygen
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
@@ -30,6 +32,7 @@ func TestUnionSubTypes(t *testing.T) {
 		in         *yang.YangType
 		inCtxEntry *yang.Entry
 		want       []string
+		wantMtypes map[int]*MappedType
 		wantErr    bool
 	}{{
 		name: "union of strings",
@@ -41,6 +44,9 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"string"},
+		wantMtypes: map[int]*MappedType{
+			0: {"string", nil, false, goZeroValues["string"], nil},
+		},
 	}, {
 		name: "union of int8, string",
 		in: &yang.YangType{
@@ -51,6 +57,10 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"int8", "string"},
+		wantMtypes: map[int]*MappedType{
+			0: {"int8", nil, false, goZeroValues["int8"], nil},
+			1: {"string", nil, false, goZeroValues["string"], nil},
+		},
 	}, {
 		name: "union of unions",
 		in: &yang.YangType{
@@ -73,6 +83,12 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"string", "int32", "uint64", "int16"},
+		wantMtypes: map[int]*MappedType{
+			0: {"string", nil, false, goZeroValues["string"], nil},
+			1: {"int32", nil, false, goZeroValues["int32"], nil},
+			2: {"uint64", nil, false, goZeroValues["uint64"], nil},
+			3: {"int16", nil, false, goZeroValues["int16"], nil},
+		},
 	}, {
 		name: "erroneous union without context",
 		in: &yang.YangType{
@@ -125,38 +141,100 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		want: []string{"E_Basemod_Id", "E_Basemod2_Id2"},
+		wantMtypes: map[int]*MappedType{
+			0: {"E_Basemod_Id", nil, true, "0", nil},
+			1: {"E_Basemod2_Id2", nil, true, "0", nil},
+		},
+	}, {
+		name: "union of single identityref",
+		in: &yang.YangType{
+			Name: "union",
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{{
+				Kind:    yang.Yidentityref,
+				Name:    "identityref",
+				Default: "prefix:CHIPS",
+				IdentityBase: &yang.Identity{
+					Name: "base-identity",
+					Parent: &yang.Module{
+						Name: "base-module",
+					},
+				},
+			}},
+		},
+		inCtxEntry: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Name: "identityref",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Kind:    yang.Yidentityref,
+					Name:    "identityref",
+					Default: "prefix:CHIPS",
+					IdentityBase: &yang.Identity{
+						Name: "base-identity",
+						Parent: &yang.Module{
+							Name: "base-module",
+						},
+					},
+				}},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		},
+		want: []string{"E_BaseModule_BaseIdentity"},
+		wantMtypes: map[int]*MappedType{
+			0: {
+				NativeType:        "E_BaseModule_BaseIdentity",
+				UnionTypes:        nil,
+				IsEnumeratedValue: true,
+				ZeroValue:         "0",
+				DefaultValue:      ygot.String("BaseModule_BaseIdentity_CHIPS"),
+			},
+		},
 	}}
 
 	for _, tt := range tests {
-		s := newGenState()
-		ctypes := make(map[string]int)
-		errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, false)
-		if !tt.wantErr && errs != nil {
-			t.Errorf("%s: unexpected errors: %v", tt.name, errs)
-			continue
-		}
-
-		for i, wt := range tt.want {
-			if unionidx, ok := ctypes[wt]; !ok {
-				t.Errorf("%s: could not find expected type %s", tt.name, wt)
-				continue
-			} else if i != unionidx {
-				t.Errorf("%s: index of type %s was not as expected (%d != %d)", tt.name, wt, i, unionidx)
+		t.Run(tt.name, func(t *testing.T) {
+			s := newGenState()
+			mtypes := make(map[int]*MappedType)
+			ctypes := make(map[string]int)
+			errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false)
+			if !tt.wantErr && errs != nil {
+				t.Errorf("unexpected errors: %v", errs)
 			}
-		}
 
-		for ct := range ctypes {
-			found := false
-			for _, gt := range tt.want {
-				if ct == gt {
-					found = true
-					break
+			for i, wt := range tt.want {
+				if unionidx, ok := ctypes[wt]; !ok {
+					t.Errorf("could not find expected type in ctypes: %s", wt)
+					continue
+				} else if i != unionidx {
+					t.Errorf("index of type %s was not as expected (%d != %d)", wt, i, unionidx)
 				}
 			}
-			if !found {
-				t.Errorf("%s: found unexpected type %s", tt.name, ct)
+
+			for ct := range ctypes {
+				found := false
+				for _, gt := range tt.want {
+					if ct == gt {
+						found = true
+						break
+					}
+				}
+				if !found {
+					t.Errorf("found unexpected type %s", ct)
+				}
 			}
-		}
+
+			if diff := cmp.Diff(mtypes, tt.wantMtypes, cmp.AllowUnexported(MappedType{}), cmpopts.EquateEmpty()); diff != "" {
+				t.Errorf("mtypes not as expected\n%s", diff)
+			}
+		})
 	}
 }
 
@@ -355,6 +433,37 @@ func TestYangTypeToGoType(t *testing.T) {
 			DefaultValue:      ygot.String("BaseModule_EnumerationLeaf_BLUE"),
 		},
 	}, {
+		name: "enumeration in union as the lone type with default",
+		in: &yang.YangType{
+			Name: "union",
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{Kind: yang.Yenum, Name: "enumeration", Default: "prefix:BLUE"},
+			},
+		},
+		ctx: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Name: "union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{
+					{Kind: yang.Yenum, Name: "enumeration", Default: "prefix:BLUE"},
+				},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Enum{
+				Parent: &yang.Module{Name: "base-module"},
+			},
+		},
+		want: &MappedType{
+			NativeType:        "E_BaseModule_UnionLeaf",
+			UnionTypes:        map[string]int{"E_BaseModule_UnionLeaf": 0},
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+			DefaultValue:      ygot.String("BaseModule_UnionLeaf_BLUE"),
+		},
+	}, {
 		name: "typedef enumeration",
 		in:   &yang.YangType{Kind: yang.Yenum, Name: "derived-enumeration"},
 		ctx: &yang.Entry{
@@ -371,6 +480,38 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_DerivedEnumeration",
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+		},
+	}, {
+		name: "typedef enumeration in union as the lone type",
+		in: &yang.YangType{
+			Name: "union",
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{Kind: yang.Yenum, Name: "enumeration"},
+			},
+		},
+		ctx: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Name: "union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{
+					{Kind: yang.Yenum, Name: "enumeration"},
+				},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Enum{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		},
+		want: &MappedType{
+			NativeType:        "E_BaseModule_UnionLeaf",
+			UnionTypes:        map[string]int{"E_BaseModule_UnionLeaf": 0},
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 		},
@@ -445,6 +586,55 @@ func TestYangTypeToGoType(t *testing.T) {
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 			DefaultValue:      ygot.String("TestModule_BaseIdentity_CHIPS"),
+		},
+	}, {
+		name: "identityref in union as the lone type with default",
+		in: &yang.YangType{
+			Name: "union",
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{{
+				Kind:    yang.Yidentityref,
+				Name:    "identityref",
+				Default: "prefix:CHIPS",
+				IdentityBase: &yang.Identity{
+					Name: "base-identity",
+					Parent: &yang.Module{
+						Name: "base-module",
+					},
+				},
+			}},
+		},
+		ctx: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Name: "identityref",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Kind:    yang.Yidentityref,
+					Name:    "identityref",
+					Default: "prefix:CHIPS",
+					IdentityBase: &yang.Identity{
+						Name: "base-identity",
+						Parent: &yang.Module{
+							Name: "base-module",
+						},
+					},
+				}},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		},
+		want: &MappedType{
+			NativeType:        "E_BaseModule_BaseIdentity",
+			UnionTypes:        map[string]int{"E_BaseModule_BaseIdentity": 0},
+			IsEnumeratedValue: true,
+			ZeroValue:         "0",
+			DefaultValue:      ygot.String("BaseModule_BaseIdentity_CHIPS"),
 		},
 	}, {
 		name: "enumeration with compress paths",
