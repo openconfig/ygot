@@ -232,15 +232,20 @@ func main() {
 
 	// Perform the code generation.
 	cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
-		CompressOCPaths:    *compressPaths,
-		ExcludeModules:     modsExcluded,
-		PackageName:        *packageName,
-		GenerateFakeRoot:   *generateFakeRoot,
-		FakeRootName:       *fakeRootName,
-		GenerateJSONSchema: *generateSchema,
-		YANGParseOptions: yang.Options{
-			IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+		ParseOptions: ygen.ParseOpts{
+			ExcludeModules: modsExcluded,
+			YANGParseOptions: yang.Options{
+				IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+			},
+			ExcludeState: *excludeState,
 		},
+		TransformationOptions: ygen.TransformationOpts{
+			CompressOCPaths:  *compressPaths,
+			GenerateFakeRoot: *generateFakeRoot,
+			FakeRootName:     *fakeRootName,
+		},
+		PackageName:        *packageName,
+		GenerateJSONSchema: *generateSchema,
 		GoOptions: ygen.GoOpts{
 			YgotImportPath:       *ygotImportPath,
 			YtypesImportPath:     *ytypesImportPath,
@@ -254,7 +259,6 @@ func main() {
 			GenerateLeafGetters:  *generateLeafGetters,
 			IncludeModelData:     *includeModelData,
 		},
-		ExcludeState: *excludeState,
 	})
 
 	generatedGoCode, err := cg.GenerateGoCode(generateModules, includePaths)

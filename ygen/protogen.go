@@ -653,7 +653,7 @@ func genProto3Msg(msg *Directory, msgs map[string]*Directory, state *genState, c
 		}
 
 		if cfg.annotateSchemaPaths {
-			o, err := protoSchemaPathAnnotation(msg, field, cfg.compressPaths)
+			o, err := protoSchemaPathAnnotation(msg, name, cfg.compressPaths)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -1229,7 +1229,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 		}
 
 		if args.cfg.annotateSchemaPaths {
-			o, err := protoSchemaPathAnnotation(args.directory, kf, args.cfg.compressPaths)
+			o, err := protoSchemaPathAnnotation(args.directory, k, args.cfg.compressPaths)
 			if err != nil {
 				return nil, err
 			}
@@ -1384,9 +1384,9 @@ func protoPackageToFilePath(pkg string) []string {
 
 // protoSchemaPathAnnotation takes a protobuf message and field, and returns the protobuf
 // field option definitions required to annotate it with its schema path(s).
-func protoSchemaPathAnnotation(msg *Directory, field *yang.Entry, compressPaths bool) (*protoOption, error) {
+func protoSchemaPathAnnotation(msg *Directory, fieldName string, compressPaths bool) (*protoOption, error) {
 	// protobuf paths are always absolute.
-	smapp, err := findMapPaths(msg, field, compressPaths, true)
+	smapp, err := findMapPaths(msg, fieldName, compressPaths, true)
 	if err != nil {
 		return nil, err
 	}

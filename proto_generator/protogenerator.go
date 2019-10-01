@@ -92,15 +92,20 @@ func main() {
 
 	// Perform the code generation.
 	cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
-		CompressOCPaths:  *compressPaths,
-		ExcludeModules:   modsExcluded,
-		PackageName:      *packageName,
-		GenerateFakeRoot: *generateFakeRoot,
-		FakeRootName:     *fakeRootName,
-		Caller:           *callerName,
-		YANGParseOptions: yang.Options{
-			IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+		ParseOptions: ygen.ParseOpts{
+			ExcludeModules: modsExcluded,
+			YANGParseOptions: yang.Options{
+				IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+			},
+			ExcludeState: *excludeState,
 		},
+		TransformationOptions: ygen.TransformationOpts{
+			CompressOCPaths:  *compressPaths,
+			GenerateFakeRoot: *generateFakeRoot,
+			FakeRootName:     *fakeRootName,
+		},
+		PackageName: *packageName,
+		Caller:      *callerName,
 		ProtoOptions: ygen.ProtoOpts{
 			BaseImportPath:      *baseImportPath,
 			YwrapperPath:        *ywrapperPath,
@@ -110,7 +115,6 @@ func main() {
 			NestedMessages:      !*packageHierarchy,
 			EnumPackageName:     *enumPackageName,
 		},
-		ExcludeState: *excludeState,
 	})
 
 	generatedProtoCode, err := cg.GenerateProto3(generateModules, includePaths)

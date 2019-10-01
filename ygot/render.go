@@ -550,6 +550,11 @@ func KeyValueAsString(v interface{}) (string, error) {
 			return "", err
 		}
 		return KeyValueAsString(iv)
+	case reflect.Slice:
+		if kv.Type().Elem().Kind() == reflect.Uint8 {
+			return binaryBase64(kv.Bytes()), nil
+		}
+		return "", fmt.Errorf("cannot convert slice of type %v to a string for use in a key: %v", kv.Type().Elem().Kind(), v)
 	}
 
 	return "", fmt.Errorf("cannot convert type %v to a string for use in a key: %v", kv.Kind(), v)

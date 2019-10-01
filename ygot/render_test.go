@@ -2454,6 +2454,9 @@ func TestLeaflistToSlice(t *testing.T) {
 	}
 }
 
+// binary2 is a different defined type but with the same underlying []byte type.
+type binary2 []byte
+
 func TestKeyValueAsString(t *testing.T) {
 	tests := []struct {
 		i                interface{}
@@ -2475,6 +2478,22 @@ func TestKeyValueAsString(t *testing.T) {
 		{
 			i:    string("42"),
 			want: "42",
+		},
+		{
+			i:    Binary{'b', 'i', 'n', 'a', 'r', 'y'},
+			want: "YmluYXJ5",
+		},
+		{
+			i:    Binary{'s'},
+			want: "cw==",
+		},
+		{
+			i:    binary2{'s'},
+			want: "cw==",
+		},
+		{
+			i:                []uint16{100, 101, 102},
+			wantErrSubstring: "cannot convert slice of type uint16 to a string for use in a key",
 		},
 		{
 			i:    EnumTest(2),

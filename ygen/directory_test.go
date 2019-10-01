@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
@@ -151,5 +153,128 @@ func TestGetOrderedDirectories(t *testing.T) {
 		if !reflect.DeepEqual(gotDirMap, tt.wantDirectoryMap) {
 			t.Errorf("%s:\nwantDirMap: %v\ngotwantDirMap: %v", tt.name, tt.wantDirectoryMap, gotDirMap)
 		}
+	}
+}
+
+func TestFindSchemaPath(t *testing.T) {
+	simpleDir := &Directory{
+		Name: "Foo",
+		Path: []string{"", "module", "foo"},
+		Fields: map[string]*yang.Entry{
+			"baz": {
+				Name: "baz",
+				Parent: &yang.Entry{
+					Name: "bar",
+					Parent: &yang.Entry{
+						Name:   "foo",
+						Parent: &yang.Entry{Name: "module"},
+					},
+				},
+			},
+		},
+	}
+
+	listDir := &Directory{
+		Name: "DList",
+		Path: []string{"", "d-module", "d-container", "d-list"},
+		Fields: map[string]*yang.Entry{
+			"d-key": {
+				Name: "d-key",
+				Type: &yang.YangType{
+					Kind: yang.Yleafref,
+				},
+				Parent: &yang.Entry{
+					Name: "config",
+					Parent: &yang.Entry{
+						Name: "d-list",
+						Kind: yang.DirectoryEntry,
+						Dir: map[string]*yang.Entry{
+							"d-key": {
+								Name: "d-key",
+								Type: &yang.YangType{Kind: yang.Yleafref},
+							},
+						},
+						Parent: &yang.Entry{
+							Name: "d-container",
+							Parent: &yang.Entry{
+								Name: "d-module",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name            string
+		inDirectory     *Directory
+		inFieldName     string
+		inAbsolutePaths bool
+		want            []string
+		wantErrSubstr   string
+	}{{
+		name:            "simple relative path",
+		inDirectory:     simpleDir,
+		inFieldName:     "baz",
+		inAbsolutePaths: false,
+		want:            []string{"bar", "baz"},
+	}, {
+		name:            "simple absolute path",
+		inDirectory:     simpleDir,
+		inFieldName:     "baz",
+		inAbsolutePaths: true,
+		want:            []string{"", "foo", "bar", "baz"},
+	}, {
+		name:            "field does not exist",
+		inDirectory:     simpleDir,
+		inFieldName:     "baazar",
+		inAbsolutePaths: false,
+		wantErrSubstr:   "field name \"baazar\" does not exist in Directory",
+	}, {
+		name: "directory has problematically-long path",
+		inDirectory: &Directory{
+			Name: "Foo",
+			Path: []string{"", "module", "foo", "too", "long"},
+			Fields: map[string]*yang.Entry{
+				"baz": {
+					Name: "baz",
+					Parent: &yang.Entry{
+						Name: "bar",
+						Parent: &yang.Entry{
+							Name:   "foo",
+							Parent: &yang.Entry{Name: "module"},
+						},
+					},
+				},
+			},
+		},
+		inFieldName:     "baz",
+		inAbsolutePaths: false,
+		wantErrSubstr:   "is not a valid child",
+	}, {
+		name:            "list key relative path",
+		inDirectory:     listDir,
+		inFieldName:     "d-key",
+		inAbsolutePaths: false,
+		want:            []string{"config", "d-key"},
+	}, {
+		name:            "list key absolute path",
+		inDirectory:     listDir,
+		inFieldName:     "d-key",
+		inAbsolutePaths: true,
+		want:            []string{"", "d-container", "d-list", "config", "d-key"},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := FindSchemaPath(tt.inDirectory, tt.inFieldName, tt.inAbsolutePaths)
+			if diff := errdiff.Check(err, tt.wantErrSubstr); diff != "" {
+				t.Fatalf("FindSchemaPath, %v", diff)
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Fatalf("want: %s\ngot: %s", tt.want, got)
+			}
+		})
 	}
 }

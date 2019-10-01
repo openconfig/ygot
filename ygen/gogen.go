@@ -1118,7 +1118,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 		PackageName:      cfg.PackageName,
 		YANGFiles:        yangFiles,
 		IncludePaths:     includePaths,
-		CompressEnabled:  cfg.CompressOCPaths,
+		CompressEnabled:  cfg.TransformationOptions.CompressOCPaths,
 		GeneratingBinary: cfg.Caller,
 		GenerateSchema:   cfg.GenerateJSONSchema,
 		GoOptions:        cfg.GoOptions,
@@ -1128,7 +1128,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 	}
 
 	s.FakeRootName = "nil"
-	if cfg.GenerateFakeRoot && rootName != "" {
+	if cfg.TransformationOptions.GenerateFakeRoot && rootName != "" {
 		s.FakeRootName = fmt.Sprintf("&%s{}", rootName)
 	}
 
@@ -1383,7 +1383,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		// Find the schema paths that the field corresponds to, such that these can
 		// be used as annotations (tags) within the generated struct. Go paths are
 		// always relative.
-		schemaMapPaths, err := findMapPaths(targetStruct, field, compressOCPaths, false)
+		schemaMapPaths, err := findMapPaths(targetStruct, fName, compressOCPaths, false)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -1911,34 +1911,25 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 	}, err
 }
 
-// findMapPaths takes an input yang.Entry and calculates the set of schemapaths that it represents.
+// findMapPaths takes an input field name for a parent Directory and calculates the set of schemapaths that it represents.
 // If absolutePaths is set, the paths are absolute otherwise they are relative to the parent. If
 // the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
 // path is also returned.
-func findMapPaths(parent *Directory, field *yang.Entry, compressOCPaths, absolutePaths bool) ([][]string, error) {
-	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
-	var childPath, parentPath []string
-
-	if absolutePaths {
-		childPath = append([]string{""}, fieldSlicePath[1:]...)
-	} else {
-		parentPath = parent.Path
-		// Append the elements that are not common between the two paths.
-		// Since the field is necessarily a child of the parent, then to
-		// determine those elements of the field's path that are not contained
-		// in the parent's, we walk from index X of the field's path (where X
-		// is the number of elements in the path of the parent).
-		if len(fieldSlicePath) < len(parentPath) {
-			return nil, fmt.Errorf("field %v is not a valid child of %v", fieldSlicePath, parent.Path)
-		}
-
-		childPath = append(childPath, fieldSlicePath[len(parentPath)-1:]...)
+func findMapPaths(parent *Directory, fieldName string, compressOCPaths, absolutePaths bool) ([][]string, error) {
+	childPath, err := FindSchemaPath(parent, fieldName, absolutePaths)
+	if err != nil {
+		return nil, err
 	}
-
 	mapPaths := [][]string{childPath}
 	if !compressOCPaths || parent.ListAttr == nil {
 		return mapPaths, nil
 	}
+
+	field, ok := parent.Fields[fieldName]
+	if !ok {
+		return nil, fmt.Errorf("field name %s does not exist in Directory %s", fieldName, parent.Path)
+	}
+	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
 
 	// Handle specific issue of compression of the schema, where the key
 	// of the parent list is a leafref to this leaf.

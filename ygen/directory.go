@@ -23,6 +23,7 @@ import (
 	"sort"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // Directory stores information needed for outputting a data node of the
@@ -108,4 +109,28 @@ func GetOrderedDirectories(directory map[string]*Directory) ([]string, map[strin
 	sort.Strings(orderedDirNames)
 
 	return orderedDirNames, dirNameMap, nil
+}
+
+// FindSchemaPath finds the relative or absolute schema path of a given field
+// of a Directory. The Field is specified as a name in order to guarantee its
+// existence before processing.
+func FindSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]string, error) {
+	field, ok := parent.Fields[fieldName]
+	if !ok {
+		return nil, fmt.Errorf("FindSchemaPath: field name %q does not exist in Directory %s", fieldName, parent.Path)
+	}
+	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
+
+	if absolutePaths {
+		return append([]string{""}, fieldSlicePath[1:]...), nil
+	}
+	// Return the elements that are not common between the two paths.
+	// Since the field is necessarily a child of the parent, then to
+	// determine those elements of the field's path that are not contained
+	// in the parent's, we walk from index X of the field's path (where X
+	// is the number of elements in the path of the parent).
+	if len(fieldSlicePath) < len(parent.Path) {
+		return nil, fmt.Errorf("FindSchemaPath: field %v is not a valid child of %v", fieldSlicePath, parent.Path)
+	}
+	return fieldSlicePath[len(parent.Path)-1:], nil
 }
