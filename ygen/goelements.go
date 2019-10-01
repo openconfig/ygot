@@ -109,6 +109,12 @@ type MappedType struct {
 	DefaultValue *string
 }
 
+// IsYgenDefinedGoType returns true if the native type of a MappedType is a type that's
+// defined by ygen's generated code.
+func IsYgenDefinedGoType(t *MappedType) bool {
+	return t.IsEnumeratedValue || len(t.UnionTypes) >= 2 || t.NativeType == ygot.BinaryTypeName || t.NativeType == ygot.EmptyTypeName
+}
+
 // resolveTypeArgs is a structure used as an input argument to the yangTypeToGoType
 // function which allows extra context to be handed on. This provides the ability
 // to use not only the YangType but also the yang.Entry that the type was part of
@@ -129,11 +135,11 @@ type resolveTypeArgs struct {
 // the code such that we do not have genState receivers here, but rather pass in the
 // generated state as a parameter to the function that is being called.
 
-// pathToCamelCaseName takes an input yang.Entry and outputs its name as a Go compatible
-// name in the form PathElement1_PathElement2, performing schema compression
-// if required. The name is not checked for uniqueness. The genFakeRoot boolean
-// specifies whether the fake root exists within the schema such that it can be
-// handled specifically in the path generation.
+// pathToCamelCaseName takes an input yang.Entry and outputs its name as a Go
+// compatible name in the form PathElement1_PathElement2, performing schema
+// compression if required. The name is not checked for uniqueness. The
+// genFakeRoot boolean specifies whether the fake root exists within the schema
+// such that it can be handled specifically in the path generation.
 func (s *genState) pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
 	var pathElements []*yang.Entry
 
@@ -170,11 +176,12 @@ func (s *genState) pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRo
 	return buf.String()
 }
 
-// goStructName generates the name to be used for a particular YANG schema element
-// in the generated Go code. If the compressOCPaths boolean is set to true,
-// schemapaths are compressed, otherwise the name is returned simply as camel
-// case. The genFakeRoot boolean specifies whether the fake root is to be generated
-// such that the struct name can consider the fake root entity specifically.
+// goStructName generates the name to be used for a particular YANG schema
+// element in the generated Go code. If the compressOCPaths boolean is set to
+// true, schemapaths are compressed, otherwise the name is returned simply as
+// camel case. The genFakeRoot boolean specifies whether the fake root is to be
+// generated such that the struct name can consider the fake root entity
+// specifically.
 func (s *genState) goStructName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
 	uniqName := genutil.MakeNameUnique(s.pathToCamelCaseName(e, compressOCPaths, genFakeRoot), s.definedGlobals)
 
