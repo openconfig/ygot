@@ -1351,7 +1351,7 @@ func TestSetNode(t *testing.T) {
 			inParent:         &ListElemStruct1{},
 			inPath:           mustPath("/outer"),
 			inVal:            &gpb.TypedValue{},
-			wantErrSubstring: `path elem:<name:"outer" >  points to a node with non-leaf schema`,
+			wantErrSubstring: `path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "outer"}}}).String() + ` points to a node with non-leaf schema`,
 		},
 		{
 			inDesc:   "success setting annotation in top node",
