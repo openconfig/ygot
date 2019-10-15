@@ -337,7 +337,7 @@ func (s *genState) protoMsgName(e *yang.Entry, compressPaths bool) string {
 // becomes interface (since modules, surrounding containers, and config/state containers
 // are not considered with path compression enabled.
 func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
-	if e.Node != nil && e.Node.NName() == rootElementNodeName {
+	if IsFakeRoot(e) {
 		return ""
 	}
 

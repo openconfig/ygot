@@ -2,7 +2,7 @@
 // representation of a YANG schema.
 //
 // Input schema modules:
-//  - testdata/structs/openconfig-config-false.yang
+//  - ../testdata/modules/openconfig-config-false.yang
 syntax = "proto3";
 
 package openconfig.openconfig_config_false;

@@ -1,7 +1,6 @@
 package ygen
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -74,9 +73,93 @@ func TestGetOrderedFieldNames(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if got, want := GetOrderedFieldNames(tt.in), tt.want; !reflect.DeepEqual(want, got) {
-			t.Errorf("%s:\nwant: %s\ngot %s", tt.name, want, got)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			if got, want := GetOrderedFieldNames(tt.in), tt.want; !cmp.Equal(want, got) {
+				t.Errorf("got: %s\nwant %s", got, want)
+			}
+		})
+	}
+}
+
+func TestGoFieldNameMap(t *testing.T) {
+	tests := []struct {
+		name string
+		in   *Directory
+		want map[string]string
+	}{{
+		name: "nil directory",
+		in:   nil,
+		want: nil,
+	}, {
+		name: "empty directory",
+		in: &Directory{
+			Fields: map[string]*yang.Entry{},
+		},
+		want: map[string]string{},
+	}, {
+		name: "directory with one field",
+		in: &Directory{
+			Fields: map[string]*yang.Entry{
+				"a": {Name: "a"},
+			},
+		},
+		want: map[string]string{"a": "A"},
+	}, {
+		name: "directory with multiple fields",
+		in: &Directory{
+			Fields: map[string]*yang.Entry{
+				"a": {Name: "a"},
+				"b": {Name: "b"},
+				"c": {Name: "c"},
+				"d": {Name: "d"},
+				"e": {Name: "e"},
+				"f": {Name: "f"},
+				"g": {Name: "g"},
+			},
+		},
+		want: map[string]string{
+			"a": "A",
+			"b": "B",
+			"c": "C",
+			"d": "D",
+			"e": "E",
+			"f": "F",
+			"g": "G",
+		},
+	}, {
+		name: "directory with multiple fields and longer names and a camel case collision",
+		in: &Directory{
+			Fields: map[string]*yang.Entry{
+				"th-e":  {Name: "th-e"},
+				"quick": {Name: "quick"},
+				"brown": {Name: "brown"},
+				"fox":   {Name: "fox"},
+				"jumps": {Name: "jumps"},
+				"over":  {Name: "over"},
+				"thE":   {Name: "thE"},
+				"lazy":  {Name: "lazy"},
+				"dog":   {Name: "dog"},
+			},
+		},
+		want: map[string]string{
+			"brown": "Brown",
+			"dog":   "Dog",
+			"fox":   "Fox",
+			"jumps": "Jumps",
+			"lazy":  "Lazy",
+			"over":  "Over",
+			"quick": "Quick",
+			"th-e":  "ThE",
+			"thE":   "ThE_",
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got, want := GoFieldNameMap(tt.in), tt.want; !cmp.Equal(want, got) {
+				t.Errorf("got: %v\nwant %s", got, want)
+			}
+		})
 	}
 }
 
@@ -143,16 +226,18 @@ func TestGetOrderedDirectories(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		gotOrderedNames, gotDirMap, err := GetOrderedDirectories(tt.in)
-		if gotErr := errToString(err); gotErr != tt.wantErr {
-			t.Errorf("%s:\nwantErr: %s\ngotErr: %s", tt.name, tt.wantErr, gotErr)
-		}
-		if !reflect.DeepEqual(gotOrderedNames, tt.wantOrderedNames) {
-			t.Errorf("%s:\nwantOrderedNames: %s\ngotOrderedNames: %s", tt.name, tt.wantOrderedNames, gotOrderedNames)
-		}
-		if !reflect.DeepEqual(gotDirMap, tt.wantDirectoryMap) {
-			t.Errorf("%s:\nwantDirMap: %v\ngotwantDirMap: %v", tt.name, tt.wantDirectoryMap, gotDirMap)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			gotOrderedNames, gotDirMap, err := GetOrderedDirectories(tt.in)
+			if gotErr := errToString(err); gotErr != tt.wantErr {
+				t.Fatalf("wantErr: %s\ngotErr: %s", tt.wantErr, gotErr)
+			}
+			if !cmp.Equal(gotOrderedNames, tt.wantOrderedNames) {
+				t.Errorf("wantOrderedNames: %s\ngotOrderedNames: %s", tt.wantOrderedNames, gotOrderedNames)
+			}
+			if !cmp.Equal(gotDirMap, tt.wantDirectoryMap) {
+				t.Errorf("wantDirMap: %v\ngotwantDirMap: %v", tt.wantDirectoryMap, gotDirMap)
+			}
+		})
 	}
 }
 

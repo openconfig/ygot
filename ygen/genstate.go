@@ -191,7 +191,8 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 	var errs []error
 	mappedStructs := make(map[string]*Directory)
 
-	for _, e := range entries {
+	for _, entryKey := range genutil.GetOrderedEntryKeys(entries) {
+		e := entries[entryKey]
 		// If we are excluding config false (state entries) then skip processing
 		// this element.
 		if excludeState && !util.IsConfig(e) {
@@ -232,7 +233,7 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 			elem.Path = strings.Split(util.SchemaTreePath(e), "/")
 
 			// Mark this struct as the fake root if it is specified to be.
-			if e.Node != nil && e.Node.NName() == rootElementNodeName {
+			if IsFakeRoot(e) {
 				elem.IsFakeRoot = true
 			}
 
