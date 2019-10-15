@@ -667,7 +667,7 @@ func TestNewNode(t *testing.T) {
 			gnmiPath: toGNMIPath([]string{"bad", "path"}),
 			wantStatus: spb.Status{
 				Code:    int32(scpb.Code_NOT_FOUND),
-				Message: `could not find path in tree beyond type *exampleoc.Device, remaining path elem:<name:"bad" > elem:<name:"path" > `,
+				Message: `could not find path in tree beyond type *exampleoc.Device, remaining path ` + toGNMIPath([]string{"bad", "path"}).String(),
 			},
 		},
 	}
@@ -767,7 +767,7 @@ func TestGetNode(t *testing.T) {
 			},
 			wantStatus: spb.Status{
 				Code:    int32(scpb.Code_INVALID_ARGUMENT),
-				Message: `gnmi path elem:<name:"neighbor" key:<key:"bad-key-field" value:"address1" > > elem:<name:"apply-policy" >  does not contain a map entry for the schema key field name neighbor-address, parent type map[string]*exampleoc.Bgp_Neighbor`,
+				Message: `gnmi path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "neighbor", Key: map[string]string{"bad-key-field": "address1"}}, {Name: "apply-policy"}}}).String() + ` does not contain a map entry for the schema key field name neighbor-address, parent type map[string]*exampleoc.Bgp_Neighbor`,
 			},
 		},
 		{
@@ -793,7 +793,7 @@ func TestGetNode(t *testing.T) {
 			},
 			wantStatus: spb.Status{
 				Code:    int32(scpb.Code_NOT_FOUND),
-				Message: `could not find path in tree beyond schema node neighbor, (type map[string]*exampleoc.Bgp_Neighbor), remaining path elem:<name:"neighbor" key:<key:"neighbor-address" value:"bad key value" > > elem:<name:"apply-policy" > `,
+				Message: `could not find path in tree beyond schema node neighbor, (type map[string]*exampleoc.Bgp_Neighbor), remaining path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "neighbor", Key: map[string]string{"neighbor-address": "bad key value"}}, {Name: "apply-policy"}}}).String(),
 			},
 		},
 		{
@@ -801,7 +801,7 @@ func TestGetNode(t *testing.T) {
 			gnmiPath: toGNMIPath([]string{"bad", "path"}),
 			wantStatus: spb.Status{
 				Code:    int32(scpb.Code_NOT_FOUND),
-				Message: `could not find path in tree beyond schema node device, (type *exampleoc.Device), remaining path elem:<name:"bad" > elem:<name:"path" > `,
+				Message: `could not find path in tree beyond schema node device, (type *exampleoc.Device), remaining path ` + toGNMIPath([]string{"bad", "path"}).String(),
 			},
 		},
 	}

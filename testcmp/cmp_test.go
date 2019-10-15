@@ -220,7 +220,7 @@ func TestGNMIUpdateComparer(t *testing.T) {
 			Val:  jsonIETF(`"value"`),
 		},
 		inSpec:           commonSpec,
-		wantErrSubstring: `cannot retrieve struct for path elem:<name:"system" > elem:<name:"config" > elem:<name:"fish" >`,
+		wantErrSubstring: `cannot retrieve struct for path ` + (&gnmipb.Path{Elem: []*gnmipb.PathElem{{Name: "system"}, {Name: "config"}, {Name: "fish"}}}).String(),
 	}, {
 		desc: "error: invalid path in B",
 		inA: &gnmipb.Update{
@@ -232,7 +232,7 @@ func TestGNMIUpdateComparer(t *testing.T) {
 			Val:  jsonIETF(`"value"`),
 		},
 		inSpec:           commonSpec,
-		wantErrSubstring: `cannot retrieve struct for path elem:<name:"system" > elem:<name:"config" > elem:<name:"chips" >`,
+		wantErrSubstring: `cannot retrieve struct for path ` + (&gnmipb.Path{Elem: []*gnmipb.PathElem{{Name: "system"}, {Name: "config"}, {Name: "chips"}}}).String(),
 	}, {
 		desc:             "error: nil spec",
 		inA:              &gnmipb.Update{},

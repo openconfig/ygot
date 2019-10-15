@@ -1687,7 +1687,7 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 				},
 			},
 			want:    nil,
-			wantErr: `could not find path in tree beyond schema node simple-key-list, (type *util.ListElemStruct1), remaining path elem:<name:"bad-element" > elem:<name:"inner" > elem:<name:"leaf-field" > `,
+			wantErr: `could not find path in tree beyond schema node simple-key-list, (type *util.ListElemStruct1), remaining path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "bad-element"}, {Name: "inner"}, {Name: "leaf-field"}}}).String(),
 		},
 		{
 			desc:       "nil source field",
@@ -1742,7 +1742,7 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 				},
 			},
 			want:    []interface{}(nil),
-			wantErr: `gnmi path elem:<name:"simple-key-list" key:<key:"bad-key" value:"forty-two" > > elem:<name:"outer2" > elem:<name:"inner" > elem:<name:"leaf-field" >  does not contain a map entry for the schema key field name key1, parent type map[string]*util.ListElemStruct1`,
+			wantErr: `gnmi path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "simple-key-list", Key: map[string]string{"bad-key": "forty-two"}}, {Name: "outer2"}, {Name: "inner"}, {Name: "leaf-field"}}}).String() + ` does not contain a map entry for the schema key field name key1, parent type map[string]*util.ListElemStruct1`,
 		},
 		{
 			desc:       "missing key value",
@@ -2040,7 +2040,7 @@ func TestGetNodesStructKeyedList(t *testing.T) {
 					},
 				},
 			},
-			wantErr: `could not find path in tree beyond schema node struct-key-list, (type *util.ListElemStruct2), remaining path elem:<name:"bad-path-element" > elem:<name:"inner" > elem:<name:"leaf-field" > `,
+			wantErr: `could not find path in tree beyond schema node struct-key-list, (type *util.ListElemStruct2), remaining path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "bad-path-element"}, {Name: "inner"}, {Name: "leaf-field"}}}).String(),
 		},
 	}
 
