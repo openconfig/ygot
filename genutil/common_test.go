@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
@@ -42,6 +43,58 @@ func TestWriteIfNotEmpty(t *testing.T) {
 		if got, want := b.String(), tt.want; got != want {
 			t.Errorf("%s (WriteIfNotEmpty: %v): %v is not %s", tt.name, tt.in, got, want)
 		}
+	}
+}
+
+func TestGetOrderedEntryKeys(t *testing.T) {
+	tests := []struct {
+		name string
+		in   map[string]*yang.Entry
+		want []string
+	}{{
+		name: "nil map",
+		in:   nil,
+		want: nil,
+	}, {
+		name: "map with one entry",
+		in: map[string]*yang.Entry{
+			"a": {},
+		},
+		want: []string{"a"},
+	}, {
+		name: "multiple entries",
+		in: map[string]*yang.Entry{
+			"a": {},
+			"b": {},
+			"c": {},
+			"d": {},
+			"e": {},
+			"f": {},
+			"g": {},
+		},
+		want: []string{"a", "b", "c", "d", "e", "f", "g"},
+	}, {
+		name: "multiple entries 2 - non-alphabetical order",
+		in: map[string]*yang.Entry{
+			"the":   {},
+			"quick": {},
+			"brown": {},
+			"fox":   {},
+			"jumps": {},
+			"over":  {},
+			"the2":  {},
+			"lazy":  {},
+			"dog":   {},
+		},
+		want: []string{"brown", "dog", "fox", "jumps", "lazy", "over", "quick", "the", "the2"},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if diff := cmp.Diff(tt.want, GetOrderedEntryKeys(tt.in)); diff != "" {
+				t.Errorf("(-want +got):\n%s", diff)
+			}
+		})
 	}
 }
 

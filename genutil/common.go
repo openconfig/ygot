@@ -19,6 +19,7 @@ package genutil
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
@@ -54,6 +55,16 @@ func TypeDefaultValue(t *yang.YangType) *string {
 		return nil
 	}
 	return ygot.String(t.Default)
+}
+
+// GetOrderedEntryKeys returns the keys of a map of *yang.Entry in alphabetical order.
+func GetOrderedEntryKeys(entries map[string]*yang.Entry) []string {
+	var orderedKeys []string
+	for key := range entries {
+		orderedKeys = append(orderedKeys, key)
+	}
+	sort.Strings(orderedKeys)
+	return orderedKeys
 }
 
 // findAllChildrenWithoutCompression finds the entries that are children of an

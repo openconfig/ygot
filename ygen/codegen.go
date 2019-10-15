@@ -281,7 +281,7 @@ type Proto3Package struct {
 }
 
 const (
-	// rootElementPath is the synthesised node name that is used for an
+	// rootElementNodeName is the synthesised node name that is used for an
 	// element that represents the root. Such an element is generated only
 	// when the GenerateFakeRoot bool is set to true within the
 	// YANGCodeGenerator instance used as a receiver.
@@ -300,6 +300,11 @@ const (
 	// protobuf indicates that Protobuf messages are being generated.
 	protobuf
 )
+
+// IsFakeRoot checks whether a given entry is the generated fake root.
+func IsFakeRoot(e *yang.Entry) bool {
+	return e != nil && e.Node != nil && e.Node.NName() == rootElementNodeName
+}
 
 // GenerateGoCode takes a slice of strings containing the path to a set of YANG
 // files which contain YANG modules, and a second slice of strings which
@@ -960,6 +965,21 @@ func findRootEntries(structs map[string]*yang.Entry, compressPaths bool) map[str
 	return rootEntries
 }
 
+// MakeFakeRoot creates and returns a fakeroot *yang.Entry with rootName as its
+// name. It has an empty, but initialized Dir.
+func MakeFakeRoot(rootName string) *yang.Entry {
+	return &yang.Entry{
+		Name: rootName,
+		Kind: yang.DirectoryEntry,
+		Dir:  map[string]*yang.Entry{},
+		// Create a fake node that corresponds to the fake root, this
+		// ensures that we can match the element elsewhere.
+		Node: &yang.Value{
+			Name: rootElementNodeName,
+		},
+	}
+}
+
 // createFakeRoot extracts the entities that are at the root of the YANG schema tree,
 // which otherwise would have no parent in the generated structs, and appends them to
 // a synthesised root element. Such entries are extracted from the supplied structs
@@ -976,16 +996,7 @@ func createFakeRoot(structs map[string]*yang.Entry, rootElems []*yang.Entry, roo
 		rootName = defaultRootName
 	}
 
-	fakeRoot := &yang.Entry{
-		Name: rootName,
-		Kind: yang.DirectoryEntry,
-		Dir:  map[string]*yang.Entry{},
-		// Create a fake node that corresponds to the fake root, this
-		// ensures that we can match the element elsewhere.
-		Node: &yang.Value{
-			Name: rootElementNodeName,
-		},
-	}
+	fakeRoot := MakeFakeRoot(rootName)
 
 	for _, s := range findRootEntries(structs, compressPaths) {
 		if e, ok := fakeRoot.Dir[s.Name]; ok {

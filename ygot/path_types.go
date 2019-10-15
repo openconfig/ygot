@@ -6,9 +6,9 @@ const (
 	// PathStructInterfaceName is the name for the interface implemented by all
 	// generated path structs.
 	PathStructInterfaceName = "PathStruct"
-	// PathTypeName is the type name of the common embedded struct
+	// PathBaseTypeName is the type name of the common embedded struct
 	// containing the path information for a path struct.
-	PathTypeName = "NodePath"
+	PathBaseTypeName = "NodePath"
 )
 
 // PathStruct is an interface that is implemented by any generated path struct
@@ -32,3 +32,57 @@ type NodePath struct {
 	keys          map[string]interface{}
 	p             PathStruct
 }
+
+// ResolvePath is a helper which returns the root PathStruct and absolute path
+// of a PathStruct node.
+func ResolvePath(n PathStruct) (PathStruct, []*gpb.PathElem, []error) {
+	var p []*gpb.PathElem
+	var errs []error
+	for ; n.parent() != nil; n = n.parent() {
+		rel, es := n.relPath()
+		if es != nil {
+			errs = append(errs, es...)
+			continue
+		}
+		p = append(rel, p...)
+	}
+	if errs != nil {
+		return nil, nil, errs
+	}
+	return n, p, nil
+}
+
+// ResolveRelPath returns the partial []*gpb.PathElem representing the
+// PathStruct's relative path.
+func ResolveRelPath(n PathStruct) ([]*gpb.PathElem, []error) {
+	return n.relPath()
+}
+
+// relPath converts the information stored in NodePath into the partial
+// []*gpb.PathElem representing the node's relative path.
+func (n *NodePath) relPath() ([]*gpb.PathElem, []error) {
+	var pathElems []*gpb.PathElem
+	for _, name := range n.relSchemaPath {
+		pathElems = append(pathElems, &gpb.PathElem{Name: name})
+	}
+	if len(n.keys) == 0 {
+		return pathElems, nil
+	}
+
+	var errs []error
+	keys := make(map[string]string)
+	for name, val := range n.keys {
+		var err error
+		// TODO(wenbli): It is ideal to also implement leaf restriction validation.
+		if keys[name], err = KeyValueAsString(val); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if errs != nil {
+		return nil, errs
+	}
+	pathElems[len(pathElems)-1].Key = keys
+	return pathElems, nil
+}
+
+func (n *NodePath) parent() PathStruct { return n.p }

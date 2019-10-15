@@ -23,6 +23,7 @@ import (
 	"sort"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
 )
 
@@ -71,7 +72,7 @@ type YangListAttr struct {
 	KeyElems []*yang.Entry
 }
 
-// GetOrderedFieldNames returns the fields of a struct in alphabetical order.
+// GetOrderedFieldNames returns the field names of a Directory in alphabetical order.
 func GetOrderedFieldNames(directory *Directory) []string {
 	if directory == nil {
 		return nil
@@ -83,6 +84,25 @@ func GetOrderedFieldNames(directory *Directory) []string {
 	}
 	sort.Strings(orderedFieldNames)
 	return orderedFieldNames
+}
+
+// GoFieldNameMap returns a map containing the Go name for a field (key
+// is the field schema name). Camelcase and uniquification is done to ensure
+// compilation. Naming uniquification is done deterministically.
+func GoFieldNameMap(directory *Directory) map[string]string {
+	if directory == nil {
+		return nil
+	}
+	// Order by schema name; then, uniquify in order of schema name.
+	orderedFieldNames := GetOrderedFieldNames(directory)
+
+	uniqueGenFieldNames := map[string]bool{}
+	uniqueNameMap := make(map[string]string, len(directory.Fields))
+	for _, fieldName := range orderedFieldNames {
+		uniqueNameMap[fieldName] = genutil.MakeNameUnique(genutil.EntryCamelCaseName(directory.Fields[fieldName]), uniqueGenFieldNames)
+	}
+
+	return uniqueNameMap
 }
 
 // GetOrderedDirectories returns an alphabetically-ordered slice of Directory

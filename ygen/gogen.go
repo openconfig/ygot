@@ -1180,9 +1180,8 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 	// is set to true.
 	var associatedLeafGetters []*generatedLeafGetter
 
-	// The names that have already been used within the struct, used to ensure that we do not
-	// generate two elements that have the same name.
-	definedStructFieldNames := map[string]bool{}
+	// The Go names of the struct's fields.
+	goFieldNameMap := GoFieldNameMap(targetStruct)
 
 	// definedNameMap defines a map, keyed by YANG identifier to the Go struct field name.
 	definedNameMap := map[string]*yangFieldMap{}
@@ -1218,10 +1217,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		var fieldDef *goStructField
 
 		field := targetStruct.Fields[fName]
-
-		// Make the name of the field into CamelCase. The definedStructFieldNames map is used as the
-		// context, such that the name generated is unique within this structure.
-		fieldName := genutil.MakeNameUnique(genutil.EntryCamelCaseName(field), definedStructFieldNames)
+		fieldName := goFieldNameMap[fName]
 		definedNameMap[fName] = &yangFieldMap{YANGName: fName, GoName: fieldName}
 
 		switch {

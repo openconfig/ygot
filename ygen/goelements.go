@@ -143,7 +143,7 @@ type resolveTypeArgs struct {
 func (s *genState) pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
 	var pathElements []*yang.Entry
 
-	if genFakeRoot && e.Node != nil && e.Node.NName() == rootElementNodeName {
+	if genFakeRoot && IsFakeRoot(e) {
 		// Handle the special case of the root element if it exists.
 		pathElements = []*yang.Entry{e}
 	} else {
