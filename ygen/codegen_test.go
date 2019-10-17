@@ -927,17 +927,17 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			},
 		},
 		wantTypeMap: map[string]map[string]*MappedType{
-			"/openconfig-simple/parent": map[string]*MappedType{
+			"/openconfig-simple/parent": {
 				"child": nil,
 			},
-			"/openconfig-simple/parent/child": map[string]*MappedType{
-				"one":   &MappedType{NativeType: "string"},
-				"two":   &MappedType{NativeType: "string"},
-				"three": &MappedType{NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
-				"four":  &MappedType{NativeType: "Binary"},
+			"/openconfig-simple/parent/child": {
+				"one":   {NativeType: "string"},
+				"two":   {NativeType: "string"},
+				"three": {NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
+				"four":  {NativeType: "Binary"},
 			},
-			"/openconfig-simple/remote-container": map[string]*MappedType{
-				"a-leaf": &MappedType{NativeType: "string"},
+			"/openconfig-simple/remote-container": {
+				"a-leaf": {NativeType: "string"},
 			},
 		},
 	}, {
@@ -993,17 +993,17 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			},
 		},
 		wantTypeMap: map[string]map[string]*MappedType{
-			"/openconfig-simple/parent": map[string]*MappedType{
+			"/openconfig-simple/parent": {
 				"child": nil,
 			},
-			"/openconfig-simple/parent/child": map[string]*MappedType{
-				"one":   &MappedType{NativeType: "string"},
-				"two":   &MappedType{NativeType: "string"},
-				"three": &MappedType{NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
-				"four":  &MappedType{NativeType: "Binary"},
+			"/openconfig-simple/parent/child": {
+				"one":   {NativeType: "string"},
+				"two":   {NativeType: "string"},
+				"three": {NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
+				"four":  {NativeType: "Binary"},
 			},
-			"/openconfig-simple/remote-container": map[string]*MappedType{
-				"a-leaf": &MappedType{NativeType: "string"},
+			"/openconfig-simple/remote-container": {
+				"a-leaf": {NativeType: "string"},
 			},
 		},
 	}, {
@@ -1056,20 +1056,20 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			},
 		},
 		wantTypeMap: map[string]map[string]*MappedType{
-			"/enum-module/parent": map[string]*MappedType{
+			"/enum-module/parent": {
 				"child": nil,
 			},
-			"/enum-module/c": map[string]*MappedType{
-				"cl": &MappedType{NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
+			"/enum-module/c": {
+				"cl": {NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
 			},
-			"/enum-module/parent/child": map[string]*MappedType{
-				"id": &MappedType{NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
+			"/enum-module/parent/child": {
+				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
 			},
-			"/enum-module/a-lists/a-list": map[string]*MappedType{
-				"value": &MappedType{NativeType: "AList_Value_Union"},
+			"/enum-module/a-lists/a-list": {
+				"value": {NativeType: "AList_Value_Union"},
 			},
-			"/enum-module/b-lists/b-list": map[string]*MappedType{
-				"value": &MappedType{NativeType: "BList_Value_Union"},
+			"/enum-module/b-lists/b-list": {
+				"value": {NativeType: "BList_Value_Union"},
 			},
 		},
 	}, {
@@ -1118,17 +1118,17 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			},
 		},
 		wantTypeMap: map[string]map[string]*MappedType{
-			"/enum-module/parent": map[string]*MappedType{
+			"/enum-module/parent": {
 				"child": nil,
 			},
-			"/enum-module/c": map[string]*MappedType{
-				"cl": &MappedType{NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
+			"/enum-module/c": {
+				"cl": {NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
 			},
-			"/enum-module/parent/child": map[string]*MappedType{
-				"id": &MappedType{NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
+			"/enum-module/parent/child": {
+				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
 			},
-			"/enum-module/a-lists/a-list": map[string]*MappedType{},
-			"/enum-module/b-lists/b-list": map[string]*MappedType{},
+			"/enum-module/a-lists/a-list": {},
+			"/enum-module/b-lists/b-list": {},
 		},
 	}, {
 		name:           "simple openconfig test with openconfig-simple module excluded",
@@ -1192,21 +1192,21 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			},
 		},
 		wantTypeMap: map[string]map[string]*MappedType{
-			"/device": map[string]*MappedType{
+			"/device": {
 				"parent":           nil,
 				"remote-container": nil,
 			},
-			"/openconfig-simple/parent": map[string]*MappedType{
+			"/openconfig-simple/parent": {
 				"child": nil,
 			},
-			"/openconfig-simple/parent/child": map[string]*MappedType{
-				"one":   &MappedType{NativeType: "string"},
-				"two":   &MappedType{NativeType: "string"},
-				"three": &MappedType{NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
-				"four":  &MappedType{NativeType: "Binary"},
+			"/openconfig-simple/parent/child": {
+				"one":   {NativeType: "string"},
+				"two":   {NativeType: "string"},
+				"three": {NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
+				"four":  {NativeType: "Binary"},
 			},
-			"/openconfig-simple/remote-container": map[string]*MappedType{
-				"a-leaf": &MappedType{NativeType: "string"},
+			"/openconfig-simple/remote-container": {
+				"a-leaf": {NativeType: "string"},
 			},
 		},
 	}, {
@@ -1270,26 +1270,26 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			},
 		},
 		wantTypeMap: map[string]map[string]*MappedType{
-			"/device": map[string]*MappedType{
+			"/device": {
 				"parent": nil,
 				"c":      nil,
 				"a-list": nil,
 				"b-list": nil,
 			},
-			"/enum-module/parent": map[string]*MappedType{
+			"/enum-module/parent": {
 				"child": nil,
 			},
-			"/enum-module/c": map[string]*MappedType{
-				"cl": &MappedType{NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
+			"/enum-module/c": {
+				"cl": {NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
 			},
-			"/enum-module/parent/child": map[string]*MappedType{
-				"id": &MappedType{NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
+			"/enum-module/parent/child": {
+				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
 			},
-			"/enum-module/a-lists/a-list": map[string]*MappedType{
-				"value": &MappedType{NativeType: "AList_Value_Union"},
+			"/enum-module/a-lists/a-list": {
+				"value": {NativeType: "AList_Value_Union"},
 			},
-			"/enum-module/b-lists/b-list": map[string]*MappedType{
-				"value": &MappedType{NativeType: "BList_Value_Union"},
+			"/enum-module/b-lists/b-list": {
+				"value": {NativeType: "BList_Value_Union"},
 			},
 		},
 	}, {
@@ -1313,7 +1313,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			},
 		},
 		wantTypeMap: map[string]map[string]*MappedType{
-			"/device": map[string]*MappedType{},
+			"/device": {},
 		},
 	}}
 
