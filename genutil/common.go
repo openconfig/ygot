@@ -94,6 +94,67 @@ func findAllChildrenWithoutCompression(e *yang.Entry, excludeState bool) (map[st
 	return directChildren, errs
 }
 
+// CompressBehaviour specifies how the set of direct children of any entry should determined.
+// Compression indicates whether paths should be compressed in the output of an
+// OpenConfig schema; however, there are different ways of compressing nodes.
+type CompressBehaviour int64
+
+// Why use an enum?
+// There are 3 dimensions here: compress|preferState|excludeDerivedState
+// No dimension spans across all others' options, so can't extract any out
+// without having to error out for some combinations.
+const (
+	// Uncompressed means to not compress the schema.
+	Uncompressed CompressBehaviour = iota
+	// UncompressedExcludeDerivedState excludes config false subtrees.
+	UncompressedExcludeDerivedState
+	// PreferIntendedConfig indicates to use the "config" version of a
+	// schema entry instead of its "state" counterpart when both exist.
+	PreferIntendedConfig
+	// PreferOperationalState indicates to use the "state" version of a
+	// schema entry instead of its "config" counterpart when both exist.
+	PreferOperationalState // prefer applied config
+	// ExcludeDerivedState excludes all values that are not writeable
+	// (i.e. config false), including their children, from the generated
+	// code output.
+	ExcludeDerivedState
+)
+
+// CompressEnabled is a helper to query whether compression is on.
+func (c CompressBehaviour) CompressEnabled() bool {
+	switch c {
+	case Uncompressed, UncompressedExcludeDerivedState:
+		return false
+	}
+	return true
+}
+
+// StateExcluded is a helper to query whether derived state is excluded.
+func (c CompressBehaviour) StateExcluded() bool {
+	switch c {
+	case ExcludeDerivedState, UncompressedExcludeDerivedState:
+		return true
+	}
+	return false
+}
+
+// TranslateToCompressBehaviour translates the set of (compressPaths,
+// excludeState) into a subset of CompressBehaviour options.
+// TODO(wenbli:b/142679709): This serves as a workaround before generator
+// scripts need to change to make use of the unused options.
+func TranslateToCompressBehaviour(compressPaths, excludeState bool) CompressBehaviour {
+	switch {
+	case compressPaths && excludeState:
+		return ExcludeDerivedState
+	case compressPaths:
+		return PreferIntendedConfig
+	case excludeState:
+		return UncompressedExcludeDerivedState
+	default:
+		return Uncompressed
+	}
+}
+
 // FindAllChildren finds the data tree elements that are children of a YANG entry e, which
 // should have code generated for them. In general, this means data tree elements that are
 // directly connected to a particular data tree element; however, when compression of the
@@ -131,18 +192,17 @@ func findAllChildrenWithoutCompression(e *yang.Entry, excludeState bool) (map[st
 // and extracting the direct children that exist. These are appended to the directChildren
 // map (keyed on element name) and then returned.
 //
-// When CompressOCPaths in YANGCodeGenerator is set to true, then more complex logic is
-// required based on the OpenConfig path rules. In this case, the following "look-aheads" are
-// implemented:
+// When compression is on, then more complex logic is required based on the OpenConfig path
+// rules. In this case, the following "look-aheads" are implemented:
 //
 //  1. The 'config' and 'state' containers under a directory are removed. This is because
-//     OpenConfig duplicates nodes under config and state to represent intended versus
-//     applied configuration. In the compressed schema then we do not care about the intended
-//     configuration leaves (those leaves that are defined as the set under the 'state' container
-//     that do not exist within the 'config' container). The logic implemented is to recurse into
-//     the config container, and select these leaves as direct children of the original parent.
-//     Any leaves that do not exist in the 'config' container but do within 'state' are operation
-//     state leaves, and hence are also mapped.
+//  OpenConfig duplicates nodes under config and state to represent intended versus applied
+//  configuration. In the compressed schema then we need to drop one of these configuration
+//  leaves (those leaves that are defined as the set under the 'state' container that also
+//  exist within the 'config' container), and compressBehaviour specifies which one to drop.
+//  The logic implemented is to recurse into the config container, and select these leaves as
+//  direct children of the original parent. Any leaves that do not exist in the 'config'
+//  container but do within 'state' are operation state leaves, and hence are also mapped.
 //
 //     Above, this means that /interfaces/interface has the admin-state and oper-state as direct
 //     children.
@@ -166,7 +226,7 @@ func findAllChildrenWithoutCompression(e *yang.Entry, excludeState bool) (map[st
 //
 // As can be seen the advantage of this compression is that the set of entities for which code
 // generation is done is smaller, with less levels of schema hierarchy. However, it depends upon
-// a number of rules of the OpenConfig schema. If CompressOCPaths is set to true and the schema
+// a number of rules of the OpenConfig schema. If compression is on but the schema
 // does not comply with the rules of OpenConfig schema, then errors may occur and be returned
 // in the []error slice by findAllChildren.
 //
@@ -182,12 +242,13 @@ func findAllChildrenWithoutCompression(e *yang.Entry, excludeState bool) (map[st
 // children of the specified node that are not choice or case statements themselves (i.e., leaf-a
 // and leaf-b in the above example).
 //
-// The excludeState argument further filters the returned set of children
-// based on their YANG 'config' status. When excludeState is true, then
+// The .*ExcludeDerivedState compress behaviour options further filters the returned set of
+// children based on their YANG 'config' status. When set, then
 // any read-only (config false) node is excluded from the returned set of children.
 // The 'config' status is inherited from a entry's parent if required, as per
 // the rules in RFC6020.
-func FindAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[string]*yang.Entry, []error) {
+func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string]*yang.Entry, []error) {
+	excludeState := compBehaviour == ExcludeDerivedState || compBehaviour == UncompressedExcludeDerivedState
 	// If we are asked to exclude 'config false' leaves, and this node is
 	// config false itself, then we can return an empty set of children since
 	// config false is inherited from the parent by all children.
@@ -195,35 +256,41 @@ func FindAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 		return nil, nil
 	}
 
-	// If compression is not required, then we do not need to recurse into as many
-	// nodes, so return simply the first level direct children (other than choice or case).
-	if !compressOCPaths {
+	var prioData, deprioData string
+	switch compBehaviour {
+	case Uncompressed, UncompressedExcludeDerivedState:
+		// If compression is not required, then we do not need to recurse into as many
+		// nodes, so return simply the first level direct children (other than choice or case).
 		return findAllChildrenWithoutCompression(e, excludeState)
+	case PreferIntendedConfig, ExcludeDerivedState:
+		prioData, deprioData = "config", "state"
+	case PreferOperationalState:
+		prioData, deprioData = "state", "config"
 	}
 
 	// orderedChildNames is used to provide an ordered list of the name of children
 	// to check.
 	var orderedChildNames []string
 
-	// If this is a directory and it has a container named "config" underneath
-	// it then we must process this first. This is due to the fact that in the
-	// schema there are duplicated leaves under config/ and state/ - and we want
-	// to provide the 'config' version of them to the mapping code. This is
-	// important as we care about the path that is handed to code that subsequently
-	// maps back to the uncompressed schema.
+	// If this is a directory and it has a container named "config"/"state"
+	// underneath it then we must process the prioritized one first. This
+	// is due to the fact that in the schema there are duplicated leaves
+	// under config/ and state/ - and we want to provide the prioritized
+	// one to the mapping code. This is important as we care about the path
+	// that is handed to code that subsequently maps back to the
+	// uncompressed schema.
 	//
 	// To achieve this then we build an orderedChildNames slice which specifies the
 	// order in which we should process the children of entry e.
 	if e.IsContainer() || e.IsList() {
-		if _, ok := e.Dir["config"]; ok {
-			orderedChildNames = append(orderedChildNames, "config")
+		if _, ok := e.Dir[prioData]; ok {
+			orderedChildNames = append(orderedChildNames, prioData)
 		}
 	}
 
-	// For all other entries in the directory, then append them after "config"
-	// (appended above) to the orderedChildren list.
+	// We now append all other entries in the directory to the orderedChildren list.
 	for _, child := range util.Children(e) {
-		if child.Name != "config" {
+		if child.Name != prioData {
 			orderedChildNames = append(orderedChildNames, child.Name)
 		}
 	}
@@ -231,6 +298,10 @@ func FindAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 	// Errors encountered during the extraction of the elements that should
 	// be direct children of the entity representing e.
 	var errs []error
+	// prioNames is the set of names under the prioritized data container
+	// that are added as children. This is a whitelist for any duplicate
+	// names in the deprioritized data container.
+	prioNames := map[string]bool{}
 	// directChildren is used to store the nodes that will be mapped to be direct
 	// children of the struct that represents the entry e being processed. It is
 	// keyed by the name of the child YANG node ((yang.Entry).Name).
@@ -250,19 +321,21 @@ func FindAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 			// and "state" container to be removed from the schema.
 			// For example, /foo/bar/config/{a,b,c} becomes /foo/bar/{a,b,c}.
 			for _, configStateChild := range util.Children(e.Dir[currChild]) {
-				// If we get an error for the state container then we ignore it as we
-				// expect that there are duplicates here for applied configuration leaves
+				// If we get an error for the deprioritized data container then we ignore it as we
+				// expect that there are some duplicates here for applied configuration leaves
 				// (those that appear both in the "config" and "state" container).
-				if e.Dir[currChild].Name == "state" {
-					// Ensure that choice/case nodes that are in the state container only
-					// do not get mapped. This is again specifically for the OpenConfig\
-					// routing policy model. We must ignore the error that is returned
-					// in this case, since if the choice/case is already defined in the
-					// config container then it will be duplicate.
+				if e.Dir[currChild].Name == deprioData {
+					// Compress out (do not map) choice/case nodes that are in the
+					// config or state container. This is again specifically for the
+					// OpenConfig routing policy model.
+					// Further, if the name is a duplicate to one that's already in the
+					// prioritized container, we must drop the entry, and ignore any error
+					// that is returned, as we allow those duplicates.
 					if util.IsChoiceOrCase(configStateChild) {
-						_ = addNonChoiceChildren(directChildren, configStateChild, nil)
-					} else {
-						_ = addNewChild(directChildren, configStateChild.Name, configStateChild, nil)
+						// Duplicates could occur in a choice/case as well.
+						errs = addNonChoiceChildrenDuplist(directChildren, configStateChild, prioNames, errs)
+					} else if !prioNames[configStateChild.Name] {
+						errs = addNewChild(directChildren, configStateChild.Name, configStateChild, errs)
 					}
 				} else {
 					// Handle the specific case of having a choice underneath a config
@@ -271,6 +344,19 @@ func FindAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 						errs = addNonChoiceChildren(directChildren, configStateChild, errs)
 					} else {
 						errs = addNewChild(directChildren, configStateChild.Name, configStateChild, errs)
+					}
+				}
+				// If this is the prioritized data container, add the names to the
+				// whitelist. When processing nodes under the deprioritized data container,
+				// we will tolerate duplication of any names in this set, but not any other
+				// names.
+				if e.Dir[currChild].Name == prioData {
+					if util.IsChoiceOrCase(configStateChild) {
+						for _, entry := range util.FindFirstNonChoiceOrCase(configStateChild) {
+							prioNames[entry.Name] = true
+						}
+					} else {
+						prioNames[configStateChild.Name] = true
 					}
 				}
 			}
@@ -324,6 +410,24 @@ func FindAllChildren(e *yang.Entry, compressOCPaths, excludeState bool) (map[str
 func addNonChoiceChildren(m map[string]*yang.Entry, e *yang.Entry, errs []error) []error {
 	nch := util.FindFirstNonChoiceOrCase(e)
 	for _, n := range nch {
+		errs = addNewChild(m, n.Name, n, errs)
+	}
+	return errs
+}
+
+// addNonChoiceChildrenDupWhitelist recurses into a yang.entry e and finds the first
+// nodes that are neither choice nor case nodes. It appends these to the map of
+// yang.Entry nodes specified by m. If errors are encountered when adding an
+// element, an error is appended to the errs slice, which is returned by the
+// function. duplist is a whitelist where duplicate names that hit this list
+// are not counted as errors, and simply skipped.
+func addNonChoiceChildrenDuplist(m map[string]*yang.Entry, e *yang.Entry, duplist map[string]bool, errs []error) []error {
+	nch := util.FindFirstNonChoiceOrCase(e)
+	for _, n := range nch {
+		// Duplicates in the duplist are expected.
+		if duplist[n.Name] {
+			continue
+		}
 		errs = addNewChild(m, n.Name, n, errs)
 	}
 	return errs

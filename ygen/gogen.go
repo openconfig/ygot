@@ -1106,7 +1106,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 		PackageName      string           // PackgeName is the name of the package to be generated.
 		YANGFiles        []string         // YANGFiles contains the list of input YANG source files for code generation.
 		IncludePaths     []string         // IncludePaths contains the list of paths that included modules were searched for in.
-		CompressEnabled  bool             // CompressEnabled indicates whether CompressOCPaths was set.
+		CompressEnabled  bool             // CompressEnabled indicates whether compression is enabled.
 		GeneratingBinary string           // GeneratingBinary is the name of the binary generating the code.
 		GenerateSchema   bool             // GenerateSchema stores whether the generator requested that the schema was to be stored with the output code.
 		GoOptions        GoOpts           // GoOptions stores additional Go-specific options for the output code, including package paths.
@@ -1118,7 +1118,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 		PackageName:      cfg.PackageName,
 		YANGFiles:        yangFiles,
 		IncludePaths:     includePaths,
-		CompressEnabled:  cfg.TransformationOptions.CompressOCPaths,
+		CompressEnabled:  cfg.TransformationOptions.CompressBehaviour.CompressEnabled(),
 		GeneratingBinary: cfg.Caller,
 		GenerateSchema:   cfg.GenerateJSONSchema,
 		GoOptions:        cfg.GoOptions,
@@ -1145,6 +1145,23 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 	return common.String(), oneoff.String(), nil
 }
 
+// IsScalarField determines which fields should be converted to pointers when
+// outputting structs; this is done to allow checks against nil.
+func IsScalarField(field *yang.Entry, t *MappedType) bool {
+	switch {
+	// A union shouldn't be a pointer since its field type is an interface;
+	case len(t.UnionTypes) >= 2:
+		return false
+	// an enumerated value shouldn't be a pointer either since its has an UNSET value;
+	case t.IsEnumeratedValue:
+		return false
+	// an unmapped type (interface{}), byte slice, or a leaflist can also use nil already, so they should also not be pointers.
+	case t.NativeType == ygot.BinaryTypeName, t.NativeType == ygot.EmptyTypeName, t.NativeType == "interface{}", field.ListAttr != nil:
+		return false
+	}
+	return true
+}
+
 // writeGoStruct generates code snippets for targetStruct. The parameter goStructElements
 // contains other Directory structs for which code is being generated, that may be referenced
 // during the generation of the code corresponding to targetStruct (e.g., to determine a
@@ -1154,7 +1171,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, state *genState, compressOCPaths, generateJSONSchema bool, goOpts GoOpts) (GoStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, state *genState, compressPaths, generateJSONSchema bool, goOpts GoOpts) (GoStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -1264,16 +1281,13 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		case field.IsLeaf() || field.IsLeafList():
 			// This is a leaf or leaf-list, so we map it into the Go type that corresponds to the
 			// YANG type that the leaf represents.
-			mtype, err := state.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressOCPaths)
+			mtype, err := state.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressPaths)
 			if err != nil {
 				errs = append(errs, err)
 				continue
 			}
 
-			// Set the default type to the mapped Go type, and note that it is a scalar field. This is
-			// used to determine fields that should be converted to pointers when outputting structs.
-			// This is done to allow checks against nil.
-			scalarField := true
+			// Set the default type to the mapped Go type.
 			fType := mtype.NativeType
 			schemapath := util.SchemaTreePathNoModule(field)
 			zeroValue := mtype.ZeroValue
@@ -1281,9 +1295,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 
 			if len(mtype.UnionTypes) > 1 {
 				// If this is a union that has more than one subtype, then we need
-				// to ensure that we do not map this as a pointer type (since its
-				// field type is an interface), and generate the relevant interface.
-				scalarField = false
+				// to generate the relevant interface.
 				if _, ok := state.generatedUnionInterfaces[targetStruct.Name][mtype.NativeType]; !ok {
 					// If the union type has not already been generated, then create it.
 					// This is to handle cases whereby we can have two types that are
@@ -1325,25 +1337,17 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 				}
 			}
 
-			switch {
-			case field.ListAttr != nil:
+			if field.ListAttr != nil {
 				// If the field's ListAttr is set, then this indicates that this
 				// element is a leaf-list. We represent a leaf-list in the output
 				// code using a slice of the type that the element was mapped to.
 				fType = fmt.Sprintf("[]%s", fType)
-				scalarField = false
 				// Slices have a nil zero value rather than the value of their
 				// underlying type.
 				zeroValue = "nil"
-			case mtype.IsEnumeratedValue == true, mtype.NativeType == "interface{}", mtype.NativeType == ygot.BinaryTypeName, mtype.NativeType == ygot.EmptyTypeName:
-				// If the value is an enumerated value, then we did not represent it
-				// as a pointer within the struct, so mark it as a scalar field such
-				// that the template does not attempt to prefix it with an asterisk.
-				// A similar rule exists if the value has not been mapped to a type
-				// and is instead represented as the empty interface, or if the
-				// native type is a byte slice.
-				scalarField = false
 			}
+
+			scalarField := IsScalarField(field, mtype)
 
 			definedNameMap[fName].IsPtr = scalarField
 			if mtype.IsEnumeratedValue {
@@ -1379,7 +1383,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		// Find the schema paths that the field corresponds to, such that these can
 		// be used as annotations (tags) within the generated struct. Go paths are
 		// always relative.
-		schemaMapPaths, err := findMapPaths(targetStruct, fName, compressOCPaths, false)
+		schemaMapPaths, err := findMapPaths(targetStruct, fName, compressPaths, false)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -1797,11 +1801,7 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 			Type: listElem.ListAttr.Keys[keName].NativeType,
 			Tags: fmt.Sprintf(`path:"%s"`, keName),
 		}
-		// All list key values should be represented as pointers, other than those that
-		// are enumerated values, and hence we mark IsScalarField as true for these.
-		if !listElem.ListAttr.Keys[keName].IsEnumeratedValue && len(listElem.ListAttr.Keys[keName].UnionTypes) < 2 {
-			keyField.IsScalarField = true
-		}
+		keyField.IsScalarField = IsScalarField(listField.Dir[keName], listElem.ListAttr.Keys[keName])
 		listKeys = append(listKeys, keyField)
 	}
 
@@ -1911,13 +1911,13 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 // If absolutePaths is set, the paths are absolute otherwise they are relative to the parent. If
 // the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
 // path is also returned.
-func findMapPaths(parent *Directory, fieldName string, compressOCPaths, absolutePaths bool) ([][]string, error) {
+func findMapPaths(parent *Directory, fieldName string, compressPaths, absolutePaths bool) ([][]string, error) {
 	childPath, err := FindSchemaPath(parent, fieldName, absolutePaths)
 	if err != nil {
 		return nil, err
 	}
 	mapPaths := [][]string{childPath}
-	if !compressOCPaths || parent.ListAttr == nil {
+	if !compressPaths || parent.ListAttr == nil {
 		return mapPaths, nil
 	}
 

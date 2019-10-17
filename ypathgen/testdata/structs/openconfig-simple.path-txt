@@ -85,17 +85,17 @@ type Parent_Child struct {
 	ygot.NodePath
 }
 
-// Parent_Child_Four represents the /openconfig-simple/parent/child/config/four YANG schema element.
+// Parent_Child_Four represents the /openconfig-simple/parent/child/state/four YANG schema element.
 type Parent_Child_Four struct {
 	ygot.NodePath
 }
 
-// Parent_Child_One represents the /openconfig-simple/parent/child/config/one YANG schema element.
+// Parent_Child_One represents the /openconfig-simple/parent/child/state/one YANG schema element.
 type Parent_Child_One struct {
 	ygot.NodePath
 }
 
-// Parent_Child_Three represents the /openconfig-simple/parent/child/config/three YANG schema element.
+// Parent_Child_Three represents the /openconfig-simple/parent/child/state/three YANG schema element.
 type Parent_Child_Three struct {
 	ygot.NodePath
 }
@@ -109,7 +109,7 @@ type Parent_Child_Two struct {
 func (n *Parent_Child) Four() *Parent_Child_Four {
 	return &Parent_Child_Four{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "four"},
+			[]string{"state", "four"},
 			map[string]interface{}{},
 			n,
 		),
@@ -120,7 +120,7 @@ func (n *Parent_Child) Four() *Parent_Child_Four {
 func (n *Parent_Child) One() *Parent_Child_One {
 	return &Parent_Child_One{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "one"},
+			[]string{"state", "one"},
 			map[string]interface{}{},
 			n,
 		),
@@ -131,7 +131,7 @@ func (n *Parent_Child) One() *Parent_Child_One {
 func (n *Parent_Child) Three() *Parent_Child_Three {
 	return &Parent_Child_Three{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "three"},
+			[]string{"state", "three"},
 			map[string]interface{}{},
 			n,
 		),
@@ -154,7 +154,7 @@ type RemoteContainer struct {
 	ygot.NodePath
 }
 
-// RemoteContainer_ALeaf represents the /openconfig-simple/remote-container/config/a-leaf YANG schema element.
+// RemoteContainer_ALeaf represents the /openconfig-simple/remote-container/state/a-leaf YANG schema element.
 type RemoteContainer_ALeaf struct {
 	ygot.NodePath
 }
@@ -163,7 +163,7 @@ type RemoteContainer_ALeaf struct {
 func (n *RemoteContainer) ALeaf() *RemoteContainer_ALeaf {
 	return &RemoteContainer_ALeaf{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "a-leaf"},
+			[]string{"state", "a-leaf"},
 			map[string]interface{}{},
 			n,
 		),

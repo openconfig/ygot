@@ -230,6 +230,8 @@ func main() {
 		log.Exitf("Error: cannot specify both outputFile (%s) and outputDir (%s)", *outputFile, *outputDir)
 	}
 
+	compressBehaviour := genutil.TranslateToCompressBehaviour(*compressPaths, *excludeState)
+
 	// Perform the code generation.
 	cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
 		ParseOptions: ygen.ParseOpts{
@@ -237,12 +239,11 @@ func main() {
 			YANGParseOptions: yang.Options{
 				IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
 			},
-			ExcludeState: *excludeState,
 		},
 		TransformationOptions: ygen.TransformationOpts{
-			CompressOCPaths:  *compressPaths,
-			GenerateFakeRoot: *generateFakeRoot,
-			FakeRootName:     *fakeRootName,
+			CompressBehaviour: compressBehaviour,
+			GenerateFakeRoot:  *generateFakeRoot,
+			FakeRootName:      *fakeRootName,
 		},
 		PackageName:        *packageName,
 		GenerateJSONSchema: *generateSchema,

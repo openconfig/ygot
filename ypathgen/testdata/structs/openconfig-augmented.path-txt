@@ -70,7 +70,7 @@ type Native struct {
 	ygot.NodePath
 }
 
-// Native_A represents the /openconfig-simple-target/native/config/a YANG schema element.
+// Native_A represents the /openconfig-simple-target/native/state/a YANG schema element.
 type Native_A struct {
 	ygot.NodePath
 }
@@ -79,7 +79,7 @@ type Native_A struct {
 func (n *Native) A() *Native_A {
 	return &Native_A{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "a"},
+			[]string{"state", "a"},
 			map[string]interface{}{},
 			n,
 		),
@@ -107,7 +107,7 @@ type Target_Foo struct {
 	ygot.NodePath
 }
 
-// Target_Foo_A represents the /openconfig-simple-target/target/foo/config/a YANG schema element.
+// Target_Foo_A represents the /openconfig-simple-target/target/foo/state/a YANG schema element.
 type Target_Foo_A struct {
 	ygot.NodePath
 }
@@ -116,7 +116,7 @@ type Target_Foo_A struct {
 func (n *Target_Foo) A() *Target_Foo_A {
 	return &Target_Foo_A{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "a"},
+			[]string{"state", "a"},
 			map[string]interface{}{},
 			n,
 		),

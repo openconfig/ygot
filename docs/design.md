@@ -33,9 +33,10 @@ particularly:
   entire list, rather than solely the keys when a particular leaf path is
   queried.
 
-To improve human usability, the `ygen` library provides a `CompressOCPaths`
-option (specified in the `YANGCodeGenerator` struct's `Config` field). When `CompressOCPaths` is
-set to `true`, the following schema transformations are made:
+To improve human usability, the `ygen` library provides a `CompressBehaviour`
+option (specified in the `YANGCodeGenerator` struct's `Config` field). When
+`CompressBehaviour` is set to one of the compressed options, the following
+schema transformations are made:
 
 * The `config` and `state` containers are "compressed" out of the schema.
 * The surrounding `container` entities are removed from `list` nodes.
@@ -50,8 +51,9 @@ that are shorter, and more human-usable:
 * `/interfaces/interface/subinterfaces/subinterface/state/oper-status` becomes
   `/interface/subinterface/oper-status`.
 
-With `CompressOCPaths` set to `true`, the modified forms of the paths are used
-whenever the path of an entity is required (e.g., in YANG name generation).
+With `CompressBehaviour` set to a compressed value, the modified forms of the
+paths are used whenever the path of an entity is required (e.g., in YANG name
+generation).
 
 The logic to extract which entities are valid to have code
 generation performed for them (skipping `config`/`state` containers, and
@@ -72,7 +74,7 @@ of enumerated values are:
   `enumeration`, as their sole type, or within an `enumeration`.
 
 Each entity is named in the output Go code according to its path in the schema.
-The path may be modified using the `CompressOCPaths` as described above.
+The path may be modified using the `CompressBehaviour` as described above.
 
 ### Output Go structures and their fields
 
@@ -130,7 +132,7 @@ the type of the enumerated leaf in YANG.
   `leaf` in the schema (i.e., an `identityref`). They are named according to the
   module that they are defined in, and the `identity` name - i.e., `identity
   foo` in module `bar-module` is named `BarModule_Foo`. The naming of such
-  identities is not modified when `CompressOCPaths` is enabled.
+  identities is not modified when compression is enabled.
   * This mapping is handled by `yang_helpers.go`:`resolveIdentityRefBaseType`.
 * Non-builtin types created via a `typedef` statement that contain an
   enumeration are identified according to the module that they are defined in,

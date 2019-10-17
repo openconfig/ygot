@@ -16,6 +16,7 @@ package genutil
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -138,15 +139,11 @@ func TestTypeDefaultValue(t *testing.T) {
 // a simplified and unsimplified schema can be tested.
 func TestFindChildren(t *testing.T) {
 	tests := []struct {
-		name             string
-		inElement        *yang.Entry
-		inExcludeState   bool
-		wantCompressed   []yang.Entry
-		wantUncompressed []yang.Entry
-		// wantErr is a map keyed by the CompressOCPaths value of whether errors
-		// are expected. i.e., wantErr[true] = false means that an error is not
-		// expected when the test is run with CompressOCPaths == true.
-		wantErr map[bool]bool
+		name      string
+		inElement *yang.Entry
+		want      map[CompressBehaviour][]yang.Entry
+		// wantErr says whether a given compressBehaviour expects errors.
+		wantErr map[CompressBehaviour]bool
 	}{{
 		name: "interface",
 		inElement: &yang.Entry{
@@ -205,45 +202,93 @@ func TestFindChildren(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: []yang.Entry{
-			{
-				Name:   "name",
-				Config: yang.TSTrue,
-				Type: &yang.YangType{
-					Kind: yang.Ystring,
+		want: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig: []yang.Entry{
+				{
+					Name:   "name",
+					Config: yang.TSTrue,
+					Type: &yang.YangType{
+						Kind: yang.Ystring,
+					},
+				},
+				{
+					Name:   "type",
+					Config: yang.TSTrue,
+					Type:   &yang.YangType{Kind: yang.Ystring},
+				},
+				{
+					Name:   "admin-status",
+					Config: yang.TSFalse,
+					Type: &yang.YangType{
+						Kind: yang.Ystring,
+					},
 				},
 			},
-			{
-				Name:   "type",
-				Config: yang.TSTrue,
-				Type:   &yang.YangType{Kind: yang.Ystring},
-			},
-			{
-				Name:   "admin-status",
-				Config: yang.TSFalse,
-				Type: &yang.YangType{
-					Kind: yang.Ystring,
+			Uncompressed: []yang.Entry{
+				{
+					Name:   "config",
+					Config: yang.TSTrue,
+					Type:   &yang.YangType{},
+				},
+				{
+					Name:   "state",
+					Config: yang.TSFalse,
+					Type:   &yang.YangType{},
+				},
+				{
+					Name:   "name",
+					Config: yang.TSTrue,
+					Type:   &yang.YangType{Kind: yang.Yleafref},
 				},
 			},
-		},
-		wantUncompressed: []yang.Entry{
-			{
-				Name:   "config",
-				Config: yang.TSTrue,
-				Type:   &yang.YangType{},
+			ExcludeDerivedState: []yang.Entry{
+				{
+					Name:   "name",
+					Config: yang.TSTrue,
+					Type: &yang.YangType{
+						Kind: yang.Ystring,
+					},
+				},
+				{
+					Name:   "type",
+					Config: yang.TSTrue,
+					Type:   &yang.YangType{Kind: yang.Ystring},
+				},
 			},
-			{
-				Name:   "state",
-				Config: yang.TSFalse,
-				Type:   &yang.YangType{},
+			UncompressedExcludeDerivedState: []yang.Entry{
+				{
+					Name:   "config",
+					Config: yang.TSTrue,
+					Type:   &yang.YangType{},
+				},
+				{
+					Name:   "name",
+					Config: yang.TSTrue,
+					Type:   &yang.YangType{Kind: yang.Yleafref},
+				},
 			},
-			{
-				Name:   "name",
-				Config: yang.TSTrue,
-				Type:   &yang.YangType{Kind: yang.Yleafref},
+			PreferOperationalState: []yang.Entry{
+				{
+					Name:   "name",
+					Config: yang.TSFalse,
+					Type: &yang.YangType{
+						Kind: yang.Ystring,
+					},
+				},
+				{
+					Name:   "type",
+					Config: yang.TSFalse,
+					Type:   &yang.YangType{Kind: yang.Ystring},
+				},
+				{
+					Name:   "admin-status",
+					Config: yang.TSFalse,
+					Type: &yang.YangType{
+						Kind: yang.Ystring,
+					},
+				},
 			},
-		},
-	}, {
+		}}, {
 		name: "surrounding-container",
 		inElement: &yang.Entry{
 			Name:   "root",
@@ -266,22 +311,30 @@ func TestFindChildren(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: []yang.Entry{
-			{
-				Name:   "singular",
-				Config: yang.TSTrue,
-				Type:   &yang.YangType{},
+		want: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig: []yang.Entry{
+				{
+					Name:   "singular",
+					Config: yang.TSTrue,
+					Type:   &yang.YangType{},
+				},
 			},
-		},
-		wantUncompressed: []yang.Entry{
-			{
-				Name:   "plural",
-				Config: yang.TSTrue,
-				Type:   &yang.YangType{},
+			PreferOperationalState: []yang.Entry{
+				{
+					Name:   "singular",
+					Config: yang.TSTrue,
+					Type:   &yang.YangType{},
+				},
 			},
-		},
-	}, {
-		name: "duplicate-elements",
+			Uncompressed: []yang.Entry{
+				{
+					Name:   "plural",
+					Config: yang.TSTrue,
+					Type:   &yang.YangType{},
+				},
+			},
+		}}, {
+		name: "duplicate-elements-in-config",
 		inElement: &yang.Entry{
 			Name:   "root",
 			Config: yang.TSTrue,
@@ -300,7 +353,34 @@ func TestFindChildren(t *testing.T) {
 				},
 			},
 		},
-		wantErr: map[bool]bool{true: true},
+		wantErr: map[CompressBehaviour]bool{
+			ExcludeDerivedState:  true,
+			PreferIntendedConfig: true,
+		},
+	}, {
+		name: "duplicate-elements-in-state",
+		inElement: &yang.Entry{
+			Name:   "root",
+			Config: yang.TSTrue,
+			Type:   &yang.YangType{},
+			Kind:   yang.DirectoryEntry,
+			Dir: map[string]*yang.Entry{
+				"name": {Name: "name"},
+				"state": {
+					Name:   "state",
+					Config: yang.TSFalse,
+					Type:   &yang.YangType{},
+					Kind:   yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"name": {Name: "name"},
+					},
+				},
+			},
+		},
+		wantErr: map[CompressBehaviour]bool{
+			PreferIntendedConfig:   true,
+			PreferOperationalState: true,
+		},
 	}, {
 		name: "choice entry",
 		inElement: &yang.Entry{
@@ -319,19 +399,26 @@ func TestFindChildren(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: []yang.Entry{
-			{
-				Name: "option",
-				Type: &yang.YangType{},
+		want: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig: []yang.Entry{
+				{
+					Name: "option",
+					Type: &yang.YangType{},
+				},
 			},
-		},
-		wantUncompressed: []yang.Entry{
-			{
-				Name: "option",
-				Type: &yang.YangType{},
+			PreferOperationalState: []yang.Entry{
+				{
+					Name: "option",
+					Type: &yang.YangType{},
+				},
 			},
-		},
-	}, {
+			Uncompressed: []yang.Entry{
+				{
+					Name: "option",
+					Type: &yang.YangType{},
+				},
+			},
+		}}, {
 		name: "choice entry within state",
 		inElement: &yang.Entry{
 			Name: "container",
@@ -358,13 +445,17 @@ func TestFindChildren(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: []yang.Entry{{
-			Name: "string",
-		}},
-		wantUncompressed: []yang.Entry{{
-			Name: "state",
-		}},
-	}, {
+		want: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig: []yang.Entry{{
+				Name: "string",
+			}},
+			PreferOperationalState: []yang.Entry{{
+				Name: "string",
+			}},
+			Uncompressed: []yang.Entry{{
+				Name: "state",
+			}},
+		}}, {
 		name: "choice entry within config",
 		inElement: &yang.Entry{
 			Name: "container",
@@ -391,13 +482,17 @@ func TestFindChildren(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: []yang.Entry{{
-			Name: "string",
-		}},
-		wantUncompressed: []yang.Entry{{
-			Name: "config",
-		}},
-	}, {
+		want: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig: []yang.Entry{{
+				Name: "string",
+			}},
+			PreferOperationalState: []yang.Entry{{
+				Name: "string",
+			}},
+			Uncompressed: []yang.Entry{{
+				Name: "config",
+			}},
+		}}, {
 		name: "exclude container which is config false",
 		inElement: &yang.Entry{
 			Name:   "container",
@@ -407,10 +502,10 @@ func TestFindChildren(t *testing.T) {
 				"field": {Name: "field"},
 			},
 		},
-		inExcludeState:   true,
-		wantCompressed:   []yang.Entry{},
-		wantUncompressed: []yang.Entry{},
-	}, {
+		want: map[CompressBehaviour][]yang.Entry{
+			ExcludeDerivedState:             []yang.Entry{},
+			UncompressedExcludeDerivedState: []yang.Entry{},
+		}}, {
 		name: "exclude leaf which is config false",
 		inElement: &yang.Entry{
 			Name:   "container",
@@ -421,10 +516,10 @@ func TestFindChildren(t *testing.T) {
 				"config-false": {Name: "config-false", Config: yang.TSFalse},
 			},
 		},
-		inExcludeState:   true,
-		wantCompressed:   []yang.Entry{{Name: "config-true"}},
-		wantUncompressed: []yang.Entry{{Name: "config-true"}},
-	}, {
+		want: map[CompressBehaviour][]yang.Entry{
+			ExcludeDerivedState:             []yang.Entry{{Name: "config-true"}},
+			UncompressedExcludeDerivedState: []yang.Entry{{Name: "config-true"}},
+		}}, {
 		name: "exclude read-only list within a container with compression",
 		inElement: &yang.Entry{
 			Name:   "container",
@@ -447,52 +542,61 @@ func TestFindChildren(t *testing.T) {
 				},
 			},
 		},
-		inExcludeState: true,
-		wantCompressed: []yang.Entry{},
-		wantUncompressed: []yang.Entry{{
-			Name:   "surrounding-container",
-			Config: yang.TSTrue,
-		}},
-	}}
+		want: map[CompressBehaviour][]yang.Entry{
+			ExcludeDerivedState: []yang.Entry{},
+			UncompressedExcludeDerivedState: []yang.Entry{{
+				Name:   "surrounding-container",
+				Config: yang.TSTrue,
+			}},
+		}}}
 
 	for _, tt := range tests {
-		for compress, expected := range map[bool][]yang.Entry{true: tt.wantCompressed, false: tt.wantUncompressed} {
-			elems, errs := FindAllChildren(tt.inElement, compress, tt.inExcludeState)
-			if tt.wantErr == nil && errs != nil {
-				t.Errorf("%s (compress: %v): errors %v for children of %s", tt.name, compress, errs, tt.inElement.Name)
-			} else {
-				if expErr, ok := tt.wantErr[compress]; ok {
-					if (errs != nil) != expErr {
-						t.Errorf("%s (compress: %v): did not get expected error", tt.name, compress)
-					}
+		for _, c := range []CompressBehaviour{
+			Uncompressed,
+			UncompressedExcludeDerivedState,
+			PreferIntendedConfig,
+			PreferOperationalState,
+			ExcludeDerivedState,
+		} {
+			// If this isn't a test case that has anything to test, we skip it.
+			wantErr, ok := tt.wantErr[c]
+			want := tt.want[c]
+			if !ok && want == nil {
+				// If not checking for either an error or output, then assume it's an uninteresting case.
+				continue
+			}
+
+			t.Run(fmt.Sprintf("%s:(compressBehaviour:%v)", tt.name, c), func(t *testing.T) {
+				elems, errs := FindAllChildren(tt.inElement, c)
+				if !wantErr && errs != nil {
+					t.Errorf("Unexpected errors %v for children of %s", errs, tt.inElement.Name)
+				} else if wantErr && errs == nil {
+					t.Error("Did not receive expected error")
 				}
-			}
 
-			retMap := map[string]*yang.Entry{}
-			for _, elem := range elems {
-				retMap[elem.Name] = elem
-			}
+				retMap := map[string]*yang.Entry{}
+				for _, elem := range elems {
+					retMap[elem.Name] = elem
+				}
 
-			for _, expectEntry := range expected {
-				if elem, ok := retMap[expectEntry.Name]; ok {
+				for _, expectEntry := range want {
+					elem, ok := retMap[expectEntry.Name]
+					if !ok {
+						t.Errorf("Could not find expected child %s in %s", expectEntry.Name, tt.inElement.Name)
+					}
 					delete(retMap, expectEntry.Name)
 					if elem.Config != expectEntry.Config {
-						t.Errorf("%s (compress: %v): element %s had wrong config status %s", tt.name, compress,
-							expectEntry.Name, elem.Config)
+						t.Errorf("Element %s had wrong config status %s", expectEntry.Name, elem.Config)
 					}
 					if elem.Type != nil && elem.Type.Kind != expectEntry.Type.Kind {
-						t.Errorf("%s (compress: %v): element %s had wrong type %s", tt.name,
-							compress, expectEntry.Name, elem.Type.Kind)
+						t.Errorf("Element %s had wrong type %s", expectEntry.Name, elem.Type.Kind)
 					}
-				} else {
-					t.Errorf("%s (compress: %v): could not find expected child %s in %s", tt.name, compress,
-						expectEntry.Name, tt.inElement.Name)
 				}
-			}
 
-			if len(retMap) != 0 && expected != nil {
-				t.Errorf("%s (compress: %v): got unexpected entries, got: %v, want: nil", tt.name, compress, retMap)
-			}
+				if len(retMap) != 0 && want != nil {
+					t.Errorf("Got unexpected entries, got: %v, want: nil", retMap)
+				}
+			})
 		}
 	}
 }

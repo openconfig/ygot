@@ -170,7 +170,7 @@ type Parent_Child struct {
 	ygot.NodePath
 }
 
-// Parent_Child_Id represents the /enum-module/parent/child/config/id YANG schema element.
+// Parent_Child_Id represents the /enum-module/parent/child/state/id YANG schema element.
 type Parent_Child_Id struct {
 	ygot.NodePath
 }
@@ -179,7 +179,7 @@ type Parent_Child_Id struct {
 func (n *Parent_Child) Id() *Parent_Child_Id {
 	return &Parent_Child_Id{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "id"},
+			[]string{"state", "id"},
 			map[string]interface{}{},
 			n,
 		),

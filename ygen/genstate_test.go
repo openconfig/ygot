@@ -16,17 +16,20 @@ package ygen
 
 import (
 	"encoding/json"
-	"reflect"
+	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
 )
 
 // TestFindEnumSet tests the findEnumSet function, ensuring that it performs
 // deduplication of re-used identities, and re-used typedefs. For inline
 // definitions, the enumerations should be duplicated. Tests are performed with
-// CompressOCPaths set to both true and false.
+// compression set to both true and false.
 func TestFindEnumSet(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -919,35 +922,31 @@ func TestFindEnumSet(t *testing.T) {
 			wantUncompressed = tt.wantUncompressed
 		}
 		for compressed, wanted := range map[bool]map[string]*yangEnum{true: tt.wantCompressed, false: wantUncompressed} {
-			cg := NewYANGCodeGenerator(&GeneratorConfig{
-				TransformationOptions: TransformationOpts{
-					CompressOCPaths: compressed,
-				},
-			})
-			entries, errs := cg.state.findEnumSet(tt.in, cg.Config.TransformationOptions.CompressOCPaths, tt.inOmitUnderscores)
+			state := newGenState()
+			entries, errs := state.findEnumSet(tt.in, compressed, tt.inOmitUnderscores)
 
 			if (errs != nil) != tt.wantErr {
-				t.Errorf("%s findEnumSet(%v, %v): did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", tt.name, tt.in, cg.Config.TransformationOptions.CompressOCPaths, errs, len(errs), tt.wantErr)
+				t.Errorf("%s findEnumSet(%v, %v): did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", tt.name, tt.in, compressed, errs, len(errs), tt.wantErr)
 				continue
 			}
 
 			for k, want := range wanted {
 				got, ok := entries[k]
 				if !ok {
-					t.Errorf("%s findEnumSet(CompressOCPaths: %v): could not find expected entry, got: %v, want: %s", tt.name, compressed, entries, k)
+					t.Errorf("%s findEnumSet(compressEnabled: %v): could not find expected entry, got: %v, want: %s", tt.name, compressed, entries, k)
 					continue
 				}
 
 				if want.entry.Name != got.entry.Name {
 					j, _ := json.Marshal(got)
-					t.Errorf("%s findEnumSet(CompressOCPaths: %v): extracted entry has wrong name: got %s, want: %s (%s)", tt.name,
+					t.Errorf("%s findEnumSet(compressEnabled: %v): extracted entry has wrong name: got %s, want: %s (%s)", tt.name,
 						compressed, got.entry.Name, want.entry.Name, string(j))
 				}
 
 				if want.entry.Type.IdentityBase != nil {
 					// Check the identity's base if this was an identityref.
 					if want.entry.Type.IdentityBase.Name != got.entry.Type.IdentityBase.Name {
-						t.Errorf("%s findEnumSet(CompressOCPaths: %v): found identity %s, has wrong base, got: %v, want: %v", tt.name,
+						t.Errorf("%s findEnumSet(compressEnabled: %v): found identity %s, has wrong base, got: %v, want: %v", tt.name,
 							compressed, want.entry.Name, want.entry.Type.IdentityBase.Name, got.entry.Type.IdentityBase.Name)
 					}
 				}
@@ -1103,16 +1102,19 @@ func TestStructName(t *testing.T) {
 
 func TestBuildDirectoryDefinitions(t *testing.T) {
 	tests := []struct {
-		name                             string
-		in                               []*yang.Entry
-		wantGoCompress                   map[string]*Directory
-		wantGoUncompress                 map[string]*Directory
-		wantGoCompressStateExcluded      map[string]*Directory
-		wantGoUncompressStateExcluded    map[string]*Directory
-		wantProtoCompress                map[string]*Directory
-		wantProtoUncompress              map[string]*Directory
-		wantProtoCompressStateExcluded   map[string]*Directory
-		wantProtoUncompressStateExcluded map[string]*Directory
+		name                                    string
+		in                                      []*yang.Entry
+		checkPath                               bool // checkPath says whether the Directories' Path field should be checked.
+		wantGoCompress                          map[string]*Directory
+		wantGoCompressPreferOperationalState    map[string]*Directory
+		wantGoUncompress                        map[string]*Directory
+		wantGoCompressStateExcluded             map[string]*Directory
+		wantGoUncompressStateExcluded           map[string]*Directory
+		wantProtoCompress                       map[string]*Directory
+		wantProtoCompressPreferOperationalState map[string]*Directory
+		wantProtoUncompress                     map[string]*Directory
+		wantProtoCompressStateExcluded          map[string]*Directory
+		wantProtoUncompressStateExcluded        map[string]*Directory
 	}{{
 		name: "basic struct generation test",
 		in: []*yang.Entry{{
@@ -1157,11 +1159,23 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				},
 			},
 		}},
+		checkPath: true,
 		wantGoCompress: map[string]*Directory{
 			"/module/s1": {
 				Name: "S1",
 				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+				},
+				Path: []string{"", "module", "s1"},
+			},
+		},
+		wantGoCompressPreferOperationalState: map[string]*Directory{
+			"/module/s1": {
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 				},
@@ -1227,6 +1241,17 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				Name: "S1",
 				Fields: map[string]*yang.Entry{
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+				},
+				Path: []string{"", "module", "s1"},
+			},
+		},
+		wantProtoCompressPreferOperationalState: map[string]*Directory{
+			"/module/s1": {
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 				},
@@ -1458,11 +1483,39 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				},
 			},
 		},
+		checkPath: true,
 		wantGoCompress: map[string]*Directory{
 			"/module/s1": {
 				Name: "S1",
 				Fields: map[string]*yang.Entry{
 					"l1":              {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2":              {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l3":              {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+					"outer-container": {Name: "outer-container"},
+				},
+				Path: []string{"", "module", "s1"},
+			},
+			"/module/s1/outer-container": {
+				Name: "S1_OuterContainer",
+				Fields: map[string]*yang.Entry{
+					"inner-container": {Name: "inner-container"},
+				},
+				Path: []string{"", "module", "s1", "outer-container"},
+			},
+			"/module/s1/outer-container/inner-container": {
+				Name: "S1_OuterContainer_InnerContainer",
+				Fields: map[string]*yang.Entry{
+					"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				Path: []string{"", "module", "s1", "outer-container", "inner-container"},
+			},
+		},
+		wantGoCompressPreferOperationalState: map[string]*Directory{
+			"/module/s1": {
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
+					"l1":              {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l2":              {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3":              {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 					"outer-container": {Name: "outer-container"},
@@ -1546,6 +1599,33 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				Name: "S1",
 				Fields: map[string]*yang.Entry{
 					"l1":              {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2":              {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l3":              {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+					"outer-container": {Name: "outer-container"},
+				},
+				Path: []string{"", "module", "s1"},
+			},
+			"/module/s1/outer-container": {
+				Name: "OuterContainer",
+				Fields: map[string]*yang.Entry{
+					"inner-container": {Name: "inner-container"},
+				},
+				Path: []string{"", "module", "s1", "outer-container"},
+			},
+			"/module/s1/outer-container/inner-container": {
+				Name: "InnerContainer",
+				Fields: map[string]*yang.Entry{
+					"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				Path: []string{"", "module", "s1", "outer-container", "inner-container"},
+			},
+		},
+		wantProtoCompressPreferOperationalState: map[string]*Directory{
+			"/module/s1": {
+				Name: "S1",
+				Fields: map[string]*yang.Entry{
+					"l1":              {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l2":              {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3":              {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 					"outer-container": {Name: "outer-container"},
@@ -1752,7 +1832,18 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				},
 			},
 		},
+		checkPath: true,
 		wantGoCompress: map[string]*Directory{
+			"/module/top-container": {
+				Name: "TopContainer",
+				Fields: map[string]*yang.Entry{
+					"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
+					"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				Path: []string{"", "module", "top-container"},
+			},
+		},
+		wantGoCompressPreferOperationalState: map[string]*Directory{
 			"/module/top-container": {
 				Name: "TopContainer",
 				Fields: map[string]*yang.Entry{
@@ -2124,14 +2215,6 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 	}}
 
 	// Simple helper functions for error messages
-	dirNames := func(dirs map[string]*Directory) []string {
-		names := []string{}
-		for k := range dirs {
-			names = append(names, k)
-		}
-		return names
-	}
-
 	fieldNames := func(dir *Directory) []string {
 		names := []string{}
 		for k := range dir.Fields {
@@ -2150,46 +2233,50 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 
 	for _, tt := range tests {
 		combinations := []struct {
-			lang         generatedLanguage     // lang is the language to run the test for.
-			compress     bool                  // compress indicates whether  path compression should be enabled.
-			excludeState bool                  // excludeState indicates whether config false values should be excluded.
-			want         map[string]*Directory // want is the expected output of buildDirectoryDefinitions.
+			lang              generatedLanguage         // lang is the language to run the test for.
+			compressBehaviour genutil.CompressBehaviour // compressBehaviour indicates whether path compression should be enabled and whether state fields should be excluded.
+			excludeState      bool                      // excludeState indicates whether config false values should be excluded.
+			want              map[string]*Directory     // want is the expected output of buildDirectoryDefinitions.
 		}{{
-			lang:     golang,
-			compress: true,
-			want:     tt.wantGoCompress,
+			lang:              golang,
+			compressBehaviour: genutil.PreferIntendedConfig,
+			want:              tt.wantGoCompress,
 		}, {
-			lang:     golang,
-			compress: false,
-			want:     tt.wantGoUncompress,
+			lang:              golang,
+			compressBehaviour: genutil.PreferOperationalState,
+			want:              tt.wantGoCompressPreferOperationalState,
 		}, {
-			lang:     protobuf,
-			compress: true,
-			want:     tt.wantProtoCompress,
+			lang:              golang,
+			compressBehaviour: genutil.Uncompressed,
+			want:              tt.wantGoUncompress,
 		}, {
-			lang:     protobuf,
-			compress: false,
-			want:     tt.wantProtoUncompress,
+			lang:              protobuf,
+			compressBehaviour: genutil.PreferIntendedConfig,
+			want:              tt.wantProtoCompress,
 		}, {
-			lang:         golang,
-			compress:     true,
-			excludeState: true,
-			want:         tt.wantGoCompressStateExcluded,
+			lang:              protobuf,
+			compressBehaviour: genutil.PreferOperationalState,
+			want:              tt.wantProtoCompressPreferOperationalState,
 		}, {
-			lang:         golang,
-			compress:     false,
-			excludeState: true,
-			want:         tt.wantGoUncompressStateExcluded,
+			lang:              protobuf,
+			compressBehaviour: genutil.Uncompressed,
+			want:              tt.wantProtoUncompress,
 		}, {
-			lang:         protobuf,
-			compress:     true,
-			excludeState: true,
-			want:         tt.wantProtoCompressStateExcluded,
+			lang:              golang,
+			compressBehaviour: genutil.ExcludeDerivedState,
+			want:              tt.wantGoCompressStateExcluded,
 		}, {
-			lang:         protobuf,
-			compress:     false,
-			excludeState: true,
-			want:         tt.wantProtoUncompressStateExcluded,
+			lang:              golang,
+			compressBehaviour: genutil.UncompressedExcludeDerivedState,
+			want:              tt.wantGoUncompressStateExcluded,
+		}, {
+			lang:              protobuf,
+			compressBehaviour: genutil.ExcludeDerivedState,
+			want:              tt.wantProtoCompressStateExcluded,
+		}, {
+			lang:              protobuf,
+			compressBehaviour: genutil.UncompressedExcludeDerivedState,
+			want:              tt.wantProtoUncompressStateExcluded,
 		}}
 
 		for _, c := range combinations {
@@ -2198,86 +2285,68 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				continue
 			}
 
-			cg := NewYANGCodeGenerator(&GeneratorConfig{
-				TransformationOptions: TransformationOpts{
-					CompressOCPaths: c.compress,
-				},
-			})
+			t.Run(fmt.Sprintf("%s:buildDirectoryDefinitions(CompressBehaviour:%v,Language:%s,excludeState:%v)", tt.name, c.compressBehaviour, langName(c.lang), c.excludeState), func(t *testing.T) {
+				state := newGenState()
 
-			st, err := buildSchemaTree(tt.in)
-			if err != nil {
-				t.Errorf("%s: buildSchemaTree(%v), got unexpected err: %v", tt.name, tt.in, err)
-				continue
-			}
-			cg.state.schematree = st
+				st, err := buildSchemaTree(tt.in)
+				if err != nil {
+					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
+				}
+				state.schematree = st
 
-			structs := make(map[string]*yang.Entry)
-			enums := make(map[string]*yang.Entry)
+				structs := make(map[string]*yang.Entry)
+				enums := make(map[string]*yang.Entry)
 
-			var errs []error
-			for _, inc := range tt.in {
-				// Always provide a nil set of modules to findMappableEntities since this
-				// is only used to skip elements.
-				errs = append(errs, findMappableEntities(inc, structs, enums, []string{}, c.compress, []*yang.Entry{})...)
-			}
-			if errs != nil {
-				t.Errorf("%s: findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v", tt.name, tt.in, structs, enums, c.compress, err)
-				continue
-			}
-
-			got, errs := cg.state.buildDirectoryDefinitions(structs, cg.Config.TransformationOptions.CompressOCPaths, cg.Config.TransformationOptions.GenerateFakeRoot, c.lang, c.excludeState)
-			if errs != nil {
-				t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): could not build struct defs: %v", tt.name, c.compress, langName(c.lang), c.excludeState, errs)
-				continue
-			}
-
-			if len(got) != len(c.want) {
-				t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): did not get expected set of structs, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, dirNames(got), dirNames(c.want))
-				continue
-			}
-
-			for gotName, gotDir := range got {
-				wantDir, ok := c.want[gotName]
-				if !ok {
-					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): could not find expected struct %s, got: %v, want: %v",
-						tt.name, c.compress, langName(c.lang), c.excludeState, gotName, got, c.want)
-					continue
+				var errs []error
+				for _, inc := range tt.in {
+					// Always provide a nil set of modules to findMappableEntities since this
+					// is only used to skip elements.
+					errs = append(errs, findMappableEntities(inc, structs, enums, []string{}, c.compressBehaviour.CompressEnabled(), []*yang.Entry{})...)
+				}
+				if errs != nil {
+					t.Fatalf("findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v", tt.in, structs, enums, c.compressBehaviour.CompressEnabled(), err)
 				}
 
-				if len(gotDir.Fields) != len(wantDir.Fields) {
-					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): did not get expected set of fields for %s, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotName, fieldNames(gotDir), fieldNames(wantDir))
-					continue
+				got, errs := state.buildDirectoryDefinitions(structs, c.compressBehaviour, false, c.lang)
+				if errs != nil {
+					t.Fatal(errs)
 				}
 
-				for fieldk, fieldv := range wantDir.Fields {
-					cmpfield, ok := gotDir.Fields[fieldk]
-					if !ok {
-						t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): could not find expected field %s in %s, got: %v",
-							tt.name, c.compress, langName(c.lang), c.excludeState, fieldk, gotName, gotDir.Fields)
-						continue
-					}
+				// This checks the "Name" and maybe "Path" attributes of the output Directories.
+				ignoreFields := []string{"Entry", "Fields", "ListAttr", "IsFakeRoot"}
+				if !tt.checkPath {
+					ignoreFields = append(ignoreFields, "Path")
+				}
+				if diff := cmp.Diff(c.want, got, cmpopts.IgnoreFields(Directory{}, ignoreFields...)); diff != "" {
+					t.Errorf("(-want +got):\n%s", diff)
+				}
 
-					if fieldv.Name != cmpfield.Name {
-						t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): field %s of %s did not have expected name, got: %v, want: %v",
-							tt.name, c.compress, langName(c.lang), c.excludeState, fieldk, gotName, fieldv.Name, cmpfield.Name)
+				// Verify certain fields of the "Fields" attribute -- there are too many fields to ignore to use cmp.Diff for comparison.
+				for gotName, gotDir := range got {
+					// Note that any missing or extra Directories would've been caught with the previous check.
+					wantDir := c.want[gotName]
+					if len(gotDir.Fields) != len(wantDir.Fields) {
+						t.Fatalf("Did not get expected set of fields for %s, got: %v, want: %v", gotName, fieldNames(gotDir), fieldNames(wantDir))
 					}
+					for fieldk, fieldv := range wantDir.Fields {
+						cmpfield, ok := gotDir.Fields[fieldk]
+						if !ok {
+							t.Errorf("Could not find expected field %s in %s, got: %v", fieldk, gotName, gotDir.Fields)
+							continue // Fatal error for this field only.
+						}
 
-					if fieldv.Type != nil && cmpfield.Type != nil {
-						if fieldv.Type.Kind != cmpfield.Type.Kind {
-							t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): field %s of %s did not have expected type got: %s, want: %s",
-								tt.name, c.compress, langName(c.lang), c.excludeState, fieldk, gotName, fieldv.Type.Kind, cmpfield.Type.Kind)
+						if fieldv.Name != cmpfield.Name {
+							t.Errorf("Field %s of %s did not have expected name, got: %v, want: %v", fieldk, gotName, cmpfield.Name, fieldv.Name)
+						}
+
+						if fieldv.Type != nil && cmpfield.Type != nil {
+							if fieldv.Type.Kind != cmpfield.Type.Kind {
+								t.Errorf("Field %s of %s did not have expected type got: %s, want: %s", fieldk, gotName, cmpfield.Type.Kind, fieldv.Type.Kind)
+							}
 						}
 					}
 				}
-
-				if wantDir.Path != nil && !reflect.DeepEqual(wantDir.Path, gotDir.Path) {
-					t.Errorf("%s: buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): %s did not have matching path, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotName, gotDir.Path, wantDir.Path)
-				}
-
-				if gotDir.Name != wantDir.Name {
-					t.Errorf("%s buildDirectoryDefinitions(CompressOCPaths: %v, Language: %s, excludeState: %v): %s did not have matching name, got: %v, want: %v", tt.name, c.compress, langName(c.lang), c.excludeState, gotDir.Path, gotDir.Name, wantDir.Name)
-				}
-			}
+			})
 		}
 	}
 }

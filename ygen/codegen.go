@@ -27,6 +27,7 @@ import (
 
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 
@@ -96,19 +97,15 @@ type ParseOpts struct {
 	// github.com/openconfig/goyang/pkg/yang library. These specify how the
 	// input YANG files should be parsed.
 	YANGParseOptions yang.Options
-	// ExcludeState specifies whether config false values should be
-	// included in the generated code output. When set, all values that are
-	// not writeable (i.e., config false) within the YANG schema and their
-	// children are excluded from the generated code.
-	ExcludeState bool
 }
 
 // TransformationOpts specifies transformations to the generated code with
 // respect to the input schema.
 type TransformationOpts struct {
-	// CompressOCPaths indicates whether paths should be compressed in the output
-	// of an OpenConfig schema.
-	CompressOCPaths bool
+	// CompressBehaviour specifies how the set of direct children of any
+	// entry should determined. Specifically, whether compression is
+	// enabled, and whether state fields in the schema should be excluded.
+	CompressBehaviour genutil.CompressBehaviour
 	// GenerateFakeRoot specifies whether an entity that represents the
 	// root of the YANG schema tree should be generated in the generated
 	// code.
@@ -330,7 +327,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Store the returned schematree within the state for this code generation.
 	cg.state.schematree = mdef.schemaTree
 
-	directory, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressOCPaths, cg.Config.TransformationOptions.GenerateFakeRoot, golang, cg.Config.ParseOptions.ExcludeState)
+	directory, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot, golang)
 	if errs != nil {
 		return nil, errs
 	}
@@ -362,7 +359,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var structSnippets []GoStructCodeSnippet
 	for _, directoryName := range orderedDirNames {
 		structOut, errs := writeGoStruct(dirNameMap[directoryName], directory, cg.state,
-			cg.Config.TransformationOptions.CompressOCPaths, cg.Config.GenerateJSONSchema, cg.Config.GoOptions)
+			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.GenerateJSONSchema, cg.Config.GoOptions)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
@@ -376,7 +373,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		}
 	}
 
-	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressOCPaths, false)
+	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false)
 	if errs != nil {
 		codegenErr = util.AppendErrs(codegenErr, errs)
 		return nil, codegenErr
@@ -392,7 +389,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var enumTypeMapCode string
 	if cg.Config.GenerateJSONSchema {
 		var err error
-		rawSchema, err = buildJSONTree(mdef.modules, cg.state.uniqueDirectoryNames, mdef.directoryEntries["/"], cg.Config.TransformationOptions.CompressOCPaths)
+		rawSchema, err = buildJSONTree(mdef.modules, cg.state.uniqueDirectoryNames, mdef.directoryEntries["/"], cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled())
 		if err != nil {
 			util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}
@@ -425,19 +422,21 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}, nil
 }
 
-// GetDirectories parses YANG files and returns a path-keyed map of Directory
-// entries that is the intermediate representation used by ygen for subsequent
-// code generation. This representation may be useful to external code
-// generation libraries that make use of such information, e.g. if their output
-// code depends on a ygen-generated type. yangFiles is a slice of strings
-// containing the path to a set of YANG files which contain YANG modules.
-// includePaths is slice of strings which specifies the set of paths that are
-// to be searched for associated models (e.g., modules that are included by the
-// specified set of modules, or submodules of those modules).
-// Any errors encountered during code generation are returned.
-func (dcg *DirectoryGenConfig) GetDirectories(yangFiles, includePaths []string) (map[string]*Directory, util.Errors) {
-	if !dcg.TransformationOptions.CompressOCPaths {
-		return nil, util.Errors{fmt.Errorf("GetDirectories currently does not have unit tests for CompressOCPaths=false; if support needed, add unit tests and remove this error")}
+// GetDirectoriesAndLeafTypes parses YANG files and returns two path-keyed
+// maps. The first contains Directory entries that is the intermediate
+// representation used by ygen for subsequent code generation, and the second
+// contains the *MappedType for each field of the same corresponding Directory
+// entries, with non-leafs having a nil value. This representation may be
+// useful to external code generation libraries that make use of such
+// information, e.g. if their output code depends on a ygen-generated type.
+// yangFiles is a slice of strings containing the path to a set of YANG files
+// which contain YANG modules, includePaths is slice of strings which specifies
+// the set of paths that are to be searched for associated models (e.g.,
+// modules that are included by the specified set of modules, or submodules of
+// those modules). Any errors encountered during code generation are returned.
+func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePaths []string) (map[string]*Directory, map[string]map[string]*MappedType, util.Errors) {
+	if !dcg.TransformationOptions.CompressBehaviour.CompressEnabled() {
+		return nil, nil, util.Errors{fmt.Errorf("GetDirectoriesAndLeafTypes currently does not have unit tests for when compression is disabled; if support needed, add unit tests and remove this error")}
 	}
 
 	cg := &GeneratorConfig{ParseOptions: dcg.ParseOptions, TransformationOptions: dcg.TransformationOptions}
@@ -446,22 +445,50 @@ func (dcg *DirectoryGenConfig) GetDirectories(yangFiles, includePaths []string) 
 	// used to reference entities within the tree.
 	mdef, errs := mappedDefinitions(yangFiles, includePaths, cg)
 	if errs != nil {
-		return nil, errs
+		return nil, nil, errs
 	}
 
 	dirsToProcess := map[string]*yang.Entry(mdef.directoryEntries)
 
-	// TODO(wenbli): need to use state to return data about the returned directories (e.g. names & type names used in the generated Go code).
 	state := newGenState()
 
 	// Store the returned schematree within the state for this code generation.
 	state.schematree = mdef.schemaTree
 
-	directory, errs := state.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressOCPaths, cg.TransformationOptions.GenerateFakeRoot, golang, cg.ParseOptions.ExcludeState)
-	if errs != nil {
-		return nil, errs
+	directoryMap, errs := state.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot, golang)
+
+	// Alphabetically order directories to produce deterministic output.
+	orderedDirNames, dirNameMap, err := GetOrderedDirectories(directoryMap)
+	if err != nil {
+		return nil, nil, util.AppendErr(errs, err)
 	}
-	return directory, nil
+
+	// Populate map of leaf types for returning.
+	leafTypeMap := make(map[string]map[string]*MappedType, len(directoryMap))
+	for _, directoryName := range orderedDirNames {
+		dir := dirNameMap[directoryName]
+		path := dir.Entry.Path()
+		leafTypeMap[path] = make(map[string]*MappedType, len(dir.Fields))
+		// Alphabetically order fields to produce deterministic output.
+		for _, fieldName := range GetOrderedFieldNames(dir) {
+			field := dir.Fields[fieldName]
+			if isLeaf := field.IsLeaf() || field.IsLeafList(); isLeaf {
+				mtype, err := state.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, dcg.TransformationOptions.CompressBehaviour.CompressEnabled())
+				if err != nil {
+					errs = util.AppendErr(errs, err)
+					continue
+				}
+				leafTypeMap[path][fieldName] = mtype
+			} else {
+				leafTypeMap[path][fieldName] = nil
+			}
+		}
+	}
+
+	if errs != nil {
+		return nil, nil, errs
+	}
+	return directoryMap, leafTypeMap, nil
 }
 
 func generateEnumCode(goEnums map[string]*yangEnum) ([]string, string, util.Errors) {
@@ -523,7 +550,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 	cg.state.schematree = mdef.schemaTree
 
-	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressOCPaths, true)
+	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true)
 	if errs != nil {
 		return nil, errs
 	}
@@ -532,7 +559,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressOCPaths, cg.Config.TransformationOptions.GenerateFakeRoot, protobuf, cg.Config.ParseOptions.ExcludeState)
+	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot, protobuf)
 	if errs != nil {
 		return nil, errs
 	}
@@ -592,7 +619,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		m := msgMap[n]
 
 		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, &protoMsgConfig{
-			compressPaths:       cg.Config.TransformationOptions.CompressOCPaths,
+			compressPaths:       cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(),
 			basePackageName:     basePackageName,
 			enumPackageName:     enumPackageName,
 			baseImportPath:      cg.Config.ProtoOptions.BaseImportPath,
@@ -645,7 +672,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			Imports:                stringKeys(pkgImports[n]),
 			SourceYANGFiles:        yangFiles,
 			SourceYANGIncludePaths: includePaths,
-			CompressPaths:          cg.Config.TransformationOptions.CompressOCPaths,
+			CompressPaths:          cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(),
 			CallerName:             cg.Config.Caller,
 			YwrapperPath:           ywrapperPath,
 			YextPath:               yextPath,
@@ -768,7 +795,7 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 	enums := map[string]*yang.Entry{}
 	var rootElems, treeElems []*yang.Entry
 	for _, module := range modules {
-		errs = append(errs, findMappableEntities(module, dirs, enums, cfg.ParseOptions.ExcludeModules, cfg.TransformationOptions.CompressOCPaths, modules)...)
+		errs = append(errs, findMappableEntities(module, dirs, enums, cfg.ParseOptions.ExcludeModules, cfg.TransformationOptions.CompressBehaviour.CompressEnabled(), modules)...)
 		if module == nil {
 			errs = append(errs, errors.New("found a nil module in the returned module set"))
 			continue
@@ -796,7 +823,7 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 	// If we were asked to generate a fake root entity, then go and find the top-level entities that
 	// we were asked for.
 	if cfg.TransformationOptions.GenerateFakeRoot {
-		if err := createFakeRoot(dirs, rootElems, cfg.TransformationOptions.FakeRootName, cfg.TransformationOptions.CompressOCPaths); err != nil {
+		if err := createFakeRoot(dirs, rootElems, cfg.TransformationOptions.FakeRootName, cfg.TransformationOptions.CompressBehaviour.CompressEnabled()); err != nil {
 			return nil, []error{err}
 		}
 	}
@@ -943,7 +970,7 @@ func findRootEntries(structs map[string]*yang.Entry, compressPaths bool) map[str
 		case 3:
 			// Find all containers and lists that have a path of
 			// the form /module/entity-name regardless of whether
-			// cg.CompressOCPaths is enabled. In the case that we
+			// when compression is enabled. In the case that we
 			// are compressing, then all invalid elements have
 			// already been compressed out of the schema by this
 			// stage.
