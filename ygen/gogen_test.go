@@ -1713,13 +1713,13 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inGoOpts)
 
 				if len(errs) != 0 && !want.wantErr {
-					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): received unexpected errors: %v",
+					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): received unexpected errors: %v",
 						tt.name, compressed, tt.inStructToMap, errs)
 					continue
 				}
 
 				if len(errs) == 0 && want.wantErr {
-					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): did not receive expected errors",
+					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): did not receive expected errors",
 						tt.name, compressed, tt.inStructToMap)
 					continue
 				}
@@ -1734,7 +1734,7 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 					if diffl, err := testutil.GenerateUnifiedDiff(got.StructDef, want.structs); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-got,+want):\n%s",
+					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-got,+want):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
@@ -1742,7 +1742,7 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 					if diffl, err := testutil.GenerateUnifiedDiff(got.ListKeys, want.keys); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
+					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
@@ -1750,7 +1750,7 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 					if diffl, err := testutil.GenerateUnifiedDiff(got.Methods, want.methods); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s writeGoStruct(CompressOCPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
+					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
@@ -1758,7 +1758,7 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 					if diffl, err := testutil.GenerateUnifiedDiff(got.Interfaces, want.interfaces); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s: writeGoStruct(CompressOCPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
+					t.Errorf("%s: writeGoStruct(compressPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 			}
@@ -1952,13 +1952,13 @@ const (
 // mapped to are properly extracted from a schema element.
 func TestFindMapPaths(t *testing.T) {
 	tests := []struct {
-		name              string
-		inStruct          *Directory
-		inField           string
-		inCompressOCPaths bool
-		inAbsolutePaths   bool
-		wantPaths         [][]string
-		wantErr           bool
+		name            string
+		inStruct        *Directory
+		inField         string
+		inCompressPaths bool
+		inAbsolutePaths bool
+		wantPaths       [][]string
+		wantErr         bool
 	}{{
 		name: "first-level container with path compression off",
 		inStruct: &Directory{
@@ -2014,9 +2014,9 @@ func TestFindMapPaths(t *testing.T) {
 				},
 			},
 		},
-		inField:           "field-b",
-		inCompressOCPaths: true,
-		wantPaths:         [][]string{{"config", "field-b"}},
+		inField:         "field-b",
+		inCompressPaths: true,
+		wantPaths:       [][]string{{"config", "field-b"}},
 	}, {
 		name: "container with absolute paths on",
 		inStruct: &Directory{
@@ -2111,8 +2111,8 @@ func TestFindMapPaths(t *testing.T) {
 				},
 			},
 		},
-		inField:           "d-key",
-		inCompressOCPaths: true,
+		inField:         "d-key",
+		inCompressPaths: true,
 		wantPaths: [][]string{
 			{"config", "d-key"},
 			{"d-key"},
@@ -2120,18 +2120,18 @@ func TestFindMapPaths(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressOCPaths, tt.inAbsolutePaths)
+		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inAbsolutePaths)
 		if err != nil {
 			if !tt.wantErr {
 				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, got unexpected error: %v",
-					tt.name, tt.inStruct, tt.inField, tt.inCompressOCPaths, err)
+					tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, err)
 			}
 			continue
 		}
 
 		if !reflect.DeepEqual(got, tt.wantPaths) {
 			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, got wrong paths, got: %v, want: %v",
-				tt.name, tt.inStruct, tt.inField, tt.inCompressOCPaths, got, tt.wantPaths)
+				tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, got, tt.wantPaths)
 		}
 	}
 }

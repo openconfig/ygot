@@ -85,12 +85,12 @@ type Model_MultiKey struct {
 	ygot.NodePath
 }
 
-// Model_MultiKey_Key1 represents the /openconfig-withlist/model/b/multi-key/config/key1 YANG schema element.
+// Model_MultiKey_Key1 represents the /openconfig-withlist/model/b/multi-key/state/key1 YANG schema element.
 type Model_MultiKey_Key1 struct {
 	ygot.NodePath
 }
 
-// Model_MultiKey_Key2 represents the /openconfig-withlist/model/b/multi-key/config/key2 YANG schema element.
+// Model_MultiKey_Key2 represents the /openconfig-withlist/model/b/multi-key/state/key2 YANG schema element.
 type Model_MultiKey_Key2 struct {
 	ygot.NodePath
 }
@@ -99,7 +99,7 @@ type Model_MultiKey_Key2 struct {
 func (n *Model_MultiKey) Key1() *Model_MultiKey_Key1 {
 	return &Model_MultiKey_Key1{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "key1"},
+			[]string{"state", "key1"},
 			map[string]interface{}{},
 			n,
 		),
@@ -110,7 +110,7 @@ func (n *Model_MultiKey) Key1() *Model_MultiKey_Key1 {
 func (n *Model_MultiKey) Key2() *Model_MultiKey_Key2 {
 	return &Model_MultiKey_Key2{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "key2"},
+			[]string{"state", "key2"},
 			map[string]interface{}{},
 			n,
 		),
@@ -122,7 +122,7 @@ type Model_SingleKey struct {
 	ygot.NodePath
 }
 
-// Model_SingleKey_Key represents the /openconfig-withlist/model/a/single-key/config/key YANG schema element.
+// Model_SingleKey_Key represents the /openconfig-withlist/model/a/single-key/state/key YANG schema element.
 type Model_SingleKey_Key struct {
 	ygot.NodePath
 }
@@ -131,7 +131,7 @@ type Model_SingleKey_Key struct {
 func (n *Model_SingleKey) Key() *Model_SingleKey_Key {
 	return &Model_SingleKey_Key{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "key"},
+			[]string{"state", "key"},
 			map[string]interface{}{},
 			n,
 		),

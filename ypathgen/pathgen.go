@@ -129,14 +129,13 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 		ParseOptions: ygen.ParseOpts{
 			YANGParseOptions: cg.YANGParseOptions,
 			ExcludeModules:   cg.ExcludeModules,
-			ExcludeState:     false,
 		},
 		TransformationOptions: ygen.TransformationOpts{
-			CompressOCPaths:  true,
-			GenerateFakeRoot: true,
+			CompressBehaviour: genutil.PreferOperationalState,
+			GenerateFakeRoot:  true,
 		},
 	}
-	directories, errs := dcg.GetDirectories(yangFiles, includePaths)
+	directories, _, errs := dcg.GetDirectoriesAndLeafTypes(yangFiles, includePaths)
 	if errs != nil {
 		return nil, errs
 	}

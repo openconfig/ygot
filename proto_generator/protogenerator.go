@@ -27,6 +27,7 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/ygen"
 )
 
@@ -90,6 +91,8 @@ func main() {
 		}
 	}
 
+	compressBehaviour := genutil.TranslateToCompressBehaviour(*compressPaths, *excludeState)
+
 	// Perform the code generation.
 	cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
 		ParseOptions: ygen.ParseOpts{
@@ -97,12 +100,11 @@ func main() {
 			YANGParseOptions: yang.Options{
 				IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
 			},
-			ExcludeState: *excludeState,
 		},
 		TransformationOptions: ygen.TransformationOpts{
-			CompressOCPaths:  *compressPaths,
-			GenerateFakeRoot: *generateFakeRoot,
-			FakeRootName:     *fakeRootName,
+			CompressBehaviour: compressBehaviour,
+			GenerateFakeRoot:  *generateFakeRoot,
+			FakeRootName:      *fakeRootName,
 		},
 		PackageName: *packageName,
 		Caller:      *callerName,

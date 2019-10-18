@@ -179,15 +179,15 @@ func (s *genState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUndersco
 
 // buildDirectoryDefinitions extracts the yang.Entry instances from a map of
 // entries that need struct or message definitions built for them. It resolves
-// each yang.Entry to a Directory which contains the elements that are needed
-// for subsequent code generation. The name of the directory entry that is
-// returned is based on the generatedLanguage that is supplied. The
-// compressPaths and genFakeRoot arguments are used to determine how paths that
-// are included within the generated structs are used. If the excludeState
-// argument is set, those elements within the YANG schema that are marked
-// config false (i.e., are read only) are excluded from the returned
-// directories.
-func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compressPaths, genFakeRoot bool, lang generatedLanguage, excludeState bool) (map[string]*Directory, []error) {
+// each non-leaf yang.Entry to a Directory which contains the elements that are
+// needed for subsequent code generation. The name of the directory entry that
+// is returned is based on the generatedLanguage that is supplied. The
+// genFakeRoot argument tells to treat differently the fakeroot entry if it's
+// part of the input map. compBehaviour determines how to set the direct
+// children of a Directory, including whether those elements within the YANG
+// schema that are marked config false (i.e., are read only) are excluded from
+// the returned directories.
+func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour, genFakeRoot bool, lang generatedLanguage) (map[string]*Directory, []error) {
 	var errs []error
 	mappedStructs := make(map[string]*Directory)
 
@@ -195,7 +195,7 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 		e := entries[entryKey]
 		// If we are excluding config false (state entries) then skip processing
 		// this element.
-		if excludeState && !util.IsConfig(e) {
+		if compBehaviour.StateExcluded() && !util.IsConfig(e) {
 			continue
 		}
 		if e.IsList() || e.IsDir() || util.IsRoot(e) {
@@ -211,11 +211,11 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 			case protobuf:
 				// In the case of protobuf the message name is simply the camel
 				// case name that is specified.
-				elem.Name = s.protoMsgName(e, compressPaths)
+				elem.Name = s.protoMsgName(e, compBehaviour.CompressEnabled())
 			case golang:
 				// For Go, we map the name of the struct to the path elements
 				// in CamelCase separated by underscores.
-				elem.Name = s.goStructName(e, compressPaths, genFakeRoot)
+				elem.Name = s.goStructName(e, compBehaviour.CompressEnabled(), genFakeRoot)
 			default:
 				errs = append(errs, fmt.Errorf("unknown generating language specified for %s, got: %v", e.Name, lang))
 				continue
@@ -223,7 +223,7 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 
 			// Find the elements that should be rooted on this particular entity.
 			var fieldErr []error
-			elem.Fields, fieldErr = genutil.FindAllChildren(e, compressPaths, excludeState)
+			elem.Fields, fieldErr = genutil.FindAllChildren(e, compBehaviour)
 			if fieldErr != nil {
 				errs = append(errs, fieldErr...)
 				continue
@@ -242,7 +242,7 @@ func (s *genState) buildDirectoryDefinitions(entries map[string]*yang.Entry, com
 			// and returning a YangListAttr structure that describes how they should
 			// be represented.
 			if e.IsList() {
-				lattr, listErr := s.buildListKey(e, compressPaths)
+				lattr, listErr := s.buildListKey(e, compBehaviour.CompressEnabled())
 				if listErr != nil {
 					errs = append(errs, listErr...)
 					continue

@@ -53,7 +53,7 @@ type BGP_Neighbor struct {
 	ygot.NodePath
 }
 
-// BGP_Neighbor_PeerIP represents the /openconfig-camelcase/bgp/neighbors/neighbor/config/peer-ip YANG schema element.
+// BGP_Neighbor_PeerIP represents the /openconfig-camelcase/bgp/neighbors/neighbor/state/peer-ip YANG schema element.
 type BGP_Neighbor_PeerIP struct {
 	ygot.NodePath
 }
@@ -62,7 +62,7 @@ type BGP_Neighbor_PeerIP struct {
 func (n *BGP_Neighbor) PeerIP() *BGP_Neighbor_PeerIP {
 	return &BGP_Neighbor_PeerIP{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "peer-ip"},
+			[]string{"state", "peer-ip"},
 			map[string]interface{}{},
 			n,
 		),
