@@ -435,7 +435,7 @@ func (s *genState) identityrefBaseTypeFromIdentity(i *yang.Identity, noUnderscor
 // enumIdentifier takes in an enum entry and returns a unique identifier for
 // that enum constructed using its path. This identifier would be the same for
 // an enum that's used in two different places in the schema.
-func enumIdentifier(e *yang.Entry) string {
+func enumIdentifier(e *yang.Entry, compressPaths bool) string {
 	definingModName := genutil.ParentModulePrettyName(e.Node)
 	// It is possible, given a particular enumerated leaf, for it to appear
 	// multiple times in the schema. For example, through being defined in
@@ -509,7 +509,7 @@ func (s *genState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores, 
 		// In the other cases, de-duplication may happen, and of
 		// course, each different enum identifier should have its own
 		// definition.
-		identifierPath = enumIdentifier(e)
+		identifierPath = enumIdentifier(e, compressPaths)
 	}
 
 	var compressName string
