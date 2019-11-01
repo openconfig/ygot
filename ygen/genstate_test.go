@@ -914,7 +914,7 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 	}, {
-		name: "two enums with deduplication disabled",
+		name: "two enums with deduplication disabled, where duplication of enums is only happening for uncompressed",
 		in: map[string]*yang.Entry{
 			"/container/config/enumeration-leaf": {
 				Name: "enumeration-leaf",
@@ -927,7 +927,7 @@ func TestFindEnumSet(t *testing.T) {
 					Parent: &yang.Grouping{
 						Name: "foo",
 						Parent: &yang.Module{
-							Name: "base-module",
+							Name: "base-module2",
 						},
 					},
 				},
@@ -935,7 +935,7 @@ func TestFindEnumSet(t *testing.T) {
 					Name: "config",
 					Parent: &yang.Entry{
 						Name:   "container",
-						Parent: &yang.Entry{Name: "base-module"},
+						Parent: &yang.Entry{Name: "base-module2"},
 					},
 				},
 			},
@@ -950,7 +950,7 @@ func TestFindEnumSet(t *testing.T) {
 					Parent: &yang.Grouping{
 						Name: "foo",
 						Parent: &yang.Module{
-							Name: "base-module",
+							Name: "base-module2",
 						},
 					},
 				},
@@ -959,7 +959,7 @@ func TestFindEnumSet(t *testing.T) {
 					Parent: &yang.Entry{
 						Name: "container",
 						Parent: &yang.Entry{
-							Name: "base-module",
+							Name: "base-module2",
 						},
 					},
 				},
@@ -967,8 +967,8 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		inSkipEnumDeduplication: true,
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule_Container_EnumerationLeaf": {
-				name: "BaseModule_Container_EnumerationLeaf",
+			"BaseModule2_Container_EnumerationLeaf": {
+				name: "BaseModule2_Container_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -978,8 +978,8 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantUncompressed: map[string]*yangEnum{
-			"BaseModule_Container_State_EnumerationLeaf": {
-				name: "BaseModule_Container_State_EnumerationLeaf",
+			"BaseModule2_Container_State_EnumerationLeaf": {
+				name: "BaseModule2_Container_State_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -987,8 +987,259 @@ func TestFindEnumSet(t *testing.T) {
 					},
 				},
 			},
-			"BaseModule_Container_Config_EnumerationLeaf": {
-				name: "BaseModule_Container_Config_EnumerationLeaf",
+			"BaseModule2_Container_Config_EnumerationLeaf": {
+				name: "BaseModule2_Container_Config_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+	}, {
+		name: "two enums with deduplication disabled, and where duplication occurs for both compressed and decompressed",
+		in: map[string]*yang.Entry{
+			"/container/apple/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Grouping{
+						Name: "foo",
+						Parent: &yang.Module{
+							Name: "base-module2",
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "apple",
+					Parent: &yang.Entry{
+						Name:   "cherry",
+						Parent: &yang.Entry{Name: "base-module2"},
+					},
+				},
+			},
+			"/container/banana/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Grouping{
+						Name: "foo",
+						Parent: &yang.Module{
+							Name: "base-module2",
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "banana",
+					Parent: &yang.Entry{
+						Name: "donuts",
+						Parent: &yang.Entry{
+							Name: "base-module2",
+						},
+					},
+				},
+			},
+		},
+		inSkipEnumDeduplication: true,
+		wantCompressed: map[string]*yangEnum{
+			"BaseModule2_Cherry_EnumerationLeaf": {
+				name: "BaseModule2_Cherry_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"BaseModule2_Donuts_EnumerationLeaf": {
+				name: "BaseModule2_Donuts_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantUncompressed: map[string]*yangEnum{
+			"BaseModule2_Cherry_Apple_EnumerationLeaf": {
+				name: "BaseModule2_Cherry_Apple_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"BaseModule2_Donuts_Banana_EnumerationLeaf": {
+				name: "BaseModule2_Donuts_Banana_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+	}, {
+		name: "two enums with deduplication disabled, and where duplication occurs for both compressed and decompressed but the context is the same",
+		in: map[string]*yang.Entry{
+			"/container/apple/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Grouping{
+						Name: "foo",
+						Parent: &yang.Module{
+							Name: "base-module2",
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "apple",
+					Parent: &yang.Entry{
+						Name:   "container",
+						Parent: &yang.Entry{Name: "base-module2"},
+					},
+				},
+			},
+			"/container/banana/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Grouping{
+						Name: "foo",
+						Parent: &yang.Module{
+							Name: "base-module2",
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "banana",
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "base-module2",
+						},
+					},
+				},
+			},
+		},
+		inSkipEnumDeduplication: true,
+		wantCompressed: map[string]*yangEnum{
+			"BaseModule2_Container_EnumerationLeaf": {
+				name: "BaseModule2_Container_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantUncompressed: map[string]*yangEnum{
+			"BaseModule2_Container_Apple_EnumerationLeaf": {
+				name: "BaseModule2_Container_Apple_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"BaseModule2_Container_Banana_EnumerationLeaf": {
+				name: "BaseModule2_Container_Banana_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+	}, {
+		name: "two enums with deduplication enabled, and where duplication occurs for both compressed and decompressed",
+		in: map[string]*yang.Entry{
+			"/container/apple/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Grouping{
+						Name: "foo",
+						Parent: &yang.Module{
+							Name: "base-module2",
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "apple",
+					Parent: &yang.Entry{
+						Name:   "container",
+						Parent: &yang.Entry{Name: "base-module2"},
+					},
+				},
+			},
+			"/container/banana/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Grouping{
+						Name: "foo",
+						Parent: &yang.Module{
+							Name: "base-module2",
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "banana",
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "base-module2",
+						},
+					},
+				},
+			},
+		},
+		wantCompressed: map[string]*yangEnum{
+			"BaseModule2_Container_EnumerationLeaf": {
+				name: "BaseModule2_Container_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantUncompressed: map[string]*yangEnum{
+			"BaseModule2_Container_Apple_EnumerationLeaf": {
+				name: "BaseModule2_Container_Apple_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -1007,35 +1258,38 @@ func TestFindEnumSet(t *testing.T) {
 			wantUncompressed = tt.wantUncompressed
 		}
 		for compressed, wanted := range map[bool]map[string]*yangEnum{true: tt.wantCompressed, false: wantUncompressed} {
-			state := newGenState()
-			entries, errs := state.findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication)
+			t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v)", tt.name, compressed, tt.inSkipEnumDeduplication), func(t *testing.T) {
+				state := newGenState()
+				entries, errs := state.findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication)
 
-			if (errs != nil) != tt.wantErr {
-				t.Errorf("%s findEnumSet(%v, %v): did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", tt.name, tt.in, compressed, errs, len(errs), tt.wantErr)
-				continue
-			}
-
-			for k, want := range wanted {
-				got, ok := entries[k]
-				if !ok {
-					t.Errorf("%s findEnumSet(compressEnabled: %v): could not find expected entry, got: %v, want: %s", tt.name, compressed, entries, k)
-					continue
+				if (errs != nil) != tt.wantErr {
+					t.Fatalf("did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", errs, len(errs), tt.wantErr)
 				}
 
-				if want.entry.Name != got.entry.Name {
-					j, _ := json.Marshal(got)
-					t.Errorf("%s findEnumSet(compressEnabled: %v): extracted entry has wrong name: got %s, want: %s (%s)", tt.name,
-						compressed, got.entry.Name, want.entry.Name, string(j))
+				// This checks just the keys of the output yangEnum map to ensure the entries match.
+				if diff := cmp.Diff(wanted, entries, cmpopts.IgnoreUnexported(yangEnum{}), cmpopts.EquateEmpty()); diff != "" {
+					t.Errorf("(-want +got):\n%s", diff)
 				}
 
-				if want.entry.Type.IdentityBase != nil {
-					// Check the identity's base if this was an identityref.
-					if want.entry.Type.IdentityBase.Name != got.entry.Type.IdentityBase.Name {
-						t.Errorf("%s findEnumSet(compressEnabled: %v): found identity %s, has wrong base, got: %v, want: %v", tt.name,
-							compressed, want.entry.Name, want.entry.Type.IdentityBase.Name, got.entry.Type.IdentityBase.Name)
+				for k, want := range wanted {
+					got, ok := entries[k]
+					if !ok {
+						t.Fatalf("could not find expected entry, got: %v, want: %s", entries, k)
+					}
+
+					if want.entry.Name != got.entry.Name {
+						j, _ := json.Marshal(got)
+						t.Errorf("extracted entry has wrong name: got %s, want: %s (%s)", got.entry.Name, want.entry.Name, string(j))
+					}
+
+					if want.entry.Type.IdentityBase != nil {
+						// Check the identity's base if this was an identityref.
+						if want.entry.Type.IdentityBase.Name != got.entry.Type.IdentityBase.Name {
+							t.Errorf("found identity %s, has wrong base, got: %v, want: %v", want.entry.Name, want.entry.Type.IdentityBase.Name, got.entry.Type.IdentityBase.Name)
+						}
 					}
 				}
-			}
+			})
 		}
 	}
 }
