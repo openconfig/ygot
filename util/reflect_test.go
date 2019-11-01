@@ -22,6 +22,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -121,6 +122,7 @@ func TestIsValueNil(t *testing.T) {
 }
 
 func TestIsValueNilOrDefault(t *testing.T) {
+	// want true tests
 	if !IsValueNilOrDefault(nil) {
 		t.Error("got IsValueNilOrDefault(nil) false, want true")
 	}
@@ -145,10 +147,15 @@ func TestIsValueNilOrDefault(t *testing.T) {
 	if !IsValueNilOrDefault(false) {
 		t.Error("got IsValueNilOrDefault(false) false, want true")
 	}
+
+	// want false tests
 	i := 32
 	ip := &i
 	if IsValueNilOrDefault(&ip) {
-		t.Error("got IsValueNilOrDefault(ptr to ptr) false, want true")
+		t.Error("got IsValueNilOrDefault(ptr to ptr) true, want false")
+	}
+	if IsValueNilOrDefault([]int{}) {
+		t.Error("got IsValueNilOrDefault([]int{}) true, want false")
 	}
 }
 
@@ -368,6 +375,7 @@ type derivedBool bool
 func TestUpdateField(t *testing.T) {
 	type BasicStruct struct {
 		IntField       int
+		IntSliceField  []int
 		StringField    string
 		IntPtrField    *int8
 		StringPtrField *string
@@ -460,6 +468,13 @@ func TestUpdateField(t *testing.T) {
 			fieldName:    "StringPtrField",
 			fieldValue:   toStringPtr("forty two"),
 			wantVal:      &BasicStruct{StringPtrField: toStringPtr("forty two")},
+		},
+		{
+			desc:         "slice of int",
+			parentStruct: &BasicStruct{},
+			fieldName:    "IntSliceField",
+			fieldValue:   42,
+			wantVal:      &BasicStruct{IntSliceField: []int{42}},
 		},
 		{
 			desc:         "bad field error",
@@ -568,6 +583,69 @@ func TestIsValueTypeComaptible(t *testing.T) {
 	}
 }
 
+type derivedByteSlice []byte
+
+func TestInsertIntoStruct(t *testing.T) {
+	type BasicStruct struct {
+		ByteSliceField derivedByteSlice
+	}
+
+	tests := []struct {
+		desc         string
+		parentStruct interface{}
+		fieldName    string
+		fieldValue   interface{}
+		wantVal      interface{}
+		wantErr      string
+	}{
+		{
+			desc:         "derived []byte",
+			parentStruct: &BasicStruct{},
+			fieldName:    "ByteSliceField",
+			fieldValue:   []byte("forty two"),
+			wantVal:      &BasicStruct{ByteSliceField: derivedByteSlice([]byte("forty two"))},
+		},
+		{
+			desc:         "derived []byte with []uint8 value",
+			parentStruct: &BasicStruct{},
+			fieldName:    "ByteSliceField",
+			fieldValue:   []uint8("forty two"),
+			wantVal:      &BasicStruct{ByteSliceField: derivedByteSlice([]byte("forty two"))},
+		},
+		{
+			desc:         "[]string to derived []byte field error",
+			parentStruct: &BasicStruct{},
+			fieldName:    "ByteSliceField",
+			fieldValue:   []string{"one", "two"},
+			wantErr:      "cannot assign value [one two] (type []string) to struct field ByteSliceField (type util.derivedByteSlice) in struct *util.BasicStruct",
+		},
+		{
+			desc:         "bad parent type",
+			parentStruct: struct{}{},
+			wantErr:      "parent type struct {} must be a struct ptr",
+		},
+		{
+			desc:         "missing field",
+			parentStruct: &BasicStruct{},
+			fieldName:    "MissingField",
+			wantErr:      "parent type *util.BasicStruct does not have a field name MissingField",
+		},
+	}
+
+	for _, tt := range tests {
+		err := InsertIntoStruct(tt.parentStruct, tt.fieldName, tt.fieldValue)
+		if got, want := errToString(err), tt.wantErr; !areEqualWithWildcards(got, want) {
+			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+		}
+		if err == nil {
+			if got, want := tt.parentStruct, tt.wantVal; !areEqual(got, want) {
+				t.Errorf("%s: got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+			}
+		}
+		testErrLog(t, tt.desc, err)
+	}
+}
+
 func TestInsertIntoSliceStructField(t *testing.T) {
 	type BasicStruct struct {
 		IntSliceField       []int
@@ -596,6 +674,13 @@ func TestInsertIntoSliceStructField(t *testing.T) {
 			parentStruct: &BasicStruct{IntPtrSliceField: []*int8{toInt8Ptr(42)}},
 			fieldName:    "IntPtrSliceField",
 			fieldValue:   toInt8Ptr(43),
+			wantVal:      &BasicStruct{IntPtrSliceField: []*int8{toInt8Ptr(42), toInt8Ptr(43)}},
+		},
+		{
+			desc:         "slice of int ptr, int value to int ptr",
+			parentStruct: &BasicStruct{IntPtrSliceField: []*int8{toInt8Ptr(42)}},
+			fieldName:    "IntPtrSliceField",
+			fieldValue:   int8(43),
 			wantVal:      &BasicStruct{IntPtrSliceField: []*int8{toInt8Ptr(42), toInt8Ptr(43)}},
 		},
 		{
@@ -1137,11 +1222,13 @@ func TestForEachField(t *testing.T) {
 		var errs Errors
 		errs = ForEachField(tt.schema, tt.parentStruct, tt.in, &outStr, tt.iterFunc)
 		if got, want := errs.String(), tt.wantErr; got != want {
-			t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
+			diff, _ := testutil.GenerateUnifiedDiff(got, want)
+			t.Errorf("%s:\n%s", tt.desc, diff)
 		}
 		if errs == nil {
 			if got, want := outStr, tt.wantOut; got != want {
-				t.Errorf("%s:\ngot:\n(%v)\nwant:\n(%v)", tt.desc, got, want)
+				diff, _ := testutil.GenerateUnifiedDiff(got, want)
+				t.Errorf("%s:\n%s", tt.desc, diff)
 			}
 		}
 		testErrLog(t, tt.desc, errs)
@@ -1245,14 +1332,16 @@ func TestForEachDataField(t *testing.T) {
 		var errs Errors
 		errs = ForEachDataField(tt.parentStruct, tt.in, &outStr, tt.iterFunc)
 		if got, want := errs.String(), tt.wantErr; got != want {
-			t.Errorf("%s: ForEachDataField(%v, %#v, ...): did not get expected error, got: %s, want: %s", tt.desc, tt.parentStruct, tt.in, got, want)
+			diff, _ := testutil.GenerateUnifiedDiff(got, want)
+			t.Errorf("%s: ForEachDataField(%v, %#v, ...): \n%s", tt.desc, tt.parentStruct, tt.in, diff)
 		}
 		testErrLog(t, tt.desc, errs)
 		if len(errs) > 0 {
 			continue
 		}
 		if got, want := outStr, tt.wantOut; got != want {
-			t.Errorf("%s: ForEachDataField(%v, %#v, ...): did not get expected output, got:\n(%v)\nwant:\n(%v)", tt.desc, tt.parentStruct, tt.in, got, want)
+			diff, _ := testutil.GenerateUnifiedDiff(got, want)
+			t.Errorf("%s: ForEachDataField(%v, %#v, ...): \n%s", tt.desc, tt.parentStruct, tt.in, diff)
 		}
 	}
 }
@@ -1598,7 +1687,7 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 				},
 			},
 			want:    nil,
-			wantErr: `could not find path in tree beyond schema node simple-key-list, (type *util.ListElemStruct1), remaining path elem:<name:"bad-element" > elem:<name:"inner" > elem:<name:"leaf-field" > `,
+			wantErr: `could not find path in tree beyond schema node simple-key-list, (type *util.ListElemStruct1), remaining path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "bad-element"}, {Name: "inner"}, {Name: "leaf-field"}}}).String(),
 		},
 		{
 			desc:       "nil source field",
@@ -1653,7 +1742,7 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 				},
 			},
 			want:    []interface{}(nil),
-			wantErr: `gnmi path elem:<name:"simple-key-list" key:<key:"bad-key" value:"forty-two" > > elem:<name:"outer2" > elem:<name:"inner" > elem:<name:"leaf-field" >  does not contain a map entry for the schema key field name key1, parent type map[string]*util.ListElemStruct1`,
+			wantErr: `gnmi path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "simple-key-list", Key: map[string]string{"bad-key": "forty-two"}}, {Name: "outer2"}, {Name: "inner"}, {Name: "leaf-field"}}}).String() + ` does not contain a map entry for the schema key field name key1, parent type map[string]*util.ListElemStruct1`,
 		},
 		{
 			desc:       "missing key value",
@@ -1951,7 +2040,7 @@ func TestGetNodesStructKeyedList(t *testing.T) {
 					},
 				},
 			},
-			wantErr: `could not find path in tree beyond schema node struct-key-list, (type *util.ListElemStruct2), remaining path elem:<name:"bad-path-element" > elem:<name:"inner" > elem:<name:"leaf-field" > `,
+			wantErr: `could not find path in tree beyond schema node struct-key-list, (type *util.ListElemStruct2), remaining path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "bad-path-element"}, {Name: "inner"}, {Name: "leaf-field"}}}).String(),
 		},
 	}
 
@@ -1983,52 +2072,4 @@ func sliceToMap(s []interface{}) map[string]int {
 		m[vs] = m[vs] + 1
 	}
 	return m
-}
-
-func TestIsCompressedSchema(t *testing.T) {
-	tests := []struct {
-		name string
-		in   *yang.Entry
-		want bool
-	}{{
-		name: "simple entry - root",
-		in: &yang.Entry{
-			Annotation: map[string]interface{}{
-				CompressedSchemaAnnotation: true,
-			},
-		},
-		want: true,
-	}, {
-		name: "simple entry - not compressed - root",
-		in:   &yang.Entry{},
-	}, {
-		name: "child entry - compressed",
-		in: &yang.Entry{
-			Parent: &yang.Entry{
-				Parent: &yang.Entry{
-					Parent: &yang.Entry{
-						Parent: &yang.Entry{},
-					},
-				},
-			},
-			Annotation: map[string]interface{}{
-				CompressedSchemaAnnotation: true,
-			},
-		},
-	}, {
-		name: "child entry - not compressed",
-		in: &yang.Entry{
-			Parent: &yang.Entry{
-				Parent: &yang.Entry{},
-			},
-		},
-	}}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := IsCompressedSchema(tt.in); got != tt.want {
-				t.Fatalf("incorrect result, got: %v, want: %v", got, tt.want)
-			}
-		})
-	}
 }

@@ -132,90 +132,6 @@ func isValueScalar(v reflect.Value) bool {
 	return !util.IsValueStruct(v) && !util.IsValueStructPtr(v) && !util.IsValueMap(v) && !util.IsValueSlice(v)
 }
 
-// childSchema returns the schema for the struct field f, if f contains a valid
-// path tag and the schema path is found in the schema tree. It returns an error
-// if the struct tag is invalid, or nil if tag is valid but the schema is not
-// found in the tree at the specified path.
-func childSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error) {
-	pathTag, _ := f.Tag.Lookup("path")
-	util.DbgSchema("childSchema for schema %s, field %s, tag %s\n", schema.Name, f.Name, pathTag)
-	p, err := pathToSchema(f)
-	if err != nil {
-		return nil, err
-	}
-
-	// Containers have the container schema name as the first element in the
-	// path tag for each field e.g. System { Dns ... path: "system/dns"
-	// Strip this off since the supplied schema already refers to the struct
-	// schema element.
-	if schema.IsContainer() && len(p) > 1 && p[0] == schema.Name {
-		p = p[1:]
-	}
-	util.DbgSchema("pathToSchema yields %v\n", p)
-	// For empty path, return the parent schema.
-	childSchema := schema
-	foundSchema := true
-	// Traverse the returned schema path to get the child schema.
-	util.DbgSchema("traversing schema Dirs...")
-	for ; len(p) > 0; p = p[1:] {
-		util.DbgSchema("/%s", p[0])
-		ns, ok := childSchema.Dir[util.StripModulePrefix(p[0])]
-		if !ok {
-			foundSchema = false
-			break
-		}
-		childSchema = ns
-	}
-	if foundSchema {
-		util.DbgSchema(" - found\n")
-		return childSchema, nil
-	}
-	util.DbgSchema(" - not found\n")
-
-	// Path is not null and was not found in the schema. It could be inside a
-	// choice/case schema element which is not represented in the path tags.
-	// e.g. choice1/case1/leaf1 could have abbreviated tag `path: "leaf1"`.
-	// In this case, try to match against any named elements within any choice/
-	// case subtrees. These are guaranteed to be unique within the current
-	// level namespace so a path tag name match will be unique if one is found.
-	if len(p) != 1 {
-		// Nodes within choice/case have a path tag with only the last schema
-		// path element i.e. choice1/case1/leaf1 path in the schema will have
-		// struct tag `path:"leaf1"`. This implies that only paths with length
-		// 1 are eligible for this matching.
-		return nil, nil
-	}
-	entries := util.FindFirstNonChoiceOrCase(schema)
-
-	util.DbgSchema("checking for %s against non choice/case entries: %v\n", p[0], stringMapKeys(entries))
-	for name, entry := range entries {
-		util.DbgSchema("%s ? ", name)
-
-		if util.StripModulePrefix(name) == p[0] {
-			util.DbgSchema(" - match\n")
-			return entry, nil
-		}
-	}
-
-	util.DbgSchema(" - no matches\n")
-	return nil, nil
-}
-
-// schemaTreeRoot returns the root of the schema tree, given any node in that
-// tree. It returns nil if schema is nil.
-func schemaTreeRoot(schema *yang.Entry) *yang.Entry {
-	if schema == nil {
-		return nil
-	}
-
-	root := schema
-	for root.Parent != nil {
-		root = root.Parent
-	}
-
-	return root
-}
-
 // absoluteSchemaDataPath returns the absolute path of the schema, excluding
 // any choice or case entries.
 // TODO(mostrowski): why are these excluded?
@@ -228,36 +144,6 @@ func absoluteSchemaDataPath(schema *yang.Entry) string {
 	}
 
 	return "/" + strings.Join(out, "/")
-}
-
-// pathToSchema returns a path to the schema for the struct field f.
-// Paths are embedded in the "path" struct tag and can be either simple:
-//   e.g. "path:a"
-// or composite e.g.
-//   e.g. "path:config/a|a"
-// which is found in OpenConfig leaf-ref cases where the key of a list is a
-// leafref. In the latter case, this function returns {"config", "a"}, and the
-// schema *yang.Entry for the field is given by schema.Dir["config"].Dir["a"].
-func pathToSchema(f reflect.StructField) ([]string, error) {
-	pathAnnotation, ok := f.Tag.Lookup("path")
-	if !ok {
-		return nil, fmt.Errorf("field %s did not specify a path", f.Name)
-	}
-
-	paths := strings.Split(pathAnnotation, "|")
-	if len(paths) == 1 {
-		pathAnnotation = strings.TrimPrefix(pathAnnotation, "/")
-		return strings.Split(pathAnnotation, "/"), nil
-	}
-	for _, pv := range paths {
-		pv = strings.TrimPrefix(pv, "/")
-		pe := strings.Split(pv, "/")
-		if len(pe) > 1 {
-			return pe, nil
-		}
-	}
-
-	return nil, fmt.Errorf("field %s had path tag %s with |, but no elements of form a/b", f.Name, pathAnnotation)
 }
 
 // directDescendantSchema returns the direct descendant schema for the struct
@@ -358,35 +244,6 @@ func removeRootPrefix(path []string) []string {
 	return path[2:]
 }
 
-// resolveLeafRef returns a ptr to the schema pointed to by the provided leaf-ref
-// schema. It returns schema itself if schema is not a leaf-ref.
-func resolveLeafRef(schema *yang.Entry) (*yang.Entry, error) {
-	if schema == nil {
-		return nil, nil
-	}
-	// TODO(mostrowski): this should only be possible in fakeroot. Add an
-	// explicit check for that once data is available in the schema.
-	if schema.Type == nil {
-		return schema, nil
-	}
-
-	orig := schema
-	s := schema
-	for ykind := s.Type.Kind; ykind == yang.Yleafref; {
-		ns, err := findLeafRefSchema(s, s.Type.Path)
-		if err != nil {
-			return schema, err
-		}
-		s = ns
-		ykind = s.Type.Kind
-	}
-
-	if s != orig {
-		util.DbgPrint("follow schema leaf-ref from %s to %s, type %v", orig.Name, s.Name, s.Type.Kind)
-	}
-	return s, nil
-}
-
 // schemaToStructFieldName returns the string name of the field, which must be
 // contained in parent (a struct ptr), given the schema for the field.
 // It returns empty string and nil error if the field does not exist in the
@@ -411,7 +268,7 @@ func schemaToStructFieldName(schema *yang.Entry, parent interface{}) (string, *y
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		fieldName := f.Name
-		p, err := pathToSchema(f)
+		p, err := util.RelativeSchemaPath(f)
 		if err != nil {
 			return "", nil, err
 		}

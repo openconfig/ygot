@@ -44,6 +44,17 @@ func typeToLeafSchema(name string, t yang.TypeKind) *yang.Entry {
 	}
 }
 
+func yrangeToLeafSchema(name string, yr yang.YRange) *yang.Entry {
+	return &yang.Entry{
+		Name: name,
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind:   yang.Ybinary,
+			Length: yang.YangRange{yr},
+		},
+	}
+}
+
 var (
 	validLeafSchema = &yang.Entry{
 		Name: "valid-leaf",
@@ -151,6 +162,12 @@ func TestValidateLeaf(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			desc:    "int bad type - enum",
+			schema:  typeToLeafSchema("int64", yang.Yint64),
+			val:     int64(0),
+			wantErr: true,
+		},
+		{
 			desc:   "empty type",
 			schema: typeToLeafSchema("empty", yang.Yempty),
 			val:    YANGEmpty(true),
@@ -164,7 +181,7 @@ func TestValidateLeaf(t *testing.T) {
 		{
 			desc:    "slice in non-binary type",
 			schema:  typeToLeafSchema("binary", yang.Ystring),
-			val:     []byte{1, 2, 3},
+			val:     Binary([]byte{1, 2, 3}),
 			wantErr: true,
 		},
 		// TODO(mostrowski): restore when representation is decided.
@@ -181,12 +198,29 @@ func TestValidateLeaf(t *testing.T) {
 		{
 			desc:   "binary success",
 			schema: typeToLeafSchema("binary", yang.Ybinary),
-			val:    []byte("value"),
+			val:    Binary("value"),
+		},
+		{
+			desc:   "binary success with length",
+			schema: yrangeToLeafSchema("binary", yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(4)}),
+			val:    Binary("aaa"),
 		},
 		{
 			desc:    "binary bad type",
 			schema:  typeToLeafSchema("binary", yang.Ybinary),
 			val:     ygot.Int32(1),
+			wantErr: true,
+		},
+		{
+			desc:    "binary too short",
+			schema:  yrangeToLeafSchema("binary", yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(4)}),
+			val:     Binary("a"),
+			wantErr: true,
+		},
+		{
+			desc:    "binary too long",
+			schema:  yrangeToLeafSchema("binary", yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(4)}),
+			val:     Binary("aaaaaaaa"),
 			wantErr: true,
 		},
 		{
@@ -198,6 +232,12 @@ func TestValidateLeaf(t *testing.T) {
 			desc:    "bool bad type",
 			schema:  typeToLeafSchema("bool", yang.Ybool),
 			val:     ygot.Int32(1),
+			wantErr: true,
+		},
+		{
+			desc:    "bool bad type - empty",
+			schema:  typeToLeafSchema("bool", yang.Ybool),
+			val:     YANGEmpty(true),
 			wantErr: true,
 		},
 		{
@@ -828,68 +868,6 @@ func TestValidateLeafRef(t *testing.T) {
 	}
 }
 
-func TestRemoveXPATHPredicates(t *testing.T) {
-	tests := []struct {
-		desc    string
-		in      string
-		want    string
-		wantErr bool
-	}{{
-		desc: "simple predicate",
-		in:   `/foo/bar[name="eth0"]`,
-		want: "/foo/bar",
-	}, {
-		desc: "predicate with path",
-		in:   `/foo/bar[name="/foo/bar/baz"]/config/hat`,
-		want: "/foo/bar/config/hat",
-	}, {
-		desc: "predicate with function",
-		in:   `/foo/bar[name="current()/../interface"]/config/baz`,
-		want: "/foo/bar/config/baz",
-	}, {
-		desc: "multiple predicates",
-		in:   `/foo/bar[name="current()/../interface"]/container/list[key="42"]/config/foo`,
-		want: "/foo/bar/container/list/config/foo",
-	}, {
-		desc:    "] without [",
-		in:      `/foo/bar]`,
-		wantErr: true,
-	}, {
-		desc:    "[ without closure",
-		in:      `/foo/bar[`,
-		wantErr: true,
-	}, {
-		desc: "multiple predicates, end of string",
-		in:   `/foo/bar/name[e="1"]/bar[j="2"]`,
-		want: "/foo/bar/name/bar",
-	}, {
-		desc:    "][ in incorrect order",
-		in:      `/foo/bar][`,
-		wantErr: true,
-	}, {
-		desc: "empty string",
-		in:   ``,
-		want: ``,
-	}, {
-		desc: "predicate directly",
-		in:   `foo[bar="test"]`,
-		want: `foo`,
-	}}
-
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			got, err := removeXPATHPredicates(tt.in)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("%s: removeXPATHPredicates(%s): got unexpected error, got: %v", tt.desc, tt.in, err)
-			}
-
-			if got != tt.want {
-				t.Errorf("%s: removePredicate(%v): did not get expected value, got: %v, want: %v", tt.desc, tt.in, got, tt.want)
-			}
-		})
-	}
-}
-
 type LeafContainerStruct struct {
 	Int8Leaf            *int8           `path:"int8-leaf"`
 	Int8LeafList        []int8          `path:"int8-leaflist"`
@@ -901,7 +879,7 @@ type LeafContainerStruct struct {
 	Int64Leaf           *int64          `path:"int64-leaf"`
 	Uint64Leaf          *uint64         `path:"uint64-leaf"`
 	StringLeaf          *string         `path:"string-leaf"`
-	BinaryLeaf          []byte          `path:"binary-leaf"`
+	BinaryLeaf          Binary          `path:"binary-leaf"`
 	BoolLeaf            *bool           `path:"bool-leaf"`
 	DecimalLeaf         *float64        `path:"decimal-leaf"`
 	EnumLeaf            EnumType        `path:"enum-leaf"`
@@ -1030,7 +1008,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		{
 			desc: "binary success",
 			json: `{"binary-leaf" : "` + base64testStringEncoded + `"}`,
-			want: LeafContainerStruct{BinaryLeaf: []byte(base64testString)},
+			want: LeafContainerStruct{BinaryLeaf: Binary(base64testString)},
 		},
 		{
 			desc: "bool success",
@@ -1454,141 +1432,6 @@ func TestUnmarshalLeafRef(t *testing.T) {
 	}
 }
 
-func TestStripPrefix(t *testing.T) {
-	tests := []struct {
-		desc     string
-		inName   string
-		wantName string
-		wantErr  string
-	}{{
-		desc:     "valid with prefix",
-		inName:   "one:two",
-		wantName: "two",
-	}, {
-		desc:     "valid without prefix",
-		inName:   "two",
-		wantName: "two",
-	}, {
-		desc:    "invalid input",
-		inName:  "foo:bar:foo",
-		wantErr: "path element did not form a valid name (name, prefix:name): foo:bar:foo",
-	}, {
-		desc:     "empty string",
-		inName:   "",
-		wantName: "",
-	}}
-
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			got, err := stripPrefix(tt.inName)
-			if err != nil && err.Error() != tt.wantErr {
-				t.Errorf("%s: stripPrefix(%v): did not get expected error, got: %v, want: %s", tt.desc, tt.inName, got, tt.wantErr)
-			}
-
-			if err != nil {
-				return
-			}
-
-			if got != tt.wantName {
-				t.Errorf("%s: stripPrefix(%v): did not get expected name, got: %s, want: %s", tt.desc, tt.inName, got, tt.wantName)
-			}
-		})
-	}
-}
-
-func TestFindLeafRefSchema(t *testing.T) {
-	tests := []struct {
-		desc      string
-		inSchema  *yang.Entry
-		inPathStr string
-		wantEntry *yang.Entry
-		wantErr   string
-	}{{
-		desc: "simple reference",
-		inSchema: &yang.Entry{
-			Name: "referencing",
-			Type: &yang.YangType{
-				Kind: yang.Yleafref,
-				Path: "../foo",
-			},
-			Parent: &yang.Entry{
-				Name: "directory",
-				Kind: yang.DirectoryEntry,
-				Dir: map[string]*yang.Entry{
-					"foo": {
-						Name: "foo",
-						Type: &yang.YangType{Kind: yang.Ystring},
-					},
-				},
-			},
-		},
-		inPathStr: "../foo",
-		wantEntry: &yang.Entry{
-			Name: "foo",
-			Type: &yang.YangType{Kind: yang.Ystring},
-		},
-	}, {
-		desc: "empty path",
-		inSchema: &yang.Entry{
-			Name: "referencing",
-			Type: &yang.YangType{
-				Kind: yang.Yleafref,
-			},
-		},
-		wantErr: "leafref schema referencing has empty path",
-	}, {
-		desc: "bad xpath predicate, mismatched []s",
-		inSchema: &yang.Entry{
-			Name: "referencing",
-			Type: &yang.YangType{
-				Kind: yang.Yleafref,
-				Path: "/interfaces/interface[name=foo/bar",
-			},
-		},
-		inPathStr: "/interfaces/interface[name=foo/bar",
-		wantErr:   "Mismatched brackets within substring /interfaces/interface[name=foo/bar of /interfaces/interface[name=foo/bar, [ pos: 21, ] pos: -1",
-	}, {
-		desc: "strip prefix error in path",
-		inSchema: &yang.Entry{
-			Name: "referencing",
-			Type: &yang.YangType{
-				Kind: yang.Yleafref,
-				Path: "/interface:foo:bar/baz",
-			},
-		},
-		inPathStr: "/interface:foo:bar/baz",
-		wantErr:   "leafref schema referencing path /interface:foo:bar/baz: path element did not form a valid name (name, prefix:name): interface:foo:bar",
-	}, {
-		desc: "nil reference",
-		inSchema: &yang.Entry{
-			Name: "referencing",
-			Type: &yang.YangType{
-				Kind: yang.Yleafref,
-				Path: "/interfaces/interface/baz",
-			},
-		},
-		inPathStr: "/interfaces/interface/baz",
-		wantErr:   "schema node interfaces is nil for leafref schema referencing with path /interfaces/interface/baz",
-	}}
-
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			got, err := findLeafRefSchema(tt.inSchema, tt.inPathStr)
-			if err != nil && err.Error() != tt.wantErr {
-				t.Errorf("%s: findLeafRefSchema(%v, %s): did not get expected error, got: %v, want: %v", tt.desc, tt.inSchema, tt.inPathStr, err, tt.wantErr)
-			}
-
-			if err != nil {
-				return
-			}
-
-			if diff := pretty.Compare(got, tt.wantEntry); diff != "" {
-				t.Errorf("%s: findLeafRefSchema(%v, %s): did not get expected entry, diff(-got,+want):\n%s", tt.desc, tt.inSchema, tt.inPathStr, diff)
-			}
-		})
-	}
-}
-
 func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 	containerSchema := &yang.Entry{
 		Name: "container-schema",
@@ -1768,6 +1611,16 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 				},
 			},
 			wantVal: &LeafContainerStruct{DecimalLeaf: ygot.Float64(0.42)},
+		},
+		{
+			desc:     "success gNMI BytesVal to Ybinary",
+			inSchema: typeToLeafSchema("binary-leaf", yang.Ybinary),
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_BytesVal{
+					BytesVal: []byte("value"),
+				},
+			},
+			wantVal: &LeafContainerStruct{BinaryLeaf: Binary([]byte("value"))},
 		},
 		{
 			desc:     "success unmarshalling union leaf string field",

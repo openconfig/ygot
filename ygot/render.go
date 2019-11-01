@@ -22,7 +22,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/util"
@@ -241,7 +240,7 @@ func (g *gnmiPath) StripPrefix(pfx *gnmiPath) (*gnmiPath, error) {
 	}
 
 	for i, e := range pfx.pathElemPath {
-		if !proto.Equal(g.pathElemPath[i], e) {
+		if !util.PathElemsEqual(g.pathElemPath[i], e) {
 			return nil, fmt.Errorf("prefix is not a prefix of the supplied path, %v is not a subset of %v", pfx, g)
 		}
 	}
@@ -324,18 +323,18 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 		fval := sval.Field(i)
 		ftype := stype.Field(i)
 
-		mapPaths, err := structTagToLibPaths(ftype, parent)
-		if err != nil {
-			errs.Add(fmt.Errorf("%v->%s: %v", parent, ftype.Name, err))
-			continue
-		}
-
 		// Handle nil values, and enumerations specifically.
 		switch fval.Kind() {
 		case reflect.Map, reflect.Slice, reflect.Ptr, reflect.Interface:
 			if fval.IsNil() {
 				continue
 			}
+		}
+
+		mapPaths, err := structTagToLibPaths(ftype, parent)
+		if err != nil {
+			errs.Add(fmt.Errorf("%v->%s: %v", parent, ftype.Name, err))
+			continue
 		}
 
 		switch fval.Kind() {
@@ -551,6 +550,11 @@ func KeyValueAsString(v interface{}) (string, error) {
 			return "", err
 		}
 		return KeyValueAsString(iv)
+	case reflect.Slice:
+		if kv.Type().Elem().Kind() == reflect.Uint8 {
+			return binaryBase64(kv.Bytes()), nil
+		}
+		return "", fmt.Errorf("cannot convert slice of type %v to a string for use in a key: %v", kv.Type().Elem().Kind(), v)
 	}
 
 	return "", fmt.Errorf("cannot convert type %v to a string for use in a key: %v", kv.Kind(), v)

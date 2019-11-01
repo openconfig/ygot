@@ -27,6 +27,7 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/ygen"
 )
 
@@ -91,17 +92,24 @@ func main() {
 		}
 	}
 
+	compressBehaviour := genutil.TranslateToCompressBehaviour(*compressPaths, *excludeState)
+
 	// Perform the code generation.
 	cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
-		CompressOCPaths:  *compressPaths,
-		ExcludeModules:   modsExcluded,
-		PackageName:      *packageName,
-		GenerateFakeRoot: *generateFakeRoot,
-		FakeRootName:     *fakeRootName,
-		Caller:           *callerName,
-		YANGParseOptions: yang.Options{
-			IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+		ParseOptions: ygen.ParseOpts{
+			ExcludeModules:        modsExcluded,
+			SkipEnumDeduplication: *skipEnumDedup,
+			YANGParseOptions: yang.Options{
+				IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+			},
 		},
+		TransformationOptions: ygen.TransformationOpts{
+			CompressBehaviour: compressBehaviour,
+			GenerateFakeRoot:  *generateFakeRoot,
+			FakeRootName:      *fakeRootName,
+		},
+		PackageName: *packageName,
+		Caller:      *callerName,
 		ProtoOptions: ygen.ProtoOpts{
 			BaseImportPath:      *baseImportPath,
 			YwrapperPath:        *ywrapperPath,
@@ -111,8 +119,6 @@ func main() {
 			NestedMessages:      !*packageHierarchy,
 			EnumPackageName:     *enumPackageName,
 		},
-		ExcludeState:          *excludeState,
-		SkipEnumDeduplication: *skipEnumDedup,
 	})
 
 	generatedProtoCode, err := cg.GenerateProto3(generateModules, includePaths)

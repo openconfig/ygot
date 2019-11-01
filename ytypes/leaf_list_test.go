@@ -290,7 +290,7 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 					},
 				},
 			}},
-			wantErr: "could not find suitable union type to unmarshal value int_val:42",
+			wantErr: "could not find suitable union type to unmarshal value " + (&gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}).String(),
 		},
 		{
 			desc: "bad array element",

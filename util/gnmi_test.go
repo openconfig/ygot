@@ -19,6 +19,9 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
+	"github.com/openconfig/goyang/pkg/yang"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -226,6 +229,102 @@ func TestPopGNMIPath(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			if got, want := gnmiPathNoKeysToPath(PopGNMIPath(pathNoKeysToGNMIPath(tt.path))), tt.want; got != want {
 				t.Errorf("%s: got: %s want: %s", tt.desc, got, want)
+			}
+		})
+	}
+}
+
+func TestPathElemsEqual(t *testing.T) {
+	tests := []struct {
+		desc string
+		lhs  *gpb.PathElem
+		rhs  *gpb.PathElem
+		want bool
+	}{{
+		desc: "equal names with no keys",
+		lhs: &gpb.PathElem{
+			Name: "one",
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+		},
+		want: true,
+	}, {
+		desc: "equal names and keys",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		want: true,
+	}, {
+		desc: "names don't match",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		rhs: &gpb.PathElem{
+			Name: "two",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+	}, {
+		desc: "keys don't match",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "six"},
+		},
+	}, {
+		desc: "keys don't have same length",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three"},
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+	}, {
+		desc: "keys don't have same length the other way",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three"},
+		},
+	}, {
+		desc: "lhs PathElem is nil",
+		lhs:  nil,
+		rhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+	}, {
+		desc: "rhs PathElem is nil",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		rhs: nil,
+	}, {
+		desc: "both PathElems are nil",
+		lhs:  nil,
+		rhs:  nil,
+		want: true,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := PathElemsEqual(tt.lhs, tt.rhs); got != tt.want {
+				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
 			}
 		})
 	}
@@ -447,6 +546,123 @@ func TestFindPathElemPrefix(t *testing.T) {
 	for _, tt := range tests {
 		if got := FindPathElemPrefix(tt.inPaths); !proto.Equal(got, tt.want) {
 			t.Errorf("%s: FindPathElemPrefix(%v): did not get expected prefix, got: %s, want: %s", tt.name, tt.inPaths, proto.MarshalTextString(got), proto.MarshalTextString(tt.want))
+		}
+	}
+}
+
+func TestFindModelData(t *testing.T) {
+	tests := []struct {
+		name             string
+		in               []*yang.Entry
+		want             []*gpb.ModelData
+		wantErrSubstring string
+	}{{
+		name: "single model with organization and version",
+		in: []*yang.Entry{{
+			Name: "module-one",
+			Node: &yang.Module{
+				Name: "module-one",
+				Organization: &yang.Value{
+					Source: &yang.Statement{
+						Keyword:     "organization",
+						HasArgument: true,
+						Argument:    "openconfig",
+					},
+				},
+				Extensions: []*yang.Statement{{
+					Keyword:  "oc-ext:openconfig-version",
+					Argument: "0.1.0",
+				}},
+			},
+		}},
+		want: []*gpb.ModelData{{
+			Name:         "module-one",
+			Organization: "openconfig",
+			Version:      "0.1.0",
+		}},
+	}, {
+		name: "multiple models with organization and version",
+		in: []*yang.Entry{{
+			Name: "module-one",
+			Node: &yang.Module{
+				Name: "module-one",
+				Organization: &yang.Value{
+					Source: &yang.Statement{
+						Keyword:     "organization",
+						HasArgument: true,
+						Argument:    "openconfig",
+					},
+				},
+				Extensions: []*yang.Statement{{
+					Keyword:  "oc-foo:openconfig-version", // different import prefix
+					Argument: "0.1.0",
+				}},
+			},
+		}, {
+			Name: "module-two",
+			Node: &yang.Module{
+				Name: "module-two",
+				Organization: &yang.Value{
+					Source: &yang.Statement{
+						Keyword:     "organization",
+						HasArgument: true,
+						Argument:    "closedconfig",
+					},
+				},
+				Extensions: []*yang.Statement{{
+					Keyword:  "oc-ext:openconfig-version",
+					Argument: "0.4.0",
+				}},
+			},
+		}},
+		want: []*gpb.ModelData{{
+			Name:         "module-one",
+			Organization: "openconfig",
+			Version:      "0.1.0",
+		}, {
+			Name:         "module-two",
+			Organization: "closedconfig",
+			Version:      "0.4.0",
+		}},
+	}, {
+		name: "nil organization and extension",
+		in: []*yang.Entry{{
+			Name: "module-one",
+			Node: &yang.Module{
+				Name: "module-one",
+			},
+		}},
+		want: []*gpb.ModelData{{
+			Name: "module-one",
+		}},
+	}, {
+		name: "non-module in node",
+		in: []*yang.Entry{{
+			Name: "module-one",
+			Node: &yang.Leaf{},
+		}},
+		wantErrSubstring: "nil node, or not a module",
+	}, {
+		name: "nil node",
+		in: []*yang.Entry{{
+			Name: "badmod",
+		}},
+		wantErrSubstring: "nil node, or not a module",
+	}}
+
+	for _, tt := range tests {
+		got, err := FindModelData(tt.in)
+
+		if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+			t.Errorf("%s: FindModelData(%v): did not get expected error, %s", tt.name, tt.in, diff)
+		}
+
+		if err != nil {
+			continue
+		}
+
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: FindModelData(%v): did not get expected result, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 		}
 	}
 }

@@ -27,12 +27,6 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-// CompressedSchemaAnnotation stores the name of the annotation indicating
-// whether a set of structs were built with -compress_path. It is appended
-// to the yang.Entry struct of the root entity of the structs within the
-// SchemaTree.
-const CompressedSchemaAnnotation string = "isCompressedSchema"
-
 // IsTypeStruct reports whether t is a struct type.
 func IsTypeStruct(t reflect.Type) bool {
 	return t.Kind() == reflect.Struct
@@ -266,6 +260,15 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 		v = nv
 	}
 
+	// YANG binary fields are represented as a derived []byte value defined in the
+	// generated code. Here we cast the value to the type in the generated code.
+	// This will also cast a []uint8 value since byte is an alias for uint8.
+	if ft.Type.Kind() == reflect.Slice && t.Kind() == reflect.Slice && ft.Type.Elem().Kind() == reflect.Uint8 && t.Elem().Kind() == reflect.Uint8 {
+		nv := reflect.New(ft.Type).Elem()
+		nv.SetBytes(v.Bytes())
+		v = nv
+	}
+
 	n := v
 	if n.IsValid() && (ft.Type.Kind() == reflect.Ptr && t.Kind() != reflect.Ptr) {
 		n = reflect.New(t)
@@ -448,6 +451,88 @@ func DeepEqualDerefPtrs(a, b interface{}) bool {
 	return reflect.DeepEqual(aa, bb)
 }
 
+// ChildSchema returns the schema for the struct field f, if f contains a valid
+// path tag and the schema path is found in the schema tree. It returns an error
+// if the struct tag is invalid, or nil if tag is valid but the schema is not
+// found in the tree at the specified path.
+// TODO(wenbli): need unit test
+func ChildSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error) {
+	pathTag, _ := f.Tag.Lookup("path")
+	DbgSchema("childSchema for schema %s, field %s, tag %s\n", schema.Name, f.Name, pathTag)
+	p, err := RelativeSchemaPath(f)
+	if err != nil {
+		return nil, err
+	}
+
+	// Containers may have the container schema name as the first element in the
+	// path tag for each field e.g. System { Dns ... path: "system/dns"
+	// Strip this off since the supplied schema already refers to the struct
+	// schema element.
+	if schema.IsContainer() && len(p) > 1 && p[0] == schema.Name {
+		p = p[1:]
+	}
+	DbgSchema("RelativeSchemaPath yields %v\n", p)
+	// For empty path, return the parent schema.
+	childSchema := schema
+	foundSchema := true
+	// Traverse the returned schema path to get the child schema.
+	DbgSchema("traversing schema Dirs...")
+	for ; len(p) > 0; p = p[1:] {
+		DbgSchema("/%s", p[0])
+		p := StripModulePrefix(p[0])
+		ns, ok := childSchema.Dir[p]
+		if !ok {
+			foundSchema = false
+			break
+		}
+		childSchema = ns
+	}
+	if foundSchema {
+		DbgSchema(" - found\n")
+		return childSchema, nil
+	}
+	DbgSchema(" - not found\n")
+
+	// Path is not null and was not found in the schema. It could be inside a
+	// choice/case schema element which is not represented in the path tags.
+	// e.g. choice1/case1/leaf1 could have abbreviated tag `path: "leaf1"`.
+	// In this case, try to match against any named elements within any choice/
+	// case subtrees. These are guaranteed to be unique within the current
+	// level namespace so a path tag name match will be unique if one is found.
+	if len(p) != 1 {
+		// Nodes within choice/case have a path tag with only the last schema
+		// path element i.e. choice1/case1/leaf1 path in the schema will have
+		// struct tag `path:"leaf1"`. This implies that only paths with length
+		// 1 are eligible for this matching.
+		return nil, nil
+	}
+	entries := FindFirstNonChoiceOrCase(schema)
+
+	DbgSchema("checking for %s against non choice/case entries: %v\n", p[0], stringMapKeys(entries))
+	for path, entry := range entries {
+		splitPath := SplitPath(path)
+		name := splitPath[len(splitPath)-1]
+		DbgSchema("%s ? ", name)
+
+		if StripModulePrefix(name) == p[0] {
+			DbgSchema(" - match\n")
+			return entry, nil
+		}
+	}
+
+	DbgSchema(" - no matches\n")
+	return nil, nil
+}
+
+// stringMapKeys returns the keys for map m.
+func stringMapKeys(m map[string]*yang.Entry) []string {
+	var out []string
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
+}
+
 // NodeInfo describes a node in a tree being traversed. It is passed to the
 // iterator function supplied to a traversal driver function like ForEachField.
 type NodeInfo struct {
@@ -470,6 +555,33 @@ type NodeInfo struct {
 	// Annotation is a field that can be populated by an iterFunction such that
 	// context can be carried with a node throughout the iteration.
 	Annotation []interface{}
+}
+
+// PathQueryMemo caches nodes retrieved from (string) path queries. This memo
+// may be useful if an algorithm may do multiple queries against the same path
+// from the same node, any of which could be very expensive since the tree could
+// be deep and wide.
+type PathQueryMemo map[string]PathQueryResult
+
+// PathQueryResult stores a datanode query result.
+type PathQueryResult struct {
+	Nodes []interface{}
+	Err   error
+}
+
+// PathQueryNodeMemo caches previous path queries done against a particular node.
+// Parent pointer allows looking up the memos of its ancestor nodes.
+type PathQueryNodeMemo struct {
+	Parent *PathQueryNodeMemo
+	Memo   PathQueryMemo
+}
+
+// GetRoot returns the PathQueryNodeMemo of the current node's tree's root.
+func (node *PathQueryNodeMemo) GetRoot() *PathQueryNodeMemo {
+	for node.Parent != nil {
+		node = node.Parent
+	}
+	return node
 }
 
 // FieldIteratorFunc is an iteration function for arbitrary field traversals.
@@ -517,6 +629,16 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 	var errs Errors
 	errs = AppendErrs(errs, iterFunction(ni, in, out))
 
+	// Special processing where an "in" input value is provided.
+	var newPathQueryMemo func() *PathQueryNodeMemo
+	switch v := in.(type) {
+	case *PathQueryNodeMemo: // Memoization of path queries requested.
+		newPathQueryMemo = func() *PathQueryNodeMemo {
+			return &PathQueryNodeMemo{Parent: v, Memo: PathQueryMemo{}}
+		}
+	default:
+	}
+
 	v := ni.FieldValue
 	t := v.Type()
 
@@ -548,8 +670,9 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 			if err != nil {
 				return NewErrs(err)
 			}
+
 			for _, p := range ps {
-				nn.Schema = ChildSchema(ni.Schema, p)
+				nn.Schema = FirstChild(ni.Schema, p)
 				if nn.Schema == nil {
 					e := fmt.Errorf("forEachFieldInternal could not find child schema with path %v from schema name %s", p, ni.Schema.Name)
 					DbgPrint(e.Error())
@@ -563,7 +686,12 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				if IsTypeSlice(sf.Type) || IsTypeMap(sf.Type) {
 					nn.PathFromParent = p[0:1]
 				}
-				errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+				switch in.(type) {
+				case *PathQueryNodeMemo: // Memoization of path queries requested.
+					errs = AppendErrs(errs, forEachFieldInternal(nn, newPathQueryMemo(), out, iterFunction))
+				default:
+					errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+				}
 			}
 		}
 
@@ -583,7 +711,12 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				Schema:         &schema,
 				FieldValue:     reflect.Zero(t.Elem()),
 			}
-			errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+			switch in.(type) {
+			case *PathQueryNodeMemo: // Memoization of path queries requested.
+				errs = AppendErrs(errs, forEachFieldInternal(nn, newPathQueryMemo(), out, iterFunction))
+			default:
+				errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+			}
 		} else {
 			for i := 0; i < ni.FieldValue.Len(); i++ {
 				nn := *ni
@@ -593,7 +726,12 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				nn.Parent = ni
 				nn.PathFromParent = pp
 				nn.FieldValue = ni.FieldValue.Index(i)
-				errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+				switch in.(type) {
+				case *PathQueryNodeMemo: // Memoization of path queries requested.
+					errs = AppendErrs(errs, forEachFieldInternal(&nn, newPathQueryMemo(), out, iterFunction))
+				default:
+					errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+				}
 			}
 		}
 
@@ -607,7 +745,12 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				Schema:         &schema,
 				FieldValue:     reflect.Zero(t.Elem()),
 			}
-			errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+			switch in.(type) {
+			case *PathQueryNodeMemo: // Memoization of path queries requested.
+				errs = AppendErrs(errs, forEachFieldInternal(nn, newPathQueryMemo(), out, iterFunction))
+			default:
+				errs = AppendErrs(errs, forEachFieldInternal(nn, in, out, iterFunction))
+			}
 		} else {
 			for _, key := range ni.FieldValue.MapKeys() {
 				nn := *ni
@@ -617,24 +760,17 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 				nn.FieldValue = ni.FieldValue.MapIndex(key)
 				nn.FieldKey = key
 				nn.FieldKeys = ni.FieldValue.MapKeys()
-				errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+				switch in.(type) {
+				case *PathQueryNodeMemo: // Memoization of path queries requested.
+					errs = AppendErrs(errs, forEachFieldInternal(&nn, newPathQueryMemo(), out, iterFunction))
+				default:
+					errs = AppendErrs(errs, forEachFieldInternal(&nn, in, out, iterFunction))
+				}
 			}
 		}
 	}
 
 	return errs
-}
-
-// IsCompressedSchema determines whether the yang.Entry s provided is part of a
-// generated set of structs that have schema compression enabled. It traverses
-// to the schema root, and determines the presence of an annotation with the name
-// CompressedSchemaAnnotation which is added by ygen.
-func IsCompressedSchema(s *yang.Entry) bool {
-	var e *yang.Entry
-	for e = s; e.Parent != nil; e = e.Parent {
-	}
-	_, ok := e.Annotation[CompressedSchemaAnnotation]
-	return ok
 }
 
 // ForEachDataField iterates the value supplied and calls the iterFunction for
@@ -819,7 +955,7 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 			continue
 		}
 
-		cschema, err := FieldSchema(schema, ft)
+		cschema, err := ChildSchema(schema, ft)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error for schema for type %T, field name %s: %s", root, ft.Name, err)
 		}
@@ -949,7 +1085,7 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 // pathStructTagKey returns the string label of the struct field sf when it is
 // used in a YANG list. This is the last path element of the struct path tag.
 func pathStructTagKey(f reflect.StructField) string {
-	p, err := pathToSchema(f)
+	p, err := RelativeSchemaPath(f)
 	if err != nil {
 		log.Errorf("struct field %s does not have a path tag, bad schema?", f.Name)
 		return ""
@@ -965,7 +1101,7 @@ func pathStructTagKey(f reflect.StructField) string {
 func getKeyValue(structVal reflect.Value, key string) (interface{}, error) {
 	for i := 0; i < structVal.NumField(); i++ {
 		f := structVal.Type().Field(i)
-		p, err := pathToSchema(f)
+		p, err := RelativeSchemaPath(f)
 		if err != nil {
 			return nil, err
 		}

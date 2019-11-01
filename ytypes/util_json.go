@@ -48,7 +48,7 @@ func getJSONTreeValForField(parentSchema, schema *yang.Entry, f reflect.StructFi
 }
 
 // getJSONTreeValForPath returns a JSON subtree from tree at the given path from
-// the root. If returns (nil, false) if no subtree is found at the given path.
+// the root. It returns (nil, false) if no subtree is found at the given path.
 func getJSONTreeValForPath(tree interface{}, path []string) (interface{}, bool) {
 	if len(path) == 0 {
 		return tree, true

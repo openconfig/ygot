@@ -259,7 +259,7 @@ func TestGetNodeSimpleKeyedList(t *testing.T) {
 				},
 			},
 			want:       nil,
-			wantStatus: toStatus(scpb.Code_NOT_FOUND, `could not find path in tree beyond schema node simple-key-list, (type *ygotutils.ListElemStruct1), remaining path elem:<name:"bad-element" > elem:<name:"inner" > elem:<name:"leaf-field" > `),
+			wantStatus: toStatus(scpb.Code_NOT_FOUND, `could not find path in tree beyond schema node simple-key-list, (type *ygotutils.ListElemStruct1), remaining path `+(&gpb.Path{Elem: []*gpb.PathElem{{Name: "bad-element"}, {Name: "inner"}, {Name: "leaf-field"}}}).String()),
 		},
 		{
 			desc:       "nil field",
@@ -287,7 +287,7 @@ func TestGetNodeSimpleKeyedList(t *testing.T) {
 				},
 			},
 			want:       nil,
-			wantStatus: toStatus(scpb.Code_INVALID_ARGUMENT, `nil data element type *ygotutils.OuterContainerType1, remaining path elem:<name:"inner" > elem:<name:"leaf-field" > `),
+			wantStatus: toStatus(scpb.Code_INVALID_ARGUMENT, `nil data element type *ygotutils.OuterContainerType1, remaining path `+(&gpb.Path{Elem: []*gpb.PathElem{{Name: "inner"}, {Name: "leaf-field"}}}).String()),
 		},
 	}
 
@@ -591,7 +591,7 @@ func TestNewNodeSimpleKeyedList(t *testing.T) {
 				},
 			},
 			want:       nil,
-			wantStatus: toStatus(scpb.Code_NOT_FOUND, `could not find path in tree beyond type *ygotutils.ListElemStruct3, remaining path elem:<name:"bad-element" > elem:<name:"inner" > elem:<name:"leaf-field" > `),
+			wantStatus: toStatus(scpb.Code_NOT_FOUND, `could not find path in tree beyond type *ygotutils.ListElemStruct3, remaining path `+(&gpb.Path{Elem: []*gpb.PathElem{{Name: "bad-element"}, {Name: "inner"}, {Name: "leaf-field"}}}).String()),
 		},
 	}
 
@@ -725,7 +725,7 @@ func TestNewNodeStructKeyedList(t *testing.T) {
 				},
 			},
 			want:       nil,
-			wantStatus: toStatus(scpb.Code_NOT_FOUND, `could not find path in tree beyond type *ygotutils.ListElemStruct4, remaining path elem:<name:"bad-element" > elem:<name:"inner" > elem:<name:"leaf-field" > `),
+			wantStatus: toStatus(scpb.Code_NOT_FOUND, `could not find path in tree beyond type *ygotutils.ListElemStruct4, remaining path `+(&gpb.Path{Elem: []*gpb.PathElem{{Name: "bad-element"}, {Name: "inner"}, {Name: "leaf-field"}}}).String()),
 		},
 	}
 
