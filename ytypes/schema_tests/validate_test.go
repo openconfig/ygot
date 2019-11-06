@@ -26,6 +26,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/ygot/experimental/ygotutils"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/util"
@@ -808,7 +809,7 @@ func TestGetNode(t *testing.T) {
 
 	for _, tt := range tests {
 		n, status := ygotutils.GetNode(oc.SchemaTree["Device"], testDevice, tt.gnmiPath)
-		if got, want := status, tt.wantStatus; !reflect.DeepEqual(got, want) {
+		if got, want := status, tt.wantStatus; !proto.Equal(&got, &want) {
 			t.Errorf("%s: got status: %v, want status: %v ", tt.desc, got, want)
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))

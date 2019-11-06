@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 
@@ -661,7 +661,7 @@ func TestFindModelData(t *testing.T) {
 			continue
 		}
 
-		if diff := pretty.Compare(got, tt.want); diff != "" {
+		if diff := cmp.Diff(got, tt.want, cmp.Comparer(proto.Equal)); diff != "" {
 			t.Errorf("%s: FindModelData(%v): did not get expected result, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 		}
 	}
