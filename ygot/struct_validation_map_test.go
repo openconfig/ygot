@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 
 	"github.com/openconfig/gnmi/errdiff"
@@ -173,7 +175,7 @@ func TestStructTagToLibPaths(t *testing.T) {
 			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, err, tt.wantErr)
 		}
 
-		if diff := pretty.Compare(got, tt.want); diff != "" {
+		if diff := cmp.Diff(got, tt.want, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
 			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-got,+want):\n%s", tt.name, tt.inField, tt.inParent, diff)
 		}
 	}
