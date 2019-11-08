@@ -265,40 +265,57 @@ func StripModulePrefix(name string) string {
 	}
 }
 
+// PathStringToElements splits the string s, which represents a gNMI string
+// path into its constituent elements. It does not parse keys, which are left
+// unchanged within the path - but removes escape characters from element
+// names. The path returned omits any leading or trailing empty elements when
+// splitting on the / character.
+func PathStringToElements(path string) []string {
+	parts := SplitPath(path)
+	// Remove leading empty element
+	if len(parts) > 0 && parts[0] == "" {
+		parts = parts[1:]
+	}
+	// Remove trailing empty element
+	if len(parts) > 0 && path[len(path)-1] == '/' {
+		parts = parts[:len(parts)-1]
+	}
+	return parts
+}
+
 // SplitPath splits path across unescaped /.
 // Any / inside square brackets are ignored.
 func SplitPath(path string) []string {
-	var prev rune
-	var out []string
-	var w bytes.Buffer
-	skip := false
+	var parts []string
+	var buf bytes.Buffer
 
-	for _, r := range path {
+	var inKey, inEscape bool
+
+	var ch rune
+	for _, ch = range path {
 		switch {
-		case r == '[' && prev != '\\':
-			skip = true
-
-		case r == ']' && prev != '\\':
-			skip = false
+		case ch == '[' && !inEscape:
+			inKey = true
+		case ch == ']' && !inEscape:
+			inKey = false
+		case ch == '\\' && !inEscape && !inKey:
+			inEscape = true
+			continue
+		case ch == '/' && !inEscape && !inKey:
+			parts = append(parts, buf.String())
+			buf.Reset()
+			continue
 		}
 
-		if !skip && r == '/' && prev != '\\' {
-			out = append(out, w.String())
-			w.Reset()
-		} else {
-			w.WriteRune(r)
-		}
-		prev = r
+		buf.WriteRune(ch)
+		inEscape = false
 	}
 
-	if w.Len() != 0 {
-		out = append(out, w.String())
-	}
-	if prev == '/' {
-		out = append(out, "")
+	if buf.Len() != 0 || (len(path) != 1 && ch == '/') {
+		parts = append(parts, buf.String())
 	}
 
-	return out
+	return parts
 }
 
 // SlicePathToString concatenates a slice of strings into a / separated path. i.e.,
