@@ -179,8 +179,8 @@ func writeGoCodeMultipleFiles(dir string, goCode *ygen.GeneratedGoCode) error {
 		if len(f.contents) == 0 {
 			continue
 		}
-		fh := openFile(filepath.Join(dir, fn))
-		defer syncFile(fh)
+		fh := genutil.OpenFile(filepath.Join(dir, fn))
+		defer genutil.SyncFile(fh)
 		fmt.Fprintln(fh, goCode.CommonHeader)
 		if f.oneoffHeader {
 			fmt.Fprintln(fh, goCode.OneOffHeader)
@@ -279,8 +279,8 @@ func main() {
 		default:
 			// Assign the newly created filehandle to the outfh, and ensure
 			// that it is synced and closed before exit of main.
-			outfh = openFile(*outputFile)
-			defer syncFile(outfh)
+			outfh = genutil.OpenFile(*outputFile)
+			defer genutil.SyncFile(outfh)
 		}
 
 		writeGoCodeSingleFile(outfh, generatedGoCode)
@@ -289,25 +289,4 @@ func main() {
 
 	// Write the Go code to a series of output files.
 	writeGoCodeMultipleFiles(*outputDir, generatedGoCode)
-}
-
-// openFile opens a file with the supplied name, logging and exiting if it cannot
-// be opened.
-func openFile(fn string) *os.File {
-	fileOut, err := os.Create(fn)
-	if err != nil {
-		log.Exitf("Error: could not open output file: %v\n", err)
-	}
-	return fileOut
-}
-
-// syncFile synchronises the supplied os.File and closes it.
-func syncFile(fh *os.File) {
-	if err := fh.Sync(); err != nil {
-		log.Exitf("Error: could not sync file output: %v\n", err)
-	}
-
-	if err := fh.Close(); err != nil {
-		log.Exitf("Error: could not close output file: %v\n", err)
-	}
 }

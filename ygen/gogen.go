@@ -1149,6 +1149,9 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 // outputting structs; this is done to allow checks against nil.
 func IsScalarField(field *yang.Entry, t *MappedType) bool {
 	switch {
+	// A non-leaf has a generated type which are always stored by pointers.
+	case field.Kind != yang.LeafEntry:
+		return false
 	// A union shouldn't be a pointer since its field type is an interface;
 	case len(t.UnionTypes) >= 2:
 		return false
