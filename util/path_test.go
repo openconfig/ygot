@@ -662,41 +662,80 @@ func TestStripModulePrefixesStr(t *testing.T) {
 
 func TestSplitPath(t *testing.T) {
 	tests := []struct {
-		desc string
-		in   string
-		want []string
+		desc                      string
+		in                        string
+		want                      []string
+		wantIgnoreLeadingTrailing []string
 	}{
 		{
-			desc: "simple",
-			in:   "a/b/c",
-			want: []string{"a", "b", "c"},
+			desc:                      "simple",
+			in:                        "a/b/c",
+			want:                      []string{"a", "b", "c"},
+			wantIgnoreLeadingTrailing: []string{"a", "b", "c"},
 		},
 		{
-			desc: "blank",
-			in:   "a//b",
-			want: []string{"a", "", "b"},
+			desc:                      "empty",
+			in:                        "",
+			want:                      nil,
+			wantIgnoreLeadingTrailing: nil,
 		},
 		{
-			desc: "lead trail slash",
-			in:   "/a/b/c/",
-			want: []string{"", "a", "b", "c", ""},
+			desc:                      "one slash",
+			in:                        "/",
+			want:                      []string{""},
+			wantIgnoreLeadingTrailing: nil,
 		},
 		{
-			desc: "escape slash",
-			in:   `a/\/b/c`,
-			want: []string{"a", `\/b`, "c"},
+			desc:                      "leading slash",
+			in:                        "/a",
+			want:                      []string{"", "a"},
+			wantIgnoreLeadingTrailing: []string{"a"},
 		},
 		{
-			desc: "internal key slashes",
-			in:   `a/b[key1 = ../x/y key2 = "z"]/c`,
-			want: []string{"a", `b[key1 = ../x/y key2 = "z"]`, "c"},
+			desc:                      "trailing slash",
+			in:                        "aa/",
+			want:                      []string{"aa", ""},
+			wantIgnoreLeadingTrailing: []string{"aa"},
+		},
+		{
+			desc:                      "blank",
+			in:                        "a//b",
+			want:                      []string{"a", "", "b"},
+			wantIgnoreLeadingTrailing: []string{"a", "", "b"},
+		},
+		{
+			desc:                      "lead trail slash",
+			in:                        "/a/b/c/",
+			want:                      []string{"", "a", "b", "c", ""},
+			wantIgnoreLeadingTrailing: []string{"a", "b", "c"},
+		},
+		{
+			desc:                      "double lead trail slash",
+			in:                        "//a/b/c//",
+			want:                      []string{"", "", "a", "b", "c", "", ""},
+			wantIgnoreLeadingTrailing: []string{"", "a", "b", "c", ""},
+		},
+		{
+			desc:                      "escape slash",
+			in:                        `a/\/b/c`,
+			want:                      []string{"a", "/b", "c"},
+			wantIgnoreLeadingTrailing: []string{"a", "/b", "c"},
+		},
+		{
+			desc:                      "internal key slashes",
+			in:                        `a/b[key1 = ../x/y key2 = "z"]/c`,
+			want:                      []string{"a", `b[key1 = ../x/y key2 = "z"]`, "c"},
+			wantIgnoreLeadingTrailing: []string{"a", `b[key1 = ../x/y key2 = "z"]`, "c"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := SplitPath(tt.in), tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("got: %v, want: %v", got, want)
+			if diff := cmp.Diff(tt.want, SplitPath(tt.in), cmpopts.EquateEmpty()); diff != "" {
+				t.Errorf("SplitPath (-want, +got):\n%s", diff)
+			}
+			if diff := cmp.Diff(tt.wantIgnoreLeadingTrailing, PathStringToElements(tt.in), cmpopts.EquateEmpty()); diff != "" {
+				t.Errorf("PathStringToElements (-want, +got):\n%s", diff)
 			}
 		})
 	}

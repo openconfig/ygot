@@ -447,17 +447,30 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	// GoStruct field is that type rather than a union Interface type.
 	if !util.IsTypeInterface(destUnionFieldElemT) && !util.IsTypeSliceOfInterface(destUnionFieldElemT) {
 		// Is not an interface, we must have exactly one type in the union.
-		if len(sks) != 1 {
-			return fmt.Errorf("got %v types for union schema %s for type %T, expect just one type", sks, fieldName, parent)
+		var yk yang.TypeKind
+		var isEnum bool
+		switch {
+		// That one type is either an enum or not an enum.
+		case len(sks) == 1 && len(ets) == 0:
+			yk = sks[0]
+		case len(sks) == 0 && len(ets) == 1:
+			yk = schema.Type.Type[0].Kind
+			isEnum = true
+		default:
+			return fmt.Errorf("got %v non-enum types and %v enum types for union schema %s for type %T, expect just one type in total", sks, ets, fieldName, parent)
 		}
-		yk := sks[0]
+
 		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value, enc)
 		if err != nil {
 			return fmt.Errorf("could not unmarshal %v into type %s", value, yk)
 		}
 
 		if !util.IsTypeSlice(destUnionFieldElemT) {
-			destUnionFieldV.Set(reflect.ValueOf(ygot.ToPtr(goValue)))
+			if isEnum {
+				destUnionFieldV.Set(reflect.ValueOf(goValue))
+			} else {
+				destUnionFieldV.Set(reflect.ValueOf(ygot.ToPtr(goValue)))
+			}
 			return nil
 		}
 
@@ -471,7 +484,6 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		}
 		destUnionFieldV.Set(reflect.Append(sl, reflect.ValueOf(goValue)))
 		return nil
-
 	}
 
 	// For each possible union type, try to unmarshal the value. If it can be

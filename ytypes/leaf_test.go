@@ -883,11 +883,13 @@ type LeafContainerStruct struct {
 	BoolLeaf            *bool           `path:"bool-leaf"`
 	DecimalLeaf         *float64        `path:"decimal-leaf"`
 	EnumLeaf            EnumType        `path:"enum-leaf"`
+	UnionEnumLeaf       EnumType        `path:"union-enum-leaf"`
 	UnionLeaf           UnionLeafType   `path:"union-leaf"`
 	UnionLeaf2          *string         `path:"union-leaf2"`
 	EmptyLeaf           YANGEmpty       `path:"empty-leaf"`
 	UnionLeafSlice      []UnionLeafType `path:"union-leaflist"`
 	UnionLeafSingleType []string        `path:"union-stleaflist"`
+	UnionEnumLeaflist   []EnumType      `path:"union-enum-leaflist"`
 }
 
 type UnionLeafType interface {
@@ -928,8 +930,10 @@ func (*UnionLeafType_EnumType2) ΛMap() map[string]map[int64]ygot.EnumDefinition
 
 func (*LeafContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
-		"/container-schema/union-leaf":     {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
-		"/container-schema/union-leaflist": {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-leaf":          {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-enum-leaf":     {reflect.TypeOf(EnumType(0))},
+		"/container-schema/union-leaflist":      {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-enum-leaflist": {reflect.TypeOf(EnumType(0))},
 	}
 }
 
@@ -1281,6 +1285,31 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
 	}
 
+	unionSingleEnumSchema := &yang.Entry{
+		Name: "union-enum-leaf",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind: yang.Yenum,
+				},
+			},
+		},
+	}
+	unionSingleEnumLeafListSchema := &yang.Entry{
+		Name:     "union-enum-leaflist",
+		Kind:     yang.LeafEntry,
+		ListAttr: &yang.ListAttr{},
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind: yang.Yenum,
+				},
+			},
+		},
+	}
 	var leafSchemas = []*yang.Entry{
 		typeToLeafSchema("int8-leaf", yang.Yint8),
 		typeToLeafSchema("uint8-leaf", yang.Yuint8),
@@ -1301,6 +1330,8 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		unionLeafListSchema,
 		unionSTLeafListSchema,
 		leafListSchema,
+		unionSingleEnumSchema,
+		unionSingleEnumLeafListSchema,
 	}
 
 	for _, s := range leafSchemas {
@@ -1474,6 +1505,68 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			},
 		},
 	}
+	unionSingleStringSchema := &yang.Entry{
+		Parent: containerSchema,
+		Name:   "union-leaf2",
+		Kind:   yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind: yang.Ystring,
+				},
+			},
+		},
+	}
+	unionSingleEnumSchema := &yang.Entry{
+		Parent: containerSchema,
+		Name:   "union-enum-leaf",
+		Kind:   yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind: yang.Yenum,
+				},
+			},
+		},
+	}
+	unionSingleEnumLeafListSchema := &yang.Entry{
+		Parent:   containerSchema,
+		Name:     "union-enum-leaflist",
+		Kind:     yang.LeafEntry,
+		ListAttr: &yang.ListAttr{},
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind: yang.Yenum,
+				},
+			},
+		},
+	}
+
+	unionSTLeafListSchema := &yang.Entry{
+		Parent:   containerSchema,
+		Name:     "union-stleaflist",
+		Kind:     yang.LeafEntry,
+		ListAttr: &yang.ListAttr{},
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					// Note that Validate is not called as part of Unmarshal,
+					// therefore any string pattern will actually match.
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
+				},
+				{
+					Kind:    yang.Ystring,
+					Pattern: []string{"b+"},
+				},
+			},
+		},
+	}
 
 	leafListSchema := &yang.Entry{
 		Parent:   containerSchema,
@@ -1641,6 +1734,55 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 				},
 			},
 			wantVal: &LeafContainerStruct{UnionLeaf: &UnionLeafType_EnumType{EnumType: 42}},
+		},
+		{
+			desc:     "success unmarshalling union with single string leaf field",
+			inSchema: unionSingleStringSchema,
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{
+					StringVal: "forty two",
+				},
+			},
+			wantVal: &LeafContainerStruct{UnionLeaf2: ygot.String("forty two")},
+		},
+		{
+			desc:     "success unmarshalling union with single enum leaf field",
+			inSchema: unionSingleEnumSchema,
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{
+					StringVal: "E_VALUE_FORTY_TWO",
+				},
+			},
+			wantVal: &LeafContainerStruct{UnionEnumLeaf: EnumType(42)},
+		},
+		{
+			desc:     "success unmarshalling leaflist of unions with single string leaf field",
+			inSchema: unionSTLeafListSchema,
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_LeaflistVal{
+					LeaflistVal: &gpb.ScalarArray{
+						Element: []*gpb.TypedValue{
+							{Value: &gpb.TypedValue_StringVal{StringVal: "forty two"}},
+							{Value: &gpb.TypedValue_StringVal{StringVal: "forty three"}},
+						},
+					},
+				},
+			},
+			wantVal: &LeafContainerStruct{UnionLeafSingleType: []string{"forty two", "forty three"}},
+		},
+		{
+			desc:     "success unmarshalling leaflist of unions with single enum leaf field",
+			inSchema: unionSingleEnumLeafListSchema,
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_LeaflistVal{
+					LeaflistVal: &gpb.ScalarArray{
+						Element: []*gpb.TypedValue{
+							{Value: &gpb.TypedValue_StringVal{StringVal: "E_VALUE_FORTY_TWO"}},
+						},
+					},
+				},
+			},
+			wantVal: &LeafContainerStruct{UnionEnumLeaflist: []EnumType{42}},
 		},
 		{
 			desc:     "success unmarshalling int8 leaf list field with TypedValue_LeaflistVal",

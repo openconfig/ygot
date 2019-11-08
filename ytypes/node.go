@@ -32,6 +32,8 @@ import (
 type retrieveNodeArgs struct {
 	// If delete is set to true, retrieve node deletes the node at the
 	// to supplied path.
+	// NOTE: all other arguments, i.e. wildcards, partial key match, modifyRoot,
+	// etc. are currently incompatible with delete.
 	delete bool
 	// If set to true, retrieveNode handles wildcards. e.g. key=*
 	handleWildcards bool
@@ -69,6 +71,10 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 			Data:   root,
 		}}, nil
 	case util.IsValueNil(root):
+		if args.delete {
+			// No-op in case of a delete on a field whose value is not populated.
+			return nil, nil
+		}
 		return nil, status.Errorf(codes.NotFound, "could not find children %v at path %v", path, traversedPath)
 	case schema == nil:
 		return nil, status.Errorf(codes.InvalidArgument, "schema is nil for type %T, path %v", root, path)
@@ -129,6 +135,14 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				if err := util.InitializeStructField(root, ft.Name); err != nil {
 					return nil, status.Errorf(codes.Unknown, "failed to initialize struct field %s in %T, child schema %v, path %v", ft.Name, root, cschema, path)
 				}
+			}
+
+			// If delete is specified, and the path is exhausted, then we set the
+			// corresponding field to its zero value. The zero value is the unset value for
+			// any node type, whether leaf or non-leaf.
+			if args.delete && len(path.Elem) == to {
+				fv.Set(reflect.Zero(ft.Type))
+				return nil, nil
 			}
 
 			// If val in args is set to a non-nil value and the path is exhausted, we
@@ -221,7 +235,12 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 				return nil, status.Errorf(codes.InvalidArgument, "failed to convert %v to a string, path %v: %v", kv, path, err)
 			}
 			if keyAsString == pathKey {
-				return retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
+				remainingPath := util.PopGNMIPath(path)
+				if args.delete && len(remainingPath.GetElem()) == 0 {
+					rv.SetMapIndex(k, reflect.Value{})
+					return nil, nil
+				}
+				return retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, path.GetElem()[0]), args)
 			}
 			continue
 		}
@@ -270,7 +289,12 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			if err != nil {
 				return nil, status.Errorf(codes.Unknown, "could not extract keys from %v: %v", traversedPath, err)
 			}
-			nodes, err := retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
+			remainingPath := util.PopGNMIPath(path)
+			if args.delete && len(remainingPath.GetElem()) == 0 {
+				rv.SetMapIndex(k, reflect.Value{})
+				return nil, nil
+			}
+			nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
 			if err != nil {
 				return nil, err
 			}
@@ -429,4 +453,16 @@ func hasInitMissingElements(opts []SetNodeOpt) bool {
 		}
 	}
 	return false
+}
+
+// DeleteNode zeroes the value of the node specified by the supplied path from
+// the specified root, whose schema must also be supplied. If the node
+// specified by that path is already its zero value, or an intermediate node
+// in the path is nil (implying the node is already deleted), then the call is a no-op.
+func DeleteNode(schema *yang.Entry, root interface{}, path *gpb.Path) error {
+	_, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
+		delete: true,
+	})
+
+	return err
 }
