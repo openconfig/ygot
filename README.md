@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/openconfig/ygot.svg?branch=master)](https://travis-ci.org/openconfig/ygot)
 [![Coverage Status](https://coveralls.io/repos/github/openconfig/ygot/badge.svg?branch=master)](https://coveralls.io/github/openconfig/ygot?branch=master)
-Supports [latest 3 Go releases](https://golang.org/project/#release)
+
+supports [latest 3 Go releases](https://golang.org/project/#release)
 
 ![#ygot](docs/img/ygot.png)
 
