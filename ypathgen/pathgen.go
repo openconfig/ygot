@@ -25,6 +25,7 @@ package ypathgen
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strings"
 	"text/template"
 
@@ -119,10 +120,13 @@ type GoImports struct {
 //	its child schema nodes.
 // With these components, the generated API is able to support absolute path
 // creation of any node of the input schema.
+// Also returned is the NodeDataMap of the schema, i.e. information about each
+// node in the generated code, which may help callers add customized
+// augmentations to the basic generated path code.
 // If errors are encountered during code generation, they are returned.
-func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*GeneratedPathCode, util.Errors) {
+func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*GeneratedPathCode, NodeDataMap, util.Errors) {
 	if cg.GoImports.SchemaStructPkgPath == "" {
-		return nil, util.NewErrs(fmt.Errorf("GeneratePathCode: Must specify SchemaStructPkgPath"))
+		return nil, nil, util.NewErrs(fmt.Errorf("GeneratePathCode: Must specify SchemaStructPkgPath"))
 	}
 
 	dcg := &ygen.DirectoryGenConfig{
@@ -135,21 +139,21 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 			GenerateFakeRoot:  true,
 		},
 	}
-	directories, _, errs := dcg.GetDirectoriesAndLeafTypes(yangFiles, includePaths)
+	directories, leafTypeMap, errs := dcg.GetDirectoriesAndLeafTypes(yangFiles, includePaths)
 	if errs != nil {
-		return nil, errs
+		return nil, nil, errs
 	}
 
 	genCode := &GeneratedPathCode{}
 	errs = util.Errors{}
 	if err := writeHeader(yangFiles, includePaths, cg, genCode); err != nil {
-		return nil, util.AppendErr(errs, err)
+		return nil, nil, util.AppendErr(errs, err)
 	}
 
 	// Alphabetically order directories to produce deterministic output.
 	orderedDirNames, dirNameMap, err := ygen.GetOrderedDirectories(directories)
 	if err != nil {
-		return nil, util.AppendErr(errs, err)
+		return nil, nil, util.AppendErr(errs, err)
 	}
 
 	// Generate struct code.
@@ -157,7 +161,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 	for _, directoryName := range orderedDirNames {
 		directory, ok := dirNameMap[directoryName]
 		if !ok {
-			return nil, util.AppendErr(errs,
+			return nil, nil, util.AppendErr(errs,
 				util.NewErrs(fmt.Errorf("GeneratePathCode: Implementation bug -- node %s not found in dirNameMap", directoryName)))
 		}
 
@@ -169,10 +173,16 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 	}
 	genCode.Structs = structSnippets
 
+	// Get NodeDataMap for the schema.
+	nodeDataMap, es := getNodeDataMap(directories, leafTypeMap, cg.SchemaStructPkgAlias)
+	if es != nil {
+		util.AppendErrs(errs, es)
+	}
+
 	if len(errs) == 0 {
 		errs = nil
 	}
-	return genCode, errs
+	return genCode, nodeDataMap, errs
 }
 
 // GeneratedPathCode contains generated code snippets that can be processed by the calling
@@ -230,6 +240,31 @@ func (g GoPathStructCodeSnippet) String() string {
 		genutil.WriteIfNotEmpty(&b, method)
 	}
 	return b.String()
+}
+
+// NodeDataMap is a map from the path struct type name of a schema node to its NodeData.
+type NodeDataMap map[string]*NodeData
+
+// NodeData contains information about the ygen-generated code of a YANG schema node.
+type NodeData struct {
+	GoTypeName       string // GoTypeName is the ygen type name of the node, which is qualified by the SchemaStructPkgAlias if necessary.
+	GoFieldName      string // GoFieldName is the field name of the node under its parent struct.
+	ParentGoTypeName string // ParentGoTypeName is the parent struct's type name.
+	IsLeaf           bool   // IsLeaf indicates whether this child is a leaf node.
+	IsScalarField    bool   // IsScalarField indicates a leaf that is stored as a pointer in its parent struct.
+}
+
+// GetOrderedNodeDataNames returns the alphabetically-sorted slice of keys
+// (path struct names) for a given NodeDataMap.
+func GetOrderedNodeDataNames(nodeDataMap NodeDataMap) []string {
+	nodeDataNames := make([]string, 0, len(nodeDataMap))
+	for name := range nodeDataMap {
+		nodeDataNames = append(nodeDataNames, name)
+	}
+	sort.Slice(nodeDataNames, func(i, j int) bool {
+		return nodeDataNames[i] < nodeDataNames[j]
+	})
+	return nodeDataNames
 }
 
 var (
@@ -340,6 +375,67 @@ func (n *{{ .Struct.TypeName }}) {{ .MethodName -}} ({{ .KeyParamListStr }}) *{{
 // makePathTemplate generates a template.Template for a particular named source template
 func makePathTemplate(name, src string) *template.Template {
 	return template.Must(template.New(name).Parse(src))
+}
+
+// getNodeDataMap returns the NodeDataMap for the provided schema given its
+// parsed information. The directories map is keyed by the path of the
+// directory entries. leafTypeMap stores type information for all nodes, and is
+// keyed first also by the path of the directory entries, and second by the
+// schema field names of that directory entry (i.e. the same keys as the
+// "Fields" map of the Directory entry). Since ygen provides a *MappedType for
+// every leaf node only, leafTypeMap's value is nil for non-leaf nodes.
+// If a directory or field doesn't exist in the leafTypeMap, then an error is returned.
+// Note: Top-level nodes, but *not* the fake root, are part of the output.
+func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[string]map[string]*ygen.MappedType, schemaStructPkgAlias string) (NodeDataMap, util.Errors) {
+	nodeDataMap := NodeDataMap{}
+	var errs util.Errors
+	for path, dir := range directories {
+		goFieldNameMap := ygen.GoFieldNameMap(dir)
+		fieldTypeMap, ok := leafTypeMap[path]
+		if !ok {
+			errs = util.AppendErr(errs, fmt.Errorf("getChildDataList: directory path %q does not exist in leafTypeMap's keys", path))
+			continue
+		}
+		for fieldName, field := range dir.Fields {
+			pathStructName, err := getFieldTypeName(dir, fieldName, goFieldNameMap[fieldName], directories)
+			if err != nil {
+				errs = util.AppendErr(errs, err)
+				continue
+			}
+			mType, ok := fieldTypeMap[fieldName]
+			if !ok {
+				errs = util.AppendErr(errs, fmt.Errorf("getChildDataList: field name %q does not exist for directory %q in the map of field names to their MappedType values: %v", fieldName, path, fieldTypeMap))
+				continue
+			}
+
+			isLeaf := mType != nil
+			var goTypeName string
+			switch {
+			case !isLeaf:
+				goTypeName = "*" + schemaStructPkgAlias + "." + pathStructName
+			case field.ListAttr != nil && ygen.IsYgenDefinedGoType(mType):
+				goTypeName = "[]" + schemaStructPkgAlias + "." + mType.NativeType
+			case ygen.IsYgenDefinedGoType(mType):
+				goTypeName = schemaStructPkgAlias + "." + mType.NativeType
+			case field.ListAttr != nil:
+				goTypeName = "[]" + mType.NativeType
+			default:
+				goTypeName = mType.NativeType
+			}
+			nodeDataMap[pathStructName] = &NodeData{
+				GoTypeName:       goTypeName,
+				GoFieldName:      goFieldNameMap[fieldName],
+				ParentGoTypeName: dir.Name,
+				IsLeaf:           isLeaf,
+				IsScalarField:    ygen.IsScalarField(field, mType),
+			}
+		}
+	}
+
+	if len(errs) != 0 {
+		return nil, errs
+	}
+	return nodeDataMap, nil
 }
 
 // writeHeader parses the yangFiles from the includePaths, and fills the given
@@ -548,7 +644,7 @@ func generateChildConstructor(methodBuf *bytes.Buffer, directory *ygen.Directory
 // handling the case where the field supplied is a leaf or directory. The input
 // directories is a map from paths to directory entries, and goFieldName is the
 // incremental type name to be used for the case that the directory field is a
-// leaf. For non-leaves, their corresponding directory's "Name"s, which are the
+// leaf. For non-leaves, their corresponding directories' "Name"s, which are the
 // same names as their corresponding ygen Go struct type names, are re-used as
 // their type names; for leaves, type names are synthesized.
 func getFieldTypeName(directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory) (string, error) {
