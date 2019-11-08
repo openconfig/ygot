@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/testutil"
@@ -145,7 +146,7 @@ func TestAppendName(t *testing.T) {
 			continue
 		}
 
-		if diff := pretty.Compare(tt.inPath, tt.want); diff != "" {
+		if diff := cmp.Diff(tt.inPath, tt.want, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
 			t.Errorf("%s: (gnmiPath)(%#v).AppendName(%s): did not get expected path, diff(-got,+want):\n%s", tt.name, tt.inPath, tt.inName, diff)
 		}
 	}
@@ -233,7 +234,7 @@ func TestGNMIPathOps(t *testing.T) {
 			t.Errorf("%s: %v.LastPathElem(): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inPath, err, tt.wantLastPathElemErr)
 		}
 
-		if err == nil && !reflect.DeepEqual(gotLast, tt.wantLastPathElem) {
+		if err == nil && !proto.Equal(gotLast, tt.wantLastPathElem) {
 			t.Errorf("%s: %v.LastPathElem(), did not get expected last element, got: %v, want: %v", tt.name, tt.inPath, gotLast, tt.wantLastPathElem)
 		}
 
@@ -243,7 +244,7 @@ func TestGNMIPathOps(t *testing.T) {
 			t.Errorf("%s: %v.SetIndex(%d, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inPath, tt.inIndex, tt.inValue, err, tt.wantSetIndexErr)
 		}
 
-		if err == nil && !reflect.DeepEqual(np, tt.wantPath) {
+		if err == nil && !cmp.Equal(np, tt.wantPath, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)) {
 			t.Errorf("%s: %v.SetIndex(%d, %v): did not get expected path, got: %v, want: %v", tt.name, tt.inPath, tt.inIndex, tt.inValue, np, tt.wantPath)
 		}
 	}
@@ -438,7 +439,7 @@ func TestStripPrefix(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(got, tt.want) {
+		if !cmp.Equal(got, tt.want, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)) {
 			t.Errorf("%s: stripPrefix(%v, %v): did not get expected path, got: %v, want: %v", tt.name, tt.inPath, tt.inPrefix, got, tt.want)
 		}
 	}
@@ -627,7 +628,7 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 			t.Errorf("%s: appendgNMIPathElemKey(%v, %v): did not get expected error status, got: %v, want error: %v", tt.name, tt.inValue, tt.inPath, err, tt.wantErr)
 		}
 
-		if diff := pretty.Compare(got, tt.wantPath); diff != "" {
+		if diff := cmp.Diff(got, tt.wantPath, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
 			t.Errorf("%s: appendgNMIPathElemKey(%v, %v): did not get expected return path, diff(-got,+want):\n%s", tt.name, tt.inValue, tt.inPath, diff)
 		}
 	}

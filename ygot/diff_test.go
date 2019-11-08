@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/util"
@@ -385,7 +387,7 @@ func TestNodeValuePath(t *testing.T) {
 		if err != nil && !strings.Contains(err.Error(), tt.wantErr) {
 			t.Errorf("%s: nodeValuePath(%v, %v): did not get expected error, got: %v, want: %v", tt.desc, tt.inNI, tt.inSchemaPaths, err, tt.wantErr)
 		}
-		if !reflect.DeepEqual(got, tt.wantPathSpec) {
+		if !cmp.Equal(got, tt.wantPathSpec, cmp.Comparer(proto.Equal)) {
 			diff := pretty.Compare(got, tt.wantPathSpec)
 			t.Errorf("%s: nodeValuePath(%v, %v): did not get expected paths, diff(-got,+want): %s", tt.desc, tt.inNI, tt.inSchemaPaths, diff)
 		}
@@ -442,7 +444,7 @@ func TestFindSetLeaves(t *testing.T) {
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{{Name: "string-value"}},
 				}},
-			}: "value-one",
+			}: String("value-one"),
 			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
@@ -450,7 +452,7 @@ func TestFindSetLeaves(t *testing.T) {
 						{Name: "second-string-value"},
 					},
 				}},
-			}: "value-two",
+			}: String("value-two"),
 			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
@@ -466,7 +468,7 @@ func TestFindSetLeaves(t *testing.T) {
 						{Name: "third-string-value"},
 					},
 				}},
-			}: "value-three",
+			}: String("value-three"),
 		},
 	}, {
 		desc: "struct with map",
@@ -484,7 +486,7 @@ func TestFindSetLeaves(t *testing.T) {
 						{Name: "list-key"},
 					},
 				}},
-			}: "one",
+			}: String("one"),
 			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
@@ -492,7 +494,7 @@ func TestFindSetLeaves(t *testing.T) {
 						{Name: "list-key"},
 					},
 				}},
-			}: "two",
+			}: String("two"),
 		},
 	}, {
 		desc: "struct with annotation",
@@ -507,7 +509,7 @@ func TestFindSetLeaves(t *testing.T) {
 						Name: "field-a",
 					}},
 				}},
-			}: "foo",
+			}: String("foo"),
 		},
 	}, {
 		desc: "struct with multiple paths for fields: no single path option",
@@ -524,7 +526,7 @@ func TestFindSetLeaves(t *testing.T) {
 						{Name: "one-path"},
 					},
 				}},
-			}: "foo",
+			}: String("foo"),
 			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
@@ -536,7 +538,7 @@ func TestFindSetLeaves(t *testing.T) {
 						{Name: "two-path"},
 					},
 				}},
-			}: "bar",
+			}: String("bar"),
 			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
@@ -548,7 +550,7 @@ func TestFindSetLeaves(t *testing.T) {
 						{Name: "revtwo-path"},
 					},
 				}},
-			}: "quux",
+			}: String("quux"),
 			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
@@ -565,7 +567,7 @@ func TestFindSetLeaves(t *testing.T) {
 						{Name: "three-path"},
 					},
 				}},
-			}: "baz",
+			}: String("baz"),
 		},
 	}, {
 		desc: "struct with multiple paths for fields: single path set",
@@ -587,28 +589,28 @@ func TestFindSetLeaves(t *testing.T) {
 						{Name: "one-path"},
 					},
 				}},
-			}: "foo",
+			}: String("foo"),
 			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
 						{Name: "two-path"},
 					},
 				}},
-			}: "bar",
+			}: String("bar"),
 			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
 						{Name: "revtwo-path"},
 					},
 				}},
-			}: "quux",
+			}: String("quux"),
 			{
 				gNMIPaths: []*gnmipb.Path{{
 					Elem: []*gnmipb.PathElem{
 						{Name: "three-path"},
 					},
 				}},
-			}: "baz",
+			}: String("baz"),
 		},
 	}}
 
@@ -618,7 +620,12 @@ func TestFindSetLeaves(t *testing.T) {
 			t.Errorf("%s: findSetLeaves(%v): did not get expected error: %v", tt.desc, tt.inStruct, err)
 			continue
 		}
-		if diff := pretty.Compare(got, tt.want); diff != "" {
+		if diff := cmp.Diff(got, tt.want,
+			cmpopts.SortMaps(func(x, y *pathSpec) bool {
+				return x.String() < y.String()
+			}),
+			cmp.Comparer(proto.Equal),
+		); diff != "" {
 			t.Errorf("%s: findSetLeaves(%v): did not get expected output, diff(-got,+want):\n%s", tt.desc, tt.inStruct, diff)
 		}
 	}
