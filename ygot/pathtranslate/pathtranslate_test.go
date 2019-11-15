@@ -18,6 +18,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 
@@ -238,7 +240,7 @@ func TestPathElem(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(gotPath, tt.wantPath) {
+			if !cmp.Equal(gotPath, tt.wantPath, cmp.Comparer(proto.Equal)) {
 				t.Errorf("got %v, want %v", gotPath, tt.wantPath)
 			}
 		})

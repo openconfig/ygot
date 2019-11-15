@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
@@ -293,7 +294,7 @@ func TestGetNodeSimpleKeyedList(t *testing.T) {
 
 	for _, tt := range tests {
 		val, status := GetNode(containerWithLeafListSchema, tt.rootStruct, tt.path)
-		if got, want := status, tt.wantStatus; !reflect.DeepEqual(got, want) {
+		if got, want := status, tt.wantStatus; !proto.Equal(&got, &want) {
 			t.Errorf("%s: got error: %v, wanted error? %v", tt.desc, got, want)
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
@@ -453,7 +454,7 @@ func TestGetNodeStructKeyedList(t *testing.T) {
 
 	for _, tt := range tests {
 		val, status := GetNode(containerWithLeafListSchema, tt.rootStruct, tt.path)
-		if got, want := status, tt.wantStatus; !reflect.DeepEqual(got, want) {
+		if got, want := status, tt.wantStatus; !proto.Equal(&got, &want) {
 			t.Errorf("%s: got error: %v, wanted error? %v", tt.desc, got, want)
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
@@ -597,7 +598,7 @@ func TestNewNodeSimpleKeyedList(t *testing.T) {
 
 	for _, tt := range tests {
 		val, status := NewNode(reflect.TypeOf(tt.rootStruct), tt.path)
-		if got, want := status, tt.wantStatus; !reflect.DeepEqual(got, want) {
+		if got, want := status, tt.wantStatus; !proto.Equal(&got, &want) {
 			t.Errorf("%s: got error: %v, wanted error? %v", tt.desc, got, want)
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
@@ -731,7 +732,7 @@ func TestNewNodeStructKeyedList(t *testing.T) {
 
 	for _, tt := range tests {
 		val, status := NewNode(reflect.TypeOf(tt.rootStruct), tt.path)
-		if got, want := status, tt.wantStatus; !reflect.DeepEqual(got, want) {
+		if got, want := status, tt.wantStatus; !proto.Equal(&got, &want) {
 			t.Errorf("%s: got error: %v, wanted error? %v", tt.desc, got, want)
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))

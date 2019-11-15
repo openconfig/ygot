@@ -67,7 +67,7 @@ func (p *pathSpec) Equal(o *pathSpec) bool {
 	for _, path := range p.gNMIPaths {
 		var found bool
 		for _, otherPath := range o.gNMIPaths {
-			if reflect.DeepEqual(path, otherPath) {
+			if proto.Equal(path, otherPath) {
 				found = true
 				break
 			}

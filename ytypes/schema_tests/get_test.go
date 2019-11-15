@@ -17,6 +17,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/errdiff"
@@ -169,7 +170,7 @@ func TestGetNodeFull(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(got, tt.wantNodes, ignoreSchema, cmpopts.EquateEmpty(), sortNodes); diff != "" {
+			if diff := cmp.Diff(got, tt.wantNodes, ignoreSchema, cmpopts.EquateEmpty(), sortNodes, cmp.Comparer(proto.Equal)); diff != "" {
 				t.Fatalf("did not get expected result, diff(-got,+want):\n%s", diff)
 			}
 		})

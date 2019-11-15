@@ -112,7 +112,7 @@ func main() {
 		GeneratingBinary: genutil.CallerName(),
 	}
 
-	pathCode, errs := cg.GeneratePathCode(generateModules, includePaths)
+	pathCode, _, errs := cg.GeneratePathCode(generateModules, includePaths)
 	if errs != nil {
 		log.Exitf("ERROR Generating Code: %s\n", errs)
 	}
