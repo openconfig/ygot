@@ -45,6 +45,9 @@ const (
 	defaultPathPackageName = "ocpathstructs"
 	// defaultFakeRootName is the default name for the root structure.
 	defaultFakeRootName = "device"
+	// WildcardNodeSuffix is the suffix given to the wildcard versions of
+	// each node that distinguishes each from its non-wildcard counterpart.
+	WildcardNodeSuffix = "Ω"
 )
 
 // NewDefaultConfig creates a GenConfig with default configuration. schemaStructPkgPath is a
@@ -111,7 +114,7 @@ type GoImports struct {
 // a pointer to a GeneratedPathCode struct containing all the generated code to
 // support the path-creation API. The important components of the generated
 // code are listed below:
-//	1. A struct definition for each container, list, or leaf schema node,
+//	1. Struct definitions for each container, list, or leaf schema node,
 //	as well as the fakeroot.
 //	2. A Resolve() helper function, which can return the absolute path of
 //	any struct.
@@ -338,10 +341,17 @@ func For{{ .TypeName }}(id string) *{{ .TypeName }} {
 	// where the tree formed by the nodes mirrors the compressed YANG
 	// schema tree. The defined type stores the relative path to the
 	// current node, as well as its parent node for obtaining its absolute
-	// path.
+	// path. There are two versions of these, non-wildcard and wildcard.
+	// The wildcard version is simply a type to indicate that the path it
+	// holds contains a wildcard, but is otherwise the exact same.
 	goPathStructTemplate = `
 // {{ .TypeName }} represents the {{ .YANGPath }} YANG schema element.
 type {{ .TypeName }} struct {
+	ygot.{{ .PathBaseTypeName }}
+}
+
+// {{ .TypeName }}{{ .WildcardNodeSuffix }} represents the wildcard version of the {{ .YANGPath }} YANG schema element.
+type {{ .TypeName }}{{ .WildcardNodeSuffix }} struct {
 	ygot.{{ .PathBaseTypeName }}
 }
 `
@@ -483,10 +493,17 @@ func writeHeader(yangFiles, includePaths []string, cg *GenConfig, genCode *Gener
 // goPathStructData stores template information needed to generate a struct
 // field's type definition.
 type goPathStructData struct {
-	TypeName                string // TypeName is the type name of the struct being output.
-	YANGPath                string // YANGPath is the schema path of the struct being output.
-	PathBaseTypeName        string // PathBaseTypeName is the type name of the common embedded path struct.
-	PathStructInterfaceName string // PathStructInterfaceName is the name of the interface which all path structs implement.
+	// TypeName is the type name of the struct being output.
+	TypeName string
+	// YANGPath is the schema path of the struct being output.
+	YANGPath string
+	// PathBaseTypeName is the type name of the common embedded path struct.
+	PathBaseTypeName string
+	// PathStructInterfaceName is the name of the interface which all path structs implement.
+	PathStructInterfaceName string
+	// WildcardNodeSuffix is the suffix given to the wildcard versions of
+	// each node that distinguishes each from its non-wildcard counterpart.
+	WildcardNodeSuffix string
 }
 
 // getStructData returns the goPathStructData corresponding to a Directory,
@@ -498,6 +515,7 @@ func getStructData(directory *ygen.Directory) goPathStructData {
 		YANGPath:                util.SlicePathToString(directory.Path),
 		PathBaseTypeName:        ygot.PathBaseTypeName,
 		PathStructInterfaceName: ygot.PathStructInterfaceName,
+		WildcardNodeSuffix:      WildcardNodeSuffix,
 	}
 }
 
@@ -567,6 +585,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 					YANGPath:                field.Path(),
 					PathBaseTypeName:        ygot.PathBaseTypeName,
 					PathStructInterfaceName: ygot.PathStructInterfaceName,
+					WildcardNodeSuffix:      WildcardNodeSuffix,
 				}
 				if err := goPathTemplates["struct"].Execute(&structBuf, structData); err != nil {
 					errs = util.AppendErr(errs, err)
