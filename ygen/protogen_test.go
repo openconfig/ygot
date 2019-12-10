@@ -716,6 +716,22 @@ func TestSafeProtoName(t *testing.T) {
 		in:   "with.period",
 		want: "with_period",
 	}, {
+		name: "contains plus",
+		in:   "with+plus",
+		want: "with_plus",
+	}, {
+		name: "contains slash",
+		in:   "with/slash",
+		want: "with_slash",
+	}, {
+		name: "contains space",
+		in:   "with space",
+		want: "with_space",
+	}, {
+		name: "contains numbers",
+		in:   "with1_numbers234",
+		want: "with1_numbers234",
+	}, {
 		name: "unchanged",
 		in:   "unchanged",
 		want: "unchanged",

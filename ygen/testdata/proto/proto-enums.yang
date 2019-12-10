@@ -34,7 +34,7 @@ module proto-enums {
   container a {
     leaf a {
       type enumeration {
-        enum C_VAL;
+        enum "C_VAL/D_VAL";
       }
     }
 

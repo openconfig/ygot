@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"text/template"
@@ -155,6 +156,8 @@ type proto3Header struct {
 	YwrapperPath           string   // YwrapperPath is the path to the ywrapper.proto file, excluding the filename.
 	YextPath               string   // YextPath is the path to the yext.proto file, excluding the filename.
 }
+
+var disallowedInProtoIDRegexp = regexp.MustCompile(`[^a-zA-Z0-9_]`)
 
 var (
 	// protoHeaderTemplate is populated and output at the top of the protobuf code output.
@@ -1084,13 +1087,9 @@ func safeProtoIdentifierName(name string) string {
 	// For Protobuf they must match:
 	//	ident = letter { letter | decimalDigit | "_" }
 	//
-	// Therefore we need to ensure that the "-", and "." characters that are allowed
-	// in the YANG are replaced.
-	replacer := strings.NewReplacer(
-		".", "_",
-		"-", "_",
-	)
-	return replacer.Replace(name)
+	// Therefore we need to replace all characters in the YANG identifier that are not a
+	// letter, digit, or underscore.
+	return disallowedInProtoIDRegexp.ReplaceAllLiteralString(name, "_")
 }
 
 // protoTagForEntry returns a protobuf tag value for the entry e.
