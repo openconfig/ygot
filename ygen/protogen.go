@@ -1131,10 +1131,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 
 	definedFieldNames := map[string]bool{}
 	ctag := uint32(1)
-	for _, k := range strings.Split(args.field.Key, " ") {
-		if k == "" {
-			continue
-		}
+	for _, k := range strings.Fields(args.field.Key) {
 		kf, ok := args.directory.Fields[k]
 		if !ok {
 			return nil, fmt.Errorf("list %s included a key %s that did not exist", args.field.Path(), k)

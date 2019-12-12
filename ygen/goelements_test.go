@@ -860,6 +860,27 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 	}, {
+		name: "multiple list keys - newlines",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "k1  \nk2",
+			Dir: map[string]*yang.Entry{
+				"k1": {Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
+				"k2": {Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
+			},
+		},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"k1": {NativeType: "string"},
+				"k2": {NativeType: "string"},
+			},
+			KeyElems: []*yang.Entry{
+				{Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
+				{Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
+			},
+		},
+	}, {
 		name: "missing key list",
 		in: &yang.Entry{
 			Name:     "list",

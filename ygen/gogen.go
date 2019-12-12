@@ -1795,7 +1795,7 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 
 	// Key name elements are ordered per Section 7.8.2 of RFC6020. Rely on this
 	// fact for determisitic ordering in output code and rendering.
-	keyElemNames := strings.Split(listField.Key, " ")
+	keyElemNames := strings.Fields(listField.Key)
 
 	usedKeyElemNames := make(map[string]bool)
 	for _, keName := range keyElemNames {

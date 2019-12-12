@@ -93,7 +93,7 @@ func validateList(schema *yang.Entry, value interface{}) util.Errors {
 //    3. For each such key field, the field value in the element equals the
 //       value of the map key of the containing map in the data tree.
 func checkKeys(schema *yang.Entry, structElems reflect.Value, keyValue reflect.Value) util.Errors {
-	keys := strings.Split(schema.Key, " ")
+	keys := strings.Fields(schema.Key)
 	if len(keys) == 1 {
 		return checkBasicKeyValue(structElems, schema.Key, keyValue)
 	}
@@ -217,7 +217,7 @@ func validateListSchema(schema *yang.Entry) error {
 		if len(schema.Key) == 0 {
 			return fmt.Errorf("list %s with config set must have a key", schema.Name)
 		}
-		keys := strings.Split(schema.Key, " ")
+		keys := strings.Fields(schema.Key)
 		keysMissing := make(map[string]bool)
 		for _, v := range keys {
 			keysMissing[v] = true

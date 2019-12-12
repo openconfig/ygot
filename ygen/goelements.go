@@ -463,11 +463,8 @@ func (s *genState) buildListKey(e *yang.Entry, compressOCPaths bool) (*YangListA
 	}
 
 	var errs []error
-	keys := strings.Split(e.Key, " ")
+	keys := strings.Fields(e.Key)
 	for _, k := range keys {
-		if k == "" {
-			continue
-		}
 		// Extract the key leaf itself from the Dir of the list element. Dir is populated
 		// by goyang, and is a map keyed by leaf identifier with values of a *yang.Entry
 		// corresponding to the leaf.
