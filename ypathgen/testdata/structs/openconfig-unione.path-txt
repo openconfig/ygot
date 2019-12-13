@@ -69,13 +69,28 @@ type DupEnum struct {
 	ygot.NodePath
 }
 
+// DupEnumΩ represents the wildcard version of the /openconfig-unione/dup-enum YANG schema element.
+type DupEnumΩ struct {
+	ygot.NodePath
+}
+
 // DupEnum_A represents the /openconfig-unione/dup-enum/state/A YANG schema element.
 type DupEnum_A struct {
 	ygot.NodePath
 }
 
+// DupEnum_AΩ represents the wildcard version of the /openconfig-unione/dup-enum/state/A YANG schema element.
+type DupEnum_AΩ struct {
+	ygot.NodePath
+}
+
 // DupEnum_B represents the /openconfig-unione/dup-enum/state/B YANG schema element.
 type DupEnum_B struct {
+	ygot.NodePath
+}
+
+// DupEnum_BΩ represents the wildcard version of the /openconfig-unione/dup-enum/state/B YANG schema element.
+type DupEnum_BΩ struct {
 	ygot.NodePath
 }
 
@@ -106,6 +121,11 @@ type Platform struct {
 	ygot.NodePath
 }
 
+// PlatformΩ represents the wildcard version of the /openconfig-unione/platform YANG schema element.
+type PlatformΩ struct {
+	ygot.NodePath
+}
+
 // Component returns from Platform the path struct for its child "component".
 func (n *Platform) Component() *Platform_Component {
 	return &Platform_Component{
@@ -122,8 +142,18 @@ type Platform_Component struct {
 	ygot.NodePath
 }
 
+// Platform_ComponentΩ represents the wildcard version of the /openconfig-unione/platform/component YANG schema element.
+type Platform_ComponentΩ struct {
+	ygot.NodePath
+}
+
 // Platform_Component_E1 represents the /openconfig-unione/platform/component/state/e1 YANG schema element.
 type Platform_Component_E1 struct {
+	ygot.NodePath
+}
+
+// Platform_Component_E1Ω represents the wildcard version of the /openconfig-unione/platform/component/state/e1 YANG schema element.
+type Platform_Component_E1Ω struct {
 	ygot.NodePath
 }
 
@@ -132,8 +162,18 @@ type Platform_Component_Enumerated struct {
 	ygot.NodePath
 }
 
+// Platform_Component_EnumeratedΩ represents the wildcard version of the /openconfig-unione/platform/component/state/enumerated YANG schema element.
+type Platform_Component_EnumeratedΩ struct {
+	ygot.NodePath
+}
+
 // Platform_Component_Power represents the /openconfig-unione/platform/component/state/power YANG schema element.
 type Platform_Component_Power struct {
+	ygot.NodePath
+}
+
+// Platform_Component_PowerΩ represents the wildcard version of the /openconfig-unione/platform/component/state/power YANG schema element.
+type Platform_Component_PowerΩ struct {
 	ygot.NodePath
 }
 
@@ -142,8 +182,18 @@ type Platform_Component_R1 struct {
 	ygot.NodePath
 }
 
+// Platform_Component_R1Ω represents the wildcard version of the /openconfig-unione/platform/component/state/r1 YANG schema element.
+type Platform_Component_R1Ω struct {
+	ygot.NodePath
+}
+
 // Platform_Component_Type represents the /openconfig-unione/platform/component/state/type YANG schema element.
 type Platform_Component_Type struct {
+	ygot.NodePath
+}
+
+// Platform_Component_TypeΩ represents the wildcard version of the /openconfig-unione/platform/component/state/type YANG schema element.
+type Platform_Component_TypeΩ struct {
 	ygot.NodePath
 }
 

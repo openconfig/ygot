@@ -58,6 +58,11 @@ type Model struct {
 	ygot.NodePath
 }
 
+// ModelΩ represents the wildcard version of the /openconfig-withlist/model YANG schema element.
+type ModelΩ struct {
+	ygot.NodePath
+}
+
 // MultiKey returns from Model the path struct for its child "multi-key".
 func (n *Model) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKey {
 	return &Model_MultiKey{
@@ -85,13 +90,28 @@ type Model_MultiKey struct {
 	ygot.NodePath
 }
 
+// Model_MultiKeyΩ represents the wildcard version of the /openconfig-withlist/model/b/multi-key YANG schema element.
+type Model_MultiKeyΩ struct {
+	ygot.NodePath
+}
+
 // Model_MultiKey_Key1 represents the /openconfig-withlist/model/b/multi-key/state/key1 YANG schema element.
 type Model_MultiKey_Key1 struct {
 	ygot.NodePath
 }
 
+// Model_MultiKey_Key1Ω represents the wildcard version of the /openconfig-withlist/model/b/multi-key/state/key1 YANG schema element.
+type Model_MultiKey_Key1Ω struct {
+	ygot.NodePath
+}
+
 // Model_MultiKey_Key2 represents the /openconfig-withlist/model/b/multi-key/state/key2 YANG schema element.
 type Model_MultiKey_Key2 struct {
+	ygot.NodePath
+}
+
+// Model_MultiKey_Key2Ω represents the wildcard version of the /openconfig-withlist/model/b/multi-key/state/key2 YANG schema element.
+type Model_MultiKey_Key2Ω struct {
 	ygot.NodePath
 }
 
@@ -122,8 +142,18 @@ type Model_SingleKey struct {
 	ygot.NodePath
 }
 
+// Model_SingleKeyΩ represents the wildcard version of the /openconfig-withlist/model/a/single-key YANG schema element.
+type Model_SingleKeyΩ struct {
+	ygot.NodePath
+}
+
 // Model_SingleKey_Key represents the /openconfig-withlist/model/a/single-key/state/key YANG schema element.
 type Model_SingleKey_Key struct {
+	ygot.NodePath
+}
+
+// Model_SingleKey_KeyΩ represents the wildcard version of the /openconfig-withlist/model/a/single-key/state/key YANG schema element.
+type Model_SingleKey_KeyΩ struct {
 	ygot.NodePath
 }
 

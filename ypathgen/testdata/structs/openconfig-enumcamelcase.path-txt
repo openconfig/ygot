@@ -58,13 +58,28 @@ type Foo struct {
 	ygot.NodePath
 }
 
+// FooΩ represents the wildcard version of the /openconfig-enumcamelcase/foo YANG schema element.
+type FooΩ struct {
+	ygot.NodePath
+}
+
 // Foo_Bar represents the /openconfig-enumcamelcase/foo/bar YANG schema element.
 type Foo_Bar struct {
 	ygot.NodePath
 }
 
+// Foo_BarΩ represents the wildcard version of the /openconfig-enumcamelcase/foo/bar YANG schema element.
+type Foo_BarΩ struct {
+	ygot.NodePath
+}
+
 // Foo_Baz represents the /openconfig-enumcamelcase/foo/baz YANG schema element.
 type Foo_Baz struct {
+	ygot.NodePath
+}
+
+// Foo_BazΩ represents the wildcard version of the /openconfig-enumcamelcase/foo/baz YANG schema element.
+type Foo_BazΩ struct {
 	ygot.NodePath
 }
 
