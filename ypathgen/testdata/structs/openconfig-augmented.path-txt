@@ -70,8 +70,18 @@ type Native struct {
 	ygot.NodePath
 }
 
+// NativeΩ represents the wildcard version of the /openconfig-simple-target/native YANG schema element.
+type NativeΩ struct {
+	ygot.NodePath
+}
+
 // Native_A represents the /openconfig-simple-target/native/state/a YANG schema element.
 type Native_A struct {
+	ygot.NodePath
+}
+
+// Native_AΩ represents the wildcard version of the /openconfig-simple-target/native/state/a YANG schema element.
+type Native_AΩ struct {
 	ygot.NodePath
 }
 
@@ -91,6 +101,11 @@ type Target struct {
 	ygot.NodePath
 }
 
+// TargetΩ represents the wildcard version of the /openconfig-simple-target/target YANG schema element.
+type TargetΩ struct {
+	ygot.NodePath
+}
+
 // Foo returns from Target the path struct for its child "foo".
 func (n *Target) Foo() *Target_Foo {
 	return &Target_Foo{
@@ -107,8 +122,18 @@ type Target_Foo struct {
 	ygot.NodePath
 }
 
+// Target_FooΩ represents the wildcard version of the /openconfig-simple-target/target/foo YANG schema element.
+type Target_FooΩ struct {
+	ygot.NodePath
+}
+
 // Target_Foo_A represents the /openconfig-simple-target/target/foo/state/a YANG schema element.
 type Target_Foo_A struct {
+	ygot.NodePath
+}
+
+// Target_Foo_AΩ represents the wildcard version of the /openconfig-simple-target/target/foo/state/a YANG schema element.
+type Target_Foo_AΩ struct {
 	ygot.NodePath
 }
 

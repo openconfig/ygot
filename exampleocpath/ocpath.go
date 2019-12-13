@@ -1,5 +1,5 @@
 /*
-Package exampleoc is a generated package which contains definitions
+Package exampleocpath is a generated package which contains definitions
 of structs which generate gNMI paths for a YANG schema. The generated paths are
 based on a compressed form of the schema.
 
@@ -30,7 +30,7 @@ Imported modules were sourced from:
 	- public/...
 	- deps/...
 */
-package exampleoc
+package exampleocpath
 
 import (
 	"fmt"

@@ -899,8 +899,18 @@ type ContainerWithConfig struct {
 	ygot.NodePath
 }
 
+// ContainerWithConfigΩ represents the wildcard version of the /root-module/container-with-config YANG schema element.
+type ContainerWithConfigΩ struct {
+	ygot.NodePath
+}
+
 // ContainerWithConfig_Leaf represents the /root-module/container-with-config/state/leaf YANG schema element.
 type ContainerWithConfig_Leaf struct {
+	ygot.NodePath
+}
+
+// ContainerWithConfig_LeafΩ represents the wildcard version of the /root-module/container-with-config/state/leaf YANG schema element.
+type ContainerWithConfig_LeafΩ struct {
 	ygot.NodePath
 }
 
@@ -909,8 +919,18 @@ type ContainerWithConfig_Leaflist struct {
 	ygot.NodePath
 }
 
+// ContainerWithConfig_LeaflistΩ represents the wildcard version of the /root-module/container-with-config/state/leaflist YANG schema element.
+type ContainerWithConfig_LeaflistΩ struct {
+	ygot.NodePath
+}
+
 // ContainerWithConfig_Leaflist2 represents the /root-module/container-with-config/state/leaflist2 YANG schema element.
 type ContainerWithConfig_Leaflist2 struct {
+	ygot.NodePath
+}
+
+// ContainerWithConfig_Leaflist2Ω represents the wildcard version of the /root-module/container-with-config/state/leaflist2 YANG schema element.
+type ContainerWithConfig_Leaflist2Ω struct {
 	ygot.NodePath
 }
 `,
@@ -967,6 +987,11 @@ func ForDevice(id string) *Device {
 
 // Leaf represents the /root-module/leaf YANG schema element.
 type Leaf struct {
+	ygot.NodePath
+}
+
+// LeafΩ represents the wildcard version of the /root-module/leaf YANG schema element.
+type LeafΩ struct {
 	ygot.NodePath
 }
 `,
@@ -1038,8 +1063,18 @@ type List struct {
 	ygot.NodePath
 }
 
+// ListΩ represents the wildcard version of the /root-module/list-container/list YANG schema element.
+type ListΩ struct {
+	ygot.NodePath
+}
+
 // List_Key1 represents the /root-module/list-container/list/key1 YANG schema element.
 type List_Key1 struct {
+	ygot.NodePath
+}
+
+// List_Key1Ω represents the wildcard version of the /root-module/list-container/list/key1 YANG schema element.
+type List_Key1Ω struct {
 	ygot.NodePath
 }
 
@@ -1048,8 +1083,18 @@ type List_Key2 struct {
 	ygot.NodePath
 }
 
+// List_Key2Ω represents the wildcard version of the /root-module/list-container/list/key2 YANG schema element.
+type List_Key2Ω struct {
+	ygot.NodePath
+}
+
 // List_UnionKey represents the /root-module/list-container/list/union-key YANG schema element.
 type List_UnionKey struct {
+	ygot.NodePath
+}
+
+// List_UnionKeyΩ represents the wildcard version of the /root-module/list-container/list/union-key YANG schema element.
+type List_UnionKeyΩ struct {
 	ygot.NodePath
 }
 `,
