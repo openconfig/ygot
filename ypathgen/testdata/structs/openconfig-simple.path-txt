@@ -69,6 +69,11 @@ type Parent struct {
 	ygot.NodePath
 }
 
+// ParentΩ represents the wildcard version of the /openconfig-simple/parent YANG schema element.
+type ParentΩ struct {
+	ygot.NodePath
+}
+
 // Child returns from Parent the path struct for its child "child".
 func (n *Parent) Child() *Parent_Child {
 	return &Parent_Child{
@@ -85,8 +90,18 @@ type Parent_Child struct {
 	ygot.NodePath
 }
 
+// Parent_ChildΩ represents the wildcard version of the /openconfig-simple/parent/child YANG schema element.
+type Parent_ChildΩ struct {
+	ygot.NodePath
+}
+
 // Parent_Child_Four represents the /openconfig-simple/parent/child/state/four YANG schema element.
 type Parent_Child_Four struct {
+	ygot.NodePath
+}
+
+// Parent_Child_FourΩ represents the wildcard version of the /openconfig-simple/parent/child/state/four YANG schema element.
+type Parent_Child_FourΩ struct {
 	ygot.NodePath
 }
 
@@ -95,13 +110,28 @@ type Parent_Child_One struct {
 	ygot.NodePath
 }
 
+// Parent_Child_OneΩ represents the wildcard version of the /openconfig-simple/parent/child/state/one YANG schema element.
+type Parent_Child_OneΩ struct {
+	ygot.NodePath
+}
+
 // Parent_Child_Three represents the /openconfig-simple/parent/child/state/three YANG schema element.
 type Parent_Child_Three struct {
 	ygot.NodePath
 }
 
+// Parent_Child_ThreeΩ represents the wildcard version of the /openconfig-simple/parent/child/state/three YANG schema element.
+type Parent_Child_ThreeΩ struct {
+	ygot.NodePath
+}
+
 // Parent_Child_Two represents the /openconfig-simple/parent/child/state/two YANG schema element.
 type Parent_Child_Two struct {
+	ygot.NodePath
+}
+
+// Parent_Child_TwoΩ represents the wildcard version of the /openconfig-simple/parent/child/state/two YANG schema element.
+type Parent_Child_TwoΩ struct {
 	ygot.NodePath
 }
 
@@ -154,8 +184,18 @@ type RemoteContainer struct {
 	ygot.NodePath
 }
 
+// RemoteContainerΩ represents the wildcard version of the /openconfig-simple/remote-container YANG schema element.
+type RemoteContainerΩ struct {
+	ygot.NodePath
+}
+
 // RemoteContainer_ALeaf represents the /openconfig-simple/remote-container/state/a-leaf YANG schema element.
 type RemoteContainer_ALeaf struct {
+	ygot.NodePath
+}
+
+// RemoteContainer_ALeafΩ represents the wildcard version of the /openconfig-simple/remote-container/state/a-leaf YANG schema element.
+type RemoteContainer_ALeafΩ struct {
 	ygot.NodePath
 }
 

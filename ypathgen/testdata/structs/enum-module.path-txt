@@ -37,8 +37,18 @@ type AList struct {
 	ygot.NodePath
 }
 
+// AListΩ represents the wildcard version of the /enum-module/a-lists/a-list YANG schema element.
+type AListΩ struct {
+	ygot.NodePath
+}
+
 // AList_Value represents the /enum-module/a-lists/a-list/state/value YANG schema element.
 type AList_Value struct {
+	ygot.NodePath
+}
+
+// AList_ValueΩ represents the wildcard version of the /enum-module/a-lists/a-list/state/value YANG schema element.
+type AList_ValueΩ struct {
 	ygot.NodePath
 }
 
@@ -58,8 +68,18 @@ type BList struct {
 	ygot.NodePath
 }
 
+// BListΩ represents the wildcard version of the /enum-module/b-lists/b-list YANG schema element.
+type BListΩ struct {
+	ygot.NodePath
+}
+
 // BList_Value represents the /enum-module/b-lists/b-list/state/value YANG schema element.
 type BList_Value struct {
+	ygot.NodePath
+}
+
+// BList_ValueΩ represents the wildcard version of the /enum-module/b-lists/b-list/state/value YANG schema element.
+type BList_ValueΩ struct {
 	ygot.NodePath
 }
 
@@ -79,8 +99,18 @@ type C struct {
 	ygot.NodePath
 }
 
+// CΩ represents the wildcard version of the /enum-module/c YANG schema element.
+type CΩ struct {
+	ygot.NodePath
+}
+
 // C_Cl represents the /enum-module/c/cl YANG schema element.
 type C_Cl struct {
+	ygot.NodePath
+}
+
+// C_ClΩ represents the wildcard version of the /enum-module/c/cl YANG schema element.
+type C_ClΩ struct {
 	ygot.NodePath
 }
 
@@ -154,6 +184,11 @@ type Parent struct {
 	ygot.NodePath
 }
 
+// ParentΩ represents the wildcard version of the /enum-module/parent YANG schema element.
+type ParentΩ struct {
+	ygot.NodePath
+}
+
 // Child returns from Parent the path struct for its child "child".
 func (n *Parent) Child() *Parent_Child {
 	return &Parent_Child{
@@ -170,8 +205,18 @@ type Parent_Child struct {
 	ygot.NodePath
 }
 
+// Parent_ChildΩ represents the wildcard version of the /enum-module/parent/child YANG schema element.
+type Parent_ChildΩ struct {
+	ygot.NodePath
+}
+
 // Parent_Child_Id represents the /enum-module/parent/child/state/id YANG schema element.
 type Parent_Child_Id struct {
+	ygot.NodePath
+}
+
+// Parent_Child_IdΩ represents the wildcard version of the /enum-module/parent/child/state/id YANG schema element.
+type Parent_Child_IdΩ struct {
 	ygot.NodePath
 }
 
