@@ -37,8 +37,8 @@ type AList struct {
 	ygot.NodePath
 }
 
-// AListΩ represents the wildcard version of the /enum-module/a-lists/a-list YANG schema element.
-type AListΩ struct {
+// AListAny represents the wildcard version of the /enum-module/a-lists/a-list YANG schema element.
+type AListAny struct {
 	ygot.NodePath
 }
 
@@ -47,8 +47,8 @@ type AList_Value struct {
 	ygot.NodePath
 }
 
-// AList_ValueΩ represents the wildcard version of the /enum-module/a-lists/a-list/state/value YANG schema element.
-type AList_ValueΩ struct {
+// AList_ValueAny represents the wildcard version of the /enum-module/a-lists/a-list/state/value YANG schema element.
+type AList_ValueAny struct {
 	ygot.NodePath
 }
 
@@ -63,13 +63,24 @@ func (n *AList) Value() *AList_Value {
 	}
 }
 
+// Value returns from AListAny the path struct for its child "value".
+func (n *AListAny) Value() *AList_ValueAny {
+	return &AList_ValueAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "value"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
 // BList represents the /enum-module/b-lists/b-list YANG schema element.
 type BList struct {
 	ygot.NodePath
 }
 
-// BListΩ represents the wildcard version of the /enum-module/b-lists/b-list YANG schema element.
-type BListΩ struct {
+// BListAny represents the wildcard version of the /enum-module/b-lists/b-list YANG schema element.
+type BListAny struct {
 	ygot.NodePath
 }
 
@@ -78,8 +89,8 @@ type BList_Value struct {
 	ygot.NodePath
 }
 
-// BList_ValueΩ represents the wildcard version of the /enum-module/b-lists/b-list/state/value YANG schema element.
-type BList_ValueΩ struct {
+// BList_ValueAny represents the wildcard version of the /enum-module/b-lists/b-list/state/value YANG schema element.
+type BList_ValueAny struct {
 	ygot.NodePath
 }
 
@@ -94,13 +105,24 @@ func (n *BList) Value() *BList_Value {
 	}
 }
 
+// Value returns from BListAny the path struct for its child "value".
+func (n *BListAny) Value() *BList_ValueAny {
+	return &BList_ValueAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "value"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
 // C represents the /enum-module/c YANG schema element.
 type C struct {
 	ygot.NodePath
 }
 
-// CΩ represents the wildcard version of the /enum-module/c YANG schema element.
-type CΩ struct {
+// CAny represents the wildcard version of the /enum-module/c YANG schema element.
+type CAny struct {
 	ygot.NodePath
 }
 
@@ -109,14 +131,25 @@ type C_Cl struct {
 	ygot.NodePath
 }
 
-// C_ClΩ represents the wildcard version of the /enum-module/c/cl YANG schema element.
-type C_ClΩ struct {
+// C_ClAny represents the wildcard version of the /enum-module/c/cl YANG schema element.
+type C_ClAny struct {
 	ygot.NodePath
 }
 
 // Cl returns from C the path struct for its child "cl".
 func (n *C) Cl() *C_Cl {
 	return &C_Cl{
+		NodePath: ygot.NewNodePath(
+			[]string{"cl"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Cl returns from CAny the path struct for its child "cl".
+func (n *CAny) Cl() *C_ClAny {
+	return &C_ClAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"cl"},
 			map[string]interface{}{},
@@ -135,12 +168,34 @@ func ForDevice(id string) *Device {
 	return &Device{id: id}
 }
 
+// AListAny returns from Device the path struct for its child "a-list".
+func (n *Device) AListAny() *AListAny {
+	return &AListAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"a-lists", "a-list"},
+			map[string]interface{}{"value": "*"},
+			n,
+		),
+	}
+}
+
 // AList returns from Device the path struct for its child "a-list".
 func (n *Device) AList(Value oc.AList_Value_Union) *AList {
 	return &AList{
 		NodePath: ygot.NewNodePath(
 			[]string{"a-lists", "a-list"},
 			map[string]interface{}{"value": Value},
+			n,
+		),
+	}
+}
+
+// BListAny returns from Device the path struct for its child "b-list".
+func (n *Device) BListAny() *BListAny {
+	return &BListAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"b-lists", "b-list"},
+			map[string]interface{}{"value": "*"},
 			n,
 		),
 	}
@@ -184,8 +239,8 @@ type Parent struct {
 	ygot.NodePath
 }
 
-// ParentΩ represents the wildcard version of the /enum-module/parent YANG schema element.
-type ParentΩ struct {
+// ParentAny represents the wildcard version of the /enum-module/parent YANG schema element.
+type ParentAny struct {
 	ygot.NodePath
 }
 
@@ -200,13 +255,24 @@ func (n *Parent) Child() *Parent_Child {
 	}
 }
 
+// Child returns from ParentAny the path struct for its child "child".
+func (n *ParentAny) Child() *Parent_ChildAny {
+	return &Parent_ChildAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"child"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
 // Parent_Child represents the /enum-module/parent/child YANG schema element.
 type Parent_Child struct {
 	ygot.NodePath
 }
 
-// Parent_ChildΩ represents the wildcard version of the /enum-module/parent/child YANG schema element.
-type Parent_ChildΩ struct {
+// Parent_ChildAny represents the wildcard version of the /enum-module/parent/child YANG schema element.
+type Parent_ChildAny struct {
 	ygot.NodePath
 }
 
@@ -215,14 +281,25 @@ type Parent_Child_Id struct {
 	ygot.NodePath
 }
 
-// Parent_Child_IdΩ represents the wildcard version of the /enum-module/parent/child/state/id YANG schema element.
-type Parent_Child_IdΩ struct {
+// Parent_Child_IdAny represents the wildcard version of the /enum-module/parent/child/state/id YANG schema element.
+type Parent_Child_IdAny struct {
 	ygot.NodePath
 }
 
 // Id returns from Parent_Child the path struct for its child "id".
 func (n *Parent_Child) Id() *Parent_Child_Id {
 	return &Parent_Child_Id{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "id"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Id returns from Parent_ChildAny the path struct for its child "id".
+func (n *Parent_ChildAny) Id() *Parent_Child_IdAny {
+	return &Parent_Child_IdAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "id"},
 			map[string]interface{}{},

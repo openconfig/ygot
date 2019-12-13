@@ -45,9 +45,10 @@ const (
 	defaultPathPackageName = "ocpathstructs"
 	// defaultFakeRootName is the default name for the root structure.
 	defaultFakeRootName = "device"
-	// WildcardNodeSuffix is the suffix given to the wildcard versions of
-	// each node that distinguishes each from its non-wildcard counterpart.
-	WildcardNodeSuffix = "Ω"
+	// WildcardSuffix is the suffix given to the wildcard versions of each
+	// node as well as a list's wildcard child constructor methods that
+	// distinguishes each from its non-wildcard counterpart.
+	WildcardSuffix = "Any"
 )
 
 // NewDefaultConfig creates a GenConfig with default configuration. schemaStructPkgPath is a
@@ -350,8 +351,8 @@ type {{ .TypeName }} struct {
 	ygot.{{ .PathBaseTypeName }}
 }
 
-// {{ .TypeName }}{{ .WildcardNodeSuffix }} represents the wildcard version of the {{ .YANGPath }} YANG schema element.
-type {{ .TypeName }}{{ .WildcardNodeSuffix }} struct {
+// {{ .TypeName }}{{ .WildcardSuffix }} represents the wildcard version of the {{ .YANGPath }} YANG schema element.
+type {{ .TypeName }}{{ .WildcardSuffix }} struct {
 	ygot.{{ .PathBaseTypeName }}
 }
 `
@@ -501,9 +502,9 @@ type goPathStructData struct {
 	PathBaseTypeName string
 	// PathStructInterfaceName is the name of the interface which all path structs implement.
 	PathStructInterfaceName string
-	// WildcardNodeSuffix is the suffix given to the wildcard versions of
+	// WildcardSuffix is the suffix given to the wildcard versions of
 	// each node that distinguishes each from its non-wildcard counterpart.
-	WildcardNodeSuffix string
+	WildcardSuffix string
 }
 
 // getStructData returns the goPathStructData corresponding to a Directory,
@@ -515,7 +516,7 @@ func getStructData(directory *ygen.Directory) goPathStructData {
 		YANGPath:                util.SlicePathToString(directory.Path),
 		PathBaseTypeName:        ygot.PathBaseTypeName,
 		PathStructInterfaceName: ygot.PathStructInterfaceName,
-		WildcardNodeSuffix:      WildcardNodeSuffix,
+		WildcardSuffix:          WildcardSuffix,
 	}
 }
 
@@ -568,8 +569,8 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		}
 		goFieldName := goFieldNameMap[fieldName]
 
-		if err := generateChildConstructor(&methodBuf, directory, fieldName, goFieldName, directories, schemaStructPkgAlias); err != nil {
-			errs = util.AppendErr(errs, err)
+		if es := generateChildConstructors(&methodBuf, directory, fieldName, goFieldName, directories, schemaStructPkgAlias); es != nil {
+			errs = util.AppendErrs(errs, es)
 		}
 
 		// Since leaves don't have their own Directory entries, we need
@@ -585,7 +586,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 					YANGPath:                field.Path(),
 					PathBaseTypeName:        ygot.PathBaseTypeName,
 					PathStructInterfaceName: ygot.PathStructInterfaceName,
-					WildcardNodeSuffix:      WildcardNodeSuffix,
+					WildcardSuffix:          WildcardSuffix,
 				}
 				if err := goPathTemplates["struct"].Execute(&structBuf, structData); err != nil {
 					errs = util.AppendErr(errs, err)
@@ -604,40 +605,42 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 	}, errs
 }
 
-// generateChildConstructor generates and writes to methodBuf a Go method that
-// returns an instantiation of the child node's path struct object. It
+// generateChildConstructors generates and writes to methodBuf the Go methods
+// that returns an instantiation of the child node's path struct object. It
 // takes as input the buffer to store the method, a directory, the field name
-// of the directory identifying the child yang.Entry, a directory-level
-// unique field name to be used as the generated method's name and the
-// incremental type name of of the child path struct, and a map of all
-// directories of the whole schema keyed by their schema paths.
-func generateChildConstructor(methodBuf *bytes.Buffer, directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, schemaStructPkgAlias string) error {
+// of the directory identifying the child yang.Entry, a directory-level unique
+// field name to be used as the generated method's name and the incremental
+// type name of of the child path struct, and a map of all directories of the
+// whole schema keyed by their schema paths.
+func generateChildConstructors(methodBuf *bytes.Buffer, directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, schemaStructPkgAlias string) []error {
 	field, ok := directory.Fields[directoryFieldName]
 	if !ok {
-		return fmt.Errorf("generateChildConstructor: field %s not found in directory %v", directoryFieldName, directory)
+		return []error{fmt.Errorf("generateChildConstructors: field %s not found in directory %v", directoryFieldName, directory)}
 	}
 	fieldTypeName, err := getFieldTypeName(directory, directoryFieldName, goFieldName, directories)
 	if err != nil {
-		return err
+		return []error{err}
 	}
 
 	structData := getStructData(directory)
 	relPath, err := ygen.FindSchemaPath(directory, directoryFieldName, false)
 	if err != nil {
-		return err
+		return []error{err}
 	}
 	fieldData := goPathFieldData{
 		MethodName:  goFieldName,
 		TypeName:    fieldTypeName,
 		SchemaName:  field.Name,
 		Struct:      structData,
-		RelPathList: "\"" + strings.Join(relPath, "\", \"") + "\"",
+		RelPathList: `"` + strings.Join(relPath, `", "`) + `"`,
 	}
+
+	isUnderFakeRoot := ygen.IsFakeRoot(directory.Entry)
 
 	// This is expected to be nil for leaf fields.
 	fieldDirectory := directories[field.Path()]
 
-	if field.IsList() {
+	if field.IsList() { // else, the field is a container or leaf.
 		if fieldDirectory.ListAttr == nil {
 			// TODO(wenbli): keyless lists as a path are not supported by gNMI, but this
 			// library is currently intended for gNMI, so need to decide on a long-term solution.
@@ -646,17 +649,129 @@ func generateChildConstructor(methodBuf *bytes.Buffer, directory *ygen.Directory
 			// Here, we simply skip generating the child constructor, such that its subtree is unreachable.
 			return nil
 			// Erroring out, on the other hand, is impractical due to their existence in the current OpenConfig models.
-			// return fmt.Errorf("generateChildConstructor: schemas containing keyless lists are unsupported, path: %s", field.Path())
+			// return fmt.Errorf("generateChildConstructors: schemas containing keyless lists are unsupported, path: %s", field.Path())
 		}
-		keyParamListStr, err := makeParamListStr(fieldDirectory.ListAttr, schemaStructPkgAlias)
-		if err != nil {
-			return err
-		}
-		fieldData.KeyParamListStr = keyParamListStr
-		fieldData.KeyEntriesStr = makeKeyMapStr(fieldDirectory.ListAttr)
+
+		return generateChildConstructorsForList(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, schemaStructPkgAlias)
 	}
 
-	return goPathTemplates["childConstructor"].Execute(methodBuf, fieldData)
+	return generateChildConstructorsForLeafOrContainer(methodBuf, fieldData, isUnderFakeRoot)
+}
+
+// generateChildConstructorsForLeafOrContainer writes into methodBuf the child
+// constructor snippets for the container or leaf template output information
+// contained in fieldData.
+func generateChildConstructorsForLeafOrContainer(methodBuf *bytes.Buffer, fieldData goPathFieldData, isUnderFakeRoot bool) []error {
+	// Generate child constructor for the non-wildcard version of the parent struct.
+	var errors []error
+	if err := goPathTemplates["childConstructor"].Execute(methodBuf, fieldData); err != nil {
+		errors = append(errors, err)
+	}
+
+	// The root node doesn't have a wildcard version of itself.
+	if isUnderFakeRoot {
+		return errors
+	}
+
+	// Generate child constructor for the wildcard version of the parent struct.
+	fieldData.TypeName += WildcardSuffix
+	fieldData.Struct.TypeName += WildcardSuffix
+	if err := goPathTemplates["childConstructor"].Execute(methodBuf, fieldData); err != nil {
+		errors = append(errors, err)
+	}
+	return errors
+}
+
+// generateChildConstructorsForList writes into methodBuf the child constructor
+// method snippets for the list represented by listAttr. fieldData contains the
+// childConstructor template output information for if the node were a
+// container (which contains a subset of the basic information required for
+// the list constructor methods).
+func generateChildConstructorsForList(methodBuf *bytes.Buffer, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAlias string) []error {
+	var errors []error
+	// List of function parameters as would appear in the method definition.
+	keyParamListStrs, err := makeParamListStrs(listAttr, schemaStructPkgAlias)
+	if err != nil {
+		return append(errors, err)
+	}
+	// List of key parameters as would appear in the key attribute of a
+	// ygot.NodePath definition.
+	keyNames, keyVarNames := makeKeyMapStrs(listAttr)
+	keyN := len(keyParamListStrs)
+	combos := combinations(keyN)
+
+	// Names that are subject to change depending on which keys are
+	// wildcarded and whether the parent struct is a wildcard node.
+	baseMethodName := fieldData.MethodName
+	parentTypeName := fieldData.Struct.TypeName
+	wildcardParentTypeName := parentTypeName + WildcardSuffix
+	fieldTypeName := fieldData.TypeName
+	wildcardFieldTypeName := fieldTypeName + WildcardSuffix
+
+	// For each combination of parameter indices to be part of the method
+	// parameter list (i.e. NOT wildcarded).
+	for comboIndex, combo := range combos {
+		var paramListStrs, keyEntryStrs []string
+		var anySuffixes []string
+
+		i := 0 // Loop through each parameter
+		for _, paramIndex := range combo {
+			// Add unselected parameters as a wildcard.
+			for ; i != paramIndex; i++ {
+				keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": "*"`, keyNames[i]))
+				anySuffixes = append(anySuffixes, WildcardSuffix+keyVarNames[i])
+			}
+			// Add selected parameters to the parameter list.
+			paramListStrs = append(paramListStrs, keyParamListStrs[paramIndex])
+			keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": %s`, keyNames[paramIndex], keyVarNames[paramIndex]))
+			i++
+		}
+		for ; i != keyN; i++ { // Handle edge case
+			keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": "*"`, keyNames[i]))
+			anySuffixes = append(anySuffixes, WildcardSuffix+keyVarNames[i])
+		}
+		// Create the string for the method parameter list and ygot.NodePath's key list.
+		fieldData.KeyParamListStr = strings.Join(paramListStrs, ", ")
+		fieldData.KeyEntriesStr = strings.Join(keyEntryStrs, ", ")
+
+		// Add wildcard description suffixes to the base method name
+		// for wildcarded parameters.
+		fieldData.MethodName = baseMethodName + strings.Join(anySuffixes, "")
+		// By default, set the child type to be the wildcard version.
+		fieldData.TypeName = wildcardFieldTypeName
+
+		// Corner cases
+		switch {
+		case comboIndex == 0:
+			// When all keys are wildcarded, just use
+			// WildcardSuffix alone as the suffix.
+			fieldData.MethodName = baseMethodName + WildcardSuffix
+		case comboIndex == len(combos)-1:
+			// When all keys are not wildcarded, then the child
+			// type should be the non-wildcard version.
+			fieldData.TypeName = fieldTypeName
+		}
+
+		// Generate child constructor method for non-wildcard version of parent struct.
+		fieldData.Struct.TypeName = parentTypeName
+		if err := goPathTemplates["childConstructor"].Execute(methodBuf, fieldData); err != nil {
+			errors = append(errors, err)
+		}
+
+		// The root node doesn't have a wildcard version of itself.
+		if isUnderFakeRoot {
+			continue
+		}
+
+		// Generate child constructor method for wildcard version of parent struct.
+		fieldData.Struct.TypeName = wildcardParentTypeName
+		// Override the corner case for generating the non-wildcard child.
+		fieldData.TypeName = wildcardFieldTypeName
+		if err := goPathTemplates["childConstructor"].Execute(methodBuf, fieldData); err != nil {
+			errors = append(errors, err)
+		}
+	}
+	return errors
 }
 
 // getFieldTypeName returns the type name for a field node of a directory -
@@ -688,32 +803,34 @@ func getFieldTypeName(directory *ygen.Directory, directoryFieldName string, goFi
 	return directory.Name + "_" + goFieldName, nil
 }
 
-// makeKeyMapStr returns a literal instantiation of the map of key name to
-// values to be assigned to the "key" attribute of a path node; the enveloping
-// map[string]interface{} is omitted from this output. The name of the value
-// variable is camel-cased and uniquified, and done in an identical manner as
-// makeParamListStr to ensure compilation.
+// makeKeyMapStrs returns the components of the literal instantiations of the
+// "key" attribute of a ygot.NodePath, i.e. the literal key and value strings
+// to be output within the "{}" of its map[string]interface{} field. The first
+// returned slice contains the YANG key names, and the second slice the
+// camel-cased and uniquified versions of them, done in an identical manner as
+// makeParamListStrs to ensure compilation.
 // e.g.
 // in: &ygen.YangListAttr{
 // 	Keys: map[string]*ygen.MappedType{
-// 		"fluorine": &ygen.MappedType{NativeType: "string"},
+// 		"fluorine":        &ygen.MappedType{NativeType: "string"},
 // 		"iodine-liquid":   &ygen.MappedType{NativeType: "Binary"},
 // 	},
 // 	KeyElems: []*yang.Entry{{Name: "fluorine"}, {Name: "iodine-liquid"}},
 // }
-// out: "fluorine": Fluorine, "iodine-liquid": IodineLiquid
-func makeKeyMapStr(listAttr *ygen.YangListAttr) string {
-	var entries []string
+// out: {"fluorine", "iodine-liquid"}, {"Fluorine", "IodineLiquid"}
+func makeKeyMapStrs(listAttr *ygen.YangListAttr) ([]string, []string) {
+	var keyNames, keyVarNames []string
 	goKeyNameMap := getGoKeyNameMap(listAttr.KeyElems)
 	for _, key := range listAttr.KeyElems { // NOTE: loop on list for deterministic output.
-		entries = append(entries, fmt.Sprintf("\"%s\": %s", key.Name, goKeyNameMap[key.Name]))
+		keyNames = append(keyNames, key.Name)
+		keyVarNames = append(keyVarNames, goKeyNameMap[key.Name])
 	}
-
-	return strings.Join(entries, ", ")
+	return keyNames, keyVarNames
 }
 
-// makeParamListStr generates the go parameter list for a child list's
-// constructor method given the list's ygen.YangListAttr.
+// makeParamListStrs generates the list of go parameter list components for a
+// child list's constructor method given the list's ygen.YangListAttr.
+// It outputs the parameters in the same order as in the YangListAttr.
 // e.g.
 // in: &ygen.YangListAttr{
 // 	Keys: map[string]*ygen.MappedType{
@@ -722,10 +839,10 @@ func makeKeyMapStr(listAttr *ygen.YangListAttr) string {
 // 	},
 // 	KeyElems: []*yang.Entry{{Name: "fluorine"}, {Name: "iodine-liquid"}},
 // }
-// out: "Fluorine string, IodineLiquid oc.Binary"
-func makeParamListStr(listAttr *ygen.YangListAttr, schemaStructPkgAlias string) (string, error) {
+// out: {"Fluorine string", "IodineLiquid oc.Binary"}
+func makeParamListStrs(listAttr *ygen.YangListAttr, schemaStructPkgAlias string) ([]string, error) {
 	if len(listAttr.KeyElems) == 0 {
-		return "", fmt.Errorf("makeParamListStr: invalid list - has no key; cannot process param list string")
+		return nil, fmt.Errorf("makeParamListStrs: invalid list - has no key; cannot process param list string")
 	}
 
 	// Create parameter list *in order* of keys, which should be in schema order.
@@ -739,9 +856,9 @@ func makeParamListStr(listAttr *ygen.YangListAttr, schemaStructPkgAlias string) 
 		mappedType, ok := listAttr.Keys[keyElem.Name]
 		switch {
 		case !ok:
-			return "", fmt.Errorf("makeParamListStr: key doesn't have a mappedType: %s", keyElem.Name)
+			return nil, fmt.Errorf("makeParamListStrs: key doesn't have a mappedType: %s", keyElem.Name)
 		case mappedType == nil:
-			return "", fmt.Errorf("makeParamListStr: mappedType for key is nil: %s", keyElem.Name)
+			return nil, fmt.Errorf("makeParamListStrs: mappedType for key is nil: %s", keyElem.Name)
 		}
 
 		var typeName string
@@ -756,7 +873,26 @@ func makeParamListStr(listAttr *ygen.YangListAttr, schemaStructPkgAlias string) 
 
 		entries = append(entries, fmt.Sprintf("%s %s", goKeyNameMap[keyElem.Name], typeName))
 	}
-	return strings.Join(entries, ", "), nil
+	return entries, nil
+}
+
+// combinations returns the mathematical combinations of the numbers from 0 to n-1.
+// e.g. n = 2 -> []int{{}, {0}, {1}, {0, 1}}
+// It outputs combination(0) if n < 0.
+// Guarantees:
+// - Deterministic output.
+// - All numbers within a combination are in order.
+// - The first combination is the shortest (i.e. containing no numbers).
+// - The last combination is the longest (i.e. containing all numbers from 0 to n-1).
+func combinations(n int) [][]int {
+	cs := [][]int{{}}
+	for i := 0; i < n; i++ {
+		size := len(cs)
+		for j := 0; j != size; j++ {
+			cs = append(cs, append(append([]int{}, cs[j]...), i))
+		}
+	}
+	return cs
 }
 
 // getGoKeyNameMap returns a map of Go key names keyed by their schema names
