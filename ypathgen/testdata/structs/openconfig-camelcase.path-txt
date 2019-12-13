@@ -37,9 +37,31 @@ type BGP struct {
 	ygot.NodePath
 }
 
-// BGPΩ represents the wildcard version of the /openconfig-camelcase/bgp YANG schema element.
-type BGPΩ struct {
+// BGPAny represents the wildcard version of the /openconfig-camelcase/bgp YANG schema element.
+type BGPAny struct {
 	ygot.NodePath
+}
+
+// NeighborAny returns from BGP the path struct for its child "neighbor".
+func (n *BGP) NeighborAny() *BGP_NeighborAny {
+	return &BGP_NeighborAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"neighbors", "neighbor"},
+			map[string]interface{}{"peer-ip": "*"},
+			n,
+		),
+	}
+}
+
+// NeighborAny returns from BGPAny the path struct for its child "neighbor".
+func (n *BGPAny) NeighborAny() *BGP_NeighborAny {
+	return &BGP_NeighborAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"neighbors", "neighbor"},
+			map[string]interface{}{"peer-ip": "*"},
+			n,
+		),
+	}
 }
 
 // Neighbor returns from BGP the path struct for its child "neighbor".
@@ -53,13 +75,24 @@ func (n *BGP) Neighbor(PeerIP string) *BGP_Neighbor {
 	}
 }
 
+// Neighbor returns from BGPAny the path struct for its child "neighbor".
+func (n *BGPAny) Neighbor(PeerIP string) *BGP_NeighborAny {
+	return &BGP_NeighborAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"neighbors", "neighbor"},
+			map[string]interface{}{"peer-ip": PeerIP},
+			n,
+		),
+	}
+}
+
 // BGP_Neighbor represents the /openconfig-camelcase/bgp/neighbors/neighbor YANG schema element.
 type BGP_Neighbor struct {
 	ygot.NodePath
 }
 
-// BGP_NeighborΩ represents the wildcard version of the /openconfig-camelcase/bgp/neighbors/neighbor YANG schema element.
-type BGP_NeighborΩ struct {
+// BGP_NeighborAny represents the wildcard version of the /openconfig-camelcase/bgp/neighbors/neighbor YANG schema element.
+type BGP_NeighborAny struct {
 	ygot.NodePath
 }
 
@@ -68,14 +101,25 @@ type BGP_Neighbor_PeerIP struct {
 	ygot.NodePath
 }
 
-// BGP_Neighbor_PeerIPΩ represents the wildcard version of the /openconfig-camelcase/bgp/neighbors/neighbor/state/peer-ip YANG schema element.
-type BGP_Neighbor_PeerIPΩ struct {
+// BGP_Neighbor_PeerIPAny represents the wildcard version of the /openconfig-camelcase/bgp/neighbors/neighbor/state/peer-ip YANG schema element.
+type BGP_Neighbor_PeerIPAny struct {
 	ygot.NodePath
 }
 
 // PeerIP returns from BGP_Neighbor the path struct for its child "peer-ip".
 func (n *BGP_Neighbor) PeerIP() *BGP_Neighbor_PeerIP {
 	return &BGP_Neighbor_PeerIP{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "peer-ip"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// PeerIP returns from BGP_NeighborAny the path struct for its child "peer-ip".
+func (n *BGP_NeighborAny) PeerIP() *BGP_Neighbor_PeerIPAny {
+	return &BGP_Neighbor_PeerIPAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "peer-ip"},
 			map[string]interface{}{},
