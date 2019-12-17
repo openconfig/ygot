@@ -1212,6 +1212,9 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 	// genUnions stores the set of multi-type YANG unions that must have
 	// code generated for them.
 	genUnions := []goUnionInterface{}
+	// genUnionSet stores a set of union type names such that we can process
+	// each appearance of a union type within the struct once and only once.
+	genUnionSet := map[string]bool{}
 
 	annotationPrefix := goOpts.AnnotationPrefix
 	// Set the default annotation prefix if it is unset.
@@ -1296,48 +1299,48 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			zeroValue := mtype.ZeroValue
 			defaultValue := goLeafDefault(field, mtype)
 
-			if len(mtype.UnionTypes) > 1 {
-				// If this is a union that has more than one subtype, then we need
-				// to generate the relevant interface.
-				if _, ok := state.generatedUnionInterfaces[targetStruct.Name][mtype.NativeType]; !ok {
-					// If the union type has not already been generated, then create it.
-					// This is to handle cases whereby we can have two types that are
-					// mapped to the same unique name -- such as in the case that we
-					// have a leafref that points to a leaf that is a union.
-					intf := goUnionInterface{
-						Name:           mtype.NativeType,
-						Types:          map[string]string{},
-						LeafPath:       field.Path(),
-						ParentReceiver: targetStruct.Name,
-					}
+			// Only if this union has more than one subtype do we generate the union;
+			// otherwise, we use that subtype directly.
+			// Also, make sure to process a union type once and only once within the struct.
+			// Even if the union has already been processed in another struct, we still need
+			// to generate the union helper with this struct as the receiver and do other
+			// processing as well. On the other hand, if the union type is used by multiple
+			// fields, we assume that it's due to a leafref and use the same union name
+			// without doing further code generation. XXX(wenbli): It's possible that it's a
+			// name collision instead, but because of its low chance and the extra complexity
+			// required to resolve it (e.g. storing the union entry so we make sure the name
+			// is used for the right union entry), we ignore it and allow wrong code to be
+			// generated.
+			if len(mtype.UnionTypes) > 1 && !genUnionSet[mtype.NativeType] {
+				genUnionSet[mtype.NativeType] = true
 
-					for t := range mtype.UnionTypes {
-						// If the type within the union is not a builtin type then we store
-						// it within the enumMap, since it is an enumerated type.
-						if _, builtin := validGoBuiltinTypes[t]; !builtin {
-							enumTypeMap[schemapath] = append(enumTypeMap[schemapath], t)
-						}
-
-						tn := yang.CamelCase(t)
-						// Ensure that we sanitise the type name to be used in the
-						// output struct.
-						if t == "interface{}" {
-							tn = "Interface"
-						}
-						intf.Types[tn] = t
-						intf.TypeNames = append(intf.TypeNames, t)
-					}
-					// Sort the names of the types into determinstic order.
-					sort.Strings(intf.TypeNames)
-
-					if _, ok := state.generatedUnionInterfaces[targetStruct.Name]; !ok {
-						state.generatedUnionInterfaces[targetStruct.Name] = map[string]bool{}
-					}
-					if _, ok := state.generatedUnionInterfaces[targetStruct.Name][mtype.NativeType]; !ok {
-						genUnions = append(genUnions, intf)
-						state.generatedUnionInterfaces[targetStruct.Name][mtype.NativeType] = true
-					}
+				intf := goUnionInterface{
+					Name:           mtype.NativeType,
+					Types:          map[string]string{},
+					LeafPath:       field.Path(),
+					ParentReceiver: targetStruct.Name,
 				}
+
+				for t := range mtype.UnionTypes {
+					// If the type within the union is not a builtin type then we store
+					// it within the enumMap, since it is an enumerated type.
+					if _, builtin := validGoBuiltinTypes[t]; !builtin {
+						enumTypeMap[schemapath] = append(enumTypeMap[schemapath], t)
+					}
+
+					tn := yang.CamelCase(t)
+					// Ensure that we sanitise the type name to be used in the
+					// output struct.
+					if t == "interface{}" {
+						tn = "Interface"
+					}
+					intf.Types[tn] = t
+					intf.TypeNames = append(intf.TypeNames, t)
+				}
+				// Sort the names of the types into determinstic order.
+				sort.Strings(intf.TypeNames)
+
+				genUnions = append(genUnions, intf)
 			}
 
 			if field.ListAttr != nil {
