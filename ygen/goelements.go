@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
@@ -115,6 +116,45 @@ func IsYgenDefinedGoType(t *MappedType) bool {
 	return t.IsEnumeratedValue || len(t.UnionTypes) >= 2 || t.NativeType == ygot.BinaryTypeName || t.NativeType == ygot.EmptyTypeName
 }
 
+// goGenState contains the functionality and state for generating Go names for
+// the generated code.
+type goGenState struct {
+	// enumGen contains functionality and state for generating enum names.
+	enumGen *enumGenState
+	// helper contains helper functions used for generation.
+	helper *genHelper
+	// definedGlobals specifies the global Go names used during code
+	// generation to avoid conflicts.
+	definedGlobals map[string]bool
+	// uniqueDirectoryNames is a map keyed by the path of a YANG entity representing a
+	// directory in the generated code whose value is the unique name that it
+	// was mapped to. This allows routines to determine, based on a particular YANG
+	// entry, how to refer to it when generating code.
+	uniqueDirectoryNames map[string]string
+	// generatedUnions stores a map, keyed by the output name for a union,
+	// that has already been output in the generated code. This ensures that
+	// where two entities re-use a union that has already been created (e.g.,
+	// a leafref to a union) then it is output only once in the generated code.
+	generatedUnions map[string]bool
+}
+
+// newGoGenState creates a new goGenState instance, initialised with the
+// default state required for code generation.
+func newGoGenState(schematree *ctree.Tree) *goGenState {
+	return &goGenState{
+		enumGen: newEnumGenState(),
+		helper:  &genHelper{schematree: schematree},
+		definedGlobals: map[string]bool{
+			// Mark the name that is used for the binary type as a reserved name
+			// within the output structs.
+			ygot.BinaryTypeName: true,
+			ygot.EmptyTypeName:  true,
+		},
+		uniqueDirectoryNames: map[string]string{},
+		generatedUnions:      map[string]bool{},
+	}
+}
+
 // resolveTypeArgs is a structure used as an input argument to the yangTypeToGoType
 // function which allows extra context to be handed on. This provides the ability
 // to use not only the YangType but also the yang.Entry that the type was part of
@@ -140,7 +180,8 @@ type resolveTypeArgs struct {
 // compression if required. The name is not checked for uniqueness. The
 // genFakeRoot boolean specifies whether the fake root exists within the schema
 // such that it can be handled specifically in the path generation.
-func (s *genState) pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
+// TODO(wenbli): Move this to genutil.
+func pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
 	var pathElements []*yang.Entry
 
 	if genFakeRoot && IsFakeRoot(e) {
@@ -182,8 +223,8 @@ func (s *genState) pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRo
 // camel case. The genFakeRoot boolean specifies whether the fake root is to be
 // generated such that the struct name can consider the fake root entity
 // specifically.
-func (s *genState) goStructName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
-	uniqName := genutil.MakeNameUnique(s.pathToCamelCaseName(e, compressOCPaths, genFakeRoot), s.definedGlobals)
+func (s *goGenState) goStructName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
+	uniqName := genutil.MakeNameUnique(pathToCamelCaseName(e, compressOCPaths, genFakeRoot), s.definedGlobals)
 
 	// Record the name of the struct that was unique such that it can be referenced
 	// by path.
@@ -192,16 +233,32 @@ func (s *genState) goStructName(e *yang.Entry, compressOCPaths, genFakeRoot bool
 	return uniqName
 }
 
+// buildDirectoryDefinitions extracts the yang.Entry instances from a map of
+// entries that need struct definitions built for them. It resolves each
+// non-leaf yang.Entry to a Directory which contains the elements that are
+// needed for subsequent code generation.
+func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour, genFakeRoot bool) (map[string]*Directory, []error) {
+	return buildDirectoryDefinitions(entries, compBehaviour,
+		// For Go, we map the name of the struct to the path elements
+		// in CamelCase separated by underscores.
+		func(e *yang.Entry) string {
+			return s.goStructName(e, compBehaviour.CompressEnabled(), genFakeRoot)
+		},
+		func(keyleaf *yang.Entry) (*MappedType, error) {
+			return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, compBehaviour.CompressEnabled())
+		})
+}
+
 // yangTypeToGoType takes a yang.YangType (YANG type definition) and maps it
 // to the type that should be used to represent it in the generated Go code.
 // A resolveTypeArgs structure is used as the input argument which specifies a
 // pointer to the YangType; and optionally context required to resolve the name
 // of the type. The compressOCPaths argument specifies whether compression of
 // OpenConfig paths is to be enabled.
-func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) (*MappedType, error) {
+func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) (*MappedType, error) {
 	defVal := genutil.TypeDefaultValue(args.yangType)
 	// Handle the case of a typedef which is actually an enumeration.
-	mtype, err := s.enumeratedTypedefTypeName(args, goEnumPrefix, false)
+	mtype, err := s.enumGen.enumeratedTypedefTypeName(args, goEnumPrefix, false)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
@@ -259,7 +316,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enum without context")
 		}
-		n := s.resolveEnumName(args.contextEntry, compressOCPaths, false)
+		n := s.enumGen.resolveEnumName(args.contextEntry, compressOCPaths, false)
 		if defVal != nil {
 			defVal = enumDefaultValue(n, *defVal, "")
 		}
@@ -276,7 +333,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context")
 		}
-		n := s.resolveIdentityRefBaseType(args.contextEntry, false)
+		n := s.enumGen.resolveIdentityRefBaseType(args.contextEntry, false)
 		if defVal != nil {
 			defVal = enumDefaultValue(n, *defVal, "")
 		}
@@ -291,7 +348,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 	case yang.Yleafref:
 		// This is a leafref, so we check what the type of the leaf that it
 		// references is by looking it up in the schematree.
-		target, err := s.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		target, err := s.helper.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
 			return nil, err
 		}
@@ -344,7 +401,7 @@ func (s *genState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) 
 // is enabled such that the name of enumerated types can be calculated correctly.
 //
 // goUnionType returns an error if mapping is not possible.
-func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*MappedType, error) {
+func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*MappedType, error) {
 	var errs []error
 	unionMappedTypes := make(map[int]*MappedType)
 
@@ -362,7 +419,7 @@ func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*Map
 	}
 
 	resolvedType := &MappedType{
-		NativeType: fmt.Sprintf("%s_Union", s.pathToCamelCaseName(args.contextEntry, compressOCPaths, false)),
+		NativeType: fmt.Sprintf("%s_Union", pathToCamelCaseName(args.contextEntry, compressOCPaths, false)),
 		// Zero value is set to nil, other than in cases where there is
 		// a single type in the union.
 		ZeroValue: "nil",
@@ -384,7 +441,7 @@ func (s *genState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*Map
 // unionMappedTypes records the entire type information for each. The
 // compressOCPaths argument specifies whether OpenConfig path compression is
 // enabled such that the name of enumerated types can be correctly calculated.
-func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths bool) []error {
+func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths bool) []error {
 	var errs []error
 	// If subtype.Type is not empty then this means that this type is defined to
 	// be a union itself.
@@ -402,7 +459,7 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 		// to map enumerated types to their module. This occurs in the case that the subtype
 		// is an identityref - in this case, the context entry that we are carrying is the
 		// leaf that refers to the union, not the specific subtype that is now being examined.
-		baseType := s.identityrefBaseTypeFromIdentity(subtype.IdentityBase, false)
+		baseType := s.enumGen.identityrefBaseTypeFromIdentity(subtype.IdentityBase, false)
 		defVal := genutil.TypeDefaultValue(subtype)
 		if defVal != nil {
 			defVal = enumDefaultValue(baseType, *defVal, "")
@@ -442,7 +499,8 @@ func (s *genState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, curr
 // identifier, with a value of a MappedType struct which indicates how that key leaf
 // is to be represented in Go. The key elements themselves are returned in the keyElems
 // slice.
-func (s *genState) buildListKey(e *yang.Entry, compressOCPaths bool) (*YangListAttr, []error) {
+// TODO(wenbli): Move this to genstate.go
+func buildListKey(e *yang.Entry, compressOCPaths bool, resolveKeyTypeName func(keyleaf *yang.Entry) (*MappedType, error)) (*YangListAttr, []error) {
 	if !e.IsList() {
 		return nil, []error{fmt.Errorf("%s is not a list", e.Name)}
 	}
@@ -516,11 +574,13 @@ func (s *genState) buildListKey(e *yang.Entry, compressOCPaths bool) (*YangListA
 		}
 
 		listattr.KeyElems = append(listattr.KeyElems, keyleaf)
-		keyType, err := s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, compressOCPaths)
-		if err != nil {
-			errs = append(errs, err)
+		if resolveKeyTypeName != nil {
+			keyType, err := resolveKeyTypeName(keyleaf)
+			if err != nil {
+				errs = append(errs, err)
+			}
+			listattr.Keys[keyleaf.Name] = keyType
 		}
-		listattr.Keys[keyleaf.Name] = keyType
 	}
 
 	return listattr, errs

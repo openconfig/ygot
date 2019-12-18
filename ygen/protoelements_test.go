@@ -553,7 +553,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			rpt = *tt.inResolveProtoTypeArgs
 		}
 
-		s := newGenState()
+		s := newProtoGenState(nil)
 		// Seed the schema tree with the injected entries, used to ensure leafrefs can
 		// be resolved.
 		if tt.inEntries != nil {
@@ -562,7 +562,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				t.Errorf("%s: buildSchemaTree(%v): got unexpected error, got: %v, want: nil", tt.name, tt.inEntries, err)
 				continue
 			}
-			s.schematree = tree
+			s.helper.schematree = tree
 		}
 
 		for _, st := range tt.in {
@@ -673,7 +673,7 @@ func TestProtoMsgName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newGenState()
+			s := newProtoGenState(nil)
 			// Seed the proto message names with some known input.
 			if tt.inUniqueProtoMsgNames != nil {
 				s.uniqueProtoMsgNames = tt.inUniqueProtoMsgNames
@@ -808,7 +808,7 @@ func TestProtoPackageName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newGenState()
+			s := newProtoGenState(nil)
 			if tt.inDefinedGlobals != nil {
 				s.definedGlobals = tt.inDefinedGlobals
 			}

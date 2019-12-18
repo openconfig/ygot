@@ -335,19 +335,19 @@ type protoMsgConfig struct {
 //  - msg:               The Directory struct that describes a particular protobuf3 message.
 //  - msgs:              The set of other Directory structs, keyed by schema path, that represent the other proto3
 //                       messages to be generated.
-//  - state:             The current generator state.
+//  - protogen:             The current generator state.
 //  - cfg:		 The configuration for the message creation as defined in a protoMsgConfig struct.
 //  It returns a generatedProto3Message pointer which includes the definition of the proto3 message, particularly the
 //  name of the package it is within, the code for the message, and any imports for packages that are referenced by
 //  the message.
-func writeProto3Msg(msg *Directory, msgs map[string]*Directory, state *genState, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
+func writeProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *protoGenState, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
 	if cfg.nestedMessages {
 		if !outputNestedMessage(msg, cfg.compressPaths) {
 			return nil, nil
 		}
-		return writeProto3MsgNested(msg, msgs, state, cfg)
+		return writeProto3MsgNested(msg, msgs, protogen, cfg)
 	}
-	return writeProto3MsgSingleMsg(msg, msgs, state, cfg)
+	return writeProto3MsgSingleMsg(msg, msgs, protogen, cfg)
 }
 
 // outputNestedMessage determines whether the message represented by the supplied
@@ -373,16 +373,16 @@ func outputNestedMessage(msg *Directory, compressPaths bool) bool {
 // being performed for. It takes:
 //  - msg: the top-level directory definition
 //  - msgs: the set of message definitions (keyed by path) that are to be output
-//  - state: the current code generation state.
+//  - protogen: the current code generation state.
 //  - cfg: the configuration for the current code generation.
 // It returns a generated protobuf3 message.
-func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, state *genState, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
+func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *protoGenState, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
 	var gerrs util.Errors
 	var childMsgs []*generatedProto3Message
 	// Find all the children of the current message that should be output.
 	for _, n := range msgs {
 		if util.IsDirectEntryChild(msg.Entry, n.Entry, cfg.compressPaths) {
-			cmsg, errs := writeProto3MsgNested(n, msgs, state, cfg)
+			cmsg, errs := writeProto3MsgNested(n, msgs, protogen, cfg)
 			if errs != nil {
 				gerrs = append(gerrs, errs...)
 				continue
@@ -391,13 +391,13 @@ func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, state *gen
 		}
 	}
 
-	pkg, err := protobufPackageForMsg(msg, state, cfg.compressPaths, cfg.nestedMessages)
+	pkg, err := protobufPackageForMsg(msg, protogen, cfg.compressPaths, cfg.nestedMessages)
 	if err != nil {
 		return nil, append(gerrs, err)
 	}
 
 	// Generate this message, and its associated messages.
-	msgDefs, errs := genProto3Msg(msg, msgs, state, cfg, pkg, childMsgs)
+	msgDefs, errs := genProto3Msg(msg, msgs, protogen, cfg, pkg, childMsgs)
 	if errs != nil {
 		return nil, append(gerrs, errs...)
 	}
@@ -449,7 +449,7 @@ func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, state *gen
 // are to be output and determines the package name for the output protobuf. In the
 // case that nested messages are being output, the package name is derived based
 // on the top-level module that the message is within.
-func protobufPackageForMsg(msg *Directory, state *genState, compressPaths, nestedMessages bool) (string, error) {
+func protobufPackageForMsg(msg *Directory, protogen *protoGenState, compressPaths, nestedMessages bool) (string, error) {
 	switch {
 	case msg.IsFakeRoot:
 		// In this case, we explicitly leave the package name as nil, which is interpeted
@@ -487,19 +487,19 @@ func protobufPackageForMsg(msg *Directory, state *genState, compressPaths, neste
 		}
 	}
 
-	return state.protobufPackage(e, compressPaths), nil
+	return protogen.protobufPackage(e, compressPaths), nil
 }
 
 // writeProto3MsgSingleMsg generates a protobuf message definition. It takes the
 // arguments of writeProto3Message, outputting an individual message that outputs
 // a package definition and a single protobuf message.
-func writeProto3MsgSingleMsg(msg *Directory, msgs map[string]*Directory, state *genState, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
-	pkg, err := protobufPackageForMsg(msg, state, cfg.compressPaths, cfg.nestedMessages)
+func writeProto3MsgSingleMsg(msg *Directory, msgs map[string]*Directory, protogen *protoGenState, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
+	pkg, err := protobufPackageForMsg(msg, protogen, cfg.compressPaths, cfg.nestedMessages)
 	if err != nil {
 		return nil, []error{err}
 	}
 
-	msgDefs, errs := genProto3Msg(msg, msgs, state, cfg, pkg, nil)
+	msgDefs, errs := genProto3Msg(msg, msgs, protogen, cfg, pkg, nil)
 	if errs != nil {
 		return nil, errs
 	}
@@ -565,7 +565,7 @@ func genProto3MsgCode(pkg string, msgDefs []*protoMsg, pathComment bool) (*gener
 // as a protoMsgConfig struct. The parentPkg argument specifies the name of the parent
 // package for the protobuf message(s) that are being generated, such that relative
 // paths can be used in the messages.
-func genProto3Msg(msg *Directory, msgs map[string]*Directory, state *genState, cfg *protoMsgConfig, parentPkg string, childMsgs []*generatedProto3Message) ([]*protoMsg, util.Errors) {
+func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *protoGenState, cfg *protoMsgConfig, parentPkg string, childMsgs []*generatedProto3Message) ([]*protoMsg, util.Errors) {
 	var errs util.Errors
 
 	var msgDefs []*protoMsg
@@ -616,7 +616,7 @@ func genProto3Msg(msg *Directory, msgs map[string]*Directory, state *genState, c
 			directory:          msg,
 			definedDirectories: msgs,
 			definedFieldNames:  definedFieldNames,
-			state:              state,
+			protogen:           protogen,
 			cfg:                cfg,
 			parentPkg:          parentPkg,
 		}
@@ -682,7 +682,7 @@ type protoDefinitionArgs struct {
 	directory          *Directory            // directory is the Directory for which the proto output is being defined, in the case that the definition is for an directory entry.
 	definedDirectories map[string]*Directory // definedDirectories specifies the set of Directories that have been defined in the current code generation context.
 	definedFieldNames  map[string]bool       // definedFieldNames specifies the field names that have been defined in the context.
-	state              *genState             // state is the current generator state.
+	protogen           *protoGenState        // protogen is the current generator state.
 	cfg                *protoMsgConfig
 	parentPkg          string // parentPackage stores the name of the protobuf package that the field's parent is within.
 }
@@ -734,7 +734,7 @@ func addProtoContainerField(fieldDef *protoMsgField, args *protoDefinitionArgs) 
 
 	var pfx string
 	if !(args.cfg.compressPaths && args.directory.IsFakeRoot) {
-		childpkg := args.state.protobufPackage(childmsg.Entry, args.cfg.compressPaths)
+		childpkg := args.protogen.protobufPackage(childmsg.Entry, args.cfg.compressPaths)
 		// Add the import to the slice of imports if it is not already
 		// there. This allows the message file to import the required
 		// child packages.
@@ -950,12 +950,12 @@ func protoListDefinition(args *protoDefinitionArgs) (*protoMsgListField, *protoM
 		return nil, nil, fmt.Errorf("proto: could not resolve list %s into a defined message", args.field.Path())
 	}
 
-	listMsgName, ok := args.state.uniqueDirectoryNames[args.field.Path()]
+	listMsgName, ok := args.protogen.uniqueDirectoryNames[args.field.Path()]
 	if !ok {
 		return nil, nil, fmt.Errorf("proto: could not find unique message name for %s", args.field.Path())
 	}
 
-	childPkg := args.state.protobufPackage(listMsg.Entry, args.cfg.compressPaths)
+	childPkg := args.protogen.protobufPackage(listMsg.Entry, args.cfg.compressPaths)
 
 	var listKeyMsg *protoMsg
 	var listDef *protoMsgListField
@@ -980,7 +980,7 @@ func protoListDefinition(args *protoDefinitionArgs) (*protoMsgListField, *protoM
 		listKeyMsg, err = genListKeyProto(childPkg, listMsgName, &protoDefinitionArgs{
 			field:     args.field,
 			directory: listMsg,
-			state:     args.state,
+			protogen:  args.protogen,
 			cfg:       args.cfg,
 			parentPkg: args.parentPkg,
 		})
@@ -1010,7 +1010,7 @@ type protoDefinedLeaf struct {
 // for the leaf definition, and returns a protoDefinedLeaf describing how it is to be mapped within the
 // protobuf parent message.
 func protoLeafDefinition(leafName string, args *protoDefinitionArgs) (*protoDefinedLeaf, error) {
-	protoType, err := args.state.yangTypeToProtoType(resolveTypeArgs{
+	protoType, err := args.protogen.yangTypeToProtoType(resolveTypeArgs{
 		yangType:     args.field.Type,
 		contextEntry: args.field,
 	}, resolveProtoTypeArgs{
@@ -1137,7 +1137,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 			return nil, fmt.Errorf("list %s included a key %s did that did not exist", args.field.Path(), k)
 		}
 
-		scalarType, err := args.state.yangTypeToProtoScalarType(resolveTypeArgs{
+		scalarType, err := args.protogen.yangTypeToProtoScalarType(resolveTypeArgs{
 			yangType:     kf.Type,
 			contextEntry: kf,
 		}, resolveProtoTypeArgs{
@@ -1167,7 +1167,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 		var unionEntry *yang.Entry
 		switch {
 		case kf.Type.Kind == yang.Yleafref:
-			target, err := args.state.resolveLeafrefTarget(kf.Type.Path, kf)
+			target, err := args.protogen.helper.resolveLeafrefTarget(kf.Type.Path, kf)
 			if err != nil {
 				return nil, fmt.Errorf("error generating type for list %s key %s: type %v", args.field.Path(), k, kf.Type)
 			}
