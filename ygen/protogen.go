@@ -1167,7 +1167,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 		var unionEntry *yang.Entry
 		switch {
 		case kf.Type.Kind == yang.Yleafref:
-			target, err := args.protogen.helper.resolveLeafrefTarget(kf.Type.Path, kf)
+			target, err := args.protogen.schematree.resolveLeafrefTarget(kf.Type.Path, kf)
 			if err != nil {
 				return nil, fmt.Errorf("error generating type for list %s key %s: type %v", args.field.Path(), k, kf.Type)
 			}

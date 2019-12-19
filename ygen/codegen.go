@@ -25,7 +25,6 @@ import (
 
 	log "github.com/golang/glog"
 
-	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
@@ -320,7 +319,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}
 
 	// Store the returned schematree within the state for this code generation.
-	gogen := newGoGenState(mdef.schemaTree)
+	gogen := newGoGenState(mdef.schematree)
 
 	directoryMap, errs := gogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot)
 	if errs != nil {
@@ -446,7 +445,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 	dirsToProcess := map[string]*yang.Entry(mdef.directoryEntries)
 
 	// Store the returned schematree within the state for this code generation.
-	gogen := newGoGenState(mdef.schemaTree)
+	gogen := newGoGenState(mdef.schematree)
 
 	directoryMap, errs := gogen.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot)
 	if errs != nil {
@@ -544,7 +543,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	protogen := newProtoGenState(mdef.schemaTree)
+	protogen := newProtoGenState(mdef.schematree)
 
 	penums, errs := protogen.enumGen.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true)
 	if errs != nil {
@@ -753,9 +752,9 @@ type mappedYANGDefinitions struct {
 	// leaves that are of type enumeration, identityref, or unions that contain either of
 	// these types. The map is keyed by the string path to the entry in the YANG schema.
 	enumEntries map[string]*yang.Entry
-	// schemaTree is a ctree.Tree that stores a copy of the YANG schema tree, containing
-	// only leaf entries, such that schema paths can be referenced.
-	schemaTree *ctree.Tree
+	// schematree is a copy of the YANG schema tree, containing only leaf
+	// entries, such that schema paths can be referenced.
+	schematree *schemaTree
 	// modules is the set of parsed YANG modules that are being processed as part of the
 	// code generatio, expressed as a slice of yang.Entry pointers.
 	modules []*yang.Entry
@@ -841,7 +840,7 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 	return &mappedYANGDefinitions{
 		directoryEntries: dirs,
 		enumEntries:      enums,
-		schemaTree:       st,
+		schematree:       st,
 		modules:          ms,
 		modelData:        modelData,
 	}, nil

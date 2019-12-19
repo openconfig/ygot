@@ -20,7 +20,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
@@ -545,44 +544,4 @@ func (s *enumGenState) enumeratedTypedefTypeName(args resolveTypeArgs, prefix st
 		}
 	}
 	return nil, nil
-}
-
-// genHelper contains helper functions specific to code generation.
-// Its fields must be set for full functionality.
-type genHelper struct {
-	// schematree stores a ctree.Tree structure that represents the YANG
-	// schema tree. This is used for lookups within the module set where
-	// they are required, e.g., for leafrefs.
-	schematree *ctree.Tree
-}
-
-// resolveLeafrefTarget takes an input path and context entry and
-// determines the type of the leaf that is referred to by the path, such that
-// it can be mapped to a native language type. It returns the yang.YangType that
-// is associated with the target, and the target yang.Entry, such that the
-// caller can map this to the relevant language type.
-func (h *genHelper) resolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {
-	if h.schematree == nil {
-		// This should not be possible if the calling code generation is
-		// well structured and builds the schematree during parsing of YANG
-		// files.
-		return nil, fmt.Errorf("could not map leafref path: %v, from contextEntry: %v", path, contextEntry)
-	}
-
-	fixedPath, err := fixSchemaTreePath(path, contextEntry)
-	if err != nil {
-		return nil, err
-	}
-
-	e := h.schematree.GetLeafValue(fixedPath)
-	if e == nil {
-		return nil, fmt.Errorf("could not resolve leafref path: %v from %v, tree: %v", fixedPath, contextEntry, h.schematree)
-	}
-
-	target, ok := e.(*yang.Entry)
-	if !ok {
-		return nil, fmt.Errorf("invalid element returned from schema tree, must be a yang.Entry for path %v from %v", path, contextEntry)
-	}
-
-	return target, nil
 }

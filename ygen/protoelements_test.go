@@ -562,7 +562,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				t.Errorf("%s: buildSchemaTree(%v): got unexpected error, got: %v, want: nil", tt.name, tt.inEntries, err)
 				continue
 			}
-			s.helper.schematree = tree
+			s.schematree = tree
 		}
 
 		for _, st := range tt.in {

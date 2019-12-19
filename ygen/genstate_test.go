@@ -2447,8 +2447,7 @@ func TestResolveLeafrefTargetType(t *testing.T) {
 		if err != nil {
 			t.Errorf("%s: buildSchemaTree(%v): got unexpected error: %v", tt.name, tt.inEntries, err)
 		}
-		h := genHelper{schematree: st}
-		got, err := h.resolveLeafrefTarget(tt.inPath, tt.inContextEntry)
+		got, err := st.resolveLeafrefTarget(tt.inPath, tt.inContextEntry)
 		if err != nil {
 			if !tt.wantErr {
 				t.Errorf("%s: resolveLeafrefTargetPath(%v, %v): got unexpected error: %v", tt.name, tt.inPath, tt.inContextEntry, err)

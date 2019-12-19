@@ -19,7 +19,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
@@ -30,8 +29,9 @@ import (
 type protoGenState struct {
 	// enumGen contains functionality and state for generating enum names.
 	enumGen *enumGenState
-	// helper contains helper functions used for generation.
-	helper *genHelper
+	// schematree is a copy of the YANG schema tree, containing only leaf
+	// entries, such that schema paths can be referenced.
+	schematree *schemaTree
 	// definedGlobals specifies the global proto names used during code
 	// generation to avoid conflicts.
 	definedGlobals map[string]bool
@@ -54,10 +54,10 @@ type protoGenState struct {
 
 // newProtoGenState creates a new protoGenState instance, initialised with the
 // default state required for code generation.
-func newProtoGenState(schematree *ctree.Tree) *protoGenState {
+func newProtoGenState(schematree *schemaTree) *protoGenState {
 	return &protoGenState{
 		enumGen:              newEnumGenState(),
-		helper:               &genHelper{schematree: schematree},
+		schematree:           schematree,
 		definedGlobals:       map[string]bool{},
 		uniqueDirectoryNames: map[string]string{},
 		uniqueProtoMsgNames:  map[string]map[string]bool{},
@@ -136,7 +136,7 @@ func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveP
 	case yang.Yleafref:
 		// We look up the leafref in the schema tree to be able to
 		// determine what type to map to.
-		target, err := s.helper.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		target, err := s.schematree.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
 			return nil, err
 		}
@@ -206,7 +206,7 @@ func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs re
 		// as there is not an equivalent Protobuf type.
 		return &MappedType{NativeType: "ywrapper.Decimal64Value"}, nil
 	case yang.Yleafref:
-		target, err := s.helper.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		target, err := s.schematree.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
 			return nil, err
 		}

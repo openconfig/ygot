@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
@@ -121,8 +120,9 @@ func IsYgenDefinedGoType(t *MappedType) bool {
 type goGenState struct {
 	// enumGen contains functionality and state for generating enum names.
 	enumGen *enumGenState
-	// helper contains helper functions used for generation.
-	helper *genHelper
+	// schematree is a copy of the YANG schema tree, containing only leaf
+	// entries, such that schema paths can be referenced.
+	schematree *schemaTree
 	// definedGlobals specifies the global Go names used during code
 	// generation to avoid conflicts.
 	definedGlobals map[string]bool
@@ -140,10 +140,10 @@ type goGenState struct {
 
 // newGoGenState creates a new goGenState instance, initialised with the
 // default state required for code generation.
-func newGoGenState(schematree *ctree.Tree) *goGenState {
+func newGoGenState(schematree *schemaTree) *goGenState {
 	return &goGenState{
-		enumGen: newEnumGenState(),
-		helper:  &genHelper{schematree: schematree},
+		enumGen:    newEnumGenState(),
+		schematree: schematree,
 		definedGlobals: map[string]bool{
 			// Mark the name that is used for the binary type as a reserved name
 			// within the output structs.
@@ -348,7 +348,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool
 	case yang.Yleafref:
 		// This is a leafref, so we check what the type of the leaf that it
 		// references is by looking it up in the schematree.
-		target, err := s.helper.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		target, err := s.schematree.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
 			return nil, err
 		}

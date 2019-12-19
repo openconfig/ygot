@@ -722,7 +722,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				if err != nil {
 					t.Fatalf("buildSchemaTree(%v): could not build schema tree: %v", tt.inEntries, err)
 				}
-				s.helper.schematree = st
+				s.schematree = st
 			}
 
 			args := resolveTypeArgs{
@@ -1153,7 +1153,7 @@ func TestBuildListKey(t *testing.T) {
 				t.Errorf("%s: buildSchemaTree(%v), could not build tree: %v", tt.name, tt.inEntries, err)
 				continue
 			}
-			s.helper.schematree = st
+			s.schematree = st
 		}
 
 		resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
