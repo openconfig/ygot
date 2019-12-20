@@ -922,7 +922,7 @@ func TestFindEnumSet(t *testing.T) {
 			wantUncompressed = tt.wantUncompressed
 		}
 		for compressed, wanted := range map[bool]map[string]*yangEnum{true: tt.wantCompressed, false: wantUncompressed} {
-			state := newGenState()
+			state := newEnumGenState()
 			entries, errs := state.findEnumSet(tt.in, compressed, tt.inOmitUnderscores)
 
 			if (errs != nil) != tt.wantErr {
@@ -1092,7 +1092,7 @@ func TestStructName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, expected := range map[bool]string{false: tt.wantUncompressed, true: tt.wantCompressed} {
-			s := newGenState()
+			s := newGoGenState(nil)
 			if out := s.goStructName(tt.inElement, compress, false); out != expected {
 				t.Errorf("%s (compress: %v): shortName output invalid - got: %s, want: %s", tt.name, compress, out, expected)
 			}
@@ -2286,13 +2286,12 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 			}
 
 			t.Run(fmt.Sprintf("%s:buildDirectoryDefinitions(CompressBehaviour:%v,Language:%s,excludeState:%v)", tt.name, c.compressBehaviour, langName(c.lang), c.excludeState), func(t *testing.T) {
-				state := newGenState()
-
 				st, err := buildSchemaTree(tt.in)
 				if err != nil {
 					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
 				}
-				state.schematree = st
+				gogen := newGoGenState(st)
+				protogen := newProtoGenState(st)
 
 				structs := make(map[string]*yang.Entry)
 				enums := make(map[string]*yang.Entry)
@@ -2307,7 +2306,13 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					t.Fatalf("findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v", tt.in, structs, enums, c.compressBehaviour.CompressEnabled(), err)
 				}
 
-				got, errs := state.buildDirectoryDefinitions(structs, c.compressBehaviour, false, c.lang)
+				var got map[string]*Directory
+				switch c.lang {
+				case golang:
+					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false)
+				case protobuf:
+					got, errs = protogen.buildDirectoryDefinitions(structs, c.compressBehaviour)
+				}
 				if errs != nil {
 					t.Fatal(errs)
 				}
@@ -2442,9 +2447,7 @@ func TestResolveLeafrefTargetType(t *testing.T) {
 		if err != nil {
 			t.Errorf("%s: buildSchemaTree(%v): got unexpected error: %v", tt.name, tt.inEntries, err)
 		}
-		s := newGenState()
-		s.schematree = st
-		got, err := s.resolveLeafrefTarget(tt.inPath, tt.inContextEntry)
+		got, err := st.resolveLeafrefTarget(tt.inPath, tt.inContextEntry)
 		if err != nil {
 			if !tt.wantErr {
 				t.Errorf("%s: resolveLeafrefTargetPath(%v, %v): got unexpected error: %v", tt.name, tt.inPath, tt.inContextEntry, err)

@@ -201,7 +201,7 @@ func TestUnionSubTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := newGenState()
+			s := newGoGenState(nil)
 			mtypes := make(map[int]*MappedType)
 			ctypes := make(map[string]int)
 			errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false)
@@ -716,7 +716,7 @@ func TestYangTypeToGoType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := newGenState()
+			s := newGoGenState(nil)
 			if tt.inEntries != nil {
 				st, err := buildSchemaTree(tt.inEntries)
 				if err != nil {
@@ -753,12 +753,13 @@ func TestYangTypeToGoType(t *testing.T) {
 // struct is returned representing the keys of the list e.
 func TestBuildListKey(t *testing.T) {
 	tests := []struct {
-		name       string        // name is the test identifier.
-		in         *yang.Entry   // in is the yang.Entry of the test list.
-		inCompress bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
-		inEntries  []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
-		want       YangListAttr  // want is the expected YangListAttr output.
-		wantErr    bool          // wantErr is a boolean indicating whether errors are expected from buildListKeys
+		name                    string        // name is the test identifier.
+		in                      *yang.Entry   // in is the yang.Entry of the test list.
+		inCompress              bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
+		inEntries               []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
+		inResolveKeyNameFuncNil bool          // inResolveKeyNameFuncNil specifies whether the key name function is not provided.
+		want                    YangListAttr  // want is the expected YangListAttr output.
+		wantErr                 bool          // wantErr is a boolean indicating whether errors are expected from buildListKeys
 	}{{
 		name: "non-list",
 		in: &yang.Entry{
@@ -810,6 +811,28 @@ func TestBuildListKey(t *testing.T) {
 			Keys: map[string]*MappedType{
 				"keyleaf": {NativeType: "string"},
 			},
+			KeyElems: []*yang.Entry{
+				{
+					Name: "keyleaf",
+					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+			},
+		},
+	}, {
+		name: "basic list key test with nil resolve key name function",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "keyleaf",
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {
+					Name: "keyleaf",
+					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+			},
+		},
+		inResolveKeyNameFuncNil: true,
+		want: YangListAttr{
 			KeyElems: []*yang.Entry{
 				{
 					Name: "keyleaf",
@@ -1123,7 +1146,7 @@ func TestBuildListKey(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		s := newGenState()
+		s := newGoGenState(nil)
 		if tt.inEntries != nil {
 			st, err := buildSchemaTree(tt.inEntries)
 			if err != nil {
@@ -1133,7 +1156,14 @@ func TestBuildListKey(t *testing.T) {
 			s.schematree = st
 		}
 
-		got, err := s.buildListKey(tt.in, tt.inCompress)
+		resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
+			return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress)
+		}
+		if tt.inResolveKeyNameFuncNil {
+			resolveKeyTypeName = nil
+		}
+
+		got, err := buildListKey(tt.in, tt.inCompress, resolveKeyTypeName)
 		if err != nil && !tt.wantErr {
 			t.Errorf("%s: could not build list key successfully %v", tt.name, err)
 		}
@@ -1256,7 +1286,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		s := newGenState()
+		s := newGoGenState(nil)
 		gotTypes := make(map[string]*MappedType)
 		for _, leaf := range tt.inLeaves {
 			mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths)

@@ -1174,7 +1174,7 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, state *genState, compressPaths, generateJSONSchema bool, goOpts GoOpts) (GoStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, gogen *goGenState, compressPaths, generateJSONSchema bool, goOpts GoOpts) (GoStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -1248,7 +1248,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			// If the field within the struct is a list, then generate code for this list. This
 			// includes extracting any new types that are required to represent the key of a
 			// list that has multiple keys.
-			fieldType, multiKeyListKey, listMethods, listErr := yangListFieldToGoType(field, fieldName, targetStruct, goStructElements, state)
+			fieldType, multiKeyListKey, listMethods, listErr := yangListFieldToGoType(field, fieldName, targetStruct, goStructElements, gogen)
 			if listErr != nil {
 				errs = append(errs, listErr)
 			}
@@ -1273,7 +1273,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			// This is a YANG container, so it is represented in code using a pointer to the struct type that
 			// is defined for the entity. findMappableEntities has already determined which fields are to
 			// be output, so no filtering of the set of fields is required here.
-			structName, ok := state.uniqueDirectoryNames[field.Path()]
+			structName, ok := gogen.uniqueDirectoryNames[field.Path()]
 			if !ok {
 				errs = append(errs, fmt.Errorf("could not resolve %s into a defined struct", field.Path()))
 				continue
@@ -1287,7 +1287,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		case field.IsLeaf() || field.IsLeafList():
 			// This is a leaf or leaf-list, so we map it into the Go type that corresponds to the
 			// YANG type that the leaf represents.
-			mtype, err := state.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressPaths)
+			mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressPaths)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -1514,11 +1514,11 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 	// are used for multi-type unions within the struct.
 	var interfaceBuf bytes.Buffer
 	for _, intf := range genUnions {
-		if _, ok := state.generatedUnions[intf.Name]; !ok {
+		if _, ok := gogen.generatedUnions[intf.Name]; !ok {
 			if err := goTemplates["unionType"].Execute(&interfaceBuf, intf); err != nil {
 				errs = append(errs, err)
 			}
-			state.generatedUnions[intf.Name] = true
+			gogen.generatedUnions[intf.Name] = true
 		}
 		if err := goTemplates["unionHelper"].Execute(&interfaceBuf, intf); err != nil {
 			errs = append(errs, err)
@@ -1766,7 +1766,7 @@ func generateGetListKey(buf *bytes.Buffer, s *Directory, nameMap map[string]*yan
 //	  type.
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
-func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *Directory, goStructElements map[string]*Directory, state *genState) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
+func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *Directory, goStructElements map[string]*Directory, gogen *goGenState) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
 	// this from the set of Directory structs for which code (a Go struct) will be
 	//  generated such that additional details can be used in the code generation.
@@ -1780,7 +1780,7 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 	// this function being called (as all mappable entities, which includes lists, have been found.
 	// Thus, in the case that this struct does not have a known name, then code cannot be generated
 	// for it, and hence we skip the element.
-	listName, ok := state.uniqueDirectoryNames[listField.Path()]
+	listName, ok := gogen.uniqueDirectoryNames[listField.Path()]
 	if !ok {
 		return "", nil, nil, fmt.Errorf("list element %s did not have a resolved name", listField.Path())
 	}
@@ -1917,6 +1917,7 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 // If absolutePaths is set, the paths are absolute otherwise they are relative to the parent. If
 // the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
 // path is also returned.
+// TODO(wenbli): This is used by both Go and proto generation, it should be moved to genstate.go or genutil.
 func findMapPaths(parent *Directory, fieldName string, compressPaths, absolutePaths bool) ([][]string, error) {
 	childPath, err := FindSchemaPath(parent, fieldName, absolutePaths)
 	if err != nil {

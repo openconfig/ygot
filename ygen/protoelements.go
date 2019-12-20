@@ -24,6 +24,63 @@ import (
 	"github.com/openconfig/ygot/util"
 )
 
+// protoGenState contains the functionality and state for generating proto
+// names for the generated code.
+type protoGenState struct {
+	// enumGen contains functionality and state for generating enum names.
+	enumGen *enumGenState
+	// schematree is a copy of the YANG schema tree, containing only leaf
+	// entries, such that schema paths can be referenced.
+	schematree *schemaTree
+	// definedGlobals specifies the global proto names used during code
+	// generation to avoid conflicts.
+	definedGlobals map[string]bool
+	// uniqueDirectoryNames is a map keyed by the path of a YANG entity representing a
+	// directory in the generated code whose value is the unique name that it
+	// was mapped to. This allows routines to determine, based on a particular YANG
+	// entry, how to refer to it when generating code.
+	uniqueDirectoryNames map[string]string
+	// uniqueProtoMsgNames is a map, keyed by a protobuf package name, that
+	// contains a map keyed by protobuf message name strings that indicates the
+	// names that are used within the generated package's context. It is used
+	// during code generation to ensure uniqueness of the generated names within
+	// the specified package.
+	uniqueProtoMsgNames map[string]map[string]bool
+	// uniqueProtoPackages is a map, keyed by a YANG schema path, that allows
+	// a path to be resolved into the calculated Protobuf package name that
+	// is to be used for it.
+	uniqueProtoPackages map[string]string
+}
+
+// newProtoGenState creates a new protoGenState instance, initialised with the
+// default state required for code generation.
+func newProtoGenState(schematree *schemaTree) *protoGenState {
+	return &protoGenState{
+		enumGen:              newEnumGenState(),
+		schematree:           schematree,
+		definedGlobals:       map[string]bool{},
+		uniqueDirectoryNames: map[string]string{},
+		uniqueProtoMsgNames:  map[string]map[string]bool{},
+		uniqueProtoPackages:  map[string]string{},
+	}
+}
+
+// buildDirectoryDefinitions extracts the yang.Entry instances from a map of
+// entries that need struct definitions built for them. It resolves each
+// non-leaf yang.Entry to a Directory which contains the elements that are
+// needed for subsequent code generation.
+func (s *protoGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour) (map[string]*Directory, []error) {
+	return buildDirectoryDefinitions(entries, compBehaviour,
+		// In the case of protobuf the message name is simply the camel
+		// case name that is specified.
+		func(e *yang.Entry) string {
+			return s.protoMsgName(e, compBehaviour.CompressEnabled())
+		},
+		// protobuf's key types are handled at a different place.
+		nil,
+	)
+}
+
 // resolveProtoTypeArgs specifies input parameters required for resolving types
 // from YANG to protobuf.
 // TODO(robjs): Consider embedding resolveProtoTypeArgs in this struct per
@@ -51,9 +108,9 @@ type resolveProtoTypeArgs struct {
 //
 // See https://github.com/openconfig/ygot/blob/master/docs/yang-to-protobuf-transformations-spec.md
 // for additional details as to the transformation from YANG to Protobuf.
-func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
+func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
+	mtype, err := s.enumGen.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +136,7 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoT
 	case yang.Yleafref:
 		// We look up the leafref in the schema tree to be able to
 		// determine what type to map to.
-		target, err := s.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		target, err := s.schematree.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
 			return nil, err
 		}
@@ -122,9 +179,9 @@ func (s *genState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoT
 // yangTypeToProtoScalarType takes an input resolveTypeArgs and returns the protobuf
 // in-built type that is used to represent it. It is used within list keys where the
 // value cannot be nil/unset.
-func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
+func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
+	mtype, err := s.enumGen.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +206,7 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolve
 		// as there is not an equivalent Protobuf type.
 		return &MappedType{NativeType: "ywrapper.Decimal64Value"}, nil
 	case yang.Yleafref:
-		target, err := s.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
+		target, err := s.schematree.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +261,7 @@ func (s *genState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolve
 // }
 //
 // The MappedType's UnionTypes can be output through a template into the oneof.
-func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
+func (s *protoGenState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
 	unionTypes := make(map[string]*yang.YangType)
 	if errs := s.protoUnionSubTypes(args.yangType, args.contextEntry, unionTypes, pargs); errs != nil {
 		return nil, fmt.Errorf("errors mapping element: %v", errs)
@@ -270,7 +327,7 @@ func (s *genState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeAr
 // with is required for mapping. The currentType map is updated as an in-out argument. The basePackageName and enumPackageName
 // are used to map enumerated typedefs and identityrefs to the correct type. It returns a slice of errors if they occur
 // mapping subtypes.
-func (s *genState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]*yang.YangType, pargs resolveProtoTypeArgs) []error {
+func (s *protoGenState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]*yang.YangType, pargs resolveProtoTypeArgs) []error {
 	var errs []error
 	if util.IsUnionType(subtype) {
 		for _, st := range subtype.Type {
@@ -308,7 +365,7 @@ func (s *genState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, c
 // protoMsgName takes a yang.Entry and converts it to its protobuf message name,
 // ensuring that the name that is returned is unique within the package that it is
 // being contained within.
-func (s *genState) protoMsgName(e *yang.Entry, compressPaths bool) string {
+func (s *protoGenState) protoMsgName(e *yang.Entry, compressPaths bool) string {
 	// Return a cached name if one has already been computed.
 	if n, ok := s.uniqueDirectoryNames[e.Path()]; ok {
 		return n
@@ -336,7 +393,7 @@ func (s *genState) protoMsgName(e *yang.Entry, compressPaths bool) string {
 // are omitted from the path, i.e., /openconfig-interfaces/interfaces/interface/config/name
 // becomes interface (since modules, surrounding containers, and config/state containers
 // are not considered with path compression enabled.
-func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
+func (s *protoGenState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 	if IsFakeRoot(e) {
 		return ""
 	}
@@ -383,6 +440,6 @@ func (s *genState) protobufPackage(e *yang.Entry, compressPaths bool) string {
 }
 
 // protoIdentityName returns the name that should be used for an identityref base.
-func (s *genState) protoIdentityName(pargs resolveProtoTypeArgs, i *yang.Identity) string {
-	return fmt.Sprintf("%s.%s.%s", pargs.basePackageName, pargs.enumPackageName, s.identityrefBaseTypeFromIdentity(i, true))
+func (s *protoGenState) protoIdentityName(pargs resolveProtoTypeArgs, i *yang.Identity) string {
+	return fmt.Sprintf("%s.%s.%s", pargs.basePackageName, pargs.enumPackageName, s.enumGen.identityrefBaseTypeFromIdentity(i, true))
 }
