@@ -399,7 +399,7 @@ func ResolveIfLeafRef(schema *yang.Entry) (*yang.Entry, error) {
 // an empty map is returned.
 func ListKeyFieldsMap(e *yang.Entry) map[string]bool {
 	r := map[string]bool{}
-	for _, k := range strings.Split(e.Key, " ") {
+	for _, k := range strings.Fields(e.Key) {
 		if k != "" {
 			r[k] = true
 		}
