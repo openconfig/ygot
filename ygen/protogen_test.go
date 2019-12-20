@@ -654,6 +654,102 @@ func TestGenProto3Msg(t *testing.T) {
 				}},
 			},
 		},
+	}, {
+		name: "simple message with only scalar fields and field number extensions",
+		inMsg: &Directory{
+			Name: "MessageName",
+			Entry: &yang.Entry{
+				Name: "message-name",
+				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
+			},
+			Fields: map[string]*yang.Entry{
+				"field-one": {
+					Name: "field-one",
+					Type: &yang.YangType{Kind: yang.Ystring},
+					Exts: []*yang.Statement{
+						&yang.Statement{
+							Keyword:  "occodegenext:field-number-offset",
+							Argument: "100",
+						},
+					},
+				},
+				"field-two": {
+					Name: "field-two",
+					Type: &yang.YangType{Kind: yang.Yint8},
+					Exts: []*yang.Statement{
+						&yang.Statement{
+							Keyword:  "occodegenext:field-number",
+							Argument: "1",
+						},
+					},
+				},
+				"field-three": {
+					Name: "field-three",
+					Type: &yang.YangType{Kind: yang.Yint8},
+					Exts: []*yang.Statement{
+						&yang.Statement{
+							Keyword:  "occodegenext:field-number",
+							Argument: "1",
+						},
+						&yang.Statement{
+							Keyword:  "occodegenext:field-number-offset",
+							Argument: "100",
+						},
+					},
+				},
+			},
+			Path: []string{"", "root", "message-name"},
+		},
+		inBasePackage: "base",
+		inEnumPackage: "enums",
+		wantMsgs: map[string]*protoMsg{
+			"MessageName": {
+				Name:     "MessageName",
+				YANGPath: "/root/message-name",
+				Fields: []*protoMsgField{{
+					Tag:  410095931,
+					Name: "field_one",
+					Type: "ywrapper.StringValue",
+				}, {
+					Tag:  1,
+					Name: "field_two",
+					Type: "ywrapper.IntValue",
+				}, {
+					Tag:  101,
+					Name: "field_three",
+					Type: "ywrapper.IntValue",
+				}},
+			},
+		},
+	}, {
+		name: "message with field number in reserved range",
+		inMsg: &Directory{
+			Name: "MessageName",
+			Entry: &yang.Entry{
+				Name: "message-name",
+				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
+			},
+			Fields: map[string]*yang.Entry{
+				"field-one": {
+					Name: "field-one",
+					Type: &yang.YangType{Kind: yang.Ystring},
+					Exts: []*yang.Statement{
+						&yang.Statement{
+							Keyword:  "occodegenext:field-number",
+							Argument: "1",
+						},
+						&yang.Statement{
+							Keyword:  "occodegenext:field-number-offset",
+							Argument: "18999",
+						},
+					},
+				},
+			},
+			Path: []string{"", "root", "message-name"},
+		},
+		wantErr: true,
 	}}
 
 	for _, tt := range tests {

@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -1094,6 +1095,38 @@ func safeProtoIdentifierName(name string) string {
 
 // protoTagForEntry returns a protobuf tag value for the entry e.
 func protoTagForEntry(e *yang.Entry) (uint32, error) {
+	var offset uint32
+	for _, ext := range e.Exts {
+		if ext.Keyword == "occodegenext:field-number-offset" {
+			off, err := strconv.ParseUint(ext.Argument, 10, 32)
+			if err != nil {
+				return 0, fmt.Errorf("could not parse %s %s: %s", ext.Keyword, ext.Argument, err)
+			}
+			offset = uint32(off)
+			if offset == 0 {
+				return 0, fmt.Errorf("%s cannot be 0", ext.Keyword)
+			}
+			break
+		}
+	}
+	for _, ext := range e.Exts {
+		if ext.Keyword == "occodegenext:field-number" {
+			fn, err := strconv.ParseUint(ext.Argument, 10, 32)
+			if err != nil {
+				return 0, fmt.Errorf("could not parse %s %s: %s", ext.Keyword, ext.Argument, err)
+			}
+			if fn == 0 {
+				return 0, fmt.Errorf("%s cannot be 0", ext.Keyword)
+			}
+			annotatedFieldNumber := uint32(fn) + offset
+			if annotatedFieldNumber >= 19000 && annotatedFieldNumber <= 19999 {
+				return 0, fmt.Errorf("%s field number %d in Protobuf reserved range",
+					e.Name, annotatedFieldNumber)
+			}
+			return annotatedFieldNumber, nil
+		}
+	}
+
 	return fieldTag(e.Path())
 }
 
