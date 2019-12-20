@@ -657,7 +657,7 @@ func TestGenProto3Msg(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		s := newGenState()
+		s := newProtoGenState(nil)
 		// Seed the state with the supplied message names that have been provided.
 		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
@@ -1404,7 +1404,7 @@ message MessageName {
 	for _, tt := range tests {
 		wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
 		for compress, want := range map[bool]*generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newGenState()
+			s := newProtoGenState(nil)
 			// Seed the message names with the supplied input.
 			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
@@ -1474,7 +1474,7 @@ func TestGenListKeyProto(t *testing.T) {
 				},
 			},
 			definedDirectories: map[string]*Directory{},
-			state: &genState{
+			protogen: &protoGenState{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
 				},
@@ -1527,7 +1527,7 @@ func TestGenListKeyProto(t *testing.T) {
 				},
 			},
 			definedDirectories: map[string]*Directory{},
-			state: &genState{
+			protogen: &protoGenState{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
 				},
@@ -1589,7 +1589,7 @@ func TestGenListKeyProto(t *testing.T) {
 				},
 			},
 			definedDirectories: map[string]*Directory{},
-			state: &genState{
+			protogen: &protoGenState{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
 				},

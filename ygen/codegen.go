@@ -25,7 +25,6 @@ import (
 
 	log "github.com/golang/glog"
 
-	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
@@ -39,9 +38,6 @@ import (
 type YANGCodeGenerator struct {
 	// Config stores the configuration parameters used for code generation.
 	Config GeneratorConfig
-	// genState is used internally to the ygen library to store state for
-	// code generation.
-	state *genState
 }
 
 // GeneratorConfig stores the configuration options used for code generation.
@@ -206,9 +202,7 @@ type ProtoOpts struct {
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
 // struct to the calling function.
 func NewYANGCodeGenerator(c *GeneratorConfig) *YANGCodeGenerator {
-	cg := &YANGCodeGenerator{
-		state: newGenState(),
-	}
+	cg := &YANGCodeGenerator{}
 
 	if c != nil {
 		cg.Config = *c
@@ -325,16 +319,16 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}
 
 	// Store the returned schematree within the state for this code generation.
-	cg.state.schematree = mdef.schemaTree
+	gogen := newGoGenState(mdef.schematree)
 
-	directory, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot, golang)
+	directoryMap, errs := gogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot)
 	if errs != nil {
 		return nil, errs
 	}
 
 	var rootName string
 	if rootName = resolveRootName(cg.Config.TransformationOptions.FakeRootName, defaultRootName, cg.Config.TransformationOptions.GenerateFakeRoot); rootName != "" {
-		if r, ok := directory[fmt.Sprintf("/%s", rootName)]; ok {
+		if r, ok := directoryMap[fmt.Sprintf("/%s", rootName)]; ok {
 			rootName = r.Name
 		}
 	}
@@ -348,7 +342,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}
 
 	// Alphabetically order directories to produce deterministic output.
-	orderedDirNames, dirNameMap, err := GetOrderedDirectories(directory)
+	orderedDirNames, dirNameMap, err := GetOrderedDirectories(directoryMap)
 
 	if err != nil {
 		return nil, util.AppendErr(codegenErr, err)
@@ -358,7 +352,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	enumTypeMap := map[string][]string{}
 	var structSnippets []GoStructCodeSnippet
 	for _, directoryName := range orderedDirNames {
-		structOut, errs := writeGoStruct(dirNameMap[directoryName], directory, cg.state,
+		structOut, errs := writeGoStruct(dirNameMap[directoryName], directoryMap, gogen,
 			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.GenerateJSONSchema, cg.Config.GoOptions)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
@@ -373,7 +367,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		}
 	}
 
-	goEnums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false)
+	goEnums, errs := gogen.enumGen.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false)
 	if errs != nil {
 		codegenErr = util.AppendErrs(codegenErr, errs)
 		return nil, codegenErr
@@ -389,7 +383,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var enumTypeMapCode string
 	if cg.Config.GenerateJSONSchema {
 		var err error
-		rawSchema, err = buildJSONTree(mdef.modules, cg.state.uniqueDirectoryNames, mdef.directoryEntries["/"], cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled())
+		rawSchema, err = buildJSONTree(mdef.modules, gogen.uniqueDirectoryNames, mdef.directoryEntries["/"], cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled())
 		if err != nil {
 			util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}
@@ -450,12 +444,13 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 
 	dirsToProcess := map[string]*yang.Entry(mdef.directoryEntries)
 
-	state := newGenState()
-
 	// Store the returned schematree within the state for this code generation.
-	state.schematree = mdef.schemaTree
+	gogen := newGoGenState(mdef.schematree)
 
-	directoryMap, errs := state.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot, golang)
+	directoryMap, errs := gogen.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot)
+	if errs != nil {
+		return nil, nil, errs
+	}
 
 	// Alphabetically order directories to produce deterministic output.
 	orderedDirNames, dirNameMap, err := GetOrderedDirectories(directoryMap)
@@ -473,7 +468,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 		for _, fieldName := range GetOrderedFieldNames(dir) {
 			field := dir.Fields[fieldName]
 			if isLeaf := field.IsLeaf() || field.IsLeafList(); isLeaf {
-				mtype, err := state.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, dcg.TransformationOptions.CompressBehaviour.CompressEnabled())
+				mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, dcg.TransformationOptions.CompressBehaviour.CompressEnabled())
 				if err != nil {
 					errs = util.AppendErr(errs, err)
 					continue
@@ -548,9 +543,9 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	cg.state.schematree = mdef.schemaTree
+	protogen := newProtoGenState(mdef.schematree)
 
-	penums, errs := cg.state.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true)
+	penums, errs := protogen.enumGen.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true)
 	if errs != nil {
 		return nil, errs
 	}
@@ -559,7 +554,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	protoMsgs, errs := cg.state.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot, protobuf)
+	protoMsgs, errs := protogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour)
 	if errs != nil {
 		return nil, errs
 	}
@@ -618,7 +613,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	for _, n := range msgPaths {
 		m := msgMap[n]
 
-		genMsg, errs := writeProto3Msg(m, protoMsgs, cg.state, &protoMsgConfig{
+		genMsg, errs := writeProto3Msg(m, protoMsgs, protogen, &protoMsgConfig{
 			compressPaths:       cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(),
 			basePackageName:     basePackageName,
 			enumPackageName:     enumPackageName,
@@ -757,9 +752,9 @@ type mappedYANGDefinitions struct {
 	// leaves that are of type enumeration, identityref, or unions that contain either of
 	// these types. The map is keyed by the string path to the entry in the YANG schema.
 	enumEntries map[string]*yang.Entry
-	// schemaTree is a ctree.Tree that stores a copy of the YANG schema tree, containing
-	// only leaf entries, such that schema paths can be referenced.
-	schemaTree *ctree.Tree
+	// schematree is a copy of the YANG schema tree, containing only leaf
+	// entries, such that schema paths can be referenced.
+	schematree *schemaTree
 	// modules is the set of parsed YANG modules that are being processed as part of the
 	// code generatio, expressed as a slice of yang.Entry pointers.
 	modules []*yang.Entry
@@ -845,7 +840,7 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 	return &mappedYANGDefinitions{
 		directoryEntries: dirs,
 		enumEntries:      enums,
-		schemaTree:       st,
+		schematree:       st,
 		modules:          ms,
 		modelData:        modelData,
 	}, nil
