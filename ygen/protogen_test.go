@@ -668,7 +668,7 @@ func TestGenProto3Msg(t *testing.T) {
 					Name: "field-one",
 					Type: &yang.YangType{Kind: yang.Ystring},
 					Exts: []*yang.Statement{
-						&yang.Statement{
+						{
 							Keyword:  "occodegenext:field-number-offset",
 							Argument: "100",
 						},
@@ -678,7 +678,7 @@ func TestGenProto3Msg(t *testing.T) {
 					Name: "field-two",
 					Type: &yang.YangType{Kind: yang.Yint8},
 					Exts: []*yang.Statement{
-						&yang.Statement{
+						{
 							Keyword:  "occodegenext:field-number",
 							Argument: "1",
 						},
@@ -688,11 +688,11 @@ func TestGenProto3Msg(t *testing.T) {
 					Name: "field-three",
 					Type: &yang.YangType{Kind: yang.Yint8},
 					Exts: []*yang.Statement{
-						&yang.Statement{
+						{
 							Keyword:  "occodegenext:field-number",
 							Argument: "1",
 						},
-						&yang.Statement{
+						{
 							Keyword:  "occodegenext:field-number-offset",
 							Argument: "100",
 						},
@@ -736,11 +736,11 @@ func TestGenProto3Msg(t *testing.T) {
 					Name: "field-one",
 					Type: &yang.YangType{Kind: yang.Ystring},
 					Exts: []*yang.Statement{
-						&yang.Statement{
+						{
 							Keyword:  "occodegenext:field-number",
 							Argument: "1",
 						},
-						&yang.Statement{
+						{
 							Keyword:  "occodegenext:field-number-offset",
 							Argument: "18999",
 						},
