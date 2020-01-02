@@ -43,3 +43,24 @@ func TestToPtr(t *testing.T) {
 		}
 	}
 }
+
+func TestBinaryToFloat32(t *testing.T) {
+	tests := []struct {
+		name string
+		in   Binary
+		want float32
+	}{{
+		name: "basic",
+		// 01010000100101010000001011111001
+		in:   Binary{80, 149, 2, 249},
+		want: 2e+10,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := BinaryToFloat32(tt.in); got != tt.want {
+				t.Errorf("BinaryToFloat32(%v): got %v, want %v", tt.in, got, tt.want)
+			}
+		})
+	}
+}
