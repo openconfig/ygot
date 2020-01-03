@@ -79,6 +79,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Parent_Child",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "binary",
 				},
 				"Parent_Child_One": {
 					GoTypeName:       "string",
@@ -86,6 +87,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Parent_Child",
 					IsLeaf:           true,
 					IsScalarField:    true,
+					YANGTypeName:     "string",
 				},
 				"Parent_Child_Three": {
 					GoTypeName:       "oc.E_OpenconfigSimple_Child_Three",
@@ -93,6 +95,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Parent_Child",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "enumeration",
 				},
 				"Parent_Child_Two": {
 					GoTypeName:       "string",
@@ -100,6 +103,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Parent_Child",
 					IsLeaf:           true,
 					IsScalarField:    true,
+					YANGTypeName:     "string",
 				},
 				"RemoteContainer": {
 					GoTypeName:       "*oc.RemoteContainer",
@@ -114,6 +118,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "RemoteContainer",
 					IsLeaf:           true,
 					IsScalarField:    true,
+					YANGTypeName:     "string",
 				}},
 		}, {
 			name:                "simple openconfig test with list",
@@ -137,6 +142,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "DupEnum",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "enumeration",
 				},
 				"DupEnum_B": {
 					GoTypeName:       "oc.E_OpenconfigUnione_DupEnum_B",
@@ -144,6 +150,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "DupEnum",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "enumeration",
 				},
 				"Platform": {
 					GoTypeName:       "*oc.Platform",
@@ -165,6 +172,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Platform_Component",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "enumtypedef",
 				},
 				"Platform_Component_Enumerated": {
 					GoTypeName:       "oc.Platform_Component_Enumerated_Union",
@@ -172,6 +180,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Platform_Component",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "enumerated-union-type",
 				},
 				"Platform_Component_Power": {
 					GoTypeName:       "oc.Platform_Component_Power_Union",
@@ -179,6 +188,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Platform_Component",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "union",
 				},
 				"Platform_Component_R1": {
 					GoTypeName:       "oc.Platform_Component_E1_Union",
@@ -186,6 +196,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Platform_Component",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "leafref",
 				},
 				"Platform_Component_Type": {
 					GoTypeName:       "oc.Platform_Component_Type_Union",
@@ -193,6 +204,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Platform_Component",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "union",
 				}},
 		}, {
 			name:                "simple openconfig test with submodule and union list key",
@@ -212,6 +224,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "AList",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "td",
 				},
 				"BList": {
 					GoTypeName:       "*oc.BList",
@@ -226,6 +239,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "BList",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "td",
 				},
 				"C": {
 					GoTypeName:       "*oc.C",
@@ -240,6 +254,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "C",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "enumeration",
 				},
 				"Parent": {
 					GoTypeName:       "*oc.Parent",
@@ -261,6 +276,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Parent_Child",
 					IsLeaf:           true,
 					IsScalarField:    false,
+					YANGTypeName:     "identityref",
 				}},
 		}, {
 			name:                "simple openconfig test with choice and cases",
@@ -287,6 +303,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Native",
 					IsLeaf:           true,
 					IsScalarField:    true,
+					YANGTypeName:     "string",
 				},
 				"Target": {
 					GoTypeName:       "*oc.Target",
@@ -308,6 +325,7 @@ func TestGeneratePathCode(t *testing.T) {
 					ParentGoTypeName: "Target_Foo",
 					IsLeaf:           true,
 					IsScalarField:    true,
+					YANGTypeName:     "string",
 				}},
 		}, {
 			name:                "simple openconfig test with camelcase-name extension",
@@ -390,7 +408,8 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 			"leaf": {
 				Name: "leaf",
 				Kind: yang.LeafEntry,
-				Type: &yang.YangType{Kind: yang.Ybinary},
+				// Name is given here to test setting the YANGTypeName field.
+				Type: &yang.YangType{Name: "ieeefloat32", Kind: yang.Ybinary},
 			},
 			"container": {
 				Name: "container",
@@ -399,7 +418,7 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 					"leaf": {
 						Name: "leaf",
 						Kind: yang.LeafEntry,
-						Type: &yang.YangType{Kind: yang.Yint32},
+						Type: &yang.YangType{Name: "int32", Kind: yang.Yint32},
 					},
 				},
 			},
@@ -786,6 +805,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				ParentGoTypeName: "Container",
 				IsLeaf:           true,
 				IsScalarField:    true,
+				YANGTypeName:     "int32",
 			},
 		},
 		wantSorted: []string{"Container_Leaf"},
@@ -884,6 +904,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				ParentGoTypeName: "Container",
 				IsLeaf:           true,
 				IsScalarField:    true,
+				YANGTypeName:     "int32",
 			},
 			"Leaf": {
 				GoTypeName:       "oc.Binary",
@@ -891,6 +912,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				ParentGoTypeName: "Device",
 				IsLeaf:           true,
 				IsScalarField:    false,
+				YANGTypeName:     "ieeefloat32",
 			},
 			"List": {
 				GoTypeName:       "*oc.List",

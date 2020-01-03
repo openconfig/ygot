@@ -15,6 +15,8 @@
 package ygot
 
 import (
+	"encoding/binary"
+	"math"
 	"reflect"
 )
 
@@ -59,4 +61,8 @@ func ToPtr(v interface{}) interface{} {
 	n := reflect.New(reflect.TypeOf(v))
 	n.Elem().Set(reflect.ValueOf(v))
 	return n.Interface()
+}
+
+func BinaryToFloat32(in []byte) float32 {
+	return math.Float32frombits(binary.BigEndian.Uint32(in))
 }

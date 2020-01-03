@@ -251,11 +251,26 @@ type NodeDataMap map[string]*NodeData
 
 // NodeData contains information about the ygen-generated code of a YANG schema node.
 type NodeData struct {
-	GoTypeName       string // GoTypeName is the ygen type name of the node, which is qualified by the SchemaStructPkgAlias if necessary.
-	GoFieldName      string // GoFieldName is the field name of the node under its parent struct.
-	ParentGoTypeName string // ParentGoTypeName is the parent struct's type name.
-	IsLeaf           bool   // IsLeaf indicates whether this child is a leaf node.
-	IsScalarField    bool   // IsScalarField indicates a leaf that is stored as a pointer in its parent struct.
+	// GoTypeName is the ygen type name of the node, which is qualified by
+	// the SchemaStructPkgAlias if necessary.
+	GoTypeName string
+	// GoFieldName is the field name of the node under its parent struct.
+	GoFieldName string
+	// ParentGoTypeName is the parent struct's type name.
+	ParentGoTypeName string
+	// IsLeaf indicates whether this child is a leaf node.
+	IsLeaf bool
+	// IsScalarField indicates a leaf that is stored as a pointer in its
+	// parent struct.
+	IsScalarField bool
+	// YANGTypeName is the type of the leaf given in the YANG file (without
+	// the module prefix, if any, per goyang behaviour). If the node is not
+	// a leaf this will be empty. Note that the current purpose for this is
+	// to allow callers to handle certain types as special cases, but since
+	// the name of the node is a very basic piece of information which
+	// excludes the defining module, this is somewhat hacky, so it may be
+	// removed or modified in the future.
+	YANGTypeName string
 }
 
 // GetOrderedNodeDataNames returns the alphabetically-sorted slice of keys
@@ -433,12 +448,18 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 			default:
 				goTypeName = mType.NativeType
 			}
+
+			var yangTypeName string
+			if isLeaf {
+				yangTypeName = field.Type.Name
+			}
 			nodeDataMap[pathStructName] = &NodeData{
 				GoTypeName:       goTypeName,
 				GoFieldName:      goFieldNameMap[fieldName],
 				ParentGoTypeName: dir.Name,
 				IsLeaf:           isLeaf,
 				IsScalarField:    ygen.IsScalarField(field, mType),
+				YANGTypeName:     yangTypeName,
 			}
 		}
 	}
