@@ -22,7 +22,11 @@ module proto-test-a {
   }
 
   grouping child-state {
-    leaf boolean { type boolean; }
+    leaf boolean {
+      type boolean;
+      occodegenext:field-number 1;
+      occodegenext:field-number-offset 100;
+    }
   }
 
   container parent {

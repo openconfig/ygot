@@ -12,7 +12,7 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
 // Child represents the /proto-test-a/parent/child YANG schema element.
 message Child {
-  ywrapper.BoolValue boolean = 135159880;
+  ywrapper.BoolValue boolean = 101;
   ywrapper.IntValue integer = 367917455;
   repeated ywrapper.StringValue leaf_list = 370551192;
   ywrapper.StringValue leaf_with_dashes = 503746721;
