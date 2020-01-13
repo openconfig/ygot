@@ -723,7 +723,7 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 		},
 	}, {
-		name: "message with field number in reserved range",
+		name: "message with field number outside of annotation range",
 		inMsg: &Directory{
 			Name: "MessageName",
 			Entry: &yang.Entry{
@@ -742,7 +742,7 @@ func TestGenProto3Msg(t *testing.T) {
 						},
 						{
 							Keyword:  "occodegenext:field-number-offset",
-							Argument: "18999",
+							Argument: "1000",
 						},
 					},
 				},

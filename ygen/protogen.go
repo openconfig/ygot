@@ -1119,8 +1119,8 @@ func protoTagForEntry(e *yang.Entry) (uint32, error) {
 				return 0, fmt.Errorf("%s cannot be 0", ext.Keyword)
 			}
 			annotatedFieldNumber := uint32(fn) + offset
-			if annotatedFieldNumber >= 19000 && annotatedFieldNumber <= 19999 {
-				return 0, fmt.Errorf("%s field number %d in Protobuf reserved range",
+			if annotatedFieldNumber > 1000 || annotatedFieldNumber < 1 {
+				return 0, fmt.Errorf("%s field number %d not in annotation reserved range of 1-1000",
 					e.Name, annotatedFieldNumber)
 			}
 			return annotatedFieldNumber, nil
