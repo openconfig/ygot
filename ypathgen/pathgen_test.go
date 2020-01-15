@@ -351,7 +351,7 @@ func TestGeneratePathCode(t *testing.T) {
 					t.Fatalf("GeneratePathCode(%v, %v): Config: %v, got unexpected error: %v, want: nil", tt.inFiles, tt.inIncludePaths, cg, err)
 				}
 
-				return gotCode.SingleFile(), gotNodeDataMap, cg
+				return gotCode.String(), gotNodeDataMap, cg
 			}
 
 			gotCode, gotNodeDataMap, cg := genCode()

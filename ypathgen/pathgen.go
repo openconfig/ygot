@@ -209,9 +209,9 @@ type GeneratedPathCode struct {
 	OneOffHeader string                    // OneOffHeader defines the header that should be included in only one output Go file - such as package init statements.
 }
 
-// SingleFile method for GeneratedPathCode, which can be used to write all the
+// String method for GeneratedPathCode, which can be used to write all the
 // generated code into a single file.
-func (genCode GeneratedPathCode) SingleFile() string {
+func (genCode GeneratedPathCode) String() string {
 	var gotCode bytes.Buffer
 	gotCode.WriteString(genCode.CommonHeader)
 	gotCode.WriteString(genCode.OneOffHeader)

@@ -47,7 +47,7 @@ var (
 // it to a single file to the io.Writer, w, provided as an argument.
 // The output includes a package header which is generated.
 func writeGoCodeSingleFile(w io.Writer, pathCode *ypathgen.GeneratedPathCode) error {
-	_, err := io.WriteString(w, pathCode.SingleFile())
+	_, err := io.WriteString(w, pathCode.String())
 	return err
 }
 
