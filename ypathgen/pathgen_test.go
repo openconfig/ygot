@@ -351,7 +351,7 @@ func TestGeneratePathCode(t *testing.T) {
 					t.Fatalf("GeneratePathCode(%v, %v): Config: %v, got unexpected error: %v, want: nil", tt.inFiles, tt.inIncludePaths, cg, err)
 				}
 
-				return gotCode.String(), gotNodeDataMap, cg
+				return gotCode.SingleFile(), gotNodeDataMap, cg
 			}
 
 			gotCode, gotNodeDataMap, cg := genCode()
@@ -383,6 +383,91 @@ func TestGeneratePathCode(t *testing.T) {
 				if gotAttempt != gotCode {
 					diff, _ := testutil.GenerateUnifiedDiff(gotCode, gotAttempt)
 					t.Fatalf("flaky code generation, diff:\n%s", diff)
+				}
+			}
+		})
+	}
+}
+
+func TestGeneratePathCodeSplitFile(t *testing.T) {
+	tests := []struct {
+		name                 string   // Name is the identifier for the test.
+		inFiles              []string // inFiles is the set of inputFiles for the test.
+		inIncludePaths       []string // inIncludePaths is the set of paths that should be searched for imports.
+		inMaxStructs         int      // inMaxStructs is the maximum number of structs to generate for testing SplitFile.
+		wantStructsCodeFiles []string // wantStructsCodeFiles is the paths of the generated Go code that the output of the test should be compared to.
+		wantErr              bool     // wantErr specifies whether the test should expect an error.
+	}{{
+		name:                 "maxStructs is higher than total number of structs",
+		inFiles:              []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inMaxStructs:         100,
+		wantStructsCodeFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.path-txt")},
+	}, {
+		name:                 "maxStructs is exactly the total number of structs",
+		inFiles:              []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inMaxStructs:         4,
+		wantStructsCodeFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple.path-txt")},
+	}, {
+		name:                 "maxStructs is just below the total number of structs",
+		inFiles:              []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inMaxStructs:         3,
+		wantStructsCodeFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple-10.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-11.path-txt")},
+	}, {
+		name:                 "maxStructs is half the total number of structs",
+		inFiles:              []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inMaxStructs:         2,
+		wantStructsCodeFiles: []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple-0.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-1.path-txt")},
+	}, {
+		name:         "maxStructs is 0",
+		inFiles:      []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inMaxStructs: 0,
+		wantErr:      true,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			genCode := func() ([]string, *GenConfig) {
+				cg := NewDefaultConfig("github.com/openconfig/ygot/ypathgen/testdata/exampleoc")
+				// Set the name of the caller explicitly to avoid issues when
+				// the unit tests are called by external test entities.
+				cg.GeneratingBinary = "pathgen-tests"
+
+				gotCode, _, err := cg.GeneratePathCode(tt.inFiles, tt.inIncludePaths)
+				if err != nil {
+					t.Fatalf("GeneratePathCode(%v, %v): Config: %v, got unexpected error: %v", tt.inFiles, tt.inIncludePaths, cg, err)
+				}
+				files, e := gotCode.SplitFile(tt.inMaxStructs)
+				if e != nil && !tt.wantErr {
+					t.Fatalf("SplitFile got unexpected error: %v, want: nil", e)
+				}
+
+				return files, cg
+			}
+
+			gotCode, cg := genCode()
+
+			var wantCode []string
+			for _, codeFile := range tt.wantStructsCodeFiles {
+				wantCodeBytes, rferr := ioutil.ReadFile(codeFile)
+				if rferr != nil {
+					t.Fatalf("ioutil.ReadFile(%q) error: %v", tt.wantStructsCodeFiles, rferr)
+				}
+				wantCode = append(wantCode, string(wantCodeBytes))
+			}
+
+			if len(gotCode) != len(wantCode) {
+				t.Errorf("GeneratePathCode(%v, %v), Config: %v, did not return correct code via SplitFile function (files: %v), (gotfiles: %d, wantfiles: %d), diff (-want, +got):\n%s",
+					tt.inFiles, tt.inIncludePaths, cg, tt.wantStructsCodeFiles, len(gotCode), len(wantCode), cmp.Diff(wantCode, gotCode))
+			} else {
+				for i := range gotCode {
+					if gotCode[i] != wantCode[i] {
+						// Use difflib to generate a unified diff between the
+						// two code snippets such that this is simpler to debug
+						// in the test output.
+						diff, _ := testutil.GenerateUnifiedDiff(gotCode[i], wantCode[i])
+						t.Errorf("GeneratePathCode(%v, %v), Config: %v, did not return correct code via SplitFile function (file: %v), diff:\n%s",
+							tt.inFiles, tt.inIncludePaths, cg, tt.wantStructsCodeFiles[i], diff)
+					}
 				}
 			}
 		})

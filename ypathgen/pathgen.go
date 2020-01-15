@@ -209,9 +209,9 @@ type GeneratedPathCode struct {
 	OneOffHeader string                    // OneOffHeader defines the header that should be included in only one output Go file - such as package init statements.
 }
 
-// String method for GeneratedPathCode, which can be used to write all the
+// SingleFile method for GeneratedPathCode, which can be used to write all the
 // generated code into a single file.
-func (genCode GeneratedPathCode) String() string {
+func (genCode GeneratedPathCode) SingleFile() string {
 	var gotCode bytes.Buffer
 	gotCode.WriteString(genCode.CommonHeader)
 	gotCode.WriteString(genCode.OneOffHeader)
@@ -219,6 +219,39 @@ func (genCode GeneratedPathCode) String() string {
 		gotCode.WriteString(gotStruct.String())
 	}
 	return gotCode.String()
+}
+
+// SplitFile returns a slice of strings, each representing a file that together
+// contains the entire generated code. It's intended to help limit the size of
+// the generated files. maxStructs specifies the maximum number of structs each
+// file can contain, and must be >= 1. This number is used to roughly calibrate
+// the size of the output files.
+func (genCode GeneratedPathCode) SplitFile(maxStructs int) ([]string, error) {
+	if maxStructs < 1 {
+		return nil, fmt.Errorf("Cannot generate files where maxStructs is less than 1: %v", maxStructs)
+	}
+
+	var files []string
+	var gotCode bytes.Buffer
+	var structsWritten int = 0
+	gotCode.WriteString(genCode.CommonHeader)
+	gotCode.WriteString(genCode.OneOffHeader)
+
+	for _, gotStruct := range genCode.Structs {
+		if structsWritten == maxStructs {
+			files = append(files, gotCode.String())
+			gotCode.Reset()
+			structsWritten = 0
+			gotCode.WriteString(genCode.CommonHeader)
+		}
+		gotCode.WriteString(gotStruct.String())
+		structsWritten += 1
+	}
+	if structsWritten > 0 {
+		files = append(files, gotCode.String())
+	}
+
+	return files, nil
 }
 
 // GoPathStructCodeSnippet is used to store the generated code snippets associated with
