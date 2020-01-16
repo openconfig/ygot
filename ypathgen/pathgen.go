@@ -221,11 +221,11 @@ func (genCode GeneratedPathCode) String() string {
 	return gotCode.String()
 }
 
-// SplitFiles returns a slice of strings, each representing a file that together
-// contains the entire generated code. maxStructs is an uint that specifies the
-// maximum number of structs each file can contain, with 0 to mean no splitting
-// of files. This number can be used used to roughly calibrate the size of the
-// output files.
+// SplitFiles returns a slice of strings, each representing a file that
+// together contains the entire generated code. fileN specifies the number of
+// files to split the code into, and has to be between 1 and the total number
+// of directory entries in the input schema. By splitting, the size of the
+// output files can be roughly controlled.
 func (genCode GeneratedPathCode) SplitFiles(fileN int) ([]string, error) {
 	structN := len(genCode.Structs)
 	if fileN < 1 || fileN > structN {
