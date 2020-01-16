@@ -240,7 +240,7 @@ func (genCode GeneratedPathCode) SplitFiles(fileN int) ([]string, error) {
 
 	for i, gotStruct := range genCode.Structs {
 		// The last file contains the remainder of the structs.
-		if i%structsPerFile == 0 && i/structsPerFile > 0 && i/structsPerFile < fileN {
+		if i%structsPerFile == 0 && i >= structsPerFile && i < structsPerFile*fileN {
 			files = append(files, gotCode.String())
 			gotCode.Reset()
 			gotCode.WriteString(genCode.CommonHeader)
