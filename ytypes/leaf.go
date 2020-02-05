@@ -845,7 +845,7 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonToleranc
 		if !ok && jsonTolerance {
 			// Allow positive ints to be treated as uints.
 			if v, intOk := tv.GetValue().(*gpb.TypedValue_IntVal); intOk && v.IntVal >= 0 {
-				return true, &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{uint64(v.IntVal)}}
+				return true, &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{UintVal: uint64(v.IntVal)}}
 			}
 		}
 	case yang.Ybinary:
