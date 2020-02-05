@@ -1948,10 +1948,12 @@ func findMapPaths(parent *Directory, fieldName string, compressPaths, absolutePa
 			return nil, fmt.Errorf("invalid compressed schema, could not find the key %s or the grandparent of %s", k.Name, k.Path())
 		}
 
-		// If a key of the list is a leafref to the field (goyang makes
-		// leafrefs have the same parent as the entry to which they
-		// point), then add this as an alternative path to the field.
-		if cmp.Equal(util.SchemaPathNoChoiceCase(k), fieldSlicePath) && k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref {
+		// If a key of the list is a leafref that points to the field,
+		// then add this as an alternative path.
+		// Note: if k is a leafref, buildListKey() would have already
+		// resolved it the field that the leafref points to. So, we
+		// compare their absolute paths for equality.
+		if k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref && cmp.Equal(util.SchemaPathNoChoiceCase(k), fieldSlicePath) {
 			// The path of the key element is simply the name of the leaf under the
 			// list, since the YANG specification enforces that keys are direct
 			// children of the list.
