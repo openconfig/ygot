@@ -1394,6 +1394,15 @@ func TestSetNode(t *testing.T) {
 			inOpts:   []SetNodeOpt{&TolerateJSONInconsistencies{}},
 		},
 		{
+			inDesc:   "success setting uint field in uint node with 0 int value with JSON tolerance is set",
+			inSchema: listElemStruct4Schema,
+			inParent: &ListElemStruct4{},
+			inPath:   mustPath("/key1"),
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 0}},
+			want:     ygot.Uint32(0),
+			inOpts:   []SetNodeOpt{&TolerateJSONInconsistencies{}},
+		},
+		{
 			inDesc:           "failure setting uint field in uint node with negative int value with JSON tolerance is set",
 			inSchema:         listElemStruct4Schema,
 			inParent:         &ListElemStruct4{},
