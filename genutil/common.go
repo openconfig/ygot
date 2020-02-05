@@ -113,10 +113,8 @@ const (
 	UncompressedExcludeDerivedState
 	// PreferIntendedConfig generates only the "config" version of a field
 	// when it exists under both "config" and "state" containers of its
-	// parent YANG model. This is done to resolve field conflicts that
-	// arise in the compressed code due to "config" and "state" containers
-	// being removed and their fields collapsed together. If no conflict
-	// exists between these containers, then the field is always generated.
+	// parent YANG model. If no conflict exists between these containers,
+	// then the field is always generated.
 	PreferIntendedConfig
 	// PreferOperationalState generates only the "state" version of a field
 	// when it exists under both "config" and "state" containers of its
