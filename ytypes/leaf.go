@@ -498,6 +498,8 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	var ok bool
 	switch enc {
 	case GNMIEncoding:
+		fallthrough
+	case gNMIEncodingWithJSONTolerance:
 		var sv *gpb.TypedValue_StringVal
 		if sv, ok = value.(*gpb.TypedValue).GetValue().(*gpb.TypedValue_StringVal); ok {
 			valueStr = sv.StringVal
@@ -665,11 +667,13 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 	case JSONEncoding:
 		return sanitizeJSON(parent, schema, fieldName, value)
 	case GNMIEncoding:
+		fallthrough
+	case gNMIEncodingWithJSONTolerance:
 		tv, ok := value.(*gpb.TypedValue)
 		if !ok {
 			return nil, fmt.Errorf("got %T type, want gNMI TypedValue as value type", value)
 		}
-		return sanitizeGNMI(parent, schema, fieldName, tv)
+		return sanitizeGNMI(parent, schema, fieldName, tv, enc == gNMIEncodingWithJSONTolerance)
 	}
 
 	return nil, fmt.Errorf("unknown encoding mode; %v", enc)
@@ -762,15 +766,18 @@ func sanitizeJSON(parent interface{}, schema *yang.Entry, fieldName string, valu
 	return nil, fmt.Errorf("unmarshalScalar: unsupported type %v in schema node %s", ykind, schema.Name)
 }
 
-// sanitizeGNMI decodes the GNMI TypedValue encoded value into the type of
-// corresponding field in GoStruct. Parent is the parent struct containing the
+// sanitizeGNMI decodes the GNMI TypedValue encoded value into a field of the
+// corresponding type in GoStruct. Parent is the parent struct containing the
 // field being unmarshaled. schema is *yang.Entry corresponding to the field.
-// fieldName is the name of the field being written in GoStruct. value is the
-// JSON encoded value.
-func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *gpb.TypedValue) (interface{}, error) {
+// fieldName is the name of the field being written in GoStruct. tv is the
+// JSON encoded value. jsonTolerance means to allow some otherwise nonmatching
+// types to match due to inconsistencies after json translation; for now, this
+// just involves accepting positive ints as uints.
+func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *gpb.TypedValue, jsonTolerance bool) (interface{}, error) {
 	ykind := schema.Type.Kind
 
-	if !gNMIToYANGTypeMatches(ykind, tv) {
+	var ok bool
+	if ok, tv = gNMIToYANGTypeMatches(ykind, tv, jsonTolerance); !ok {
 		return nil, fmt.Errorf("failed to unmarshal %v into %v", tv.GetValue(), yang.TypeKindToName[ykind])
 	}
 
@@ -817,10 +824,14 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 }
 
 // gNMIToYANGTypeMatches checks whether the provided yang.TypeKind can be set
-// by using the provided gNMI TypedValue. gNMI TypedValue oneof fields can
+// by using the provided gNMI TypedValue, and returns the TypedValue that
+// should be used to get the underlying value. gNMI TypedValue oneof fields can
 // carry more than one sizes of the same type per gNMI specification:
 // https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-specification.md#223-node-values
-func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue) bool {
+// jsonTolerance means to allow some otherwise nonmatching types to match due
+// to inconsistencies after json translation; for now, this just involves
+// accepting positive ints as uints.
+func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonTolerance bool) (bool, *gpb.TypedValue) {
 	var ok bool
 	switch ykind {
 	case yang.Ybool:
@@ -831,6 +842,12 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue) bool {
 		_, ok = tv.GetValue().(*gpb.TypedValue_IntVal)
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
 		_, ok = tv.GetValue().(*gpb.TypedValue_UintVal)
+		if !ok && jsonTolerance {
+			// Allow positive ints to be treated as uints.
+			if v, intOk := tv.GetValue().(*gpb.TypedValue_IntVal); intOk && v.IntVal >= 0 {
+				return true, &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{uint64(v.IntVal)}}
+			}
+		}
 	case yang.Ybinary:
 		_, ok = tv.GetValue().(*gpb.TypedValue_BytesVal)
 	case yang.Ydecimal64:
@@ -839,7 +856,7 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue) bool {
 			_, ok = tv.GetValue().(*gpb.TypedValue_FloatVal)
 		}
 	}
-	return ok
+	return ok, tv
 }
 
 // isValueInterfacePtrToEnum reports whether v is an interface ptr to enum type.

@@ -56,6 +56,12 @@ const (
 
 	// GNMIEncoding indicates that provided value is gNMI TypedValue.
 	GNMIEncoding
+
+	// gNMIEncodingWithJSONTolerance indicates that provided value is gNMI
+	// TypedValue, but it tolerates the case that the values were produced
+	// from JSON and that a tolerance may be needed (e.g. positive int is
+	// accepted as an uint).
+	gNMIEncodingWithJSONTolerance
 )
 
 // unmarshalGeneric unmarshals the provided value encoded with the given

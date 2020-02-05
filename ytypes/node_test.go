@@ -78,6 +78,22 @@ type ContainerEnumKey struct {
 	StructKeyList map[EnumType]*ListElemEnumKey `path:"config/simple-key-list"`
 }
 
+type ListElemStruct4 struct {
+	Key1 *uint32 `path:"key1"`
+}
+
+var listElemStruct4Schema = &yang.Entry{
+	Name: "list-elem-struct4",
+	Kind: yang.DirectoryEntry,
+	Dir: map[string]*yang.Entry{
+		"key1": {
+			Name: "key1",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{Kind: yang.Yuint32},
+		},
+	},
+}
+
 type SuperContainer struct {
 	ContainerStruct1 *ContainerStruct1 `path:"container"`
 }
@@ -1359,6 +1375,32 @@ func TestSetNode(t *testing.T) {
 			inPath:   mustPath("/key1"),
 			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
 			want:     ygot.String("hello"),
+		},
+		{
+			inDesc:           "failure setting uint field in top node with int value",
+			inSchema:         listElemStruct4Schema,
+			inParent:         &ListElemStruct4{},
+			inPath:           mustPath("/key1"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			wantErrSubstring: "failed to unmarshal",
+		},
+		{
+			inDesc:   "success setting uint field in uint node with positive int value with JSON tolerance is set",
+			inSchema: listElemStruct4Schema,
+			inParent: &ListElemStruct4{},
+			inPath:   mustPath("/key1"),
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			want:     ygot.Uint32(42),
+			inOpts:   []SetNodeOpt{&TolerateJSONInconsistencies{}},
+		},
+		{
+			inDesc:           "failure setting uint field in uint node with negative int value with JSON tolerance is set",
+			inSchema:         listElemStruct4Schema,
+			inParent:         &ListElemStruct4{},
+			inPath:           mustPath("/key1"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: -42}},
+			wantErrSubstring: "failed to unmarshal",
+			inOpts:           []SetNodeOpt{&TolerateJSONInconsistencies{}},
 		},
 		{
 			inDesc:           "fail setting value for node with non-leaf schema",
