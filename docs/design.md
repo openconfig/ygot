@@ -58,7 +58,7 @@ generation).
 The logic to extract which entities are valid to have code
 generation performed for them (skipping `config`/`state` containers, and
 surrounding containers for lists) is found in
-`go_elements.go`:`FindAllChildren`.
+`FindAllChildren` in `genutil` package.
 
 ## YANG Entities Mapped to Go Entities
 
