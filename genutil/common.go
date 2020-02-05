@@ -104,20 +104,25 @@ type CompressBehaviour int64
 // No dimension spans across all others' options, so can't extract any out
 // without having to error out for some combinations.
 const (
-	// Uncompressed means to not compress the generated code relative to
-	// the schema.
+	// Uncompressed does not compress the generated code. This means list
+	// containers and config/state containers are retained in the generated
+	// code.
 	Uncompressed CompressBehaviour = iota
 	// UncompressedExcludeDerivedState excludes config false subtrees in
 	// the generated code.
 	UncompressedExcludeDerivedState
-	// PreferIntendedConfig indicates to generate only the "config" version
-	// of a field when it exists under both "config" and "state" containers
-	// of its parent YANG model.
+	// PreferIntendedConfig generates only the "config" version of a field
+	// when it exists under both "config" and "state" containers of its
+	// parent YANG model. This is done to resolve field conflicts that
+	// arise in the compressed code due to "config" and "state" containers
+	// being removed and its fields collapsed together. If no conflict
+	// exists between these containers, then the field is always generated.
 	PreferIntendedConfig
-	// PreferOperationalState indicates to generate only the "state"
-	// version of a field when it exists under both "config" and "state"
-	// containers of its parent YANG model.
-	PreferOperationalState // prefer applied config
+	// PreferOperationalState generates only the "state" version of a field
+	// when it exists under both "config" and "state" containers of its
+	// parent YANG model. If no conflict exists between these containers,
+	// then the field is always generated.
+	PreferOperationalState
 	// ExcludeDerivedState excludes all values that are not writeable
 	// (i.e. config false), including their children, from the generated
 	// code output.
