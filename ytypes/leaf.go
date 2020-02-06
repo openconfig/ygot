@@ -775,7 +775,7 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 	ykind := schema.Type.Kind
 
 	var ok bool
-	if ok, tv = gNMIToYANGTypeMatches(ykind, tv, jsonTolerance); !ok {
+	if ok = gNMIToYANGTypeMatches(ykind, tv, jsonTolerance); !ok {
 		return nil, fmt.Errorf("failed to unmarshal %v into %v", tv.GetValue(), yang.TypeKindToName[ykind])
 	}
 
@@ -829,7 +829,7 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 // jsonTolerance means to allow some otherwise nonmatching types to match due
 // to inconsistencies after json translation; for now, this just involves
 // accepting positive ints as uints.
-func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonTolerance bool) (bool, *gpb.TypedValue) {
+func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonTolerance bool) bool {
 	var ok bool
 	switch ykind {
 	case yang.Ybool:
@@ -843,7 +843,8 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonToleranc
 		if !ok && jsonTolerance {
 			// Allow positive ints to be treated as uints.
 			if v, intOk := tv.GetValue().(*gpb.TypedValue_IntVal); intOk && v.IntVal >= 0 {
-				return true, &gpb.TypedValue{Value: &gpb.TypedValue_UintVal{UintVal: uint64(v.IntVal)}}
+				tv.Value = &gpb.TypedValue_UintVal{UintVal: uint64(v.IntVal)}
+				return true
 			}
 		}
 	case yang.Ybinary:
@@ -854,7 +855,7 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonToleranc
 			_, ok = tv.GetValue().(*gpb.TypedValue_FloatVal)
 		}
 	}
-	return ok, tv
+	return ok
 }
 
 // isValueInterfacePtrToEnum reports whether v is an interface ptr to enum type.

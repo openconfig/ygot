@@ -52,7 +52,7 @@ type Encoding int
 
 const (
 	// JSONEncoding indicates that provided value is JSON encoded.
-	JSONEncoding = iota
+	JSONEncoding Encoding = iota
 
 	// GNMIEncoding indicates that provided value is gNMI TypedValue.
 	GNMIEncoding
@@ -61,6 +61,8 @@ const (
 	// TypedValue, but it tolerates the case that the values were produced
 	// from JSON and that a tolerance may be needed (e.g. positive int is
 	// accepted as an uint).
+	// This is made unexported because the feature is unstable and could
+	// change at any point.
 	gNMIEncodingWithJSONTolerance
 )
 

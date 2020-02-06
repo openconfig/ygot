@@ -164,8 +164,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 					// With GNMIEncoding, unmarshalGeneric can only unmarshal leaf or leaf list
 					// nodes. Schema provided must be the schema of the leaf or leaf list node.
 					// root must be the reference of container leaf/leaf list belongs to.
-					var encoding Encoding
-					encoding = GNMIEncoding
+					encoding := GNMIEncoding
 					if args.tolerateJSONInconsistenciesForVal {
 						encoding = gNMIEncodingWithJSONTolerance
 					}
