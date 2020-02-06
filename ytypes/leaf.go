@@ -664,9 +664,7 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 	switch enc {
 	case JSONEncoding:
 		return sanitizeJSON(parent, schema, fieldName, value)
-	case GNMIEncoding:
-		fallthrough
-	case gNMIEncodingWithJSONTolerance:
+	case GNMIEncoding, gNMIEncodingWithJSONTolerance:
 		tv, ok := value.(*gpb.TypedValue)
 		if !ok {
 			return nil, fmt.Errorf("got %T type, want gNMI TypedValue as value type", value)
@@ -843,8 +841,7 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonToleranc
 		if !ok && jsonTolerance {
 			// Allow positive ints to be treated as uints.
 			if v, intOk := tv.GetValue().(*gpb.TypedValue_IntVal); intOk && v.IntVal >= 0 {
-				tv.Value = &gpb.TypedValue_UintVal{UintVal: uint64(v.IntVal)}
-				return true
+				ok, tv.Value = true, &gpb.TypedValue_UintVal{UintVal: uint64(v.IntVal)}
 			}
 		}
 	case yang.Ybinary:
