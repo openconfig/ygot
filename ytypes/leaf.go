@@ -497,9 +497,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	var valueStr string
 	var ok bool
 	switch enc {
-	case GNMIEncoding:
-		fallthrough
-	case gNMIEncodingWithJSONTolerance:
+	case GNMIEncoding, gNMIEncodingWithJSONTolerance:
 		var sv *gpb.TypedValue_StringVal
 		if sv, ok = value.(*gpb.TypedValue).GetValue().(*gpb.TypedValue_StringVal); ok {
 			valueStr = sv.StringVal
