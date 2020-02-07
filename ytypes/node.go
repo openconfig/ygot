@@ -48,6 +48,11 @@ type retrieveNodeArgs struct {
 	// If val is set to a non-nil value, leaf/leaflist node corresponding
 	// to the given path is updated with this value.
 	val interface{}
+	// tolerateJSONInconsistenciesForVal means to tolerate inconsistencies
+	// for val as if it were converted from JSON. As of right now, this is
+	// specifically to deal with uint values being streamed as positive int
+	// values.
+	tolerateJSONInconsistenciesForVal bool
 }
 
 // retrieveNode is an internal function that retrieves the node specified by
@@ -159,7 +164,11 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 					// With GNMIEncoding, unmarshalGeneric can only unmarshal leaf or leaf list
 					// nodes. Schema provided must be the schema of the leaf or leaf list node.
 					// root must be the reference of container leaf/leaf list belongs to.
-					if err := unmarshalGeneric(cschema, root, args.val, GNMIEncoding); err != nil {
+					encoding := GNMIEncoding
+					if args.tolerateJSONInconsistenciesForVal {
+						encoding = gNMIEncodingWithJSONTolerance
+					}
+					if err := unmarshalGeneric(cschema, root, args.val, encoding); err != nil {
 						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
 					}
 				}
@@ -416,8 +425,9 @@ func appendElem(p *gpb.Path, e *gpb.PathElem) *gpb.Path {
 // behaviours, such as whether or not to ensure that the node's ancestors are initialized.
 func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface{}, opts ...SetNodeOpt) error {
 	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
-		modifyRoot: hasInitMissingElements(opts),
-		val:        val,
+		modifyRoot:                        hasInitMissingElements(opts),
+		val:                               val,
+		tolerateJSONInconsistenciesForVal: hasTolerateJSONInconsistencies(opts),
 	})
 
 	if err != nil {
@@ -449,6 +459,25 @@ func (*InitMissingElements) IsSetNodeOpt() {}
 func hasInitMissingElements(opts []SetNodeOpt) bool {
 	for _, o := range opts {
 		if _, ok := o.(*InitMissingElements); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// TolerateJSONInconsistencies signals SetNode to tolerate inconsistencies for
+// val as if it were converted from JSON. As of right now, this is specifically
+// to deal with uint values being streamed as positive int values.
+type TolerateJSONInconsistencies struct{}
+
+// IsSetNodeOpt implements the SetNodeOpt interface.
+func (*TolerateJSONInconsistencies) IsSetNodeOpt() {}
+
+// hasTolerateJSONInconsistencies determines whether there is an instance of
+// TolerateJSONInconsistencies within the supplied SetNodeOpt slice.
+func hasTolerateJSONInconsistencies(opts []SetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*TolerateJSONInconsistencies); ok {
 			return true
 		}
 	}

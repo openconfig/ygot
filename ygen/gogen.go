@@ -17,12 +17,12 @@ package ygen
 import (
 	"bytes"
 	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 	"text/template"
 
 	log "github.com/golang/glog"
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/openconfig/gnmi/errlist"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -1934,8 +1934,8 @@ func findMapPaths(parent *Directory, fieldName string, compressPaths, absolutePa
 	}
 	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
 
-	// Handle specific issue of compression of the schema, where the key
-	// of the parent list is a leafref to this leaf.
+	// Handle specific issue of compressed path schemas, where a key of the
+	// parent list is a leafref to this leaf.
 	for _, k := range parent.ListAttr.KeyElems {
 		// If the key element has the same path as this element, and the
 		// corresponding element that is within the parent's container is of
@@ -1948,7 +1948,12 @@ func findMapPaths(parent *Directory, fieldName string, compressPaths, absolutePa
 			return nil, fmt.Errorf("invalid compressed schema, could not find the key %s or the grandparent of %s", k.Name, k.Path())
 		}
 
-		if reflect.DeepEqual(util.SchemaPathNoChoiceCase(k), fieldSlicePath) && k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref {
+		// If a key of the list is a leafref that points to the field,
+		// then add this as an alternative path.
+		// Note: if k is a leafref, buildListKey() would have already
+		// resolved it the field that the leafref points to. So, we
+		// compare their absolute paths for equality.
+		if k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref && cmp.Equal(util.SchemaPathNoChoiceCase(k), fieldSlicePath) {
 			// The path of the key element is simply the name of the leaf under the
 			// list, since the YANG specification enforces that keys are direct
 			// children of the list.
