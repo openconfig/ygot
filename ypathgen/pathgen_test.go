@@ -1222,7 +1222,7 @@ type Root struct {
 	id string
 }
 
-func ForDevice(id string) *Root {
+func DeviceRoot(id string) *Root {
 	return &Root{id: id}
 }
 

@@ -87,7 +87,7 @@ func verifyTypesEqual(t *testing.T, target ygot.PathStruct, wild ygot.PathStruct
 
 // This test shows ways to reduce typing when creating similar paths.
 func TestManualShortcuts(t *testing.T) {
-	root := ocp.ForDevice(deviceId)
+	root := ocp.DeviceRoot(deviceId)
 	preemptDelay := func(intf string, subintf uint32, ip string) ygot.PathStruct {
 		return root.Interface(intf).Subinterface(subintf).Ipv6().Address(ip).VrrpGroup(1).PreemptDelay()
 	}
@@ -182,7 +182,7 @@ func TestPathCreation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			verifyPath(t, tt.makePath(ocp.ForDevice(deviceId)), tt.wantPath)
+			verifyPath(t, tt.makePath(ocp.DeviceRoot(deviceId)), tt.wantPath)
 		})
 	}
 }
@@ -344,7 +344,7 @@ func TestWildcardPathCreation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			device := ocp.ForDevice(deviceId)
+			device := ocp.DeviceRoot(deviceId)
 
 			target := tt.makePath(device)
 			verifyPath(t, target, tt.wantPath)

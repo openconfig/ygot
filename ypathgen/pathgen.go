@@ -378,7 +378,7 @@ type {{ .TypeName }} struct {
 	id string
 }
 
-func ForDevice(id string) *{{ .TypeName }} {
+func DeviceRoot(id string) *{{ .TypeName }} {
 	return &{{ .TypeName }}{id: id}
 }
 `)
