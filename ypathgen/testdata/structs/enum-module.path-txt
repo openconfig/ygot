@@ -164,7 +164,7 @@ type Device struct {
 	id string
 }
 
-func ForDevice(id string) *Device {
+func DeviceRoot(id string) *Device {
 	return &Device{id: id}
 }
 

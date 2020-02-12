@@ -44,7 +44,7 @@ const (
 	// used for the generated Go package.
 	defaultPathPackageName = "ocpathstructs"
 	// defaultFakeRootName is the default name for the root structure.
-	defaultFakeRootName = "device"
+	defaultFakeRootName = "root"
 	// WildcardSuffix is the suffix given to the wildcard versions of each
 	// node as well as a list's wildcard child constructor methods that
 	// distinguishes each from its non-wildcard counterpart.
@@ -141,6 +141,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 		TransformationOptions: ygen.TransformationOpts{
 			CompressBehaviour: genutil.PreferOperationalState,
 			GenerateFakeRoot:  true,
+			FakeRootName:      cg.FakeRootName,
 		},
 	}
 	directories, leafTypeMap, errs := dcg.GetDirectoriesAndLeafTypes(yangFiles, includePaths)
@@ -319,7 +320,7 @@ func GetOrderedNodeDataNames(nodeDataMap NodeDataMap) []string {
 
 var (
 	// goPathCommonHeaderTemplate is populated and output at the top of the generated code package
-	goPathCommonHeaderTemplate = `
+	goPathCommonHeaderTemplate = mustTemplate("commonHeader", `
 {{- /**/ -}}
 /*
 Package {{ .PackageName }} is a generated package which contains definitions
@@ -345,11 +346,11 @@ import (
 	{{ .SchemaStructPkgAlias }} "{{ .SchemaStructPkgPath }}"
 	"{{ .YgotImportPath }}"
 )
-`
+`)
 
 	// goPathOneOffHeaderTemplate defines the template for package code that should
 	// be output in only one file.
-	goPathOneOffHeaderTemplate = `
+	goPathOneOffHeaderTemplate = mustTemplate("oneoffHeader", `
 // Resolve is a helper which returns the resolved *gpb.Path of a PathStruct node.
 func Resolve(n ygot.{{ .PathStructInterfaceName }}) (*gpb.Path, []error) {
 	n, p, errs := ygot.ResolvePath(n)
@@ -363,24 +364,24 @@ func Resolve(n ygot.{{ .PathStructInterfaceName }}) (*gpb.Path, []error) {
 	}
 	return &gpb.Path{Target: root.id, Elem: p}, nil
 }
-`
+`)
 
-	// goFakerootTemplate defines a template for the type definition and
+	// goPathFakeRootTemplate defines a template for the type definition and
 	// basic methods of the fakeroot object. The fakeroot object adheres to
 	// the methods of PathStructInterfaceName in order to allow its path
 	// struct descendents to use the Resolve() helper function for
 	// obtaining their absolute paths.
-	goFakeRootTemplate = `
+	goPathFakeRootTemplate = mustTemplate("fakeroot", `
 // {{ .TypeName }} represents the {{ .YANGPath }} YANG schema element.
 type {{ .TypeName }} struct {
 	ygot.{{ .PathBaseTypeName }}
 	id string
 }
 
-func For{{ .TypeName }}(id string) *{{ .TypeName }} {
+func DeviceRoot(id string) *{{ .TypeName }} {
 	return &{{ .TypeName }}{id: id}
 }
-`
+`)
 
 	// goPathStructTemplate defines the template for the type definition of
 	// a path node as well as its core method(s). A path struct/node is
@@ -391,7 +392,7 @@ func For{{ .TypeName }}(id string) *{{ .TypeName }} {
 	// path. There are two versions of these, non-wildcard and wildcard.
 	// The wildcard version is simply a type to indicate that the path it
 	// holds contains a wildcard, but is otherwise the exact same.
-	goPathStructTemplate = `
+	goPathStructTemplate = mustTemplate("struct", `
 // {{ .TypeName }} represents the {{ .YANGPath }} YANG schema element.
 type {{ .TypeName }} struct {
 	ygot.{{ .PathBaseTypeName }}
@@ -401,12 +402,12 @@ type {{ .TypeName }} struct {
 type {{ .TypeName }}{{ .WildcardSuffix }} struct {
 	ygot.{{ .PathBaseTypeName }}
 }
-`
+`)
 
-	// goChildConstructorTemplate generates the child constructor method
+	// goPathChildConstructorTemplate generates the child constructor method
 	// for a generated struct by returning an instantiation of the child's
 	// path struct object.
-	goChildConstructorTemplate = `
+	goPathChildConstructorTemplate = mustTemplate("childConstructor", `
 // {{ .MethodName }} returns from {{ .Struct.TypeName }} the path struct for its child "{{ .SchemaName }}".
 func (n *{{ .Struct.TypeName }}) {{ .MethodName -}} ({{ .KeyParamListStr }}) *{{ .TypeName }} {
 	return &{{ .TypeName }}{
@@ -417,20 +418,11 @@ func (n *{{ .Struct.TypeName }}) {{ .MethodName -}} ({{ .KeyParamListStr }}) *{{
 		),
 	}
 }
-`
-
-	// The set of built templates that are to be referenced during code generation.
-	goPathTemplates = map[string]*template.Template{
-		"commonHeader":     makePathTemplate("commonHeader", goPathCommonHeaderTemplate),
-		"oneoffHeader":     makePathTemplate("oneoffHeader", goPathOneOffHeaderTemplate),
-		"fakeroot":         makePathTemplate("fakeroot", goFakeRootTemplate),
-		"struct":           makePathTemplate("struct", goPathStructTemplate),
-		"childConstructor": makePathTemplate("childConstructor", goChildConstructorTemplate),
-	}
+`)
 )
 
-// makePathTemplate generates a template.Template for a particular named source template
-func makePathTemplate(name, src string) *template.Template {
+// mustTemplate generates a template.Template for a particular named source template
+func mustTemplate(name, src string) *template.Template {
 	return template.Must(template.New(name).Parse(src))
 }
 
@@ -529,12 +521,12 @@ func writeHeader(yangFiles, includePaths []string, cg *GenConfig, genCode *Gener
 	}
 
 	var common bytes.Buffer
-	if err := goPathTemplates["commonHeader"].Execute(&common, s); err != nil {
+	if err := goPathCommonHeaderTemplate.Execute(&common, s); err != nil {
 		return err
 	}
 
 	var oneoff bytes.Buffer
-	if err := goPathTemplates["oneoffHeader"].Execute(&oneoff, s); err != nil {
+	if err := goPathOneOffHeaderTemplate.Execute(&oneoff, s); err != nil {
 		return err
 	}
 
@@ -602,10 +594,10 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 	structData := getStructData(directory)
 	if ygen.IsFakeRoot(directory.Entry) {
 		// Fakeroot has its unique output.
-		if err := goPathTemplates["fakeroot"].Execute(&structBuf, structData); err != nil {
+		if err := goPathFakeRootTemplate.Execute(&structBuf, structData); err != nil {
 			return GoPathStructCodeSnippet{}, util.AppendErr(errs, err)
 		}
-	} else if err := goPathTemplates["struct"].Execute(&structBuf, structData); err != nil {
+	} else if err := goPathStructTemplate.Execute(&structBuf, structData); err != nil {
 		return GoPathStructCodeSnippet{}, util.AppendErr(errs, err)
 	}
 
@@ -640,7 +632,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 					PathStructInterfaceName: ygot.PathStructInterfaceName,
 					WildcardSuffix:          WildcardSuffix,
 				}
-				if err := goPathTemplates["struct"].Execute(&structBuf, structData); err != nil {
+				if err := goPathStructTemplate.Execute(&structBuf, structData); err != nil {
 					errs = util.AppendErr(errs, err)
 				}
 			}
@@ -716,7 +708,7 @@ func generateChildConstructors(methodBuf *bytes.Buffer, directory *ygen.Director
 func generateChildConstructorsForLeafOrContainer(methodBuf *bytes.Buffer, fieldData goPathFieldData, isUnderFakeRoot bool) []error {
 	// Generate child constructor for the non-wildcard version of the parent struct.
 	var errors []error
-	if err := goPathTemplates["childConstructor"].Execute(methodBuf, fieldData); err != nil {
+	if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
 		errors = append(errors, err)
 	}
 
@@ -728,7 +720,7 @@ func generateChildConstructorsForLeafOrContainer(methodBuf *bytes.Buffer, fieldD
 	// Generate child constructor for the wildcard version of the parent struct.
 	fieldData.TypeName += WildcardSuffix
 	fieldData.Struct.TypeName += WildcardSuffix
-	if err := goPathTemplates["childConstructor"].Execute(methodBuf, fieldData); err != nil {
+	if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
 		errors = append(errors, err)
 	}
 	return errors
@@ -806,7 +798,7 @@ func generateChildConstructorsForList(methodBuf *bytes.Buffer, listAttr *ygen.Ya
 
 		// Generate child constructor method for non-wildcard version of parent struct.
 		fieldData.Struct.TypeName = parentTypeName
-		if err := goPathTemplates["childConstructor"].Execute(methodBuf, fieldData); err != nil {
+		if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
 			errors = append(errors, err)
 		}
 
@@ -819,7 +811,7 @@ func generateChildConstructorsForList(methodBuf *bytes.Buffer, listAttr *ygen.Ya
 		fieldData.Struct.TypeName = wildcardParentTypeName
 		// Override the corner case for generating the non-wildcard child.
 		fieldData.TypeName = wildcardFieldTypeName
-		if err := goPathTemplates["childConstructor"].Execute(methodBuf, fieldData); err != nil {
+		if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
 			errors = append(errors, err)
 		}
 	}

@@ -345,6 +345,7 @@ func TestGeneratePathCode(t *testing.T) {
 				// Set the name of the caller explicitly to avoid issues when
 				// the unit tests are called by external test entities.
 				cg.GeneratingBinary = "pathgen-tests"
+				cg.FakeRootName = "device"
 
 				gotCode, gotNodeDataMap, err := cg.GeneratePathCode(tt.inFiles, tt.inIncludePaths)
 				if err != nil && !tt.wantErr {
@@ -436,6 +437,7 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 				// Set the name of the caller explicitly to avoid issues when
 				// the unit tests are called by external test entities.
 				cg.GeneratingBinary = "pathgen-tests"
+				cg.FakeRootName = "device"
 
 				gotCode, _, err := cg.GeneratePathCode(tt.inFiles, tt.inIncludePaths)
 				if err != nil {
@@ -630,14 +632,14 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 	addParents(schema)
 
 	// Build fake root.
-	fakeRoot := ygen.MakeFakeRoot("device")
+	fakeRoot := ygen.MakeFakeRoot("root")
 	for k, v := range schema.Dir {
 		fakeRoot.Dir[k] = v
 	}
 
 	directories := map[string]*ygen.Directory{
-		"/device": {
-			Name: "Device",
+		"/root": {
+			Name: "Root",
 			Fields: map[string]*yang.Entry{
 				"leaf":                  schema.Dir["leaf"],
 				"container":             schema.Dir["container"],
@@ -645,7 +647,7 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 				"list":                  schema.Dir["list-container"].Dir["list"],
 				"list-with-state":       schema.Dir["list-container-with-state"].Dir["list-with-state"],
 			},
-			Path:  []string{"", "device"},
+			Path:  []string{"", "root"},
 			Entry: fakeRoot,
 		},
 		"/root-module/container": {
@@ -701,7 +703,7 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 	}
 
 	leafTypeMap := map[string]map[string]*ygen.MappedType{
-		"/device": {
+		"/root": {
 			"leaf":                  {NativeType: "Binary"},
 			"container":             nil,
 			"container-with-config": nil,
@@ -731,8 +733,8 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 
 // wantListMethods is the expected child constructor methods for the list node.
 const wantListMethods = `
-// ListAny returns from Device the path struct for its child "list".
-func (n *Device) ListAny() *ListAny {
+// ListAny returns from Root the path struct for its child "list".
+func (n *Root) ListAny() *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -742,8 +744,8 @@ func (n *Device) ListAny() *ListAny {
 	}
 }
 
-// ListAnyKey2AnyUnionKey returns from Device the path struct for its child "list".
-func (n *Device) ListAnyKey2AnyUnionKey(Key1 string) *ListAny {
+// ListAnyKey2AnyUnionKey returns from Root the path struct for its child "list".
+func (n *Root) ListAnyKey2AnyUnionKey(Key1 string) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -753,8 +755,8 @@ func (n *Device) ListAnyKey2AnyUnionKey(Key1 string) *ListAny {
 	}
 }
 
-// ListAnyKey1AnyUnionKey returns from Device the path struct for its child "list".
-func (n *Device) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListAny {
+// ListAnyKey1AnyUnionKey returns from Root the path struct for its child "list".
+func (n *Root) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -764,8 +766,8 @@ func (n *Device) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListAny {
 	}
 }
 
-// ListAnyUnionKey returns from Device the path struct for its child "list".
-func (n *Device) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListAny {
+// ListAnyUnionKey returns from Root the path struct for its child "list".
+func (n *Root) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -775,8 +777,8 @@ func (n *Device) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListAny {
 	}
 }
 
-// ListAnyKey1AnyKey2 returns from Device the path struct for its child "list".
-func (n *Device) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
+// ListAnyKey1AnyKey2 returns from Root the path struct for its child "list".
+func (n *Root) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -786,8 +788,8 @@ func (n *Device) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) 
 	}
 }
 
-// ListAnyKey2 returns from Device the path struct for its child "list".
-func (n *Device) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
+// ListAnyKey2 returns from Root the path struct for its child "list".
+func (n *Root) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -797,8 +799,8 @@ func (n *Device) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_U
 	}
 }
 
-// ListAnyKey1 returns from Device the path struct for its child "list".
-func (n *Device) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
+// ListAnyKey1 returns from Root the path struct for its child "list".
+func (n *Root) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -808,8 +810,8 @@ func (n *Device) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKe
 	}
 }
 
-// List returns from Device the path struct for its child "list".
-func (n *Device) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *List {
+// List returns from Root the path struct for its child "list".
+func (n *Root) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *List {
 	return &List{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -843,16 +845,16 @@ func TestGetNodeDataMap(t *testing.T) {
 	addParents(schema2)
 	binaryContainerEntry := schema2.Dir["container"]
 
-	fakeRoot := ygen.MakeFakeRoot("device")
+	fakeRoot := ygen.MakeFakeRoot("root")
 	fakeRoot.Dir["container"] = binaryContainerEntry
 
 	directoryWithBinaryLeaf := map[string]*ygen.Directory{
-		"/device": {
-			Name: "Device",
+		"/root": {
+			Name: "Root",
 			Fields: map[string]*yang.Entry{
 				"container": binaryContainerEntry,
 			},
-			Path:  []string{"", "device"},
+			Path:  []string{"", "root"},
 			Entry: fakeRoot,
 		},
 		"/root-module/container": {
@@ -866,7 +868,7 @@ func TestGetNodeDataMap(t *testing.T) {
 	}
 
 	leafTypeMap2 := map[string]map[string]*ygen.MappedType{
-		"/device": {
+		"/root": {
 			"container": nil,
 		},
 		"/root-module/container": {
@@ -911,7 +913,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			"Container": {
 				GoTypeName:       "*struct.Container",
 				GoFieldName:      "Container",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           false,
 				IsScalarField:    false,
 			},
@@ -928,7 +930,7 @@ func TestGetNodeDataMap(t *testing.T) {
 		name:          "non-existent path",
 		inDirectories: map[string]*ygen.Directory{"/root-module/container": directories["/root-module/container"]},
 		inLeafTypeMap: map[string]map[string]*ygen.MappedType{
-			"/device": {
+			"/root": {
 				"container": nil,
 			},
 			"/you can't find me": {
@@ -941,7 +943,7 @@ func TestGetNodeDataMap(t *testing.T) {
 		name:          "non-existent field",
 		inDirectories: map[string]*ygen.Directory{"/root-module/container": directories["/root-module/container"]},
 		inLeafTypeMap: map[string]map[string]*ygen.MappedType{
-			"/device": {
+			"/root": {
 				"container": nil,
 			},
 			"/root-module/container": {
@@ -959,14 +961,14 @@ func TestGetNodeDataMap(t *testing.T) {
 			"Container": {
 				GoTypeName:       "*oc.Container",
 				GoFieldName:      "Container",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           false,
 				IsScalarField:    false,
 			},
 			"ContainerWithConfig": {
 				GoTypeName:       "*oc.ContainerWithConfig",
 				GoFieldName:      "ContainerWithConfig",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           false,
 				IsScalarField:    false,
 			},
@@ -1002,7 +1004,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			"Leaf": {
 				GoTypeName:       "oc.Binary",
 				GoFieldName:      "Leaf",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           true,
 				IsScalarField:    false,
 				YANGTypeName:     "ieeefloat32",
@@ -1010,14 +1012,14 @@ func TestGetNodeDataMap(t *testing.T) {
 			"List": {
 				GoTypeName:       "*oc.List",
 				GoFieldName:      "List",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           false,
 				IsScalarField:    false,
 			},
 			"ListWithState": {
 				GoTypeName:       "*oc.ListWithState",
 				GoFieldName:      "ListWithState",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           false,
 				IsScalarField:    false,
 			},
@@ -1210,18 +1212,18 @@ func (n *ContainerWithConfigAny) Leaflist2() *ContainerWithConfig_Leaflist2Any {
 		},
 	}, {
 		name:        "fakeroot",
-		inDirectory: directories["/device"],
+		inDirectory: directories["/root"],
 		want: GoPathStructCodeSnippet{
-			PathStructName: "Device",
+			PathStructName: "Root",
 			StructBase: `
-// Device represents the /device YANG schema element.
-type Device struct {
+// Root represents the /root YANG schema element.
+type Root struct {
 	ygot.NodePath
 	id string
 }
 
-func ForDevice(id string) *Device {
-	return &Device{id: id}
+func DeviceRoot(id string) *Root {
+	return &Root{id: id}
 }
 
 // Leaf represents the /root-module/leaf YANG schema element.
@@ -1235,8 +1237,8 @@ type LeafAny struct {
 }
 `,
 			ChildConstructors: `
-// Container returns from Device the path struct for its child "container".
-func (n *Device) Container() *Container {
+// Container returns from Root the path struct for its child "container".
+func (n *Root) Container() *Container {
 	return &Container{
 		NodePath: ygot.NewNodePath(
 			[]string{"container"},
@@ -1246,8 +1248,8 @@ func (n *Device) Container() *Container {
 	}
 }
 
-// ContainerWithConfig returns from Device the path struct for its child "container-with-config".
-func (n *Device) ContainerWithConfig() *ContainerWithConfig {
+// ContainerWithConfig returns from Root the path struct for its child "container-with-config".
+func (n *Root) ContainerWithConfig() *ContainerWithConfig {
 	return &ContainerWithConfig{
 		NodePath: ygot.NewNodePath(
 			[]string{"container-with-config"},
@@ -1257,8 +1259,8 @@ func (n *Device) ContainerWithConfig() *ContainerWithConfig {
 	}
 }
 
-// Leaf returns from Device the path struct for its child "leaf".
-func (n *Device) Leaf() *Leaf {
+// Leaf returns from Root the path struct for its child "leaf".
+func (n *Root) Leaf() *Leaf {
 	return &Leaf{
 		NodePath: ygot.NewNodePath(
 			[]string{"leaf"},
@@ -1268,8 +1270,8 @@ func (n *Device) Leaf() *Leaf {
 	}
 }
 ` + wantListMethods + `
-// ListWithStateAny returns from Device the path struct for its child "list-with-state".
-func (n *Device) ListWithStateAny() *ListWithStateAny {
+// ListWithStateAny returns from Root the path struct for its child "list-with-state".
+func (n *Root) ListWithStateAny() *ListWithStateAny {
 	return &ListWithStateAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},
@@ -1279,8 +1281,8 @@ func (n *Device) ListWithStateAny() *ListWithStateAny {
 	}
 }
 
-// ListWithState returns from Device the path struct for its child "list-with-state".
-func (n *Device) ListWithState(Key float64) *ListWithState {
+// ListWithState returns from Root the path struct for its child "list-with-state".
+func (n *Root) ListWithState(Key float64) *ListWithState {
 	return &ListWithState{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},
@@ -1474,18 +1476,18 @@ func TestGenerateChildConstructor(t *testing.T) {
 	addParents(deepSchema)
 
 	// Build fake root.
-	fakeRoot := ygen.MakeFakeRoot("device")
+	fakeRoot := ygen.MakeFakeRoot("root")
 	for k, v := range deepSchema.Dir {
 		fakeRoot.Dir[k] = v
 	}
 
 	deepSchemaDirectories := map[string]*ygen.Directory{
-		"/device": {
-			Name: "Device",
+		"/root": {
+			Name: "Root",
 			Fields: map[string]*yang.Entry{
 				"container": deepSchema.Dir["container"],
 			},
-			Path:  []string{"", "device"},
+			Path:  []string{"", "root"},
 			Entry: fakeRoot,
 		},
 		"/root-module/container": {
@@ -1530,13 +1532,13 @@ func TestGenerateChildConstructor(t *testing.T) {
 		want              string
 	}{{
 		name:              "container method",
-		inDirectory:       directories["/device"],
+		inDirectory:       directories["/root"],
 		inDirectories:     directories,
 		inFieldName:       "container",
 		inUniqueFieldName: "Container",
 		want: `
-// Container returns from Device the path struct for its child "container".
-func (n *Device) Container() *Container {
+// Container returns from Root the path struct for its child "container".
+func (n *Root) Container() *Container {
 	return &Container{
 		NodePath: ygot.NewNodePath(
 			[]string{"container"},
@@ -1577,13 +1579,13 @@ func (n *ContainerAny) Leaf() *Container_LeafAny {
 `,
 	}, {
 		name:              "top-level leaf method",
-		inDirectory:       directories["/device"],
+		inDirectory:       directories["/root"],
 		inDirectories:     directories,
 		inFieldName:       "leaf",
 		inUniqueFieldName: "Leaf",
 		want: `
-// Leaf returns from Device the path struct for its child "leaf".
-func (n *Device) Leaf() *Leaf {
+// Leaf returns from Root the path struct for its child "leaf".
+func (n *Root) Leaf() *Leaf {
 	return &Leaf{
 		NodePath: ygot.NewNodePath(
 			[]string{"leaf"},
@@ -1704,20 +1706,20 @@ func (n *ContainerAny) InnerContainer() *Container_InnerContainerAny {
 `,
 	}, {
 		name:              "list method",
-		inDirectory:       directories["/device"],
+		inDirectory:       directories["/root"],
 		inDirectories:     directories,
 		inFieldName:       "list",
 		inUniqueFieldName: "List",
 		want:              wantListMethods,
 	}, {
 		name:              "list with state method",
-		inDirectory:       directories["/device"],
+		inDirectory:       directories["/root"],
 		inDirectories:     directories,
 		inFieldName:       "list-with-state",
 		inUniqueFieldName: "ListWithState",
 		want: `
-// ListWithStateAny returns from Device the path struct for its child "list-with-state".
-func (n *Device) ListWithStateAny() *ListWithStateAny {
+// ListWithStateAny returns from Root the path struct for its child "list-with-state".
+func (n *Root) ListWithStateAny() *ListWithStateAny {
 	return &ListWithStateAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},
@@ -1727,8 +1729,8 @@ func (n *Device) ListWithStateAny() *ListWithStateAny {
 	}
 }
 
-// ListWithState returns from Device the path struct for its child "list-with-state".
-func (n *Device) ListWithState(Key float64) *ListWithState {
+// ListWithState returns from Root the path struct for its child "list-with-state".
+func (n *Root) ListWithState(Key float64) *ListWithState {
 	return &ListWithState{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},
