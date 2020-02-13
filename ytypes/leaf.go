@@ -216,18 +216,16 @@ func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
 	}
 
 	util.DbgPrint("validateUnion %s", schema.Name)
-	rkind := reflect.TypeOf(value).Kind()
-	var v reflect.Value
-	switch rkind {
+	v := reflect.ValueOf(value)
+	switch reflect.TypeOf(value).Kind() {
 	case reflect.Ptr:
 		// The union is usually a ptr - either a struct ptr or Go value ptr like *string.
 		// Enum types are also represented as a struct for union where the field
 		// has the enum type.
-		v = reflect.ValueOf(value).Elem()
+		v = v.Elem()
 	case reflect.Int64:
 		// A union containing a single enumerated type would simply resolve to the
 		// enum type, which represented directly by a derived Int64 type.
-		v = reflect.ValueOf(value)
 	default:
 		return util.NewErrs(fmt.Errorf("wrong value type for union %s: got: %T, expect ptr or Int64 (enumerated type)", schema.Name, value))
 	}
