@@ -347,6 +347,12 @@ type UnionContainerCompressed struct {
 
 func (*UnionContainerCompressed) IsYANGGoStruct() {}
 
+type UnionContainerSingleEnum struct {
+	UnionField EnumType `path:"union1"`
+}
+
+func (*UnionContainerSingleEnum) IsYANGGoStruct() {}
+
 func TestValidateLeafUnion(t *testing.T) {
 	unionContainerSchema := &yang.Entry{
 		Name: "union1-container",
@@ -368,6 +374,27 @@ func TestValidateLeafUnion(t *testing.T) {
 							Name: "int16",
 							Kind: yang.Yint16,
 						},
+						{
+							Name: "enum",
+							Kind: yang.Yenum,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	unionContainerSingleEnumSchema := &yang.Entry{
+		Name: "union1-container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"union1": {
+				Name: "union1",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Name: "union1-type",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{
 						{
 							Name: "enum",
 							Kind: yang.Yenum,
@@ -475,6 +502,11 @@ func TestValidateLeafUnion(t *testing.T) {
 			schema:  unionContainerSchema,
 			val:     &UnionContainer{UnionField: &Union1BadLeaf{BadLeaf: ygot.Float32(0)}},
 			wantErr: true,
+		},
+		{
+			desc:   "success no wrapping struct enum",
+			schema: unionContainerSingleEnumSchema,
+			val:    &UnionContainerSingleEnum{UnionField: EnumType(42)},
 		},
 		{
 			desc:   "success no wrapping struct string",

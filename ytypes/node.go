@@ -423,6 +423,8 @@ func appendElem(p *gpb.Path, e *gpb.PathElem) *gpb.Path {
 // SetNode sets the value of the node specified by the supplied path from the specified root,
 // whose schema must also be supplied. It takes a set of options which can be used to specify set
 // behaviours, such as whether or not to ensure that the node's ancestors are initialized.
+// Note that SetNode does not do a full validation -- e.g., it does not do the string
+// regex restriction validation done by ytypes.Validate().
 func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface{}, opts ...SetNodeOpt) error {
 	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
 		modifyRoot:                        hasInitMissingElements(opts),

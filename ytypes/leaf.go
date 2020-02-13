@@ -63,7 +63,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect []byte for binary value %v for schema %s, have type %v", value, schema.Name, ykind))
 		}
 	case reflect.Int64:
-		if ykind != yang.Yenum && ykind != yang.Yidentityref {
+		if ykind != yang.Yenum && ykind != yang.Yidentityref && ykind != yang.Yunion {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect Int64 for enum type for schema %s, have type %v", schema.Name, ykind))
 		}
 	case reflect.Bool:
@@ -216,17 +216,27 @@ func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
 	}
 
 	util.DbgPrint("validateUnion %s", schema.Name)
-	// Must be a ptr - either a struct ptr or Go value ptr like *string.
-	// Enum types are also represented as a struct for union where the field
-	// has the enum type.
-	if reflect.TypeOf(value).Kind() != reflect.Ptr {
-		return util.NewErrs(fmt.Errorf("wrong value type for union %s: got: %T, expect ptr", schema.Name, value))
+	rkind := reflect.TypeOf(value).Kind()
+	var v reflect.Value
+	switch rkind {
+	case reflect.Ptr:
+		// The union is usually a ptr - either a struct ptr or Go value ptr like *string.
+		// Enum types are also represented as a struct for union where the field
+		// has the enum type.
+		v = reflect.ValueOf(value).Elem()
+	case reflect.Int64:
+		// A union containing a single enumerated type would simply resolve to the
+		// enum type, which represented directly by a derived Int64 type.
+		v = reflect.ValueOf(value)
+	default:
+		return util.NewErrs(fmt.Errorf("wrong value type for union %s: got: %T, expect ptr or Int64 (enumerated type)", schema.Name, value))
 	}
-
-	v := reflect.ValueOf(value).Elem()
 
 	// Unions of enum types are passed as ptr to interface to struct ptr.
 	// Normalize to a union struct.
+	// TODO(wenbli): Remove this if statement in a future PR.
+	// v here is already a struct, as multi-type unions are represented as
+	// interfaces within their parents' structs, *not* ptrs to interfaces.
 	if util.IsValueInterface(v) {
 		v = v.Elem()
 		if util.IsValuePtr(v) {
