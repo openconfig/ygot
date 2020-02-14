@@ -233,7 +233,7 @@ func main() {
 
 	compressBehaviour, err := genutil.TranslateToCompressBehaviour(*compressPaths, *excludeState, *preferOperationalState)
 	if err != nil {
-		log.Exitf("ERROR Generating Code: %s\n", err)
+		log.Exitf("ERROR Generating Code: %v\n", err)
 	}
 
 	// Perform the code generation.
@@ -266,9 +266,9 @@ func main() {
 		},
 	})
 
-	generatedGoCode, err := cg.GenerateGoCode(generateModules, includePaths)
-	if err != nil {
-		log.Exitf("ERROR Generating Code: %s\n", err)
+	generatedGoCode, errs := cg.GenerateGoCode(generateModules, includePaths)
+	if errs != nil {
+		log.Exitf("ERROR Generating Code: %v\n", errs)
 	}
 
 	// If no output file is specified, we output to os.Stdout, otherwise

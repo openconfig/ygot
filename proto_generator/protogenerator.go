@@ -123,9 +123,9 @@ func main() {
 		},
 	})
 
-	generatedProtoCode, err := cg.GenerateProto3(generateModules, includePaths)
-	if err != nil {
-		log.Exitf("%v\n", err)
+	generatedProtoCode, errs := cg.GenerateProto3(generateModules, includePaths)
+	if errs != nil {
+		log.Exitf("%v\n", errs)
 	}
 
 	for _, p := range generatedProtoCode.Packages {
