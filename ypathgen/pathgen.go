@@ -73,6 +73,13 @@ type GenConfig struct {
 	PackageName string
 	// GoImports contains package import options.
 	GoImports GoImports
+	// PreferOperationalState generates path-build methods for only the
+	// "state" version of a field when it exists under both "config" and
+	// "state" containers of its parent YANG model. If it is false, then
+	// the reverse is true. There are no omissions if a conflict does not
+	// exist, e.g. if a leaf exists only under a "state" container, then
+	// its path-building method will always be generated, and use "state".
+	PreferOperationalState bool
 	// FakeRootName specifies the name of the struct that should be generated
 	// representing the root.
 	FakeRootName string
@@ -133,13 +140,18 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 		return nil, nil, util.NewErrs(fmt.Errorf("GeneratePathCode: Must specify SchemaStructPkgPath"))
 	}
 
+	compressBehaviour := genutil.PreferIntendedConfig
+	if cg.PreferOperationalState {
+		compressBehaviour = genutil.PreferOperationalState
+	}
+
 	dcg := &ygen.DirectoryGenConfig{
 		ParseOptions: ygen.ParseOpts{
 			YANGParseOptions: cg.YANGParseOptions,
 			ExcludeModules:   cg.ExcludeModules,
 		},
 		TransformationOptions: ygen.TransformationOpts{
-			CompressBehaviour: genutil.PreferOperationalState,
+			CompressBehaviour: compressBehaviour,
 			GenerateFakeRoot:  true,
 			FakeRootName:      cg.FakeRootName,
 		},

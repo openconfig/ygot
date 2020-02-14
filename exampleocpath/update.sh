@@ -15,6 +15,7 @@ mkdir deps
 cp ../demo/getting_started/yang/{ietf,iana}* deps
 go run ../ypathgen/generator/generator.go -path=public,deps -output_file=ocpath.go \
   -package_name=exampleocpath -fakeroot_name=root \
+  -prefer_operational_state=true \
   -exclude_modules=ietf-interfaces \
   -schema_struct_path=github.com/openconfig/ygot/exampleoc \
   public/release/models/network-instance/openconfig-network-instance.yang \
