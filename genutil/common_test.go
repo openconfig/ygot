@@ -31,6 +31,8 @@ func TestTranslateToCompressBehaviour(t *testing.T) {
 		want            CompressBehaviour
 		wantErr         bool
 	}{{
+		want: Uncompressed,
+	}, {
 		inCompressPaths: true,
 		want:            PreferIntendedConfig,
 	}, {
