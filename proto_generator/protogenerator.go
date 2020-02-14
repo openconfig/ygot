@@ -49,7 +49,7 @@ var (
 	packageHierarchy       = flag.Bool("package_hierarchy", false, "If set to true, an individual protobuf package is output per level of the YANG schema tree.")
 	callerName             = flag.String("caller_name", "proto_generator", "The name of the generator binary that should be recorded in output files.")
 	excludeState           = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Protobuf messages.")
-	preferOperationalState = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves in the generated Go code with compressed schema paths. This flag is only valid for compress_paths=true and exclude_state=false.")
+	preferOperationalState = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves in the generated messages with compressed schema paths. This flag is only valid for compress_paths=true and exclude_state=false.")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
