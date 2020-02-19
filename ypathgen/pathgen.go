@@ -315,6 +315,8 @@ type NodeData struct {
 	// excludes the defining module, this is somewhat hacky, so it may be
 	// removed or modified in the future.
 	YANGTypeName string
+	// YANGPath is the schema path of the YANG node.
+	YANGPath string
 }
 
 // GetOrderedNodeDataNames returns the alphabetically-sorted slice of keys
@@ -495,6 +497,7 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 				IsLeaf:           isLeaf,
 				IsScalarField:    ygen.IsScalarField(field, mType),
 				YANGTypeName:     yangTypeName,
+				YANGPath:         field.Path(),
 			}
 		}
 	}
