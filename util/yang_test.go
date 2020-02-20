@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 )
@@ -1474,8 +1475,9 @@ func TestListKeyFieldsMap(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := ListKeyFieldsMap(tt.entry), tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("ListKeyFieldsMap(%v): did not get expected map, got: %v\nwant: %v\n", tt.entry, pretty.Sprint(got), pretty.Sprint(want))
+			got, want := ListKeyFieldsMap(tt.entry), tt.want
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("ListKeyFieldsMap(%v): did not get expected map, (-want, +got):\n%s", tt.entry, diff)
 			}
 		})
 	}

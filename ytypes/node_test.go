@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
@@ -445,8 +444,8 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s:\n(-want, +got):\n%s", tt.inDesc, diff)
 			}
 		})
 	}
@@ -623,8 +622,8 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s:\n(-want, +got):\n%s", tt.inDesc, diff)
 			}
 		})
 	}
@@ -763,8 +762,8 @@ func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s:\n(-want, +got):\n%s", tt.inDesc, diff)
 			}
 		})
 	}
@@ -786,7 +785,8 @@ func treeNodesEqual(got, want []*TreeNode) error {
 	for _, w := range want {
 		match := false
 		for _, g := range got {
-			if reflect.DeepEqual(g.Data, w.Data) && reflect.DeepEqual(g.Schema, w.Schema) && proto.Equal(g.Path, w.Path) {
+			// Use reflect.DeepEqual on schema comparison to avoid stack overflow (maybe due to circular references).
+			if cmp.Equal(g.Data, w.Data) && reflect.DeepEqual(g.Schema, w.Schema) && proto.Equal(g.Path, w.Path) {
 				match = true
 				break
 			}
@@ -1545,8 +1545,8 @@ func TestSetNode(t *testing.T) {
 				t.Fatalf("did not get exactly one tree node: %v", treeNode)
 			}
 			got := treeNode[0].Data
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got: %v\nwant: %v", pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("(-want, +got):\n%s", diff)
 			}
 		})
 	}
@@ -1796,7 +1796,7 @@ func TestDeleteNode(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(tt.inRoot, tt.want); diff != "" {
+			if diff := cmp.Diff(tt.want, tt.inRoot); diff != "" {
 				t.Errorf("TestDeleteNode (-want, +got):\n%s", diff)
 			}
 		})

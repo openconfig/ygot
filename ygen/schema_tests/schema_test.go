@@ -17,9 +17,9 @@
 package schematest
 
 import (
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 )
@@ -42,7 +42,7 @@ func TestSimpleListRename(t *testing.T) {
 		t.Fatalf("did not populate eth1 in list")
 	}
 
-	if !reflect.DeepEqual(in.Interface["eth1"].Name, ygot.String("eth1")) {
+	if !cmp.Equal(in.Interface["eth1"].Name, ygot.String("eth1")) {
 		t.Errorf("did not get correct name value, got: %v, want: eth1", *in.Interface["eth1"].Name)
 	}
 
@@ -84,7 +84,7 @@ func TestMultiKeyListRename(t *testing.T) {
 		t.Errorf("did not have correct identifier in newBGP, got: %v, want: OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP", ni.Protocol[newBGP].Identifier)
 	}
 
-	if !reflect.DeepEqual(ni.Protocol[newBGP].Name, ygot.String("36040")) {
+	if !cmp.Equal(ni.Protocol[newBGP].Name, ygot.String("36040")) {
 		t.Errorf("did not have correct name in newBGP, got: %v, want: 36040", *ni.Protocol[newBGP].Name)
 	}
 }
@@ -129,8 +129,9 @@ func TestGetOrCreateSimpleElement(t *testing.T) {
 	v := d.GetOrCreateSystem().GetOrCreateDns()
 	v.Search = []string{"rob.sh", "google.com"}
 
-	if got, want := d.System.Dns.Search, []string{"rob.sh", "google.com"}; !reflect.DeepEqual(got, want) {
-		t.Errorf("GetOrCreateSystem().GetOrCreateDns(): got incorrect return value, got: %v, want: %v", got, want)
+	got, want := d.System.Dns.Search, []string{"rob.sh", "google.com"}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("GetOrCreateSystem().GetOrCreateDns(): got incorrect return value, (-want, +got):\n%s", diff)
 	}
 }
 

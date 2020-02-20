@@ -1335,8 +1335,9 @@ func TestLeastSpecificPath(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if got := leastSpecificPath(tt.in); !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("%s: leastSpecificPath(%v): did not get expected value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		got := leastSpecificPath(tt.in)
+		if diff := cmp.Diff(tt.want, got); diff != "" {
+			t.Errorf("%s: leastSpecificPath(%v): did not get expected value, (-want, +got):\n%s", tt.name, tt.in, diff)
 		}
 	}
 }

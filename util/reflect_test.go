@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
@@ -61,10 +62,10 @@ func areEqual(a, b interface{}) bool {
 	}
 	va, vb := reflect.ValueOf(a), reflect.ValueOf(b)
 	if va.Kind() == reflect.Ptr && vb.Kind() == reflect.Ptr {
-		return reflect.DeepEqual(va.Elem().Interface(), vb.Elem().Interface())
+		return cmp.Equal(va.Elem().Interface(), vb.Elem().Interface(), cmp.AllowUnexported(testImpl{}))
 	}
 
-	return reflect.DeepEqual(a, b)
+	return cmp.Equal(a, b)
 }
 
 // areEqualWithWildcards compares s against pattern word by word, where any
@@ -363,7 +364,7 @@ func TestIsTypeInterface(t *testing.T) {
 
 func isInListOfInterface(lv []interface{}, v interface{}) bool {
 	for _, vv := range lv {
-		if reflect.DeepEqual(vv, v) {
+		if cmp.Equal(vv, v) {
 			return true
 		}
 	}
@@ -868,7 +869,8 @@ func TestInsertIntoSlice(t *testing.T) {
 		t.Fatalf("got error: %s, want error: nil", err)
 	}
 	wantSlice := []int{42, 43, value}
-	if got, want := parentSlice, wantSlice; !reflect.DeepEqual(got, want) {
+	got, want := parentSlice, wantSlice
+	if diff := cmp.Diff(got, want); diff != "" {
 		t.Errorf("got:\n%v\nwant:\n%v\n", got, want)
 	}
 
@@ -887,7 +889,8 @@ func TestInsertIntoMap(t *testing.T) {
 		t.Fatalf("got error: %s, want error: nil", err)
 	}
 	wantMap := map[int]string{42: "forty two", 43: "forty three", 44: "forty four"}
-	if got, want := parentMap, wantMap; !reflect.DeepEqual(got, want) {
+	got, want := parentMap, wantMap
+	if diff := cmp.Diff(got, want); diff != "" {
 		t.Errorf("got:\n%v\nwant:\n%v\n", got, want)
 	}
 
@@ -1781,8 +1784,9 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := val, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s: struct got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := val, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s: struct (-want, +got):\n%s", tt.desc, diff)
 				}
 			}
 		})
@@ -2051,8 +2055,9 @@ func TestGetNodesStructKeyedList(t *testing.T) {
 		}
 		testErrLog(t, tt.desc, err)
 		if err == nil {
-			if got, want := sliceToMap(val), sliceToMap(tt.want); (len(want) != 0 || len(got) != 0) && !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: struct got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+			got, want := sliceToMap(val), sliceToMap(tt.want)
+			if diff := cmp.Diff(want, got); (len(want) != 0 || len(got) != 0) && diff != "" {
+				t.Errorf("%s: struct (-want, +got):\n%s", tt.desc, diff)
 			}
 		}
 	}
