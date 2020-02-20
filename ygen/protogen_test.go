@@ -15,10 +15,10 @@
 package ygen
 
 import (
-	"reflect"
 	"sort"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
@@ -33,7 +33,7 @@ func protoMsgEq(a, b *protoMsg) bool {
 		return false
 	}
 
-	if a.Imports != nil && b.Imports != nil && !reflect.DeepEqual(a.Imports, b.Imports) {
+	if a.Imports != nil && b.Imports != nil && !cmp.Equal(a.Imports, b.Imports) {
 		return false
 	}
 
@@ -46,7 +46,7 @@ func protoMsgEq(a, b *protoMsg) bool {
 		return e
 	}
 
-	if !reflect.DeepEqual(fieldMap(a.Fields), fieldMap(b.Fields)) {
+	if !cmp.Equal(fieldMap(a.Fields), fieldMap(b.Fields)) {
 		return false
 	}
 
@@ -1428,8 +1428,8 @@ message MessageName {
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.PackageName, want.PackageName)
 			}
 
-			if !reflect.DeepEqual(got.RequiredImports, want.RequiredImports) {
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.RequiredImports, want.RequiredImports)
+			if diff := cmp.Diff(got.RequiredImports, want.RequiredImports); diff != "" {
+				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, (-got, +want):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
 			}
 
 			if diff := pretty.Compare(got.MessageCode, want.MessageCode); diff != "" {

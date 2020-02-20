@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"testing"
 
@@ -766,7 +765,7 @@ func TestSimpleStructs(t *testing.T) {
 					t.Fatalf("%s: json.Unmarshal(..., [contents of %s]), could not unmarshal golden JSON file: %v", tt.name, tt.wantSchemaFile, err)
 				}
 
-				if !reflect.DeepEqual(gotJSON, wantJSON) {
+				if !cmp.Equal(gotJSON, wantJSON) {
 					diff, _ := testutil.GenerateUnifiedDiff(string(gotGeneratedCode.RawJSONSchema), string(wantSchema))
 					t.Fatalf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
 				}

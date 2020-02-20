@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
@@ -1386,8 +1386,9 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s (#%d): Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, idx, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := parent, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s (#%d): Unmarshal (-want, +got):\n%s", tt.desc, idx, diff)
 				}
 			}
 		})
@@ -1487,8 +1488,9 @@ func TestUnmarshalLeafRef(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := parent, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
 			}
 		})
@@ -1867,8 +1869,8 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		if !reflect.DeepEqual(inParent, tt.wantVal) {
-			t.Errorf("%s: unmarshalLeaf(%v, %v, %v, GNMIEncoding): got %v, want %v", tt.desc, tt.inSchema, inParent, tt.inVal, inParent, tt.wantVal)
+		if diff := cmp.Diff(tt.wantVal, inParent); diff != "" {
+			t.Errorf("%s: unmarshalLeaf(%v, %v, %v, GNMIEncoding): (-want, +got):\n%s", tt.desc, tt.inSchema, inParent, tt.inVal, diff)
 		}
 	}
 }

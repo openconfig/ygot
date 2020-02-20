@@ -231,8 +231,8 @@ func TestUnionSubTypes(t *testing.T) {
 				}
 			}
 
-			if diff := cmp.Diff(mtypes, tt.wantMtypes, cmp.AllowUnexported(MappedType{}), cmpopts.EquateEmpty()); diff != "" {
-				t.Errorf("mtypes not as expected\n%s", diff)
+			if diff := cmp.Diff(tt.wantMtypes, mtypes, cmp.AllowUnexported(MappedType{}), cmpopts.EquateEmpty()); diff != "" {
+				t.Errorf("mtypes not as expected (-want, +got):\n%s", diff)
 			}
 		})
 	}

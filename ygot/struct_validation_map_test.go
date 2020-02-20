@@ -1636,7 +1636,7 @@ func TestMergeStructs(t *testing.T) {
 		name:    "error, field set in both structs",
 		inA:     &validatedMergeTest{String: String("karbach-hopadillo")},
 		inB:     &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
-		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field, src: blackwater-draw-brewing-co-border-town, dst: karbach-hopadillo",
+		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field",
 	}, {
 		name: "allow leaf overwrite if equal",
 		inA:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
@@ -1646,7 +1646,7 @@ func TestMergeStructs(t *testing.T) {
 		name:    "error - merge leaf overwrite but not equal",
 		inA:     &validatedMergeTest{String: String("schneider-weisse-hopfenweisse")},
 		inB:     &validatedMergeTest{String: String("deschutes-jubelale")},
-		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field, src: deschutes-jubelale, dst: schneider-weisse-hopfenweisse",
+		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field",
 	}, {
 		name: "merge fields with slice of structs",
 		inA: &validatedMergeTestWithSlice{

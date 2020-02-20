@@ -15,8 +15,9 @@
 package ygot
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestToPtr(t *testing.T) {
@@ -38,8 +39,9 @@ func TestToPtr(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if got := ToPtr(tt.in); !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("%s: ToPtr(%v): did not get expected ptr, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		got := ToPtr(tt.in)
+		if diff := cmp.Diff(tt.want, got); diff != "" {
+			t.Errorf("%s: ToPtr(%v): did not get expected ptr, (-want, +got):\n%s", tt.name, tt.in, diff)
 		}
 	}
 }
