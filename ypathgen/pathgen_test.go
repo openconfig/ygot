@@ -48,6 +48,7 @@ type yangTestCase struct {
 	inFiles                  []string    // inFiles is the set of inputFiles for the test.
 	inIncludePaths           []string    // inIncludePaths is the set of paths that should be searched for imports.
 	inPreferOperationalState bool        // inPreferOperationalState says whether to prefer operational state over intended config in the path-building methods.
+	checkYANGPath            bool        // checkYANGPath says whether to check for the YANG path in the NodeDataMap.
 	wantStructsCodeFile      string      // wantStructsCodeFile is the path of the generated Go code that the output of the test should be compared to.
 	wantNodeDataMap          NodeDataMap // wantNodeDataMap is the expected NodeDataMap to be produced to accompany the path struct outputs.
 	wantErr                  bool        // wantErr specifies whether the test should expect an error.
@@ -59,6 +60,7 @@ func TestGeneratePathCode(t *testing.T) {
 		inFiles:                  []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-simple.path-txt"),
 		inPreferOperationalState: true,
+		checkYANGPath:            true,
 		wantNodeDataMap: NodeDataMap{
 			"Parent": {
 				GoTypeName:       "*oc.Parent",
@@ -66,6 +68,7 @@ func TestGeneratePathCode(t *testing.T) {
 				ParentGoTypeName: "Device",
 				IsLeaf:           false,
 				IsScalarField:    false,
+				YANGPath:         "/openconfig-simple/parent",
 			},
 			"Parent_Child": {
 				GoTypeName:       "*oc.Parent_Child",
@@ -73,6 +76,7 @@ func TestGeneratePathCode(t *testing.T) {
 				ParentGoTypeName: "Parent",
 				IsLeaf:           false,
 				IsScalarField:    false,
+				YANGPath:         "/openconfig-simple/parent/child",
 			},
 			"Parent_Child_Four": {
 				GoTypeName:       "oc.Binary",
@@ -81,6 +85,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:           true,
 				IsScalarField:    false,
 				YANGTypeName:     "binary",
+				YANGPath:         "/openconfig-simple/parent/child/state/four",
 			},
 			"Parent_Child_One": {
 				GoTypeName:       "string",
@@ -89,6 +94,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:           true,
 				IsScalarField:    true,
 				YANGTypeName:     "string",
+				YANGPath:         "/openconfig-simple/parent/child/state/one",
 			},
 			"Parent_Child_Three": {
 				GoTypeName:       "oc.E_OpenconfigSimple_Child_Three",
@@ -97,6 +103,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:           true,
 				IsScalarField:    false,
 				YANGTypeName:     "enumeration",
+				YANGPath:         "/openconfig-simple/parent/child/state/three",
 			},
 			"Parent_Child_Two": {
 				GoTypeName:       "string",
@@ -105,6 +112,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:           true,
 				IsScalarField:    true,
 				YANGTypeName:     "string",
+				YANGPath:         "/openconfig-simple/parent/child/state/two",
 			},
 			"RemoteContainer": {
 				GoTypeName:       "*oc.RemoteContainer",
@@ -112,6 +120,7 @@ func TestGeneratePathCode(t *testing.T) {
 				ParentGoTypeName: "Device",
 				IsLeaf:           false,
 				IsScalarField:    false,
+				YANGPath:         "/openconfig-simple/remote-container",
 			},
 			"RemoteContainer_ALeaf": {
 				GoTypeName:       "string",
@@ -120,6 +129,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:           true,
 				IsScalarField:    true,
 				YANGTypeName:     "string",
+				YANGPath:         "/openconfig-simple/remote-container/state/a-leaf",
 			}},
 	}, {
 		name:                "simple openconfig test with preferOperationalState=false",
@@ -432,7 +442,11 @@ func TestGeneratePathCode(t *testing.T) {
 			gotCode, gotNodeDataMap, cg := genCode()
 
 			if tt.wantNodeDataMap != nil {
-				if diff := cmp.Diff(tt.wantNodeDataMap, gotNodeDataMap); diff != "" {
+				var cmpOpts []cmp.Option
+				if !tt.checkYANGPath {
+					cmpOpts = append(cmpOpts, cmpopts.IgnoreFields(NodeData{}, "YANGPath"))
+				}
+				if diff := cmp.Diff(tt.wantNodeDataMap, gotNodeDataMap, cmpOpts...); diff != "" {
 					t.Errorf("(-wantNodeDataMap, +gotNodeDataMap):\n%s", diff)
 				}
 			}
@@ -1154,7 +1168,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			if diff := cmp.Diff(tt.wantErrSubstrings, gotErrStrs, cmp.Comparer(func(x, y string) bool { return strings.Contains(x, y) || strings.Contains(y, x) })); diff != "" {
 				t.Fatalf("Error substring check failed (-want, +got):\n%v", diff)
 			}
-			if diff := cmp.Diff(tt.wantNodeDataMap, got); diff != "" {
+			if diff := cmp.Diff(tt.wantNodeDataMap, got, cmpopts.IgnoreFields(NodeData{}, "YANGPath")); diff != "" {
 				t.Errorf("(-want, +got):\n%s", diff)
 			}
 			if diff := cmp.Diff(tt.wantSorted, GetOrderedNodeDataNames(got), cmpopts.EquateEmpty()); diff != "" {
