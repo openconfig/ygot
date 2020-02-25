@@ -24,11 +24,17 @@ import (
 // safeGoEnumeratedValueName takes an input string, which is the name of an
 // enumerated value from a YANG schema, and ensures that it is safe to be
 // output as part of the name of the enumerated value in the Go code. The
-// sanitised value is returned.  Per RFC6020 Section 6.2, a YANG identifier is
-// of the form [_a-zA-Z][a-zA-Z0-9\-\.]+ - such that we must replace "." and
-// "-" characters.  The implementation used here replaces [\.\-] with "_"
-// characters.  In OpenConfig schemas, there are currently a small number of
-// identity values that contain "." and hence must be specifically handled.
+// sanitised value is returned.  Per RFC6020 Section 9.6.4,
+// "The enum Statement [...] takes as an argument a string which is the
+// assigned name. The string MUST NOT be empty and MUST NOT have any
+// leading or trailing whitespace characters. The use of Unicode control
+// codes SHOULD be avoided."
+// Note: this rule is distinct and looser than the rule for YANG identifiers.
+// The implementation used here replaces some (not all) characters allowed
+// in a YANG enum assigned name but not in Go code. Current support is based
+// on real-world feedback e.g. in OpenConfig schemas, there are currently
+// a small number of identity values that contain "." and hence
+// must be specifically handled.
 func safeGoEnumeratedValueName(name string) string {
 	// NewReplacer takes pairs of strings to be replaced in the form
 	// old, new.
@@ -37,6 +43,9 @@ func safeGoEnumeratedValueName(name string) string {
 		"-", "_",
 		"/", "_",
 		"+", "_PLUS",
+		",", "_COMMA",
+		"@", "_AT",
+		"$", "_DOLLAR",
 		"*", "_ASTERISK",
 		":", "_COLON",
 		" ", "_")
