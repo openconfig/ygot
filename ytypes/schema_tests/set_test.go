@@ -186,8 +186,8 @@ func TestSet(t *testing.T) {
 			}
 
 			if !cmp.Equal(got[0], tt.wantNode, opts...) {
-				diff := cmp.Diff(got[0], tt.wantNode, opts...)
-				t.Fatalf("did not get expected node, got: %v, want: %v, diff:\n%s", got[0], tt.wantNode, diff)
+				diff := cmp.Diff(tt.wantNode, got[0], opts...)
+				t.Fatalf("did not get expected node, got: %v, want: %v, diff (-want, +got):\n%s", got[0], tt.wantNode, diff)
 			}
 		})
 	}
