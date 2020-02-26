@@ -15,10 +15,10 @@
 package ytypes
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
@@ -649,8 +649,9 @@ func TestSplitUnescaped(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := splitUnescaped(tt.in, '/'), tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %v, want: %v", tt.desc, got, want)
+			got, want := splitUnescaped(tt.in, '/'), tt.want
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s: (-want, +got):\n%s", tt.desc, diff)
 			}
 		})
 	}
@@ -691,8 +692,9 @@ func TestSplitUnquoted(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := splitUnquoted(tt.in, tt.splitStr), tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %v, want: %v", tt.desc, got, want)
+			got, want := splitUnquoted(tt.in, tt.splitStr), tt.want
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s: (-want, +got):\n%s", tt.desc, diff)
 			}
 		})
 	}
@@ -762,11 +764,13 @@ func TestExtractKeyValue(t *testing.T) {
 			if got, want := prefix, tt.wantPrefix; got != want {
 				t.Errorf("%s prefix: got: %s, want: %s", tt.desc, got, want)
 			}
-			if got, want := k, tt.wantKey; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s key: got: %v, want: %v", tt.desc, got, want)
+			got, want := k, tt.wantKey
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s key: (-want, +got):\n%s", tt.desc, diff)
 			}
-			if got, want := v, tt.wantValue; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s value: got: %v, want: %v", tt.desc, got, want)
+			got, want = v, tt.wantValue
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s value: (-want, +got):\n%s", tt.desc, diff)
 			}
 		})
 	}

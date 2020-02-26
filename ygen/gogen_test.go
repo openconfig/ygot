@@ -16,9 +16,9 @@ package ygen
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
@@ -2129,9 +2129,8 @@ func TestFindMapPaths(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(got, tt.wantPaths) {
-			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, got wrong paths, got: %v, want: %v",
-				tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, got, tt.wantPaths)
+		if diff := cmp.Diff(tt.wantPaths, got); diff != "" {
+			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, diff)
 		}
 	}
 }
@@ -2253,18 +2252,11 @@ func TestGoLeafDefault(t *testing.T) {
 		want: ygot.String("EnumType_FORTY_TWO"),
 	}}
 
-	// Define a helper to print string pointers in a more useful way during test output.
-	pp := func(s *string) string {
-		if s == nil {
-			return "nil"
-		}
-		return *s
-	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := goLeafDefault(tt.inLeaf, tt.inType); !reflect.DeepEqual(got, tt.want) {
-				t.Fatalf("did not get expected default, got: %s, want: %s", pp(got), pp(tt.want))
+			got := goLeafDefault(tt.inLeaf, tt.inType)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Fatalf("did not get expected default, (-want, +got):\n%s", diff)
 			}
 		})
 	}

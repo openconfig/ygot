@@ -44,299 +44,382 @@ const (
 // through Goyang's API, it provides the input set of parameters in a way that
 // can be reused across tests.
 type yangTestCase struct {
-	name                string      // Name is the identifier for the test.
-	inFiles             []string    // inFiles is the set of inputFiles for the test.
-	inIncludePaths      []string    // inIncludePaths is the set of paths that should be searched for imports.
-	wantStructsCodeFile string      // wantStructsCodeFile is the path of the generated Go code that the output of the test should be compared to.
-	wantNodeDataMap     NodeDataMap // wantNodeDataMap is the expected NodeDataMap to be produced to accompany the path struct outputs.
-	wantErr             bool        // wantErr specifies whether the test should expect an error.
+	name                     string      // Name is the identifier for the test.
+	inFiles                  []string    // inFiles is the set of inputFiles for the test.
+	inIncludePaths           []string    // inIncludePaths is the set of paths that should be searched for imports.
+	inPreferOperationalState bool        // inPreferOperationalState says whether to prefer operational state over intended config in the path-building methods.
+	checkYANGPath            bool        // checkYANGPath says whether to check for the YANG path in the NodeDataMap.
+	wantStructsCodeFile      string      // wantStructsCodeFile is the path of the generated Go code that the output of the test should be compared to.
+	wantNodeDataMap          NodeDataMap // wantNodeDataMap is the expected NodeDataMap to be produced to accompany the path struct outputs.
+	wantErr                  bool        // wantErr specifies whether the test should expect an error.
 }
 
 func TestGeneratePathCode(t *testing.T) {
-	tests := []yangTestCase{
-		{
-			name:                "simple openconfig test",
-			inFiles:             []string{filepath.Join(datapath, "openconfig-simple.yang")},
-			wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple.path-txt"),
-			wantNodeDataMap: NodeDataMap{
-				"Parent": {
-					GoTypeName:       "*oc.Parent",
-					GoFieldName:      "Parent",
-					ParentGoTypeName: "Device",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"Parent_Child": {
-					GoTypeName:       "*oc.Parent_Child",
-					GoFieldName:      "Child",
-					ParentGoTypeName: "Parent",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"Parent_Child_Four": {
-					GoTypeName:       "oc.Binary",
-					GoFieldName:      "Four",
-					ParentGoTypeName: "Parent_Child",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "binary",
-				},
-				"Parent_Child_One": {
-					GoTypeName:       "string",
-					GoFieldName:      "One",
-					ParentGoTypeName: "Parent_Child",
-					IsLeaf:           true,
-					IsScalarField:    true,
-					YANGTypeName:     "string",
-				},
-				"Parent_Child_Three": {
-					GoTypeName:       "oc.E_OpenconfigSimple_Child_Three",
-					GoFieldName:      "Three",
-					ParentGoTypeName: "Parent_Child",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "enumeration",
-				},
-				"Parent_Child_Two": {
-					GoTypeName:       "string",
-					GoFieldName:      "Two",
-					ParentGoTypeName: "Parent_Child",
-					IsLeaf:           true,
-					IsScalarField:    true,
-					YANGTypeName:     "string",
-				},
-				"RemoteContainer": {
-					GoTypeName:       "*oc.RemoteContainer",
-					GoFieldName:      "RemoteContainer",
-					ParentGoTypeName: "Device",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"RemoteContainer_ALeaf": {
-					GoTypeName:       "string",
-					GoFieldName:      "ALeaf",
-					ParentGoTypeName: "RemoteContainer",
-					IsLeaf:           true,
-					IsScalarField:    true,
-					YANGTypeName:     "string",
-				}},
-		}, {
-			name:                "simple openconfig test with list",
-			inFiles:             []string{filepath.Join(datapath, "openconfig-withlist.yang")},
-			wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.path-txt"),
-		}, {
-			name:                "simple openconfig test with union & typedef & identity & enum",
-			inFiles:             []string{filepath.Join(datapath, "openconfig-unione.yang")},
-			wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-unione.path-txt"),
-			wantNodeDataMap: NodeDataMap{
-				"DupEnum": {
-					GoTypeName:       "*oc.DupEnum",
-					GoFieldName:      "DupEnum",
-					ParentGoTypeName: "Device",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"DupEnum_A": {
-					GoTypeName:       "oc.E_OpenconfigUnione_DupEnum_A",
-					GoFieldName:      "A",
-					ParentGoTypeName: "DupEnum",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "enumeration",
-				},
-				"DupEnum_B": {
-					GoTypeName:       "oc.E_OpenconfigUnione_DupEnum_B",
-					GoFieldName:      "B",
-					ParentGoTypeName: "DupEnum",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "enumeration",
-				},
-				"Platform": {
-					GoTypeName:       "*oc.Platform",
-					GoFieldName:      "Platform",
-					ParentGoTypeName: "Device",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"Platform_Component": {
-					GoTypeName:       "*oc.Platform_Component",
-					GoFieldName:      "Component",
-					ParentGoTypeName: "Platform",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"Platform_Component_E1": {
-					GoTypeName:       "oc.Platform_Component_E1_Union",
-					GoFieldName:      "E1",
-					ParentGoTypeName: "Platform_Component",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "enumtypedef",
-				},
-				"Platform_Component_Enumerated": {
-					GoTypeName:       "oc.Platform_Component_Enumerated_Union",
-					GoFieldName:      "Enumerated",
-					ParentGoTypeName: "Platform_Component",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "enumerated-union-type",
-				},
-				"Platform_Component_Power": {
-					GoTypeName:       "oc.Platform_Component_Power_Union",
-					GoFieldName:      "Power",
-					ParentGoTypeName: "Platform_Component",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "union",
-				},
-				"Platform_Component_R1": {
-					GoTypeName:       "oc.Platform_Component_E1_Union",
-					GoFieldName:      "R1",
-					ParentGoTypeName: "Platform_Component",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "leafref",
-				},
-				"Platform_Component_Type": {
-					GoTypeName:       "oc.Platform_Component_Type_Union",
-					GoFieldName:      "Type",
-					ParentGoTypeName: "Platform_Component",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "union",
-				}},
-		}, {
-			name:                "simple openconfig test with submodule and union list key",
-			inFiles:             []string{filepath.Join(datapath, "enum-module.yang")},
-			wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/enum-module.path-txt"),
-			wantNodeDataMap: NodeDataMap{
-				"AList": {
-					GoTypeName:       "*oc.AList",
-					GoFieldName:      "AList",
-					ParentGoTypeName: "Device",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"AList_Value": {
-					GoTypeName:       "oc.AList_Value_Union",
-					GoFieldName:      "Value",
-					ParentGoTypeName: "AList",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "td",
-				},
-				"BList": {
-					GoTypeName:       "*oc.BList",
-					GoFieldName:      "BList",
-					ParentGoTypeName: "Device",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"BList_Value": {
-					GoTypeName:       "oc.BList_Value_Union",
-					GoFieldName:      "Value",
-					ParentGoTypeName: "BList",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "td",
-				},
-				"C": {
-					GoTypeName:       "*oc.C",
-					GoFieldName:      "C",
-					ParentGoTypeName: "Device",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"C_Cl": {
-					GoTypeName:       "oc.E_EnumModule_EnumModule_Cl",
-					GoFieldName:      "Cl",
-					ParentGoTypeName: "C",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "enumeration",
-				},
-				"Parent": {
-					GoTypeName:       "*oc.Parent",
-					GoFieldName:      "Parent",
-					ParentGoTypeName: "Device",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"Parent_Child": {
-					GoTypeName:       "*oc.Parent_Child",
-					GoFieldName:      "Child",
-					ParentGoTypeName: "Parent",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"Parent_Child_Id": {
-					GoTypeName:       "oc.E_EnumTypes_ID",
-					GoFieldName:      "Id",
-					ParentGoTypeName: "Parent_Child",
-					IsLeaf:           true,
-					IsScalarField:    false,
-					YANGTypeName:     "identityref",
-				}},
-		}, {
-			name:                "simple openconfig test with choice and cases",
-			inFiles:             []string{filepath.Join(datapath, "choice-case-example.yang")},
-			wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/choice-case-example.path-txt"),
-		}, {
-			name: "simple openconfig test with augmentations",
-			inFiles: []string{
-				filepath.Join(datapath, "openconfig-simple-target.yang"),
-				filepath.Join(datapath, "openconfig-simple-augment.yang"),
+	tests := []yangTestCase{{
+		name:                     "simple openconfig test",
+		inFiles:                  []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-simple.path-txt"),
+		inPreferOperationalState: true,
+		checkYANGPath:            true,
+		wantNodeDataMap: NodeDataMap{
+			"Parent": {
+				GoTypeName:       "*oc.Parent",
+				GoFieldName:      "Parent",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+				YANGPath:         "/openconfig-simple/parent",
 			},
-			wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-augmented.path-txt"),
-			wantNodeDataMap: NodeDataMap{
-				"Native": {
-					GoTypeName:       "*oc.Native",
-					GoFieldName:      "Native",
-					ParentGoTypeName: "Device",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"Native_A": {
-					GoTypeName:       "string",
-					GoFieldName:      "A",
-					ParentGoTypeName: "Native",
-					IsLeaf:           true,
-					IsScalarField:    true,
-					YANGTypeName:     "string",
-				},
-				"Target": {
-					GoTypeName:       "*oc.Target",
-					GoFieldName:      "Target",
-					ParentGoTypeName: "Device",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"Target_Foo": {
-					GoTypeName:       "*oc.Target_Foo",
-					GoFieldName:      "Foo",
-					ParentGoTypeName: "Target",
-					IsLeaf:           false,
-					IsScalarField:    false,
-				},
-				"Target_Foo_A": {
-					GoTypeName:       "string",
-					GoFieldName:      "A",
-					ParentGoTypeName: "Target_Foo",
-					IsLeaf:           true,
-					IsScalarField:    true,
-					YANGTypeName:     "string",
-				}},
-		}, {
-			name:                "simple openconfig test with camelcase-name extension",
-			inFiles:             []string{filepath.Join(datapath, "openconfig-enumcamelcase.yang")},
-			wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-enumcamelcase.path-txt"),
-		}, {
-			name:                "simple openconfig test with camelcase-name extension in container and leaf",
-			inFiles:             []string{filepath.Join(datapath, "openconfig-camelcase.yang")},
-			wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-camelcase.path-txt"),
+			"Parent_Child": {
+				GoTypeName:       "*oc.Parent_Child",
+				GoFieldName:      "Child",
+				ParentGoTypeName: "Parent",
+				IsLeaf:           false,
+				IsScalarField:    false,
+				YANGPath:         "/openconfig-simple/parent/child",
+			},
+			"Parent_Child_Four": {
+				GoTypeName:       "oc.Binary",
+				GoFieldName:      "Four",
+				ParentGoTypeName: "Parent_Child",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "binary",
+				YANGPath:         "/openconfig-simple/parent/child/state/four",
+			},
+			"Parent_Child_One": {
+				GoTypeName:       "string",
+				GoFieldName:      "One",
+				ParentGoTypeName: "Parent_Child",
+				IsLeaf:           true,
+				IsScalarField:    true,
+				YANGTypeName:     "string",
+				YANGPath:         "/openconfig-simple/parent/child/state/one",
+			},
+			"Parent_Child_Three": {
+				GoTypeName:       "oc.E_OpenconfigSimple_Child_Three",
+				GoFieldName:      "Three",
+				ParentGoTypeName: "Parent_Child",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "enumeration",
+				YANGPath:         "/openconfig-simple/parent/child/state/three",
+			},
+			"Parent_Child_Two": {
+				GoTypeName:       "string",
+				GoFieldName:      "Two",
+				ParentGoTypeName: "Parent_Child",
+				IsLeaf:           true,
+				IsScalarField:    true,
+				YANGTypeName:     "string",
+				YANGPath:         "/openconfig-simple/parent/child/state/two",
+			},
+			"RemoteContainer": {
+				GoTypeName:       "*oc.RemoteContainer",
+				GoFieldName:      "RemoteContainer",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+				YANGPath:         "/openconfig-simple/remote-container",
+			},
+			"RemoteContainer_ALeaf": {
+				GoTypeName:       "string",
+				GoFieldName:      "ALeaf",
+				ParentGoTypeName: "RemoteContainer",
+				IsLeaf:           true,
+				IsScalarField:    true,
+				YANGTypeName:     "string",
+				YANGPath:         "/openconfig-simple/remote-container/state/a-leaf",
+			}},
+	}, {
+		name:                "simple openconfig test with preferOperationalState=false",
+		inFiles:             []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-intendedconfig.path-txt"),
+		wantNodeDataMap: NodeDataMap{
+			"Parent": {
+				GoTypeName:       "*oc.Parent",
+				GoFieldName:      "Parent",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"Parent_Child": {
+				GoTypeName:       "*oc.Parent_Child",
+				GoFieldName:      "Child",
+				ParentGoTypeName: "Parent",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"Parent_Child_Four": {
+				GoTypeName:       "oc.Binary",
+				GoFieldName:      "Four",
+				ParentGoTypeName: "Parent_Child",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "binary",
+			},
+			"Parent_Child_One": {
+				GoTypeName:       "string",
+				GoFieldName:      "One",
+				ParentGoTypeName: "Parent_Child",
+				IsLeaf:           true,
+				IsScalarField:    true,
+				YANGTypeName:     "string",
+			},
+			"Parent_Child_Three": {
+				GoTypeName:       "oc.E_OpenconfigSimple_Child_Three",
+				GoFieldName:      "Three",
+				ParentGoTypeName: "Parent_Child",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "enumeration",
+			},
+			"Parent_Child_Two": {
+				GoTypeName:       "string",
+				GoFieldName:      "Two",
+				ParentGoTypeName: "Parent_Child",
+				IsLeaf:           true,
+				IsScalarField:    true,
+				YANGTypeName:     "string",
+			},
+			"RemoteContainer": {
+				GoTypeName:       "*oc.RemoteContainer",
+				GoFieldName:      "RemoteContainer",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"RemoteContainer_ALeaf": {
+				GoTypeName:       "string",
+				GoFieldName:      "ALeaf",
+				ParentGoTypeName: "RemoteContainer",
+				IsLeaf:           true,
+				IsScalarField:    true,
+				YANGTypeName:     "string",
+			}},
+	}, {
+		name:                     "simple openconfig test with list",
+		inFiles:                  []string{filepath.Join(datapath, "openconfig-withlist.yang")},
+		inPreferOperationalState: true,
+		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.path-txt"),
+	}, {
+		name:                     "simple openconfig test with union & typedef & identity & enum",
+		inFiles:                  []string{filepath.Join(datapath, "openconfig-unione.yang")},
+		inPreferOperationalState: true,
+		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-unione.path-txt"),
+		wantNodeDataMap: NodeDataMap{
+			"DupEnum": {
+				GoTypeName:       "*oc.DupEnum",
+				GoFieldName:      "DupEnum",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"DupEnum_A": {
+				GoTypeName:       "oc.E_OpenconfigUnione_DupEnum_A",
+				GoFieldName:      "A",
+				ParentGoTypeName: "DupEnum",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "enumeration",
+			},
+			"DupEnum_B": {
+				GoTypeName:       "oc.E_OpenconfigUnione_DupEnum_B",
+				GoFieldName:      "B",
+				ParentGoTypeName: "DupEnum",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "enumeration",
+			},
+			"Platform": {
+				GoTypeName:       "*oc.Platform",
+				GoFieldName:      "Platform",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"Platform_Component": {
+				GoTypeName:       "*oc.Platform_Component",
+				GoFieldName:      "Component",
+				ParentGoTypeName: "Platform",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"Platform_Component_E1": {
+				GoTypeName:       "oc.Platform_Component_E1_Union",
+				GoFieldName:      "E1",
+				ParentGoTypeName: "Platform_Component",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "enumtypedef",
+			},
+			"Platform_Component_Enumerated": {
+				GoTypeName:       "oc.Platform_Component_Enumerated_Union",
+				GoFieldName:      "Enumerated",
+				ParentGoTypeName: "Platform_Component",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "enumerated-union-type",
+			},
+			"Platform_Component_Power": {
+				GoTypeName:       "oc.Platform_Component_Power_Union",
+				GoFieldName:      "Power",
+				ParentGoTypeName: "Platform_Component",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "union",
+			},
+			"Platform_Component_R1": {
+				GoTypeName:       "oc.Platform_Component_E1_Union",
+				GoFieldName:      "R1",
+				ParentGoTypeName: "Platform_Component",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "leafref",
+			},
+			"Platform_Component_Type": {
+				GoTypeName:       "oc.Platform_Component_Type_Union",
+				GoFieldName:      "Type",
+				ParentGoTypeName: "Platform_Component",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "union",
+			}},
+	}, {
+		name:                     "simple openconfig test with submodule and union list key",
+		inFiles:                  []string{filepath.Join(datapath, "enum-module.yang")},
+		inPreferOperationalState: true,
+		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/enum-module.path-txt"),
+		wantNodeDataMap: NodeDataMap{
+			"AList": {
+				GoTypeName:       "*oc.AList",
+				GoFieldName:      "AList",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"AList_Value": {
+				GoTypeName:       "oc.AList_Value_Union",
+				GoFieldName:      "Value",
+				ParentGoTypeName: "AList",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "td",
+			},
+			"BList": {
+				GoTypeName:       "*oc.BList",
+				GoFieldName:      "BList",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"BList_Value": {
+				GoTypeName:       "oc.BList_Value_Union",
+				GoFieldName:      "Value",
+				ParentGoTypeName: "BList",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "td",
+			},
+			"C": {
+				GoTypeName:       "*oc.C",
+				GoFieldName:      "C",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"C_Cl": {
+				GoTypeName:       "oc.E_EnumModule_EnumModule_Cl",
+				GoFieldName:      "Cl",
+				ParentGoTypeName: "C",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "enumeration",
+			},
+			"Parent": {
+				GoTypeName:       "*oc.Parent",
+				GoFieldName:      "Parent",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"Parent_Child": {
+				GoTypeName:       "*oc.Parent_Child",
+				GoFieldName:      "Child",
+				ParentGoTypeName: "Parent",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"Parent_Child_Id": {
+				GoTypeName:       "oc.E_EnumTypes_ID",
+				GoFieldName:      "Id",
+				ParentGoTypeName: "Parent_Child",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "identityref",
+			}},
+	}, {
+		name:                     "simple openconfig test with choice and cases",
+		inFiles:                  []string{filepath.Join(datapath, "choice-case-example.yang")},
+		inPreferOperationalState: true,
+		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/choice-case-example.path-txt"),
+	}, {
+		name: "simple openconfig test with augmentations",
+		inFiles: []string{
+			filepath.Join(datapath, "openconfig-simple-target.yang"),
+			filepath.Join(datapath, "openconfig-simple-augment.yang"),
 		},
-	}
+		inPreferOperationalState: true,
+		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-augmented.path-txt"),
+		wantNodeDataMap: NodeDataMap{
+			"Native": {
+				GoTypeName:       "*oc.Native",
+				GoFieldName:      "Native",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"Native_A": {
+				GoTypeName:       "string",
+				GoFieldName:      "A",
+				ParentGoTypeName: "Native",
+				IsLeaf:           true,
+				IsScalarField:    true,
+				YANGTypeName:     "string",
+			},
+			"Target": {
+				GoTypeName:       "*oc.Target",
+				GoFieldName:      "Target",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"Target_Foo": {
+				GoTypeName:       "*oc.Target_Foo",
+				GoFieldName:      "Foo",
+				ParentGoTypeName: "Target",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"Target_Foo_A": {
+				GoTypeName:       "string",
+				GoFieldName:      "A",
+				ParentGoTypeName: "Target_Foo",
+				IsLeaf:           true,
+				IsScalarField:    true,
+				YANGTypeName:     "string",
+			}},
+	}, {
+		name:                     "simple openconfig test with camelcase-name extension",
+		inFiles:                  []string{filepath.Join(datapath, "openconfig-enumcamelcase.yang")},
+		inPreferOperationalState: true,
+		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-enumcamelcase.path-txt"),
+	}, {
+		name:                     "simple openconfig test with camelcase-name extension in container and leaf",
+		inFiles:                  []string{filepath.Join(datapath, "openconfig-camelcase.yang")},
+		inPreferOperationalState: true,
+		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-camelcase.path-txt"),
+	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -345,6 +428,8 @@ func TestGeneratePathCode(t *testing.T) {
 				// Set the name of the caller explicitly to avoid issues when
 				// the unit tests are called by external test entities.
 				cg.GeneratingBinary = "pathgen-tests"
+				cg.FakeRootName = "device"
+				cg.PreferOperationalState = tt.inPreferOperationalState
 
 				gotCode, gotNodeDataMap, err := cg.GeneratePathCode(tt.inFiles, tt.inIncludePaths)
 				if err != nil && !tt.wantErr {
@@ -357,7 +442,11 @@ func TestGeneratePathCode(t *testing.T) {
 			gotCode, gotNodeDataMap, cg := genCode()
 
 			if tt.wantNodeDataMap != nil {
-				if diff := cmp.Diff(tt.wantNodeDataMap, gotNodeDataMap); diff != "" {
+				var cmpOpts []cmp.Option
+				if !tt.checkYANGPath {
+					cmpOpts = append(cmpOpts, cmpopts.IgnoreFields(NodeData{}, "YANGPath"))
+				}
+				if diff := cmp.Diff(tt.wantNodeDataMap, gotNodeDataMap, cmpOpts...); diff != "" {
 					t.Errorf("(-wantNodeDataMap, +gotNodeDataMap):\n%s", diff)
 				}
 			}
@@ -436,6 +525,8 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 				// Set the name of the caller explicitly to avoid issues when
 				// the unit tests are called by external test entities.
 				cg.GeneratingBinary = "pathgen-tests"
+				cg.FakeRootName = "device"
+				cg.PreferOperationalState = true
 
 				gotCode, _, err := cg.GeneratePathCode(tt.inFiles, tt.inIncludePaths)
 				if err != nil {
@@ -630,14 +721,14 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 	addParents(schema)
 
 	// Build fake root.
-	fakeRoot := ygen.MakeFakeRoot("device")
+	fakeRoot := ygen.MakeFakeRoot("root")
 	for k, v := range schema.Dir {
 		fakeRoot.Dir[k] = v
 	}
 
 	directories := map[string]*ygen.Directory{
-		"/device": {
-			Name: "Device",
+		"/root": {
+			Name: "Root",
 			Fields: map[string]*yang.Entry{
 				"leaf":                  schema.Dir["leaf"],
 				"container":             schema.Dir["container"],
@@ -645,7 +736,7 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 				"list":                  schema.Dir["list-container"].Dir["list"],
 				"list-with-state":       schema.Dir["list-container-with-state"].Dir["list-with-state"],
 			},
-			Path:  []string{"", "device"},
+			Path:  []string{"", "root"},
 			Entry: fakeRoot,
 		},
 		"/root-module/container": {
@@ -701,7 +792,7 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 	}
 
 	leafTypeMap := map[string]map[string]*ygen.MappedType{
-		"/device": {
+		"/root": {
 			"leaf":                  {NativeType: "Binary"},
 			"container":             nil,
 			"container-with-config": nil,
@@ -731,8 +822,8 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 
 // wantListMethods is the expected child constructor methods for the list node.
 const wantListMethods = `
-// ListAny returns from Device the path struct for its child "list".
-func (n *Device) ListAny() *ListAny {
+// ListAny returns from Root the path struct for its child "list".
+func (n *Root) ListAny() *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -742,8 +833,8 @@ func (n *Device) ListAny() *ListAny {
 	}
 }
 
-// ListAnyKey2AnyUnionKey returns from Device the path struct for its child "list".
-func (n *Device) ListAnyKey2AnyUnionKey(Key1 string) *ListAny {
+// ListAnyKey2AnyUnionKey returns from Root the path struct for its child "list".
+func (n *Root) ListAnyKey2AnyUnionKey(Key1 string) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -753,8 +844,8 @@ func (n *Device) ListAnyKey2AnyUnionKey(Key1 string) *ListAny {
 	}
 }
 
-// ListAnyKey1AnyUnionKey returns from Device the path struct for its child "list".
-func (n *Device) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListAny {
+// ListAnyKey1AnyUnionKey returns from Root the path struct for its child "list".
+func (n *Root) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -764,8 +855,8 @@ func (n *Device) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListAny {
 	}
 }
 
-// ListAnyUnionKey returns from Device the path struct for its child "list".
-func (n *Device) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListAny {
+// ListAnyUnionKey returns from Root the path struct for its child "list".
+func (n *Root) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -775,8 +866,8 @@ func (n *Device) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListAny {
 	}
 }
 
-// ListAnyKey1AnyKey2 returns from Device the path struct for its child "list".
-func (n *Device) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
+// ListAnyKey1AnyKey2 returns from Root the path struct for its child "list".
+func (n *Root) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -786,8 +877,8 @@ func (n *Device) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) 
 	}
 }
 
-// ListAnyKey2 returns from Device the path struct for its child "list".
-func (n *Device) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
+// ListAnyKey2 returns from Root the path struct for its child "list".
+func (n *Root) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -797,8 +888,8 @@ func (n *Device) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_U
 	}
 }
 
-// ListAnyKey1 returns from Device the path struct for its child "list".
-func (n *Device) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
+// ListAnyKey1 returns from Root the path struct for its child "list".
+func (n *Root) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -808,8 +899,8 @@ func (n *Device) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKe
 	}
 }
 
-// List returns from Device the path struct for its child "list".
-func (n *Device) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *List {
+// List returns from Root the path struct for its child "list".
+func (n *Root) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *List {
 	return &List{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -843,16 +934,16 @@ func TestGetNodeDataMap(t *testing.T) {
 	addParents(schema2)
 	binaryContainerEntry := schema2.Dir["container"]
 
-	fakeRoot := ygen.MakeFakeRoot("device")
+	fakeRoot := ygen.MakeFakeRoot("root")
 	fakeRoot.Dir["container"] = binaryContainerEntry
 
 	directoryWithBinaryLeaf := map[string]*ygen.Directory{
-		"/device": {
-			Name: "Device",
+		"/root": {
+			Name: "Root",
 			Fields: map[string]*yang.Entry{
 				"container": binaryContainerEntry,
 			},
-			Path:  []string{"", "device"},
+			Path:  []string{"", "root"},
 			Entry: fakeRoot,
 		},
 		"/root-module/container": {
@@ -866,7 +957,7 @@ func TestGetNodeDataMap(t *testing.T) {
 	}
 
 	leafTypeMap2 := map[string]map[string]*ygen.MappedType{
-		"/device": {
+		"/root": {
 			"container": nil,
 		},
 		"/root-module/container": {
@@ -911,7 +1002,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			"Container": {
 				GoTypeName:       "*struct.Container",
 				GoFieldName:      "Container",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           false,
 				IsScalarField:    false,
 			},
@@ -928,7 +1019,7 @@ func TestGetNodeDataMap(t *testing.T) {
 		name:          "non-existent path",
 		inDirectories: map[string]*ygen.Directory{"/root-module/container": directories["/root-module/container"]},
 		inLeafTypeMap: map[string]map[string]*ygen.MappedType{
-			"/device": {
+			"/root": {
 				"container": nil,
 			},
 			"/you can't find me": {
@@ -941,7 +1032,7 @@ func TestGetNodeDataMap(t *testing.T) {
 		name:          "non-existent field",
 		inDirectories: map[string]*ygen.Directory{"/root-module/container": directories["/root-module/container"]},
 		inLeafTypeMap: map[string]map[string]*ygen.MappedType{
-			"/device": {
+			"/root": {
 				"container": nil,
 			},
 			"/root-module/container": {
@@ -959,14 +1050,14 @@ func TestGetNodeDataMap(t *testing.T) {
 			"Container": {
 				GoTypeName:       "*oc.Container",
 				GoFieldName:      "Container",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           false,
 				IsScalarField:    false,
 			},
 			"ContainerWithConfig": {
 				GoTypeName:       "*oc.ContainerWithConfig",
 				GoFieldName:      "ContainerWithConfig",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           false,
 				IsScalarField:    false,
 			},
@@ -1002,7 +1093,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			"Leaf": {
 				GoTypeName:       "oc.Binary",
 				GoFieldName:      "Leaf",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           true,
 				IsScalarField:    false,
 				YANGTypeName:     "ieeefloat32",
@@ -1010,14 +1101,14 @@ func TestGetNodeDataMap(t *testing.T) {
 			"List": {
 				GoTypeName:       "*oc.List",
 				GoFieldName:      "List",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           false,
 				IsScalarField:    false,
 			},
 			"ListWithState": {
 				GoTypeName:       "*oc.ListWithState",
 				GoFieldName:      "ListWithState",
-				ParentGoTypeName: "Device",
+				ParentGoTypeName: "Root",
 				IsLeaf:           false,
 				IsScalarField:    false,
 			},
@@ -1077,7 +1168,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			if diff := cmp.Diff(tt.wantErrSubstrings, gotErrStrs, cmp.Comparer(func(x, y string) bool { return strings.Contains(x, y) || strings.Contains(y, x) })); diff != "" {
 				t.Fatalf("Error substring check failed (-want, +got):\n%v", diff)
 			}
-			if diff := cmp.Diff(tt.wantNodeDataMap, got); diff != "" {
+			if diff := cmp.Diff(tt.wantNodeDataMap, got, cmpopts.IgnoreFields(NodeData{}, "YANGPath")); diff != "" {
 				t.Errorf("(-want, +got):\n%s", diff)
 			}
 			if diff := cmp.Diff(tt.wantSorted, GetOrderedNodeDataNames(got), cmpopts.EquateEmpty()); diff != "" {
@@ -1210,18 +1301,18 @@ func (n *ContainerWithConfigAny) Leaflist2() *ContainerWithConfig_Leaflist2Any {
 		},
 	}, {
 		name:        "fakeroot",
-		inDirectory: directories["/device"],
+		inDirectory: directories["/root"],
 		want: GoPathStructCodeSnippet{
-			PathStructName: "Device",
+			PathStructName: "Root",
 			StructBase: `
-// Device represents the /device YANG schema element.
-type Device struct {
+// Root represents the /root YANG schema element.
+type Root struct {
 	ygot.NodePath
 	id string
 }
 
-func ForDevice(id string) *Device {
-	return &Device{id: id}
+func DeviceRoot(id string) *Root {
+	return &Root{id: id}
 }
 
 // Leaf represents the /root-module/leaf YANG schema element.
@@ -1235,8 +1326,8 @@ type LeafAny struct {
 }
 `,
 			ChildConstructors: `
-// Container returns from Device the path struct for its child "container".
-func (n *Device) Container() *Container {
+// Container returns from Root the path struct for its child "container".
+func (n *Root) Container() *Container {
 	return &Container{
 		NodePath: ygot.NewNodePath(
 			[]string{"container"},
@@ -1246,8 +1337,8 @@ func (n *Device) Container() *Container {
 	}
 }
 
-// ContainerWithConfig returns from Device the path struct for its child "container-with-config".
-func (n *Device) ContainerWithConfig() *ContainerWithConfig {
+// ContainerWithConfig returns from Root the path struct for its child "container-with-config".
+func (n *Root) ContainerWithConfig() *ContainerWithConfig {
 	return &ContainerWithConfig{
 		NodePath: ygot.NewNodePath(
 			[]string{"container-with-config"},
@@ -1257,8 +1348,8 @@ func (n *Device) ContainerWithConfig() *ContainerWithConfig {
 	}
 }
 
-// Leaf returns from Device the path struct for its child "leaf".
-func (n *Device) Leaf() *Leaf {
+// Leaf returns from Root the path struct for its child "leaf".
+func (n *Root) Leaf() *Leaf {
 	return &Leaf{
 		NodePath: ygot.NewNodePath(
 			[]string{"leaf"},
@@ -1268,8 +1359,8 @@ func (n *Device) Leaf() *Leaf {
 	}
 }
 ` + wantListMethods + `
-// ListWithStateAny returns from Device the path struct for its child "list-with-state".
-func (n *Device) ListWithStateAny() *ListWithStateAny {
+// ListWithStateAny returns from Root the path struct for its child "list-with-state".
+func (n *Root) ListWithStateAny() *ListWithStateAny {
 	return &ListWithStateAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},
@@ -1279,8 +1370,8 @@ func (n *Device) ListWithStateAny() *ListWithStateAny {
 	}
 }
 
-// ListWithState returns from Device the path struct for its child "list-with-state".
-func (n *Device) ListWithState(Key float64) *ListWithState {
+// ListWithState returns from Root the path struct for its child "list-with-state".
+func (n *Root) ListWithState(Key float64) *ListWithState {
 	return &ListWithState{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},
@@ -1474,18 +1565,18 @@ func TestGenerateChildConstructor(t *testing.T) {
 	addParents(deepSchema)
 
 	// Build fake root.
-	fakeRoot := ygen.MakeFakeRoot("device")
+	fakeRoot := ygen.MakeFakeRoot("root")
 	for k, v := range deepSchema.Dir {
 		fakeRoot.Dir[k] = v
 	}
 
 	deepSchemaDirectories := map[string]*ygen.Directory{
-		"/device": {
-			Name: "Device",
+		"/root": {
+			Name: "Root",
 			Fields: map[string]*yang.Entry{
 				"container": deepSchema.Dir["container"],
 			},
-			Path:  []string{"", "device"},
+			Path:  []string{"", "root"},
 			Entry: fakeRoot,
 		},
 		"/root-module/container": {
@@ -1530,13 +1621,13 @@ func TestGenerateChildConstructor(t *testing.T) {
 		want              string
 	}{{
 		name:              "container method",
-		inDirectory:       directories["/device"],
+		inDirectory:       directories["/root"],
 		inDirectories:     directories,
 		inFieldName:       "container",
 		inUniqueFieldName: "Container",
 		want: `
-// Container returns from Device the path struct for its child "container".
-func (n *Device) Container() *Container {
+// Container returns from Root the path struct for its child "container".
+func (n *Root) Container() *Container {
 	return &Container{
 		NodePath: ygot.NewNodePath(
 			[]string{"container"},
@@ -1577,13 +1668,13 @@ func (n *ContainerAny) Leaf() *Container_LeafAny {
 `,
 	}, {
 		name:              "top-level leaf method",
-		inDirectory:       directories["/device"],
+		inDirectory:       directories["/root"],
 		inDirectories:     directories,
 		inFieldName:       "leaf",
 		inUniqueFieldName: "Leaf",
 		want: `
-// Leaf returns from Device the path struct for its child "leaf".
-func (n *Device) Leaf() *Leaf {
+// Leaf returns from Root the path struct for its child "leaf".
+func (n *Root) Leaf() *Leaf {
 	return &Leaf{
 		NodePath: ygot.NewNodePath(
 			[]string{"leaf"},
@@ -1704,20 +1795,20 @@ func (n *ContainerAny) InnerContainer() *Container_InnerContainerAny {
 `,
 	}, {
 		name:              "list method",
-		inDirectory:       directories["/device"],
+		inDirectory:       directories["/root"],
 		inDirectories:     directories,
 		inFieldName:       "list",
 		inUniqueFieldName: "List",
 		want:              wantListMethods,
 	}, {
 		name:              "list with state method",
-		inDirectory:       directories["/device"],
+		inDirectory:       directories["/root"],
 		inDirectories:     directories,
 		inFieldName:       "list-with-state",
 		inUniqueFieldName: "ListWithState",
 		want: `
-// ListWithStateAny returns from Device the path struct for its child "list-with-state".
-func (n *Device) ListWithStateAny() *ListWithStateAny {
+// ListWithStateAny returns from Root the path struct for its child "list-with-state".
+func (n *Root) ListWithStateAny() *ListWithStateAny {
 	return &ListWithStateAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},
@@ -1727,8 +1818,8 @@ func (n *Device) ListWithStateAny() *ListWithStateAny {
 	}
 }
 
-// ListWithState returns from Device the path struct for its child "list-with-state".
-func (n *Device) ListWithState(Key float64) *ListWithState {
+// ListWithState returns from Root the path struct for its child "list-with-state".
+func (n *Root) ListWithState(Key float64) *ListWithState {
 	return &ListWithState{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},

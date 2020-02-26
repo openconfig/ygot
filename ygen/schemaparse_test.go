@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
@@ -298,8 +299,8 @@ func TestWriteGzippedByteSlice(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("%s: WriteGzippedByteSlice(%v): did not get expected output, got: %v, want: %v", tt.name, tt.inBytes, got, tt.want)
+		if diff := cmp.Diff(tt.want, got); diff != "" {
+			t.Errorf("%s: WriteGzippedByteSlice(%v): did not get expected output, (-want, +got):\n%s", tt.name, tt.inBytes, diff)
 		}
 	}
 }
@@ -322,8 +323,8 @@ func TestBytesToGoByteSlice(t *testing.T) {
 
 	for _, tt := range tests {
 		got := BytesToGoByteSlice(tt.in)
-		if !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("%s: BytesToGoByteSlice(%v): did not get expected output, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		if diff := cmp.Diff(tt.want, got); diff != "" {
+			t.Errorf("%s: BytesToGoByteSlice(%v): did not get expected output, (-want, +got):\n%s", tt.name, tt.in, diff)
 		}
 	}
 }

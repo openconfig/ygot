@@ -146,19 +146,22 @@ func (c CompressBehaviour) StateExcluded() bool {
 }
 
 // TranslateToCompressBehaviour translates the set of (compressPaths,
-// excludeState) into a subset of CompressBehaviour options.
-// TODO(wenbli:b/142679709): This serves as a workaround before generator
-// scripts need to change to make use of the unused options.
-func TranslateToCompressBehaviour(compressPaths, excludeState bool) CompressBehaviour {
+// excludeState, preferOperationalState) into a CompressBehaviour. Invalid
+// combinations produces an error.
+func TranslateToCompressBehaviour(compressPaths, excludeState, preferOperationalState bool) (CompressBehaviour, error) {
 	switch {
+	case preferOperationalState && !(compressPaths && !excludeState):
+		return 0, fmt.Errorf("preferOperationalState is only compatible with compressPaths=true and excludeState=false")
+	case preferOperationalState:
+		return PreferOperationalState, nil
 	case compressPaths && excludeState:
-		return ExcludeDerivedState
+		return ExcludeDerivedState, nil
 	case compressPaths:
-		return PreferIntendedConfig
+		return PreferIntendedConfig, nil
 	case excludeState:
-		return UncompressedExcludeDerivedState
+		return UncompressedExcludeDerivedState, nil
 	default:
-		return Uncompressed
+		return Uncompressed, nil
 	}
 }
 
