@@ -661,8 +661,8 @@ func TestFindModelData(t *testing.T) {
 			continue
 		}
 
-		if diff := cmp.Diff(got, tt.want, cmp.Comparer(proto.Equal)); diff != "" {
-			t.Errorf("%s: FindModelData(%v): did not get expected result, diff(-got,+want):\n%s", tt.name, tt.in, diff)
+		if diff := cmp.Diff(tt.want, got, cmp.Comparer(proto.Equal)); diff != "" {
+			t.Errorf("%s: FindModelData(%v): did not get expected result, diff(-want, +got):\n%s", tt.name, tt.in, diff)
 		}
 	}
 }

@@ -620,13 +620,13 @@ func TestFindSetLeaves(t *testing.T) {
 			t.Errorf("%s: findSetLeaves(%v): did not get expected error: %v", tt.desc, tt.inStruct, err)
 			continue
 		}
-		if diff := cmp.Diff(got, tt.want,
+		if diff := cmp.Diff(tt.want, got,
 			cmpopts.SortMaps(func(x, y *pathSpec) bool {
 				return x.String() < y.String()
 			}),
 			cmp.Comparer(proto.Equal),
 		); diff != "" {
-			t.Errorf("%s: findSetLeaves(%v): did not get expected output, diff(-got,+want):\n%s", tt.desc, tt.inStruct, diff)
+			t.Errorf("%s: findSetLeaves(%v): did not get expected output, diff(-want, +got):\n%s", tt.desc, tt.inStruct, diff)
 		}
 	}
 }

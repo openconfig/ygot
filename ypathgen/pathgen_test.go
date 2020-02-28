@@ -462,7 +462,7 @@ func TestGeneratePathCode(t *testing.T) {
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
-				diff, _ := testutil.GenerateUnifiedDiff(gotCode, wantCode)
+				diff, _ := testutil.GenerateUnifiedDiff(wantCode, gotCode)
 				t.Errorf("GeneratePathCode(%v, %v), Config: %v, did not return correct code (file: %v), diff:\n%s",
 					tt.inFiles, tt.inIncludePaths, cg, tt.wantStructsCodeFile, diff)
 			}
@@ -470,7 +470,7 @@ func TestGeneratePathCode(t *testing.T) {
 			for i := 0; i < deflakeRuns; i++ {
 				gotAttempt, _, _ := genCode()
 				if gotAttempt != gotCode {
-					diff, _ := testutil.GenerateUnifiedDiff(gotCode, gotAttempt)
+					diff, _ := testutil.GenerateUnifiedDiff(gotAttempt, gotCode)
 					t.Fatalf("flaky code generation, diff:\n%s", diff)
 				}
 			}
@@ -563,7 +563,7 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 						// Use difflib to generate a unified diff between the
 						// two code snippets such that this is simpler to debug
 						// in the test output.
-						diff, _ := testutil.GenerateUnifiedDiff(gotCode[i], wantCode[i])
+						diff, _ := testutil.GenerateUnifiedDiff(wantCode[i], gotCode[i])
 						t.Errorf("GeneratePathCode(%v, %v), Config: %v, did not return correct code via SplitFiles function (file: %v), diff:\n%s",
 							tt.inFiles, tt.inIncludePaths, cg, tt.wantStructsCodeFiles[i], diff)
 					}
@@ -1839,7 +1839,7 @@ func (n *Root) ListWithState(Key float64) *ListWithState {
 			}
 
 			if got, want := buf.String(), tt.want; got != want {
-				diff, _ := testutil.GenerateUnifiedDiff(got, want)
+				diff, _ := testutil.GenerateUnifiedDiff(want, got)
 				t.Errorf("func generateChildConstructors returned incorrect code, diff:\n%s", diff)
 			}
 		})

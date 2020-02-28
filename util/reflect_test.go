@@ -870,8 +870,8 @@ func TestInsertIntoSlice(t *testing.T) {
 	}
 	wantSlice := []int{42, 43, value}
 	got, want := parentSlice, wantSlice
-	if diff := cmp.Diff(got, want); diff != "" {
-		t.Errorf("got:\n%v\nwant:\n%v\n", got, want)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("(-want, +got):\n%s", diff)
 	}
 
 	badParent := struct{}{}
@@ -890,8 +890,8 @@ func TestInsertIntoMap(t *testing.T) {
 	}
 	wantMap := map[int]string{42: "forty two", 43: "forty three", 44: "forty four"}
 	got, want := parentMap, wantMap
-	if diff := cmp.Diff(got, want); diff != "" {
-		t.Errorf("got:\n%v\nwant:\n%v\n", got, want)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("(-want, +got):\n%s", diff)
 	}
 
 	badParent := struct{}{}
@@ -1225,12 +1225,12 @@ func TestForEachField(t *testing.T) {
 		var errs Errors
 		errs = ForEachField(tt.schema, tt.parentStruct, tt.in, &outStr, tt.iterFunc)
 		if got, want := errs.String(), tt.wantErr; got != want {
-			diff, _ := testutil.GenerateUnifiedDiff(got, want)
+			diff, _ := testutil.GenerateUnifiedDiff(want, got)
 			t.Errorf("%s:\n%s", tt.desc, diff)
 		}
 		if errs == nil {
 			if got, want := outStr, tt.wantOut; got != want {
-				diff, _ := testutil.GenerateUnifiedDiff(got, want)
+				diff, _ := testutil.GenerateUnifiedDiff(want, got)
 				t.Errorf("%s:\n%s", tt.desc, diff)
 			}
 		}
@@ -1335,7 +1335,7 @@ func TestForEachDataField(t *testing.T) {
 		var errs Errors
 		errs = ForEachDataField(tt.parentStruct, tt.in, &outStr, tt.iterFunc)
 		if got, want := errs.String(), tt.wantErr; got != want {
-			diff, _ := testutil.GenerateUnifiedDiff(got, want)
+			diff, _ := testutil.GenerateUnifiedDiff(want, got)
 			t.Errorf("%s: ForEachDataField(%v, %#v, ...): \n%s", tt.desc, tt.parentStruct, tt.in, diff)
 		}
 		testErrLog(t, tt.desc, errs)
@@ -1343,7 +1343,7 @@ func TestForEachDataField(t *testing.T) {
 			continue
 		}
 		if got, want := outStr, tt.wantOut; got != want {
-			diff, _ := testutil.GenerateUnifiedDiff(got, want)
+			diff, _ := testutil.GenerateUnifiedDiff(want, got)
 			t.Errorf("%s: ForEachDataField(%v, %#v, ...): \n%s", tt.desc, tt.parentStruct, tt.in, diff)
 		}
 	}

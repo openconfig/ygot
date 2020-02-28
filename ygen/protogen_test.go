@@ -1428,15 +1428,15 @@ message MessageName {
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.PackageName, want.PackageName)
 			}
 
-			if diff := cmp.Diff(got.RequiredImports, want.RequiredImports); diff != "" {
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, (-got, +want):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+			if diff := cmp.Diff(want.RequiredImports, got.RequiredImports); diff != "" {
+				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, (-want, +got,):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
 			}
 
 			if diff := pretty.Compare(got.MessageCode, want.MessageCode); diff != "" {
-				if diffl, err := testutil.GenerateUnifiedDiff(got.MessageCode, want.MessageCode); err == nil {
+				if diffl, err := testutil.GenerateUnifiedDiff(want.MessageCode, got.MessageCode); err == nil {
 					diff = diffl
 				}
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-want, +got):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
 			}
 		}
 	}

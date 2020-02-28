@@ -217,7 +217,7 @@ func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
 
 	util.DbgPrint("validateUnion %s", schema.Name)
 	v := reflect.ValueOf(value)
-	switch reflect.TypeOf(value).Kind() {
+	switch v.Kind() {
 	case reflect.Ptr:
 		// The union is usually a ptr - either a struct ptr or Go value ptr like *string.
 		// Enum types are also represented as a struct for union where the field
