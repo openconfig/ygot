@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 
@@ -299,8 +299,9 @@ func TestGetNodeSimpleKeyedList(t *testing.T) {
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
 		if isOK(status) {
-			if got, want := val, tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: struct got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+			got, want := val, tt.want
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s: struct (-want, +got):\n%s", tt.desc, diff)
 			}
 		}
 	}
@@ -459,8 +460,9 @@ func TestGetNodeStructKeyedList(t *testing.T) {
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
 		if isOK(status) {
-			if got, want := val, tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: struct got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+			got, want := val, tt.want
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s: struct (-want, +got):\n%s", tt.desc, diff)
 			}
 		}
 	}
@@ -737,8 +739,9 @@ func TestNewNodeStructKeyedList(t *testing.T) {
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
 		if isOK(status) {
-			if got, want := val, tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %s, want: %s", tt.desc, got, want)
+			got, want := val, tt.want
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s: (-want, +got):\n%s", tt.desc, diff)
 			}
 		}
 	}

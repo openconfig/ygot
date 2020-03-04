@@ -15,11 +15,11 @@
 package ygot
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -127,7 +127,7 @@ func TestPathToStrings(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(got, want) {
+	if !cmp.Equal(got, want) {
 		t.Fatalf("PathToStrings(%v): got %q, want %q", in, got, want)
 	}
 }

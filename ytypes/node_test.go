@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
@@ -76,6 +75,22 @@ type ListElemEnumKey struct {
 
 type ContainerEnumKey struct {
 	StructKeyList map[EnumType]*ListElemEnumKey `path:"config/simple-key-list"`
+}
+
+type ListElemStruct4 struct {
+	Key1 *uint32 `path:"key1"`
+}
+
+var listElemStruct4Schema = &yang.Entry{
+	Name: "list-elem-struct4",
+	Kind: yang.DirectoryEntry,
+	Dir: map[string]*yang.Entry{
+		"key1": {
+			Name: "key1",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{Kind: yang.Yuint32},
+		},
+	},
 }
 
 type SuperContainer struct {
@@ -429,8 +444,8 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s:\n(-want, +got):\n%s", tt.inDesc, diff)
 			}
 		})
 	}
@@ -607,8 +622,8 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s:\n(-want, +got):\n%s", tt.inDesc, diff)
 			}
 		})
 	}
@@ -747,8 +762,8 @@ func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s:\n(-want, +got):\n%s", tt.inDesc, diff)
 			}
 		})
 	}
@@ -770,7 +785,8 @@ func treeNodesEqual(got, want []*TreeNode) error {
 	for _, w := range want {
 		match := false
 		for _, g := range got {
-			if reflect.DeepEqual(g.Data, w.Data) && reflect.DeepEqual(g.Schema, w.Schema) && proto.Equal(g.Path, w.Path) {
+			// Use reflect.DeepEqual on schema comparison to avoid stack overflow (maybe due to circular references).
+			if cmp.Equal(g.Data, w.Data) && reflect.DeepEqual(g.Schema, w.Schema) && proto.Equal(g.Path, w.Path) {
 				match = true
 				break
 			}
@@ -1361,6 +1377,41 @@ func TestSetNode(t *testing.T) {
 			want:     ygot.String("hello"),
 		},
 		{
+			inDesc:           "failure setting uint field in top node with int value",
+			inSchema:         listElemStruct4Schema,
+			inParent:         &ListElemStruct4{},
+			inPath:           mustPath("/key1"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			wantErrSubstring: "failed to unmarshal",
+		},
+		{
+			inDesc:   "success setting uint field in uint node with positive int value with JSON tolerance is set",
+			inSchema: listElemStruct4Schema,
+			inParent: &ListElemStruct4{},
+			inPath:   mustPath("/key1"),
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			want:     ygot.Uint32(42),
+			inOpts:   []SetNodeOpt{&TolerateJSONInconsistencies{}},
+		},
+		{
+			inDesc:   "success setting uint field in uint node with 0 int value with JSON tolerance is set",
+			inSchema: listElemStruct4Schema,
+			inParent: &ListElemStruct4{},
+			inPath:   mustPath("/key1"),
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 0}},
+			want:     ygot.Uint32(0),
+			inOpts:   []SetNodeOpt{&TolerateJSONInconsistencies{}},
+		},
+		{
+			inDesc:           "failure setting uint field in uint node with negative int value with JSON tolerance is set",
+			inSchema:         listElemStruct4Schema,
+			inParent:         &ListElemStruct4{},
+			inPath:           mustPath("/key1"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: -42}},
+			wantErrSubstring: "failed to unmarshal",
+			inOpts:           []SetNodeOpt{&TolerateJSONInconsistencies{}},
+		},
+		{
 			inDesc:           "fail setting value for node with non-leaf schema",
 			inSchema:         simpleSchema,
 			inParent:         &ListElemStruct1{},
@@ -1494,8 +1545,8 @@ func TestSetNode(t *testing.T) {
 				t.Fatalf("did not get exactly one tree node: %v", treeNode)
 			}
 			got := treeNode[0].Data
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got: %v\nwant: %v", pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("(-want, +got):\n%s", diff)
 			}
 		})
 	}
@@ -1745,7 +1796,7 @@ func TestDeleteNode(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(tt.inRoot, tt.want); diff != "" {
+			if diff := cmp.Diff(tt.want, tt.inRoot); diff != "" {
 				t.Errorf("TestDeleteNode (-want, +got):\n%s", diff)
 			}
 		})

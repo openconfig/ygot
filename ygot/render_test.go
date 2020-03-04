@@ -146,8 +146,8 @@ func TestAppendName(t *testing.T) {
 			continue
 		}
 
-		if diff := cmp.Diff(tt.inPath, tt.want, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
-			t.Errorf("%s: (gnmiPath)(%#v).AppendName(%s): did not get expected path, diff(-got,+want):\n%s", tt.name, tt.inPath, tt.inName, diff)
+		if diff := cmp.Diff(tt.want, tt.inPath, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
+			t.Errorf("%s: (gnmiPath)(%#v).AppendName(%s): did not get expected path, diff(-want,+got):\n%s", tt.name, tt.inPath, tt.inName, diff)
 		}
 	}
 }
@@ -168,7 +168,7 @@ func TestGNMIPathCopy(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if got := tt.inPath.Copy(); !reflect.DeepEqual(got, tt.inPath) {
+		if got := tt.inPath.Copy(); !cmp.Equal(got, tt.inPath, cmp.AllowUnexported(gnmiPath{})) {
 			t.Errorf("%s: (gnmiPath).Copy(): did not get expected result, got: %v, want: %v", tt.name, got, tt.inPath)
 		}
 	}
@@ -628,8 +628,8 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 			t.Errorf("%s: appendgNMIPathElemKey(%v, %v): did not get expected error status, got: %v, want error: %v", tt.name, tt.inValue, tt.inPath, err, tt.wantErr)
 		}
 
-		if diff := cmp.Diff(got, tt.wantPath, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
-			t.Errorf("%s: appendgNMIPathElemKey(%v, %v): did not get expected return path, diff(-got,+want):\n%s", tt.name, tt.inValue, tt.inPath, diff)
+		if diff := cmp.Diff(tt.wantPath, got, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
+			t.Errorf("%s: appendgNMIPathElemKey(%v, %v): did not get expected return path, diff(-want,+got):\n%s", tt.name, tt.inValue, tt.inPath, diff)
 		}
 	}
 }
@@ -2355,7 +2355,7 @@ func TestUnionPtrValue(t *testing.T) {
 			t.Errorf("%s: unionPtrValue(%v, %v): did not get expected error, got: %v, want error: %v", tt.name, tt.inValue, tt.inAppendModName, err, tt.wantErr)
 		}
 
-		if !reflect.DeepEqual(got, tt.want) {
+		if !cmp.Equal(got, tt.want) {
 			t.Errorf("%s: unionPtrValue(%v, %v): did not get expected value, got: %v, want: %v", tt.name, tt.inValue, tt.inAppendModName, got, tt.want)
 		}
 	}
@@ -2449,7 +2449,7 @@ func TestLeaflistToSlice(t *testing.T) {
 			t.Errorf("%s: leaflistToSlice(%v): got unexpected error: %v", tt.name, tt.inVal.Interface(), err)
 		}
 
-		if !reflect.DeepEqual(got, tt.wantSlice) {
+		if !cmp.Equal(got, tt.wantSlice) {
 			t.Errorf("%s: leaflistToSlice(%v): did not get expected slice, got: %v, want: %v", tt.name, tt.inVal.Interface(), got, tt.wantSlice)
 		}
 	}
@@ -2522,7 +2522,7 @@ func TestKeyValueAsString(t *testing.T) {
 				continue
 			}
 		}
-		if !reflect.DeepEqual(s, tt.want) {
+		if !cmp.Equal(s, tt.want) {
 			t.Errorf("got %v, want %v", s, tt.want)
 		}
 	}

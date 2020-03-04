@@ -104,7 +104,7 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 	leafSchema.ListAttr = nil
 
 	switch enc {
-	case GNMIEncoding:
+	case GNMIEncoding, gNMIEncodingWithJSONTolerance:
 		if _, ok := value.(*gpb.TypedValue); !ok {
 			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect *gpb.TypedValue", schema.Name, util.ValueStr(value), value)
 		}

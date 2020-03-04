@@ -64,8 +64,8 @@ func TestRenderToGNMINotifications(t *testing.T) {
 		}
 
 		if !updateSetEqual(gotProtos[0].Update, want.Update) {
-			diff := cmp.Diff(gotProtos[0], want)
-			t.Errorf("%s: renderToGNMINotifications(%v, %v, %v): did not get expected output, diff(-got,+want):\n%s", tt.name, tt.inStruct, tt.inTimestamp, tt.inUsePathElem, diff)
+			diff := cmp.Diff(want, gotProtos[0])
+			t.Errorf("%s: renderToGNMINotifications(%v, %v, %v): did not get expected output, diff(-want,+got):\n%s", tt.name, tt.inStruct, tt.inTimestamp, tt.inUsePathElem, diff)
 		}
 	}
 }

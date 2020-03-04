@@ -99,8 +99,8 @@ func TestGzipToSchema(t *testing.T) {
 			if err != nil {
 				t.Errorf("%s: GzipToSchema(%v): did not get expected output, and JSON generation failed: %v", tt.name, tt.in, err)
 			}
-			diff, _ := testutil.GenerateUnifiedDiff(string(gotj), string(wantj))
-			t.Errorf("%s: GzipToSchema(%v): did not get expected output, diff(-got,+want):\n%s", tt.name, tt.in, diff)
+			diff, _ := testutil.GenerateUnifiedDiff(string(wantj), string(gotj))
+			t.Errorf("%s: GzipToSchema(%v): did not get expected output, diff(-want, +got):\n%s", tt.name, tt.in, diff)
 		}
 	}
 }

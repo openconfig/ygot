@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 
@@ -448,7 +449,7 @@ func DeepEqualDerefPtrs(a, b interface{}) bool {
 	if !IsValueNil(b) && reflect.TypeOf(b).Kind() == reflect.Ptr {
 		bb = reflect.ValueOf(b).Elem().Interface()
 	}
-	return reflect.DeepEqual(aa, bb)
+	return cmp.Equal(aa, bb)
 }
 
 // ChildSchema returns the schema for the struct field f, if f contains a valid

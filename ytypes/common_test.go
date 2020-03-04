@@ -19,6 +19,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
@@ -81,10 +82,10 @@ func areEqual(a, b interface{}) bool {
 	}
 	va, vb := reflect.ValueOf(a), reflect.ValueOf(b)
 	if va.Kind() == reflect.Ptr && vb.Kind() == reflect.Ptr {
-		return reflect.DeepEqual(va.Elem().Interface(), vb.Elem().Interface())
+		return cmp.Equal(va.Elem().Interface(), vb.Elem().Interface())
 	}
 
-	return reflect.DeepEqual(a, b)
+	return cmp.Equal(a, b)
 }
 
 func TestValidateListAttr(t *testing.T) {

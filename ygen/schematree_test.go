@@ -15,9 +15,9 @@
 package ygen
 
 import (
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 )
@@ -219,8 +219,8 @@ func TestFixSchemaTreePath(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(got, tt.wantParts) {
-			t.Errorf("%s: fixedSchemaTreePath(%v, %v): did not get expected parts, got: %v, want: %v", tt.name, tt.inPath, tt.inContext, got, tt.wantParts)
+		if diff := cmp.Diff(tt.wantParts, got); diff != "" {
+			t.Errorf("%s: fixedSchemaTreePath(%v, %v): did not get expected parts, (-want, +got):\n%s", tt.name, tt.inPath, tt.inContext, diff)
 		}
 	}
 }

@@ -175,8 +175,8 @@ func TestStructTagToLibPaths(t *testing.T) {
 			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, err, tt.wantErr)
 		}
 
-		if diff := cmp.Diff(got, tt.want, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
-			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-got,+want):\n%s", tt.name, tt.inField, tt.inParent, diff)
+		if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
+			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, diff)
 		}
 	}
 }
@@ -555,10 +555,10 @@ func TestEmitJSON(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(got, string(wantJSON)); diff != "" {
-			if diffl, err := testutil.GenerateUnifiedDiff(got, string(wantJSON)); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(string(wantJSON), got); err == nil {
 				diff = diffl
 			}
-			t.Errorf("%s: EmitJSON(%v, nil): got invalid JSON, diff(-got,+want):\n%s", tt.name, tt.inStruct, diff)
+			t.Errorf("%s: EmitJSON(%v, nil): got invalid JSON, diff(-want, +got):\n%s", tt.name, tt.inStruct, diff)
 		}
 	}
 }
@@ -1636,7 +1636,7 @@ func TestMergeStructs(t *testing.T) {
 		name:    "error, field set in both structs",
 		inA:     &validatedMergeTest{String: String("karbach-hopadillo")},
 		inB:     &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
-		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field, src: blackwater-draw-brewing-co-border-town, dst: karbach-hopadillo",
+		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field",
 	}, {
 		name: "allow leaf overwrite if equal",
 		inA:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
@@ -1646,7 +1646,7 @@ func TestMergeStructs(t *testing.T) {
 		name:    "error - merge leaf overwrite but not equal",
 		inA:     &validatedMergeTest{String: String("schneider-weisse-hopfenweisse")},
 		inB:     &validatedMergeTest{String: String("deschutes-jubelale")},
-		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field, src: deschutes-jubelale, dst: schneider-weisse-hopfenweisse",
+		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field",
 	}, {
 		name: "merge fields with slice of structs",
 		inA: &validatedMergeTestWithSlice{

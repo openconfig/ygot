@@ -38,7 +38,7 @@ type Device struct {
 	id string
 }
 
-func ForDevice(id string) *Device {
+func DeviceRoot(id string) *Device {
 	return &Device{id: id}
 }
 
@@ -58,13 +58,28 @@ type Foo struct {
 	ygot.NodePath
 }
 
+// FooAny represents the wildcard version of the /openconfig-enumcamelcase/foo YANG schema element.
+type FooAny struct {
+	ygot.NodePath
+}
+
 // Foo_Bar represents the /openconfig-enumcamelcase/foo/bar YANG schema element.
 type Foo_Bar struct {
 	ygot.NodePath
 }
 
+// Foo_BarAny represents the wildcard version of the /openconfig-enumcamelcase/foo/bar YANG schema element.
+type Foo_BarAny struct {
+	ygot.NodePath
+}
+
 // Foo_Baz represents the /openconfig-enumcamelcase/foo/baz YANG schema element.
 type Foo_Baz struct {
+	ygot.NodePath
+}
+
+// Foo_BazAny represents the wildcard version of the /openconfig-enumcamelcase/foo/baz YANG schema element.
+type Foo_BazAny struct {
 	ygot.NodePath
 }
 
@@ -79,9 +94,31 @@ func (n *Foo) Bar() *Foo_Bar {
 	}
 }
 
+// Bar returns from FooAny the path struct for its child "bar".
+func (n *FooAny) Bar() *Foo_BarAny {
+	return &Foo_BarAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"bar"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
 // Baz returns from Foo the path struct for its child "baz".
 func (n *Foo) Baz() *Foo_Baz {
 	return &Foo_Baz{
+		NodePath: ygot.NewNodePath(
+			[]string{"baz"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Baz returns from FooAny the path struct for its child "baz".
+func (n *FooAny) Baz() *Foo_BazAny {
+	return &Foo_BazAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"baz"},
 			map[string]interface{}{},

@@ -15,7 +15,7 @@ import "openconfig/enums/enums.proto";
 message A {
   enum A {
     A_UNSET = 0;
-    A_C_VAL = 1;
+    A_C_VAL_D_VAL = 1;
   }
   enum D {
     D_UNSET = 0;

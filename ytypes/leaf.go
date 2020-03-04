@@ -63,7 +63,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect []byte for binary value %v for schema %s, have type %v", value, schema.Name, ykind))
 		}
 	case reflect.Int64:
-		if ykind != yang.Yenum && ykind != yang.Yidentityref {
+		if ykind != yang.Yenum && ykind != yang.Yidentityref && ykind != yang.Yunion {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect Int64 for enum type for schema %s, have type %v", schema.Name, ykind))
 		}
 	case reflect.Bool:
@@ -216,17 +216,25 @@ func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
 	}
 
 	util.DbgPrint("validateUnion %s", schema.Name)
-	// Must be a ptr - either a struct ptr or Go value ptr like *string.
-	// Enum types are also represented as a struct for union where the field
-	// has the enum type.
-	if reflect.TypeOf(value).Kind() != reflect.Ptr {
-		return util.NewErrs(fmt.Errorf("wrong value type for union %s: got: %T, expect ptr", schema.Name, value))
+	v := reflect.ValueOf(value)
+	switch v.Kind() {
+	case reflect.Ptr:
+		// The union is usually a ptr - either a struct ptr or Go value ptr like *string.
+		// Enum types are also represented as a struct for union where the field
+		// has the enum type.
+		v = v.Elem()
+	case reflect.Int64:
+		// A union containing a single enumerated type would simply resolve to the
+		// enum type, which represented directly by a derived Int64 type.
+	default:
+		return util.NewErrs(fmt.Errorf("wrong value type for union %s: got: %T, expect ptr or Int64 (enumerated type)", schema.Name, value))
 	}
-
-	v := reflect.ValueOf(value).Elem()
 
 	// Unions of enum types are passed as ptr to interface to struct ptr.
 	// Normalize to a union struct.
+	// TODO(wenbli): Remove this if statement in a future PR.
+	// v here is already a struct, as multi-type unions are represented as
+	// interfaces within their parents' structs, *not* ptrs to interfaces.
 	if util.IsValueInterface(v) {
 		v = v.Elem()
 		if util.IsValuePtr(v) {
@@ -497,7 +505,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	var valueStr string
 	var ok bool
 	switch enc {
-	case GNMIEncoding:
+	case GNMIEncoding, gNMIEncodingWithJSONTolerance:
 		var sv *gpb.TypedValue_StringVal
 		if sv, ok = value.(*gpb.TypedValue).GetValue().(*gpb.TypedValue_StringVal); ok {
 			valueStr = sv.StringVal
@@ -664,12 +672,12 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 	switch enc {
 	case JSONEncoding:
 		return sanitizeJSON(parent, schema, fieldName, value)
-	case GNMIEncoding:
+	case GNMIEncoding, gNMIEncodingWithJSONTolerance:
 		tv, ok := value.(*gpb.TypedValue)
 		if !ok {
 			return nil, fmt.Errorf("got %T type, want gNMI TypedValue as value type", value)
 		}
-		return sanitizeGNMI(parent, schema, fieldName, tv)
+		return sanitizeGNMI(parent, schema, fieldName, tv, enc == gNMIEncodingWithJSONTolerance)
 	}
 
 	return nil, fmt.Errorf("unknown encoding mode; %v", enc)
@@ -762,15 +770,18 @@ func sanitizeJSON(parent interface{}, schema *yang.Entry, fieldName string, valu
 	return nil, fmt.Errorf("unmarshalScalar: unsupported type %v in schema node %s", ykind, schema.Name)
 }
 
-// sanitizeGNMI decodes the GNMI TypedValue encoded value into the type of
-// corresponding field in GoStruct. Parent is the parent struct containing the
+// sanitizeGNMI decodes the GNMI TypedValue encoded value into a field of the
+// corresponding type in GoStruct. Parent is the parent struct containing the
 // field being unmarshaled. schema is *yang.Entry corresponding to the field.
-// fieldName is the name of the field being written in GoStruct. value is the
-// JSON encoded value.
-func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *gpb.TypedValue) (interface{}, error) {
+// fieldName is the name of the field being written in GoStruct. tv is the
+// JSON encoded value. jsonTolerance means to allow some otherwise nonmatching
+// types to match due to inconsistencies after json translation; for now, this
+// just involves accepting positive ints as uints.
+func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *gpb.TypedValue, jsonTolerance bool) (interface{}, error) {
 	ykind := schema.Type.Kind
 
-	if !gNMIToYANGTypeMatches(ykind, tv) {
+	var ok bool
+	if ok = gNMIToYANGTypeMatches(ykind, tv, jsonTolerance); !ok {
 		return nil, fmt.Errorf("failed to unmarshal %v into %v", tv.GetValue(), yang.TypeKindToName[ykind])
 	}
 
@@ -817,10 +828,14 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 }
 
 // gNMIToYANGTypeMatches checks whether the provided yang.TypeKind can be set
-// by using the provided gNMI TypedValue. gNMI TypedValue oneof fields can
+// by using the provided gNMI TypedValue, and returns the TypedValue that
+// should be used to get the underlying value. gNMI TypedValue oneof fields can
 // carry more than one sizes of the same type per gNMI specification:
 // https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-specification.md#223-node-values
-func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue) bool {
+// jsonTolerance means to allow some otherwise nonmatching types to match due
+// to inconsistencies after json translation; for now, this just involves
+// accepting positive ints as uints.
+func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonTolerance bool) bool {
 	var ok bool
 	switch ykind {
 	case yang.Ybool:
@@ -831,6 +846,12 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue) bool {
 		_, ok = tv.GetValue().(*gpb.TypedValue_IntVal)
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
 		_, ok = tv.GetValue().(*gpb.TypedValue_UintVal)
+		if !ok && jsonTolerance {
+			// Allow positive ints to be treated as uints.
+			if v, intOk := tv.GetValue().(*gpb.TypedValue_IntVal); intOk && v.IntVal >= 0 {
+				ok, tv.Value = true, &gpb.TypedValue_UintVal{UintVal: uint64(v.IntVal)}
+			}
+		}
 	case yang.Ybinary:
 		_, ok = tv.GetValue().(*gpb.TypedValue_BytesVal)
 	case yang.Ydecimal64:

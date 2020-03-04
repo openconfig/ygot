@@ -27,6 +27,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/ygot/experimental/ygotutils"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/util"
@@ -680,8 +681,9 @@ func TestNewNode(t *testing.T) {
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
 		if isOK(status) {
-			if got, want := n, tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %v, want: %v ", tt.desc, util.ValueStr(got), util.ValueStr(want))
+			got, want := n, tt.want
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s: (-want, +got):\n%s", tt.desc, diff)
 			}
 		}
 	}
@@ -814,8 +816,9 @@ func TestGetNode(t *testing.T) {
 		}
 		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
 		if isOK(status) {
-			if got, want := n, tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %v, want: %v ", tt.desc, util.ValueStr(got), util.ValueStr(want))
+			got, want := n, tt.want
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s: (-want, +got):\n%s", tt.desc, diff)
 			}
 		}
 	}

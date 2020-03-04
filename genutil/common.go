@@ -104,16 +104,23 @@ type CompressBehaviour int64
 // No dimension spans across all others' options, so can't extract any out
 // without having to error out for some combinations.
 const (
-	// Uncompressed means to not compress the schema.
+	// Uncompressed does not compress the generated code. This means list
+	// containers and config/state containers are retained in the generated
+	// code.
 	Uncompressed CompressBehaviour = iota
-	// UncompressedExcludeDerivedState excludes config false subtrees.
+	// UncompressedExcludeDerivedState excludes config false subtrees in
+	// the generated code.
 	UncompressedExcludeDerivedState
-	// PreferIntendedConfig indicates to use the "config" version of a
-	// schema entry instead of its "state" counterpart when both exist.
+	// PreferIntendedConfig generates only the "config" version of a field
+	// when it exists under both "config" and "state" containers of its
+	// parent YANG model. If no conflict exists between these containers,
+	// then the field is always generated.
 	PreferIntendedConfig
-	// PreferOperationalState indicates to use the "state" version of a
-	// schema entry instead of its "config" counterpart when both exist.
-	PreferOperationalState // prefer applied config
+	// PreferOperationalState generates only the "state" version of a field
+	// when it exists under both "config" and "state" containers of its
+	// parent YANG model. If no conflict exists between these containers,
+	// then the field is always generated.
+	PreferOperationalState
 	// ExcludeDerivedState excludes all values that are not writeable
 	// (i.e. config false), including their children, from the generated
 	// code output.
@@ -139,19 +146,22 @@ func (c CompressBehaviour) StateExcluded() bool {
 }
 
 // TranslateToCompressBehaviour translates the set of (compressPaths,
-// excludeState) into a subset of CompressBehaviour options.
-// TODO(wenbli:b/142679709): This serves as a workaround before generator
-// scripts need to change to make use of the unused options.
-func TranslateToCompressBehaviour(compressPaths, excludeState bool) CompressBehaviour {
+// excludeState, preferOperationalState) into a CompressBehaviour. Invalid
+// combinations produces an error.
+func TranslateToCompressBehaviour(compressPaths, excludeState, preferOperationalState bool) (CompressBehaviour, error) {
 	switch {
+	case preferOperationalState && !(compressPaths && !excludeState):
+		return 0, fmt.Errorf("preferOperationalState is only compatible with compressPaths=true and excludeState=false")
+	case preferOperationalState:
+		return PreferOperationalState, nil
 	case compressPaths && excludeState:
-		return ExcludeDerivedState
+		return ExcludeDerivedState, nil
 	case compressPaths:
-		return PreferIntendedConfig
+		return PreferIntendedConfig, nil
 	case excludeState:
-		return UncompressedExcludeDerivedState
+		return UncompressedExcludeDerivedState, nil
 	default:
-		return Uncompressed
+		return Uncompressed, nil
 	}
 }
 

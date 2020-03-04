@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
@@ -347,6 +347,12 @@ type UnionContainerCompressed struct {
 
 func (*UnionContainerCompressed) IsYANGGoStruct() {}
 
+type UnionContainerSingleEnum struct {
+	UnionField EnumType `path:"union1"`
+}
+
+func (*UnionContainerSingleEnum) IsYANGGoStruct() {}
+
 func TestValidateLeafUnion(t *testing.T) {
 	unionContainerSchema := &yang.Entry{
 		Name: "union1-container",
@@ -368,6 +374,27 @@ func TestValidateLeafUnion(t *testing.T) {
 							Name: "int16",
 							Kind: yang.Yint16,
 						},
+						{
+							Name: "enum",
+							Kind: yang.Yenum,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	unionContainerSingleEnumSchema := &yang.Entry{
+		Name: "union1-container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"union1": {
+				Name: "union1",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Name: "union1-type",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{
 						{
 							Name: "enum",
 							Kind: yang.Yenum,
@@ -475,6 +502,11 @@ func TestValidateLeafUnion(t *testing.T) {
 			schema:  unionContainerSchema,
 			val:     &UnionContainer{UnionField: &Union1BadLeaf{BadLeaf: ygot.Float32(0)}},
 			wantErr: true,
+		},
+		{
+			desc:   "success no wrapping struct enum",
+			schema: unionContainerSingleEnumSchema,
+			val:    &UnionContainerSingleEnum{UnionField: EnumType(42)},
 		},
 		{
 			desc:   "success no wrapping struct string",
@@ -1354,8 +1386,9 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s (#%d): Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, idx, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := parent, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s (#%d): Unmarshal (-want, +got):\n%s", tt.desc, idx, diff)
 				}
 			}
 		})
@@ -1455,8 +1488,9 @@ func TestUnmarshalLeafRef(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := parent, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
 			}
 		})
@@ -1835,8 +1869,8 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		if !reflect.DeepEqual(inParent, tt.wantVal) {
-			t.Errorf("%s: unmarshalLeaf(%v, %v, %v, GNMIEncoding): got %v, want %v", tt.desc, tt.inSchema, inParent, tt.inVal, inParent, tt.wantVal)
+		if diff := cmp.Diff(tt.wantVal, inParent); diff != "" {
+			t.Errorf("%s: unmarshalLeaf(%v, %v, %v, GNMIEncoding): (-want, +got):\n%s", tt.desc, tt.inSchema, inParent, tt.inVal, diff)
 		}
 	}
 }

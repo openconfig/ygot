@@ -29,6 +29,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/ygot/util"
 )
 
@@ -199,7 +200,7 @@ func pruneBranchesInternal(t reflect.Type, v reflect.Value) bool {
 				// Ensure that if the field value was actually nil, we skip over this
 				// field since its already nil.
 				continue
-			case reflect.DeepEqual(zVal.Interface(), fVal.Elem().Interface()):
+			case cmp.Equal(zVal.Interface(), fVal.Elem().Interface()):
 				// In the case that the zero value's interface is the same as the
 				// dereferenced field value's nil value, then we set it to the zero value
 				// of the field type. The fType contains a pointer to the struct, so
@@ -259,7 +260,7 @@ func pruneBranchesInternal(t reflect.Type, v reflect.Value) bool {
 				v = v.Elem()
 				t = t.Elem()
 			}
-			if v.IsValid() && !reflect.DeepEqual(reflect.Zero(t).Interface(), v.Interface()) {
+			if v.IsValid() && !cmp.Equal(reflect.Zero(t).Interface(), v.Interface()) {
 				allChildrenPruned = false
 			}
 		}
@@ -570,8 +571,9 @@ func copyPtrField(dstField, srcField reflect.Value) error {
 	}
 
 	if !util.IsNilOrInvalidValue(dstField) {
-		if s, d := srcField.Elem().Interface(), dstField.Elem().Interface(); !reflect.DeepEqual(s, d) {
-			return fmt.Errorf("destination value was set, but was not equal to source value when merging ptr field, src: %v, dst: %v", s, d)
+		s, d := srcField.Elem().Interface(), dstField.Elem().Interface()
+		if diff := cmp.Diff(s, d); diff != "" {
+			return fmt.Errorf("destination value was set, but was not equal to source value when merging ptr field, (-src, +dst):\n%s", diff)
 		}
 	}
 
@@ -760,7 +762,7 @@ func uniqueSlices(a, b reflect.Value) (bool, error) {
 
 	for i := 0; i < a.Len(); i++ {
 		for j := 0; j < b.Len(); j++ {
-			if reflect.DeepEqual(a.Index(i).Interface(), b.Index(j).Interface()) {
+			if cmp.Equal(a.Index(i).Interface(), b.Index(j).Interface()) {
 				return false, nil
 			}
 		}

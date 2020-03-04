@@ -40,7 +40,9 @@ module openconfig-withlist {
 
       container b {
         list multi-key {
-          key "key1 key2";
+          key "key1
+
+                key2"; // Test for irregular spacing
 
           leaf key1 {
             type leafref {

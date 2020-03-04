@@ -17,12 +17,12 @@ package ygen
 import (
 	"bytes"
 	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 	"text/template"
 
 	log "github.com/golang/glog"
+	"github.com/google/go-cmp/cmp"
 
 	"github.com/openconfig/gnmi/errlist"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -1174,7 +1174,7 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, state *genState, compressPaths, generateJSONSchema bool, goOpts GoOpts) (GoStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, gogen *goGenState, compressPaths, generateJSONSchema bool, goOpts GoOpts) (GoStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -1212,6 +1212,9 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 	// genUnions stores the set of multi-type YANG unions that must have
 	// code generated for them.
 	genUnions := []goUnionInterface{}
+	// genUnionSet stores a set of union type names such that we can process
+	// each appearance of a union type within the struct once and only once.
+	genUnionSet := map[string]bool{}
 
 	annotationPrefix := goOpts.AnnotationPrefix
 	// Set the default annotation prefix if it is unset.
@@ -1245,7 +1248,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			// If the field within the struct is a list, then generate code for this list. This
 			// includes extracting any new types that are required to represent the key of a
 			// list that has multiple keys.
-			fieldType, multiKeyListKey, listMethods, listErr := yangListFieldToGoType(field, fieldName, targetStruct, goStructElements, state)
+			fieldType, multiKeyListKey, listMethods, listErr := yangListFieldToGoType(field, fieldName, targetStruct, goStructElements, gogen)
 			if listErr != nil {
 				errs = append(errs, listErr)
 			}
@@ -1270,7 +1273,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			// This is a YANG container, so it is represented in code using a pointer to the struct type that
 			// is defined for the entity. findMappableEntities has already determined which fields are to
 			// be output, so no filtering of the set of fields is required here.
-			structName, ok := state.uniqueDirectoryNames[field.Path()]
+			structName, ok := gogen.uniqueDirectoryNames[field.Path()]
 			if !ok {
 				errs = append(errs, fmt.Errorf("could not resolve %s into a defined struct", field.Path()))
 				continue
@@ -1284,7 +1287,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		case field.IsLeaf() || field.IsLeafList():
 			// This is a leaf or leaf-list, so we map it into the Go type that corresponds to the
 			// YANG type that the leaf represents.
-			mtype, err := state.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressPaths)
+			mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressPaths)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -1296,48 +1299,48 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			zeroValue := mtype.ZeroValue
 			defaultValue := goLeafDefault(field, mtype)
 
-			if len(mtype.UnionTypes) > 1 {
-				// If this is a union that has more than one subtype, then we need
-				// to generate the relevant interface.
-				if _, ok := state.generatedUnionInterfaces[targetStruct.Name][mtype.NativeType]; !ok {
-					// If the union type has not already been generated, then create it.
-					// This is to handle cases whereby we can have two types that are
-					// mapped to the same unique name -- such as in the case that we
-					// have a leafref that points to a leaf that is a union.
-					intf := goUnionInterface{
-						Name:           mtype.NativeType,
-						Types:          map[string]string{},
-						LeafPath:       field.Path(),
-						ParentReceiver: targetStruct.Name,
-					}
+			// Only if this union has more than one subtype do we generate the union;
+			// otherwise, we use that subtype directly.
+			// Also, make sure to process a union type once and only once within the struct.
+			// Even if the union has already been processed in another struct, we still need
+			// to generate the union helper with this struct as the receiver and do other
+			// processing as well. On the other hand, if the union type is used by multiple
+			// fields, we assume that it's due to a leafref and use the same union name
+			// without doing further code generation. XXX(wenbli): It's possible that it's a
+			// name collision instead, but because of its low chance and the extra complexity
+			// required to resolve it (e.g. storing the union entry so we make sure the name
+			// is used for the right union entry), we ignore it and allow wrong code to be
+			// generated.
+			if len(mtype.UnionTypes) > 1 && !genUnionSet[mtype.NativeType] {
+				genUnionSet[mtype.NativeType] = true
 
-					for t := range mtype.UnionTypes {
-						// If the type within the union is not a builtin type then we store
-						// it within the enumMap, since it is an enumerated type.
-						if _, builtin := validGoBuiltinTypes[t]; !builtin {
-							enumTypeMap[schemapath] = append(enumTypeMap[schemapath], t)
-						}
-
-						tn := yang.CamelCase(t)
-						// Ensure that we sanitise the type name to be used in the
-						// output struct.
-						if t == "interface{}" {
-							tn = "Interface"
-						}
-						intf.Types[tn] = t
-						intf.TypeNames = append(intf.TypeNames, t)
-					}
-					// Sort the names of the types into determinstic order.
-					sort.Strings(intf.TypeNames)
-
-					if _, ok := state.generatedUnionInterfaces[targetStruct.Name]; !ok {
-						state.generatedUnionInterfaces[targetStruct.Name] = map[string]bool{}
-					}
-					if _, ok := state.generatedUnionInterfaces[targetStruct.Name][mtype.NativeType]; !ok {
-						genUnions = append(genUnions, intf)
-						state.generatedUnionInterfaces[targetStruct.Name][mtype.NativeType] = true
-					}
+				intf := goUnionInterface{
+					Name:           mtype.NativeType,
+					Types:          map[string]string{},
+					LeafPath:       field.Path(),
+					ParentReceiver: targetStruct.Name,
 				}
+
+				for t := range mtype.UnionTypes {
+					// If the type within the union is not a builtin type then we store
+					// it within the enumMap, since it is an enumerated type.
+					if _, builtin := validGoBuiltinTypes[t]; !builtin {
+						enumTypeMap[schemapath] = append(enumTypeMap[schemapath], t)
+					}
+
+					tn := yang.CamelCase(t)
+					// Ensure that we sanitise the type name to be used in the
+					// output struct.
+					if t == "interface{}" {
+						tn = "Interface"
+					}
+					intf.Types[tn] = t
+					intf.TypeNames = append(intf.TypeNames, t)
+				}
+				// Sort the names of the types into determinstic order.
+				sort.Strings(intf.TypeNames)
+
+				genUnions = append(genUnions, intf)
 			}
 
 			if field.ListAttr != nil {
@@ -1511,11 +1514,11 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 	// are used for multi-type unions within the struct.
 	var interfaceBuf bytes.Buffer
 	for _, intf := range genUnions {
-		if _, ok := state.generatedUnions[intf.Name]; !ok {
+		if _, ok := gogen.generatedUnions[intf.Name]; !ok {
 			if err := goTemplates["unionType"].Execute(&interfaceBuf, intf); err != nil {
 				errs = append(errs, err)
 			}
-			state.generatedUnions[intf.Name] = true
+			gogen.generatedUnions[intf.Name] = true
 		}
 		if err := goTemplates["unionHelper"].Execute(&interfaceBuf, intf); err != nil {
 			errs = append(errs, err)
@@ -1763,7 +1766,7 @@ func generateGetListKey(buf *bytes.Buffer, s *Directory, nameMap map[string]*yan
 //	  type.
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
-func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *Directory, goStructElements map[string]*Directory, state *genState) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
+func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *Directory, goStructElements map[string]*Directory, gogen *goGenState) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
 	// this from the set of Directory structs for which code (a Go struct) will be
 	//  generated such that additional details can be used in the code generation.
@@ -1777,7 +1780,7 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 	// this function being called (as all mappable entities, which includes lists, have been found.
 	// Thus, in the case that this struct does not have a known name, then code cannot be generated
 	// for it, and hence we skip the element.
-	listName, ok := state.uniqueDirectoryNames[listField.Path()]
+	listName, ok := gogen.uniqueDirectoryNames[listField.Path()]
 	if !ok {
 		return "", nil, nil, fmt.Errorf("list element %s did not have a resolved name", listField.Path())
 	}
@@ -1795,7 +1798,7 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 
 	// Key name elements are ordered per Section 7.8.2 of RFC6020. Rely on this
 	// fact for determisitic ordering in output code and rendering.
-	keyElemNames := strings.Split(listField.Key, " ")
+	keyElemNames := strings.Fields(listField.Key)
 
 	usedKeyElemNames := make(map[string]bool)
 	for _, keName := range keyElemNames {
@@ -1914,6 +1917,7 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 // If absolutePaths is set, the paths are absolute otherwise they are relative to the parent. If
 // the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
 // path is also returned.
+// TODO(wenbli): This is used by both Go and proto generation, it should be moved to genstate.go or genutil.
 func findMapPaths(parent *Directory, fieldName string, compressPaths, absolutePaths bool) ([][]string, error) {
 	childPath, err := FindSchemaPath(parent, fieldName, absolutePaths)
 	if err != nil {
@@ -1930,8 +1934,8 @@ func findMapPaths(parent *Directory, fieldName string, compressPaths, absolutePa
 	}
 	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
 
-	// Handle specific issue of compression of the schema, where the key
-	// of the parent list is a leafref to this leaf.
+	// Handle specific issue of compressed path schemas, where a key of the
+	// parent list is a leafref to this leaf.
 	for _, k := range parent.ListAttr.KeyElems {
 		// If the key element has the same path as this element, and the
 		// corresponding element that is within the parent's container is of
@@ -1944,7 +1948,12 @@ func findMapPaths(parent *Directory, fieldName string, compressPaths, absolutePa
 			return nil, fmt.Errorf("invalid compressed schema, could not find the key %s or the grandparent of %s", k.Name, k.Path())
 		}
 
-		if reflect.DeepEqual(util.SchemaPathNoChoiceCase(k), fieldSlicePath) && k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref {
+		// If a key of the list is a leafref that points to the field,
+		// then add this as an alternative path.
+		// Note: if k is a leafref, buildListKey() would have already
+		// resolved it the field that the leafref points to. So, we
+		// compare their absolute paths for equality.
+		if k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref && cmp.Equal(util.SchemaPathNoChoiceCase(k), fieldSlicePath) {
 			// The path of the key element is simply the name of the leaf under the
 			// list, since the YANG specification enforces that keys are direct
 			// children of the list.
