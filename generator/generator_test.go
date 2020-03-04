@@ -15,8 +15,8 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
@@ -77,7 +77,7 @@ map
 	}}
 
 	for _, tt := range tests {
-		var got bytes.Buffer
+		var got strings.Builder
 		if err := writeGoCodeSingleFile(&got, tt.inGoCode); err != nil {
 			t.Errorf("%s: writeGoCode(%v): got unexpected error: %v", tt.name, tt.inGoCode, err)
 			continue
@@ -106,11 +106,11 @@ func TestMakeOutputSpec(t *testing.T) {
 			}},
 		},
 		want: map[string]codeOut{
-			enumMapFn:   {},
-			enumFn:      {},
-			schemaFn:    {},
-			interfaceFn: {contents: "interfaces\n"},
-			methodFn:    {contents: "methods\n", oneoffHeader: true},
+			enumMapFn:                           {},
+			enumFn:                              {},
+			schemaFn:                            {},
+			interfaceFn:                         {contents: "interfaces\n"},
+			methodFn:                            {contents: "methods\n", oneoffHeader: true},
 			fmt.Sprintf("%sn.go", structBaseFn): {contents: "def\nname_key\n"},
 		},
 	}, {
@@ -138,7 +138,7 @@ func TestMakeOutputSpec(t *testing.T) {
 			schemaFn:                            {},
 			interfaceFn:                         {contents: "s1interfaces\ns2interfaces\n"},
 			fmt.Sprintf("%ss.go", structBaseFn): {contents: "s1def\ns1key\ns2def\ns2key\n"},
-			methodFn: {contents: "s1methods\ns2methods\n", oneoffHeader: true},
+			methodFn:                            {contents: "s1methods\ns2methods\n", oneoffHeader: true},
 		},
 	}, {
 		name: "two structs, different starting letters",
@@ -165,7 +165,7 @@ func TestMakeOutputSpec(t *testing.T) {
 			interfaceFn:                         {contents: "s1interfaces\nq2interfaces\n"},
 			fmt.Sprintf("%ss.go", structBaseFn): {contents: "s1def\ns1key\n"},
 			fmt.Sprintf("%sq.go", structBaseFn): {contents: "q2def\nq2key\n"},
-			methodFn: {contents: "s1methods\nq2methods\n", oneoffHeader: true},
+			methodFn:                            {contents: "s1methods\nq2methods\n", oneoffHeader: true},
 		},
 	}}
 

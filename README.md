@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/openconfig/ygot.svg?branch=master)](https://travis-ci.org/openconfig/ygot)
 [![Coverage Status](https://coveralls.io/repos/github/openconfig/ygot/badge.svg?branch=master)](https://coveralls.io/github/openconfig/ygot?branch=master)
-[![Go releases supported](https://img.shields.io/badge/Go-1.11%2B-blue)](https://golang.org/project/#release)
+[![Go releases supported](https://img.shields.io/badge/Go-1.12%2B-blue)](https://golang.org/project/#release)
 
 ![#ygot](docs/img/ygot.png)
 

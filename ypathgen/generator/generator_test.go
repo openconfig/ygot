@@ -15,7 +15,7 @@
 package main
 
 import (
-	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -50,7 +50,7 @@ ChildConstructor
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var b bytes.Buffer
+			var b strings.Builder
 			if err := writeGoCodeSingleFile(&b, tt.in); err != nil {
 				t.Fatal(err)
 			}
