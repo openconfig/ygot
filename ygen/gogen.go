@@ -163,7 +163,7 @@ type GoStructCodeSnippet struct {
 
 // String returns the contents of the receiver GoStructCodeSnippet as a string.
 func (g GoStructCodeSnippet) String() string {
-	var b bytes.Buffer
+	var b strings.Builder
 	for _, s := range []string{g.StructDef, g.ListKeys, g.Methods, g.Interfaces} {
 		genutil.WriteIfNotEmpty(&b, s)
 	}

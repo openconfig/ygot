@@ -23,7 +23,6 @@
 package ypathgen
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -283,7 +282,7 @@ type GoPathStructCodeSnippet struct {
 // String returns the contents of a GoPathStructCodeSnippet as a string by
 // simply writing out all of its generated code.
 func (g GoPathStructCodeSnippet) String() string {
-	var b bytes.Buffer
+	var b strings.Builder
 	for _, method := range []string{g.StructBase, g.ChildConstructors} {
 		genutil.WriteIfNotEmpty(&b, method)
 	}
@@ -535,12 +534,12 @@ func writeHeader(yangFiles, includePaths []string, cg *GenConfig, genCode *Gener
 		FakeRootTypeName:        yang.CamelCase(cg.FakeRootName),
 	}
 
-	var common bytes.Buffer
+	var common strings.Builder
 	if err := goPathCommonHeaderTemplate.Execute(&common, s); err != nil {
 		return err
 	}
 
-	var oneoff bytes.Buffer
+	var oneoff strings.Builder
 	if err := goPathOneOffHeaderTemplate.Execute(&oneoff, s); err != nil {
 		return err
 	}
@@ -602,8 +601,8 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 	var errs util.Errors
 	// structBuf is used to store the code associated with the struct defined for
 	// the target YANG entity.
-	var structBuf bytes.Buffer
-	var methodBuf bytes.Buffer
+	var structBuf strings.Builder
+	var methodBuf strings.Builder
 
 	// Output struct snippets.
 	structData := getStructData(directory)
@@ -671,7 +670,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 // field name to be used as the generated method's name and the incremental
 // type name of of the child path struct, and a map of all directories of the
 // whole schema keyed by their schema paths.
-func generateChildConstructors(methodBuf *bytes.Buffer, directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, schemaStructPkgAlias string) []error {
+func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, schemaStructPkgAlias string) []error {
 	field, ok := directory.Fields[directoryFieldName]
 	if !ok {
 		return []error{fmt.Errorf("generateChildConstructors: field %s not found in directory %v", directoryFieldName, directory)}
@@ -720,7 +719,7 @@ func generateChildConstructors(methodBuf *bytes.Buffer, directory *ygen.Director
 // generateChildConstructorsForLeafOrContainer writes into methodBuf the child
 // constructor snippets for the container or leaf template output information
 // contained in fieldData.
-func generateChildConstructorsForLeafOrContainer(methodBuf *bytes.Buffer, fieldData goPathFieldData, isUnderFakeRoot bool) []error {
+func generateChildConstructorsForLeafOrContainer(methodBuf *strings.Builder, fieldData goPathFieldData, isUnderFakeRoot bool) []error {
 	// Generate child constructor for the non-wildcard version of the parent struct.
 	var errors []error
 	if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
@@ -746,7 +745,7 @@ func generateChildConstructorsForLeafOrContainer(methodBuf *bytes.Buffer, fieldD
 // childConstructor template output information for if the node were a
 // container (which contains a subset of the basic information required for
 // the list constructor methods).
-func generateChildConstructorsForList(methodBuf *bytes.Buffer, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAlias string) []error {
+func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAlias string) []error {
 	var errors []error
 	// List of function parameters as would appear in the method definition.
 	keyParamListStrs, err := makeParamListStrs(listAttr, schemaStructPkgAlias)

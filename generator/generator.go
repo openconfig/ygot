@@ -18,7 +18,6 @@
 package main
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"io"
@@ -110,7 +109,7 @@ func writeGoCodeSingleFile(w io.Writer, goCode *ygen.GeneratedGoCode) error {
 }
 
 // writeIfNotEmpty writes the string s to b if it has a non-zero length.
-func writeIfNotEmpty(b *bytes.Buffer, s string) {
+func writeIfNotEmpty(b io.StringWriter, s string) {
 	if len(s) != 0 {
 		b.WriteString(s)
 	}
@@ -131,13 +130,13 @@ type codeOut struct {
 // code snippets into their own files. Structs are output into files dependent on the
 // first letter of their name within the code.
 func makeOutputSpec(goCode *ygen.GeneratedGoCode) map[string]codeOut {
-	var methodCode, interfaceCode bytes.Buffer
-	structCode := map[byte]*bytes.Buffer{}
+	var methodCode, interfaceCode strings.Builder
+	structCode := map[byte]*strings.Builder{}
 	for _, s := range goCode.Structs {
 		// Index by the first character of the struct.
 		fc := s.StructName[0]
 		if _, ok := structCode[fc]; !ok {
-			structCode[fc] = &bytes.Buffer{}
+			structCode[fc] = &strings.Builder{}
 		}
 		cs := structCode[fc]
 		writeIfNotEmpty(cs, s.StructDef)
@@ -146,7 +145,7 @@ func makeOutputSpec(goCode *ygen.GeneratedGoCode) map[string]codeOut {
 		writeIfNotEmpty(&interfaceCode, fmt.Sprintf("%s\n", s.Interfaces))
 	}
 
-	emap := &bytes.Buffer{}
+	emap := &strings.Builder{}
 	writeIfNotEmpty(emap, goCode.EnumMap)
 	if emap.Len() != 0 {
 		emap.WriteString("\n")

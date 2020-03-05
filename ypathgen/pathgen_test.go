@@ -15,7 +15,6 @@
 package ypathgen
 
 import (
-	"bytes"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
@@ -1833,7 +1832,7 @@ func (n *Root) ListWithState(Key float64) *ListWithState {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var buf bytes.Buffer
+			var buf strings.Builder
 			if errs := generateChildConstructors(&buf, tt.inDirectory, tt.inFieldName, tt.inUniqueFieldName, tt.inDirectories, "oc"); errs != nil {
 				t.Fatal(errs)
 			}

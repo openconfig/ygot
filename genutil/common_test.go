@@ -15,8 +15,8 @@
 package genutil
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -90,7 +90,7 @@ func TestWriteIfNotEmpty(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		b := bytes.Buffer{}
+		b := strings.Builder{}
 		WriteIfNotEmpty(&b, tt.in)
 		if got, want := b.String(), tt.want; got != want {
 			t.Errorf("%s (WriteIfNotEmpty: %v): %v is not %s", tt.name, tt.in, got, want)

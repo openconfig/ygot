@@ -17,8 +17,8 @@
 package genutil
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"sort"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -42,7 +42,7 @@ const (
 )
 
 // WriteIfNotEmpty writes the string s to b if it has a non-zero length.
-func WriteIfNotEmpty(b *bytes.Buffer, s string) {
+func WriteIfNotEmpty(b io.StringWriter, s string) {
 	if len(s) != 0 {
 		b.WriteString(s)
 	}
