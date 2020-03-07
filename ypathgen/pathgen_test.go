@@ -1849,7 +1849,7 @@ func TestMakeKeyParams(t *testing.T) {
 	tests := []struct {
 		name             string
 		in               *ygen.YangListAttr
-		want             []KeyParam
+		want             []keyParam
 		wantErrSubstring string
 	}{{
 		name:             "empty listattr",
@@ -1861,14 +1861,14 @@ func TestMakeKeyParams(t *testing.T) {
 			Keys:     map[string]*ygen.MappedType{"fluorine": {NativeType: "string"}},
 			KeyElems: []*yang.Entry{{Name: "fluorine"}},
 		},
-		want: []KeyParam{{name: "fluorine", varName: "Fluorine", typeName: "string"}},
+		want: []keyParam{{name: "fluorine", varName: "Fluorine", typeName: "string"}},
 	}, {
 		name: "simple int param, also testing camel-case",
 		in: &ygen.YangListAttr{
 			Keys:     map[string]*ygen.MappedType{"cl-cl": {NativeType: "int"}},
 			KeyElems: []*yang.Entry{{Name: "cl-cl"}},
 		},
-		want: []KeyParam{{name: "cl-cl", varName: "ClCl", typeName: "int"}},
+		want: []keyParam{{name: "cl-cl", varName: "ClCl", typeName: "int"}},
 	}, {
 		name: "name uniquification",
 		in: &ygen.YangListAttr{
@@ -1878,7 +1878,7 @@ func TestMakeKeyParams(t *testing.T) {
 			},
 			KeyElems: []*yang.Entry{{Name: "cl-cl"}, {Name: "clCl"}},
 		},
-		want: []KeyParam{
+		want: []keyParam{
 			{name: "cl-cl", varName: "ClCl", typeName: "int"},
 			{name: "clCl", varName: "ClCl_", typeName: "int"},
 		},
@@ -1888,7 +1888,7 @@ func TestMakeKeyParams(t *testing.T) {
 			Keys:     map[string]*ygen.MappedType{"fluorine": {NativeType: "interface{}"}},
 			KeyElems: []*yang.Entry{{Name: "fluorine"}},
 		},
-		want: []KeyParam{{name: "fluorine", varName: "Fluorine", typeName: "string"}},
+		want: []keyParam{{name: "fluorine", varName: "Fluorine", typeName: "string"}},
 	}, {
 		name: "keyElems doesn't match keys",
 		in: &ygen.YangListAttr{
@@ -1914,7 +1914,7 @@ func TestMakeKeyParams(t *testing.T) {
 			},
 			KeyElems: []*yang.Entry{{Name: "fluorine"}, {Name: "cl-cl"}, {Name: "bromine"}, {Name: "iodine"}},
 		},
-		want: []KeyParam{
+		want: []keyParam{
 			{name: "fluorine", varName: "Fluorine", typeName: "string"},
 			{name: "cl-cl", varName: "ClCl", typeName: "int"},
 			{name: "bromine", varName: "Bromine", typeName: "complex128"},
@@ -1929,7 +1929,7 @@ func TestMakeKeyParams(t *testing.T) {
 			},
 			KeyElems: []*yang.Entry{{Name: "astatine"}, {Name: "tennessine"}},
 		},
-		want: []KeyParam{
+		want: []keyParam{
 			{name: "astatine", varName: "Astatine", typeName: "oc.Halogen"},
 			{name: "tennessine", varName: "Tennessine", typeName: "oc.Ununseptium"},
 		},
@@ -1942,7 +1942,7 @@ func TestMakeKeyParams(t *testing.T) {
 			},
 			KeyElems: []*yang.Entry{{Name: "cl-cl"}, {Name: "bromine"}},
 		},
-		want: []KeyParam{
+		want: []keyParam{
 			{name: "cl-cl", varName: "ClCl", typeName: "oc.YANGEmpty"},
 			{name: "bromine", varName: "Bromine", typeName: "oc.Binary"},
 		},
@@ -1951,7 +1951,7 @@ func TestMakeKeyParams(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := makeKeyParams(tt.in, "oc")
-			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(KeyParam{})); diff != "" {
+			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(keyParam{})); diff != "" {
 				t.Errorf("(-want, +got):\n%s", diff)
 			}
 

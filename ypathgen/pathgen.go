@@ -859,7 +859,7 @@ func getFieldTypeName(directory *ygen.Directory, directoryFieldName string, goFi
 	return directory.Name + "_" + goFieldName, nil
 }
 
-type KeyParam struct {
+type keyParam struct {
 	name     string
 	varName  string
 	typeName string
@@ -877,13 +877,13 @@ type KeyParam struct {
 // 	KeyElems: []*yang.Entry{{Name: "fluorine"}, {Name: "iodine-liquid"}},
 // }
 // out: [{"fluroine", "Fluorine", "string"}, {"iodine-liquid", "IodineLiquid", "oc.Binary"}]
-func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAlias string) ([]KeyParam, error) {
+func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAlias string) ([]keyParam, error) {
 	if len(listAttr.KeyElems) == 0 {
 		return nil, fmt.Errorf("makeKeyParams: invalid list - has no key; cannot process param list string")
 	}
 
 	// Create parameter list *in order* of keys, which should be in schema order.
-	var keyParams []KeyParam
+	var keyParams []keyParam
 	// NOTE: Although the generated key names might not match their
 	// corresponding ygen field names in case of a camelcase name
 	// collision, we expect that the user is aware of the schema to know
@@ -907,7 +907,7 @@ func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAlias string) ([]
 		default:
 			typeName = mappedType.NativeType
 		}
-		keyParams = append(keyParams, KeyParam{name: keyElem.Name, varName: goKeyNameMap[keyElem.Name], typeName: typeName})
+		keyParams = append(keyParams, keyParam{name: keyElem.Name, varName: goKeyNameMap[keyElem.Name], typeName: typeName})
 	}
 	return keyParams, nil
 }
