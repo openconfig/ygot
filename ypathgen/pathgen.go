@@ -780,49 +780,53 @@ func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, l
 	}
 	keyN := len(keyParams)
 
+	// Initialize ygot.NodePath's key list with wildcard values.
 	var keyEntryStrs []string
 	for i := 0; i != keyN; i++ {
 		keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": "*"`, keyParams[i].name))
 	}
-	// Create the string for the method parameter list and ygot.NodePath's key list.
-	fieldData.KeyParamListStr = ""
 	fieldData.KeyEntriesStr = strings.Join(keyEntryStrs, ", ")
+
+	// There are no initial key parameters for the builder API.
+	fieldData.KeyParamListStr = ""
 
 	// Set the child type to be the wildcard version.
 	fieldData.TypeName += WildcardSuffix
 
-	// Since all keys are wildcarded, just use BuilderCtorSuffix alone as the suffix.
+	// Add Builder suffix to the child constructor method name.
 	fieldData.MethodName += BuilderCtorSuffix
 
-	// Generate child constructor method for non-wildcard version of parent struct.
+	// Generate builder constructor method for non-wildcard version of parent struct.
 	if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
 		errors = append(errors, err)
 	}
 
 	// The root node doesn't have a wildcard version of itself.
 	if !isUnderFakeRoot {
-		// Generate child constructor method for wildcard version of parent struct.
+		// Generate builder constructor method for wildcard version of parent struct.
 		fieldData.Struct.TypeName += WildcardSuffix
 		if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
 			return append(errors, err)
 		}
 	}
 
+	// Generate key-builder methods for the wildcard version of the PathStruct.
+	// Although non-wildcard PathStruct is unnecessary, it is kept for generation simplicity.
 	for i := 0; i != keyN; i++ {
-		builder := struct {
-			MethodName    string
-			TypeName      string
-			KeySchemaName string
-			KeyParamType  string
-			KeyParamName  string
-		}{
-			MethodName:    BuilderKeyPrefix + keyParams[i].varName,
-			TypeName:      fieldData.TypeName,
-			KeySchemaName: keyParams[i].name,
-			KeyParamName:  keyParams[i].varName,
-			KeyParamType:  keyParams[i].typeName,
-		}
-		if err := goKeyBuilderTemplate.Execute(methodBuf, builder); err != nil {
+		if err := goKeyBuilderTemplate.Execute(methodBuf,
+			struct {
+				MethodName    string
+				TypeName      string
+				KeySchemaName string
+				KeyParamType  string
+				KeyParamName  string
+			}{
+				MethodName:    BuilderKeyPrefix + keyParams[i].varName,
+				TypeName:      fieldData.TypeName,
+				KeySchemaName: keyParams[i].name,
+				KeyParamName:  keyParams[i].varName,
+				KeyParamType:  keyParams[i].typeName,
+			}); err != nil {
 			return append(errors, err)
 		}
 	}

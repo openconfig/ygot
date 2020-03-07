@@ -1868,14 +1868,14 @@ func (n *Root) ListWithState(Key float64) *ListWithState {
 }
 `,
 	}, {
-		name:              "list methods",
+		name:              "root-level list methods",
 		inDirectory:       directories["/root"],
 		inDirectories:     directories,
 		inFieldName:       "list",
 		inUniqueFieldName: "List",
 		want:              wantListMethods,
 	}, {
-		name:                      "list methods with builder API threshold over the number of keys",
+		name:                      "root-level list methods with builder API threshold over the number of keys",
 		inDirectory:               directories["/root"],
 		inDirectories:             directories,
 		inFieldName:               "list",
@@ -1883,7 +1883,7 @@ func (n *Root) ListWithState(Key float64) *ListWithState {
 		inListBuilderKeyThreshold: 4,
 		want:                      wantListMethods,
 	}, {
-		name:                      "list methods over key threshold -- should use builder API",
+		name:                      "root-level list methods over key threshold -- should use builder API",
 		inDirectory:               directories["/root"],
 		inDirectories:             directories,
 		inFieldName:               "list",
