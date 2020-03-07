@@ -752,8 +752,6 @@ func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen
 	if err != nil {
 		return append(errors, err)
 	}
-	// List of key parameters as would appear in the key attribute of a
-	// ygot.NodePath definition.
 	keyN := len(keyParams)
 	combos := combinations(keyN)
 
