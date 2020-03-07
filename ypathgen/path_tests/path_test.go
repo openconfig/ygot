@@ -178,6 +178,48 @@ func TestPathCreation(t *testing.T) {
 			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(iNullInUnion).InOctets()
 		},
 		wantPath: "/network-instances/network-instance[name=RED]/mpls/signaling-protocols/segment-routing/interfaces/interface[interface-id=eth1]/sid-counters/sid-counter[mpls-label=IMPLICIT_NULL]/state/in-octets",
+	}, {
+		name: "Builder API constructor",
+		makePath: func(root *ocp.Root) ygot.PathStruct {
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder()
+		},
+		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=*][oui-subtype=*]",
+	}, {
+		name: "Builder API constructor going beyond the list",
+		makePath: func(root *ocp.Root) ygot.PathStruct {
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().Value()
+		},
+		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=*][oui-subtype=*]/state/value",
+	}, {
+		name: "Builder API builder for type",
+		makePath: func(root *ocp.Root) ygot.PathStruct {
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().WithType(3)
+		},
+		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=3][oui=*][oui-subtype=*]",
+	}, {
+		name: "Builder API builder for oui",
+		makePath: func(root *ocp.Root) ygot.PathStruct {
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().WithOui("bar")
+		},
+		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=bar][oui-subtype=*]",
+	}, {
+		name: "Builder API builder for subtype",
+		makePath: func(root *ocp.Root) ygot.PathStruct {
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().WithOuiSubtype("baz").Value()
+		},
+		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=*][oui-subtype=baz]/state/value",
+	}, {
+		name: "Builder API builder for type and oui",
+		makePath: func(root *ocp.Root) ygot.PathStruct {
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().WithType(3).WithOui("bar")
+		},
+		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=3][oui=bar][oui-subtype=*]",
+	}, {
+		name: "Builder API builder for type and oui and oui-subtype",
+		makePath: func(root *ocp.Root) ygot.PathStruct {
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().WithOui("bar").WithType(3).WithOuiSubtype("baz")
+		},
+		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=3][oui=bar][oui-subtype=baz]",
 	}}
 
 	for _, tt := range tests {

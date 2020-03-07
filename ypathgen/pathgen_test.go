@@ -43,14 +43,15 @@ const (
 // through Goyang's API, it provides the input set of parameters in a way that
 // can be reused across tests.
 type yangTestCase struct {
-	name                     string      // Name is the identifier for the test.
-	inFiles                  []string    // inFiles is the set of inputFiles for the test.
-	inIncludePaths           []string    // inIncludePaths is the set of paths that should be searched for imports.
-	inPreferOperationalState bool        // inPreferOperationalState says whether to prefer operational state over intended config in the path-building methods.
-	checkYANGPath            bool        // checkYANGPath says whether to check for the YANG path in the NodeDataMap.
-	wantStructsCodeFile      string      // wantStructsCodeFile is the path of the generated Go code that the output of the test should be compared to.
-	wantNodeDataMap          NodeDataMap // wantNodeDataMap is the expected NodeDataMap to be produced to accompany the path struct outputs.
-	wantErr                  bool        // wantErr specifies whether the test should expect an error.
+	name                      string      // Name is the identifier for the test.
+	inFiles                   []string    // inFiles is the set of inputFiles for the test.
+	inIncludePaths            []string    // inIncludePaths is the set of paths that should be searched for imports.
+	inPreferOperationalState  bool        // inPreferOperationalState says whether to prefer operational state over intended config in the path-building methods.
+	inListBuilderKeyThreshold uint        // inListBuilderKeyThreshold determines the minimum number of keys beyond which the builder API is used for building the paths.
+	checkYANGPath             bool        // checkYANGPath says whether to check for the YANG path in the NodeDataMap.
+	wantStructsCodeFile       string      // wantStructsCodeFile is the path of the generated Go code that the output of the test should be compared to.
+	wantNodeDataMap           NodeDataMap // wantNodeDataMap is the expected NodeDataMap to be produced to accompany the path struct outputs.
+	wantErr                   bool        // wantErr specifies whether the test should expect an error.
 }
 
 func TestGeneratePathCode(t *testing.T) {
@@ -201,6 +202,12 @@ func TestGeneratePathCode(t *testing.T) {
 		inFiles:                  []string{filepath.Join(datapath, "openconfig-withlist.yang")},
 		inPreferOperationalState: true,
 		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.path-txt"),
+	}, {
+		name:                      "simple openconfig test with list in builder API",
+		inFiles:                   []string{filepath.Join(datapath, "openconfig-withlist.yang")},
+		inListBuilderKeyThreshold: 2,
+		inPreferOperationalState:  true,
+		wantStructsCodeFile:       filepath.Join(TestRoot, "testdata/structs/openconfig-withlist-builder.path-txt"),
 	}, {
 		name:                     "simple openconfig test with union & typedef & identity & enum",
 		inFiles:                  []string{filepath.Join(datapath, "openconfig-unione.yang")},
@@ -429,6 +436,7 @@ func TestGeneratePathCode(t *testing.T) {
 				cg.GeneratingBinary = "pathgen-tests"
 				cg.FakeRootName = "device"
 				cg.PreferOperationalState = tt.inPreferOperationalState
+				cg.ListBuilderKeyThreshold = tt.inListBuilderKeyThreshold
 
 				gotCode, gotNodeDataMap, err := cg.GeneratePathCode(tt.inFiles, tt.inIncludePaths)
 				if err != nil && !tt.wantErr {
@@ -1181,9 +1189,10 @@ func TestGenerateDirectorySnippet(t *testing.T) {
 	_, directories, _ := getSchemaAndDirs()
 
 	tests := []struct {
-		name        string
-		inDirectory *ygen.Directory
-		want        GoPathStructCodeSnippet
+		name                      string
+		inDirectory               *ygen.Directory
+		inListBuilderKeyThreshold uint
+		want                      GoPathStructCodeSnippet
 	}{{
 		name:        "container-with-config",
 		inDirectory: directories["/root-module/container-with-config"],
@@ -1499,7 +1508,7 @@ func (n *ListAny) UnionKey() *List_UnionKeyAny {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc")
+			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc", tt.inListBuilderKeyThreshold)
 			if gotErr != nil {
 				t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
 			}
@@ -1612,12 +1621,13 @@ func TestGenerateChildConstructor(t *testing.T) {
 	}
 
 	tests := []struct {
-		name              string
-		inDirectory       *ygen.Directory
-		inDirectories     map[string]*ygen.Directory
-		inFieldName       string
-		inUniqueFieldName string
-		want              string
+		name                      string
+		inDirectory               *ygen.Directory
+		inDirectories             map[string]*ygen.Directory
+		inFieldName               string
+		inUniqueFieldName         string
+		inListBuilderKeyThreshold uint
+		want                      string
 	}{{
 		name:              "container method",
 		inDirectory:       directories["/root"],
@@ -1764,6 +1774,42 @@ func (n *ContainerAny) List(Key string) *Container_ListAny {
 }
 `,
 	}, {
+		name:                      "2nd-level list methods -- Builder API",
+		inDirectory:               deepSchemaDirectories["/root-module/container"],
+		inDirectories:             deepSchemaDirectories,
+		inFieldName:               "list",
+		inUniqueFieldName:         "List",
+		inListBuilderKeyThreshold: 1,
+		want: `
+// ListBuilder returns from Container the path struct for its child "list".
+func (n *Container) ListBuilder() *Container_ListAny {
+	return &Container_ListAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key": "*"},
+			n,
+		),
+	}
+}
+
+// ListBuilder returns from ContainerAny the path struct for its child "list".
+func (n *ContainerAny) ListBuilder() *Container_ListAny {
+	return &Container_ListAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key": "*"},
+			n,
+		),
+	}
+}
+
+// WithKey sets Container_ListAny's key "key" to the specified value.
+func (n *Container_ListAny) WithKey(Key string) *Container_ListAny {
+    n.ModifyKey("key", Key)
+    return n
+}
+`,
+	}, {
 		name:              "inner container",
 		inDirectory:       deepSchemaDirectories["/root-module/container"],
 		inDirectories:     deepSchemaDirectories,
@@ -1793,13 +1839,6 @@ func (n *ContainerAny) InnerContainer() *Container_InnerContainerAny {
 }
 `,
 	}, {
-		name:              "list method",
-		inDirectory:       directories["/root"],
-		inDirectories:     directories,
-		inFieldName:       "list",
-		inUniqueFieldName: "List",
-		want:              wantListMethods,
-	}, {
 		name:              "list with state method",
 		inDirectory:       directories["/root"],
 		inDirectories:     directories,
@@ -1828,12 +1867,64 @@ func (n *Root) ListWithState(Key float64) *ListWithState {
 	}
 }
 `,
+	}, {
+		name:              "list methods",
+		inDirectory:       directories["/root"],
+		inDirectories:     directories,
+		inFieldName:       "list",
+		inUniqueFieldName: "List",
+		want:              wantListMethods,
+	}, {
+		name:                      "list methods with builder API threshold over the number of keys",
+		inDirectory:               directories["/root"],
+		inDirectories:             directories,
+		inFieldName:               "list",
+		inUniqueFieldName:         "List",
+		inListBuilderKeyThreshold: 4,
+		want:                      wantListMethods,
+	}, {
+		name:                      "list methods over key threshold -- should use builder API",
+		inDirectory:               directories["/root"],
+		inDirectories:             directories,
+		inFieldName:               "list",
+		inUniqueFieldName:         "List",
+		inListBuilderKeyThreshold: 3,
+		want: `
+// ListBuilder returns from Root the path struct for its child "list".
+func (n *Root) ListBuilder() *ListAny {
+	return &ListAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key1": "*", "key2": "*", "union-key": "*"},
+			n,
+		),
+	}
+}
+
+// WithKey1 sets ListAny's key "key1" to the specified value.
+func (n *ListAny) WithKey1(Key1 string) *ListAny {
+    n.ModifyKey("key1", Key1)
+    return n
+}
+
+// WithKey2 sets ListAny's key "key2" to the specified value.
+func (n *ListAny) WithKey2(Key2 oc.Binary) *ListAny {
+    n.ModifyKey("key2", Key2)
+    return n
+}
+
+// WithUnionKey sets ListAny's key "union-key" to the specified value.
+func (n *ListAny) WithUnionKey(UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
+    n.ModifyKey("union-key", UnionKey)
+    return n
+}
+`,
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf strings.Builder
-			if errs := generateChildConstructors(&buf, tt.inDirectory, tt.inFieldName, tt.inUniqueFieldName, tt.inDirectories, "oc"); errs != nil {
+			if errs := generateChildConstructors(&buf, tt.inDirectory, tt.inFieldName, tt.inUniqueFieldName, tt.inDirectories, "oc", tt.inListBuilderKeyThreshold); errs != nil {
 				t.Fatal(errs)
 			}
 
