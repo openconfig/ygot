@@ -748,14 +748,13 @@ func generateChildConstructorsForLeafOrContainer(methodBuf *strings.Builder, fie
 func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAlias string) []error {
 	var errors []error
 	// List of function parameters as would appear in the method definition.
-	keyParamListStrs, err := makeParamListStrs(listAttr, schemaStructPkgAlias)
+	keyParams, err := makeKeyParams(listAttr, schemaStructPkgAlias)
 	if err != nil {
 		return append(errors, err)
 	}
 	// List of key parameters as would appear in the key attribute of a
 	// ygot.NodePath definition.
-	keyNames, keyVarNames := makeKeyMapStrs(listAttr)
-	keyN := len(keyParamListStrs)
+	keyN := len(keyParams)
 	combos := combinations(keyN)
 
 	// Names that are subject to change depending on which keys are
@@ -776,17 +775,18 @@ func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen
 		for _, paramIndex := range combo {
 			// Add unselected parameters as a wildcard.
 			for ; i != paramIndex; i++ {
-				keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": "*"`, keyNames[i]))
-				anySuffixes = append(anySuffixes, WildcardSuffix+keyVarNames[i])
+				keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": "*"`, keyParams[i].name))
+				anySuffixes = append(anySuffixes, WildcardSuffix+keyParams[i].varName)
 			}
 			// Add selected parameters to the parameter list.
-			paramListStrs = append(paramListStrs, keyParamListStrs[paramIndex])
-			keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": %s`, keyNames[paramIndex], keyVarNames[paramIndex]))
+			param := keyParams[paramIndex]
+			paramListStrs = append(paramListStrs, fmt.Sprintf("%s %s", param.varName, param.typeName))
+			keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": %s`, param.name, param.varName))
 			i++
 		}
 		for ; i != keyN; i++ { // Handle edge case
-			keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": "*"`, keyNames[i]))
-			anySuffixes = append(anySuffixes, WildcardSuffix+keyVarNames[i])
+			keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": "*"`, keyParams[i].name))
+			anySuffixes = append(anySuffixes, WildcardSuffix+keyParams[i].varName)
 		}
 		// Create the string for the method parameter list and ygot.NodePath's key list.
 		fieldData.KeyParamListStr = strings.Join(paramListStrs, ", ")
@@ -861,32 +861,13 @@ func getFieldTypeName(directory *ygen.Directory, directoryFieldName string, goFi
 	return directory.Name + "_" + goFieldName, nil
 }
 
-// makeKeyMapStrs returns the components of the literal instantiations of the
-// "key" attribute of a ygot.NodePath, i.e. the literal key and value strings
-// to be output within the "{}" of its map[string]interface{} field. The first
-// returned slice contains the YANG key names, and the second slice the
-// camel-cased and uniquified versions of them, done in an identical manner as
-// makeParamListStrs to ensure compilation.
-// e.g.
-// in: &ygen.YangListAttr{
-// 	Keys: map[string]*ygen.MappedType{
-// 		"fluorine":        &ygen.MappedType{NativeType: "string"},
-// 		"iodine-liquid":   &ygen.MappedType{NativeType: "Binary"},
-// 	},
-// 	KeyElems: []*yang.Entry{{Name: "fluorine"}, {Name: "iodine-liquid"}},
-// }
-// out: {"fluorine", "iodine-liquid"}, {"Fluorine", "IodineLiquid"}
-func makeKeyMapStrs(listAttr *ygen.YangListAttr) ([]string, []string) {
-	var keyNames, keyVarNames []string
-	goKeyNameMap := getGoKeyNameMap(listAttr.KeyElems)
-	for _, key := range listAttr.KeyElems { // NOTE: loop on list for deterministic output.
-		keyNames = append(keyNames, key.Name)
-		keyVarNames = append(keyVarNames, goKeyNameMap[key.Name])
-	}
-	return keyNames, keyVarNames
+type KeyParam struct {
+	name     string
+	varName  string
+	typeName string
 }
 
-// makeParamListStrs generates the list of go parameter list components for a
+// makeKeyParams generates the list of go parameter list components for a
 // child list's constructor method given the list's ygen.YangListAttr.
 // It outputs the parameters in the same order as in the YangListAttr.
 // e.g.
@@ -897,14 +878,14 @@ func makeKeyMapStrs(listAttr *ygen.YangListAttr) ([]string, []string) {
 // 	},
 // 	KeyElems: []*yang.Entry{{Name: "fluorine"}, {Name: "iodine-liquid"}},
 // }
-// out: {"Fluorine string", "IodineLiquid oc.Binary"}
-func makeParamListStrs(listAttr *ygen.YangListAttr, schemaStructPkgAlias string) ([]string, error) {
+// out: [{"fluroine", "Fluorine", "string"}, {"iodine-liquid", "IodineLiquid", "oc.Binary"}]
+func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAlias string) ([]KeyParam, error) {
 	if len(listAttr.KeyElems) == 0 {
-		return nil, fmt.Errorf("makeParamListStrs: invalid list - has no key; cannot process param list string")
+		return nil, fmt.Errorf("makeKeyParams: invalid list - has no key; cannot process param list string")
 	}
 
 	// Create parameter list *in order* of keys, which should be in schema order.
-	var entries []string
+	var keyParams []KeyParam
 	// NOTE: Although the generated key names might not match their
 	// corresponding ygen field names in case of a camelcase name
 	// collision, we expect that the user is aware of the schema to know
@@ -914,9 +895,9 @@ func makeParamListStrs(listAttr *ygen.YangListAttr, schemaStructPkgAlias string)
 		mappedType, ok := listAttr.Keys[keyElem.Name]
 		switch {
 		case !ok:
-			return nil, fmt.Errorf("makeParamListStrs: key doesn't have a mappedType: %s", keyElem.Name)
+			return nil, fmt.Errorf("makeKeyParams: key doesn't have a mappedType: %s", keyElem.Name)
 		case mappedType == nil:
-			return nil, fmt.Errorf("makeParamListStrs: mappedType for key is nil: %s", keyElem.Name)
+			return nil, fmt.Errorf("makeKeyParams: mappedType for key is nil: %s", keyElem.Name)
 		}
 
 		var typeName string
@@ -928,10 +909,9 @@ func makeParamListStrs(listAttr *ygen.YangListAttr, schemaStructPkgAlias string)
 		default:
 			typeName = mappedType.NativeType
 		}
-
-		entries = append(entries, fmt.Sprintf("%s %s", goKeyNameMap[keyElem.Name], typeName))
+		keyParams = append(keyParams, KeyParam{name: keyElem.Name, varName: goKeyNameMap[keyElem.Name], typeName: typeName})
 	}
-	return entries, nil
+	return keyParams, nil
 }
 
 // combinations returns the mathematical combinations of the numbers from 0 to n-1.
