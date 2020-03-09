@@ -806,7 +806,7 @@ func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, l
 		// Generate builder constructor method for wildcard version of parent struct.
 		fieldData.Struct.TypeName += WildcardSuffix
 		if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
-			return append(errors, err)
+			errors = append(errors, err)
 		}
 	}
 
@@ -827,7 +827,7 @@ func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, l
 				KeyParamName:  keyParams[i].varName,
 				KeyParamType:  keyParams[i].typeName,
 			}); err != nil {
-			return append(errors, err)
+			errors = append(errors, err)
 		}
 	}
 
