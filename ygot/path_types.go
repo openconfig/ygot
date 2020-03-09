@@ -58,6 +58,11 @@ func ResolveRelPath(n PathStruct) ([]*gpb.PathElem, []error) {
 	return n.relPath()
 }
 
+// ModifyKey can be used to update a key's value.
+func (n *NodePath) ModifyKey(name string, value interface{}) {
+	n.keys[name] = value
+}
+
 // relPath converts the information stored in NodePath into the partial
 // []*gpb.PathElem representing the node's relative path.
 func (n *NodePath) relPath() ([]*gpb.PathElem, []error) {
