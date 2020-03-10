@@ -26,6 +26,7 @@ import (
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/testutil"
+	"github.com/openconfig/ygot/uexampleoc"
 	"github.com/openconfig/ygot/ygot"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -89,7 +90,10 @@ func TestBuildEmptyDevice(t *testing.T) {
 			"DEFAULT": {
 				Name: ygot.String("DEFAULT"),
 				Protocol: map[exampleoc.NetworkInstance_Protocol_Key]*exampleoc.NetworkInstance_Protocol{
-					{exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169"}: {
+					{
+						Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						Name:       "15169",
+					}: {
 						Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 						Name:       ygot.String("15169"),
 						Bgp: &exampleoc.NetworkInstance_Protocol_Bgp{
@@ -210,7 +214,7 @@ func TestDiff(t *testing.T) {
 func TestJSONOutput(t *testing.T) {
 	tests := []struct {
 		name     string
-		in       *exampleoc.Device
+		in       ygot.ValidatedGoStruct
 		wantFile string
 	}{{
 		name: "unset enumeration",
@@ -244,6 +248,74 @@ func TestJSONOutput(t *testing.T) {
 					diff = diffl
 				}
 				t.Fatalf("did not get expected output, diff(-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestNotificationOutput(t *testing.T) {
+	tests := []struct {
+		name       string
+		in         ygot.ValidatedGoStruct
+		wantTextpb string
+	}{{
+		name: "int64 from root",
+		in: func() *exampleoc.Device {
+			d := &exampleoc.Device{}
+			d.GetOrCreateInterface("eth0")
+			is := d.GetOrCreateLldp().GetOrCreateInterface("eth0").GetOrCreateNeighbor("neighbor")
+			is.LastUpdate = ygot.Int64(42)
+			return d
+		}(),
+		wantTextpb: "testdata/notification_int64.txtpb",
+	}, {
+		name: "int64 uncompressed",
+		in: func() *uexampleoc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_State {
+			s := &uexampleoc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_State{}
+			s.LastUpdate = ygot.Int64(42)
+			return s
+		}(),
+		wantTextpb: "testdata/uncompressed_notification_int64.txtpb",
+	}, {
+		name: "int64 union",
+		in: func() *exampleoc.Device {
+			d := &exampleoc.Device{}
+			t := d.GetOrCreateComponent("p1").GetOrCreateProperty("temperature")
+			v, err := t.To_Component_Property_Value_Union(int64(42))
+			if err != nil {
+				panic(err)
+			}
+			t.Value = v
+			return d
+		}(),
+		wantTextpb: "testdata/notification_union_int64.txtpb",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wantTxtpb, err := ioutil.ReadFile(tt.wantTextpb)
+			if err != nil {
+				t.Fatalf("could not read textproto, %v", err)
+			}
+
+			wantNoti := &gnmipb.Notification{}
+			if err := proto.UnmarshalText(string(wantTxtpb), wantNoti); err != nil {
+				t.Fatalf("cannot unmarshal wanted textproto, %v", err)
+			}
+
+			gotSet, err := ygot.TogNMINotifications(tt.in, 0, ygot.GNMINotificationsConfig{
+				UsePathElem: true,
+			})
+			if err != nil {
+				t.Fatalf("cannot marshal input to gNMI Notifications, %v", err)
+			}
+
+			if !testutil.NotificationSetEqual(gotSet, []*gnmipb.Notification{wantNoti}) {
+				diff, err := testutil.GenerateUnifiedDiff(proto.MarshalTextString(wantNoti), proto.MarshalTextString(gotSet[0]))
+				if err != nil {
+					t.Errorf("cannot diff generated protobufs, %v", err)
+				}
+				t.Fatalf("did not get unexpected Notifications, diff(-want,+got):\n%s", diff)
 			}
 		})
 	}
