@@ -19,7 +19,7 @@ import (
 )
 
 // Resolve is a helper which returns the resolved *gpb.Path of a PathStruct node.
-func Resolve(n ygot.PathStruct) (*gpb.Path, []error) {
+func Resolve(n ygot.PathStruct) (*gpb.Path, map[string]interface{}, []error) {
 	n, p, errs := ygot.ResolvePath(n)
 	root, ok := n.(*Device)
 	if !ok {
@@ -27,9 +27,9 @@ func Resolve(n ygot.PathStruct) (*gpb.Path, []error) {
 	}
 
 	if errs != nil {
-		return nil, errs
+		return nil, nil, errs
 	}
-	return &gpb.Path{Target: root.id, Elem: p}, nil
+	return &gpb.Path{Target: root.id, Elem: p}, root.customData, nil
 }
 
 // AList represents the /enum-module/a-lists/a-list YANG schema element.
@@ -162,10 +162,11 @@ func (n *CAny) Cl() *C_ClAny {
 type Device struct {
 	ygot.NodePath
 	id string
+	customData map[string]interface{}
 }
 
 func DeviceRoot(id string) *Device {
-	return &Device{id: id}
+	return &Device{id: id, customData: map[string]interface{}{}}
 }
 
 // AListAny returns from Device the path struct for its child "a-list".

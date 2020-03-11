@@ -379,7 +379,7 @@ import (
 	// be output in only one file.
 	goPathOneOffHeaderTemplate = mustTemplate("oneoffHeader", `
 // Resolve is a helper which returns the resolved *gpb.Path of a PathStruct node.
-func Resolve(n ygot.{{ .PathStructInterfaceName }}) (*gpb.Path, []error) {
+func Resolve(n ygot.{{ .PathStructInterfaceName }}) (*gpb.Path, map[string]interface{}, []error) {
 	n, p, errs := ygot.ResolvePath(n)
 	root, ok := n.(*{{ .FakeRootTypeName }})
 	if !ok {
@@ -387,9 +387,9 @@ func Resolve(n ygot.{{ .PathStructInterfaceName }}) (*gpb.Path, []error) {
 	}
 
 	if errs != nil {
-		return nil, errs
+		return nil, nil, errs
 	}
-	return &gpb.Path{Target: root.id, Elem: p}, nil
+	return &gpb.Path{Target: root.id, Elem: p}, root.customData, nil
 }
 `)
 
@@ -398,15 +398,20 @@ func Resolve(n ygot.{{ .PathStructInterfaceName }}) (*gpb.Path, []error) {
 	// the methods of PathStructInterfaceName in order to allow its path
 	// struct descendents to use the Resolve() helper function for
 	// obtaining their absolute paths.
+	//
+	// customData is meant to store root-specific information that may be
+	// useful to know when processing the resolved path. It is meant to be
+	// accessible through a user-defined accessor.
 	goPathFakeRootTemplate = mustTemplate("fakeroot", `
 // {{ .TypeName }} represents the {{ .YANGPath }} YANG schema element.
 type {{ .TypeName }} struct {
 	ygot.{{ .PathBaseTypeName }}
 	id string
+	customData map[string]interface{}
 }
 
 func DeviceRoot(id string) *{{ .TypeName }} {
-	return &{{ .TypeName }}{id: id}
+	return &{{ .TypeName }}{id: id, customData: map[string]interface{}{}}
 }
 `)
 
