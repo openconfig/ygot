@@ -20,22 +20,22 @@ import (
 
 // RemoteContainer represents the /openconfig-simple/remote-container YANG schema element.
 type RemoteContainer struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // RemoteContainerAny represents the wildcard version of the /openconfig-simple/remote-container YANG schema element.
 type RemoteContainerAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // RemoteContainer_ALeaf represents the /openconfig-simple/remote-container/state/a-leaf YANG schema element.
 type RemoteContainer_ALeaf struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // RemoteContainer_ALeafAny represents the wildcard version of the /openconfig-simple/remote-container/state/a-leaf YANG schema element.
 type RemoteContainer_ALeafAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ALeaf returns from RemoteContainer the path struct for its child "a-leaf".
