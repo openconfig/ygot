@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/util"
@@ -42,6 +43,13 @@ const (
 // such that it can be used as a key for maps.
 type path struct {
 	p *gnmiPath
+}
+
+func (p *path) String() string {
+	if p.p.isPathElemPath() {
+		return proto.MarshalTextString(&gnmipb.Path{Elem: p.p.pathElemPath})
+	}
+	return fmt.Sprintf("%v", p.p.pathElemPath)
 }
 
 // gnmiPath provides a wrapper for gNMI path types, particularly
@@ -366,7 +374,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 				errs.Add(findUpdatedLeaves(leaves, goStruct, mapPaths[0]))
 			default:
 				for _, p := range mapPaths {
-					leaves[&path{p}] = fval.Elem().Interface()
+					leaves[&path{p}] = fval.Interface()
 				}
 			}
 		case reflect.Slice:
@@ -398,14 +406,14 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 			continue
 		case reflect.Interface:
 			// This is a union value.
-			val, err := unionInterfaceValue(fval, false)
+			/*val, err := unionInterfaceValue(fval, false)
 			if err != nil {
 				errs.Add(err)
 				continue
-			}
+			}*/
 
 			for _, p := range mapPaths {
-				leaves[&path{p}] = val
+				leaves[&path{p}] = fval.Interface()
 			}
 			continue
 		}
@@ -1407,7 +1415,7 @@ func unionInterfaceValue(v reflect.Value, appendModuleName bool) (interface{}, e
 	}
 
 	if !util.IsStructValueWithNFields(s, 1) {
-		return nil, fmt.Errorf("received a union type which did not have one field, had: %v", v.Elem().Elem().NumField())
+		return nil, fmt.Errorf("received a union type which did not have one field, had: %v", s.NumField())
 	}
 
 	return resolveUnionVal(s.Field(0).Interface(), appendModuleName)

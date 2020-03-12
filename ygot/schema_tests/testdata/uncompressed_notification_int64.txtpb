@@ -1,0 +1,10 @@
+update: <
+  path: <
+    elem: <
+      name: "last-update"
+    >
+  >
+  val: <
+    int_val: 42
+  >
+>
