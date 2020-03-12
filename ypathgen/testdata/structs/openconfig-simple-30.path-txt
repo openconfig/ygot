@@ -34,13 +34,13 @@ func Resolve(n ygot.PathStruct) (*gpb.Path, map[string]interface{}, []error) {
 
 // Device represents the /device YANG schema element.
 type Device struct {
-	ygot.NodePath
+	*ygot.NodePath
 	id string
 	customData map[string]interface{}
 }
 
 func DeviceRoot(id string) *Device {
-	return &Device{id: id, customData: map[string]interface{}{}}
+	return &Device{NodePath: &ygot.NodePath{}, id: id, customData: map[string]interface{}{}}
 }
 
 // Parent returns from Device the path struct for its child "parent".

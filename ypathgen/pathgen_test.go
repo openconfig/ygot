@@ -1201,42 +1201,42 @@ func TestGenerateDirectorySnippet(t *testing.T) {
 			StructBase: `
 // ContainerWithConfig represents the /root-module/container-with-config YANG schema element.
 type ContainerWithConfig struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ContainerWithConfigAny represents the wildcard version of the /root-module/container-with-config YANG schema element.
 type ContainerWithConfigAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ContainerWithConfig_Leaf represents the /root-module/container-with-config/state/leaf YANG schema element.
 type ContainerWithConfig_Leaf struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ContainerWithConfig_LeafAny represents the wildcard version of the /root-module/container-with-config/state/leaf YANG schema element.
 type ContainerWithConfig_LeafAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ContainerWithConfig_Leaflist represents the /root-module/container-with-config/state/leaflist YANG schema element.
 type ContainerWithConfig_Leaflist struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ContainerWithConfig_LeaflistAny represents the wildcard version of the /root-module/container-with-config/state/leaflist YANG schema element.
 type ContainerWithConfig_LeaflistAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ContainerWithConfig_Leaflist2 represents the /root-module/container-with-config/state/leaflist2 YANG schema element.
 type ContainerWithConfig_Leaflist2 struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ContainerWithConfig_Leaflist2Any represents the wildcard version of the /root-module/container-with-config/state/leaflist2 YANG schema element.
 type ContainerWithConfig_Leaflist2Any struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 `,
 			ChildConstructors: `
@@ -1315,23 +1315,23 @@ func (n *ContainerWithConfigAny) Leaflist2() *ContainerWithConfig_Leaflist2Any {
 			StructBase: `
 // Root represents the /root YANG schema element.
 type Root struct {
-	ygot.NodePath
+	*ygot.NodePath
 	id string
 	customData map[string]interface{}
 }
 
 func DeviceRoot(id string) *Root {
-	return &Root{id: id, customData: map[string]interface{}{}}
+	return &Root{NodePath: &ygot.NodePath{}, id: id, customData: map[string]interface{}{}}
 }
 
 // Leaf represents the /root-module/leaf YANG schema element.
 type Leaf struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // LeafAny represents the wildcard version of the /root-module/leaf YANG schema element.
 type LeafAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 `,
 			ChildConstructors: `
@@ -1399,42 +1399,42 @@ func (n *Root) ListWithState(Key float64) *ListWithState {
 			StructBase: `
 // List represents the /root-module/list-container/list YANG schema element.
 type List struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ListAny represents the wildcard version of the /root-module/list-container/list YANG schema element.
 type ListAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // List_Key1 represents the /root-module/list-container/list/key1 YANG schema element.
 type List_Key1 struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // List_Key1Any represents the wildcard version of the /root-module/list-container/list/key1 YANG schema element.
 type List_Key1Any struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // List_Key2 represents the /root-module/list-container/list/key2 YANG schema element.
 type List_Key2 struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // List_Key2Any represents the wildcard version of the /root-module/list-container/list/key2 YANG schema element.
 type List_Key2Any struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // List_UnionKey represents the /root-module/list-container/list/union-key YANG schema element.
 type List_UnionKey struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // List_UnionKeyAny represents the wildcard version of the /root-module/list-container/list/union-key YANG schema element.
 type List_UnionKeyAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 `,
 			ChildConstructors: `
@@ -1806,8 +1806,8 @@ func (n *ContainerAny) ListBuilder() *Container_ListAny {
 
 // WithKey sets Container_ListAny's key "key" to the specified value.
 func (n *Container_ListAny) WithKey(Key string) *Container_ListAny {
-    n.ModifyKey("key", Key)
-    return n
+	ygot.ModifyKey(n.NodePath, "key", Key)
+	return n
 }
 `,
 	}, {
@@ -1904,20 +1904,20 @@ func (n *Root) ListBuilder() *ListAny {
 
 // WithKey1 sets ListAny's key "key1" to the specified value.
 func (n *ListAny) WithKey1(Key1 string) *ListAny {
-    n.ModifyKey("key1", Key1)
-    return n
+	ygot.ModifyKey(n.NodePath, "key1", Key1)
+	return n
 }
 
 // WithKey2 sets ListAny's key "key2" to the specified value.
 func (n *ListAny) WithKey2(Key2 oc.Binary) *ListAny {
-    n.ModifyKey("key2", Key2)
-    return n
+	ygot.ModifyKey(n.NodePath, "key2", Key2)
+	return n
 }
 
 // WithUnionKey sets ListAny's key "union-key" to the specified value.
 func (n *ListAny) WithUnionKey(UnionKey oc.RootModule_List_UnionKey_Union) *ListAny {
-    n.ModifyKey("union-key", UnionKey)
-    return n
+	ygot.ModifyKey(n.NodePath, "union-key", UnionKey)
+	return n
 }
 `,
 	}}

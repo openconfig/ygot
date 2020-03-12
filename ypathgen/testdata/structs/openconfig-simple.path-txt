@@ -34,13 +34,13 @@ func Resolve(n ygot.PathStruct) (*gpb.Path, map[string]interface{}, []error) {
 
 // Device represents the /device YANG schema element.
 type Device struct {
-	ygot.NodePath
+	*ygot.NodePath
 	id string
 	customData map[string]interface{}
 }
 
 func DeviceRoot(id string) *Device {
-	return &Device{id: id, customData: map[string]interface{}{}}
+	return &Device{NodePath: &ygot.NodePath{}, id: id, customData: map[string]interface{}{}}
 }
 
 // Parent returns from Device the path struct for its child "parent".
@@ -67,12 +67,12 @@ func (n *Device) RemoteContainer() *RemoteContainer {
 
 // Parent represents the /openconfig-simple/parent YANG schema element.
 type Parent struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ParentAny represents the wildcard version of the /openconfig-simple/parent YANG schema element.
 type ParentAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Child returns from Parent the path struct for its child "child".
@@ -99,52 +99,52 @@ func (n *ParentAny) Child() *Parent_ChildAny {
 
 // Parent_Child represents the /openconfig-simple/parent/child YANG schema element.
 type Parent_Child struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Parent_ChildAny represents the wildcard version of the /openconfig-simple/parent/child YANG schema element.
 type Parent_ChildAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Parent_Child_Four represents the /openconfig-simple/parent/child/state/four YANG schema element.
 type Parent_Child_Four struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Parent_Child_FourAny represents the wildcard version of the /openconfig-simple/parent/child/state/four YANG schema element.
 type Parent_Child_FourAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Parent_Child_One represents the /openconfig-simple/parent/child/state/one YANG schema element.
 type Parent_Child_One struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Parent_Child_OneAny represents the wildcard version of the /openconfig-simple/parent/child/state/one YANG schema element.
 type Parent_Child_OneAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Parent_Child_Three represents the /openconfig-simple/parent/child/state/three YANG schema element.
 type Parent_Child_Three struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Parent_Child_ThreeAny represents the wildcard version of the /openconfig-simple/parent/child/state/three YANG schema element.
 type Parent_Child_ThreeAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Parent_Child_Two represents the /openconfig-simple/parent/child/state/two YANG schema element.
 type Parent_Child_Two struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Parent_Child_TwoAny represents the wildcard version of the /openconfig-simple/parent/child/state/two YANG schema element.
 type Parent_Child_TwoAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Four returns from Parent_Child the path struct for its child "four".
@@ -237,22 +237,22 @@ func (n *Parent_ChildAny) Two() *Parent_Child_TwoAny {
 
 // RemoteContainer represents the /openconfig-simple/remote-container YANG schema element.
 type RemoteContainer struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // RemoteContainerAny represents the wildcard version of the /openconfig-simple/remote-container YANG schema element.
 type RemoteContainerAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // RemoteContainer_ALeaf represents the /openconfig-simple/remote-container/state/a-leaf YANG schema element.
 type RemoteContainer_ALeaf struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // RemoteContainer_ALeafAny represents the wildcard version of the /openconfig-simple/remote-container/state/a-leaf YANG schema element.
 type RemoteContainer_ALeafAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ALeaf returns from RemoteContainer the path struct for its child "a-leaf".

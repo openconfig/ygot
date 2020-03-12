@@ -405,13 +405,13 @@ func Resolve(n ygot.{{ .PathStructInterfaceName }}) (*gpb.Path, map[string]inter
 	goPathFakeRootTemplate = mustTemplate("fakeroot", `
 // {{ .TypeName }} represents the {{ .YANGPath }} YANG schema element.
 type {{ .TypeName }} struct {
-	ygot.{{ .PathBaseTypeName }}
+	*ygot.{{ .PathBaseTypeName }}
 	id string
 	customData map[string]interface{}
 }
 
 func DeviceRoot(id string) *{{ .TypeName }} {
-	return &{{ .TypeName }}{id: id, customData: map[string]interface{}{}}
+	return &{{ .TypeName }}{ {{- .PathBaseTypeName }}: &ygot.{{ .PathBaseTypeName }}{}, id: id, customData: map[string]interface{}{}}
 }
 `)
 
@@ -427,12 +427,12 @@ func DeviceRoot(id string) *{{ .TypeName }} {
 	goPathStructTemplate = mustTemplate("struct", `
 // {{ .TypeName }} represents the {{ .YANGPath }} YANG schema element.
 type {{ .TypeName }} struct {
-	ygot.{{ .PathBaseTypeName }}
+	*ygot.{{ .PathBaseTypeName }}
 }
 
 // {{ .TypeName }}{{ .WildcardSuffix }} represents the wildcard version of the {{ .YANGPath }} YANG schema element.
 type {{ .TypeName }}{{ .WildcardSuffix }} struct {
-	ygot.{{ .PathBaseTypeName }}
+	*ygot.{{ .PathBaseTypeName }}
 }
 `)
 
@@ -455,8 +455,8 @@ func (n *{{ .Struct.TypeName }}) {{ .MethodName -}} ({{ .KeyParamListStr }}) *{{
 	goKeyBuilderTemplate = mustTemplate("goKeyBuilder", `
 // {{ .MethodName }} sets {{ .TypeName }}'s key "{{ .KeySchemaName }}" to the specified value.
 func (n *{{ .TypeName }}) {{ .MethodName }}({{ .KeyParamName }} {{ .KeyParamType }}) *{{ .TypeName }} {
-    n.ModifyKey("{{ .KeySchemaName }}", {{ .KeyParamName }})
-    return n
+	ygot.ModifyKey(n.NodePath, "{{ .KeySchemaName }}", {{ .KeyParamName }})
+	return n
 }
 `)
 )
