@@ -20,12 +20,12 @@ import (
 
 // Parent represents the /openconfig-simple/parent YANG schema element.
 type Parent struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ParentAny represents the wildcard version of the /openconfig-simple/parent YANG schema element.
 type ParentAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Child returns from Parent the path struct for its child "child".

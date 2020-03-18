@@ -19,7 +19,7 @@ import (
 )
 
 // Resolve is a helper which returns the resolved *gpb.Path of a PathStruct node.
-func Resolve(n ygot.PathStruct) (*gpb.Path, []error) {
+func Resolve(n ygot.PathStruct) (*gpb.Path, map[string]interface{}, []error) {
 	n, p, errs := ygot.ResolvePath(n)
 	root, ok := n.(*Device)
 	if !ok {
@@ -27,19 +27,19 @@ func Resolve(n ygot.PathStruct) (*gpb.Path, []error) {
 	}
 
 	if errs != nil {
-		return nil, errs
+		return nil, nil, errs
 	}
-	return &gpb.Path{Target: root.id, Elem: p}, nil
+	return &gpb.Path{Target: root.id, Elem: p}, root.customData, nil
 }
 
 // BGP represents the /openconfig-camelcase/bgp YANG schema element.
 type BGP struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // BGPAny represents the wildcard version of the /openconfig-camelcase/bgp YANG schema element.
 type BGPAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // NeighborAny returns from BGP the path struct for its child "neighbor".
@@ -88,22 +88,22 @@ func (n *BGPAny) Neighbor(PeerIP string) *BGP_NeighborAny {
 
 // BGP_Neighbor represents the /openconfig-camelcase/bgp/neighbors/neighbor YANG schema element.
 type BGP_Neighbor struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // BGP_NeighborAny represents the wildcard version of the /openconfig-camelcase/bgp/neighbors/neighbor YANG schema element.
 type BGP_NeighborAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // BGP_Neighbor_PeerIP represents the /openconfig-camelcase/bgp/neighbors/neighbor/state/peer-ip YANG schema element.
 type BGP_Neighbor_PeerIP struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // BGP_Neighbor_PeerIPAny represents the wildcard version of the /openconfig-camelcase/bgp/neighbors/neighbor/state/peer-ip YANG schema element.
 type BGP_Neighbor_PeerIPAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // PeerIP returns from BGP_Neighbor the path struct for its child "peer-ip".
@@ -130,12 +130,13 @@ func (n *BGP_NeighborAny) PeerIP() *BGP_Neighbor_PeerIPAny {
 
 // Device represents the /device YANG schema element.
 type Device struct {
-	ygot.NodePath
+	*ygot.NodePath
 	id string
+	customData map[string]interface{}
 }
 
 func DeviceRoot(id string) *Device {
-	return &Device{id: id}
+	return &Device{NodePath: &ygot.NodePath{}, id: id, customData: map[string]interface{}{}}
 }
 
 // BGP returns from Device the path struct for its child "bgp".
