@@ -6,10 +6,10 @@ go:
         - master
 before_install:
         - ./scripts/install_protobuf.sh
+        - ./scripts/install_go_protobuf.sh
         - export PATH=$PATH:$HOME/protobuf/bin:$GOPATH/bin
 install:
         - go get -u golang.org/x/tools/cmd/goimports
-        - GIT_TAG=v1.3.4 && go get -u google.golang.org/protobuf/cmd/protoc-gen-go && git -C "$(go env GOPATH)"/src/google.golang.org/protobuf checkout $GIT_TAG && go install google.golang.org/protobuf/cmd/protoc-gen-go
         - make install
 script:
         - go test ./...
