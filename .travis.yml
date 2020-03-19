@@ -4,6 +4,7 @@ go:
         - 1.13.x
         - 1.14.x
         - master
+env: GO1111MODULE=on
 before_install:
         - ./scripts/install_protobuf.sh
         - ./scripts/install_go_protobuf.sh
