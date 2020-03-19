@@ -9,7 +9,7 @@ before_install:
         - export PATH=$PATH:$HOME/protobuf/bin:$GOPATH/bin
 install:
         - go get -u golang.org/x/tools/cmd/goimports
-        - go get -u google.golang.org/protobuf/protoc-gen-go
+        - go get -u google.golang.org/protobuf/cmd/protoc-gen-go
         - make install
 script:
         - go test ./...
