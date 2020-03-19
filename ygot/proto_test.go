@@ -54,6 +54,15 @@ func TestPathsFromProto(t *testing.T) {
 			De: &wpb.Decimal64Value{Digits: 1234, Precision: 1},
 		},
 		wantErrSubstring: "unhandled type, decimal64",
+	}, {
+		desc: "multiple paths specified",
+		inMsg: &epb.Root_InterfaceKey{
+			Name: "value",
+		},
+		wantPaths: map[string]interface{}{
+			"/interfaces/interface/config/name": "value",
+			"/interfaces/interface/name":        "value",
+		},
 	}}
 
 	for _, tt := range tests {
