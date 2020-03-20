@@ -21,6 +21,8 @@ import "google/protobuf/descriptor.proto";
 
 package yext;
 
+option go_package = "github.com/openconfig/ygot/proto/yext";
+
 extend google.protobuf.FieldOptions {
   // schemapath stores the schema path to the field within the YANG schema.
   // The path stored is absolute if the entity is at the root of the schema

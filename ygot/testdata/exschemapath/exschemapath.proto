@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package exschemapath;
+
+option go_package = "github.com/openconfig/ygot/ygot/testdata/exschemapath";
+
+import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+import "github.com/openconfig/ygot/proto/yext/yext.proto";
+
+message Root {
+    System system = 1; 
+    message InterfaceKey {
+        string name = 1 [(yext.schemapath) = "/interfaces/interface/config/name|/interfaces/interface/name"];
+        Interface interface = 2;
+    }
+    repeated InterfaceKey interface = 422482938 [(yext.schemapath) = "/interfaces/interface"];
+}
+
+message Interface {
+    ywrapper.StringValue description = 1 [(yext.schemapath) = "/interfaces/interface/config/description"];
+}
+
+message System {
+    ywrapper.StringValue hostname = 1 [(yext.schemapath) = "/system/config/hostname"];
+}
+
+message ExampleMessage {
+    ywrapper.BoolValue bo = 1 [(yext.schemapath) = "/bool"];
+    ywrapper.BytesValue by = 2 [(yext.schemapath) = "/bytes"];
+    ywrapper.Decimal64Value de = 3 [(yext.schemapath) = "/decimal"];
+    ywrapper.IntValue in = 4 [(yext.schemapath) = "/int"];
+    ywrapper.StringValue str = 5 [(yext.schemapath) = "/string"];
+    ywrapper.UintValue ui = 6 [(yext.schemapath) = "/uint"];
+    ExampleMessageChild ex = 7 [(yext.schemapath) = "/message"];
+}
+
+message ExampleMessageChild {
+    ywrapper.StringValue str = 1 [(yext.schemapath) = "/message/str"];
+}
