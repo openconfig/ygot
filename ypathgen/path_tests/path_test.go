@@ -192,43 +192,43 @@ func TestPathCreation(t *testing.T) {
 	}, {
 		name: "Builder API constructor",
 		makePath: func(root *ocp.Root) ygot.PathStruct {
-			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder()
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny()
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=*][oui-subtype=*]",
 	}, {
 		name: "Builder API constructor going beyond the list",
 		makePath: func(root *ocp.Root) ygot.PathStruct {
-			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().Value()
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().Value()
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=*][oui-subtype=*]/state/value",
 	}, {
 		name: "Builder API builder for type",
 		makePath: func(root *ocp.Root) ygot.PathStruct {
-			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().WithType(3)
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().WithType(3)
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=3][oui=*][oui-subtype=*]",
 	}, {
 		name: "Builder API builder for oui",
 		makePath: func(root *ocp.Root) ygot.PathStruct {
-			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().WithOui("bar")
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().WithOui("bar")
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=bar][oui-subtype=*]",
 	}, {
 		name: "Builder API builder for subtype",
 		makePath: func(root *ocp.Root) ygot.PathStruct {
-			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().WithOuiSubtype("baz").Value()
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().WithOuiSubtype("baz").Value()
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=*][oui-subtype=baz]/state/value",
 	}, {
 		name: "Builder API builder for type and oui",
 		makePath: func(root *ocp.Root) ygot.PathStruct {
-			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().WithType(3).WithOui("bar")
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().WithType(3).WithOui("bar")
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=3][oui=bar][oui-subtype=*]",
 	}, {
 		name: "Builder API builder for type and oui and oui-subtype",
 		makePath: func(root *ocp.Root) ygot.PathStruct {
-			return root.Lldp().Interface("foo").Neighbor("mars").TlvBuilder().WithOui("bar").WithType(3).WithOuiSubtype("baz")
+			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().WithOui("bar").WithType(3).WithOuiSubtype("baz")
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=3][oui=bar][oui-subtype=baz]",
 	}}

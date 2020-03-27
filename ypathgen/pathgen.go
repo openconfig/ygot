@@ -48,9 +48,9 @@ const (
 	// node as well as a list's wildcard child constructor methods that
 	// distinguishes each from its non-wildcard counterpart.
 	WildcardSuffix = "Any"
-	// BuilderCtorSuffix is the suffix applied to the builder constructor
-	// method's name in order to indicate itself to the user.
-	BuilderCtorSuffix = "Builder"
+	// BuilderCtorSuffix is the suffix applied to the list builder
+	// constructor method's name in order to indicate itself to the user.
+	BuilderCtorSuffix = "Any"
 	// BuilderKeyPrefix is the prefix applied to the key-modifying builder
 	// method for a list PathStruct that uses the builder API.
 	// NOTE: This cannot be "", as the builder method name would conflict
