@@ -1782,8 +1782,8 @@ func (n *ContainerAny) List(Key string) *Container_ListAny {
 		inUniqueFieldName:         "List",
 		inListBuilderKeyThreshold: 1,
 		want: `
-// ListBuilder returns from Container the path struct for its child "list".
-func (n *Container) ListBuilder() *Container_ListAny {
+// ListAny returns from Container the path struct for its child "list".
+func (n *Container) ListAny() *Container_ListAny {
 	return &Container_ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -1793,8 +1793,8 @@ func (n *Container) ListBuilder() *Container_ListAny {
 	}
 }
 
-// ListBuilder returns from ContainerAny the path struct for its child "list".
-func (n *ContainerAny) ListBuilder() *Container_ListAny {
+// ListAny returns from ContainerAny the path struct for its child "list".
+func (n *ContainerAny) ListAny() *Container_ListAny {
 	return &Container_ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -1891,8 +1891,8 @@ func (n *Root) ListWithState(Key float64) *ListWithState {
 		inUniqueFieldName:         "List",
 		inListBuilderKeyThreshold: 3,
 		want: `
-// ListBuilder returns from Root the path struct for its child "list".
-func (n *Root) ListBuilder() *ListAny {
+// ListAny returns from Root the path struct for its child "list".
+func (n *Root) ListAny() *ListAny {
 	return &ListAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
