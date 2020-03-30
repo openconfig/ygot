@@ -64,8 +64,8 @@ type ModelAny struct {
 	*ygot.NodePath
 }
 
-// MultiKeyBuilder returns from Model the path struct for its child "multi-key".
-func (n *Model) MultiKeyBuilder() *Model_MultiKeyAny {
+// MultiKeyAny returns from Model the path struct for its child "multi-key".
+func (n *Model) MultiKeyAny() *Model_MultiKeyAny {
 	return &Model_MultiKeyAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"b", "multi-key"},
@@ -75,8 +75,8 @@ func (n *Model) MultiKeyBuilder() *Model_MultiKeyAny {
 	}
 }
 
-// MultiKeyBuilder returns from ModelAny the path struct for its child "multi-key".
-func (n *ModelAny) MultiKeyBuilder() *Model_MultiKeyAny {
+// MultiKeyAny returns from ModelAny the path struct for its child "multi-key".
+func (n *ModelAny) MultiKeyAny() *Model_MultiKeyAny {
 	return &Model_MultiKeyAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"b", "multi-key"},
