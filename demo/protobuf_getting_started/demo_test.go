@@ -24,7 +24,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 
 	ocpb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig"
-	ocenums "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
+	ocepb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
 )
 
 func TestProtoGenerate(t *testing.T) {
@@ -41,10 +41,10 @@ func TestProtoGenerate(t *testing.T) {
 			localPref:       100,
 			med:             10,
 			nextHop:         "10.0.1.1",
-			origin:          ocenums.OpenconfigRibBgpBgpOriginAttrType_OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP,
+			origin:          ocepb.OpenconfigRibBgpBgpOriginAttrType_OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP,
 			originatorID:    "192.0.2.42",
 			prefix:          "192.0.2.0/24",
-			protocolOrigin:  ocenums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP,
+			protocolOrigin:  ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP,
 		},
 		wantTextProto: "route_entry.txtpb",
 	}}

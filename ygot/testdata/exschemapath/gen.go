@@ -1,4 +1,4 @@
-// package exschemapath contains generated code for the exschemapath protobuf.
+// Package exschemapath contains generated code for the exschemapath protobuf.
 package exschemapath
 
 // Generate command to create the protobuf .pb.go file.
