@@ -24,7 +24,7 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	ocpb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig"
-	ocenums "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
+	ocepb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
 	ocrpb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig/openconfig_rib_bgp"
 	ywpb "github.com/openconfig/ygot/proto/ywrapper"
 )
@@ -35,10 +35,10 @@ func main() {
 		localPref:       100,
 		med:             10,
 		nextHop:         "10.0.1.1",
-		origin:          ocenums.OpenconfigRibBgpBgpOriginAttrType_OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP,
+		origin:          ocepb.OpenconfigRibBgpBgpOriginAttrType_OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP,
 		originatorID:    "192.0.2.42",
 		prefix:          "192.0.2.0/24",
-		protocolOrigin:  ocenums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP,
+		protocolOrigin:  ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP,
 	})
 
 	b, err := proto.Marshal(rt)
@@ -56,10 +56,10 @@ type ipv4Prefix struct {
 	localPref       uint64                                           // localPrefix is the value of the BGP LOCAL_PREFERENCE attribute.
 	med             uint64                                           // med is the value of the BGP multi-exit discriminator.
 	nextHop         string                                           // nextHop is the IP next-hop used for the BGP route.
-	origin          ocenums.OpenconfigRibBgpBgpOriginAttrType        // origin is the value of the ORIGIN attribute of the BGP prefix.
+	origin          ocepb.OpenconfigRibBgpBgpOriginAttrType        // origin is the value of the ORIGIN attribute of the BGP prefix.
 	originatorID    string                                           // originatorID specifies the address of the BGP originator of the prefix.
 	prefix          string                                           // prefix is the IPv4 prefix for the route.
-	protocolOrigin  ocenums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE // protocolOrigin specifies the route on the device via which the prefix was learnt.
+	protocolOrigin  ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE // protocolOrigin specifies the route on the device via which the prefix was learnt.
 }
 
 // buildRouteProto returns a Protobuf representation a route and associated
@@ -85,20 +85,20 @@ func buildRouteProto(pfx *ipv4Prefix) *ocpb.Device {
 			},
 			AfiSafis: &ocrpb.BgpRib_AfiSafis{
 				AfiSafi: []*ocrpb.BgpRib_AfiSafis_AfiSafiKey{{
-					AfiSafiName: ocenums.OpenconfigBgpTypesAFISAFITYPE_OPENCONFIGBGPTYPESAFISAFITYPE_IPV4_UNICAST,
+					AfiSafiName: ocepb.OpenconfigBgpTypesAFISAFITYPE_OPENCONFIGBGPTYPESAFISAFITYPE_IPV4_UNICAST,
 					AfiSafi: &ocrpb.BgpRib_AfiSafis_AfiSafi{
 						Ipv4Unicast: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast{
 							LocRib: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib{
 								Routes: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes{
 									Route: []*ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey{{
 										Prefix: pfx.prefix,
-										Origin: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey_OriginOpenconfigpolicytypesinstallprotocoltype{ocenums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP},
+										Origin: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey_OriginOpenconfigpolicytypesinstallprotocoltype{ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP},
 										PathId: 1,
 										Route: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route{
 											State: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_State{
 												PathId:    &ywpb.UintValue{Value: 1},
 												Prefix:    &ywpb.StringValue{Value: pfx.prefix},
-												Origin:    &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_State_OriginOpenconfigpolicytypesinstallprotocoltype{ocenums.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP},
+												Origin:    &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_State_OriginOpenconfigpolicytypesinstallprotocoltype{ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP},
 												AttrIndex: &ywpb.UintValue{Value: 1},
 											},
 										},
