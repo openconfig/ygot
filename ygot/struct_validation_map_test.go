@@ -1623,20 +1623,15 @@ func TestMergeStructs(t *testing.T) {
 		inB:     &validatedMergeTestTwo{String: String("north-coast-old-rasputin")},
 		wantErr: "cannot merge structs that are not of matching types, *ygot.validatedMergeTest != *ygot.validatedMergeTestTwo",
 	}, {
-		name:    "error, bad data in A",
-		inA:     &validatedMergeTestTwo{I: "belleville-thames-surfer"},
-		inB:     &validatedMergeTestTwo{String: String("fourpure-beartooth")},
-		wantErr: "cannot DeepCopy struct: invalid interface type received: string",
-	}, {
 		name:    "error, bad data in B",
 		inA:     &validatedMergeTestTwo{String: String("weird-beard-sorachi-faceplant")},
 		inB:     &validatedMergeTestTwo{I: "fourpure-southern-latitude"},
-		wantErr: "error merging b to new struct: invalid interface type received: string",
+		wantErr: "invalid interface type received: string",
 	}, {
 		name:    "error, field set in both structs",
 		inA:     &validatedMergeTest{String: String("karbach-hopadillo")},
 		inB:     &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
-		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field",
+		wantErr: "destination value was set, but was not equal to source value when merging ptr field",
 	}, {
 		name: "allow leaf overwrite if equal",
 		inA:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
@@ -1646,7 +1641,7 @@ func TestMergeStructs(t *testing.T) {
 		name:    "error - merge leaf overwrite but not equal",
 		inA:     &validatedMergeTest{String: String("schneider-weisse-hopfenweisse")},
 		inB:     &validatedMergeTest{String: String("deschutes-jubelale")},
-		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field",
+		wantErr: "destination value was set, but was not equal to source value when merging ptr field",
 	}, {
 		name: "merge fields with slice of structs",
 		inA: &validatedMergeTestWithSlice{
@@ -1680,8 +1675,43 @@ func TestMergeStructs(t *testing.T) {
 		inB: &validatedMergeTestWithSlice{
 			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
 		},
-		wantErr: "error merging b to new struct: source and destination lists must be unique",
+		wantErr: "source and destination lists must be unique",
 	}}
+
+	for _, tt := range tests {
+		// Make a copy of inA here since it will get mutated.
+		got, err := DeepCopy(tt.inA)
+		if err != nil {
+			t.Errorf("%s: DeepCopy(%v): unexpected error with testdata, %v", tt.name, tt.inA, err)
+			continue
+		}
+		err = MergeStructInto(got.(ValidatedGoStruct), tt.inB)
+		if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
+			t.Errorf("%s: MergeStructInto(%v, %v): did not get expected error status, %s", tt.name, tt.inA, tt.inB, diff)
+		}
+		if err != nil {
+			continue
+		}
+
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: MergeStructInto(%v, %v): did not mutate inA struct correctly, diff(-got,+want):\n%s", tt.name, tt.inA, tt.inB, diff)
+		}
+	}
+
+	// Appended tests that only apply to the extra copy steps performed in
+	// MergeStructs as it does not mutate any inputs.
+	tests = append(tests, struct {
+		name    string
+		inA     ValidatedGoStruct
+		inB     ValidatedGoStruct
+		want    ValidatedGoStruct
+		wantErr string
+	}{
+		name:    "error, bad data in A",
+		inA:     &validatedMergeTestTwo{I: "belleville-thames-surfer"},
+		inB:     &validatedMergeTestTwo{String: String("fourpure-beartooth")},
+		wantErr: "cannot DeepCopy struct: invalid interface type received: string",
+	})
 
 	for _, tt := range tests {
 		got, err := MergeStructs(tt.inA, tt.inB)
