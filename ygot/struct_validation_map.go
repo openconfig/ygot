@@ -476,13 +476,27 @@ func MergeStructs(a, b ValidatedGoStruct) (ValidatedGoStruct, error) {
 	if err != nil {
 		return nil, err
 	}
-	n := reflect.ValueOf(tn)
+	// This conversion is safe as DeepCopy will use the same underlying type as
+	// `a`, which was passed in as a ValidatedGoStruct.
+	dst := tn.(ValidatedGoStruct)
 
-	if err := copyStruct(n.Elem(), reflect.ValueOf(b).Elem()); err != nil {
+	if err := MergeStructInto(dst, b); err != nil {
 		return nil, fmt.Errorf("error merging b to new struct: %v", err)
 	}
 
-	return n.Interface().(ValidatedGoStruct), nil
+	return dst, nil
+}
+
+// MergeStructInto takes the provided input ValidatedGoStructs and merges the
+// contents from src into dst. Unlike MergeStructs, the supplied dst is mutated.
+//
+// The merge semantics are the same as those for MergeStructs.
+func MergeStructInto(dst, src ValidatedGoStruct) error {
+	if reflect.TypeOf(dst) != reflect.TypeOf(src) {
+		return fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", dst, src)
+	}
+
+	return copyStruct(reflect.ValueOf(dst).Elem(), reflect.ValueOf(src).Elem())
 }
 
 // DeepCopy returns a deep copy of the supplied GoStruct. A new copy
