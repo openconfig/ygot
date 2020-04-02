@@ -502,6 +502,9 @@ func MergeStructInto(dst, src ValidatedGoStruct) error {
 // DeepCopy returns a deep copy of the supplied GoStruct. A new copy
 // of the GoStruct is created, along with any underlying values.
 func DeepCopy(s GoStruct) (GoStruct, error) {
+	if util.IsNilOrInvalidValue(reflect.ValueOf(s)) {
+		return nil, fmt.Errorf("invalid input to DeepCopy, got nil value: %v", s)
+	}
 	n := reflect.New(reflect.TypeOf(s).Elem())
 	if err := copyStruct(n.Elem(), reflect.ValueOf(s).Elem()); err != nil {
 		return nil, fmt.Errorf("cannot DeepCopy struct: %v", err)
@@ -539,6 +542,17 @@ func copyStruct(dstVal, srcVal reflect.Value) error {
 		case reflect.Slice:
 			if err := copySliceField(dstField, srcField); err != nil {
 				return err
+			}
+		case reflect.Int64:
+			// In the case of an int64 field, which represents a YANG enumeration
+			// we should only set the value in the destination if it is not set
+			// to the default value in the source.
+			vSrc, vDst := srcField.Int(), dstField.Int()
+			switch {
+			case vSrc != 0 && vDst != 0 && vSrc != vDst:
+				return fmt.Errorf("destination and source values were set when merging enum field, dst: %d, src: %d", vSrc, vDst)
+			case vSrc != 0 && vDst == 0:
+				dstField.Set(srcField)
 			}
 		default:
 			dstField.Set(srcField)
@@ -600,7 +614,7 @@ func copyPtrField(dstField, srcField reflect.Value) error {
 // copyInterfaceField copies srcField into dstField. Both srcField and dstField
 // are reflect.Value structs which contain an interface value.
 func copyInterfaceField(dstField, srcField reflect.Value) error {
-	if srcField.IsNil() || !srcField.IsValid() {
+	if util.IsNilOrInvalidValue(srcField) {
 		return nil
 	}
 
@@ -608,7 +622,14 @@ func copyInterfaceField(dstField, srcField reflect.Value) error {
 		return fmt.Errorf("invalid interface type received: %T", srcField.Interface())
 	}
 
-	s := srcField.Elem().Elem() // Dereference to a struct.
+	s := srcField.Elem().Elem() // Dereference src to a struct.
+	if !util.IsNilOrInvalidValue(dstField) {
+		dV := dstField.Elem().Elem() // Dereference dst to a struct.
+		if !reflect.DeepEqual(s.Interface(), dV.Interface()) {
+			return fmt.Errorf("interface field was set in both src and dst and was not equal, src: %v, dst: %v", s.Interface(), dV.Interface())
+		}
+	}
+
 	var d reflect.Value
 	d = reflect.New(s.Type())
 	if err := copyStruct(d.Elem(), s); err != nil {
