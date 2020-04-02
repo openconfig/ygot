@@ -1169,6 +1169,7 @@ func (*copyUnionS) IsUnion() {}
 type copyUnionI struct {
 	I int64
 }
+
 func (*copyUnionI) IsUnion() {}
 
 type copyMapKey struct {
@@ -1552,7 +1553,7 @@ type validatedMergeTest struct {
 	StringTwo   *string
 	Uint32Field *uint32
 	EnumValue   enumType
-	UnionField copyUnion
+	UnionField  copyUnion
 }
 
 func (*validatedMergeTest) Validate(...ValidationOption) error      { return nil }
@@ -1732,7 +1733,7 @@ var mergeStructTests = []struct {
 		UnionField: &copyUnionS{"mikkeler-pale-peter-and-mary"},
 	},
 	wantErr: "interface field was set in both src and dst and was not equal",
-},{
+}, {
 	name: "merge union: values equal",
 	inA: &validatedMergeTest{
 		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
@@ -1749,16 +1750,16 @@ var mergeStructTests = []struct {
 		UnionField: &copyUnionS{"estrella-damn-daura"},
 	},
 	inB: &validatedMergeTest{},
-	want:  &validatedMergeTest{
+	want: &validatedMergeTest{
 		UnionField: &copyUnionS{"estrella-damn-daura"},
 	},
 }, {
 	name: "merge union: set in dst and not src",
-	inA: &validatedMergeTest{},
-	inB:  &validatedMergeTest{
+	inA:  &validatedMergeTest{},
+	inB: &validatedMergeTest{
 		UnionField: &copyUnionS{"two-brothers-prairie-path-golden-ale"},
 	},
-	want:  &validatedMergeTest{
+	want: &validatedMergeTest{
 		UnionField: &copyUnionS{"two-brothers-prairie-path-golden-ale"},
 	},
 }, {

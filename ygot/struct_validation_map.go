@@ -625,11 +625,11 @@ func copyInterfaceField(dstField, srcField reflect.Value) error {
 	s := srcField.Elem().Elem() // Dereference src to a struct.
 	if !util.IsNilOrInvalidValue(dstField) {
 		dV := dstField.Elem().Elem() // Dereference dst to a struct.
-		if !reflect.DeepEqual(s.Interface(), dV.Interface()){
+		if !reflect.DeepEqual(s.Interface(), dV.Interface()) {
 			return fmt.Errorf("interface field was set in both src and dst and was not equal, src: %v, dst: %v", s.Interface(), dV.Interface())
 		}
 	}
-	
+
 	var d reflect.Value
 	d = reflect.New(s.Type())
 	if err := copyStruct(d.Elem(), s); err != nil {
