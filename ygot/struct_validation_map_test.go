@@ -1152,7 +1152,8 @@ func TestMergeStructJSON(t *testing.T) {
 type enumType int64
 
 const (
-	EnumTypeValue enumType = 1
+	EnumTypeValue    enumType = 1
+	EnumTypeValueTwo enumType = 2
 )
 
 type copyUnion interface {
@@ -1164,6 +1165,11 @@ type copyUnionS struct {
 }
 
 func (*copyUnionS) IsUnion() {}
+
+type copyUnionI struct {
+	I int64
+}
+func (*copyUnionI) IsUnion() {}
 
 type copyMapKey struct {
 	A string
@@ -1545,6 +1551,8 @@ type validatedMergeTest struct {
 	String      *string
 	StringTwo   *string
 	Uint32Field *uint32
+	EnumValue   enumType
+	UnionField copyUnion
 }
 
 func (*validatedMergeTest) Validate(...ValidationOption) error      { return nil }
@@ -1619,6 +1627,44 @@ var mergeStructTests = []struct {
 		Uint32Field: Uint32(42),
 	},
 }, {
+	name: "enum merge: set in a, and not b",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	inB: &validatedMergeTest{},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
+	name: "enum merge: set in b and not a",
+	inA:  &validatedMergeTest{},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
+	name: "enum merge: set to same value in both",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
+	name: "enum merge: set to different values in both",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValueTwo,
+	},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	wantErr: "destination and source values were set when merging enum field",
+}, {
 	name:    "error, differing types",
 	inA:     &validatedMergeTest{String: String("great-divide-yeti")},
 	inB:     &validatedMergeTestTwo{String: String("north-coast-old-rasputin")},
@@ -1677,6 +1723,53 @@ var mergeStructTests = []struct {
 		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
 	},
 	wantErr: "source and destination lists must be unique",
+}, {
+	name: "merge union: values not equal",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"glutenberg-ipa"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionS{"mikkeler-pale-peter-and-mary"},
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+},{
+	name: "merge union: values equal",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
+	},
+	want: &validatedMergeTest{
+		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
+	},
+}, {
+	name: "merge union: set in src and not dst",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"estrella-damn-daura"},
+	},
+	inB: &validatedMergeTest{},
+	want:  &validatedMergeTest{
+		UnionField: &copyUnionS{"estrella-damn-daura"},
+	},
+}, {
+	name: "merge union: set in dst and not src",
+	inA: &validatedMergeTest{},
+	inB:  &validatedMergeTest{
+		UnionField: &copyUnionS{"two-brothers-prairie-path-golden-ale"},
+	},
+	want:  &validatedMergeTest{
+		UnionField: &copyUnionS{"two-brothers-prairie-path-golden-ale"},
+	},
+}, {
+	name: "merge union: values not equal, and different types",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"greens-amber"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionI{42},
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
 }}
 
 func TestMergeStructs(t *testing.T) {
@@ -1822,10 +1915,10 @@ func TestCopyErrorCases(t *testing.T) {
 
 func TestDeepCopy(t *testing.T) {
 	tests := []struct {
-		name    string
-		in      *copyTest
-		inKey   string
-		wantErr bool
+		name             string
+		in               *copyTest
+		inKey            string
+		wantErrSubstring string
 	}{{
 		name: "simple copy",
 		in:   &copyTest{StringField: String("zaphod")},
@@ -1842,13 +1935,21 @@ func TestDeepCopy(t *testing.T) {
 		in: &copyTest{
 			StringSlice: []string{"one"},
 		},
+	}, {
+		name:             "nil inputs",
+		wantErrSubstring: "got nil value",
 	}}
 
 	for _, tt := range tests {
 		got, err := DeepCopy(tt.in)
-		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: DeepCopy(%#v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.in, err, tt.wantErr)
+
+		if err != nil {
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("%s: DeepCopy(%#v): did not get expected error, %s", tt.name, tt.in, diff)
+			}
+			continue
 		}
+
 		if diff := pretty.Compare(got, tt.in); diff != "" {
 			t.Errorf("%s: DeepCopy(%#v): did not get identical copy, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 		}
