@@ -102,14 +102,14 @@ func TestSimpleKeyAppend(t *testing.T) {
 		t.Errorf("AppendNetworkInstance(%v): did not find element after append, got: %v, want: true", ni, ok)
 	}
 
-  // Bugfix, this should not cause a NPE.
-  if err := in.AppendInterface(&exampleoc.Interface{}); err == nil {
-    t.Errorf("AppendInterface({}) should not succeed, got: nil, want: err")
-  }
+	// Bugfix, this should not cause a NPE.
+	if err := in.AppendInterface(&exampleoc.Interface{}); err == nil {
+		t.Errorf("AppendInterface({}) should not succeed, got: nil, want: err")
+	}
 
-  if err := in.GetOrCreateNetworkInstance("DEFAULT").AppendProtocol(&exampleoc.NetworkInstance_Protocol{}); err == nil {
-	  t.Errorf("AppendProtocol({}) should not succeed, got: nil, want: err")
-  }
+	if err := in.GetOrCreateNetworkInstance("DEFAULT").AppendProtocol(&exampleoc.NetworkInstance_Protocol{}); err == nil {
+		t.Errorf("AppendProtocol({}) should not succeed, got: nil, want: err")
+	}
 }
 
 func TestMultiKeyAppend(t *testing.T) {
@@ -207,4 +207,3 @@ func TestLeafGetter(t *testing.T) {
 		t.Errorf("did not correctly return the default for a leaf, got: %v, want: true", got)
 	}
 }
-
