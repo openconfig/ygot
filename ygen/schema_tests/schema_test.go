@@ -104,7 +104,11 @@ func TestSimpleKeyAppend(t *testing.T) {
 
   // Bugfix, this should not cause a NPE.
   if err := in.AppendInterface(&exampleoc.Interface{}); err == nil {
-    t.Errorf("AppendInterface({}) should not exceed, got: nil, want: err")
+    t.Errorf("AppendInterface({}) should not succeed, got: nil, want: err")
+  }
+
+  if err := in.GetOrCreateNetworkInstance("DEFAULT").AppendProtocol(&exampleoc.NetworkInstance_Protocol{}); err == nil {
+	  t.Errorf("AppendProtocol({}) should not succeed, got: nil, want: err")
   }
 }
 
