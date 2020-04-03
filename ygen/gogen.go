@@ -764,20 +764,31 @@ func (t *{{ .Receiver }}) Delete{{ .ListName }}(
 // returned.
 func (t *{{ .Receiver }}) Append{{ .ListName }}(v *{{ .ListType }}) error {
 	{{ if ne .KeyStruct "" -}}
+	{{- range $key := .Keys }}
+	{{- if $key.IsScalarField -}}
+	if v.{{ $key.Name }} == nil {
+		return fmt.Errorf("invalid nil key for {{ $key.Name }}")
+	}
+
+	{{ end -}}
+	{{- end -}}
 	key := {{ .KeyStruct }}{
 		{{- range $key := .Keys }}
-		{{- if $key.IsScalarField -}}
-			{{ $key.Name }}: *v.{{ $key.Name }},
-		{{- else -}}
-			{{ $key.Name }}: v.{{ $key.Name }},
-		{{- end -}}
-
-		{{- end }}
+		{{- if $key.IsScalarField }}
+		{{ $key.Name }}: *v.{{ $key.Name }},
+		{{- else }}
+		{{ $key.Name }}: v.{{ $key.Name }},
+		{{- end -}} 
+		{{ end }}
 	}
 	{{- else -}}
 	{{- range $key := .Keys -}}
 		{{- if $key.IsScalarField -}}
-			key := *v.{{ $key.Name }}
+	if v.{{ $key.Name }} == nil {
+		return fmt.Errorf("invalid nil key received for {{ $key.Name }}")
+	}
+
+	key := *v.{{ $key.Name }}
 		{{- else -}}
 			key := v.{{ $key.Name }}
 		{{- end -}}

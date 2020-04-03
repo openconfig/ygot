@@ -1267,7 +1267,17 @@ func (t *Tstruct) DeleteListWithKey(KeyLeafOne string, KeyLeafTwo int8) {
 // the supplied ListWithKey already exist in the list, an error is
 // returned.
 func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
-	key := Tstruct_ListWithKey_Key{KeyLeafOne: *v.KeyLeafOne,KeyLeafTwo: *v.KeyLeafTwo,
+	if v.KeyLeafOne == nil {
+		return fmt.Errorf("invalid nil key for KeyLeafOne")
+	}
+
+	if v.KeyLeafTwo == nil {
+		return fmt.Errorf("invalid nil key for KeyLeafTwo")
+	}
+
+	key := Tstruct_ListWithKey_Key{
+		KeyLeafOne: *v.KeyLeafOne,
+		KeyLeafTwo: *v.KeyLeafTwo,
 	}
 
 	// Initialise the list within the receiver struct if it has not already been
@@ -1443,6 +1453,10 @@ func (t *Tstruct) DeleteListWithKey(KeyLeaf string) {
 // the supplied ListWithKey already exist in the list, an error is
 // returned.
 func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
+	if v.KeyLeaf == nil {
+		return fmt.Errorf("invalid nil key received for KeyLeaf")
+	}
+
 	key := *v.KeyLeaf
 
 	// Initialise the list within the receiver struct if it has not already been
