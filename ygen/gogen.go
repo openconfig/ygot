@@ -790,7 +790,7 @@ func (t *{{ .Receiver }}) Append{{ .ListName }}(v *{{ .ListType }}) error {
 
 	key := *v.{{ $key.Name }}
 		{{- else -}}
-			key := v.{{ $key.Name }}
+	key := v.{{ $key.Name }}
 		{{- end -}}
 	{{- end -}}
 	{{- end }}
