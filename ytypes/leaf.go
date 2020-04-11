@@ -809,10 +809,17 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 		}
 		return rv.Interface(), nil
 	case yang.Ybinary:
-		return tv.GetBytesVal(), nil
+		bytes := tv.GetBytesVal()
+		if bytes == nil {
+			return nil, fmt.Errorf("received BytesVal is nil -- this is invalid")
+		}
+		return bytes, nil
 	case yang.Ydecimal64:
 		switch v := tv.GetValue().(type) {
 		case *gpb.TypedValue_DecimalVal:
+			if v.DecimalVal == nil {
+				return nil, fmt.Errorf("received DecimalVal is nil -- this is invalid")
+			}
 			prec := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(v.DecimalVal.Precision)), nil)
 			// Second return value indicates whether returned float64 value exactly
 			// represents the division. We don't want to fail unmarshalling as float64

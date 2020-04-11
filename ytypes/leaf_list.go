@@ -113,6 +113,9 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 		if !ok {
 			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect *gpb.TypedValue_LeaflistVal set in *gpb.TypedValue", schema.Name, util.ValueStr(value), tv.GetValue())
 		}
+		if len(sa.LeaflistVal.GetElement()) == 0 {
+			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got empty leaf list, expect non-empty leaf list", schema.Name, util.ValueStr(value))
+		}
 		for _, v := range sa.LeaflistVal.GetElement() {
 			if err := unmarshalGeneric(&leafSchema, parent, v, enc); err != nil {
 				return err

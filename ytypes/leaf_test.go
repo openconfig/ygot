@@ -1688,6 +1688,12 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantErr: `StringToType("4242", int8) failed; unable to convert "4242" to int8`,
 		},
 		{
+			desc:     "success gNMI nil value (no-op)",
+			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
+			inVal:    nil,
+			wantVal:  &LeafContainerStruct{},
+		},
+		{
 			desc:     "success gNMI IntVal to Yuint8",
 			inSchema: typeToLeafSchema("uint8-leaf", yang.Yuint8),
 			inVal: &gpb.TypedValue{
@@ -1718,6 +1724,12 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantErr: `StringToType("4242", uint8) failed; unable to convert "4242" to uint8`,
 		},
 		{
+			desc:     "fail gNMI TypedValue with nil Value field",
+			inSchema: typeToLeafSchema("uint8-leaf", yang.Yuint8),
+			inVal:    &gpb.TypedValue{},
+			wantErr:  `failed to unmarshal`,
+		},
+		{
 			desc:     "success gNMI FloatVal to Ydecimal64",
 			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
 			inVal: &gpb.TypedValue{
@@ -1740,6 +1752,16 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantVal: &LeafContainerStruct{DecimalLeaf: ygot.Float64(0.42)},
 		},
 		{
+			desc:     "fail gNMI nil Decimal64 value",
+			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_DecimalVal{
+					DecimalVal: nil,
+				},
+			},
+			wantErr: "DecimalVal is nil",
+		},
+		{
 			desc:     "success gNMI BytesVal to Ybinary",
 			inSchema: typeToLeafSchema("binary-leaf", yang.Ybinary),
 			inVal: &gpb.TypedValue{
@@ -1748,6 +1770,16 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 				},
 			},
 			wantVal: &LeafContainerStruct{BinaryLeaf: Binary([]byte("value"))},
+		},
+		{
+			desc:     "fail gNMI BytesVal is nil",
+			inSchema: typeToLeafSchema("binary-leaf", yang.Ybinary),
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_BytesVal{
+					BytesVal: nil,
+				},
+			},
+			wantErr: "BytesVal is nil",
 		},
 		{
 			desc:     "success unmarshalling union leaf string field",
