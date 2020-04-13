@@ -521,6 +521,10 @@ func (E_OpenconfigListEnumKey_FooIdentity) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigListEnumKey_FooIdentity.
 func (E_OpenconfigListEnumKey_FooIdentity) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+func (e E_OpenconfigListEnumKey_FooIdentity) String() string {
+	return ygot.EnumString(e, int64(e), "E_OpenconfigListEnumKey_FooIdentity")
+}
+
 const (
 	// OpenconfigListEnumKey_FooIdentity_UNSET corresponds to the value UNSET of OpenconfigListEnumKey_FooIdentity
 	OpenconfigListEnumKey_FooIdentity_UNSET E_OpenconfigListEnumKey_FooIdentity = 0
@@ -545,6 +549,10 @@ func (E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1.
 func (E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+func (e E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1) String() string {
+	return ygot.EnumString(e, int64(e), "E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1")
+}
+
 const (
 	// OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1_UNSET corresponds to the value UNSET of OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1
 	OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1_UNSET E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1 = 0
@@ -568,6 +576,10 @@ func (E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K.
 func (E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+func (e E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K) String() string {
+	return ygot.EnumString(e, int64(e), "E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K")
+}
 
 const (
 	// OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K_UNSET corresponds to the value UNSET of OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K

@@ -56,6 +56,10 @@ func (E_OpenConfigCamelCase_BAT) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenConfigCamelCase_BAT.
 func (E_OpenConfigCamelCase_BAT) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+func (e E_OpenConfigCamelCase_BAT) String() string {
+	return ygot.EnumString(e, int64(e), "E_OpenConfigCamelCase_BAT")
+}
+
 const (
 	// OpenConfigCamelCase_BAT_UNSET corresponds to the value UNSET of OpenConfigCamelCase_BAT
 	OpenConfigCamelCase_BAT_UNSET E_OpenConfigCamelCase_BAT = 0
@@ -79,6 +83,10 @@ func (E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar.
 func (E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+func (e E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar) String() string {
+	return ygot.EnumString(e, int64(e), "E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar")
+}
 
 const (
 	// OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar_UNSET corresponds to the value UNSET of OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar

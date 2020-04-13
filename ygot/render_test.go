@@ -802,6 +802,10 @@ func (EnumTest) ΛMap() map[string]map[int64]EnumDefinition {
 	}
 }
 
+func (e EnumTest) String() string {
+	return EnumString(e, int64(e), "EnumTest")
+}
+
 const (
 	// EnumTestUNSET is used to represent the unset value of the
 	// /c/test enumerated value across a number of tests.

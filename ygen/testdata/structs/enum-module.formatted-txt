@@ -192,6 +192,10 @@ func (E_EnumModule_AList_Value) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  EnumModule_AList_Value.
 func (E_EnumModule_AList_Value) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+func (e E_EnumModule_AList_Value) String() string {
+	return ygot.EnumString(e, int64(e), "E_EnumModule_AList_Value")
+}
+
 const (
 	// EnumModule_AList_Value_UNSET corresponds to the value UNSET of EnumModule_AList_Value
 	EnumModule_AList_Value_UNSET E_EnumModule_AList_Value = 0
@@ -217,6 +221,10 @@ func (E_EnumModule_BList_Value) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  EnumModule_BList_Value.
 func (E_EnumModule_BList_Value) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+func (e E_EnumModule_BList_Value) String() string {
+	return ygot.EnumString(e, int64(e), "E_EnumModule_BList_Value")
+}
 
 const (
 	// EnumModule_BList_Value_UNSET corresponds to the value UNSET of EnumModule_BList_Value
@@ -244,6 +252,10 @@ func (E_EnumModule_EnumModule_Cl) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  EnumModule_EnumModule_Cl.
 func (E_EnumModule_EnumModule_Cl) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+func (e E_EnumModule_EnumModule_Cl) String() string {
+	return ygot.EnumString(e, int64(e), "E_EnumModule_EnumModule_Cl")
+}
+
 const (
 	// EnumModule_EnumModule_Cl_UNSET corresponds to the value UNSET of EnumModule_EnumModule_Cl
 	EnumModule_EnumModule_Cl_UNSET E_EnumModule_EnumModule_Cl = 0
@@ -265,6 +277,10 @@ func (E_EnumTypes_ID) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  EnumTypes_ID.
 func (E_EnumTypes_ID) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+func (e E_EnumTypes_ID) String() string {
+	return ygot.EnumString(e, int64(e), "E_EnumTypes_ID")
+}
 
 const (
 	// EnumTypes_ID_UNSET corresponds to the value UNSET of EnumTypes_ID

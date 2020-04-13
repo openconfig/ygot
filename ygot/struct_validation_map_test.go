@@ -200,6 +200,10 @@ func (enumTest) ΛMap() map[string]map[int64]EnumDefinition {
 	}
 }
 
+func (e enumTest) String() string {
+	return EnumString(e, int64(e), "enumTest")
+}
+
 type badEnumTest int64
 
 func (badEnumTest) IsYANGGoEnum() {}
@@ -211,6 +215,10 @@ const (
 
 func (badEnumTest) ΛMap() map[string]map[int64]EnumDefinition {
 	return nil
+}
+
+func (e badEnumTest) String() string {
+	return ""
 }
 
 func TestEnumFieldToString(t *testing.T) {
@@ -417,6 +425,10 @@ func (ECTest) ΛMap() map[string]map[int64]EnumDefinition {
 			2: EnumDefinition{Name: "VAL_TWO", DefiningModule: "valtwo-mod"},
 		},
 	}
+}
+
+func (e ECTest) String() string {
+	return EnumString(e, int64(e), "ECTest")
 }
 
 // mapStructInvalid is a valid GoStruct whose Validate() method always returns

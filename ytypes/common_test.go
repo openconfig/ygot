@@ -47,6 +47,10 @@ func (EnumType) ΛMap() map[string]map[int64]ygot.EnumDefinition {
 	return globalEnumMap
 }
 
+func (e EnumType) String() string {
+	return ygot.EnumString(e, int64(e), "EnumType")
+}
+
 func (EnumType) IsYANGGoEnum() {}
 
 // EnumType2 is used as an enum type in various tests in the ytypes package.
@@ -55,6 +59,12 @@ type EnumType2 int64
 func (EnumType2) ΛMap() map[string]map[int64]ygot.EnumDefinition {
 	return globalEnumMap
 }
+
+func (e EnumType2) String() string {
+	return ygot.EnumString(e, int64(e), "EnumType2")
+}
+
+func (EnumType2) IsYANGGoEnum() {}
 
 // populateParentField recurses through schema and populates each Parent field
 // with the parent schema node ptr.

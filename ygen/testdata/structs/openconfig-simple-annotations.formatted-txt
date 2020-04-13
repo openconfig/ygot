@@ -143,6 +143,10 @@ func (E_OpenconfigSimple_Parent_Child_Config_Three) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigSimple_Parent_Child_Config_Three.
 func (E_OpenconfigSimple_Parent_Child_Config_Three) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+func (e E_OpenconfigSimple_Parent_Child_Config_Three) String() string {
+	return ygot.EnumString(e, int64(e), "E_OpenconfigSimple_Parent_Child_Config_Three")
+}
+
 const (
 	// OpenconfigSimple_Parent_Child_Config_Three_UNSET corresponds to the value UNSET of OpenconfigSimple_Parent_Child_Config_Three
 	OpenconfigSimple_Parent_Child_Config_Three_UNSET E_OpenconfigSimple_Parent_Child_Config_Three = 0
