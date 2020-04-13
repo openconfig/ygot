@@ -1688,10 +1688,16 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantErr: `StringToType("4242", int8) failed; unable to convert "4242" to int8`,
 		},
 		{
-			desc:     "success gNMI nil value (no-op)",
+			desc:     "failure gNMI nil value",
 			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
 			inVal:    nil,
-			wantVal:  &LeafContainerStruct{},
+			wantErr:  "nil value to unmarshal",
+		},
+		{
+			desc:     "failure gNMI nil TypedValue",
+			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
+			inVal:    (*gpb.TypedValue)(nil),
+			wantErr:  "nil value to unmarshal",
 		},
 		{
 			desc:     "success gNMI IntVal to Yuint8",
@@ -1790,6 +1796,12 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 				},
 			},
 			wantVal: &LeafContainerStruct{UnionLeaf: &UnionLeafType_String{String: "forty two"}},
+		},
+		{
+			desc:     "fail unmarshalling nil for union leaf string field",
+			inSchema: unionSchema,
+			inVal:    nil,
+			wantErr:  "nil value to unmarshal",
 		},
 		{
 			desc:     "success unmarshalling union leaf enum field",

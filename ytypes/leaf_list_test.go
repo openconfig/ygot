@@ -233,8 +233,9 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 		wantErr string
 	}{
 		{
-			desc: "nil success",
-			want: LeafListContainer{},
+			desc:    "nil fail",
+			want:    LeafListContainer{},
+			wantErr: "nil",
 		},
 		{
 			desc: "int32 success",
@@ -251,10 +252,10 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 			want: LeafListContainer{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
 		},
 		{
-			desc: "int32 pass with nil TypedValue",
-			sch:  int32LeafListSchema,
-			val:  nil,
-			want: LeafListContainer{},
+			desc:    "int32 fail with nil TypedValue",
+			sch:     int32LeafListSchema,
+			val:     (*gpb.TypedValue)(nil),
+			wantErr: "nil value to unmarshal",
 		},
 		{
 			desc:    "int32 fail with nil Value within TypedValue",

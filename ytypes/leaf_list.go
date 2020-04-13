@@ -90,7 +90,10 @@ func validateLeafListSchema(schema *yang.Entry) error {
 //   value is a gNMI TypedValue if enc is GNMIEncoding, represented as TypedValue_LeafListVal
 func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}, enc Encoding) error {
 	if util.IsValueNil(value) {
-		return nil
+		if enc == JSONEncoding {
+			return nil
+		}
+		return fmt.Errorf("unmarshalLeafList: invalid nil value to unmarshal")
 	}
 	// Check that the schema itself is valid.
 	if err := validateLeafListSchema(schema); err != nil {
