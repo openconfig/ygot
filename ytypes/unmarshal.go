@@ -74,10 +74,6 @@ func unmarshalGeneric(schema *yang.Entry, parent interface{}, value interface{},
 	util.Indent()
 	defer util.Dedent()
 
-	// Nil value means the field is unset.
-	if util.IsValueNil(value) {
-		return nil
-	}
 	if schema == nil {
 		return fmt.Errorf("nil schema for parent type %T, value %v (%T)", parent, value, value)
 	}

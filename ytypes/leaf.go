@@ -344,7 +344,10 @@ type Binary []byte
 //   schema points to the schema for the leaf type.
 func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, enc Encoding) error {
 	if util.IsValueNil(value) {
-		return nil
+		if enc == JSONEncoding {
+			return nil
+		}
+		return fmt.Errorf("unmarshalLeaf: invalid nil value to unmarshal")
 	}
 
 	var err error
@@ -660,7 +663,10 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 //     Required if the unmarshaled type is an enum.
 func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, value interface{}, enc Encoding) (interface{}, error) {
 	if util.IsValueNil(value) {
-		return nil, nil
+		if enc == JSONEncoding {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("unmarshalScalar: invalid nil value to unmarshal")
 	}
 
 	if err := validateLeafSchema(schema); err != nil {
@@ -809,10 +815,17 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 		}
 		return rv.Interface(), nil
 	case yang.Ybinary:
-		return tv.GetBytesVal(), nil
+		bytes := tv.GetBytesVal()
+		if bytes == nil {
+			return nil, fmt.Errorf("received BytesVal is nil -- this is invalid")
+		}
+		return bytes, nil
 	case yang.Ydecimal64:
 		switch v := tv.GetValue().(type) {
 		case *gpb.TypedValue_DecimalVal:
+			if v.DecimalVal == nil {
+				return nil, fmt.Errorf("received DecimalVal is nil -- this is invalid")
+			}
 			prec := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(v.DecimalVal.Precision)), nil)
 			// Second return value indicates whether returned float64 value exactly
 			// represents the division. We don't want to fail unmarshalling as float64

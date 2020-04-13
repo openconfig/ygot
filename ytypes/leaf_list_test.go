@@ -233,8 +233,9 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 		wantErr string
 	}{
 		{
-			desc: "nil success",
-			want: LeafListContainer{},
+			desc:    "nil fail",
+			want:    LeafListContainer{},
+			wantErr: "nil",
 		},
 		{
 			desc: "int32 success",
@@ -249,6 +250,46 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 				},
 			}},
 			want: LeafListContainer{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
+		},
+		{
+			desc:    "int32 fail with nil TypedValue",
+			sch:     int32LeafListSchema,
+			val:     (*gpb.TypedValue)(nil),
+			wantErr: "nil value to unmarshal",
+		},
+		{
+			desc:    "int32 fail with nil Value within TypedValue",
+			sch:     int32LeafListSchema,
+			val:     &gpb.TypedValue{Value: nil},
+			wantErr: "got type <nil>",
+		},
+		{
+			desc: "int32 fail with nil LeaflistVal",
+			sch:  int32LeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: nil,
+			}},
+			wantErr: "empty leaf list",
+		},
+		{
+			desc: "int32 fail with nil elements",
+			sch:  int32LeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: nil,
+				},
+			}},
+			wantErr: "empty leaf list",
+		},
+		{
+			desc: "int32 fail with empty elements",
+			sch:  int32LeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{},
+				},
+			}},
+			wantErr: "empty leaf list",
 		},
 		{
 			desc: "enum success",
