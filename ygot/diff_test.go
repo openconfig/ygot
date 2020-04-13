@@ -827,6 +827,13 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:   "extra empty child struct in modified -- no difference",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			Ch: &renderExampleChild{},
+		},
+		want: &gnmipb.Notification{},
+	}, {
 		desc: "single path deletion in modified",
 		inOrig: &renderExample{
 			Str: String("chardonnay"),
