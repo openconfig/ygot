@@ -170,8 +170,8 @@ func TestGetNodeFull(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(got, tt.wantNodes, ignoreSchema, cmpopts.EquateEmpty(), sortNodes, cmp.Comparer(proto.Equal)); diff != "" {
-				t.Fatalf("did not get expected result, diff(-got,+want):\n%s", diff)
+			if diff := cmp.Diff(tt.wantNodes, got, ignoreSchema, cmpopts.EquateEmpty(), sortNodes, cmp.Comparer(proto.Equal)); diff != "" {
+				t.Fatalf("did not get expected result, diff(-want,+got):\n%s", diff)
 			}
 		})
 	}

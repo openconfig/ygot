@@ -202,7 +202,7 @@ func TestUnionSubTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := newGenState()
+			s := newGoGenState(nil)
 			mtypes := make(map[int]*MappedType)
 			ctypes := make(map[string]int)
 			errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false, tt.inSkipEnumDedup)
@@ -232,8 +232,8 @@ func TestUnionSubTypes(t *testing.T) {
 				}
 			}
 
-			if diff := cmp.Diff(mtypes, tt.wantMtypes, cmp.AllowUnexported(MappedType{}), cmpopts.EquateEmpty()); diff != "" {
-				t.Errorf("mtypes not as expected\n%s", diff)
+			if diff := cmp.Diff(tt.wantMtypes, mtypes, cmp.AllowUnexported(MappedType{}), cmpopts.EquateEmpty()); diff != "" {
+				t.Errorf("mtypes not as expected (-want, +got):\n%s", diff)
 			}
 		})
 	}
@@ -766,12 +766,12 @@ func TestYangTypeToGoType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := newGenState()
+			s := newGoGenState(nil)
 
 			// Inject the history that has been provided into the new state. This allows us to
 			// check that resolution that should be changed by the state has modified behaviour.
 			if i := tt.inUniqueEnumeratedLeafNames; i != nil {
-				s.uniqueEnumeratedLeafNames = tt.inUniqueEnumeratedLeafNames
+				s.enumGen.uniqueEnumeratedLeafNames = tt.inUniqueEnumeratedLeafNames
 			}
 
 			if tt.inEntries != nil {
@@ -810,13 +810,14 @@ func TestYangTypeToGoType(t *testing.T) {
 // struct is returned representing the keys of the list e.
 func TestBuildListKey(t *testing.T) {
 	tests := []struct {
-		name            string        // name is the test identifier.
-		in              *yang.Entry   // in is the yang.Entry of the test list.
-		inCompress      bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
-		inEntries       []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
-		inSkipEnumDedup bool
-		want            YangListAttr // want is the expected YangListAttr output.
-		wantErr         bool         // wantErr is a boolean indicating whether errors are expected from buildListKeys
+		name                    string        // name is the test identifier.
+		in                      *yang.Entry   // in is the yang.Entry of the test list.
+		inCompress              bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
+		inEntries               []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
+		inSkipEnumDedup         bool          // inSkipEnumDedup says whether to dedup identical enums encountered in the models.
+		inResolveKeyNameFuncNil bool          // inResolveKeyNameFuncNil specifies whether the key name function is not provided.
+		want                    YangListAttr  // want is the expected YangListAttr output.
+		wantErr                 bool          // wantErr is a boolean indicating whether errors are expected from buildListKeys
 	}{{
 		name: "non-list",
 		in: &yang.Entry{
@@ -873,6 +874,91 @@ func TestBuildListKey(t *testing.T) {
 					Name: "keyleaf",
 					Type: &yang.YangType{Kind: yang.Ystring},
 				},
+			},
+		},
+	}, {
+		name: "basic list key test with nil resolve key name function",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "keyleaf",
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {
+					Name: "keyleaf",
+					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+			},
+		},
+		inResolveKeyNameFuncNil: true,
+		want: YangListAttr{
+			KeyElems: []*yang.Entry{
+				{
+					Name: "keyleaf",
+					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+			},
+		},
+	}, {
+		name: "multiple list keys",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "k1 k2",
+			Dir: map[string]*yang.Entry{
+				"k1": {Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
+				"k2": {Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
+			},
+		},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"k1": {NativeType: "string"},
+				"k2": {NativeType: "string"},
+			},
+			KeyElems: []*yang.Entry{
+				{Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
+				{Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
+			},
+		},
+	}, {
+		name: "multiple list keys - double spacing",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "k1  k2",
+			Dir: map[string]*yang.Entry{
+				"k1": {Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
+				"k2": {Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
+			},
+		},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"k1": {NativeType: "string"},
+				"k2": {NativeType: "string"},
+			},
+			KeyElems: []*yang.Entry{
+				{Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
+				{Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
+			},
+		},
+	}, {
+		name: "multiple list keys - newlines",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "k1  \nk2",
+			Dir: map[string]*yang.Entry{
+				"k1": {Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
+				"k2": {Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
+			},
+		},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"k1": {NativeType: "string"},
+				"k2": {NativeType: "string"},
+			},
+			KeyElems: []*yang.Entry{
+				{Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
+				{Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
 			},
 		},
 	}, {
@@ -1181,7 +1267,7 @@ func TestBuildListKey(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		s := newGenState()
+		s := newGoGenState(nil)
 		if tt.inEntries != nil {
 			st, err := buildSchemaTree(tt.inEntries)
 			if err != nil {
@@ -1191,7 +1277,14 @@ func TestBuildListKey(t *testing.T) {
 			s.schematree = st
 		}
 
-		got, err := s.buildListKey(tt.in, tt.inCompress, tt.inSkipEnumDedup)
+		resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
+			return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup)
+		}
+		if tt.inResolveKeyNameFuncNil {
+			resolveKeyTypeName = nil
+		}
+
+		got, err := buildListKey(tt.in, tt.inCompress, resolveKeyTypeName)
 		if err != nil && !tt.wantErr {
 			t.Errorf("%s: could not build list key successfully %v", tt.name, err)
 		}
@@ -1390,7 +1483,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		s := newGenState()
+		s := newGoGenState(nil)
 		gotTypes := make(map[string]*MappedType)
 		for _, leaf := range tt.inLeaves {
 			mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths, tt.inSkipEnumDedup)

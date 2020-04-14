@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
@@ -233,8 +233,9 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 		wantErr string
 	}{
 		{
-			desc: "nil success",
-			want: LeafListContainer{},
+			desc:    "nil fail",
+			want:    LeafListContainer{},
+			wantErr: "nil",
 		},
 		{
 			desc: "int32 success",
@@ -249,6 +250,46 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 				},
 			}},
 			want: LeafListContainer{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
+		},
+		{
+			desc:    "int32 fail with nil TypedValue",
+			sch:     int32LeafListSchema,
+			val:     (*gpb.TypedValue)(nil),
+			wantErr: "nil value to unmarshal",
+		},
+		{
+			desc:    "int32 fail with nil Value within TypedValue",
+			sch:     int32LeafListSchema,
+			val:     &gpb.TypedValue{Value: nil},
+			wantErr: "got type <nil>",
+		},
+		{
+			desc: "int32 fail with nil LeaflistVal",
+			sch:  int32LeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: nil,
+			}},
+			wantErr: "empty leaf list",
+		},
+		{
+			desc: "int32 fail with nil elements",
+			sch:  int32LeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: nil,
+				},
+			}},
+			wantErr: "empty leaf list",
+		},
+		{
+			desc: "int32 fail with empty elements",
+			sch:  int32LeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{},
+				},
+			}},
+			wantErr: "empty leaf list",
 		},
 		{
 			desc: "enum success",
@@ -328,8 +369,9 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-			t.Errorf("%s: unmarshalGeneric got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+		got, want := parent, tt.want
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("%s: unmarshalGeneric (-want, +got):\n%s", tt.desc, diff)
 		}
 	}
 }
@@ -408,8 +450,9 @@ func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := parent, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s: unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
 			}
 		})

@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"testing"
 
@@ -787,8 +786,8 @@ func TestSimpleStructs(t *testing.T) {
 					t.Fatalf("%s: json.Unmarshal(..., [contents of %s]), could not unmarshal golden JSON file: %v", tt.name, tt.wantSchemaFile, err)
 				}
 
-				if !reflect.DeepEqual(gotJSON, wantJSON) {
-					diff, _ := testutil.GenerateUnifiedDiff(string(gotGeneratedCode.RawJSONSchema), string(wantSchema))
+				if !cmp.Equal(gotJSON, wantJSON) {
+					diff, _ := testutil.GenerateUnifiedDiff(string(wantSchema), string(gotGeneratedCode.RawJSONSchema))
 					t.Fatalf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
 				}
 			}
@@ -804,7 +803,7 @@ func TestSimpleStructs(t *testing.T) {
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
-				diff, _ := testutil.GenerateUnifiedDiff(gotCode, wantCode)
+				diff, _ := testutil.GenerateUnifiedDiff(wantCode, gotCode)
 				t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct code (file: %v), diff:\n%s",
 					tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diff)
 			}
@@ -812,7 +811,7 @@ func TestSimpleStructs(t *testing.T) {
 			for i := 0; i < deflakeRuns; i++ {
 				_, gotAttempt, _ := genCode()
 				if gotAttempt != gotCode {
-					diff, _ := testutil.GenerateUnifiedDiff(gotCode, gotAttempt)
+					diff, _ := testutil.GenerateUnifiedDiff(gotAttempt, gotCode)
 					t.Fatalf("flaky code generation, diff:\n%s", diff)
 				}
 			}
@@ -1872,10 +1871,10 @@ func TestGenerateProto3(t *testing.T) {
 				allCode.WriteString(gotCodeBuf.String())
 
 				if diff := pretty.Compare(gotCodeBuf.String(), wantCode); diff != "" {
-					if diffl, _ := testutil.GenerateUnifiedDiff(gotCodeBuf.String(), wantCode); diffl != "" {
+					if diffl, _ := testutil.GenerateUnifiedDiff(wantCode, gotCodeBuf.String()); diffl != "" {
 						diff = diffl
 					}
-					t.Fatalf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-got,+want):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
+					t.Fatalf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-want, +got):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
 				}
 			}
 
@@ -1905,8 +1904,8 @@ func TestGenerateProto3(t *testing.T) {
 				}
 
 				if diff := pretty.Compare(gotCodeBuf.String(), allCode.String()); diff != "" {
-					diff, _ = testutil.GenerateUnifiedDiff(gotCodeBuf.String(), allCode.String())
-					t.Fatalf("flaky code generation iter: %d, diff(-got,+want):\n%s", i, diff)
+					diff, _ = testutil.GenerateUnifiedDiff(allCode.String(), gotCodeBuf.String())
+					t.Fatalf("flaky code generation iter: %d, diff(-want, +got):\n%s", i, diff)
 				}
 			}
 		})

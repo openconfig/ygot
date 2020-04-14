@@ -32,24 +32,25 @@ import (
 )
 
 var (
-	yangPaths           = flag.String("path", "", "Comma separated list of paths to be recursively searched for included modules or submodules within the defined YANG modules.")
-	compressPaths       = flag.Bool("compress_paths", false, "If set to true, the schema's paths are compressed, according to OpenConfig YANG module conventions.")
-	excludeModules      = flag.String("exclude_modules", "", "Comma separated set of module names that should be excluded from code generation. This can be used to ensure overlapping namespaces can be ignored.")
-	packageName         = flag.String("package_name", "openconfig", "The name of the Proto package that generated messages should belong to as their parent.")
-	enumPackageName     = flag.String("enum_package_name", "enums", "The name of the package within the generated package that should contain global enum definitions.")
-	outputDir           = flag.String("output_dir", "", "The path to which files should be output, hierarchical folders are created for the generated messages.")
-	ignoreCircDeps      = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
-	baseImportPath      = flag.String("base_import_path", "", "The base import path that should be used for this package, for example a URL to the GitHub repo that the protobuf messages are stored in.")
-	ywrapperPath        = flag.String("ywrapper_path", ygen.DefaultYwrapperPath, "The path to the ywrapper.proto file, excluding the file name. Used to import the ywrapper protobuf that specifies the wrapper messages for scalar protobuf types.")
-	yextPath            = flag.String("yext_path", ygen.DefaultYextPath, "The path to the yext.proto file, excluding the file name. Used to import the yext protobuf that specifies YANG-specific field options for protobuf.")
-	generateFakeRoot    = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. The fake root's name can be controlled with the fakeroot_name flag.")
-	fakeRootName        = flag.String("fakeroot_name", "Device", "The name of the fake root entity.")
-	annotateSchemaPaths = flag.Bool("add_schemapaths", true, "If set to true, the schema path of each YANG entity is added as a protobuf field option")
-	annotateEnumNames   = flag.Bool("add_enumnames", true, "If set to true, each value within output enums will be annotated with the label in the original YANG schema.")
-	packageHierarchy    = flag.Bool("package_hierarchy", false, "If set to true, an individual protobuf package is output per level of the YANG schema tree.")
-	callerName          = flag.String("caller_name", "proto_generator", "The name of the generator binary that should be recorded in output files.")
-	excludeState        = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Protobuf messages.")
-	skipEnumDedup       = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
+	yangPaths              = flag.String("path", "", "Comma separated list of paths to be recursively searched for included modules or submodules within the defined YANG modules.")
+	compressPaths          = flag.Bool("compress_paths", false, "If set to true, the schema's paths are compressed, according to OpenConfig YANG module conventions.")
+	excludeModules         = flag.String("exclude_modules", "", "Comma separated set of module names that should be excluded from code generation. This can be used to ensure overlapping namespaces can be ignored.")
+	packageName            = flag.String("package_name", "openconfig", "The name of the Proto package that generated messages should belong to as their parent.")
+	enumPackageName        = flag.String("enum_package_name", "enums", "The name of the package within the generated package that should contain global enum definitions.")
+	outputDir              = flag.String("output_dir", "", "The path to which files should be output, hierarchical folders are created for the generated messages.")
+	ignoreCircDeps         = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
+	baseImportPath         = flag.String("base_import_path", "", "The base import path that should be used for this package, for example a URL to the GitHub repo that the protobuf messages are stored in.")
+	ywrapperPath           = flag.String("ywrapper_path", ygen.DefaultYwrapperPath, "The path to the ywrapper.proto file, excluding the file name. Used to import the ywrapper protobuf that specifies the wrapper messages for scalar protobuf types.")
+	yextPath               = flag.String("yext_path", ygen.DefaultYextPath, "The path to the yext.proto file, excluding the file name. Used to import the yext protobuf that specifies YANG-specific field options for protobuf.")
+	generateFakeRoot       = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. The fake root's name can be controlled with the fakeroot_name flag.")
+	fakeRootName           = flag.String("fakeroot_name", "Device", "The name of the fake root entity.")
+	annotateSchemaPaths    = flag.Bool("add_schemapaths", true, "If set to true, the schema path of each YANG entity is added as a protobuf field option")
+	annotateEnumNames      = flag.Bool("add_enumnames", true, "If set to true, each value within output enums will be annotated with the label in the original YANG schema.")
+	packageHierarchy       = flag.Bool("package_hierarchy", false, "If set to true, an individual protobuf package is output per level of the YANG schema tree.")
+	callerName             = flag.String("caller_name", "proto_generator", "The name of the generator binary that should be recorded in output files.")
+	excludeState           = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Protobuf messages.")
+	preferOperationalState = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves in the generated messages with compressed schema paths. This flag is only valid for compress_paths=true and exclude_state=false.")
+	skipEnumDedup          = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
@@ -92,7 +93,10 @@ func main() {
 		}
 	}
 
-	compressBehaviour := genutil.TranslateToCompressBehaviour(*compressPaths, *excludeState)
+	compressBehaviour, err := genutil.TranslateToCompressBehaviour(*compressPaths, *excludeState, *preferOperationalState)
+	if err != nil {
+		log.Exitf("ERROR Generating Proto Code: %s\n", err)
+	}
 
 	// Perform the code generation.
 	cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
@@ -121,9 +125,9 @@ func main() {
 		},
 	})
 
-	generatedProtoCode, err := cg.GenerateProto3(generateModules, includePaths)
-	if err != nil {
-		log.Exitf("%v\n", err)
+	generatedProtoCode, errs := cg.GenerateProto3(generateModules, includePaths)
+	if errs != nil {
+		log.Exitf("%v\n", errs)
 	}
 
 	for _, p := range generatedProtoCode.Packages {

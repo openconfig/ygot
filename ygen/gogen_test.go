@@ -16,9 +16,9 @@ package ygen
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
@@ -1268,7 +1268,17 @@ func (t *Tstruct) DeleteListWithKey(KeyLeafOne string, KeyLeafTwo int8) {
 // the supplied ListWithKey already exist in the list, an error is
 // returned.
 func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
-	key := Tstruct_ListWithKey_Key{KeyLeafOne: *v.KeyLeafOne,KeyLeafTwo: *v.KeyLeafTwo,
+	if v.KeyLeafOne == nil {
+		return fmt.Errorf("invalid nil key for KeyLeafOne")
+	}
+
+	if v.KeyLeafTwo == nil {
+		return fmt.Errorf("invalid nil key for KeyLeafTwo")
+	}
+
+	key := Tstruct_ListWithKey_Key{
+		KeyLeafOne: *v.KeyLeafOne,
+		KeyLeafTwo: *v.KeyLeafTwo,
 	}
 
 	// Initialise the list within the receiver struct if it has not already been
@@ -1444,6 +1454,10 @@ func (t *Tstruct) DeleteListWithKey(KeyLeaf string) {
 // the supplied ListWithKey already exist in the list, an error is
 // returned.
 func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
+	if v.KeyLeaf == nil {
+		return fmt.Errorf("invalid nil key received for KeyLeaf")
+	}
+
 	key := *v.KeyLeaf
 
 	// Initialise the list within the receiver struct if it has not already been
@@ -1707,7 +1721,7 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 				tt.wantUncompressed = tt.wantCompressed
 			}
 			for compressed, want := range map[bool]wantGoStructOut{true: tt.wantCompressed, false: tt.wantUncompressed} {
-				s := newGenState()
+				s := newGoGenState(nil)
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 				// Always generate the JSON schema for this test.
@@ -1732,34 +1746,34 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 				}
 
 				if diff := pretty.Compare(want.structs, got.StructDef); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.StructDef, want.structs); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(want.structs, got.StructDef); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-got,+want):\n%s",
+					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-want, +got):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
 				if diff := pretty.Compare(want.keys, got.ListKeys); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.ListKeys, want.keys); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(want.keys, got.ListKeys); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
+					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-want, +got):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
 				if diff := pretty.Compare(want.methods, got.Methods); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.Methods, want.methods); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(want.methods, got.Methods); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
+					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): generated methods incorrect, diff (-want, +got):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
 				if diff := pretty.Compare(want.interfaces, got.Interfaces); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.Interfaces, want.interfaces); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(want.interfaces, got.Interfaces); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s: writeGoStruct(compressPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
+					t.Errorf("%s: writeGoStruct(compressPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-want, +got):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 			}
@@ -1940,10 +1954,10 @@ const (
 
 		if diff := pretty.Compare(tt.want, got); diff != "" {
 			fmt.Println(diff)
-			if diffl, err := testutil.GenerateUnifiedDiff(got.constDef, tt.want.constDef); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(tt.want.constDef, got.constDef); err == nil {
 				diff = diffl
 			}
-			t.Errorf("%s: writeGoEnum(%v): got incorrect output, diff(-got,+want):\n%s",
+			t.Errorf("%s: writeGoEnum(%v): got incorrect output, diff(-want, +got):\n%s",
 				tt.name, tt.in, diff)
 		}
 	}
@@ -2130,9 +2144,8 @@ func TestFindMapPaths(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(got, tt.wantPaths) {
-			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, got wrong paths, got: %v, want: %v",
-				tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, got, tt.wantPaths)
+		if diff := cmp.Diff(tt.wantPaths, got); diff != "" {
+			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, diff)
 		}
 	}
 }
@@ -2207,8 +2220,8 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 
 		if tt.wantMap != got {
 			diff := fmt.Sprintf("got: %s, want %s", got, tt.wantMap)
-			if diffl, err := testutil.GenerateUnifiedDiff(got, tt.wantMap); err == nil {
-				diff = "diff (-got, +want):\n" + diffl
+			if diffl, err := testutil.GenerateUnifiedDiff(tt.wantMap, got); err == nil {
+				diff = "diff (-want, +got):\n" + diffl
 			}
 			t.Errorf("%s: did not get expected generated enum, %s", tt.name, diff)
 		}
@@ -2254,18 +2267,11 @@ func TestGoLeafDefault(t *testing.T) {
 		want: ygot.String("EnumType_FORTY_TWO"),
 	}}
 
-	// Define a helper to print string pointers in a more useful way during test output.
-	pp := func(s *string) string {
-		if s == nil {
-			return "nil"
-		}
-		return *s
-	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := goLeafDefault(tt.inLeaf, tt.inType); !reflect.DeepEqual(got, tt.want) {
-				t.Fatalf("did not get expected default, got: %s, want: %s", pp(got), pp(tt.want))
+			got := goLeafDefault(tt.inLeaf, tt.inType)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Fatalf("did not get expected default, (-want, +got):\n%s", diff)
 			}
 		})
 	}

@@ -15,13 +15,64 @@
 package genutil
 
 import (
-	"bytes"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/goyang/pkg/yang"
 )
+
+func TestTranslateToCompressBehaviour(t *testing.T) {
+	tests := []struct {
+		inCompressPaths bool
+		inExcludeState  bool
+		inPreferState   bool
+		want            CompressBehaviour
+		wantErr         bool
+	}{{
+		want: Uncompressed,
+	}, {
+		inCompressPaths: true,
+		want:            PreferIntendedConfig,
+	}, {
+		inExcludeState: true,
+		want:           UncompressedExcludeDerivedState,
+	}, {
+		inPreferState: true,
+		wantErr:       true,
+	}, {
+		inCompressPaths: true,
+		inExcludeState:  true,
+		want:            ExcludeDerivedState,
+	}, {
+		inCompressPaths: true,
+		inPreferState:   true,
+		want:            PreferOperationalState,
+	}, {
+		inExcludeState: true,
+		inPreferState:  true,
+		wantErr:        true,
+	}, {
+		inCompressPaths: true,
+		inExcludeState:  true,
+		inPreferState:   true,
+		wantErr:         true,
+	}}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("inCompressPaths %v, inExcludeState %v, inPreferState %v", tt.inCompressPaths, tt.inExcludeState, tt.inPreferState), func(t *testing.T) {
+			got, err := TranslateToCompressBehaviour(tt.inCompressPaths, tt.inExcludeState, tt.inPreferState)
+			if gotErr := err != nil; gotErr != tt.wantErr {
+				t.Fatalf("gotErr: %v, wantErr: %v", err, tt.wantErr)
+			}
+
+			if got != tt.want {
+				t.Errorf("got %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
 
 func TestWriteIfNotEmpty(t *testing.T) {
 	tests := []struct {
@@ -39,7 +90,7 @@ func TestWriteIfNotEmpty(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		b := bytes.Buffer{}
+		b := strings.Builder{}
 		WriteIfNotEmpty(&b, tt.in)
 		if got, want := b.String(), tt.want; got != want {
 			t.Errorf("%s (WriteIfNotEmpty: %v): %v is not %s", tt.name, tt.in, got, want)

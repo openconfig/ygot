@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
@@ -347,6 +347,12 @@ type UnionContainerCompressed struct {
 
 func (*UnionContainerCompressed) IsYANGGoStruct() {}
 
+type UnionContainerSingleEnum struct {
+	UnionField EnumType `path:"union1"`
+}
+
+func (*UnionContainerSingleEnum) IsYANGGoStruct() {}
+
 func TestValidateLeafUnion(t *testing.T) {
 	unionContainerSchema := &yang.Entry{
 		Name: "union1-container",
@@ -368,6 +374,27 @@ func TestValidateLeafUnion(t *testing.T) {
 							Name: "int16",
 							Kind: yang.Yint16,
 						},
+						{
+							Name: "enum",
+							Kind: yang.Yenum,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	unionContainerSingleEnumSchema := &yang.Entry{
+		Name: "union1-container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"union1": {
+				Name: "union1",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{
+					Name: "union1-type",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{
 						{
 							Name: "enum",
 							Kind: yang.Yenum,
@@ -475,6 +502,11 @@ func TestValidateLeafUnion(t *testing.T) {
 			schema:  unionContainerSchema,
 			val:     &UnionContainer{UnionField: &Union1BadLeaf{BadLeaf: ygot.Float32(0)}},
 			wantErr: true,
+		},
+		{
+			desc:   "success no wrapping struct enum",
+			schema: unionContainerSingleEnumSchema,
+			val:    &UnionContainerSingleEnum{UnionField: EnumType(42)},
 		},
 		{
 			desc:   "success no wrapping struct string",
@@ -1354,8 +1386,9 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s (#%d): Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, idx, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := parent, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s (#%d): Unmarshal (-want, +got):\n%s", tt.desc, idx, diff)
 				}
 			}
 		})
@@ -1455,8 +1488,9 @@ func TestUnmarshalLeafRef(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := parent, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
 			}
 		})
@@ -1654,6 +1688,18 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantErr: `StringToType("4242", int8) failed; unable to convert "4242" to int8`,
 		},
 		{
+			desc:     "failure gNMI nil value",
+			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
+			inVal:    nil,
+			wantErr:  "nil value to unmarshal",
+		},
+		{
+			desc:     "failure gNMI nil TypedValue",
+			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
+			inVal:    (*gpb.TypedValue)(nil),
+			wantErr:  "nil value to unmarshal",
+		},
+		{
 			desc:     "success gNMI IntVal to Yuint8",
 			inSchema: typeToLeafSchema("uint8-leaf", yang.Yuint8),
 			inVal: &gpb.TypedValue{
@@ -1684,6 +1730,12 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantErr: `StringToType("4242", uint8) failed; unable to convert "4242" to uint8`,
 		},
 		{
+			desc:     "fail gNMI TypedValue with nil Value field",
+			inSchema: typeToLeafSchema("uint8-leaf", yang.Yuint8),
+			inVal:    &gpb.TypedValue{},
+			wantErr:  `failed to unmarshal`,
+		},
+		{
 			desc:     "success gNMI FloatVal to Ydecimal64",
 			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
 			inVal: &gpb.TypedValue{
@@ -1706,6 +1758,16 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantVal: &LeafContainerStruct{DecimalLeaf: ygot.Float64(0.42)},
 		},
 		{
+			desc:     "fail gNMI nil Decimal64 value",
+			inSchema: typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_DecimalVal{
+					DecimalVal: nil,
+				},
+			},
+			wantErr: "DecimalVal is nil",
+		},
+		{
 			desc:     "success gNMI BytesVal to Ybinary",
 			inSchema: typeToLeafSchema("binary-leaf", yang.Ybinary),
 			inVal: &gpb.TypedValue{
@@ -1716,6 +1778,16 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantVal: &LeafContainerStruct{BinaryLeaf: Binary([]byte("value"))},
 		},
 		{
+			desc:     "fail gNMI BytesVal is nil",
+			inSchema: typeToLeafSchema("binary-leaf", yang.Ybinary),
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_BytesVal{
+					BytesVal: nil,
+				},
+			},
+			wantErr: "BytesVal is nil",
+		},
+		{
 			desc:     "success unmarshalling union leaf string field",
 			inSchema: unionSchema,
 			inVal: &gpb.TypedValue{
@@ -1724,6 +1796,12 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 				},
 			},
 			wantVal: &LeafContainerStruct{UnionLeaf: &UnionLeafType_String{String: "forty two"}},
+		},
+		{
+			desc:     "fail unmarshalling nil for union leaf string field",
+			inSchema: unionSchema,
+			inVal:    nil,
+			wantErr:  "nil value to unmarshal",
 		},
 		{
 			desc:     "success unmarshalling union leaf enum field",
@@ -1835,8 +1913,8 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 		if err != nil {
 			continue
 		}
-		if !reflect.DeepEqual(inParent, tt.wantVal) {
-			t.Errorf("%s: unmarshalLeaf(%v, %v, %v, GNMIEncoding): got %v, want %v", tt.desc, tt.inSchema, inParent, tt.inVal, inParent, tt.wantVal)
+		if diff := cmp.Diff(tt.wantVal, inParent); diff != "" {
+			t.Errorf("%s: unmarshalLeaf(%v, %v, %v, GNMIEncoding): (-want, +got):\n%s", tt.desc, tt.inSchema, inParent, tt.inVal, diff)
 		}
 	}
 }

@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
@@ -517,8 +516,9 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := parent, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
 			}
 		})
@@ -613,8 +613,9 @@ func TestUnmarshalKeyedList(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := parent, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
 			}
 		})
@@ -710,8 +711,9 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := parent, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
 			}
 		})
@@ -778,8 +780,9 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := parent, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("%s: Unmarshal got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
+				got, want := parent, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
 			}
 		})
@@ -897,8 +900,8 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 			if e != nil {
 				return
 			}
-			if diff := cmp.Diff(k.Interface(), tt.want); diff != "" {
-				t.Errorf("got %v, want %v: diff %v", k, tt.want, diff)
+			if diff := cmp.Diff(tt.want, k.Interface()); diff != "" {
+				t.Errorf("(-want, +got):\n%s", diff)
 			}
 		})
 	}
@@ -1266,8 +1269,8 @@ func TestInsertAndGetKey(t *testing.T) {
 				return
 			}
 			val := reflect.ValueOf(tt.inParent).MapIndex(reflect.ValueOf(got)).Interface()
-			if !reflect.DeepEqual(val, tt.want) {
-				t.Errorf("got %v, want %v", val, tt.want)
+			if diff := cmp.Diff(tt.want, val); diff != "" {
+				t.Errorf("(-want, +got):\n%s", diff)
 			}
 		})
 	}

@@ -46,7 +46,7 @@ func NewPathTranslator(schemaTree []*yang.Entry) (*PathTranslator, error) {
 		if _, ok := r.rules[fullPath]; ok {
 			return nil, fmt.Errorf("got %v path multiple times", fullPath)
 		}
-		r.rules[fullPath] = strings.Split(v.Key, " ")
+		r.rules[fullPath] = strings.Fields(v.Key)
 	}
 	return r, nil
 }

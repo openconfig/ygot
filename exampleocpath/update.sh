@@ -14,9 +14,11 @@ git clone https://github.com/openconfig/public.git
 mkdir deps
 cp ../demo/getting_started/yang/{ietf,iana}* deps
 go run ../ypathgen/generator/generator.go -path=public,deps -output_file=ocpath.go \
-  -package_name=exampleoc -fakeroot_name=device \
+  -package_name=exampleocpath -fakeroot_name=root \
+  -prefer_operational_state=true \
   -exclude_modules=ietf-interfaces \
   -schema_struct_path=github.com/openconfig/ygot/exampleoc \
+  -list_builder_key_threshold=3 \
   public/release/models/network-instance/openconfig-network-instance.yang \
   public/release/models/optical-transport/openconfig-optical-amplifier.yang \
   public/release/models/optical-transport/openconfig-terminal-device.yang \

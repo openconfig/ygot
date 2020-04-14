@@ -175,8 +175,8 @@ func TestStructTagToLibPaths(t *testing.T) {
 			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, err, tt.wantErr)
 		}
 
-		if diff := cmp.Diff(got, tt.want, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
-			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-got,+want):\n%s", tt.name, tt.inField, tt.inParent, diff)
+		if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
+			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, diff)
 		}
 	}
 }
@@ -555,10 +555,10 @@ func TestEmitJSON(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(got, string(wantJSON)); diff != "" {
-			if diffl, err := testutil.GenerateUnifiedDiff(got, string(wantJSON)); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(string(wantJSON), got); err == nil {
 				diff = diffl
 			}
-			t.Errorf("%s: EmitJSON(%v, nil): got invalid JSON, diff(-got,+want):\n%s", tt.name, tt.inStruct, diff)
+			t.Errorf("%s: EmitJSON(%v, nil): got invalid JSON, diff(-want, +got):\n%s", tt.name, tt.inStruct, diff)
 		}
 	}
 }
@@ -1152,7 +1152,8 @@ func TestMergeStructJSON(t *testing.T) {
 type enumType int64
 
 const (
-	EnumTypeValue enumType = 1
+	EnumTypeValue    enumType = 1
+	EnumTypeValueTwo enumType = 2
 )
 
 type copyUnion interface {
@@ -1164,6 +1165,12 @@ type copyUnionS struct {
 }
 
 func (*copyUnionS) IsUnion() {}
+
+type copyUnionI struct {
+	I int64
+}
+
+func (*copyUnionI) IsUnion() {}
 
 type copyMapKey struct {
 	A string
@@ -1545,6 +1552,8 @@ type validatedMergeTest struct {
 	String      *string
 	StringTwo   *string
 	Uint32Field *uint32
+	EnumValue   enumType
+	UnionField  copyUnion
 }
 
 func (*validatedMergeTest) Validate(...ValidationOption) error      { return nil }
@@ -1596,92 +1605,189 @@ func (e *ExampleAnnotation) UnmarshalJSON([]byte) error {
 	return fmt.Errorf("unimplemented")
 }
 
+// mergeStructTests are shared test cases for both MergeStructs and
+// MergeStructInto. Used to capture the common cases between the two functions.
+var mergeStructTests = []struct {
+	name    string
+	inA     ValidatedGoStruct
+	inB     ValidatedGoStruct
+	want    ValidatedGoStruct
+	wantErr string
+}{{
+	name: "simple struct merge, a empty",
+	inA:  &validatedMergeTest{},
+	inB:  &validatedMergeTest{String: String("odell-90-shilling")},
+	want: &validatedMergeTest{String: String("odell-90-shilling")},
+}, {
+	name: "simple struct merge, a populated",
+	inA:  &validatedMergeTest{String: String("left-hand-milk-stout-nitro"), Uint32Field: Uint32(42)},
+	inB:  &validatedMergeTest{StringTwo: String("new-belgium-lips-of-faith-la-folie")},
+	want: &validatedMergeTest{
+		String:      String("left-hand-milk-stout-nitro"),
+		StringTwo:   String("new-belgium-lips-of-faith-la-folie"),
+		Uint32Field: Uint32(42),
+	},
+}, {
+	name: "enum merge: set in a, and not b",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	inB: &validatedMergeTest{},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
+	name: "enum merge: set in b and not a",
+	inA:  &validatedMergeTest{},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
+	name: "enum merge: set to same value in both",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
+	name: "enum merge: set to different values in both",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValueTwo,
+	},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	wantErr: "destination and source values were set when merging enum field",
+}, {
+	name:    "error, differing types",
+	inA:     &validatedMergeTest{String: String("great-divide-yeti")},
+	inB:     &validatedMergeTestTwo{String: String("north-coast-old-rasputin")},
+	wantErr: "cannot merge structs that are not of matching types, *ygot.validatedMergeTest != *ygot.validatedMergeTestTwo",
+}, {
+	name:    "error, bad data in B",
+	inA:     &validatedMergeTestTwo{String: String("weird-beard-sorachi-faceplant")},
+	inB:     &validatedMergeTestTwo{I: "fourpure-southern-latitude"},
+	wantErr: "invalid interface type received: string",
+}, {
+	name:    "error, field set in both structs",
+	inA:     &validatedMergeTest{String: String("karbach-hopadillo")},
+	inB:     &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
+	wantErr: "destination value was set, but was not equal to source value when merging ptr field",
+}, {
+	name: "allow leaf overwrite if equal",
+	inA:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
+	inB:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
+	want: &validatedMergeTest{String: String("new-belgium-sour-saison")},
+}, {
+	name:    "error - merge leaf overwrite but not equal",
+	inA:     &validatedMergeTest{String: String("schneider-weisse-hopfenweisse")},
+	inB:     &validatedMergeTest{String: String("deschutes-jubelale")},
+	wantErr: "destination value was set, but was not equal to source value when merging ptr field",
+}, {
+	name: "merge fields with slice of structs",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("citrus-dream")}},
+	},
+	want: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+}, {
+	name: "merge fields with duplicate slices of annotations",
+	inA: &validatedMergeTestWithAnnotationSlice{
+		SliceField: []Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+	},
+	inB: &validatedMergeTestWithAnnotationSlice{
+		SliceField: []Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+	},
+	want: &validatedMergeTestWithAnnotationSlice{
+		SliceField: []Annotation{
+			&ExampleAnnotation{ConfigSource: "devicedemo"},
+			&ExampleAnnotation{ConfigSource: "devicedemo"},
+		},
+	},
+}, {
+	name: "error - merge fields with slice with duplicate strings",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	wantErr: "source and destination lists must be unique",
+}, {
+	name: "merge union: values not equal",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"glutenberg-ipa"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionS{"mikkeler-pale-peter-and-mary"},
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "merge union: values equal",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
+	},
+	want: &validatedMergeTest{
+		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
+	},
+}, {
+	name: "merge union: set in src and not dst",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"estrella-damn-daura"},
+	},
+	inB: &validatedMergeTest{},
+	want: &validatedMergeTest{
+		UnionField: &copyUnionS{"estrella-damn-daura"},
+	},
+}, {
+	name: "merge union: set in dst and not src",
+	inA:  &validatedMergeTest{},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionS{"two-brothers-prairie-path-golden-ale"},
+	},
+	want: &validatedMergeTest{
+		UnionField: &copyUnionS{"two-brothers-prairie-path-golden-ale"},
+	},
+}, {
+	name: "merge union: values not equal, and different types",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"greens-amber"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionI{42},
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}}
+
 func TestMergeStructs(t *testing.T) {
-	tests := []struct {
+	// Tests that only apply to the extra copy steps performed in MergeStructs as
+	// it does not mutate any inputs.
+	tests := append(mergeStructTests, struct {
 		name    string
 		inA     ValidatedGoStruct
 		inB     ValidatedGoStruct
 		want    ValidatedGoStruct
 		wantErr string
-	}{{
-		name: "simple struct merge, a empty",
-		inA:  &validatedMergeTest{},
-		inB:  &validatedMergeTest{String: String("odell-90-shilling")},
-		want: &validatedMergeTest{String: String("odell-90-shilling")},
-	}, {
-		name: "simple struct merge, a populated",
-		inA:  &validatedMergeTest{String: String("left-hand-milk-stout-nitro"), Uint32Field: Uint32(42)},
-		inB:  &validatedMergeTest{StringTwo: String("new-belgium-lips-of-faith-la-folie")},
-		want: &validatedMergeTest{
-			String:      String("left-hand-milk-stout-nitro"),
-			StringTwo:   String("new-belgium-lips-of-faith-la-folie"),
-			Uint32Field: Uint32(42),
-		},
-	}, {
-		name:    "error, differing types",
-		inA:     &validatedMergeTest{String: String("great-divide-yeti")},
-		inB:     &validatedMergeTestTwo{String: String("north-coast-old-rasputin")},
-		wantErr: "cannot merge structs that are not of matching types, *ygot.validatedMergeTest != *ygot.validatedMergeTestTwo",
-	}, {
+	}{
 		name:    "error, bad data in A",
 		inA:     &validatedMergeTestTwo{I: "belleville-thames-surfer"},
 		inB:     &validatedMergeTestTwo{String: String("fourpure-beartooth")},
 		wantErr: "cannot DeepCopy struct: invalid interface type received: string",
-	}, {
-		name:    "error, bad data in B",
-		inA:     &validatedMergeTestTwo{String: String("weird-beard-sorachi-faceplant")},
-		inB:     &validatedMergeTestTwo{I: "fourpure-southern-latitude"},
-		wantErr: "error merging b to new struct: invalid interface type received: string",
-	}, {
-		name:    "error, field set in both structs",
-		inA:     &validatedMergeTest{String: String("karbach-hopadillo")},
-		inB:     &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
-		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field, src: blackwater-draw-brewing-co-border-town, dst: karbach-hopadillo",
-	}, {
-		name: "allow leaf overwrite if equal",
-		inA:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
-		inB:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
-		want: &validatedMergeTest{String: String("new-belgium-sour-saison")},
-	}, {
-		name:    "error - merge leaf overwrite but not equal",
-		inA:     &validatedMergeTest{String: String("schneider-weisse-hopfenweisse")},
-		inB:     &validatedMergeTest{String: String("deschutes-jubelale")},
-		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field, src: deschutes-jubelale, dst: schneider-weisse-hopfenweisse",
-	}, {
-		name: "merge fields with slice of structs",
-		inA: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
-		},
-		inB: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("citrus-dream")}},
-		},
-		want: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
-		},
-	}, {
-		name: "merge fields with duplicate slices of annotations",
-		inA: &validatedMergeTestWithAnnotationSlice{
-			SliceField: []Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
-		},
-		inB: &validatedMergeTestWithAnnotationSlice{
-			SliceField: []Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
-		},
-		want: &validatedMergeTestWithAnnotationSlice{
-			SliceField: []Annotation{
-				&ExampleAnnotation{ConfigSource: "devicedemo"},
-				&ExampleAnnotation{ConfigSource: "devicedemo"},
-			},
-		},
-	}, {
-		name: "error - merge fields with slice with duplicate strings",
-		inA: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
-		},
-		inB: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
-		},
-		wantErr: "error merging b to new struct: source and destination lists must be unique",
-	}}
+	})
 
 	for _, tt := range tests {
 		got, err := MergeStructs(tt.inA, tt.inB)
@@ -1691,6 +1797,28 @@ func TestMergeStructs(t *testing.T) {
 
 		if diff := pretty.Compare(got, tt.want); diff != "" {
 			t.Errorf("%s: MergeStructs(%v, %v): did not get expected returned struct, diff(-got,+want):\n%s", tt.name, tt.inA, tt.inB, diff)
+		}
+	}
+}
+
+func TestMergeStructInto(t *testing.T) {
+	for _, tt := range mergeStructTests {
+		// Make a copy of inA here since it will get mutated.
+		got, err := DeepCopy(tt.inA)
+		if err != nil {
+			t.Errorf("%s: DeepCopy(%v): unexpected error with testdata, %v", tt.name, tt.inA, err)
+			continue
+		}
+		err = MergeStructInto(got.(ValidatedGoStruct), tt.inB)
+		if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
+			t.Errorf("%s: MergeStructInto(%v, %v): did not get expected error status, %s", tt.name, tt.inA, tt.inB, diff)
+		}
+		if err != nil {
+			continue
+		}
+
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: MergeStructInto(%v, %v): did not mutate inA struct correctly, diff(-got,+want):\n%s", tt.name, tt.inA, tt.inB, diff)
 		}
 	}
 }
@@ -1788,10 +1916,10 @@ func TestCopyErrorCases(t *testing.T) {
 
 func TestDeepCopy(t *testing.T) {
 	tests := []struct {
-		name    string
-		in      *copyTest
-		inKey   string
-		wantErr bool
+		name             string
+		in               *copyTest
+		inKey            string
+		wantErrSubstring string
 	}{{
 		name: "simple copy",
 		in:   &copyTest{StringField: String("zaphod")},
@@ -1808,13 +1936,21 @@ func TestDeepCopy(t *testing.T) {
 		in: &copyTest{
 			StringSlice: []string{"one"},
 		},
+	}, {
+		name:             "nil inputs",
+		wantErrSubstring: "got nil value",
 	}}
 
 	for _, tt := range tests {
 		got, err := DeepCopy(tt.in)
-		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: DeepCopy(%#v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.in, err, tt.wantErr)
+
+		if err != nil {
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("%s: DeepCopy(%#v): did not get expected error, %s", tt.name, tt.in, diff)
+			}
+			continue
 		}
+
 		if diff := pretty.Compare(got, tt.in); diff != "" {
 			t.Errorf("%s: DeepCopy(%#v): did not get identical copy, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 		}

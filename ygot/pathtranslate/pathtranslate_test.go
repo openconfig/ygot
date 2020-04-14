@@ -15,7 +15,6 @@
 package pathtranslate
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -100,8 +99,8 @@ func TestInstantiationOfTranslator(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(r.rules, tt.wantRules) {
-				t.Errorf("got %v, want %v", r.rules, tt.wantRules)
+			if diff := cmp.Diff(tt.wantRules, r.rules); diff != "" {
+				t.Errorf("(-want, +got):\n%s", diff)
 			}
 		})
 	}

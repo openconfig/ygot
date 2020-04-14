@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
@@ -265,10 +266,10 @@ func TestBuildJSONTree(t *testing.T) {
 
 		got := string(gotb)
 		if diff := pretty.Compare(got, tt.want); diff != "" {
-			if diffl, err := testutil.GenerateUnifiedDiff(got, tt.want); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(tt.want, got); err == nil {
 				diff = diffl
 			}
-			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected JSON tree, diff(-got,+want):\n%s", tt.name, tt.inEntries, tt.inDirectoryNames, diff)
+			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected JSON tree, diff(-want, +got):\n%s", tt.name, tt.inEntries, tt.inDirectoryNames, diff)
 		}
 	}
 }
@@ -298,8 +299,8 @@ func TestWriteGzippedByteSlice(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("%s: WriteGzippedByteSlice(%v): did not get expected output, got: %v, want: %v", tt.name, tt.inBytes, got, tt.want)
+		if diff := cmp.Diff(tt.want, got); diff != "" {
+			t.Errorf("%s: WriteGzippedByteSlice(%v): did not get expected output, (-want, +got):\n%s", tt.name, tt.inBytes, diff)
 		}
 	}
 }
@@ -322,8 +323,8 @@ func TestBytesToGoByteSlice(t *testing.T) {
 
 	for _, tt := range tests {
 		got := BytesToGoByteSlice(tt.in)
-		if !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("%s: BytesToGoByteSlice(%v): did not get expected output, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		if diff := cmp.Diff(tt.want, got); diff != "" {
+			t.Errorf("%s: BytesToGoByteSlice(%v): did not get expected output, (-want, +got):\n%s", tt.name, tt.in, diff)
 		}
 	}
 }
@@ -490,8 +491,8 @@ func TestSchemaRoundtrip(t *testing.T) {
 			// Use JSON serialisation for test debugging output.
 			gotj, _ := json.MarshalIndent(got, "", strings.Repeat(" ", 4))
 			wantj, _ := json.MarshalIndent(tt.want, "", strings.Repeat(" ", 4))
-			diff, _ := testutil.GenerateUnifiedDiff(string(gotj), string(wantj))
-			t.Errorf("%s: GzipToSchema(...): did not get expected output, diff(-got,+want):\n%s", tt.name, diff)
+			diff, _ := testutil.GenerateUnifiedDiff(string(wantj), string(gotj))
+			t.Errorf("%s: GzipToSchema(...): did not get expected output, diff(-want, +got):\n%s", tt.name, diff)
 		}
 	}
 }

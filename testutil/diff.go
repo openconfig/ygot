@@ -18,12 +18,12 @@ import "github.com/pmezard/go-difflib/difflib"
 
 // GenerateUnifiedDiff takes two strings and generates a diff that can be
 // shown to the user in a test error message.
-func GenerateUnifiedDiff(got, want string) (string, error) {
+func GenerateUnifiedDiff(want, got string) (string, error) {
 	diffl := difflib.UnifiedDiff{
-		A:        difflib.SplitLines(got),
-		B:        difflib.SplitLines(want),
-		FromFile: "got",
-		ToFile:   "want",
+		A:        difflib.SplitLines(want),
+		B:        difflib.SplitLines(got),
+		FromFile: "want",
+		ToFile:   "got",
 		Context:  3,
 		Eol:      "\n",
 	}

@@ -68,8 +68,9 @@ func TestRelativeSchemaPath(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := sp, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("got:%v want: %v", pretty.Sprint(got), pretty.Sprint(want))
+				got, want := sp, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("(-want, +got):\n%s", diff)
 				}
 			}
 		})
@@ -125,8 +126,9 @@ func TestSchemaPaths(t *testing.T) {
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := sp, tt.want; !reflect.DeepEqual(got, want) {
-					t.Errorf("struct got:%v want: %v", pretty.Sprint(got), pretty.Sprint(want))
+				got, want := sp, tt.want
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("struct (-want, +got):\n%s", diff)
 				}
 			}
 		})

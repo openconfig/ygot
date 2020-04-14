@@ -174,7 +174,7 @@ func JSONIETFComparer(a, b *gnmipb.TypedValue_JsonIetfVal) bool {
 		return false
 	}
 
-	return reflect.DeepEqual(aj, bj)
+	return cmp.Equal(aj, bj)
 }
 
 // notificationMatch tracks whether a gNMI notification pair has matched.

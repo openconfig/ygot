@@ -218,7 +218,9 @@ func (t *OpenconfigListEnumKey_Top_MultiKey) DeleteEkm(K1 E_OpenconfigListEnumKe
 // the supplied OpenconfigListEnumKey_Top_MultiKey_Ekm already exist in the list, an error is
 // returned.
 func (t *OpenconfigListEnumKey_Top_MultiKey) AppendEkm(v *OpenconfigListEnumKey_Top_MultiKey_Ekm) error {
-	key := OpenconfigListEnumKey_Top_MultiKey_Ekm_Key{K1: v.K1,K2: v.K2,
+	key := OpenconfigListEnumKey_Top_MultiKey_Ekm_Key{
+		K1: v.K1,
+		K2: v.K2,
 	}
 
 	// Initialise the list within the receiver struct if it has not already been

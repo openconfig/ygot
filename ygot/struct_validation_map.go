@@ -29,6 +29,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/ygot/util"
 )
 
@@ -199,7 +200,7 @@ func pruneBranchesInternal(t reflect.Type, v reflect.Value) bool {
 				// Ensure that if the field value was actually nil, we skip over this
 				// field since its already nil.
 				continue
-			case reflect.DeepEqual(zVal.Interface(), fVal.Elem().Interface()):
+			case cmp.Equal(zVal.Interface(), fVal.Elem().Interface()):
 				// In the case that the zero value's interface is the same as the
 				// dereferenced field value's nil value, then we set it to the zero value
 				// of the field type. The fType contains a pointer to the struct, so
@@ -259,7 +260,7 @@ func pruneBranchesInternal(t reflect.Type, v reflect.Value) bool {
 				v = v.Elem()
 				t = t.Elem()
 			}
-			if v.IsValid() && !reflect.DeepEqual(reflect.Zero(t).Interface(), v.Interface()) {
+			if v.IsValid() && !cmp.Equal(reflect.Zero(t).Interface(), v.Interface()) {
 				allChildrenPruned = false
 			}
 		}
@@ -475,18 +476,35 @@ func MergeStructs(a, b ValidatedGoStruct) (ValidatedGoStruct, error) {
 	if err != nil {
 		return nil, err
 	}
-	n := reflect.ValueOf(tn)
+	// This conversion is safe as DeepCopy will use the same underlying type as
+	// `a`, which was passed in as a ValidatedGoStruct.
+	dst := tn.(ValidatedGoStruct)
 
-	if err := copyStruct(n.Elem(), reflect.ValueOf(b).Elem()); err != nil {
+	if err := MergeStructInto(dst, b); err != nil {
 		return nil, fmt.Errorf("error merging b to new struct: %v", err)
 	}
 
-	return n.Interface().(ValidatedGoStruct), nil
+	return dst, nil
+}
+
+// MergeStructInto takes the provided input ValidatedGoStructs and merges the
+// contents from src into dst. Unlike MergeStructs, the supplied dst is mutated.
+//
+// The merge semantics are the same as those for MergeStructs.
+func MergeStructInto(dst, src ValidatedGoStruct) error {
+	if reflect.TypeOf(dst) != reflect.TypeOf(src) {
+		return fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", dst, src)
+	}
+
+	return copyStruct(reflect.ValueOf(dst).Elem(), reflect.ValueOf(src).Elem())
 }
 
 // DeepCopy returns a deep copy of the supplied GoStruct. A new copy
 // of the GoStruct is created, along with any underlying values.
 func DeepCopy(s GoStruct) (GoStruct, error) {
+	if util.IsNilOrInvalidValue(reflect.ValueOf(s)) {
+		return nil, fmt.Errorf("invalid input to DeepCopy, got nil value: %v", s)
+	}
 	n := reflect.New(reflect.TypeOf(s).Elem())
 	if err := copyStruct(n.Elem(), reflect.ValueOf(s).Elem()); err != nil {
 		return nil, fmt.Errorf("cannot DeepCopy struct: %v", err)
@@ -524,6 +542,17 @@ func copyStruct(dstVal, srcVal reflect.Value) error {
 		case reflect.Slice:
 			if err := copySliceField(dstField, srcField); err != nil {
 				return err
+			}
+		case reflect.Int64:
+			// In the case of an int64 field, which represents a YANG enumeration
+			// we should only set the value in the destination if it is not set
+			// to the default value in the source.
+			vSrc, vDst := srcField.Int(), dstField.Int()
+			switch {
+			case vSrc != 0 && vDst != 0 && vSrc != vDst:
+				return fmt.Errorf("destination and source values were set when merging enum field, dst: %d, src: %d", vSrc, vDst)
+			case vSrc != 0 && vDst == 0:
+				dstField.Set(srcField)
 			}
 		default:
 			dstField.Set(srcField)
@@ -570,8 +599,9 @@ func copyPtrField(dstField, srcField reflect.Value) error {
 	}
 
 	if !util.IsNilOrInvalidValue(dstField) {
-		if s, d := srcField.Elem().Interface(), dstField.Elem().Interface(); !reflect.DeepEqual(s, d) {
-			return fmt.Errorf("destination value was set, but was not equal to source value when merging ptr field, src: %v, dst: %v", s, d)
+		s, d := srcField.Elem().Interface(), dstField.Elem().Interface()
+		if diff := cmp.Diff(s, d); diff != "" {
+			return fmt.Errorf("destination value was set, but was not equal to source value when merging ptr field, (-src, +dst):\n%s", diff)
 		}
 	}
 
@@ -584,7 +614,7 @@ func copyPtrField(dstField, srcField reflect.Value) error {
 // copyInterfaceField copies srcField into dstField. Both srcField and dstField
 // are reflect.Value structs which contain an interface value.
 func copyInterfaceField(dstField, srcField reflect.Value) error {
-	if srcField.IsNil() || !srcField.IsValid() {
+	if util.IsNilOrInvalidValue(srcField) {
 		return nil
 	}
 
@@ -592,7 +622,14 @@ func copyInterfaceField(dstField, srcField reflect.Value) error {
 		return fmt.Errorf("invalid interface type received: %T", srcField.Interface())
 	}
 
-	s := srcField.Elem().Elem() // Dereference to a struct.
+	s := srcField.Elem().Elem() // Dereference src to a struct.
+	if !util.IsNilOrInvalidValue(dstField) {
+		dV := dstField.Elem().Elem() // Dereference dst to a struct.
+		if !reflect.DeepEqual(s.Interface(), dV.Interface()) {
+			return fmt.Errorf("interface field was set in both src and dst and was not equal, src: %v, dst: %v", s.Interface(), dV.Interface())
+		}
+	}
+
 	var d reflect.Value
 	d = reflect.New(s.Type())
 	if err := copyStruct(d.Elem(), s); err != nil {
@@ -760,7 +797,7 @@ func uniqueSlices(a, b reflect.Value) (bool, error) {
 
 	for i := 0; i < a.Len(); i++ {
 		for j := 0; j < b.Len(); j++ {
-			if reflect.DeepEqual(a.Index(i).Interface(), b.Index(j).Interface()) {
+			if cmp.Equal(a.Index(i).Interface(), b.Index(j).Interface()) {
 				return false, nil
 			}
 		}

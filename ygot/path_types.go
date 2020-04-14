@@ -19,8 +19,8 @@ type PathStruct interface {
 }
 
 // NewNodePath is the constructor for NodePath.
-func NewNodePath(relSchemaPath []string, keys map[string]interface{}, p PathStruct) NodePath {
-	return NodePath{relSchemaPath: relSchemaPath, keys: keys, p: p}
+func NewNodePath(relSchemaPath []string, keys map[string]interface{}, p PathStruct) *NodePath {
+	return &NodePath{relSchemaPath: relSchemaPath, keys: keys, p: p}
 }
 
 // NodePath is a common embedded type within all path structs. It
@@ -56,6 +56,11 @@ func ResolvePath(n PathStruct) (PathStruct, []*gpb.PathElem, []error) {
 // PathStruct's relative path.
 func ResolveRelPath(n PathStruct) ([]*gpb.PathElem, []error) {
 	return n.relPath()
+}
+
+// ModifyKey updates a NodePath's key value.
+func ModifyKey(n *NodePath, name string, value interface{}) {
+	n.keys[name] = value
 }
 
 // relPath converts the information stored in NodePath into the partial

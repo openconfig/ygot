@@ -15,10 +15,10 @@
 package ygen
 
 import (
-	"reflect"
 	"sort"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
@@ -33,7 +33,7 @@ func protoMsgEq(a, b *protoMsg) bool {
 		return false
 	}
 
-	if a.Imports != nil && b.Imports != nil && !reflect.DeepEqual(a.Imports, b.Imports) {
+	if a.Imports != nil && b.Imports != nil && !cmp.Equal(a.Imports, b.Imports) {
 		return false
 	}
 
@@ -46,7 +46,7 @@ func protoMsgEq(a, b *protoMsg) bool {
 		return e
 	}
 
-	if !reflect.DeepEqual(fieldMap(a.Fields), fieldMap(b.Fields)) {
+	if !cmp.Equal(fieldMap(a.Fields), fieldMap(b.Fields)) {
 		return false
 	}
 
@@ -657,7 +657,7 @@ func TestGenProto3Msg(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		s := newGenState()
+		s := newProtoGenState(nil)
 		// Seed the state with the supplied message names that have been provided.
 		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
@@ -715,6 +715,22 @@ func TestSafeProtoName(t *testing.T) {
 		name: "contains period",
 		in:   "with.period",
 		want: "with_period",
+	}, {
+		name: "contains plus",
+		in:   "with+plus",
+		want: "with_plus",
+	}, {
+		name: "contains slash",
+		in:   "with/slash",
+		want: "with_slash",
+	}, {
+		name: "contains space",
+		in:   "with space",
+		want: "with_space",
+	}, {
+		name: "contains numbers",
+		in:   "with1_numbers234",
+		want: "with1_numbers234",
 	}, {
 		name: "unchanged",
 		in:   "unchanged",
@@ -1388,7 +1404,7 @@ message MessageName {
 	for _, tt := range tests {
 		wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
 		for compress, want := range map[bool]*generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newGenState()
+			s := newProtoGenState(nil)
 			// Seed the message names with the supplied input.
 			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
@@ -1412,15 +1428,15 @@ message MessageName {
 				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.PackageName, want.PackageName)
 			}
 
-			if !reflect.DeepEqual(got.RequiredImports, want.RequiredImports) {
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.RequiredImports, want.RequiredImports)
+			if diff := cmp.Diff(want.RequiredImports, got.RequiredImports); diff != "" {
+				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, (-want, +got,):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
 			}
 
 			if diff := pretty.Compare(got.MessageCode, want.MessageCode); diff != "" {
-				if diffl, err := testutil.GenerateUnifiedDiff(got.MessageCode, want.MessageCode); err == nil {
+				if diffl, err := testutil.GenerateUnifiedDiff(want.MessageCode, got.MessageCode); err == nil {
 					diff = diffl
 				}
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-want, +got):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
 			}
 		}
 	}
@@ -1458,7 +1474,7 @@ func TestGenListKeyProto(t *testing.T) {
 				},
 			},
 			definedDirectories: map[string]*Directory{},
-			state: &genState{
+			protogen: &protoGenState{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
 				},
@@ -1511,7 +1527,7 @@ func TestGenListKeyProto(t *testing.T) {
 				},
 			},
 			definedDirectories: map[string]*Directory{},
-			state: &genState{
+			protogen: &protoGenState{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
 				},
@@ -1573,7 +1589,7 @@ func TestGenListKeyProto(t *testing.T) {
 				},
 			},
 			definedDirectories: map[string]*Directory{},
-			state: &genState{
+			protogen: &protoGenState{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
 				},

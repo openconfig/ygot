@@ -19,7 +19,7 @@ import (
 )
 
 // Resolve is a helper which returns the resolved *gpb.Path of a PathStruct node.
-func Resolve(n ygot.PathStruct) (*gpb.Path, []error) {
+func Resolve(n ygot.PathStruct) (*gpb.Path, map[string]interface{}, []error) {
 	n, p, errs := ygot.ResolvePath(n)
 	root, ok := n.(*Device)
 	if !ok {
@@ -27,19 +27,20 @@ func Resolve(n ygot.PathStruct) (*gpb.Path, []error) {
 	}
 
 	if errs != nil {
-		return nil, errs
+		return nil, nil, errs
 	}
-	return &gpb.Path{Target: root.id, Elem: p}, nil
+	return &gpb.Path{Target: root.id, Elem: p}, root.customData, nil
 }
 
 // Device represents the /device YANG schema element.
 type Device struct {
-	ygot.NodePath
+	*ygot.NodePath
 	id string
+	customData map[string]interface{}
 }
 
-func ForDevice(id string) *Device {
-	return &Device{id: id}
+func DeviceRoot(id string) *Device {
+	return &Device{NodePath: &ygot.NodePath{}, id: id, customData: map[string]interface{}{}}
 }
 
 // DupEnum returns from Device the path struct for its child "dup-enum".
@@ -66,22 +67,48 @@ func (n *Device) Platform() *Platform {
 
 // DupEnum represents the /openconfig-unione/dup-enum YANG schema element.
 type DupEnum struct {
-	ygot.NodePath
+	*ygot.NodePath
+}
+
+// DupEnumAny represents the wildcard version of the /openconfig-unione/dup-enum YANG schema element.
+type DupEnumAny struct {
+	*ygot.NodePath
 }
 
 // DupEnum_A represents the /openconfig-unione/dup-enum/state/A YANG schema element.
 type DupEnum_A struct {
-	ygot.NodePath
+	*ygot.NodePath
+}
+
+// DupEnum_AAny represents the wildcard version of the /openconfig-unione/dup-enum/state/A YANG schema element.
+type DupEnum_AAny struct {
+	*ygot.NodePath
 }
 
 // DupEnum_B represents the /openconfig-unione/dup-enum/state/B YANG schema element.
 type DupEnum_B struct {
-	ygot.NodePath
+	*ygot.NodePath
+}
+
+// DupEnum_BAny represents the wildcard version of the /openconfig-unione/dup-enum/state/B YANG schema element.
+type DupEnum_BAny struct {
+	*ygot.NodePath
 }
 
 // A returns from DupEnum the path struct for its child "A".
 func (n *DupEnum) A() *DupEnum_A {
 	return &DupEnum_A{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "A"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// A returns from DupEnumAny the path struct for its child "A".
+func (n *DupEnumAny) A() *DupEnum_AAny {
+	return &DupEnum_AAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "A"},
 			map[string]interface{}{},
@@ -101,9 +128,25 @@ func (n *DupEnum) B() *DupEnum_B {
 	}
 }
 
+// B returns from DupEnumAny the path struct for its child "B".
+func (n *DupEnumAny) B() *DupEnum_BAny {
+	return &DupEnum_BAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "B"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
 // Platform represents the /openconfig-unione/platform YANG schema element.
 type Platform struct {
-	ygot.NodePath
+	*ygot.NodePath
+}
+
+// PlatformAny represents the wildcard version of the /openconfig-unione/platform YANG schema element.
+type PlatformAny struct {
+	*ygot.NodePath
 }
 
 // Component returns from Platform the path struct for its child "component".
@@ -117,39 +160,91 @@ func (n *Platform) Component() *Platform_Component {
 	}
 }
 
+// Component returns from PlatformAny the path struct for its child "component".
+func (n *PlatformAny) Component() *Platform_ComponentAny {
+	return &Platform_ComponentAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"component"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
 // Platform_Component represents the /openconfig-unione/platform/component YANG schema element.
 type Platform_Component struct {
-	ygot.NodePath
+	*ygot.NodePath
+}
+
+// Platform_ComponentAny represents the wildcard version of the /openconfig-unione/platform/component YANG schema element.
+type Platform_ComponentAny struct {
+	*ygot.NodePath
 }
 
 // Platform_Component_E1 represents the /openconfig-unione/platform/component/state/e1 YANG schema element.
 type Platform_Component_E1 struct {
-	ygot.NodePath
+	*ygot.NodePath
+}
+
+// Platform_Component_E1Any represents the wildcard version of the /openconfig-unione/platform/component/state/e1 YANG schema element.
+type Platform_Component_E1Any struct {
+	*ygot.NodePath
 }
 
 // Platform_Component_Enumerated represents the /openconfig-unione/platform/component/state/enumerated YANG schema element.
 type Platform_Component_Enumerated struct {
-	ygot.NodePath
+	*ygot.NodePath
+}
+
+// Platform_Component_EnumeratedAny represents the wildcard version of the /openconfig-unione/platform/component/state/enumerated YANG schema element.
+type Platform_Component_EnumeratedAny struct {
+	*ygot.NodePath
 }
 
 // Platform_Component_Power represents the /openconfig-unione/platform/component/state/power YANG schema element.
 type Platform_Component_Power struct {
-	ygot.NodePath
+	*ygot.NodePath
+}
+
+// Platform_Component_PowerAny represents the wildcard version of the /openconfig-unione/platform/component/state/power YANG schema element.
+type Platform_Component_PowerAny struct {
+	*ygot.NodePath
 }
 
 // Platform_Component_R1 represents the /openconfig-unione/platform/component/state/r1 YANG schema element.
 type Platform_Component_R1 struct {
-	ygot.NodePath
+	*ygot.NodePath
+}
+
+// Platform_Component_R1Any represents the wildcard version of the /openconfig-unione/platform/component/state/r1 YANG schema element.
+type Platform_Component_R1Any struct {
+	*ygot.NodePath
 }
 
 // Platform_Component_Type represents the /openconfig-unione/platform/component/state/type YANG schema element.
 type Platform_Component_Type struct {
-	ygot.NodePath
+	*ygot.NodePath
+}
+
+// Platform_Component_TypeAny represents the wildcard version of the /openconfig-unione/platform/component/state/type YANG schema element.
+type Platform_Component_TypeAny struct {
+	*ygot.NodePath
 }
 
 // E1 returns from Platform_Component the path struct for its child "e1".
 func (n *Platform_Component) E1() *Platform_Component_E1 {
 	return &Platform_Component_E1{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "e1"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// E1 returns from Platform_ComponentAny the path struct for its child "e1".
+func (n *Platform_ComponentAny) E1() *Platform_Component_E1Any {
+	return &Platform_Component_E1Any{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "e1"},
 			map[string]interface{}{},
@@ -169,9 +264,31 @@ func (n *Platform_Component) Enumerated() *Platform_Component_Enumerated {
 	}
 }
 
+// Enumerated returns from Platform_ComponentAny the path struct for its child "enumerated".
+func (n *Platform_ComponentAny) Enumerated() *Platform_Component_EnumeratedAny {
+	return &Platform_Component_EnumeratedAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "enumerated"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
 // Power returns from Platform_Component the path struct for its child "power".
 func (n *Platform_Component) Power() *Platform_Component_Power {
 	return &Platform_Component_Power{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "power"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Power returns from Platform_ComponentAny the path struct for its child "power".
+func (n *Platform_ComponentAny) Power() *Platform_Component_PowerAny {
+	return &Platform_Component_PowerAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "power"},
 			map[string]interface{}{},
@@ -191,9 +308,31 @@ func (n *Platform_Component) R1() *Platform_Component_R1 {
 	}
 }
 
+// R1 returns from Platform_ComponentAny the path struct for its child "r1".
+func (n *Platform_ComponentAny) R1() *Platform_Component_R1Any {
+	return &Platform_Component_R1Any{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "r1"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
 // Type returns from Platform_Component the path struct for its child "type".
 func (n *Platform_Component) Type() *Platform_Component_Type {
 	return &Platform_Component_Type{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "type"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Type returns from Platform_ComponentAny the path struct for its child "type".
+func (n *Platform_ComponentAny) Type() *Platform_Component_TypeAny {
+	return &Platform_Component_TypeAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "type"},
 			map[string]interface{}{},
