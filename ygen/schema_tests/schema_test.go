@@ -207,3 +207,39 @@ func TestLeafGetter(t *testing.T) {
 		t.Errorf("did not correctly return the default for a leaf, got: %v, want: true", got)
 	}
 }
+
+func TestEnumStringFunction(t *testing.T) {
+	tests := []struct {
+		desc   string
+		inEnum ygot.GoEnum
+		want   string
+	}{{
+		desc:   "in range: IP_REACHABILITY_TAG64",
+		inEnum: exampleoc.OpenconfigIsisLsdbTypes_ISIS_SUBTLV_TYPE_IP_REACHABILITY_TAG64,
+		want:   "IP_REACHABILITY_TAG64",
+	}, {
+		desc:   "in range: UP",
+		inEnum: exampleoc.OpenconfigInterfaces_Interface_OperStatus_UP,
+		want:   "UP",
+	}, {
+		desc:   "in range: DOWN",
+		inEnum: exampleoc.OpenconfigInterfaces_Interface_OperStatus_DOWN,
+		want:   "DOWN",
+	}, {
+		desc:   "out-of-range: UNSET",
+		inEnum: exampleoc.OpenconfigInterfaces_Interface_OperStatus_UNSET,
+		want:   "out-of-range E_OpenconfigInterfaces_Interface_OperStatus enum value: 0",
+	}, {
+		desc:   "out-of-range: too high",
+		inEnum: exampleoc.E_OpenconfigInterfaces_Interface_OperStatus(100),
+		want:   "out-of-range E_OpenconfigInterfaces_Interface_OperStatus enum value: 100",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := tt.inEnum.String(); got != tt.want {
+				t.Errorf("did not get correct String() name for enum, got: %s, want: %s", got, tt.want)
+			}
+		})
+	}
+}

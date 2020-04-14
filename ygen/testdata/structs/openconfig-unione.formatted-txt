@@ -252,6 +252,11 @@ func (E_OpenconfigUnione_Component_Power) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigUnione_Component_Power.
 func (E_OpenconfigUnione_Component_Power) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_OpenconfigUnione_Component_Power.
+func (e E_OpenconfigUnione_Component_Power) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigUnione_Component_Power")
+}
+
 const (
 	// OpenconfigUnione_Component_Power_UNSET corresponds to the value UNSET of OpenconfigUnione_Component_Power
 	OpenconfigUnione_Component_Power_UNSET E_OpenconfigUnione_Component_Power = 0
@@ -275,6 +280,11 @@ func (E_OpenconfigUnione_DupEnum_A) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigUnione_DupEnum_A.
 func (E_OpenconfigUnione_DupEnum_A) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+// String returns a logging-friendly string for E_OpenconfigUnione_DupEnum_A.
+func (e E_OpenconfigUnione_DupEnum_A) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigUnione_DupEnum_A")
+}
 
 const (
 	// OpenconfigUnione_DupEnum_A_UNSET corresponds to the value UNSET of OpenconfigUnione_DupEnum_A
@@ -300,6 +310,11 @@ func (E_OpenconfigUnione_DupEnum_B) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigUnione_DupEnum_B.
 func (E_OpenconfigUnione_DupEnum_B) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_OpenconfigUnione_DupEnum_B.
+func (e E_OpenconfigUnione_DupEnum_B) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigUnione_DupEnum_B")
+}
+
 const (
 	// OpenconfigUnione_DupEnum_B_UNSET corresponds to the value UNSET of OpenconfigUnione_DupEnum_B
 	OpenconfigUnione_DupEnum_B_UNSET E_OpenconfigUnione_DupEnum_B = 0
@@ -324,6 +339,11 @@ func (E_OpenconfigUnione_EnumOne_Enum) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigUnione_EnumOne_Enum.
 func (E_OpenconfigUnione_EnumOne_Enum) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_OpenconfigUnione_EnumOne_Enum.
+func (e E_OpenconfigUnione_EnumOne_Enum) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigUnione_EnumOne_Enum")
+}
+
 const (
 	// OpenconfigUnione_EnumOne_Enum_UNSET corresponds to the value UNSET of OpenconfigUnione_EnumOne_Enum
 	OpenconfigUnione_EnumOne_Enum_UNSET E_OpenconfigUnione_EnumOne_Enum = 0
@@ -346,6 +366,11 @@ func (E_OpenconfigUnione_HARDWARE) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigUnione_HARDWARE.
 func (E_OpenconfigUnione_HARDWARE) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_OpenconfigUnione_HARDWARE.
+func (e E_OpenconfigUnione_HARDWARE) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigUnione_HARDWARE")
+}
+
 const (
 	// OpenconfigUnione_HARDWARE_UNSET corresponds to the value UNSET of OpenconfigUnione_HARDWARE
 	OpenconfigUnione_HARDWARE_UNSET E_OpenconfigUnione_HARDWARE = 0
@@ -367,6 +392,11 @@ func (E_OpenconfigUnione_SOFTWARE) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  OpenconfigUnione_SOFTWARE.
 func (E_OpenconfigUnione_SOFTWARE) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+// String returns a logging-friendly string for E_OpenconfigUnione_SOFTWARE.
+func (e E_OpenconfigUnione_SOFTWARE) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigUnione_SOFTWARE")
+}
 
 const (
 	// OpenconfigUnione_SOFTWARE_UNSET corresponds to the value UNSET of OpenconfigUnione_SOFTWARE

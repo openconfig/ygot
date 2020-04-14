@@ -1838,6 +1838,11 @@ func (E_EnumeratedValue) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  EnumeratedValue.
 func (E_EnumeratedValue) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_EnumeratedValue.
+func (e E_EnumeratedValue) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_EnumeratedValue")
+}
+
 const (
 	// EnumeratedValue_UNSET corresponds to the value UNSET of EnumeratedValue
 	EnumeratedValue_UNSET E_EnumeratedValue = 0
@@ -1881,6 +1886,11 @@ func (E_EnumeratedValueTwo) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  EnumeratedValueTwo.
 func (E_EnumeratedValueTwo) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_EnumeratedValueTwo.
+func (e E_EnumeratedValueTwo) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_EnumeratedValueTwo")
+}
+
 const (
 	// EnumeratedValueTwo_UNSET corresponds to the value UNSET of EnumeratedValueTwo
 	EnumeratedValueTwo_UNSET E_EnumeratedValueTwo = 0
@@ -1920,6 +1930,11 @@ func (E_BaseModule_Enumeration) IsYANGGoEnum() {}
 
 // ΛMap returns the value lookup map associated with  BaseModule_Enumeration.
 func (E_BaseModule_Enumeration) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+// String returns a logging-friendly string for E_BaseModule_Enumeration.
+func (e E_BaseModule_Enumeration) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_BaseModule_Enumeration")
+}
 
 const (
 	// BaseModule_Enumeration_UNSET corresponds to the value UNSET of BaseModule_Enumeration
