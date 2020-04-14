@@ -50,7 +50,6 @@ func definingModule(node yang.Node) yang.Node {
 
 // ParentModuleName returns the name of the module or submodule that defined
 // the supplied node.
-// TODO(wenbli): add unit test
 func ParentModuleName(node yang.Node) string {
 	return definingModule(node).NName()
 }
@@ -59,14 +58,13 @@ func ParentModuleName(node yang.Node) string {
 // supplied as the node argument. If the discovered root node of the node is found
 // to be a submodule, the name of the parent module is returned. If the root has
 // a camel case extension, this is returned rather than the actual module name.
-// TODO(wenbli): add unit test
 func ParentModulePrettyName(node yang.Node) string {
 	definingMod := definingModule(node)
 	if name, ok := CamelCaseNameExt(definingMod.Exts()); ok {
 		return name
 	}
 
-	return definingMod.NName()
+	return yang.CamelCase(definingMod.NName())
 }
 
 // MakeNameUnique makes the name specified as an argument unique based on the names
