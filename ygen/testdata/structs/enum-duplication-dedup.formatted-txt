@@ -86,6 +86,11 @@ func (E_EnumDuplication_Base_Config_Enumerated) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  EnumDuplication_Base_Config_Enumerated.
 func (E_EnumDuplication_Base_Config_Enumerated) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_EnumDuplication_Base_Config_Enumerated.
+func (e E_EnumDuplication_Base_Config_Enumerated) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_EnumDuplication_Base_Config_Enumerated")
+}
+
 const (
 	// EnumDuplication_Base_Config_Enumerated_UNSET corresponds to the value UNSET of EnumDuplication_Base_Config_Enumerated
 	EnumDuplication_Base_Config_Enumerated_UNSET E_EnumDuplication_Base_Config_Enumerated = 0
