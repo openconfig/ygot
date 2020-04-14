@@ -48,7 +48,7 @@ func (EnumType) ΛMap() map[string]map[int64]ygot.EnumDefinition {
 }
 
 func (e EnumType) String() string {
-	return ygot.EnumString(e, int64(e), "EnumType")
+	return ygot.EnumLogString(e, int64(e), "EnumType")
 }
 
 func (EnumType) IsYANGGoEnum() {}
@@ -61,7 +61,7 @@ func (EnumType2) ΛMap() map[string]map[int64]ygot.EnumDefinition {
 }
 
 func (e EnumType2) String() string {
-	return ygot.EnumString(e, int64(e), "EnumType2")
+	return ygot.EnumLogString(e, int64(e), "EnumType2")
 }
 
 func (EnumType2) IsYANGGoEnum() {}

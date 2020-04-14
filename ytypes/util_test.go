@@ -183,7 +183,7 @@ func (testEnum) IsYANGGoEnum() {}
 func (testEnum) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum }
 
 func (e testEnum) String() string {
-	return ygot.EnumString(e, int64(e), "testEnum")
+	return ygot.EnumLogString(e, int64(e), "testEnum")
 }
 
 var ΛEnum = map[string]map[int64]ygot.EnumDefinition{

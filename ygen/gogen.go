@@ -546,8 +546,9 @@ func (E_{{ .EnumerationPrefix }}) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  {{ .EnumerationPrefix }}.
 func (E_{{ .EnumerationPrefix }}) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_{{ .EnumerationPrefix }}.
 func (e E_{{ .EnumerationPrefix }}) String() string {
-	return ygot.EnumString(e, int64(e), "E_{{ .EnumerationPrefix }}")
+	return ygot.EnumLogString(e, int64(e), "E_{{ .EnumerationPrefix }}")
 }
 
 {{ $enumName := .EnumerationPrefix -}}

@@ -521,8 +521,9 @@ func (E_OpenconfigListEnumKey_FooIdentity) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigListEnumKey_FooIdentity.
 func (E_OpenconfigListEnumKey_FooIdentity) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_OpenconfigListEnumKey_FooIdentity.
 func (e E_OpenconfigListEnumKey_FooIdentity) String() string {
-	return ygot.EnumString(e, int64(e), "E_OpenconfigListEnumKey_FooIdentity")
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigListEnumKey_FooIdentity")
 }
 
 const (
@@ -549,8 +550,9 @@ func (E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1.
 func (E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1.
 func (e E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1) String() string {
-	return ygot.EnumString(e, int64(e), "E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1")
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigListEnumKey_Top_MultiKey_Ekm_Config_K1")
 }
 
 const (
@@ -577,8 +579,9 @@ func (E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K.
 func (E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K.
 func (e E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K) String() string {
-	return ygot.EnumString(e, int64(e), "E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K")
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigListEnumKey_Top_SingleKey_Eks_Config_K")
 }
 
 const (

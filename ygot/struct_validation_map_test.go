@@ -201,7 +201,7 @@ func (enumTest) ΛMap() map[string]map[int64]EnumDefinition {
 }
 
 func (e enumTest) String() string {
-	return EnumString(e, int64(e), "enumTest")
+	return EnumLogString(e, int64(e), "enumTest")
 }
 
 type badEnumTest int64
@@ -302,6 +302,48 @@ func TestEnumName(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("%s: EnumName(%v): did not get expected value, got: %s, want: %s", tt.name, tt.in, got, tt.want)
 		}
+	}
+}
+
+func TestEnumLogString(t *testing.T) {
+	tests := []struct {
+		desc           string
+		inEnum         GoEnum
+		inVal          int64
+		inEnumTypeName string
+		want           string
+	}{{
+		desc:           "one",
+		inEnum:         EONE,
+		inVal:          int64(EONE),
+		inEnumTypeName: "enumTest",
+		want:           "VAL_ONE",
+	}, {
+		desc:           "two",
+		inEnum:         ETWO,
+		inVal:          int64(ETWO),
+		inEnumTypeName: "enumTest",
+		want:           "VAL_TWO",
+	}, {
+		desc:           "unset",
+		inEnum:         EUNSET,
+		inVal:          int64(EUNSET),
+		inEnumTypeName: "enumTest",
+		want:           "out-of-range enumTest enum value: 0",
+	}, {
+		desc:           "way out of range",
+		inEnum:         EONE,
+		inVal:          42,
+		inEnumTypeName: "enumTest",
+		want:           "out-of-range enumTest enum value: 42",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := EnumLogString(tt.inEnum, tt.inVal, tt.inEnumTypeName); got != tt.want {
+				t.Errorf("EnumLogString: got %s, want %s", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -428,7 +470,7 @@ func (ECTest) ΛMap() map[string]map[int64]EnumDefinition {
 }
 
 func (e ECTest) String() string {
-	return EnumString(e, int64(e), "ECTest")
+	return EnumLogString(e, int64(e), "ECTest")
 }
 
 // mapStructInvalid is a valid GoStruct whose Validate() method always returns

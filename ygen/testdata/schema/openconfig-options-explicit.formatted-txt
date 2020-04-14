@@ -194,8 +194,9 @@ func (E_OpenconfigSimple_Child_Three) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigSimple_Child_Three.
 func (E_OpenconfigSimple_Child_Three) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_OpenconfigSimple_Child_Three.
 func (e E_OpenconfigSimple_Child_Three) String() string {
-	return ygot.EnumString(e, int64(e), "E_OpenconfigSimple_Child_Three")
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigSimple_Child_Three")
 }
 
 const (

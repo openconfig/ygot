@@ -803,7 +803,7 @@ func (EnumTest) ΛMap() map[string]map[int64]EnumDefinition {
 }
 
 func (e EnumTest) String() string {
-	return EnumString(e, int64(e), "EnumTest")
+	return EnumLogString(e, int64(e), "EnumTest")
 }
 
 const (

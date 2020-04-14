@@ -174,8 +174,9 @@ func (E_EnumTestUncompressed_A_B_State_C) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  EnumTestUncompressed_A_B_State_C.
 func (E_EnumTestUncompressed_A_B_State_C) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_EnumTestUncompressed_A_B_State_C.
 func (e E_EnumTestUncompressed_A_B_State_C) String() string {
-	return ygot.EnumString(e, int64(e), "E_EnumTestUncompressed_A_B_State_C")
+	return ygot.EnumLogString(e, int64(e), "E_EnumTestUncompressed_A_B_State_C")
 }
 
 const (

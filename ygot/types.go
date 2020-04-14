@@ -15,7 +15,6 @@
 package ygot
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -82,14 +81,6 @@ type GoEnum interface {
 	// String provides the string representation of the enum, which will be
 	// the YANG name if it's in its defined range.
 	String() string
-}
-
-func EnumString(e GoEnum, val int64, enumTypeName string) string {
-	enumDef, ok := e.ΛMap()[enumTypeName][val]
-	if !ok {
-		return fmt.Sprintf("out-of-range %s enum value: %v", enumTypeName, val)
-	}
-	return enumDef.Name
 }
 
 // EnumDefinition is used to store the details of an enumerated value. All YANG

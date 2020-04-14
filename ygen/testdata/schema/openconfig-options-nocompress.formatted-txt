@@ -296,8 +296,9 @@ func (E_OpenconfigOptions_AFI) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigOptions_AFI.
 func (E_OpenconfigOptions_AFI) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_OpenconfigOptions_AFI.
 func (e E_OpenconfigOptions_AFI) String() string {
-	return ygot.EnumString(e, int64(e), "E_OpenconfigOptions_AFI")
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigOptions_AFI")
 }
 
 const (
@@ -322,8 +323,9 @@ func (E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState) IsYANGGoEnu
 // ΛMap returns the value lookup map associated with  OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState.
 func (E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState.
 func (e E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState) String() string {
-	return ygot.EnumString(e, int64(e), "E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState")
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState")
 }
 
 const (
