@@ -296,6 +296,11 @@ func (E_OpenconfigOptions_AFI) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  OpenconfigOptions_AFI.
 func (E_OpenconfigOptions_AFI) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_OpenconfigOptions_AFI.
+func (e E_OpenconfigOptions_AFI) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigOptions_AFI")
+}
+
 const (
 	// OpenconfigOptions_AFI_UNSET corresponds to the value UNSET of OpenconfigOptions_AFI
 	OpenconfigOptions_AFI_UNSET E_OpenconfigOptions_AFI = 0
@@ -317,6 +322,11 @@ func (E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState) IsYANGGoEnu
 
 // ΛMap returns the value lookup map associated with  OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState.
 func (E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+// String returns a logging-friendly string for E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState.
+func (e E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState")
+}
 
 const (
 	// OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState_UNSET corresponds to the value UNSET of OpenconfigOptions_Bgp_Neighbors_Neighbor_State_SessionState

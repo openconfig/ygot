@@ -78,7 +78,8 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath) ([]*gnmiPa
 
 // EnumName returns the string name of an input GoEnum e. If the enumeration is
 // unset, the name returned is an empty string, otherwise it is the name defined
-// within the YANG schema.
+// within the YANG schema. Non-zero out-of-range values and unrecognized enums
+// will produce an error.
 func EnumName(e GoEnum) (string, error) {
 	name, _, err := enumFieldToString(reflect.ValueOf(e), false)
 	return name, err
@@ -129,6 +130,18 @@ func enumFieldToString(field reflect.Value, appendModuleName bool) (string, bool
 		n = fmt.Sprintf("%s:%s", def.DefiningModule, def.Name)
 	}
 	return n, true, nil
+}
+
+// EnumLogString uses the EnumDefinition map of the given enum, an input
+// int64 val, and the input type name of the enum to output a log-friendly string.
+// If val is a valid enum value, then the defined YANG string corresponding to
+// the enum value is returned; otherwise, an out-of-range error string is returned.
+func EnumLogString(e GoEnum, val int64, enumTypeName string) string {
+	enumDef, ok := e.ΛMap()[enumTypeName][val]
+	if !ok {
+		return fmt.Sprintf("out-of-range %s enum value: %v", enumTypeName, val)
+	}
+	return enumDef.Name
 }
 
 // BuildEmptyTree initialises the YANG tree starting at the root GoStruct

@@ -14,7 +14,9 @@
 
 package ygot
 
-import "reflect"
+import (
+	"reflect"
+)
 
 // GoStruct is an interface which can be implemented by Go structs that are
 // generated to represent a YANG container or list member. It simply allows
@@ -76,6 +78,9 @@ type GoEnum interface {
 	// generated code file. The ygen library generates a static map of
 	// enumeration values that this method returns.
 	ΛMap() map[string]map[int64]EnumDefinition
+	// String provides the string representation of the enum, which will be
+	// the YANG name if it's in its defined range.
+	String() string
 }
 
 // EnumDefinition is used to store the details of an enumerated value. All YANG
