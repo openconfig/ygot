@@ -1074,9 +1074,12 @@ func keyValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
 		return v.Interface(), nil
 	}
 
-	name, _, err := enumFieldToString(v, appendModuleName)
+	name, valueSet, err := enumFieldToString(v, appendModuleName)
 	if err != nil {
 		return nil, err
+	}
+	if !valueSet {
+		return nil, fmt.Errorf("keyValue: Unset enum value: %v", v)
 	}
 
 	return name, nil
@@ -1097,7 +1100,12 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (inte
 		// JSON. We handle the keys in alphabetical order to ensure that
 		// deterministic ordering is achieved in the output JSON.
 		for _, k := range field.MapKeys() {
-			kn := fmt.Sprintf("%v", k.Interface())
+			keyval, err := keyValue(k, false)
+			if err != nil {
+				errs.Add(fmt.Errorf("invalid enumerated key: %v", err))
+				continue
+			}
+			kn := fmt.Sprintf("%v", keyval)
 			mapKeys = append(mapKeys, kn)
 			mapKeyMap[kn] = k
 		}

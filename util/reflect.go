@@ -1029,6 +1029,10 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 				if err != nil {
 					return nil, nil, err
 				}
+				// NOTE: Normally we'd like to use ygot.KeyValueAsString for conversion
+				// to a key's PathElem string representation, but since this is just a
+				// temporary path use during validation, we don't care if it is slightly
+				// off -- only that it works to uniquely identify the key value.
 				match = (fmt.Sprint(kv) == pathKey)
 				DbgPrint("check simple key value %s==%s ? %t", kv, pathKey, match)
 			} else {
@@ -1053,6 +1057,10 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 						// If the key is not filled, it is assumed to match.
 						continue
 					}
+					// NOTE: Normally we'd like to use ygot.KeyValueAsString for conversion
+					// to a key's PathElem string representation, but since this is just a
+					// temporary path use during validation, we don't care if it is slightly
+					// off -- only that it works to uniquely identify the key value.
 					if pathKey != fmt.Sprint(k.Field(i).Interface()) {
 						match = false
 						break
