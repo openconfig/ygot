@@ -131,7 +131,7 @@ func SubscribeResponseSetEqual(a, b []*gnmipb.SubscribeResponse) bool {
 func NotificationSetEqual(a, b []*gnmipb.Notification, opts ...ComparerOpt) bool {
 	ignoreTS := hasIgnoreTimestamp(opts)
 	cmps := comparers(opts)
-	cmps = append(cmps, []cmp.Option{cmpopts.SortSlices(UpdateLess), cmpopts.IgnoreUnexported(gnmipb.Update{}), cmpopts.EquateEmpty()}...)
+	cmps = append(cmps, []cmp.Option{cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty()}...)
 
 	for _, an := range a {
 		var matched bool
