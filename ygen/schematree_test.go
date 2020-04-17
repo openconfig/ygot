@@ -134,6 +134,116 @@ func TestBuildSchemaTree(t *testing.T) {
 	}
 }
 
+func TestResolveLeafrefTargetType(t *testing.T) {
+	tests := []struct {
+		name           string
+		inPath         string
+		inContextEntry *yang.Entry
+		inEntries      []*yang.Entry
+		want           *yang.Entry
+		wantErr        bool
+	}{{
+		name:   "simple test with leafref with absolute leafref",
+		inPath: "/parent/child/a",
+		inContextEntry: &yang.Entry{
+			Name: "b",
+			Type: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "/parent/child/a",
+			},
+			Parent: &yang.Entry{
+				Name: "child",
+				Parent: &yang.Entry{
+					Name:   "parent",
+					Parent: &yang.Entry{Name: "module"},
+				},
+			},
+		},
+		inEntries: []*yang.Entry{
+			{
+				Name: "parent",
+				Dir: map[string]*yang.Entry{
+					"child": {
+						Name: "child",
+						Dir: map[string]*yang.Entry{
+							"a": {
+								Name: "a",
+								Type: &yang.YangType{
+									Kind: yang.Ystring,
+								},
+								Parent: &yang.Entry{
+									Name: "child",
+									Parent: &yang.Entry{
+										Name:   "parent",
+										Parent: &yang.Entry{Name: "module"},
+									},
+								},
+							},
+							"b": {
+								Name: "b",
+								Type: &yang.YangType{
+									Kind: yang.Yleafref,
+									Path: "/parent/child/a",
+								},
+								Parent: &yang.Entry{
+									Name: "child",
+									Parent: &yang.Entry{
+										Name:   "parent",
+										Parent: &yang.Entry{Name: "module"},
+									},
+								},
+							},
+						},
+						Parent: &yang.Entry{
+							Name:   "parent",
+							Parent: &yang.Entry{Name: "module"},
+						},
+					},
+				},
+				Parent: &yang.Entry{Name: "module"},
+			},
+		},
+		want: &yang.Entry{
+			Name: "a",
+			Type: &yang.YangType{
+				Kind: yang.Ystring,
+			},
+			Parent: &yang.Entry{
+				Name: "child",
+				Parent: &yang.Entry{
+					Name:   "parent",
+					Parent: &yang.Entry{Name: "module"},
+				},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		// Since we are outside of the build of a module, need to initialise
+		// the schematree.
+		st, err := buildSchemaTree(tt.inEntries)
+		if err != nil {
+			t.Errorf("%s: buildSchemaTree(%v): got unexpected error: %v", tt.name, tt.inEntries, err)
+		}
+		got, err := st.resolveLeafrefTarget(tt.inPath, tt.inContextEntry)
+		if err != nil {
+			if !tt.wantErr {
+				t.Errorf("%s: resolveLeafrefTargetPath(%v, %v): got unexpected error: %v", tt.name, tt.inPath, tt.inContextEntry, err)
+			}
+			continue
+		}
+
+		if tt.wantErr {
+			t.Errorf("%s: resolveLeafrefTargetPath(%v, %v): did not get expected error", tt.name, tt.inPath, tt.inContextEntry)
+			continue
+		}
+
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: resolveLeafrefTargetPath(%v, %v): did not get expected entry, diff(-got,+want):\n%s", tt.name, tt.inPath, tt.inContextEntry, diff)
+		}
+	}
+}
+
 func TestFixSchemaTreePath(t *testing.T) {
 	tests := []struct {
 		name      string
