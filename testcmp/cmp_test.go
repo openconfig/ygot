@@ -17,13 +17,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/uexampleoc"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -262,7 +263,7 @@ func TestGNMIUpdateComparer(t *testing.T) {
 				t.Errorf("did not get expected equal status, got: %v, want: %v", gotEqual, tt.wantEqual)
 			}
 
-			if diff := pretty.Compare(gotDiff, tt.wantDiff); diff != "" {
+			if diff := cmp.Diff(gotDiff, tt.wantDiff, protocmp.Transform()); diff != "" {
 				t.Errorf("did not get expected diff, diff(-got,+want):\n%s", diff)
 			}
 		})

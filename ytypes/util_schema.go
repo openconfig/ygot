@@ -102,7 +102,7 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 	// leaf-list. Check that the data tree falls within the required size
 	// bounds.
 	if v := schema.ListAttr.MinElements; v != nil {
-		if minN, err := yang.ParseNumber(v.Name); err != nil {
+		if minN, err := yang.ParseInt(v.Name); err != nil {
 			errors = util.AppendErr(errors, err)
 		} else if min, err := minN.Int(); err != nil {
 			errors = util.AppendErr(errors, err)
@@ -113,7 +113,7 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 		}
 	}
 	if v := schema.ListAttr.MaxElements; v != nil {
-		if maxN, err := yang.ParseNumber(v.Name); err != nil {
+		if maxN, err := yang.ParseInt(v.Name); err != nil {
 			errors = util.AppendErr(errors, err)
 		} else if max, err := maxN.Int(); err != nil {
 			errors = util.AppendErr(errors, err)

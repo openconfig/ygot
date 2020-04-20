@@ -446,8 +446,8 @@ func mapValuePath(key, value reflect.Value, parentPath *gnmiPath) (*gnmiPath, er
 	}
 
 	for _, e := range parentPath.pathElemPath {
-		n := *e
-		childPath.pathElemPath = append(childPath.pathElemPath, &n)
+		n := proto.Clone(e).(*gnmipb.PathElem)
+		childPath.pathElemPath = append(childPath.pathElemPath, n)
 	}
 
 	return appendgNMIPathElemKey(value, childPath)
@@ -478,7 +478,7 @@ func appendgNMIPathElemKey(v reflect.Value, p *gnmiPath) (*gnmiPath, error) {
 	if err != nil {
 		return nil, err
 	}
-	newElem := *e
+	newElem := proto.Clone(e).(*gnmipb.PathElem)
 
 	if !v.IsValid() || v.IsNil() {
 		return nil, fmt.Errorf("nil value received for element %v", p)
@@ -490,7 +490,7 @@ func appendgNMIPathElemKey(v reflect.Value, p *gnmiPath) (*gnmiPath, error) {
 	}
 	newElem.Key = k
 
-	if err := np.SetIndex(np.Len()-1, &newElem); err != nil {
+	if err := np.SetIndex(np.Len()-1, newElem); err != nil {
 		return nil, err
 	}
 	return np, nil

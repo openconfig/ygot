@@ -26,6 +26,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/testutil"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -169,7 +170,7 @@ func TestGNMIPathCopy(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if got := tt.inPath.Copy(); !cmp.Equal(got, tt.inPath, cmp.AllowUnexported(gnmiPath{})) {
+		if got := tt.inPath.Copy(); !cmp.Equal(got, tt.inPath, cmp.AllowUnexported(gnmiPath{}), protocmp.Transform()) {
 			t.Errorf("%s: (gnmiPath).Copy(): did not get expected result, got: %v, want: %v", tt.name, got, tt.inPath)
 		}
 	}
