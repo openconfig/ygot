@@ -20,10 +20,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/ygot/ygot"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 func mustPath(s string) *gnmipb.Path {
@@ -96,18 +96,19 @@ func TestGetResponseEqual(t *testing.T) {
 		},
 		inOpts: []ComparerOpt{
 			CustomComparer{
-				reflect.TypeOf(&gnmipb.Path{}): cmp.Comparer(func(a, b *gnmipb.Path) bool {
-					for _, p := range []*gnmipb.Path{a, b} {
-						for _, e := range p.Elem {
-							// Remove anything before a ":"
-							if pp := strings.Split(e.Name, ":"); len(pp) == 2 {
-								e.Name = pp[1]
+				reflect.TypeOf(&gnmipb.Path{}): protocmp.FilterMessage(&gnmipb.Path{},
+					cmp.Comparer(func(a, b protocmp.Message) bool {
+						for _, p := range []protocmp.Message{a, b} {
+							for _, e := range p["elem"].([]protocmp.Message) {
+								// Remove anything before a ":"
+								if pp := strings.Split(e["name"].(string), ":"); len(pp) == 2 {
+									e["name"] = pp[1]
+								}
 							}
 						}
-					}
 
-					return proto.Equal(a, b)
-				}),
+						return cmp.Equal(a, b)
+					})),
 			},
 		},
 		want: true,

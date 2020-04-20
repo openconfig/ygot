@@ -90,9 +90,9 @@ func TrimGNMIPathPrefix(path *gpb.Path, prefix []string) *gpb.Path {
 	if !PathMatchesPrefix(path, prefix) {
 		return path
 	}
-	out := *path
+	out := proto.Clone(path).(*gpb.Path)
 	out.Elem = out.GetElem()[len(prefix):]
-	return &out
+	return out
 }
 
 // TrimGNMIPathElemPrefix returns the path with the prefix trimmed. It returns
