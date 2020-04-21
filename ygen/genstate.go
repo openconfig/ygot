@@ -450,9 +450,9 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 		// identifier, we ensure this.
 		identifierPath = e.Path()
 	} else {
-		// In the other cases, de-duplication may happen, and of
-		// course, each different enum identifier should have its own
-		// definition.
+		// In the other cases, de-duplication may happen, either
+		// through de-duping multiple usages or possibly through
+		// compression
 		identifierPath = enumIdentifier(e, compressPaths)
 	}
 

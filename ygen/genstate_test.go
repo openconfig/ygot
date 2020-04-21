@@ -1443,7 +1443,6 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 	tests := []struct {
 		name                                    string
 		in                                      []*yang.Entry
-		inSkipEnumDedup                         bool
 		checkPath                               bool // checkPath says whether the Directories' Path field should be checked.
 		wantGoCompress                          map[string]*Directory
 		wantGoCompressPreferOperationalState    map[string]*Directory
@@ -2276,7 +2275,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 									Name: "key",
 									Type: &yang.YangType{Kind: yang.Ystring},
 									Parent: &yang.Entry{
-										Name: "config",
+										Name: "state",
 										Parent: &yang.Entry{
 											Name: "list",
 											Parent: &yang.Entry{
@@ -2301,6 +2300,14 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				Fields: map[string]*yang.Entry{
 					"key": {Name: "key", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
+				ListAttr: &YangListAttr{
+					Keys: map[string]*MappedType{
+						"key": {
+							NativeType: "string",
+							ZeroValue:  `""`,
+						},
+					},
+				},
 			},
 		},
 		wantGoUncompress: map[string]*Directory{
@@ -2310,6 +2317,14 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"key":    {Name: "key", Type: &yang.YangType{Kind: yang.Yleafref}},
 					"config": {Name: "config"},
 					"state":  {Name: "state"},
+				},
+				ListAttr: &YangListAttr{
+					Keys: map[string]*MappedType{
+						"key": {
+							NativeType: "string",
+							ZeroValue:  `""`,
+						},
+					},
 				},
 			},
 			"/module/container/list/config": {
@@ -2625,7 +2640,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				continue
 			}
 
-			t.Run(fmt.Sprintf("%s:buildDirectoryDefinitions(CompressBehaviour:%v,Language:%s,excludeState:%v,skipEnumDedup:%v)", tt.name, c.compressBehaviour, langName(c.lang), c.excludeState, tt.inSkipEnumDedup), func(t *testing.T) {
+			t.Run(fmt.Sprintf("%s:buildDirectoryDefinitions(CompressBehaviour:%v,Language:%s,excludeState:%v)", tt.name, c.compressBehaviour, langName(c.lang), c.excludeState), func(t *testing.T) {
 				st, err := buildSchemaTree(tt.in)
 				if err != nil {
 					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
@@ -2643,13 +2658,13 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					errs = append(errs, findMappableEntities(inc, structs, enums, []string{}, c.compressBehaviour.CompressEnabled(), []*yang.Entry{})...)
 				}
 				if errs != nil {
-					t.Fatalf("findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v", tt.in, structs, enums, c.compressBehaviour.CompressEnabled(), err)
+					t.Fatalf("findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v", tt.in, structs, enums, c.compressBehaviour.CompressEnabled(), errs)
 				}
 
 				var got map[string]*Directory
 				switch c.lang {
 				case golang:
-					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, tt.inSkipEnumDedup)
+					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false)
 				case protobuf:
 					got, errs = protogen.buildDirectoryDefinitions(structs, c.compressBehaviour)
 				}
@@ -2658,18 +2673,22 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				}
 
 				// This checks the "Name" and maybe "Path" attributes of the output Directories.
-				ignoreFields := []string{"Entry", "Fields", "ListAttr", "IsFakeRoot"}
+				ignoreFields := []string{"Entry", "Fields", "IsFakeRoot"}
 				if !tt.checkPath {
 					ignoreFields = append(ignoreFields, "Path")
 				}
-				if diff := cmp.Diff(c.want, got, cmpopts.IgnoreFields(Directory{}, ignoreFields...)); diff != "" {
+				if diff := cmp.Diff(c.want, got, cmpopts.IgnoreFields(Directory{}, ignoreFields...), cmpopts.IgnoreFields(YangListAttr{}, "KeyElems")); diff != "" {
 					t.Errorf("(-want +got):\n%s", diff)
 				}
 
 				// Verify certain fields of the "Fields" attribute -- there are too many fields to ignore to use cmp.Diff for comparison.
 				for gotName, gotDir := range got {
 					// Note that any missing or extra Directories would've been caught with the previous check.
-					wantDir := c.want[gotName]
+					wantDir, ok := c.want[gotName]
+					if !ok {
+						t.Errorf("got directory keyed at %q, did not expect this", gotName)
+						continue
+					}
 					if len(gotDir.Fields) != len(wantDir.Fields) {
 						t.Fatalf("Did not get expected set of fields for %s, got: %v, want: %v", gotName, fieldNames(gotDir), fieldNames(wantDir))
 					}

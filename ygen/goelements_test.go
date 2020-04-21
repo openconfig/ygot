@@ -28,13 +28,12 @@ import (
 // Goyang YangType struct.
 func TestUnionSubTypes(t *testing.T) {
 	tests := []struct {
-		name            string
-		in              *yang.YangType
-		inCtxEntry      *yang.Entry
-		inSkipEnumDedup bool
-		want            []string
-		wantMtypes      map[int]*MappedType
-		wantErr         bool
+		name       string
+		in         *yang.YangType
+		inCtxEntry *yang.Entry
+		want       []string
+		wantMtypes map[int]*MappedType
+		wantErr    bool
 	}{{
 		name: "union of strings",
 		in: &yang.YangType{
@@ -100,6 +99,42 @@ func TestUnionSubTypes(t *testing.T) {
 			},
 		},
 		wantErr: true,
+	}, {
+		name: "union of a single enum",
+		in: &yang.YangType{
+			Name: "enumeration",
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{{
+				Kind: yang.Yenum,
+				Name: "enumeration",
+			}},
+		},
+		inCtxEntry: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Kind: yang.Yenum,
+					Name: "enumeration",
+				}},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		},
+		want: []string{"E_BaseModule_UnionLeaf"},
+		wantMtypes: map[int]*MappedType{
+			0: {
+				NativeType:        "E_BaseModule_UnionLeaf",
+				IsEnumeratedValue: true,
+				ZeroValue:         "0",
+			},
+		},
 	}, {
 		name: "union of identityrefs",
 		in: &yang.YangType{
@@ -205,7 +240,7 @@ func TestUnionSubTypes(t *testing.T) {
 			s := newGoGenState(nil)
 			mtypes := make(map[int]*MappedType)
 			ctypes := make(map[string]int)
-			errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false, tt.inSkipEnumDedup)
+			errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false, false)
 			if !tt.wantErr && errs != nil {
 				t.Errorf("unexpected errors: %v", errs)
 			}
@@ -810,14 +845,15 @@ func TestYangTypeToGoType(t *testing.T) {
 // struct is returned representing the keys of the list e.
 func TestBuildListKey(t *testing.T) {
 	tests := []struct {
-		name                    string        // name is the test identifier.
-		in                      *yang.Entry   // in is the yang.Entry of the test list.
-		inCompress              bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
-		inEntries               []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
-		inSkipEnumDedup         bool          // inSkipEnumDedup says whether to dedup identical enums encountered in the models.
-		inResolveKeyNameFuncNil bool          // inResolveKeyNameFuncNil specifies whether the key name function is not provided.
-		want                    YangListAttr  // want is the expected YangListAttr output.
-		wantErr                 bool          // wantErr is a boolean indicating whether errors are expected from buildListKeys
+		name                        string        // name is the test identifier.
+		in                          *yang.Entry   // in is the yang.Entry of the test list.
+		inCompress                  bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
+		inEntries                   []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
+		inUniqueEnumeratedLeafNames map[string]string
+		inSkipEnumDedup             bool         // inSkipEnumDedup says whether to dedup identical enums encountered in the models.
+		inResolveKeyNameFuncNil     bool         // inResolveKeyNameFuncNil specifies whether the key name function is not provided.
+		want                        YangListAttr // want is the expected YangListAttr output.
+		wantErr                     bool         // wantErr is a boolean indicating whether errors are expected from buildListKeys
 	}{{
 		name: "non-list",
 		in: &yang.Entry{
@@ -873,6 +909,160 @@ func TestBuildListKey(t *testing.T) {
 				{
 					Name: "keyleaf",
 					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+			},
+		},
+	}, {
+		name: "basic list enum key",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "keyleaf",
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+					Node: &yang.Enum{
+						Name: "enumeration",
+						Parent: &yang.Grouping{
+							Name: "foo",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		inCompress: true,
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleaf": {NativeType: "E_BaseModule_Container_Keyleaf"},
+			},
+			KeyElems: []*yang.Entry{
+				{
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+				},
+			},
+		},
+	}, {
+		name: "list enum key -- already seen",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "keyleaf",
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+					Node: &yang.Enum{
+						Name: "enumeration",
+						Parent: &yang.Grouping{
+							Name: "foo",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		inCompress: true,
+		inUniqueEnumeratedLeafNames: map[string]string{
+			"/foo/enumeration": "KeyleafPrev",
+		},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleaf": {NativeType: "E_KeyleafPrev"},
+			},
+			KeyElems: []*yang.Entry{
+				{
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+				},
+			},
+		},
+	}, {
+		name: "list enum key -- already seen but skip enum dedup",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "keyleaf",
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+					Node: &yang.Enum{
+						Name: "enumeration",
+						Parent: &yang.Grouping{
+							Name: "foo",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		inCompress:      true,
+		inSkipEnumDedup: true,
+		inUniqueEnumeratedLeafNames: map[string]string{
+			"/foo/enumeration": "KeyleafPrev",
+		},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleaf": {NativeType: "E_BaseModule_Container_Keyleaf"},
+			},
+			KeyElems: []*yang.Entry{
+				{
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
 				},
 			},
 		},
@@ -1275,6 +1465,11 @@ func TestBuildListKey(t *testing.T) {
 				continue
 			}
 			s.schematree = st
+		}
+		// Inject the history that has been provided into the new state. This allows us to
+		// check that resolution that should be changed by the state has modified behaviour.
+		if i := tt.inUniqueEnumeratedLeafNames; i != nil {
+			s.enumGen.uniqueEnumeratedLeafNames = tt.inUniqueEnumeratedLeafNames
 		}
 
 		resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
