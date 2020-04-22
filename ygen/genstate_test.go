@@ -914,7 +914,7 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 	}, {
-		name: "two enums with deduplication disabled, where duplication of enums is only happening for uncompressed",
+		name: "two enums with deduplication disabled, where duplication of enums is only happening for uncompressed due to compressed context being the same (i.e. config/state)",
 		in: map[string]*yang.Entry{
 			"/container/config/enumeration-leaf": {
 				Name: "enumeration-leaf",
@@ -1091,7 +1091,7 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 	}, {
-		name: "two enums with deduplication disabled, and where duplication occurs for both compressed and decompressed but the context is the same",
+		name: "two enums with deduplication disabled, and where duplication occurs for both compressed and decompressed but the enum contexts (grandparents) are the same",
 		in: map[string]*yang.Entry{
 			"/container/apple/enumeration-leaf": {
 				Name: "enumeration-leaf",

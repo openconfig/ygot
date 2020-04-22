@@ -440,20 +440,20 @@ func enumIdentifier(e *yang.Entry, compressPaths bool) string {
 // somewhat difficult to understand enumerated types being produced - since the first
 // leaf that is processed will define the name of the enumeration.
 func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup bool) string {
-	// identifierPath is the unique identifier used to determine whether to
+	// uniqueIdentifer is the unique identifier used to determine whether to
 	// define a new enum type for the input enum.
-	var identifierPath string
+	var uniqueIdentifer string
 	if skipDedup && !compressPaths {
 		// If not using compression and duplicating, then we use the
 		// entire path as the enum name, meaning every enum instance
 		// has its own definition. By using the entry's path as its
 		// identifier, we ensure this.
-		identifierPath = e.Path()
+		uniqueIdentifer = e.Path()
 	} else {
 		// In the other cases, de-duplication may happen, either
 		// through de-duping multiple usages or possibly through
 		// compression
-		identifierPath = enumIdentifier(e, compressPaths)
+		uniqueIdentifer = enumIdentifier(e, compressPaths)
 	}
 
 	var compressName string
@@ -469,29 +469,23 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 			compressName = strings.Replace(compressName, "_", "", -1)
 		}
 
-		// If we're duplicating for a compressed schema, it is too
-		// little to use the path of the enum as the identifierPath.
-		// This is because we're not using the full path when
-		// constructing the enum name, meaning sometimes both the enum
-		// identifier and enum names are the same for a compressed
-		// schema. Using more path information may thus avoid a
-		// collision that is only helpful when we want to dedup,
-		// therefore helping to avoid an underscore that subtracts from
-		// usability.
 		if skipDedup {
-			identifierPath += compressName
+			// Avoid deduping based on the enum type when the
+			// compressed context described by compressName is
+			// different.
+			uniqueIdentifer += compressName
 		}
 	}
 
 	// If the leaf had already been encountered, then return the previously generated
 	// name, rather than generating a new name.
-	if definedName, ok := s.uniqueEnumeratedLeafNames[identifierPath]; ok {
+	if definedName, ok := s.uniqueEnumeratedLeafNames[uniqueIdentifer]; ok {
 		return definedName
 	}
 
 	if compressPaths {
 		uniqueName := genutil.MakeNameUnique(compressName, s.definedEnums)
-		s.uniqueEnumeratedLeafNames[identifierPath] = uniqueName
+		s.uniqueEnumeratedLeafNames[uniqueIdentifer] = uniqueName
 		return uniqueName
 	}
 
@@ -504,7 +498,7 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 		nbuf.WriteString(yang.CamelCase(p))
 	}
 	uniqueName := genutil.MakeNameUnique(nbuf.String(), s.definedEnums)
-	s.uniqueEnumeratedLeafNames[identifierPath] = uniqueName
+	s.uniqueEnumeratedLeafNames[uniqueIdentifer] = uniqueName
 	return uniqueName
 }
 
