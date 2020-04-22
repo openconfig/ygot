@@ -470,9 +470,13 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 		}
 
 		if skipDedup {
-			// Avoid deduping based on the enum type when the
-			// compressed context described by compressName is
-			// different.
+			// If using compression and duplicating, then we add
+			// compressName to the uniqueIdentifier, meaning every
+			// enum instance in the compressed view of the schema
+			// has its own definition.  The base enum identity is
+			// still required to deal with collisions between
+			// compressed enum names when they describe different
+			// enums.
 			uniqueIdentifer += compressName
 		}
 	}
