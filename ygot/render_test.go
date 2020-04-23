@@ -1526,6 +1526,18 @@ type listAtRootChild struct {
 
 func (*listAtRootChild) IsYANGGoStruct() {}
 
+type listAtRootEnumKeyed struct {
+	Foo map[EnumTest]*listAtRootChildEnumKeyed `path:"foo" rootname:"foo" module:"m1"`
+}
+
+func (*listAtRootEnumKeyed) IsYANGGoStruct() {}
+
+type listAtRootChildEnumKeyed struct {
+	Bar EnumTest `path:"bar" module:"m1"`
+}
+
+func (*listAtRootChildEnumKeyed) IsYANGGoStruct() {}
+
 // Types to ensure correct serialisation of elements with different
 // modules at the root.
 type diffModAtRoot struct {
@@ -2118,6 +2130,60 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name: "list at root enum keyed",
+		in: &listAtRootEnumKeyed{
+			Foo: map[EnumTest]*listAtRootChildEnumKeyed{
+				EnumTest(1): {
+					Bar: EnumTest(1),
+				},
+				EnumTest(2): {
+					Bar: EnumTest(2),
+				},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"foo": []interface{}{
+				map[string]interface{}{"bar": "VAL_ONE"},
+				map[string]interface{}{"bar": "VAL_TWO"},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"VAL_ONE": map[string]interface{}{
+					"bar": "VAL_ONE",
+				},
+				"VAL_TWO": map[string]interface{}{
+					"bar": "VAL_TWO",
+				},
+			},
+		},
+	}, {
+		name: "list at root enum keyed with zero enum",
+		in: &listAtRootEnumKeyed{
+			Foo: map[EnumTest]*listAtRootChildEnumKeyed{
+				EnumTest(0): {
+					Bar: EnumTest(0),
+				},
+				EnumTest(2): {
+					Bar: EnumTest(2),
+				},
+			},
+		},
+		wantErr: true,
+	}, {
+		name: "list at root enum keyed but invalid enum value",
+		in: &listAtRootEnumKeyed{
+			Foo: map[EnumTest]*listAtRootChildEnumKeyed{
+				EnumTest(42): {
+					Bar: EnumTest(42),
+				},
+				EnumTest(2): {
+					Bar: EnumTest(2),
+				},
+			},
+		},
+		wantErr: true,
 	}, {
 		name: "annotated struct",
 		in: &annotatedJSONTestStruct{
