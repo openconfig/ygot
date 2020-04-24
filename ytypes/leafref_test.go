@@ -61,6 +61,24 @@ func TestValidateLeafRefData(t *testing.T) {
 					},
 				},
 			},
+			"list-enum-keyed": {
+				Name:     "list-enum-keyed",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Name: "key",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yenum},
+					},
+					"int32": {
+						Name: "int32",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+			},
 			"int32": {
 				Name: "int32",
 				Kind: yang.LeafEntry,
@@ -74,7 +92,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			"enum": {
 				Name: "enum",
 				Kind: yang.LeafEntry,
-				Type: &yang.YangType{Kind: yang.Yint64},
+				Type: &yang.YangType{Kind: yang.Yenum},
 			},
 			"union": {
 				Name: "union",
@@ -144,6 +162,14 @@ func TestValidateLeafRefData(t *testing.T) {
 							Path: "../../list[key = current()/../../key]/int32",
 						},
 					},
+					"enum-ref-to-list": {
+						Name: "int32-ref-to-list-enum-keyed",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../../list-enum-keyed[key = current()/../../enum]/int32",
+						},
+					},
 					"key": {
 						Name: "key",
 						Kind: yang.LeafEntry,
@@ -190,10 +216,11 @@ func TestValidateLeafRefData(t *testing.T) {
 	}
 	type Container2 struct {
 		LeafRefToInt32         *int32      `path:"int32-ref-to-leaf"`
-		LeafRefToEnum          int64       `path:"enum-ref-to-leaf"`
+		LeafRefToEnum          EnumType    `path:"enum-ref-to-leaf"`
 		LeafRefToLeafList      *int32      `path:"int32-ref-to-leaf-list"`
 		LeafListRefToLeafList  []*int32    `path:"leaf-list-ref-to-leaf-list"`
 		LeafRefToList          *int32      `path:"int32-ref-to-list"`
+		LeafRefToListEnumKeyed *int32      `path:"int32-ref-to-list-enum-keyed"`
 		Key                    *int32      `path:"key"`
 		Container3             *Container3 `path:"container3"`
 		LeafListLeafRefToInt32 []*int32    `path:"leaf-list-with-leafref"`
@@ -203,14 +230,19 @@ func TestValidateLeafRefData(t *testing.T) {
 		Key   *int32 `path:"key"`
 		Int32 *int32 `path:"int32"`
 	}
+	type ListElementEnumKeyed struct {
+		Key   EnumType `path:"key"`
+		Int32 *int32   `path:"int32"`
+	}
 	type Container struct {
-		LeafList   []*int32               `path:"leaf-list"`
-		List       map[int32]*ListElement `path:"list"`
-		Int32      *int32                 `path:"int32"`
-		Key        *int32                 `path:"key"`
-		Int64      int64                  `path:"enum"`
-		Container2 *Container2            `path:"container2"`
-		Union      Union1                 `path:"union"`
+		LeafList      []*int32                           `path:"leaf-list"`
+		List          map[int32]*ListElement             `path:"list"`
+		ListEnumKeyed map[EnumType]*ListElementEnumKeyed `path:"list-enum-keyed"`
+		Int32         *int32                             `path:"int32"`
+		Key           *int32                             `path:"key"`
+		Enum          EnumType                           `path:"enum"`
+		Container2    *Container2                        `path:"container2"`
+		Union         Union1                             `path:"union"`
 	}
 
 	tests := []struct {
@@ -262,17 +294,17 @@ func TestValidateLeafRefData(t *testing.T) {
 		{
 			desc: "enum",
 			in: &Container{
-				Int64:      42,
-				Container2: &Container2{LeafRefToEnum: 42},
+				Enum:       EnumType(42),
+				Container2: &Container2{LeafRefToEnum: EnumType(42)},
 			},
 		},
 		{
 			desc: "enum unequal",
 			in: &Container{
-				Int64:      42,
-				Container2: &Container2{LeafRefToEnum: 43},
+				Enum:       42,
+				Container2: &Container2{LeafRefToEnum: EnumType(43)},
 			},
-			wantErr: `field name LeafRefToEnum value 43 (int64) schema path /enum-ref-to-leaf has leafref path ../../enum not equal to any target nodes`,
+			wantErr: `field name LeafRefToEnum value out-of-range EnumType enum value: 43 (int64) schema path /enum-ref-to-leaf has leafref path ../../enum not equal to any target nodes`,
 		},
 		{
 			desc: "leaf-list int32",
@@ -358,6 +390,63 @@ func TestValidateLeafRefData(t *testing.T) {
 				},
 			},
 			wantErr: `pointed-to value with path ../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
+		},
+		{
+			// By swapping which of the upper/lower nodes is pointing to a bad value,
+			// we make the testing more robust to implementation details, which may
+			// allow one of these to pass.
+			// e.g. it caches the results for "current()/../../key", but visits
+			// the nodes in a certain order to make one of the tests pass.
+			desc: "different level keyed list, bad value on lower node",
+			in: &Container{
+				List: map[int32]*ListElement{
+					1: {Int32(1), Int32(42)},
+					2: {Int32(2), Int32(43)},
+				},
+				Key: Int32(2),
+				Container2: &Container2{
+					Key:           Int32(3),
+					LeafRefToList: Int32(43),
+					Container3: &Container3{
+						LeafRefToList: Int32(43),
+					},
+				},
+			},
+			wantErr: `pointed-to value with path ../../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
+		},
+		{
+			desc: "enum keyed list match",
+			in: &Container{
+				ListEnumKeyed: map[EnumType]*ListElementEnumKeyed{
+					EnumType(42): {Int32: Int32(1), Key: EnumType(42)},
+					EnumType(43): {Int32: Int32(2), Key: EnumType(43)},
+				},
+				Enum:       EnumType(42),
+				Container2: &Container2{LeafRefToListEnumKeyed: Int32(1)},
+			},
+		},
+		{
+			desc: "enum keyed list unequal",
+			in: &Container{
+				ListEnumKeyed: map[EnumType]*ListElementEnumKeyed{
+					EnumType(42): {Int32: Int32(1), Key: EnumType(42)},
+					EnumType(43): {Int32: Int32(2), Key: EnumType(43)},
+				},
+				Enum:       EnumType(42),
+				Container2: &Container2{LeafRefToListEnumKeyed: Int32(2)},
+			},
+			wantErr: `field name LeafRefToListEnumKeyed value 2 (int32 ptr) schema path /int32-ref-to-list-enum-keyed has leafref path ../../list-enum-keyed[key = current()/../../enum]/int32 not equal to any target nodes`,
+		},
+		{
+			desc: "enum keyed list bad key value",
+			in: &Container{
+				ListEnumKeyed: map[EnumType]*ListElementEnumKeyed{
+					EnumType(43): {Int32: Int32(2), Key: EnumType(43)},
+				},
+				Enum:       EnumType(42),
+				Container2: &Container2{LeafRefToListEnumKeyed: Int32(1)},
+			},
+			wantErr: `pointed-to value with path ../../list-enum-keyed[key = current()/../../enum]/int32 from field LeafRefToListEnumKeyed value 1 (int32 ptr) schema /int32-ref-to-list-enum-keyed is empty set`,
 		},
 		{
 			// By swapping which of the upper/lower nodes is pointing to a bad value,
