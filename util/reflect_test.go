@@ -1465,6 +1465,35 @@ type ContainerStruct1 struct {
 // IsYANGGoStruct implements the GoStruct interface method.
 func (*ContainerStruct1) IsYANGGoStruct() {}
 
+type EnumType int64
+
+func (e EnumType) String() string {
+	switch int64(e) {
+	case 1:
+		return "ONE"
+	case 2:
+		return "TWO"
+	}
+	return fmt.Sprintf("INVALID, out-of-range: %v", int64(e))
+}
+
+// ListElemStruct3 is a list type for testing.
+type ListElemStruct3 struct {
+	EnumKey EnumType `path:"enum-key"`
+	Value   *string  `path:"value"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface method.
+func (*ListElemStruct3) IsYANGGoStruct() {}
+
+// ContainerStruct3 is a container type for testing.
+type ContainerStruct3 struct {
+	StructKeyList map[EnumType]*ListElemStruct3 `path:"simple-key-list"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface method.
+func (*ContainerStruct3) IsYANGGoStruct() {}
+
 func TestGetNodesSimpleKeyedList(t *testing.T) {
 	containerWithLeafListSchema := &yang.Entry{
 		Name: "container",
@@ -1561,6 +1590,32 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 		},
 	}
 
+	containerWithEnumSchema := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"simple-key-list": {
+				Name:     "simple-key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "enum-key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"enum-key": {
+						Name: "enum-key",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yenum},
+					},
+					"value": {
+						Name: "value",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+		},
+	}
+
 	c1 := &ContainerStruct1{
 		StructKeyList: map[string]*ListElemStruct1{
 			"forty-two": {
@@ -1573,17 +1628,28 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 		},
 	}
 
+	c3 := &ContainerStruct3{
+		StructKeyList: map[EnumType]*ListElemStruct3{
+			EnumType(2): {
+				EnumKey: EnumType(2),
+				Value:   String("hello-world"),
+			},
+		},
+	}
+
 	tests := []struct {
-		desc       string
-		rootStruct interface{}
-		path       *gpb.Path
-		want       interface{}
-		wantErr    string
+		desc         string
+		inRootSchema *yang.Entry
+		inRootStruct interface{}
+		inPath       *gpb.Path
+		want         interface{}
+		wantErr      string
 	}{
 		{
-			desc:       "success leaf-ref",
-			rootStruct: c1,
-			path: &gpb.Path{
+			desc:         "success leaf-ref",
+			inRootSchema: containerWithLeafListSchema,
+			inRootStruct: c1,
+			inPath: &gpb.Path{
 				Elem: []*gpb.PathElem{
 					{
 						Name: "config",
@@ -1608,9 +1674,10 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			want: []interface{}{c1.StructKeyList["forty-two"].Outer.Inner.LeafName},
 		},
 		{
-			desc:       "success absolute leaf-ref",
-			rootStruct: c1,
-			path: &gpb.Path{
+			desc:         "success absolute leaf-ref",
+			inRootSchema: containerWithLeafListSchema,
+			inRootStruct: c1,
+			inPath: &gpb.Path{
 				Elem: []*gpb.PathElem{
 					{
 						Name: "config",
@@ -1635,9 +1702,10 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			want: []interface{}{c1.StructKeyList["forty-two"].Outer.InnerAbsPath.LeafName},
 		},
 		{
-			desc:       "success leaf full path",
-			rootStruct: c1,
-			path: &gpb.Path{
+			desc:         "success leaf full path",
+			inRootSchema: containerWithLeafListSchema,
+			inRootStruct: c1,
+			inPath: &gpb.Path{
 				Elem: []*gpb.PathElem{
 					{
 						Name: "config",
@@ -1665,9 +1733,10 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			want: []interface{}{c1.StructKeyList["forty-two"].Outer.Inner.LeafName},
 		},
 		{
-			desc:       "bad path",
-			rootStruct: c1,
-			path: &gpb.Path{
+			desc:         "bad path",
+			inRootSchema: containerWithLeafListSchema,
+			inRootStruct: c1,
+			inPath: &gpb.Path{
 				Elem: []*gpb.PathElem{
 					{
 						Name: "config",
@@ -1693,9 +1762,10 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			wantErr: `could not find path in tree beyond schema node simple-key-list, (type *util.ListElemStruct1), remaining path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "bad-element"}, {Name: "inner"}, {Name: "leaf-field"}}}).String(),
 		},
 		{
-			desc:       "nil source field",
-			rootStruct: c1,
-			path: &gpb.Path{
+			desc:         "nil source field",
+			inRootSchema: containerWithLeafListSchema,
+			inRootStruct: c1,
+			inPath: &gpb.Path{
 				Elem: []*gpb.PathElem{
 					{
 						Name: "config",
@@ -1720,9 +1790,10 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			want: []interface{}(nil),
 		},
 		{
-			desc:       "missing key name",
-			rootStruct: c1,
-			path: &gpb.Path{
+			desc:         "missing key name",
+			inRootSchema: containerWithLeafListSchema,
+			inRootStruct: c1,
+			inPath: &gpb.Path{
 				Elem: []*gpb.PathElem{
 					{
 						Name: "config",
@@ -1748,9 +1819,10 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			wantErr: `gnmi path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "simple-key-list", Key: map[string]string{"bad-key": "forty-two"}}, {Name: "outer2"}, {Name: "inner"}, {Name: "leaf-field"}}}).String() + ` does not contain a map entry for the schema key field name key1, parent type map[string]*util.ListElemStruct1`,
 		},
 		{
-			desc:       "missing key value",
-			rootStruct: c1,
-			path: &gpb.Path{
+			desc:         "missing key value",
+			inRootSchema: containerWithLeafListSchema,
+			inRootStruct: c1,
+			inPath: &gpb.Path{
 				Elem: []*gpb.PathElem{
 					{
 						Name: "config",
@@ -1774,11 +1846,30 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			},
 			want: []interface{}(nil),
 		},
+		{
+			desc:         "success enum",
+			inRootSchema: containerWithEnumSchema,
+			inRootStruct: c3,
+			inPath: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					{
+						Name: "simple-key-list",
+						Key: map[string]string{
+							"enum-key": "TWO",
+						},
+					},
+					{
+						Name: "value",
+					},
+				},
+			},
+			want: []interface{}{c3.StructKeyList[EnumType(2)].Value},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			val, _, err := GetNodes(containerWithLeafListSchema, tt.rootStruct, tt.path)
+			val, _, err := GetNodes(tt.inRootSchema, tt.inRootStruct, tt.inPath)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
 			}
