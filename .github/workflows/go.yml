@@ -49,9 +49,7 @@ jobs:
 
       - name: Generate dependencies
         run: |
-          cd go/src/github.com/openconfig/ygot && make install
-        env:
-          GOPATH: go
+          cd go/src/github.com/openconfig/ygot && make generate
 
       - name: Build
         run: go build -v ./...
