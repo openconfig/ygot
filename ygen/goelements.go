@@ -17,7 +17,6 @@ package ygen
 import (
 	"bytes"
 	"fmt"
-	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
@@ -73,47 +72,6 @@ var (
 		ygot.EmptyTypeName:  "false",
 	}
 )
-
-// MappedType is used to store the Go type that a leaf entity in YANG is
-// mapped to. The NativeType is always populated for any leaf. UnionTypes is populated
-// when the type may have subtypes (i.e., is a union). enumValues is populated
-// when the type is an enumerated type.
-//
-// The code generation explicitly maps YANG types to corresponding Go types. In
-// the case that an explicit mapping is not specified, a type will be mapped to
-// an empty interface (interface{}). For an explicit list of types that are
-// supported, see the yangTypeToGoType function in this file.
-type MappedType struct {
-	// NativeType is the type which is to be used for the mapped entity.
-	NativeType string
-	// UnionTypes is a map, keyed by the Go type, of the types specified
-	// as valid for a union. The value of the map indicates the order
-	// of the type, since order is important for unions in YANG. Where
-	// two types are mapped to the same Go type (e.g., string) then
-	// only the order of the first is maintained. Since the generated
-	// code from the structs maintains only type validation, this
-	// is not currently a limitation.
-	UnionTypes map[string]int
-	// IsEnumeratedValue specifies whether the NativeType that is returned
-	// is a generated enumerated value. Such entities are reflected as
-	// derived types with constant values, and are hence not represented
-	// as pointers in the output code.
-	IsEnumeratedValue bool
-	// ZeroValue stores the value that should be used for the type if
-	// it is unset. This is used only in contexts where the nil pointer
-	// cannot be used, such as leaf getters.
-	ZeroValue string
-	// DefaultValue stores the default value for the type if is specified.
-	// It is represented as a string pointer to ensure that default values
-	// of the empty string can be distinguished from unset defaults.
-	DefaultValue *string
-}
-
-// IsYgenDefinedGoType returns true if the native type of a MappedType is a type that's
-// defined by ygen's generated code.
-func IsYgenDefinedGoType(t *MappedType) bool {
-	return t.IsEnumeratedValue || len(t.UnionTypes) >= 2 || t.NativeType == ygot.BinaryTypeName || t.NativeType == ygot.EmptyTypeName
-}
 
 // goGenState contains the functionality and state for generating Go names for
 // the generated code.
@@ -510,100 +468,4 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 		unionMappedTypes[index] = mtype
 	}
 	return errs
-}
-
-// buildListKey takes a yang.Entry, e, corresponding to a list and extracts the definition
-// of the list key, returning a YangListAttr struct describing the key element(s). If
-// errors are encountered during the extraction, they are returned as a slice of errors.
-// The YangListAttr that is returned consists of a map, keyed by the key leaf's YANG
-// identifier, with a value of a MappedType struct which indicates how that key leaf
-// is to be represented in Go. The key elements themselves are returned in the keyElems
-// slice.
-// The compressOCPaths argument specifies whether path compression for OpenConfig schemas
-// should be enabled within the generated code.
-// TODO(wenbli): Move this to genstate.go
-func buildListKey(e *yang.Entry, compressOCPaths bool, resolveKeyTypeName func(keyleaf *yang.Entry) (*MappedType, error)) (*YangListAttr, []error) {
-	if !e.IsList() {
-		return nil, []error{fmt.Errorf("%s is not a list", e.Name)}
-	}
-
-	if e.Key == "" {
-		// A null key is not valid if we have a config true list, so return an error
-		if util.IsConfig(e) {
-			return nil, []error{fmt.Errorf("No key specified for a config true list: %s", e.Name)}
-		}
-		// This is a keyless list so return an empty YangListAttr but no error, downstream
-		// mapping code should consider this to mean that this should be mapped into a
-		// keyless structure (i.e., a slice).
-		return nil, nil
-	}
-
-	listattr := &YangListAttr{
-		Keys: make(map[string]*MappedType),
-	}
-
-	var errs []error
-	keys := strings.Fields(e.Key)
-	for _, k := range keys {
-		// Extract the key leaf itself from the Dir of the list element. Dir is populated
-		// by goyang, and is a map keyed by leaf identifier with values of a *yang.Entry
-		// corresponding to the leaf.
-		keyleaf, ok := e.Dir[k]
-		if !ok {
-			return nil, []error{fmt.Errorf("Key %s did not exist for %s", k, e.Name)}
-		}
-
-		if keyleaf.Type != nil {
-			switch keyleaf.Type.Kind {
-			case yang.Yleafref:
-				// In the case that the key leaf is a YANG leafref, then in OpenConfig
-				// this means that the key is a pointer to an element under 'config' or
-				// 'state' under the list itself. In the case that this is not an OpenConfig
-				// compliant schema, then it may be a leafref to some other element in the
-				// schema. Therefore, when the key is a leafref for the OC case, then
-				// find the actual leaf that it points to, for other schemas, then ignore
-				// this lookup.
-				if compressOCPaths {
-					// keyleaf.Type.Path specifies the (goyang validated) path to the
-					// leaf that is the target of the reference when the keyleaf is a
-					// leafref.
-					refparts := strings.Split(keyleaf.Type.Path, "/")
-					if len(refparts) < 2 {
-						return nil, []error{fmt.Errorf("Key %s had an invalid path %s", k, keyleaf.Path())}
-					}
-					// In the case of OpenConfig, the list key is specified to be under
-					// the 'config' or 'state' container of the list element (e). To this
-					// end, we extract the name of the config/state container. However, in
-					// some cases, it can be prefixed, so we need to remove the prefixes
-					// from the path.
-					dir := util.StripModulePrefix(refparts[len(refparts)-2])
-					d, ok := e.Dir[dir]
-					if !ok {
-						return nil, []error{
-							fmt.Errorf("Key %s had a leafref key (%s) in dir %s that did not exist (%v)",
-								k, keyleaf.Path(), dir, refparts),
-						}
-					}
-					targetLeaf := util.StripModulePrefix(refparts[len(refparts)-1])
-					if _, ok := d.Dir[targetLeaf]; !ok {
-						return nil, []error{
-							fmt.Errorf("Key %s had leafref key (%s) that did not exist at (%v)", k, keyleaf.Path(), refparts),
-						}
-					}
-					keyleaf = d.Dir[targetLeaf]
-				}
-			}
-		}
-
-		listattr.KeyElems = append(listattr.KeyElems, keyleaf)
-		if resolveKeyTypeName != nil {
-			keyType, err := resolveKeyTypeName(keyleaf)
-			if err != nil {
-				errs = append(errs, err)
-			}
-			listattr.Keys[keyleaf.Name] = keyType
-		}
-	}
-
-	return listattr, errs
 }

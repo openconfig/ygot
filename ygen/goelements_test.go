@@ -841,665 +841,146 @@ func TestYangTypeToGoType(t *testing.T) {
 	}
 }
 
-// TestBuildListKey takes an input yang.Entry and ensures that the correct YangListAttr
-// struct is returned representing the keys of the list e.
-func TestBuildListKey(t *testing.T) {
+// TestStructName tests the generation of an element name from a parsed YANG
+// hierarchy. It tests both OpenConfig path compression and generation of a
+// structure name without such compression.
+func TestStructName(t *testing.T) {
 	tests := []struct {
-		name                        string        // name is the test identifier.
-		in                          *yang.Entry   // in is the yang.Entry of the test list.
-		inCompress                  bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
-		inEntries                   []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
-		inUniqueEnumeratedLeafNames map[string]string
-		inSkipEnumDedup             bool         // inSkipEnumDedup says whether to dedup identical enums encountered in the models.
-		inResolveKeyNameFuncNil     bool         // inResolveKeyNameFuncNil specifies whether the key name function is not provided.
-		want                        YangListAttr // want is the expected YangListAttr output.
-		wantErr                     bool         // wantErr is a boolean indicating whether errors are expected from buildListKeys
+		name             string      // name is the name of the test.
+		inElement        *yang.Entry // inElement is a mock YANG Entry representing the struct.
+		wantCompressed   string      // wantCompressed is the expected name with compression enabled.
+		wantUncompressed string      // wantUncompressed is the expected name with compression disabled.
 	}{{
-		name: "non-list",
-		in: &yang.Entry{
-			Name: "not-list",
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {
-					Name: "keyleaf",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
-		wantErr: true,
-	}, {
-		name: "no key in config true list",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {Type: &yang.YangType{Kind: yang.Ystring}},
-			},
-			Config: yang.TSTrue,
-		},
-		wantErr: true,
-	}, {
-		name: "invalid key in config true list",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {Type: &yang.YangType{Kind: yang.Yidentityref}},
-			},
-			Key: "keyleaf",
-		},
-		wantErr: true,
-	}, {
-		name: "basic list key test",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleaf",
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {
-					Name: "keyleaf",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "string"},
-			},
-			KeyElems: []*yang.Entry{
-				{
-					Name: "keyleaf",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
-	}, {
-		name: "basic list enum key",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleaf",
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Name: "enumeration",
-						Enum: &yang.EnumType{},
-						Kind: yang.Yenum,
-					},
-					Node: &yang.Enum{
-						Name: "enumeration",
-						Parent: &yang.Grouping{
-							Name: "foo",
-							Parent: &yang.Module{
-								Name: "base-module",
-							},
-						},
-					},
-					Parent: &yang.Entry{
-						Name: "config",
-						Parent: &yang.Entry{
-							Name:   "container",
-							Parent: &yang.Entry{Name: "base-module"},
-						},
-					},
-				},
-			},
-		},
-		inCompress: true,
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "E_BaseModule_Container_Keyleaf"},
-			},
-			KeyElems: []*yang.Entry{
-				{
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Name: "enumeration",
-						Enum: &yang.EnumType{},
-						Kind: yang.Yenum,
-					},
-				},
-			},
-		},
-	}, {
-		name: "list enum key -- already seen",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleaf",
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Name: "enumeration",
-						Enum: &yang.EnumType{},
-						Kind: yang.Yenum,
-					},
-					Node: &yang.Enum{
-						Name: "enumeration",
-						Parent: &yang.Grouping{
-							Name: "foo",
-							Parent: &yang.Module{
-								Name: "base-module",
-							},
-						},
-					},
-					Parent: &yang.Entry{
-						Name: "config",
-						Parent: &yang.Entry{
-							Name:   "container",
-							Parent: &yang.Entry{Name: "base-module"},
-						},
-					},
-				},
-			},
-		},
-		inCompress: true,
-		inUniqueEnumeratedLeafNames: map[string]string{
-			"/foo/enumeration": "KeyleafPrev",
-		},
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "E_KeyleafPrev"},
-			},
-			KeyElems: []*yang.Entry{
-				{
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Name: "enumeration",
-						Enum: &yang.EnumType{},
-						Kind: yang.Yenum,
-					},
-				},
-			},
-		},
-	}, {
-		name: "list enum key -- already seen but skip enum dedup",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleaf",
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Name: "enumeration",
-						Enum: &yang.EnumType{},
-						Kind: yang.Yenum,
-					},
-					Node: &yang.Enum{
-						Name: "enumeration",
-						Parent: &yang.Grouping{
-							Name: "foo",
-							Parent: &yang.Module{
-								Name: "base-module",
-							},
-						},
-					},
-					Parent: &yang.Entry{
-						Name: "config",
-						Parent: &yang.Entry{
-							Name:   "container",
-							Parent: &yang.Entry{Name: "base-module"},
-						},
-					},
-				},
-			},
-		},
-		inCompress:      true,
-		inSkipEnumDedup: true,
-		inUniqueEnumeratedLeafNames: map[string]string{
-			"/foo/enumeration": "KeyleafPrev",
-		},
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "E_BaseModule_Container_Keyleaf"},
-			},
-			KeyElems: []*yang.Entry{
-				{
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Name: "enumeration",
-						Enum: &yang.EnumType{},
-						Kind: yang.Yenum,
-					},
-				},
-			},
-		},
-	}, {
-		name: "basic list key test with nil resolve key name function",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleaf",
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {
-					Name: "keyleaf",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
-		inResolveKeyNameFuncNil: true,
-		want: YangListAttr{
-			KeyElems: []*yang.Entry{
-				{
-					Name: "keyleaf",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
-	}, {
-		name: "multiple list keys",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "k1 k2",
-			Dir: map[string]*yang.Entry{
-				"k1": {Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
-				"k2": {Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
-			},
-		},
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"k1": {NativeType: "string"},
-				"k2": {NativeType: "string"},
-			},
-			KeyElems: []*yang.Entry{
-				{Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
-				{Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
-			},
-		},
-	}, {
-		name: "multiple list keys - double spacing",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "k1  k2",
-			Dir: map[string]*yang.Entry{
-				"k1": {Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
-				"k2": {Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
-			},
-		},
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"k1": {NativeType: "string"},
-				"k2": {NativeType: "string"},
-			},
-			KeyElems: []*yang.Entry{
-				{Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
-				{Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
-			},
-		},
-	}, {
-		name: "multiple list keys - newlines",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "k1  \nk2",
-			Dir: map[string]*yang.Entry{
-				"k1": {Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
-				"k2": {Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
-			},
-		},
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"k1": {NativeType: "string"},
-				"k2": {NativeType: "string"},
-			},
-			KeyElems: []*yang.Entry{
-				{Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
-				{Name: "k2", Type: &yang.YangType{Kind: yang.Ystring}},
-			},
-		},
-	}, {
-		name: "missing key list",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "null",
-			Dir:      map[string]*yang.Entry{},
-		},
-		wantErr: true,
-	}, {
-		name: "keyless list test",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Config:   yang.TSFalse,
-			Dir:      map[string]*yang.Entry{},
-		},
-		want: YangListAttr{},
-	}, {
-		name: "list with invalid leafref path",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleaf",
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Kind: yang.Yleafref,
-						Path: "not-a-valid-path",
-					},
-				},
-			},
-		},
-		inCompress: true,
-		wantErr:    true,
-	}, {
-		name: "list with leafref in invalid container",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleaf",
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {
-					Name: "keyleaf",
-					Type: &yang.YangType{
-						Kind: yang.Yleafref,
-						Path: "../config/keyleaf",
-					},
-				},
-			},
-		},
-		inCompress: true,
-		wantErr:    true,
-	}, {
-		name: "list with leafref that does not exist",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "invalid",
-			Dir: map[string]*yang.Entry{
-				"invalid": {
-					Name: "invalid",
-					Type: &yang.YangType{
-						Kind: yang.Yleafref,
-						Path: "../config/invalid",
-					},
-				},
-				"config": {
-					Name: "config",
-					Dir:  map[string]*yang.Entry{},
-				},
-			},
-		},
-		inCompress: true,
-		wantErr:    true,
-	}, {
-		name: "single leafref key test",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleafref",
-			Dir: map[string]*yang.Entry{
-				"keyleafref": {
-					Name: "keyleafref",
-					Type: &yang.YangType{
-						Kind: yang.Yleafref,
-						Path: "../config/keyleafref",
-					},
-				},
-				"config": {
-					Name: "config",
-					Dir: map[string]*yang.Entry{
-						"keyleafref": {
-							Name: "keyleafref",
-							Type: &yang.YangType{Kind: yang.Ystring},
-						},
-					},
-				},
-			},
+		name: "/interfaces/interface/config/description",
+		inElement: &yang.Entry{
+			Name: "description",
 			Parent: &yang.Entry{
-				Name: "container",
+				Name: "config",
+				Dir:  map[string]*yang.Entry{},
 				Parent: &yang.Entry{
-					Name: "module",
-				},
-			},
-		},
-		inCompress: true,
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleafref": {NativeType: "string"},
-			},
-			KeyElems: []*yang.Entry{
-				{
-					Name: "keyleafref",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
-	}, {
-		name: "multiple key list test",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "key1 key2",
-			Dir: map[string]*yang.Entry{
-				"key1": {
-					Name: "key1",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-				"key2": {
-					Name: "key2",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"key1": {NativeType: "string"},
-				"key2": {NativeType: "string"},
-			},
-			KeyElems: []*yang.Entry{
-				{
-					Name: "key1",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-				{
-					Name: "key2",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
-	}, {
-		name: "multiple leafref key",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "key1 key2",
-			Dir: map[string]*yang.Entry{
-				"key1": {
-					Name: "key1",
-					Type: &yang.YangType{
-						Kind: yang.Yleafref,
-						Path: "../state/key1",
-					},
-				},
-				"key2": {
-					Name: "key2",
-					Type: &yang.YangType{
-						Kind: yang.Yleafref,
-						Path: "../state/key2",
-					},
-				},
-				"state": {
-					Name: "state",
-					Dir: map[string]*yang.Entry{
-						"key1": {
-							Name: "key1",
-							Type: &yang.YangType{Kind: yang.Ystring},
-						},
-						"key2": {
-							Name: "key2",
-							Type: &yang.YangType{Kind: yang.Yint8},
-						},
-					},
-				},
-			},
-		},
-		inCompress: true,
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"key1": {NativeType: "string"},
-				"key2": {NativeType: "int8"},
-			},
-			KeyElems: []*yang.Entry{
-				{
-					Name: "key2",
-					Type: &yang.YangType{Kind: yang.Yint8},
-				},
-				{
-					Name: "key1",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
-	}, {
-		name: "single prefixed leafref key test",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleafref",
-			Dir: map[string]*yang.Entry{
-				"keyleafref": {
-					Name: "keyleafref",
-					Type: &yang.YangType{
-						Kind: yang.Yleafref,
-						Path: "../pfx:config/pfx:keyleafref",
-					},
-				},
-				"config": {
-					Name: "config",
-					Dir: map[string]*yang.Entry{
-						"keyleafref": {
-							Name: "keyleafref",
-							Type: &yang.YangType{Kind: yang.Ystring},
-						},
-					},
-				},
-			},
-		},
-		inCompress: true,
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleafref": {NativeType: "string"},
-			},
-			KeyElems: []*yang.Entry{
-				{
-					Name: "keyleafref",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
-	}, {
-		name: "uncompressed leafref",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleafref",
-			Dir: map[string]*yang.Entry{
-				"keyleafref": {
-					Name: "keyleafref",
-					Type: &yang.YangType{
-						Kind: yang.Yleafref,
-						Path: "/a/b/c",
-					},
-				},
-			},
-		},
-		inEntries: []*yang.Entry{
-			{
-				Name: "a",
-				Dir: map[string]*yang.Entry{
-					"b": {
-						Name: "b",
+					Name:     "interface",
+					Dir:      map[string]*yang.Entry{},
+					ListAttr: &yang.ListAttr{},
+					Parent: &yang.Entry{
+						Name: "interfaces",
 						Dir: map[string]*yang.Entry{
-							"c": {
-								Name: "c",
-								Type: &yang.YangType{
-									Kind: yang.Ystring,
+							"interface": {
+								Dir:      map[string]*yang.Entry{},
+								ListAttr: &yang.ListAttr{},
+							},
+						},
+						Parent: &yang.Entry{
+							Name: "openconfig-interfaces",
+							Dir:  map[string]*yang.Entry{},
+						},
+					},
+				},
+			},
+		},
+		wantCompressed:   "Interface_Description",
+		wantUncompressed: "OpenconfigInterfaces_Interfaces_Interface_Config_Description",
+	}, {
+		name: "/interfaces/interface/hold-time/config/up",
+		inElement: &yang.Entry{
+			Name: "up",
+			Parent: &yang.Entry{
+				Name: "config",
+				Dir:  map[string]*yang.Entry{},
+				Parent: &yang.Entry{
+					Name: "hold-time",
+					Dir:  map[string]*yang.Entry{},
+					Parent: &yang.Entry{
+						Name:     "interface",
+						Dir:      map[string]*yang.Entry{},
+						ListAttr: &yang.ListAttr{},
+						Parent: &yang.Entry{
+							Name: "interfaces",
+							Dir: map[string]*yang.Entry{
+								"interface": {
+									Dir:      map[string]*yang.Entry{},
+									ListAttr: &yang.ListAttr{},
 								},
+							},
+							Parent: &yang.Entry{
+								Name: "openconfig-interfaces",
+								Dir:  map[string]*yang.Entry{},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantCompressed:   "Interface_HoldTime_Up",
+		wantUncompressed: "OpenconfigInterfaces_Interfaces_Interface_HoldTime_Config_Up",
+	}, {
+		name: "/interfaces/interface/subinterfaces/subinterface/ipv4/addresses/address/config/ip",
+		inElement: &yang.Entry{
+			Name: "ip",
+			Parent: &yang.Entry{
+				Name: "config",
+				Dir:  map[string]*yang.Entry{},
+				Parent: &yang.Entry{
+					Name:     "address",
+					ListAttr: &yang.ListAttr{},
+					Dir:      map[string]*yang.Entry{},
+					Parent: &yang.Entry{
+						Name: "addresses",
+						Dir: map[string]*yang.Entry{
+							"address": {
+								Dir:      map[string]*yang.Entry{},
+								ListAttr: &yang.ListAttr{},
+							},
+						},
+						Parent: &yang.Entry{
+							Name: "ipv4",
+							Dir:  map[string]*yang.Entry{},
+							Parent: &yang.Entry{
+								Name:     "subinterface",
+								ListAttr: &yang.ListAttr{},
+								Dir:      map[string]*yang.Entry{},
 								Parent: &yang.Entry{
-									Name: "b",
+									Name: "subinterfaces",
+									Dir: map[string]*yang.Entry{
+										"subinterface": {
+											Name:     "subinterface",
+											ListAttr: &yang.ListAttr{},
+											Dir:      map[string]*yang.Entry{},
+										},
+									},
 									Parent: &yang.Entry{
-										Name: "a",
+										Name:     "interface",
+										Dir:      map[string]*yang.Entry{},
+										ListAttr: &yang.ListAttr{},
 										Parent: &yang.Entry{
-											Name: "module",
+											Name: "interfaces",
+											Dir: map[string]*yang.Entry{
+												"interface": {
+													Dir:      map[string]*yang.Entry{},
+													ListAttr: &yang.ListAttr{},
+												},
+											},
+											Parent: &yang.Entry{
+												Name: "openconfig-interfaces",
+												Dir:  map[string]*yang.Entry{},
+											},
 										},
 									},
 								},
 							},
 						},
-						Parent: &yang.Entry{
-							Name: "a",
-							Parent: &yang.Entry{
-								Name: "module",
-							},
-						},
 					},
 				},
-				Parent: &yang.Entry{Name: "module"},
 			},
 		},
-		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleafref": {NativeType: "string"},
-			},
-			KeyElems: []*yang.Entry{
-				{
-					Name: "keyleafref",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
+		wantCompressed:   "Interface_Subinterface_Ipv4_Address_Ip",
+		wantUncompressed: "OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Ipv4_Addresses_Address_Config_Ip",
 	}}
 
 	for _, tt := range tests {
-		s := newGoGenState(nil)
-		if tt.inEntries != nil {
-			st, err := buildSchemaTree(tt.inEntries)
-			if err != nil {
-				t.Errorf("%s: buildSchemaTree(%v), could not build tree: %v", tt.name, tt.inEntries, err)
-				continue
-			}
-			s.schematree = st
-		}
-		// Inject the history that has been provided into the new state. This allows us to
-		// check that resolution that should be changed by the state has modified behaviour.
-		if i := tt.inUniqueEnumeratedLeafNames; i != nil {
-			s.enumGen.uniqueEnumeratedLeafNames = tt.inUniqueEnumeratedLeafNames
-		}
-
-		resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
-			return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup)
-		}
-		if tt.inResolveKeyNameFuncNil {
-			resolveKeyTypeName = nil
-		}
-
-		got, err := buildListKey(tt.in, tt.inCompress, resolveKeyTypeName)
-		if err != nil && !tt.wantErr {
-			t.Errorf("%s: could not build list key successfully %v", tt.name, err)
-		}
-
-		if err == nil && tt.wantErr {
-			t.Errorf("%s: did not get expected error", tt.name)
-		}
-
-		if tt.wantErr || got == nil {
-			continue
-		}
-
-		for name, gtype := range got.Keys {
-			elem, ok := tt.want.Keys[name]
-			if !ok {
-				t.Errorf("%s: could not find key %s", tt.name, name)
-				continue
-			}
-			if elem.NativeType != gtype.NativeType {
-				t.Errorf("%s: key %s had the wrong type %s", tt.name, name, gtype.NativeType)
+		for compress, expected := range map[bool]string{false: tt.wantUncompressed, true: tt.wantCompressed} {
+			s := newGoGenState(nil)
+			if out := s.goStructName(tt.inElement, compress, false); out != expected {
+				t.Errorf("%s (compress: %v): shortName output invalid - got: %s, want: %s", tt.name, compress, out, expected)
 			}
 		}
 	}
