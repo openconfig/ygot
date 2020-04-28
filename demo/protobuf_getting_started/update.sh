@@ -21,7 +21,7 @@ go run ../../proto_generator/protogenerator.go \
   yang/rib/openconfig-rib-bgp.yang
 
 go get -u github.com/google/protobuf
-proto_imports=".:${GOPATH}/src/github.com/google/protobuf/src:${GOPATH}/src"
+proto_imports=".:${ENVDIR}/src/github.com/google/protobuf/src:${ENVDIR}/src"
 find ribproto -name "*.proto" | while read l; do
   protoc -I=$proto_imports --go_out=. $l
 done
