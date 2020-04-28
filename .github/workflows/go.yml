@@ -41,7 +41,7 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
         with:
-          path: github.com/openconfig/ygot
+          path: go/src/github.com/openconfig/ygot
 
       - name: Get dependencies
         run: |
@@ -49,7 +49,9 @@ jobs:
 
       - name: Generate dependencies
         run: |
-          cd github.com/openconfig/ygot && make install
+          cd go/src/github.com/openconfig/ygot && make install
+        env:
+          GOPATH: go
 
       - name: Build
         run: go build -v ./...
