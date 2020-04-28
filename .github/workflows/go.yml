@@ -24,6 +24,7 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
+        id: go
 
       - name: Install protoc-gen-go
         run: |
@@ -38,7 +39,7 @@ jobs:
           go get -u github.com/go-playground/overalls
 
       - name: Check out code
-        run: actions/checkout@v2
+        uses: actions/checkout@v2
 
       - name: Get dependencies
         run: |
