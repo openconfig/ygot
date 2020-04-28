@@ -1,0 +1,87 @@
+name: Go
+
+on:
+    push:
+      branches: [ master ]
+    pull_request:
+      branches: [ master ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.12', '1.13', '1.14']
+
+      steps:
+        - name: Install protobuf
+          uses: arduino/setup-protoc@v1.1.0
+          with:
+            version: '3.x'
+
+        - name: Set up Go
+          uses: actions/setup-go@v2
+          with:
+            go-version: ${{ matrix.go }}
+
+        - name: Install protoc-gen-go
+          run: |
+            go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+
+        - name: Install goimports
+          run: |
+            go get -u golang.org/x/tools/cmd/goimports
+
+        - name: Install overalls
+          run: |
+            go get -u github.com/go-playground/overalls
+
+        - name: Check out code
+          run: actions/checkout@v2
+
+        - name: Get dependencies
+          run: |
+            go get -v -t -d ./...
+
+        - name: Generate dependencies
+          run: |
+            make install
+
+        - name: Build
+          run: go build -v ./...
+
+        - name: Run Tests
+          run: go test -v ./...
+
+        - name: Run race tests
+          run: go test -race -v ./...
+
+        - name: Run overalls for coverage
+          run: overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
+
+        - name: Send coverage
+          uses: shogo82148/actions-goveralls@v1
+          with:
+            path-to-profile: overalls.coverprofile 
+            parallel: true
+
+        - name: Go vet
+          run: |
+            for i in util ygot ygen ytypes ygot/pathtranslate testcmp testutil ypathgen:
+              go vet ./$i
+            for j in ygot:
+              go vet -composites=false ./$j 
+
+        - name: Gofmt
+          run: |
+            for i in util ygot ygen ytypes ygot/pathtranslate testutil testcmp ypathgen:
+              diff -u <$(echo -n) <(gofmt -d -s ./$i)
+
+  finish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: shogo82148/actions-goveralls@v1
+        with:
+          parallel-finished: true
