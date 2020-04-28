@@ -49,7 +49,7 @@ jobs:
 
       - name: Generate dependencies
         run: |
-          make install
+          cd github.com/openconfig/ygot && make install
 
       - name: Build
         run: go build -v ./...
