@@ -40,6 +40,8 @@ jobs:
 
       - name: Check out code
         uses: actions/checkout@v2
+        with:
+          path: github.com/openconfig/ygot
 
       - name: Get dependencies
         run: |
