@@ -46,33 +46,45 @@ jobs:
       - name: Get dependencies
         run: |
           go get -v -t -d ./...
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
 
       - name: Generate Go files
         run: |
-          export THISDIR=`pwd`
-          echo "root for generation is ${THISDIR}"
           cd go/src/github.com/openconfig/ygot
           (cd demo/getting_started && go generate)
           (cd proto/ywrapper && go generate)
           (cd proto/yext && go generate)
           (cd demo/uncompressed && go generate)
-          (cd demo/protobuf_getting_started && ENVDIR=$THISDIR/go/src ./update.sh)
+          (cd demo/protobuf_getting_started && ./update.sh)
           (cd integration_tests/uncompressed && go generate)
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
 
       - name: Build
         run: go build -v ./...
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
 
       - name: Run Tests
         run: go test -v ./...
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
 
       - name: Run race tests
         run: go test -race -v ./...
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
 
       - name: Run overalls for coverage
         run: overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
 
       - name: Send coverage
         uses: shogo82148/actions-goveralls@v1
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
         with:
           path-to-profile: overalls.coverprofile 
           parallel: true
@@ -83,11 +95,15 @@ jobs:
             go vet ./$i
           for j in ygot:
             go vet -composites=false ./$j 
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
 
       - name: Gofmt
         run: |
           for i in util ygot ygen ytypes ygot/pathtranslate testutil testcmp ypathgen:
             diff -u <$(echo -n) <(gofmt -d -s ./$i)
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
 
   finish:
     needs: build
