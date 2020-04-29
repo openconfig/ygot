@@ -55,11 +55,14 @@ jobs:
         run: |
           find .
 
+      - name: Build packages
+        run: cd go/src/github.com/openconfig/ygot && go build -v ./...
+
       - name: Run Tests
-        run: go test -v ./...
+        run: cd go/src/github.com/openconfig/ygot && go test -v ./...
 
       - name: Run race tests
-        run: go test -race -v ./...
+        run: cd go/src/github.com/openconfig/ygot && go test -race -v ./...
 
       - name: Run overalls for coverage
         run: overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
