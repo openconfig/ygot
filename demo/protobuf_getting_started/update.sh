@@ -7,12 +7,12 @@ clean() {
 
 # Ensure that the .pb.go has been generated for the extensions
 # that are required.
-(cd ../../proto/yext && go generate)
-(cd ../../proto/ywrapper && go generate)
+(cd ${SRCDIR}/proto/yext && go generate)
+(cd ${SRCDIR}/proto/ywrapper && go generate)
 
 clean
 
-go run ../../proto_generator/protogenerator.go \
+go run ${SRCDIR}/proto_generator/protogenerator.go \
   -generate_fakeroot \
   -base_import_path="github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto" \
   -path=yang -output_dir=ribproto \
@@ -21,7 +21,7 @@ go run ../../proto_generator/protogenerator.go \
   yang/rib/openconfig-rib-bgp.yang
 
 go get -u github.com/google/protobuf
-proto_imports=".:${GOPATH}/src/github.com/google/protobuf/src:${GOPATH}/src"
+proto_imports=".:${SRCDIR}/../../../../src/github.com/google/protobuf/src:${SRCDIR}/../../../../src"
 find ribproto -name "*.proto" | while read l; do
   protoc -I=$proto_imports --go_out=. $l
 done
