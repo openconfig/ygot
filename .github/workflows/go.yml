@@ -68,10 +68,10 @@ jobs:
 
       - name: Run overalls for coverage
         run: |
-          overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
+          overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator" -outfile=overalls.coverprofile
           echo ${GOPATH}
           ls ${GOPATH}
-          find ${GO PATH}
+          find ${GOPATH}
 
       - name: Send coverage
         uses: shogo82148/actions-goveralls@v1
