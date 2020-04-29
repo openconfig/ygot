@@ -7,12 +7,12 @@ ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 test:
 	go test ./...
 generate:
-	cd ${ROOT_DIR}/demo/getting_started && go generate
-	cd ${ROOT_DIR}/proto/ywrapper && go generate
-	cd $(ROOT_DIR)/proto/yext && go generate
-	cd $(ROOT_DIR)/demo/uncompressed && go generate
-	cd $(ROOT_DIR)/demo/protobuf_getting_started && ./update.sh
-	cd $(ROOT_DIR)/integration_tests/uncompressed && go generate
+	cd ${ROOT_DIR}/demo/getting_started && SRCDIR=${ROOT_DIR} go generate
+	cd ${ROOT_DIR}/proto/ywrapper && SRCDIR=${ROOT_DIR} go generate
+	cd $(ROOT_DIR)/proto/yext && SRCDIR=${ROOT_DIR} go generate
+	cd $(ROOT_DIR)/demo/uncompressed && SRCDIR=${ROOT_DIR} go generate
+	cd $(ROOT_DIR)/demo/protobuf_getting_started && SRCDIR=${ROOT_DIR} ./update.sh
+	cd $(ROOT_DIR)/integration_tests/uncompressed && SRCDIR=${ROOT_DIR} go generate
 clean:
 	rm -f ${ROOT_DIR}/demo/getting_started/pkg/ocdemo/oc.go
 	rm -f ${ROOT_DIR}/demo/uncompressed/pkg/demo/uncompressed.go
