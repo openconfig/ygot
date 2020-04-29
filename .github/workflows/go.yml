@@ -51,6 +51,7 @@ jobs:
         run: |
           cd go/src/github.com/openconfig/ygot
           make generate
+          go build -v ./...
           
       - name: Debug generated files
         run: |
