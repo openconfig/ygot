@@ -78,16 +78,19 @@ jobs:
 
       - name: Go vet
         run: |
-          for i in util ygot ygen ytypes ygot/pathtranslate testcmp testutil ypathgen:
+          for i in util ygot ygen ytypes ygot/pathtranslate testcmp testutil ypathgen; do
             go vet ./$i
-          for j in ygot:
+          done
+          for j in ygot; do
             go vet -composites=false ./$j 
+          done
         working-directory: go/src/github.com/openconfig/ygot
 
       - name: Gofmt
         run: |
-          for i in util ygot ygen ytypes ygot/pathtranslate testutil testcmp ypathgen:
+          for i in util ygot ygen ytypes ygot/pathtranslate testutil testcmp ypathgen; do
             diff -u <$(echo -n) <(gofmt -d -s ./$i)
+          done
         working-directory: go/src/github.com/openconfig/ygot
 
   finish:
