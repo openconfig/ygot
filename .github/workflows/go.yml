@@ -76,7 +76,7 @@ jobs:
       - name: Send coverage
         uses: shogo82148/actions-goveralls@v1
         with:
-          path-to-profile: go/src/github.com/openconfig/ygot/overalls.coverprofile 
+          path-to-profile: /home/runner/go/src/github.com/openconfig/ygot/overalls.coverprofile
           parallel: true
 
       - name: Go vet
