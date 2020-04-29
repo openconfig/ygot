@@ -18,5 +18,4 @@ if [ -z ${SRCDIR} ]; then
    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
    SRCDIR=${DIR}/../..
 fi
-
 cd ${SRCDIR}/../../../../src && protoc --proto_path=. --go_out=:. github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto
