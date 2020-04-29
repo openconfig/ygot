@@ -78,7 +78,7 @@ jobs:
 
       - name: Go vet
         run: |
-          for i in util ygot ygen ytypes ygot/pathtranslate testcmp testutil ypathgen; do
+          for i in util ygen ytypes ygot/pathtranslate testcmp testutil ypathgen; do
             go vet ./$i
           done
           for j in ygot; do
