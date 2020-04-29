@@ -14,7 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -z $SRCDIR ]; then
-  SRCDIR=${GOPATH}/src/github.com/openconfig/ygot
+if [ -z ${SRCDIR} ]; then
+   DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+   SRCDIR=${DIR}/../..
 fi
 cd ${SRCDIR}/../../../../src && protoc --proto_path=. --go_out=:. github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto
