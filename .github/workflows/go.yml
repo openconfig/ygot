@@ -78,10 +78,10 @@ jobs:
 
       - name: Go vet
         run: |
-          for i in util ygen ytypes ygot/pathtranslate testcmp testutil ypathgen; do
+          for i in util ygen ytypes ygot/pathtranslate testutil ypathgen; do
             go vet ./$i
           done
-          for j in ygot; do
+          for j in ygot testcmp; do
             go vet -composites=false ./$j 
           done
         working-directory: go/src/github.com/openconfig/ygot
