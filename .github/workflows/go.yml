@@ -29,14 +29,20 @@ jobs:
       - name: Install protoc-gen-go
         run: |
           go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
 
       - name: Install goimports
         run: |
           go get -u golang.org/x/tools/cmd/goimports
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
 
       - name: Install overalls
         run: |
           go get -u github.com/go-playground/overalls
+        env:
+          GOPATH: /home/runner/work/ygot/ygot/go
 
       - name: Check out code
         uses: actions/checkout@v2
