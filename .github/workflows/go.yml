@@ -49,7 +49,9 @@ jobs:
 
       - name: Generate dependencies
         run: |
-          cd go/src/github.com/openconfig/ygot && make generate
+          cd go/src/github.com/openconfig/ygot
+          make generate
+          go build -v ./...
           
       - name: Debug generated files
         run: |
