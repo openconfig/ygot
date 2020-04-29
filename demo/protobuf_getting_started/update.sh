@@ -5,10 +5,14 @@ clean() {
   rm -rf deps
 }
 
+if [ -z ${SRCDIR} ]; then
+   SRCDIR=$GOPATH/src/github.com/openconfig/ygot
+fi
+
 # Ensure that the .pb.go has been generated for the extensions
 # that are required.
-(cd ${SRCDIR}/proto/yext && go generate)
-(cd ${SRCDIR}/proto/ywrapper && go generate)
+(cd ${SRCDIR}/proto/yext && SRCDIR=${SRCDIR} go generate)
+(cd ${SRCDIR}/proto/ywrapper && SRCDIR=${SRCDIR} go generate)
 
 clean
 

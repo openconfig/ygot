@@ -17,4 +17,4 @@
 package yext
 
 // Generate command to create the protobuf .pb.go file.
-//go:generate sh -c "cd ${SRCDIR}/../../../../src && protoc --proto_path=. --go_out=:. github.com/openconfig/ygot/proto/yext/yext.proto"
+//go:generate ./genproto.sh

@@ -26,7 +26,7 @@ import (
 // pkg/ocdemo package, which generates the corresponding code for OpenConfig
 // interfaces.
 //
-//go:generate go run ${SRCDIR}/generator/generator.go -path=yang -output_file=pkg/ocdemo/oc.go -package_name=ocdemo -generate_fakeroot -fakeroot_name=device -compress_paths=true  -exclude_modules=ietf-interfaces yang/openconfig-interfaces.yang yang/openconfig-if-ip.yang
+//go:generate go run ../../generator/generator.go -path=yang -output_file=pkg/ocdemo/oc.go -package_name=ocdemo -generate_fakeroot -fakeroot_name=device -compress_paths=true  -exclude_modules=ietf-interfaces yang/openconfig-interfaces.yang yang/openconfig-if-ip.yang
 
 func main() {
 	// Create a new device which is named according to the fake root specified above. To generate
