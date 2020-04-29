@@ -49,8 +49,14 @@ jobs:
 
       - name: Generate dependencies
         run: |
+          export THISDIR=`pwd`
           cd go/src/github.com/openconfig/ygot
-          make generate
+          (cd demo/getting_started && go generate)
+          (cd proto/ywrapper && go generate)
+          (cd proto/yext && go generate)
+          (cd demo/uncompressed && go generate)
+          (cd demo/protobuf_getting_started && ENVDIR=$THISDIR/go/src ./update.sh)
+          (cd integration_tests/uncompressed && go generate)
 
       - name: Build
         run: go build -v ./...
