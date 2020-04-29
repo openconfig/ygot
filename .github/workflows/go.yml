@@ -47,9 +47,10 @@ jobs:
         run: |
           go get -v -t -d ./...
 
-      - name: Generate dependencies
+      - name: Generate Go files
         run: |
           export THISDIR=`pwd`
+          echo "root for generation is ${THIS_DIR}"
           cd go/src/github.com/openconfig/ygot
           (cd demo/getting_started && go generate)
           (cd proto/ywrapper && go generate)
