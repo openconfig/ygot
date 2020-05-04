@@ -50,6 +50,7 @@ var (
 	callerName             = flag.String("caller_name", "proto_generator", "The name of the generator binary that should be recorded in output files.")
 	excludeState           = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Protobuf messages.")
 	preferOperationalState = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves in the generated messages with compressed schema paths. This flag is only valid for compress_paths=true and exclude_state=false.")
+	skipEnumDedup          = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
@@ -100,7 +101,8 @@ func main() {
 	// Perform the code generation.
 	cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
 		ParseOptions: ygen.ParseOpts{
-			ExcludeModules: modsExcluded,
+			ExcludeModules:        modsExcluded,
+			SkipEnumDeduplication: *skipEnumDedup,
 			YANGParseOptions: yang.Options{
 				IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
 			},

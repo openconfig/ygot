@@ -860,7 +860,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 									Name: "key",
 									Type: &yang.YangType{Kind: yang.Ystring},
 									Parent: &yang.Entry{
-										Name: "config",
+										Name: "state",
 										Parent: &yang.Entry{
 											Name: "list",
 											Parent: &yang.Entry{
@@ -885,6 +885,14 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				Fields: map[string]*yang.Entry{
 					"key": {Name: "key", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
+				ListAttr: &YangListAttr{
+					Keys: map[string]*MappedType{
+						"key": {
+							NativeType: "string",
+							ZeroValue:  `""`,
+						},
+					},
+				},
 			},
 		},
 		wantGoUncompress: map[string]*Directory{
@@ -894,6 +902,14 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"key":    {Name: "key", Type: &yang.YangType{Kind: yang.Yleafref}},
 					"config": {Name: "config"},
 					"state":  {Name: "state"},
+				},
+				ListAttr: &YangListAttr{
+					Keys: map[string]*MappedType{
+						"key": {
+							NativeType: "string",
+							ZeroValue:  `""`,
+						},
+					},
 				},
 			},
 			"/module/container/list/config": {
@@ -1227,13 +1243,13 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					errs = append(errs, findMappableEntities(inc, structs, enums, []string{}, c.compressBehaviour.CompressEnabled(), []*yang.Entry{})...)
 				}
 				if errs != nil {
-					t.Fatalf("findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v", tt.in, structs, enums, c.compressBehaviour.CompressEnabled(), err)
+					t.Fatalf("findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v", tt.in, structs, enums, c.compressBehaviour.CompressEnabled(), errs)
 				}
 
 				var got map[string]*Directory
 				switch c.lang {
 				case golang:
-					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false)
+					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false)
 				case protobuf:
 					got, errs = protogen.buildDirectoryDefinitions(structs, c.compressBehaviour)
 				}
@@ -1242,18 +1258,22 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				}
 
 				// This checks the "Name" and maybe "Path" attributes of the output Directories.
-				ignoreFields := []string{"Entry", "Fields", "ListAttr", "IsFakeRoot"}
+				ignoreFields := []string{"Entry", "Fields", "IsFakeRoot"}
 				if !tt.checkPath {
 					ignoreFields = append(ignoreFields, "Path")
 				}
-				if diff := cmp.Diff(c.want, got, cmpopts.IgnoreFields(Directory{}, ignoreFields...)); diff != "" {
+				if diff := cmp.Diff(c.want, got, cmpopts.IgnoreFields(Directory{}, ignoreFields...), cmpopts.IgnoreFields(YangListAttr{}, "KeyElems")); diff != "" {
 					t.Errorf("(-want +got):\n%s", diff)
 				}
 
 				// Verify certain fields of the "Fields" attribute -- there are too many fields to ignore to use cmp.Diff for comparison.
 				for gotName, gotDir := range got {
 					// Note that any missing or extra Directories would've been caught with the previous check.
-					wantDir := c.want[gotName]
+					wantDir, ok := c.want[gotName]
+					if !ok {
+						t.Errorf("got directory keyed at %q, did not expect this", gotName)
+						continue
+					}
 					if len(gotDir.Fields) != len(wantDir.Fields) {
 						t.Fatalf("Did not get expected set of fields for %s, got: %v, want: %v", gotName, fieldNames(gotDir), fieldNames(wantDir))
 					}
@@ -1284,13 +1304,15 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 // struct is returned representing the keys of the list e.
 func TestBuildListKey(t *testing.T) {
 	tests := []struct {
-		name                    string        // name is the test identifier.
-		in                      *yang.Entry   // in is the yang.Entry of the test list.
-		inCompress              bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
-		inEntries               []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
-		inResolveKeyNameFuncNil bool          // inResolveKeyNameFuncNil specifies whether the key name function is not provided.
-		want                    YangListAttr  // want is the expected YangListAttr output.
-		wantErr                 bool          // wantErr is a boolean indicating whether errors are expected from buildListKeys
+		name                        string        // name is the test identifier.
+		in                          *yang.Entry   // in is the yang.Entry of the test list.
+		inCompress                  bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
+		inEntries                   []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
+		inUniqueEnumeratedLeafNames map[string]string
+		inSkipEnumDedup             bool         // inSkipEnumDedup says whether to dedup identical enums encountered in the models.
+		inResolveKeyNameFuncNil     bool         // inResolveKeyNameFuncNil specifies whether the key name function is not provided.
+		want                        YangListAttr // want is the expected YangListAttr output.
+		wantErr                     bool         // wantErr is a boolean indicating whether errors are expected from buildListKeys
 	}{{
 		name: "non-list",
 		in: &yang.Entry{
@@ -1346,6 +1368,160 @@ func TestBuildListKey(t *testing.T) {
 				{
 					Name: "keyleaf",
 					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+			},
+		},
+	}, {
+		name: "basic list enum key",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "keyleaf",
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+					Node: &yang.Enum{
+						Name: "enumeration",
+						Parent: &yang.Grouping{
+							Name: "foo",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		inCompress: true,
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleaf": {NativeType: "E_BaseModule_Container_Keyleaf"},
+			},
+			KeyElems: []*yang.Entry{
+				{
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+				},
+			},
+		},
+	}, {
+		name: "list enum key -- already seen",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "keyleaf",
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+					Node: &yang.Enum{
+						Name: "enumeration",
+						Parent: &yang.Grouping{
+							Name: "foo",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		inCompress: true,
+		inUniqueEnumeratedLeafNames: map[string]string{
+			"/foo/enumeration": "KeyleafPrev",
+		},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleaf": {NativeType: "E_KeyleafPrev"},
+			},
+			KeyElems: []*yang.Entry{
+				{
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+				},
+			},
+		},
+	}, {
+		name: "list enum key -- already seen but skip enum dedup",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "keyleaf",
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+					Node: &yang.Enum{
+						Name: "enumeration",
+						Parent: &yang.Grouping{
+							Name: "foo",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		inCompress:      true,
+		inSkipEnumDedup: true,
+		inUniqueEnumeratedLeafNames: map[string]string{
+			"/foo/enumeration": "KeyleafPrev",
+		},
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleaf": {NativeType: "E_BaseModule_Container_Keyleaf"},
+			},
+			KeyElems: []*yang.Entry{
+				{
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
 				},
 			},
 		},
@@ -1749,9 +1925,14 @@ func TestBuildListKey(t *testing.T) {
 			}
 			s.schematree = st
 		}
+		// Inject the history that has been provided into the new state. This allows us to
+		// check that resolution that should be changed by the state has modified behaviour.
+		if i := tt.inUniqueEnumeratedLeafNames; i != nil {
+			s.enumGen.uniqueEnumeratedLeafNames = tt.inUniqueEnumeratedLeafNames
+		}
 
 		resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
-			return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress)
+			return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup)
 		}
 		if tt.inResolveKeyNameFuncNil {
 			resolveKeyTypeName = nil

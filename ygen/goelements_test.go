@@ -100,6 +100,42 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 		wantErr: true,
 	}, {
+		name: "union of a single enum",
+		in: &yang.YangType{
+			Name: "enumeration",
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{{
+				Kind: yang.Yenum,
+				Name: "enumeration",
+			}},
+		},
+		inCtxEntry: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Kind: yang.Yenum,
+					Name: "enumeration",
+				}},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		},
+		want: []string{"E_BaseModule_UnionLeaf"},
+		wantMtypes: map[int]*MappedType{
+			0: {
+				NativeType:        "E_BaseModule_UnionLeaf",
+				IsEnumeratedValue: true,
+				ZeroValue:         "0",
+			},
+		},
+	}, {
 		name: "union of identityrefs",
 		in: &yang.YangType{
 			Kind: yang.Yunion,
@@ -204,7 +240,7 @@ func TestUnionSubTypes(t *testing.T) {
 			s := newGoGenState(nil)
 			mtypes := make(map[int]*MappedType)
 			ctypes := make(map[string]int)
-			errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false)
+			errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false, false)
 			if !tt.wantErr && errs != nil {
 				t.Errorf("unexpected errors: %v", errs)
 			}
@@ -242,13 +278,15 @@ func TestUnionSubTypes(t *testing.T) {
 // corresponding Go type.
 func TestYangTypeToGoType(t *testing.T) {
 	tests := []struct {
-		name         string
-		in           *yang.YangType
-		ctx          *yang.Entry
-		inEntries    []*yang.Entry
-		compressPath bool
-		want         *MappedType
-		wantErr      bool
+		name                        string
+		in                          *yang.YangType
+		ctx                         *yang.Entry
+		inEntries                   []*yang.Entry
+		inSkipEnumDedup             bool
+		inCompressPath              bool
+		inUniqueEnumeratedLeafNames map[string]string
+		want                        *MappedType
+		wantErr                     bool
 	}{{
 		name: "simple lookup resolution",
 		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32"},
@@ -651,7 +689,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		compressPath: true,
+		inCompressPath: true,
 		want: &MappedType{
 			NativeType:        "E_BaseModule_Container_Eleaf",
 			IsEnumeratedValue: true,
@@ -668,8 +706,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				Parent: &yang.Module{Name: "submodule", BelongsTo: &yang.BelongsTo{Name: "base-mod"}},
 			},
 		},
-		compressPath: true,
-		want:         &MappedType{NativeType: "E_BaseMod_Container_Eleaf", IsEnumeratedValue: true, ZeroValue: "0"},
+		inCompressPath: true,
+		want:           &MappedType{NativeType: "E_BaseMod_Container_Eleaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}, {
 		name: "leafref",
 		in:   &yang.YangType{Kind: yang.Yleafref, Name: "leafref", Path: "../c"},
@@ -712,11 +750,65 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		want: &MappedType{NativeType: "uint32", ZeroValue: "0"},
+	}, {
+		name: "enumeration from grouping used in multiple places - skip deduplication",
+		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
+		ctx: &yang.Entry{
+			Name: "leaf",
+			Type: &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
+			Parent: &yang.Entry{
+				Name: "foo-mod",
+			},
+			Node: &yang.Leaf{
+				Name: "leaf",
+				Parent: &yang.Grouping{
+					Name: "group",
+					Parent: &yang.Module{
+						Name: "mod",
+					},
+				},
+			},
+		},
+		inSkipEnumDedup: true,
+		inUniqueEnumeratedLeafNames: map[string]string{
+			"/mod/group/leaf": "INVALID",
+		},
+		want: &MappedType{NativeType: "E_FooMod_Leaf", IsEnumeratedValue: true, ZeroValue: "0"},
+	}, {
+		name: "enumeration from grouping used in multiple places - with deduplication",
+		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
+		ctx: &yang.Entry{
+			Name: "leaf",
+			Type: &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
+			Parent: &yang.Entry{
+				Name: "foo-mod",
+			},
+			Node: &yang.Leaf{
+				Name: "leaf",
+				Parent: &yang.Grouping{
+					Name: "group",
+					Parent: &yang.Module{
+						Name: "mod",
+					},
+				},
+			},
+		},
+		inUniqueEnumeratedLeafNames: map[string]string{
+			"/group/leaf": "ValidName",
+		},
+		want: &MappedType{NativeType: "E_ValidName", IsEnumeratedValue: true, ZeroValue: "0"},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := newGoGenState(nil)
+
+			// Inject the history that has been provided into the new state. This allows us to
+			// check that resolution that should be changed by the state has modified behaviour.
+			if i := tt.inUniqueEnumeratedLeafNames; i != nil {
+				s.enumGen.uniqueEnumeratedLeafNames = tt.inUniqueEnumeratedLeafNames
+			}
+
 			if tt.inEntries != nil {
 				st, err := buildSchemaTree(tt.inEntries)
 				if err != nil {
@@ -730,7 +822,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				contextEntry: tt.ctx,
 			}
 
-			got, err := s.yangTypeToGoType(args, tt.compressPath)
+			got, err := s.yangTypeToGoType(args, tt.inCompressPath, tt.inSkipEnumDedup)
 			if tt.wantErr && err == nil {
 				t.Fatalf("did not get expected error (%v)", got)
 
@@ -905,6 +997,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 		// inCompressOCPaths enables or disables "CompressOCPaths" for the YANGCodeGenerator
 		// instance used for the test.
 		inCompressOCPaths bool
+		inSkipEnumDedup   bool
 		// wantTypes is a map, keyed by the path of the yang.Entry within inLeaves and
 		// describing the MappedType that is expected to be output.
 		wantTypes map[string]*MappedType
@@ -988,13 +1081,88 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 			"/base-module/leaf-one": {NativeType: "E_BaseModule_DefinedType", IsEnumeratedValue: true, ZeroValue: "0"},
 			"/base-module/leaf-two": {NativeType: "E_BaseModule_DefinedType", IsEnumeratedValue: true, ZeroValue: "0"},
 		},
+	}, {
+		name: "enumeration defined in grouping used in multiple places - deduplication enabled",
+		inLeaves: []*yang.Entry{{
+			Name: "leaf-one",
+			Parent: &yang.Entry{
+				Name: "base-module",
+			},
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Kind: yang.Yenum,
+				Enum: &yang.EnumType{},
+			},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		}, {
+			Name: "leaf-two",
+			Parent: &yang.Entry{
+				Name: "base-module",
+			},
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Kind: yang.Yenum,
+				Enum: &yang.EnumType{},
+			},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		}},
+		wantTypes: map[string]*MappedType{
+			"/base-module/leaf-one": {NativeType: "E_BaseModule_LeafOne", IsEnumeratedValue: true, ZeroValue: "0"},
+			"/base-module/leaf-two": {NativeType: "E_BaseModule_LeafOne", IsEnumeratedValue: true, ZeroValue: "0"},
+		},
+	}, {
+		name: "enumeration defined in grouping used in multiple places - deduplication disabled",
+		inLeaves: []*yang.Entry{{
+			Name: "leaf-one",
+			Parent: &yang.Entry{
+				Name: "base-module",
+			},
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Kind: yang.Yenum,
+				Enum: &yang.EnumType{},
+			},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		}, {
+			Name: "leaf-two",
+			Parent: &yang.Entry{
+				Name: "base-module",
+			},
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Kind: yang.Yenum,
+				Enum: &yang.EnumType{},
+			},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		}},
+		inSkipEnumDedup: true,
+		wantTypes: map[string]*MappedType{
+			"/base-module/leaf-one": {NativeType: "E_BaseModule_LeafOne", IsEnumeratedValue: true, ZeroValue: "0"},
+			"/base-module/leaf-two": {NativeType: "E_BaseModule_LeafTwo", IsEnumeratedValue: true, ZeroValue: "0"},
+		},
 	}}
 
 	for _, tt := range tests {
 		s := newGoGenState(nil)
 		gotTypes := make(map[string]*MappedType)
 		for _, leaf := range tt.inLeaves {
-			mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths)
+			mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths, tt.inSkipEnumDedup)
 			if err != nil {
 				t.Errorf("%s: yangTypeToGoType(%v, %v): got unexpected err: %v, want: nil", tt.name, leaf.Type, leaf, err)
 				continue

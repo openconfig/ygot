@@ -81,7 +81,7 @@ func newEnumGenState() *enumGenState {
 // value is calculated based on the original context, whether path compression is enabled based
 // on the compressPaths boolean, and whether the name should not include underscores, as per the
 // noUnderscores boolean.
-func (s *enumGenState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores bool) ([]*yangEnum, error) {
+func (s *enumGenState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup bool) ([]*yangEnum, error) {
 	var es []*yangEnum
 
 	for _, t := range util.EnumeratedUnionTypes(e.Type.Type) {
@@ -102,7 +102,7 @@ func (s *enumGenState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnde
 		case t.Enum != nil:
 			var enumName string
 			if _, chBuiltin := yang.TypeKindFromName[t.Name]; chBuiltin {
-				enumName = s.resolveEnumName(e, compressPaths, noUnderscores)
+				enumName = s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup)
 			} else {
 				var err error
 				enumName, err = s.resolveTypedefEnumeratedName(e, noUnderscores)
@@ -136,8 +136,11 @@ func (s *enumGenState) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnde
 // duplication between config and state containers when compressPaths is true.
 // It also de-dups references to the same identity base, and type definitions.
 // If noUnderscores is set to true, then underscores are omitted from the enum
+// names to reflect to the preferred style of some generated languages. If skipEnumDedup
+// is set to true, we do not attempt to deduplicate enumerated leaves that are used more
+// than once in the schema into a common type.
 // names to reflect to the preferred style of some generated languages.
-func (s *enumGenState) findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores bool) (map[string]*yangEnum, []error) {
+func (s *enumGenState) findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup bool) (map[string]*yangEnum, []error) {
 	validEnums := make(map[string]*yang.Entry)
 	var enumNames []string
 	var errs []error
@@ -200,7 +203,7 @@ func (s *enumGenState) findEnumSet(entries map[string]*yang.Entry, compressPaths
 		case e.Type.Name == "union", len(e.Type.Type) > 0 && !builtin:
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
-			es, err := s.enumeratedUnionEntry(e, compressPaths, noUnderscores)
+			es, err := s.enumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -233,7 +236,7 @@ func (s *enumGenState) findEnumSet(entries map[string]*yang.Entry, compressPaths
 			// in two places, then we do not want to have multiple enumerated types
 			// that represent this leaf), then we do not have errors if duplicates
 			// occur, we simply perform de-duplication at this stage.
-			enumName := s.resolveEnumName(e, compressPaths, noUnderscores)
+			enumName := s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup)
 			if _, ok := genEnums[enumName]; !ok {
 				genEnums[enumName] = &yangEnum{
 					name:  enumName,
@@ -301,13 +304,11 @@ func (s *enumGenState) identityrefBaseTypeFromIdentity(i *yang.Identity, noUnder
 	return uniqueName
 }
 
-// resolveEnumName takes a yang.Entry and resolves its name into the type name
-// that will be used in the generated code. Whilst a leaf may only be used
-// in a single context (i.e., at its own path), resolveEnumName may be called
-// multiple times, and hence de-duplication of unique name generation is required.
-// If noUnderscores is set to true, then underscores are omitted from the
-// output name.
-func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores bool) string {
+// enumIdentifier takes in an enum entry and returns a unique identifier for
+// that enum constructed using its path. This identifier would be the same for
+// an enum that's used in two different places in the schema.
+func enumIdentifier(e *yang.Entry, compressPaths bool) string {
+	definingModName := genutil.ParentModulePrettyName(e.Node)
 	// It is possible, given a particular enumerated leaf, for it to appear
 	// multiple times in the schema. For example, through being defined in
 	// a grouping which is instantiated in two places. In these cases, the
@@ -323,7 +324,6 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 	// "Node" hierarchy - we walk back up the tree until such time as we find
 	// a node that is not within the same module (ParentModulePrettyName(parent) !=
 	// ParentModulePrettyName(currentNode)), and use this as the unique path.
-	definingModName := genutil.ParentModulePrettyName(e.Node)
 	var identifierPathElem []string
 	for elem := e.Node; elem.ParentNode() != nil && genutil.ParentModulePrettyName(elem) == definingModName; elem = elem.ParentNode() {
 		identifierPathElem = append(identifierPathElem, elem.NName())
@@ -331,9 +331,9 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 
 	// Since the path elements are compiled from leaf back to root, then reverse them to
 	// form the path, this is not strictly required, but aids debugging of the elements.
-	var identifierPath string
+	var identifier string
 	for i := len(identifierPathElem) - 1; i >= 0; i-- {
-		identifierPath = fmt.Sprintf("%s/%s", identifierPath, identifierPathElem[i])
+		identifier = fmt.Sprintf("%s/%s", identifier, identifierPathElem[i])
 	}
 
 	// For leaves that have an enumeration within a typedef that is within a union,
@@ -347,31 +347,81 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 		if compressPaths && e.Parent != nil && e.Parent.Parent != nil {
 			idPfx = e.Parent.Parent.Name
 		}
-		identifierPath = fmt.Sprintf("%s%s", idPfx, identifierPath)
+		identifier = fmt.Sprintf("%s%s", idPfx, identifier)
+	}
+	return identifier
+}
+
+// resolveEnumName takes a yang.Entry and resolves its name into the type name
+// that will be used in the generated code. Whilst a leaf may only be used
+// in a single context (i.e., at its own path), resolveEnumName may be called
+// multiple times, and hence de-duplication of unique name generation is required.
+// If noUnderscores is set to true, then underscores are omitted from the
+// output name.
+// If the skipDedup argument is set to true, where a single enumeration is defined
+// once in the input YANG, but instantiated multiple times (e.g., a grouping is
+// used multiple times that contains an enumeration), then we do not attempt to
+// use a single output type in the generated code for such enumerations. This allows
+// the user to control whether this behaviour is useful to them -- for OpenConfig,
+// it tends to be due to the state/config split - which would otherwise result in
+// multiple enumerated types being produced. For other schemas, it can result in
+// somewhat difficult to understand enumerated types being produced - since the first
+// leaf that is processed will define the name of the enumeration.
+func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup bool) string {
+	// uniqueIdentifer is the unique identifier used to determine whether to
+	// define a new enum type for the input enum.
+	var uniqueIdentifer string
+	if skipDedup && !compressPaths {
+		// If not using compression and duplicating, then we use the
+		// entire path as the enum name, meaning every enum instance
+		// has its own definition. By using the entry's path as its
+		// identifier, we ensure this.
+		uniqueIdentifer = e.Path()
+	} else {
+		// In the other cases, de-duplication may happen, either
+		// through de-duping multiple usages or possibly through
+		// compression
+		uniqueIdentifer = enumIdentifier(e, compressPaths)
 	}
 
-	// If the leaf had already been encountered, then return the previously generated
-	// name, rather than generating a new name.
-	if definedName, ok := s.uniqueEnumeratedLeafNames[identifierPath]; ok {
-		return definedName
-	}
-
+	var compressName string
 	if compressPaths {
+		definingModName := genutil.ParentModulePrettyName(e.Node)
 		// If we compress paths then the name of this enum is of the form
 		// ModuleName_GrandParent_Leaf - we use GrandParent since Parent is
 		// State or Config so would not be unique. The proposed name is
 		// handed to genutil.MakeNameUnique to ensure that it does not clash with
 		// other defined names.
-		name := fmt.Sprintf("%s_%s_%s", yang.CamelCase(definingModName), yang.CamelCase(e.Parent.Parent.Name), yang.CamelCase(e.Name))
+		compressName = fmt.Sprintf("%s_%s_%s", yang.CamelCase(definingModName), yang.CamelCase(e.Parent.Parent.Name), yang.CamelCase(e.Name))
 		if noUnderscores {
-			name = strings.Replace(name, "_", "", -1)
+			compressName = strings.Replace(compressName, "_", "", -1)
 		}
-		uniqueName := genutil.MakeNameUnique(name, s.definedEnums)
-		s.uniqueEnumeratedLeafNames[identifierPath] = uniqueName
+
+		if skipDedup {
+			// If using compression and duplicating, then we add
+			// compressName to the uniqueIdentifier, meaning every
+			// enum instance in the compressed view of the schema
+			// has its own definition.  The base enum identity is
+			// still required to deal with collisions between
+			// compressed enum names when they describe different
+			// enums.
+			uniqueIdentifer += compressName
+		}
+	}
+
+	// If the leaf had already been encountered, then return the previously generated
+	// name, rather than generating a new name.
+	if definedName, ok := s.uniqueEnumeratedLeafNames[uniqueIdentifer]; ok {
+		return definedName
+	}
+
+	if compressPaths {
+		uniqueName := genutil.MakeNameUnique(compressName, s.definedEnums)
+		s.uniqueEnumeratedLeafNames[uniqueIdentifer] = uniqueName
 		return uniqueName
 	}
 
-	// If this was we don't compress the paths, then we write out the entire path.
+	// If we are not compressing the paths, then we write out the entire path.
 	var nbuf bytes.Buffer
 	for i, p := range util.SchemaPathNoChoiceCase(e) {
 		if i != 0 && !noUnderscores {
@@ -380,7 +430,7 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 		nbuf.WriteString(yang.CamelCase(p))
 	}
 	uniqueName := genutil.MakeNameUnique(nbuf.String(), s.definedEnums)
-	s.uniqueEnumeratedLeafNames[identifierPath] = uniqueName
+	s.uniqueEnumeratedLeafNames[uniqueIdentifer] = uniqueName
 	return uniqueName
 }
 

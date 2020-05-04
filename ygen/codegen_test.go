@@ -703,6 +703,27 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-versioned-mod.formatted-txt"),
+	}, {
+		name:    "model with deduplicated enums",
+		inFiles: []string{filepath.Join(datapath, "enum-duplication.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-duplication-dedup.formatted-txt"),
+	}, {
+		name:    "model with enums that are in the same grouping duplicated",
+		inFiles: []string{filepath.Join(datapath, "enum-duplication.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
+			ParseOptions: ParseOpts{
+				SkipEnumDeduplication: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-duplication-dup.formatted-txt"),
 	}}
 
 	for _, tt := range tests {

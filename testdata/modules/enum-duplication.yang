@@ -1,0 +1,19 @@
+module enum-duplication {
+    prefix "e";
+    namespace "urn:e";
+
+    grouping duplicated-use {
+        leaf enumerated {
+            type enumeration {
+                enum A;
+                enum B;
+                enum C;
+            }
+        }
+    }
+
+    container base {
+        container config { uses duplicated-use; }
+        container state { config false; uses duplicated-use; }
+    }
+}

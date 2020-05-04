@@ -93,6 +93,34 @@ type ParseOpts struct {
 	// github.com/openconfig/goyang/pkg/yang library. These specify how the
 	// input YANG files should be parsed.
 	YANGParseOptions yang.Options
+	// SkipEnumDeduplication specifies whether leaves of type 'enumeration' that
+	// are used in multiple places in the schema should share a common type within
+	// the generated code that is output by ygen. By default (false), a common type
+	// is used.
+	//
+	// This behaviour is useful in scenarios where there is no difference between
+	// two types, and the leaf is mirrored in a logical way (e.g., the OpenConfig
+	// config/state split). For example:
+	//
+	// grouping foo-config {
+	//	leaf enabled {
+	//		type enumeration {
+	//			enum A;
+	//			enum B;
+	//			enum C;
+	//		}
+	//	 }
+	// }
+	//
+	//  container config { uses foo-config; }
+	//  container state { uses foo-config; }
+	//
+	// will result in a single enumeration type (ModuleName_Config_Enabled) being
+	// output when de-duplication is enabled.
+	//
+	// When it is disabled, two different enumerations (ModuleName_(State|Config)_Enabled)
+	// will be output in the generated code.
+	SkipEnumDeduplication bool
 }
 
 // TransformationOpts specifies transformations to the generated code with
@@ -109,6 +137,11 @@ type TransformationOpts struct {
 	// FakeRootName specifies the name of the struct that should be generated
 	// representing the root.
 	FakeRootName string
+	// ExcludeState specifies whether config false values should be
+	// included in the generated code output. When set, all values that are
+	// not writeable (i.e., config false) within the YANG schema and their
+	// children are excluded from the generated code.
+	ExcludeState bool
 }
 
 // GoOpts stores Go specific options for the code generation library.
@@ -321,7 +354,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Store the returned schematree within the state for this code generation.
 	gogen := newGoGenState(mdef.schematree)
 
-	directoryMap, errs := gogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot)
+	directoryMap, errs := gogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot, cg.Config.ParseOptions.SkipEnumDeduplication)
 	if errs != nil {
 		return nil, errs
 	}
@@ -353,7 +386,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var structSnippets []GoStructCodeSnippet
 	for _, directoryName := range orderedDirNames {
 		structOut, errs := writeGoStruct(dirNameMap[directoryName], directoryMap, gogen,
-			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.GenerateJSONSchema, cg.Config.GoOptions)
+			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.GoOptions)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
@@ -367,7 +400,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		}
 	}
 
-	goEnums, errs := gogen.enumGen.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false)
+	goEnums, errs := gogen.enumGen.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.Config.ParseOptions.SkipEnumDeduplication)
 	if errs != nil {
 		codegenErr = util.AppendErrs(codegenErr, errs)
 		return nil, codegenErr
@@ -447,7 +480,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 	// Store the returned schematree within the state for this code generation.
 	gogen := newGoGenState(mdef.schematree)
 
-	directoryMap, errs := gogen.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot)
+	directoryMap, errs := gogen.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot, cg.ParseOptions.SkipEnumDeduplication)
 	if errs != nil {
 		return nil, nil, errs
 	}
@@ -468,7 +501,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 		for _, fieldName := range GetOrderedFieldNames(dir) {
 			field := dir.Fields[fieldName]
 			if isLeaf := field.IsLeaf() || field.IsLeafList(); isLeaf {
-				mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, dcg.TransformationOptions.CompressBehaviour.CompressEnabled())
+				mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, dcg.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.ParseOptions.SkipEnumDeduplication)
 				if err != nil {
 					errs = util.AppendErr(errs, err)
 					continue
@@ -545,7 +578,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 
 	protogen := newProtoGenState(mdef.schematree)
 
-	penums, errs := protogen.enumGen.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true)
+	penums, errs := protogen.enumGen.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true, cg.Config.ParseOptions.SkipEnumDeduplication)
 	if errs != nil {
 		return nil, errs
 	}

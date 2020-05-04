@@ -73,6 +73,7 @@ var (
 	generateDelete         = flag.Bool("generate_delete", false, "If set to true, delete methods are generated for YANG lists (Go maps) within the Go code.")
 	generateLeafGetters    = flag.Bool("generate_leaf_getters", false, "If set to true, getters for YANG leaves are generated within the Go code. Caution should be exercised when using leaf getters, since values that are explicitly set to the Go default/zero value are not distinguishable from those that are unset when retrieved via the GetXXX method.")
 	includeModelData       = flag.Bool("include_model_data", false, "If set to true, a slice of gNMI ModelData messages are included in the generated Go code containing the details of the input schemas from which the code was generated.")
+	skipEnumDedup          = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
 )
 
 // writeGoCodeSingleFile takes a ygen.GeneratedGoCode struct and writes the Go code
@@ -238,7 +239,8 @@ func main() {
 	// Perform the code generation.
 	cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
 		ParseOptions: ygen.ParseOpts{
-			ExcludeModules: modsExcluded,
+			ExcludeModules:        modsExcluded,
+			SkipEnumDeduplication: *skipEnumDedup,
 			YANGParseOptions: yang.Options{
 				IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
 			},
