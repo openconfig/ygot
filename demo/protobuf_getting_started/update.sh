@@ -6,7 +6,8 @@ clean() {
 }
 
 if [ -z ${SRCDIR} ]; then
-   SRCDIR=$GOPATH/src/github.com/openconfig/ygot
+   DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+   SRCDIR=${DIR}/../..
 fi
 
 # Ensure that the .pb.go has been generated for the extensions
