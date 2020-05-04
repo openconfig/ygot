@@ -1,0 +1,101 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.12', '1.13', '1.14']
+
+    steps:
+      - name: Install protobuf
+        uses: arduino/setup-protoc@v1.1.0
+        with:
+          version: '3.x'
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+        id: go
+
+      - name: Install protoc-gen-go
+        run: |
+          go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+
+      - name: Install goimports
+        run: |
+          go get -u golang.org/x/tools/cmd/goimports
+
+      - name: Install overalls
+        run: |
+          go get -u github.com/go-playground/overalls
+
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          path: go/src/github.com/openconfig/ygot
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+
+      - name: Generate dependencies
+        run: |
+          cd go/src/github.com/openconfig/ygot
+          make generate
+          
+      - name: Debug generated files
+        run: |
+          find .
+
+      - name: Build packages
+        run: cd go/src/github.com/openconfig/ygot && go build -v ./...
+
+      - name: Run Tests
+        run: cd go/src/github.com/openconfig/ygot && go test -v ./...
+
+      - name: Run race tests
+        run: cd go/src/github.com/openconfig/ygot && go test -race -v ./...
+
+      - name: Run overalls for coverage
+        run: |
+          overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator" 
+
+      - name: Send coverage
+        uses: shogo82148/actions-goveralls@v1
+        with:
+          path-to-profile: /home/runner/go/src/github.com/openconfig/ygot/overalls.coverprofile
+          parallel: true
+
+      - name: Go vet
+        run: |
+          for i in util ygen ytypes ygot/pathtranslate ypathgen; do
+            go vet ./$i
+          done
+          for j in ygot testcmp testutil; do
+            go vet -composites=false ./$j 
+          done
+        working-directory: go/src/github.com/openconfig/ygot
+
+      - name: Gofmt
+        run: |
+          for i in util ygot ygen ytypes ygot/pathtranslate testutil testcmp ypathgen; do
+            diff -u <(echo -n) <(gofmt -d -s ./$i)
+          done
+        working-directory: go/src/github.com/openconfig/ygot
+
+  finish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: shogo82148/actions-goveralls@v1
+        with:
+          parallel-finished: true
