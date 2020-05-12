@@ -76,8 +76,8 @@ var (
 // goGenState contains the functionality and state for generating Go names for
 // the generated code.
 type goGenState struct {
-	// enumGen contains functionality and state for generating enum names.
-	enumGen *enumGenState
+	// enumSet contains the generated enum names which can be queried.
+	enumSet *enumSet
 	// schematree is a copy of the YANG schema tree, containing only leaf
 	// entries, such that schema paths can be referenced.
 	schematree *schemaTree
@@ -98,9 +98,9 @@ type goGenState struct {
 
 // newGoGenState creates a new goGenState instance, initialised with the
 // default state required for code generation.
-func newGoGenState(schematree *schemaTree) *goGenState {
+func newGoGenState(schematree *schemaTree, eSet *enumSet) *goGenState {
 	return &goGenState{
-		enumGen:    newEnumGenState(),
+		enumSet:    eSet,
 		schematree: schematree,
 		definedGlobals: map[string]bool{
 			// Mark the name that is used for the binary type as a reserved name
@@ -229,7 +229,7 @@ func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, c
 func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, skipEnumDedup bool) (*MappedType, error) {
 	defVal := genutil.TypeDefaultValue(args.yangType)
 	// Handle the case of a typedef which is actually an enumeration.
-	mtype, err := s.enumGen.enumeratedTypedefTypeName(args, goEnumPrefix, false)
+	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
@@ -283,11 +283,14 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 	case yang.Yenum:
 		// Enumeration types need to be resolved to a particular data path such
 		// that a created enumered Go type can be used to set their value. Hand
-		// the leaf to the resolveEnumName function to determine the name.
+		// the leaf to the enumName function to determine the name.
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enum without context")
 		}
-		n := s.enumGen.resolveEnumName(args.contextEntry, compressOCPaths, false, skipEnumDedup)
+		n, err := s.enumSet.enumName(args.contextEntry)
+		if err != nil {
+			return nil, err
+		}
 		if defVal != nil {
 			defVal = enumDefaultValue(n, *defVal, "")
 		}
@@ -300,11 +303,14 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 	case yang.Yidentityref:
 		// Identityref leaves are mapped according to the base identity that they
 		// refer to - this is stored in the IdentityBase field of the context leaf
-		// which is determined by the resolveIdentityRefBaseType.
+		// which is determined by the identityRefBaseType.
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context")
 		}
-		n := s.enumGen.resolveIdentityRefBaseType(args.contextEntry, false)
+		n, err := s.enumSet.identityRefBaseType(args.contextEntry)
+		if err != nil {
+			return nil, err
+		}
 		if defVal != nil {
 			defVal = enumDefaultValue(n, *defVal, "")
 		}
@@ -437,7 +443,10 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 		// to map enumerated types to their module. This occurs in the case that the subtype
 		// is an identityref - in this case, the context entry that we are carrying is the
 		// leaf that refers to the union, not the specific subtype that is now being examined.
-		baseType := s.enumGen.identityrefBaseTypeFromIdentity(subtype.IdentityBase, false)
+		baseType, err := s.enumSet.identityrefBaseTypeFromIdentity(subtype.IdentityBase)
+		if err != nil {
+			return append(errs, err)
+		}
 		defVal := genutil.TypeDefaultValue(subtype)
 		if defVal != nil {
 			defVal = enumDefaultValue(baseType, *defVal, "")

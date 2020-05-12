@@ -657,48 +657,55 @@ func TestGenProto3Msg(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		s := newProtoGenState(nil)
-		// Seed the state with the supplied message names that have been provided.
-		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
-
-		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
-			compressPaths:       tt.inCompressPaths,
-			basePackageName:     tt.inBasePackage,
-			enumPackageName:     tt.inEnumPackage,
-			baseImportPath:      tt.inBaseImportPath,
-			annotateSchemaPaths: tt.inAnnotateSchemaPaths,
-		}, tt.inParentPackage, tt.inChildMsgs)
-
-		if (errs != nil) != tt.wantErr {
-			t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
-		}
-
-		if tt.wantErr {
-			continue
-		}
-
-		notSeen := map[string]bool{}
-		for _, w := range tt.wantMsgs {
-			notSeen[w.Name] = true
-		}
-
-		for _, got := range gotMsgs {
-			want, ok := tt.wantMsgs[got.Name]
-			if !ok {
-				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): got unexpected message, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, got.Name, tt.wantMsgs)
-				continue
+		t.Run(tt.name, func(t *testing.T) {
+			enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), tt.inCompressPaths, true, false)
+			if errs != nil {
+				t.Fatalf("findEnumSet failed: %v", errs)
 			}
-			delete(notSeen, got.Name)
+			s := newProtoGenState(nil, enumSet)
 
-			if !protoMsgEq(got, want) {
-				diff := pretty.Compare(got, want)
-				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): did not get expected protobuf message definition, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, diff)
+			// Seed the state with the supplied message names that have been provided.
+			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
+
+			gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
+				compressPaths:       tt.inCompressPaths,
+				basePackageName:     tt.inBasePackage,
+				enumPackageName:     tt.inEnumPackage,
+				baseImportPath:      tt.inBaseImportPath,
+				annotateSchemaPaths: tt.inAnnotateSchemaPaths,
+			}, tt.inParentPackage, tt.inChildMsgs)
+
+			if (errs != nil) != tt.wantErr {
+				t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
 			}
-		}
 
-		if len(notSeen) != 0 {
-			t.Errorf("%s: genProtoMsg(%#v, %#v, *genState); did not test all returned messages, got remaining messages: %v, want: none", tt.name, tt.inMsg, tt.inMsgs, notSeen)
-		}
+			if tt.wantErr {
+				return
+			}
+
+			notSeen := map[string]bool{}
+			for _, w := range tt.wantMsgs {
+				notSeen[w.Name] = true
+			}
+
+			for _, got := range gotMsgs {
+				want, ok := tt.wantMsgs[got.Name]
+				if !ok {
+					t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): got unexpected message, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, got.Name, tt.wantMsgs)
+					continue
+				}
+				delete(notSeen, got.Name)
+
+				if !protoMsgEq(got, want) {
+					diff := pretty.Compare(got, want)
+					t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): did not get expected protobuf message definition, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, diff)
+				}
+			}
+
+			if len(notSeen) != 0 {
+				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState); did not test all returned messages, got remaining messages: %v, want: none", tt.name, tt.inMsg, tt.inMsgs, notSeen)
+			}
+		})
 	}
 }
 
@@ -977,6 +984,12 @@ message MessageName {
 						Name: "enumeration",
 						Kind: yang.Yenum,
 						Enum: enumeratedLeafDef,
+					},
+					Node: &yang.Container{
+						Name: "message-name",
+						Parent: &yang.Module{
+							Name: "module",
+						},
 					},
 				},
 			},
@@ -1402,43 +1415,50 @@ message MessageName {
 	}}
 
 	for _, tt := range tests {
-		wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
-		for compress, want := range map[bool]*generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newProtoGenState(nil)
-			// Seed the message names with the supplied input.
-			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
-
-			got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
-				compressPaths:   compress,
-				basePackageName: tt.inBasePackageName,
-				enumPackageName: tt.inEnumPackageName,
-				baseImportPath:  tt.inBaseImportPath,
-				nestedMessages:  tt.inNestedMessages,
-			})
-
-			if (errs != nil) != wantErr[compress] {
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, wantErr[compress])
-			}
-
-			if errs != nil || got == nil {
-				continue
-			}
-
-			if got.PackageName != want.PackageName {
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.PackageName, want.PackageName)
-			}
-
-			if diff := cmp.Diff(want.RequiredImports, got.RequiredImports); diff != "" {
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, (-want, +got,):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
-			}
-
-			if diff := pretty.Compare(got.MessageCode, want.MessageCode); diff != "" {
-				if diffl, err := testutil.GenerateUnifiedDiff(want.MessageCode, got.MessageCode); err == nil {
-					diff = diffl
+		t.Run(tt.name, func(t *testing.T) {
+			wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
+			for compress, want := range map[bool]*generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
+				enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), compress, true, false)
+				if errs != nil {
+					t.Fatalf("findEnumSet failed: %v", errs)
 				}
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-want, +got):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+				s := newProtoGenState(nil, enumSet)
+
+				// Seed the message names with the supplied input.
+				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
+
+				got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
+					compressPaths:   compress,
+					basePackageName: tt.inBasePackageName,
+					enumPackageName: tt.inEnumPackageName,
+					baseImportPath:  tt.inBaseImportPath,
+					nestedMessages:  tt.inNestedMessages,
+				})
+
+				if (errs != nil) != wantErr[compress] {
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, wantErr[compress])
+				}
+
+				if errs != nil || got == nil {
+					continue
+				}
+
+				if got.PackageName != want.PackageName {
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.PackageName, want.PackageName)
+				}
+
+				if diff := cmp.Diff(want.RequiredImports, got.RequiredImports); diff != "" {
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, (-want, +got,):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+				}
+
+				if diff := pretty.Compare(got.MessageCode, want.MessageCode); diff != "" {
+					if diffl, err := testutil.GenerateUnifiedDiff(want.MessageCode, got.MessageCode); err == nil {
+						diff = diffl
+					}
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-want, +got):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+				}
 			}
-		}
+		})
 	}
 }
 
