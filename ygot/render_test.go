@@ -1580,11 +1580,17 @@ type testAnnotation struct {
 }
 
 func (t *testAnnotation) MarshalJSON() ([]byte, error) {
-	return json.Marshal(*t)
+	t2 := *t
+	t2.AnnotationFieldOne += t2.AnnotationFieldOne
+	return json.Marshal(t2)
 }
 
 func (t *testAnnotation) UnmarshalJSON(d []byte) error {
-	return json.Unmarshal(d, t)
+	if err := json.Unmarshal(d, t); err != nil {
+		return err
+	}
+	t.AnnotationFieldOne = t.AnnotationFieldOne[:len(t.AnnotationFieldOne)/2]
+	return nil
 }
 
 type errorAnnotation struct {
@@ -2195,7 +2201,7 @@ func TestConstructJSON(t *testing.T) {
 		wantIETF: map[string]interface{}{
 			"field": "russian-river",
 			"@field": []interface{}{
-				map[string]interface{}{"field": "alexander-valley"},
+				&testAnnotation{AnnotationFieldOne: "alexander-valley"},
 			},
 		},
 		wantSame: true,
@@ -2240,6 +2246,9 @@ func TestConstructJSON(t *testing.T) {
 		gotietf, err := ConstructIETFJSON(tt.in, &RFC7951JSONConfig{
 			AppendModuleName: tt.inAppendMod,
 		})
+		if err == nil {
+			_, err = json.Marshal(gotietf)
+		}
 		if err != nil {
 			if !tt.wantErr {
 				t.Errorf("%s: ConstructIETFJSON(%v): got unexpected error: %v", tt.name, tt.in, err)
@@ -2252,6 +2261,9 @@ func TestConstructJSON(t *testing.T) {
 		}
 
 		gotjson, err := ConstructInternalJSON(tt.in)
+		if err == nil {
+			_, err = json.Marshal(gotjson)
+		}
 		if err != nil {
 			if !tt.wantErr {
 				t.Errorf("%s: ConstructJSON(%v): got unexpected error: %v", tt.name, tt.in, err)
