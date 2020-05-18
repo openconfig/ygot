@@ -1579,12 +1579,18 @@ type testAnnotation struct {
 	AnnotationFieldOne string `json:"field"`
 }
 
+// MarshalJSON repeats the string in the JSON representation. This deviation
+// from json.Marshal helps test that the json generation uses the
+// Annotation's custom MarshalJSON/UnmarshalJSON functions.
 func (t *testAnnotation) MarshalJSON() ([]byte, error) {
 	t2 := *t
 	t2.AnnotationFieldOne += t2.AnnotationFieldOne
 	return json.Marshal(t2)
 }
 
+// UnmarshalJSON halves the string from the JSON representation. This deviation
+// from json.Unmarshal helps test that the json generation uses the
+// Annotation's custom MarshalJSON/UnmarshalJSON functions.
 func (t *testAnnotation) UnmarshalJSON(d []byte) error {
 	if err := json.Unmarshal(d, t); err != nil {
 		return err
@@ -1626,6 +1632,7 @@ func TestConstructJSON(t *testing.T) {
 		wantInternal map[string]interface{}
 		wantSame     bool
 		wantErr      bool
+		wantJsonErr  bool
 	}{{
 		name: "invalidGoStruct",
 		in: &invalidGoStructChild{
@@ -2213,7 +2220,7 @@ func TestConstructJSON(t *testing.T) {
 				&errorAnnotation{AnnotationField: "chalk-hill"},
 			},
 		},
-		wantErr: true,
+		wantJsonErr: true,
 	}, {
 		name: "error in annotation - unmarshalable",
 		in: &annotatedJSONTestStruct{
@@ -2222,7 +2229,7 @@ func TestConstructJSON(t *testing.T) {
 				&unmarshalableJSON{AnnotationField: "knights-valley"},
 			},
 		},
-		wantErr: true,
+		wantJsonErr: true,
 	}, {
 		name:     "unset enum",
 		in:       &renderExample{EnumField: EnumTestUNSET},
@@ -2243,41 +2250,55 @@ func TestConstructJSON(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		gotietf, err := ConstructIETFJSON(tt.in, &RFC7951JSONConfig{
-			AppendModuleName: tt.inAppendMod,
-		})
-		if err == nil {
+		t.Run(tt.name+" ConstructIETFJSON", func(t *testing.T) {
+			gotietf, err := ConstructIETFJSON(tt.in, &RFC7951JSONConfig{
+				AppendModuleName: tt.inAppendMod,
+			})
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ConstructIETFJSON(%v): got unexpected error: %v, want error %v", tt.in, err, tt.wantErr)
+			}
+			if err != nil {
+				return
+			}
+
 			_, err = json.Marshal(gotietf)
-		}
-		if err != nil {
-			if !tt.wantErr {
-				t.Errorf("%s: ConstructIETFJSON(%v): got unexpected error: %v", tt.name, tt.in, err)
+			if (err != nil) != tt.wantJsonErr {
+				t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotietf, err, tt.wantJsonErr)
 			}
-			continue
-		}
+			if err != nil {
+				return
+			}
 
-		if diff := pretty.Compare(gotietf, tt.wantIETF); diff != "" {
-			t.Errorf("%s: ConstructIETFJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.name, tt.in, diff)
-		}
+			if diff := pretty.Compare(gotietf, tt.wantIETF); diff != "" {
+				t.Errorf("ConstructIETFJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.in, diff)
+			}
+		})
 
-		gotjson, err := ConstructInternalJSON(tt.in)
-		if err == nil {
+		t.Run(tt.name+" ConstructInternalJSON", func(t *testing.T) {
+			gotjson, err := ConstructInternalJSON(tt.in)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ConstructJSON(%v): got unexpected error: %v", tt.in, err)
+			}
+			if err != nil {
+				return
+			}
+
 			_, err = json.Marshal(gotjson)
-		}
-		if err != nil {
-			if !tt.wantErr {
-				t.Errorf("%s: ConstructJSON(%v): got unexpected error: %v", tt.name, tt.in, err)
+			if (err != nil) != tt.wantJsonErr {
+				t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotjson, err, tt.wantJsonErr)
 			}
-			continue
-		}
+			if err != nil {
+				return
+			}
 
-		wantInternal := tt.wantInternal
-		if tt.wantSame == true {
-			wantInternal = tt.wantIETF
-		}
-		if diff := pretty.Compare(gotjson, wantInternal); diff != "" {
-			t.Errorf("%s: ConstructJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.name, tt.in, diff)
-		}
+			wantInternal := tt.wantInternal
+			if tt.wantSame == true {
+				wantInternal = tt.wantIETF
+			}
+			if diff := pretty.Compare(gotjson, wantInternal); diff != "" {
+				t.Errorf("ConstructJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.in, diff)
+			}
+		})
 	}
 }
 

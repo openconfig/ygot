@@ -1355,6 +1355,9 @@ func jsonAnnotationSlice(v reflect.Value) (interface{}, error) {
 
 	vals := []interface{}{}
 	for i := 0; i < v.Len(); i++ {
+		// deepcopy the Annotation to avoid accidentally modifying its contents.
+		// Since Annotations must have an implemented MarshalJSON
+		// function, this should not impact the final JSON.
 		vals = append(vals, deepcopy.Copy(v.Index(i).Interface().(Annotation)))
 	}
 	return vals, nil
