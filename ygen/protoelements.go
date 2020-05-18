@@ -110,7 +110,7 @@ type resolveProtoTypeArgs struct {
 // for additional details as to the transformation from YANG to Protobuf.
 func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName))
+	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveP
 // value cannot be nil/unset.
 func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName))
+	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
 	if err != nil {
 		return nil, err
 	}
