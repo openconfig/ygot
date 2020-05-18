@@ -156,28 +156,25 @@ func (s *enumGenState) enumeratedTypedefKey(e *yang.Entry, noUnderscores bool) (
 	// Since there can be many leaves that refer to the same typedef, then we do not generate
 	// a name for each of them, but rather use a common name, we use the non-CamelCase lookup
 	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef
-	// does not have a 'path' in Goyang, so we synthesise one using the form
+	// does not have a 'path' in Goyang, we synthesise one using the form
 	// module-name/typedef-name.
 	return fmt.Sprintf("%s/%s", definingModName, typeName), definingModName, typeName, nil
 }
 
-// enumLeafKey calculates a unique string key for the input enum leaf.  If
-// compressPaths is true, it also returns the compress name of the entry for
-// use in name generation, if needed.
+// enumLeafKey calculates a unique string key for the input leaf of type
+// "enumeration" only. If compressPaths is true, it also returns the compress
+// name of the entry for use in name generation, if needed.
 func (s *enumGenState) enumLeafKey(e *yang.Entry, compressPaths, noUnderscores, skipDedup bool) (string, string) {
 	// uniqueIdentifier is the unique identifier used to determine whether to
 	// define a new enum type for the input enum.
-	var uniqueIdentifier string
-	if skipDedup && !compressPaths {
-		// If not using compression and duplicating, then we use the
-		// entire path as the enum name, meaning every enum instance
-		// has its own definition. By using the entry's path as its
-		// identifier, we ensure this.
-		uniqueIdentifier = e.Path()
-	} else {
-		// In the other cases, de-duplication may happen, either
-		// through de-duping multiple usages or possibly through
-		// compression
+	// By default, using the entry's path ensures every enumeration
+	// instance has its own name.
+	uniqueIdentifier := e.Path()
+	if !skipDedup || compressPaths {
+		// However, if using compression or de-duplicating where
+		// possible, then we do not use the entire path as the enum
+		// name, and instead find the unique identifier that may de-dup
+		// due to compression or multiple usages of a definition.
 		uniqueIdentifier = enumIdentifier(e, compressPaths)
 	}
 
@@ -211,6 +208,7 @@ func (s *enumGenState) enumLeafKey(e *yang.Entry, compressPaths, noUnderscores, 
 // enumIdentifier takes in an enum entry and returns a unique identifier for
 // that enum constructed using its path. This identifier would be the same for
 // an enum that's used in two different places in the schema.
+// This function can be called on a union entry that contains an enumeration type.
 func enumIdentifier(e *yang.Entry, compressPaths bool) string {
 	definingModName := genutil.ParentModulePrettyName(e.Node)
 	// It is possible, given a particular enumerated leaf, for it to appear
