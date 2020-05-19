@@ -1580,8 +1580,14 @@ type testAnnotation struct {
 }
 
 // MarshalJSON repeats the string in the JSON representation. This deviation
-// from json.Marshal helps test that the json generation uses the
-// Annotation's custom MarshalJSON/UnmarshalJSON functions.
+// from json.Marshal helps ensure that the test actually uses Annotation's
+// custom MarshalJSON/UnmarshalJSON functions instead of using the default
+// mechanism.
+// e.g. It prevents the implementation from successfully using
+// json.Marshal(obj) followed by json.Unmarshal(obj, interface{}) to copy the
+// value -- the unmarshal call would fail to use the json.Unmarshaler
+// interface to invoke UnmarshalJSON(), and cause the data to be repeated after
+// the unmarshal call.
 func (t *testAnnotation) MarshalJSON() ([]byte, error) {
 	t2 := *t
 	t2.AnnotationFieldOne += t2.AnnotationFieldOne
@@ -1589,8 +1595,9 @@ func (t *testAnnotation) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON halves the string from the JSON representation. This deviation
-// from json.Unmarshal helps test that the json generation uses the
-// Annotation's custom MarshalJSON/UnmarshalJSON functions.
+// from json.Unmarshal helps ensure that the test actually uses Annotation's
+// custom MarshalJSON/UnmarshalJSON functions instead of using the default
+// mechanism.
 func (t *testAnnotation) UnmarshalJSON(d []byte) error {
 	if err := json.Unmarshal(d, t); err != nil {
 		return err
