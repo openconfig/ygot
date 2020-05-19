@@ -1579,12 +1579,31 @@ type testAnnotation struct {
 	AnnotationFieldOne string `json:"field"`
 }
 
+// MarshalJSON repeats the string in the JSON representation. This deviation
+// from json.Marshal helps ensure that the test actually uses Annotation's
+// custom MarshalJSON/UnmarshalJSON functions instead of using the default
+// mechanism.
+// e.g. It prevents the implementation from successfully using
+// json.Marshal(obj) followed by json.Unmarshal(obj, interface{}) to copy the
+// value -- the unmarshal call would fail to use the json.Unmarshaler
+// interface to invoke UnmarshalJSON(), and cause the data to be repeated after
+// the unmarshal call.
 func (t *testAnnotation) MarshalJSON() ([]byte, error) {
-	return json.Marshal(*t)
+	t2 := *t
+	t2.AnnotationFieldOne += t2.AnnotationFieldOne
+	return json.Marshal(t2)
 }
 
+// UnmarshalJSON halves the string from the JSON representation. This deviation
+// from json.Unmarshal helps ensure that the test actually uses Annotation's
+// custom MarshalJSON/UnmarshalJSON functions instead of using the default
+// mechanism.
 func (t *testAnnotation) UnmarshalJSON(d []byte) error {
-	return json.Unmarshal(d, t)
+	if err := json.Unmarshal(d, t); err != nil {
+		return err
+	}
+	t.AnnotationFieldOne = t.AnnotationFieldOne[:len(t.AnnotationFieldOne)/2]
+	return nil
 }
 
 type errorAnnotation struct {
@@ -1620,6 +1639,7 @@ func TestConstructJSON(t *testing.T) {
 		wantInternal map[string]interface{}
 		wantSame     bool
 		wantErr      bool
+		wantJsonErr  bool
 	}{{
 		name: "invalidGoStruct",
 		in: &invalidGoStructChild{
@@ -2195,7 +2215,7 @@ func TestConstructJSON(t *testing.T) {
 		wantIETF: map[string]interface{}{
 			"field": "russian-river",
 			"@field": []interface{}{
-				map[string]interface{}{"field": "alexander-valley"},
+				&testAnnotation{AnnotationFieldOne: "alexander-valley"},
 			},
 		},
 		wantSame: true,
@@ -2207,7 +2227,7 @@ func TestConstructJSON(t *testing.T) {
 				&errorAnnotation{AnnotationField: "chalk-hill"},
 			},
 		},
-		wantErr: true,
+		wantJsonErr: true,
 	}, {
 		name: "error in annotation - unmarshalable",
 		in: &annotatedJSONTestStruct{
@@ -2216,7 +2236,7 @@ func TestConstructJSON(t *testing.T) {
 				&unmarshalableJSON{AnnotationField: "knights-valley"},
 			},
 		},
-		wantErr: true,
+		wantJsonErr: true,
 	}, {
 		name:     "unset enum",
 		in:       &renderExample{EnumField: EnumTestUNSET},
@@ -2237,35 +2257,55 @@ func TestConstructJSON(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		gotietf, err := ConstructIETFJSON(tt.in, &RFC7951JSONConfig{
-			AppendModuleName: tt.inAppendMod,
+		t.Run(tt.name+" ConstructIETFJSON", func(t *testing.T) {
+			gotietf, err := ConstructIETFJSON(tt.in, &RFC7951JSONConfig{
+				AppendModuleName: tt.inAppendMod,
+			})
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ConstructIETFJSON(%v): got unexpected error: %v, want error %v", tt.in, err, tt.wantErr)
+			}
+			if err != nil {
+				return
+			}
+
+			_, err = json.Marshal(gotietf)
+			if (err != nil) != tt.wantJsonErr {
+				t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotietf, err, tt.wantJsonErr)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := pretty.Compare(gotietf, tt.wantIETF); diff != "" {
+				t.Errorf("ConstructIETFJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.in, diff)
+			}
 		})
-		if err != nil {
-			if !tt.wantErr {
-				t.Errorf("%s: ConstructIETFJSON(%v): got unexpected error: %v", tt.name, tt.in, err)
+
+		t.Run(tt.name+" ConstructInternalJSON", func(t *testing.T) {
+			gotjson, err := ConstructInternalJSON(tt.in)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ConstructJSON(%v): got unexpected error: %v", tt.in, err)
 			}
-			continue
-		}
-
-		if diff := pretty.Compare(gotietf, tt.wantIETF); diff != "" {
-			t.Errorf("%s: ConstructIETFJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.name, tt.in, diff)
-		}
-
-		gotjson, err := ConstructInternalJSON(tt.in)
-		if err != nil {
-			if !tt.wantErr {
-				t.Errorf("%s: ConstructJSON(%v): got unexpected error: %v", tt.name, tt.in, err)
+			if err != nil {
+				return
 			}
-			continue
-		}
 
-		wantInternal := tt.wantInternal
-		if tt.wantSame == true {
-			wantInternal = tt.wantIETF
-		}
-		if diff := pretty.Compare(gotjson, wantInternal); diff != "" {
-			t.Errorf("%s: ConstructJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.name, tt.in, diff)
-		}
+			_, err = json.Marshal(gotjson)
+			if (err != nil) != tt.wantJsonErr {
+				t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotjson, err, tt.wantJsonErr)
+			}
+			if err != nil {
+				return
+			}
+
+			wantInternal := tt.wantInternal
+			if tt.wantSame == true {
+				wantInternal = tt.wantIETF
+			}
+			if diff := pretty.Compare(gotjson, wantInternal); diff != "" {
+				t.Errorf("ConstructJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.in, diff)
+			}
+		})
 	}
 }
 

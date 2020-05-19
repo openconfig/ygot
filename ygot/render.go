@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/mohae/deepcopy"
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/util"
@@ -1354,20 +1355,10 @@ func jsonAnnotationSlice(v reflect.Value) (interface{}, error) {
 
 	vals := []interface{}{}
 	for i := 0; i < v.Len(); i++ {
-		fv := v.Index(i).Interface().(Annotation)
-		jv, err := fv.MarshalJSON()
-		if err != nil {
-			return nil, fmt.Errorf("cannot marshal annotation %v type %T to JSON: %v", fv, fv, err)
-		}
-
-		// MarshalJSON returns []byte, but we really want to have this as the unmarshalled
-		// value, since constructJSON returns a series of map[string]interface{} Which
-		// are later marshalled, we therefore unmarshal the []byte into an interface{}
-		var nv interface{}
-		if err := json.Unmarshal(jv, &nv); err != nil {
-			return nil, fmt.Errorf("annotation %v, type %T could not be unmarshalled from JSON: %v", fv, fv, err)
-		}
-		vals = append(vals, nv)
+		// deepcopy the Annotation to avoid accidentally modifying its contents.
+		// Since Annotations must have an implemented MarshalJSON
+		// function, this should not impact the final JSON.
+		vals = append(vals, deepcopy.Copy(v.Index(i).Interface().(Annotation)))
 	}
 	return vals, nil
 }
