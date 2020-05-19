@@ -474,7 +474,7 @@ func TestFindLeafRefSchema(t *testing.T) {
 			},
 		},
 		inPathStr: "/interfaces/interface[name=foo/bar",
-		wantErr:   "Mismatched brackets within substring /interfaces/interface[name=foo/bar of /interfaces/interface[name=foo/bar, [ pos: 21, ] pos: -1",
+		wantErr:   "mismatched brackets within substring /interfaces/interface[name=foo/bar of /interfaces/interface[name=foo/bar, [ pos: 21, ] pos: -1",
 	}, {
 		desc: "with xpath predicate",
 		inSchema: &yang.Entry{

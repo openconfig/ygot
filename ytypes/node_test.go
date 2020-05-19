@@ -1867,10 +1867,6 @@ func TestRetrieveContainerListError(t *testing.T) {
 		},
 	}
 
-	type Root struct {
-		Ok *string `path:"ok"`
-	}
-
 	type NoTagRoot struct {
 		Ok    *string `path:"ok"`
 		NoTag *string

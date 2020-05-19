@@ -23,6 +23,8 @@ import (
 	"github.com/openconfig/ygot/util"
 )
 
+//lint:file-ignore U1000 Ignore all unused code, it represents generated code.
+
 // validateLengthSchema validates whether the given schema has a valid length
 // specification.
 func validateLengthSchema(schema *yang.Entry) error {

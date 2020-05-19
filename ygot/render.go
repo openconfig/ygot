@@ -188,18 +188,18 @@ func (g *gnmiPath) SetIndex(i int, v interface{}) error {
 		return fmt.Errorf("invalid index, out of range, got: %d, length: %d", i, g.Len())
 	}
 
-	switch v.(type) {
+	switch v := v.(type) {
 	case string:
 		if !g.isStringSlicePath() {
 			return fmt.Errorf("cannot set index %d of %v to %v, wrong type %T, expected string", i, v, g, v)
 		}
-		g.stringSlicePath[i] = v.(string)
+		g.stringSlicePath[i] = v
 		return nil
 	case *gnmipb.PathElem:
 		if !g.isPathElemPath() {
 			return fmt.Errorf("cannot set index %d of %v to %v, wrong type %T, expected gnmipb.PathElem", i, v, g, v)
 		}
-		g.pathElemPath[i] = v.(*gnmipb.PathElem)
+		g.pathElemPath[i] = v
 		return nil
 	}
 	return fmt.Errorf("cannot set index %d of %v to %v, wrong type %T", i, v, g, v)
@@ -439,9 +439,7 @@ func mapValuePath(key, value reflect.Value, parentPath *gnmiPath) (*gnmiPath, er
 		}
 		// We copy the elements from the existing elementPath such that when updating
 		// it, then the elements are not modified when the paths are changed.
-		for _, e := range parentPath.stringSlicePath {
-			childPath.stringSlicePath = append(childPath.stringSlicePath, e)
-		}
+		childPath.stringSlicePath = append(childPath.stringSlicePath, parentPath.stringSlicePath...)
 		childPath.stringSlicePath = append(childPath.stringSlicePath, keyval)
 		return childPath, nil
 	}

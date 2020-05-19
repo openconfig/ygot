@@ -92,6 +92,14 @@ jobs:
           done
         working-directory: go/src/github.com/openconfig/ygot
 
+      - name: Staticcheck
+        run: |
+          go get -u honnef.co/go/tools/cmd/staticcheck
+          for i in util ygot ygen ytypes ygot/pathtranslate testutil testcmp ypathgen; do
+            staticcheck github.com/openconfig/ygot/$i
+          done
+        working-directory: go/src/github.com/openconfig/ygot
+
   finish:
     needs: build
     runs-on: ubuntu-latest

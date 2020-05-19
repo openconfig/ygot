@@ -223,9 +223,7 @@ func validateListSchema(schema *yang.Entry) error {
 			keysMissing[v] = true
 		}
 		for _, v := range schema.Dir {
-			if _, ok := keysMissing[v.Name]; ok {
-				delete(keysMissing, v.Name)
-			}
+			delete(keysMissing, v.Name)
 		}
 		if len(keysMissing) != 0 {
 			return fmt.Errorf("list %s has keys %v missing from required list of %v", schema.Name, keysMissing, keys)
@@ -336,7 +334,8 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 
 		switch {
 		case util.IsTypeMap(t):
-			newKey, err := makeKeyForInsert(schema, parent, newVal)
+			var newKey reflect.Value
+			newKey, err = makeKeyForInsert(schema, parent, newVal)
 			if err != nil {
 				return err
 			}
