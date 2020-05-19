@@ -18,10 +18,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -509,7 +510,7 @@ func TestTrimGNMIPathElemPrefix(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			if got := TrimGNMIPathElemPrefix(tt.inPath, tt.inPrefix); !proto.Equal(got, tt.want) {
-				t.Fatalf("did not get expected path, got: %s, want: %s", proto.MarshalTextString(got), proto.MarshalTextString(tt.want))
+				t.Fatalf("did not get expected path, got: %s, want: %s", prototext.Format(got), prototext.Format(tt.want))
 			}
 		})
 	}
@@ -545,7 +546,7 @@ func TestFindPathElemPrefix(t *testing.T) {
 
 	for _, tt := range tests {
 		if got := FindPathElemPrefix(tt.inPaths); !proto.Equal(got, tt.want) {
-			t.Errorf("%s: FindPathElemPrefix(%v): did not get expected prefix, got: %s, want: %s", tt.name, tt.inPaths, proto.MarshalTextString(got), proto.MarshalTextString(tt.want))
+			t.Errorf("%s: FindPathElemPrefix(%v): did not get expected prefix, got: %s, want: %s", tt.name, tt.inPaths, prototext.Format(got), prototext.Format(tt.want))
 		}
 	}
 }

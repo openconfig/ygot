@@ -20,10 +20,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/ygot/util"
+	"google.golang.org/protobuf/proto"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -45,9 +45,7 @@ func schemaPathTogNMIPath(path []string) *gnmipb.Path {
 // the v0.4.0 Elem field.
 func joingNMIPaths(parent *gnmipb.Path, child *gnmipb.Path) *gnmipb.Path {
 	p := proto.Clone(parent).(*gnmipb.Path)
-	for _, e := range child.Elem {
-		p.Elem = append(p.Elem, e)
-	}
+	p.Elem = append(p.Elem, child.Elem...)
 	return p
 }
 
@@ -258,7 +256,7 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 		}
 		sort.Strings(keys)
 		key := strings.Join(keys, "/")
-		if _, ok := processedPaths[key]; ok == true {
+		if _, ok := processedPaths[key]; ok {
 			return
 		}
 		processedPaths[key] = true
@@ -298,9 +296,9 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 // first is returned.
 func hasDiffPathOpt(opts []DiffOpt) *DiffPathOpt {
 	for _, o := range opts {
-		switch o.(type) {
+		switch v := o.(type) {
 		case *DiffPathOpt:
-			return o.(*DiffPathOpt)
+			return v
 		}
 	}
 	return nil
@@ -424,9 +422,7 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 		if !origMatched {
 			// This leaf was set in the original struct, but not in the modified
 			// struct, therefore it has been deleted.
-			for _, p := range origPath.gNMIPaths {
-				n.Delete = append(n.Delete, p)
-			}
+			n.Delete = append(n.Delete, origPath.gNMIPaths...)
 		}
 	}
 

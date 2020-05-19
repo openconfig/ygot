@@ -63,6 +63,8 @@ func ToPtr(v interface{}) interface{} {
 	return n.Interface()
 }
 
+// BinaryToFloat32 converts the input bytes to a float32 assuming IEEE 754
+// representation. The input bytes should be of length 4.
 func BinaryToFloat32(in []byte) float32 {
 	return math.Float32frombits(binary.BigEndian.Uint32(in))
 }

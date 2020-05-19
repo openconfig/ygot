@@ -1222,8 +1222,7 @@ func TestForEachField(t *testing.T) {
 
 	for _, tt := range tests {
 		outStr := ""
-		var errs Errors
-		errs = ForEachField(tt.schema, tt.parentStruct, tt.in, &outStr, tt.iterFunc)
+		var errs Errors = ForEachField(tt.schema, tt.parentStruct, tt.in, &outStr, tt.iterFunc)
 		if got, want := errs.String(), tt.wantErr; got != want {
 			diff, _ := testutil.GenerateUnifiedDiff(want, got)
 			t.Errorf("%s:\n%s", tt.desc, diff)
@@ -1332,8 +1331,7 @@ func TestForEachDataField(t *testing.T) {
 
 	for _, tt := range tests {
 		outStr := ""
-		var errs Errors
-		errs = ForEachDataField(tt.parentStruct, tt.in, &outStr, tt.iterFunc)
+		var errs Errors = ForEachDataField(tt.parentStruct, tt.in, &outStr, tt.iterFunc)
 		if got, want := errs.String(), tt.wantErr; got != want {
 			diff, _ := testutil.GenerateUnifiedDiff(want, got)
 			t.Errorf("%s: ForEachDataField(%v, %#v, ...): \n%s", tt.desc, tt.parentStruct, tt.in, diff)

@@ -643,8 +643,7 @@ func copyInterfaceField(dstField, srcField reflect.Value) error {
 		}
 	}
 
-	var d reflect.Value
-	d = reflect.New(s.Type())
+	d := reflect.New(s.Type())
 	if err := copyStruct(d.Elem(), s); err != nil {
 		return err
 	}

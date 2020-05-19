@@ -20,12 +20,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/testutil"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -288,7 +289,7 @@ func TestGNMIPathToProto(t *testing.T) {
 		}
 
 		if !proto.Equal(got, tt.wantProto) {
-			t.Errorf("%s: %v.ToProto, did not get expected return value, got: %s, want: %s", tt.name, tt.inPath, proto.MarshalTextString(got), proto.MarshalTextString(tt.wantProto))
+			t.Errorf("%s: %v.ToProto, did not get expected return value, got: %s, want: %s", tt.name, tt.inPath, prototext.Format(got), prototext.Format(tt.wantProto))
 		}
 	}
 }
@@ -727,12 +728,6 @@ type renderExampleUnionString struct {
 }
 
 func (*renderExampleUnionString) IsRenderUnionExample() {}
-
-type renderExampleUnionInt8 struct {
-	Int8 int8
-}
-
-func (*renderExampleUnionInt8) IsRenderUnionExample() {}
 
 type renderExampleUnionInt64 struct {
 	Int64 int64
@@ -1406,10 +1401,6 @@ type exampleBgpNeighborEnabledAddressFamiliesUnionUint64 struct {
 func (*exampleBgpNeighborEnabledAddressFamiliesUnionUint64) IsExampleBgpNeighborEnabledAddressFamiliesUnion() {
 }
 
-type exampleBgpNeighborEnabledAddressFamiliesUnionEnum struct {
-	E EnumTest
-}
-
 type exampleBgpNeighborEnabledAddressFamiliesUnionBinary struct {
 	Binary Binary
 }
@@ -1639,7 +1630,7 @@ func TestConstructJSON(t *testing.T) {
 		wantInternal map[string]interface{}
 		wantSame     bool
 		wantErr      bool
-		wantJsonErr  bool
+		wantJSONErr  bool
 	}{{
 		name: "invalidGoStruct",
 		in: &invalidGoStructChild{
@@ -2227,7 +2218,7 @@ func TestConstructJSON(t *testing.T) {
 				&errorAnnotation{AnnotationField: "chalk-hill"},
 			},
 		},
-		wantJsonErr: true,
+		wantJSONErr: true,
 	}, {
 		name: "error in annotation - unmarshalable",
 		in: &annotatedJSONTestStruct{
@@ -2236,7 +2227,7 @@ func TestConstructJSON(t *testing.T) {
 				&unmarshalableJSON{AnnotationField: "knights-valley"},
 			},
 		},
-		wantJsonErr: true,
+		wantJSONErr: true,
 	}, {
 		name:     "unset enum",
 		in:       &renderExample{EnumField: EnumTestUNSET},
@@ -2269,8 +2260,8 @@ func TestConstructJSON(t *testing.T) {
 			}
 
 			_, err = json.Marshal(gotietf)
-			if (err != nil) != tt.wantJsonErr {
-				t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotietf, err, tt.wantJsonErr)
+			if (err != nil) != tt.wantJSONErr {
+				t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotietf, err, tt.wantJSONErr)
 			}
 			if err != nil {
 				return
@@ -2291,8 +2282,8 @@ func TestConstructJSON(t *testing.T) {
 			}
 
 			_, err = json.Marshal(gotjson)
-			if (err != nil) != tt.wantJsonErr {
-				t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotjson, err, tt.wantJsonErr)
+			if (err != nil) != tt.wantJSONErr {
+				t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotjson, err, tt.wantJSONErr)
 			}
 			if err != nil {
 				return

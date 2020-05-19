@@ -237,10 +237,7 @@ func IsConfig(e *yang.Entry) bool {
 
 	// Reached the last element in the tree without explicit configuration
 	// being set.
-	if e.Config == yang.TSFalse {
-		return false
-	}
-	return true
+	return e.Config != yang.TSFalse
 }
 
 // isPathChild takes an input slice of strings representing a path and determines
