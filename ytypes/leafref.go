@@ -303,7 +303,7 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 				util.DbgPrint("comparing leafref values %s vs %s", util.ValueStrDebug(sourceNode), util.ValueStrDebug(other))
 				if util.DeepEqualDerefPtrs(sourceNode, other) {
 					util.DbgPrint("values are equal")
-          return true, nil
+					return true, nil
 				}
 			case util.IsValueSlice(ov):
 				sourceNode := ni.FieldValue.Interface()
@@ -311,7 +311,7 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 				for i := 0; i < ov.Len(); i++ {
 					if util.DeepEqualDerefPtrs(sourceNode, ov.Index(i).Interface()) {
 						util.DbgPrint("value exists in list")
-            return true, nil
+						return true, nil
 					}
 				}
 			case util.IsValueStructPtr(ov):
@@ -320,7 +320,7 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 				ovv := ov.Elem().FieldByIndex([]int{0})
 				svv := ni.FieldValue.Elem().Elem().FieldByIndex([]int{0})
 				if cmp.Equal(ovv.Interface(), svv.Interface()) {
-          return true, nil
+					return true, nil
 				}
 			}
 		}
