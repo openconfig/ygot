@@ -71,14 +71,14 @@ func newEnumSet() *enumSet {
 	}
 }
 
-// identityRefBaseType retrieves the mapped name of an identityref's
+// identityrefBaseTypeFromLeaf retrieves the mapped name of an identityref's
 // base such that it can be used in generated code. The value that is returned
 // is defining module name followed by the CamelCase-ified version of the
 // base's name. This function wraps the identityrefBaseTypeFromIdentity
 // function since it covers the common case that the caller is interested in
 // determining the name from an identityref leaf, rather than directly from the
 // identity.
-func (s *enumSet) identityRefBaseType(idr *yang.Entry) (string, error) {
+func (s *enumSet) identityrefBaseTypeFromLeaf(idr *yang.Entry) (string, error) {
 	return s.identityrefBaseTypeFromIdentity(idr.Type.IdentityBase)
 }
 
@@ -204,8 +204,8 @@ func (s *enumSet) enumeratedTypedefKey(e *yang.Entry, noUnderscores bool) (strin
 }
 
 // enumLeafKey calculates a unique string key for the input leaf of type
-// "enumeration" only. If compressPaths is true, it also returns the compress
-// name of the entry for use in name generation, if needed.
+// "enumeration" only. If compressPaths is true, it also returns the compressed
+// version of the entry name for use in name generation, if needed.
 func (s *enumSet) enumLeafKey(e *yang.Entry, compressPaths, noUnderscores, skipDedup bool) (string, string) {
 	// uniqueIdentifier is the unique identifier used to determine whether to
 	// define a new enum type for the input enum.
@@ -434,8 +434,9 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 
 // enumGenState contains the state and functionality for generating enum names
 // that seeks to be compatible in all supported languages. It assumes that
-// enums are all in the same namespace, guaranteeing that all enum names are
-// unique in any language.
+// enums are all in the same output namespace (within the generated code), a
+// conservative assumption guaranteeing that all enum names are unique in any
+// language.
 type enumGenState struct {
 	// definedEnums keeps track of generated enum names to avoid conflicts.
 	definedEnums map[string]bool

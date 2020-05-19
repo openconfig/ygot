@@ -245,8 +245,7 @@ func TestUnionSubTypes(t *testing.T) {
 
 			mtypes := make(map[int]*MappedType)
 			ctypes := make(map[string]int)
-			errs = s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false, false)
-			if !tt.wantErr && errs != nil {
+			if errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false, false); !tt.wantErr && errs != nil {
 				t.Errorf("unexpected errors: %v", errs)
 			}
 
@@ -283,15 +282,15 @@ func TestUnionSubTypes(t *testing.T) {
 // corresponding Go type.
 func TestYangTypeToGoType(t *testing.T) {
 	tests := []struct {
-		name                        string
-		in                          *yang.YangType
-		ctx                         *yang.Entry
-		inEntries                   []*yang.Entry
-		inSkipEnumDedup             bool
-		inCompressPath              bool
-		inUniqueEnumeratedLeafNames map[string]string
-		want                        *MappedType
-		wantErr                     bool
+		name            string
+		in              *yang.YangType
+		ctx             *yang.Entry
+		inEntries       []*yang.Entry
+		inEnumEntries   []*yang.Entry // inEnumEntries is used to add more state for findEnumSet to test enum name generation.
+		inSkipEnumDedup bool
+		inCompressPath  bool
+		want            *MappedType
+		wantErr         bool
 	}{{
 		name: "simple lookup resolution",
 		in:   &yang.YangType{Kind: yang.Yint32, Name: "int32"},
@@ -769,11 +768,110 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		want: &MappedType{NativeType: "uint32", ZeroValue: "0"},
+	}, {
+		name: "enumeration from grouping used in multiple places - skip deduplication",
+		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
+		ctx: &yang.Entry{
+			Name: "leaf",
+			Type: &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
+			Parent: &yang.Entry{
+				Name: "config",
+				Parent: &yang.Entry{
+					Name:   "bar",
+					Parent: &yang.Entry{Name: "foo-mod"},
+				},
+			},
+			Node: &yang.Leaf{
+				Name: "leaf",
+				Parent: &yang.Grouping{
+					Name: "group",
+					Parent: &yang.Module{
+						Name: "mod",
+					},
+				},
+			},
+		},
+		inEnumEntries: []*yang.Entry{{
+			Name: "enum-leaf",
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Enum: &yang.EnumType{},
+				Kind: yang.Yenum,
+			},
+			Node: &yang.Leaf{
+				Name: "leaf",
+				Parent: &yang.Grouping{
+					Name: "group",
+					Parent: &yang.Module{
+						Name: "mod",
+					},
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "config",
+				Parent: &yang.Entry{
+					Name:   "container",
+					Parent: &yang.Entry{Name: "base-module"},
+				},
+			},
+		}},
+		inCompressPath:  true,
+		inSkipEnumDedup: true,
+		want:            &MappedType{NativeType: "E_Mod_Bar_Leaf", IsEnumeratedValue: true, ZeroValue: "0"},
+	}, {
+		name: "enumeration from grouping used in multiple places - with deduplication",
+		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
+		ctx: &yang.Entry{
+			Name: "leaf",
+			Type: &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
+			Parent: &yang.Entry{
+				Name: "config",
+				Parent: &yang.Entry{
+					Name:   "bar",
+					Parent: &yang.Entry{Name: "foo-mod"},
+				},
+			},
+			Node: &yang.Leaf{
+				Name: "leaf",
+				Parent: &yang.Grouping{
+					Name:   "group",
+					Parent: &yang.Module{Name: "mod"},
+				},
+			},
+		},
+		inEnumEntries: []*yang.Entry{{
+			Name: "enum-leaf",
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Enum: &yang.EnumType{},
+				Kind: yang.Yenum,
+			},
+			Node: &yang.Leaf{
+				Name: "leaf",
+				Parent: &yang.Grouping{
+					Name: "group",
+					Parent: &yang.Module{
+						Name: "mod",
+					},
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "config",
+				Parent: &yang.Entry{
+					Name:   "container",
+					Parent: &yang.Entry{Name: "base-module-lexicographically-earlier-so-it-gets-processed-earlier"},
+				},
+			},
+		}},
+		inCompressPath: true,
+		want:           &MappedType{NativeType: "E_Mod_Container_EnumLeaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromEntry(tt.ctx), tt.inCompressPath, false, tt.inSkipEnumDedup)
+			enumMap := enumMapFromEntries(tt.inEnumEntries)
+			addEnumsToEnumMap(tt.ctx, enumMap)
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)

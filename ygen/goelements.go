@@ -303,11 +303,11 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 	case yang.Yidentityref:
 		// Identityref leaves are mapped according to the base identity that they
 		// refer to - this is stored in the IdentityBase field of the context leaf
-		// which is determined by the identityRefBaseType.
+		// which is determined by the identityrefBaseTypeFromLeaf.
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context")
 		}
-		n, err := s.enumSet.identityRefBaseType(args.contextEntry)
+		n, err := s.enumSet.identityrefBaseTypeFromLeaf(args.contextEntry)
 		if err != nil {
 			return nil, err
 		}

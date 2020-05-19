@@ -1300,6 +1300,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 	}
 }
 
+// enumMapFromEntries recursively finds enumerated values from a slice of
+// entries and returns an enumMap. The input enumMap is intended for
+// findEnumSet.
 func enumMapFromEntries(entries []*yang.Entry) map[string]*yang.Entry {
 	enumMap := map[string]*yang.Entry{}
 	for _, e := range entries {
@@ -1308,6 +1311,9 @@ func enumMapFromEntries(entries []*yang.Entry) map[string]*yang.Entry {
 	return enumMap
 }
 
+// enumMapFromEntries recursively finds enumerated values from a slice of
+// resolveTypeArgs and returns an enumMap. The input enumMap is intended for
+// findEnumSet.
 func enumMapFromArgs(args []resolveTypeArgs) map[string]*yang.Entry {
 	enumMap := map[string]*yang.Entry{}
 	for _, a := range args {
@@ -1316,12 +1322,16 @@ func enumMapFromArgs(args []resolveTypeArgs) map[string]*yang.Entry {
 	return enumMap
 }
 
+// enumMapFromEntries recursively finds enumerated values from an entry and
+// returns an enumMap. The input enumMap is intended for findEnumSet.
 func enumMapFromEntry(entry *yang.Entry) map[string]*yang.Entry {
 	enumMap := map[string]*yang.Entry{}
 	addEnumsToEnumMap(entry, enumMap)
 	return enumMap
 }
 
+// enumMapFromEntries recursively finds enumerated values from a directory and
+// returns an enumMap. The input enumMap is intended for findEnumSet.
 func enumMapFromDirectory(dir *Directory) map[string]*yang.Entry {
 	enumMap := map[string]*yang.Entry{}
 	addEnumsToEnumMap(dir.Entry, enumMap)
@@ -1351,15 +1361,15 @@ func addEnumsToEnumMap(entry *yang.Entry, enumMap map[string]*yang.Entry) {
 // struct is returned representing the keys of the list e.
 func TestBuildListKey(t *testing.T) {
 	tests := []struct {
-		name                        string        // name is the test identifier.
-		in                          *yang.Entry   // in is the yang.Entry of the test list.
-		inCompress                  bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
-		inEntries                   []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
-		inUniqueEnumeratedLeafNames map[string]string
-		inSkipEnumDedup             bool         // inSkipEnumDedup says whether to dedup identical enums encountered in the models.
-		inResolveKeyNameFuncNil     bool         // inResolveKeyNameFuncNil specifies whether the key name function is not provided.
-		want                        YangListAttr // want is the expected YangListAttr output.
-		wantErr                     bool         // wantErr is a boolean indicating whether errors are expected from buildListKeys
+		name                    string        // name is the test identifier.
+		in                      *yang.Entry   // in is the yang.Entry of the test list.
+		inCompress              bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
+		inEntries               []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
+		inEnumEntries           []*yang.Entry // inEnumEntries is used to add more state for findEnumSet to test enum name generation.
+		inSkipEnumDedup         bool          // inSkipEnumDedup says whether to dedup identical enums encountered in the models.
+		inResolveKeyNameFuncNil bool          // inResolveKeyNameFuncNil specifies whether the key name function is not provided.
+		want                    YangListAttr  // want is the expected YangListAttr output.
+		wantErr                 bool          // wantErr is a boolean indicating whether errors are expected from buildListKeys
 	}{{
 		name: "non-list",
 		in: &yang.Entry{
@@ -1857,6 +1867,153 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name: "list enum key -- already seen",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "keyleaf",
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+					Node: &yang.Enum{
+						Name: "enumeration",
+						Parent: &yang.Grouping{
+							Name: "foo",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		inEnumEntries: []*yang.Entry{{
+			Name: "enum-leaf",
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Enum: &yang.EnumType{},
+				Kind: yang.Yenum,
+			},
+			Node: &yang.Enum{
+				Name: "enumeration",
+				Parent: &yang.Grouping{
+					Name: "foo",
+					Parent: &yang.Module{
+						Name: "base-module",
+					},
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "before-config-lexicographically-so-it-gets-processed-earlier",
+				Parent: &yang.Entry{
+					Name:   "container",
+					Parent: &yang.Entry{Name: "base-module"},
+				},
+			},
+		}},
+		inCompress: true,
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleaf": {NativeType: "E_BaseModule_Container_EnumLeaf"},
+			},
+			KeyElems: []*yang.Entry{
+				{
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+				},
+			},
+		},
+	}, {
+		name: "list enum key -- already seen but skip enum dedup",
+		in: &yang.Entry{
+			Name:     "list",
+			ListAttr: &yang.ListAttr{},
+			Key:      "keyleaf",
+			Dir: map[string]*yang.Entry{
+				"keyleaf": {
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+					Node: &yang.Enum{
+						Name: "enumeration",
+						Parent: &yang.Grouping{
+							Name: "foo",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		inEnumEntries: []*yang.Entry{{
+			Name: "enum-leaf",
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Enum: &yang.EnumType{},
+				Kind: yang.Yenum,
+			},
+			Node: &yang.Enum{
+				Name: "enumeration",
+				Parent: &yang.Grouping{
+					Name: "foo",
+					Parent: &yang.Module{
+						Name: "base-module",
+					},
+				},
+			},
+			Parent: &yang.Entry{
+				Name: "before-config-lexicographically",
+				Parent: &yang.Entry{
+					Name:   "container",
+					Parent: &yang.Entry{Name: "base-module"},
+				},
+			},
+		}},
+		inCompress:      true,
+		inSkipEnumDedup: true,
+		want: YangListAttr{
+			Keys: map[string]*MappedType{
+				"keyleaf": {NativeType: "E_BaseModule_Container_Keyleaf"},
+			},
+			KeyElems: []*yang.Entry{
+				{
+					Name: "keyleaf",
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Enum: &yang.EnumType{},
+						Kind: yang.Yenum,
+					},
+				},
+			},
+		},
 	}}
 
 	for _, tt := range tests {
@@ -1868,7 +2025,9 @@ func TestBuildListKey(t *testing.T) {
 					t.Fatalf("%s: buildSchemaTree(%v), could not build tree: %v", tt.name, tt.inEntries, err)
 				}
 			}
-			enumSet, _, errs := findEnumSet(enumMapFromEntry(tt.in), tt.inCompress, false, tt.inSkipEnumDedup)
+			enumMap := enumMapFromEntries(tt.inEnumEntries)
+			addEnumsToEnumMap(tt.in, enumMap)
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
@@ -1908,7 +2067,7 @@ func TestBuildListKey(t *testing.T) {
 					continue
 				}
 				if elem.NativeType != gtype.NativeType {
-					t.Errorf("%s: key %s had the wrong type %s", tt.name, name, gtype.NativeType)
+					t.Errorf("%s: key %s had the wrong type %s, want %s", tt.name, name, gtype.NativeType, elem.NativeType)
 				}
 			}
 		})
