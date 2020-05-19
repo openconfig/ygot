@@ -18,10 +18,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 )
 
 // TestPathToString validates the functionality provided by the PathToString
@@ -432,7 +433,7 @@ func TestStringToPath(t *testing.T) {
 		}
 
 		if strErr == nil && !proto.Equal(gotStructuredPath, tt.wantStructuredPath) {
-			t.Errorf("%s: StringToStructuredPath(%v): did not get expected structured path, got: %v, want: %v", tt.name, tt.in, proto.MarshalTextString(gotStructuredPath), proto.MarshalTextString(tt.wantStructuredPath))
+			t.Errorf("%s: StringToStructuredPath(%v): did not get expected structured path, got: %v, want: %v", tt.name, tt.in, prototext.Format(gotStructuredPath), prototext.Format(tt.wantStructuredPath))
 		}
 
 		if strErr != nil || sliceErr != nil {
@@ -447,7 +448,7 @@ func TestStringToPath(t *testing.T) {
 		}
 
 		if combinedErr == nil && !proto.Equal(gotCombinedPath, wantCombined) {
-			t.Errorf("%s: StringToPath(%v, {StringSlicePath, StructuredPath}): did not get expected combined path message, got: %v, want: %v", tt.name, tt.in, proto.MarshalTextString(gotCombinedPath), proto.MarshalTextString(wantCombined))
+			t.Errorf("%s: StringToPath(%v, {StringSlicePath, StructuredPath}): did not get expected combined path message, got: %v, want: %v", tt.name, tt.in, prototext.Format(gotCombinedPath), prototext.Format(wantCombined))
 		}
 
 	}
@@ -529,7 +530,7 @@ func TestPathToSchemaPath(t *testing.T) {
 	for _, tt := range tests {
 		got, err := PathToSchemaPath(tt.inPath)
 		if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
-			t.Errorf("%s: PathToSchemaPath(%s): did not get expected error, %s", tt.name, proto.MarshalTextString(tt.inPath), diff)
+			t.Errorf("%s: PathToSchemaPath(%s): did not get expected error, %s", tt.name, prototext.Format(tt.inPath), diff)
 		}
 
 		if err != nil {
@@ -537,7 +538,7 @@ func TestPathToSchemaPath(t *testing.T) {
 		}
 
 		if got != tt.want {
-			t.Errorf("%s: PathToSchemaPath(%s): did not get expected path, got: %s, want: %s", tt.name, proto.MarshalTextString(tt.inPath), got, tt.want)
+			t.Errorf("%s: PathToSchemaPath(%s): did not get expected path, got: %s, want: %s", tt.name, prototext.Format(tt.inPath), got, tt.want)
 		}
 	}
 }

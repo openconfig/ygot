@@ -22,11 +22,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/mohae/deepcopy"
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/util"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -48,7 +49,7 @@ type path struct {
 
 func (p *path) String() string {
 	if p.p.isPathElemPath() {
-		return proto.MarshalTextString(&gnmipb.Path{Elem: p.p.pathElemPath})
+		return prototext.Format(&gnmipb.Path{Elem: p.p.pathElemPath})
 	}
 	return fmt.Sprintf("%v", p.p.pathElemPath)
 }

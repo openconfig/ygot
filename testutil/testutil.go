@@ -22,10 +22,10 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/value"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"

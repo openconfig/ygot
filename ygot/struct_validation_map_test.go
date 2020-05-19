@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
