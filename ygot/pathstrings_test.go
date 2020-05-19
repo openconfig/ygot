@@ -442,7 +442,7 @@ func TestStringToPath(t *testing.T) {
 
 		wantCombined := proto.Clone(tt.wantStructuredPath).(*gnmipb.Path)
 
-    //lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
+		//lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 		wantCombined.Element = append(wantCombined.Element, tt.wantStringSlicePath.Element...)
 
 		gotCombinedPath, combinedErr := StringToPath(tt.in, StringSlicePath, StructuredPath)
