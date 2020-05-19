@@ -384,11 +384,18 @@ func PathLess(a, b *gnmipb.Path) bool {
 
 	// Handle comparison of paths that are based on the "element" rather than
 	// "elem".
+  // TODO(robjs): Remove handling of element fields when they are fully
+  // deprecated in gNMI.
+  //
+  //lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 	for len(a.Element) != len(b.Element) {
+    //lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 		return len(a.Element) > len(b.Element)
 	}
 
+  //lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 	for i := 0; i < len(a.Element); i++ {
+     //lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 		if ae, be := a.Element[i], b.Element[i]; ae != be {
 			return ae < be
 		}

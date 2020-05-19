@@ -293,7 +293,6 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 	}
 
 	for _, sourceNode := range sourceNodes {
-		match := false
 		for _, other := range matchNodes {
 			if util.IsValueNilOrDefault(other) {
 				continue
@@ -304,8 +303,7 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 				util.DbgPrint("comparing leafref values %s vs %s", util.ValueStrDebug(sourceNode), util.ValueStrDebug(other))
 				if util.DeepEqualDerefPtrs(sourceNode, other) {
 					util.DbgPrint("values are equal")
-					match = true
-					break
+          return true, nil
 				}
 			case util.IsValueSlice(ov):
 				sourceNode := ni.FieldValue.Interface()
@@ -313,8 +311,7 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 				for i := 0; i < ov.Len(); i++ {
 					if util.DeepEqualDerefPtrs(sourceNode, ov.Index(i).Interface()) {
 						util.DbgPrint("value exists in list")
-						match = true
-						break
+            return true, nil
 					}
 				}
 			case util.IsValueStructPtr(ov):
@@ -323,17 +320,13 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 				ovv := ov.Elem().FieldByIndex([]int{0})
 				svv := ni.FieldValue.Elem().Elem().FieldByIndex([]int{0})
 				if cmp.Equal(ovv.Interface(), svv.Interface()) {
-					match = true
-					break
+          return true, nil
 				}
 			}
 		}
-		if !match {
-			return false, nil
-		}
 	}
 
-	return true, nil
+	return false, nil
 }
 
 // getDataTreeRoot returns the root NodeInfo element for the current node.

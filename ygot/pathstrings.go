@@ -54,8 +54,10 @@ func PathToSchemaPath(path *gnmipb.Path) (string, error) {
 		return "", fmt.Errorf("received nil path in PathToSchemaPath")
 	}
 
+  //lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 	if path.Element != nil {
 		var sp []string
+    //lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 		for _, e := range path.Element {
 			elem, _, err := extractKV(e)
 			if err != nil {
@@ -89,7 +91,9 @@ func PathToStrings(path *gnmipb.Path) ([]string, error) {
 		return nil, fmt.Errorf("received nil path in PathToStrings")
 	}
 
+  //lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 	if path.Element != nil {
+    //lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 		return elementsToString(path.Element)
 	}
 
@@ -173,6 +177,7 @@ func StringToPath(path string, pathTypes ...PathType) (*gnmipb.Path, error) {
 				errs = util.AppendErr(errs, fmt.Errorf("error building string slice path: %v", err))
 				continue
 			}
+      //lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 			pmsg.Element = gp.Element
 		}
 	}
@@ -203,6 +208,7 @@ func StringToStringSlicePath(path string) (*gnmipb.Path, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error formatting path %q: %v", path, err)
 		}
+    //lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 		gpath.Element = append(gpath.Element, fpath)
 	}
 
