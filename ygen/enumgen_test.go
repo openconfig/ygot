@@ -15,7 +15,6 @@
 package ygen
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -1276,8 +1275,7 @@ func TestFindEnumSet(t *testing.T) {
 					}
 
 					if want.entry.Name != got.entry.Name {
-						j, _ := json.Marshal(got)
-						t.Errorf("extracted entry has wrong name: got %s, want: %s (%s)", got.entry.Name, want.entry.Name, string(j))
+						t.Errorf("extracted entry has wrong name: got %s, want: %s (%+v)", got.entry.Name, want.entry.Name, got)
 					}
 
 					if want.entry.Type.IdentityBase != nil {

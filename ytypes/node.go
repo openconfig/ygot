@@ -17,12 +17,12 @@ package ytypes
 import (
 	"reflect"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )

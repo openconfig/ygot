@@ -22,9 +22,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -222,11 +222,8 @@ func (e badEnumTest) String() string {
 }
 
 func TestEnumFieldToString(t *testing.T) {
-	var i interface{}
-	i = EONE
-	if _, ok := i.(GoEnum); !ok {
-		t.Fatalf("TestEnumFieldToString: %T is not a valid GoEnum", i)
-	}
+	// EONE must be a valid GoEnum.
+	var _ GoEnum = EONE
 
 	tests := []struct {
 		name               string

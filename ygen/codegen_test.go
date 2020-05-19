@@ -602,15 +602,13 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles:             []string{filepath.Join(datapath, "empty.yang")},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/empty.formatted-txt"),
 	}, {
-		name:    "module with excluded modules",
-		inFiles: []string{filepath.Join(datapath, "excluded-module.yang")},
+		name:             "module with excluded modules",
+		inFiles:          []string{filepath.Join(datapath, "excluded-module.yang")},
+		inExcludeModules: []string{"excluded-module-two"},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
 				GenerateFakeRoot: true,
 				FakeRootName:     "office",
-			},
-			ParseOptions: ParseOpts{
-				ExcludeModules: []string{"excluded-module-two"},
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/excluded-module.formatted-txt"),
@@ -736,6 +734,7 @@ func TestSimpleStructs(t *testing.T) {
 					tt.inConfig.Caller = "codegen-tests"
 				}
 				tt.inConfig.StoreRawSchema = true
+				tt.inConfig.ParseOptions.ExcludeModules = tt.inExcludeModules
 
 				cg := NewYANGCodeGenerator(&tt.inConfig)
 

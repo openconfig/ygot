@@ -61,9 +61,9 @@ func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOpti
 	// explicitly returning an error.
 	var leafrefOpt *LeafrefOptions
 	for _, o := range opts {
-		switch o.(type) {
+		switch v := o.(type) {
 		case *LeafrefOptions:
-			leafrefOpt = o.(*LeafrefOptions)
+			leafrefOpt = v
 		}
 	}
 

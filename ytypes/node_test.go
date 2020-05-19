@@ -20,11 +20,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -808,9 +809,9 @@ func treeNodesEqual(got, want []*TreeNode) error {
 		if !match {
 			paths := []string{}
 			for _, g := range got {
-				paths = append(paths, fmt.Sprintf("< %s | %#v >", proto.CompactTextString(g.Path), g))
+				paths = append(paths, fmt.Sprintf("< %s | %#v >", prototext.MarshalOptions{Multiline: false}.Format(g.Path), g))
 			}
-			return fmt.Errorf("no match for %#v (path: %s) in %v", w, proto.CompactTextString(w.Path), paths)
+			return fmt.Errorf("no match for %#v (path: %s) in %v", w, prototext.MarshalOptions{Multiline: false}.Format(w.Path), paths)
 		}
 	}
 	return nil
@@ -1865,10 +1866,6 @@ func TestRetrieveContainerListError(t *testing.T) {
 				Type: &yang.YangType{Kind: yang.Ystring},
 			},
 		},
-	}
-
-	type Root struct {
-		Ok *string `path:"ok"`
 	}
 
 	type NoTagRoot struct {

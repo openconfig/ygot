@@ -17,8 +17,8 @@ package ygot
 import (
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestResolvePath(t *testing.T) {

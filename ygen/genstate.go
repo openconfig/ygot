@@ -153,7 +153,7 @@ func buildListKey(e *yang.Entry, compressOCPaths bool, resolveKeyTypeName func(k
 	if e.Key == "" {
 		// A null key is not valid if we have a config true list, so return an error
 		if util.IsConfig(e) {
-			return nil, []error{fmt.Errorf("No key specified for a config true list: %s", e.Name)}
+			return nil, []error{fmt.Errorf("no key specified for a config true list: %s", e.Name)}
 		}
 		// This is a keyless list so return an empty YangListAttr but no error, downstream
 		// mapping code should consider this to mean that this should be mapped into a
@@ -173,7 +173,7 @@ func buildListKey(e *yang.Entry, compressOCPaths bool, resolveKeyTypeName func(k
 		// corresponding to the leaf.
 		keyleaf, ok := e.Dir[k]
 		if !ok {
-			return nil, []error{fmt.Errorf("Key %s did not exist for %s", k, e.Name)}
+			return nil, []error{fmt.Errorf("key %s did not exist for %s", k, e.Name)}
 		}
 
 		if keyleaf.Type != nil {
@@ -192,7 +192,7 @@ func buildListKey(e *yang.Entry, compressOCPaths bool, resolveKeyTypeName func(k
 					// leafref.
 					refparts := strings.Split(keyleaf.Type.Path, "/")
 					if len(refparts) < 2 {
-						return nil, []error{fmt.Errorf("Key %s had an invalid path %s", k, keyleaf.Path())}
+						return nil, []error{fmt.Errorf("key %s had an invalid path %s", k, keyleaf.Path())}
 					}
 					// In the case of OpenConfig, the list key is specified to be under
 					// the 'config' or 'state' container of the list element (e). To this
@@ -203,14 +203,14 @@ func buildListKey(e *yang.Entry, compressOCPaths bool, resolveKeyTypeName func(k
 					d, ok := e.Dir[dir]
 					if !ok {
 						return nil, []error{
-							fmt.Errorf("Key %s had a leafref key (%s) in dir %s that did not exist (%v)",
+							fmt.Errorf("key %s had a leafref key (%s) in dir %s that did not exist (%v)",
 								k, keyleaf.Path(), dir, refparts),
 						}
 					}
 					targetLeaf := util.StripModulePrefix(refparts[len(refparts)-1])
 					if _, ok := d.Dir[targetLeaf]; !ok {
 						return nil, []error{
-							fmt.Errorf("Key %s had leafref key (%s) that did not exist at (%v)", k, keyleaf.Path(), refparts),
+							fmt.Errorf("key %s had leafref key (%s) that did not exist at (%v)", k, keyleaf.Path(), refparts),
 						}
 					}
 					keyleaf = d.Dir[targetLeaf]

@@ -1268,7 +1268,7 @@ func enumInProtoUnionField(name string, etype *yang.YangType, annotateEnumNames 
 	enums := map[string]*protoMsgEnum{}
 	for _, t := range etype.Type {
 		if util.IsSimpleEnumerationType(t) {
-			n := fmt.Sprintf("%s", yang.CamelCase(name))
+			n := yang.CamelCase(name)
 			enum, err := genProtoEnum(&yang.Entry{
 				Name: n,
 				Type: t,

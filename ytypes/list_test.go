@@ -324,15 +324,9 @@ func TestValidateListStructKey(t *testing.T) {
 		Key2     *int32  `path:"key2"`
 		LeafName *string `path:"leaf-name"`
 	}
-	type BadElemStruct1 struct {
+	type BadElemStruct struct {
 		Key1     *string `path:"key1"`
 		LeafName *string `path:"leaf-name"`
-	}
-	type BadElemStruct2 struct {
-		Key1       *string `path:"key1"`
-		Key2       *int32  `path:"key2"`
-		ExtraField *string `path:"extra-name"`
-		LeafName   *string `path:"leaf-name"`
 	}
 
 	tests := []struct {
@@ -363,7 +357,7 @@ func TestValidateListStructKey(t *testing.T) {
 		},
 		{
 			desc: "missing key",
-			val: map[KeyStruct]*BadElemStruct1{
+			val: map[KeyStruct]*BadElemStruct{
 				{"elem1_key_val", 0}: {
 					Key1:     ygot.String("elem1_key_val"),
 					LeafName: ygot.String("elem1_leaf_name"),

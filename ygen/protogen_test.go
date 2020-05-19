@@ -46,11 +46,7 @@ func protoMsgEq(a, b *protoMsg) bool {
 		return e
 	}
 
-	if !cmp.Equal(fieldMap(a.Fields), fieldMap(b.Fields)) {
-		return false
-	}
-
-	return true
+	return cmp.Equal(fieldMap(a.Fields), fieldMap(b.Fields))
 }
 
 func TestGenProto3Msg(t *testing.T) {

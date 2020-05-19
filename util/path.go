@@ -157,10 +157,10 @@ func removeXPATHPredicates(s string) (string, error) {
 			i += len(ss)
 		case si == -1 || ei == -1:
 			// This substring contained a mismatched pair of []s.
-			return "", fmt.Errorf("Mismatched brackets within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
+			return "", fmt.Errorf("mismatched brackets within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
 		case si > ei:
 			// This substring contained a ] before a [.
-			return "", fmt.Errorf("Incorrect ordering of [] within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
+			return "", fmt.Errorf("incorrect ordering of [] within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
 		default:
 			// This substring contained a matched set of []s.
 			b.WriteString(ss[0:si])
