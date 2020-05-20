@@ -7,7 +7,6 @@ require (
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.4.1
 	github.com/kylelemons/godebug v1.1.0
-	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/openconfig/gnmi v0.0.0-20200508230933-d19cebf5e7be
 	github.com/openconfig/goyang v0.0.0-20200506211124-77aa4ea52d03
 	github.com/pmezard/go-difflib v1.0.0
