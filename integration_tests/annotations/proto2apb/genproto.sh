@@ -19,4 +19,4 @@ if [ -z ${SRCDIR} ]; then
    SRCDIR=${DIR}/../..
 fi
 
-cd ${SRCDIR}/../../../../../src && protoc --proto_path=. --go_out=:. github.com/openconfig/ygot/integration_tests/annotations/proto2apb/proto2apb.proto
+cd ${SRCDIR}/../../../../src && protoc --proto_path=. --go_out=:. github.com/openconfig/ygot/integration_tests/annotations/proto2apb/proto2apb.proto
