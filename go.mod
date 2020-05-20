@@ -6,6 +6,7 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.4.1
+	github.com/google/protobuf v3.12.0+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826
 	github.com/openconfig/gnmi v0.0.0-20200508230933-d19cebf5e7be
