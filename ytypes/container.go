@@ -17,6 +17,7 @@ package ytypes
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
@@ -146,6 +147,7 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interfa
 func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string]interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	destv := reflect.ValueOf(parent).Elem()
 	var allSchemaPaths [][]string
+
 	// Range over the parent struct fields. For each field, check if the data
 	// is present in the JSON tree and if so unmarshal it into the field.
 	for i := 0; i < destv.NumField(); i++ {
@@ -155,6 +157,17 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		// Skip annotation fields since they do not have a schema.
 		// TODO(robjs): Implement unmarshalling annotations.
 		if util.IsYgotAnnotation(ft) {
+			// We need to find the paths that we should have unmarshalled here to avoid
+			// throwing errors to users whilst there is a TODO above.
+			paths, err := pathTagFromField(ft)
+			if err != nil {
+				return fmt.Errorf("cannot find JSON field names for annotation field %s, %v", ft.Name, err)
+			}
+
+			for _, s := range strings.Split(paths, "|") {
+				pp := strings.Split(s, "/")
+				allSchemaPaths = append(allSchemaPaths, []string{pp[len(pp)-1]})
+			}
 			continue
 		}
 
@@ -162,13 +175,11 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		if err != nil {
 			return err
 		}
+
 		if cschema == nil {
 			return fmt.Errorf("unmarshalContainer could not find schema for type %T, field name %s", parent, ft.Name)
 		}
-		jsonValue, err := getJSONTreeValForField(schema, cschema, ft, jsonTree)
-		if err != nil {
-			return err
-		}
+
 		// Store the data tree path of the current field. These will be used
 		// at the end to ensure that there are no excess elements in the JSON
 		// tree not covered by any data path.
@@ -176,8 +187,13 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		if err != nil {
 			return err
 		}
-
 		allSchemaPaths = append(allSchemaPaths, sp...)
+
+		jsonValue, err := getJSONTreeValForField(schema, cschema, ft, jsonTree)
+		if err != nil {
+			return err
+		}
+
 		if jsonValue == nil {
 			util.DbgPrint("field %s paths %v not present in tree", ft.Name, sp)
 			continue
