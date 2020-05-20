@@ -54,18 +54,20 @@ jobs:
         working-directory: go/src/github.com/openconfig/ygot
 
       - name: Generate dependencies
-        run: |
-          cd go/src/github.com/openconfig/ygot
-          make generate
+        run: make generate
+        working-directory: go/src/github.com/openconfig/ygot
 
       - name: Build packages
-        run: cd go/src/github.com/openconfig/ygot && go build -v ./...
+        run: go build -v ./...
+        working-directory: go/src/github.com/openconfig/ygot
 
       - name: Run Tests
-        run: cd go/src/github.com/openconfig/ygot && go test -v ./...
+        run: go test -v ./...
+        working-directory: go/src/github.com/openconfig/ygot
 
       - name: Run race tests
-        run: cd go/src/github.com/openconfig/ygot && go test -race -v ./...
+        run:  go test -race -v ./...
+        working-directory: go/src/github.com/openconfig/ygot
 
       - name: Run overalls for coverage
         run: |
