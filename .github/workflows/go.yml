@@ -48,15 +48,15 @@ jobs:
         with:
           path: go/src/github.com/openconfig/ygot
 
-      - name: Generate dependencies
-        run: |
-          cd go/src/github.com/openconfig/ygot
-          make generate
-
       - name: Get dependencies
         run: |
           go get -v -t -d ./...
         working-directory: go/src/github.com/openconfig/ygot
+
+      - name: Generate dependencies
+        run: |
+          cd go/src/github.com/openconfig/ygot
+          make generate
 
       - name: Build packages
         run: cd go/src/github.com/openconfig/ygot && go build -v ./...
