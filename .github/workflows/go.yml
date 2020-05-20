@@ -56,7 +56,8 @@ jobs:
       - name: Get dependencies
         run: |
           go get -v -t -d ./...
-          
+        working-directory: go/src/github.com/openconfig/ygot
+
       - name: Build packages
         run: cd go/src/github.com/openconfig/ygot && go build -v ./...
 
@@ -68,7 +69,7 @@ jobs:
 
       - name: Run overalls for coverage
         run: |
-          overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator" 
+          overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
 
       - name: Send coverage
         uses: shogo82148/actions-goveralls@v1
@@ -82,7 +83,7 @@ jobs:
             go vet ./$i
           done
           for j in ygot testcmp testutil; do
-            go vet -composites=false ./$j 
+            go vet -composites=false ./$j
           done
         working-directory: go/src/github.com/openconfig/ygot
 
