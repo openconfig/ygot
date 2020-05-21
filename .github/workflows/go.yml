@@ -88,13 +88,8 @@ jobs:
 
       - name: Run coverage
         run: |
-          echo "Local directory: "
-          pwd
-          echo "Files"
-          find .
           overalls -project ${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot  -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
           goveralls -coverprofile=overalls.coverprofile -service github
-        working-directory: ${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot
 
       - name: Go vet
         run: |
