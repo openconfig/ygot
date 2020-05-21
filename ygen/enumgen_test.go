@@ -24,18 +24,18 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
-func TestResolveDedupSet(t *testing.T) {
+func TestResolveNameClashSet(t *testing.T) {
 	tests := []struct {
 		name               string
 		inDefinedEnums     map[string]bool
-		inDedupSets        map[string]map[string]bool
+		inNameClashSets    map[string]map[string]bool
 		wantUniqueNamesMap map[string]string
 	}{{
 		name: "no duplication",
 		inDefinedEnums: map[string]bool{
 			"Baz": true,
 		},
-		inDedupSets: map[string]map[string]bool{
+		inNameClashSets: map[string]map[string]bool{
 			"Foo": map[string]bool{
 				"enum-a": true,
 			},
@@ -52,7 +52,7 @@ func TestResolveDedupSet(t *testing.T) {
 		inDefinedEnums: map[string]bool{
 			"Baz": true,
 		},
-		inDedupSets: map[string]map[string]bool{
+		inNameClashSets: map[string]map[string]bool{
 			"Foo": map[string]bool{
 				"enum-a": true,
 				"enum-b": true,
@@ -67,7 +67,7 @@ func TestResolveDedupSet(t *testing.T) {
 		inDefinedEnums: map[string]bool{
 			"Foo": true,
 		},
-		inDedupSets: map[string]map[string]bool{
+		inNameClashSets: map[string]map[string]bool{
 			"Foo": map[string]bool{
 				"enum-a": true,
 				"enum-b": true,
@@ -83,10 +83,10 @@ func TestResolveDedupSet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := newEnumGenState()
 			s.definedEnums = tt.inDefinedEnums
-			gotUniqueNamesMap := s.resolveNameClashSet(tt.inDedupSets)
+			gotUniqueNamesMap := s.resolveNameClashSet(tt.inNameClashSets)
 
 			if diff := cmp.Diff(gotUniqueNamesMap, tt.wantUniqueNamesMap); diff != "" {
-				fmt.Printf("TestResolveDedupSet (-got, +want):\n%s", diff)
+				fmt.Printf("TestResolveNameClashSet (-got, +want):\n%s", diff)
 			}
 		})
 	}
