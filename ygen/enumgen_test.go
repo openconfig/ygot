@@ -1256,8 +1256,8 @@ func TestFindEnumSet(t *testing.T) {
 		}
 		for compressed, wanted := range map[bool]map[string]*yangEnum{true: tt.wantCompressed, false: wantUncompressed} {
 			t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v)", tt.name, compressed, tt.inSkipEnumDeduplication), func(t *testing.T) {
-				state := newEnumGenState()
-				entries, errs := state.findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication)
+				// TODO(wenbli): test the generated enum name sets when deduplication tests are added.
+				_, entries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication)
 
 				if (errs != nil) != tt.wantErr {
 					t.Fatalf("findEnumSet: did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", errs, len(errs), tt.wantErr)

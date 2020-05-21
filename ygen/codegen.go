@@ -351,8 +351,13 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	// Store the returned schematree within the state for this code generation.
-	gogen := newGoGenState(mdef.schematree)
+	enumSet, goEnums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.Config.ParseOptions.SkipEnumDeduplication)
+	if errs != nil {
+		return nil, errs
+	}
+
+	// Store the returned schematree and enumSet within the state for this code generation.
+	gogen := newGoGenState(mdef.schematree, enumSet)
 
 	directoryMap, errs := gogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot, cg.Config.ParseOptions.SkipEnumDeduplication)
 	if errs != nil {
@@ -398,12 +403,6 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		for p, t := range structOut.enumTypeMap {
 			enumTypeMap[p] = t
 		}
-	}
-
-	goEnums, errs := gogen.enumGen.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.Config.ParseOptions.SkipEnumDeduplication)
-	if errs != nil {
-		codegenErr = util.AppendErrs(codegenErr, errs)
-		return nil, codegenErr
 	}
 
 	enumSnippets, enumMap, errs := generateEnumCode(goEnums)
@@ -477,8 +476,12 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 
 	dirsToProcess := map[string]*yang.Entry(mdef.directoryEntries)
 
-	// Store the returned schematree within the state for this code generation.
-	gogen := newGoGenState(mdef.schematree)
+	enumSet, _, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication)
+	if errs != nil {
+		return nil, nil, errs
+	}
+	// Store the returned schematree and enumSet within the state for this code generation.
+	gogen := newGoGenState(mdef.schematree, enumSet)
 
 	directoryMap, errs := gogen.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot, cg.ParseOptions.SkipEnumDeduplication)
 	if errs != nil {
@@ -575,13 +578,12 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	if errs != nil {
 		return nil, errs
 	}
-
-	protogen := newProtoGenState(mdef.schematree)
-
-	penums, errs := protogen.enumGen.findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true, cg.Config.ParseOptions.SkipEnumDeduplication)
+	enumSet, penums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true, cg.Config.ParseOptions.SkipEnumDeduplication)
 	if errs != nil {
 		return nil, errs
 	}
+	protogen := newProtoGenState(mdef.schematree, enumSet)
+
 	protoEnums, errs := writeProtoEnums(penums, cg.Config.ProtoOptions.AnnotateEnumNames)
 	if errs != nil {
 		return nil, errs

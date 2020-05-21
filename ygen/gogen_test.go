@@ -1721,7 +1721,7 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 				tt.wantUncompressed = tt.wantCompressed
 			}
 			for compressed, want := range map[bool]wantGoStructOut{true: tt.wantCompressed, false: tt.wantUncompressed} {
-				s := newGoGenState(nil)
+				s := newGoGenState(nil, nil)
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 				// Always generate the JSON schema for this test.

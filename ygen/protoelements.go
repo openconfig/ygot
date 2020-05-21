@@ -27,8 +27,8 @@ import (
 // protoGenState contains the functionality and state for generating proto
 // names for the generated code.
 type protoGenState struct {
-	// enumGen contains functionality and state for generating enum names.
-	enumGen *enumGenState
+	// enumSet contains the generated enum names which can be queried.
+	enumSet *enumSet
 	// schematree is a copy of the YANG schema tree, containing only leaf
 	// entries, such that schema paths can be referenced.
 	schematree *schemaTree
@@ -54,9 +54,9 @@ type protoGenState struct {
 
 // newProtoGenState creates a new protoGenState instance, initialised with the
 // default state required for code generation.
-func newProtoGenState(schematree *schemaTree) *protoGenState {
+func newProtoGenState(schematree *schemaTree, eSet *enumSet) *protoGenState {
 	return &protoGenState{
-		enumGen:              newEnumGenState(),
+		enumSet:              eSet,
 		schematree:           schematree,
 		definedGlobals:       map[string]bool{},
 		uniqueDirectoryNames: map[string]string{},
@@ -110,7 +110,7 @@ type resolveProtoTypeArgs struct {
 // for additional details as to the transformation from YANG to Protobuf.
 func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumGen.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
+	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
 	if err != nil {
 		return nil, err
 	}
@@ -159,8 +159,12 @@ func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveP
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
+		n, err := s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase)
+		if err != nil {
+			return nil, err
+		}
 		return &MappedType{
-			NativeType:        s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase),
+			NativeType:        n,
 			IsEnumeratedValue: true,
 		}, nil
 	case yang.Yunion:
@@ -181,7 +185,7 @@ func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveP
 // value cannot be nil/unset.
 func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumGen.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
+	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
 	if err != nil {
 		return nil, err
 	}
@@ -227,8 +231,12 @@ func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs re
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
+		n, err := s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase)
+		if err != nil {
+			return nil, err
+		}
 		return &MappedType{
-			NativeType:        s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase),
+			NativeType:        n,
 			IsEnumeratedValue: true,
 		}, nil
 	case yang.Yunion:
@@ -339,10 +347,14 @@ func (s *protoGenState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Ent
 	var mtype *MappedType
 	switch subtype.Kind {
 	case yang.Yidentityref:
+		n, err := s.protoIdentityName(pargs, subtype.IdentityBase)
+		if err != nil {
+			return append(errs, err)
+		}
 		// Handle the case that the context entry is not the correct entry to deal with. This occurs when the subtype is
 		// an identityref.
 		mtype = &MappedType{
-			NativeType:        s.protoIdentityName(pargs, subtype.IdentityBase),
+			NativeType:        n,
 			IsEnumeratedValue: true,
 		}
 	default:
@@ -440,6 +452,10 @@ func (s *protoGenState) protobufPackage(e *yang.Entry, compressPaths bool) strin
 }
 
 // protoIdentityName returns the name that should be used for an identityref base.
-func (s *protoGenState) protoIdentityName(pargs resolveProtoTypeArgs, i *yang.Identity) string {
-	return fmt.Sprintf("%s.%s.%s", pargs.basePackageName, pargs.enumPackageName, s.enumGen.identityrefBaseTypeFromIdentity(i, true))
+func (s *protoGenState) protoIdentityName(pargs resolveProtoTypeArgs, i *yang.Identity) (string, error) {
+	n, err := s.enumSet.identityrefBaseTypeFromIdentity(i)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s.%s.%s", pargs.basePackageName, pargs.enumPackageName, n), nil
 }
