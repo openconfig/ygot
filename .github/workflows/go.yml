@@ -92,6 +92,8 @@ jobs:
         run: |
           overalls -project ${GITHUB_WORKSPACE} -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ytypes/schema_tests,ypathgen/generator"
           goveralls -coverprofile=overalls.coverprofile -service github
+        env:
+          COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
 
       - name: Go vet
         run: |
