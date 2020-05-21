@@ -84,7 +84,7 @@ jobs:
       - name: Check out ygot code
         uses: actions/checkout@v2
         with:
-          path: ${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot
+          path: go/src/github.com/openconfig/ygot
 
       - name: Run coverage
         run: |
