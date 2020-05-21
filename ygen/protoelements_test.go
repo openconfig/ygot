@@ -146,7 +146,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 					Name: "union",
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
-						{Kind: yang.Yenum, Name: "enumeration", Default: "prefix:BLUE"},
+						{Kind: yang.Yenum, Enum: &yang.EnumType{}, Name: "enumeration", Default: "prefix:BLUE"},
 					},
 				},
 				Parent: &yang.Entry{Name: "base-module"},
@@ -177,7 +177,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 					Name: "union",
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
-						{Kind: yang.Yenum, Name: "enumeration"},
+						{Kind: yang.Yenum, Enum: &yang.EnumType{}, Name: "enumeration"},
 					},
 				},
 				Parent: &yang.Entry{Name: "base-module"},
@@ -207,10 +207,12 @@ func TestYangTypeToProtoType(t *testing.T) {
 						Name:   "base-identity",
 						Parent: &yang.Module{Name: "base-module"},
 					},
+					Kind: yang.Yidentityref,
 				},
 				Node: &yang.Leaf{
 					Parent: &yang.Module{Name: "base-module"},
 				},
+				Parent: &yang.Entry{Name: "base-module"},
 			},
 		}},
 		wantWrapper: &MappedType{
@@ -240,7 +242,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				Name: "union-leaf",
 				Kind: yang.LeafEntry,
 				Type: &yang.YangType{
-					Name: "identityref",
+					Name: "union",
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{{
 						Kind:    yang.Yidentityref,
@@ -288,6 +290,12 @@ func TestYangTypeToProtoType(t *testing.T) {
 				Type: &yang.YangType{
 					Name: "enumeration",
 					Enum: &yang.EnumType{},
+					Kind: yang.Yenum,
+				},
+				Node: &yang.Enum{
+					Parent: &yang.Module{
+						Name: "base-module",
+					},
 				},
 				Parent: &yang.Entry{Name: "base-module"},
 			},
@@ -306,12 +314,14 @@ func TestYangTypeToProtoType(t *testing.T) {
 				Type: &yang.YangType{
 					Name: "derived-enumeration",
 					Enum: &yang.EnumType{},
+					Kind: yang.Yenum,
 				},
 				Node: &yang.Enum{
 					Parent: &yang.Module{
 						Name: "base-module",
 					},
 				},
+				Parent: &yang.Entry{Name: "base-module"},
 			},
 		}},
 		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.BaseModuleDerivedEnumeration", IsEnumeratedValue: true},
@@ -330,12 +340,14 @@ func TestYangTypeToProtoType(t *testing.T) {
 							Name: "test-module",
 						},
 					},
+					Kind: yang.Yidentityref,
 				},
 				Node: &yang.Leaf{
 					Parent: &yang.Module{
 						Name: "test-module",
 					},
 				},
+				Parent: &yang.Entry{Name: "test-module"},
 			},
 		}},
 		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.TestModuleBaseIdentity", IsEnumeratedValue: true},
@@ -354,12 +366,14 @@ func TestYangTypeToProtoType(t *testing.T) {
 							Name: "test-module",
 						},
 					},
+					Kind: yang.Yidentityref,
 				},
 				Node: &yang.Leaf{
 					Parent: &yang.Module{
 						Name: "test-module",
 					},
 				},
+				Parent: &yang.Entry{Name: "test-module"},
 			},
 		}},
 		wantWrapper: &MappedType{NativeType: "basePackage.enumPackage.TestModuleBASEIDENTITY", IsEnumeratedValue: true},
@@ -547,48 +561,60 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-
-		rpt := resolveProtoTypeArgs{basePackageName: "basePackage", enumPackageName: "enumPackage"}
-		if tt.inResolveProtoTypeArgs != nil {
-			rpt = *tt.inResolveProtoTypeArgs
-		}
-
-		s := newProtoGenState(nil)
-		// Seed the schema tree with the injected entries, used to ensure leafrefs can
-		// be resolved.
-		if tt.inEntries != nil {
-			tree, err := buildSchemaTree(tt.inEntries)
-			if err != nil {
-				t.Errorf("%s: buildSchemaTree(%v): got unexpected error, got: %v, want: nil", tt.name, tt.inEntries, err)
-				continue
-			}
-			s.schematree = tree
-		}
-
-		for _, st := range tt.in {
-			gotWrapper, err := s.yangTypeToProtoType(st, rpt)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("%s: yangTypeToProtoType(%v): got unexpected error, got: %v, want error: %v", tt.name, tt.in, err, tt.wantErr)
-				continue
+		t.Run(tt.name, func(t *testing.T) {
+			rpt := resolveProtoTypeArgs{basePackageName: "basePackage", enumPackageName: "enumPackage"}
+			if tt.inResolveProtoTypeArgs != nil {
+				rpt = *tt.inResolveProtoTypeArgs
 			}
 
-			if diff := pretty.Compare(gotWrapper, tt.wantWrapper); diff != "" {
-				t.Errorf("%s: yangTypeToProtoType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
+			// Seed the schema tree with the injected entries, used to ensure leafrefs can
+			// be resolved.
+			var st *schemaTree
+			if tt.inEntries != nil {
+				var err error
+				if st, err = buildSchemaTree(tt.inEntries); err != nil {
+					t.Fatalf("%s: buildSchemaTree(%v): got unexpected error, got: %v, want: nil", tt.name, tt.inEntries, err)
+				}
+			}
+			enumMap := enumMapFromArgs(tt.in)
+			for _, e := range enumMapFromEntries(tt.inEntries) {
+				addEnumsToEnumMap(e, enumMap)
+			}
+			enumSet, _, errs := findEnumSet(enumMap, false, true, false)
+			if errs != nil {
+				if !tt.wantErr {
+					t.Errorf("findEnumSet failed: %v", errs)
+				}
+				return
 			}
 
-			gotScalar, err := s.yangTypeToProtoScalarType(st, rpt)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("%s: yangTypeToProtoScalarType(%v, basePackage, enumPackage): got unexpected error: %v", tt.name, tt.in, err)
-			}
+			s := newProtoGenState(st, enumSet)
 
-			wantScalar := tt.wantScalar
-			if tt.wantSame {
-				wantScalar = tt.wantWrapper
+			for _, st := range tt.in {
+				gotWrapper, err := s.yangTypeToProtoType(st, rpt)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("%s: yangTypeToProtoType(%v): got unexpected error, got: %v, want error: %v", tt.name, tt.in, err, tt.wantErr)
+					continue
+				}
+
+				if diff := pretty.Compare(gotWrapper, tt.wantWrapper); diff != "" {
+					t.Errorf("%s: yangTypeToProtoType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
+				}
+
+				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt)
+				if (err != nil) != tt.wantErr {
+					t.Errorf("%s: yangTypeToProtoScalarType(%v, basePackage, enumPackage): got unexpected error: %v", tt.name, tt.in, err)
+				}
+
+				wantScalar := tt.wantScalar
+				if tt.wantSame {
+					wantScalar = tt.wantWrapper
+				}
+				if diff := pretty.Compare(gotScalar, wantScalar); diff != "" {
+					t.Errorf("%s: yangTypeToProtoScalarType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
+				}
 			}
-			if diff := pretty.Compare(gotScalar, wantScalar); diff != "" {
-				t.Errorf("%s: yangTypeToProtoScalarType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
-			}
-		}
+		})
 	}
 }
 
@@ -673,7 +699,7 @@ func TestProtoMsgName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newProtoGenState(nil)
+			s := newProtoGenState(nil, nil)
 			// Seed the proto message names with some known input.
 			if tt.inUniqueProtoMsgNames != nil {
 				s.uniqueProtoMsgNames = tt.inUniqueProtoMsgNames
@@ -808,7 +834,7 @@ func TestProtoPackageName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newProtoGenState(nil)
+			s := newProtoGenState(nil, nil)
 			if tt.inDefinedGlobals != nil {
 				s.definedGlobals = tt.inDefinedGlobals
 			}
