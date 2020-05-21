@@ -35,10 +35,6 @@ jobs:
         run: |
           go get -u golang.org/x/tools/cmd/goimports
 
-      - name: Install overalls
-        run: |
-          go get -u github.com/go-playground/overalls
-
       - name: Install Staticcheck
         run: |
           go get -u honnef.co/go/tools/cmd/staticcheck
@@ -51,34 +47,23 @@ jobs:
       - name: Get dependencies
         run: |
           go get -v -t -d ./...
+        working-directory: go/src/github.com/openconfig/ygot
 
       - name: Generate dependencies
-        run: |
-          cd go/src/github.com/openconfig/ygot
-          make generate
-          
-      - name: Debug generated files
-        run: |
-          find .
+        run: make generate
+        working-directory: go/src/github.com/openconfig/ygot
 
       - name: Build packages
-        run: cd go/src/github.com/openconfig/ygot && go build -v ./...
+        run: go build -v ./...
+        working-directory: go/src/github.com/openconfig/ygot
 
       - name: Run Tests
-        run: cd go/src/github.com/openconfig/ygot && go test -v ./...
+        run: go test -v ./...
+        working-directory: go/src/github.com/openconfig/ygot
 
       - name: Run race tests
-        run: cd go/src/github.com/openconfig/ygot && go test -race -v ./...
-
-      - name: Run overalls for coverage
-        run: |
-          overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator" 
-
-      - name: Send coverage
-        uses: shogo82148/actions-goveralls@v1
-        with:
-          path-to-profile: /home/runner/go/src/github.com/openconfig/ygot/overalls.coverprofile
-          parallel: true
+        run:  go test -race -v ./...
+        working-directory: go/src/github.com/openconfig/ygot
 
       - name: Go vet
         run: |
@@ -86,7 +71,7 @@ jobs:
             go vet ./$i
           done
           for j in ygot testcmp testutil; do
-            go vet -composites=false ./$j 
+            go vet -composites=false ./$j
           done
         working-directory: go/src/github.com/openconfig/ygot
 
@@ -105,11 +90,3 @@ jobs:
           done
           staticcheck $checkstr
         working-directory: go/src/github.com/openconfig/ygot
-
-  finish:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: shogo82148/actions-goveralls@v1
-        with:
-          parallel-finished: true

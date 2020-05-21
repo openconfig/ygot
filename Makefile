@@ -13,6 +13,8 @@ generate:
 	cd $(ROOT_DIR)/demo/uncompressed && SRCDIR=${ROOT_DIR} go generate
 	cd $(ROOT_DIR)/demo/protobuf_getting_started && SRCDIR=${ROOT_DIR} ./update.sh
 	cd $(ROOT_DIR)/integration_tests/uncompressed && SRCDIR=${ROOT_DIR} go generate
+	cd $(ROOT_DIR)/integration_tests/annotations/apb && SRCDIR=${ROOT_DIR} go generate
+	cd $(ROOT_DIR)/integration_tests/annotations/proto2apb && SRCDIR=${ROOT_DIR} go generate
 clean:
 	rm -f ${ROOT_DIR}/demo/getting_started/pkg/ocdemo/oc.go
 	rm -f ${ROOT_DIR}/demo/uncompressed/pkg/demo/uncompressed.go

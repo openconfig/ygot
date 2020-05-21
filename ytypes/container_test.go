@@ -313,9 +313,11 @@ func TestUnmarshalContainer(t *testing.T) {
 	populateParentField(nil, containerSchema)
 
 	type ContainerStruct struct {
-		ConfigLeaf1Field *int32 `path:"config/leaf1-field"`
-		StateLeaf1Field  *int32 `path:"state/leaf1-field"`
-		Leaf2Field       *int32 `path:"leaf2-field"`
+		ConfigLeaf1Field *int32            `path:"config/leaf1-field"`
+		StateLeaf1Field  *int32            `path:"state/leaf1-field"`
+		Leaf2Field       *int32            `path:"leaf2-field"`
+		Annotation       []ygot.Annotation `path:"@" ygotAnnotation:"true"`
+		AnnotationTwo    []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
 	}
 
 	type ParentContainerStruct struct {
@@ -359,6 +361,12 @@ func TestUnmarshalContainer(t *testing.T) {
 			schema:  containerSchema,
 			json:    `{ "container-field": { "leaf2-field":  "forty-two"} }`,
 			wantErr: `got string type for field leaf2-field, expect float64`,
+		},
+		{
+			desc:   "unsupportedannotation field without ignore",
+			schema: containerSchema,
+			json:   `{"container-field": { "@": [ { "hello": "true" } ] } }`,
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{}},
 		},
 		{
 			desc:   "unknown field name with ignore",

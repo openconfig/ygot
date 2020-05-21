@@ -135,8 +135,8 @@ func isValueScalar(v reflect.Value) bool {
 }
 
 // absoluteSchemaDataPath returns the absolute path of the schema, excluding
-// any choice or case entries.
-// TODO(mostrowski): why are these excluded?
+// any choice or case entries. Choice and case are excluded since they exist
+// neither within the data or schema tree.
 func absoluteSchemaDataPath(schema *yang.Entry) string {
 	out := []string{schema.Name}
 	for s := schema.Parent; s != nil; s = s.Parent {
@@ -148,6 +148,18 @@ func absoluteSchemaDataPath(schema *yang.Entry) string {
 	return "/" + strings.Join(out, "/")
 }
 
+// pathTagFromField extracts the "path" tag from the struct field f,
+// if no tag is found an error is returned. If the tag consts of more
+// than one path, they are returned exactly as they are specified in
+// the input struct - i.e., separated by "|".
+func pathTagFromField(f reflect.StructField) (string, error) {
+	pathAnnotation, ok := f.Tag.Lookup("path")
+	if !ok {
+		return "", fmt.Errorf("field %s did not specify a path", f.Name)
+	}
+	return pathAnnotation, nil
+}
+
 // directDescendantSchema returns the direct descendant schema for the struct
 // field f. Paths are embedded in the "path" struct tag and can be either simple:
 //   e.g. "path:a"
@@ -155,9 +167,9 @@ func absoluteSchemaDataPath(schema *yang.Entry) string {
 //   e.g. "path:config/a|a"
 // Function checks for presence of first schema without '/' and returns it.
 func directDescendantSchema(f reflect.StructField) (string, error) {
-	pathAnnotation, ok := f.Tag.Lookup("path")
-	if !ok {
-		return "", fmt.Errorf("field %s did not specify a path", f.Name)
+	pathAnnotation, err := pathTagFromField(f)
+	if err != nil {
+		return "", err
 	}
 	paths := strings.Split(pathAnnotation, "|")
 

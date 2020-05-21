@@ -1559,9 +1559,10 @@ type diffModAtRootElemTwo struct {
 func (*diffModAtRootElemTwo) IsYANGGoStruct() {}
 
 type annotatedJSONTestStruct struct {
-	Field     *string      `path:"field" module:"bar"`
-	ΛField    []Annotation `path:"@field" ygotAnnotation:"true"`
-	ΛFieldTwo []Annotation `path:"@emptyannotation" ygotAnnotation:"true"`
+	Field       *string      `path:"field" module:"bar"`
+	ΛField      []Annotation `path:"@field" ygotAnnotation:"true"`
+	ΛFieldTwo   []Annotation `path:"@emptyannotation" ygotAnnotation:"true"`
+	ΛFieldThree []Annotation `path:"@one|config/@two" ygotAnnotation:"true"`
 }
 
 func (*annotatedJSONTestStruct) IsYANGGoStruct() {}
@@ -1570,31 +1571,14 @@ type testAnnotation struct {
 	AnnotationFieldOne string `json:"field"`
 }
 
-// MarshalJSON repeats the string in the JSON representation. This deviation
-// from json.Marshal helps ensure that the test actually uses Annotation's
-// custom MarshalJSON/UnmarshalJSON functions instead of using the default
-// mechanism.
-// e.g. It prevents the implementation from successfully using
-// json.Marshal(obj) followed by json.Unmarshal(obj, interface{}) to copy the
-// value -- the unmarshal call would fail to use the json.Unmarshaler
-// interface to invoke UnmarshalJSON(), and cause the data to be repeated after
-// the unmarshal call.
+// MarshalJSON repeats the string in the JSON representation.
 func (t *testAnnotation) MarshalJSON() ([]byte, error) {
-	t2 := *t
-	t2.AnnotationFieldOne += t2.AnnotationFieldOne
-	return json.Marshal(t2)
+	return json.Marshal(*t)
 }
 
-// UnmarshalJSON halves the string from the JSON representation. This deviation
-// from json.Unmarshal helps ensure that the test actually uses Annotation's
-// custom MarshalJSON/UnmarshalJSON functions instead of using the default
-// mechanism.
+// UnmarshalJSON halves the string from the JSON representation.
 func (t *testAnnotation) UnmarshalJSON(d []byte) error {
-	if err := json.Unmarshal(d, t); err != nil {
-		return err
-	}
-	t.AnnotationFieldOne = t.AnnotationFieldOne[:len(t.AnnotationFieldOne)/2]
-	return nil
+	return json.Unmarshal(d, t)
 }
 
 type errorAnnotation struct {
@@ -2198,6 +2182,24 @@ func TestConstructJSON(t *testing.T) {
 	}, {
 		name: "annotated struct",
 		in: &annotatedJSONTestStruct{
+			ΛFieldThree: []Annotation{
+				&testAnnotation{AnnotationFieldOne: "alexander-valley"},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"@one": []interface{}{
+				map[string]interface{}{"field": "alexander-valley"},
+			},
+			"config": map[string]interface{}{
+				"@two": []interface{}{
+					map[string]interface{}{"field": "alexander-valley"},
+				},
+			},
+		},
+		wantSame: true,
+	}, {
+		name: "annotation with two paths",
+		in: &annotatedJSONTestStruct{
 			Field: String("russian-river"),
 			ΛField: []Annotation{
 				&testAnnotation{AnnotationFieldOne: "alexander-valley"},
@@ -2206,7 +2208,7 @@ func TestConstructJSON(t *testing.T) {
 		wantIETF: map[string]interface{}{
 			"field": "russian-river",
 			"@field": []interface{}{
-				&testAnnotation{AnnotationFieldOne: "alexander-valley"},
+				map[string]interface{}{"field": "alexander-valley"},
 			},
 		},
 		wantSame: true,
@@ -2218,6 +2220,7 @@ func TestConstructJSON(t *testing.T) {
 				&errorAnnotation{AnnotationField: "chalk-hill"},
 			},
 		},
+		wantErr:     true,
 		wantJSONErr: true,
 	}, {
 		name: "error in annotation - unmarshalable",
@@ -2227,6 +2230,7 @@ func TestConstructJSON(t *testing.T) {
 				&unmarshalableJSON{AnnotationField: "knights-valley"},
 			},
 		},
+		wantErr:     true,
 		wantJSONErr: true,
 	}, {
 		name:     "unset enum",
