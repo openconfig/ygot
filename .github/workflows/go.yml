@@ -71,6 +71,10 @@ jobs:
 
       - name: Run overalls for coverage
         run: |
+          pwd
+          ls ${GITHUB_WORKSPACE}
+          ls ${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot
+          find  ${GITHUB_WORKSPACE}/go/src/github.com/
           GOPATH=${GITHUB_WORKSPACE}/go/src overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
         env:
                 GOPATH: /home/runner/go/src
