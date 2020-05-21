@@ -65,6 +65,33 @@ jobs:
         run:  go test -race -v ./...
         working-directory: go/src/github.com/openconfig/ygot
 
+  static_analysis:
+    name: Static Analysis independent of Go version
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.14'
+        id: go
+
+      - name: Install goveralls and overalls
+        run: |
+          go get -u github.com/go-playground overalls
+          go get -u github.com/mattn/goveralls
+
+      - name: Check out ygot code
+        uses: actions/checkout@v2
+        with:
+          path: ${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot
+
+      - name: Run coverage
+        run: |
+          overalls -project github.com/openconfig/ygot  -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
+          goveralls -coverprofile=overalls.coverprofile -service github
+        working-directory: ${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot
+
       - name: Go vet
         run: |
           for i in util ygen ytypes ygot/pathtranslate ypathgen; do
