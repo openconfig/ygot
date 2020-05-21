@@ -38,6 +38,7 @@ jobs:
       - name: Install overalls
         run: |
           go get -u github.com/go-playground/overalls
+          go get -u github.com/mattn/goveralls
 
       - name: Install Staticcheck
         run: |
@@ -72,14 +73,7 @@ jobs:
       - name: Run overalls for coverage
         run: |
           overalls -project=${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
-          find . | grep overalls
-          cat ${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot/overalls.coverprofile
-
-      - name: Send coverage
-        uses: shogo82148/actions-goveralls@v1
-        with:
-          path-to-profile: ${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot/overalls.coverprofile
-          parallel: true
+          goveralls -service github -parallel -coverprofile ${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot/overalls.coverprofile
 
       - name: Go vet
         run: |
@@ -111,6 +105,15 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: shogo82148/actions-goveralls@v1
-        with:
-          parallel-finished: true
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        id: go
+
+      - name: Install goveralls
+        run: |
+          go get -u github.com/mattn/goveralls
+
+      - name: Finish coverage
+        run:
+          goveralls -service github -parallel-finish
+
