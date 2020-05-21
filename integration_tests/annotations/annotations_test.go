@@ -184,7 +184,7 @@ func TestProtoAnnotation(t *testing.T) {
 				t.Fatalf("error diffing expected and received unmarshalled content, %v", err)
 			}
 			if !isEmptyDiff(diff) {
-				t.Fatalf("did not get expected unmarshalled output, not equal to input! Diff: %s", diff)
+				t.Fatalf("did not get expected unmarshalled output, not equal to input, diff: %s", diff)
 			}
 		})
 	}
