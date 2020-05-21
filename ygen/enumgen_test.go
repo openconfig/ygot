@@ -36,10 +36,10 @@ func TestResolveNameClashSet(t *testing.T) {
 			"Baz": true,
 		},
 		inNameClashSets: map[string]map[string]bool{
-			"Foo": map[string]bool{
+			"Foo": {
 				"enum-a": true,
 			},
-			"Bar": map[string]bool{
+			"Bar": {
 				"enum-b": true,
 			},
 		},
@@ -53,7 +53,7 @@ func TestResolveNameClashSet(t *testing.T) {
 			"Baz": true,
 		},
 		inNameClashSets: map[string]map[string]bool{
-			"Foo": map[string]bool{
+			"Foo": {
 				"enum-a": true,
 				"enum-b": true,
 			},
@@ -68,7 +68,7 @@ func TestResolveNameClashSet(t *testing.T) {
 			"Foo": true,
 		},
 		inNameClashSets: map[string]map[string]bool{
-			"Foo": map[string]bool{
+			"Foo": {
 				"enum-a": true,
 				"enum-b": true,
 			},
