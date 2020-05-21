@@ -78,7 +78,7 @@ jobs:
 
       - name: Install goveralls and overalls
         run: |
-          go get -u github.com/go-playground overalls
+          go get -u github.com/go-playground/overalls
           go get -u github.com/mattn/goveralls
 
       - name: Check out ygot code
