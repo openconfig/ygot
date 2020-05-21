@@ -77,34 +77,13 @@ func TestResolveDedupSet(t *testing.T) {
 			"enum-a": "Foo_",
 			"enum-b": "Foo__",
 		},
-	}, {
-		name: "intersecting dedup sets",
-		inDefinedEnums: map[string]bool{
-			"Baz": true,
-		},
-		inDedupSets: map[string]map[string]bool{
-			// De-dup is done in lexicographical order.
-			"Bar": map[string]bool{
-				"enum-a": true,
-			},
-			"Foo": map[string]bool{
-				// This entry is ignored due to a name being already assigned.
-				"enum-a": true,
-				"enum-b": true,
-			},
-		},
-		wantUniqueNamesMap: map[string]string{
-			"enum-a": "Bar",
-			"enum-b": "Foo",
-		},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := newEnumGenState()
 			s.definedEnums = tt.inDefinedEnums
-			gotUniqueNamesMap := map[string]string{}
-			s.resolveDedupSet(tt.inDedupSets, gotUniqueNamesMap)
+			gotUniqueNamesMap := s.resolveNameClashSet(tt.inDedupSets)
 
 			if diff := cmp.Diff(gotUniqueNamesMap, tt.wantUniqueNamesMap); diff != "" {
 				fmt.Printf("TestResolveDedupSet (-got, +want):\n%s", diff)

@@ -103,7 +103,7 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 		case t.Enum != nil:
 			var enumName string
 			var err error
-			if _, chBuiltin := yang.TypeKindFromName[t.Name]; chBuiltin {
+			if util.IsYANGBaseType(t) {
 				enumName, err = s.enumName(e, compressPaths, noUnderscores, skipEnumDedup)
 			} else {
 				enumName, err = s.typedefEnumeratedName(e, noUnderscores)
@@ -424,15 +424,17 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 
 	s := newEnumGenState()
 
-	// This is the first of two passes over the input enum entries. The
-	// purpose of this pass is to resolve the names of all the enumerated
-	// values. During this pass, the identity names are fully resolved, and
-	// enumeration names are resolved pending deduplication.
+	// This is the first of two passes over the input enum entries.
+	// The purpose of this pass is to establish what the default name of
+	// each of the enumerated types that are to be output in the code is.
+	// At this stage, we just try and calculate the complete set, rather
+	// than resolving any clashes in names that might occur. Although since
+	// identity name clashes are not allowed, their generated names are
+	// already final.
 	for _, eP := range enumPaths {
 		e := validEnums[eP]
-		_, builtin := yang.TypeKindFromName[e.Type.Name]
 		switch {
-		case e.Type.Name == "union", len(e.Type.Type) > 0 && !builtin:
+		case e.Type.Name == "union", len(e.Type.Type) > 0 && !util.IsYANGBaseType(e.Type):
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
 			if err := s.resolveEnumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup); err != nil {
@@ -451,12 +453,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 				errs = append(errs, err)
 			}
 		case e.Type.Name == "enumeration":
-			// We simply want to map this enumeration into a new name. Since we do
-			// de-duplication of re-used enumerated leaves at different points in
-			// the schema (e.g., if openconfig-bgp/container/enum-A can be instantiated
-			// in two places, then we do not want to have multiple enumerated types
-			// that represent this leaf), then we do not have errors if duplicates
-			// occur, we simply perform de-duplication at this stage.
+			// Calculate generated name for enumeration leaf.
 			s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup)
 		default:
 			// This is a type which is defined through a typedef.
@@ -471,7 +468,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 
 	// Resolve any enumeration value name conflicts.
 	// At this point, all enumerated value names are fully resolved.
-	s.resolveDedupSets()
+	s.resolveNameClashSets()
 
 	// This is the second and final pass over the input enum entries.
 	// During this pass, the generated names are retrieved and packaged
@@ -482,9 +479,9 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 	genEnums := make(map[string]*yangEnum)
 	for _, eP := range enumPaths {
 		e := validEnums[eP]
-		_, builtin := yang.TypeKindFromName[e.Type.Name]
+
 		switch {
-		case e.Type.Name == "union", len(e.Type.Type) > 0 && !builtin:
+		case e.Type.Name == "union", len(e.Type.Type) > 0 && !util.IsYANGBaseType(e.Type):
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
 			es, err := s.enumSet.enumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup)
@@ -562,75 +559,86 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 type enumGenState struct {
 	// definedEnums keeps track of generated enum names to avoid conflicts.
 	definedEnums map[string]bool
-	// enumSet contains the final, deduped generated enumerated value names
-	// to be returned by findEnumSet.
+	// enumSet contains the final collision-free enumerated value names for
+	// the generated code.
 	enumSet *enumSet
-	// enumeratedTypedefDedupSets stores the set of unique string keys
+	// enumeratedTypedefNameClashSets stores the set of unique string keys
 	// representing typedef enumeration usages that were mapped to the same
-	// initial generated name using the basic name generation rules.
-	// This is an intermediate storage for these names. While the initial
+	// generated name using the default name generation rules.
+	// This is an intermediate storage for these names. While the default
 	// generated name is ideally stored inside enumSet directly,
-	// enumeration names may collide, and thus need de-duplication before
-	// they're stored inside enumSet. This is the reason for being for all
-	// dedup sets within enumGenState.
-	enumeratedTypedefDedupSets map[string]map[string]bool
-	// enumeratedLeafDedupSets stores the unique string keys representing
-	// enumeration leaves that were mapped to the same initial generated
-	// name using the basic name generation rules.
-	enumeratedLeafDedupSets map[string]map[string]bool
+	// enumeration names may collide, and thus need collision resolution
+	// before they're stored inside enumSet. This is the reason for being
+	// for all name clash sets within enumGenState.
+	enumeratedTypedefNameClashSets map[string]map[string]bool
+	// enumeratedLeafNameClashSets stores the unique string keys representing
+	// enumeration leaves that were mapped to the same default generated
+	// name using the default name generation rules.
+	enumeratedLeafNameClashSets map[string]map[string]bool
+	// uniqueEnumeratedTypedefEntries keeps track of which enums have already had
+	// a name generated to avoid a second name from being generated for the
+	// same entry.
+	uniqueEnumeratedTypedefEntries map[string]bool
+	// uniqueEnumeratedLeafEntries keeps track of which enums have already had
+	// a name generated to avoid a second name from being generated for the
+	// same entry.
+	uniqueEnumeratedLeafEntries map[string]bool
 }
 
 // newEnumGenState creates a new enumGenState instance initialised with the
 // default state required for code generation.
 func newEnumGenState() *enumGenState {
 	return &enumGenState{
-		definedEnums:               map[string]bool{},
-		enumSet:                    newEnumSet(),
-		enumeratedTypedefDedupSets: map[string]map[string]bool{},
-		enumeratedLeafDedupSets:    map[string]map[string]bool{},
+		definedEnums:                   map[string]bool{},
+		enumSet:                        newEnumSet(),
+		enumeratedTypedefNameClashSets: map[string]map[string]bool{},
+		enumeratedLeafNameClashSets:    map[string]map[string]bool{},
+		uniqueEnumeratedTypedefEntries: map[string]bool{},
+		uniqueEnumeratedLeafEntries:    map[string]bool{},
 	}
 }
 
-// resolveDedupSets scans through all of the dedup sets, and carries out
-// de-duplication between different enum keys that mapped to the same initial
+// resolveNameClashSets scans through all of the name clash sets, and carries out
+// name collision resolution between different enum keys that mapped to the same default
 // generated name. Then it stores these final names in their appropriate name
 // maps within enumSet.
-func (s *enumGenState) resolveDedupSets() {
-	s.resolveDedupSet(s.enumeratedTypedefDedupSets, s.enumSet.uniqueEnumeratedTypedefNames)
-	s.resolveDedupSet(s.enumeratedLeafDedupSets, s.enumSet.uniqueEnumeratedLeafNames)
+func (s *enumGenState) resolveNameClashSets() {
+	s.enumSet.uniqueEnumeratedTypedefNames = s.resolveNameClashSet(s.enumeratedTypedefNameClashSets)
+	s.enumSet.uniqueEnumeratedLeafNames = s.resolveNameClashSet(s.enumeratedLeafNameClashSets)
 }
 
-// resolveDedupSet carries out de-duplication on the input dedup set to
-// generate the final names, and stores those names in the given unique map.
-func (s *enumGenState) resolveDedupSet(dedupSets map[string]map[string]bool, uniqueNamesMap map[string]string) {
-	var dedupNames []string
-	for dedupName := range dedupSets {
-		dedupNames = append(dedupNames, dedupName)
+// resolveNameClashSet carries out name collision resolution on the input name
+// clash set to generate the final names, and stores those names in the given
+// unique map.
+func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]bool) map[string]string {
+	var defaultNames []string
+	for defaultName := range nameClashSets {
+		defaultNames = append(defaultNames, defaultName)
 	}
-	// Make deduplication deterministic.
-	sort.Strings(dedupNames)
-	for _, name := range dedupNames {
-		dedupSet := dedupSets[name]
+	// Make collision resolution deterministic.
+	sort.Strings(defaultNames)
+	uniqueNamesMap := map[string]string{}
+	for _, name := range defaultNames {
+		nameClashSet := nameClashSets[name]
 		var enumKeys []string
-		for enumKey := range dedupSet {
+		for enumKey := range nameClashSet {
 			enumKeys = append(enumKeys, enumKey)
 		}
-		// Make deduplication deterministic.
+		// Make collision deterministic.
 		sort.Strings(enumKeys)
 		for _, enumKey := range enumKeys {
 			if _, ok := uniqueNamesMap[enumKey]; ok {
-				// If the enumKey has already been assigned a name, then we use it
-				// since it came first, and not instead overwrite it with this later
-				// one. By having this conditional, we essentially ensure that the
-				// input dedupSets are disjoint -- i.e. each enumKey maps to a
-				// single intended original name, thus creating a more predictable
-				// behaviour.
+				// TODO(wenbli), next PR: Return an error here
+				// as each enumKey should not be given
+				// different names.
 				continue
 			}
 			uniqueName := genutil.MakeNameUnique(name, s.definedEnums)
 			uniqueNamesMap[enumKey] = uniqueName
 		}
 	}
+
+	return uniqueNamesMap
 }
 
 // resolveEnumeratedUnionEntry takes an input YANG union yang.Entry and computes the enumerated
@@ -646,7 +654,7 @@ func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths,
 				return err
 			}
 		case t.Enum != nil:
-			if _, chBuiltin := yang.TypeKindFromName[t.Name]; chBuiltin {
+			if util.IsYANGBaseType(t) {
 				s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup)
 			} else {
 				if err := s.resolveTypedefEnumeratedName(e, noUnderscores); err != nil {
@@ -738,15 +746,19 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 		name = nbuf.String()
 	}
 
-	if _, ok := s.enumeratedLeafDedupSets[name]; !ok {
-		s.enumeratedLeafDedupSets[name] = map[string]bool{}
+	if !s.uniqueEnumeratedLeafEntries[uniqueIdentifier] {
+		// Each enum should only get their name generated once.
+		if _, ok := s.enumeratedLeafNameClashSets[name]; !ok {
+			s.enumeratedLeafNameClashSets[name] = map[string]bool{}
+		}
+		s.enumeratedLeafNameClashSets[name][uniqueIdentifier] = true
+		s.uniqueEnumeratedLeafEntries[uniqueIdentifier] = true
 	}
-	s.enumeratedLeafDedupSets[name][uniqueIdentifier] = true
 }
 
 // resolveTypedefEnumeratedName takes a yang.Entry which represents a typedef
 // that has an underlying enumerated type (e.g., identityref or enumeration),
-// and resolves the initial name of the enum in the generated code.
+// and computes the default name of the enum in the generated code.
 func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores bool) error {
 	// Since there can be many leaves that refer to the same typedef, then we do not generate
 	// a name for each of them, but rather use a common name, we use the non-CamelCase lookup
@@ -764,9 +776,13 @@ func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores
 		name = strings.Replace(name, "_", "", -1)
 	}
 
-	if _, ok := s.enumeratedTypedefDedupSets[name]; !ok {
-		s.enumeratedTypedefDedupSets[name] = map[string]bool{}
+	if !s.uniqueEnumeratedTypedefEntries[typedefKey] {
+		// Each enum should only get their name generated once.
+		if _, ok := s.enumeratedTypedefNameClashSets[name]; !ok {
+			s.enumeratedTypedefNameClashSets[name] = map[string]bool{}
+		}
+		s.enumeratedTypedefNameClashSets[name][typedefKey] = true
+		s.uniqueEnumeratedTypedefEntries[typedefKey] = true
 	}
-	s.enumeratedTypedefDedupSets[name][typedefKey] = true
 	return nil
 }
