@@ -86,6 +86,11 @@ jobs:
         with:
           path: go/src/github.com/openconfig/ygot
 
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+        working-directory: go/src/github.com/openconfig/ygot
+
       - name: Run coverage
         run: |
           overalls -project ${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot  -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ytypes/schema_tests,ypathgen/generator"
