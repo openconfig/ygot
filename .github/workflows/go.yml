@@ -73,8 +73,7 @@ jobs:
         run: |
           overalls -project=${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
           find . | grep overalls
-        env:
-                GOPATH: /home/runner/go/src
+          cat ${GITHUB_WORKSPACE}/go/src/github.com/openconfig/ygot/overalls.coverprofile
 
       - name: Send coverage
         uses: shogo82148/actions-goveralls@v1
