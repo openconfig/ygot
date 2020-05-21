@@ -31,7 +31,7 @@ func TestResolveNameClashSet(t *testing.T) {
 		inNameClashSets    map[string]map[string]bool
 		wantUniqueNamesMap map[string]string
 	}{{
-		name: "no duplication",
+		name: "no name clash",
 		inDefinedEnums: map[string]bool{
 			"Baz": true,
 		},
@@ -48,7 +48,7 @@ func TestResolveNameClashSet(t *testing.T) {
 			"enum-b": "Bar",
 		},
 	}, {
-		name: "simple duplication",
+		name: "simple name clash",
 		inDefinedEnums: map[string]bool{
 			"Baz": true,
 		},
@@ -63,7 +63,7 @@ func TestResolveNameClashSet(t *testing.T) {
 			"enum-b": "Foo_",
 		},
 	}, {
-		name: "duplication from existing name",
+		name: "name clash from existing name",
 		inDefinedEnums: map[string]bool{
 			"Foo": true,
 		},
