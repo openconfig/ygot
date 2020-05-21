@@ -71,16 +71,14 @@ jobs:
 
       - name: Run overalls for coverage
         run: |
-          pwd
-          find .
-          overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
+          GOPATH=${GITHUB_WORKSPACE}/go/src overalls -project=github.com/openconfig/ygot -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ypathgen/generator,ytypes/schema_tests,ypathgen/generator"
         env:
                 GOPATH: /home/runner/go/src
 
       - name: Send coverage
         uses: shogo82148/actions-goveralls@v1
         with:
-          path-to-profile: /home/runner/go/src/github.com/openconfig/ygot/overalls.coverprofile
+          path-to-profile: /home/runner/ygot/ygot/go/src/github.com/openconfig/ygot/overalls.coverprofile
           parallel: true
 
       - name: Go vet
