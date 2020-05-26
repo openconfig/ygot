@@ -468,7 +468,9 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 
 	// Resolve any enumeration value name conflicts.
 	// At this point, all enumerated value names are fully resolved.
-	s.resolveNameClashSets()
+	if err := s.resolveNameClashSets(noUnderscores); err != nil {
+		return nil, nil, append(errs, err)
+	}
 
 	// This is the second and final pass over the input enum entries.
 	// During this pass, the generated names are retrieved and packaged
@@ -562,10 +564,11 @@ type enumGenState struct {
 	// enumSet contains the final collision-free enumerated value names for
 	// the generated code.
 	enumSet *enumSet
-	// enumeratedLeafNameClashSets stores the unique string keys representing
-	// enumeration leaves that were mapped to the same default generated
-	// name using the default name generation rules.
-	enumeratedLeafNameClashSets map[string]map[string]bool
+	// enumeratedLeafNameClashSets stores the set of enumeration entries
+	// representing enumeration leaves that were mapped to the same
+	// generated name using the default name generation rules.
+	// map: {default generated name -> map: {unique enumeration string key -> enumeration Entry}}
+	enumeratedLeafNameClashSets map[string]map[string]*yang.Entry
 	// uniqueEnumeratedLeafEntries keeps track of which enums have already had
 	// a name generated to avoid a second name from being generated for the
 	// same entry.
@@ -578,7 +581,7 @@ func newEnumGenState() *enumGenState {
 	return &enumGenState{
 		definedEnums:                map[string]bool{},
 		enumSet:                     newEnumSet(),
-		enumeratedLeafNameClashSets: map[string]map[string]bool{},
+		enumeratedLeafNameClashSets: map[string]map[string]*yang.Entry{},
 		uniqueEnumeratedLeafEntries: map[string]bool{},
 	}
 }
@@ -587,49 +590,140 @@ func newEnumGenState() *enumGenState {
 // name collision resolution between different enum keys that mapped to the same default
 // generated name. Then it stores these final names in their appropriate name
 // maps within enumSet.
-func (s *enumGenState) resolveNameClashSets() {
-	s.enumSet.uniqueEnumeratedLeafNames = s.resolveNameClashSet(s.enumeratedLeafNameClashSets)
+func (s *enumGenState) resolveNameClashSets(noUnderscores bool) error {
+	var err error
+	if s.enumSet.uniqueEnumeratedLeafNames, err = s.resolveNameClashSet(s.enumeratedLeafNameClashSets, noUnderscores); err != nil {
+		return err
+	}
+	return nil
 }
 
 // resolveNameClashSet carries out name collision resolution on the input name
 // clash set to generate the final names, and stores those names in the given
 // unique map.
-func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]bool) map[string]string {
+func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*yang.Entry, noUnderscores bool) (map[string]string, error) {
+	uniqueNamesMap := map[string]string{}
+	// addCandidateUniqueNames adds the candidate map of unique names to the final unique names map.
+	// It returns whether the candidate names was successfully accepted as the resolving name set.
+	addCandidateUniqueNames := func(candidateUniqueNames map[string]string, lengthExpected int) bool {
+		if len(candidateUniqueNames) != lengthExpected {
+			return false
+		}
+		for uniqueName := range candidateUniqueNames {
+			if s.definedEnums[uniqueName] {
+				// Conflict with existing name, this set doesn't work.
+				return false
+			}
+		}
+
+		for uniqueName, enumKey := range candidateUniqueNames {
+			uniqueNamesMap[enumKey] = uniqueName
+			s.definedEnums[uniqueName] = true
+		}
+		return true
+	}
+
+	delimiter := "_"
+	if noUnderscores {
+		delimiter = ""
+	}
+
+	// Resolve clashes deterministically.
 	var defaultNames []string
 	for defaultName := range nameClashSets {
 		defaultNames = append(defaultNames, defaultName)
 	}
-	// Make collision resolution deterministic.
 	sort.Strings(defaultNames)
-	uniqueNamesMap := map[string]string{}
-	for _, name := range defaultNames {
-		nameClashSet := nameClashSets[name]
-		var enumKeys []string
+
+	for _, clashName := range defaultNames {
+		nameClashSet := nameClashSets[clashName]
+		// Check that all enumKeys had only a single default name generated within the
+		// nameClashSets by making sure there is no name already defined for it from
+		// previous rounds of name clash resolution.
 		for enumKey := range nameClashSet {
-			enumKeys = append(enumKeys, enumKey)
-		}
-		// Make collision deterministic.
-		sort.Strings(enumKeys)
-		for _, enumKey := range enumKeys {
 			if _, ok := uniqueNamesMap[enumKey]; ok {
-				// TODO(wenbli), next PR: Return an error here
-				// as each enumKey should not be given
-				// different names.
+				return nil, fmt.Errorf("enumgen.go bug: enumKey %q has been given a second name during name generation, this should be detected and disallowed in the algorithm; one of the entries used for name generation: %+v", enumKey, nameClashSet[enumKey])
+			}
+		}
+
+		// If there is no clash, then we're done. This should be the vast majority of cases.
+		if len(nameClashSet) == 1 {
+			var enumKey string
+			for enumKey = range nameClashSet {
+				break
+			}
+
+			if s.definedEnums[clashName] {
+				// Unexpected conflict with existing name. This should not happen
+				// because clashNames are supposed to be unique.
+				return nil, fmt.Errorf("enumgen.go bug: default name %q has already been assigned during name generation, this should not happen in the algorithm; enumKey: %q; one of the entries used for name generation: %+v", clashName, enumKey, nameClashSet[enumKey])
+			}
+			uniqueNamesMap[enumKey] = clashName
+			s.definedEnums[clashName] = true
+			continue
+		}
+
+		// First, try the module name.
+		candidateUniqueNames := map[string]string{}
+		for enumKey, entry := range nameClashSet {
+			definingModNameCamelCase := yang.CamelCase(genutil.ParentModulePrettyName(entry.Node))
+			candidateUniqueNames[definingModNameCamelCase+delimiter+clashName] = enumKey
+		}
+		if addCandidateUniqueNames(candidateUniqueNames, len(nameClashSet)) {
+			continue
+		}
+
+		// FIXME(wenbli):
+		// - Remove the leading module for enumeration leaves.
+
+		// Next, try the ancestor names one by one until one succeeds
+		// or at least two of them no longer have parent entries.
+		for i := 0; ; i += 1 {
+			candidateUniqueNames = map[string]string{}
+			newNameClashSet := map[string]*yang.Entry{}
+			for enumKey, entry := range nameClashSet {
+				var candidateName string
+				if entry.Parent == nil || entry.Parent.Parent == nil {
+					// When we have reached the module-level (i.e. no
+					// grandparent), then we're out of ancestor containers to
+					// try, so just try to use the original clashName and hope
+					// everyone else can disambiguate using their parents.
+					candidateName = clashName
+					// If the name has already been used by another, then it
+					// means that there is more than one entry that hit the
+					// module-level, so we have reached a dead-end.
+					if _, ok := candidateUniqueNames[candidateName]; ok {
+						return nil, fmt.Errorf("enumgen.go: cannot resolve enumeration name clash between the following entries: %v", nameClashSet)
+					}
+					newNameClashSet[enumKey] = entry
+				} else {
+					// Try prepending the ancestor name to disambiguate.
+					candidateName = yang.CamelCase(entry.Parent.Name) + delimiter + clashName
+					newNameClashSet[enumKey] = entry.Parent
+				}
+				candidateUniqueNames[candidateName] = enumKey
+			}
+			// Update the clash set entry pointers to their next level of ancestors.
+			nameClashSet = newNameClashSet
+
+			if i == 0 {
+				// Skip the first parent entry for enumeration leafs to avoid using
+				// config/state as the disambiguating name.
 				continue
 			}
-			uniqueName := genutil.MakeNameUnique(name, s.definedEnums)
-			uniqueNamesMap[enumKey] = uniqueName
+			if addCandidateUniqueNames(candidateUniqueNames, len(nameClashSet)) {
+				break
+			}
 		}
 	}
 
-	return uniqueNamesMap
+	return uniqueNamesMap, nil
 }
 
 // resolveEnumeratedUnionEntry takes an input YANG union yang.Entry and computes the enumerated
 // values that should be generated for the entry. The name of the enumerated
 // value is calculated based on the original context, whether path compression is enabled based
-// on the compressPaths boolean, and whether the name should not include underscores, as per the
-// noUnderscores boolean.
+// on the compressPaths boolean, and whether the name should not include underscores, as per the // noUnderscores boolean.
 func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup bool) error {
 	for _, t := range util.EnumeratedUnionTypes(e.Type.Type) {
 		switch {
@@ -733,9 +827,9 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 	if !s.uniqueEnumeratedLeafEntries[uniqueIdentifier] {
 		// Each enum should only get their name generated once.
 		if _, ok := s.enumeratedLeafNameClashSets[name]; !ok {
-			s.enumeratedLeafNameClashSets[name] = map[string]bool{}
+			s.enumeratedLeafNameClashSets[name] = map[string]*yang.Entry{}
 		}
-		s.enumeratedLeafNameClashSets[name][uniqueIdentifier] = true
+		s.enumeratedLeafNameClashSets[name][uniqueIdentifier] = e
 		s.uniqueEnumeratedLeafEntries[uniqueIdentifier] = true
 	}
 }
@@ -760,7 +854,8 @@ func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores
 	}
 	// The module/typedefName was not already defined with a CamelCase name, so generate one
 	// here, and store it to be re-used later.
-	name := fmt.Sprintf("%s_%s", yang.CamelCase(definingModName), yang.CamelCase(typeName))
+	baseName := yang.CamelCase(typeName)
+	name := fmt.Sprintf("%s_%s", yang.CamelCase(definingModName), baseName)
 	if noUnderscores {
 		name = strings.Replace(name, "_", "", -1)
 	}
