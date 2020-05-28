@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -799,6 +800,10 @@ func TestSimpleStructs(t *testing.T) {
 			wantCode := string(wantCodeBytes)
 
 			if gotCode != wantCode {
+				// FIXME(wenbli): debug
+				if err := ioutil.WriteFile(fmt.Sprintf("/usr/local/google/home/wenbli/tmp/%s", path.Base(tt.wantStructsCodeFile)), []byte(gotCode), 0644); err != nil {
+					panic(err)
+				}
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
@@ -952,7 +957,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			"/openconfig-simple/parent/child": {
 				"one":   {NativeType: "string"},
 				"two":   {NativeType: "string"},
-				"three": {NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
+				"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true},
 				"four":  {NativeType: "Binary"},
 			},
 			"/openconfig-simple/remote-container": {
@@ -1018,7 +1023,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			"/openconfig-simple/parent/child": {
 				"one":   {NativeType: "string"},
 				"two":   {NativeType: "string"},
-				"three": {NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
+				"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true},
 				"four":  {NativeType: "Binary"},
 			},
 			"/openconfig-simple/remote-container": {
@@ -1079,7 +1084,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				"child": nil,
 			},
 			"/enum-module/c": {
-				"cl": {NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
+				"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true},
 			},
 			"/enum-module/parent/child": {
 				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
@@ -1141,7 +1146,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				"child": nil,
 			},
 			"/enum-module/c": {
-				"cl": {NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
+				"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true},
 			},
 			"/enum-module/parent/child": {
 				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
@@ -1221,7 +1226,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			"/openconfig-simple/parent/child": {
 				"one":   {NativeType: "string"},
 				"two":   {NativeType: "string"},
-				"three": {NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
+				"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true},
 				"four":  {NativeType: "Binary"},
 			},
 			"/openconfig-simple/remote-container": {
@@ -1299,7 +1304,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				"child": nil,
 			},
 			"/enum-module/c": {
-				"cl": {NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
+				"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true},
 			},
 			"/enum-module/parent/child": {
 				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},

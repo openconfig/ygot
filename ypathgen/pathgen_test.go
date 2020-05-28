@@ -97,7 +97,7 @@ func TestGeneratePathCode(t *testing.T) {
 				YANGPath:         "/openconfig-simple/parent/child/state/one",
 			},
 			"Parent_Child_Three": {
-				GoTypeName:       "oc.E_OpenconfigSimple_Child_Three",
+				GoTypeName:       "oc.E_Child_Three",
 				GoFieldName:      "Three",
 				ParentGoTypeName: "Parent_Child",
 				IsLeaf:           true,
@@ -167,7 +167,7 @@ func TestGeneratePathCode(t *testing.T) {
 				YANGTypeName:     "string",
 			},
 			"Parent_Child_Three": {
-				GoTypeName:       "oc.E_OpenconfigSimple_Child_Three",
+				GoTypeName:       "oc.E_Child_Three",
 				GoFieldName:      "Three",
 				ParentGoTypeName: "Parent_Child",
 				IsLeaf:           true,
@@ -222,7 +222,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:    false,
 			},
 			"DupEnum_A": {
-				GoTypeName:       "oc.E_OpenconfigUnione_DupEnum_A",
+				GoTypeName:       "oc.E_DupEnum_A",
 				GoFieldName:      "A",
 				ParentGoTypeName: "DupEnum",
 				IsLeaf:           true,
@@ -230,7 +230,7 @@ func TestGeneratePathCode(t *testing.T) {
 				YANGTypeName:     "enumeration",
 			},
 			"DupEnum_B": {
-				GoTypeName:       "oc.E_OpenconfigUnione_DupEnum_B",
+				GoTypeName:       "oc.E_DupEnum_B",
 				GoFieldName:      "B",
 				ParentGoTypeName: "DupEnum",
 				IsLeaf:           true,
@@ -335,7 +335,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:    false,
 			},
 			"C_Cl": {
-				GoTypeName:       "oc.E_EnumModule_EnumModule_Cl",
+				GoTypeName:       "oc.E_EnumModule_Cl",
 				GoFieldName:      "Cl",
 				ParentGoTypeName: "C",
 				IsLeaf:           true,

@@ -945,8 +945,8 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule_Container_EnumerationLeaf": {
-				name: "BaseModule_Container_EnumerationLeaf",
+			"Container_EnumerationLeaf": {
+				name: "Container_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -1122,8 +1122,8 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule_Container_EnumerationLeaf": {
-				name: "BaseModule_Container_EnumerationLeaf",
+			"Container_EnumerationLeaf": {
+				name: "Container_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -1131,8 +1131,8 @@ func TestFindEnumSet(t *testing.T) {
 					},
 				},
 			},
-			"OuterContainer_BaseModule_Container_EnumerationLeaf": {
-				name: "OuterContainer_BaseModule_Container_EnumerationLeaf",
+			"OuterContainer_Container_EnumerationLeaf": {
+				name: "OuterContainer_Container_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -1717,8 +1717,8 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule_Container_E": {
-				name: "BaseModule_Container_E",
+			"Container_E": {
+				name: "Container_E",
 				entry: &yang.Entry{
 					Name: "e",
 					Type: &yang.YangType{
@@ -1909,8 +1909,8 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule_Container_EnumerationLeaf": {
-				name: "BaseModule_Container_EnumerationLeaf",
+			"Container_EnumerationLeaf": {
+				name: "Container_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -1918,8 +1918,8 @@ func TestFindEnumSet(t *testing.T) {
 					},
 				},
 			},
-			"BaseModule_Container_EnumerationLeafTwo": {
-				name: "BaseModule_Container_EnumerationLeafTwo",
+			"Container_EnumerationLeafTwo": {
+				name: "Container_EnumerationLeafTwo",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf-two",
 					Type: &yang.YangType{
@@ -2020,8 +2020,8 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		inSkipEnumDeduplication: true,
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule2_Container_EnumerationLeaf": {
-				name: "BaseModule2_Container_EnumerationLeaf",
+			"Container_EnumerationLeaf": {
+				name: "Container_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -2104,7 +2104,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		inSkipEnumDeduplication: true,
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule2_Cherry_EnumerationLeaf": {
+			"Cherry_EnumerationLeaf": {
 				name: "BaseModule2_Cherry_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
@@ -2113,7 +2113,7 @@ func TestFindEnumSet(t *testing.T) {
 					},
 				},
 			},
-			"BaseModule2_Donuts_EnumerationLeaf": {
+			"Donuts_EnumerationLeaf": {
 				name: "BaseModule2_Donuts_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
@@ -2197,7 +2197,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		inSkipEnumDeduplication: true,
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule2_Container_EnumerationLeaf": {
+			"Container_EnumerationLeaf": {
 				name: "BaseModule2_Container_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
@@ -2280,7 +2280,7 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule2_Container_EnumerationLeaf": {
+			"Container_EnumerationLeaf": {
 				name: "BaseModule2_Container_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",

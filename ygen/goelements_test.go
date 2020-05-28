@@ -709,7 +709,7 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		inCompressPath: true,
 		want: &MappedType{
-			NativeType:        "E_BaseModule_Container_Eleaf",
+			NativeType:        "E_Container_Eleaf",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 		},
@@ -725,7 +725,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		},
 		inCompressPath: true,
-		want:           &MappedType{NativeType: "E_BaseMod_Container_Eleaf", IsEnumeratedValue: true, ZeroValue: "0"},
+		want:           &MappedType{NativeType: "E_Container_Eleaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}, {
 		name: "leafref",
 		in:   &yang.YangType{Kind: yang.Yleafref, Name: "leafref", Path: "../c"},
@@ -817,7 +817,7 @@ func TestYangTypeToGoType(t *testing.T) {
 		}},
 		inCompressPath:  true,
 		inSkipEnumDedup: true,
-		want:            &MappedType{NativeType: "E_Mod_Bar_Leaf", IsEnumeratedValue: true, ZeroValue: "0"},
+		want:            &MappedType{NativeType: "E_Bar_Leaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}, {
 		name: "enumeration from grouping used in multiple places - with deduplication",
 		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
@@ -864,7 +864,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			},
 		}},
 		inCompressPath: true,
-		want:           &MappedType{NativeType: "E_Mod_AContainerLexicographicallyEarlier_EnumLeaf", IsEnumeratedValue: true, ZeroValue: "0"},
+		want:           &MappedType{NativeType: "E_AContainerLexicographicallyEarlier_EnumLeaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}}
 
 	for _, tt := range tests {
