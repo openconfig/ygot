@@ -179,7 +179,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 			"/container/config/identityref-leaf2": {
-				Name: "identityref-leaf",
+				Name: "identityref-leaf2",
 				Type: &yang.YangType{
 					Name: "identityref",
 					IdentityBase: &yang.Identity{
@@ -591,6 +591,61 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantSame: true,
+	}, {
+		name: "typedef which is an enumeration name conflict due to camelcase lossiness",
+		in: map[string]*yang.Entry{
+			"/container/config/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "derived-enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Parent: &yang.Module{
+						Name: "base-module",
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "config",
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "base-module",
+						},
+					},
+				},
+			},
+			"/super/container/state/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "derivedEnumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Parent: &yang.Module{
+						Name: "base-module",
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "state",
+					Node: &yang.Container{Name: "state"},
+					Parent: &yang.Entry{
+						Name: "container",
+						Node: &yang.Container{Name: "container"},
+						Parent: &yang.Entry{
+							Name: "super",
+							Node: &yang.Container{Name: "super"},
+							Parent: &yang.Entry{
+								Name: "base-module",
+								Node: &yang.Module{Name: "base-module"},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantSame:      true,
+		wantErrSubstr: "enumerated typedef name conflict",
 	}, {
 		name: "union which contains typedef with an enumeration",
 		in: map[string]*yang.Entry{

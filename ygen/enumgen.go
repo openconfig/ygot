@@ -426,11 +426,11 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 
 	// This is the first of two passes over the input enum entries.
 	// The purpose of this pass is to establish what the default name of
-	// each of the enumerated types that are to be output in the code is.
+	// each of the enumerated leaf types that are to be output in the code is.
 	// At this stage, we just try and calculate the complete set, rather
-	// than resolving any clashes in names that might occur. Although since
-	// identity name clashes are not allowed, their generated names are
-	// already final.
+	// than resolving any clashes in names that might occur.
+	// Since identity and enumerated typedef name clashes are not allowed,
+	// their generated names are already final.
 	for _, eP := range enumPaths {
 		e := validEnums[eP]
 		switch {
@@ -562,23 +562,10 @@ type enumGenState struct {
 	// enumSet contains the final collision-free enumerated value names for
 	// the generated code.
 	enumSet *enumSet
-	// enumeratedTypedefNameClashSets stores the set of unique string keys
-	// representing typedef enumeration usages that were mapped to the same
-	// generated name using the default name generation rules.
-	// This is an intermediate storage for these names. While the default
-	// generated name is ideally stored inside enumSet directly,
-	// enumeration names may collide, and thus need collision resolution
-	// before they're stored inside enumSet. This is the reason for being
-	// for all name clash sets within enumGenState.
-	enumeratedTypedefNameClashSets map[string]map[string]bool
 	// enumeratedLeafNameClashSets stores the unique string keys representing
 	// enumeration leaves that were mapped to the same default generated
 	// name using the default name generation rules.
 	enumeratedLeafNameClashSets map[string]map[string]bool
-	// uniqueEnumeratedTypedefEntries keeps track of which enums have already had
-	// a name generated to avoid a second name from being generated for the
-	// same entry.
-	uniqueEnumeratedTypedefEntries map[string]bool
 	// uniqueEnumeratedLeafEntries keeps track of which enums have already had
 	// a name generated to avoid a second name from being generated for the
 	// same entry.
@@ -589,12 +576,10 @@ type enumGenState struct {
 // default state required for code generation.
 func newEnumGenState() *enumGenState {
 	return &enumGenState{
-		definedEnums:                   map[string]bool{},
-		enumSet:                        newEnumSet(),
-		enumeratedTypedefNameClashSets: map[string]map[string]bool{},
-		enumeratedLeafNameClashSets:    map[string]map[string]bool{},
-		uniqueEnumeratedTypedefEntries: map[string]bool{},
-		uniqueEnumeratedLeafEntries:    map[string]bool{},
+		definedEnums:                map[string]bool{},
+		enumSet:                     newEnumSet(),
+		enumeratedLeafNameClashSets: map[string]map[string]bool{},
+		uniqueEnumeratedLeafEntries: map[string]bool{},
 	}
 }
 
@@ -603,7 +588,6 @@ func newEnumGenState() *enumGenState {
 // generated name. Then it stores these final names in their appropriate name
 // maps within enumSet.
 func (s *enumGenState) resolveNameClashSets() {
-	s.enumSet.uniqueEnumeratedTypedefNames = s.resolveNameClashSet(s.enumeratedTypedefNameClashSets)
 	s.enumSet.uniqueEnumeratedLeafNames = s.resolveNameClashSet(s.enumeratedLeafNameClashSets)
 }
 
@@ -759,6 +743,8 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 // resolveTypedefEnumeratedName takes a yang.Entry which represents a typedef
 // that has an underlying enumerated type (e.g., identityref or enumeration),
 // and computes the default name of the enum in the generated code.
+// If its name clashes with any other identity or enumerated name, an error
+// would be returned.
 func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores bool) error {
 	// Since there can be many leaves that refer to the same typedef, then we do not generate
 	// a name for each of them, but rather use a common name, we use the non-CamelCase lookup
@@ -769,6 +755,9 @@ func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores
 	if err != nil {
 		return err
 	}
+	if _, ok := s.enumSet.uniqueEnumeratedTypedefNames[typedefKey]; ok {
+		return nil
+	}
 	// The module/typedefName was not already defined with a CamelCase name, so generate one
 	// here, and store it to be re-used later.
 	name := fmt.Sprintf("%s_%s", yang.CamelCase(definingModName), yang.CamelCase(typeName))
@@ -776,13 +765,12 @@ func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores
 		name = strings.Replace(name, "_", "", -1)
 	}
 
-	if !s.uniqueEnumeratedTypedefEntries[typedefKey] {
-		// Each enum should only get their name generated once.
-		if _, ok := s.enumeratedTypedefNameClashSets[name]; !ok {
-			s.enumeratedTypedefNameClashSets[name] = map[string]bool{}
-		}
-		s.enumeratedTypedefNameClashSets[name][typedefKey] = true
-		s.uniqueEnumeratedTypedefEntries[typedefKey] = true
+	// The name of an enumerated typedef must be unique within the entire generated
+	// code, so the context of name generation is global.
+	if s.definedEnums[name] {
+		return fmt.Errorf("enumgen.go: enumerated typedef name conflict %q for entry %+v", name, e)
 	}
+	s.enumSet.uniqueEnumeratedTypedefNames[typedefKey] = name
+	s.definedEnums[name] = true
 	return nil
 }
