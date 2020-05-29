@@ -727,7 +727,8 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 // resolveEnumeratedUnionEntry takes an input YANG union yang.Entry and computes the enumerated
 // values that should be generated for the entry. The name of the enumerated
 // value is calculated based on the original context, whether path compression is enabled based
-// on the compressPaths boolean, and whether the name should not include underscores, as per the // noUnderscores boolean.
+// on the compressPaths boolean, and whether the name should not include underscores, as per the
+// noUnderscores boolean.
 func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup bool) error {
 	for _, t := range util.EnumeratedUnionTypes(e.Type.Type) {
 		switch {
