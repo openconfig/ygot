@@ -219,20 +219,20 @@ func TestEnumStringFunction(t *testing.T) {
 		want:   "IP_REACHABILITY_TAG64",
 	}, {
 		desc:   "in range: UP",
-		inEnum: exampleoc.OpenconfigInterfaces_Interface_OperStatus_UP,
+		inEnum: exampleoc.Interface_OperStatus_UP,
 		want:   "UP",
 	}, {
 		desc:   "in range: DOWN",
-		inEnum: exampleoc.OpenconfigInterfaces_Interface_OperStatus_DOWN,
+		inEnum: exampleoc.Interface_OperStatus_DOWN,
 		want:   "DOWN",
 	}, {
 		desc:   "out-of-range: UNSET",
-		inEnum: exampleoc.OpenconfigInterfaces_Interface_OperStatus_UNSET,
-		want:   "out-of-range E_OpenconfigInterfaces_Interface_OperStatus enum value: 0",
+		inEnum: exampleoc.Interface_OperStatus_UNSET,
+		want:   "out-of-range E_Interface_OperStatus enum value: 0",
 	}, {
 		desc:   "out-of-range: too high",
-		inEnum: exampleoc.E_OpenconfigInterfaces_Interface_OperStatus(100),
-		want:   "out-of-range E_OpenconfigInterfaces_Interface_OperStatus enum value: 100",
+		inEnum: exampleoc.E_Interface_OperStatus(100),
+		want:   "out-of-range E_Interface_OperStatus enum value: 100",
 	}}
 
 	for _, tt := range tests {
