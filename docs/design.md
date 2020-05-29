@@ -123,13 +123,13 @@ struct names.
 
 * `leaf` nodes with a type of `enumeration` are mapped to an enumeration named
   according to the path of the `leaf`. The path specified is
-  `ModuleName_<PathElement1>_<PathElement2>_..._<PathElementN>_LeafName`, or
-  for compressed paths, `LeafGrandParentName_LeafName`, such that a
-  path of `/interfaces/interface/state/enumerated-value` defined within the
-  `openconfig-interfaces` module is represented by an enumerated type named
-  `OpenconfigInterfaces_Interface_State_EnumeratedValue` (assuming path
-  compression is disabled), or `Interface_EnumeratedValue`
-  when it is enabled. Here, `ModuleName` refers to the defining module of the
+  `ModuleName_<PathElement1>_<PathElement2>_..._<PathElementN>_LeafName` (index
+  starting from 1), or for compressed paths, `LeafGrandParentName_LeafName`,
+  such that a path of `/interfaces/interface/state/enumerated-value` defined
+  within the `openconfig-interfaces` module is represented by an enumerated type
+  named `OpenconfigInterfaces_Interfaces_Interface_State_EnumeratedValue`
+  (assuming path compression is disabled), or `Interface_EnumeratedValue` when
+  it is enabled. Here, `ModuleName` refers to the defining module of the
   `enumeration` type.
   * This mapping is handled by `enumgen.go`:`resolveEnumName`.
 * Defined `identity` statements are generated only when they are referenced by a
