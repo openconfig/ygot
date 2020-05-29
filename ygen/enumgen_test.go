@@ -26,10 +26,14 @@ import (
 
 func TestResolveNameClashSet(t *testing.T) {
 	tests := []struct {
-		name                            string
-		inDefinedEnums                  map[string]bool
-		inDefinedEnumsNoUnderscores     map[string]bool
-		inNameClashSets                 map[string]map[string]*yang.Entry
+		name                        string
+		inDefinedEnums              map[string]bool
+		inDefinedEnumsNoUnderscores map[string]bool
+		inNameClashSets             map[string]map[string]*yang.Entry
+		// wantUncompressFailDueToClash means the uncompressed test run will fail in
+		// deviation from the compressed case due to existence of a name clash, which can
+		// only be resolved for compressed paths.
+		wantUncompressFailDueToClash    bool
 		wantUniqueNamesMap              map[string]string
 		wantUniqueNamesMapNoUnderscores map[string]string
 		wantErrSubstr                   string
@@ -142,6 +146,7 @@ func TestResolveNameClashSet(t *testing.T) {
 				},
 			},
 		},
+		wantUncompressFailDueToClash: true,
 		wantUniqueNamesMap: map[string]string{
 			"enum-a": "BaseModule_Foo",
 			"enum-b": "SupportModule_Foo",
@@ -180,9 +185,10 @@ func TestResolveNameClashSet(t *testing.T) {
 				},
 			},
 		},
-		wantErrSubstr: "cannot resolve enumeration name clash",
+		wantUncompressFailDueToClash: true,
+		wantErrSubstr:                "cannot resolve enumeration name clash",
 	}, {
-		name: "resolving name clash at grandparent for leaves and parent for typedefs",
+		name: "resolving name clash at grandparent for enumeration leaves",
 		inDefinedEnums: map[string]bool{
 			"Baz": true,
 			"Foo": true,
@@ -241,6 +247,7 @@ func TestResolveNameClashSet(t *testing.T) {
 				},
 			},
 		},
+		wantUncompressFailDueToClash: true,
 		wantUniqueNamesMap: map[string]string{
 			"enum-a": "GranGranA_Foo",
 			"enum-b": "GranGranB_Foo",
@@ -301,6 +308,7 @@ func TestResolveNameClashSet(t *testing.T) {
 				},
 			},
 		},
+		wantUncompressFailDueToClash: true,
 		wantUniqueNamesMap: map[string]string{
 			"enum-a": "GranGran_Foo",
 			"enum-b": "Foo",
@@ -349,9 +357,10 @@ func TestResolveNameClashSet(t *testing.T) {
 				},
 			},
 		},
-		wantErrSubstr: "cannot resolve enumeration name clash",
+		wantUncompressFailDueToClash: true,
+		wantErrSubstr:                "cannot resolve enumeration name clash",
 	}, {
-		name: "resolving name clash at grandparent (parent for typedefs) due to name from module-level disambiguation already in definedEnums",
+		name: "resolving name clash at grandparent due to name from module-level disambiguation already in definedEnums",
 		inDefinedEnums: map[string]bool{
 			"Baz":               true,
 			"Foo":               true,
@@ -412,6 +421,7 @@ func TestResolveNameClashSet(t *testing.T) {
 				},
 			},
 		},
+		wantUncompressFailDueToClash: true,
 		wantUniqueNamesMap: map[string]string{
 			"enum-a": "GranGranA_Foo",
 			"enum-b": "GranGranB_Foo",
@@ -492,6 +502,7 @@ func TestResolveNameClashSet(t *testing.T) {
 				},
 			},
 		},
+		wantUncompressFailDueToClash: true,
 		wantUniqueNamesMap: map[string]string{
 			"enum-a": "GreatGranGranA_Foo",
 			"enum-b": "GreatGranGranB_Foo",
@@ -576,6 +587,7 @@ func TestResolveNameClashSet(t *testing.T) {
 				},
 			},
 		},
+		wantUncompressFailDueToClash: true,
 		wantUniqueNamesMap: map[string]string{
 			"enum-a": "GreatGranGranA_Foo",
 			"enum-b": "GreatGranGranB_Foo",
@@ -652,7 +664,8 @@ func TestResolveNameClashSet(t *testing.T) {
 				},
 			},
 		},
-		wantErrSubstr: "cannot resolve enumeration name clash",
+		wantUncompressFailDueToClash: true,
+		wantErrSubstr:                "cannot resolve enumeration name clash",
 	}, {
 		name: "cannot resolve name clash at grandparent due to camel case lossiness",
 		inDefinedEnums: map[string]bool{
@@ -713,7 +726,8 @@ func TestResolveNameClashSet(t *testing.T) {
 				},
 			},
 		},
-		wantErrSubstr: "cannot resolve enumeration name clash",
+		wantUncompressFailDueToClash: true,
+		wantErrSubstr:                "cannot resolve enumeration name clash",
 	}, {
 		name: "intersecting name clash sets",
 		inDefinedEnums: map[string]bool{
@@ -749,24 +763,33 @@ func TestResolveNameClashSet(t *testing.T) {
 			if noUnderscores {
 				inDefinedEnums = tt.inDefinedEnumsNoUnderscores
 			}
-			t.Run(tt.name+fmt.Sprintf(",noUnderscores:%v", noUnderscores), func(t *testing.T) {
-				s := newEnumGenState()
-				for k, v := range inDefinedEnums {
-					// Copy the values as this map may be modified.
-					s.definedEnums[k] = v
-				}
-				gotUniqueNamesMap, err := s.resolveNameClashSet(tt.inNameClashSets, noUnderscores)
-				if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
-					if err == nil {
-						t.Errorf("gotUniqueNamesMap: %v", gotUniqueNamesMap)
+			for compressPaths := range map[bool]struct{}{false: struct{}{}, true: struct{}{}} {
+				t.Run(tt.name+fmt.Sprintf("@compressPaths:%v,noUnderscores:%v", compressPaths, noUnderscores), func(t *testing.T) {
+					s := newEnumGenState()
+					for k, v := range inDefinedEnums {
+						// Copy the values as this map may be modified.
+						s.definedEnums[k] = v
 					}
-					t.Fatalf("did not get expected error:\n%s", diff)
-				}
+					gotUniqueNamesMap, err := s.resolveNameClashSet(tt.inNameClashSets, compressPaths, noUnderscores)
+					wantErrSubstr := tt.wantErrSubstr
+					if !compressPaths && tt.wantUncompressFailDueToClash {
+						wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
+					}
+					if diff := errdiff.Substring(err, wantErrSubstr); diff != "" {
+						if err == nil {
+							t.Errorf("gotUniqueNamesMap: %v", gotUniqueNamesMap)
+						}
+						t.Fatalf("did not get expected error:\n%s", diff)
+					}
+					if wantErrSubstr != "" {
+						return
+					}
 
-				if diff := cmp.Diff(gotUniqueNamesMap, wantUniqueNamesMap); diff != "" {
-					t.Errorf("TestResolveNameClashSet (-got, +want):\n%s", diff)
-				}
-			})
+					if diff := cmp.Diff(gotUniqueNamesMap, wantUniqueNamesMap); diff != "" {
+						t.Errorf("TestResolveNameClashSet (-got, +want):\n%s", diff)
+					}
+				})
+			}
 		}
 	}
 }
@@ -784,7 +807,11 @@ func TestFindEnumSet(t *testing.T) {
 		wantCompressed          map[string]*yangEnum
 		wantUncompressed        map[string]*yangEnum
 		wantSame                bool // Whether to expect same compressed/uncompressed output
-		wantErrSubstr           string
+		// wantUncompressFailDueToClash means the uncompressed test run will fail in
+		// deviation from the compressed case due to existence of a name clash, which can
+		// only be resolved for compressed paths.
+		wantUncompressFailDueToClash bool
+		wantErrSubstr                string
 	}{{
 		name: "simple identityref",
 		in: map[string]*yang.Entry{
@@ -1033,7 +1060,8 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantErrSubstr: "cannot resolve enumeration name clash",
+		wantUncompressFailDueToClash: true,
+		wantErrSubstr:                "cannot resolve enumeration name clash",
 	}, {
 		name: "simple enumeration with naming conflict due to same grandparent context",
 		in: map[string]*yang.Entry{
@@ -2315,9 +2343,14 @@ func TestFindEnumSet(t *testing.T) {
 				// TODO(wenbli): test the generated enum name sets when deduplication tests are added.
 				_, entries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication)
 
+				wantErrSubstr := tt.wantErrSubstr
+				if !compressed && tt.wantUncompressFailDueToClash {
+					wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
+				}
+
 				if errs != nil {
-					if diff := errdiff.Substring(errs[0], tt.wantErrSubstr); diff != "" {
-						t.Errorf("findEnumSet: did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", errs, len(errs), tt.wantErrSubstr)
+					if diff := errdiff.Substring(errs[0], wantErrSubstr); diff != "" {
+						t.Errorf("findEnumSet: did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", errs, len(errs), wantErrSubstr)
 					}
 					if len(errs) > 1 {
 						t.Errorf("findEnumSet: got too many errors, expecting length 1 only, (len %d), all errors: %v", len(errs), errs)

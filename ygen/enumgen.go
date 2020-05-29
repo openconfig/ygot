@@ -468,7 +468,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 
 	// Resolve any enumeration value name conflicts.
 	// At this point, all enumerated value names are fully resolved.
-	if err := s.resolveNameClashSets(noUnderscores); err != nil {
+	if err := s.resolveEnumeratedLeafClashSets(compressPaths, noUnderscores); err != nil {
 		return nil, nil, append(errs, err)
 	}
 
@@ -586,13 +586,13 @@ func newEnumGenState() *enumGenState {
 	}
 }
 
-// resolveNameClashSets scans through all of the name clash sets, and carries out
-// name collision resolution between different enum keys that mapped to the same default
-// generated name. Then it stores these final names in their appropriate name
-// maps within enumSet.
-func (s *enumGenState) resolveNameClashSets(noUnderscores bool) error {
+// resolveEnumeratedLeafClashSets scans through all of the name clash sets for
+// enumeration leaves, and carries out name collision resolution between
+// different enum keys that mapped to the same default generated name. Then it
+// stores these final names in their appropriate name maps within enumSet.
+func (s *enumGenState) resolveEnumeratedLeafClashSets(compressPaths, noUnderscores bool) error {
 	var err error
-	if s.enumSet.uniqueEnumeratedLeafNames, err = s.resolveNameClashSet(s.enumeratedLeafNameClashSets, noUnderscores); err != nil {
+	if s.enumSet.uniqueEnumeratedLeafNames, err = s.resolveNameClashSet(s.enumeratedLeafNameClashSets, compressPaths, noUnderscores); err != nil {
 		return err
 	}
 	return nil
@@ -601,7 +601,7 @@ func (s *enumGenState) resolveNameClashSets(noUnderscores bool) error {
 // resolveNameClashSet carries out name collision resolution on the input name
 // clash set to generate the final names, and stores those names in the given
 // unique map.
-func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*yang.Entry, noUnderscores bool) (map[string]string, error) {
+func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*yang.Entry, compressPaths, noUnderscores bool) (map[string]string, error) {
 	uniqueNamesMap := map[string]string{}
 	// addCandidateUniqueNames adds the candidate map of unique names to the final unique names map.
 	// It returns whether the candidate names was successfully accepted as the resolving name set.
@@ -636,14 +636,24 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 	sort.Strings(defaultNames)
 
 	for _, clashName := range defaultNames {
+		// clashPaths stores the paths of the conflicting entries to
+		// display for debugging if an error occurs.
+		var clashPaths []string
 		nameClashSet := nameClashSets[clashName]
 		// Check that all enumKeys had only a single default name generated within the
 		// nameClashSets by making sure there is no name already defined for it from
 		// previous rounds of name clash resolution.
-		for enumKey := range nameClashSet {
+		for enumKey, entry := range nameClashSet {
 			if _, ok := uniqueNamesMap[enumKey]; ok {
 				return nil, fmt.Errorf("enumgen.go bug: enumKey %q has been given a second name during name generation, this should be detected and disallowed in the algorithm; one of the entries used for name generation: %+v", enumKey, nameClashSet[enumKey])
 			}
+			clashPaths = append(clashPaths, entry.Path())
+		}
+
+		// For enumeration leaves, the names are expected to not clash
+		// since they each already use the entire path.
+		if !compressPaths && len(nameClashSet) != 1 {
+			return nil, fmt.Errorf("enumgen.go: clash in enumerated name occurred despite paths being uncompressed, clash name: %q, clashing paths: %v", clashName, clashPaths)
 		}
 
 		// If there is no clash, then we're done. This should be the vast majority of cases.
@@ -656,7 +666,7 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 			if s.definedEnums[clashName] {
 				// Unexpected conflict with existing name. This should not happen
 				// because clashNames are supposed to be unique.
-				return nil, fmt.Errorf("enumgen.go bug: default name %q has already been assigned during name generation, this should not happen in the algorithm; enumKey: %q; one of the entries used for name generation: %+v", clashName, enumKey, nameClashSet[enumKey])
+				return nil, fmt.Errorf("enumgen.go bug: default name %q has already been assigned during name generation, this should not happen in the algorithm; enumKey: %q; one of the entries used for name generation: %v", clashName, enumKey, nameClashSet[enumKey].Path())
 			}
 			uniqueNamesMap[enumKey] = clashName
 			s.definedEnums[clashName] = true
@@ -693,7 +703,7 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 					// means that there is more than one entry that hit the
 					// module-level, so we have reached a dead-end.
 					if _, ok := candidateUniqueNames[candidateName]; ok {
-						return nil, fmt.Errorf("enumgen.go: cannot resolve enumeration name clash between the following entries: %v", nameClashSet)
+						return nil, fmt.Errorf("enumgen.go: cannot resolve enumeration name clash between the following entries: %v", clashPaths)
 					}
 					newNameClashSet[enumKey] = entry
 				} else {
