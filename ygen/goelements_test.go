@@ -858,13 +858,13 @@ func TestYangTypeToGoType(t *testing.T) {
 			Parent: &yang.Entry{
 				Name: "config",
 				Parent: &yang.Entry{
-					Name:   "container",
-					Parent: &yang.Entry{Name: "base-module-lexicographically-earlier-so-it-gets-processed-earlier"},
+					Name:   "a-container-lexicographically-earlier",
+					Parent: &yang.Entry{Name: "base-module"},
 				},
 			},
 		}},
 		inCompressPath: true,
-		want:           &MappedType{NativeType: "E_Mod_Container_EnumLeaf", IsEnumeratedValue: true, ZeroValue: "0"},
+		want:           &MappedType{NativeType: "E_Mod_AContainerLexicographicallyEarlier_EnumLeaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}}
 
 	for _, tt := range tests {

@@ -1901,7 +1901,7 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		inEnumEntries: []*yang.Entry{{
-			Name: "enum-leaf",
+			Name: "enum-leaf-lexicographically-earlier",
 			Type: &yang.YangType{
 				Name: "enumeration",
 				Enum: &yang.EnumType{},
@@ -1917,7 +1917,7 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 			Parent: &yang.Entry{
-				Name: "before-config-lexicographically-so-it-gets-processed-earlier",
+				Name: "config",
 				Parent: &yang.Entry{
 					Name:   "container",
 					Parent: &yang.Entry{Name: "base-module"},
@@ -1927,7 +1927,7 @@ func TestBuildListKey(t *testing.T) {
 		inCompress: true,
 		want: YangListAttr{
 			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "E_BaseModule_Container_EnumLeaf"},
+				"keyleaf": {NativeType: "E_BaseModule_Container_EnumLeafLexicographicallyEarlier"},
 			},
 			KeyElems: []*yang.Entry{
 				{
@@ -1974,7 +1974,7 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		inEnumEntries: []*yang.Entry{{
-			Name: "enum-leaf",
+			Name: "enum-leaf-lexicographically-earlier",
 			Type: &yang.YangType{
 				Name: "enumeration",
 				Enum: &yang.EnumType{},
@@ -1990,7 +1990,7 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 			Parent: &yang.Entry{
-				Name: "before-config-lexicographically",
+				Name: "config",
 				Parent: &yang.Entry{
 					Name:   "container",
 					Parent: &yang.Entry{Name: "base-module"},
