@@ -763,7 +763,7 @@ func TestResolveNameClashSet(t *testing.T) {
 			if noUnderscores {
 				inDefinedEnums = tt.inDefinedEnumsNoUnderscores
 			}
-			for compressPaths := range map[bool]struct{}{false: struct{}{}, true: struct{}{}} {
+			for compressPaths := range map[bool]struct{}{false: {}, true: {}} {
 				t.Run(tt.name+fmt.Sprintf("@compressPaths:%v,noUnderscores:%v", compressPaths, noUnderscores), func(t *testing.T) {
 					s := newEnumGenState()
 					for k, v := range inDefinedEnums {
