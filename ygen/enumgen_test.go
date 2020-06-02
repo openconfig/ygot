@@ -1012,15 +1012,14 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantEnumSetCompressed: &enumSet{
-			// FIXME(wenbli): These are the wrong keys to use for enumeration leaves. They're not sufficiently unique.
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/container/config/enumeration-leaf": "Container_EnumerationLeaf",
+				"/base-module/container/config/enumeration-leaf": "Container_EnumerationLeaf",
 			},
 		},
 		wantEnumSetUncompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/container/config/enumeration-leaf": "BaseModule_Container_Config_EnumerationLeaf",
-				"/container/state/enumeration-leaf":  "BaseModule_Container_State_EnumerationLeaf",
+				"/base-module/container/config/enumeration-leaf": "BaseModule_Container_Config_EnumerationLeaf",
+				"/base-module/container/state/enumeration-leaf":  "BaseModule_Container_State_EnumerationLeaf",
 			},
 		},
 	}, {
@@ -1224,15 +1223,15 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/container/config/enumeration-leaf":                 "Container_EnumerationLeaf",
-				"/outer-container/container/config/enumeration-leaf": "OuterContainer_Container_EnumerationLeaf",
+				"/base-module/container/config/enumeration-leaf":                 "Container_EnumerationLeaf",
+				"/base-module/outer-container/container/config/enumeration-leaf": "OuterContainer_Container_EnumerationLeaf",
 			},
 		},
 		wantEnumSetUncompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/container/config/enumeration-leaf":                 "BaseModule_Container_Config_EnumerationLeaf",
-				"/container/state/enumeration-leaf":                  "BaseModule_Container_State_EnumerationLeaf",
-				"/outer-container/container/config/enumeration-leaf": "BaseModule_OuterContainer_Container_Config_EnumerationLeaf",
+				"/base-module/container/config/enumeration-leaf":                 "BaseModule_Container_Config_EnumerationLeaf",
+				"/base-module/container/state/enumeration-leaf":                  "BaseModule_Container_State_EnumerationLeaf",
+				"/base-module/outer-container/container/config/enumeration-leaf": "BaseModule_OuterContainer_Container_Config_EnumerationLeaf",
 			},
 		},
 	}, {
@@ -1916,12 +1915,12 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"container:/container/state/e": "Container_E",
+				"container:/base-module/container/state/e": "Container_E",
 			},
 		},
 		wantEnumSetUncompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"e:/container/state/e": "BaseModule_Container_State_E",
+				"e:/base-module/container/state/e": "BaseModule_Container_State_E",
 			},
 		},
 	}, {
@@ -2094,16 +2093,16 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/container/config/enumeration-leaf":     "Container_EnumerationLeaf",
-				"/container/config/enumeration-leaf-two": "Container_EnumerationLeafTwo",
+				"/base-module/container/config/enumeration-leaf":     "Container_EnumerationLeaf",
+				"/base-module/container/config/enumeration-leaf-two": "Container_EnumerationLeafTwo",
 			},
 		},
 		wantEnumSetUncompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/container/config/enumeration-leaf":     "BaseModule_Container_Config_EnumerationLeaf",
-				"/container/config/enumeration-leaf-two": "BaseModule_Container_Config_EnumerationLeafTwo",
-				"/container/state/enumeration-leaf":      "BaseModule_Container_State_EnumerationLeaf",
-				"/container/state/enumeration-leaf-two":  "BaseModule_Container_State_EnumerationLeafTwo",
+				"/base-module/container/config/enumeration-leaf":     "BaseModule_Container_Config_EnumerationLeaf",
+				"/base-module/container/config/enumeration-leaf-two": "BaseModule_Container_Config_EnumerationLeafTwo",
+				"/base-module/container/state/enumeration-leaf":      "BaseModule_Container_State_EnumerationLeaf",
+				"/base-module/container/state/enumeration-leaf-two":  "BaseModule_Container_State_EnumerationLeafTwo",
 			},
 		},
 	}, {
@@ -2192,7 +2191,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/foo/enumeration-leaf:Container_EnumerationLeaf": "Container_EnumerationLeaf",
+				"/base-module2/foo/enumeration-leaf:Container_EnumerationLeaf": "Container_EnumerationLeaf",
 			},
 		},
 		wantEnumSetUncompressed: &enumSet{
@@ -2296,8 +2295,8 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/foo/enumeration-leaf:Cherry_EnumerationLeaf": "Cherry_EnumerationLeaf",
-				"/foo/enumeration-leaf:Donuts_EnumerationLeaf": "Donuts_EnumerationLeaf",
+				"/base-module2/foo/enumeration-leaf:Cherry_EnumerationLeaf": "Cherry_EnumerationLeaf",
+				"/base-module2/foo/enumeration-leaf:Donuts_EnumerationLeaf": "Donuts_EnumerationLeaf",
 			},
 		},
 		wantEnumSetUncompressed: &enumSet{
@@ -2392,7 +2391,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/foo/enumeration-leaf:Container_EnumerationLeaf": "Container_EnumerationLeaf",
+				"/base-module2/foo/enumeration-leaf:Container_EnumerationLeaf": "Container_EnumerationLeaf",
 			},
 		},
 		wantEnumSetUncompressed: &enumSet{
@@ -2477,12 +2476,12 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/foo/enumeration-leaf": "Container_EnumerationLeaf",
+				"/base-module2/foo/enumeration-leaf": "Container_EnumerationLeaf",
 			},
 		},
 		wantEnumSetUncompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/foo/enumeration-leaf": "BaseModule2_Container_Apple_EnumerationLeaf",
+				"/base-module2/foo/enumeration-leaf": "BaseModule2_Container_Apple_EnumerationLeaf",
 			},
 		},
 	}}
