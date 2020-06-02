@@ -673,8 +673,7 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 		// First, try the module name.
 		candidateUniqueNames := map[string]string{}
 		for enumKey, entry := range nameClashSet {
-			definingModNameCamelCase := yang.CamelCase(genutil.ParentModulePrettyName(entry.Node))
-			candidateUniqueNames[definingModNameCamelCase+delimiter+clashName] = enumKey
+			candidateUniqueNames[genutil.ParentModulePrettyName(entry.Node)+delimiter+clashName] = enumKey
 		}
 		if addCandidateUniqueNames(candidateUniqueNames, len(nameClashSet)) {
 			continue
@@ -711,7 +710,7 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 			nameClashSet = newNameClashSet
 
 			if i == 0 {
-				// Skip the first parent entry for enumeration leafs to avoid using
+				// Skip the first parent entry to avoid using
 				// config/state as the disambiguating name.
 				continue
 			}
