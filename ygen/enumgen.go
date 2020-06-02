@@ -217,11 +217,11 @@ func (s *enumSet) typedefEnumeratedName(e *yang.Entry, noUnderscores bool) (stri
 
 // identityBaseKey calculates a unique string key for the input identity.
 func (s *enumSet) identityBaseKey(i *yang.Identity) string {
-	definingModName := genutil.ParentModuleName(i)
+	definingModYANGName := genutil.ParentModuleName(i)
 	// As per a typedef that includes an enumeration, there is a many to one
 	// relationship between leaves and an identity value, therefore, we want to
 	// reuse the existing name for the identity enumeration if one exists.
-	return fmt.Sprintf("%s/%s", definingModName, i.Name)
+	return fmt.Sprintf("%s/%s", definingModYANGName, i.Name)
 }
 
 // enumeratedTypedefKey calculates a unique string key for the input typedef
@@ -309,7 +309,7 @@ func (s *enumSet) enumLeafKey(e *yang.Entry, compressPaths, noUnderscores, skipD
 // an enum that's used in two different places in the schema.
 // This function can be called on a union entry that contains an enumeration type.
 func enumIdentifier(e *yang.Entry, compressPaths bool) string {
-	definingModName := genutil.ParentModulePrettyName(e.Node)
+	definingModYANGName := genutil.ParentModuleName(e.Node)
 	// It is possible, given a particular enumerated leaf, for it to appear
 	// multiple times in the schema. For example, through being defined in
 	// a grouping which is instantiated in two places. In these cases, the
@@ -323,10 +323,10 @@ func enumIdentifier(e *yang.Entry, compressPaths bool) string {
 	//
 	// The path that is used for the enumeration is therefore taking the goyang
 	// "Node" hierarchy - we walk back up the tree until such time as we find
-	// a node that is not within the same module (ParentModulePrettyName(parent) !=
-	// ParentModulePrettyName(currentNode)), and use this as the unique path.
+	// a node that is not within the same module (ParentModuleName(parent) !=
+	// ParentModuleName(currentNode)), and use this as the unique path.
 	var identifierPathElem []string
-	for elem := e.Node; elem.ParentNode() != nil && genutil.ParentModulePrettyName(elem) == definingModName; elem = elem.ParentNode() {
+	for elem := e.Node; elem.ParentNode() != nil && genutil.ParentModuleName(elem) == definingModYANGName; elem = elem.ParentNode() {
 		identifierPathElem = append(identifierPathElem, elem.NName())
 	}
 
