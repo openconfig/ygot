@@ -1244,6 +1244,7 @@ func TestFindEnumSet(t *testing.T) {
 					Enum: &yang.EnumType{},
 				},
 				Node: &yang.Enum{
+					Name: "enumeration-leaf",
 					Parent: &yang.Container{
 						Name: "config",
 						Parent: &yang.Container{
@@ -1269,6 +1270,7 @@ func TestFindEnumSet(t *testing.T) {
 					Enum: &yang.EnumType{},
 				},
 				Node: &yang.Enum{
+					Name: "enumeration-leaf",
 					Parent: &yang.Container{
 						Name: "state",
 						Parent: &yang.Container{
@@ -1296,6 +1298,7 @@ func TestFindEnumSet(t *testing.T) {
 					Enum: &yang.EnumType{},
 				},
 				Node: &yang.Enum{
+					Name: "enumeration-leaf",
 					Parent: &yang.Container{
 						Name: "config",
 						Parent: &yang.Container{
@@ -1366,15 +1369,15 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/base-module/container/config/":  "BaseModule_Container_EnumerationLeaf",
-				"/base-module2/container/config/": "BaseModule2_Container_EnumerationLeaf",
+				"/base-module/container/config/enumeration-leaf":  "BaseModule_Container_EnumerationLeaf",
+				"/base-module2/container/config/enumeration-leaf": "BaseModule2_Container_EnumerationLeaf",
 			},
 		},
 		wantEnumSetUncompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/base-module/container/config/":  "BaseModule_Container_Config_EnumerationLeaf",
-				"/base-module/container/state/":   "BaseModule_Container_State_EnumerationLeaf",
-				"/base-module2/container/config/": "BaseModule2_Container_Config_EnumerationLeaf",
+				"/base-module/container/config/enumeration-leaf":  "BaseModule_Container_Config_EnumerationLeaf",
+				"/base-module/container/state/enumeration-leaf":   "BaseModule_Container_State_EnumerationLeaf",
+				"/base-module2/container/config/enumeration-leaf": "BaseModule2_Container_Config_EnumerationLeaf",
 			},
 		},
 	}, {
