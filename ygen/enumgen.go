@@ -326,7 +326,7 @@ func enumIdentifier(e *yang.Entry, compressPaths bool) string {
 	// a node that is not within the same module (ParentModuleName(parent) !=
 	// ParentModuleName(currentNode)), and use this as the unique path.
 	var identifierPathElem []string
-	for elem := e.Node; elem != nil && genutil.ParentModuleName(elem) == definingModName; elem = elem.ParentNode() {
+	for elem := e.Node; elem != nil && genutil.ParentModuleName(elem) == definingModYANGName; elem = elem.ParentNode() {
 		identifierPathElem = append(identifierPathElem, elem.NName())
 	}
 
