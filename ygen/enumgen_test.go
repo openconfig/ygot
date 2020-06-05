@@ -511,6 +511,31 @@ func TestResolveNameClashSet(t *testing.T) {
 			"enum-a": "GreatGranGranAFoo",
 			"enum-b": "GreatGranGranBFoo",
 		},
+		wantUniqueNamesMapNoUnderscores: map[string]string{
+			"enum-a": "Foo",
+			"enum-b": "Bar",
+		},
+	}, {
+		name: "no name clash but name already exists in definedEnums due to an algorithm bug",
+		inDefinedEnums: map[string]bool{
+			"Bar": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Bar": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+				},
+			},
+			"Bar": {
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+				},
+			},
+		},
+		wantErrSubstr: `default name "Bar" has already been assigned`,
 	}, {
 		name: "resolving name clash at great-grandparent due to name from grandparent-level disambiguation already present in definedEnums",
 		inDefinedEnums: map[string]bool{
@@ -2501,6 +2526,11 @@ func TestFindEnumSet(t *testing.T) {
 			}
 			t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v)", tt.name, compressed, tt.inSkipEnumDeduplication), func(t *testing.T) {
 				gotEnumSet, entries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication)
+
+				wantErrSubstr := tt.wantErrSubstr
+				if !compressed && tt.wantUncompressFailDueToClash {
+					wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
+				}
 
 				wantErrSubstr := tt.wantErrSubstr
 				if !compressed && tt.wantUncompressFailDueToClash {
