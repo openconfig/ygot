@@ -650,8 +650,8 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 			clashPaths = append(clashPaths, entry.Path())
 		}
 
-		// For enumeration leaves, the names are expected to not clash
-		// since they each already use the entire path.
+		// For compressPaths=true, the enumeration leaf names are expected
+		// to not clash since they each already use the entire path.
 		if !compressPaths && len(nameClashSet) != 1 {
 			return nil, fmt.Errorf("enumgen.go: clash in enumerated name occurred despite paths being uncompressed, clash name: %q, clashing paths: %v", clashName, clashPaths)
 		}
@@ -864,8 +864,7 @@ func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores
 	}
 	// The module/typedefName was not already defined with a CamelCase name, so generate one
 	// here, and store it to be re-used later.
-	baseName := yang.CamelCase(typeName)
-	name := fmt.Sprintf("%s_%s", yang.CamelCase(definingModName), baseName)
+	name := fmt.Sprintf("%s_%s", yang.CamelCase(definingModName), yang.CamelCase(typeName))
 	if noUnderscores {
 		name = strings.Replace(name, "_", "", -1)
 	}
