@@ -141,7 +141,7 @@ type Bgp_Neighbor struct {
 	EnabledAddressFamily	[]Bgp_Neighbor_EnabledAddressFamily_Union	`path:"state/enabled-address-family" module:"openconfig-options"`
 	HoldTime	*uint32	`path:"config/hold-time" module:"openconfig-options"`
 	PeerAddress	*string	`path:"config/peer-address|peer-address" module:"openconfig-options"`
-	SessionState	E_OpenconfigOptions_Neighbor_SessionState	`path:"state/session-state" module:"openconfig-options"`
+	SessionState	E_Neighbor_SessionState	`path:"state/session-state" module:"openconfig-options"`
 }
 
 // IsYANGGoStruct ensures that Bgp_Neighbor implements the yang.GoStruct
@@ -234,6 +234,43 @@ func (t *Device) Validate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Device) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
+// E_Neighbor_SessionState is a derived int64 type which is used to represent
+// the enumerated node Neighbor_SessionState. An additional value named
+// Neighbor_SessionState_UNSET is added to the enumeration which is used as
+// the nil value, indicating that the enumeration was not explicitly set by
+// the program importing the generated structures.
+type E_Neighbor_SessionState int64
+
+// IsYANGGoEnum ensures that Neighbor_SessionState implements the yang.GoEnum
+// interface. This ensures that Neighbor_SessionState can be identified as a
+// mapped type for a YANG enumeration.
+func (E_Neighbor_SessionState) IsYANGGoEnum() {}
+
+// ΛMap returns the value lookup map associated with  Neighbor_SessionState.
+func (E_Neighbor_SessionState) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+// String returns a logging-friendly string for E_Neighbor_SessionState.
+func (e E_Neighbor_SessionState) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_Neighbor_SessionState")
+}
+
+const (
+	// Neighbor_SessionState_UNSET corresponds to the value UNSET of Neighbor_SessionState
+	Neighbor_SessionState_UNSET E_Neighbor_SessionState = 0
+	// Neighbor_SessionState_ACTIVE corresponds to the value ACTIVE of Neighbor_SessionState
+	Neighbor_SessionState_ACTIVE E_Neighbor_SessionState = 1
+	// Neighbor_SessionState_OPENSENT corresponds to the value OPENSENT of Neighbor_SessionState
+	Neighbor_SessionState_OPENSENT E_Neighbor_SessionState = 2
+	// Neighbor_SessionState_OPENCONFIRM corresponds to the value OPENCONFIRM of Neighbor_SessionState
+	Neighbor_SessionState_OPENCONFIRM E_Neighbor_SessionState = 3
+	// Neighbor_SessionState_ESTABLISHED corresponds to the value ESTABLISHED of Neighbor_SessionState
+	Neighbor_SessionState_ESTABLISHED E_Neighbor_SessionState = 4
+	// Neighbor_SessionState_IDLE corresponds to the value IDLE of Neighbor_SessionState
+	Neighbor_SessionState_IDLE E_Neighbor_SessionState = 5
+	// Neighbor_SessionState_IDLE_PFXLIMIT corresponds to the value IDLE_PFXLIMIT of Neighbor_SessionState
+	Neighbor_SessionState_IDLE_PFXLIMIT E_Neighbor_SessionState = 6
+)
+
 // E_OpenconfigOptions_AFI is a derived int64 type which is used to represent
 // the enumerated node OpenconfigOptions_AFI. An additional value named
 // OpenconfigOptions_AFI_UNSET is added to the enumeration which is used as
@@ -261,59 +298,22 @@ const (
 	OpenconfigOptions_AFI_IPV4_UNICAST E_OpenconfigOptions_AFI = 1
 )
 
-// E_OpenconfigOptions_Neighbor_SessionState is a derived int64 type which is used to represent
-// the enumerated node OpenconfigOptions_Neighbor_SessionState. An additional value named
-// OpenconfigOptions_Neighbor_SessionState_UNSET is added to the enumeration which is used as
-// the nil value, indicating that the enumeration was not explicitly set by
-// the program importing the generated structures.
-type E_OpenconfigOptions_Neighbor_SessionState int64
-
-// IsYANGGoEnum ensures that OpenconfigOptions_Neighbor_SessionState implements the yang.GoEnum
-// interface. This ensures that OpenconfigOptions_Neighbor_SessionState can be identified as a
-// mapped type for a YANG enumeration.
-func (E_OpenconfigOptions_Neighbor_SessionState) IsYANGGoEnum() {}
-
-// ΛMap returns the value lookup map associated with  OpenconfigOptions_Neighbor_SessionState.
-func (E_OpenconfigOptions_Neighbor_SessionState) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
-
-// String returns a logging-friendly string for E_OpenconfigOptions_Neighbor_SessionState.
-func (e E_OpenconfigOptions_Neighbor_SessionState) String() string {
-	return ygot.EnumLogString(e, int64(e), "E_OpenconfigOptions_Neighbor_SessionState")
-}
-
-const (
-	// OpenconfigOptions_Neighbor_SessionState_UNSET corresponds to the value UNSET of OpenconfigOptions_Neighbor_SessionState
-	OpenconfigOptions_Neighbor_SessionState_UNSET E_OpenconfigOptions_Neighbor_SessionState = 0
-	// OpenconfigOptions_Neighbor_SessionState_ACTIVE corresponds to the value ACTIVE of OpenconfigOptions_Neighbor_SessionState
-	OpenconfigOptions_Neighbor_SessionState_ACTIVE E_OpenconfigOptions_Neighbor_SessionState = 1
-	// OpenconfigOptions_Neighbor_SessionState_OPENSENT corresponds to the value OPENSENT of OpenconfigOptions_Neighbor_SessionState
-	OpenconfigOptions_Neighbor_SessionState_OPENSENT E_OpenconfigOptions_Neighbor_SessionState = 2
-	// OpenconfigOptions_Neighbor_SessionState_OPENCONFIRM corresponds to the value OPENCONFIRM of OpenconfigOptions_Neighbor_SessionState
-	OpenconfigOptions_Neighbor_SessionState_OPENCONFIRM E_OpenconfigOptions_Neighbor_SessionState = 3
-	// OpenconfigOptions_Neighbor_SessionState_ESTABLISHED corresponds to the value ESTABLISHED of OpenconfigOptions_Neighbor_SessionState
-	OpenconfigOptions_Neighbor_SessionState_ESTABLISHED E_OpenconfigOptions_Neighbor_SessionState = 4
-	// OpenconfigOptions_Neighbor_SessionState_IDLE corresponds to the value IDLE of OpenconfigOptions_Neighbor_SessionState
-	OpenconfigOptions_Neighbor_SessionState_IDLE E_OpenconfigOptions_Neighbor_SessionState = 5
-	// OpenconfigOptions_Neighbor_SessionState_IDLE_PFXLIMIT corresponds to the value IDLE_PFXLIMIT of OpenconfigOptions_Neighbor_SessionState
-	OpenconfigOptions_Neighbor_SessionState_IDLE_PFXLIMIT E_OpenconfigOptions_Neighbor_SessionState = 6
-)
-
 // ΛEnum is a map, keyed by the name of the type defined for each enum in the
 // generated Go code, which provides a mapping between the constant int64 value
 // of each value of the enumeration, and the string that is used to represent it
 // in the YANG schema. The map is named ΛEnum in order to avoid clash with any
 // valid YANG identifier.
 var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
-	"E_OpenconfigOptions_AFI": {
-		1: {Name: "IPV4_UNICAST", DefiningModule: "openconfig-options"},
-	},
-	"E_OpenconfigOptions_Neighbor_SessionState": {
+	"E_Neighbor_SessionState": {
 		1: {Name: "ACTIVE"},
 		2: {Name: "OPENSENT"},
 		3: {Name: "OPENCONFIRM"},
 		4: {Name: "ESTABLISHED"},
 		5: {Name: "IDLE"},
 		6: {Name: "IDLE_PFXLIMIT"},
+	},
+	"E_OpenconfigOptions_AFI": {
+		1: {Name: "IPV4_UNICAST", DefiningModule: "openconfig-options"},
 	},
 }
 
@@ -405,6 +405,6 @@ var ΛEnumTypes = map[string][]reflect.Type{
 		reflect.TypeOf((E_OpenconfigOptions_AFI)(0)),
 	},
 	"/bgp/neighbors/neighbor/state/session-state": []reflect.Type{
-		reflect.TypeOf((E_OpenconfigOptions_Neighbor_SessionState)(0)),
+		reflect.TypeOf((E_Neighbor_SessionState)(0)),
 	},
 }

@@ -32,7 +32,7 @@ type YANGEmpty bool
 
 // Foo represents the /openconfig-enumcamelcase/foo YANG schema element.
 type Foo struct {
-	Bar	E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar	`path:"bar" module:"openconfig-enumcamelcase"`
+	Bar	E_OpenconfigEnumcamelcase_Bar	`path:"bar" module:"openconfig-enumcamelcase"`
 	Baz	E_OpenConfigCamelCase_BAT	`path:"baz" module:"openconfig-enumcamelcase"`
 }
 
@@ -70,31 +70,31 @@ const (
 	OpenConfigCamelCase_BAT_BAT2 E_OpenConfigCamelCase_BAT = 2
 )
 
-// E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar is a derived int64 type which is used to represent
-// the enumerated node OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar. An additional value named
-// OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar_UNSET is added to the enumeration which is used as
+// E_OpenconfigEnumcamelcase_Bar is a derived int64 type which is used to represent
+// the enumerated node OpenconfigEnumcamelcase_Bar. An additional value named
+// OpenconfigEnumcamelcase_Bar_UNSET is added to the enumeration which is used as
 // the nil value, indicating that the enumeration was not explicitly set by
 // the program importing the generated structures.
-type E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar int64
+type E_OpenconfigEnumcamelcase_Bar int64
 
-// IsYANGGoEnum ensures that OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar implements the yang.GoEnum
-// interface. This ensures that OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar can be identified as a
+// IsYANGGoEnum ensures that OpenconfigEnumcamelcase_Bar implements the yang.GoEnum
+// interface. This ensures that OpenconfigEnumcamelcase_Bar can be identified as a
 // mapped type for a YANG enumeration.
-func (E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar) IsYANGGoEnum() {}
+func (E_OpenconfigEnumcamelcase_Bar) IsYANGGoEnum() {}
 
-// ΛMap returns the value lookup map associated with  OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar.
-func (E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+// ΛMap returns the value lookup map associated with  OpenconfigEnumcamelcase_Bar.
+func (E_OpenconfigEnumcamelcase_Bar) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
-// String returns a logging-friendly string for E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar.
-func (e E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar) String() string {
-	return ygot.EnumLogString(e, int64(e), "E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar")
+// String returns a logging-friendly string for E_OpenconfigEnumcamelcase_Bar.
+func (e E_OpenconfigEnumcamelcase_Bar) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigEnumcamelcase_Bar")
 }
 
 const (
-	// OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar_UNSET corresponds to the value UNSET of OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar
-	OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar_UNSET E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar = 0
-	// OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar_BAZ corresponds to the value BAZ of OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar
-	OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar_BAZ E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar = 1
+	// OpenconfigEnumcamelcase_Bar_UNSET corresponds to the value UNSET of OpenconfigEnumcamelcase_Bar
+	OpenconfigEnumcamelcase_Bar_UNSET E_OpenconfigEnumcamelcase_Bar = 0
+	// OpenconfigEnumcamelcase_Bar_BAZ corresponds to the value BAZ of OpenconfigEnumcamelcase_Bar
+	OpenconfigEnumcamelcase_Bar_BAZ E_OpenconfigEnumcamelcase_Bar = 1
 )
 
 // ΛEnum is a map, keyed by the name of the type defined for each enum in the
@@ -107,7 +107,7 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 		1: {Name: "BAT1", DefiningModule: "openconfig-enumcamelcase"},
 		2: {Name: "BAT2", DefiningModule: "openconfig-enumcamelcase"},
 	},
-	"E_OpenConfigCamelCase_OpenconfigEnumcamelcase_Bar": {
+	"E_OpenconfigEnumcamelcase_Bar": {
 		1: {Name: "BAZ"},
 	},
 }

@@ -283,13 +283,10 @@ func (s *enumSet) enumLeafKey(e *yang.Entry, compressPaths, noUnderscores, skipD
 
 	var compressName string
 	if compressPaths {
-		definingModName := genutil.ParentModulePrettyName(e.Node)
 		// If we compress paths then the name of this enum is of the form
-		// ModuleName_GrandParent_Leaf - we use GrandParent since Parent is
-		// State or Config so would not be unique. The proposed name is
-		// handed to genutil.MakeNameUnique to ensure that it does not clash with
-		// other defined names.
-		compressName = fmt.Sprintf("%s_%s_%s", yang.CamelCase(definingModName), yang.CamelCase(e.Parent.Parent.Name), yang.CamelCase(e.Name))
+		// GrandParent_Leaf - we use GrandParent since Parent is
+		// State or Config so would not be unique.
+		compressName = fmt.Sprintf("%s_%s", yang.CamelCase(e.Parent.Parent.Name), yang.CamelCase(e.Name))
 		if noUnderscores {
 			compressName = strings.Replace(compressName, "_", "", -1)
 		}
@@ -681,9 +678,6 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 		if addCandidateUniqueNames(candidateUniqueNames, len(nameClashSet)) {
 			continue
 		}
-
-		// FIXME(wenbli):
-		// - Remove the leading module for enumeration leaves.
 
 		// Next, try the ancestor names one by one until one succeeds
 		// or at least two of them no longer have parent entries.

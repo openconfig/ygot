@@ -952,7 +952,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			"/openconfig-simple/parent/child": {
 				"one":   {NativeType: "string"},
 				"two":   {NativeType: "string"},
-				"three": {NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
+				"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true},
 				"four":  {NativeType: "Binary"},
 			},
 			"/openconfig-simple/remote-container": {
@@ -1018,7 +1018,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			"/openconfig-simple/parent/child": {
 				"one":   {NativeType: "string"},
 				"two":   {NativeType: "string"},
-				"three": {NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
+				"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true},
 				"four":  {NativeType: "Binary"},
 			},
 			"/openconfig-simple/remote-container": {
@@ -1079,7 +1079,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				"child": nil,
 			},
 			"/enum-module/c": {
-				"cl": {NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
+				"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true},
 			},
 			"/enum-module/parent/child": {
 				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
@@ -1141,7 +1141,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				"child": nil,
 			},
 			"/enum-module/c": {
-				"cl": {NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
+				"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true},
 			},
 			"/enum-module/parent/child": {
 				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
@@ -1221,7 +1221,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			"/openconfig-simple/parent/child": {
 				"one":   {NativeType: "string"},
 				"two":   {NativeType: "string"},
-				"three": {NativeType: "E_OpenconfigSimple_Child_Three", IsEnumeratedValue: true},
+				"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true},
 				"four":  {NativeType: "Binary"},
 			},
 			"/openconfig-simple/remote-container": {
@@ -1299,7 +1299,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				"child": nil,
 			},
 			"/enum-module/c": {
-				"cl": {NativeType: "E_EnumModule_EnumModule_Cl", IsEnumeratedValue: true},
+				"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true},
 			},
 			"/enum-module/parent/child": {
 				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},

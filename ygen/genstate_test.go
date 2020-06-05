@@ -1466,7 +1466,7 @@ func TestBuildListKey(t *testing.T) {
 		inCompress: true,
 		want: YangListAttr{
 			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "E_BaseModule_Container_Keyleaf"},
+				"keyleaf": {NativeType: "E_Container_Keyleaf"},
 			},
 			KeyElems: []*yang.Entry{
 				{
@@ -1927,7 +1927,7 @@ func TestBuildListKey(t *testing.T) {
 		inCompress: true,
 		want: YangListAttr{
 			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "E_BaseModule_Container_EnumLeafLexicographicallyEarlier"},
+				"keyleaf": {NativeType: "E_Container_EnumLeafLexicographicallyEarlier"},
 			},
 			KeyElems: []*yang.Entry{
 				{
@@ -2001,7 +2001,7 @@ func TestBuildListKey(t *testing.T) {
 		inSkipEnumDedup: true,
 		want: YangListAttr{
 			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "E_BaseModule_Container_Keyleaf"},
+				"keyleaf": {NativeType: "E_Container_Keyleaf"},
 			},
 			KeyElems: []*yang.Entry{
 				{
