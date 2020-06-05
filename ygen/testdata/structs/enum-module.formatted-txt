@@ -169,6 +169,7 @@ func (*Parent) IsYANGGoStruct() {}
 
 // Parent_Child represents the /enum-module/parent/child YANG schema element.
 type Parent_Child struct {
+	Enum	E_EnumTypes_TdEnum	`path:"state/enum" module:"enum-module"`
 	Id	E_EnumTypes_ID	`path:"config/id" module:"enum-module"`
 }
 
@@ -295,6 +296,37 @@ const (
 	EnumTypes_ID_SO_LONG_AND_THANKS_FOR_ALL_THE_FISH E_EnumTypes_ID = 2
 )
 
+// E_EnumTypes_TdEnum is a derived int64 type which is used to represent
+// the enumerated node EnumTypes_TdEnum. An additional value named
+// EnumTypes_TdEnum_UNSET is added to the enumeration which is used as
+// the nil value, indicating that the enumeration was not explicitly set by
+// the program importing the generated structures.
+type E_EnumTypes_TdEnum int64
+
+// IsYANGGoEnum ensures that EnumTypes_TdEnum implements the yang.GoEnum
+// interface. This ensures that EnumTypes_TdEnum can be identified as a
+// mapped type for a YANG enumeration.
+func (E_EnumTypes_TdEnum) IsYANGGoEnum() {}
+
+// ΛMap returns the value lookup map associated with  EnumTypes_TdEnum.
+func (E_EnumTypes_TdEnum) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+// String returns a logging-friendly string for E_EnumTypes_TdEnum.
+func (e E_EnumTypes_TdEnum) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_EnumTypes_TdEnum")
+}
+
+const (
+	// EnumTypes_TdEnum_UNSET corresponds to the value UNSET of EnumTypes_TdEnum
+	EnumTypes_TdEnum_UNSET E_EnumTypes_TdEnum = 0
+	// EnumTypes_TdEnum_ALPHA corresponds to the value ALPHA of EnumTypes_TdEnum
+	EnumTypes_TdEnum_ALPHA E_EnumTypes_TdEnum = 1
+	// EnumTypes_TdEnum_BRAVO corresponds to the value BRAVO of EnumTypes_TdEnum
+	EnumTypes_TdEnum_BRAVO E_EnumTypes_TdEnum = 2
+	// EnumTypes_TdEnum_CHARLIE corresponds to the value CHARLIE of EnumTypes_TdEnum
+	EnumTypes_TdEnum_CHARLIE E_EnumTypes_TdEnum = 3
+)
+
 // ΛEnum is a map, keyed by the name of the type defined for each enum in the
 // generated Go code, which provides a mapping between the constant int64 value
 // of each value of the enumeration, and the string that is used to represent it
@@ -317,5 +349,10 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	"E_EnumTypes_ID": {
 		1: {Name: "FORTY_TWO", DefiningModule: "enum-module"},
 		2: {Name: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH", DefiningModule: "enum-module"},
+	},
+	"E_EnumTypes_TdEnum": {
+		1: {Name: "ALPHA"},
+		2: {Name: "BRAVO"},
+		3: {Name: "CHARLIE"},
 	},
 }

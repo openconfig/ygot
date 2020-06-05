@@ -208,6 +208,10 @@ func TestYangTypeToProtoType(t *testing.T) {
 						Parent: &yang.Module{Name: "base-module"},
 					},
 					Kind: yang.Yidentityref,
+					Base: &yang.Type{
+						Name:   "base-identity",
+						Parent: &yang.Module{Name: "base-module"},
+					},
 				},
 				Node: &yang.Leaf{
 					Parent: &yang.Module{Name: "base-module"},
@@ -236,6 +240,10 @@ func TestYangTypeToProtoType(t *testing.T) {
 							Name: "base-module",
 						},
 					},
+					Base: &yang.Type{
+						Name:   "base-identity",
+						Parent: &yang.Module{Name: "base-module"},
+					},
 				}},
 			},
 			contextEntry: &yang.Entry{
@@ -253,6 +261,10 @@ func TestYangTypeToProtoType(t *testing.T) {
 							Parent: &yang.Module{
 								Name: "base-module",
 							},
+						},
+						Base: &yang.Type{
+							Name:   "base-identity",
+							Parent: &yang.Module{Name: "base-module"},
 						},
 					}},
 				},
@@ -315,6 +327,10 @@ func TestYangTypeToProtoType(t *testing.T) {
 					Name: "derived-enumeration",
 					Enum: &yang.EnumType{},
 					Kind: yang.Yenum,
+					Base: &yang.Type{
+						Name:   "enumeration",
+						Parent: &yang.Module{Name: "base-module"},
+					},
 				},
 				Node: &yang.Enum{
 					Parent: &yang.Module{
@@ -367,6 +383,10 @@ func TestYangTypeToProtoType(t *testing.T) {
 						},
 					},
 					Kind: yang.Yidentityref,
+					Base: &yang.Type{
+						Name:   "BASE_IDENTITY",
+						Parent: &yang.Module{Name: "test-module"},
+					},
 				},
 				Node: &yang.Leaf{
 					Parent: &yang.Module{
@@ -480,6 +500,10 @@ func TestYangTypeToProtoType(t *testing.T) {
 						Type: &yang.YangType{
 							Kind:         yang.Yidentityref,
 							IdentityBase: &yang.Identity{Name: "IDENTITY"},
+							Base: &yang.Type{
+								Name:   "IDENTITY",
+								Parent: &yang.Module{Name: "enum-module"},
+							},
 						},
 						Parent: &yang.Entry{
 							Name: "foo",

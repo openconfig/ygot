@@ -169,6 +169,10 @@ func TestGenProto3Msg(t *testing.T) {
 								Kind: yang.Yenum,
 								Name: "derived-enum",
 								Enum: &yang.EnumType{},
+								Base: &yang.Type{
+									Name:   "enumeration",
+									Parent: &yang.Module{Name: "base"},
+								},
 							},
 						},
 					},

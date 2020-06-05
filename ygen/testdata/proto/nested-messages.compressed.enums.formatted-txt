@@ -17,13 +17,6 @@ enum NestedMessagesEnumt {
   NESTEDMESSAGESENUMT_TWO = 2 [(yext.yang_name) = "TWO"];
 }
 
-// NestedMessagesEnumtEnum represents an enumerated type generated for the YANG enumerated type union.
-enum NestedMessagesEnumtEnum {
-  NESTEDMESSAGES_TOPLEVEL_CHILD_GRANDCHILD_CONFIG_C_UNSET = 0;
-  NESTEDMESSAGES_TOPLEVEL_CHILD_GRANDCHILD_CONFIG_C_ONE = 1 [(yext.yang_name) = "ONE"];
-  NESTEDMESSAGES_TOPLEVEL_CHILD_GRANDCHILD_CONFIG_C_TWO = 2 [(yext.yang_name) = "TWO"];
-}
-
 // NestedMessagesKEY represents an enumerated type generated for the YANG identity KEY.
 enum NestedMessagesKEY {
   NESTEDMESSAGESKEY_UNSET = 0;

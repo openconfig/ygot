@@ -406,6 +406,10 @@ func TestYangTypeToGoType(t *testing.T) {
 					Name:   "base-identity",
 					Parent: &yang.Module{Name: "base-module"},
 				},
+				Base: &yang.Type{
+					Name:   "base-identity",
+					Parent: &yang.Module{Name: "base-module"},
+				},
 			},
 			Parent: &yang.Entry{Name: "base-module"},
 			Node: &yang.Leaf{
@@ -426,6 +430,10 @@ func TestYangTypeToGoType(t *testing.T) {
 				Name: "derived-identityref",
 				Kind: yang.Yidentityref,
 				IdentityBase: &yang.Identity{
+					Name:   "base-identity",
+					Parent: &yang.Module{Name: "base-module"},
+				},
+				Base: &yang.Type{
 					Name:   "base-identity",
 					Parent: &yang.Module{Name: "base-module"},
 				},
@@ -523,6 +531,10 @@ func TestYangTypeToGoType(t *testing.T) {
 				Name: "derived-enumeration",
 				Kind: yang.Yenum,
 				Enum: &yang.EnumType{},
+				Base: &yang.Type{
+					Name:   "enumeration",
+					Parent: &yang.Module{Name: "base-module"},
+				},
 			},
 			Node: &yang.Enum{
 				Parent: &yang.Module{
@@ -576,6 +588,10 @@ func TestYangTypeToGoType(t *testing.T) {
 				Name: "derived-enumeration",
 				Kind: yang.Yenum,
 				Enum: &yang.EnumType{},
+				Base: &yang.Type{
+					Name:   "enumeration",
+					Parent: &yang.Module{Name: "base-module"},
+				},
 			},
 			Node: &yang.Enum{
 				Parent: &yang.Module{
@@ -1085,6 +1101,10 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 						Name: "test-module",
 					},
 				},
+				Base: &yang.Type{
+					Name:   "base-identity",
+					Parent: &yang.Module{Name: "test-module"},
+				},
 			},
 			Parent: &yang.Entry{Name: "test-module"},
 			Node: &yang.Leaf{
@@ -1102,6 +1122,10 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 					Parent: &yang.Module{
 						Name: "test-module",
 					},
+				},
+				Base: &yang.Type{
+					Name:   "base-identity",
+					Parent: &yang.Module{Name: "test-module"},
 				},
 			},
 			Parent: &yang.Entry{Name: "test-module"},
@@ -1126,6 +1150,10 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 				Name: "definedType",
 				Kind: yang.Yenum,
 				Enum: &yang.EnumType{},
+				Base: &yang.Type{
+					Name:   "enumeration",
+					Parent: &yang.Module{Name: "base-module"},
+				},
 			},
 			Node: &yang.Enum{
 				Parent: &yang.Module{
@@ -1141,6 +1169,10 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 				Name: "definedType",
 				Kind: yang.Yenum,
 				Enum: &yang.EnumType{},
+				Base: &yang.Type{
+					Name:   "enumeration",
+					Parent: &yang.Module{Name: "base-module"},
+				},
 			},
 			Node: &yang.Enum{
 				Parent: &yang.Module{
@@ -1230,25 +1262,27 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		enumSet, _, errs := findEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup)
-		if errs != nil {
-			t.Fatalf("findEnumSet failed: %v", errs)
-		}
-		s := newGoGenState(nil, enumSet)
-
-		gotTypes := make(map[string]*MappedType)
-		for _, leaf := range tt.inLeaves {
-			mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths, tt.inSkipEnumDedup)
-			if err != nil {
-				t.Errorf("%s: yangTypeToGoType(%v, %v): got unexpected err: %v, want: nil", tt.name, leaf.Type, leaf, err)
-				continue
+		t.Run(tt.name, func(t *testing.T) {
+			enumSet, _, errs := findEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup)
+			if errs != nil {
+				t.Fatalf("findEnumSet failed: %v", errs)
 			}
-			gotTypes[leaf.Path()] = mtype
-		}
+			s := newGoGenState(nil, enumSet)
 
-		if diff := pretty.Compare(gotTypes, tt.wantTypes); diff != "" {
-			t.Errorf("%s: yangTypesToGoTypes(...): incorrect output returned, diff (-got,+want):\n%s",
-				tt.name, diff)
-		}
+			gotTypes := make(map[string]*MappedType)
+			for _, leaf := range tt.inLeaves {
+				mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths, tt.inSkipEnumDedup)
+				if err != nil {
+					t.Errorf("%s: yangTypeToGoType(%v, %v): got unexpected err: %v, want: nil", tt.name, leaf.Type, leaf, err)
+					continue
+				}
+				gotTypes[leaf.Path()] = mtype
+			}
+
+			if diff := pretty.Compare(gotTypes, tt.wantTypes); diff != "" {
+				t.Errorf("%s: yangTypesToGoTypes(...): incorrect output returned, diff (-got,+want):\n%s",
+					tt.name, diff)
+			}
+		})
 	}
 }

@@ -1055,7 +1055,8 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			"/enum-module/parent/child": {
 				Name: "Parent_Child",
 				Fields: map[string]*yang.Entry{
-					"id": {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+					"id":   {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+					"enum": {Name: "enum", Type: &yang.YangType{Kind: yang.Yenum}},
 				},
 				Path: []string{"", "enum-module", "parent", "child"},
 			},
@@ -1082,7 +1083,8 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true},
 			},
 			"/enum-module/parent/child": {
-				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
+				"id":   {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
+				"enum": {NativeType: "E_EnumTypes_TdEnum", IsEnumeratedValue: true},
 			},
 			"/enum-module/a-lists/a-list": {
 				"value": {NativeType: "AList_Value_Union"},
@@ -1269,7 +1271,8 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			"/enum-module/parent/child": {
 				Name: "Parent_Child",
 				Fields: map[string]*yang.Entry{
-					"id": {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+					"id":   {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+					"enum": {Name: "enum", Type: &yang.YangType{Kind: yang.Yenum}},
 				},
 				Path: []string{"", "enum-module", "parent", "child"},
 			},
@@ -1302,7 +1305,8 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true},
 			},
 			"/enum-module/parent/child": {
-				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
+				"id":   {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
+				"enum": {NativeType: "E_EnumTypes_TdEnum", IsEnumeratedValue: true},
 			},
 			"/enum-module/a-lists/a-list": {
 				"value": {NativeType: "AList_Value_Union"},

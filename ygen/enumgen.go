@@ -204,7 +204,7 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string,
 // which represents a typedef that has an underlying enumerated type (e.g.,
 // identityref or enumeration).
 func (s *enumSet) typedefEnumeratedName(e *yang.Entry, noUnderscores bool) (string, error) {
-	typedefKey, _, err := s.enumeratedTypedefKey(e, noUnderscores)
+	typedefKey, _, _, err := s.enumeratedTypedefKey(e, noUnderscores)
 	if err != nil {
 		return "", err
 	}
@@ -224,11 +224,22 @@ func (s *enumSet) identityBaseKey(i *yang.Identity) string {
 	return fmt.Sprintf("%s/%s", definingModYANGName, i.Name)
 }
 
+func nodePath(n yang.Node) string {
+	path := n.NName()
+	for n.ParentNode() != nil {
+		n = n.ParentNode()
+		path = n.NName() + "/" + path
+	}
+	return path
+}
+
 // enumeratedTypedefKey calculates a unique string key for the input typedef
 // *yang.Entry that has an underlying enumerated type (e.g., identityref or
-// enumeration). It also returns the defining module and type name components
-// of the identity for use in the name generation, if needed.
-func (s *enumSet) enumeratedTypedefKey(e *yang.Entry, noUnderscores bool) (string, string, error) {
+// enumeration). It also returns the type name component of the identification
+// key for use in the name generation, as well as the enumeration type object,
+// if needed.
+func (s *enumSet) enumeratedTypedefKey(e *yang.Entry, noUnderscores bool) (string, string, *yang.YangType, error) {
+	enumType := e.Type
 	typeName := e.Type.Name
 
 	// Handle the case whereby we have been handed an enumeration that is within a
@@ -239,6 +250,8 @@ func (s *enumSet) enumeratedTypedefKey(e *yang.Entry, noUnderscores bool) (strin
 
 		switch len(enumTypes) {
 		case 1:
+			// Under a union, the correct enumType reference is the enumeration subtype.
+			enumType = enumTypes[0]
 			// We specifically say that this is an enumeration within the leaf.
 			if noUnderscores {
 				typeName = fmt.Sprintf("%sEnum", enumTypes[0].Name)
@@ -246,21 +259,21 @@ func (s *enumSet) enumeratedTypedefKey(e *yang.Entry, noUnderscores bool) (strin
 				typeName = fmt.Sprintf("%s_Enum", enumTypes[0].Name)
 			}
 		case 0:
-			return "", "", fmt.Errorf("enumerated type had an empty union within it, path: %v, type: %v, enumerated: %v", e.Path(), e.Type, enumTypes)
+			return "", "", nil, fmt.Errorf("enumerated type had an empty union within it, path: %v, type: %v, enumerated: %v", e.Path(), e.Type, enumTypes)
 		default:
-			return "", "", fmt.Errorf("multiple enumerated types within a single enumeration not supported, path: %v, type: %v, enumerated: %v", e.Path(), e.Type, enumTypes)
+			return "", "", nil, fmt.Errorf("multiple enumerated types within a single enumeration not supported, path: %v, type: %v, enumerated: %v", e.Path(), e.Type, enumTypes)
 		}
 	}
 	if e.Node == nil {
-		return "", "", fmt.Errorf("nil Node in enum type %s", e.Name)
+		return "", "", nil, fmt.Errorf("nil Node in enum type %s", e.Name)
 	}
 
-	// Since there can be many leaves that refer to the same typedef, then we do not generate
-	// a name for each of them, but rather use a common name, we use the non-CamelCase lookup
-	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef
-	// does not have a 'path' in Goyang, we synthesise one using the form
-	// module-name/typedef-name.
-	return fmt.Sprintf("%s/%s", genutil.ParentModuleName(e.Node), typeName), typeName, nil
+	// The path to the typedef is enough to distinguish it from any other typedef.
+	// Using Base.ParentNode() is not entirely precise because the
+	// enumeration may be nested under union types instead of being
+	// directly under the typedef, but this is good enough because extra
+	// path information doesn't hurt as long as we're consistent.
+	return fmt.Sprintf("%s", nodePath(enumType.Base.ParentNode())), typeName, enumType, nil
 }
 
 // enumLeafKey calculates a unique string key for the input leaf of type
@@ -848,17 +861,21 @@ func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores
 	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef
 	// does not have a 'path' in Goyang, so we synthesise one using the form
 	// module-name/typedef-name.
-	typedefKey, typeName, err := s.enumSet.enumeratedTypedefKey(e, noUnderscores)
+	typedefKey, typeName, enumType, err := s.enumSet.enumeratedTypedefKey(e, noUnderscores)
 	if err != nil {
 		return err
 	}
 	if _, ok := s.enumSet.uniqueEnumeratedTypedefNames[typedefKey]; ok {
 		return nil
 	}
-	// The module/typedefName was not already defined with a CamelCase name, so generate one
-	// here, and store it to be re-used later.
 	baseName := yang.CamelCase(typeName)
-	name := fmt.Sprintf("%s_%s", genutil.ParentModulePrettyName(e.Node), baseName)
+	definingModName := genutil.ParentModulePrettyName(enumType.Base)
+	// Since there can be many leaves that refer to the same typedef, then we do not generate
+	// a name for each of them, but rather use a common name, we use the non-CamelCase lookup
+	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef
+	// does not have a 'path' in Goyang, we synthesise one using the form
+	// module-name/typedef-name.
+	name := fmt.Sprintf("%s_%s", definingModName, baseName)
 	if noUnderscores {
 		name = strings.Replace(name, "_", "", -1)
 	}
@@ -868,6 +885,8 @@ func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores
 	if s.definedEnums[name] {
 		return fmt.Errorf("enumgen.go: enumerated typedef name conflict %q for entry %+v", name, e)
 	}
+	// The module/typedefName was not already defined with a CamelCase name, so generate one
+	// here, and store it to be re-used later.
 	s.enumSet.uniqueEnumeratedTypedefNames[typedefKey] = name
 	s.definedEnums[name] = true
 	return nil

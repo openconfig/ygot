@@ -20,6 +20,9 @@ module enum-module {
       container state {
         config false;
         uses child-config;
+        leaf enum {
+          type t:td-enum;
+        }
       }
     }
   }

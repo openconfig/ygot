@@ -18,4 +18,12 @@ module enum-types {
       }
     }
   }
+
+  typedef td-enum {
+    type enumeration {
+      enum ALPHA;
+      enum BRAVO;
+      enum CHARLIE;
+    }
+  }
 }

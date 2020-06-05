@@ -1388,11 +1388,26 @@ func TestFindEnumSet(t *testing.T) {
 				Type: &yang.YangType{
 					Name: "derived-enumeration",
 					Enum: &yang.EnumType{},
+					Base: &yang.Type{
+						Name: "enumeration",
+						Parent: &yang.Typedef{
+							Name: "derived-enumeration",
+							Parent: &yang.Module{
+								Name: "typedef-module",
+							},
+						},
+					},
 				},
 				Node: &yang.Enum{
 					Name: "derived-enumeration",
-					Parent: &yang.Module{
-						Name: "base-module",
+					Parent: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
 					},
 				},
 				Parent: &yang.Entry{
@@ -1410,17 +1425,31 @@ func TestFindEnumSet(t *testing.T) {
 				Type: &yang.YangType{
 					Name: "derived-enumeration",
 					Enum: &yang.EnumType{},
+					Base: &yang.Type{
+						Name: "enumeration",
+						Parent: &yang.Typedef{
+							Name: "derived-enumeration",
+							Parent: &yang.Module{
+								Name: "typedef-module",
+							},
+						},
+					},
 				},
 				Node: &yang.Enum{
 					Name: "derived-enumeration",
-					Parent: &yang.Module{
-						Name: "base-module",
+					Parent: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
 					},
 				},
 				Parent: &yang.Entry{
 					Name: "state",
-					Node: &yang.Container{Name: "state"},
-					Parent: &yang.Entry{
+					Node: &yang.Container{Name: "state"}, Parent: &yang.Entry{
 						Name: "container",
 						Node: &yang.Container{Name: "container"},
 						Parent: &yang.Entry{
@@ -1432,8 +1461,8 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule_DerivedEnumeration": {
-				name: "BaseModule_DerivedEnumeration",
+			"TypedefModule_DerivedEnumeration": {
+				name: "TypedefModule_DerivedEnumeration",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -1443,10 +1472,8 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantEnumSetCompressed: &enumSet{
-			// FIXME(wenbli): These are the wrong keys to use for typedef enumerated values.
-			// They're not sufficiently unique.
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"base-module/derived-enumeration": "BaseModule_DerivedEnumeration",
+				"typedef-module/derived-enumeration": "TypedefModule_DerivedEnumeration",
 			},
 		},
 		wantSame: true,
@@ -1458,6 +1485,15 @@ func TestFindEnumSet(t *testing.T) {
 				Type: &yang.YangType{
 					Name: "derived-enumeration",
 					Enum: &yang.EnumType{},
+					Base: &yang.Type{
+						Name: "enumeration",
+						Parent: &yang.Typedef{
+							Name: "derived-enumeration",
+							Parent: &yang.Module{
+								Name: "typedef-module",
+							},
+						},
+					},
 				},
 				Node: &yang.Enum{
 					Name: "derived-enumeration",
@@ -1480,6 +1516,15 @@ func TestFindEnumSet(t *testing.T) {
 				Type: &yang.YangType{
 					Name: "derivedEnumeration",
 					Enum: &yang.EnumType{},
+					Base: &yang.Type{
+						Name: "enumeration",
+						Parent: &yang.Typedef{
+							Name: "derivedEnumeration",
+							Parent: &yang.Module{
+								Name: "typedef-module",
+							},
+						},
+					},
 				},
 				Node: &yang.Enum{
 					Name: "derivedEnumeration",
@@ -1508,14 +1553,28 @@ func TestFindEnumSet(t *testing.T) {
 		wantSame:      true,
 		wantErrSubstr: "enumerated typedef name conflict",
 	}, {
-		name: "union which contains typedef with an enumeration",
+		name: "union which contains a typedef enumeration",
 		in: map[string]*yang.Entry{
 			"/container/config/e": {
 				Name: "e",
 				Type: &yang.YangType{
+					Name: "union",
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
-						{Name: "derived", Kind: yang.Yenum, Enum: &yang.EnumType{}},
+						{
+							Name: "derived",
+							Kind: yang.Yenum,
+							Enum: &yang.EnumType{},
+							Base: &yang.Type{
+								Name: "enumeration",
+								Parent: &yang.Typedef{
+									Name: "derived",
+									Parent: &yang.Module{
+										Name: "typedef-module",
+									},
+								},
+							},
+						},
 						{Kind: yang.Ystring},
 					},
 				},
@@ -1536,14 +1595,27 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule_Derived_Enum": {
-				name: "BaseModule_Derived_Enum",
+			"TypedefModule_Derived_Enum": {
+				name: "TypedefModule_Derived_Enum",
 				entry: &yang.Entry{
 					Name: "e",
 					Type: &yang.YangType{
 						Kind: yang.Yunion,
 						Type: []*yang.YangType{
-							{Name: "derived", Kind: yang.Yenum, Enum: &yang.EnumType{}},
+							{
+								Name: "derived",
+								Kind: yang.Yenum,
+								Enum: &yang.EnumType{},
+								Base: &yang.Type{
+									Name: "enumeration",
+									Parent: &yang.Typedef{
+										Name: "enum-container",
+										Parent: &yang.Module{
+											Name: "typedef-module",
+										},
+									},
+								},
+							},
 							{Kind: yang.Ystring},
 						},
 					},
@@ -1552,19 +1624,169 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"base-module/derived_Enum": "BaseModule_Derived_Enum",
+				"typedef-module/derived": "TypedefModule_Derived_Enum",
 			},
 		},
 		wantSame: true,
 	}, {
-		name: "typedef union with an enumeration",
+		name: "typedef of union that contains an enumeration (not typedef)",
+		in: map[string]*yang.Entry{
+			"/container/state/e": {
+				Name: "e",
+				Type: &yang.YangType{
+					Name: "derived-type",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{{
+						Name: "union",
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{{
+							Name: "enumeration",
+							Kind: yang.Yenum,
+							Enum: &yang.EnumType{},
+						}, {
+							Kind: yang.Ystring,
+						}},
+					}, {
+						Kind: yang.Yint8,
+					}},
+				},
+				Node: &yang.Enum{
+					Name: "e",
+					Parent: &yang.Container{
+						Name: "state",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "state",
+					Parent: &yang.Entry{
+						Name:   "container",
+						Parent: &yang.Entry{Name: "base-module"},
+					},
+				},
+			},
+		},
+		wantCompressed: map[string]*yangEnum{
+			"Container_E": {
+				name: "Container_E",
+				entry: &yang.Entry{
+					Name: "e",
+					Type: &yang.YangType{
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{{
+								Name: "enumeration",
+								Kind: yang.Yenum,
+								Enum: &yang.EnumType{},
+							}, {
+								Kind: yang.Ystring,
+							}},
+						}, {
+							Kind: yang.Yint8,
+						}},
+						Enum: &yang.EnumType{},
+					},
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "state",
+							Parent: &yang.Container{
+								Name: "container",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "state",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		wantUncompressed: map[string]*yangEnum{
+			"BaseModule_Container_State_E": {
+				name: "BaseModule_Container_State_E",
+				entry: &yang.Entry{
+					Name: "e",
+					Type: &yang.YangType{
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{{
+								Kind: yang.Yenum,
+								Enum: &yang.EnumType{},
+							}, {
+								Kind: yang.Ystring,
+							}},
+						}, {
+							Kind: yang.Yint8,
+						}},
+						Enum: &yang.EnumType{},
+					},
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "state",
+							Parent: &yang.Container{
+								Name: "container",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "state",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"container:/base-module/container/state/e": "Container_E",
+			},
+		},
+		wantEnumSetUncompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"e:/base-module/container/state/e": "BaseModule_Container_State_E",
+			},
+		},
+	}, {
+		name: "typedef union with a typedef enumeration",
 		in: map[string]*yang.Entry{
 			"/container/config/enumeration-leaf": {
 				Name: "enumeration-leaf",
 				Type: &yang.YangType{
 					Name: "derived-union-enum",
+					Kind: yang.Yunion,
 					Type: []*yang.YangType{
-						{Kind: yang.Yenum, Enum: &yang.EnumType{}},
+						{
+							Name: "derived-enumeration",
+							Kind: yang.Yenum,
+							Enum: &yang.EnumType{},
+							Base: &yang.Type{
+								Name: "enumeration",
+								Parent: &yang.Typedef{
+									Name: "derived-enumeration",
+									Parent: &yang.Module{
+										Name: "typedef-module",
+									},
+								},
+							},
+						},
 						{Kind: yang.Yuint32},
 					},
 				},
@@ -1579,8 +1801,22 @@ func TestFindEnumSet(t *testing.T) {
 				Name: "enumeration-leaf",
 				Type: &yang.YangType{
 					Name: "derived-union-enum",
+					Kind: yang.Yunion,
 					Type: []*yang.YangType{
-						{Kind: yang.Yenum, Enum: &yang.EnumType{}},
+						{
+							Name: "derived-enumeration",
+							Kind: yang.Yenum,
+							Enum: &yang.EnumType{},
+							Base: &yang.Type{
+								Name: "enumeration",
+								Parent: &yang.Typedef{
+									Name: "derived-enumeration",
+									Parent: &yang.Module{
+										Name: "typedef-module",
+									},
+								},
+							},
+						},
 						{Kind: yang.Yuint32},
 					},
 				},
@@ -1593,8 +1829,8 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule_DerivedUnionEnum": {
-				name: "BaseModule_DerivedUnionEnum",
+			"TypedefModule_DerivedEnumeration_Enum": {
+				name: "TypedefModule_DerivedEnumeration_Enum",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -1605,7 +1841,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"base-module/derived-union-enum": "BaseModule_DerivedUnionEnum",
+				"typedef-module/derived-enumeration": "TypedefModule_DerivedEnumeration_Enum",
 			},
 		},
 		wantSame: true,
@@ -1616,10 +1852,22 @@ func TestFindEnumSet(t *testing.T) {
 				Name: "identityref-leaf",
 				Type: &yang.YangType{
 					Name: "derived-identityref",
+					Base: &yang.Type{
+						Name: "identityref",
+						Parent: &yang.Typedef{
+							Name: "derived-identityref",
+							Parent: &yang.Container{
+								Name: "identity-container",
+								Parent: &yang.Module{
+									Name: "identity-module",
+								},
+							},
+						},
+					},
 					IdentityBase: &yang.Identity{
-						Name: "base-identity",
+						Name: "base-identityref",
 						Parent: &yang.Module{
-							Name: "base-module",
+							Name: "identity-module",
 						},
 					},
 				},
@@ -1634,10 +1882,22 @@ func TestFindEnumSet(t *testing.T) {
 				Name: "identityref-leaf",
 				Type: &yang.YangType{
 					Name: "derived-identityref",
+					Base: &yang.Type{
+						Name: "identityref",
+						Parent: &yang.Typedef{
+							Name: "derived-identityref",
+							Parent: &yang.Container{
+								Name: "identity-container",
+								Parent: &yang.Module{
+									Name: "identity-module",
+								},
+							},
+						},
+					},
 					IdentityBase: &yang.Identity{
-						Name: "base-identity",
+						Name: "base-identityref",
 						Parent: &yang.Module{
-							Name: "base-module",
+							Name: "identity-module",
 						},
 					},
 				},
@@ -1650,15 +1910,15 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule_DerivedIdentityref": {
-				name: "BaseModule_DerivedIdentityref",
+			"IdentityModule_DerivedIdentityref": {
+				name: "IdentityModule_DerivedIdentityref",
 				entry: &yang.Entry{
 					Name: "identityref-leaf",
 					Type: &yang.YangType{
 						IdentityBase: &yang.Identity{
-							Name: "base-identity",
+							Name: "base-identityref",
 							Parent: &yang.Module{
-								Name: "test-module",
+								Name: "identity-module",
 							},
 						},
 					},
@@ -1667,7 +1927,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"base-module/derived-identityref": "BaseModule_DerivedIdentityref",
+				"identity-module/identity-container/derived-identityref": "IdentityModule_DerivedIdentityref",
 			},
 		},
 		wantSame: true,
@@ -1940,8 +2200,10 @@ func TestFindEnumSet(t *testing.T) {
 			"/container/state/e": {
 				Name: "e",
 				Type: &yang.YangType{
+					Name: "union",
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{{
+						Name: "union",
 						Kind: yang.Yunion,
 						Type: []*yang.YangType{{
 							Name: "enumeration",
@@ -2061,12 +2323,12 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"container:/base-module/container/state/e": "Container_E",
+				"/base-module/container/state/e": "Container_E",
 			},
 		},
 		wantEnumSetUncompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"e:/base-module/container/state/e": "BaseModule_Container_State_E",
+				"/base-module/container/state/e": "BaseModule_Container_State_E",
 			},
 		},
 	}, {
@@ -2506,7 +2768,7 @@ func TestFindEnumSet(t *testing.T) {
 		inSkipEnumDeduplication: true,
 		wantCompressed: map[string]*yangEnum{
 			"Container_EnumerationLeaf": {
-				name: "BaseModule2_Container_EnumerationLeaf",
+				name: "Container_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -2600,7 +2862,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantCompressed: map[string]*yangEnum{
 			"Container_EnumerationLeaf": {
-				name: "BaseModule2_Container_EnumerationLeaf",
+				name: "Container_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{

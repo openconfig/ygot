@@ -70,7 +70,7 @@ func CreateDemoBGPInstance() (*oc.Bgp, error) {
 	// The returned struct represents the new peer that was created.
 	nPeer.PeerAs = ygot.Uint32(29636)
 	nPeer.Description = ygot.String("catalyst2 Services Ltd")
-	nPeer.PeerType = oc.OpenconfigBgp_PeerType_INTERNAL
+	nPeer.PeerType = oc.OpenconfigBgpTypes_PeerType_INTERNAL
 
 	// Initialize all containers underneath the newly created peer. This allows us
 	// to now specify containers in the hierarchy that we didn't yet initialize.

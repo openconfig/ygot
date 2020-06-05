@@ -15,7 +15,9 @@
 package ypathgen
 
 import (
+	"fmt"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -363,6 +365,14 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:           true,
 				IsScalarField:    false,
 				YANGTypeName:     "identityref",
+			},
+			"Parent_Child_Enum": {
+				GoTypeName:       "oc.E_EnumTypes_TdEnum",
+				GoFieldName:      "Enum",
+				ParentGoTypeName: "Parent_Child",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "td-enum",
 			}},
 	}, {
 		name:                     "simple openconfig test with choice and cases",
@@ -466,6 +476,11 @@ func TestGeneratePathCode(t *testing.T) {
 			wantCode := string(wantCodeBytes)
 
 			if gotCode != wantCode {
+				// FIXME(wenbli): debug
+				if err := ioutil.WriteFile(fmt.Sprintf("/usr/local/google/home/wenbli/tmp/%s", path.Base(tt.wantStructsCodeFile)), []byte(gotCode), 0644); err != nil {
+					panic(err)
+				}
+
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
