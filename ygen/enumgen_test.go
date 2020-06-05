@@ -26,69 +26,771 @@ import (
 
 func TestResolveNameClashSet(t *testing.T) {
 	tests := []struct {
-		name               string
-		inDefinedEnums     map[string]bool
-		inNameClashSets    map[string]map[string]bool
-		wantUniqueNamesMap map[string]string
+		name                        string
+		inDefinedEnums              map[string]bool
+		inDefinedEnumsNoUnderscores map[string]bool
+		inNameClashSets             map[string]map[string]*yang.Entry
+		// wantUncompressFailDueToClash means the uncompressed test run will fail in
+		// deviation from the compressed case due to existence of a name clash, which can
+		// only be resolved for compressed paths.
+		wantUncompressFailDueToClash    bool
+		wantUniqueNamesMap              map[string]string
+		wantUniqueNamesMapNoUnderscores map[string]string
+		wantErrSubstr                   string
 	}{{
 		name: "no name clash",
 		inDefinedEnums: map[string]bool{
 			"Baz": true,
 		},
-		inNameClashSets: map[string]map[string]bool{
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Foo": {
-				"enum-a": true,
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+				},
 			},
 			"Bar": {
-				"enum-b": true,
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+				},
 			},
 		},
 		wantUniqueNamesMap: map[string]string{
 			"enum-a": "Foo",
 			"enum-b": "Bar",
 		},
+		wantUniqueNamesMapNoUnderscores: map[string]string{
+			"enum-a": "Foo",
+			"enum-b": "Bar",
+		},
 	}, {
-		name: "simple name clash",
+		name: "no name clash but name already exists in definedEnums due to an algorithm bug",
+		inDefinedEnums: map[string]bool{
+			"Bar": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Bar": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+				},
+			},
+			"Bar": {
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+				},
+			},
+		},
+		wantErrSubstr: `default name "Bar" has already been assigned`,
+	}, {
+		name: "resolving name clash at module name",
+		inDefinedEnums: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-a",
+							Parent: &yang.Container{
+								Name: "gran-gran-a",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-a",
+						Parent: &yang.Entry{
+							Name: "gran-gran-a",
+							Parent: &yang.Entry{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-b",
+							Parent: &yang.Container{
+								Name: "gran-gran-b",
+								Parent: &yang.Module{
+									Name: "support-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-b",
+						Parent: &yang.Entry{
+							Name: "gran-gran-b",
+							Parent: &yang.Entry{
+								Name: "support-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantUncompressFailDueToClash: true,
+		wantUniqueNamesMap: map[string]string{
+			"enum-a": "BaseModule_Foo",
+			"enum-b": "SupportModule_Foo",
+		},
+		wantUniqueNamesMapNoUnderscores: map[string]string{
+			"enum-a": "BaseModuleFoo",
+			"enum-b": "SupportModuleFoo",
+		},
+	}, {
+		name:                        "cannot resolve name clash due to camel-case lossiness and no parents to disambiguate",
+		inDefinedEnums:              map[string]bool{},
+		inDefinedEnumsNoUnderscores: map[string]bool{},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+					Node: &yang.Enum{
+						Parent: &yang.Module{
+							Name: "base-module",
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "base-module",
+					},
+				},
+				"enum-A": &yang.Entry{
+					Name: "enum-A",
+					Node: &yang.Enum{
+						Parent: &yang.Module{
+							Name: "base-module",
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "base-module",
+					},
+				},
+			},
+		},
+		wantUncompressFailDueToClash: true,
+		wantErrSubstr:                "cannot resolve enumeration name clash",
+	}, {
+		name: "resolving name clash at grandparent for enumeration leaves",
+		inDefinedEnums: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-a",
+							Parent: &yang.Container{
+								Name: "gran-gran-a",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-a",
+						Parent: &yang.Entry{
+							Name: "gran-gran-a",
+							Parent: &yang.Entry{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-b",
+							Parent: &yang.Container{
+								Name: "gran-gran-b",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-b",
+						Parent: &yang.Entry{
+							Name: "gran-gran-b",
+							Parent: &yang.Entry{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantUncompressFailDueToClash: true,
+		wantUniqueNamesMap: map[string]string{
+			"enum-a": "GranGranA_Foo",
+			"enum-b": "GranGranB_Foo",
+		},
+		wantUniqueNamesMapNoUnderscores: map[string]string{
+			"enum-a": "GranGranAFoo",
+			"enum-b": "GranGranBFoo",
+		},
+	}, {
+		name: "resolving name clash at grandparent and due to no more parent container",
 		inDefinedEnums: map[string]bool{
 			"Baz": true,
 		},
-		inNameClashSets: map[string]map[string]bool{
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Foo": {
-				"enum-a": true,
-				"enum-b": true,
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent",
+							Parent: &yang.Container{
+								Name: "gran-gran",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent",
+						Parent: &yang.Entry{
+							Name: "gran-gran",
+							Parent: &yang.Entry{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "gran-gran",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "gran-gran",
+						Parent: &yang.Entry{
+							Name: "base-module",
+						},
+					},
+				},
 			},
 		},
+		wantUncompressFailDueToClash: true,
 		wantUniqueNamesMap: map[string]string{
-			"enum-a": "Foo",
-			"enum-b": "Foo_",
+			"enum-a": "GranGran_Foo",
+			"enum-b": "Foo",
+		},
+		wantUniqueNamesMapNoUnderscores: map[string]string{
+			"enum-a": "GranGranFoo",
+			"enum-b": "Foo",
 		},
 	}, {
-		name: "name clash from existing name",
+		name: "resolving name clash at parent and due to no more parent container",
 		inDefinedEnums: map[string]bool{
-			"Foo": true,
+			"Baz": true,
 		},
-		inNameClashSets: map[string]map[string]bool{
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Foo": {
-				"enum-a": true,
-				"enum-b": true,
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent",
+						Parent: &yang.Entry{
+							Name: "base-module",
+						},
+					},
+				},
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+					Node: &yang.Enum{
+						Parent: &yang.Module{
+							Name: "base-module",
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "base-module",
+					},
+				},
 			},
 		},
-		wantUniqueNamesMap: map[string]string{
-			"enum-a": "Foo_",
-			"enum-b": "Foo__",
+		wantUncompressFailDueToClash: true,
+		wantErrSubstr:                "cannot resolve enumeration name clash",
+	}, {
+		name: "resolving name clash at grandparent due to name from module-level disambiguation already in definedEnums",
+		inDefinedEnums: map[string]bool{
+			"Baz":               true,
+			"Foo":               true,
+			"SupportModule_Foo": true,
 		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz":              true,
+			"Foo":              true,
+			"SupportModuleFoo": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-a",
+							Parent: &yang.Container{
+								Name: "gran-gran-a",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-a",
+						Parent: &yang.Entry{
+							Name: "gran-gran-a",
+							Parent: &yang.Entry{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-b",
+							Parent: &yang.Container{
+								Name: "gran-gran-b",
+								Parent: &yang.Module{
+									Name: "support-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-b",
+						Parent: &yang.Entry{
+							Name: "gran-gran-b",
+							Parent: &yang.Entry{
+								Name: "support-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantUncompressFailDueToClash: true,
+		wantUniqueNamesMap: map[string]string{
+			"enum-a": "GranGranA_Foo",
+			"enum-b": "GranGranB_Foo",
+		},
+		wantUniqueNamesMapNoUnderscores: map[string]string{
+			"enum-a": "GranGranAFoo",
+			"enum-b": "GranGranBFoo",
+		},
+	}, {
+		name: "resolving name clash at great-grandparent",
+		inDefinedEnums: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent",
+							Parent: &yang.Container{
+								Name: "gran-gran",
+								Parent: &yang.Container{
+									Name: "great-gran-gran-a",
+									Parent: &yang.Module{
+										Name: "base-module",
+									},
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent",
+						Parent: &yang.Entry{
+							Name: "gran-gran",
+							Parent: &yang.Entry{
+								Name: "great-gran-gran-a",
+								Parent: &yang.Entry{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+				},
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent",
+							Parent: &yang.Container{
+								Name: "gran-gran",
+								Parent: &yang.Container{
+									Name: "great-gran-gran-b",
+									Parent: &yang.Module{
+										Name: "base-module",
+									},
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent",
+						Parent: &yang.Entry{
+							Name: "gran-gran",
+							Parent: &yang.Entry{
+								Name: "great-gran-gran-b",
+								Parent: &yang.Entry{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantUncompressFailDueToClash: true,
+		wantUniqueNamesMap: map[string]string{
+			"enum-a": "GreatGranGranA_Foo",
+			"enum-b": "GreatGranGranB_Foo",
+		},
+		wantUniqueNamesMapNoUnderscores: map[string]string{
+			"enum-a": "GreatGranGranAFoo",
+			"enum-b": "GreatGranGranBFoo",
+		},
+	}, {
+		name: "resolving name clash at great-grandparent due to name from grandparent-level disambiguation already present in definedEnums",
+		inDefinedEnums: map[string]bool{
+			"Baz":                       true,
+			"GranGranA_Foo":             true,
+			"BaseModule_ParentB_Enum":   true,
+			"BaseModule_GranGranA_Enum": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz":                     true,
+			"GranGranAFoo":            true,
+			"BaseModuleParentBEnum":   true,
+			"BaseModuleGranGranAEnum": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-a",
+							Parent: &yang.Container{
+								Name: "gran-gran-a",
+								Parent: &yang.Container{
+									Name: "great-gran-gran-a",
+									Parent: &yang.Module{
+										Name: "base-module",
+									},
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-a",
+						Parent: &yang.Entry{
+							Name: "gran-gran-a",
+							Parent: &yang.Entry{
+								Name: "great-gran-gran-a",
+								Parent: &yang.Entry{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+				},
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-b",
+							Parent: &yang.Container{
+								Name: "gran-gran-b",
+								Parent: &yang.Container{
+									Name: "great-gran-gran-b",
+									Parent: &yang.Module{
+										Name: "base-module",
+									},
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-b",
+						Parent: &yang.Entry{
+							Name: "gran-gran-b",
+							Parent: &yang.Entry{
+								Name: "great-gran-gran-b",
+								Parent: &yang.Entry{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		wantUncompressFailDueToClash: true,
+		wantUniqueNamesMap: map[string]string{
+			"enum-a": "GreatGranGranA_Foo",
+			"enum-b": "GreatGranGranB_Foo",
+		},
+		wantUniqueNamesMapNoUnderscores: map[string]string{
+			"enum-a": "GreatGranGranAFoo",
+			"enum-b": "GreatGranGranBFoo",
+		},
+	}, {
+		name: "cannot resolve name clash due to names from module-level and grandparent-level disambiguation already in definedEnums",
+		inDefinedEnums: map[string]bool{
+			"Baz":                       true,
+			"Foo":                       true,
+			"SupportModule_Foo":         true,
+			"GranGranB_Foo":             true,
+			"BaseModule_ParentA_Enum":   true,
+			"BaseModule_GranGranB_Enum": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz":                     true,
+			"Foo":                     true,
+			"SupportModuleFoo":        true,
+			"GranGranBFoo":            true,
+			"BaseModuleParentAEnum":   true,
+			"BaseModuleGranGranBEnum": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-a",
+							Parent: &yang.Container{
+								Name: "gran-gran-a",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-a",
+						Parent: &yang.Entry{
+							Name: "gran-gran-a",
+							Parent: &yang.Entry{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-b",
+							Parent: &yang.Container{
+								Name: "gran-gran-b",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-b",
+						Parent: &yang.Entry{
+							Name: "gran-gran-b",
+							Parent: &yang.Entry{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantUncompressFailDueToClash: true,
+		wantErrSubstr:                "cannot resolve enumeration name clash",
+	}, {
+		name: "cannot resolve name clash at grandparent due to camel case lossiness",
+		inDefinedEnums: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent",
+							Parent: &yang.Container{
+								Name: "gran-gran-a",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent",
+						Parent: &yang.Entry{
+							Name: "gran-gran-a",
+							Parent: &yang.Entry{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent",
+							Parent: &yang.Container{
+								Name: "gran-granA",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent",
+						Parent: &yang.Entry{
+							Name: "gran-granA",
+							Parent: &yang.Entry{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantUncompressFailDueToClash: true,
+		wantErrSubstr:                "cannot resolve enumeration name clash",
+	}, {
+		name: "intersecting name clash sets",
+		inDefinedEnums: map[string]bool{
+			"Baz": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Bar": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+				},
+			},
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+				},
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+				},
+			},
+		},
+		wantErrSubstr: `enumKey "enum-a" has been given a second name`,
 	}}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := newEnumGenState()
-			s.definedEnums = tt.inDefinedEnums
-			gotUniqueNamesMap := s.resolveNameClashSet(tt.inNameClashSets)
+		for noUnderscores, wantUniqueNamesMap := range map[bool]map[string]string{
+			false: tt.wantUniqueNamesMap,
+			true:  tt.wantUniqueNamesMapNoUnderscores} {
 
-			if diff := cmp.Diff(gotUniqueNamesMap, tt.wantUniqueNamesMap); diff != "" {
-				fmt.Printf("TestResolveNameClashSet (-got, +want):\n%s", diff)
+			inDefinedEnums := tt.inDefinedEnums
+			if noUnderscores {
+				inDefinedEnums = tt.inDefinedEnumsNoUnderscores
 			}
-		})
+			for compressPaths := range map[bool]struct{}{false: {}, true: {}} {
+				t.Run(tt.name+fmt.Sprintf("@compressPaths:%v,noUnderscores:%v", compressPaths, noUnderscores), func(t *testing.T) {
+					s := newEnumGenState()
+					for k, v := range inDefinedEnums {
+						// Copy the values as this map may be modified.
+						s.definedEnums[k] = v
+					}
+					gotUniqueNamesMap, err := s.resolveNameClashSet(tt.inNameClashSets, compressPaths, noUnderscores)
+					wantErrSubstr := tt.wantErrSubstr
+					if !compressPaths && tt.wantUncompressFailDueToClash {
+						wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
+					}
+					if diff := errdiff.Substring(err, wantErrSubstr); diff != "" {
+						if err == nil {
+							t.Errorf("gotUniqueNamesMap: %v", gotUniqueNamesMap)
+						}
+						t.Fatalf("did not get expected error:\n%s", diff)
+					}
+					if wantErrSubstr != "" {
+						return
+					}
+
+					if diff := cmp.Diff(gotUniqueNamesMap, wantUniqueNamesMap); diff != "" {
+						t.Errorf("TestResolveNameClashSet (-got, +want):\n%s", diff)
+					}
+				})
+			}
+		}
 	}
 }
 
@@ -105,7 +807,11 @@ func TestFindEnumSet(t *testing.T) {
 		wantCompressed          map[string]*yangEnum
 		wantUncompressed        map[string]*yangEnum
 		wantSame                bool // Whether to expect same compressed/uncompressed output
-		wantErrSubstr           string
+		// wantUncompressFailDueToClash means the uncompressed test run will fail in
+		// deviation from the compressed case due to existence of a name clash, which can
+		// only be resolved for compressed paths.
+		wantUncompressFailDueToClash bool
+		wantErrSubstr                string
 	}{{
 		name: "simple identityref",
 		in: map[string]*yang.Entry{
@@ -297,7 +1003,7 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 	}, {
-		name: "simple enumeration with conflicting names",
+		name: "simple enumeration unresolvable conflicting names due to camel-case lossiness",
 		in: map[string]*yang.Entry{
 			"/container/state/enumeration-leaf": {
 				Name: "enumeration-leaf",
@@ -354,48 +1060,10 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantCompressed: map[string]*yangEnum{
-			"BaseModule_Container_EnumerationLeaf": {
-				name: "BaseModule_Container_EnumerationLeaf",
-				entry: &yang.Entry{
-					Name: "enumeration-leaf",
-					Type: &yang.YangType{
-						Enum: &yang.EnumType{},
-					},
-				},
-			},
-			"BaseModule_Container_EnumerationLeaf_": {
-				name: "BaseModule_Container_EnumerationLeaf_",
-				entry: &yang.Entry{
-					Name: "enumerationLeaf",
-					Type: &yang.YangType{
-						Enum: &yang.EnumType{},
-					},
-				},
-			},
-		},
-		wantUncompressed: map[string]*yangEnum{
-			"BaseModule_Container_State_EnumerationLeaf": {
-				name: "BaseModule_Container_State_EnumerationLeaf",
-				entry: &yang.Entry{
-					Name: "enumeration-leaf",
-					Type: &yang.YangType{
-						Enum: &yang.EnumType{},
-					},
-				},
-			},
-			"BaseModule_Container_State_EnumerationLeaf_": {
-				name: "BaseModule_Container_State_EnumerationLeaf_",
-				entry: &yang.Entry{
-					Name: "enumerationLeaf",
-					Type: &yang.YangType{
-						Enum: &yang.EnumType{},
-					},
-				},
-			},
-		},
+		wantUncompressFailDueToClash: true,
+		wantErrSubstr:                "cannot resolve enumeration name clash",
 	}, {
-		name: "simple enumeration with naming conflict",
+		name: "simple enumeration with naming conflict due to same grandparent context",
 		in: map[string]*yang.Entry{
 			"/container/config/enumeration-leaf": {
 				Name: "enumeration-leaf",
@@ -491,8 +1159,8 @@ func TestFindEnumSet(t *testing.T) {
 					},
 				},
 			},
-			"BaseModule_Container_EnumerationLeaf_": {
-				name: "BaseModule_Container_EnumerationLeaf_",
+			"OuterContainer_BaseModule_Container_EnumerationLeaf": {
+				name: "OuterContainer_BaseModule_Container_EnumerationLeaf",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -1675,9 +2343,14 @@ func TestFindEnumSet(t *testing.T) {
 				// TODO(wenbli): test the generated enum name sets when deduplication tests are added.
 				_, entries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication)
 
+				wantErrSubstr := tt.wantErrSubstr
+				if !compressed && tt.wantUncompressFailDueToClash {
+					wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
+				}
+
 				if errs != nil {
-					if diff := errdiff.Substring(errs[0], tt.wantErrSubstr); diff != "" {
-						t.Errorf("findEnumSet: did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", errs, len(errs), tt.wantErrSubstr)
+					if diff := errdiff.Substring(errs[0], wantErrSubstr); diff != "" {
+						t.Errorf("findEnumSet: did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", errs, len(errs), wantErrSubstr)
 					}
 					if len(errs) > 1 {
 						t.Errorf("findEnumSet: got too many errors, expecting length 1 only, (len %d), all errors: %v", len(errs), errs)
