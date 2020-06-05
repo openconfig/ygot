@@ -58,7 +58,7 @@ func main() {
 	i, err := d.NewInterface("eth0")
 
 	// We can now work directly with the returned interface to specify some values.
-	i.AdminStatus = oc.OpenconfigInterfaces_Interface_AdminStatus_UP
+	i.AdminStatus = oc.Interface_AdminStatus_UP
 	i.Mtu = ygot.Uint16(1500)
 	i.Description = ygot.String("An Interface")
 
