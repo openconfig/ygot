@@ -8,7 +8,7 @@ require (
 	github.com/google/go-cmp v0.4.1
 	github.com/kylelemons/godebug v1.1.0
 	github.com/openconfig/gnmi v0.0.0-20200508230933-d19cebf5e7be
-	github.com/openconfig/goyang v0.0.0-20200506211124-77aa4ea52d03
+	github.com/openconfig/goyang v0.0.0-20200603222342-a0c8aa1ee274
 	github.com/pmezard/go-difflib v1.0.0
 	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 // indirect
 	golang.org/x/sys v0.0.0-20200519105757-fe76b779f299 // indirect
