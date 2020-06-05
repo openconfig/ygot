@@ -660,8 +660,8 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 			clashPaths = append(clashPaths, entry.Path())
 		}
 
-		// For enumeration leaves, the names are expected to not clash
-		// since they each already use the entire path.
+		// For compressPaths=true, the enumeration leaf names are expected
+		// to not clash since they each already use the entire path.
 		if !compressPaths && len(nameClashSet) != 1 {
 			return nil, fmt.Errorf("enumgen.go: clash in enumerated name occurred despite paths being uncompressed, clash name: %q, clashing paths: %v", clashName, clashPaths)
 		}
@@ -869,14 +869,12 @@ func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores
 	if _, ok := s.enumSet.uniqueEnumeratedTypedefNames[typedefKey]; ok {
 		return nil
 	}
-	baseName := yang.CamelCase(typeName)
-	definingModName := genutil.ParentModulePrettyName(enumType.Base)
 	// Since there can be many leaves that refer to the same typedef, then we do not generate
 	// a name for each of them, but rather use a common name, we use the non-CamelCase lookup
 	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef
 	// does not have a 'path' in Goyang, we synthesise one using the form
-	// module-name/typedef-name.
-	name := fmt.Sprintf("%s_%s", definingModName, baseName)
+	// defining-module-name/typedef-name.
+	name := fmt.Sprintf("%s_%s", genutil.ParentModulePrettyName(enumType.Base), yang.CamelCase(typeName))
 	if noUnderscores {
 		name = strings.Replace(name, "_", "", -1)
 	}
