@@ -204,7 +204,7 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string,
 // which represents a typedef that has an underlying enumerated type (e.g.,
 // identityref or enumeration).
 func (s *enumSet) typedefEnumeratedName(e *yang.Entry, noUnderscores bool) (string, error) {
-	typedefKey, _, _, err := s.enumeratedTypedefKey(e, noUnderscores)
+	typedefKey, _, err := s.enumeratedTypedefKey(e, noUnderscores)
 	if err != nil {
 		return "", err
 	}
