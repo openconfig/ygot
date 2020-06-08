@@ -711,7 +711,7 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 						definingModName := genutil.ParentModulePrettyName(entry.Node)
 						baseName := strings.TrimPrefix(clashName, definingModName+delimiter)
 						if baseName == clashName {
-							return nil, fmt.Errorf("enumgen.go bug: shortenEnumLeafNames=false, but provided clashName does not start with its defining module name+delimiter.")
+							return nil, fmt.Errorf("enumgen.go bug: shortenEnumLeafNames=false, but provided clashName does not start with its defining module name+delimiter")
 						}
 						candidateName = definingModName + delimiter + ancestorName + delimiter + baseName
 					}
