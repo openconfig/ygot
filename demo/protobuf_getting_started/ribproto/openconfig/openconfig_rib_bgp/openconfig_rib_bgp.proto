@@ -561,7 +561,7 @@ message BgpRib {
         message Segment {
           message State {
             repeated ywrapper.UintValue member = 361324129 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/as4-path/segment/state/member"];
-            openconfig.enums.OpenconfigRibBgpAsPathSegmentType type = 138477295 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/as4-path/segment/state/type"];
+            openconfig.enums.OpenconfigBgpTypesAsPathSegmentType type = 138477295 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/as4-path/segment/state/type"];
           }
           State state = 183426056 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/as4-path/segment/state"];
         }
@@ -571,7 +571,7 @@ message BgpRib {
         message Segment {
           message State {
             repeated ywrapper.UintValue member = 390574813 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/as-path/segment/state/member"];
-            openconfig.enums.OpenconfigRibBgpAsPathSegmentType type = 334992795 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/as-path/segment/state/type"];
+            openconfig.enums.OpenconfigBgpTypesAsPathSegmentType type = 334992795 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/as-path/segment/state/type"];
           }
           State state = 118106132 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/as-path/segment/state"];
         }
@@ -585,7 +585,7 @@ message BgpRib {
         ywrapper.UintValue local_pref = 525049791 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/state/local-pref"];
         ywrapper.UintValue med = 251657528 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/state/med"];
         ywrapper.StringValue next_hop = 447040595 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/state/next-hop"];
-        openconfig.enums.OpenconfigRibBgpBgpOriginAttrType origin = 65205360 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/state/origin"];
+        openconfig.enums.OpenconfigBgpTypesBgpOriginAttrType origin = 65205360 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/state/origin"];
         ywrapper.StringValue originator_id = 64713458 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/state/originator-id"];
       }
       Aggregator aggregator = 137048699 [(yext.schemapath) = "/bgp-rib/attr-sets/attr-set/aggregator"];
