@@ -654,7 +654,7 @@ func TestGenProto3Msg(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), tt.inCompressPaths, true, false)
+			enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), tt.inCompressPaths, true, false, true)
 			if errs != nil {
 				t.Fatalf("findEnumSet failed: %v", errs)
 			}
@@ -1414,7 +1414,7 @@ message MessageName {
 		t.Run(tt.name, func(t *testing.T) {
 			wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
 			for compress, want := range map[bool]*generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
-				enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), compress, true, false)
+				enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), compress, true, false, true)
 				if errs != nil {
 					t.Fatalf("findEnumSet failed: %v", errs)
 				}

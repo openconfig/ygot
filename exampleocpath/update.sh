@@ -16,6 +16,7 @@ cp ../demo/getting_started/yang/{ietf,iana}* deps
 go run ../ypathgen/generator/generator.go -path=public,deps -output_file=ocpath.go \
   -package_name=exampleocpath -fakeroot_name=root \
   -prefer_operational_state=true \
+  -shorten_enum_leaf_names \
   -exclude_modules=ietf-interfaces \
   -schema_struct_path=github.com/openconfig/ygot/exampleoc \
   -list_builder_key_threshold=3 \

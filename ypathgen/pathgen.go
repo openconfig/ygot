@@ -90,6 +90,18 @@ type GenConfig struct {
 	// FakeRootName specifies the name of the struct that should be generated
 	// representing the root.
 	FakeRootName string
+	// SkipEnumDeduplication specifies whether leaves of type 'enumeration' that
+	// are used in multiple places in the schema should share a common type within
+	// the generated code that is output by ygen. By default (false), a common type
+	// is used.
+	// This is the same flag used by ygen: they must match for pathgen's
+	// generated code to be compatible with it.
+	SkipEnumDeduplication bool
+	// ShortenEnumLeafNames removes the module name from the name of
+	// enumeration leaves.
+	// This is the same flag used by ygen: they must match for pathgen's
+	// generated code to be compatible with it.
+	ShortenEnumLeafNames bool
 	// ExcludeModules specifies any modules that are included within the set of
 	// modules that should have code generated for them that should be ignored during
 	// code generation. This is due to the fact that some schemas (e.g., OpenConfig
@@ -160,13 +172,15 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 
 	dcg := &ygen.DirectoryGenConfig{
 		ParseOptions: ygen.ParseOpts{
-			YANGParseOptions: cg.YANGParseOptions,
-			ExcludeModules:   cg.ExcludeModules,
+			YANGParseOptions:      cg.YANGParseOptions,
+			ExcludeModules:        cg.ExcludeModules,
+			SkipEnumDeduplication: cg.SkipEnumDeduplication,
 		},
 		TransformationOptions: ygen.TransformationOpts{
-			CompressBehaviour: compressBehaviour,
-			GenerateFakeRoot:  true,
-			FakeRootName:      cg.FakeRootName,
+			CompressBehaviour:    compressBehaviour,
+			GenerateFakeRoot:     true,
+			FakeRootName:         cg.FakeRootName,
+			ShortenEnumLeafNames: cg.ShortenEnumLeafNames,
 		},
 	}
 	directories, leafTypeMap, errs := dcg.GetDirectoriesAndLeafTypes(yangFiles, includePaths)
