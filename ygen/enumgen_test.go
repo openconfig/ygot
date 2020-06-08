@@ -1338,6 +1338,7 @@ func TestFindEnumSet(t *testing.T) {
 					Enum: &yang.EnumType{},
 				},
 				Node: &yang.Enum{
+					Name: "enumeration-leaf",
 					Parent: &yang.Container{
 						Name: "config",
 						Parent: &yang.Container{
@@ -1363,6 +1364,7 @@ func TestFindEnumSet(t *testing.T) {
 					Enum: &yang.EnumType{},
 				},
 				Node: &yang.Enum{
+					Name: "enumeration-leaf",
 					Parent: &yang.Container{
 						Name: "state",
 						Parent: &yang.Container{
@@ -1414,6 +1416,17 @@ func TestFindEnumSet(t *testing.T) {
 						Enum: &yang.EnumType{},
 					},
 				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"/base-module/container/config/enumeration-leaf": "Container_EnumerationLeaf",
+			},
+		},
+		wantEnumSetUncompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"/base-module/container/config/enumeration-leaf": "BaseModule_Container_Config_EnumerationLeaf",
+				"/base-module/container/state/enumeration-leaf":  "BaseModule_Container_State_EnumerationLeaf",
 			},
 		},
 	}, {
@@ -1507,7 +1520,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
-				"/base-module/container/config/enumeration-leaf": "Container_EnumerationLeaf",
+				"/base-module/container/config/enumeration-leaf": "BaseModule_Container_EnumerationLeaf",
 			},
 		},
 		wantEnumSetUncompressed: &enumSet{
@@ -1731,6 +1744,228 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 	}, {
+		name: "simple enumeration with naming conflict due to same grandparent context without shortened names",
+		in: map[string]*yang.Entry{
+			"/container/config/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "config",
+					Node: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "container",
+						Node: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+						Parent: &yang.Entry{
+							Node: &yang.Module{
+								Name: "base-module",
+							},
+							Name: "base-module",
+						},
+					},
+				},
+			},
+			"/container/state/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Container{
+						Name: "state",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "state",
+					Node: &yang.Container{
+						Name: "state",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "container",
+						Node: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+						Parent: &yang.Entry{
+							Node: &yang.Module{
+								Name: "base-module",
+							},
+							Name: "base-module",
+						},
+					},
+				},
+			},
+			"/outer-container/container/config/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Container{
+								Name: "outer-container",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "config",
+					Node: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Container{
+								Name: "outer-container",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "container",
+						Node: &yang.Container{
+							Name: "container",
+							Parent: &yang.Container{
+								Name: "outer-container",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+						Parent: &yang.Entry{
+							Name: "outer-container",
+							Node: &yang.Container{
+								Name: "outer-container",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+							Parent: &yang.Entry{
+								Node: &yang.Module{
+									Name: "base-module",
+								},
+								Name: "base-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantCompressed: map[string]*yangEnum{
+			"BaseModule_Container_EnumerationLeaf": {
+				name: "Container_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"BaseModule_OuterContainer_Container_EnumerationLeaf": {
+				name: "OuterContainer_Container_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantUncompressed: map[string]*yangEnum{
+			"BaseModule_Container_State_EnumerationLeaf": {
+				name: "BaseModule_Container_State_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"BaseModule_Container_Config_EnumerationLeaf": {
+				name: "BaseModule_Container_Config_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"BaseModule_OuterContainer_Container_Config_EnumerationLeaf": {
+				name: "BaseModule_OuterContainer_Container_Config_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"/base-module/container/config/enumeration-leaf":                 "BaseModule_Container_EnumerationLeaf",
+				"/base-module/outer-container/container/config/enumeration-leaf": "BaseModule_OuterContainer_Container_EnumerationLeaf",
+			},
+		},
+		wantEnumSetUncompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"/base-module/container/config/enumeration-leaf":                 "BaseModule_Container_Config_EnumerationLeaf",
+				"/base-module/container/state/enumeration-leaf":                  "BaseModule_Container_State_EnumerationLeaf",
+				"/base-module/outer-container/container/config/enumeration-leaf": "BaseModule_OuterContainer_Container_Config_EnumerationLeaf",
+			},
+		},
+	}, {
 		name: "simple enumeration with same grandparent context but are from different modules",
 		in: map[string]*yang.Entry{
 			"/base-module/container/config/enumeration-leaf": {
@@ -1874,212 +2109,6 @@ func TestFindEnumSet(t *testing.T) {
 				"/base-module/container/config/enumeration-leaf":  "BaseModule_Container_Config_EnumerationLeaf",
 				"/base-module/container/state/enumeration-leaf":   "BaseModule_Container_State_EnumerationLeaf",
 				"/base-module2/container/config/enumeration-leaf": "BaseModule2_Container_Config_EnumerationLeaf",
-			},
-		},
-	}, {
-		name: "simple enumeration with naming conflict due to same grandparent context without shortened names",
-		in: map[string]*yang.Entry{
-			"/container/config/enumeration-leaf": {
-				Name: "enumeration-leaf",
-				Type: &yang.YangType{
-					Name: "enumeration",
-					Enum: &yang.EnumType{},
-				},
-				Node: &yang.Enum{
-					Parent: &yang.Container{
-						Name: "config",
-						Parent: &yang.Container{
-							Name: "container",
-							Parent: &yang.Module{
-								Name: "base-module",
-							},
-						},
-					},
-				},
-				Parent: &yang.Entry{
-					Name: "config",
-					Node: &yang.Container{
-						Name: "config",
-						Parent: &yang.Container{
-							Name: "container",
-							Parent: &yang.Module{
-								Name: "base-module",
-							},
-						},
-					},
-					Parent: &yang.Entry{
-						Name: "container",
-						Node: &yang.Container{
-							Name: "container",
-							Parent: &yang.Module{
-								Name: "base-module",
-							},
-						},
-						Parent: &yang.Entry{
-							Node: &yang.Module{
-								Name: "base-module",
-							},
-							Name: "base-module",
-						},
-					},
-				},
-			},
-			"/container/state/enumeration-leaf": {
-				Name: "enumeration-leaf",
-				Type: &yang.YangType{
-					Name: "enumeration",
-					Enum: &yang.EnumType{},
-				},
-				Node: &yang.Enum{
-					Parent: &yang.Container{
-						Name: "state",
-						Parent: &yang.Container{
-							Name: "container",
-							Parent: &yang.Module{
-								Name: "base-module",
-							},
-						},
-					},
-				},
-				Parent: &yang.Entry{
-					Name: "state",
-					Node: &yang.Container{
-						Name: "state",
-						Parent: &yang.Container{
-							Name: "container",
-							Parent: &yang.Module{
-								Name: "base-module",
-							},
-						},
-					},
-					Parent: &yang.Entry{
-						Name: "container",
-						Node: &yang.Container{
-							Name: "container",
-							Parent: &yang.Module{
-								Name: "base-module",
-							},
-						},
-						Parent: &yang.Entry{
-							Node: &yang.Module{
-								Name: "base-module",
-							},
-							Name: "base-module",
-						},
-					},
-				},
-			},
-			"/outer-container/container/config/enumeration-leaf": {
-				Name: "enumeration-leaf",
-				Type: &yang.YangType{
-					Name: "enumeration",
-					Enum: &yang.EnumType{},
-				},
-				Node: &yang.Enum{
-					Parent: &yang.Container{
-						Name: "config",
-						Parent: &yang.Container{
-							Name: "container",
-							Parent: &yang.Container{
-								Name: "outer-container",
-								Parent: &yang.Module{
-									Name: "base-module",
-								},
-							},
-						},
-					},
-				},
-				Parent: &yang.Entry{
-					Name: "config",
-					Node: &yang.Container{
-						Name: "config",
-						Parent: &yang.Container{
-							Name: "container",
-							Parent: &yang.Container{
-								Name: "outer-container",
-								Parent: &yang.Module{
-									Name: "base-module",
-								},
-							},
-						},
-					},
-					Parent: &yang.Entry{
-						Name: "container",
-						Node: &yang.Container{
-							Name: "container",
-							Parent: &yang.Container{
-								Name: "outer-container",
-								Parent: &yang.Module{
-									Name: "base-module",
-								},
-							},
-						},
-						Parent: &yang.Entry{
-							Name: "outer-container",
-							Node: &yang.Container{
-								Name: "outer-container",
-								Parent: &yang.Module{
-									Name: "base-module",
-								},
-							},
-							Parent: &yang.Entry{
-								Node: &yang.Module{
-									Name: "base-module",
-								},
-								Name: "base-module",
-							},
-						},
-					},
-				},
-			},
-		},
-		wantCompressed: map[string]*yangEnum{
-			"BaseModule_Container_EnumerationLeaf": {
-				name: "Container_EnumerationLeaf",
-				entry: &yang.Entry{
-					Name: "enumeration-leaf",
-					Type: &yang.YangType{
-						Enum: &yang.EnumType{},
-					},
-				},
-			},
-			"BaseModule_OuterContainer_Container_EnumerationLeaf": {
-				name: "OuterContainer_Container_EnumerationLeaf",
-				entry: &yang.Entry{
-					Name: "enumeration-leaf",
-					Type: &yang.YangType{
-						Enum: &yang.EnumType{},
-					},
-				},
-			},
-		},
-		wantUncompressed: map[string]*yangEnum{
-			"BaseModule_Container_State_EnumerationLeaf": {
-				name: "BaseModule_Container_State_EnumerationLeaf",
-				entry: &yang.Entry{
-					Name: "enumeration-leaf",
-					Type: &yang.YangType{
-						Enum: &yang.EnumType{},
-					},
-				},
-			},
-			"BaseModule_Container_Config_EnumerationLeaf": {
-				name: "BaseModule_Container_Config_EnumerationLeaf",
-				entry: &yang.Entry{
-					Name: "enumeration-leaf",
-					Type: &yang.YangType{
-						Enum: &yang.EnumType{},
-					},
-				},
-			},
-			"BaseModule_OuterContainer_Container_Config_EnumerationLeaf": {
-				name: "BaseModule_OuterContainer_Container_Config_EnumerationLeaf",
-				entry: &yang.Entry{
-					Name: "enumeration-leaf",
-					Type: &yang.YangType{
-						Enum: &yang.EnumType{},
-					},
-				},
 			},
 		},
 	}, {
