@@ -25,8 +25,6 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-// TODO(mostrowski): move below functions into path package.
-
 // PathMatchesPrefix reports whether prefix is a prefix of path.
 func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 	if len(path.GetElem()) < len(prefix) {
