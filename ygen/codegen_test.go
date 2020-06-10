@@ -428,14 +428,20 @@ type yangTestCase struct {
 // invalid.
 func TestSimpleStructs(t *testing.T) {
 	tests := []yangTestCase{{
-		name:                "simple openconfig test, with compression",
-		inFiles:             []string{filepath.Join(datapath, "openconfig-simple.yang")},
-		inConfig:            GeneratorConfig{TransformationOptions: TransformationOpts{CompressBehaviour: genutil.PreferIntendedConfig, ShortenEnumLeafNames: true}},
+		name:    "simple openconfig test, with compression",
+		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames: true,
+			}},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple.formatted-txt"),
 	}, {
-		name:                "simple openconfig test, with no compression",
-		inFiles:             []string{filepath.Join(datapath, "openconfig-simple.yang")},
-		inConfig:            GeneratorConfig{TransformationOptions: TransformationOpts{ShortenEnumLeafNames: true}},
+		name:    "simple openconfig test, with no compression",
+		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{ShortenEnumLeafNames: true},
+		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-no-compress.formatted-txt"),
 	}, {
 		name:    "OpenConfig schema test - with annotations",

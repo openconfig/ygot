@@ -27,10 +27,11 @@ import (
 
 func TestResolveNameClashSet(t *testing.T) {
 	tests := []struct {
-		name                   string
-		inDefinedEnums         map[string]bool
-		inNameClashSets        map[string]map[string]*yang.Entry
-		inShortenEnumLeafNames bool
+		name                        string
+		inDefinedEnums              map[string]bool
+		inDefinedEnumsNoUnderscores map[string]bool
+		inNameClashSets             map[string]map[string]*yang.Entry
+		inShortenEnumLeafNames      bool
 		// wantUncompressFailDueToClash means the uncompressed test run will fail in
 		// deviation from the compressed case due to existence of a name clash, which can
 		// only be resolved for compressed paths.
@@ -41,6 +42,9 @@ func TestResolveNameClashSet(t *testing.T) {
 	}{{
 		name: "no name clash",
 		inDefinedEnums: map[string]bool{
+			"Baz": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
 			"Baz": true,
 		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
@@ -69,6 +73,9 @@ func TestResolveNameClashSet(t *testing.T) {
 		inDefinedEnums: map[string]bool{
 			"Mod_Baz": true,
 		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"ModBaz": true,
+		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Mod_Foo": {
 				"enum-a": &yang.Entry{
@@ -94,6 +101,9 @@ func TestResolveNameClashSet(t *testing.T) {
 		inDefinedEnums: map[string]bool{
 			"Bar": true,
 		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Bar": true,
+		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Foo": {
 				"enum-a": &yang.Entry{
@@ -111,6 +121,10 @@ func TestResolveNameClashSet(t *testing.T) {
 	}, {
 		name: "resolving name clash at module name",
 		inDefinedEnums: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
 			"Baz": true,
 			"Foo": true,
 		},
@@ -175,8 +189,9 @@ func TestResolveNameClashSet(t *testing.T) {
 			"enum-b": "SupportModuleFoo",
 		},
 	}, {
-		name:           "cannot resolve name clash due to camel-case lossiness and no parents to disambiguate",
-		inDefinedEnums: map[string]bool{},
+		name:                        "cannot resolve name clash due to camel-case lossiness and no parents to disambiguate",
+		inDefinedEnums:              map[string]bool{},
+		inDefinedEnumsNoUnderscores: map[string]bool{},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Foo": {
 				"enum-a": &yang.Entry{
@@ -207,8 +222,9 @@ func TestResolveNameClashSet(t *testing.T) {
 		wantUncompressFailDueToClash: true,
 		wantErrSubstr:                "cannot resolve enumeration name clash",
 	}, {
-		name:           "cannot resolve name clash due to camel-case lossiness and no parents to disambiguate, with names not shortened",
-		inDefinedEnums: map[string]bool{},
+		name:                        "cannot resolve name clash due to camel-case lossiness and no parents to disambiguate, with names not shortened",
+		inDefinedEnums:              map[string]bool{},
+		inDefinedEnumsNoUnderscores: map[string]bool{},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"BaseModule_Foo": {
 				"enum-a": &yang.Entry{
@@ -240,6 +256,9 @@ func TestResolveNameClashSet(t *testing.T) {
 	}, {
 		name: "resolving name clash at grandparent for enumeration leaves",
 		inDefinedEnums: map[string]bool{
+			"Baz": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
 			"Baz": true,
 		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
@@ -307,6 +326,10 @@ func TestResolveNameClashSet(t *testing.T) {
 		inDefinedEnums: map[string]bool{
 			"BaseModule_Baz": true,
 			"BaseModule_Foo": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"BaseModuleBaz": true,
+			"BaseModuleFoo": true,
 		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"BaseModule_Foo": {
@@ -408,6 +431,9 @@ func TestResolveNameClashSet(t *testing.T) {
 		inDefinedEnums: map[string]bool{
 			"Baz": true,
 		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Foo": {
 				"enum-a": &yang.Entry{
@@ -466,6 +492,9 @@ func TestResolveNameClashSet(t *testing.T) {
 		name: "resolving name clash at grandparent and due to no more parent container with names not shortened",
 		inDefinedEnums: map[string]bool{
 			"BaseModule_Baz": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"BaseModuleBaz": true,
 		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"BaseModule_Foo": {
@@ -552,6 +581,9 @@ func TestResolveNameClashSet(t *testing.T) {
 		inDefinedEnums: map[string]bool{
 			"Baz": true,
 		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Foo": {
 				"enum-a": &yang.Entry{
@@ -591,6 +623,9 @@ func TestResolveNameClashSet(t *testing.T) {
 		name: "resolving name clash at parent and due to no more parent container, with names not shortened",
 		inDefinedEnums: map[string]bool{
 			"BaseModule_Baz": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"BaseModuleBaz": true,
 		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"BaseModule_Foo": {
@@ -644,6 +679,11 @@ func TestResolveNameClashSet(t *testing.T) {
 			"Baz":               true,
 			"Foo":               true,
 			"SupportModule_Foo": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz":              true,
+			"Foo":              true,
+			"SupportModuleFoo": true,
 		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Foo": {
@@ -708,6 +748,10 @@ func TestResolveNameClashSet(t *testing.T) {
 	}, {
 		name: "resolving name clash at great-grandparent",
 		inDefinedEnums: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
 			"Baz": true,
 			"Foo": true,
 		},
@@ -791,6 +835,12 @@ func TestResolveNameClashSet(t *testing.T) {
 			"BaseModule_ParentB_Enum":   true,
 			"BaseModule_GranGranA_Enum": true,
 		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz":                      true,
+			"GranGranAFoo":             true,
+			"BaseModuleParentB_Enum":   true,
+			"BaseModuleGranGranA_Enum": true,
+		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Foo": {
 				"enum-a": &yang.Entry{
@@ -873,6 +923,14 @@ func TestResolveNameClashSet(t *testing.T) {
 			"BaseModule_ParentA_Enum":   true,
 			"BaseModule_GranGranB_Enum": true,
 		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz":                      true,
+			"Foo":                      true,
+			"SupportModuleFoo":         true,
+			"GranGranBFoo":             true,
+			"BaseModuleParentA_Enum":   true,
+			"BaseModuleGranGranB_Enum": true,
+		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Foo": {
 				"enum-a": &yang.Entry{
@@ -935,6 +993,14 @@ func TestResolveNameClashSet(t *testing.T) {
 			"BaseModule_GranGranB_Foo":  true,
 			"BaseModule_ParentA_Enum":   true,
 			"BaseModule_GranGranB_Enum": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"BaseModuleBaz":           true,
+			"BaseModuleFoo":           true,
+			"SupportModuleFoo":        true,
+			"BaseModuleGranGranBFoo":  true,
+			"BaseModuleParentAEnum":   true,
+			"BaseModuleGranGranBEnum": true,
 		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"BaseModule_Foo": {
@@ -1029,6 +1095,9 @@ func TestResolveNameClashSet(t *testing.T) {
 		inDefinedEnums: map[string]bool{
 			"Baz": true,
 		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Foo": {
 				"enum-a": &yang.Entry{
@@ -1087,6 +1156,9 @@ func TestResolveNameClashSet(t *testing.T) {
 		inDefinedEnums: map[string]bool{
 			"BaseModule_Baz": true,
 		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"BaseModuleBaz": true,
+		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"BaseMod_Foo": {
 				"enum-a": &yang.Entry{
@@ -1132,6 +1204,9 @@ func TestResolveNameClashSet(t *testing.T) {
 		inDefinedEnums: map[string]bool{
 			"Baz": true,
 		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+		},
 		inNameClashSets: map[string]map[string]*yang.Entry{
 			"Bar": {
 				"enum-a": &yang.Entry{
@@ -1156,13 +1231,15 @@ func TestResolveNameClashSet(t *testing.T) {
 			false: tt.wantUniqueNamesMap,
 			true:  tt.wantUniqueNamesMapNoUnderscores} {
 
+			inDefinedEnums := tt.inDefinedEnums
+			if noUnderscores {
+				inDefinedEnums = tt.inDefinedEnumsNoUnderscores
+			}
+
 			for compressPaths := range map[bool]struct{}{false: {}, true: {}} {
 				t.Run(tt.name+fmt.Sprintf("@compressPaths:%v,noUnderscores:%v,shortenEnumLeafNames:%v", compressPaths, noUnderscores, tt.inShortenEnumLeafNames), func(t *testing.T) {
 					s := newEnumGenState()
-					for k, v := range tt.inDefinedEnums {
-						if noUnderscores {
-							k = strings.ReplaceAll(k, "_", "")
-						}
+					for k, v := range inDefinedEnums {
 						// Copy the values as this map may be modified.
 						s.definedEnums[k] = v
 					}
