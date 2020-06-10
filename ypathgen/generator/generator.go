@@ -43,6 +43,8 @@ var (
 	gnmiProtoPath           = flag.String("gnmi_proto_path", genutil.GoDefaultGNMIImportPath, "The import path to use for gNMI's proto package.")
 	ygotImportPath          = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
 	listBuilderKeyThreshold = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the builder API is used for key population. 0 means infinity.")
+	skipEnumDedup           = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
+	shortenEnumLeafNames    = flag.Bool("shorten_enum_leaf_names", false, "If also set to true when compression is on, all leaves of type enumeration will by default not be prefixed with the name of its residing module.")
 )
 
 // writeGoCodeSingleFile takes a ypathgen.GeneratedPathCode struct and writes
@@ -106,6 +108,8 @@ func main() {
 			YgotImportPath:      *ygotImportPath,
 		},
 		PreferOperationalState: *preferOperationalState,
+		SkipEnumDeduplication:  *skipEnumDedup,
+		ShortenEnumLeafNames:   *shortenEnumLeafNames,
 		FakeRootName:           *fakeRootName,
 		ExcludeModules:         modsExcluded,
 		SchemaStructPkgAlias:   "oc",
