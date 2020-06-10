@@ -1725,7 +1725,7 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 				// Always generate the JSON schema for this test.
-				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inSkipEnumDedup, tt.inGoOpts)
+				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inSkipEnumDedup, true, tt.inGoOpts)
 
 				if len(errs) != 0 && !want.wantErr {
 					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): received unexpected errors: %v",

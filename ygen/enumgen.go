@@ -78,7 +78,7 @@ func newEnumSet() *enumSet {
 // value is calculated based on the original context, whether path compression is enabled based
 // on the compressPaths boolean, and whether the name should not include underscores, as per the
 // noUnderscores boolean.
-func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup bool) ([]*yangEnum, error) {
+func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames bool) ([]*yangEnum, error) {
 	var es []*yangEnum
 
 	for _, t := range util.EnumeratedUnionTypes(e.Type.Type) {
@@ -104,7 +104,7 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 			var enumName string
 			var err error
 			if util.IsYANGBaseType(t) {
-				enumName, err = s.enumName(e, compressPaths, noUnderscores, skipEnumDedup)
+				enumName, err = s.enumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
 			} else {
 				enumName, err = s.typedefEnumeratedName(e, noUnderscores)
 			}
@@ -156,8 +156,8 @@ func (s *enumSet) identityrefBaseTypeFromIdentity(i *yang.Identity) (string, err
 
 // enumName retrieves the type name of the input enum *yang.Entry that will be
 // used in the generated code.
-func (s *enumSet) enumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup bool) (string, error) {
-	key, _ := s.enumLeafKey(e, compressPaths, noUnderscores, skipDedup)
+func (s *enumSet) enumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames bool) (string, error) {
+	key, _ := s.enumLeafKey(e, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames)
 	definedName, ok := s.uniqueEnumeratedLeafNames[key]
 	if !ok {
 		return "", fmt.Errorf("enumSet: cannot retrieve type name for enumerated leaf without a name generated (was findEnumSet called?): %v", e.Path())
@@ -266,7 +266,7 @@ func (s *enumSet) enumeratedTypedefKey(e *yang.Entry, noUnderscores bool) (strin
 // enumLeafKey calculates a unique string key for the input leaf of type
 // "enumeration" only. If compressPaths is true, it also returns the compressed
 // version of the entry name for use in name generation, if needed.
-func (s *enumSet) enumLeafKey(e *yang.Entry, compressPaths, noUnderscores, skipDedup bool) (string, string) {
+func (s *enumSet) enumLeafKey(e *yang.Entry, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames bool) (string, string) {
 	// uniqueIdentifier is the unique identifier used to determine whether to
 	// define a new enum type for the input enum.
 	// By default, using the entry's path ensures every enumeration
@@ -286,6 +286,9 @@ func (s *enumSet) enumLeafKey(e *yang.Entry, compressPaths, noUnderscores, skipD
 		// GrandParent_Leaf - we use GrandParent since Parent is
 		// State or Config so would not be unique.
 		compressName = fmt.Sprintf("%s_%s", yang.CamelCase(e.Parent.Parent.Name), yang.CamelCase(e.Name))
+		if !shortenEnumLeafNames {
+			compressName = fmt.Sprintf("%s_%s", genutil.ParentModulePrettyName(e.Node), compressName)
+		}
 		if noUnderscores {
 			compressName = strings.Replace(compressName, "_", "", -1)
 		}
@@ -365,7 +368,7 @@ func enumIdentifier(e *yang.Entry, compressPaths bool) string {
 // into a common type.
 // The returned enumSet can be used to query for enum/identity names.
 // The returned map is the set of generated enums to be used for enum code generation.
-func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup bool) (*enumSet, map[string]*yangEnum, []error) {
+func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames bool) (*enumSet, map[string]*yangEnum, []error) {
 	validEnums := make(map[string]*yang.Entry)
 	var enumPaths []string
 	var errs []error
@@ -433,7 +436,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 		case e.Type.Name == "union", len(e.Type.Type) > 0 && !util.IsYANGBaseType(e.Type):
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
-			if err := s.resolveEnumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup); err != nil {
+			if err := s.resolveEnumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames); err != nil {
 				errs = append(errs, err)
 			}
 		case e.Type.Name == "identityref":
@@ -450,7 +453,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 			}
 		case e.Type.Name == "enumeration":
 			// Calculate generated name for enumeration leaf.
-			s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup)
+			s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
 		default:
 			// This is a type which is defined through a typedef.
 			if err := s.resolveTypedefEnumeratedName(e, noUnderscores); err != nil {
@@ -464,7 +467,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 
 	// Resolve any enumeration value name conflicts.
 	// At this point, all enumerated value names are fully resolved.
-	if err := s.resolveEnumeratedLeafClashSets(compressPaths, noUnderscores); err != nil {
+	if err := s.resolveEnumeratedLeafClashSets(compressPaths, noUnderscores, shortenEnumLeafNames); err != nil {
 		return nil, nil, append(errs, err)
 	}
 
@@ -482,7 +485,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 		case e.Type.Name == "union", len(e.Type.Type) > 0 && !util.IsYANGBaseType(e.Type):
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
-			es, err := s.enumSet.enumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup)
+			es, err := s.enumSet.enumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -519,7 +522,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 			// in two places, then we do not want to have multiple enumerated types
 			// that represent this leaf), then we do not have errors if duplicates
 			// occur, we simply perform de-duplication at this stage.
-			enumName, err := s.enumSet.enumName(e, compressPaths, noUnderscores, skipEnumDedup)
+			enumName, err := s.enumSet.enumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -586,9 +589,9 @@ func newEnumGenState() *enumGenState {
 // enumeration leaves, and carries out name collision resolution between
 // different enum keys that mapped to the same default generated name. Then it
 // stores these final names in their appropriate name maps within enumSet.
-func (s *enumGenState) resolveEnumeratedLeafClashSets(compressPaths, noUnderscores bool) error {
+func (s *enumGenState) resolveEnumeratedLeafClashSets(compressPaths, noUnderscores, shortenEnumLeafNames bool) error {
 	var err error
-	if s.enumSet.uniqueEnumeratedLeafNames, err = s.resolveNameClashSet(s.enumeratedLeafNameClashSets, compressPaths, noUnderscores); err != nil {
+	if s.enumSet.uniqueEnumeratedLeafNames, err = s.resolveNameClashSet(s.enumeratedLeafNameClashSets, compressPaths, noUnderscores, shortenEnumLeafNames); err != nil {
 		return err
 	}
 	return nil
@@ -597,7 +600,7 @@ func (s *enumGenState) resolveEnumeratedLeafClashSets(compressPaths, noUnderscor
 // resolveNameClashSet carries out name collision resolution on the input name
 // clash set to generate the final names, and stores those names in the given
 // unique map.
-func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*yang.Entry, compressPaths, noUnderscores bool) (map[string]string, error) {
+func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*yang.Entry, compressPaths, noUnderscores, shortenEnumLeafNames bool) (map[string]string, error) {
 	uniqueNamesMap := map[string]string{}
 	// addCandidateUniqueNames adds the candidate map of unique names to the final unique names map.
 	// It returns whether the candidate names was successfully accepted as the resolving name set.
@@ -700,7 +703,17 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 					newNameClashSet[enumKey] = entry
 				} else {
 					// Try prepending the ancestor name to disambiguate.
-					candidateName = yang.CamelCase(entry.Parent.Name) + delimiter + clashName
+					ancestorName := yang.CamelCase(entry.Parent.Name)
+					if shortenEnumLeafNames {
+						candidateName = ancestorName + delimiter + clashName
+					} else {
+						definingModName := genutil.ParentModulePrettyName(entry.Node)
+						baseName := strings.TrimPrefix(clashName, definingModName+delimiter)
+						if baseName == clashName {
+							return nil, fmt.Errorf("enumgen.go bug: shortenEnumLeafNames=false, but provided clashName does not start with its defining module name+delimiter")
+						}
+						candidateName = definingModName + delimiter + ancestorName + delimiter + baseName
+					}
 					newNameClashSet[enumKey] = entry.Parent
 				}
 				candidateUniqueNames[candidateName] = enumKey
@@ -727,7 +740,7 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 // value is calculated based on the original context, whether path compression is enabled based
 // on the compressPaths boolean, and whether the name should not include underscores, as per the
 // noUnderscores boolean.
-func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup bool) error {
+func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames bool) error {
 	for _, t := range util.EnumeratedUnionTypes(e.Type.Type) {
 		switch {
 		case t.IdentityBase != nil:
@@ -736,7 +749,7 @@ func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths,
 			}
 		case t.Enum != nil:
 			if util.IsYANGBaseType(t) {
-				s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup)
+				s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
 			} else {
 				if err := s.resolveTypedefEnumeratedName(e, noUnderscores); err != nil {
 					return err
@@ -809,10 +822,10 @@ func (s *enumGenState) resolveIdentityrefBaseTypeFromIdentity(i *yang.Identity, 
 // multiple enumerated types being produced. For other schemas, it can result in
 // somewhat difficult to understand enumerated types being produced - since the first
 // leaf that is processed will define the name of the enumeration.
-func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup bool) {
+func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames bool) {
 	// uniqueIdentifier is the unique identifier used to determine whether to
 	// define a new enum type for the input enum.
-	uniqueIdentifier, compressName := s.enumSet.enumLeafKey(e, compressPaths, noUnderscores, skipDedup)
+	uniqueIdentifier, compressName := s.enumSet.enumLeafKey(e, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames)
 
 	name := compressName
 	if !compressPaths {

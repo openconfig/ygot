@@ -1249,7 +1249,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				var got map[string]*Directory
 				switch c.lang {
 				case golang:
-					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false)
+					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false, true)
 				case protobuf:
 					got, errs = protogen.buildDirectoryDefinitions(structs, c.compressBehaviour)
 				}
@@ -2027,7 +2027,7 @@ func TestBuildListKey(t *testing.T) {
 			}
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.in, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup)
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
@@ -2037,7 +2037,7 @@ func TestBuildListKey(t *testing.T) {
 			s := newGoGenState(st, enumSet)
 
 			resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
-				return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup)
+				return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup, true)
 			}
 			if tt.inResolveKeyNameFuncNil {
 				resolveKeyTypeName = nil

@@ -15,6 +15,7 @@ mkdir deps
 cp ../demo/getting_started/yang/{ietf,iana}* deps
 go run ../generator/generator.go -path=public,deps -output_file=oc.go \
   -package_name=exampleoc -generate_fakeroot -fakeroot_name=device -compress_paths=true \
+  -shorten_enum_leaf_names \
   -exclude_modules=ietf-interfaces \
   -generate_rename \
   -generate_append \

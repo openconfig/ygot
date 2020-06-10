@@ -48,6 +48,7 @@ type yangTestCase struct {
 	inIncludePaths            []string    // inIncludePaths is the set of paths that should be searched for imports.
 	inPreferOperationalState  bool        // inPreferOperationalState says whether to prefer operational state over intended config in the path-building methods.
 	inListBuilderKeyThreshold uint        // inListBuilderKeyThreshold determines the minimum number of keys beyond which the builder API is used for building the paths.
+	inShortenEnumLeafNames    bool        // inShortenEnumLeafNames says whether the enum leaf names are shortened (i.e. module name removed) in the generated Go code corresponding to the generated path library.
 	checkYANGPath             bool        // checkYANGPath says whether to check for the YANG path in the NodeDataMap.
 	wantStructsCodeFile       string      // wantStructsCodeFile is the path of the generated Go code that the output of the test should be compared to.
 	wantNodeDataMap           NodeDataMap // wantNodeDataMap is the expected NodeDataMap to be produced to accompany the path struct outputs.
@@ -60,6 +61,7 @@ func TestGeneratePathCode(t *testing.T) {
 		inFiles:                  []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-simple.path-txt"),
 		inPreferOperationalState: true,
+		inShortenEnumLeafNames:   true,
 		checkYANGPath:            true,
 		wantNodeDataMap: NodeDataMap{
 			"Parent": {
@@ -132,9 +134,10 @@ func TestGeneratePathCode(t *testing.T) {
 				YANGPath:         "/openconfig-simple/remote-container/state/a-leaf",
 			}},
 	}, {
-		name:                "simple openconfig test with preferOperationalState=false",
-		inFiles:             []string{filepath.Join(datapath, "openconfig-simple.yang")},
-		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-intendedconfig.path-txt"),
+		name:                   "simple openconfig test with preferOperationalState=false",
+		inFiles:                []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inShortenEnumLeafNames: true,
+		wantStructsCodeFile:    filepath.Join(TestRoot, "testdata/structs/openconfig-simple-intendedconfig.path-txt"),
 		wantNodeDataMap: NodeDataMap{
 			"Parent": {
 				GoTypeName:       "*oc.Parent",
@@ -201,17 +204,20 @@ func TestGeneratePathCode(t *testing.T) {
 		name:                     "simple openconfig test with list",
 		inFiles:                  []string{filepath.Join(datapath, "openconfig-withlist.yang")},
 		inPreferOperationalState: true,
+		inShortenEnumLeafNames:   true,
 		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.path-txt"),
 	}, {
 		name:                      "simple openconfig test with list in builder API",
 		inFiles:                   []string{filepath.Join(datapath, "openconfig-withlist.yang")},
 		inListBuilderKeyThreshold: 2,
 		inPreferOperationalState:  true,
+		inShortenEnumLeafNames:    true,
 		wantStructsCodeFile:       filepath.Join(TestRoot, "testdata/structs/openconfig-withlist-builder.path-txt"),
 	}, {
 		name:                     "simple openconfig test with union & typedef & identity & enum",
 		inFiles:                  []string{filepath.Join(datapath, "openconfig-unione.yang")},
 		inPreferOperationalState: true,
+		inShortenEnumLeafNames:   true,
 		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-unione.path-txt"),
 		wantNodeDataMap: NodeDataMap{
 			"DupEnum": {
@@ -292,9 +298,93 @@ func TestGeneratePathCode(t *testing.T) {
 				YANGTypeName:     "union",
 			}},
 	}, {
+		name:                     "simple openconfig test with union & typedef & identity & enum, with enum names not shortened",
+		inFiles:                  []string{filepath.Join(datapath, "openconfig-unione.yang")},
+		inPreferOperationalState: true,
+		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-unione.path-txt"),
+		wantNodeDataMap: NodeDataMap{
+			"DupEnum": {
+				GoTypeName:       "*oc.DupEnum",
+				GoFieldName:      "DupEnum",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"DupEnum_A": {
+				GoTypeName:       "oc.E_OpenconfigUnione_DupEnum_A",
+				GoFieldName:      "A",
+				ParentGoTypeName: "DupEnum",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "enumeration",
+			},
+			"DupEnum_B": {
+				GoTypeName:       "oc.E_OpenconfigUnione_DupEnum_B",
+				GoFieldName:      "B",
+				ParentGoTypeName: "DupEnum",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "enumeration",
+			},
+			"Platform": {
+				GoTypeName:       "*oc.Platform",
+				GoFieldName:      "Platform",
+				ParentGoTypeName: "Device",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"Platform_Component": {
+				GoTypeName:       "*oc.Platform_Component",
+				GoFieldName:      "Component",
+				ParentGoTypeName: "Platform",
+				IsLeaf:           false,
+				IsScalarField:    false,
+			},
+			"Platform_Component_E1": {
+				GoTypeName:       "oc.Platform_Component_E1_Union",
+				GoFieldName:      "E1",
+				ParentGoTypeName: "Platform_Component",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "enumtypedef",
+			},
+			"Platform_Component_Enumerated": {
+				GoTypeName:       "oc.Platform_Component_Enumerated_Union",
+				GoFieldName:      "Enumerated",
+				ParentGoTypeName: "Platform_Component",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "enumerated-union-type",
+			},
+			"Platform_Component_Power": {
+				GoTypeName:       "oc.Platform_Component_Power_Union",
+				GoFieldName:      "Power",
+				ParentGoTypeName: "Platform_Component",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "union",
+			},
+			"Platform_Component_R1": {
+				GoTypeName:       "oc.Platform_Component_E1_Union",
+				GoFieldName:      "R1",
+				ParentGoTypeName: "Platform_Component",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "leafref",
+			},
+			"Platform_Component_Type": {
+				GoTypeName:       "oc.Platform_Component_Type_Union",
+				GoFieldName:      "Type",
+				ParentGoTypeName: "Platform_Component",
+				IsLeaf:           true,
+				IsScalarField:    false,
+				YANGTypeName:     "union",
+			}},
+	}, {
 		name:                     "simple openconfig test with submodule and union list key",
 		inFiles:                  []string{filepath.Join(datapath, "enum-module.yang")},
 		inPreferOperationalState: true,
+		inShortenEnumLeafNames:   true,
 		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/enum-module.path-txt"),
 		wantNodeDataMap: NodeDataMap{
 			"AList": {
@@ -368,6 +458,7 @@ func TestGeneratePathCode(t *testing.T) {
 		name:                     "simple openconfig test with choice and cases",
 		inFiles:                  []string{filepath.Join(datapath, "choice-case-example.yang")},
 		inPreferOperationalState: true,
+		inShortenEnumLeafNames:   true,
 		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/choice-case-example.path-txt"),
 	}, {
 		name: "simple openconfig test with augmentations",
@@ -376,6 +467,7 @@ func TestGeneratePathCode(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple-augment.yang"),
 		},
 		inPreferOperationalState: true,
+		inShortenEnumLeafNames:   true,
 		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-augmented.path-txt"),
 		wantNodeDataMap: NodeDataMap{
 			"Native": {
@@ -419,11 +511,13 @@ func TestGeneratePathCode(t *testing.T) {
 		name:                     "simple openconfig test with camelcase-name extension",
 		inFiles:                  []string{filepath.Join(datapath, "openconfig-enumcamelcase.yang")},
 		inPreferOperationalState: true,
+		inShortenEnumLeafNames:   true,
 		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-enumcamelcase.path-txt"),
 	}, {
 		name:                     "simple openconfig test with camelcase-name extension in container and leaf",
 		inFiles:                  []string{filepath.Join(datapath, "openconfig-camelcase.yang")},
 		inPreferOperationalState: true,
+		inShortenEnumLeafNames:   true,
 		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-camelcase.path-txt"),
 	}}
 
@@ -437,6 +531,7 @@ func TestGeneratePathCode(t *testing.T) {
 				cg.FakeRootName = "device"
 				cg.PreferOperationalState = tt.inPreferOperationalState
 				cg.ListBuilderKeyThreshold = tt.inListBuilderKeyThreshold
+				cg.ShortenEnumLeafNames = tt.inShortenEnumLeafNames
 
 				gotCode, gotNodeDataMap, err := cg.GeneratePathCode(tt.inFiles, tt.inIncludePaths)
 				if err != nil && !tt.wantErr {

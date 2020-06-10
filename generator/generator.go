@@ -74,6 +74,7 @@ var (
 	generateLeafGetters    = flag.Bool("generate_leaf_getters", false, "If set to true, getters for YANG leaves are generated within the Go code. Caution should be exercised when using leaf getters, since values that are explicitly set to the Go default/zero value are not distinguishable from those that are unset when retrieved via the GetXXX method.")
 	includeModelData       = flag.Bool("include_model_data", false, "If set to true, a slice of gNMI ModelData messages are included in the generated Go code containing the details of the input schemas from which the code was generated.")
 	skipEnumDedup          = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
+	shortenEnumLeafNames   = flag.Bool("shorten_enum_leaf_names", false, "If also set to true when compress_paths=true, all leaves of type enumeration will by default not be prefixed with the name of its residing module.")
 )
 
 // writeGoCodeSingleFile takes a ygen.GeneratedGoCode struct and writes the Go code
@@ -246,9 +247,10 @@ func main() {
 			},
 		},
 		TransformationOptions: ygen.TransformationOpts{
-			CompressBehaviour: compressBehaviour,
-			GenerateFakeRoot:  *generateFakeRoot,
-			FakeRootName:      *fakeRootName,
+			CompressBehaviour:    compressBehaviour,
+			GenerateFakeRoot:     *generateFakeRoot,
+			FakeRootName:         *fakeRootName,
+			ShortenEnumLeafNames: *shortenEnumLeafNames,
 		},
 		PackageName:        *packageName,
 		GenerateJSONSchema: *generateSchema,
