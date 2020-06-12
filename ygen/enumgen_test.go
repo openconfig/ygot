@@ -1287,9 +1287,18 @@ func TestFindEnumSet(t *testing.T) {
 		inShortenEnumLeafNames  bool
 		wantCompressed          map[string]*yangEnum
 		wantUncompressed        map[string]*yangEnum
-		wantEnumSetCompressed   *enumSet
-		wantEnumSetUncompressed *enumSet
-		wantSame                bool // Whether to expect same compressed/uncompressed output
+		// wantUseDefiningModuleForTypedefEnumNames should be specified whenever the output
+		// is expected to be different when useDefiningModuleForTypedefEnumNames is set to
+		// true. Its output should be compression independent since typedef enum names are
+		// compression independent, so wantSame must be true when specified. When not
+		// specified, useDefiningModuleForTypedefEnumNames is expected to not have an effect
+		// on the output.
+		wantUseDefiningModuleForTypedefEnumNames        map[string]*yangEnum
+		wantEnumSetCompressed                           *enumSet
+		wantEnumSetUncompressed                         *enumSet
+		wantEnumSetUseDefiningModuleForTypedefEnumNames *enumSet
+		// Whether to expect same compressed/uncompressed output.
+		wantSame bool
 		// wantUncompressFailDueToClash means the uncompressed test run will fail in
 		// deviation from the compressed case due to existence of a name clash, which can
 		// only be resolved for compressed paths.
@@ -2269,7 +2278,7 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		inShortenEnumLeafNames: true,
-		wantCompressed: map[string]*yangEnum{
+		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
 			"TypedefModule_DerivedEnumeration": {
 				name: "TypedefModule_DerivedEnumeration",
 				entry: &yang.Entry{
@@ -2280,9 +2289,25 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantEnumSetCompressed: &enumSet{
+		wantEnumSetUseDefiningModuleForTypedefEnumNames: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
 				"typedef-module/derived-enumeration": "TypedefModule_DerivedEnumeration",
+			},
+		},
+		wantCompressed: map[string]*yangEnum{
+			"BaseModule_DerivedEnumeration": {
+				name: "BaseModule_DerivedEnumeration",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedTypedefNames: map[string]string{
+				"typedef-module/derived-enumeration": "BaseModule_DerivedEnumeration",
 			},
 		},
 		wantSame: true,
@@ -2406,6 +2431,39 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		inShortenEnumLeafNames: true,
 		wantCompressed: map[string]*yangEnum{
+			"BaseModule_Derived_Enum": {
+				name: "BaseModule_Derived_Enum",
+				entry: &yang.Entry{
+					Name: "e",
+					Type: &yang.YangType{
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{
+							{
+								Name: "derived",
+								Kind: yang.Yenum,
+								Enum: &yang.EnumType{},
+								Base: &yang.Type{
+									Name: "enumeration",
+									Parent: &yang.Typedef{
+										Name: "enum-container",
+										Parent: &yang.Module{
+											Name: "typedef-module",
+										},
+									},
+								},
+							},
+							{Kind: yang.Ystring},
+						},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedTypedefNames: map[string]string{
+				"typedef-module/derived": "BaseModule_Derived_Enum",
+			},
+		},
+		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
 			"TypedefModule_Derived_Enum": {
 				name: "TypedefModule_Derived_Enum",
 				entry: &yang.Entry{
@@ -2433,7 +2491,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantEnumSetCompressed: &enumSet{
+		wantEnumSetUseDefiningModuleForTypedefEnumNames: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
 				"typedef-module/derived": "TypedefModule_Derived_Enum",
 			},
@@ -2642,6 +2700,22 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		inShortenEnumLeafNames: true,
 		wantCompressed: map[string]*yangEnum{
+			"BaseModule_DerivedEnumeration_Enum": {
+				name: "BaseModule_DerivedEnumeration_Enum",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedTypedefNames: map[string]string{
+				"typedef-module/derived-enumeration": "BaseModule_DerivedEnumeration_Enum",
+			},
+		},
+		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
 			"TypedefModule_DerivedEnumeration_Enum": {
 				name: "TypedefModule_DerivedEnumeration_Enum",
 				entry: &yang.Entry{
@@ -2652,7 +2726,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantEnumSetCompressed: &enumSet{
+		wantEnumSetUseDefiningModuleForTypedefEnumNames: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
 				"typedef-module/derived-enumeration": "TypedefModule_DerivedEnumeration_Enum",
 			},
@@ -2724,6 +2798,27 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		inShortenEnumLeafNames: true,
 		wantCompressed: map[string]*yangEnum{
+			"BaseModule_DerivedIdentityref": {
+				name: "BaseModule_DerivedIdentityref",
+				entry: &yang.Entry{
+					Name: "identityref-leaf",
+					Type: &yang.YangType{
+						IdentityBase: &yang.Identity{
+							Name: "base-identityref",
+							Parent: &yang.Module{
+								Name: "identity-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedTypedefNames: map[string]string{
+				"identity-module/identity-container/derived-identityref": "BaseModule_DerivedIdentityref",
+			},
+		},
+		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
 			"IdentityModule_DerivedIdentityref": {
 				name: "IdentityModule_DerivedIdentityref",
 				entry: &yang.Entry{
@@ -2739,7 +2834,7 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		wantEnumSetCompressed: &enumSet{
+		wantEnumSetUseDefiningModuleForTypedefEnumNames: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
 				"identity-module/identity-container/derived-identityref": "IdentityModule_DerivedIdentityref",
 			},
@@ -3720,63 +3815,76 @@ func TestFindEnumSet(t *testing.T) {
 		},
 	}}
 
-	for _, tt := range tests {
-		var wantUncompressed map[string]*yangEnum
-		if tt.wantSame {
-			wantUncompressed = tt.wantCompressed
-		} else {
-			wantUncompressed = tt.wantUncompressed
+	doChecks := func(t *testing.T, errs []error, wantErrSubstr string, gotEnumSet, wantEnumSet *enumSet, gotEntries, wantEntries map[string]*yangEnum) {
+		t.Helper()
+		if errs != nil {
+			if diff := errdiff.Substring(errs[0], wantErrSubstr); diff != "" {
+				t.Errorf("findEnumSet: did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", errs, len(errs), wantErrSubstr)
+			}
+			if len(errs) > 1 {
+				t.Errorf("findEnumSet: got too many errors, expecting length 1 only, (len %d), all errors: %v", len(errs), errs)
+			}
+			return
 		}
-		for compressed, wanted := range map[bool]map[string]*yangEnum{true: tt.wantCompressed, false: wantUncompressed} {
+
+		if diff := cmp.Diff(gotEnumSet, wantEnumSet, cmp.AllowUnexported(enumSet{}), cmpopts.EquateEmpty()); diff != "" {
+			t.Errorf("enumSet (-got, +want):\n%s", diff)
+		}
+
+		// This checks just the keys of the output yangEnum map to ensure the entries match.
+		if diff := cmp.Diff(gotEntries, wantEntries, cmpopts.IgnoreUnexported(yangEnum{}), cmpopts.EquateEmpty()); diff != "" {
+			t.Errorf("(-got, +want):\n%s", diff)
+		}
+
+		for k, want := range wantEntries {
+			got, ok := gotEntries[k]
+			if !ok {
+				t.Fatalf("could not find expected entry, got: %v, want: %s", gotEntries, k)
+			}
+
+			if want.entry.Name != got.entry.Name {
+				t.Errorf("extracted entry has wrong name: got %s, want: %s (%+v)", got.entry.Name, want.entry.Name, got)
+			}
+
+			if want.entry.Type.IdentityBase != nil {
+				// Check the identity's base if this was an identityref.
+				if want.entry.Type.IdentityBase.Name != got.entry.Type.IdentityBase.Name {
+					t.Errorf("found identity %s, has wrong base, got: %v, want: %v", want.entry.Name, want.entry.Type.IdentityBase.Name, got.entry.Type.IdentityBase.Name)
+				}
+			}
+		}
+	}
+
+	for _, tt := range tests {
+		hasDifferentTypedefTest := tt.wantUseDefiningModuleForTypedefEnumNames != nil
+		if hasDifferentTypedefTest != (tt.wantEnumSetUseDefiningModuleForTypedefEnumNames != nil) {
+			t.Fatalf("Test set-up error for %q: expected output for useDefiningModuleForTypedefEnumNames inconsistent", tt.name)
+		}
+
+		for _, compressed := range []bool{false, true} {
+			wantEntries := tt.wantCompressed
 			wantEnumSet := tt.wantEnumSetCompressed
 			if !compressed && !tt.wantSame {
+				wantEntries = tt.wantUncompressed
 				wantEnumSet = tt.wantEnumSetUncompressed
 			}
-			t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v)", tt.name, compressed, tt.inSkipEnumDeduplication), func(t *testing.T) {
-				gotEnumSet, entries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames)
-
-				wantErrSubstr := tt.wantErrSubstr
-				if !compressed && tt.wantUncompressFailDueToClash {
-					wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
-				}
-
-				if errs != nil {
-					if diff := errdiff.Substring(errs[0], wantErrSubstr); diff != "" {
-						t.Errorf("findEnumSet: did not get expected error when extracting enums, got: %v (len %d), wanted err: %v", errs, len(errs), wantErrSubstr)
+			for _, useDefiningModuleForTypedefEnumNames := range []bool{false, true} {
+				if useDefiningModuleForTypedefEnumNames && hasDifferentTypedefTest {
+					if !tt.wantSame {
+						t.Fatalf("Test set-up error for %q: when testing typedef names, compression shouldn't have an effect on the output since typedef name generation is compression-independent", tt.name)
 					}
-					if len(errs) > 1 {
-						t.Errorf("findEnumSet: got too many errors, expecting length 1 only, (len %d), all errors: %v", len(errs), errs)
-					}
-					return
+					wantEntries = tt.wantUseDefiningModuleForTypedefEnumNames
+					wantEnumSet = tt.wantEnumSetUseDefiningModuleForTypedefEnumNames
 				}
-
-				if diff := cmp.Diff(gotEnumSet, wantEnumSet, cmp.AllowUnexported(enumSet{}), cmpopts.EquateEmpty()); diff != "" {
-					t.Errorf("enumSet (-got, +want):\n%s", diff)
-				}
-
-				// This checks just the keys of the output yangEnum map to ensure the entries match.
-				if diff := cmp.Diff(entries, wanted, cmpopts.IgnoreUnexported(yangEnum{}), cmpopts.EquateEmpty()); diff != "" {
-					t.Errorf("(-got, +want):\n%s", diff)
-				}
-
-				for k, want := range wanted {
-					got, ok := entries[k]
-					if !ok {
-						t.Fatalf("could not find expected entry, got: %v, want: %s", entries, k)
+				t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v,useDefiningModuleForTypedefEnumNames:%v)", tt.name, compressed, tt.inSkipEnumDeduplication, useDefiningModuleForTypedefEnumNames), func(t *testing.T) {
+					gotEnumSet, gotEntries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames, useDefiningModuleForTypedefEnumNames)
+					wantErrSubstr := tt.wantErrSubstr
+					if !compressed && tt.wantUncompressFailDueToClash {
+						wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
 					}
-
-					if want.entry.Name != got.entry.Name {
-						t.Errorf("extracted entry has wrong name: got %s, want: %s (%+v)", got.entry.Name, want.entry.Name, got)
-					}
-
-					if want.entry.Type.IdentityBase != nil {
-						// Check the identity's base if this was an identityref.
-						if want.entry.Type.IdentityBase.Name != got.entry.Type.IdentityBase.Name {
-							t.Errorf("found identity %s, has wrong base, got: %v, want: %v", want.entry.Name, want.entry.Type.IdentityBase.Name, got.entry.Type.IdentityBase.Name)
-						}
-					}
-				}
-			})
+					doChecks(t, errs, wantErrSubstr, gotEnumSet, wantEnumSet, gotEntries, wantEntries)
+				})
+			}
 		}
 	}
 }

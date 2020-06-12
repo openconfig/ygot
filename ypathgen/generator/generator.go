@@ -31,20 +31,21 @@ import (
 )
 
 var (
-	yangPaths               = flag.String("path", "", "Comma separated list of paths to be recursively searched for included modules or submodules within the defined YANG modules.")
-	excludeModules          = flag.String("exclude_modules", "", "Comma separated set of module names that should be excluded from code generation this can be used to ensure overlapping namespaces can be ignored.")
-	packageName             = flag.String("package_name", "telemetry", "The name of the Go package that should be generated.")
-	outputFile              = flag.String("output_file", "", "The single file that the Go package should be written to.")
-	ignoreCircDeps          = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
-	preferOperationalState  = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves when building paths. This flag is only valid when exclude_state=false.")
-	fakeRootName            = flag.String("fakeroot_name", "device", "The name of the fake root entity. This name will be capitalized for exporting.")
-	schemaStructPkgAlias    = flag.String("schema_struct_pkg_alias", "", "The package alias of the schema struct package.")
-	schemaStructPath        = flag.String("schema_struct_path", "", "The import path to use for ygen-generated schema structs.")
-	gnmiProtoPath           = flag.String("gnmi_proto_path", genutil.GoDefaultGNMIImportPath, "The import path to use for gNMI's proto package.")
-	ygotImportPath          = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
-	listBuilderKeyThreshold = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the builder API is used for key population. 0 means infinity.")
-	skipEnumDedup           = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
-	shortenEnumLeafNames    = flag.Bool("shorten_enum_leaf_names", false, "If also set to true when compression is on, all leaves of type enumeration will by default not be prefixed with the name of its residing module.")
+	yangPaths                            = flag.String("path", "", "Comma separated list of paths to be recursively searched for included modules or submodules within the defined YANG modules.")
+	excludeModules                       = flag.String("exclude_modules", "", "Comma separated set of module names that should be excluded from code generation this can be used to ensure overlapping namespaces can be ignored.")
+	packageName                          = flag.String("package_name", "telemetry", "The name of the Go package that should be generated.")
+	outputFile                           = flag.String("output_file", "", "The single file that the Go package should be written to.")
+	ignoreCircDeps                       = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
+	preferOperationalState               = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves when building paths. This flag is only valid when exclude_state=false.")
+	fakeRootName                         = flag.String("fakeroot_name", "device", "The name of the fake root entity. This name will be capitalized for exporting.")
+	schemaStructPkgAlias                 = flag.String("schema_struct_pkg_alias", "", "The package alias of the schema struct package.")
+	schemaStructPath                     = flag.String("schema_struct_path", "", "The import path to use for ygen-generated schema structs.")
+	gnmiProtoPath                        = flag.String("gnmi_proto_path", genutil.GoDefaultGNMIImportPath, "The import path to use for gNMI's proto package.")
+	ygotImportPath                       = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
+	listBuilderKeyThreshold              = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the builder API is used for key population. 0 means infinity.")
+	skipEnumDedup                        = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
+	shortenEnumLeafNames                 = flag.Bool("shorten_enum_leaf_names", false, "If also set to true when compression is on, all leaves of type enumeration will by default not be prefixed with the name of its residing module.")
+	useDefiningModuleForTypedefEnumNames = flag.Bool("use_defining_module_for_typedef_enum_names", false, "If set to true, all typedefs of type enumeration or identity will be prefixed with the name of its module of definition instead of its residing module.")
 )
 
 // writeGoCodeSingleFile takes a ypathgen.GeneratedPathCode struct and writes
@@ -107,12 +108,13 @@ func main() {
 			GNMIProtoPath:       *gnmiProtoPath,
 			YgotImportPath:      *ygotImportPath,
 		},
-		PreferOperationalState: *preferOperationalState,
-		SkipEnumDeduplication:  *skipEnumDedup,
-		ShortenEnumLeafNames:   *shortenEnumLeafNames,
-		FakeRootName:           *fakeRootName,
-		ExcludeModules:         modsExcluded,
-		SchemaStructPkgAlias:   "oc",
+		PreferOperationalState:               *preferOperationalState,
+		SkipEnumDeduplication:                *skipEnumDedup,
+		ShortenEnumLeafNames:                 *shortenEnumLeafNames,
+		UseDefiningModuleForTypedefEnumNames: *useDefiningModuleForTypedefEnumNames,
+		FakeRootName:                         *fakeRootName,
+		ExcludeModules:                       modsExcluded,
+		SchemaStructPkgAlias:                 "oc",
 		YANGParseOptions: yang.Options{
 			IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
 		},

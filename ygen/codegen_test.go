@@ -432,15 +432,19 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			}},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple.formatted-txt"),
 	}, {
 		name:    "simple openconfig test, with no compression",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
-			TransformationOptions: TransformationOpts{ShortenEnumLeafNames: true},
+			TransformationOptions: TransformationOpts{
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-no-compress.formatted-txt"),
 	}, {
@@ -452,7 +456,8 @@ func TestSimpleStructs(t *testing.T) {
 				AnnotationPrefix:    "☃",
 			},
 			TransformationOptions: TransformationOpts{
-				ShortenEnumLeafNames: true,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-simple-annotations.formatted-txt"),
@@ -461,8 +466,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-withlist.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			GoOptions: GoOpts{
 				GenerateRenameMethod: true,
@@ -474,8 +480,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-list-enum-key.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-list-enum-key.formatted-txt"),
@@ -484,8 +491,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-unione.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-unione.formatted-txt"),
@@ -494,9 +502,10 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-fakeroot.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				GenerateFakeRoot:     true,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				GenerateFakeRoot:                     true,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot.formatted-txt"),
@@ -505,8 +514,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-fakeroot.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				GenerateFakeRoot:     true,
-				ShortenEnumLeafNames: true,
+				GenerateFakeRoot:                     true,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-fakeroot-nc.formatted-txt"),
@@ -515,8 +525,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			GenerateJSONSchema: true,
 		},
@@ -535,9 +546,10 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				GenerateFakeRoot:     true,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				GenerateFakeRoot:                     true,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			GenerateJSONSchema: true,
 		},
@@ -548,7 +560,8 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				GenerateFakeRoot: true,
+				GenerateFakeRoot:                     true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			GenerateJSONSchema: true,
 		},
@@ -559,9 +572,10 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-camelcase.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				GenerateFakeRoot:     true,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				GenerateFakeRoot:                     true,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-camelcase-compress.formatted-txt"),
@@ -570,8 +584,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-enumcamelcase.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-enumcamelcase-compress.formatted-txt"),
@@ -597,10 +612,11 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				GenerateFakeRoot:     true,
-				ShortenEnumLeafNames: true,
-				FakeRootName:         "fakeroot",
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				GenerateFakeRoot:                     true,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+				FakeRootName:                         "fakeroot",
 			},
 			Caller:             "testcase",
 			StoreRawSchema:     true,
@@ -690,8 +706,9 @@ func TestSimpleStructs(t *testing.T) {
 		inIncludePaths: []string{filepath.Join(datapath, "modules")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.formatted-txt"),
@@ -701,18 +718,41 @@ func TestSimpleStructs(t *testing.T) {
 		inIncludePaths: []string{filepath.Join(datapath, "modules")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour: genutil.PreferIntendedConfig,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.long-enum-names.formatted-txt"),
+	}, {
+		name:           "enumeration behaviour - resolution across submodules and grouping re-use within union, with typedef enum names being prefixed by the module of their use/residence rather than of their definition",
+		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
+		inIncludePaths: []string{filepath.Join(datapath, "modules")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.residing-module-typedef-enum-name.formatted-txt"),
+	}, {
+		name:           "enumeration behaviour - resolution across submodules and grouping re-use within union, with typedef enum names being prefixed by the module of their use/residence rather than of their definition, and enumeration leaf names not shortened",
+		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
+		inIncludePaths: []string{filepath.Join(datapath, "modules")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour: genutil.PreferIntendedConfig,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.long-enum-names.residing-module-typedef-enum-name.formatted-txt"),
 	}, {
 		name:    "module with leaf getters",
 		inFiles: []string{filepath.Join(datapath, "", "openconfig-list-enum-key.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				GenerateFakeRoot:     true,
-				ShortenEnumLeafNames: true,
-				CompressBehaviour:    genutil.PreferIntendedConfig,
+				GenerateFakeRoot:                     true,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
 			},
 			GoOptions: GoOpts{
 				GenerateLeafGetters: true,
@@ -939,8 +979,9 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
 		inConfig: &DirectoryGenConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			ParseOptions: ParseOpts{
 				ExcludeModules: []string{},
@@ -1006,8 +1047,9 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
 		inConfig: &DirectoryGenConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferOperationalState,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferOperationalState,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			ParseOptions: ParseOpts{
 				ExcludeModules: []string{},
@@ -1073,8 +1115,9 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
 		inConfig: &DirectoryGenConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			ParseOptions: ParseOpts{
 				ExcludeModules: []string{"enum-types"},
@@ -1142,8 +1185,9 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
 		inConfig: &DirectoryGenConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.ExcludeDerivedState,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.ExcludeDerivedState,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			ParseOptions: ParseOpts{
 				ExcludeModules: []string{"enum-types"},
@@ -1201,8 +1245,9 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
 		inConfig: &DirectoryGenConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			ParseOptions: ParseOpts{
 				ExcludeModules: []string{"openconfig-simple"},
@@ -1216,9 +1261,10 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
 		inConfig: &DirectoryGenConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				GenerateFakeRoot:     true,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				GenerateFakeRoot:                     true,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			ParseOptions: ParseOpts{
 				ExcludeModules: []string{},
@@ -1282,9 +1328,10 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
 		inConfig: &DirectoryGenConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				GenerateFakeRoot:     true,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				GenerateFakeRoot:                     true,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			ParseOptions: ParseOpts{
 				ExcludeModules: []string{"enum-types"},
@@ -1368,9 +1415,10 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
 		inConfig: &DirectoryGenConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:    genutil.PreferIntendedConfig,
-				GenerateFakeRoot:     true,
-				ShortenEnumLeafNames: true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				GenerateFakeRoot:                     true,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			ParseOptions: ParseOpts{
 				ExcludeModules: []string{"openconfig-simple"},

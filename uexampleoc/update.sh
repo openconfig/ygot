@@ -16,6 +16,7 @@ cp ../demo/getting_started/yang/{ietf,iana}* deps
 go run ../generator/generator.go -path=public,deps -output_file=oc.go \
   -package_name=uexampleoc -generate_fakeroot -fakeroot_name=device \
   -exclude_modules=ietf-interfaces \
+  -use_defining_module_for_typedef_enum_names \
   -generate_rename \
   -generate_append \
   -generate_getters \

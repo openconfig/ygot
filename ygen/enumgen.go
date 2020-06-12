@@ -382,7 +382,7 @@ func enumIdentifier(e *yang.Entry, compressPaths bool) string {
 // into a common type.
 // The returned enumSet can be used to query for enum/identity names.
 // The returned map is the set of generated enums to be used for enum code generation.
-func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames bool) (*enumSet, map[string]*yangEnum, []error) {
+func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool) (*enumSet, map[string]*yangEnum, []error) {
 	validEnums := make(map[string]*yang.Entry)
 	var enumPaths []string
 	var errs []error
@@ -450,7 +450,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 		case e.Type.Name == "union", len(e.Type.Type) > 0 && !util.IsYANGBaseType(e.Type):
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
-			if err := s.resolveEnumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames); err != nil {
+			if err := s.resolveEnumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames); err != nil {
 				errs = append(errs, err)
 			}
 		case e.Type.Name == "identityref":
@@ -470,7 +470,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 			s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
 		default:
 			// This is a type which is defined through a typedef.
-			if err := s.resolveTypedefEnumeratedName(e, noUnderscores); err != nil {
+			if err := s.resolveTypedefEnumeratedName(e, noUnderscores, useDefiningModuleForTypedefEnumNames); err != nil {
 				errs = append(errs, err)
 			}
 		}
@@ -754,7 +754,7 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 // value is calculated based on the original context, whether path compression is enabled based
 // on the compressPaths boolean, and whether the name should not include underscores, as per the
 // noUnderscores boolean.
-func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames bool) error {
+func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool) error {
 	for _, t := range util.EnumeratedUnionTypes(e.Type.Type) {
 		switch {
 		case t.IdentityBase != nil:
@@ -765,7 +765,7 @@ func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths,
 			if util.IsYANGBaseType(t) {
 				s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
 			} else {
-				if err := s.resolveTypedefEnumeratedName(e, noUnderscores); err != nil {
+				if err := s.resolveTypedefEnumeratedName(e, noUnderscores, useDefiningModuleForTypedefEnumNames); err != nil {
 					return err
 				}
 			}
@@ -869,7 +869,7 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 // and computes the default name of the enum in the generated code.
 // If its name clashes with any other identity or enumerated name, an error
 // would be returned.
-func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores bool) error {
+func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores, useDefiningModuleForTypedefEnumNames bool) error {
 	// Since there can be many leaves that refer to the same typedef, then we do not generate
 	// a name for each of them, but rather use a common name, we use the non-CamelCase lookup
 	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef
@@ -887,7 +887,11 @@ func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores
 	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef
 	// does not have a 'path' in Goyang, we synthesise one using the form
 	// defining-module-name/typedef-name.
-	name := fmt.Sprintf("%s_%s", genutil.ParentModulePrettyName(enumType.Base), yang.CamelCase(typeName))
+	nodeForModuleName := e.Node
+	if useDefiningModuleForTypedefEnumNames {
+		nodeForModuleName = enumType.Base
+	}
+	name := fmt.Sprintf("%s_%s", genutil.ParentModulePrettyName(nodeForModuleName), yang.CamelCase(typeName))
 	if noUnderscores {
 		name = strings.Replace(name, "_", "", -1)
 	}

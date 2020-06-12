@@ -17,6 +17,7 @@ go run ../ypathgen/generator/generator.go -path=public,deps -output_file=ocpath.
   -package_name=exampleocpath -fakeroot_name=root \
   -prefer_operational_state=true \
   -shorten_enum_leaf_names \
+  -use_defining_module_for_typedef_enum_names \
   -exclude_modules=ietf-interfaces \
   -schema_struct_path=github.com/openconfig/ygot/exampleoc \
   -list_builder_key_threshold=3 \
