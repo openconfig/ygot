@@ -2962,6 +2962,21 @@ func TestEmitRFC7951(t *testing.T) {
 			},
 		},
 		want: `[{"field":"test"}]`,
+	}, {
+		desc: "empty annotation slice",
+		in:   []*testAnnotation{},
+		want: `null`,
+	}, {
+		desc: "empty map",
+		in:   map[string]*renderExample{},
+		want: `null`,
+	}, {
+		desc: "nil string pointer",
+		in: func() *string {
+			var s *string
+			return s
+		}(),
+		want: `null`,
 	}}
 
 	for _, tt := range tests {

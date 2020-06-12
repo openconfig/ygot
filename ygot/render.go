@@ -1258,7 +1258,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 
 		isAnnotationSlice := func(v reflect.Value) bool {
 			annoT := reflect.TypeOf((*Annotation)(nil)).Elem()
-			return v.Index(0).Type().Implements(annoT)
+			return v.Type().Elem().Implements(annoT)
 		}
 
 		var err error
