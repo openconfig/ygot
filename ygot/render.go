@@ -963,13 +963,7 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			continue
 		}
 
-		var value interface{}
-
-		/*if util.IsYgotAnnotation(fType) {
-			value, err = jsonAnnotationSlice(field)
-		} else {*/
-		value, err = jsonValue(field, pmod, args)
-
+		value, err := jsonValue(field, pmod, args)
 		if err != nil {
 			errs.Add(err)
 			continue
