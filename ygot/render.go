@@ -884,6 +884,71 @@ func ConstructInternalJSON(s GoStruct) (map[string]interface{}, error) {
 	})
 }
 
+// EmitRFC7951 renders the supplied interface to RFC7951-compatible JSON. The argument
+// supplied must be a valid type within a generated ygot GoStruct - but can be a member
+// field of a generated struct rather than the entire struct - allowing specific fields
+// to be rendered. The supplied args are used to control RFC7951-specific behaviours
+// of the rendering. The rendered JSON is returned as a string.
+func EmitRFC7951(d interface{}, args *RFC7951JSONConfig) (string, error) {
+	j, err := marshalRFC7951(d, args)
+	if err != nil {
+		return "", err
+	}
+	js, err := json.Marshal(j)
+	if err != nil {
+		return "", fmt.Errorf("could not marshal JSON, %v", err)
+	}
+
+	return string(js), nil
+}
+
+// marshalRFC7951 marshals the supplied interface{} d into an interface{} which
+// can be handed directly to json.Marshal. It has specific handling for struct,
+// map, and slice fields within the supplied interface{} to ensure RFC7951-compatible
+// marshalling.
+func marshalRFC7951(d interface{}, args *RFC7951JSONConfig) (interface{}, error) {
+	v := reflect.ValueOf(d)
+	gsT := reflect.TypeOf((*GoStruct)(nil)).Elem()
+
+	jargs := jsonOutputConfig{
+		jType:         RFC7951,
+		rfc7951Config: args,
+	}
+
+	if v.Type().Implements(gsT) {
+		return structJSON(v.Interface().(GoStruct), "", jargs)
+	}
+
+	if util.IsValueMap(v) {
+		j := []interface{}{}
+		for _, k := range v.MapKeys() {
+			f := v.MapIndex(k)
+			if !f.Type().Implements(gsT) {
+				return nil, fmt.Errorf("invalid input type to MarshalRFC7951, maps must be valid YANG lists, got: %T", f.Interface())
+			}
+			js, err := structJSON(f.Interface().(GoStruct), "", jargs)
+			if err != nil {
+				return nil, fmt.Errorf("cannot marshal entry %v to JSON, got err: %v", f.Interface(), err)
+			}
+			j = append(j, js)
+		}
+	}
+
+	isAnnotationSlice := func(v reflect.Value) bool {
+		annoT := reflect.TypeOf((*Annotation)(nil)).Elem()
+		return v.Index(0).Type().Implements(annoT)
+	}
+
+	if util.IsValueSlice(v) && v.Len() != 0 && isAnnotationSlice(v) {
+		//&& v.Index(0).Type().Implements(reflect.TypeOf((*Annotation)(nil)).Elem()) {
+		// This is a slice of annotations, so we render them using the specific handling
+		// for annotations.
+		return jsonAnnotationSlice(v)
+	}
+
+	return jsonValue(v, "", jargs)
+}
+
 // jsonOutputConfig is used to determine how constructJSON should generate
 // JSON.
 type jsonOutputConfig struct {

@@ -2903,3 +2903,80 @@ func TestFindUpdatedLeaves(t *testing.T) {
 		})
 	}
 }
+
+func TestEmitRFC7951(t *testing.T) {
+	tests := []struct {
+		desc             string
+		in               interface{}
+		inArgs           *RFC7951JSONConfig
+		want             interface{}
+		wantErrSubstring string
+	}{{
+		desc: "simple string ptr field",
+		in:   String("test-string"),
+		want: `"test-string"`,
+	}, {
+		desc:             "scalar string - unsupported type",
+		in:               "invalid-scalar-string",
+		wantErrSubstring: "unexpected field type",
+	}, {
+		desc: "simple GoStruct",
+		in: &renderExample{
+			Str: String("test-string"),
+		},
+		want: `{"str":"test-string"}`,
+	}, {
+		desc: "map of GoStructs",
+		in: map[string]*renderExample{
+			"one": {Str: String("one")},
+			"two": {Str: String("two")},
+		},
+		want: `[{"str":"one"},{"str":"two"}]`,
+	}, {
+		desc: "map of invalid type",
+		in: map[string]string{
+			"one": "two",
+		},
+		wantErrSubstring: "maps must be valid YANG lists",
+	}, {
+		desc: "map of invalid GoStruct",
+		in: map[string]*invalidGoStructField{
+			"one": {Value: "one"},
+		},
+		wantErrSubstring: "got unexpected field type",
+	}, {
+		desc: "slice of structs",
+		in: []*renderExample{
+			{Str: String("one")},
+		},
+		want: `[{"str":"one"}]`,
+	}, {
+		desc: "slice of scalars",
+		in:   []string{"one", "two"},
+		want: `["one","two"]`,
+	}, {
+		desc: "slice of annotations",
+		in: []*testAnnotation{
+			{
+				AnnotationFieldOne: "test",
+			},
+		},
+		want: `[{"field":"test"}]`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := EmitRFC7951(tt.in, tt.inArgs)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("did not get expected error, %s", diff)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Fatalf("did not get expected return value, diff(-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
