@@ -13,8 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ['1.12', '1.13', '1.14']
-
+        go: ['1.12', '1.13', '1.14', '1.15']
     steps:
       - name: Install protobuf
         uses: arduino/setup-protoc@v1.1.0
@@ -25,7 +24,11 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
+ 	  stable: false
         id: go
+
+      - name: Report go version
+        run: go version
 
       - name: Install protoc-gen-go
         run: |
