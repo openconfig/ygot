@@ -2937,7 +2937,7 @@ func TestEmitRFC7951(t *testing.T) {
 		in: map[string]string{
 			"one": "two",
 		},
-		wantErrSubstring: "maps must be valid YANG lists",
+		wantErrSubstring: "invalid GoStruct",
 	}, {
 		desc: "map of invalid GoStruct",
 		in: map[string]*invalidGoStructField{
