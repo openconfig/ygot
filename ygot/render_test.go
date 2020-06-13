@@ -2977,7 +2977,7 @@ func TestMarshal7951(t *testing.T) {
 	}, {
 		desc: "empty type",
 		in:   &renderExample{Empty: true},
-		want: `{"empty":null}`,
+		want: `{"empty":[null]}`,
 	}, {
 		desc: "indentation requested",
 		in: &renderExample{
