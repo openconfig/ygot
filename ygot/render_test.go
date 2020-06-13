@@ -2904,11 +2904,11 @@ func TestFindUpdatedLeaves(t *testing.T) {
 	}
 }
 
-func TestEmitRFC7951(t *testing.T) {
+func TestMarshal7951(t *testing.T) {
 	tests := []struct {
 		desc             string
 		in               interface{}
-		inArgs           *RFC7951JSONConfig
+		inArgs           []Marshal7951Arg
 		want             interface{}
 		wantErrSubstring string
 	}{{
@@ -2972,16 +2972,37 @@ func TestEmitRFC7951(t *testing.T) {
 		want: `null`,
 	}, {
 		desc: "nil string pointer",
-		in: func() *string {
-			var s *string
-			return s
-		}(),
+		in:   (*string)(nil),
 		want: `null`,
+	}, {
+		desc: "empty type",
+		in:   &renderExample{Empty: true},
+		want: `{"empty":null}`,
+	}, {
+		desc: "indentation requested",
+		in: &renderExample{
+			Str: String("test-string"),
+		},
+		inArgs: []Marshal7951Arg{
+			JSONIndent("  "),
+		},
+		want: `{
+  "str": "test-string"
+}`,
+	}, {
+		desc: "append module names requested",
+		in: &ietfRenderExample{
+			F1: String("hello"),
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{AppendModuleName: true},
+		},
+		want: `{"f1mod:f1":"hello"}`,
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := EmitRFC7951(tt.in, tt.inArgs)
+			got, err := Marshal7951(tt.in, tt.inArgs...)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
@@ -2989,7 +3010,7 @@ func TestEmitRFC7951(t *testing.T) {
 				return
 			}
 
-			if diff := cmp.Diff(got, tt.want); diff != "" {
+			if diff := cmp.Diff(string(got), tt.want); diff != "" {
 				t.Fatalf("did not get expected return value, diff(-got,+want):\n%s", diff)
 			}
 		})
