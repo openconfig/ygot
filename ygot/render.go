@@ -863,6 +863,10 @@ type RFC7951JSONConfig struct {
 	AppendModuleName bool
 }
 
+// IsMarshal7951Arg marks the RFC7951JSONConfig struct as a valid argument to
+// Marshal7951.
+func (*RFC7951JSONConfig) IsMarshal7951Arg() {}
+
 // ConstructIETFJSON marshals a supplied GoStruct to a map, suitable for
 // handing to json.Marshal. It complies with the convention for marshalling
 // to JSON described by RFC7951. The appendModName argument determines whether
@@ -882,6 +886,66 @@ func ConstructInternalJSON(s GoStruct) (map[string]interface{}, error) {
 	return structJSON(s, "", jsonOutputConfig{
 		jType: Internal,
 	})
+}
+
+// Marshal7951Arg is an interface implemented by arguments to
+// the Marshal7951 function.
+type Marshal7951Arg interface {
+	// IsMarshal7951Arg is a market method.
+	IsMarshal7951Arg()
+}
+
+// JSONIndent is a string that specifies the indentation that should be used
+// for JSON input.
+type JSONIndent string
+
+// IsMarshal7951Arg marks JSONIndent as a valid Marshal7951 argument.
+func (JSONIndent) IsMarshal7951Arg() {}
+
+// Marshal7951 renders the supplied interface to RFC7951-compatible JSON. The argument
+// supplied must be a valid type within a generated ygot GoStruct - but can be a member
+// field of a generated struct rather than the entire struct - allowing specific fields
+// to be rendered. The supplied arguments control the JSON marshalling behaviour - both
+// base JSON Marshal (e.g., indentation), as well as RFC7951 specific options such as
+// YANG module names being appended.
+// The rendered JSON is returned as a byte slice - in common with json.Marshal.
+func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
+	var (
+		rfcCfg *RFC7951JSONConfig
+		indent string
+	)
+	for _, a := range args {
+		switch v := a.(type) {
+		case *RFC7951JSONConfig:
+			rfcCfg = v
+		case JSONIndent:
+			indent = string(v)
+		}
+
+	}
+	j, err := jsonValue(reflect.ValueOf(d), "", jsonOutputConfig{
+		jType:         RFC7951,
+		rfc7951Config: rfcCfg,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		js []byte
+	)
+	switch indent {
+	case "":
+		js, err = json.Marshal(j)
+	default:
+		js, err = json.MarshalIndent(j, "", indent)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("could not marshal JSON, %v", err)
+	}
+
+	return js, nil
 }
 
 // jsonOutputConfig is used to determine how constructJSON should generate
@@ -942,14 +1006,7 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			continue
 		}
 
-		var value interface{}
-
-		if util.IsYgotAnnotation(fType) {
-			value, err = jsonAnnotationSlice(field)
-		} else {
-			value, err = jsonValue(field, pmod, args)
-		}
-
+		value, err := jsonValue(field, pmod, args)
 		if err != nil {
 			errs.Add(err)
 			continue
@@ -1241,8 +1298,19 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 			}
 		}
 	case reflect.Slice:
+
+		isAnnotationSlice := func(v reflect.Value) bool {
+			annoT := reflect.TypeOf((*Annotation)(nil)).Elem()
+			return v.Type().Elem().Implements(annoT)
+		}
+
 		var err error
-		value, err = jsonSlice(field, parentMod, args)
+		switch {
+		case isAnnotationSlice(field):
+			value, err = jsonAnnotationSlice(field)
+		default:
+			value, err = jsonSlice(field, parentMod, args)
+		}
 		if err != nil {
 			return nil, err
 		}
