@@ -911,13 +911,13 @@ func (JSONIndent) IsMarshal7951Arg() {}
 // The rendered JSON is returned as a byte slice - in common with json.Marshal.
 func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 	var (
-		rfccfg *RFC7951JSONConfig
+		rfcCfg *RFC7951JSONConfig
 		indent string
 	)
 	for _, a := range args {
 		switch v := a.(type) {
 		case *RFC7951JSONConfig:
-			rfccfg = v
+			rfcCfg = v
 		case JSONIndent:
 			indent = string(v)
 		}
@@ -925,7 +925,7 @@ func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 	}
 	j, err := jsonValue(reflect.ValueOf(d), "", jsonOutputConfig{
 		jType:         RFC7951,
-		rfc7951Config: rfccfg,
+		rfc7951Config: rfcCfg,
 	})
 
 	if err != nil {
