@@ -78,7 +78,7 @@ func newEnumSet() *enumSet {
 // value is calculated based on the original context, whether path compression is enabled based
 // on the compressPaths boolean, and whether the name should not include underscores, as per the
 // noUnderscores boolean.
-func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames bool) ([]*yangEnum, error) {
+func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool) ([]*yangEnum, error) {
 	var es []*yangEnum
 
 	for _, t := range util.EnumeratedUnionTypes(e.Type.Type) {
@@ -106,7 +106,7 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 			if util.IsYANGBaseType(t) {
 				enumName, err = s.enumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
 			} else {
-				enumName, err = s.typedefEnumeratedName(e, noUnderscores)
+				enumName, err = s.typedefEnumeratedName(e, noUnderscores, useDefiningModuleForTypedefEnumNames)
 			}
 			if err != nil {
 				return nil, err
@@ -171,7 +171,7 @@ func (s *enumSet) enumName(e *yang.Entry, compressPaths, noUnderscores, skipDedu
 // within the resolveTypeArgs struct is not a type definition which includes an
 // enumerated type, the MappedType returned is nil, otherwise it should be
 // populated.
-func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores bool) (*MappedType, error) {
+func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (*MappedType, error) {
 	// If the type that is specified is not a built-in type (i.e., one of those
 	// types which is defined in RFC6020/RFC7950) then we establish what the type
 	// that we must actually perform the mapping for is. By default, start with
@@ -186,7 +186,7 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string,
 				return nil, fmt.Errorf("error mapping node %s due to lack of context", args.yangType.Name)
 			}
 
-			tn, err := s.typedefEnumeratedName(args.contextEntry, noUnderscores)
+			tn, err := s.typedefEnumeratedName(args.contextEntry, noUnderscores, useDefiningModuleForTypedefEnumNames)
 			if err != nil {
 				return nil, err
 			}
@@ -203,8 +203,8 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string,
 // typedefEnumeratedName retrieves the generated name of the input *yang.Entry
 // which represents a typedef that has an underlying enumerated type (e.g.,
 // identityref or enumeration).
-func (s *enumSet) typedefEnumeratedName(e *yang.Entry, noUnderscores bool) (string, error) {
-	typedefKey, _, _, err := s.enumeratedTypedefKey(e, noUnderscores)
+func (s *enumSet) typedefEnumeratedName(e *yang.Entry, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, error) {
+	typedefKey, _, _, err := s.enumeratedTypedefKey(e, noUnderscores, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		return "", err
 	}
@@ -239,7 +239,7 @@ func nodePath(n yang.Node) string {
 // enumeration). It also returns the type name component of the identification
 // key for use in the name generation, as well as the enumeration type object,
 // if needed.
-func (s *enumSet) enumeratedTypedefKey(e *yang.Entry, noUnderscores bool) (string, string, *yang.YangType, error) {
+func (s *enumSet) enumeratedTypedefKey(e *yang.Entry, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, *yang.YangType, error) {
 	enumType := e.Type
 	typeName := e.Type.Name
 
@@ -269,12 +269,17 @@ func (s *enumSet) enumeratedTypedefKey(e *yang.Entry, noUnderscores bool) (strin
 		return "", "", nil, fmt.Errorf("nil Node in enum type %s", e.Name)
 	}
 
-	// The path to the typedef is enough to distinguish it from any other typedef.
-	// Using Base.ParentNode() is not entirely precise because the
-	// enumeration may be nested under union types instead of being
-	// directly under the typedef, but this is good enough because extra
-	// path information doesn't hurt as long as we're consistent.
-	return nodePath(enumType.Base.ParentNode()), typeName, enumType, nil
+	// This is the old, buggy behaviour that causes same-named typedefs to shadow one another.
+	enumKey := fmt.Sprintf("%s/%s", genutil.ParentModuleName(e.Node), typeName)
+	if useDefiningModuleForTypedefEnumNames {
+		// The path to the typedef is enough to distinguish it from any other typedef.
+		// Using Base.ParentNode() is not entirely precise because the
+		// enumeration may be nested under union types instead of being
+		// directly under the typedef, but this is good enough because extra
+		// path information doesn't hurt as long as we're consistent.
+		enumKey = nodePath(enumType.Base.ParentNode())
+	}
+	return enumKey, typeName, enumType, nil
 }
 
 // enumLeafKey calculates a unique string key for the input leaf of type
@@ -499,7 +504,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 		case e.Type.Name == "union", len(e.Type.Type) > 0 && !util.IsYANGBaseType(e.Type):
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
-			es, err := s.enumSet.enumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
+			es, err := s.enumSet.enumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -549,7 +554,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 			}
 		default:
 			// This is a type which is defined through a typedef.
-			typeName, err := s.enumSet.typedefEnumeratedName(e, noUnderscores)
+			typeName, err := s.enumSet.typedefEnumeratedName(e, noUnderscores, useDefiningModuleForTypedefEnumNames)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -875,7 +880,7 @@ func (s *enumGenState) resolveTypedefEnumeratedName(e *yang.Entry, noUnderscores
 	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef
 	// does not have a 'path' in Goyang, so we synthesise one using the form
 	// module-name/typedef-name.
-	typedefKey, typeName, enumType, err := s.enumSet.enumeratedTypedefKey(e, noUnderscores)
+	typedefKey, typeName, enumType, err := s.enumSet.enumeratedTypedefKey(e, noUnderscores, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		return err
 	}

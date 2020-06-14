@@ -245,7 +245,7 @@ func TestUnionSubTypes(t *testing.T) {
 
 			mtypes := make(map[int]*MappedType)
 			ctypes := make(map[string]int)
-			if errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false, false, true); !tt.wantErr && errs != nil {
+			if errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false, false, true, true); !tt.wantErr && errs != nil {
 				t.Errorf("unexpected errors: %v", errs)
 			}
 
@@ -909,7 +909,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				contextEntry: tt.ctx,
 			}
 
-			got, err := s.yangTypeToGoType(args, tt.inCompressPath, tt.inSkipEnumDedup, true)
+			got, err := s.yangTypeToGoType(args, tt.inCompressPath, tt.inSkipEnumDedup, true, true)
 			if tt.wantErr && err == nil {
 				t.Fatalf("did not get expected error (%v)", got)
 
@@ -1271,7 +1271,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 
 			gotTypes := make(map[string]*MappedType)
 			for _, leaf := range tt.inLeaves {
-				mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths, tt.inSkipEnumDedup, true)
+				mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths, tt.inSkipEnumDedup, true, true)
 				if err != nil {
 					t.Errorf("%s: yangTypeToGoType(%v, %v): got unexpected err: %v, want: nil", tt.name, leaf.Type, leaf, err)
 					continue

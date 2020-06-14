@@ -615,7 +615,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			s := newProtoGenState(st, enumSet)
 
 			for _, st := range tt.in {
-				gotWrapper, err := s.yangTypeToProtoType(st, rpt)
+				gotWrapper, err := s.yangTypeToProtoType(st, rpt, true)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("%s: yangTypeToProtoType(%v): got unexpected error, got: %v, want error: %v", tt.name, tt.in, err, tt.wantErr)
 					continue
@@ -625,7 +625,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 					t.Errorf("%s: yangTypeToProtoType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 				}
 
-				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt)
+				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt, true)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("%s: yangTypeToProtoScalarType(%v, basePackage, enumPackage): got unexpected error: %v", tt.name, tt.in, err)
 				}

@@ -366,7 +366,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Store the returned schematree and enumSet within the state for this code generation.
 	gogen := newGoGenState(mdef.schematree, enumSet)
 
-	directoryMap, errs := gogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames)
+	directoryMap, errs := gogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
 	if errs != nil {
 		return nil, errs
 	}
@@ -398,7 +398,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var structSnippets []GoStructCodeSnippet
 	for _, directoryName := range orderedDirNames {
 		structOut, errs := writeGoStruct(dirNameMap[directoryName], directoryMap, gogen,
-			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.GoOptions)
+			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.GoOptions)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
@@ -490,7 +490,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 	// Store the returned schematree and enumSet within the state for this code generation.
 	gogen := newGoGenState(mdef.schematree, enumSet)
 
-	directoryMap, errs := gogen.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames)
+	directoryMap, errs := gogen.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
 	if errs != nil {
 		return nil, nil, errs
 	}
@@ -511,7 +511,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 		for _, fieldName := range GetOrderedFieldNames(dir) {
 			field := dir.Fields[fieldName]
 			if isLeaf := field.IsLeaf() || field.IsLeafList(); isLeaf {
-				mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, dcg.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames)
+				mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, dcg.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
 				if err != nil {
 					errs = util.AppendErr(errs, err)
 					continue
@@ -663,7 +663,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			annotateSchemaPaths: cg.Config.ProtoOptions.AnnotateSchemaPaths,
 			annotateEnumNames:   cg.Config.ProtoOptions.AnnotateEnumNames,
 			nestedMessages:      cg.Config.ProtoOptions.NestedMessages,
-		})
+		}, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
 
 		if errs != nil {
 			yerr = util.AppendErrs(yerr, errs)

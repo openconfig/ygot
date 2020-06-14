@@ -673,7 +673,7 @@ func TestGenProto3Msg(t *testing.T) {
 				enumPackageName:     tt.inEnumPackage,
 				baseImportPath:      tt.inBaseImportPath,
 				annotateSchemaPaths: tt.inAnnotateSchemaPaths,
-			}, tt.inParentPackage, tt.inChildMsgs)
+			}, tt.inParentPackage, tt.inChildMsgs, true)
 
 			if (errs != nil) != tt.wantErr {
 				t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
@@ -1433,7 +1433,7 @@ message MessageName {
 					enumPackageName: tt.inEnumPackageName,
 					baseImportPath:  tt.inBaseImportPath,
 					nestedMessages:  tt.inNestedMessages,
-				})
+				}, true)
 
 				if (errs != nil) != wantErr[compress] {
 					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, wantErr[compress])
@@ -1637,7 +1637,7 @@ func TestGenListKeyProto(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs)
+		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs, true)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: genListKeyProto(%s, %s, %#v): got unexpected error returned, got: %v, want err: %v", tt.name, tt.inListPackage, tt.inListName, tt.inArgs, err, tt.wantErr)
 		}

@@ -2307,7 +2307,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"typedef-module/derived-enumeration": "BaseModule_DerivedEnumeration",
+				"base-module/derived-enumeration": "BaseModule_DerivedEnumeration",
 			},
 		},
 		wantSame: true,
@@ -2460,7 +2460,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"typedef-module/derived": "BaseModule_Derived_Enum",
+				"base-module/derived_Enum": "BaseModule_Derived_Enum",
 			},
 		},
 		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
@@ -2712,7 +2712,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"typedef-module/derived-enumeration": "BaseModule_DerivedEnumeration_Enum",
+				"base-module/derived-enumeration_Enum": "BaseModule_DerivedEnumeration_Enum",
 			},
 		},
 		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
@@ -2815,7 +2815,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"identity-module/identity-container/derived-identityref": "BaseModule_DerivedIdentityref",
+				"base-module/derived-identityref": "BaseModule_DerivedIdentityref",
 			},
 		},
 		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{

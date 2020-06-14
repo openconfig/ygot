@@ -1755,7 +1755,8 @@ func TestGenerateProto3(t *testing.T) {
 		},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				GenerateFakeRoot: true,
+				GenerateFakeRoot:                     true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			ProtoOptions: ProtoOpts{
 				AnnotateEnumNames:   true,
@@ -1775,8 +1776,9 @@ func TestGenerateProto3(t *testing.T) {
 		},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour: genutil.PreferIntendedConfig,
-				GenerateFakeRoot:  true,
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				GenerateFakeRoot:                     true,
+				UseDefiningModuleForTypedefEnumNames: true,
 			},
 			ProtoOptions: ProtoOpts{
 				AnnotateEnumNames:   true,

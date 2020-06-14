@@ -1249,7 +1249,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				var got map[string]*Directory
 				switch c.lang {
 				case golang:
-					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false, true)
+					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false, true, true)
 				case protobuf:
 					got, errs = protogen.buildDirectoryDefinitions(structs, c.compressBehaviour)
 				}
@@ -2037,7 +2037,7 @@ func TestBuildListKey(t *testing.T) {
 			s := newGoGenState(st, enumSet)
 
 			resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
-				return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup, true)
+				return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup, true, true)
 			}
 			if tt.inResolveKeyNameFuncNil {
 				resolveKeyTypeName = nil
