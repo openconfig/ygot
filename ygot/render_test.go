@@ -2903,3 +2903,116 @@ func TestFindUpdatedLeaves(t *testing.T) {
 		})
 	}
 }
+
+func TestMarshal7951(t *testing.T) {
+	tests := []struct {
+		desc             string
+		in               interface{}
+		inArgs           []Marshal7951Arg
+		want             interface{}
+		wantErrSubstring string
+	}{{
+		desc: "simple string ptr field",
+		in:   String("test-string"),
+		want: `"test-string"`,
+	}, {
+		desc:             "scalar string - unsupported type",
+		in:               "invalid-scalar-string",
+		wantErrSubstring: "unexpected field type",
+	}, {
+		desc: "simple GoStruct",
+		in: &renderExample{
+			Str: String("test-string"),
+		},
+		want: `{"str":"test-string"}`,
+	}, {
+		desc: "map of GoStructs",
+		in: map[string]*renderExample{
+			"one": {Str: String("one")},
+			"two": {Str: String("two")},
+		},
+		want: `[{"str":"one"},{"str":"two"}]`,
+	}, {
+		desc: "map of invalid type",
+		in: map[string]string{
+			"one": "two",
+		},
+		wantErrSubstring: "invalid GoStruct",
+	}, {
+		desc: "map of invalid GoStruct",
+		in: map[string]*invalidGoStructField{
+			"one": {Value: "one"},
+		},
+		wantErrSubstring: "got unexpected field type",
+	}, {
+		desc: "slice of structs",
+		in: []*renderExample{
+			{Str: String("one")},
+		},
+		want: `[{"str":"one"}]`,
+	}, {
+		desc: "slice of scalars",
+		in:   []string{"one", "two"},
+		want: `["one","two"]`,
+	}, {
+		desc: "slice of annotations",
+		in: []*testAnnotation{
+			{
+				AnnotationFieldOne: "test",
+			},
+		},
+		want: `[{"field":"test"}]`,
+	}, {
+		desc: "empty annotation slice",
+		in:   []*testAnnotation{},
+		want: `null`,
+	}, {
+		desc: "empty map",
+		in:   map[string]*renderExample{},
+		want: `null`,
+	}, {
+		desc: "nil string pointer",
+		in:   (*string)(nil),
+		want: `null`,
+	}, {
+		desc: "empty type",
+		in:   &renderExample{Empty: true},
+		want: `{"empty":[null]}`,
+	}, {
+		desc: "indentation requested",
+		in: &renderExample{
+			Str: String("test-string"),
+		},
+		inArgs: []Marshal7951Arg{
+			JSONIndent("  "),
+		},
+		want: `{
+  "str": "test-string"
+}`,
+	}, {
+		desc: "append module names requested",
+		in: &ietfRenderExample{
+			F1: String("hello"),
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{AppendModuleName: true},
+		},
+		want: `{"f1mod:f1":"hello"}`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := Marshal7951(tt.in, tt.inArgs...)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("did not get expected error, %s", diff)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(string(got), tt.want); diff != "" {
+				t.Fatalf("did not get expected return value, diff(-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
