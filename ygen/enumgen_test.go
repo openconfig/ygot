@@ -1302,8 +1302,9 @@ func TestFindEnumSet(t *testing.T) {
 		// wantUncompressFailDueToClash means the uncompressed test run will fail in
 		// deviation from the compressed case due to existence of a name clash, which can
 		// only be resolved for compressed paths.
-		wantUncompressFailDueToClash bool
-		wantErrSubstr                string
+		wantUncompressFailDueToClash                       bool
+		wantErrSubstr                                      string
+		wantErrOnlyForUseDefiningModuleForTypedefEnumNames bool
 	}{{
 		name: "simple identityref",
 		in: map[string]*yang.Entry{
@@ -2311,6 +2312,114 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantSame: true,
+	}, {
+		name: "conflict for typedefs which is an enumeration (does not fail when useDefiningModuleForTypedefEnumNames is false)",
+		in: map[string]*yang.Entry{
+			"/alpha/a/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "derived-enumeration",
+					Enum: &yang.EnumType{},
+					Base: &yang.Type{
+						Name: "enumeration",
+						Parent: &yang.Typedef{
+							Name: "derived-enumeration",
+							// Type path is different.
+							Parent: &yang.Container{
+								Name: "enumeration-container",
+								Parent: &yang.Module{
+									Name: "typedef-module",
+								},
+							},
+						},
+					},
+				},
+				Node: &yang.Enum{
+					Name: "derived-enumeration",
+					Parent: &yang.Container{
+						Name: "a",
+						Parent: &yang.Container{
+							Name: "alpha",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "a",
+					Node: &yang.Container{Name: "a"},
+					Parent: &yang.Entry{
+						Name: "alpha",
+						Node: &yang.Container{Name: "alpha"},
+						Parent: &yang.Entry{
+							Name: "base-module",
+							Node: &yang.Module{Name: "base-module"},
+						},
+					},
+				},
+			},
+			"/bravo/b/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "derived-enumeration",
+					Enum: &yang.EnumType{},
+					Base: &yang.Type{
+						Name: "enumeration",
+						Parent: &yang.Typedef{
+							Name: "derived-enumeration",
+							Parent: &yang.Module{
+								Name: "typedef-module",
+							},
+						},
+					},
+				},
+				Node: &yang.Enum{
+					Name: "derived-enumeration",
+					Parent: &yang.Container{
+						Name: "b",
+						Parent: &yang.Container{
+							Name: "bravo",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "b",
+					Node: &yang.Container{Name: "b"},
+					Parent: &yang.Entry{
+						Name: "bravo",
+						Node: &yang.Container{Name: "bravo"},
+						Parent: &yang.Entry{
+							Name: "base-module",
+							Node: &yang.Module{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		inShortenEnumLeafNames: true,
+		wantCompressed: map[string]*yangEnum{
+			"BaseModule_DerivedEnumeration": {
+				name: "BaseModule_DerivedEnumeration",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedTypedefNames: map[string]string{
+				"base-module/derived-enumeration": "BaseModule_DerivedEnumeration",
+			},
+		},
+		wantSame: true,
+		wantErrOnlyForUseDefiningModuleForTypedefEnumNames: true,
+		wantErrSubstr: "enumerated typedef name conflict",
 	}, {
 		name: "typedef which is an enumeration name conflict due to camelcase lossiness",
 		in: map[string]*yang.Entry{
@@ -3826,6 +3935,9 @@ func TestFindEnumSet(t *testing.T) {
 			}
 			return
 		}
+		if wantErrSubstr != "" && errs == nil {
+			t.Fatalf("findEnumSet: got no errors, expected %q", wantErrSubstr)
+		}
 
 		if diff := cmp.Diff(gotEnumSet, wantEnumSet, cmp.AllowUnexported(enumSet{}), cmpopts.EquateEmpty()); diff != "" {
 			t.Errorf("enumSet (-got, +want):\n%s", diff)
@@ -3881,6 +3993,9 @@ func TestFindEnumSet(t *testing.T) {
 					wantErrSubstr := tt.wantErrSubstr
 					if !compressed && tt.wantUncompressFailDueToClash {
 						wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
+					}
+					if tt.wantErrOnlyForUseDefiningModuleForTypedefEnumNames && !useDefiningModuleForTypedefEnumNames {
+						wantErrSubstr = ""
 					}
 					doChecks(t, errs, wantErrSubstr, gotEnumSet, wantEnumSet, gotEntries, wantEntries)
 				})
