@@ -16,7 +16,7 @@ cp ../demo/getting_started/yang/{ietf,iana}* deps
 go run ../generator/generator.go -path=public,deps -output_file=oc.go \
   -package_name=exampleoc -generate_fakeroot -fakeroot_name=device -compress_paths=true \
   -shorten_enum_leaf_names \
-  -use_defining_module_for_typedef_enum_names \
+  -typedef_enum_with_defmod \
   -exclude_modules=ietf-interfaces \
   -generate_rename \
   -generate_append \

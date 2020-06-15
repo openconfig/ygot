@@ -16,4 +16,4 @@
 // schemas using real YANG schemas.
 package uncompressed
 
-//go:generate sh -c "go run ../../generator/generator.go -path=yang -output_file=cschema/structs.go -package_name=cschema -generate_fakeroot -fakeroot_name=root -generate_getters -compress_paths -shorten_enum_leaf_names -use_defining_module_for_typedef_enum_names yang/uncompressed.yang && go run ../../generator/generator.go -path=yang -output_file=uschema/structs.go -package_name=uschema -generate_fakeroot -fakeroot_name=root -generate_getters yang/uncompressed.yang"
+//go:generate sh -c "go run ../../generator/generator.go -path=yang -output_file=cschema/structs.go -package_name=cschema -generate_fakeroot -fakeroot_name=root -generate_getters -compress_paths -shorten_enum_leaf_names -typedef_enum_with_defmod yang/uncompressed.yang && go run ../../generator/generator.go -path=yang -output_file=uschema/structs.go -package_name=uschema -generate_fakeroot -fakeroot_name=root -generate_getters yang/uncompressed.yang"

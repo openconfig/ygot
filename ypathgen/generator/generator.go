@@ -45,7 +45,7 @@ var (
 	listBuilderKeyThreshold              = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the builder API is used for key population. 0 means infinity.")
 	skipEnumDedup                        = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
 	shortenEnumLeafNames                 = flag.Bool("shorten_enum_leaf_names", false, "If also set to true when compression is on, all leaves of type enumeration will by default not be prefixed with the name of its residing module.")
-	useDefiningModuleForTypedefEnumNames = flag.Bool("use_defining_module_for_typedef_enum_names", false, "If set to true, all typedefs of type enumeration or identity will be prefixed with the name of its module of definition instead of its residing module.")
+	useDefiningModuleForTypedefEnumNames = flag.Bool("typedef_enum_with_defmod", false, "If set to true, all typedefs of type enumeration or identity will be prefixed with the name of its module of definition instead of its residing module.")
 )
 
 // writeGoCodeSingleFile takes a ypathgen.GeneratedPathCode struct and writes
