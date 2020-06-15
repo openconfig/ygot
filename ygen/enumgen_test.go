@@ -1342,7 +1342,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueIdentityNames: map[string]string{
-				"test-module/base-identity": "TestModule_BaseIdentity",
+				"/test-module/base-identity": "TestModule_BaseIdentity",
 			},
 		},
 		wantSame: true,
@@ -2282,7 +2282,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"typedef-module/derived-enumeration": "TypedefModule_DerivedEnumeration",
+				"/typedef-module/derived-enumeration": "TypedefModule_DerivedEnumeration",
 			},
 		},
 		wantSame: true,
@@ -2435,7 +2435,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"typedef-module/derived": "TypedefModule_Derived_Enum",
+				"/typedef-module/derived": "TypedefModule_Derived_Enum",
 			},
 		},
 		wantSame: true,
@@ -2654,7 +2654,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"typedef-module/derived-enumeration": "TypedefModule_DerivedEnumeration_Enum",
+				"/typedef-module/derived-enumeration": "TypedefModule_DerivedEnumeration_Enum",
 			},
 		},
 		wantSame: true,
@@ -2741,7 +2741,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"identity-module/identity-container/derived-identityref": "IdentityModule_DerivedIdentityref",
+				"/identity-module/identity-container/derived-identityref": "IdentityModule_DerivedIdentityref",
 			},
 		},
 		wantSame: true,
@@ -2814,7 +2814,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueIdentityNames: map[string]string{
-				"base-module/base-identity": "BaseModule_BaseIdentity",
+				"/base-module/base-identity": "BaseModule_BaseIdentity",
 			},
 		},
 		wantSame: true,
@@ -2877,7 +2877,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueIdentityNames: map[string]string{
-				"base-module/base-identity": "BaseModule_BaseIdentity",
+				"/base-module/base-identity": "BaseModule_BaseIdentity",
 			},
 		},
 		wantSame: true,
@@ -2940,7 +2940,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueIdentityNames: map[string]string{
-				"base-module/base-identity": "BaseModule_BaseIdentity",
+				"/base-module/base-identity": "BaseModule_BaseIdentity",
 			},
 		},
 		wantSame: true,
