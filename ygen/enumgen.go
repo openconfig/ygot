@@ -221,15 +221,15 @@ func (s *enumSet) identityBaseKey(i *yang.Identity) string {
 	// As per a typedef that includes an enumeration, there is a many to one
 	// relationship between leaves and an identity value, therefore, we want to
 	// reuse the existing name for the identity enumeration if one exists.
-	return fmt.Sprintf("%s/%s", definingModYANGName, i.Name)
+	return fmt.Sprintf("/%s/%s", definingModYANGName, i.Name)
 }
 
 // nodePath returns the full path of the node from the module name.
 func nodePath(n yang.Node) string {
-	path := n.NName()
-	for n.ParentNode() != nil {
+	var path string
+	for n != nil {
+		path = "/" + n.NName() + path
 		n = n.ParentNode()
-		path = n.NName() + "/" + path
 	}
 	return path
 }
