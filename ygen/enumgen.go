@@ -224,16 +224,6 @@ func (s *enumSet) identityBaseKey(i *yang.Identity) string {
 	return fmt.Sprintf("/%s/%s", definingModYANGName, i.Name)
 }
 
-// nodePath returns the full path of the node from the module name.
-func nodePath(n yang.Node) string {
-	var path string
-	for n != nil {
-		path = "/" + n.NName() + path
-		n = n.ParentNode()
-	}
-	return path
-}
-
 // enumeratedTypedefKey calculates a unique string key for the input typedef
 // *yang.Entry that has an underlying enumerated type (e.g., identityref or
 // enumeration). It also returns the type name component of the identification
@@ -277,7 +267,7 @@ func (s *enumSet) enumeratedTypedefKey(e *yang.Entry, noUnderscores, useDefining
 		// enumeration may be nested under union types instead of being
 		// directly under the typedef, but this is good enough because extra
 		// path information doesn't hurt as long as we're consistent.
-		enumKey = nodePath(enumType.Base.ParentNode())
+		enumKey = yang.NodePath(enumType.Base.ParentNode())
 	}
 	return enumKey, typeName, enumType, nil
 }
