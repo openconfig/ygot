@@ -1415,7 +1415,7 @@ type Root struct {
 
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
 func DeviceRoot(id string) *Root {
-	return &Root{DeviceRootBase: ygot.NewDeviceRootBase(id)}
+	return &Root{ygot.NewDeviceRootBase(id)}
 }
 
 // Leaf represents the /root-module/leaf YANG schema element.

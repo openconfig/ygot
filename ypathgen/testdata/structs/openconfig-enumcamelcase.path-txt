@@ -22,7 +22,7 @@ type Device struct {
 
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
 func DeviceRoot(id string) *Device {
-	return &Device{DeviceRootBase: ygot.NewDeviceRootBase(id)}
+	return &Device{ygot.NewDeviceRootBase(id)}
 }
 
 // Foo returns from Device the path struct for its child "foo".

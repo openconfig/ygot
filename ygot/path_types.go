@@ -54,37 +54,45 @@ type NodePath struct {
 	p             PathStruct
 }
 
-// FakeRootPathStruct is an interface that is implemented by the fake root path
+// fakeRootPathStruct is an interface that is implemented by the fake root path
 // struct type.
-type FakeRootPathStruct interface {
+type fakeRootPathStruct interface {
 	PathStruct
-	GetId() string
-	GetCustomData() map[string]interface{}
+	Id() string
+	CustomData() map[string]interface{}
 }
 
 func NewDeviceRootBase(id string) *DeviceRootBase {
-	return &DeviceRootBase{NodePath: &NodePath{}, id: id, CustomData: map[string]interface{}{}}
+	return &DeviceRootBase{NodePath: &NodePath{}, id: id, customData: map[string]interface{}{}}
 }
 
 // DeviceRootBase represents the fakeroot for all YANG schema elements.
 type DeviceRootBase struct {
 	*NodePath
-	id         string
-	CustomData map[string]interface{}
+	id string
+	// customData is meant to store root-specific information that may be
+	// useful to know when processing the resolved path. It is meant to be
+	// accessible through a user-defined accessor.
+	customData map[string]interface{}
 }
 
-// GetId returns the device ID of the DeviceRootBase struct.
-func (d *DeviceRootBase) GetId() string {
+// Id returns the device ID of the DeviceRootBase struct.
+func (d *DeviceRootBase) Id() string {
 	return d.id
 }
 
-// GetId returns the CustomData field of the DeviceRootBase struct.
-func (d *DeviceRootBase) GetCustomData() map[string]interface{} {
-	return d.CustomData
+// CustomData returns the customData field of the DeviceRootBase struct.
+func (d *DeviceRootBase) CustomData() map[string]interface{} {
+	return d.customData
+}
+
+// SetCustomDataKey modifies an entry in the customData field of the DeviceRootBase struct.
+func (d *DeviceRootBase) SetCustomDataKey(key string, val interface{}) {
+	d.customData[key] = val
 }
 
 // ResolvePath is a helper which returns the resolved *gpb.Path of a PathStruct
-// node as well as the root node's CustomData.
+// node as well as the root node's customData.
 func ResolvePath(n PathStruct) (*gpb.Path, map[string]interface{}, []error) {
 	var p []*gpb.PathElem
 	var errs []error
@@ -100,11 +108,11 @@ func ResolvePath(n PathStruct) (*gpb.Path, map[string]interface{}, []error) {
 		return nil, nil, errs
 	}
 
-	root, ok := n.(FakeRootPathStruct)
+	root, ok := n.(fakeRootPathStruct)
 	if !ok {
 		return nil, nil, append(errs, fmt.Errorf("ygot.ResolvePath(ygot.PathStruct): got unexpected root of (type, value) (%T, %v)", n, n))
 	}
-	return &gpb.Path{Target: root.GetId(), Elem: p}, root.GetCustomData(), nil
+	return &gpb.Path{Target: root.Id(), Elem: p}, root.CustomData(), nil
 }
 
 // ResolveRelPath returns the partial []*gpb.PathElem representing the

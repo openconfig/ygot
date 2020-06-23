@@ -386,10 +386,6 @@ import (
 	// the methods of PathStructInterfaceName and FakeRootBaseTypeName in
 	// order to allow its path struct descendents to use the ygot.Resolve()
 	// helper function for obtaining their absolute paths.
-	//
-	// CustomData is meant to store root-specific information that may be
-	// useful to know when processing the resolved path. It is meant to be
-	// accessible through a user-defined accessor.
 	goPathFakeRootTemplate = mustTemplate("fakeroot", `
 // {{ .TypeName }} represents the {{ .YANGPath }} YANG schema element.
 type {{ .TypeName }} struct {
@@ -398,7 +394,7 @@ type {{ .TypeName }} struct {
 
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
 func DeviceRoot(id string) *{{ .TypeName }} {
-	return &{{ .TypeName }}{ {{- .FakeRootBaseTypeName }}: ygot.New{{- .FakeRootBaseTypeName }}(id)}
+	return &{{ .TypeName }}{ygot.New{{- .FakeRootBaseTypeName }}(id)}
 }
 `)
 
