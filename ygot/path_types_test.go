@@ -29,7 +29,7 @@ func TestResolvePath(t *testing.T) {
 	wantId := "FOO"
 	wantCustomData := map[string]interface{}{"foo": "bar"}
 	root := deviceRoot{NewDeviceRootBase(wantId)}
-	root.SetCustomDataKey("foo", "bar")
+	root.PutCustomData("foo", "bar")
 
 	tests := []struct {
 		name        string

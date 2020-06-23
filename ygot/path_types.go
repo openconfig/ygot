@@ -86,8 +86,8 @@ func (d *DeviceRootBase) CustomData() map[string]interface{} {
 	return d.customData
 }
 
-// SetCustomDataKey modifies an entry in the customData field of the DeviceRootBase struct.
-func (d *DeviceRootBase) SetCustomDataKey(key string, val interface{}) {
+// PutCustomData modifies an entry in the customData field of the DeviceRootBase struct.
+func (d *DeviceRootBase) PutCustomData(key string, val interface{}) {
 	d.customData[key] = val
 }
 
