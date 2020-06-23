@@ -149,9 +149,7 @@ type GoImports struct {
 // code are listed below:
 //	1. Struct definitions for each container, list, or leaf schema node,
 //	as well as the fakeroot.
-//	2. A Resolve() helper function, which can return the absolute path of
-//	any struct.
-//	3. Next-level methods for the fakeroot and each non-leaf schema node,
+//	2. Next-level methods for the fakeroot and each non-leaf schema node,
 //	which instantiate and return the next-level structs corresponding to
 //	its child schema nodes.
 // With these components, the generated API is able to support absolute path
@@ -246,7 +244,6 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 type GeneratedPathCode struct {
 	Structs      []GoPathStructCodeSnippet // Structs is the generated set of structs representing containers or lists in the input YANG models.
 	CommonHeader string                    // CommonHeader is the header that should be used for all output Go files.
-	OneOffHeader string                    // OneOffHeader defines the header that should be included in only one output Go file - such as package init statements.
 }
 
 // String method for GeneratedPathCode, which can be used to write all the
@@ -254,7 +251,6 @@ type GeneratedPathCode struct {
 func (genCode GeneratedPathCode) String() string {
 	var gotCode strings.Builder
 	gotCode.WriteString(genCode.CommonHeader)
-	gotCode.WriteString(genCode.OneOffHeader)
 	for _, gotStruct := range genCode.Structs {
 		gotCode.WriteString(gotStruct.String())
 	}
@@ -276,7 +272,6 @@ func (genCode GeneratedPathCode) SplitFiles(fileN int) ([]string, error) {
 	structsPerFile := structN / fileN
 	var gotCode strings.Builder
 	gotCode.WriteString(genCode.CommonHeader)
-	gotCode.WriteString(genCode.OneOffHeader)
 
 	for i, gotStruct := range genCode.Structs {
 		// The last file contains the remainder of the structs.
@@ -381,51 +376,29 @@ Imported modules were sourced from:
 package {{ .PackageName }}
 
 import (
-	"fmt"
-
-	gpb "{{ .GNMIProtoPath }}"
 	{{ .SchemaStructPkgAlias }} "{{ .SchemaStructPkgPath }}"
 	"{{ .YgotImportPath }}"
 )
 `)
 
-	// goPathOneOffHeaderTemplate defines the template for package code that should
-	// be output in only one file.
-	goPathOneOffHeaderTemplate = mustTemplate("oneoffHeader", `
-// Resolve is a helper which returns the resolved *gpb.Path of a PathStruct node.
-func Resolve(n ygot.{{ .PathStructInterfaceName }}) (*gpb.Path, map[string]interface{}, []error) {
-	n, p, errs := ygot.ResolvePath(n)
-	root, ok := n.(*{{ .FakeRootTypeName }})
-	if !ok {
-		errs = append(errs, fmt.Errorf("Resolve(n ygot.{{ .PathStructInterfaceName }}): got unexpected root of (type, value) (%T, %v)", n, n))
-	}
-
-	if errs != nil {
-		return nil, nil, errs
-	}
-	return &gpb.Path{Target: root.id, Elem: p}, root.customData, nil
-}
-`)
-
 	// goPathFakeRootTemplate defines a template for the type definition and
 	// basic methods of the fakeroot object. The fakeroot object adheres to
-	// the methods of PathStructInterfaceName in order to allow its path
-	// struct descendents to use the Resolve() helper function for
-	// obtaining their absolute paths.
+	// the methods of PathStructInterfaceName and FakeRootBaseTypeName in
+	// order to allow its path struct descendents to use the ygot.Resolve()
+	// helper function for obtaining their absolute paths.
 	//
-	// customData is meant to store root-specific information that may be
+	// CustomData is meant to store root-specific information that may be
 	// useful to know when processing the resolved path. It is meant to be
 	// accessible through a user-defined accessor.
 	goPathFakeRootTemplate = mustTemplate("fakeroot", `
 // {{ .TypeName }} represents the {{ .YANGPath }} YANG schema element.
 type {{ .TypeName }} struct {
-	*ygot.{{ .PathBaseTypeName }}
-	id string
-	customData map[string]interface{}
+	*ygot.{{ .FakeRootBaseTypeName }}
 }
 
+// DeviceRoot returns a new path object from which YANG paths can be constructed.
 func DeviceRoot(id string) *{{ .TypeName }} {
-	return &{{ .TypeName }}{ {{- .PathBaseTypeName }}: &ygot.{{ .PathBaseTypeName }}{}, id: id, customData: map[string]interface{}{}}
+	return &{{ .TypeName }}{ {{- .FakeRootBaseTypeName }}: ygot.New{{- .FakeRootBaseTypeName }}(id)}
 }
 `)
 
@@ -580,13 +553,7 @@ func writeHeader(yangFiles, includePaths []string, cg *GenConfig, genCode *Gener
 		return err
 	}
 
-	var oneoff strings.Builder
-	if err := goPathOneOffHeaderTemplate.Execute(&oneoff, s); err != nil {
-		return err
-	}
-
 	genCode.CommonHeader = common.String()
-	genCode.OneOffHeader = oneoff.String()
 	return nil
 }
 
@@ -601,6 +568,9 @@ type goPathStructData struct {
 	PathBaseTypeName string
 	// PathStructInterfaceName is the name of the interface which all path structs implement.
 	PathStructInterfaceName string
+	// FakeRootBaseTypeName is the type name of the fake root struct which
+	// should be embedded within the fake root path struct.
+	FakeRootBaseTypeName string
 	// WildcardSuffix is the suffix given to the wildcard versions of
 	// each node that distinguishes each from its non-wildcard counterpart.
 	WildcardSuffix string
@@ -614,6 +584,7 @@ func getStructData(directory *ygen.Directory) goPathStructData {
 		TypeName:                directory.Name,
 		YANGPath:                util.SlicePathToString(directory.Path),
 		PathBaseTypeName:        ygot.PathBaseTypeName,
+		FakeRootBaseTypeName:    ygot.FakeRootBaseTypeName,
 		PathStructInterfaceName: ygot.PathStructInterfaceName,
 		WildcardSuffix:          WildcardSuffix,
 	}

@@ -1,6 +1,6 @@
 package exampleocpath
 
 func (r *Root) WithName(name string) *Root {
-	r.customData["name"] = name
+	r.CustomData["name"] = name
 	return r
 }

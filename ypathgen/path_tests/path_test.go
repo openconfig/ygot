@@ -32,7 +32,7 @@ const deviceId = "dev"
 // verifyPath checks the given path against expected.
 func verifyPath(t *testing.T, p ygot.PathStruct, wantPathStr string) {
 	t.Helper()
-	gotPath, _, errs := ocp.Resolve(p)
+	gotPath, _, errs := ygot.ResolvePath(p)
 	if errs != nil {
 		t.Fatal(errs)
 	}
@@ -53,11 +53,11 @@ func verifyPath(t *testing.T, p ygot.PathStruct, wantPathStr string) {
 // be the non-wildcard version of the path struct.
 func verifyTypesEqual(t *testing.T, target ygot.PathStruct, wild ygot.PathStruct, equal bool) {
 	t.Helper()
-	targetPathProto, _, errs := ocp.Resolve(target)
+	targetPathProto, _, errs := ygot.ResolvePath(target)
 	if errs != nil {
 		t.Fatal(errs)
 	}
-	wildPathProto, _, errs := ocp.Resolve(wild)
+	wildPathProto, _, errs := ygot.ResolvePath(wild)
 	if errs != nil {
 		t.Fatal(errs)
 	}
@@ -90,7 +90,7 @@ func TestCustomData(t *testing.T) {
 	p := root.WithName("foo").Interface("eth1").Ethernet().PortSpeed()
 	verifyPath(t, p, "/interfaces/interface[name=eth1]/ethernet/state/port-speed")
 
-	_, customData, _ := ocp.Resolve(p)
+	_, customData, _ := ygot.ResolvePath(p)
 	if diff := cmp.Diff(map[string]interface{}{"name": "foo"}, customData); diff != "" {
 		t.Errorf("resolved customData for root does not match (-want, +got):\n%s", diff)
 	}

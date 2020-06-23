@@ -11,26 +11,9 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	"fmt"
-
-	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	oc "github.com/openconfig/ygot/ypathgen/testdata/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 )
-
-// Resolve is a helper which returns the resolved *gpb.Path of a PathStruct node.
-func Resolve(n ygot.PathStruct) (*gpb.Path, map[string]interface{}, []error) {
-	n, p, errs := ygot.ResolvePath(n)
-	root, ok := n.(*Device)
-	if !ok {
-		errs = append(errs, fmt.Errorf("Resolve(n ygot.PathStruct): got unexpected root of (type, value) (%T, %v)", n, n))
-	}
-
-	if errs != nil {
-		return nil, nil, errs
-	}
-	return &gpb.Path{Target: root.id, Elem: p}, root.customData, nil
-}
 
 // ChoiceCaseAnonymousCase represents the /choice-case-example/choice-case-anonymous-case YANG schema element.
 type ChoiceCaseAnonymousCase struct {
@@ -182,13 +165,12 @@ func (n *ChoiceCaseWithLeafrefAny) Referenced() *ChoiceCaseWithLeafref_Reference
 
 // Device represents the /device YANG schema element.
 type Device struct {
-	*ygot.NodePath
-	id string
-	customData map[string]interface{}
+	*ygot.DeviceRootBase
 }
 
+// DeviceRoot returns a new path object from which YANG paths can be constructed.
 func DeviceRoot(id string) *Device {
-	return &Device{NodePath: &ygot.NodePath{}, id: id, customData: map[string]interface{}{}}
+	return &Device{DeviceRootBase: ygot.NewDeviceRootBase(id)}
 }
 
 // ChoiceCaseAnonymousCase returns from Device the path struct for its child "choice-case-anonymous-case".
