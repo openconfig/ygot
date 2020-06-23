@@ -31,7 +31,6 @@ func TestWritePathCode(t *testing.T) {
 		name: "simple",
 		in: &ypathgen.GeneratedPathCode{
 			CommonHeader: "path common header\n",
-			OneOffHeader: "\npath one-off header\n",
 			Structs: []ypathgen.GoPathStructCodeSnippet{{
 				PathStructName:    "PathStructName",
 				StructBase:        "\nStructDef\n",
@@ -39,8 +38,6 @@ func TestWritePathCode(t *testing.T) {
 			}},
 		},
 		want: `path common header
-
-path one-off header
 
 StructDef
 

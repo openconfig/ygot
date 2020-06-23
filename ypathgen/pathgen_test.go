@@ -1410,13 +1410,12 @@ func (n *ContainerWithConfigAny) Leaflist2() *ContainerWithConfig_Leaflist2Any {
 			StructBase: `
 // Root represents the /root YANG schema element.
 type Root struct {
-	*ygot.NodePath
-	id string
-	customData map[string]interface{}
+	*ygot.DeviceRootBase
 }
 
+// DeviceRoot returns a new path object from which YANG paths can be constructed.
 func DeviceRoot(id string) *Root {
-	return &Root{NodePath: &ygot.NodePath{}, id: id, customData: map[string]interface{}{}}
+	return &Root{ygot.NewDeviceRootBase(id)}
 }
 
 // Leaf represents the /root-module/leaf YANG schema element.

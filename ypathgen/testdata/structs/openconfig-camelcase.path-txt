@@ -11,26 +11,9 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	"fmt"
-
-	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	oc "github.com/openconfig/ygot/ypathgen/testdata/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 )
-
-// Resolve is a helper which returns the resolved *gpb.Path of a PathStruct node.
-func Resolve(n ygot.PathStruct) (*gpb.Path, map[string]interface{}, []error) {
-	n, p, errs := ygot.ResolvePath(n)
-	root, ok := n.(*Device)
-	if !ok {
-		errs = append(errs, fmt.Errorf("Resolve(n ygot.PathStruct): got unexpected root of (type, value) (%T, %v)", n, n))
-	}
-
-	if errs != nil {
-		return nil, nil, errs
-	}
-	return &gpb.Path{Target: root.id, Elem: p}, root.customData, nil
-}
 
 // BGP represents the /openconfig-camelcase/bgp YANG schema element.
 type BGP struct {
@@ -130,13 +113,12 @@ func (n *BGP_NeighborAny) PeerIP() *BGP_Neighbor_PeerIPAny {
 
 // Device represents the /device YANG schema element.
 type Device struct {
-	*ygot.NodePath
-	id string
-	customData map[string]interface{}
+	*ygot.DeviceRootBase
 }
 
+// DeviceRoot returns a new path object from which YANG paths can be constructed.
 func DeviceRoot(id string) *Device {
-	return &Device{NodePath: &ygot.NodePath{}, id: id, customData: map[string]interface{}{}}
+	return &Device{ygot.NewDeviceRootBase(id)}
 }
 
 // BGP returns from Device the path struct for its child "bgp".
