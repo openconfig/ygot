@@ -22,13 +22,13 @@ import (
 )
 
 type deviceRoot struct {
-	DeviceRootBase
+	*DeviceRootBase
 }
 
 func TestResolvePath(t *testing.T) {
 	wantId := "FOO"
 	wantCustomData := map[string]interface{}{"foo": "bar"}
-	root := NewDeviceRootBase(wantId)
+	root := deviceRoot{DeviceRootBase: NewDeviceRootBase(wantId)}
 	root.CustomData = wantCustomData
 
 	tests := []struct {
