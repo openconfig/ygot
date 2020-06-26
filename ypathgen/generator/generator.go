@@ -39,7 +39,6 @@ var (
 	preferOperationalState  = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves when building paths. This flag is only valid when exclude_state=false.")
 	fakeRootName            = flag.String("fakeroot_name", "device", "The name of the fake root entity. This name will be capitalized for exporting.")
 	schemaStructPath        = flag.String("schema_struct_path", "", "The import path to use for ygen-generated schema structs. This should only be specified if the generated path structs are to reside in a different package.")
-	gnmiProtoPath           = flag.String("gnmi_proto_path", genutil.GoDefaultGNMIImportPath, "The import path to use for gNMI's proto package.")
 	ygotImportPath          = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
 	listBuilderKeyThreshold = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the builder API is used for key population. 0 means infinity.")
 	skipEnumDedup           = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
@@ -100,7 +99,6 @@ func main() {
 		PackageName: *packageName,
 		GoImports: ypathgen.GoImports{
 			SchemaStructPkgPath: *schemaStructPath,
-			GNMIProtoPath:       *gnmiProtoPath,
 			YgotImportPath:      *ygotImportPath,
 		},
 		PreferOperationalState: *preferOperationalState,
