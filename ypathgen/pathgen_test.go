@@ -674,6 +674,8 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 				cg.FakeRootName = "device"
 				if tt.inSchemaStructPkgPath == "" {
 					cg.PathStructSuffix = "Path"
+				} else {
+					cg.PathStructSuffix = ""
 				}
 				cg.PreferOperationalState = true
 

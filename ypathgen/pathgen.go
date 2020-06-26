@@ -66,7 +66,7 @@ const (
 // NewDefaultConfig creates a GenConfig with default configuration.
 // schemaStructPkgPath is a required configuration parameter. It should be set
 // to "" when the generated PathStruct package is to be the same package as the
-// GoSTructs package.
+// GoStructs package.
 func NewDefaultConfig(schemaStructPkgPath string) *GenConfig {
 	return &GenConfig{
 		PackageName: defaultPathPackageName,
@@ -76,6 +76,7 @@ func NewDefaultConfig(schemaStructPkgPath string) *GenConfig {
 			YgotImportPath:      genutil.GoDefaultYgotImportPath,
 		},
 		FakeRootName:     defaultFakeRootName,
+		PathStructSuffix: defaultPathStructSuffix,
 		GeneratingBinary: genutil.CallerName(),
 	}
 }
