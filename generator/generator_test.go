@@ -19,8 +19,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/ygot/ygen"
+	"github.com/openconfig/ygot/ypathgen"
 )
 
 func TestWriteGoCode(t *testing.T) {
@@ -174,5 +176,41 @@ func TestMakeOutputSpec(t *testing.T) {
 		if diff := pretty.Compare(got, tt.want); diff != "" {
 			t.Errorf("%s: makeOutputSpec(%v): did not get expected output, diff (-got,+want):\n%s", tt.name, tt.in, diff)
 		}
+	}
+}
+
+func TestWritePathCode(t *testing.T) {
+	tests := []struct {
+		name string
+		in   *ypathgen.GeneratedPathCode
+		want string
+	}{{
+		name: "simple",
+		in: &ypathgen.GeneratedPathCode{
+			CommonHeader: "path common header\n",
+			Structs: []ypathgen.GoPathStructCodeSnippet{{
+				PathStructName:    "PathStructName",
+				StructBase:        "\nStructDef\n",
+				ChildConstructors: "\nChildConstructor\n",
+			}},
+		},
+		want: `path common header
+
+StructDef
+
+ChildConstructor
+`,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var b strings.Builder
+			if err := writeGoPathCodeSingleFile(&b, tt.in); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(tt.want, b.String()); diff != "" {
+				t.Errorf("diff (-want,+got):\n%s", diff)
+			}
+		})
 	}
 }

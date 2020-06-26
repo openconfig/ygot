@@ -29,6 +29,7 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/ygen"
+	"github.com/openconfig/ygot/ypathgen"
 )
 
 const (
@@ -50,31 +51,41 @@ const (
 )
 
 var (
+	ocStructsOutputFile     = flag.String("output_file", "", "The file that the generated Go code for manipulating YANG data should be written to. Specify \"-\" for stdout. If both this and output_dir are empty, then schema structs will not be output.")
+	ocStructsOutputDir      = flag.String("output_dir", "", "The directory that the Go package for manipulating YANG data should be written to.")
+	ocPathStructsOutputFile = flag.String("path_structs_output_file", "", "The file that the generated Go code for YANG path construction will be generated. If empty, then path structs are not generated. Specify \"-\" for stdout.")
+	compressPaths           = flag.Bool("compress_paths", false, "If set to true, the schema's paths are compressed, according to OpenConfig YANG module conventions. Path structs generation currently only supports compressed paths.")
+
+	// Common flags used for GoStruct and PathStruct generation.
 	yangPaths              = flag.String("path", "", "Comma separated list of paths to be recursively searched for included modules or submodules within the defined YANG modules.")
-	compressPaths          = flag.Bool("compress_paths", false, "If set to true, the schema's paths are compressed, according to OpenConfig YANG module conventions.")
 	excludeModules         = flag.String("exclude_modules", "", "Comma separated set of module names that should be excluded from code generation this can be used to ensure overlapping namespaces can be ignored.")
 	packageName            = flag.String("package_name", "ocstructs", "The name of the Go package that should be generated.")
-	outputFile             = flag.String("output_file", "", "The file that the generated Go code should be written to.")
-	outputDir              = flag.String("output_dir", "", "The directory that the Go package should be written to.")
 	ignoreCircDeps         = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
-	generateFakeRoot       = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
 	fakeRootName           = flag.String("fakeroot_name", "", "The name of the fake root entity.")
-	generateSchema         = flag.Bool("include_schema", true, "If set to true, the YANG schema will be encoded as JSON and stored in the generated code artefact.")
-	ygotImportPath         = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
-	ytypesImportPath       = flag.String("ytypes_path", genutil.GoDefaultYtypesImportPath, "The import path to use for ytypes.")
-	goyangImportPath       = flag.String("goyang_path", genutil.GoDefaultGoyangImportPath, "The import path to use for goyang's yang package.")
-	generateRename         = flag.Bool("generate_rename", false, "If set to true, rename methods are generated for lists within the Go code.")
-	addAnnotations         = flag.Bool("annotations", false, "If set to true, metadata annotations are added within the generated structs.")
-	annotationPrefix       = flag.String("annotation_prefix", ygen.DefaultAnnotationPrefix, "String to be appended to each metadata field within the generated structs if annoations is set to true.")
 	preferOperationalState = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves in the generated Go code with compressed schema paths. This flag is only valid for compress_paths=true and exclude_state=false.")
-	excludeState           = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Go code.")
-	generateAppend         = flag.Bool("generate_append", false, "If set to true, append methods are generated for YANG lists (Go maps) within the Go code.")
-	generateGetters        = flag.Bool("generate_getters", false, "If set to true, getter methdos that retrieve or create an element are generated for YANG container (Go struct pointer) or list (Go map) fields within the generated code.")
-	generateDelete         = flag.Bool("generate_delete", false, "If set to true, delete methods are generated for YANG lists (Go maps) within the Go code.")
-	generateLeafGetters    = flag.Bool("generate_leaf_getters", false, "If set to true, getters for YANG leaves are generated within the Go code. Caution should be exercised when using leaf getters, since values that are explicitly set to the Go default/zero value are not distinguishable from those that are unset when retrieved via the GetXXX method.")
-	includeModelData       = flag.Bool("include_model_data", false, "If set to true, a slice of gNMI ModelData messages are included in the generated Go code containing the details of the input schemas from which the code was generated.")
 	skipEnumDedup          = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
 	shortenEnumLeafNames   = flag.Bool("shorten_enum_leaf_names", false, "If also set to true when compress_paths=true, all leaves of type enumeration will by default not be prefixed with the name of its residing module.")
+	ygotImportPath         = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
+
+	// Flags only used for GoStruct generation.
+	generateFakeRoot    = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
+	generateSchema      = flag.Bool("include_schema", true, "If set to true, the YANG schema will be encoded as JSON and stored in the generated code artefact.")
+	ytypesImportPath    = flag.String("ytypes_path", genutil.GoDefaultYtypesImportPath, "The import path to use for ytypes.")
+	goyangImportPath    = flag.String("goyang_path", genutil.GoDefaultGoyangImportPath, "The import path to use for goyang's yang package.")
+	generateRename      = flag.Bool("generate_rename", false, "If set to true, rename methods are generated for lists within the Go code.")
+	addAnnotations      = flag.Bool("annotations", false, "If set to true, metadata annotations are added within the generated structs.")
+	annotationPrefix    = flag.String("annotation_prefix", ygen.DefaultAnnotationPrefix, "String to be appended to each metadata field within the generated structs if annoations is set to true.")
+	excludeState        = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Go code.")
+	generateAppend      = flag.Bool("generate_append", false, "If set to true, append methods are generated for YANG lists (Go maps) within the Go code.")
+	generateGetters     = flag.Bool("generate_getters", false, "If set to true, getter methdos that retrieve or create an element are generated for YANG container (Go struct pointer) or list (Go map) fields within the generated code.")
+	generateDelete      = flag.Bool("generate_delete", false, "If set to true, delete methods are generated for YANG lists (Go maps) within the Go code.")
+	generateLeafGetters = flag.Bool("generate_leaf_getters", false, "If set to true, getters for YANG leaves are generated within the Go code. Caution should be exercised when using leaf getters, since values that are explicitly set to the Go default/zero value are not distinguishable from those that are unset when retrieved via the GetXXX method.")
+	includeModelData    = flag.Bool("include_model_data", false, "If set to true, a slice of gNMI ModelData messages are included in the generated Go code containing the details of the input schemas from which the code was generated.")
+
+	// Flags only used for PathStruct generation.
+	schemaStructPath        = flag.String("schema_struct_path", "", "The import path to use for ygen-generated schema structs. This should only be specified if the generated path structs are to reside in a different package than the schema structs.")
+	listBuilderKeyThreshold = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the builder API is used for key population. 0 means infinity.")
+	pathStructSuffix        = flag.String("path_struct_suffix", "Path", "The suffix string appended to each generated path struct in order to differentiate their names from their corresponding schema struct names.")
 )
 
 // writeGoCodeSingleFile takes a ygen.GeneratedGoCode struct and writes the Go code
@@ -108,6 +119,14 @@ func writeGoCodeSingleFile(w io.Writer, goCode *ygen.GeneratedGoCode) error {
 	}
 
 	return nil
+}
+
+// writeGoPathCodeSingleFile takes a ypathgen.GeneratedPathCode struct and writes
+// it to a single file to the io.Writer, w, provided as an argument.
+// The output includes a package header which is generated.
+func writeGoPathCodeSingleFile(w io.Writer, pathCode *ypathgen.GeneratedPathCode) error {
+	_, err := io.WriteString(w, pathCode.String())
+	return err
 }
 
 // writeIfNotEmpty writes the string s to b if it has a non-zero length.
@@ -228,8 +247,8 @@ func main() {
 		}
 	}
 
-	if *outputFile != "" && *outputDir != "" {
-		log.Exitf("Error: cannot specify both outputFile (%s) and outputDir (%s)", *outputFile, *outputDir)
+	if *ocStructsOutputFile != "" && *ocStructsOutputDir != "" {
+		log.Exitf("Error: cannot specify both ocStructsOutputFile (%s) and ocStructsOutputDir (%s)", *ocStructsOutputFile, *ocStructsOutputDir)
 	}
 
 	compressBehaviour, err := genutil.TranslateToCompressBehaviour(*compressPaths, *excludeState, *preferOperationalState)
@@ -271,27 +290,80 @@ func main() {
 
 	generatedGoCode, errs := cg.GenerateGoCode(generateModules, includePaths)
 	if errs != nil {
-		log.Exitf("ERROR Generating Code: %v\n", errs)
+		log.Exitf("ERROR Generating GoStruct Code: %v\n", errs)
 	}
 
-	// If no output file is specified, we output to os.Stdout, otherwise
+	goStructsGenerated := true
+	// If "-" is the output file name, we output to os.Stdout, otherwise
 	// we write to the specified file.
-	if *outputFile != "" {
+	if *ocStructsOutputFile != "" {
 		var outfh *os.File
-		switch *outputFile {
-		case "":
+		switch *ocStructsOutputFile {
+		case "-":
 			outfh = os.Stdout
 		default:
 			// Assign the newly created filehandle to the outfh, and ensure
 			// that it is synced and closed before exit of main.
-			outfh = genutil.OpenFile(*outputFile)
+			outfh = genutil.OpenFile(*ocStructsOutputFile)
 			defer genutil.SyncFile(outfh)
 		}
 
 		writeGoCodeSingleFile(outfh, generatedGoCode)
-		return
+	} else if *ocStructsOutputDir != "" {
+		// Write the Go code to a series of output files.
+		writeGoCodeMultipleFiles(*ocStructsOutputDir, generatedGoCode)
+	} else {
+		goStructsGenerated = false
 	}
 
-	// Write the Go code to a series of output files.
-	writeGoCodeMultipleFiles(*outputDir, generatedGoCode)
+	// Generate PathStructs if output file given.
+	if *ocPathStructsOutputFile == "" {
+		if !goStructsGenerated {
+			log.Exitf("Error: No output files specified for either schema struct or path struct generation.")
+		}
+		return
+	}
+	if !*compressPaths {
+		log.Exitf("Error: PathStruct generation not supported for uncompressed paths. Please use compressed paths or remove output file flag for path struct generation.")
+	}
+
+	// Perform the code generation.
+	pcg := &ypathgen.GenConfig{
+		PackageName: *packageName,
+		GoImports: ypathgen.GoImports{
+			SchemaStructPkgPath: *schemaStructPath,
+			YgotImportPath:      *ygotImportPath,
+		},
+		PreferOperationalState: *preferOperationalState,
+		SkipEnumDeduplication:  *skipEnumDedup,
+		ShortenEnumLeafNames:   *shortenEnumLeafNames,
+		FakeRootName:           *fakeRootName,
+		PathStructSuffix:       *pathStructSuffix,
+		ExcludeModules:         modsExcluded,
+		YANGParseOptions: yang.Options{
+			IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+		},
+		GeneratingBinary:        genutil.CallerName(),
+		ListBuilderKeyThreshold: *listBuilderKeyThreshold,
+	}
+
+	pathCode, _, errs := pcg.GeneratePathCode(generateModules, includePaths)
+	if errs != nil {
+		log.Exitf("ERROR Generating PathStruct Code: %s\n", errs)
+	}
+
+	// If "-" is the output file name, we output to os.Stdout, otherwise
+	// we write to the specified file.
+	var outfh *os.File
+	switch *ocPathStructsOutputFile {
+	case "-":
+		outfh = os.Stdout
+	default:
+		// Assign the newly created filehandle to the outfh, and ensure
+		// that it is synced and closed before exit of main.
+		outfh = genutil.OpenFile(*ocPathStructsOutputFile)
+		defer genutil.SyncFile(outfh)
+	}
+
+	writeGoPathCodeSingleFile(outfh, pathCode)
 }
