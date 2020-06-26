@@ -72,7 +72,6 @@ func NewDefaultConfig(schemaStructPkgPath string) *GenConfig {
 		PackageName: defaultPathPackageName,
 		GoImports: GoImports{
 			SchemaStructPkgPath: schemaStructPkgPath,
-			GNMIProtoPath:       genutil.GoDefaultGNMIImportPath,
 			YgotImportPath:      genutil.GoDefaultYgotImportPath,
 		},
 		FakeRootName:     defaultFakeRootName,
@@ -140,9 +139,6 @@ type GoImports struct {
 	// is used to get the enum and union type names used as the list key
 	// for calling a list path accessor.
 	SchemaStructPkgPath string
-	// GNMIProtoPath specifies the path to the generated gNMI protobuf, which
-	// is used to store the catalogue entries for generated modules.
-	GNMIProtoPath string
 	// YgotImportPath specifies the path to the ygot library that should be used
 	// in the generated code.
 	YgotImportPath string
