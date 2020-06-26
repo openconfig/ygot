@@ -14,18 +14,18 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
-// Device represents the /device YANG schema element.
-type Device struct {
+// DevicePath represents the /device YANG schema element.
+type DevicePath struct {
 	*ygot.DeviceRootBase
 }
 
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *Device {
-	return &Device{ygot.NewDeviceRootBase(id)}
+func DeviceRoot(id string) *DevicePath {
+	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// DupEnum returns from Device the path struct for its child "dup-enum".
-func (n *Device) DupEnum() *DupEnumPath {
+// DupEnum returns from DevicePath the path struct for its child "dup-enum".
+func (n *DevicePath) DupEnum() *DupEnumPath {
 	return &DupEnumPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"dup-enum"},
@@ -35,8 +35,8 @@ func (n *Device) DupEnum() *DupEnumPath {
 	}
 }
 
-// Platform returns from Device the path struct for its child "platform".
-func (n *Device) Platform() *PlatformPath {
+// Platform returns from DevicePath the path struct for its child "platform".
+func (n *DevicePath) Platform() *PlatformPath {
 	return &PlatformPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"platform"},

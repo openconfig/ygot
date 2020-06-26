@@ -162,18 +162,18 @@ func (n *ChoiceCaseWithLeafrefPathAny) Referenced() *ChoiceCaseWithLeafref_Refer
 	}
 }
 
-// Device represents the /device YANG schema element.
-type Device struct {
+// DevicePath represents the /device YANG schema element.
+type DevicePath struct {
 	*ygot.DeviceRootBase
 }
 
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *Device {
-	return &Device{ygot.NewDeviceRootBase(id)}
+func DeviceRoot(id string) *DevicePath {
+	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// ChoiceCaseAnonymousCase returns from Device the path struct for its child "choice-case-anonymous-case".
-func (n *Device) ChoiceCaseAnonymousCase() *ChoiceCaseAnonymousCasePath {
+// ChoiceCaseAnonymousCase returns from DevicePath the path struct for its child "choice-case-anonymous-case".
+func (n *DevicePath) ChoiceCaseAnonymousCase() *ChoiceCaseAnonymousCasePath {
 	return &ChoiceCaseAnonymousCasePath{
 		NodePath: ygot.NewNodePath(
 			[]string{"choice-case-anonymous-case"},
@@ -183,8 +183,8 @@ func (n *Device) ChoiceCaseAnonymousCase() *ChoiceCaseAnonymousCasePath {
 	}
 }
 
-// ChoiceCaseWithLeafref returns from Device the path struct for its child "choice-case-with-leafref".
-func (n *Device) ChoiceCaseWithLeafref() *ChoiceCaseWithLeafrefPath {
+// ChoiceCaseWithLeafref returns from DevicePath the path struct for its child "choice-case-with-leafref".
+func (n *DevicePath) ChoiceCaseWithLeafref() *ChoiceCaseWithLeafrefPath {
 	return &ChoiceCaseWithLeafrefPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"choice-case-with-leafref"},
@@ -194,8 +194,8 @@ func (n *Device) ChoiceCaseWithLeafref() *ChoiceCaseWithLeafrefPath {
 	}
 }
 
-// SimpleChoiceCase returns from Device the path struct for its child "simple-choice-case".
-func (n *Device) SimpleChoiceCase() *SimpleChoiceCasePath {
+// SimpleChoiceCase returns from DevicePath the path struct for its child "simple-choice-case".
+func (n *DevicePath) SimpleChoiceCase() *SimpleChoiceCasePath {
 	return &SimpleChoiceCasePath{
 		NodePath: ygot.NewNodePath(
 			[]string{"simple-choice-case"},

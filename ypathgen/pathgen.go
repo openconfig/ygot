@@ -601,10 +601,6 @@ type goPathStructData struct {
 // which is used to store the attributes of the template for which code is
 // being generated.
 func getStructData(directory *ygen.Directory, pathStructSuffix string) goPathStructData {
-	if ygen.IsFakeRoot(directory.Entry) {
-		// The fakeroot should assume the user-input name without the PathStruct suffix.
-		pathStructSuffix = ""
-	}
 	return goPathStructData{
 		TypeName:                directory.Name + pathStructSuffix,
 		YANGPath:                util.SlicePathToString(directory.Path),
