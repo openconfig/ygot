@@ -11,7 +11,6 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	oc "github.com/openconfig/ygot/ypathgen/testdata/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -26,8 +25,8 @@ func DeviceRoot(id string) *Device {
 }
 
 // Model returns from Device the path struct for its child "model".
-func (n *Device) Model() *Model {
-	return &Model{
+func (n *Device) Model() *ModelPath {
+	return &ModelPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"model"},
 			map[string]interface{}{},
@@ -36,19 +35,19 @@ func (n *Device) Model() *Model {
 	}
 }
 
-// Model represents the /openconfig-withlist/model YANG schema element.
-type Model struct {
+// ModelPath represents the /openconfig-withlist/model YANG schema element.
+type ModelPath struct {
 	*ygot.NodePath
 }
 
-// ModelAny represents the wildcard version of the /openconfig-withlist/model YANG schema element.
-type ModelAny struct {
+// ModelPathAny represents the wildcard version of the /openconfig-withlist/model YANG schema element.
+type ModelPathAny struct {
 	*ygot.NodePath
 }
 
-// MultiKeyAny returns from Model the path struct for its child "multi-key".
-func (n *Model) MultiKeyAny() *Model_MultiKeyAny {
-	return &Model_MultiKeyAny{
+// MultiKeyAny returns from ModelPath the path struct for its child "multi-key".
+func (n *ModelPath) MultiKeyAny() *Model_MultiKeyPathAny {
+	return &Model_MultiKeyPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"b", "multi-key"},
 			map[string]interface{}{"key1": "*", "key2": "*"},
@@ -57,9 +56,9 @@ func (n *Model) MultiKeyAny() *Model_MultiKeyAny {
 	}
 }
 
-// MultiKeyAny returns from ModelAny the path struct for its child "multi-key".
-func (n *ModelAny) MultiKeyAny() *Model_MultiKeyAny {
-	return &Model_MultiKeyAny{
+// MultiKeyAny returns from ModelPathAny the path struct for its child "multi-key".
+func (n *ModelPathAny) MultiKeyAny() *Model_MultiKeyPathAny {
+	return &Model_MultiKeyPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"b", "multi-key"},
 			map[string]interface{}{"key1": "*", "key2": "*"},
@@ -68,21 +67,21 @@ func (n *ModelAny) MultiKeyAny() *Model_MultiKeyAny {
 	}
 }
 
-// WithKey1 sets Model_MultiKeyAny's key "key1" to the specified value.
-func (n *Model_MultiKeyAny) WithKey1(Key1 uint32) *Model_MultiKeyAny {
+// WithKey1 sets Model_MultiKeyPathAny's key "key1" to the specified value.
+func (n *Model_MultiKeyPathAny) WithKey1(Key1 uint32) *Model_MultiKeyPathAny {
 	ygot.ModifyKey(n.NodePath, "key1", Key1)
 	return n
 }
 
-// WithKey2 sets Model_MultiKeyAny's key "key2" to the specified value.
-func (n *Model_MultiKeyAny) WithKey2(Key2 uint64) *Model_MultiKeyAny {
+// WithKey2 sets Model_MultiKeyPathAny's key "key2" to the specified value.
+func (n *Model_MultiKeyPathAny) WithKey2(Key2 uint64) *Model_MultiKeyPathAny {
 	ygot.ModifyKey(n.NodePath, "key2", Key2)
 	return n
 }
 
-// SingleKeyAny returns from Model the path struct for its child "single-key".
-func (n *Model) SingleKeyAny() *Model_SingleKeyAny {
-	return &Model_SingleKeyAny{
+// SingleKeyAny returns from ModelPath the path struct for its child "single-key".
+func (n *ModelPath) SingleKeyAny() *Model_SingleKeyPathAny {
+	return &Model_SingleKeyPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"a", "single-key"},
 			map[string]interface{}{"key": "*"},
@@ -91,9 +90,9 @@ func (n *Model) SingleKeyAny() *Model_SingleKeyAny {
 	}
 }
 
-// SingleKeyAny returns from ModelAny the path struct for its child "single-key".
-func (n *ModelAny) SingleKeyAny() *Model_SingleKeyAny {
-	return &Model_SingleKeyAny{
+// SingleKeyAny returns from ModelPathAny the path struct for its child "single-key".
+func (n *ModelPathAny) SingleKeyAny() *Model_SingleKeyPathAny {
+	return &Model_SingleKeyPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"a", "single-key"},
 			map[string]interface{}{"key": "*"},
@@ -102,9 +101,9 @@ func (n *ModelAny) SingleKeyAny() *Model_SingleKeyAny {
 	}
 }
 
-// SingleKey returns from Model the path struct for its child "single-key".
-func (n *Model) SingleKey(Key string) *Model_SingleKey {
-	return &Model_SingleKey{
+// SingleKey returns from ModelPath the path struct for its child "single-key".
+func (n *ModelPath) SingleKey(Key string) *Model_SingleKeyPath {
+	return &Model_SingleKeyPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"a", "single-key"},
 			map[string]interface{}{"key": Key},
@@ -113,9 +112,9 @@ func (n *Model) SingleKey(Key string) *Model_SingleKey {
 	}
 }
 
-// SingleKey returns from ModelAny the path struct for its child "single-key".
-func (n *ModelAny) SingleKey(Key string) *Model_SingleKeyAny {
-	return &Model_SingleKeyAny{
+// SingleKey returns from ModelPathAny the path struct for its child "single-key".
+func (n *ModelPathAny) SingleKey(Key string) *Model_SingleKeyPathAny {
+	return &Model_SingleKeyPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"a", "single-key"},
 			map[string]interface{}{"key": Key},
@@ -124,39 +123,39 @@ func (n *ModelAny) SingleKey(Key string) *Model_SingleKeyAny {
 	}
 }
 
-// Model_MultiKey represents the /openconfig-withlist/model/b/multi-key YANG schema element.
-type Model_MultiKey struct {
+// Model_MultiKeyPath represents the /openconfig-withlist/model/b/multi-key YANG schema element.
+type Model_MultiKeyPath struct {
 	*ygot.NodePath
 }
 
-// Model_MultiKeyAny represents the wildcard version of the /openconfig-withlist/model/b/multi-key YANG schema element.
-type Model_MultiKeyAny struct {
+// Model_MultiKeyPathAny represents the wildcard version of the /openconfig-withlist/model/b/multi-key YANG schema element.
+type Model_MultiKeyPathAny struct {
 	*ygot.NodePath
 }
 
-// Model_MultiKey_Key1 represents the /openconfig-withlist/model/b/multi-key/state/key1 YANG schema element.
-type Model_MultiKey_Key1 struct {
+// Model_MultiKey_Key1Path represents the /openconfig-withlist/model/b/multi-key/state/key1 YANG schema element.
+type Model_MultiKey_Key1Path struct {
 	*ygot.NodePath
 }
 
-// Model_MultiKey_Key1Any represents the wildcard version of the /openconfig-withlist/model/b/multi-key/state/key1 YANG schema element.
-type Model_MultiKey_Key1Any struct {
+// Model_MultiKey_Key1PathAny represents the wildcard version of the /openconfig-withlist/model/b/multi-key/state/key1 YANG schema element.
+type Model_MultiKey_Key1PathAny struct {
 	*ygot.NodePath
 }
 
-// Model_MultiKey_Key2 represents the /openconfig-withlist/model/b/multi-key/state/key2 YANG schema element.
-type Model_MultiKey_Key2 struct {
+// Model_MultiKey_Key2Path represents the /openconfig-withlist/model/b/multi-key/state/key2 YANG schema element.
+type Model_MultiKey_Key2Path struct {
 	*ygot.NodePath
 }
 
-// Model_MultiKey_Key2Any represents the wildcard version of the /openconfig-withlist/model/b/multi-key/state/key2 YANG schema element.
-type Model_MultiKey_Key2Any struct {
+// Model_MultiKey_Key2PathAny represents the wildcard version of the /openconfig-withlist/model/b/multi-key/state/key2 YANG schema element.
+type Model_MultiKey_Key2PathAny struct {
 	*ygot.NodePath
 }
 
-// Key1 returns from Model_MultiKey the path struct for its child "key1".
-func (n *Model_MultiKey) Key1() *Model_MultiKey_Key1 {
-	return &Model_MultiKey_Key1{
+// Key1 returns from Model_MultiKeyPath the path struct for its child "key1".
+func (n *Model_MultiKeyPath) Key1() *Model_MultiKey_Key1Path {
+	return &Model_MultiKey_Key1Path{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "key1"},
 			map[string]interface{}{},
@@ -165,9 +164,9 @@ func (n *Model_MultiKey) Key1() *Model_MultiKey_Key1 {
 	}
 }
 
-// Key1 returns from Model_MultiKeyAny the path struct for its child "key1".
-func (n *Model_MultiKeyAny) Key1() *Model_MultiKey_Key1Any {
-	return &Model_MultiKey_Key1Any{
+// Key1 returns from Model_MultiKeyPathAny the path struct for its child "key1".
+func (n *Model_MultiKeyPathAny) Key1() *Model_MultiKey_Key1PathAny {
+	return &Model_MultiKey_Key1PathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "key1"},
 			map[string]interface{}{},
@@ -176,9 +175,9 @@ func (n *Model_MultiKeyAny) Key1() *Model_MultiKey_Key1Any {
 	}
 }
 
-// Key2 returns from Model_MultiKey the path struct for its child "key2".
-func (n *Model_MultiKey) Key2() *Model_MultiKey_Key2 {
-	return &Model_MultiKey_Key2{
+// Key2 returns from Model_MultiKeyPath the path struct for its child "key2".
+func (n *Model_MultiKeyPath) Key2() *Model_MultiKey_Key2Path {
+	return &Model_MultiKey_Key2Path{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "key2"},
 			map[string]interface{}{},
@@ -187,9 +186,9 @@ func (n *Model_MultiKey) Key2() *Model_MultiKey_Key2 {
 	}
 }
 
-// Key2 returns from Model_MultiKeyAny the path struct for its child "key2".
-func (n *Model_MultiKeyAny) Key2() *Model_MultiKey_Key2Any {
-	return &Model_MultiKey_Key2Any{
+// Key2 returns from Model_MultiKeyPathAny the path struct for its child "key2".
+func (n *Model_MultiKeyPathAny) Key2() *Model_MultiKey_Key2PathAny {
+	return &Model_MultiKey_Key2PathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "key2"},
 			map[string]interface{}{},
@@ -198,29 +197,29 @@ func (n *Model_MultiKeyAny) Key2() *Model_MultiKey_Key2Any {
 	}
 }
 
-// Model_SingleKey represents the /openconfig-withlist/model/a/single-key YANG schema element.
-type Model_SingleKey struct {
+// Model_SingleKeyPath represents the /openconfig-withlist/model/a/single-key YANG schema element.
+type Model_SingleKeyPath struct {
 	*ygot.NodePath
 }
 
-// Model_SingleKeyAny represents the wildcard version of the /openconfig-withlist/model/a/single-key YANG schema element.
-type Model_SingleKeyAny struct {
+// Model_SingleKeyPathAny represents the wildcard version of the /openconfig-withlist/model/a/single-key YANG schema element.
+type Model_SingleKeyPathAny struct {
 	*ygot.NodePath
 }
 
-// Model_SingleKey_Key represents the /openconfig-withlist/model/a/single-key/state/key YANG schema element.
-type Model_SingleKey_Key struct {
+// Model_SingleKey_KeyPath represents the /openconfig-withlist/model/a/single-key/state/key YANG schema element.
+type Model_SingleKey_KeyPath struct {
 	*ygot.NodePath
 }
 
-// Model_SingleKey_KeyAny represents the wildcard version of the /openconfig-withlist/model/a/single-key/state/key YANG schema element.
-type Model_SingleKey_KeyAny struct {
+// Model_SingleKey_KeyPathAny represents the wildcard version of the /openconfig-withlist/model/a/single-key/state/key YANG schema element.
+type Model_SingleKey_KeyPathAny struct {
 	*ygot.NodePath
 }
 
-// Key returns from Model_SingleKey the path struct for its child "key".
-func (n *Model_SingleKey) Key() *Model_SingleKey_Key {
-	return &Model_SingleKey_Key{
+// Key returns from Model_SingleKeyPath the path struct for its child "key".
+func (n *Model_SingleKeyPath) Key() *Model_SingleKey_KeyPath {
+	return &Model_SingleKey_KeyPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "key"},
 			map[string]interface{}{},
@@ -229,9 +228,9 @@ func (n *Model_SingleKey) Key() *Model_SingleKey_Key {
 	}
 }
 
-// Key returns from Model_SingleKeyAny the path struct for its child "key".
-func (n *Model_SingleKeyAny) Key() *Model_SingleKey_KeyAny {
-	return &Model_SingleKey_KeyAny{
+// Key returns from Model_SingleKeyPathAny the path struct for its child "key".
+func (n *Model_SingleKeyPathAny) Key() *Model_SingleKey_KeyPathAny {
+	return &Model_SingleKey_KeyPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "key"},
 			map[string]interface{}{},

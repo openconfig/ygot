@@ -11,7 +11,6 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	oc "github.com/openconfig/ygot/ypathgen/testdata/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -26,8 +25,8 @@ func DeviceRoot(id string) *Device {
 }
 
 // Parent returns from Device the path struct for its child "parent".
-func (n *Device) Parent() *Parent {
-	return &Parent{
+func (n *Device) Parent() *ParentPath {
+	return &ParentPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"parent"},
 			map[string]interface{}{},
@@ -37,8 +36,8 @@ func (n *Device) Parent() *Parent {
 }
 
 // RemoteContainer returns from Device the path struct for its child "remote-container".
-func (n *Device) RemoteContainer() *RemoteContainer {
-	return &RemoteContainer{
+func (n *Device) RemoteContainer() *RemoteContainerPath {
+	return &RemoteContainerPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"remote-container"},
 			map[string]interface{}{},

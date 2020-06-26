@@ -38,13 +38,13 @@ var (
 	ignoreCircDeps          = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
 	preferOperationalState  = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves when building paths. This flag is only valid when exclude_state=false.")
 	fakeRootName            = flag.String("fakeroot_name", "device", "The name of the fake root entity. This name will be capitalized for exporting.")
-	schemaStructPkgAlias    = flag.String("schema_struct_pkg_alias", "", "The package alias of the schema struct package.")
-	schemaStructPath        = flag.String("schema_struct_path", "", "The import path to use for ygen-generated schema structs.")
+	schemaStructPath        = flag.String("schema_struct_path", "", "The import path to use for ygen-generated schema structs. This should only be specified if the generated path structs are to reside in a different package.")
 	gnmiProtoPath           = flag.String("gnmi_proto_path", genutil.GoDefaultGNMIImportPath, "The import path to use for gNMI's proto package.")
 	ygotImportPath          = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
 	listBuilderKeyThreshold = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the builder API is used for key population. 0 means infinity.")
 	skipEnumDedup           = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
 	shortenEnumLeafNames    = flag.Bool("shorten_enum_leaf_names", false, "If also set to true when compression is on, all leaves of type enumeration will by default not be prefixed with the name of its residing module.")
+	pathStructSuffix        = flag.String("path_struct_suffix", "Path", "The suffix string appended to each generated path struct in order to differentiate their names from their corresponding schema struct names.")
 )
 
 // writeGoCodeSingleFile takes a ypathgen.GeneratedPathCode struct and writes
@@ -66,10 +66,6 @@ func main() {
 	generateModules := flag.Args()
 	if len(generateModules) == 0 {
 		log.Exitln("Error: no input modules specified")
-	}
-
-	if *schemaStructPath == "" {
-		log.Exitln("Error: schemaStructPath unspecified")
 	}
 
 	// Determine the set of paths that should be searched for included
@@ -111,8 +107,8 @@ func main() {
 		SkipEnumDeduplication:  *skipEnumDedup,
 		ShortenEnumLeafNames:   *shortenEnumLeafNames,
 		FakeRootName:           *fakeRootName,
+		PathStructSuffix:       *pathStructSuffix,
 		ExcludeModules:         modsExcluded,
-		SchemaStructPkgAlias:   "oc",
 		YANGParseOptions: yang.Options{
 			IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
 		},
