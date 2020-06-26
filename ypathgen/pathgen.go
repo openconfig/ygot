@@ -37,13 +37,18 @@ import (
 
 // Static default configuration values that differ from the zero value for their types.
 const (
-	// defaultSchemaStructPkgAlias is the package alias for the imported ygen-generated file.
-	defaultSchemaStructPkgAlias = "oc"
 	// defaultPathPackageName specifies the default name that should be
 	// used for the generated Go package.
 	defaultPathPackageName = "ocpathstructs"
 	// defaultFakeRootName is the default name for the root structure.
 	defaultFakeRootName = "root"
+	// defaultPathStructSuffix is the default suffix for generated
+	// PathStructs to distinguish them from the generated GoStructs
+	defaultPathStructSuffix = "Path"
+	// schemaStructPkgAlias is the package alias of the schema struct
+	// package when the path struct package is to be generated in a
+	// separate package.
+	schemaStructPkgAlias = "oc"
 	// WildcardSuffix is the suffix given to the wildcard versions of each
 	// node as well as a list's wildcard child constructor methods that
 	// distinguishes each from its non-wildcard counterpart.
@@ -58,8 +63,10 @@ const (
 	BuilderKeyPrefix = "With"
 )
 
-// NewDefaultConfig creates a GenConfig with default configuration. schemaStructPkgPath is a
-// required configuration parameter.
+// NewDefaultConfig creates a GenConfig with default configuration.
+// schemaStructPkgPath is a required configuration parameter. It should be set
+// to "" when the generated PathStruct package is to be the same package as the
+// GoStructs package.
 func NewDefaultConfig(schemaStructPkgPath string) *GenConfig {
 	return &GenConfig{
 		PackageName: defaultPathPackageName,
@@ -68,9 +75,9 @@ func NewDefaultConfig(schemaStructPkgPath string) *GenConfig {
 			GNMIProtoPath:       genutil.GoDefaultGNMIImportPath,
 			YgotImportPath:      genutil.GoDefaultYgotImportPath,
 		},
-		FakeRootName:         defaultFakeRootName,
-		SchemaStructPkgAlias: defaultSchemaStructPkgAlias,
-		GeneratingBinary:     genutil.CallerName(),
+		FakeRootName:     defaultFakeRootName,
+		PathStructSuffix: defaultPathStructSuffix,
+		GeneratingBinary: genutil.CallerName(),
 	}
 }
 
@@ -90,6 +97,10 @@ type GenConfig struct {
 	// FakeRootName specifies the name of the struct that should be generated
 	// representing the root.
 	FakeRootName string
+	// PathStructSuffix is the suffix to be appended to generated
+	// PathStructs to distinguish them from the generated GoStructs, which
+	// assume a similar name.
+	PathStructSuffix string
 	// SkipEnumDeduplication specifies whether leaves of type 'enumeration' that
 	// are used in multiple places in the schema should share a common type within
 	// the generated code that is output by ygen. By default (false), a common type
@@ -107,8 +118,6 @@ type GenConfig struct {
 	// code generation. This is due to the fact that some schemas (e.g., OpenConfig
 	// interfaces) currently result in overlapping entities (e.g., /interfaces).
 	ExcludeModules []string
-	// SchemaStructPkgAlias is the package alias of the schema struct package.
-	SchemaStructPkgAlias string
 	// YANGParseOptions provides the options that should be handed to the
 	// github.com/openconfig/goyang/pkg/yang library. These specify how the
 	// input YANG files should be parsed.
@@ -159,10 +168,11 @@ type GoImports struct {
 // augmentations to the basic generated path code.
 // If errors are encountered during code generation, they are returned.
 func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*GeneratedPathCode, NodeDataMap, util.Errors) {
-	if cg.GoImports.SchemaStructPkgPath == "" {
-		return nil, nil, util.NewErrs(fmt.Errorf("GeneratePathCode: Must specify SchemaStructPkgPath"))
-	}
-
+	// Note: The input configuration may cause the code to not compile.
+	// While it's possible to write checks for better error messages, the
+	// many ways in which compilation may fail, coupled with the plethora
+	// of configurations, means there is an argument to force the user to
+	// debug instead of making ypathgen having to catch every error.
 	compressBehaviour := genutil.PreferIntendedConfig
 	if cg.PreferOperationalState {
 		compressBehaviour = genutil.PreferOperationalState
@@ -198,6 +208,11 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 		return nil, nil, util.AppendErr(errs, err)
 	}
 
+	var schemaStructPkgAccessor string
+	if cg.GoImports.SchemaStructPkgPath != "" {
+		schemaStructPkgAccessor = schemaStructPkgAlias + "."
+	}
+
 	// Generate struct code.
 	var structSnippets []GoPathStructCodeSnippet
 	for _, directoryName := range orderedDirNames {
@@ -207,7 +222,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 				util.NewErrs(fmt.Errorf("GeneratePathCode: Implementation bug -- node %s not found in dirNameMap", directoryName)))
 		}
 
-		structSnippet, es := generateDirectorySnippet(directory, directories, cg.SchemaStructPkgAlias, cg.ListBuilderKeyThreshold)
+		structSnippet, es := generateDirectorySnippet(directory, directories, schemaStructPkgAccessor, cg.PathStructSuffix, cg.ListBuilderKeyThreshold)
 		if es != nil {
 			errs = util.AppendErrs(errs, es)
 		}
@@ -216,7 +231,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 	genCode.Structs = structSnippets
 
 	// Get NodeDataMap for the schema.
-	nodeDataMap, es := getNodeDataMap(directories, leafTypeMap, cg.SchemaStructPkgAlias)
+	nodeDataMap, es := getNodeDataMap(directories, leafTypeMap, schemaStructPkgAccessor, cg.PathStructSuffix)
 	if es != nil {
 		util.AppendErrs(errs, es)
 	}
@@ -317,13 +332,15 @@ type NodeDataMap map[string]*NodeData
 
 // NodeData contains information about the ygen-generated code of a YANG schema node.
 type NodeData struct {
-	// GoTypeName is the ygen type name of the node, which is qualified by
-	// the SchemaStructPkgAlias if necessary.
+	// GoTypeName is the type name of the node as part of the schema
+	// structs, which is qualified by the SchemaStructPkgAlias if
+	// necessary. It could be a GoStruct or a leaf type.
 	GoTypeName string
 	// GoFieldName is the field name of the node under its parent struct.
 	GoFieldName string
-	// ParentGoTypeName is the parent struct's type name.
-	ParentGoTypeName string
+	// SubsumingGoStructName is the GoStruct type name corresponding to the node. If
+	// the node is a leaf, then it is the parent GoStruct's name.
+	SubsumingGoStructName string
 	// IsLeaf indicates whether this child is a leaf node.
 	IsLeaf bool
 	// IsScalarField indicates a leaf that is stored as a pointer in its
@@ -376,7 +393,9 @@ Imported modules were sourced from:
 package {{ .PackageName }}
 
 import (
+	{{- if .SchemaStructPkgPath }}
 	{{ .SchemaStructPkgAlias }} "{{ .SchemaStructPkgPath }}"
+	{{- end }}
 	"{{ .YgotImportPath }}"
 )
 `)
@@ -458,7 +477,7 @@ func mustTemplate(name, src string) *template.Template {
 // every leaf node only, leafTypeMap's value is nil for non-leaf nodes.
 // If a directory or field doesn't exist in the leafTypeMap, then an error is returned.
 // Note: Top-level nodes, but *not* the fake root, are part of the output.
-func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[string]map[string]*ygen.MappedType, schemaStructPkgAlias string) (NodeDataMap, util.Errors) {
+func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[string]map[string]*ygen.MappedType, schemaStructPkgAccessor, pathStructSuffix string) (NodeDataMap, util.Errors) {
 	nodeDataMap := NodeDataMap{}
 	var errs util.Errors
 	for path, dir := range directories {
@@ -469,7 +488,7 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 			continue
 		}
 		for fieldName, field := range dir.Fields {
-			pathStructName, err := getFieldTypeName(dir, fieldName, goFieldNameMap[fieldName], directories)
+			pathStructName, err := getFieldTypeName(dir, fieldName, goFieldNameMap[fieldName], directories, pathStructSuffix)
 			if err != nil {
 				errs = util.AppendErr(errs, err)
 				continue
@@ -481,14 +500,20 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 			}
 
 			isLeaf := mType != nil
+
+			subsumingGoStructName := dir.Name
+			if !isLeaf {
+				subsumingGoStructName = directories[dir.Fields[fieldName].Path()].Name
+			}
+
 			var goTypeName string
 			switch {
 			case !isLeaf:
-				goTypeName = "*" + schemaStructPkgAlias + "." + pathStructName
+				goTypeName = "*" + schemaStructPkgAccessor + subsumingGoStructName
 			case field.ListAttr != nil && ygen.IsYgenDefinedGoType(mType):
-				goTypeName = "[]" + schemaStructPkgAlias + "." + mType.NativeType
+				goTypeName = "[]" + schemaStructPkgAccessor + mType.NativeType
 			case ygen.IsYgenDefinedGoType(mType):
-				goTypeName = schemaStructPkgAlias + "." + mType.NativeType
+				goTypeName = schemaStructPkgAccessor + mType.NativeType
 			case field.ListAttr != nil:
 				goTypeName = "[]" + mType.NativeType
 			default:
@@ -500,13 +525,13 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 				yangTypeName = field.Type.Name
 			}
 			nodeDataMap[pathStructName] = &NodeData{
-				GoTypeName:       goTypeName,
-				GoFieldName:      goFieldNameMap[fieldName],
-				ParentGoTypeName: dir.Name,
-				IsLeaf:           isLeaf,
-				IsScalarField:    ygen.IsScalarField(field, mType),
-				YANGTypeName:     yangTypeName,
-				YANGPath:         field.Path(),
+				GoTypeName:            goTypeName,
+				GoFieldName:           goFieldNameMap[fieldName],
+				SubsumingGoStructName: subsumingGoStructName,
+				IsLeaf:                isLeaf,
+				IsScalarField:         ygen.IsScalarField(field, mType),
+				YANGTypeName:          yangTypeName,
+				YANGPath:              field.Path(),
 			}
 		}
 	}
@@ -538,7 +563,7 @@ func writeHeader(yangFiles, includePaths []string, cg *GenConfig, genCode *Gener
 		GeneratingBinary:        cg.GeneratingBinary,
 		YANGFiles:               yangFiles,
 		IncludePaths:            includePaths,
-		SchemaStructPkgAlias:    cg.SchemaStructPkgAlias,
+		SchemaStructPkgAlias:    schemaStructPkgAlias,
 		PathBaseTypeName:        ygot.PathBaseTypeName,
 		PathStructInterfaceName: ygot.PathStructInterfaceName,
 		FakeRootTypeName:        yang.CamelCase(cg.FakeRootName),
@@ -575,9 +600,9 @@ type goPathStructData struct {
 // getStructData returns the goPathStructData corresponding to a Directory,
 // which is used to store the attributes of the template for which code is
 // being generated.
-func getStructData(directory *ygen.Directory) goPathStructData {
+func getStructData(directory *ygen.Directory, pathStructSuffix string) goPathStructData {
 	return goPathStructData{
-		TypeName:                directory.Name,
+		TypeName:                directory.Name + pathStructSuffix,
 		YANGPath:                util.SlicePathToString(directory.Path),
 		PathBaseTypeName:        ygot.PathBaseTypeName,
 		FakeRootBaseTypeName:    ygot.FakeRootBaseTypeName,
@@ -605,7 +630,7 @@ type goPathFieldData struct {
 // the fields of the struct. directory is the parsed information of a schema
 // node, and directories is a map from path to a parsed schema node for all
 // nodes in the schema.
-func generateDirectorySnippet(directory *ygen.Directory, directories map[string]*ygen.Directory, schemaStructPkgAlias string, listBuilderKeyThreshold uint) (GoPathStructCodeSnippet, util.Errors) {
+func generateDirectorySnippet(directory *ygen.Directory, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint) (GoPathStructCodeSnippet, util.Errors) {
 	var errs util.Errors
 	// structBuf is used to store the code associated with the struct defined for
 	// the target YANG entity.
@@ -613,7 +638,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 	var methodBuf strings.Builder
 
 	// Output struct snippets.
-	structData := getStructData(directory)
+	structData := getStructData(directory, pathStructSuffix)
 	if ygen.IsFakeRoot(directory.Entry) {
 		// Fakeroot has its unique output.
 		if err := goPathFakeRootTemplate.Execute(&structBuf, structData); err != nil {
@@ -635,7 +660,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		}
 		goFieldName := goFieldNameMap[fieldName]
 
-		if es := generateChildConstructors(&methodBuf, directory, fieldName, goFieldName, directories, schemaStructPkgAlias, listBuilderKeyThreshold); es != nil {
+		if es := generateChildConstructors(&methodBuf, directory, fieldName, goFieldName, directories, schemaStructPkgAccessor, pathStructSuffix, listBuilderKeyThreshold); es != nil {
 			errs = util.AppendErrs(errs, es)
 		}
 
@@ -643,7 +668,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		// to output their struct snippets somewhere, and here is
 		// convenient.
 		if field.IsLeaf() || field.IsLeafList() {
-			leafTypeName, err := getFieldTypeName(directory, fieldName, goFieldName, directories)
+			leafTypeName, err := getFieldTypeName(directory, fieldName, goFieldName, directories, pathStructSuffix)
 			if err != nil {
 				errs = util.AppendErr(errs, err)
 			} else {
@@ -678,17 +703,17 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 // field name to be used as the generated method's name and the incremental
 // type name of of the child path struct, and a map of all directories of the
 // whole schema keyed by their schema paths.
-func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, schemaStructPkgAlias string, listBuilderKeyThreshold uint) []error {
+func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint) []error {
 	field, ok := directory.Fields[directoryFieldName]
 	if !ok {
 		return []error{fmt.Errorf("generateChildConstructors: field %s not found in directory %v", directoryFieldName, directory)}
 	}
-	fieldTypeName, err := getFieldTypeName(directory, directoryFieldName, goFieldName, directories)
+	fieldTypeName, err := getFieldTypeName(directory, directoryFieldName, goFieldName, directories, pathStructSuffix)
 	if err != nil {
 		return []error{err}
 	}
 
-	structData := getStructData(directory)
+	structData := getStructData(directory, pathStructSuffix)
 	relPath, err := ygen.FindSchemaPath(directory, directoryFieldName, false)
 	if err != nil {
 		return []error{err}
@@ -722,9 +747,9 @@ func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Direc
 		// If the number of keys is equal to or over the builder API threshold,
 		// then use the builder API format to make the list path API less
 		// confusing for the user.
-		return generateChildConstructorsForListBuilderFormat(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, schemaStructPkgAlias)
+		return generateChildConstructorsForListBuilderFormat(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, schemaStructPkgAccessor)
 	default:
-		return generateChildConstructorsForList(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, schemaStructPkgAlias)
+		return generateChildConstructorsForList(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, schemaStructPkgAccessor)
 	}
 }
 
@@ -757,10 +782,10 @@ func generateChildConstructorsForLeafOrContainer(methodBuf *strings.Builder, fie
 // the builder API format. fieldData contains the childConstructor template
 // output information for if the node were a container (which contains a subset
 // of the basic information required for the list constructor methods).
-func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAlias string) []error {
+func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAccessor string) []error {
 	var errors []error
 	// List of function parameters as would appear in the method definition.
-	keyParams, err := makeKeyParams(listAttr, schemaStructPkgAlias)
+	keyParams, err := makeKeyParams(listAttr, schemaStructPkgAccessor)
 	if err != nil {
 		return append(errors, err)
 	}
@@ -825,10 +850,10 @@ func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, l
 // childConstructor template output information for if the node were a
 // container (which contains a subset of the basic information required for
 // the list constructor methods).
-func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAlias string) []error {
+func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAccessor string) []error {
 	var errors []error
 	// List of function parameters as would appear in the method definition.
-	keyParams, err := makeKeyParams(listAttr, schemaStructPkgAlias)
+	keyParams, err := makeKeyParams(listAttr, schemaStructPkgAccessor)
 	if err != nil {
 		return append(errors, err)
 	}
@@ -917,7 +942,7 @@ func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen
 // leaf. For non-leaves, their corresponding directories' "Name"s, which are the
 // same names as their corresponding ygen Go struct type names, are re-used as
 // their type names; for leaves, type names are synthesized.
-func getFieldTypeName(directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory) (string, error) {
+func getFieldTypeName(directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, pathStructSuffix string) (string, error) {
 	field, ok := directory.Fields[directoryFieldName]
 	if !ok {
 		return "", fmt.Errorf("getFieldTypeName: field %s not found in directory %v", directoryFieldName, directory)
@@ -928,15 +953,15 @@ func getFieldTypeName(directory *ygen.Directory, directoryFieldName string, goFi
 		if !ok {
 			return "", fmt.Errorf("getFieldTypeName: unexpected - field %s not found in parsed yang structs map: %v", field.Path(), directories)
 		}
-		return fieldDirectory.Name, nil
+		return fieldDirectory.Name + pathStructSuffix, nil
 	}
 
 	// Leaves do not have corresponding Directory entries, so their names need to be constructed.
 	if isTopLevelLeaf := directory.Entry.Parent == nil; isTopLevelLeaf {
 		// When a leaf resides at the root, its type name is its whole name -- we never want fakeroot's name as a prefix.
-		return goFieldName, nil
+		return goFieldName + pathStructSuffix, nil
 	}
-	return directory.Name + "_" + goFieldName, nil
+	return directory.Name + "_" + goFieldName + pathStructSuffix, nil
 }
 
 type keyParam struct {
@@ -957,7 +982,7 @@ type keyParam struct {
 // 	KeyElems: []*yang.Entry{{Name: "fluorine"}, {Name: "iodine-liquid"}},
 // }
 // out: [{"fluroine", "Fluorine", "string"}, {"iodine-liquid", "IodineLiquid", "oc.Binary"}]
-func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAlias string) ([]keyParam, error) {
+func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAccessor string) ([]keyParam, error) {
 	if len(listAttr.KeyElems) == 0 {
 		return nil, fmt.Errorf("makeKeyParams: invalid list - has no key; cannot process param list string")
 	}
@@ -983,7 +1008,7 @@ func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAlias string) ([]
 		case mappedType.NativeType == "interface{}": // ygen-unsupported types
 			typeName = "string"
 		case ygen.IsYgenDefinedGoType(mappedType):
-			typeName = schemaStructPkgAlias + "." + mappedType.NativeType
+			typeName = schemaStructPkgAccessor + mappedType.NativeType
 		default:
 			typeName = mappedType.NativeType
 		}

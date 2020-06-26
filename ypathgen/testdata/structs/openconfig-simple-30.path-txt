@@ -11,23 +11,22 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	oc "github.com/openconfig/ygot/ypathgen/testdata/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 )
 
-// Device represents the /device YANG schema element.
-type Device struct {
+// DevicePath represents the /device YANG schema element.
+type DevicePath struct {
 	*ygot.DeviceRootBase
 }
 
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *Device {
-	return &Device{ygot.NewDeviceRootBase(id)}
+func DeviceRoot(id string) *DevicePath {
+	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// Parent returns from Device the path struct for its child "parent".
-func (n *Device) Parent() *Parent {
-	return &Parent{
+// Parent returns from DevicePath the path struct for its child "parent".
+func (n *DevicePath) Parent() *ParentPath {
+	return &ParentPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"parent"},
 			map[string]interface{}{},
@@ -36,9 +35,9 @@ func (n *Device) Parent() *Parent {
 	}
 }
 
-// RemoteContainer returns from Device the path struct for its child "remote-container".
-func (n *Device) RemoteContainer() *RemoteContainer {
-	return &RemoteContainer{
+// RemoteContainer returns from DevicePath the path struct for its child "remote-container".
+func (n *DevicePath) RemoteContainer() *RemoteContainerPath {
+	return &RemoteContainerPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"remote-container"},
 			map[string]interface{}{},

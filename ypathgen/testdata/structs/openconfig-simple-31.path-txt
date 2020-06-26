@@ -11,23 +11,22 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	oc "github.com/openconfig/ygot/ypathgen/testdata/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 )
 
-// Parent represents the /openconfig-simple/parent YANG schema element.
-type Parent struct {
+// ParentPath represents the /openconfig-simple/parent YANG schema element.
+type ParentPath struct {
 	*ygot.NodePath
 }
 
-// ParentAny represents the wildcard version of the /openconfig-simple/parent YANG schema element.
-type ParentAny struct {
+// ParentPathAny represents the wildcard version of the /openconfig-simple/parent YANG schema element.
+type ParentPathAny struct {
 	*ygot.NodePath
 }
 
-// Child returns from Parent the path struct for its child "child".
-func (n *Parent) Child() *Parent_Child {
-	return &Parent_Child{
+// Child returns from ParentPath the path struct for its child "child".
+func (n *ParentPath) Child() *Parent_ChildPath {
+	return &Parent_ChildPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"child"},
 			map[string]interface{}{},
@@ -36,9 +35,9 @@ func (n *Parent) Child() *Parent_Child {
 	}
 }
 
-// Child returns from ParentAny the path struct for its child "child".
-func (n *ParentAny) Child() *Parent_ChildAny {
-	return &Parent_ChildAny{
+// Child returns from ParentPathAny the path struct for its child "child".
+func (n *ParentPathAny) Child() *Parent_ChildPathAny {
+	return &Parent_ChildPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"child"},
 			map[string]interface{}{},

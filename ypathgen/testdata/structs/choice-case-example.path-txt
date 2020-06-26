@@ -11,43 +11,42 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	oc "github.com/openconfig/ygot/ypathgen/testdata/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 )
 
-// ChoiceCaseAnonymousCase represents the /choice-case-example/choice-case-anonymous-case YANG schema element.
-type ChoiceCaseAnonymousCase struct {
+// ChoiceCaseAnonymousCasePath represents the /choice-case-example/choice-case-anonymous-case YANG schema element.
+type ChoiceCaseAnonymousCasePath struct {
 	*ygot.NodePath
 }
 
-// ChoiceCaseAnonymousCaseAny represents the wildcard version of the /choice-case-example/choice-case-anonymous-case YANG schema element.
-type ChoiceCaseAnonymousCaseAny struct {
+// ChoiceCaseAnonymousCasePathAny represents the wildcard version of the /choice-case-example/choice-case-anonymous-case YANG schema element.
+type ChoiceCaseAnonymousCasePathAny struct {
 	*ygot.NodePath
 }
 
-// ChoiceCaseAnonymousCase_A represents the /choice-case-example/choice-case-anonymous-case/foo/a/a YANG schema element.
-type ChoiceCaseAnonymousCase_A struct {
+// ChoiceCaseAnonymousCase_APath represents the /choice-case-example/choice-case-anonymous-case/foo/a/a YANG schema element.
+type ChoiceCaseAnonymousCase_APath struct {
 	*ygot.NodePath
 }
 
-// ChoiceCaseAnonymousCase_AAny represents the wildcard version of the /choice-case-example/choice-case-anonymous-case/foo/a/a YANG schema element.
-type ChoiceCaseAnonymousCase_AAny struct {
+// ChoiceCaseAnonymousCase_APathAny represents the wildcard version of the /choice-case-example/choice-case-anonymous-case/foo/a/a YANG schema element.
+type ChoiceCaseAnonymousCase_APathAny struct {
 	*ygot.NodePath
 }
 
-// ChoiceCaseAnonymousCase_B represents the /choice-case-example/choice-case-anonymous-case/foo/b/b YANG schema element.
-type ChoiceCaseAnonymousCase_B struct {
+// ChoiceCaseAnonymousCase_BPath represents the /choice-case-example/choice-case-anonymous-case/foo/b/b YANG schema element.
+type ChoiceCaseAnonymousCase_BPath struct {
 	*ygot.NodePath
 }
 
-// ChoiceCaseAnonymousCase_BAny represents the wildcard version of the /choice-case-example/choice-case-anonymous-case/foo/b/b YANG schema element.
-type ChoiceCaseAnonymousCase_BAny struct {
+// ChoiceCaseAnonymousCase_BPathAny represents the wildcard version of the /choice-case-example/choice-case-anonymous-case/foo/b/b YANG schema element.
+type ChoiceCaseAnonymousCase_BPathAny struct {
 	*ygot.NodePath
 }
 
-// A returns from ChoiceCaseAnonymousCase the path struct for its child "a".
-func (n *ChoiceCaseAnonymousCase) A() *ChoiceCaseAnonymousCase_A {
-	return &ChoiceCaseAnonymousCase_A{
+// A returns from ChoiceCaseAnonymousCasePath the path struct for its child "a".
+func (n *ChoiceCaseAnonymousCasePath) A() *ChoiceCaseAnonymousCase_APath {
+	return &ChoiceCaseAnonymousCase_APath{
 		NodePath: ygot.NewNodePath(
 			[]string{"a"},
 			map[string]interface{}{},
@@ -56,9 +55,9 @@ func (n *ChoiceCaseAnonymousCase) A() *ChoiceCaseAnonymousCase_A {
 	}
 }
 
-// A returns from ChoiceCaseAnonymousCaseAny the path struct for its child "a".
-func (n *ChoiceCaseAnonymousCaseAny) A() *ChoiceCaseAnonymousCase_AAny {
-	return &ChoiceCaseAnonymousCase_AAny{
+// A returns from ChoiceCaseAnonymousCasePathAny the path struct for its child "a".
+func (n *ChoiceCaseAnonymousCasePathAny) A() *ChoiceCaseAnonymousCase_APathAny {
+	return &ChoiceCaseAnonymousCase_APathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"a"},
 			map[string]interface{}{},
@@ -67,9 +66,9 @@ func (n *ChoiceCaseAnonymousCaseAny) A() *ChoiceCaseAnonymousCase_AAny {
 	}
 }
 
-// B returns from ChoiceCaseAnonymousCase the path struct for its child "b".
-func (n *ChoiceCaseAnonymousCase) B() *ChoiceCaseAnonymousCase_B {
-	return &ChoiceCaseAnonymousCase_B{
+// B returns from ChoiceCaseAnonymousCasePath the path struct for its child "b".
+func (n *ChoiceCaseAnonymousCasePath) B() *ChoiceCaseAnonymousCase_BPath {
+	return &ChoiceCaseAnonymousCase_BPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"b"},
 			map[string]interface{}{},
@@ -78,9 +77,9 @@ func (n *ChoiceCaseAnonymousCase) B() *ChoiceCaseAnonymousCase_B {
 	}
 }
 
-// B returns from ChoiceCaseAnonymousCaseAny the path struct for its child "b".
-func (n *ChoiceCaseAnonymousCaseAny) B() *ChoiceCaseAnonymousCase_BAny {
-	return &ChoiceCaseAnonymousCase_BAny{
+// B returns from ChoiceCaseAnonymousCasePathAny the path struct for its child "b".
+func (n *ChoiceCaseAnonymousCasePathAny) B() *ChoiceCaseAnonymousCase_BPathAny {
+	return &ChoiceCaseAnonymousCase_BPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"b"},
 			map[string]interface{}{},
@@ -89,39 +88,39 @@ func (n *ChoiceCaseAnonymousCaseAny) B() *ChoiceCaseAnonymousCase_BAny {
 	}
 }
 
-// ChoiceCaseWithLeafref represents the /choice-case-example/choice-case-with-leafref YANG schema element.
-type ChoiceCaseWithLeafref struct {
+// ChoiceCaseWithLeafrefPath represents the /choice-case-example/choice-case-with-leafref YANG schema element.
+type ChoiceCaseWithLeafrefPath struct {
 	*ygot.NodePath
 }
 
-// ChoiceCaseWithLeafrefAny represents the wildcard version of the /choice-case-example/choice-case-with-leafref YANG schema element.
-type ChoiceCaseWithLeafrefAny struct {
+// ChoiceCaseWithLeafrefPathAny represents the wildcard version of the /choice-case-example/choice-case-with-leafref YANG schema element.
+type ChoiceCaseWithLeafrefPathAny struct {
 	*ygot.NodePath
 }
 
-// ChoiceCaseWithLeafref_Ptr represents the /choice-case-example/choice-case-with-leafref/foo/bar/ptr YANG schema element.
-type ChoiceCaseWithLeafref_Ptr struct {
+// ChoiceCaseWithLeafref_PtrPath represents the /choice-case-example/choice-case-with-leafref/foo/bar/ptr YANG schema element.
+type ChoiceCaseWithLeafref_PtrPath struct {
 	*ygot.NodePath
 }
 
-// ChoiceCaseWithLeafref_PtrAny represents the wildcard version of the /choice-case-example/choice-case-with-leafref/foo/bar/ptr YANG schema element.
-type ChoiceCaseWithLeafref_PtrAny struct {
+// ChoiceCaseWithLeafref_PtrPathAny represents the wildcard version of the /choice-case-example/choice-case-with-leafref/foo/bar/ptr YANG schema element.
+type ChoiceCaseWithLeafref_PtrPathAny struct {
 	*ygot.NodePath
 }
 
-// ChoiceCaseWithLeafref_Referenced represents the /choice-case-example/choice-case-with-leafref/referenced YANG schema element.
-type ChoiceCaseWithLeafref_Referenced struct {
+// ChoiceCaseWithLeafref_ReferencedPath represents the /choice-case-example/choice-case-with-leafref/referenced YANG schema element.
+type ChoiceCaseWithLeafref_ReferencedPath struct {
 	*ygot.NodePath
 }
 
-// ChoiceCaseWithLeafref_ReferencedAny represents the wildcard version of the /choice-case-example/choice-case-with-leafref/referenced YANG schema element.
-type ChoiceCaseWithLeafref_ReferencedAny struct {
+// ChoiceCaseWithLeafref_ReferencedPathAny represents the wildcard version of the /choice-case-example/choice-case-with-leafref/referenced YANG schema element.
+type ChoiceCaseWithLeafref_ReferencedPathAny struct {
 	*ygot.NodePath
 }
 
-// Ptr returns from ChoiceCaseWithLeafref the path struct for its child "ptr".
-func (n *ChoiceCaseWithLeafref) Ptr() *ChoiceCaseWithLeafref_Ptr {
-	return &ChoiceCaseWithLeafref_Ptr{
+// Ptr returns from ChoiceCaseWithLeafrefPath the path struct for its child "ptr".
+func (n *ChoiceCaseWithLeafrefPath) Ptr() *ChoiceCaseWithLeafref_PtrPath {
+	return &ChoiceCaseWithLeafref_PtrPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"ptr"},
 			map[string]interface{}{},
@@ -130,9 +129,9 @@ func (n *ChoiceCaseWithLeafref) Ptr() *ChoiceCaseWithLeafref_Ptr {
 	}
 }
 
-// Ptr returns from ChoiceCaseWithLeafrefAny the path struct for its child "ptr".
-func (n *ChoiceCaseWithLeafrefAny) Ptr() *ChoiceCaseWithLeafref_PtrAny {
-	return &ChoiceCaseWithLeafref_PtrAny{
+// Ptr returns from ChoiceCaseWithLeafrefPathAny the path struct for its child "ptr".
+func (n *ChoiceCaseWithLeafrefPathAny) Ptr() *ChoiceCaseWithLeafref_PtrPathAny {
+	return &ChoiceCaseWithLeafref_PtrPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"ptr"},
 			map[string]interface{}{},
@@ -141,9 +140,9 @@ func (n *ChoiceCaseWithLeafrefAny) Ptr() *ChoiceCaseWithLeafref_PtrAny {
 	}
 }
 
-// Referenced returns from ChoiceCaseWithLeafref the path struct for its child "referenced".
-func (n *ChoiceCaseWithLeafref) Referenced() *ChoiceCaseWithLeafref_Referenced {
-	return &ChoiceCaseWithLeafref_Referenced{
+// Referenced returns from ChoiceCaseWithLeafrefPath the path struct for its child "referenced".
+func (n *ChoiceCaseWithLeafrefPath) Referenced() *ChoiceCaseWithLeafref_ReferencedPath {
+	return &ChoiceCaseWithLeafref_ReferencedPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"referenced"},
 			map[string]interface{}{},
@@ -152,9 +151,9 @@ func (n *ChoiceCaseWithLeafref) Referenced() *ChoiceCaseWithLeafref_Referenced {
 	}
 }
 
-// Referenced returns from ChoiceCaseWithLeafrefAny the path struct for its child "referenced".
-func (n *ChoiceCaseWithLeafrefAny) Referenced() *ChoiceCaseWithLeafref_ReferencedAny {
-	return &ChoiceCaseWithLeafref_ReferencedAny{
+// Referenced returns from ChoiceCaseWithLeafrefPathAny the path struct for its child "referenced".
+func (n *ChoiceCaseWithLeafrefPathAny) Referenced() *ChoiceCaseWithLeafref_ReferencedPathAny {
+	return &ChoiceCaseWithLeafref_ReferencedPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"referenced"},
 			map[string]interface{}{},
@@ -163,19 +162,19 @@ func (n *ChoiceCaseWithLeafrefAny) Referenced() *ChoiceCaseWithLeafref_Reference
 	}
 }
 
-// Device represents the /device YANG schema element.
-type Device struct {
+// DevicePath represents the /device YANG schema element.
+type DevicePath struct {
 	*ygot.DeviceRootBase
 }
 
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *Device {
-	return &Device{ygot.NewDeviceRootBase(id)}
+func DeviceRoot(id string) *DevicePath {
+	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// ChoiceCaseAnonymousCase returns from Device the path struct for its child "choice-case-anonymous-case".
-func (n *Device) ChoiceCaseAnonymousCase() *ChoiceCaseAnonymousCase {
-	return &ChoiceCaseAnonymousCase{
+// ChoiceCaseAnonymousCase returns from DevicePath the path struct for its child "choice-case-anonymous-case".
+func (n *DevicePath) ChoiceCaseAnonymousCase() *ChoiceCaseAnonymousCasePath {
+	return &ChoiceCaseAnonymousCasePath{
 		NodePath: ygot.NewNodePath(
 			[]string{"choice-case-anonymous-case"},
 			map[string]interface{}{},
@@ -184,9 +183,9 @@ func (n *Device) ChoiceCaseAnonymousCase() *ChoiceCaseAnonymousCase {
 	}
 }
 
-// ChoiceCaseWithLeafref returns from Device the path struct for its child "choice-case-with-leafref".
-func (n *Device) ChoiceCaseWithLeafref() *ChoiceCaseWithLeafref {
-	return &ChoiceCaseWithLeafref{
+// ChoiceCaseWithLeafref returns from DevicePath the path struct for its child "choice-case-with-leafref".
+func (n *DevicePath) ChoiceCaseWithLeafref() *ChoiceCaseWithLeafrefPath {
+	return &ChoiceCaseWithLeafrefPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"choice-case-with-leafref"},
 			map[string]interface{}{},
@@ -195,9 +194,9 @@ func (n *Device) ChoiceCaseWithLeafref() *ChoiceCaseWithLeafref {
 	}
 }
 
-// SimpleChoiceCase returns from Device the path struct for its child "simple-choice-case".
-func (n *Device) SimpleChoiceCase() *SimpleChoiceCase {
-	return &SimpleChoiceCase{
+// SimpleChoiceCase returns from DevicePath the path struct for its child "simple-choice-case".
+func (n *DevicePath) SimpleChoiceCase() *SimpleChoiceCasePath {
+	return &SimpleChoiceCasePath{
 		NodePath: ygot.NewNodePath(
 			[]string{"simple-choice-case"},
 			map[string]interface{}{},
@@ -206,39 +205,39 @@ func (n *Device) SimpleChoiceCase() *SimpleChoiceCase {
 	}
 }
 
-// SimpleChoiceCase represents the /choice-case-example/simple-choice-case YANG schema element.
-type SimpleChoiceCase struct {
+// SimpleChoiceCasePath represents the /choice-case-example/simple-choice-case YANG schema element.
+type SimpleChoiceCasePath struct {
 	*ygot.NodePath
 }
 
-// SimpleChoiceCaseAny represents the wildcard version of the /choice-case-example/simple-choice-case YANG schema element.
-type SimpleChoiceCaseAny struct {
+// SimpleChoiceCasePathAny represents the wildcard version of the /choice-case-example/simple-choice-case YANG schema element.
+type SimpleChoiceCasePathAny struct {
 	*ygot.NodePath
 }
 
-// SimpleChoiceCase_A represents the /choice-case-example/simple-choice-case/foo/bar/a YANG schema element.
-type SimpleChoiceCase_A struct {
+// SimpleChoiceCase_APath represents the /choice-case-example/simple-choice-case/foo/bar/a YANG schema element.
+type SimpleChoiceCase_APath struct {
 	*ygot.NodePath
 }
 
-// SimpleChoiceCase_AAny represents the wildcard version of the /choice-case-example/simple-choice-case/foo/bar/a YANG schema element.
-type SimpleChoiceCase_AAny struct {
+// SimpleChoiceCase_APathAny represents the wildcard version of the /choice-case-example/simple-choice-case/foo/bar/a YANG schema element.
+type SimpleChoiceCase_APathAny struct {
 	*ygot.NodePath
 }
 
-// SimpleChoiceCase_B represents the /choice-case-example/simple-choice-case/foo/baz/b YANG schema element.
-type SimpleChoiceCase_B struct {
+// SimpleChoiceCase_BPath represents the /choice-case-example/simple-choice-case/foo/baz/b YANG schema element.
+type SimpleChoiceCase_BPath struct {
 	*ygot.NodePath
 }
 
-// SimpleChoiceCase_BAny represents the wildcard version of the /choice-case-example/simple-choice-case/foo/baz/b YANG schema element.
-type SimpleChoiceCase_BAny struct {
+// SimpleChoiceCase_BPathAny represents the wildcard version of the /choice-case-example/simple-choice-case/foo/baz/b YANG schema element.
+type SimpleChoiceCase_BPathAny struct {
 	*ygot.NodePath
 }
 
-// A returns from SimpleChoiceCase the path struct for its child "a".
-func (n *SimpleChoiceCase) A() *SimpleChoiceCase_A {
-	return &SimpleChoiceCase_A{
+// A returns from SimpleChoiceCasePath the path struct for its child "a".
+func (n *SimpleChoiceCasePath) A() *SimpleChoiceCase_APath {
+	return &SimpleChoiceCase_APath{
 		NodePath: ygot.NewNodePath(
 			[]string{"a"},
 			map[string]interface{}{},
@@ -247,9 +246,9 @@ func (n *SimpleChoiceCase) A() *SimpleChoiceCase_A {
 	}
 }
 
-// A returns from SimpleChoiceCaseAny the path struct for its child "a".
-func (n *SimpleChoiceCaseAny) A() *SimpleChoiceCase_AAny {
-	return &SimpleChoiceCase_AAny{
+// A returns from SimpleChoiceCasePathAny the path struct for its child "a".
+func (n *SimpleChoiceCasePathAny) A() *SimpleChoiceCase_APathAny {
+	return &SimpleChoiceCase_APathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"a"},
 			map[string]interface{}{},
@@ -258,9 +257,9 @@ func (n *SimpleChoiceCaseAny) A() *SimpleChoiceCase_AAny {
 	}
 }
 
-// B returns from SimpleChoiceCase the path struct for its child "b".
-func (n *SimpleChoiceCase) B() *SimpleChoiceCase_B {
-	return &SimpleChoiceCase_B{
+// B returns from SimpleChoiceCasePath the path struct for its child "b".
+func (n *SimpleChoiceCasePath) B() *SimpleChoiceCase_BPath {
+	return &SimpleChoiceCase_BPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"b"},
 			map[string]interface{}{},
@@ -269,9 +268,9 @@ func (n *SimpleChoiceCase) B() *SimpleChoiceCase_B {
 	}
 }
 
-// B returns from SimpleChoiceCaseAny the path struct for its child "b".
-func (n *SimpleChoiceCaseAny) B() *SimpleChoiceCase_BAny {
-	return &SimpleChoiceCase_BAny{
+// B returns from SimpleChoiceCasePathAny the path struct for its child "b".
+func (n *SimpleChoiceCasePathAny) B() *SimpleChoiceCase_BPathAny {
+	return &SimpleChoiceCase_BPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"b"},
 			map[string]interface{}{},
