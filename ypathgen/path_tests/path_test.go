@@ -87,7 +87,7 @@ func verifyTypesEqual(t *testing.T, target ygot.PathStruct, wild ygot.PathStruct
 func TestCustomData(t *testing.T) {
 	root := oc.DeviceRoot(deviceId)
 	p := root.WithName("foo").Interface("eth1").Ethernet().PortSpeed()
-	verifyPath(t, p, "/interfaces/interface[name=eth1]/ethernet/state/port-speed")
+	verifyPath(t, p, "/interfaces/interface[name=eth1]/ethernet/config/port-speed")
 
 	_, customData, _ := ygot.ResolvePath(p)
 	if diff := cmp.Diff(map[string]interface{}{"name": "foo"}, customData); diff != "" {
@@ -103,9 +103,9 @@ func TestManualShortcuts(t *testing.T) {
 	}
 
 	// defining short helpers
-	verifyPath(t, preemptDelay("eth1", 1, "1::"), "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1::]/vrrp/vrrp-group[virtual-router-id=1]/state/preempt-delay")
-	verifyPath(t, preemptDelay("eth1", 2, "2:2:2:2::"), "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=2:2:2:2::]/vrrp/vrrp-group[virtual-router-id=1]/state/preempt-delay")
-	verifyPath(t, preemptDelay("eth2", 2, "::"), "/interfaces/interface[name=eth2]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=::]/vrrp/vrrp-group[virtual-router-id=1]/state/preempt-delay")
+	verifyPath(t, preemptDelay("eth1", 1, "1::"), "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
+	verifyPath(t, preemptDelay("eth1", 2, "2:2:2:2::"), "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=2:2:2:2::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
+	verifyPath(t, preemptDelay("eth2", 2, "::"), "/interfaces/interface[name=eth2]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
 
 	// re-using prefixes
 	intf1 := root.InterfaceAny()
@@ -142,19 +142,19 @@ func TestPathCreation(t *testing.T) {
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Stp().Global().EnabledProtocol()
 		},
-		wantPath: "/stp/global/state/enabled-protocol",
+		wantPath: "/stp/global/config/enabled-protocol",
 	}, {
 		name: "simple list",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Ethernet().PortSpeed()
 		},
-		wantPath: "/interfaces/interface[name=eth1]/ethernet/state/port-speed",
+		wantPath: "/interfaces/interface[name=eth1]/ethernet/config/port-speed",
 	}, {
 		name: "chain with multiple lists",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
-		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
+		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/config/preempt-delay",
 	}, {
 		name: "fakeroot",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
@@ -166,13 +166,13 @@ func TestPathCreation(t *testing.T) {
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.NetworkInstance("DEFAULT").Protocol(oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").Enabled()
 		},
-		wantPath: "/network-instances/network-instance[name=DEFAULT]/protocols/protocol[identifier=BGP][name=15169]/state/enabled",
+		wantPath: "/network-instances/network-instance[name=DEFAULT]/protocols/protocol[identifier=BGP][name=15169]/config/enabled",
 	}, {
 		name: "enumeration key",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.NetworkInstance("DEFAULT").Mpls().SignalingProtocols().Ldp().InterfaceAttributes().Interface("eth1").AddressFamily(oc.OpenconfigMplsLdp_MplsLdpAfi_IPV4).AfiName()
 		},
-		wantPath: "/network-instances/network-instance[name=DEFAULT]/mpls/signaling-protocols/ldp/interface-attributes/interfaces/interface[interface-id=eth1]/address-families/address-family[afi-name=IPV4]/state/afi-name",
+		wantPath: "/network-instances/network-instance[name=DEFAULT]/mpls/signaling-protocols/ldp/interface-attributes/interfaces/interface[interface-id=eth1]/address-families/address-family[afi-name=IPV4]/config/afi-name",
 	}, {
 		name: "union key (uint32 value)",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
@@ -323,42 +323,42 @@ func TestWildcardPathCreation(t *testing.T) {
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
-		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
+		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/config/preempt-delay",
 		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
-		wantWildPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
+		wantWildPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/config/preempt-delay",
 	}, {
 		name: "check 6th-level leaf wildcard type in a different path",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
-		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
+		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/config/preempt-delay",
 		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().AddressAny().VrrpGroup(2).PreemptDelay()
 		},
-		wantWildPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=*]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
+		wantWildPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=*]/vrrp/vrrp-group[virtual-router-id=2]/config/preempt-delay",
 	}, {
 		name: "check 6th-level leaf wildcard types are same between different paths",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
-		wantPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
+		wantPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/config/preempt-delay",
 		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().AddressAny().VrrpGroup(2).PreemptDelay()
 		},
-		wantWildPath:    "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=*]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
+		wantWildPath:    "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=*]/vrrp/vrrp-group[virtual-router-id=2]/config/preempt-delay",
 		bothAreWildcard: true,
 	}, {
 		name: "check 6th-level leaf wildcard type for multiple wildcards",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
-		wantPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
+		wantPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/config/preempt-delay",
 		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().SubinterfaceAny().Ipv6().AddressAny().VrrpGroupAny().PreemptDelay()
 		},
-		wantWildPath:    "/interfaces/interface[name=*]/subinterfaces/subinterface[index=*]/ipv6/addresses/address[ip=*]/vrrp/vrrp-group[virtual-router-id=*]/state/preempt-delay",
+		wantWildPath:    "/interfaces/interface[name=*]/subinterfaces/subinterface[index=*]/ipv6/addresses/address[ip=*]/vrrp/vrrp-group[virtual-router-id=*]/config/preempt-delay",
 		bothAreWildcard: true,
 	}, {
 		name: "multi-keyed wildcarding",
