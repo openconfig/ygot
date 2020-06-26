@@ -973,8 +973,8 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 
 // wantListMethods is the expected child constructor methods for the list node.
 const wantListMethods = `
-// ListAny returns from Root the path struct for its child "list".
-func (n *Root) ListAny() *ListPathAny {
+// ListAny returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAny() *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -984,8 +984,8 @@ func (n *Root) ListAny() *ListPathAny {
 	}
 }
 
-// ListAnyKey2AnyUnionKey returns from Root the path struct for its child "list".
-func (n *Root) ListAnyKey2AnyUnionKey(Key1 string) *ListPathAny {
+// ListAnyKey2AnyUnionKey returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAnyKey2AnyUnionKey(Key1 string) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -995,8 +995,8 @@ func (n *Root) ListAnyKey2AnyUnionKey(Key1 string) *ListPathAny {
 	}
 }
 
-// ListAnyKey1AnyUnionKey returns from Root the path struct for its child "list".
-func (n *Root) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListPathAny {
+// ListAnyKey1AnyUnionKey returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -1006,8 +1006,8 @@ func (n *Root) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListPathAny {
 	}
 }
 
-// ListAnyUnionKey returns from Root the path struct for its child "list".
-func (n *Root) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListPathAny {
+// ListAnyUnionKey returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -1017,8 +1017,8 @@ func (n *Root) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListPathAny {
 	}
 }
 
-// ListAnyKey1AnyKey2 returns from Root the path struct for its child "list".
-func (n *Root) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
+// ListAnyKey1AnyKey2 returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -1028,8 +1028,8 @@ func (n *Root) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *L
 	}
 }
 
-// ListAnyKey2 returns from Root the path struct for its child "list".
-func (n *Root) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
+// ListAnyKey2 returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -1039,8 +1039,8 @@ func (n *Root) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Uni
 	}
 }
 
-// ListAnyKey1 returns from Root the path struct for its child "list".
-func (n *Root) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
+// ListAnyKey1 returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -1050,8 +1050,8 @@ func (n *Root) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_
 	}
 }
 
-// List returns from Root the path struct for its child "list".
-func (n *Root) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPath {
+// List returns from RootPath the path struct for its child "list".
+func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPath {
 	return &ListPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -1462,16 +1462,16 @@ func (n *ContainerWithConfigAny) Leaflist2() *ContainerWithConfig_Leaflist2Any {
 		inDirectory:        directories["/root"],
 		inPathStructSuffix: "Path",
 		want: GoPathStructCodeSnippet{
-			PathStructName: "Root",
+			PathStructName: "RootPath",
 			StructBase: `
-// Root represents the /root YANG schema element.
-type Root struct {
+// RootPath represents the /root YANG schema element.
+type RootPath struct {
 	*ygot.DeviceRootBase
 }
 
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *Root {
-	return &Root{ygot.NewDeviceRootBase(id)}
+func DeviceRoot(id string) *RootPath {
+	return &RootPath{ygot.NewDeviceRootBase(id)}
 }
 
 // LeafPath represents the /root-module/leaf YANG schema element.
@@ -1485,8 +1485,8 @@ type LeafPathAny struct {
 }
 `,
 			ChildConstructors: `
-// Container returns from Root the path struct for its child "container".
-func (n *Root) Container() *ContainerPath {
+// Container returns from RootPath the path struct for its child "container".
+func (n *RootPath) Container() *ContainerPath {
 	return &ContainerPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"container"},
@@ -1496,8 +1496,8 @@ func (n *Root) Container() *ContainerPath {
 	}
 }
 
-// ContainerWithConfig returns from Root the path struct for its child "container-with-config".
-func (n *Root) ContainerWithConfig() *ContainerWithConfigPath {
+// ContainerWithConfig returns from RootPath the path struct for its child "container-with-config".
+func (n *RootPath) ContainerWithConfig() *ContainerWithConfigPath {
 	return &ContainerWithConfigPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"container-with-config"},
@@ -1507,8 +1507,8 @@ func (n *Root) ContainerWithConfig() *ContainerWithConfigPath {
 	}
 }
 
-// Leaf returns from Root the path struct for its child "leaf".
-func (n *Root) Leaf() *LeafPath {
+// Leaf returns from RootPath the path struct for its child "leaf".
+func (n *RootPath) Leaf() *LeafPath {
 	return &LeafPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"leaf"},
@@ -1518,8 +1518,8 @@ func (n *Root) Leaf() *LeafPath {
 	}
 }
 ` + wantListMethods + `
-// ListWithStateAny returns from Root the path struct for its child "list-with-state".
-func (n *Root) ListWithStateAny() *ListWithStatePathAny {
+// ListWithStateAny returns from RootPath the path struct for its child "list-with-state".
+func (n *RootPath) ListWithStateAny() *ListWithStatePathAny {
 	return &ListWithStatePathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},
@@ -1529,8 +1529,8 @@ func (n *Root) ListWithStateAny() *ListWithStatePathAny {
 	}
 }
 
-// ListWithState returns from Root the path struct for its child "list-with-state".
-func (n *Root) ListWithState(Key float64) *ListWithStatePath {
+// ListWithState returns from RootPath the path struct for its child "list-with-state".
+func (n *RootPath) ListWithState(Key float64) *ListWithStatePath {
 	return &ListWithStatePath{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},
@@ -1788,8 +1788,8 @@ func TestGenerateChildConstructor(t *testing.T) {
 		inUniqueFieldName:  "Container",
 		inPathStructSuffix: "Path",
 		want: `
-// Container returns from Root the path struct for its child "container".
-func (n *Root) Container() *ContainerPath {
+// Container returns from RootPath the path struct for its child "container".
+func (n *RootPath) Container() *ContainerPath {
 	return &ContainerPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"container"},
@@ -1837,8 +1837,8 @@ func (n *ContainerPathAny) Leaf() *Container_LeafPathAny {
 		inUniqueFieldName:  "Leaf",
 		inPathStructSuffix: "Path",
 		want: `
-// Leaf returns from Root the path struct for its child "leaf".
-func (n *Root) Leaf() *LeafPath {
+// Leaf returns from RootPath the path struct for its child "leaf".
+func (n *RootPath) Leaf() *LeafPath {
 	return &LeafPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"leaf"},
@@ -2005,8 +2005,8 @@ func (n *ContainerPathAny) InnerContainer() *Container_InnerContainerPathAny {
 		inUniqueFieldName:  "ListWithState",
 		inPathStructSuffix: "Path",
 		want: `
-// ListWithStateAny returns from Root the path struct for its child "list-with-state".
-func (n *Root) ListWithStateAny() *ListWithStatePathAny {
+// ListWithStateAny returns from RootPath the path struct for its child "list-with-state".
+func (n *RootPath) ListWithStateAny() *ListWithStatePathAny {
 	return &ListWithStatePathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},
@@ -2016,8 +2016,8 @@ func (n *Root) ListWithStateAny() *ListWithStatePathAny {
 	}
 }
 
-// ListWithState returns from Root the path struct for its child "list-with-state".
-func (n *Root) ListWithState(Key float64) *ListWithStatePath {
+// ListWithState returns from RootPath the path struct for its child "list-with-state".
+func (n *RootPath) ListWithState(Key float64) *ListWithStatePath {
 	return &ListWithStatePath{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container-with-state", "list-with-state"},
@@ -2053,8 +2053,8 @@ func (n *Root) ListWithState(Key float64) *ListWithStatePath {
 		inListBuilderKeyThreshold: 3,
 		inPathStructSuffix:        "Path",
 		want: `
-// ListAny returns from Root the path struct for its child "list".
-func (n *Root) ListAny() *ListPathAny {
+// ListAny returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAny() *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},

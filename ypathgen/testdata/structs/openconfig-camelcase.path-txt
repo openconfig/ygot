@@ -110,18 +110,18 @@ func (n *BGP_NeighborPathAny) PeerIP() *BGP_Neighbor_PeerIPPathAny {
 	}
 }
 
-// Device represents the /device YANG schema element.
-type Device struct {
+// DevicePath represents the /device YANG schema element.
+type DevicePath struct {
 	*ygot.DeviceRootBase
 }
 
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *Device {
-	return &Device{ygot.NewDeviceRootBase(id)}
+func DeviceRoot(id string) *DevicePath {
+	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// BGP returns from Device the path struct for its child "bgp".
-func (n *Device) BGP() *BGPPath {
+// BGP returns from DevicePath the path struct for its child "bgp".
+func (n *DevicePath) BGP() *BGPPath {
 	return &BGPPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"bgp"},
