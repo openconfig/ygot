@@ -20,7 +20,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
-	oc "github.com/openconfig/ygot/exampleocpath"
+	oc "github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ypathgen"
 )
@@ -116,73 +116,73 @@ func TestManualShortcuts(t *testing.T) {
 func TestPathCreation(t *testing.T) {
 	tests := []struct {
 		name     string
-		makePath func(*oc.Root) ygot.PathStruct
+		makePath func(*oc.DevicePath) ygot.PathStruct
 		wantPath string
 	}{{
 		name: "simple",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Stp()
 		},
 		wantPath: "/stp",
 	}, {
 		name: "simple prefixing",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			stp := root.Stp()
 			return stp.Global()
 		},
 		wantPath: "/stp/global",
 	}, {
 		name: "simple chain",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Stp().Global()
 		},
 		wantPath: "/stp/global",
 	}, {
 		name: "simple chain with leaf",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Stp().Global().EnabledProtocol()
 		},
 		wantPath: "/stp/global/state/enabled-protocol",
 	}, {
 		name: "simple list",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Ethernet().PortSpeed()
 		},
 		wantPath: "/interfaces/interface[name=eth1]/ethernet/state/port-speed",
 	}, {
 		name: "chain with multiple lists",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
 		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
 	}, {
 		name: "fakeroot",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root
 		},
 		wantPath: "/",
 	}, {
 		name: "identity ref key",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.NetworkInstance("DEFAULT").Protocol(oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").Enabled()
 		},
 		wantPath: "/network-instances/network-instance[name=DEFAULT]/protocols/protocol[identifier=BGP][name=15169]/state/enabled",
 	}, {
 		name: "enumeration key",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.NetworkInstance("DEFAULT").Mpls().SignalingProtocols().Ldp().InterfaceAttributes().Interface("eth1").AddressFamily(oc.OpenconfigMplsLdp_MplsLdpAfi_IPV4).AfiName()
 		},
 		wantPath: "/network-instances/network-instance[name=DEFAULT]/mpls/signaling-protocols/ldp/interface-attributes/interfaces/interface[interface-id=eth1]/address-families/address-family[afi-name=IPV4]/state/afi-name",
 	}, {
 		name: "union key (uint32 value)",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			label100 := &oc.NetworkInstance_Mpls_SignalingProtocols_SegmentRouting_Interface_SidCounter_MplsLabel_Union_Uint32{100}
 			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(label100).InOctets()
 		},
 		wantPath: "/network-instances/network-instance[name=RED]/mpls/signaling-protocols/segment-routing/interfaces/interface[interface-id=eth1]/sid-counters/sid-counter[mpls-label=100]/state/in-octets",
 	}, {
 		name: "union key (enum value)",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			implicitNull := oc.SidCounter_MplsLabel_IMPLICIT_NULL
 			iNullInUnion := &oc.NetworkInstance_Mpls_SignalingProtocols_SegmentRouting_Interface_SidCounter_MplsLabel_Union_E_SidCounter_MplsLabel{implicitNull}
 			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(iNullInUnion).InOctets()
@@ -190,43 +190,43 @@ func TestPathCreation(t *testing.T) {
 		wantPath: "/network-instances/network-instance[name=RED]/mpls/signaling-protocols/segment-routing/interfaces/interface[interface-id=eth1]/sid-counters/sid-counter[mpls-label=IMPLICIT_NULL]/state/in-octets",
 	}, {
 		name: "Builder API constructor",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny()
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=*][oui-subtype=*]",
 	}, {
 		name: "Builder API constructor going beyond the list",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().Value()
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=*][oui-subtype=*]/state/value",
 	}, {
 		name: "Builder API builder for type",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().WithType(3)
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=3][oui=*][oui-subtype=*]",
 	}, {
 		name: "Builder API builder for oui",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().WithOui("bar")
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=bar][oui-subtype=*]",
 	}, {
 		name: "Builder API builder for subtype",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().WithOuiSubtype("baz").Value()
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=*][oui=*][oui-subtype=baz]/state/value",
 	}, {
 		name: "Builder API builder for type and oui",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().WithType(3).WithOui("bar")
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=3][oui=bar][oui-subtype=*]",
 	}, {
 		name: "Builder API builder for type and oui and oui-subtype",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Lldp().Interface("foo").Neighbor("mars").TlvAny().WithOui("bar").WithType(3).WithOuiSubtype("baz")
 		},
 		wantPath: "/lldp/interfaces/interface[name=foo]/neighbors/neighbor[id=mars]/custom-tlvs/tlv[type=3][oui=bar][oui-subtype=baz]",
@@ -242,152 +242,152 @@ func TestPathCreation(t *testing.T) {
 func TestWildcardPathCreation(t *testing.T) {
 	tests := []struct {
 		name            string
-		makePath        func(*oc.Root) ygot.PathStruct
+		makePath        func(*oc.DevicePath) ygot.PathStruct
 		wantPath        string
-		makeWildPath    func(*oc.Root) ygot.PathStruct
+		makeWildPath    func(*oc.DevicePath) ygot.PathStruct
 		wantWildPath    string
 		bothAreWildcard bool
 	}{{
 		name: "check interface wildcard type",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1")
 		},
 		wantPath: "/interfaces/interface[name=eth1]",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny()
 		},
 		wantWildPath: "/interfaces/interface[name=*]",
 	}, {
 		name: "check 2nd-level wildcard type",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1)
 		},
 		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().Subinterface(1)
 		},
 		wantWildPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]",
 	}, {
 		name: "check 2nd-level wildcard type with different path",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1)
 		},
 		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").SubinterfaceAny()
 		},
 		wantWildPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=*]",
 	}, {
 		name: "check 2nd-level wildcard type with multiple wildcards",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").SubinterfaceAny()
 		},
 		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=*]",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().SubinterfaceAny()
 		},
 		wantWildPath:    "/interfaces/interface[name=*]/subinterfaces/subinterface[index=*]",
 		bothAreWildcard: true,
 	}, {
 		name: "check 3rd-level wildcard type",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6()
 		},
 		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().Subinterface(1).Ipv6()
 		},
 		wantWildPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6",
 	}, {
 		name: "check 4th-level wildcard type",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().Address("1:2:3:4::")
 		},
 		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().Subinterface(1).Ipv6().Address("1:2:3:4::")
 		},
 		wantWildPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]",
 	}, {
 		name: "check 5th-level wildcard type",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2)
 		},
 		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2)
 		},
 		wantWildPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]",
 	}, {
 		name: "check 6th-level leaf wildcard type",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
 		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
 		wantWildPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
 	}, {
 		name: "check 6th-level leaf wildcard type in a different path",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
 		wantPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().AddressAny().VrrpGroup(2).PreemptDelay()
 		},
 		wantWildPath: "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=*]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
 	}, {
 		name: "check 6th-level leaf wildcard types are same between different paths",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
 		wantPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Interface("eth1").Subinterface(1).Ipv6().AddressAny().VrrpGroup(2).PreemptDelay()
 		},
 		wantWildPath:    "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=*]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
 		bothAreWildcard: true,
 	}, {
 		name: "check 6th-level leaf wildcard type for multiple wildcards",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().Subinterface(1).Ipv6().Address("1:2:3:4::").VrrpGroup(2).PreemptDelay()
 		},
 		wantPath: "/interfaces/interface[name=*]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1:2:3:4::]/vrrp/vrrp-group[virtual-router-id=2]/state/preempt-delay",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.InterfaceAny().SubinterfaceAny().Ipv6().AddressAny().VrrpGroupAny().PreemptDelay()
 		},
 		wantWildPath:    "/interfaces/interface[name=*]/subinterfaces/subinterface[index=*]/ipv6/addresses/address[ip=*]/vrrp/vrrp-group[virtual-router-id=*]/state/preempt-delay",
 		bothAreWildcard: true,
 	}, {
 		name: "multi-keyed wildcarding",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Acl().AclSet("foo", oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4)
 		},
 		wantPath: "/acl/acl-sets/acl-set[name=foo][type=ACL_IPV4]",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Acl().AclSetAny()
 		},
 		wantWildPath: "/acl/acl-sets/acl-set[name=*][type=*]",
 	}, {
 		name: "multi-keyed wildcarding: AnyName",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Acl().AclSetAny()
 		},
 		wantPath: "/acl/acl-sets/acl-set[name=*][type=*]",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Acl().AclSetAnyName(oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4)
 		},
 		wantWildPath:    "/acl/acl-sets/acl-set[name=*][type=ACL_IPV4]",
 		bothAreWildcard: true,
 	}, {
 		name: "multi-keyed wildcarding: AnyType",
-		makePath: func(root *oc.Root) ygot.PathStruct {
+		makePath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Acl().AclSetAny()
 		},
 		wantPath: "/acl/acl-sets/acl-set[name=*][type=*]",
-		makeWildPath: func(root *oc.Root) ygot.PathStruct {
+		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
 			return root.Acl().AclSetAnyType("foo")
 		},
 		wantWildPath:    "/acl/acl-sets/acl-set[name=foo][type=*]",
