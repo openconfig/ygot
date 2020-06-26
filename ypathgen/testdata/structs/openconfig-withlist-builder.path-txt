@@ -14,18 +14,18 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
-// Device represents the /device YANG schema element.
-type Device struct {
+// DevicePath represents the /device YANG schema element.
+type DevicePath struct {
 	*ygot.DeviceRootBase
 }
 
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *Device {
-	return &Device{ygot.NewDeviceRootBase(id)}
+func DeviceRoot(id string) *DevicePath {
+	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// Model returns from Device the path struct for its child "model".
-func (n *Device) Model() *ModelPath {
+// Model returns from DevicePath the path struct for its child "model".
+func (n *DevicePath) Model() *ModelPath {
 	return &ModelPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"model"},

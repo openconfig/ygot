@@ -140,18 +140,18 @@ func (n *CPathAny) Cl() *C_ClPathAny {
 	}
 }
 
-// Device represents the /device YANG schema element.
-type Device struct {
+// DevicePath represents the /device YANG schema element.
+type DevicePath struct {
 	*ygot.DeviceRootBase
 }
 
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *Device {
-	return &Device{ygot.NewDeviceRootBase(id)}
+func DeviceRoot(id string) *DevicePath {
+	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// AListAny returns from Device the path struct for its child "a-list".
-func (n *Device) AListAny() *AListPathAny {
+// AListAny returns from DevicePath the path struct for its child "a-list".
+func (n *DevicePath) AListAny() *AListPathAny {
 	return &AListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"a-lists", "a-list"},
@@ -161,8 +161,8 @@ func (n *Device) AListAny() *AListPathAny {
 	}
 }
 
-// AList returns from Device the path struct for its child "a-list".
-func (n *Device) AList(Value AList_Value_Union) *AListPath {
+// AList returns from DevicePath the path struct for its child "a-list".
+func (n *DevicePath) AList(Value AList_Value_Union) *AListPath {
 	return &AListPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"a-lists", "a-list"},
@@ -172,8 +172,8 @@ func (n *Device) AList(Value AList_Value_Union) *AListPath {
 	}
 }
 
-// BListAny returns from Device the path struct for its child "b-list".
-func (n *Device) BListAny() *BListPathAny {
+// BListAny returns from DevicePath the path struct for its child "b-list".
+func (n *DevicePath) BListAny() *BListPathAny {
 	return &BListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"b-lists", "b-list"},
@@ -183,8 +183,8 @@ func (n *Device) BListAny() *BListPathAny {
 	}
 }
 
-// BList returns from Device the path struct for its child "b-list".
-func (n *Device) BList(Value BList_Value_Union) *BListPath {
+// BList returns from DevicePath the path struct for its child "b-list".
+func (n *DevicePath) BList(Value BList_Value_Union) *BListPath {
 	return &BListPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"b-lists", "b-list"},
@@ -194,8 +194,8 @@ func (n *Device) BList(Value BList_Value_Union) *BListPath {
 	}
 }
 
-// C returns from Device the path struct for its child "c".
-func (n *Device) C() *CPath {
+// C returns from DevicePath the path struct for its child "c".
+func (n *DevicePath) C() *CPath {
 	return &CPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"c"},
@@ -205,8 +205,8 @@ func (n *Device) C() *CPath {
 	}
 }
 
-// Parent returns from Device the path struct for its child "parent".
-func (n *Device) Parent() *ParentPath {
+// Parent returns from DevicePath the path struct for its child "parent".
+func (n *DevicePath) Parent() *ParentPath {
 	return &ParentPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"parent"},
