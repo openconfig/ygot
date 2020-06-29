@@ -48,12 +48,18 @@ const (
 	// to a directory. Structs are divided alphabetically and the first character appended to the
 	// base specified in this value - e.g., structs beginning with "A" are stored in {structBaseFnA}.go.
 	structBaseFn = "structs_"
+	// pathStructsFileFmt is the format string filename (missing index) to
+	// be used for the path structs when path struct code is output to a directory.
+	pathStructsFileFmt = "path_structs-%d.go"
 )
 
 var (
-	ocStructsOutputFile     = flag.String("output_file", "", "The file that the generated Go code for manipulating YANG data should be written to. Specify \"-\" for stdout. If both this and output_dir are empty, then schema structs will not be output.")
-	ocStructsOutputDir      = flag.String("output_dir", "", "The directory that the Go package for manipulating YANG data should be written to.")
-	ocPathStructsOutputFile = flag.String("path_structs_output_file", "", "The file that the generated Go code for YANG path construction will be generated. If empty, then path structs are not generated. Specify \"-\" for stdout.")
+	generateGoStructs       = flag.Bool("generate_structs", true, "If true, then Go code for YANG path construction (schema/Go structs) will be generated.")
+	generatePathStructs     = flag.Bool("generate_path_structs", false, "If true, then Go code for YANG path construction (path structs) will be generated.")
+	ocStructsOutputFile     = flag.String("output_file", "", "The file that the generated Go code for manipulating YANG data (schema/Go structs) should be written to. Specify \"-\" for stdout. If both this and output_dir are empty, then schema structs will not be output.")
+	ocPathStructsOutputFile = flag.String("path_structs_output_file", "", "The file that the generated Go code for YANG path construction (path structs) will be generated. If empty, then path structs are not generated. Specify \"-\" for stdout.")
+	pathStructsFileN        = flag.Int("path_structs_split_files_count", 0, "The number of files to split the generated path structs into when output_file is specified for generating path structs")
+	outputDir               = flag.String("output_dir", "", "The directory that the generated Go code should be written to. This is common between schema structs and path structs.")
 	compressPaths           = flag.Bool("compress_paths", false, "If set to true, the schema's paths are compressed, according to OpenConfig YANG module conventions. Path structs generation currently only supports compressed paths.")
 
 	// Common flags used for GoStruct and PathStruct generation.
@@ -211,6 +217,31 @@ func writeGoCodeMultipleFiles(dir string, goCode *ygen.GeneratedGoCode) error {
 	return nil
 }
 
+// writeFiles creates or truncates files in a given base directory and writes
+// to them. Keys of the contents map are file names, and values are the
+// contents to be written. An error is returned if the base directory does not
+// exist. If a file cannot be written, the function aborts with the error,
+// leaving an unspecified set of the other input files written with their given
+// contents.
+func writeFiles(dir string, out map[string]string) error {
+	for filename, contents := range out {
+		if len(contents) == 0 {
+			continue
+		}
+		fh := genutil.OpenFile(filepath.Join(dir, filename))
+		if fh == nil {
+			return fmt.Errorf("could not open file %q", filename)
+		}
+		if _, err := fh.WriteString(contents); err != nil {
+			return err
+		}
+		// flush & close written files before function finishes.
+		defer genutil.SyncFile(fh)
+	}
+
+	return nil
+}
+
 // main parses command-line flags to determine the set of YANG modules for
 // which code generation should be performed, and calls the codegen library
 // to generate Go code corresponding to their schema. The output is written
@@ -222,6 +253,14 @@ func main() {
 	generateModules := flag.Args()
 	if len(generateModules) == 0 {
 		log.Exitln("Error: no input modules specified")
+	}
+
+	if !*generateGoStructs && !*generatePathStructs {
+		log.Exitf("Error: Neither schema structs nor path structs generation is enabled.")
+	}
+
+	if *generateGoStructs && *schemaStructPath != "" {
+		log.Exitf("Error: supplied non-empty schema_struct_path for import by path structs file(s), but schema structs are also to be generated within the same package.")
 	}
 
 	// Determine the set of paths that should be searched for included
@@ -247,84 +286,95 @@ func main() {
 		}
 	}
 
-	if *ocStructsOutputFile != "" && *ocStructsOutputDir != "" {
-		log.Exitf("Error: cannot specify both ocStructsOutputFile (%s) and ocStructsOutputDir (%s)", *ocStructsOutputFile, *ocStructsOutputDir)
-	}
+	if *generateGoStructs {
+		generateGoStructsSingleFile := *ocStructsOutputFile != ""
+		generateGoStructsMultipleFiles := *outputDir != ""
+		if generateGoStructsSingleFile && generateGoStructsMultipleFiles {
+			log.Exitf("Error: cannot specify both output_file (%s) and output_dir (%s)", *ocStructsOutputFile, *outputDir)
+		}
+		if !generateGoStructsSingleFile && !generateGoStructsMultipleFiles {
+			log.Exitf("Error: Go struct generation requires a specified output file or output directory.")
+		}
 
-	compressBehaviour, err := genutil.TranslateToCompressBehaviour(*compressPaths, *excludeState, *preferOperationalState)
-	if err != nil {
-		log.Exitf("ERROR Generating Code: %v\n", err)
-	}
+		compressBehaviour, err := genutil.TranslateToCompressBehaviour(*compressPaths, *excludeState, *preferOperationalState)
+		if err != nil {
+			log.Exitf("ERROR Generating Code: %v\n", err)
+		}
 
-	// Perform the code generation.
-	cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
-		ParseOptions: ygen.ParseOpts{
-			ExcludeModules:        modsExcluded,
-			SkipEnumDeduplication: *skipEnumDedup,
-			YANGParseOptions: yang.Options{
-				IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+		// Perform the code generation.
+		cg := ygen.NewYANGCodeGenerator(&ygen.GeneratorConfig{
+			ParseOptions: ygen.ParseOpts{
+				ExcludeModules:        modsExcluded,
+				SkipEnumDeduplication: *skipEnumDedup,
+				YANGParseOptions: yang.Options{
+					IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
+				},
 			},
-		},
-		TransformationOptions: ygen.TransformationOpts{
-			CompressBehaviour:    compressBehaviour,
-			GenerateFakeRoot:     *generateFakeRoot,
-			FakeRootName:         *fakeRootName,
-			ShortenEnumLeafNames: *shortenEnumLeafNames,
-		},
-		PackageName:        *packageName,
-		GenerateJSONSchema: *generateSchema,
-		GoOptions: ygen.GoOpts{
-			YgotImportPath:       *ygotImportPath,
-			YtypesImportPath:     *ytypesImportPath,
-			GoyangImportPath:     *goyangImportPath,
-			GenerateRenameMethod: *generateRename,
-			AddAnnotationFields:  *addAnnotations,
-			AnnotationPrefix:     *annotationPrefix,
-			GenerateGetters:      *generateGetters,
-			GenerateDeleteMethod: *generateDelete,
-			GenerateAppendMethod: *generateAppend,
-			GenerateLeafGetters:  *generateLeafGetters,
-			IncludeModelData:     *includeModelData,
-		},
-	})
+			TransformationOptions: ygen.TransformationOpts{
+				CompressBehaviour:    compressBehaviour,
+				GenerateFakeRoot:     *generateFakeRoot,
+				FakeRootName:         *fakeRootName,
+				ShortenEnumLeafNames: *shortenEnumLeafNames,
+			},
+			PackageName:        *packageName,
+			GenerateJSONSchema: *generateSchema,
+			GoOptions: ygen.GoOpts{
+				YgotImportPath:       *ygotImportPath,
+				YtypesImportPath:     *ytypesImportPath,
+				GoyangImportPath:     *goyangImportPath,
+				GenerateRenameMethod: *generateRename,
+				AddAnnotationFields:  *addAnnotations,
+				AnnotationPrefix:     *annotationPrefix,
+				GenerateGetters:      *generateGetters,
+				GenerateDeleteMethod: *generateDelete,
+				GenerateAppendMethod: *generateAppend,
+				GenerateLeafGetters:  *generateLeafGetters,
+				IncludeModelData:     *includeModelData,
+			},
+		})
 
-	generatedGoCode, errs := cg.GenerateGoCode(generateModules, includePaths)
-	if errs != nil {
-		log.Exitf("ERROR Generating GoStruct Code: %v\n", errs)
-	}
-
-	goStructsGenerated := true
-	// If "-" is the output file name, we output to os.Stdout, otherwise
-	// we write to the specified file.
-	if *ocStructsOutputFile != "" {
-		var outfh *os.File
-		switch *ocStructsOutputFile {
-		case "-":
-			outfh = os.Stdout
-		default:
-			// Assign the newly created filehandle to the outfh, and ensure
-			// that it is synced and closed before exit of main.
-			outfh = genutil.OpenFile(*ocStructsOutputFile)
-			defer genutil.SyncFile(outfh)
+		generatedGoCode, errs := cg.GenerateGoCode(generateModules, includePaths)
+		if errs != nil {
+			log.Exitf("ERROR Generating GoStruct Code: %v\n", errs)
 		}
 
-		writeGoCodeSingleFile(outfh, generatedGoCode)
-	} else if *ocStructsOutputDir != "" {
-		// Write the Go code to a series of output files.
-		writeGoCodeMultipleFiles(*ocStructsOutputDir, generatedGoCode)
-	} else {
-		goStructsGenerated = false
+		switch {
+		case generateGoStructsSingleFile:
+			var outfh *os.File
+			switch *ocStructsOutputFile {
+			case "-":
+				// If "-" is the output file name, we output to os.Stdout, otherwise
+				// we write to the specified file.
+				outfh = os.Stdout
+			default:
+				// Assign the newly created filehandle to the outfh, and ensure
+				// that it is synced and closed before exit of main.
+				outfh = genutil.OpenFile(*ocStructsOutputFile)
+				defer genutil.SyncFile(outfh)
+			}
+
+			writeGoCodeSingleFile(outfh, generatedGoCode)
+		case generateGoStructsMultipleFiles:
+			// Write the Go code to a series of output files.
+			writeGoCodeMultipleFiles(*outputDir, generatedGoCode)
+		}
 	}
 
-	// Generate PathStructs if output file given.
-	if *ocPathStructsOutputFile == "" {
-		if !goStructsGenerated {
-			log.Exitf("Error: No output files specified for either schema struct or path struct generation.")
-		}
+	// Generate PathStructs.
+	if !*generatePathStructs {
 		return
 	}
 	if !*compressPaths {
-		log.Exitf("Error: PathStruct generation not supported for uncompressed paths. Please use compressed paths or remove output file flag for path struct generation.")
+		log.Exitf("Error: path struct generation not supported for uncompressed paths. Please use compressed paths or remove output file flag for path struct generation.")
+	}
+
+	generatePathStructsSingleFile := *ocPathStructsOutputFile != ""
+	generatePathStructsMultipleFiles := *outputDir != ""
+	if generatePathStructsSingleFile && generatePathStructsMultipleFiles {
+		log.Exitf("Error: cannot specify both path_structs_output_file (%s) and output_dir (%s)", *ocStructsOutputFile, *outputDir)
+	}
+	if !generatePathStructsSingleFile && !generatePathStructsMultipleFiles {
+		log.Exitf("Error: path struct generation requires a specified output file or directory.")
 	}
 
 	// Perform the code generation.
@@ -352,18 +402,34 @@ func main() {
 		log.Exitf("ERROR Generating PathStruct Code: %s\n", errs)
 	}
 
-	// If "-" is the output file name, we output to os.Stdout, otherwise
-	// we write to the specified file.
-	var outfh *os.File
-	switch *ocPathStructsOutputFile {
-	case "-":
-		outfh = os.Stdout
-	default:
-		// Assign the newly created filehandle to the outfh, and ensure
-		// that it is synced and closed before exit of main.
-		outfh = genutil.OpenFile(*ocPathStructsOutputFile)
-		defer genutil.SyncFile(outfh)
-	}
+	switch {
+	case generatePathStructsSingleFile:
+		var outfh *os.File
+		switch *ocPathStructsOutputFile {
+		case "-":
+			// If "-" is the output file name, we output to os.Stdout, otherwise
+			// we write to the specified file.
+			outfh = os.Stdout
+		default:
+			// Assign the newly created filehandle to the outfh, and ensure
+			// that it is synced and closed before exit of main.
+			outfh = genutil.OpenFile(*ocPathStructsOutputFile)
+			defer genutil.SyncFile(outfh)
+		}
 
-	writeGoPathCodeSingleFile(outfh, pathCode)
+		writeGoPathCodeSingleFile(outfh, pathCode)
+	case generatePathStructsMultipleFiles:
+		out := map[string]string{}
+		// Split the path struct code into files.
+		files, err := pathCode.SplitFiles(*pathStructsFileN)
+		if err != nil {
+			log.Exitf("Error while splitting path structs code into %d files: %v\n", pathStructsFileN, err)
+		}
+		for i, file := range files {
+			out[fmt.Sprintf(pathStructsFileFmt, i)] = file
+		}
+		if err := writeFiles(*outputDir, out); err != nil {
+			log.Exitf("Error while writing path struct files: %v", err)
+		}
+	}
 }

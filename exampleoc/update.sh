@@ -13,7 +13,8 @@ runsed() {
 git clone https://github.com/openconfig/public.git
 mkdir deps
 cp ../demo/getting_started/yang/{ietf,iana}* deps
-go run ../generator/generator.go -path=public,deps -output_file=oc.go -path_structs_output_file=ocpath.go\
+go run ../generator/generator.go -path=public,deps -output_file=oc.go \
+  -generate_path_structs -path_structs_output_file=ocpath.go\
   -package_name=exampleoc -generate_fakeroot -fakeroot_name=device -compress_paths=true \
   -shorten_enum_leaf_names \
   -exclude_modules=ietf-interfaces \
