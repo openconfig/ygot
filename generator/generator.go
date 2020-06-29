@@ -73,7 +73,7 @@ var (
 	shortenEnumLeafNames   = flag.Bool("shorten_enum_leaf_names", false, "If also set to true when compress_paths=true, all leaves of type enumeration will by default not be prefixed with the name of its residing module.")
 	ygotImportPath         = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
 
-	// Flags only used for GoStruct generation.
+	// Flags used for GoStruct generation only.
 	generateFakeRoot    = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
 	generateSchema      = flag.Bool("include_schema", true, "If set to true, the YANG schema will be encoded as JSON and stored in the generated code artefact.")
 	ytypesImportPath    = flag.String("ytypes_path", genutil.GoDefaultYtypesImportPath, "The import path to use for ytypes.")
@@ -88,8 +88,8 @@ var (
 	generateLeafGetters = flag.Bool("generate_leaf_getters", false, "If set to true, getters for YANG leaves are generated within the Go code. Caution should be exercised when using leaf getters, since values that are explicitly set to the Go default/zero value are not distinguishable from those that are unset when retrieved via the GetXXX method.")
 	includeModelData    = flag.Bool("include_model_data", false, "If set to true, a slice of gNMI ModelData messages are included in the generated Go code containing the details of the input schemas from which the code was generated.")
 
-	// Flags only used for PathStruct generation.
-	schemaStructPath        = flag.String("schema_struct_path", "", "The import path to use for ygen-generated schema structs. This should only be specified if the generated path structs are to reside in a different package than the schema structs.")
+	// Flags used for PathStruct generation only.
+	schemaStructPath        = flag.String("schema_struct_path", "", "The Go import path for the schema structs package. This should be specified if and only if schema structs are not being generated at the same time as path structs.")
 	listBuilderKeyThreshold = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the builder API is used for key population. 0 means infinity.")
 	pathStructSuffix        = flag.String("path_struct_suffix", "Path", "The suffix string appended to each generated path struct in order to differentiate their names from their corresponding schema struct names.")
 )
@@ -259,8 +259,13 @@ func main() {
 		log.Exitf("Error: Neither schema structs nor path structs generation is enabled.")
 	}
 
-	if *generateGoStructs && *schemaStructPath != "" {
-		log.Exitf("Error: supplied non-empty schema_struct_path for import by path structs file(s), but schema structs are also to be generated within the same package.")
+	if *generatePathStructs {
+		if *generateGoStructs && *schemaStructPath != "" {
+			log.Exitf("Error: provided non-empty schema_struct_path for import by path structs file(s), but schema structs are also to be generated within the same package.")
+		}
+		if !*generateGoStructs && *schemaStructPath == "" {
+			log.Exitf("Error: need to provide schema_struct_path for import by path structs file(s) when schema structs are not being generated at the same time.")
+		}
 	}
 
 	// Determine the set of paths that should be searched for included
@@ -371,7 +376,7 @@ func main() {
 	generatePathStructsSingleFile := *ocPathStructsOutputFile != ""
 	generatePathStructsMultipleFiles := *outputDir != ""
 	if generatePathStructsSingleFile && generatePathStructsMultipleFiles {
-		log.Exitf("Error: cannot specify both path_structs_output_file (%s) and output_dir (%s)", *ocStructsOutputFile, *outputDir)
+		log.Exitf("Error: cannot specify both path_structs_output_file (%s) and output_dir (%s)", *ocPathStructsOutputFile, *outputDir)
 	}
 	if !generatePathStructsSingleFile && !generatePathStructsMultipleFiles {
 		log.Exitf("Error: path struct generation requires a specified output file or directory.")
