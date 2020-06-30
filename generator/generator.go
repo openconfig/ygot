@@ -42,13 +42,9 @@ const (
 	schemaFn = "schema.go"
 	// interfaceFn is the filename to be used for interface code when outputting to a directory.
 	interfaceFn = "union.go"
-	// methodFn is the filename to be used for methods related to the structs when outputting
-	// to a directory.
-	methodFn = "methods.go"
-	// structBaseFn is the base filename to be used for files containing structs when outputting
-	// to a directory. Structs are divided alphabetically and the first character appended to the
-	// base specified in this value - e.g., structs beginning with "A" are stored in {structBaseFnA}.go.
-	structBaseFn = "structs_"
+	// structsFileFmt is the format string filename (missing index) to be
+	// used for files containing structs when outputting to a directory.
+	structsFileFmt = "structs-%d.go"
 	// pathStructsFileFmt is the format string filename (missing index) to
 	// be used for the path structs when path struct code is output to a directory.
 	pathStructsFileFmt = "path_structs-%d.go"
@@ -58,7 +54,7 @@ var (
 	generateGoStructs       = flag.Bool("generate_structs", true, "If true, then Go code for YANG path construction (schema/Go structs) will be generated.")
 	generatePathStructs     = flag.Bool("generate_path_structs", false, "If true, then Go code for YANG path construction (path structs) will be generated.")
 	ocStructsOutputFile     = flag.String("output_file", "", "The file that the generated Go code for manipulating YANG data (schema/Go structs) should be written to. Specify \"-\" for stdout.")
-	structsFileN            = flag.Int("structs_split_files_count", 0, "The number of files to split the generated schema structs into when output_file is specified. When 0, the leading letter of struct names are used to separate the structs.")
+	structsFileN            = flag.Int("structs_split_files_count", 0, "The number of files to split the generated schema structs into when output_file is specified.")
 	ocPathStructsOutputFile = flag.String("path_structs_output_file", "", "The file that the generated Go code for YANG path construction (path structs) will be generated. Specify \"-\" for stdout.")
 	pathStructsFileN        = flag.Int("path_structs_split_files_count", 0, "The number of files to split the generated path structs into when output_file is specified for generating path structs")
 	outputDir               = flag.String("output_dir", "", "The directory that the generated Go code should be written to. This is common between schema structs and path structs.")
@@ -137,83 +133,25 @@ func writeGoPathCodeSingleFile(w io.Writer, pathCode *ypathgen.GeneratedPathCode
 	return err
 }
 
-// writeIfNotEmpty writes the string s to b if it has a non-zero length.
-func writeIfNotEmpty(b io.StringWriter, s string) {
-	if len(s) != 0 {
-		b.WriteString(s)
-	}
-}
-
-// codeOut describes an output file for Go code.
-type codeOut struct {
-	// contents is the code that is contained in the output file.
-	contents string
-	// writeEvenIfEmpty forces the file to be written even with empty contents.
-	writeEvenIfEmpty bool
-	// oneoffHeader indicates whether the one-off header should be included in this
-	// file.
-	oneoffHeader bool
-}
-
-// splitCodeByLeadingLetter generates a map, keyed by filename, to a codeOut struct containing
-// the code to be output to that filename. It allows division of a ygen.GeneratedGoCode
-// struct into a set of source files. It divides the methods, interfaces, and enumeration
-// code snippets into their own files. Structs are output into files dependent on the
-// first letter of their name within the code.
-func splitCodeByLeadingLetter(goCode *ygen.GeneratedGoCode) map[string]codeOut {
-	var methodCode, interfaceCode strings.Builder
-	structCode := map[byte]*strings.Builder{}
-	for _, s := range goCode.Structs {
-		// Index by the first character of the struct.
-		fc := s.StructName[0]
-		if _, ok := structCode[fc]; !ok {
-			structCode[fc] = &strings.Builder{}
-		}
-		cs := structCode[fc]
-		writeIfNotEmpty(cs, s.StructDef)
-		writeIfNotEmpty(cs, fmt.Sprintf("%s\n", s.ListKeys))
-		writeIfNotEmpty(&methodCode, fmt.Sprintf("%s\n", s.Methods))
-		writeIfNotEmpty(&interfaceCode, fmt.Sprintf("%s\n", s.Interfaces))
-	}
-
-	emap := &strings.Builder{}
-	writeIfNotEmpty(emap, goCode.EnumMap)
-	if emap.Len() != 0 {
-		emap.WriteString("\n")
-	}
-	writeIfNotEmpty(emap, goCode.EnumTypeMap)
-
-	out := map[string]codeOut{
-		enumMapFn:   {contents: emap.String()},
-		schemaFn:    {contents: goCode.JSONSchemaCode},
-		interfaceFn: {contents: interfaceCode.String()},
-		methodFn:    {contents: methodCode.String(), oneoffHeader: true},
-		enumFn:      {contents: strings.Join(goCode.Enums, "\n")},
-	}
-
-	for fn, code := range structCode {
-		out[fmt.Sprintf("%s%c.go", structBaseFn, fn)] = codeOut{
-			contents: code.String(),
-		}
-	}
-
-	return out
-}
-
-// splitCodeByFileN generates a map, keyed by filename, to a codeOut struct containing
+// splitCodeByFileN generates a map, keyed by filename, to a string containing
 // the code to be output to that filename. It allows division of a
 // ygen.GeneratedGoCode struct into a set of source files. It divides the
 // methods, interfaces, and enumeration code snippets into their own files.
 // Structs are output into files by splitting them evenly among the input split
-// number.  first letter of their name within the code.
-func splitCodeByFileN(goCode *ygen.GeneratedGoCode, fileN int) (map[string]codeOut, error) {
+// number.
+func splitCodeByFileN(goCode *ygen.GeneratedGoCode, fileN int) (map[string]string, error) {
 	structN := len(goCode.Structs)
 	if fileN < 1 || fileN > structN {
 		return nil, fmt.Errorf("requested %d files, but must be between 1 and %d (number of schema structs)", fileN, structN)
 	}
 
-	var structFiles []codeOut
-	var code, methodCode, interfaceCode strings.Builder
+	out := map[string]string{
+		schemaFn: goCode.JSONSchemaCode,
+		enumFn:   strings.Join(goCode.Enums, "\n"),
+	}
+
+	var structFiles []string
+	var code, interfaceCode strings.Builder
 	structsPerFile := int(math.Ceil(float64(structN) / float64(fileN)))
 	// Empty files could appear with certain structN/fileN combinations due
 	// to the ceiling numbers being used for structsPerFile.
@@ -223,22 +161,31 @@ func splitCodeByFileN(goCode *ygen.GeneratedGoCode, fileN int) (map[string]codeO
 	// the last file, we might double the last file's number of structs if we get unlucky.
 	// e.g. 99/10 assigns 18 structs to the last file.
 	emptyFiles := fileN - int(math.Ceil(float64(structN)/float64(structsPerFile)))
+	code.WriteString(goCode.OneOffHeader)
 	for i, s := range goCode.Structs {
 		code.WriteString(s.StructDef)
 		code.WriteString(s.ListKeys)
 		code.WriteString("\n")
-		methodCode.WriteString(s.Methods)
-		methodCode.WriteString("\n")
+		code.WriteString(s.Methods)
+		if s.Methods != "" {
+			code.WriteString("\n")
+		}
 		interfaceCode.WriteString(s.Interfaces)
-		interfaceCode.WriteString("\n")
+		if s.Interfaces != "" {
+			interfaceCode.WriteString("\n")
+		}
 		// The last file contains the remainder of the structs.
 		if i == structN-1 || (i+1)%structsPerFile == 0 {
-			structFiles = append(structFiles, codeOut{contents: code.String()})
+			structFiles = append(structFiles, code.String())
 			code.Reset()
 		}
 	}
 	for i := 0; i != emptyFiles; i++ {
-		structFiles = append(structFiles, codeOut{contents: "", writeEvenIfEmpty: true})
+		structFiles = append(structFiles, "")
+	}
+
+	for i, structFile := range structFiles {
+		out[fmt.Sprintf(structsFileFmt, i)] = structFile
 	}
 
 	code.Reset()
@@ -248,48 +195,14 @@ func splitCodeByFileN(goCode *ygen.GeneratedGoCode, fileN int) (map[string]codeO
 	}
 	code.WriteString(goCode.EnumTypeMap)
 
-	out := map[string]codeOut{
-		enumMapFn:   {contents: code.String()},
-		schemaFn:    {contents: goCode.JSONSchemaCode},
-		interfaceFn: {contents: interfaceCode.String()},
-		methodFn:    {contents: methodCode.String(), oneoffHeader: true},
-		enumFn:      {contents: strings.Join(goCode.Enums, "\n")},
-	}
+	out[enumMapFn] = code.String()
+	out[interfaceFn] = interfaceCode.String()
 
-	for i, structFile := range structFiles {
-		out[fmt.Sprintf("%s%d.go", structBaseFn, i)] = structFile
+	for name, code := range out {
+		out[name] = goCode.CommonHeader + code
 	}
 
 	return out, nil
-}
-
-// writeGoCodeMultipleFiles writes the input goCode to a set of files as specified
-// by specification returned by output spec.
-func writeGoCodeMultipleFiles(dir string, goCode *ygen.GeneratedGoCode, fileN int) error {
-	var out map[string]codeOut
-	if fileN == 0 {
-		out = splitCodeByLeadingLetter(goCode)
-	} else {
-		var err error
-		if out, err = splitCodeByFileN(goCode, fileN); err != nil {
-			return err
-		}
-	}
-
-	for fn, f := range out {
-		if !f.writeEvenIfEmpty && len(f.contents) == 0 {
-			continue
-		}
-		fh := genutil.OpenFile(filepath.Join(dir, fn))
-		defer genutil.SyncFile(fh)
-		fmt.Fprintln(fh, goCode.CommonHeader)
-		if f.oneoffHeader {
-			fmt.Fprintln(fh, goCode.OneOffHeader)
-		}
-		fmt.Fprintln(fh, f.contents)
-	}
-
-	return nil
 }
 
 // writeFiles creates or truncates files in a given base directory and writes
@@ -436,8 +349,12 @@ func main() {
 			writeGoCodeSingleFile(outfh, generatedGoCode)
 		case generateGoStructsMultipleFiles:
 			// Write the Go code to a series of output files.
-			if err := writeGoCodeMultipleFiles(*outputDir, generatedGoCode, *structsFileN); err != nil {
+			out, err := splitCodeByFileN(generatedGoCode, *structsFileN)
+			if err != nil {
 				log.Exitf("ERROR writing split GoStruct Code: %v\n", err)
+			}
+			if err := writeFiles(*outputDir, out); err != nil {
+				log.Exitf("Error while writing schema struct files: %v", err)
 			}
 		}
 	}
