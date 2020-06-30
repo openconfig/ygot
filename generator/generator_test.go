@@ -21,6 +21,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ypathgen"
 )
@@ -91,14 +92,18 @@ map
 	}
 }
 
-func TestMakeOutputSpec(t *testing.T) {
+func TestSplitCodeByFileN(t *testing.T) {
 	tests := []struct {
-		name string
-		in   *ygen.GeneratedGoCode
-		want map[string]codeOut
+		name             string
+		in               *ygen.GeneratedGoCode
+		inFileN          int
+		want             map[string]string
+		wantErrSubstring string
 	}{{
 		name: "simple struct with all only structs populated",
 		in: &ygen.GeneratedGoCode{
+			CommonHeader: "common_header\n",
+			OneOffHeader: "oneoff_header\n",
 			Structs: []ygen.GoStructCodeSnippet{{
 				StructName: "name",
 				StructDef:  "def\n",
@@ -107,17 +112,49 @@ func TestMakeOutputSpec(t *testing.T) {
 				Interfaces: "interfaces",
 			}},
 		},
-		want: map[string]codeOut{
-			enumMapFn:                           {},
-			enumFn:                              {},
-			schemaFn:                            {},
-			interfaceFn:                         {contents: "interfaces\n"},
-			methodFn:                            {contents: "methods\n", oneoffHeader: true},
-			fmt.Sprintf("%sn.go", structBaseFn): {contents: "def\nname_key\n"},
+		inFileN: 1,
+		want: map[string]string{
+			enumMapFn:                      "common_header\n",
+			enumFn:                         "common_header\n",
+			schemaFn:                       "common_header\n",
+			interfaceFn:                    "common_header\ninterfaces\n",
+			fmt.Sprintf(structsFileFmt, 0): "common_header\noneoff_header\ndef\nname_key\nmethods\n",
 		},
+	}, {
+		name: "less than 1 file requested for splitting",
+		in: &ygen.GeneratedGoCode{
+			CommonHeader: "common_header\n",
+			OneOffHeader: "oneoff_header\n",
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "name",
+				StructDef:  "def\n",
+				ListKeys:   "name_key",
+				Methods:    "methods",
+				Interfaces: "interfaces",
+			}},
+		},
+		inFileN:          0,
+		wantErrSubstring: "requested 0 files",
+	}, {
+		name: "more than # of structs files requested for splitting",
+		in: &ygen.GeneratedGoCode{
+			CommonHeader: "common_header\n",
+			OneOffHeader: "oneoff_header\n",
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "name",
+				StructDef:  "def\n",
+				ListKeys:   "name_key",
+				Methods:    "methods",
+				Interfaces: "interfaces",
+			}},
+		},
+		inFileN:          2,
+		wantErrSubstring: "requested 2 files",
 	}, {
 		name: "two structs with enums populated",
 		in: &ygen.GeneratedGoCode{
+			CommonHeader: "common_header\n",
+			OneOffHeader: "oneoff_header\n",
 			Structs: []ygen.GoStructCodeSnippet{{
 				StructName: "s1",
 				StructDef:  "s1def\n",
@@ -134,17 +171,19 @@ func TestMakeOutputSpec(t *testing.T) {
 			Enums:   []string{"enum1", "enum2"},
 			EnumMap: "enummap",
 		},
-		want: map[string]codeOut{
-			enumMapFn:                           {contents: "enummap\n"},
-			enumFn:                              {contents: "enum1\nenum2"},
-			schemaFn:                            {},
-			interfaceFn:                         {contents: "s1interfaces\ns2interfaces\n"},
-			fmt.Sprintf("%ss.go", structBaseFn): {contents: "s1def\ns1key\ns2def\ns2key\n"},
-			methodFn:                            {contents: "s1methods\ns2methods\n", oneoffHeader: true},
+		inFileN: 1,
+		want: map[string]string{
+			enumMapFn:                      "common_header\nenummap\n",
+			enumFn:                         "common_header\nenum1\nenum2",
+			schemaFn:                       "common_header\n",
+			interfaceFn:                    "common_header\ns1interfaces\ns2interfaces\n",
+			fmt.Sprintf(structsFileFmt, 0): "common_header\noneoff_header\ns1def\ns1key\ns1methods\ns2def\ns2key\ns2methods\n",
 		},
 	}, {
-		name: "two structs, different starting letters",
+		name: "two structs, separated into two files",
 		in: &ygen.GeneratedGoCode{
+			CommonHeader: "common_header\n",
+			OneOffHeader: "oneoff_header\n",
 			Structs: []ygen.GoStructCodeSnippet{{
 				StructName: "s1",
 				StructDef:  "s1def\n",
@@ -160,22 +199,153 @@ func TestMakeOutputSpec(t *testing.T) {
 			}},
 			JSONSchemaCode: "schema",
 		},
-		want: map[string]codeOut{
-			enumMapFn:                           {},
-			enumFn:                              {},
-			schemaFn:                            {contents: "schema"},
-			interfaceFn:                         {contents: "s1interfaces\nq2interfaces\n"},
-			fmt.Sprintf("%ss.go", structBaseFn): {contents: "s1def\ns1key\n"},
-			fmt.Sprintf("%sq.go", structBaseFn): {contents: "q2def\nq2key\n"},
-			methodFn:                            {contents: "s1methods\nq2methods\n", oneoffHeader: true},
+		inFileN: 2,
+		want: map[string]string{
+			enumMapFn:                      "common_header\n",
+			enumFn:                         "common_header\n",
+			schemaFn:                       "common_header\nschema",
+			interfaceFn:                    "common_header\ns1interfaces\nq2interfaces\n",
+			fmt.Sprintf(structsFileFmt, 0): "common_header\noneoff_header\ns1def\ns1key\ns1methods\n",
+			fmt.Sprintf(structsFileFmt, 1): "common_header\nq2def\nq2key\nq2methods\n",
+		},
+	}, {
+		name: "five structs, separated into four files",
+		in: &ygen.GeneratedGoCode{
+			CommonHeader: "common_header\n",
+			OneOffHeader: "oneoff_header\n",
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "s1",
+				StructDef:  "s1def\n",
+				ListKeys:   "s1key",
+				Methods:    "s1methods",
+				Interfaces: "s1interfaces",
+			}, {
+				StructName: "s2",
+				StructDef:  "s2def\n",
+				ListKeys:   "s2key",
+				Methods:    "s2methods",
+				Interfaces: "s2interfaces",
+			}, {
+				StructName: "s3",
+				StructDef:  "s3def\n",
+				ListKeys:   "s3key",
+			}, {
+				StructName: "s4",
+				StructDef:  "s4def\n",
+				ListKeys:   "s4key",
+			}, {
+				StructName: "s5",
+				StructDef:  "s5def\n",
+				ListKeys:   "s5key",
+			}},
+			JSONSchemaCode: "schema",
+		},
+		inFileN: 4,
+		want: map[string]string{
+			enumMapFn:                      "common_header\n",
+			enumFn:                         "common_header\n",
+			schemaFn:                       "common_header\nschema",
+			interfaceFn:                    "common_header\ns1interfaces\ns2interfaces\n",
+			fmt.Sprintf(structsFileFmt, 0): "common_header\noneoff_header\ns1def\ns1key\ns1methods\ns2def\ns2key\ns2methods\n",
+			fmt.Sprintf(structsFileFmt, 1): "common_header\ns3def\ns3key\ns4def\ns4key\n",
+			fmt.Sprintf(structsFileFmt, 2): "common_header\ns5def\ns5key\n",
+			fmt.Sprintf(structsFileFmt, 3): "common_header\n",
+		},
+	}, {
+		name: "five structs, separated into three files",
+		in: &ygen.GeneratedGoCode{
+			CommonHeader: "common_header\n",
+			OneOffHeader: "oneoff_header\n",
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "s1",
+				StructDef:  "s1def\n",
+				ListKeys:   "s1key",
+				Methods:    "s1methods",
+				Interfaces: "s1interfaces",
+			}, {
+				StructName: "s2",
+				StructDef:  "s2def\n",
+				ListKeys:   "s2key",
+				Methods:    "s2methods",
+				Interfaces: "s2interfaces",
+			}, {
+				StructName: "s3",
+				StructDef:  "s3def\n",
+				ListKeys:   "s3key",
+			}, {
+				StructName: "s4",
+				StructDef:  "s4def\n",
+				ListKeys:   "s4key",
+			}, {
+				StructName: "s5",
+				StructDef:  "s5def\n",
+				ListKeys:   "s5key",
+			}},
+			JSONSchemaCode: "schema",
+		},
+		inFileN: 3,
+		want: map[string]string{
+			enumMapFn:                      "common_header\n",
+			enumFn:                         "common_header\n",
+			schemaFn:                       "common_header\nschema",
+			interfaceFn:                    "common_header\ns1interfaces\ns2interfaces\n",
+			fmt.Sprintf(structsFileFmt, 0): "common_header\noneoff_header\ns1def\ns1key\ns1methods\ns2def\ns2key\ns2methods\n",
+			fmt.Sprintf(structsFileFmt, 1): "common_header\ns3def\ns3key\ns4def\ns4key\n",
+			fmt.Sprintf(structsFileFmt, 2): "common_header\ns5def\ns5key\n",
+		},
+	}, {
+		name: "five structs, separated into two files",
+		in: &ygen.GeneratedGoCode{
+			CommonHeader: "common_header\n",
+			OneOffHeader: "oneoff_header\n",
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "s1",
+				StructDef:  "s1def\n",
+				ListKeys:   "s1key",
+				Methods:    "s1methods",
+				Interfaces: "s1interfaces",
+			}, {
+				StructName: "s2",
+				StructDef:  "s2def\n",
+				ListKeys:   "s2key",
+				Methods:    "s2methods",
+				Interfaces: "s2interfaces",
+			}, {
+				StructName: "s3",
+				StructDef:  "s3def\n",
+				ListKeys:   "s3key",
+			}, {
+				StructName: "s4",
+				StructDef:  "s4def\n",
+				ListKeys:   "s4key",
+			}, {
+				StructName: "s5",
+				StructDef:  "s5def\n",
+				ListKeys:   "s5key",
+			}},
+			JSONSchemaCode: "schema",
+		},
+		inFileN: 2,
+		want: map[string]string{
+			enumMapFn:                      "common_header\n",
+			enumFn:                         "common_header\n",
+			schemaFn:                       "common_header\nschema",
+			interfaceFn:                    "common_header\ns1interfaces\ns2interfaces\n",
+			fmt.Sprintf(structsFileFmt, 0): "common_header\noneoff_header\ns1def\ns1key\ns1methods\ns2def\ns2key\ns2methods\ns3def\ns3key\n",
+			fmt.Sprintf(structsFileFmt, 1): "common_header\ns4def\ns4key\ns5def\ns5key\n",
 		},
 	}}
 
 	for _, tt := range tests {
-		got := makeOutputSpec(tt.in)
-		if diff := pretty.Compare(got, tt.want); diff != "" {
-			t.Errorf("%s: makeOutputSpec(%v): did not get expected output, diff (-got,+want):\n%s", tt.name, tt.in, diff)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := splitCodeByFileN(tt.in, tt.inFileN)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("did not get expected error, %v", diff)
+			}
+			if diff := pretty.Compare(got, tt.want); diff != "" {
+				t.Errorf("splitCodeByFileN(%v): did not get expected output, diff (-got,+want):\n%s", tt.in, diff)
+			}
+		})
 	}
 }
 

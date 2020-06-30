@@ -24,6 +24,7 @@ package ypathgen
 
 import (
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"text/template"
@@ -280,20 +281,29 @@ func (genCode GeneratedPathCode) SplitFiles(fileN int) ([]string, error) {
 	}
 
 	files := make([]string, 0, fileN)
-	structsPerFile := structN / fileN
+	structsPerFile := int(math.Ceil(float64(structN) / float64(fileN)))
+	// Empty files could appear with certain structN/fileN combinations due
+	// to the ceiling numbers being used for structsPerFile.
+	// e.g. 4/3 gives two files of two structs.
+	// This is a little more complex, but spreads out the structs more evenly.
+	// If we instead use the floor number, and put all remainder structs in
+	// the last file, we might double the last file's number of structs if we get unlucky.
+	// e.g. 99/10 assigns 18 structs to the last file.
+	emptyFiles := fileN - int(math.Ceil(float64(structN)/float64(structsPerFile)))
 	var gotCode strings.Builder
 	gotCode.WriteString(genCode.CommonHeader)
-
 	for i, gotStruct := range genCode.Structs {
+		gotCode.WriteString(gotStruct.String())
 		// The last file contains the remainder of the structs.
-		if i%structsPerFile == 0 && i >= structsPerFile && i < structsPerFile*fileN {
+		if i == structN-1 || (i+1)%structsPerFile == 0 {
 			files = append(files, gotCode.String())
 			gotCode.Reset()
 			gotCode.WriteString(genCode.CommonHeader)
 		}
-		gotCode.WriteString(gotStruct.String())
 	}
-	files = append(files, gotCode.String())
+	for i := 0; i != emptyFiles; i++ {
+		files = append(files, genCode.CommonHeader)
+	}
 
 	return files, nil
 }
