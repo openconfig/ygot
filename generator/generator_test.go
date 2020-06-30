@@ -21,6 +21,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ypathgen"
 )
@@ -91,7 +92,7 @@ map
 	}
 }
 
-func TestMakeOutputSpec(t *testing.T) {
+func TestSplitCodeByLeadingLetter(t *testing.T) {
 	tests := []struct {
 		name string
 		in   *ygen.GeneratedGoCode
@@ -172,10 +173,259 @@ func TestMakeOutputSpec(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got := makeOutputSpec(tt.in)
-		if diff := pretty.Compare(got, tt.want); diff != "" {
-			t.Errorf("%s: makeOutputSpec(%v): did not get expected output, diff (-got,+want):\n%s", tt.name, tt.in, diff)
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			got := splitCodeByLeadingLetter(tt.in)
+			if diff := pretty.Compare(got, tt.want); diff != "" {
+				t.Errorf("splitCodeByLeadingLetter(%v): did not get expected output, diff (-got,+want):\n%s", tt.in, diff)
+			}
+		})
+	}
+}
+
+func TestSplitCodeByFileN(t *testing.T) {
+	tests := []struct {
+		name             string
+		in               *ygen.GeneratedGoCode
+		inFileN          int
+		want             map[string]codeOut
+		wantErrSubstring string
+	}{{
+		name: "simple struct with all only structs populated",
+		in: &ygen.GeneratedGoCode{
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "name",
+				StructDef:  "def\n",
+				ListKeys:   "name_key",
+				Methods:    "methods",
+				Interfaces: "interfaces",
+			}},
+		},
+		inFileN: 1,
+		want: map[string]codeOut{
+			enumMapFn:                           {},
+			enumFn:                              {},
+			schemaFn:                            {},
+			interfaceFn:                         {contents: "interfaces\n"},
+			methodFn:                            {contents: "methods\n", oneoffHeader: true},
+			fmt.Sprintf("%s0.go", structBaseFn): {contents: "def\nname_key\n"},
+		},
+	}, {
+		name: "less than 1 file requested for splitting",
+		in: &ygen.GeneratedGoCode{
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "name",
+				StructDef:  "def\n",
+				ListKeys:   "name_key",
+				Methods:    "methods",
+				Interfaces: "interfaces",
+			}},
+		},
+		inFileN:          0,
+		wantErrSubstring: "requested 0 files",
+	}, {
+		name: "more than # of structs files requested for splitting",
+		in: &ygen.GeneratedGoCode{
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "name",
+				StructDef:  "def\n",
+				ListKeys:   "name_key",
+				Methods:    "methods",
+				Interfaces: "interfaces",
+			}},
+		},
+		inFileN:          2,
+		wantErrSubstring: "requested 2 files",
+	}, {
+		name: "two structs with enums populated",
+		in: &ygen.GeneratedGoCode{
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "s1",
+				StructDef:  "s1def\n",
+				ListKeys:   "s1key",
+				Methods:    "s1methods",
+				Interfaces: "s1interfaces",
+			}, {
+				StructName: "s2",
+				StructDef:  "s2def\n",
+				ListKeys:   "s2key",
+				Methods:    "s2methods",
+				Interfaces: "s2interfaces",
+			}},
+			Enums:   []string{"enum1", "enum2"},
+			EnumMap: "enummap",
+		},
+		inFileN: 1,
+		want: map[string]codeOut{
+			enumMapFn:                           {contents: "enummap\n"},
+			enumFn:                              {contents: "enum1\nenum2"},
+			schemaFn:                            {},
+			interfaceFn:                         {contents: "s1interfaces\ns2interfaces\n"},
+			fmt.Sprintf("%s0.go", structBaseFn): {contents: "s1def\ns1key\ns2def\ns2key\n"},
+			methodFn:                            {contents: "s1methods\ns2methods\n", oneoffHeader: true},
+		},
+	}, {
+		name: "two structs, separated into two files",
+		in: &ygen.GeneratedGoCode{
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "s1",
+				StructDef:  "s1def\n",
+				ListKeys:   "s1key",
+				Methods:    "s1methods",
+				Interfaces: "s1interfaces",
+			}, {
+				StructName: "q2",
+				StructDef:  "q2def\n",
+				ListKeys:   "q2key",
+				Methods:    "q2methods",
+				Interfaces: "q2interfaces",
+			}},
+			JSONSchemaCode: "schema",
+		},
+		inFileN: 2,
+		want: map[string]codeOut{
+			enumMapFn:                           {},
+			enumFn:                              {},
+			schemaFn:                            {contents: "schema"},
+			interfaceFn:                         {contents: "s1interfaces\nq2interfaces\n"},
+			fmt.Sprintf("%s0.go", structBaseFn): {contents: "s1def\ns1key\n"},
+			fmt.Sprintf("%s1.go", structBaseFn): {contents: "q2def\nq2key\n"},
+			methodFn:                            {contents: "s1methods\nq2methods\n", oneoffHeader: true},
+		},
+	}, {
+		name: "five structs, separated into four files",
+		in: &ygen.GeneratedGoCode{
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "s1",
+				StructDef:  "s1def\n",
+				ListKeys:   "s1key",
+				Methods:    "s1methods",
+				Interfaces: "s1interfaces",
+			}, {
+				StructName: "s2",
+				StructDef:  "s2def\n",
+				ListKeys:   "s2key",
+				Methods:    "s2methods",
+				Interfaces: "s2interfaces",
+			}, {
+				StructName: "s3",
+				StructDef:  "s3def\n",
+				ListKeys:   "s3key",
+			}, {
+				StructName: "s4",
+				StructDef:  "s4def\n",
+				ListKeys:   "s4key",
+			}, {
+				StructName: "s5",
+				StructDef:  "s5def\n",
+				ListKeys:   "s5key",
+			}},
+			JSONSchemaCode: "schema",
+		},
+		inFileN: 4,
+		want: map[string]codeOut{
+			enumMapFn:                           {},
+			enumFn:                              {},
+			schemaFn:                            {contents: "schema"},
+			interfaceFn:                         {contents: "s1interfaces\ns2interfaces\n\n\n\n"},
+			fmt.Sprintf("%s0.go", structBaseFn): {contents: "s1def\ns1key\ns2def\ns2key\n"},
+			fmt.Sprintf("%s1.go", structBaseFn): {contents: "s3def\ns3key\ns4def\ns4key\n"},
+			fmt.Sprintf("%s2.go", structBaseFn): {contents: "s5def\ns5key\n"},
+			fmt.Sprintf("%s3.go", structBaseFn): {contents: "", writeEvenIfEmpty: true},
+			methodFn:                            {contents: "s1methods\ns2methods\n\n\n\n", oneoffHeader: true},
+		},
+	}, {
+		name: "five structs, separated into three files",
+		in: &ygen.GeneratedGoCode{
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "s1",
+				StructDef:  "s1def\n",
+				ListKeys:   "s1key",
+				Methods:    "s1methods",
+				Interfaces: "s1interfaces",
+			}, {
+				StructName: "s2",
+				StructDef:  "s2def\n",
+				ListKeys:   "s2key",
+				Methods:    "s2methods",
+				Interfaces: "s2interfaces",
+			}, {
+				StructName: "s3",
+				StructDef:  "s3def\n",
+				ListKeys:   "s3key",
+			}, {
+				StructName: "s4",
+				StructDef:  "s4def\n",
+				ListKeys:   "s4key",
+			}, {
+				StructName: "s5",
+				StructDef:  "s5def\n",
+				ListKeys:   "s5key",
+			}},
+			JSONSchemaCode: "schema",
+		},
+		inFileN: 3,
+		want: map[string]codeOut{
+			enumMapFn:                           {},
+			enumFn:                              {},
+			schemaFn:                            {contents: "schema"},
+			interfaceFn:                         {contents: "s1interfaces\ns2interfaces\n\n\n\n"},
+			fmt.Sprintf("%s0.go", structBaseFn): {contents: "s1def\ns1key\ns2def\ns2key\n"},
+			fmt.Sprintf("%s1.go", structBaseFn): {contents: "s3def\ns3key\ns4def\ns4key\n"},
+			fmt.Sprintf("%s2.go", structBaseFn): {contents: "s5def\ns5key\n"},
+			methodFn:                            {contents: "s1methods\ns2methods\n\n\n\n", oneoffHeader: true},
+		},
+	}, {
+		name: "five structs, separated into two files",
+		in: &ygen.GeneratedGoCode{
+			Structs: []ygen.GoStructCodeSnippet{{
+				StructName: "s1",
+				StructDef:  "s1def\n",
+				ListKeys:   "s1key",
+				Methods:    "s1methods",
+				Interfaces: "s1interfaces",
+			}, {
+				StructName: "s2",
+				StructDef:  "s2def\n",
+				ListKeys:   "s2key",
+				Methods:    "s2methods",
+				Interfaces: "s2interfaces",
+			}, {
+				StructName: "s3",
+				StructDef:  "s3def\n",
+				ListKeys:   "s3key",
+			}, {
+				StructName: "s4",
+				StructDef:  "s4def\n",
+				ListKeys:   "s4key",
+			}, {
+				StructName: "s5",
+				StructDef:  "s5def\n",
+				ListKeys:   "s5key",
+			}},
+			JSONSchemaCode: "schema",
+		},
+		inFileN: 2,
+		want: map[string]codeOut{
+			enumMapFn:                           {},
+			enumFn:                              {},
+			schemaFn:                            {contents: "schema"},
+			interfaceFn:                         {contents: "s1interfaces\ns2interfaces\n\n\n\n"},
+			fmt.Sprintf("%s0.go", structBaseFn): {contents: "s1def\ns1key\ns2def\ns2key\ns3def\ns3key\n"},
+			fmt.Sprintf("%s1.go", structBaseFn): {contents: "s4def\ns4key\ns5def\ns5key\n"},
+			methodFn:                            {contents: "s1methods\ns2methods\n\n\n\n", oneoffHeader: true},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := splitCodeByFileN(tt.in, tt.inFileN)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("did not get expected error, %v", diff)
+			}
+			if diff := pretty.Compare(got, tt.want); diff != "" {
+				t.Errorf("splitCodeByFileN(%v): did not get expected output, diff (-got,+want):\n%s", tt.in, diff)
+			}
+		})
 	}
 }
 
