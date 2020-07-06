@@ -12,7 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ygot
+// Package protomap provides utilities that map ygen-generated protobuf
+// messages to and from other types (e.g., gNMI Notification messages,
+// or ygen-generated GoStructs).
+package protomap
 
 import (
 	"fmt"
