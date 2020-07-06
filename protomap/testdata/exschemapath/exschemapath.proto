@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package exschemapath;
 
-option go_package = "github.com/openconfig/ygot/ygot/testdata/exschemapath";
+option go_package = "github.com/openconfig/ygot/protomap/testdata/exschemapath";
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";

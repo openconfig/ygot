@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ygot
+package protomap
 
 import (
 	"testing"
@@ -22,7 +22,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	wpb "github.com/openconfig/ygot/proto/ywrapper"
-	epb "github.com/openconfig/ygot/ygot/testdata/exschemapath"
+	epb "github.com/openconfig/ygot/protomap/testdata/exschemapath"
 )
 
 func TestPathsFromProto(t *testing.T) {
