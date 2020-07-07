@@ -85,89 +85,7 @@ func parseField(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[
 	val := v.Interface()
 
 	if fd.IsList() {
-		// List fields are 'repeated' in the input protobuf. We have two cases of such
-		// fields:
-		//  1. leaf-list fields which have scalar values - and hence are mapped in the
-		//     same way as the handling of individual fields in the protobuf.
-		//  2. list types in YANG - we only support keyed lists, since these have their
-		//     own valid paths. For the generated protobufs we create a new XXXKey message
-		//     which is the repeated type. Scalar fields within that message are the
-		//     individual keys of the list (there are >= 1 of them) -- and the single
-		//     message type that is included is a child message.
-
-		// Lists cannot map to >1 different schema path in the compressed form of generated
-		// protobufs.
-		if len(mapPath) > 1 {
-			return fmt.Errorf("invalid list, maps to >1 schema path, field: %s", fd.FullName())
-		}
-		listPath := mapPath[0]
-
-		// TODO(robjs): This handles the case where we have a list - but not a leaf-list.
-		l := v.List()
-		var listVal proto.Message
-		for i := 0; i < l.Len(); i++ {
-			lv := l.Get(i)
-			listMsg, ok := lv.Message().Interface().(proto.Message)
-			if !ok {
-				return fmt.Errorf("invalid list, value is not a proto message, %s - is %T", fd.FullName(), lv.Interface())
-			}
-			var listParseErr error
-			listKeys := map[string]string{}
-
-			m := listMsg.ProtoReflect()
-			m.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
-				fmt.Printf("calling with %s\n", listPath)
-				pl, err := parseListField(fd, v, listPath)
-				if err != nil {
-					listParseErr = err
-					return false
-				}
-
-				// If this field was not the value of the list then we receive a populated
-				// single key back from the parseListField call. We don't check for nil
-				// since if it is not populated then we'll simply never do this mapping.
-				for k, v := range pl.keys {
-					listKeys[k] = v
-				}
-
-				// When there are keys in the list, we'll also have fields that they map to
-				// in the output set of paths, so add these to the values that we're receiving.
-				for k, v := range pl.mappedValues {
-					vals[k] = v
-				}
-
-				// If this was the list value, then we return the value of the list,
-				// which is always a protobuf message back.
-				if pl.member != nil {
-					listVal = pl.member
-				}
-				return true
-			})
-			if listParseErr != nil {
-				return fmt.Errorf("could not parse a field within the list %s , %v", fd.FullName(), listParseErr)
-			}
-
-			// Handle recursing down the tree for the list that we just extracted.
-			p := listPath
-			if basePath != nil {
-				// This is the first time that we have found a path that requires a
-				// data tree path, not a schema tree path.
-				rp, err := resolvedPath(basePath, listPath)
-				if err != nil {
-					return err
-				}
-				p = rp
-			}
-
-			for kn, kv := range listKeys {
-				p.Elem[len(p.Elem)-1].Key[kn] = kv
-			}
-			fmt.Printf("recursively calling pathsFromProtoInternal with %s\n", p)
-			if err := pathsFromProtoInternal(listVal, vals, p); err != nil {
-				return err
-			}
-		}
-		return nil
+		return parseList(fd, v, vals, basePath, mapPath)
 	}
 
 	// Handle messages that are field values
@@ -193,17 +111,10 @@ func parseField(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[
 	// Handle cases where there is >1 path specified for a field based on
 	// path compression.
 	for _, path := range mapPath {
-		/*if basePath != "" && !strings.Contains(path, basePath) {
-			return fmt.Errorf("basePath %s doesn't contain this path %s", basePath, path)
-		}*/
 		tp := path
 		if basePath != nil {
-			var err error
-			if tp, err = resolvedPath(basePath, path); err != nil {
-				return err
-			}
+			tp = resolvedPath(basePath, path)
 		}
-		fmt.Printf("basePath: %s\nmapPath: %s\n", basePath, path)
 
 		vals[tp] = val
 	}
@@ -211,13 +122,160 @@ func parseField(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[
 	return nil
 }
 
-type parsedList struct {
-	keys         map[string]string
-	member       proto.Message
-	mappedValues map[*gpb.Path]interface{}
+// Modify the Range function for a protoreflect.Message to be able to cover fields that
+// are not populated, since we need to be able to support scalar fields in our ranges.
+//
+// This code is taken from the updated protojson package - and is used because we need
+// to range over all scalar fields within the populated key messages for a list - since
+// we should include the values even if they are set to the Go default value (e.g., a uint32
+// is set to 0).
+type unpopRange struct{ protoreflect.Message }
+
+// Range wraps the protomessage.Range, and sets fields to be marked as non-nil even if they
+// are set to the Go default value. This means that we will output fields that are unset as
+// their nil values, which is required for list keys within these messages.
+func (m unpopRange) Range(f func(protoreflect.FieldDescriptor, protoreflect.Value) bool) {
+	fds := m.Descriptor().Fields()
+	for i := 0; i < fds.Len(); i++ {
+		fd := fds.Get(i)
+		if m.Has(fd) || fd.ContainingOneof() != nil {
+			continue // ignore populated fields and fields within a oneofs
+		}
+
+		v := m.Get(fd)
+		isProto2Scalar := fd.Syntax() == protoreflect.Proto2 && fd.Default().IsValid()
+		isSingularMessage := fd.Cardinality() != protoreflect.Repeated && fd.Message() != nil
+		if isProto2Scalar || isSingularMessage {
+			v = protoreflect.Value{} // use invalid value to emit null
+		}
+		if !f(fd, v) {
+			return
+		}
+	}
+	m.Message.Range(f)
 }
 
-func parseListField(fd protoreflect.FieldDescriptor, v protoreflect.Value, basePath *gpb.Path) (*parsedList, error) {
+// parseList parses the field described by fd, with value v - which must be a repeated field in
+// the protobuf, and appends its values to the value map - using the supplied base and mapped paths
+// to determine the data tree paths of the populated fields. It returns an error if values cannot
+// be extracted,
+//
+// List fields are 'repeated' in the input protobuf. We have two cases of such
+// fields:
+//  1. leaf-list fields which have scalar values - and hence are mapped in the
+//     same way as the handling of individual fields in the protobuf.
+//  2. list types in YANG - we only support keyed lists, since these have their
+//     own valid paths. For the generated protobufs we create a new XXXKey message
+//     which is the repeated type. Scalar fields within that message are the
+//     individual keys of the list (there are >= 1 of them) -- and the single
+//     message type that is included is a child message.
+func parseList(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[*gpb.Path]interface{}, basePath *gpb.Path, mapPath []*gpb.Path) error {
+	// Lists cannot map to >1 different schema path in the compressed form of generated
+	// protobufs.
+	if len(mapPath) > 1 {
+		return fmt.Errorf("invalid list, maps to >1 schema path, field: %s", fd.FullName())
+	}
+	listPath := mapPath[0]
+
+	// TODO(robjs): This handles the case where we have a list - but not a leaf-list.
+	//              Add implementation to handle leaf lists.
+	l := v.List()
+	var listVal proto.Message
+	for i := 0; i < l.Len(); i++ {
+		lv := l.Get(i)
+
+		if fd.Kind() != protoreflect.MessageKind {
+			return fmt.Errorf("invalid list, value is not a proto message, %s - is %T", fd.FullName(), lv.Interface())
+		}
+		listMsg := lv.Message().Interface().(proto.Message)
+
+		var listParseErr error
+		listKeys := map[string]string{}
+		mappedValues := map[*gpb.Path]interface{}{}
+
+		unpopRange{listMsg.ProtoReflect()}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+			pl, err := parseListField(fd, v, listPath)
+			if err != nil {
+				listParseErr = err
+				return false
+			}
+
+			// If this field was not the value of the list then we receive a populated
+			// single key back from the parseListField call. We don't check for nil
+			// since if it is not populated then we'll simply never do this mapping.
+			for k, v := range pl.keys {
+				listKeys[k] = v
+			}
+
+			// When there are keys in the list, we'll also have fields that they map to
+			// in the output set of paths, so add these to the values that we're receiving.
+			for k, v := range pl.mappedValues {
+				mappedValues[k] = v
+			}
+
+			// If this was the list value, then we return the value of the list,
+			// which is always a protobuf message back.
+			if pl.member != nil {
+				listVal = pl.member
+			}
+			return true
+		})
+
+		if listParseErr != nil {
+			return fmt.Errorf("could not parse a field within the list %s , %v", fd.FullName(), listParseErr)
+		}
+
+		// Handle recursing down the tree for the list that we just extracted.
+		p := proto.Clone(listPath).(*gpb.Path)
+		if basePath != nil {
+			// This is the first time that we have found a path that requires a
+			// data tree path, not a schema tree path.
+			p = resolvedPath(basePath, listPath)
+		}
+
+		for kn, kv := range listKeys {
+			le := p.Elem[len(p.Elem)-1]
+			if le.Key == nil {
+				le.Key = map[string]string{}
+			}
+			le.Key[kn] = kv
+		}
+
+		for path, value := range mappedValues {
+			vals[resolvedPath(p, path)] = value
+		}
+
+		if err := pathsFromProtoInternal(listVal, vals, p); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// parsedListField returns the details of an individual field of a message
+// which corresponds to a YANG list (is 'repeated').
+type parsedListField struct {
+	// keys is a map of the keys using the gNMI path format for keys - where all
+	// values are mapped to strings. Since the parsed field contains only one field
+	// then only one key will ever be populated. This field is only set to a non-nil
+	// value if the field corresponds to a key.
+	keys map[string]string
+	// mappedValues stores the values that are contained in the input protobuf, and is
+	// populated only when the field supplied is a key. Since the key fields are removed
+	// from the 'value' protobuf, their values can only be extracted from the repeated 'Key'
+	// message. A single field may result in >1 populated mappedValues in the case that there
+	// are multiple paths within the schemapath annotation.
+	mappedValues map[*gpb.Path]interface{}
+	// member is populated when the field parsed is the member of the list - i.e., the
+	// repeated proto.Message which corresponds to the subtree under the list at a particular
+	// key.
+	member proto.Message
+}
+
+// parseListField parses an individual field within a 'repeated' message representing a YANG list, as
+// described by fd, and with value v. The supplied basePath is used for the base data tree path for field
+// specified. It returns a parsedListField describing the individual field supplied.
+func parseListField(fd protoreflect.FieldDescriptor, v protoreflect.Value, basePath *gpb.Path) (*parsedListField, error) {
 	if fd.IsMap() || fd.IsList() {
 		return nil, fmt.Errorf("invalid field in list, %s", fd.FullName())
 	}
@@ -226,7 +284,7 @@ func parseListField(fd protoreflect.FieldDescriptor, v protoreflect.Value, baseP
 		if t, ok := v.Message().Interface().(proto.Message); ok {
 			// The only case of having proto.Message in a list key is when it is the
 			// value itself, therefore return this value.
-			return &parsedList{member: t}, nil
+			return &parsedListField{member: t}, nil
 		}
 	}
 
@@ -256,7 +314,7 @@ func parseListField(fd protoreflect.FieldDescriptor, v protoreflect.Value, baseP
 		return nil, fmt.Errorf("cannot map list key %v, %v", v.Interface(), err)
 	}
 
-	p := &parsedList{
+	p := &parsedListField{
 		keys:         map[string]string{keyName: kv},
 		mappedValues: map[*gpb.Path]interface{}{},
 	}
@@ -269,6 +327,8 @@ func parseListField(fd protoreflect.FieldDescriptor, v protoreflect.Value, baseP
 	return p, nil
 }
 
+// annotatedSchemaPath extracts the schemapath annotation from the supplied field descriptor,
+// parsing the included string paths into a slice of gNMI 'Path' messages.
 func annotatedSchemaPath(fd protoreflect.FieldDescriptor) ([]*gpb.Path, error) {
 	po := fd.Options().(*descriptorpb.FieldOptions)
 	ex := proto.GetExtension(po, yextpb.E_Schemapath).(string)
@@ -287,6 +347,8 @@ func annotatedSchemaPath(fd protoreflect.FieldDescriptor) ([]*gpb.Path, error) {
 	return paths, nil
 }
 
+// fieldName returns the name last element of the path supplied - corresponding
+// to the field that is being described by the specified path.
 func fieldName(path *gpb.Path) (string, error) {
 	if len(path.Elem) == 0 || path == nil {
 		return "", fmt.Errorf("invalid path %s", path)
@@ -294,14 +356,17 @@ func fieldName(path *gpb.Path) (string, error) {
 	return path.Elem[len(path.Elem)-1].Name, nil
 }
 
-func resolvedPath(dataTreePath *gpb.Path, annotatedPath *gpb.Path) (*gpb.Path, error) {
-	pathSchemaParts := removePathKeys(dataTreePath)
-	pathNoPrefix := util.TrimGNMIPathElemPrefix(pathSchemaParts, dataTreePath)
+// resolvedPath fully resolves a path of an element with the annotation
+// supplied in the annotedPath, from the supplied dataTreePath - which
+// is a resolved data tree path (which may include list keys).
+func resolvedPath(dataTreePath, annotatedPath *gpb.Path) *gpb.Path {
 	np := proto.Clone(dataTreePath).(*gpb.Path)
-	np.Elem = append(np.Elem, pathNoPrefix.Elem...)
-	return np, nil
+	np.Elem = append(np.Elem, annotatedPath.Elem[len(dataTreePath.Elem):]...)
+	return np
 }
 
+// removePathKeys removes all the keys from elements in the supplied path,
+// returning the schema path for a particular input gNMI path.
 func removePathKeys(path *gpb.Path) *gpb.Path {
 	np := &gpb.Path{
 		Origin: path.Origin,
