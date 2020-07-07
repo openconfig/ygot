@@ -188,6 +188,7 @@ type ExampleMessage struct {
 	Str *ywrapper.StringValue    `protobuf:"bytes,5,opt,name=str,proto3" json:"str,omitempty"`
 	Ui  *ywrapper.UintValue      `protobuf:"bytes,6,opt,name=ui,proto3" json:"ui,omitempty"`
 	Ex  *ExampleMessageChild     `protobuf:"bytes,7,opt,name=ex,proto3" json:"ex,omitempty"`
+	Em  []*ExampleMessageKey     `protobuf:"bytes,8,rep,name=em,proto3" json:"em,omitempty"`
 }
 
 func (x *ExampleMessage) Reset() {
@@ -271,6 +272,13 @@ func (x *ExampleMessage) GetEx() *ExampleMessageChild {
 	return nil
 }
 
+func (x *ExampleMessage) GetEm() []*ExampleMessageKey {
+	if x != nil {
+		return x.Em
+	}
+	return nil
+}
+
 type ExampleMessageChild struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -318,6 +326,171 @@ func (x *ExampleMessageChild) GetStr() *ywrapper.StringValue {
 	return nil
 }
 
+type ExampleMessageKey struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SingleKey string                    `protobuf:"bytes,1,opt,name=single_key,json=singleKey,proto3" json:"single_key,omitempty"`
+	Member    *ExampleMessageListMember `protobuf:"bytes,2,opt,name=member,proto3" json:"member,omitempty"`
+}
+
+func (x *ExampleMessageKey) Reset() {
+	*x = ExampleMessageKey{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ExampleMessageKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExampleMessageKey) ProtoMessage() {}
+
+func (x *ExampleMessageKey) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExampleMessageKey.ProtoReflect.Descriptor instead.
+func (*ExampleMessageKey) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ExampleMessageKey) GetSingleKey() string {
+	if x != nil {
+		return x.SingleKey
+	}
+	return ""
+}
+
+func (x *ExampleMessageKey) GetMember() *ExampleMessageListMember {
+	if x != nil {
+		return x.Member
+	}
+	return nil
+}
+
+type ExampleMessageListMember struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Str *ywrapper.StringValue `protobuf:"bytes,1,opt,name=str,proto3" json:"str,omitempty"`
+}
+
+func (x *ExampleMessageListMember) Reset() {
+	*x = ExampleMessageListMember{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ExampleMessageListMember) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExampleMessageListMember) ProtoMessage() {}
+
+func (x *ExampleMessageListMember) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExampleMessageListMember.ProtoReflect.Descriptor instead.
+func (*ExampleMessageListMember) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ExampleMessageListMember) GetStr() *ywrapper.StringValue {
+	if x != nil {
+		return x.Str
+	}
+	return nil
+}
+
+type InvalidMessage struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MapField     map[string]string    `protobuf:"bytes,1,rep,name=map_field,json=mapField,proto3" json:"map_field,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	NoAnnotation string               `protobuf:"bytes,2,opt,name=no_annotation,json=noAnnotation,proto3" json:"no_annotation,omitempty"`
+	Km           []*ExampleMessageKey `protobuf:"bytes,3,rep,name=km,proto3" json:"km,omitempty"`
+}
+
+func (x *InvalidMessage) Reset() {
+	*x = InvalidMessage{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *InvalidMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InvalidMessage) ProtoMessage() {}
+
+func (x *InvalidMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InvalidMessage.ProtoReflect.Descriptor instead.
+func (*InvalidMessage) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *InvalidMessage) GetMapField() map[string]string {
+	if x != nil {
+		return x.MapField
+	}
+	return nil
+}
+
+func (x *InvalidMessage) GetNoAnnotation() string {
+	if x != nil {
+		return x.NoAnnotation
+	}
+	return ""
+}
+
+func (x *InvalidMessage) GetKm() []*ExampleMessageKey {
+	if x != nil {
+		return x.Km
+	}
+	return nil
+}
+
 type Root_InterfaceKey struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -330,7 +503,7 @@ type Root_InterfaceKey struct {
 func (x *Root_InterfaceKey) Reset() {
 	*x = Root_InterfaceKey{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[5]
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[8]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -343,7 +516,7 @@ func (x *Root_InterfaceKey) String() string {
 func (*Root_InterfaceKey) ProtoMessage() {}
 
 func (x *Root_InterfaceKey) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[5]
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[8]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -420,7 +593,7 @@ var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_
 	0x70, 0x65, 0x72, 0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42,
 	0x1a, 0x82, 0x41, 0x17, 0x2f, 0x73, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x2f, 0x63, 0x6f, 0x6e, 0x66,
 	0x69, 0x67, 0x2f, 0x68, 0x6f, 0x73, 0x74, 0x6e, 0x61, 0x6d, 0x65, 0x52, 0x08, 0x68, 0x6f, 0x73,
-	0x74, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0xf8, 0x02, 0x0a, 0x0e, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c,
+	0x74, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0xb8, 0x03, 0x0a, 0x0e, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c,
 	0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x2d, 0x0a, 0x02, 0x62, 0x6f, 0x18, 0x01,
 	0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x79, 0x77, 0x72, 0x61, 0x70, 0x70, 0x65, 0x72, 0x2e,
 	0x42, 0x6f, 0x6f, 0x6c, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x08, 0x82, 0x41, 0x05, 0x2f, 0x62,
@@ -444,16 +617,54 @@ var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_
 	0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x45, 0x78, 0x61, 0x6d,
 	0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x43, 0x68, 0x69, 0x6c, 0x64, 0x42,
 	0x0b, 0x82, 0x41, 0x08, 0x2f, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x02, 0x65, 0x78,
+	0x12, 0x3e, 0x0a, 0x02, 0x65, 0x6d, 0x18, 0x08, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1f, 0x2e, 0x65,
+	0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x45, 0x78, 0x61, 0x6d,
+	0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4b, 0x65, 0x79, 0x42, 0x0d, 0x82,
+	0x41, 0x0a, 0x2f, 0x6c, 0x69, 0x73, 0x74, 0x2d, 0x6e, 0x61, 0x6d, 0x65, 0x52, 0x02, 0x65, 0x6d,
 	0x22, 0x4f, 0x0a, 0x13, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61,
 	0x67, 0x65, 0x43, 0x68, 0x69, 0x6c, 0x64, 0x12, 0x38, 0x0a, 0x03, 0x73, 0x74, 0x72, 0x18, 0x01,
 	0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x79, 0x77, 0x72, 0x61, 0x70, 0x70, 0x65, 0x72, 0x2e,
 	0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x0f, 0x82, 0x41, 0x0c,
 	0x2f, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x2f, 0x73, 0x74, 0x72, 0x52, 0x03, 0x73, 0x74,
-	0x72, 0x42, 0x3b, 0x5a, 0x39, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f,
-	0x6f, 0x70, 0x65, 0x6e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2f, 0x79, 0x67, 0x6f, 0x74, 0x2f,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x6d, 0x61, 0x70, 0x2f, 0x74, 0x65, 0x73, 0x74, 0x64, 0x61, 0x74,
-	0x61, 0x2f, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x72, 0x22, 0xa9, 0x01, 0x0a, 0x11, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73,
+	0x73, 0x61, 0x67, 0x65, 0x4b, 0x65, 0x79, 0x12, 0x54, 0x0a, 0x0a, 0x73, 0x69, 0x6e, 0x67, 0x6c,
+	0x65, 0x5f, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x35, 0x82, 0x41, 0x32,
+	0x2f, 0x6c, 0x69, 0x73, 0x74, 0x2d, 0x6e, 0x61, 0x6d, 0x65, 0x2f, 0x73, 0x69, 0x6e, 0x67, 0x6c,
+	0x65, 0x2d, 0x6b, 0x65, 0x79, 0x7c, 0x2f, 0x6c, 0x69, 0x73, 0x74, 0x2d, 0x6e, 0x61, 0x6d, 0x65,
+	0x2f, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2f, 0x73, 0x69, 0x6e, 0x67, 0x6c, 0x65, 0x2d, 0x6b,
+	0x65, 0x79, 0x52, 0x09, 0x73, 0x69, 0x6e, 0x67, 0x6c, 0x65, 0x4b, 0x65, 0x79, 0x12, 0x3e, 0x0a,
+	0x06, 0x6d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x26, 0x2e,
+	0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x45, 0x78, 0x61,
+	0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4c, 0x69, 0x73, 0x74, 0x4d,
+	0x65, 0x6d, 0x62, 0x65, 0x72, 0x52, 0x06, 0x6d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x60, 0x0a,
+	0x18, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4c,
+	0x69, 0x73, 0x74, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x44, 0x0a, 0x03, 0x73, 0x74, 0x72,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x79, 0x77, 0x72, 0x61, 0x70, 0x70, 0x65,
+	0x72, 0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x1b, 0x82,
+	0x41, 0x18, 0x2f, 0x6c, 0x69, 0x73, 0x74, 0x2d, 0x6e, 0x61, 0x6d, 0x65, 0x2f, 0x61, 0x6e, 0x6f,
+	0x74, 0x68, 0x65, 0x72, 0x2d, 0x66, 0x69, 0x65, 0x6c, 0x64, 0x52, 0x03, 0x73, 0x74, 0x72, 0x22,
+	0x90, 0x02, 0x0a, 0x0e, 0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x4d, 0x65, 0x73, 0x73, 0x61,
+	0x67, 0x65, 0x12, 0x5d, 0x0a, 0x09, 0x6d, 0x61, 0x70, 0x5f, 0x66, 0x69, 0x65, 0x6c, 0x64, 0x18,
+	0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x2a, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61,
+	0x70, 0x61, 0x74, 0x68, 0x2e, 0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x4d, 0x65, 0x73, 0x73,
+	0x61, 0x67, 0x65, 0x2e, 0x4d, 0x61, 0x70, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x45, 0x6e, 0x74, 0x72,
+	0x79, 0x42, 0x14, 0x82, 0x41, 0x11, 0x2f, 0x61, 0x6e, 0x2f, 0x69, 0x6e, 0x76, 0x61, 0x6c, 0x69,
+	0x64, 0x2f, 0x66, 0x69, 0x65, 0x6c, 0x64, 0x52, 0x08, 0x6d, 0x61, 0x70, 0x46, 0x69, 0x65, 0x6c,
+	0x64, 0x12, 0x23, 0x0a, 0x0d, 0x6e, 0x6f, 0x5f, 0x61, 0x6e, 0x6e, 0x6f, 0x74, 0x61, 0x74, 0x69,
+	0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x6e, 0x6f, 0x41, 0x6e, 0x6e, 0x6f,
+	0x74, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x3d, 0x0a, 0x02, 0x6b, 0x6d, 0x18, 0x03, 0x20, 0x03,
+	0x28, 0x0b, 0x32, 0x1f, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74,
+	0x68, 0x2e, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
+	0x4b, 0x65, 0x79, 0x42, 0x0c, 0x82, 0x41, 0x09, 0x2f, 0x6f, 0x6e, 0x65, 0x7c, 0x2f, 0x74, 0x77,
+	0x6f, 0x52, 0x02, 0x6b, 0x6d, 0x1a, 0x3b, 0x0a, 0x0d, 0x4d, 0x61, 0x70, 0x46, 0x69, 0x65, 0x6c,
+	0x64, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75,
+	0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02,
+	0x38, 0x01, 0x42, 0x3b, 0x5a, 0x39, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d,
+	0x2f, 0x6f, 0x70, 0x65, 0x6e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2f, 0x79, 0x67, 0x6f, 0x74,
+	0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x6d, 0x61, 0x70, 0x2f, 0x74, 0x65, 0x73, 0x74, 0x64, 0x61,
+	0x74, 0x61, 0x2f, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -468,40 +679,49 @@ func file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath
 	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescData
 }
 
-var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_goTypes = []interface{}{
-	(*Root)(nil),                    // 0: exschemapath.Root
-	(*Interface)(nil),               // 1: exschemapath.Interface
-	(*System)(nil),                  // 2: exschemapath.System
-	(*ExampleMessage)(nil),          // 3: exschemapath.ExampleMessage
-	(*ExampleMessageChild)(nil),     // 4: exschemapath.ExampleMessageChild
-	(*Root_InterfaceKey)(nil),       // 5: exschemapath.Root.InterfaceKey
-	(*ywrapper.StringValue)(nil),    // 6: ywrapper.StringValue
-	(*ywrapper.BoolValue)(nil),      // 7: ywrapper.BoolValue
-	(*ywrapper.BytesValue)(nil),     // 8: ywrapper.BytesValue
-	(*ywrapper.Decimal64Value)(nil), // 9: ywrapper.Decimal64Value
-	(*ywrapper.IntValue)(nil),       // 10: ywrapper.IntValue
-	(*ywrapper.UintValue)(nil),      // 11: ywrapper.UintValue
+	(*Root)(nil),                     // 0: exschemapath.Root
+	(*Interface)(nil),                // 1: exschemapath.Interface
+	(*System)(nil),                   // 2: exschemapath.System
+	(*ExampleMessage)(nil),           // 3: exschemapath.ExampleMessage
+	(*ExampleMessageChild)(nil),      // 4: exschemapath.ExampleMessageChild
+	(*ExampleMessageKey)(nil),        // 5: exschemapath.ExampleMessageKey
+	(*ExampleMessageListMember)(nil), // 6: exschemapath.ExampleMessageListMember
+	(*InvalidMessage)(nil),           // 7: exschemapath.InvalidMessage
+	(*Root_InterfaceKey)(nil),        // 8: exschemapath.Root.InterfaceKey
+	nil,                              // 9: exschemapath.InvalidMessage.MapFieldEntry
+	(*ywrapper.StringValue)(nil),     // 10: ywrapper.StringValue
+	(*ywrapper.BoolValue)(nil),       // 11: ywrapper.BoolValue
+	(*ywrapper.BytesValue)(nil),      // 12: ywrapper.BytesValue
+	(*ywrapper.Decimal64Value)(nil),  // 13: ywrapper.Decimal64Value
+	(*ywrapper.IntValue)(nil),        // 14: ywrapper.IntValue
+	(*ywrapper.UintValue)(nil),       // 15: ywrapper.UintValue
 }
 var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_depIdxs = []int32{
 	2,  // 0: exschemapath.Root.system:type_name -> exschemapath.System
-	5,  // 1: exschemapath.Root.interface:type_name -> exschemapath.Root.InterfaceKey
-	6,  // 2: exschemapath.Interface.description:type_name -> ywrapper.StringValue
-	6,  // 3: exschemapath.System.hostname:type_name -> ywrapper.StringValue
-	7,  // 4: exschemapath.ExampleMessage.bo:type_name -> ywrapper.BoolValue
-	8,  // 5: exschemapath.ExampleMessage.by:type_name -> ywrapper.BytesValue
-	9,  // 6: exschemapath.ExampleMessage.de:type_name -> ywrapper.Decimal64Value
-	10, // 7: exschemapath.ExampleMessage.in:type_name -> ywrapper.IntValue
-	6,  // 8: exschemapath.ExampleMessage.str:type_name -> ywrapper.StringValue
-	11, // 9: exschemapath.ExampleMessage.ui:type_name -> ywrapper.UintValue
+	8,  // 1: exschemapath.Root.interface:type_name -> exschemapath.Root.InterfaceKey
+	10, // 2: exschemapath.Interface.description:type_name -> ywrapper.StringValue
+	10, // 3: exschemapath.System.hostname:type_name -> ywrapper.StringValue
+	11, // 4: exschemapath.ExampleMessage.bo:type_name -> ywrapper.BoolValue
+	12, // 5: exschemapath.ExampleMessage.by:type_name -> ywrapper.BytesValue
+	13, // 6: exschemapath.ExampleMessage.de:type_name -> ywrapper.Decimal64Value
+	14, // 7: exschemapath.ExampleMessage.in:type_name -> ywrapper.IntValue
+	10, // 8: exschemapath.ExampleMessage.str:type_name -> ywrapper.StringValue
+	15, // 9: exschemapath.ExampleMessage.ui:type_name -> ywrapper.UintValue
 	4,  // 10: exschemapath.ExampleMessage.ex:type_name -> exschemapath.ExampleMessageChild
-	6,  // 11: exschemapath.ExampleMessageChild.str:type_name -> ywrapper.StringValue
-	1,  // 12: exschemapath.Root.InterfaceKey.interface:type_name -> exschemapath.Interface
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	5,  // 11: exschemapath.ExampleMessage.em:type_name -> exschemapath.ExampleMessageKey
+	10, // 12: exschemapath.ExampleMessageChild.str:type_name -> ywrapper.StringValue
+	6,  // 13: exschemapath.ExampleMessageKey.member:type_name -> exschemapath.ExampleMessageListMember
+	10, // 14: exschemapath.ExampleMessageListMember.str:type_name -> ywrapper.StringValue
+	9,  // 15: exschemapath.InvalidMessage.map_field:type_name -> exschemapath.InvalidMessage.MapFieldEntry
+	5,  // 16: exschemapath.InvalidMessage.km:type_name -> exschemapath.ExampleMessageKey
+	1,  // 17: exschemapath.Root.InterfaceKey.interface:type_name -> exschemapath.Interface
+	18, // [18:18] is the sub-list for method output_type
+	18, // [18:18] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_init() }
@@ -571,6 +791,42 @@ func file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath
 			}
 		}
 		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ExampleMessageKey); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ExampleMessageListMember); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*InvalidMessage); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Root_InterfaceKey); i {
 			case 0:
 				return &v.state
@@ -589,7 +845,7 @@ func file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

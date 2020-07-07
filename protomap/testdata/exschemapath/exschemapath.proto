@@ -32,8 +32,24 @@ message ExampleMessage {
     ywrapper.StringValue str = 5 [(yext.schemapath) = "/string"];
     ywrapper.UintValue ui = 6 [(yext.schemapath) = "/uint"];
     ExampleMessageChild ex = 7 [(yext.schemapath) = "/message"];
+    repeated ExampleMessageKey em = 8 [(yext.schemapath) = "/list-name"];
 }
 
 message ExampleMessageChild {
     ywrapper.StringValue str = 1 [(yext.schemapath) = "/message/str"];
+}
+
+message ExampleMessageKey {
+    string single_key = 1 [(yext.schemapath) = "/list-name/single-key|/list-name/config/single-key"];
+    ExampleMessageListMember member = 2;
+}
+
+message ExampleMessageListMember {
+    ywrapper.StringValue str = 1 [(yext.schemapath) = "/list-name/another-field"];
+}
+
+message InvalidMessage {
+    map<string, string> map_field = 1 [(yext.schemapath) = "/an/invalid/field"];
+    string no_annotation = 2;
+    repeated ExampleMessageKey km = 3 [(yext.schemapath) = "/one|/two"];
 }

@@ -15,29 +15,44 @@
 package protomap
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/errdiff"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	wpb "github.com/openconfig/ygot/proto/ywrapper"
 	epb "github.com/openconfig/ygot/protomap/testdata/exschemapath"
+	"github.com/openconfig/ygot/testutil"
+	"github.com/openconfig/ygot/ygot"
 )
 
-func TestPathsFromProto(t *testing.T) {
+func mustPath(p string) *gpb.Path {
+	sp, err := ygot.StringToStructuredPath(p)
+	if err != nil {
+		panic(fmt.Sprintf("cannot parse path %s to proto, %v", p, err))
+	}
+	return sp
+}
+
+func TestPathsFromProtoInternal(t *testing.T) {
 	tests := []struct {
 		desc             string
 		inMsg            proto.Message
-		wantPaths        map[string]interface{}
+		inBasePath       *gpb.Path
+		wantPaths        map[*gpb.Path]interface{}
 		wantErrSubstring string
 	}{{
 		desc: "simple proto with a single populated path",
 		inMsg: &epb.Interface{
 			Description: &wpb.StringValue{Value: "hello"},
 		},
-		wantPaths: map[string]interface{}{
-			"/interfaces/interface/config/description": "hello",
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/interfaces/interface/config/description"): "hello",
 		},
 	}, {
 		desc: "example message - supported fields",
@@ -49,19 +64,23 @@ func TestPathsFromProto(t *testing.T) {
 			Str: &wpb.StringValue{Value: "hello"},
 			Ui:  &wpb.UintValue{Value: 42},
 		},
-		wantPaths: map[string]interface{}{
-			"/bool":   true,
-			"/bytes":  []byte{1, 2, 3, 4},
-			"/int":    int64(42),
-			"/string": "hello",
-			"/uint":   uint64(42),
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/bool"):   true,
+			mustPath("/bytes"):  []byte{1, 2, 3, 4},
+			mustPath("/int"):    int64(42),
+			mustPath("/string"): "hello",
+			mustPath("/uint"):   uint64(42),
 		},
 	}, {
-		desc: "child messages currently unsupported",
+		desc: "child message with single field",
 		inMsg: &epb.ExampleMessage{
-			Ex: &epb.ExampleMessageChild{},
+			Ex: &epb.ExampleMessageChild{
+				Str: &wpb.StringValue{Value: "hello"},
+			},
 		},
-		wantErrSubstring: "unknown type as field value",
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/message/str"): "hello",
+		},
 	}, {
 		desc: "decimal64 messages currently unsupported",
 		inMsg: &epb.ExampleMessage{
@@ -73,20 +92,50 @@ func TestPathsFromProto(t *testing.T) {
 		inMsg: &epb.Root_InterfaceKey{
 			Name: "value",
 		},
-		wantPaths: map[string]interface{}{
-			"/interfaces/interface/config/name": "value",
-			"/interfaces/interface/name":        "value",
+		wantPaths: map[*gpb.Path]interface{}{
+			mustPath("/interfaces/interface/config/name"): "value",
+			mustPath("/interfaces/interface/name"):        "value",
+		},
+	}, {
+		desc: "invalid message with a map",
+		inMsg: &epb.InvalidMessage{
+			MapField: map[string]string{"hello": "world"},
+		},
+		wantErrSubstring: "map fields are not supported",
+	}, {
+		desc: "invalid message with missing annotation",
+		inMsg: &epb.InvalidMessage{
+			NoAnnotation: "invalid-field",
+		},
+		wantErrSubstring: "received field with invalid annotation",
+	}, {
+		desc: "list with single key",
+		inMsg: &epb.ExampleMessage{
+			Em: []*epb.ExampleMessageKey{{
+				SingleKey: "key-one",
+				Member: &epb.ExampleMessageListMember{
+					Str: &wpb.StringValue{Value: "hello-world"},
+				},
+			}},
 		},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := pathsFromProto(tt.inMsg)
+			got := map[*gpb.Path]interface{}{}
+			err := pathsFromProtoInternal(tt.inMsg, got, tt.inBasePath)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
 
-			if diff := cmp.Diff(got, tt.wantPaths, cmp.Comparer(proto.Equal)); diff != "" {
+			// Ensure that we don't need to write out an empty map in each of the
+			// cases above. This is just to make the test definition table cleaner
+			// whilst allowing us to manipulate basePath in the tests.
+			if len(got) == 0 {
+				got = nil
+			}
+
+			if diff := cmp.Diff(got, tt.wantPaths, protocmp.Transform(), cmpopts.SortMaps(testutil.PathLess)); diff != "" {
 				t.Fatalf("did not get expected results, diff(-got,+want):\n%s", diff)
 			}
 		})
