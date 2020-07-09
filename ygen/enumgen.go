@@ -38,10 +38,12 @@ type enumSet struct {
 	// name used includes the defining module to avoid clashes between two identities
 	// that are named the same within different modules.
 	uniqueIdentityNames map[string]string
+
 	// uniqueEnumeratedTypedefNames is a map, keyed by a synthesised path for the typedef,
 	// generated in the form definingModule/typedefName, the value stores the Go name of
 	// the enumeration which represents a typedef that includes an enumerated type.
 	uniqueEnumeratedTypedefNames map[string]string
+
 	// uniqueEnumeratedLeafNames is a map, keyed by a synthesised path to an
 	// enumeration leaf. The path used reflects the data tree path of the leaf
 	// within the module that it is defined. That is to say, if a module
@@ -683,7 +685,7 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 
 		// Next, try the ancestor names one by one until one succeeds
 		// or at least two of them no longer have parent entries.
-		for i := 0; ; i += 1 {
+		for i := 0; ; i++ {
 			candidateUniqueNames = map[string]string{}
 			newNameClashSet := map[string]*yang.Entry{}
 			for enumKey, entry := range nameClashSet {

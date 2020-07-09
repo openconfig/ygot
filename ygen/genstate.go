@@ -129,6 +129,7 @@ func buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour gen
 				}
 				elem.ListAttr = lattr
 			}
+
 			mappedStructs[e.Path()] = elem
 		} else {
 			errs = append(errs, fmt.Errorf("%s was not an element mapped to a struct", e.Path()))

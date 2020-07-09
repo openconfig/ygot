@@ -91,7 +91,7 @@ func TestBuildJSONTree(t *testing.T) {
 	tests := []struct {
 		name             string
 		inEntries        []*yang.Entry
-		inDirectoryNames map[string]string
+		inDirectoryNames map[string]*Directory
 		inFakeRoot       *yang.Entry
 		inCompressed     bool
 		want             string
@@ -99,8 +99,8 @@ func TestBuildJSONTree(t *testing.T) {
 	}{{
 		name:      "simple module entry",
 		inEntries: []*yang.Entry{simpleModule},
-		inDirectoryNames: map[string]string{
-			"/a-module/simple-container": "SimpleContainer",
+		inDirectoryNames: map[string]*Directory{
+			"/a-module/simple-container": {Name: "SimpleContainer"},
 		},
 		inCompressed: true,
 		want: `{
@@ -133,10 +133,10 @@ func TestBuildJSONTree(t *testing.T) {
 	}, {
 		name:      "multiple modules",
 		inEntries: []*yang.Entry{simpleModule, moduleTwo},
-		inDirectoryNames: map[string]string{
-			"/a-module/simple-container": "SimpleContainer",
-			"/module-two/container-one":  "C1",
-			"/module-two/container-two":  "C2",
+		inDirectoryNames: map[string]*Directory{
+			"/a-module/simple-container": {Name: "SimpleContainer"},
+			"/module-two/container-one":  {Name: "C1"},
+			"/module-two/container-two":  {Name: "C2"},
 		},
 		want: `{
     "Name": "",
@@ -214,8 +214,8 @@ func TestBuildJSONTree(t *testing.T) {
 	}, {
 		name:      "overlapping root children",
 		inEntries: []*yang.Entry{simpleModule, simpleModule},
-		inDirectoryNames: map[string]string{
-			"/a-module/simple-container": "uniqueName",
+		inDirectoryNames: map[string]*Directory{
+			"/a-module/simple-container": {Name: "uniqueName"},
 		},
 		wantErr: "overlapping root children for key simple-container",
 	}, {
@@ -224,9 +224,9 @@ func TestBuildJSONTree(t *testing.T) {
 		inFakeRoot: &yang.Entry{
 			Name: "device",
 		},
-		inDirectoryNames: map[string]string{
-			"/a-module/simple-container": "uniqueName",
-			"/device":                    "TheFakeRoot",
+		inDirectoryNames: map[string]*Directory{
+			"/a-module/simple-container": {Name: "uniqueName"},
+			"/device":                    {Name: "TheFakeRoot"},
 		},
 		want: `{
     "Name": "device",
@@ -439,7 +439,7 @@ func TestSchemaRoundtrip(t *testing.T) {
 		name             string
 		inEntries        []*yang.Entry
 		inFakeRoot       *yang.Entry
-		inDirectoryNames map[string]string
+		inDirectoryNames map[string]*Directory
 		inCompressed     bool
 		want             map[string]*yang.Entry
 		wantJSONErr      string
@@ -448,8 +448,8 @@ func TestSchemaRoundtrip(t *testing.T) {
 	}{{
 		name:      "simple schema",
 		inEntries: []*yang.Entry{moduleEntry},
-		inDirectoryNames: map[string]string{
-			"/module/container": "Container",
+		inDirectoryNames: map[string]*Directory{
+			"/module/container": {Name: "Container"},
 		},
 		want: map[string]*yang.Entry{
 			"Container": annotatedContainerEntry,
@@ -458,9 +458,9 @@ func TestSchemaRoundtrip(t *testing.T) {
 		name:       "test with fakeroot",
 		inEntries:  []*yang.Entry{fakeRootModuleEntry},
 		inFakeRoot: fakeRootEntry,
-		inDirectoryNames: map[string]string{
-			"/module/container": "Container",
-			"/device":           "Device",
+		inDirectoryNames: map[string]*Directory{
+			"/module/container": {Name: "Container"},
+			"/device":           {Name: "Device"},
 		},
 		want: map[string]*yang.Entry{
 			"Container": annotatedFakeRootContainerEntry,

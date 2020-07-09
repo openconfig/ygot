@@ -36,7 +36,7 @@ import (
 // they correspond to in the generated code, and the absolute schema path that
 // the entry corresponds to. In the case that the fake root struct that is provided
 // is nil, a synthetic root entry is used to store the schema tree.
-func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry, compressed bool) ([]byte, error) {
+func buildJSONTree(ms []*yang.Entry, dn map[string]*Directory, fakeroot *yang.Entry, compressed bool) ([]byte, error) {
 	rootEntry := &yang.Entry{
 		Dir:        map[string]*yang.Entry{},
 		Annotation: map[string]interface{}{},
@@ -54,7 +54,7 @@ func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry,
 	if fakeroot != nil {
 		rootEntry.Name = fakeroot.Name
 		rootEntry.Annotation["schemapath"] = "/"
-		rootEntry.Annotation["structname"] = dn[fakeroot.Path()]
+		rootEntry.Annotation["structname"] = dn[fakeroot.Path()].Name
 		rootEntry.Kind = yang.DirectoryEntry
 	}
 	// Always annotate the root as a fake root, so that it is not treated
@@ -80,7 +80,7 @@ func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry,
 // to its path in the supplied dn map. The dn map is assumed to contain the
 // names of unique directories that are generated within the code to be output.
 // The children of e are recursively annotated.
-func annotateChildren(e *yang.Entry, dn map[string]string) {
+func annotateChildren(e *yang.Entry, dn map[string]*Directory) {
 	annotateEntry(e, dn)
 	for _, ch := range util.Children(e) {
 		annotateEntry(ch, dn)
@@ -99,13 +99,13 @@ func annotateChildren(e *yang.Entry, dn map[string]string) {
 //    in the supplied dn map to the annotations.
 //  - add the YANG schema path to the annotations, where e
 //    corresponds to a YANG directory.
-func annotateEntry(e *yang.Entry, dn map[string]string) {
+func annotateEntry(e *yang.Entry, dn map[string]*Directory) {
 	e.Description = ""
 	if e.Annotation == nil {
 		e.Annotation = map[string]interface{}{}
 	}
 	if n, ok := dn[e.Path()]; ok {
-		e.Annotation["structname"] = n
+		e.Annotation["structname"] = n.Name
 	}
 	if e.IsDir() {
 		e.Annotation["schemapath"] = e.Path()

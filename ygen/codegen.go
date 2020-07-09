@@ -333,84 +333,127 @@ func IsFakeRoot(e *yang.Entry) bool {
 	return e != nil && e.Node != nil && e.Node.NName() == rootElementNodeName
 }
 
-// GenerateGoCode takes a slice of strings containing the path to a set of YANG
-// files which contain YANG modules, and a second slice of strings which
-// specifies the set of paths that are to be searched for associated models (e.g.,
-// modules that are included by the specified set of modules, or submodules of those
-// modules). It extracts the set of modules that are to be generated, and returns
-// a GeneratedGoCode struct which contains:
-//	1. A struct definition for each container or list that is within the specified
-//	    set of models.
-//	2. Enumerated values which correspond to the set of enumerated entities (leaves
-//	   of type enumeration, identities, typedefs that reference an enumeration)
-//	   within the specified models.
-// If errors are encountered during code generation, an error is returned.
 func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*GeneratedGoCode, util.Errors) {
-	// Extract the entities to be mapped into structs and enumerations in the output
-	// Go code. Extract the schematree from the modules provided such that it can be
-	// used to reference entities within the tree.
-	mdef, errs := mappedDefinitions(yangFiles, includePaths, &cg.Config)
-	if errs != nil {
-		return nil, errs
+	d := &DirectoryGenConfig{
+		ParseOptions:          cg.Config.ParseOptions,
+		TransformationOptions: cg.Config.TransformationOptions,
 	}
-
-	enumSet, goEnums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames)
-	if errs != nil {
-		return nil, errs
-	}
-
-	// Store the returned schematree and enumSet within the state for this code generation.
-	gogen := newGoGenState(mdef.schematree, enumSet)
-
-	directoryMap, errs := gogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames)
-	if errs != nil {
+	defns, errs := d.GetDefinitions(yangFiles, includePaths)
+	if len(errs) != 0 {
 		return nil, errs
 	}
 
 	var rootName string
 	if rootName = resolveRootName(cg.Config.TransformationOptions.FakeRootName, defaultRootName, cg.Config.TransformationOptions.GenerateFakeRoot); rootName != "" {
-		if r, ok := directoryMap[fmt.Sprintf("/%s", rootName)]; ok {
+		if r, ok := defns.Directories[fmt.Sprintf("/%s", rootName)]; ok {
 			rootName = r.Name
 		}
 	}
 
 	// Code generation begins
 	var codegenErr util.Errors
-	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config, rootName, mdef.modelData)
-
+	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config, rootName, defns.ModelData)
 	if err != nil {
 		return nil, util.AppendErr(codegenErr, err)
 	}
 
 	// Alphabetically order directories to produce deterministic output.
-	orderedDirNames, dirNameMap, err := GetOrderedDirectories(directoryMap)
-
+	orderedDirNames, dirNameMap, err := GetOrderedDirectories(defns.Directories)
 	if err != nil {
 		return nil, util.AppendErr(codegenErr, err)
 	}
 
-	// enumTypeMap stores the map of the path to type.
+	usedEnumeratedTypes := map[string]bool{}
 	enumTypeMap := map[string][]string{}
-	var structSnippets []GoStructCodeSnippet
+	structSnippets := []GoStructCodeSnippet{}
+
+	isBuiltInType := func(fType string) bool {
+		_, ok := validGoBuiltinTypes[fType]
+		return ok
+	}
+
+	var fakeRootEntry *yang.Entry
 	for _, directoryName := range orderedDirNames {
-		structOut, errs := writeGoStruct(dirNameMap[directoryName], directoryMap, gogen,
-			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.GoOptions)
+		thisDir := dirNameMap[directoryName]
+
+		// Note the fakeRoot since we need it later on.
+		if thisDir.IsFakeRoot {
+			fakeRootEntry = thisDir.Entry
+		}
+
+		structOut, errs := writeGoStruct(thisDir, defns, cg.Config.GoOptions, cg.Config.GenerateJSONSchema)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
 		}
 		structSnippets = append(structSnippets, structOut)
 
-		// Copy the contents of the enumTypeMap for the struct into the global
-		// map.
-		for p, t := range structOut.enumTypeMap {
-			enumTypeMap[p] = t
+		// We need to find all the enumerated types that are in use within the schema
+		// such that we do not output types that are not used (which would potentially create a lot
+		// of extraneous code for included modules that we aren't generating for), and to create
+		// the map of types that might exist within the generated code for unmarshalling.
+		fieldTypes := defns.LeafTypes[thisDir.Entry.Path()]
+		for _, f := range thisDir.Fields {
+			fType, ok := fieldTypes[f.Name]
+			if !ok {
+				codegenErr = util.AppendErr(codegenErr, fmt.Errorf("cannot find field %s in directory %s", f.Name, directoryName))
+				continue
+			}
+			schemaPath := util.SchemaTreePathNoModule(f)
+			switch {
+			case fType == nil:
+				// This is a directory, so we continue.
+				continue
+			case fType.IsEnumeratedValue:
+				usedEnumeratedTypes[fType.NativeType] = true
+				enumTypeMap[schemaPath] = []string{fType.NativeType}
+			case len(fType.UnionTypes) > 1:
+				for ut := range fType.UnionTypes {
+					if !isBuiltInType(ut) {
+						// Types that are in unions once they have been resolved are always
+						// enumerated types.
+						usedEnumeratedTypes[ut] = true
+						if enumTypeMap[schemaPath] == nil {
+							enumTypeMap[schemaPath] = []string{}
+						}
+						enumTypeMap[schemaPath] = append(enumTypeMap[schemaPath], ut)
+					}
+				}
+			}
 		}
 	}
 
-	enumSnippets, enumMap, errs := generateEnumCode(goEnums)
-	if errs != nil {
-		codegenErr = util.AppendErrs(codegenErr, errs)
+	orderedEnumNames := []string{}
+	for _, e := range defns.Enums {
+		orderedEnumNames = append(orderedEnumNames, e.Name)
+	}
+	sort.Strings(orderedEnumNames)
+
+	enumValMap := map[string]map[int64]ygot.EnumDefinition{}
+	enumSnippets := []string{}
+
+	for _, en := range orderedEnumNames {
+		e := defns.Enums[en]
+		if _, ok := usedEnumeratedTypes[fmt.Sprintf("%s%s", goEnumPrefix, e.Name)]; !ok {
+			// Don't output enumerated types that are not used in the code that we have
+			// such that we don't create generated code for a large array of types that
+			// just happen to be in modules that were included by other modules.
+			continue
+		}
+		enumOut, err := writeGoEnum(e)
+		if err != nil {
+			codegenErr = util.AppendErr(codegenErr, err)
+			continue
+		}
+		enumSnippets = append(enumSnippets, enumOut)
+		enumValMap[e.Name] = e.YANGValues
+	}
+
+	// Write the map of string -> int -> YANG enum name string out.
+	goEnumValueMap, err := writeGoEnumMap(enumValMap)
+	if err != nil {
+		codegenErr = util.AppendErr(codegenErr, err)
+		return nil, codegenErr
 	}
 
 	var rawSchema []byte
@@ -418,7 +461,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var enumTypeMapCode string
 	if cg.Config.GenerateJSONSchema {
 		var err error
-		rawSchema, err = buildJSONTree(mdef.modules, gogen.uniqueDirectoryNames, mdef.directoryEntries["/"], cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled())
+		rawSchema, err = buildJSONTree(defns.ParsedModules, defns.Directories, fakeRootEntry, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled())
 		if err != nil {
 			util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}
@@ -444,11 +487,27 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		OneOffHeader:   oneoffHeader,
 		Structs:        structSnippets,
 		Enums:          enumSnippets,
-		EnumMap:        enumMap,
+		EnumMap:        goEnumValueMap,
 		JSONSchemaCode: jsonSchema,
 		RawJSONSchema:  rawSchema,
 		EnumTypeMap:    enumTypeMapCode,
 	}, nil
+
+}
+
+type EnumeratedType struct {
+	Name       string
+	CodeValues map[int64]string
+	YANGValues map[int64]ygot.EnumDefinition
+}
+
+type Definitions struct {
+	Directories   map[string]*Directory
+	LeafTypes     map[string]map[string]*MappedType
+	Enums         map[string]*EnumeratedType
+	ModelData     []*gpb.ModelData
+	MappedPaths   map[string][][]string
+	ParsedModules []*yang.Entry
 }
 
 // GetDirectoriesAndLeafTypes parses YANG files and returns two path-keyed
@@ -464,9 +523,15 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 // modules that are included by the specified set of modules, or submodules of
 // those modules). Any errors encountered during code generation are returned.
 func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePaths []string) (map[string]*Directory, map[string]map[string]*MappedType, util.Errors) {
-	if !dcg.TransformationOptions.CompressBehaviour.CompressEnabled() {
-		return nil, nil, util.Errors{fmt.Errorf("GetDirectoriesAndLeafTypes currently does not have unit tests for when compression is disabled; if support needed, add unit tests and remove this error")}
-	}
+	g, errs := dcg.GetDefinitions(yangFiles, includePaths)
+	return g.Directories, g.LeafTypes, errs
+}
+
+func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string) (*Definitions, util.Errors) {
+	// TODO(robjs): add unit test coverage for GetDefinitions for uncompressed schemas
+	/*if !dcg.TransformationOptions.CompressBehaviour.CompressEnabled() {
+		return nil, util.Errors{fmt.Errorf("GetDirectoriesAndLeafTypes currently does not have unit tests for when compression is disabled; if support needed, add unit tests and remove this error")}
+	}*/
 
 	cg := &GeneratorConfig{ParseOptions: dcg.ParseOptions, TransformationOptions: dcg.TransformationOptions}
 	// Extract the entities to be mapped into structs and enumerations in the output
@@ -474,38 +539,60 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 	// used to reference entities within the tree.
 	mdef, errs := mappedDefinitions(yangFiles, includePaths, cg)
 	if errs != nil {
-		return nil, nil, errs
+		return nil, errs
 	}
 
 	dirsToProcess := map[string]*yang.Entry(mdef.directoryEntries)
 
-	enumSet, _, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames)
+	enumSet, genEnums, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames)
 	if errs != nil {
-		return nil, nil, errs
+		return nil, errs
 	}
+
+	// TODO(robjs): refactor this state type to be generic across generated languages.
 	// Store the returned schematree and enumSet within the state for this code generation.
 	gogen := newGoGenState(mdef.schematree, enumSet)
-
 	directoryMap, errs := gogen.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames)
 	if errs != nil {
-		return nil, nil, errs
+		return nil, errs
 	}
 
 	// Alphabetically order directories to produce deterministic output.
 	orderedDirNames, dirNameMap, err := GetOrderedDirectories(directoryMap)
 	if err != nil {
-		return nil, nil, util.AppendErr(errs, err)
+		return nil, util.AppendErr(errs, err)
 	}
 
-	// Populate map of leaf types for returning.
+	nodeYANGPath := make(map[string][][]string)
+	addMapPaths := func(parent *Directory, fieldName string) error {
+		// TODO(robjs): make the call here handle uncompressed paths.
+		np, err := findMapPaths(parent, fieldName, dcg.TransformationOptions.CompressBehaviour.CompressEnabled(), false)
+		if err != nil {
+			return fmt.Errorf("cannot find YANG paths to map %s field %s to, %v", parent.Entry.Path(), fieldName, err)
+		}
+		nodeYANGPath[parent.Fields[fieldName].Path()] = np
+		return nil
+	}
+	// Populate map of leaf types for returning, and a combined map of paths
+	// that fields map to within the YANG schema.
 	leafTypeMap := make(map[string]map[string]*MappedType, len(directoryMap))
+
 	for _, directoryName := range orderedDirNames {
 		dir := dirNameMap[directoryName]
 		path := dir.Entry.Path()
+
 		leafTypeMap[path] = make(map[string]*MappedType, len(dir.Fields))
 		// Alphabetically order fields to produce deterministic output.
 		for _, fieldName := range GetOrderedFieldNames(dir) {
 			field := dir.Fields[fieldName]
+
+			// Populate the paths that we are going to map this field to in the YANG schema
+			// to allow for path annotation.
+			if err := addMapPaths(dir, fieldName); err != nil {
+				errs = append(errs, err)
+				continue
+			}
+
 			if isLeaf := field.IsLeaf() || field.IsLeafList(); isLeaf {
 				mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, dcg.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames)
 				if err != nil {
@@ -519,56 +606,83 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 		}
 	}
 
-	if errs != nil {
-		return nil, nil, errs
+	enumDefinitionMap := make(map[string]*EnumeratedType, len(genEnums))
+	// Populate map of enumerated types to return.
+	for _, enum := range genEnums {
+		// TODO(robjs): refactor this code to allow a generic function to be supplied
+		// here.
+		e, err := enumDefinition(enum, safeGoEnumeratedValueName)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		enumDefinitionMap[e.Name] = e
 	}
-	return directoryMap, leafTypeMap, nil
+
+	if errs != nil {
+		return nil, errs
+	}
+
+	return &Definitions{
+		Directories:   directoryMap,
+		LeafTypes:     leafTypeMap,
+		Enums:         enumDefinitionMap,
+		ModelData:     mdef.modelData,
+		MappedPaths:   nodeYANGPath,
+		ParsedModules: mdef.modules,
+	}, nil
 }
 
-func generateEnumCode(goEnums map[string]*yangEnum) ([]string, string, util.Errors) {
-	// orderedEnumNames is used to get the enumerated types that have been
-	// identified in alphabetical order, such that they are returned in a
-	// deterministic order to the calling application. This ensures that
-	// the diffs are minimised, similarly to the purpose of GetOrderedDirectories.
-	var orderedEnumNames []string
-	enumNameMap := make(map[string]*yangEnum)
-
-	for _, goEnum := range goEnums {
-		orderedEnumNames = append(orderedEnumNames, goEnum.name)
-		enumNameMap[goEnum.name] = goEnum
+func enumDefinition(enum *yangEnum, safeNameFn func(string) string) (*EnumeratedType, error) {
+	// initialised to be UNSET, such that it is possible to determine that the enumerated value
+	// was not modified.
+	values := map[int64]string{
+		0: "UNSET",
 	}
-	sort.Strings(orderedEnumNames)
 
-	var enumSnippets []string
-	// enumValueMap is used to store a map of the different enumerations
-	// that are included in the generated code. It is keyed by the name
-	// of the generated enumeration type, with the values being a map,
-	// keyed by value number to the string that is used in the YANG schema
-	// for the enumeration. The value number is an int64 which is the value
-	// of the constant that represents the enumeration type.
-	enumValueMap := map[string]map[int64]ygot.EnumDefinition{}
-	errs := util.Errors{}
-	for _, enumName := range orderedEnumNames {
-		enumOut, err := writeGoEnum(enumNameMap[enumName])
-		if err != nil {
-			util.AppendErr(errs, err)
-			continue
+	// origValues stores the original set of value names, these are not maintained to be
+	// Go-safe, and are rather used to map back to the original schema values if required.
+	// 0 is not populated within this map, such that the values can be used to check whether
+	// there was a valid entry in the original schema. The value is stored as a ygot
+	// EnumDefinition, which stores the name, and in the case of identity values, the
+	// module within which the identity was defined.
+	origValues := map[int64]ygot.EnumDefinition{}
+
+	switch {
+	case enum.entry.Type.IdentityBase != nil:
+		// The inputEnum corresponds to an identityref - hence the values are defined
+		// based on the values that the identity has. Since there is no explicit ordering
+		// in an identity, then we go through and put the values in alphabetical order in
+		// order to avoid reordering during code generation of the same entity.
+		valNames := []string{}
+		valLookup := map[string]*yang.Identity{}
+		for _, v := range enum.entry.Type.IdentityBase.Values {
+			valNames = append(valNames, v.Name)
+			valLookup[v.Name] = v
 		}
-		enumSnippets = append(enumSnippets, enumOut.constDef)
-		enumValueMap[enumOut.name] = enumOut.valToString
+		sort.Strings(valNames)
+
+		for i, v := range valNames {
+			values[int64(i)+1] = safeNameFn(v)
+			origValues[int64(i)+1] = ygot.EnumDefinition{
+				Name:           v,
+				DefiningModule: genutil.ParentModuleName(valLookup[v]),
+			}
+		}
+	default:
+		// The remaining enumerated types are all represented as an Enum type within the
+		// Goyang entry construct. The values are accessed in a map keyed by an int64
+		// and with a value of the name of the enumerated value - retrieved via ValueMap().
+		for i, value := range enum.entry.Type.Enum.ValueMap() {
+			values[i+1] = safeNameFn(value)
+			origValues[i+1] = ygot.EnumDefinition{Name: value}
+		}
 	}
 
-	// Generate the constant map which provides mappings between the
-	// enums for which code was generated and their corresponding
-	// string values.
-	enumMap, err := generateEnumMap(enumValueMap)
-	if err != nil {
-		util.AppendErr(errs, err)
-	}
-	if len(errs) == 0 {
-		errs = nil
-	}
-	return enumSnippets, enumMap, errs
+	return &EnumeratedType{
+		Name:       enum.name,
+		CodeValues: values,
+		YANGValues: origValues,
+	}, nil
 }
 
 // GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
