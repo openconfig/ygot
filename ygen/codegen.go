@@ -18,6 +18,7 @@
 package ygen
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sort"
@@ -364,6 +365,8 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}
 
 	usedEnumeratedTypes := map[string]bool{}
+	definedUnionTypes := map[string]map[string]*goUnionInterface{}
+	generatedUnions := map[string]bool{}
 	enumTypeMap := map[string][]string{}
 	structSnippets := []GoStructCodeSnippet{}
 
@@ -372,6 +375,9 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		return ok
 	}
 
+	// Range through the directories to find the enumerated and union types that we
+	// need. We have to do this without writing the code out, since we require some
+	// knowledge of these types to do code generation along with the values.
 	var fakeRootEntry *yang.Entry
 	for _, directoryName := range orderedDirNames {
 		thisDir := dirNameMap[directoryName]
@@ -381,19 +387,20 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 			fakeRootEntry = thisDir.Entry
 		}
 
-		structOut, errs := writeGoStruct(thisDir, defns, cg.Config.GoOptions, cg.Config.GenerateJSONSchema)
-		if errs != nil {
-			codegenErr = util.AppendErrs(codegenErr, errs)
-			continue
-		}
-		structSnippets = append(structSnippets, structOut)
-
 		// We need to find all the enumerated types that are in use within the schema
 		// such that we do not output types that are not used (which would potentially create a lot
 		// of extraneous code for included modules that we aren't generating for), and to create
 		// the map of types that might exist within the generated code for unmarshalling.
 		fieldTypes := defns.LeafTypes[thisDir.Entry.Path()]
-		for _, f := range thisDir.Fields {
+
+		fns := []string{}
+		for n := range thisDir.Fields {
+			fns = append(fns, n)
+		}
+		sort.Strings(fns)
+
+		for _, fn := range fns {
+			f := thisDir.Fields[fn]
 			fType, ok := fieldTypes[f.Name]
 			if !ok {
 				codegenErr = util.AppendErr(codegenErr, fmt.Errorf("cannot find field %s in directory %s", f.Name, directoryName))
@@ -408,7 +415,25 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 				usedEnumeratedTypes[fType.NativeType] = true
 				enumTypeMap[schemaPath] = []string{fType.NativeType}
 			case len(fType.UnionTypes) > 1:
+				if v := definedUnionTypes[directoryName][fType.NativeType]; v != nil {
+					continue
+				}
+
+				unionIntf := &goUnionInterface{
+					Name:           fType.NativeType,
+					Types:          map[string]string{},
+					LeafPath:       f.Path(),
+					ParentReceiver: thisDir.Name,
+				}
+
 				for ut := range fType.UnionTypes {
+					tn := yang.CamelCase(ut)
+					if ut == "interface{}" {
+						tn = "Interface"
+					}
+					unionIntf.Types[tn] = ut
+					unionIntf.TypeNames = append(unionIntf.TypeNames, ut)
+
 					if !isBuiltInType(ut) {
 						// Types that are in unions once they have been resolved are always
 						// enumerated types.
@@ -419,8 +444,44 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 						enumTypeMap[schemaPath] = append(enumTypeMap[schemaPath], ut)
 					}
 				}
+
+				sort.Strings(unionIntf.TypeNames)
+				if definedUnionTypes[directoryName] == nil {
+					definedUnionTypes[directoryName] = map[string]*goUnionInterface{}
+				}
+				definedUnionTypes[directoryName][fType.NativeType] = unionIntf
 			}
 		}
+
+		structOut, errs := writeGoStruct(thisDir, defns, cg.Config.GoOptions, cg.Config.GenerateJSONSchema)
+		if errs != nil {
+			codegenErr = util.AppendErrs(codegenErr, errs)
+			continue
+		}
+
+		// write the union types out
+		var b bytes.Buffer
+		tn := []string{}
+		for k := range definedUnionTypes[directoryName] {
+			tn = append(tn, k)
+		}
+		sort.Strings(tn)
+		for _, n := range tn {
+			if !generatedUnions[n] {
+				if err := generateUnionCode(&b, definedUnionTypes[directoryName][n]); err != nil {
+					codegenErr = util.AppendErr(codegenErr, err)
+					continue
+				}
+				generatedUnions[n] = true
+			}
+			if err := generateUnionHelper(&b, definedUnionTypes[directoryName][n]); err != nil {
+				codegenErr = util.AppendErr(codegenErr, err)
+				continue
+			}
+		}
+		structOut.Interfaces = b.String()
+
+		structSnippets = append(structSnippets, structOut)
 	}
 
 	orderedEnumNames := []string{}
@@ -565,7 +626,7 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string) 
 
 	nodeYANGPath := make(map[string][][]string)
 	addMapPaths := func(parent *Directory, fieldName string) error {
-		// TODO(robjs): make the call here handle uncompressed paths.
+		// TODO(robjs): make the call here handle absolute paths.
 		np, err := findMapPaths(parent, fieldName, dcg.TransformationOptions.CompressBehaviour.CompressEnabled(), false)
 		if err != nil {
 			return fmt.Errorf("cannot find YANG paths to map %s field %s to, %v", parent.Entry.Path(), fieldName, err)

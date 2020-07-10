@@ -23,13 +23,13 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/google/go-cmp/cmp"
-
 	"github.com/openconfig/gnmi/errlist"
-	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
+
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 const (
@@ -1199,6 +1199,14 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 func writeGoStruct(targetStruct *Directory, defs *Definitions, goOpts GoOpts, generateJSONSchema bool) (GoStructCodeSnippet, []error) {
 	var errs []error
 
+	if targetStruct == nil {
+		return GoStructCodeSnippet{}, []error{fmt.Errorf("cannot create code for nil targetStruct")}
+	}
+
+	if defs == nil {
+		return GoStructCodeSnippet{}, []error{fmt.Errorf("cannot create code with invalid Definitions for %s", targetStruct.Name)}
+	}
+
 	if targetStruct.Entry == nil {
 		return GoStructCodeSnippet{}, []error{fmt.Errorf("cannot create code for nil *yang.Entry at %s", targetStruct.Name)}
 	}
@@ -1255,7 +1263,7 @@ func writeGoStruct(targetStruct *Directory, defs *Definitions, goOpts GoOpts, ge
 
 	dirFieldTypes, ok := defs.LeafTypes[targetStruct.Entry.Path()]
 	if !ok {
-		return GoStructCodeSnippet{}, []error{fmt.Errorf("directory %s has an unknown set of leaves specified", targetStruct.Entry.Path())}
+		return GoStructCodeSnippet{}, []error{fmt.Errorf("can't find leaf definitions for struct %s", targetStruct.Entry.Path())}
 	}
 
 	// Alphabetically order fields to produce deterministic output.
@@ -1318,6 +1326,11 @@ func writeGoStruct(targetStruct *Directory, defs *Definitions, goOpts GoOpts, ge
 			mtype, ok := dirFieldTypes[field.Name]
 			if !ok {
 				errs = append(errs, fmt.Errorf("field %s had an unknown type", field.Path()))
+				continue
+			}
+
+			if mtype.NativeType == "" {
+				errs = append(errs, fmt.Errorf("invalid empty type for field %s", field.Path()))
 			}
 
 			// Set the default type to the mapped Go type.
@@ -1416,8 +1429,10 @@ func writeGoStruct(targetStruct *Directory, defs *Definitions, goOpts GoOpts, ge
 		for i, p := range schemaMapPaths {
 			tagBuf.WriteString(util.SlicePathToString(p))
 
-			p[len(p)-1] = fmt.Sprintf("@%s", p[len(p)-1])
-			metadataTagBuf.WriteString(util.SlicePathToString(p))
+			// Copy the slice so that we don't modify it for future callers.
+			np := append(p[:0:0], p...)
+			np[len(np)-1] = fmt.Sprintf("@%s", np[len(np)-1])
+			metadataTagBuf.WriteString(util.SlicePathToString(np))
 
 			if i != len(schemaMapPaths)-1 {
 				tagBuf.WriteRune('|')
@@ -1524,20 +1539,6 @@ func writeGoStruct(targetStruct *Directory, defs *Definitions, goOpts GoOpts, ge
 		errs = append(errs, err)
 	}
 
-	// interfaceBuf is used to store the code generated for interfaces that
-	// are used for multi-type unions within the struct.
-	var interfaceBuf bytes.Buffer
-
-	for _, intf := range genUnions {
-		if err := goTemplates["unionType"].Execute(&interfaceBuf, intf); err != nil {
-			errs = append(errs, err)
-		}
-		if err := goTemplates["unionHelper"].Execute(&interfaceBuf, intf); err != nil {
-			errs = append(errs, err)
-		}
-
-	}
-
 	if generateJSONSchema {
 		if err := generateValidator(&methodBuf, structDef); err != nil {
 			errs = append(errs, err)
@@ -1548,13 +1549,30 @@ func writeGoStruct(targetStruct *Directory, defs *Definitions, goOpts GoOpts, ge
 		}
 	}
 
+	if len(errs) != 0 {
+		return GoStructCodeSnippet{}, errs
+	}
+
 	return GoStructCodeSnippet{
 		StructName: structDef.StructName,
 		StructDef:  structBuf.String(),
 		Methods:    methodBuf.String(),
 		ListKeys:   listkeyBuf.String(),
-		Interfaces: interfaceBuf.String(),
-	}, errs
+	}, nil
+}
+
+func generateUnionCode(buf *bytes.Buffer, unionDef *goUnionInterface) error {
+	if err := goTemplates["unionType"].Execute(buf, unionDef); err != nil {
+		return err
+	}
+	return nil
+}
+
+func generateUnionHelper(buf *bytes.Buffer, unionDef *goUnionInterface) error {
+	if err := goTemplates["unionHelper"].Execute(buf, unionDef); err != nil {
+		return err
+	}
+	return nil
 }
 
 // generateValidator generates a validation function string for structDef and
@@ -1807,12 +1825,24 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 	// Key name elements are ordered per Section 7.8.2 of RFC6020. Rely on this
 	// fact for determisitic ordering in output code and rendering.
 	keyElemNames := strings.Fields(listField.Key)
+	if found, inSchema := len(keyElemNames), len(listElem.ListAttr.Keys); found != inSchema {
+		return "", nil, nil, fmt.Errorf("missing key definitions, got %d but expected %d", found, inSchema)
+	}
 
 	usedKeyElemNames := make(map[string]bool)
 	for _, keName := range keyElemNames {
+		keyType, ok := listElem.ListAttr.Keys[keName]
+		if !ok {
+			return "", nil, nil, fmt.Errorf("did not find type for key %s", keName)
+		}
+
+		if keyType == nil {
+			return "", nil, nil, fmt.Errorf("invalid key type for key %s", keName)
+		}
+
 		keyField := goStructField{
 			Name: genutil.MakeNameUnique(genutil.EntryCamelCaseName(listField.Dir[keName]), usedKeyElemNames),
-			Type: listElem.ListAttr.Keys[keName].NativeType,
+			Type: keyType.NativeType,
 			Tags: fmt.Sprintf(`path:"%s"`, keName),
 		}
 		keyField.IsScalarField = IsScalarField(listField.Dir[keName], listElem.ListAttr.Keys[keName])
