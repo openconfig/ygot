@@ -967,9 +967,10 @@ func TestIsYgotAnnotation(t *testing.T) {
 
 func TestEnumeratedUnionTypes(t *testing.T) {
 	tests := []struct {
-		desc  string
-		types []*yang.YangType
-		want  []*yang.YangType
+		desc            string
+		types           []*yang.YangType
+		want            []*yang.YangType
+		wantParentTypes []*yang.YangType
 	}{
 		{
 			desc: "single-level with no enumerated types",
@@ -1003,15 +1004,22 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 				Name: "int",
 				Kind: yang.Yint32,
 			}, {
-				Name: "iref",
+				Name: "identityref",
 				Kind: yang.Yidentityref,
 			}, {
 				Name: "union-enum",
 				Kind: yang.Yenum,
 			}},
 			want: []*yang.YangType{{
-				Name: "iref",
+				Name: "identityref",
 				Kind: yang.Yidentityref,
+			}, {
+				Name: "union-enum",
+				Kind: yang.Yenum,
+			}},
+			wantParentTypes: []*yang.YangType{{
+				Name: "parent-type",
+				Kind: yang.Yunion,
 			}, {
 				Name: "union-enum",
 				Kind: yang.Yenum,
@@ -1037,7 +1045,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 				Name: "int",
 				Kind: yang.Yint32,
 			}, {
-				Name: "iref",
+				Name: "identityref",
 				Kind: yang.Yidentityref,
 			}, {
 				Name: "union",
@@ -1058,18 +1066,313 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 					Name: "inner-iref",
 					Kind: yang.Yidentityref,
 				}, {
-					Name: "union-enum",
+					Name: "enumeration",
 					Kind: yang.Yenum,
 				}},
 			}},
 			want: []*yang.YangType{{
+				Name: "identityref",
+				Kind: yang.Yidentityref,
+			}, {
 				Name: "inner-iref",
 				Kind: yang.Yidentityref,
+			}, {
+				Name: "enumeration",
+				Kind: yang.Yenum,
+			}},
+			wantParentTypes: []*yang.YangType{{
+				Name: "parent-type",
+				Kind: yang.Yunion,
+			}, {
+				Name: "inner-iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "parent-type",
+				Kind: yang.Yunion,
+			}},
+		},
+		{
+			desc: "multi-level with typedef union",
+			types: []*yang.YangType{{
+				Name:    "string",
+				Pattern: []string{"^a.*$"},
+				Kind:    yang.Ystring,
+				Length: yang.YangRange{{
+					Min: yang.FromInt(10),
+					Max: yang.FromInt(20),
+				},
+				},
+			}, {
+				Name: "int",
+				Kind: yang.Yint32,
 			}, {
 				Name: "iref",
 				Kind: yang.Yidentityref,
 			}, {
+				Name: "enumeration",
+				Kind: yang.Yenum,
+			}, {
 				Name: "union-enum",
+				Kind: yang.Yenum,
+			}, {
+				Name: "union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Name:    "string",
+					Pattern: []string{"^a.*$"},
+					Kind:    yang.Ystring,
+					Length: yang.YangRange{{
+						Min: yang.FromInt(10),
+						Max: yang.FromInt(20),
+					},
+					},
+				}, {
+					Name: "inner-int",
+					Kind: yang.Yint32,
+				}, {
+					Name: "inner-iref",
+					Kind: yang.Yidentityref,
+				}, {
+					Name: "enumeration",
+					Kind: yang.Yenum,
+				}, {
+					Name: "inner-union-enum",
+					Kind: yang.Yenum,
+				}, {
+					Name: "inner-typedef-union",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{{
+						Name:    "string",
+						Pattern: []string{"^a.*$"},
+						Kind:    yang.Ystring,
+						Length: yang.YangRange{{
+							Min: yang.FromInt(10),
+							Max: yang.FromInt(20),
+						},
+						},
+					}, {
+						Name: "inner-inner-int",
+						Kind: yang.Yint32,
+					}, {
+						Name: "inner-inner-iref",
+						Kind: yang.Yidentityref,
+					}, {
+						Name: "enumeration",
+						Kind: yang.Yenum,
+					}, {
+						Name: "inner-inner-union-enum",
+						Kind: yang.Yenum,
+					}},
+				}},
+			}, {
+				Name: "typedef-union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Name:    "string",
+					Pattern: []string{"^a.*$"},
+					Kind:    yang.Ystring,
+					Length: yang.YangRange{{
+						Min: yang.FromInt(10),
+						Max: yang.FromInt(20),
+					},
+					},
+				}, {
+					Name: "typedef-inner-int",
+					Kind: yang.Yint32,
+				}, {
+					Name: "typedef-inner-iref",
+					Kind: yang.Yidentityref,
+				}, {
+					Name: "enumeration",
+					Kind: yang.Yenum,
+				}, {
+					Name: "nested-typedef-union",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{{
+						Name:    "string",
+						Pattern: []string{"^a.*$"},
+						Kind:    yang.Ystring,
+						Length: yang.YangRange{{
+							Min: yang.FromInt(10),
+							Max: yang.FromInt(20),
+						},
+						},
+					}, {
+						Name: "nested-inner-int",
+						Kind: yang.Yint32,
+					}, {
+						Name: "nested-inner-iref",
+						Kind: yang.Yidentityref,
+					}, {
+						Name: "enumeration",
+						Kind: yang.Yenum,
+					}, {
+						Name: "nested-union-enum",
+						Kind: yang.Yenum,
+					}},
+				}},
+			}, {
+				Name: "typedef-union2",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Name:    "string",
+					Pattern: []string{"^a.*$"},
+					Kind:    yang.Ystring,
+					Length: yang.YangRange{{
+						Min: yang.FromInt(10),
+						Max: yang.FromInt(20),
+					},
+					},
+				}, {
+					Name: "typedef-inner-int2",
+					Kind: yang.Yint32,
+				}, {
+					Name: "typedef-inner-iref2",
+					Kind: yang.Yidentityref,
+				}, {
+					Name: "enumeration",
+					Kind: yang.Yenum,
+				}, {
+					Name: "nested-typedef-union2",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{{
+						Name:    "string",
+						Pattern: []string{"^a.*$"},
+						Kind:    yang.Ystring,
+						Length: yang.YangRange{{
+							Min: yang.FromInt(10),
+							Max: yang.FromInt(20),
+						},
+						},
+					}, {
+						Name: "nested-inner-int2",
+						Kind: yang.Yint32,
+					}, {
+						Name: "nested-inner-iref2",
+						Kind: yang.Yidentityref,
+					}, {
+						Name: "enumeration",
+						Kind: yang.Yenum,
+					}, {
+						Name: "nested-union-enum2",
+						Kind: yang.Yenum,
+					}},
+				}},
+			}},
+			want: []*yang.YangType{{
+				Name: "iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "enumeration",
+				Kind: yang.Yenum,
+			}, {
+				Name: "union-enum",
+				Kind: yang.Yenum,
+			}, {
+				Name: "inner-iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "enumeration",
+				Kind: yang.Yenum,
+			}, {
+				Name: "inner-union-enum",
+				Kind: yang.Yenum,
+			}, {
+				Name: "inner-inner-iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "enumeration",
+				Kind: yang.Yenum,
+			}, {
+				Name: "inner-inner-union-enum",
+				Kind: yang.Yenum,
+			}, {
+				Name: "typedef-inner-iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "enumeration",
+				Kind: yang.Yenum,
+			}, {
+				Name: "nested-inner-iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "enumeration",
+				Kind: yang.Yenum,
+			}, {
+				Name: "nested-union-enum",
+				Kind: yang.Yenum,
+			}, {
+				Name: "typedef-inner-iref2",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "enumeration",
+				Kind: yang.Yenum,
+			}, {
+				Name: "nested-inner-iref2",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "enumeration",
+				Kind: yang.Yenum,
+			}, {
+				Name: "nested-union-enum2",
+				Kind: yang.Yenum,
+			}},
+			wantParentTypes: []*yang.YangType{{
+				Name: "iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "parent-type",
+				Kind: yang.Yunion,
+			}, {
+				Name: "union-enum",
+				Kind: yang.Yenum,
+			}, {
+				Name: "inner-iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "parent-type",
+				Kind: yang.Yunion,
+			}, {
+				Name: "inner-union-enum",
+				Kind: yang.Yenum,
+			}, {
+				Name: "inner-inner-iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "inner-typedef-union",
+				Kind: yang.Yunion,
+			}, {
+				Name: "inner-inner-union-enum",
+				Kind: yang.Yenum,
+			}, {
+				Name: "typedef-inner-iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "typedef-union",
+				Kind: yang.Yunion,
+			}, {
+				Name: "nested-inner-iref",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "nested-typedef-union",
+				Kind: yang.Yunion,
+			}, {
+				Name: "nested-union-enum",
+				Kind: yang.Yenum,
+			}, {
+				Name: "typedef-inner-iref2",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "typedef-union2",
+				Kind: yang.Yunion,
+			}, {
+				Name: "nested-inner-iref2",
+				Kind: yang.Yidentityref,
+			}, {
+				Name: "nested-typedef-union2",
+				Kind: yang.Yunion,
+			}, {
+				Name: "nested-union-enum2",
 				Kind: yang.Yenum,
 			}},
 		},
@@ -1079,12 +1382,8 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 		if len(a) != len(b) {
 			return false
 		}
-		m := make(map[string]*yang.YangType)
-		for _, v := range a {
-			m[v.Name] = v
-		}
-		for _, bv := range b {
-			if _, ok := m[bv.Name]; !ok {
+		for i := range a {
+			if a[i].Name != b[i].Name {
 				return false
 			}
 		}
@@ -1095,6 +1394,18 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			if got, want := EnumeratedUnionTypes(tt.types), tt.want; !itemsEqual(got, want) {
 				t.Errorf("EnumeratedUnionTypes got: %v want: %v", pretty.Sprint(got), pretty.Sprint(want))
+			}
+		})
+	}
+
+	for _, tt := range tests {
+		t.Run("parent union types:"+tt.desc, func(t *testing.T) {
+			if got, want := EnumeratedUnionSubsumingTypes(&yang.YangType{
+				Name: "parent-type",
+				Kind: yang.Yunion,
+				Type: tt.types,
+			}), tt.wantParentTypes; !itemsEqual(got, want) {
+				t.Errorf("EnumeratedUnionSubsumingTypes got: %v want: %v", pretty.Sprint(got), pretty.Sprint(want))
 			}
 		})
 	}
