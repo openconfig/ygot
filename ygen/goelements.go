@@ -120,11 +120,16 @@ func newGoGenState(schematree *schemaTree, eSet *enumSet) *goGenState {
 type resolveTypeArgs struct {
 	// yangType is a pointer to the yang.YangType that is to be mapped.
 	yangType *yang.YangType
-	// subsumingType is the closest typedef, or otherwise the highest-level
-	// type, to which the yangType belongs. It is particularly useful for
-	// specifying the containing union type when yangType is a union
-	// subtype, and for distinguishing yangType between a full type vs. a
-	// union subtype.
+	// subsumingType is the closest/innermost type of yangType that's not a
+	// union subtype:
+	// case 1: for any type not within a union, the subsuming type is itself.
+	// case 2: for any type within a union, the subsuming type is the first
+	// containing union type that's a typedef, or highest union type
+	// definition, whichever one is closest to the type.
+	//
+	// subsumingType is particularly useful for specifying the containing
+	// union type when yangType is a union subtype.
+	// If unspecified, it is assumed that yangType is not a union subtype.
 	subsumingType *yang.YangType
 	// contextEntry is an optional yang.Entry which is supplied where a
 	// type requires knowledge of the leaf that it is used within to be

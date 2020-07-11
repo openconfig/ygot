@@ -242,6 +242,8 @@ func (s *enumSet) enumeratedTypedefKey(args resolveTypeArgs, noUnderscores, useD
 	typeName := args.yangType.Name
 	subsumingType := args.subsumingType
 	if subsumingType == nil {
+		// If subsumingType is not provided, then we assume that the given type is not a union subtype.
+		// Then by definition, its subsuming type is the type itself.
 		subsumingType = args.yangType
 	}
 
