@@ -183,8 +183,8 @@ func TestPathCreation(t *testing.T) {
 	}, {
 		name: "union key (enum value)",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
-			implicitNull := oc.SidCounter_MplsLabel_IMPLICIT_NULL
-			iNullInUnion := &oc.NetworkInstance_Mpls_SignalingProtocols_SegmentRouting_Interface_SidCounter_MplsLabel_Union_E_SidCounter_MplsLabel{implicitNull}
+			implicitNull := oc.OpenconfigMplsTypes_MplsLabel_Enum_IMPLICIT_NULL
+			iNullInUnion := &oc.NetworkInstance_Mpls_SignalingProtocols_SegmentRouting_Interface_SidCounter_MplsLabel_Union_E_OpenconfigMplsTypes_MplsLabel_Enum{implicitNull}
 			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(iNullInUnion).InOctets()
 		},
 		wantPath: "/network-instances/network-instance[name=RED]/mpls/signaling-protocols/segment-routing/interfaces/interface[interface-id=eth1]/sid-counters/sid-counter[mpls-label=IMPLICIT_NULL]/state/in-octets",

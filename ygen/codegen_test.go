@@ -745,6 +745,18 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.long-enum-names.residing-module-typedef-enum-name.formatted-txt"),
 	}, {
+		name:           "enumeration behaviour - multiple enumerations within a union",
+		inFiles:        []string{filepath.Join(datapath, "", "enum-multi-module.yang")},
+		inIncludePaths: []string{filepath.Join(datapath, "modules")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-multi-module.formatted-txt"),
+	}, {
 		name:    "module with leaf getters",
 		inFiles: []string{filepath.Join(datapath, "", "openconfig-list-enum-key.yang")},
 		inConfig: GeneratorConfig{
@@ -805,6 +817,9 @@ func TestSimpleStructs(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
+		if tt.name != "enumeration behaviour - multiple enumerations within a union" {
+			continue
+		}
 		t.Run(tt.name, func(t *testing.T) {
 			genCode := func() (*GeneratedGoCode, string, map[string]interface{}) {
 				// Set defaults within the supplied configuration for these tests.
@@ -820,7 +835,7 @@ func TestSimpleStructs(t *testing.T) {
 
 				gotGeneratedCode, err := cg.GenerateGoCode(tt.inFiles, tt.inIncludePaths)
 				if err != nil && !tt.wantErr {
-					t.Fatalf("%s: cg.GenerateCode(%v, %v): Config: %v, got unexpected error: %v, want: nil", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
+					t.Fatalf("%s: cg.GenerateCode(%v, %v): Config: %+v, got unexpected error: %v, want: nil", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
 				}
 
 				// Write all the received structs into a single file such that
@@ -867,7 +882,7 @@ func TestSimpleStructs(t *testing.T) {
 
 				if !cmp.Equal(gotJSON, wantJSON) {
 					diff, _ := testutil.GenerateUnifiedDiff(string(wantSchema), string(gotGeneratedCode.RawJSONSchema))
-					t.Fatalf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
+					t.Fatalf("%s: GenerateGoCode(%v, %v), Config: %+v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
 				}
 			}
 
@@ -883,7 +898,7 @@ func TestSimpleStructs(t *testing.T) {
 				// two code snippets such that this is simpler to debug
 				// in the test output.
 				diff, _ := testutil.GenerateUnifiedDiff(wantCode, gotCode)
-				t.Errorf("%s: GenerateGoCode(%v, %v), Config: %v, did not return correct code (file: %v), diff:\n%s",
+				t.Errorf("%s: GenerateGoCode(%v, %v), Config: %+v, did not return correct code (file: %v), diff:\n%s",
 					tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantStructsCodeFile, diff)
 			}
 

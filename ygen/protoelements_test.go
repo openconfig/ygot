@@ -199,6 +199,14 @@ func TestYangTypeToProtoType(t *testing.T) {
 			yangType: &yang.YangType{
 				Kind: yang.Yidentityref,
 				Name: "derived-identityref",
+				IdentityBase: &yang.Identity{
+					Name:   "base-identity",
+					Parent: &yang.Module{Name: "base-module"},
+				},
+				Base: &yang.Type{
+					Name:   "base-identity",
+					Parent: &yang.Module{Name: "base-module"},
+				},
 			},
 			contextEntry: &yang.Entry{
 				Type: &yang.YangType{
@@ -320,7 +328,15 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "typedef enumeration",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{Kind: yang.Yenum, Name: "derived-enumeration"},
+			yangType: &yang.YangType{
+				Kind: yang.Yenum,
+				Name: "derived-enumeration",
+				Enum: &yang.EnumType{},
+				Base: &yang.Type{
+					Name:   "enumeration",
+					Parent: &yang.Module{Name: "base-module"},
+				},
+			},
 			contextEntry: &yang.Entry{
 				Name: "enumeration-leaf",
 				Type: &yang.YangType{

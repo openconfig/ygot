@@ -219,9 +219,9 @@ func TestGenProto3Msg(t *testing.T) {
 				Name:     "FieldTwoUnion",
 				YANGPath: "/parent/field-two union field field-two",
 				Fields: []*protoMsgField{{
-					Tag:  305727351,
-					Name: "field_two_basederivedenumenum",
-					Type: "base.enums.BaseDerivedEnumEnum",
+					Tag:  350335944,
+					Name: "field_two_basederivedenum",
+					Type: "base.enums.BaseDerivedEnum",
 				}, {
 					Tag:  226381575,
 					Name: "field_two_sint64",
