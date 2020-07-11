@@ -143,6 +143,12 @@ struct names.
   and the `typedef` name - i.e., `typedef bar { type enumeration { ... }}` in
   module `baz` is represented by an enumerated type named `Bar_Baz`.
   * This mapping is handled by `enumgen.go`:`resolveTypedefEnumeratedName`.
+* builtin `enumeration` types defined within a non-builtin (i.e. `typedef`)
+  union type are named as if the union type represented a non-builtin
+  `enumeration` containing the builtin `enumeration`, with `_Enum` appended to
+  the name.  So, if the union were named `baz`, and resides in module `bar`, the
+  Go name is `Bar_Baz_Enum`.
+  * This mapping is handled by `enumgen.go`:`resolveEnumeratedUnionEntry`.
 
 Only a single enumeration is generated for a `typedef` or `identity` -
 regardless of the number of times that is referenced throughout the code. This
