@@ -27,9 +27,13 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
+	"github.com/openconfig/gnmi/proto/gnmi"
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/testutil"
+	"github.com/openconfig/ygot/ygot"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 const (
@@ -924,17 +928,16 @@ func TestGenerateErrs(t *testing.T) {
 	}
 }
 
-func TestGetDirectoriesAndLeafTypes(t *testing.T) {
+func TestGetDefinitions(t *testing.T) {
 	tests := []struct {
-		name           string
-		inFiles        []string
-		inIncludePaths []string
-		inConfig       *DirectoryGenConfig
-		wantDirMap     map[string]*Directory
-		wantFieldPath  map[string]map[string]string
-		wantTypeMap    map[string]map[string]*MappedType
+		name                string
+		inFiles             []string
+		inIncludePaths      []string
+		inConfig            *DirectoryGenConfig
+		wantDefinitions     *Definitions
+		wantDirectoryFields map[string]map[string]string
 	}{{
-		name:           "simple openconfig test",
+		name:           "openconfig test: intended-config compression",
 		inFiles:        []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
 		inConfig: &DirectoryGenConfig{
@@ -946,33 +949,75 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				ExcludeModules: []string{},
 			},
 		},
-		wantDirMap: map[string]*Directory{
-			"/openconfig-simple/parent": {
-				Name: "Parent",
-				Fields: map[string]*yang.Entry{
-					"child": {Name: "child", Type: nil},
+		wantDefinitions: &Definitions{
+			Directories: map[string]*Directory{
+				"/openconfig-simple/parent": {
+					Name: "Parent",
+					Fields: map[string]*yang.Entry{
+						"child": {Name: "child", Type: nil},
+					},
+					Path: []string{"", "openconfig-simple", "parent"},
 				},
-				Path: []string{"", "openconfig-simple", "parent"},
+				"/openconfig-simple/parent/child": {
+					Name: "Parent_Child",
+					Fields: map[string]*yang.Entry{
+						"one":   {Name: "one", Type: &yang.YangType{Kind: yang.Ystring}},
+						"two":   {Name: "two", Type: &yang.YangType{Kind: yang.Ystring}},
+						"three": {Name: "three", Type: &yang.YangType{Kind: yang.Yenum}},
+						"four":  {Name: "four", Type: &yang.YangType{Kind: yang.Ybinary}},
+					},
+					Path: []string{"", "openconfig-simple", "parent", "child"},
+				},
+				"/openconfig-simple/remote-container": {
+					Name: "RemoteContainer",
+					Fields: map[string]*yang.Entry{
+						"a-leaf": {Name: "a-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+					},
+					Path: []string{"", "openconfig-simple", "remote-container"},
+				},
 			},
-			"/openconfig-simple/parent/child": {
-				Name: "Parent_Child",
-				Fields: map[string]*yang.Entry{
-					"one":   {Name: "one", Type: &yang.YangType{Kind: yang.Ystring}},
-					"two":   {Name: "two", Type: &yang.YangType{Kind: yang.Ystring}},
-					"three": {Name: "three", Type: &yang.YangType{Kind: yang.Yenum}},
-					"four":  {Name: "four", Type: &yang.YangType{Kind: yang.Ybinary}},
+			LeafTypes: map[string]map[string]*MappedType{
+				"/openconfig-simple/parent": {
+					"child": nil,
 				},
-				Path: []string{"", "openconfig-simple", "parent", "child"},
+				"/openconfig-simple/parent/child": {
+					"one":   {NativeType: "string", ZeroValue: `""`},
+					"two":   {NativeType: "string", ZeroValue: `""`},
+					"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true, ZeroValue: "0"},
+					"four":  {NativeType: "Binary", ZeroValue: "nil"},
+				},
+				"/openconfig-simple/remote-container": {
+					"a-leaf": {NativeType: "string", ZeroValue: `""`},
+				},
 			},
-			"/openconfig-simple/remote-container": {
-				Name: "RemoteContainer",
-				Fields: map[string]*yang.Entry{
-					"a-leaf": {Name: "a-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+			Enums: map[string]*EnumeratedType{
+				"Child_Three": {
+					Name: "Child_Three",
+					CodeValues: map[int64]string{
+						0: "UNSET",
+						1: "ONE",
+						2: "TWO",
+					},
+					YANGValues: map[int64]ygot.EnumDefinition{
+						1: {Name: "ONE"},
+						2: {Name: "TWO"},
+					},
 				},
-				Path: []string{"", "openconfig-simple", "remote-container"},
+			},
+			ModelData: []*gpb.ModelData{
+				{Name: "openconfig-remote"},
+				{Name: "openconfig-simple"},
+			},
+			MappedPaths: map[string][][]string{
+				"/openconfig-simple/parent/child":                   {{"child"}},
+				"/openconfig-simple/parent/child/config/four":       {{"config", "four"}},
+				"/openconfig-simple/parent/child/config/one":        {{"config", "one"}},
+				"/openconfig-simple/parent/child/config/three":      {{"config", "three"}},
+				"/openconfig-simple/parent/child/state/two":         {{"state", "two"}},
+				"/openconfig-simple/remote-container/config/a-leaf": {{"config", "a-leaf"}},
 			},
 		},
-		wantFieldPath: map[string]map[string]string{
+		wantDirectoryFields: map[string]map[string]string{
 			"/openconfig-simple/parent": {
 				"child": "/openconfig-simple/parent/child",
 			},
@@ -986,18 +1031,172 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				"a-leaf": "/openconfig-simple/remote-container/config/a-leaf",
 			},
 		},
-		wantTypeMap: map[string]map[string]*MappedType{
+	}, {
+		name:           "openconfig test: uncompressed",
+		inFiles:        []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inIncludePaths: []string{filepath.Join(TestRoot, "testdata", "structs")},
+		inConfig: &DirectoryGenConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:    genutil.Uncompressed,
+				ShortenEnumLeafNames: true,
+			},
+			ParseOptions: ParseOpts{
+				ExcludeModules: []string{},
+			},
+		},
+		wantDefinitions: &Definitions{
+			Directories: map[string]*Directory{
+				"/openconfig-simple/parent": {
+					Name: "OpenconfigSimple_Parent",
+					Fields: map[string]*yang.Entry{
+						"child": {Name: "child", Type: nil},
+					},
+					Path: []string{"", "openconfig-simple", "parent"},
+				},
+				"/openconfig-simple/parent/child": {
+					Name: "OpenconfigSimple_Parent_Child",
+					Fields: map[string]*yang.Entry{
+						"config": {Name: "config"},
+						"state":  {Name: "state"},
+					},
+					Path: []string{"", "openconfig-simple", "parent", "child"},
+				},
+				"/openconfig-simple/parent/child/state": {
+					Name: "OpenconfigSimple_Parent_Child_State",
+					Fields: map[string]*yang.Entry{
+						"one":   {Name: "one", Type: &yang.YangType{Kind: yang.Ystring}},
+						"two":   {Name: "two", Type: &yang.YangType{Kind: yang.Ystring}},
+						"three": {Name: "three", Type: &yang.YangType{Kind: yang.Yenum}},
+						"four":  {Name: "four", Type: &yang.YangType{Kind: yang.Ybinary}},
+					},
+					Path: []string{"", "openconfig-simple", "parent", "child", "state"},
+				},
+				"/openconfig-simple/parent/child/config": {
+					Name: "OpenconfigSimple_Parent_Child_Config",
+					Fields: map[string]*yang.Entry{
+						"one":   {Name: "one", Type: &yang.YangType{Kind: yang.Ystring}},
+						"three": {Name: "three", Type: &yang.YangType{Kind: yang.Yenum}},
+						"four":  {Name: "four", Type: &yang.YangType{Kind: yang.Ybinary}},
+					},
+					Path: []string{"", "openconfig-simple", "parent", "child", "config"},
+				},
+				"/openconfig-simple/remote-container": {
+					Name: "OpenconfigSimple_RemoteContainer",
+					Fields: map[string]*yang.Entry{
+						"config": {Name: "config"},
+						"state":  {Name: "state"},
+					},
+					Path: []string{"", "openconfig-simple", "remote-container"},
+				},
+				"/openconfig-simple/remote-container/config": {
+					Name: "OpenconfigSimple_RemoteContainer_Config",
+					Fields: map[string]*yang.Entry{
+						"a-leaf": {Name: "a-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+					},
+					Path: []string{"", "openconfig-simple", "remote-container", "config"},
+				},
+				"/openconfig-simple/remote-container/state": {
+					Name: "OpenconfigSimple_RemoteContainer_State",
+					Fields: map[string]*yang.Entry{
+						"a-leaf": {Name: "a-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+					},
+					Path: []string{"", "openconfig-simple", "remote-container", "state"},
+				},
+			},
+			LeafTypes: map[string]map[string]*MappedType{
+				"/openconfig-simple/parent": {
+					"child": nil,
+				},
+				"/openconfig-simple/parent/child": {
+					"config": nil,
+					"state":  nil,
+				},
+				"/openconfig-simple/parent/child/config": {
+					"one":   {NativeType: "string", ZeroValue: `""`},
+					"three": {NativeType: "E_OpenconfigSimple_Parent_Child_Config_Three", IsEnumeratedValue: true, ZeroValue: "0"},
+					"four":  {NativeType: "Binary", ZeroValue: "nil"},
+				},
+				"/openconfig-simple/parent/child/state": {
+					"one":   {NativeType: "string", ZeroValue: `""`},
+					"two":   {NativeType: "string", ZeroValue: `""`},
+					"three": {NativeType: "E_OpenconfigSimple_Parent_Child_Config_Three", IsEnumeratedValue: true, ZeroValue: "0"},
+					"four":  {NativeType: "Binary", ZeroValue: "nil"},
+				},
+				"/openconfig-simple/remote-container": {
+					"config": nil,
+					"state":  nil,
+				},
+				"/openconfig-simple/remote-container/config": {
+					"a-leaf": {NativeType: "string", ZeroValue: `""`},
+				},
+				"/openconfig-simple/remote-container/state": {
+					"a-leaf": {NativeType: "string", ZeroValue: `""`},
+				},
+			},
+			Enums: map[string]*EnumeratedType{
+				"OpenconfigSimple_Parent_Child_Config_Three": {
+					Name: "OpenconfigSimple_Parent_Child_Config_Three",
+					CodeValues: map[int64]string{
+						0: "UNSET",
+						1: "ONE",
+						2: "TWO",
+					},
+					YANGValues: map[int64]ygot.EnumDefinition{
+						1: {Name: "ONE"},
+						2: {Name: "TWO"},
+					},
+				},
+			},
+			ModelData: []*gpb.ModelData{
+				{Name: "openconfig-remote"},
+				{Name: "openconfig-simple"},
+			},
+			MappedPaths: map[string][][]string{
+				"/openconfig-simple/parent/child":                   {{"child"}},
+				"/openconfig-simple/parent/child/config":            {{"config"}},
+				"/openconfig-simple/parent/child/state":             {{"state"}},
+				"/openconfig-simple/parent/child/config/four":       {{"four"}},
+				"/openconfig-simple/parent/child/config/one":        {{"one"}},
+				"/openconfig-simple/parent/child/config/three":      {{"three"}},
+				"/openconfig-simple/parent/child/state/two":         {{"two"}},
+				"/openconfig-simple/parent/child/state/four":        {{"four"}},
+				"/openconfig-simple/parent/child/state/one":         {{"one"}},
+				"/openconfig-simple/parent/child/state/three":       {{"three"}},
+				"/openconfig-simple/remote-container/config":        {{"config"}},
+				"/openconfig-simple/remote-container/config/a-leaf": {{"a-leaf"}},
+				"/openconfig-simple/remote-container/state/a-leaf":  {{"a-leaf"}},
+				"/openconfig-simple/remote-container/state":         {{"state"}},
+			},
+		},
+		wantDirectoryFields: map[string]map[string]string{
 			"/openconfig-simple/parent": {
-				"child": nil,
+				"child": "/openconfig-simple/parent/child",
 			},
 			"/openconfig-simple/parent/child": {
-				"one":   {NativeType: "string"},
-				"two":   {NativeType: "string"},
-				"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true},
-				"four":  {NativeType: "Binary"},
+				"config": "/openconfig-simple/parent/child/config",
+				"state":  "/openconfig-simple/parent/child/state",
+			},
+			"/openconfig-simple/parent/child/state": {
+				"one":   "/openconfig-simple/parent/child/state/one",
+				"two":   "/openconfig-simple/parent/child/state/two",
+				"three": "/openconfig-simple/parent/child/state/three",
+				"four":  "/openconfig-simple/parent/child/state/four",
+			},
+			"/openconfig-simple/parent/child/config": {
+				"one":   "/openconfig-simple/parent/child/config/one",
+				"two":   "/openconfig-simple/parent/child/config/two",
+				"three": "/openconfig-simple/parent/child/config/three",
+				"four":  "/openconfig-simple/parent/child/config/four",
 			},
 			"/openconfig-simple/remote-container": {
-				"a-leaf": {NativeType: "string"},
+				"config": "/openconfig-simple/remote-container/config",
+				"state":  "/openconfig-simple/remote-container/state",
+			},
+			"/openconfig-simple/remote-container/config": {
+				"a-leaf": "/openconfig-simple/remote-container/config/a-leaf",
+			},
+			"/openconfig-simple/remote-container/state": {
+				"a-leaf": "/openconfig-simple/remote-container/state/a-leaf",
 			},
 		},
 	}, {
@@ -1013,33 +1212,68 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				ExcludeModules: []string{},
 			},
 		},
-		wantDirMap: map[string]*Directory{
-			"/openconfig-simple/parent": {
-				Name: "Parent",
-				Fields: map[string]*yang.Entry{
-					"child": {Name: "child", Type: nil},
+		wantDefinitions: &Definitions{
+			Directories: map[string]*Directory{
+				"/openconfig-simple/parent": {
+					Name: "Parent",
+					Fields: map[string]*yang.Entry{
+						"child": {Name: "child", Type: nil},
+					},
+					Path: []string{"", "openconfig-simple", "parent"},
 				},
-				Path: []string{"", "openconfig-simple", "parent"},
+				"/openconfig-simple/parent/child": {
+					Name: "Parent_Child",
+					Fields: map[string]*yang.Entry{
+						"one":   {Name: "one", Type: &yang.YangType{Kind: yang.Ystring}},
+						"two":   {Name: "two", Type: &yang.YangType{Kind: yang.Ystring}},
+						"three": {Name: "three", Type: &yang.YangType{Kind: yang.Yenum}},
+						"four":  {Name: "four", Type: &yang.YangType{Kind: yang.Ybinary}},
+					},
+					Path: []string{"", "openconfig-simple", "parent", "child"},
+				},
+				"/openconfig-simple/remote-container": {
+					Name: "RemoteContainer",
+					Fields: map[string]*yang.Entry{
+						"a-leaf": {Name: "a-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+					},
+					Path: []string{"", "openconfig-simple", "remote-container"},
+				},
 			},
-			"/openconfig-simple/parent/child": {
-				Name: "Parent_Child",
-				Fields: map[string]*yang.Entry{
-					"one":   {Name: "one", Type: &yang.YangType{Kind: yang.Ystring}},
-					"two":   {Name: "two", Type: &yang.YangType{Kind: yang.Ystring}},
-					"three": {Name: "three", Type: &yang.YangType{Kind: yang.Yenum}},
-					"four":  {Name: "four", Type: &yang.YangType{Kind: yang.Ybinary}},
+			LeafTypes: map[string]map[string]*MappedType{
+				"/openconfig-simple/parent": {
+					"child": nil,
 				},
-				Path: []string{"", "openconfig-simple", "parent", "child"},
+				"/openconfig-simple/parent/child": {
+					"one":   {NativeType: "string", ZeroValue: `""`},
+					"two":   {NativeType: "string", ZeroValue: `""`},
+					"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true, ZeroValue: "0"},
+					"four":  {NativeType: "Binary", ZeroValue: "nil"},
+				},
+				"/openconfig-simple/remote-container": {
+					"a-leaf": {NativeType: "string", ZeroValue: `""`},
+				},
 			},
-			"/openconfig-simple/remote-container": {
-				Name: "RemoteContainer",
-				Fields: map[string]*yang.Entry{
-					"a-leaf": {Name: "a-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+			Enums: map[string]*EnumeratedType{
+				"Child_Three": {
+					Name:       "Child_Three",
+					CodeValues: map[int64]string{0: "UNSET", 1: "ONE", 2: "TWO"},
+					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "ONE"}, 2: {Name: "TWO"}},
 				},
-				Path: []string{"", "openconfig-simple", "remote-container"},
+			},
+			ModelData: []*gpb.ModelData{
+				{Name: "openconfig-remote"},
+				{Name: "openconfig-simple"},
+			},
+			MappedPaths: map[string][][]string{
+				"/openconfig-simple/parent/child":                  {{"child"}},
+				"/openconfig-simple/parent/child/state/four":       {{"state", "four"}},
+				"/openconfig-simple/parent/child/state/one":        {{"state", "one"}},
+				"/openconfig-simple/parent/child/state/three":      {{"state", "three"}},
+				"/openconfig-simple/parent/child/state/two":        {{"state", "two"}},
+				"/openconfig-simple/remote-container/state/a-leaf": {{"state", "a-leaf"}},
 			},
 		},
-		wantFieldPath: map[string]map[string]string{
+		wantDirectoryFields: map[string]map[string]string{
 			"/openconfig-simple/parent": {
 				"child": "/openconfig-simple/parent/child",
 			},
@@ -1051,20 +1285,6 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			},
 			"/openconfig-simple/remote-container": {
 				"a-leaf": "/openconfig-simple/remote-container/state/a-leaf",
-			},
-		},
-		wantTypeMap: map[string]map[string]*MappedType{
-			"/openconfig-simple/parent": {
-				"child": nil,
-			},
-			"/openconfig-simple/parent/child": {
-				"one":   {NativeType: "string"},
-				"two":   {NativeType: "string"},
-				"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true},
-				"four":  {NativeType: "Binary"},
-			},
-			"/openconfig-simple/remote-container": {
-				"a-leaf": {NativeType: "string"},
 			},
 		},
 	}, {
@@ -1080,58 +1300,122 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				ExcludeModules: []string{"enum-types"},
 			},
 		},
-		wantDirMap: map[string]*Directory{
-			"/enum-module/parent": {
-				Name: "Parent",
-				Fields: map[string]*yang.Entry{
-					"child": {Name: "child", Type: nil},
+		wantDefinitions: &Definitions{
+			Directories: map[string]*Directory{
+				"/enum-module/parent": {
+					Name: "Parent",
+					Fields: map[string]*yang.Entry{
+						"child": {Name: "child", Type: nil},
+					},
+					Path: []string{"", "enum-module", "parent"},
 				},
-				Path: []string{"", "enum-module", "parent"},
-			},
-			"/enum-module/c": {
-				Name: "C",
-				Fields: map[string]*yang.Entry{
-					"cl": {Name: "cl", Type: &yang.YangType{Kind: yang.Yenum}},
+				"/enum-module/c": {
+					Name: "C",
+					Fields: map[string]*yang.Entry{
+						"cl": {Name: "cl", Type: &yang.YangType{Kind: yang.Yenum}},
+					},
+					Path: []string{"", "enum-module", "c"},
 				},
-				Path: []string{"", "enum-module", "c"},
-			},
-			"/enum-module/parent/child": {
-				Name: "Parent_Child",
-				Fields: map[string]*yang.Entry{
-					"id": {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+				"/enum-module/parent/child": {
+					Name: "Parent_Child",
+					Fields: map[string]*yang.Entry{
+						"id": {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+					},
+					Path: []string{"", "enum-module", "parent", "child"},
 				},
-				Path: []string{"", "enum-module", "parent", "child"},
-			},
-			"/enum-module/a-lists/a-list": {
-				Name: "AList",
-				Fields: map[string]*yang.Entry{
-					"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+				"/enum-module/a-lists/a-list": {
+					Name: "AList",
+					ListAttr: &YangListAttr{
+						Keys: map[string]*MappedType{
+							"value": {
+								NativeType: "AList_Value_Union",
+								UnionTypes: map[string]int{"E_AList_Value": 1, "uint32": 0},
+								ZeroValue:  "nil",
+							},
+						},
+					},
+					Fields: map[string]*yang.Entry{
+						"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+					},
+					Path: []string{"", "enum-module", "a-lists", "a-list"},
 				},
-				Path: []string{"", "enum-module", "a-lists", "a-list"},
-			},
-			"/enum-module/b-lists/b-list": {
-				Name: "BList",
-				Fields: map[string]*yang.Entry{
-					"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+				"/enum-module/b-lists/b-list": {
+					Name: "BList",
+					ListAttr: &YangListAttr{
+						Keys: map[string]*MappedType{
+							"value": {
+								NativeType: "BList_Value_Union",
+								UnionTypes: map[string]int{"E_BList_Value": 1, "uint32": 0},
+								ZeroValue:  "nil",
+							},
+						},
+					},
+					Fields: map[string]*yang.Entry{
+						"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+					},
+					Path: []string{"", "enum-module", "b-lists", "b-list"},
 				},
-				Path: []string{"", "enum-module", "b-lists", "b-list"},
 			},
-		},
-		wantTypeMap: map[string]map[string]*MappedType{
-			"/enum-module/parent": {
-				"child": nil,
+			LeafTypes: map[string]map[string]*MappedType{
+				"/enum-module/parent": {
+					"child": nil,
+				},
+				"/enum-module/c": {
+					"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true, ZeroValue: "0"},
+				},
+				"/enum-module/parent/child": {
+					"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true, ZeroValue: "0"},
+				},
+				"/enum-module/a-lists/a-list": {
+					"value": {
+						NativeType: "AList_Value_Union",
+						UnionTypes: map[string]int{"E_AList_Value": 1, "uint32": 0},
+						ZeroValue:  "nil",
+					},
+				},
+				"/enum-module/b-lists/b-list": {
+					"value": {
+						NativeType: "BList_Value_Union",
+						UnionTypes: map[string]int{"E_BList_Value": 1, "uint32": 0},
+						ZeroValue:  "nil",
+					},
+				},
 			},
-			"/enum-module/c": {
-				"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true},
+			Enums: map[string]*EnumeratedType{
+				"AList_Value": {
+					Name:       "AList_Value",
+					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
+					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+				},
+				"BList_Value": {
+					Name:       "BList_Value",
+					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
+					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+				},
+				"EnumModule_Cl": {
+					Name:       "EnumModule_Cl",
+					CodeValues: map[int64]string{0: "UNSET", 1: "X"},
+					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "X"}},
+				},
+				"EnumTypes_ID": {
+					Name:       "EnumTypes_ID",
+					CodeValues: map[int64]string{0: "UNSET", 1: "FORTY_TWO", 2: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH"},
+					YANGValues: map[int64]ygot.EnumDefinition{
+						1: {Name: "FORTY_TWO", DefiningModule: "enum-module"},
+						2: {Name: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH", DefiningModule: "enum-module"},
+					},
+				},
 			},
-			"/enum-module/parent/child": {
-				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
+			ModelData: []*gpb.ModelData{
+				{Name: "enum-module"},
+				{Name: "enum-types"},
 			},
-			"/enum-module/a-lists/a-list": {
-				"value": {NativeType: "AList_Value_Union"},
-			},
-			"/enum-module/b-lists/b-list": {
-				"value": {NativeType: "BList_Value_Union"},
+			MappedPaths: map[string][][]string{
+				"/enum-module/a-lists/a-list/state/value": {{"state", "value"}, {"value"}},
+				"/enum-module/b-lists/b-list/state/value": {{"state", "value"}, {"value"}},
+				"/enum-module/c/cl":                       {{"cl"}},
+				"/enum-module/parent/child":               {{"child"}},
+				"/enum-module/parent/child/config/id":     {{"config", "id"}},
 			},
 		},
 	}, {
@@ -1147,51 +1431,105 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				ExcludeModules: []string{"enum-types"},
 			},
 		},
-		wantDirMap: map[string]*Directory{
-			"/enum-module/parent": {
-				Name: "Parent",
-				Fields: map[string]*yang.Entry{
-					"child": {Name: "child", Type: nil},
+		wantDefinitions: &Definitions{
+			Directories: map[string]*Directory{
+				"/enum-module/parent": {
+					Name: "Parent",
+					Fields: map[string]*yang.Entry{
+						"child": {Name: "child", Type: nil},
+					},
+					Path: []string{"", "enum-module", "parent"},
 				},
-				Path: []string{"", "enum-module", "parent"},
-			},
-			"/enum-module/c": {
-				Name: "C",
-				Fields: map[string]*yang.Entry{
-					"cl": {Name: "cl", Type: &yang.YangType{Kind: yang.Yenum}},
+				"/enum-module/c": {
+					Name: "C",
+					Fields: map[string]*yang.Entry{
+						"cl": {Name: "cl", Type: &yang.YangType{Kind: yang.Yenum}},
+					},
+					Path: []string{"", "enum-module", "c"},
 				},
-				Path: []string{"", "enum-module", "c"},
-			},
-			"/enum-module/parent/child": {
-				Name: "Parent_Child",
-				Fields: map[string]*yang.Entry{
-					"id": {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+				"/enum-module/parent/child": {
+					Name: "Parent_Child",
+					Fields: map[string]*yang.Entry{
+						"id": {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+					},
+					Path: []string{"", "enum-module", "parent", "child"},
 				},
-				Path: []string{"", "enum-module", "parent", "child"},
+				"/enum-module/a-lists/a-list": {
+					Name: "AList",
+					ListAttr: &YangListAttr{
+						Keys: map[string]*MappedType{
+							"value": {
+								NativeType: "AList_Value_Union",
+								UnionTypes: map[string]int{"E_AList_Value": 1, "uint32": 0},
+								ZeroValue:  "nil",
+							},
+						},
+					},
+					Fields: map[string]*yang.Entry{}, // Key is only part of state and thus is excluded.
+					Path:   []string{"", "enum-module", "a-lists", "a-list"},
+				},
+				"/enum-module/b-lists/b-list": {
+					Name: "BList",
+					ListAttr: &YangListAttr{
+						Keys: map[string]*MappedType{
+							"value": {
+								NativeType: "BList_Value_Union",
+								UnionTypes: map[string]int{"E_BList_Value": 1, "uint32": 0},
+								ZeroValue:  "nil",
+							},
+						},
+					},
+					Fields: map[string]*yang.Entry{},
+					Path:   []string{"", "enum-module", "b-lists", "b-list"},
+				},
 			},
-			"/enum-module/a-lists/a-list": {
-				Name:   "AList",
-				Fields: map[string]*yang.Entry{}, // Key is only part of state and thus is excluded.
-				Path:   []string{"", "enum-module", "a-lists", "a-list"},
+			LeafTypes: map[string]map[string]*MappedType{
+				"/enum-module/parent": {
+					"child": nil,
+				},
+				"/enum-module/c": {
+					"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true, ZeroValue: "0"},
+				},
+				"/enum-module/parent/child": {
+					"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true, ZeroValue: "0"},
+				},
+				"/enum-module/a-lists/a-list": nil,
+				"/enum-module/b-lists/b-list": nil,
 			},
-			"/enum-module/b-lists/b-list": {
-				Name:   "BList",
-				Fields: map[string]*yang.Entry{},
-				Path:   []string{"", "enum-module", "b-lists", "b-list"},
+			Enums: map[string]*EnumeratedType{
+				"AList_Value": {
+					Name:       "AList_Value",
+					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
+					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+				},
+				"BList_Value": {
+					Name:       "BList_Value",
+					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
+					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+				},
+				"EnumModule_Cl": {
+					Name:       "EnumModule_Cl",
+					CodeValues: map[int64]string{0: "UNSET", 1: "X"},
+					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "X"}},
+				},
+				"EnumTypes_ID": {
+					Name:       "EnumTypes_ID",
+					CodeValues: map[int64]string{0: "UNSET", 1: "FORTY_TWO", 2: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH"},
+					YANGValues: map[int64]ygot.EnumDefinition{
+						1: {Name: "FORTY_TWO", DefiningModule: "enum-module"},
+						2: {Name: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH", DefiningModule: "enum-module"},
+					},
+				},
 			},
-		},
-		wantTypeMap: map[string]map[string]*MappedType{
-			"/enum-module/parent": {
-				"child": nil,
+			ModelData: []*gnmi.ModelData{
+				{Name: "enum-module"},
+				{Name: "enum-types"},
 			},
-			"/enum-module/c": {
-				"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true},
+			MappedPaths: map[string][][]string{
+				"/enum-module/c/cl":                   {{"cl"}},
+				"/enum-module/parent/child":           {{"child"}},
+				"/enum-module/parent/child/config/id": {{"config", "id"}},
 			},
-			"/enum-module/parent/child": {
-				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
-			},
-			"/enum-module/a-lists/a-list": {},
-			"/enum-module/b-lists/b-list": {},
 		},
 	}, {
 		name:           "simple openconfig test with openconfig-simple module excluded",
@@ -1206,8 +1544,14 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				ExcludeModules: []string{"openconfig-simple"},
 			},
 		},
-		wantDirMap:  map[string]*Directory{},
-		wantTypeMap: map[string]map[string]*MappedType{},
+		wantDefinitions: &Definitions{
+			Directories: map[string]*Directory{},
+			LeafTypes:   map[string]map[string]*MappedType{},
+			ModelData: []*gpb.ModelData{
+				{Name: "openconfig-simple"},
+				{Name: "openconfig-remote"},
+			},
+		},
 	}, {
 		name:           "simple openconfig test with fakeroot",
 		inFiles:        []string{filepath.Join(datapath, "openconfig-simple.yang")},
@@ -1222,56 +1566,80 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				ExcludeModules: []string{},
 			},
 		},
-		wantDirMap: map[string]*Directory{
-			"/device": {
-				Name: "Device",
-				Fields: map[string]*yang.Entry{
-					"parent":           {Name: "parent", Type: nil},
-					"remote-container": {Name: "remote-container", Type: nil},
+		wantDefinitions: &Definitions{
+			Directories: map[string]*Directory{
+				"/device": {
+					Name: "Device",
+					Fields: map[string]*yang.Entry{
+						"parent":           {Name: "parent", Type: nil},
+						"remote-container": {Name: "remote-container", Type: nil},
+					},
+					Path:       []string{"", "device"},
+					IsFakeRoot: true,
 				},
-				Path: []string{"", "device"},
-			},
-			"/openconfig-simple/parent": {
-				Name: "Parent",
-				Fields: map[string]*yang.Entry{
-					"child": {Name: "child", Type: nil},
+				"/openconfig-simple/parent": {
+					Name: "Parent",
+					Fields: map[string]*yang.Entry{
+						"child": {Name: "child", Type: nil},
+					},
+					Path: []string{"", "openconfig-simple", "parent"},
 				},
-				Path: []string{"", "openconfig-simple", "parent"},
-			},
-			"/openconfig-simple/parent/child": {
-				Name: "Parent_Child",
-				Fields: map[string]*yang.Entry{
-					"one":   {Name: "one", Type: &yang.YangType{Kind: yang.Ystring}},
-					"two":   {Name: "two", Type: &yang.YangType{Kind: yang.Ystring}},
-					"three": {Name: "three", Type: &yang.YangType{Kind: yang.Yenum}},
-					"four":  {Name: "four", Type: &yang.YangType{Kind: yang.Ybinary}},
+				"/openconfig-simple/parent/child": {
+					Name: "Parent_Child",
+					Fields: map[string]*yang.Entry{
+						"one":   {Name: "one", Type: &yang.YangType{Kind: yang.Ystring}},
+						"two":   {Name: "two", Type: &yang.YangType{Kind: yang.Ystring}},
+						"three": {Name: "three", Type: &yang.YangType{Kind: yang.Yenum}},
+						"four":  {Name: "four", Type: &yang.YangType{Kind: yang.Ybinary}},
+					},
+					Path: []string{"", "openconfig-simple", "parent", "child"},
 				},
-				Path: []string{"", "openconfig-simple", "parent", "child"},
-			},
-			"/openconfig-simple/remote-container": {
-				Name: "RemoteContainer",
-				Fields: map[string]*yang.Entry{
-					"a-leaf": {Name: "a-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+				"/openconfig-simple/remote-container": {
+					Name: "RemoteContainer",
+					Fields: map[string]*yang.Entry{
+						"a-leaf": {Name: "a-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
+					},
+					Path: []string{"", "openconfig-simple", "remote-container"},
 				},
-				Path: []string{"", "openconfig-simple", "remote-container"},
 			},
-		},
-		wantTypeMap: map[string]map[string]*MappedType{
-			"/device": {
-				"parent":           nil,
-				"remote-container": nil,
+			LeafTypes: map[string]map[string]*MappedType{
+				"/device": {
+					"parent":           nil,
+					"remote-container": nil,
+				},
+				"/openconfig-simple/parent": {
+					"child": nil,
+				},
+				"/openconfig-simple/parent/child": {
+					"one":   {NativeType: "string", ZeroValue: `""`},
+					"two":   {NativeType: "string", ZeroValue: `""`},
+					"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true, ZeroValue: "0"},
+					"four":  {NativeType: "Binary", ZeroValue: "nil"},
+				},
+				"/openconfig-simple/remote-container": {
+					"a-leaf": {NativeType: "string", ZeroValue: `""`},
+				},
 			},
-			"/openconfig-simple/parent": {
-				"child": nil,
+			Enums: map[string]*EnumeratedType{
+				"Child_Three": {
+					Name:       "Child_Three",
+					CodeValues: map[int64]string{0: "UNSET", 1: "ONE", 2: "TWO"},
+					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "ONE"}, 2: {Name: "TWO"}},
+				},
 			},
-			"/openconfig-simple/parent/child": {
-				"one":   {NativeType: "string"},
-				"two":   {NativeType: "string"},
-				"three": {NativeType: "E_Child_Three", IsEnumeratedValue: true},
-				"four":  {NativeType: "Binary"},
+			ModelData: []*gnmi.ModelData{
+				{Name: "openconfig-remote"},
+				{Name: "openconfig-simple"},
 			},
-			"/openconfig-simple/remote-container": {
-				"a-leaf": {NativeType: "string"},
+			MappedPaths: map[string][][]string{
+				"/openconfig-simple/parent":                         {{"parent"}},
+				"/openconfig-simple/parent/child":                   {{"child"}},
+				"/openconfig-simple/parent/child/config/four":       {{"config", "four"}},
+				"/openconfig-simple/parent/child/config/one":        {{"config", "one"}},
+				"/openconfig-simple/parent/child/config/three":      {{"config", "three"}},
+				"/openconfig-simple/parent/child/state/two":         {{"state", "two"}},
+				"/openconfig-simple/remote-container":               {{"remote-container"}},
+				"/openconfig-simple/remote-container/config/a-leaf": {{"config", "a-leaf"}},
 			},
 		},
 	}, {
@@ -1288,74 +1656,143 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				ExcludeModules: []string{"enum-types"},
 			},
 		},
-		wantDirMap: map[string]*Directory{
-			"/device": {
-				Name: "Device",
-				Fields: map[string]*yang.Entry{
-					"parent": {Name: "parent", Type: nil},
-					"c":      {Name: "c", Type: nil},
-					"a-list": {Name: "a-list", Type: nil},
-					"b-list": {Name: "b-list", Type: nil},
+		wantDefinitions: &Definitions{
+			Directories: map[string]*Directory{
+				"/device": {
+					Name: "Device",
+					Fields: map[string]*yang.Entry{
+						"parent": {Name: "parent", Type: nil},
+						"c":      {Name: "c", Type: nil},
+						"a-list": {Name: "a-list", Type: nil},
+						"b-list": {Name: "b-list", Type: nil},
+					},
+					IsFakeRoot: true,
+					Path:       []string{"", "device"},
 				},
-				Path: []string{"", "device"},
-			},
-			"/enum-module/parent": {
-				Name: "Parent",
-				Fields: map[string]*yang.Entry{
-					"child": {Name: "child", Type: nil},
+				"/enum-module/parent": {
+					Name: "Parent",
+					Fields: map[string]*yang.Entry{
+						"child": {Name: "child", Type: nil},
+					},
+					Path: []string{"", "enum-module", "parent"},
 				},
-				Path: []string{"", "enum-module", "parent"},
-			},
-			"/enum-module/c": {
-				Name: "C",
-				Fields: map[string]*yang.Entry{
-					"cl": {Name: "cl", Type: &yang.YangType{Kind: yang.Yenum}},
+				"/enum-module/c": {
+					Name: "C",
+					Fields: map[string]*yang.Entry{
+						"cl": {Name: "cl", Type: &yang.YangType{Kind: yang.Yenum}},
+					},
+					Path: []string{"", "enum-module", "c"},
 				},
-				Path: []string{"", "enum-module", "c"},
-			},
-			"/enum-module/parent/child": {
-				Name: "Parent_Child",
-				Fields: map[string]*yang.Entry{
-					"id": {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+				"/enum-module/parent/child": {
+					Name: "Parent_Child",
+					Fields: map[string]*yang.Entry{
+						"id": {Name: "id", Type: &yang.YangType{Kind: yang.Yidentityref}},
+					},
+					Path: []string{"", "enum-module", "parent", "child"},
 				},
-				Path: []string{"", "enum-module", "parent", "child"},
-			},
-			"/enum-module/a-lists/a-list": {
-				Name: "AList",
-				Fields: map[string]*yang.Entry{
-					"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+				"/enum-module/a-lists/a-list": {
+					Name: "AList",
+					ListAttr: &YangListAttr{
+						Keys: map[string]*MappedType{
+							"value": {
+								NativeType: "AList_Value_Union",
+								UnionTypes: map[string]int{"E_AList_Value": 1, "uint32": 0},
+								ZeroValue:  "nil",
+							},
+						},
+					},
+					Fields: map[string]*yang.Entry{
+						"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+					},
+					Path: []string{"", "enum-module", "a-lists", "a-list"},
 				},
-				Path: []string{"", "enum-module", "a-lists", "a-list"},
-			},
-			"/enum-module/b-lists/b-list": {
-				Name: "BList",
-				Fields: map[string]*yang.Entry{
-					"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+				"/enum-module/b-lists/b-list": {
+					Name: "BList",
+					ListAttr: &YangListAttr{
+						Keys: map[string]*MappedType{
+							"value": {
+								NativeType: "BList_Value_Union",
+								UnionTypes: map[string]int{"E_BList_Value": 1, "uint32": 0},
+								ZeroValue:  "nil",
+							},
+						},
+					},
+					Fields: map[string]*yang.Entry{
+						"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
+					},
+					Path: []string{"", "enum-module", "b-lists", "b-list"},
 				},
-				Path: []string{"", "enum-module", "b-lists", "b-list"},
 			},
-		},
-		wantTypeMap: map[string]map[string]*MappedType{
-			"/device": {
-				"parent": nil,
-				"c":      nil,
-				"a-list": nil,
-				"b-list": nil,
+			LeafTypes: map[string]map[string]*MappedType{
+				"/device": {
+					"parent": nil,
+					"c":      nil,
+					"a-list": nil,
+					"b-list": nil,
+				},
+				"/enum-module/parent": {
+					"child": nil,
+				},
+				"/enum-module/c": {
+					"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true, ZeroValue: "0"},
+				},
+				"/enum-module/parent/child": {
+					"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true, ZeroValue: "0"},
+				},
+				"/enum-module/a-lists/a-list": {
+					"value": {
+						NativeType: "AList_Value_Union",
+						UnionTypes: map[string]int{"E_AList_Value": 1, "uint32": 0},
+						ZeroValue:  "nil",
+					},
+				},
+				"/enum-module/b-lists/b-list": {
+					"value": {
+						NativeType: "BList_Value_Union",
+						UnionTypes: map[string]int{"E_BList_Value": 1, "uint32": 0},
+						ZeroValue:  "nil",
+					},
+				},
 			},
-			"/enum-module/parent": {
-				"child": nil,
+			Enums: map[string]*EnumeratedType{
+				"AList_Value": {
+					Name:       "AList_Value",
+					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
+					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+				},
+				"BList_Value": {
+					Name:       "BList_Value",
+					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
+					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+				},
+				"EnumModule_Cl": {
+					Name:       "EnumModule_Cl",
+					CodeValues: map[int64]string{0: "UNSET", 1: "X"},
+					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "X"}},
+				},
+				"EnumTypes_ID": {
+					Name:       "EnumTypes_ID",
+					CodeValues: map[int64]string{0: "UNSET", 1: "FORTY_TWO", 2: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH"},
+					YANGValues: map[int64]ygot.EnumDefinition{
+						1: {Name: "FORTY_TWO", DefiningModule: "enum-module"},
+						2: {Name: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH", DefiningModule: "enum-module"},
+					},
+				},
 			},
-			"/enum-module/c": {
-				"cl": {NativeType: "E_EnumModule_Cl", IsEnumeratedValue: true},
+			ModelData: []*gnmi.ModelData{
+				{Name: "enum-module"},
+				{Name: "enum-types"},
 			},
-			"/enum-module/parent/child": {
-				"id": {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
-			},
-			"/enum-module/a-lists/a-list": {
-				"value": {NativeType: "AList_Value_Union"},
-			},
-			"/enum-module/b-lists/b-list": {
-				"value": {NativeType: "BList_Value_Union"},
+			MappedPaths: map[string][][]string{
+				"/enum-module/a-lists/a-list":             {{"a-lists", "a-list"}},
+				"/enum-module/a-lists/a-list/state/value": {{"state", "value"}, {"value"}},
+				"/enum-module/b-lists/b-list":             {{"b-lists", "b-list"}},
+				"/enum-module/b-lists/b-list/state/value": {{"state", "value"}, {"value"}},
+				"/enum-module/c":                          {{"c"}},
+				"/enum-module/c/cl":                       {{"cl"}},
+				"/enum-module/parent":                     {{"parent"}},
+				"/enum-module/parent/child":               {{"child"}},
+				"/enum-module/parent/child/config/id":     {{"config", "id"}},
 			},
 		},
 	}, {
@@ -1372,15 +1809,22 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				ExcludeModules: []string{"openconfig-simple"},
 			},
 		},
-		wantDirMap: map[string]*Directory{
-			"/device": {
-				Name:   "Device",
-				Fields: map[string]*yang.Entry{},
-				Path:   []string{"", "device"},
+		wantDefinitions: &Definitions{
+			Directories: map[string]*Directory{
+				"/device": {
+					Name:       "Device",
+					Fields:     map[string]*yang.Entry{},
+					Path:       []string{"", "device"},
+					IsFakeRoot: true,
+				},
 			},
-		},
-		wantTypeMap: map[string]map[string]*MappedType{
-			"/device": {},
+			LeafTypes: map[string]map[string]*MappedType{
+				"/device": {},
+			},
+			ModelData: []*gpb.ModelData{
+				{Name: "openconfig-remote"},
+				{Name: "openconfig-simple"},
+			},
 		},
 	}}
 
@@ -1395,21 +1839,31 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		c := tt.inConfig
+
 		t.Run(fmt.Sprintf("%s:GetDirectoriesAndLeafTypes(compressBehaviour:%v,GenerateFakeRoot:%v)", tt.name, c.TransformationOptions.CompressBehaviour, c.TransformationOptions.GenerateFakeRoot), func(t *testing.T) {
-			gotDirMap, gotTypeMap, errs := c.GetDirectoriesAndLeafTypes(tt.inFiles, tt.inIncludePaths)
+			got, errs := c.GetDefinitions(tt.inFiles, tt.inIncludePaths)
 			if errs != nil {
 				t.Fatal(errs)
 			}
 
-			// This checks the "Name" and "Path" attributes of the output Directories.
-			if diff := cmp.Diff(tt.wantDirMap, gotDirMap, cmpopts.IgnoreFields(Directory{}, "Entry", "Fields", "ListAttr", "IsFakeRoot")); diff != "" {
-				t.Fatalf("(-want +got):\n%s", diff)
+			if diff := cmp.Diff(tt.wantDefinitions, got,
+				cmpopts.IgnoreTypes(&yang.Entry{}),
+				cmpopts.IgnoreFields(Definitions{}, "ParsedModules"), // Ignore copied yang.Entries for modules.
+				// TODO(robjs): make KeyElems field private to ygen going forward, since it should not be referenced anywhere else.
+				cmpopts.IgnoreFields(YangListAttr{}, "KeyElems"),
+				cmpopts.EquateEmpty(),
+				cmpopts.SortSlices(func(a, b *gpb.ModelData) bool { return a.Name < b.Name }),
+				protocmp.Transform()); diff != "" {
+				t.Fatalf("did not get expected definitions, (-want,+got):%s", diff)
 			}
 
 			// Verify certain fields of the "Fields" attribute -- there are too many fields to ignore to use cmp.Diff for comparison.
-			for gotDirName, gotDir := range gotDirMap {
+			for gotDirName, gotDir := range got.Directories {
 				// Note that any missing or extra Directories would've been caught with the previous check.
-				wantDir := tt.wantDirMap[gotDirName]
+				wantDir, ok := tt.wantDefinitions.Directories[gotDirName]
+				if !ok {
+					t.Fatalf("got unexpected directory, %s", gotDirName)
+				}
 				if len(gotDir.Fields) != len(wantDir.Fields) {
 					t.Fatalf("Did not get expected set of fields, got: %v, want: %v", fieldNames(gotDir), fieldNames(wantDir))
 				}
@@ -1428,8 +1882,8 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 						t.Errorf("Field %q of %q did not have expected type, got: %v, want: %v", fieldk, gotDirName, gotField.Type.Kind, wantField.Type.Kind)
 					}
 
-					if tt.wantFieldPath != nil && gotField.Path() != tt.wantFieldPath[gotDirName][fieldk] {
-						t.Errorf("Field %q of %q did not have expected path, got: %v, want: %v", fieldk, gotDirName, gotField.Path(), tt.wantFieldPath[gotDirName][fieldk])
+					if tt.wantDirectoryFields != nil && gotField.Path() != tt.wantDirectoryFields[gotDirName][fieldk] {
+						t.Errorf("Field %q of %q did not have expected path, got: %v, want: %v", fieldk, gotDirName, gotField.Path(), tt.wantDirectoryFields[gotDirName][fieldk])
 					}
 				}
 			}
@@ -1437,13 +1891,12 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			// most of the work is passed to mappedDefinitions()
 			// and buildDirectoryDefinitions(), making a good
 			// sanity check here sufficient.
-
-			// This checks the "NativeType" and "IsEnumeratedValue" attributes of the output leaf types.
-			// Since this is an integration test, many lower-level detail checks are omitted.
-			if diff := cmp.Diff(tt.wantTypeMap, gotTypeMap, cmpopts.IgnoreFields(MappedType{}, "UnionTypes", "ZeroValue", "DefaultValue")); diff != "" {
+			if diff := cmp.Diff(tt.wantDefinitions.LeafTypes, got.LeafTypes, cmpopts.EquateEmpty()); diff != "" {
 				t.Errorf("(-want +got):\n%s", diff)
 			}
+
 		})
+
 	}
 }
 

@@ -1,0 +1,12 @@
+# github.com/openconfig/ygot/ygen
+codegen_test.go:1717:7: missing ',' before newline in composite literal
+codegen_test.go:1750:63: missing ',' in composite literal
+codegen_test.go:1781:34: missing ',' in composite literal
+codegen_test.go:1831:3: missing ',' in composite literal
+codegen_test.go:1834:3: missing ',' in composite literal
+codegen_test.go:1835:3: missing ',' before newline in composite literal
+codegen_test.go:1837:2: expected operand, found 'for'
+codegen_test.go:1842:4: missing ',' in composite literal
+codegen_test.go:1843:18: missing ',' before newline in composite literal
+codegen_test.go:1844:5: missing ',' before newline in composite literal
+codegen_test.go:1846:4: expected operand, found 'if'

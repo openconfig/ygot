@@ -484,44 +484,15 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		structSnippets = append(structSnippets, structOut)
 	}
 
-	orderedEnumNames := []string{}
-	for _, e := range defns.Enums {
-		orderedEnumNames = append(orderedEnumNames, e.Name)
-	}
-	sort.Strings(orderedEnumNames)
-
-	enumValMap := map[string]map[int64]ygot.EnumDefinition{}
-	enumSnippets := []string{}
-
-	for _, en := range orderedEnumNames {
-		e := defns.Enums[en]
-		if _, ok := usedEnumeratedTypes[fmt.Sprintf("%s%s", goEnumPrefix, e.Name)]; !ok {
-			// Don't output enumerated types that are not used in the code that we have
-			// such that we don't create generated code for a large array of types that
-			// just happen to be in modules that were included by other modules.
-			continue
-		}
-		enumOut, err := writeGoEnum(e)
-		if err != nil {
-			codegenErr = util.AppendErr(codegenErr, err)
-			continue
-		}
-		enumSnippets = append(enumSnippets, enumOut)
-		enumValMap[e.Name] = e.YANGValues
-	}
-
-	// Write the map of string -> int -> YANG enum name string out.
-	goEnumValueMap, err := writeGoEnumMap(enumValMap)
-	if err != nil {
-		codegenErr = util.AppendErr(codegenErr, err)
-		return nil, codegenErr
-	}
+	genum, err := writeGoEnumeratedTypes(defns.Enums, usedEnumeratedTypes)
 
 	var rawSchema []byte
 	var jsonSchema string
 	var enumTypeMapCode string
 	if cg.Config.GenerateJSONSchema {
 		var err error
+		// TODO(robjs): Move building the schema tree internally to generating directory definitions, since this will
+		// allow a cleaner split of not returning yang.Entry fields to the downstream caller.
 		rawSchema, err = buildJSONTree(defns.ParsedModules, defns.Directories, fakeRootEntry, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled())
 		if err != nil {
 			util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
@@ -547,13 +518,56 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		CommonHeader:   commonHeader,
 		OneOffHeader:   oneoffHeader,
 		Structs:        structSnippets,
-		Enums:          enumSnippets,
-		EnumMap:        goEnumValueMap,
+		Enums:          genum.enums,
+		EnumMap:        genum.valMap,
 		JSONSchemaCode: jsonSchema,
 		RawJSONSchema:  rawSchema,
 		EnumTypeMap:    enumTypeMapCode,
 	}, nil
 
+}
+
+type enumGeneratedCode struct {
+	enums  []string
+	valMap string
+}
+
+func writeGoEnumeratedTypes(enums map[string]*EnumeratedType, usedEnums map[string]bool) (*enumGeneratedCode, error) {
+	orderedEnumNames := []string{}
+	for _, e := range enums {
+		orderedEnumNames = append(orderedEnumNames, e.Name)
+	}
+	sort.Strings(orderedEnumNames)
+
+	enumValMap := map[string]map[int64]ygot.EnumDefinition{}
+	enumSnippets := []string{}
+
+	for _, en := range orderedEnumNames {
+		e := enums[en]
+		if _, ok := usedEnums[fmt.Sprintf("%s%s", goEnumPrefix, e.Name)]; !ok {
+			// Don't output enumerated types that are not used in the code that we have
+			// such that we don't create generated code for a large array of types that
+			// just happen to be in modules that were included by other modules.
+			continue
+		}
+		enumOut, err := writeGoEnum(e)
+		if err != nil {
+			return nil, err
+		}
+		enumSnippets = append(enumSnippets, enumOut)
+		enumValMap[e.Name] = e.YANGValues
+	}
+
+	// Write the map of string -> int -> YANG enum name string out.
+	vmap, err := writeGoEnumMap(enumValMap)
+	if err != nil {
+		return nil, err
+	}
+
+	return &enumGeneratedCode{
+		enums:  enumSnippets,
+		valMap: vmap,
+	}, nil
 }
 
 type EnumeratedType struct {
@@ -589,11 +603,6 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 }
 
 func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string) (*Definitions, util.Errors) {
-	// TODO(robjs): add unit test coverage for GetDefinitions for uncompressed schemas
-	/*if !dcg.TransformationOptions.CompressBehaviour.CompressEnabled() {
-		return nil, util.Errors{fmt.Errorf("GetDirectoriesAndLeafTypes currently does not have unit tests for when compression is disabled; if support needed, add unit tests and remove this error")}
-	}*/
-
 	cg := &GeneratorConfig{ParseOptions: dcg.ParseOptions, TransformationOptions: dcg.TransformationOptions}
 	// Extract the entities to be mapped into structs and enumerations in the output
 	// Go code. Extract the schematree from the modules provided such that it can be
