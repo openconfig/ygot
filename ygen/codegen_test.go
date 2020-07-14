@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -1853,6 +1854,7 @@ func TestGetDefinitions(t *testing.T) {
 				cmpopts.IgnoreFields(YangListAttr{}, "KeyElems"),
 				cmpopts.EquateEmpty(),
 				cmpopts.SortSlices(func(a, b *gpb.ModelData) bool { return a.Name < b.Name }),
+				cmpopts.IgnoreUnexported(Definitions{}),
 				protocmp.Transform()); diff != "" {
 				t.Fatalf("did not get expected definitions, (-want,+got):%s", diff)
 			}
@@ -2000,6 +2002,551 @@ func TestFindRootEntries(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestEnumDefinition(t *testing.T) {
+	// In order to create a mock enum within goyang, we must construct it using the
+	// relevant methods, since the field of the EnumType struct (toString) that we
+	// need to set is not publicly exported.
+	testEnumerations := map[string][]string{
+		"enumOne": {"SPEED_2.5G", "SPEED-40G"},
+		"enumTwo": {"VALUE_1", "VALUE_2", "VALUE_3", "VALUE_4"},
+	}
+	testYangEnums := make(map[string]*yang.EnumType)
+
+	safeName := func(name string) string {
+		return strings.NewReplacer(
+			".", "_",
+			"-", "_",
+			"/", "_").Replace(name)
+	}
+
+	for name, values := range testEnumerations {
+		enum := yang.NewEnumType()
+		for i, enumValue := range values {
+			enum.Set(enumValue, int64(i))
+		}
+		testYangEnums[name] = enum
+	}
+
+	tests := []struct {
+		name         string
+		inEnum       *yangEnum
+		inSafeNameFn func(string) string
+		want         *EnumeratedType
+	}{{
+		name: "enum from identityref",
+		inEnum: &yangEnum{
+			name: "EnumeratedValue",
+			entry: &yang.Entry{
+				Type: &yang.YangType{
+					IdentityBase: &yang.Identity{
+						Values: []*yang.Identity{
+							{Name: "VALUE_A", Parent: &yang.Module{Name: "mod"}},
+							{Name: "VALUE_C", Parent: &yang.Module{Name: "mod2"}},
+							{Name: "VALUE_B", Parent: &yang.Module{Name: "mod3"}},
+						},
+					},
+				},
+			},
+		},
+		inSafeNameFn: safeName,
+		want: &EnumeratedType{
+			Name: "EnumeratedValue",
+			CodeValues: map[int64]string{
+				0: "UNSET",
+				1: "VALUE_A",
+				2: "VALUE_B",
+				3: "VALUE_C",
+			},
+			YANGValues: map[int64]ygot.EnumDefinition{
+				1: {Name: "VALUE_A", DefiningModule: "mod"},
+				2: {Name: "VALUE_B", DefiningModule: "mod3"},
+				3: {Name: "VALUE_C", DefiningModule: "mod2"},
+			},
+		},
+	}, {
+		name: "enum from enumeration",
+		inEnum: &yangEnum{
+			name: "EnumeratedValueTwo",
+			entry: &yang.Entry{
+				Type: &yang.YangType{Enum: testYangEnums["enumOne"]},
+			},
+		},
+		inSafeNameFn: safeName,
+		want: &EnumeratedType{
+			Name: "EnumeratedValueTwo",
+			CodeValues: map[int64]string{
+				0: "UNSET",
+				1: "SPEED_2_5G",
+				2: "SPEED_40G",
+			},
+			YANGValues: map[int64]ygot.EnumDefinition{
+				1: {Name: "SPEED_2.5G"},
+				2: {Name: "SPEED-40G"},
+			},
+		},
+	}, {
+		name: "enum from longer enumeration",
+		inEnum: &yangEnum{
+			name: "BaseModule_Enumeration",
+			entry: &yang.Entry{
+				Type: &yang.YangType{Enum: testYangEnums["enumTwo"]},
+			},
+		},
+		inSafeNameFn: safeName,
+		want: &EnumeratedType{
+			Name: "BaseModule_Enumeration",
+			CodeValues: map[int64]string{
+				0: "UNSET",
+				1: "VALUE_1",
+				2: "VALUE_2",
+				3: "VALUE_3",
+				4: "VALUE_4",
+			},
+			YANGValues: map[int64]ygot.EnumDefinition{
+				1: {Name: "VALUE_1"},
+				2: {Name: "VALUE_2"},
+				3: {Name: "VALUE_3"},
+				4: {Name: "VALUE_4"},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := enumDefinition(tt.inEnum, tt.inSafeNameFn)
+			if err != nil {
+				t.Fatalf("got unexpected error: %v", err)
+			}
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Fatalf("did not get expected enum definition, (-want,+got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestWriteGoEnumeratedTypes validates the enumerated type code generation from a YANG
+// module.
+func TestWriteGoEnumeratedTypes(t *testing.T) {
+
+	tests := []struct {
+		name        string
+		inEnums     map[string]*EnumeratedType
+		inUsedEnums map[string]bool
+		want        *enumGeneratedCode
+	}{{
+		name: "single enum",
+		inEnums: map[string]*EnumeratedType{
+			"EnumeratedValue": &EnumeratedType{
+				Name: "EnumeratedValue",
+				CodeValues: map[int64]string{
+					0: "UNSET",
+					1: "VALUE_A",
+					2: "VALUE_B",
+					3: "VALUE_C",
+				},
+				YANGValues: map[int64]ygot.EnumDefinition{
+					1: {Name: "VALUE_A", DefiningModule: "mod"},
+					2: {Name: "VALUE_B", DefiningModule: "mod3"},
+					3: {Name: "VALUE_C", DefiningModule: "mod2"},
+				},
+			},
+		},
+		inUsedEnums: map[string]bool{"E_EnumeratedValue": true},
+		want: &enumGeneratedCode{
+			enums: []string{`
+// E_EnumeratedValue is a derived int64 type which is used to represent
+// the enumerated node EnumeratedValue. An additional value named
+// EnumeratedValue_UNSET is added to the enumeration which is used as
+// the nil value, indicating that the enumeration was not explicitly set by
+// the program importing the generated structures.
+type E_EnumeratedValue int64
+
+// IsYANGGoEnum ensures that EnumeratedValue implements the yang.GoEnum
+// interface. This ensures that EnumeratedValue can be identified as a
+// mapped type for a YANG enumeration.
+func (E_EnumeratedValue) IsYANGGoEnum() {}
+
+// ΛMap returns the value lookup map associated with  EnumeratedValue.
+func (E_EnumeratedValue) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+// String returns a logging-friendly string for E_EnumeratedValue.
+func (e E_EnumeratedValue) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_EnumeratedValue")
+}
+
+const (
+	// EnumeratedValue_UNSET corresponds to the value UNSET of EnumeratedValue
+	EnumeratedValue_UNSET E_EnumeratedValue = 0
+	// EnumeratedValue_VALUE_A corresponds to the value VALUE_A of EnumeratedValue
+	EnumeratedValue_VALUE_A E_EnumeratedValue = 1
+	// EnumeratedValue_VALUE_B corresponds to the value VALUE_B of EnumeratedValue
+	EnumeratedValue_VALUE_B E_EnumeratedValue = 2
+	// EnumeratedValue_VALUE_C corresponds to the value VALUE_C of EnumeratedValue
+	EnumeratedValue_VALUE_C E_EnumeratedValue = 3
+)
+`,
+			},
+			valMap: `
+// ΛEnum is a map, keyed by the name of the type defined for each enum in the
+// generated Go code, which provides a mapping between the constant int64 value
+// of each value of the enumeration, and the string that is used to represent it
+// in the YANG schema. The map is named ΛEnum in order to avoid clash with any
+// valid YANG identifier.
+var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
+	"E_EnumeratedValue": {
+		1: {Name: "VALUE_A", DefiningModule: "mod"},
+		2: {Name: "VALUE_B", DefiningModule: "mod3"},
+		3: {Name: "VALUE_C", DefiningModule: "mod2"},
+	},
+}
+`,
+		},
+	}, {
+		name: "single enum - skipped",
+		inEnums: map[string]*EnumeratedType{
+			"EnumeratedValue": &EnumeratedType{
+				Name: "EnumeratedValue",
+				CodeValues: map[int64]string{
+					0: "UNSET",
+					1: "VALUE_A",
+					2: "VALUE_B",
+					3: "VALUE_C",
+				},
+				YANGValues: map[int64]ygot.EnumDefinition{
+					1: {Name: "VALUE_A", DefiningModule: "mod"},
+					2: {Name: "VALUE_B", DefiningModule: "mod3"},
+					3: {Name: "VALUE_C", DefiningModule: "mod2"},
+				},
+			},
+		},
+		inUsedEnums: map[string]bool{},
+		want:        &enumGeneratedCode{},
+	}, {
+		name: "multiple enumerations",
+		inEnums: map[string]*EnumeratedType{
+			"EnumeratedValueTwo": {
+				Name: "EnumeratedValueTwo",
+				CodeValues: map[int64]string{
+					0: "UNSET",
+					1: "SPEED_2_5G",
+					2: "SPEED_40G",
+				},
+				YANGValues: map[int64]ygot.EnumDefinition{
+					1: {Name: "SPEED_2.5G"},
+					2: {Name: "SPEED-40G"},
+				},
+			},
+			"BaseModule_Enumeration": {
+				Name: "BaseModule_Enumeration",
+				CodeValues: map[int64]string{
+					0: "UNSET",
+					1: "VALUE_1",
+					2: "VALUE_2",
+					3: "VALUE_3",
+					4: "VALUE_4",
+				},
+				YANGValues: map[int64]ygot.EnumDefinition{
+					1: {Name: "VALUE_1"},
+					2: {Name: "VALUE_2"},
+					3: {Name: "VALUE_3"},
+					4: {Name: "VALUE_4"},
+				},
+			},
+		},
+		inUsedEnums: map[string]bool{
+			"E_BaseModule_Enumeration": true,
+			"E_EnumeratedValueTwo":     true,
+		},
+		want: &enumGeneratedCode{
+			enums: []string{`
+// E_BaseModule_Enumeration is a derived int64 type which is used to represent
+// the enumerated node BaseModule_Enumeration. An additional value named
+// BaseModule_Enumeration_UNSET is added to the enumeration which is used as
+// the nil value, indicating that the enumeration was not explicitly set by
+// the program importing the generated structures.
+type E_BaseModule_Enumeration int64
+
+// IsYANGGoEnum ensures that BaseModule_Enumeration implements the yang.GoEnum
+// interface. This ensures that BaseModule_Enumeration can be identified as a
+// mapped type for a YANG enumeration.
+func (E_BaseModule_Enumeration) IsYANGGoEnum() {}
+
+// ΛMap returns the value lookup map associated with  BaseModule_Enumeration.
+func (E_BaseModule_Enumeration) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+// String returns a logging-friendly string for E_BaseModule_Enumeration.
+func (e E_BaseModule_Enumeration) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_BaseModule_Enumeration")
+}
+
+const (
+	// BaseModule_Enumeration_UNSET corresponds to the value UNSET of BaseModule_Enumeration
+	BaseModule_Enumeration_UNSET E_BaseModule_Enumeration = 0
+	// BaseModule_Enumeration_VALUE_1 corresponds to the value VALUE_1 of BaseModule_Enumeration
+	BaseModule_Enumeration_VALUE_1 E_BaseModule_Enumeration = 1
+	// BaseModule_Enumeration_VALUE_2 corresponds to the value VALUE_2 of BaseModule_Enumeration
+	BaseModule_Enumeration_VALUE_2 E_BaseModule_Enumeration = 2
+	// BaseModule_Enumeration_VALUE_3 corresponds to the value VALUE_3 of BaseModule_Enumeration
+	BaseModule_Enumeration_VALUE_3 E_BaseModule_Enumeration = 3
+	// BaseModule_Enumeration_VALUE_4 corresponds to the value VALUE_4 of BaseModule_Enumeration
+	BaseModule_Enumeration_VALUE_4 E_BaseModule_Enumeration = 4
+)
+`,
+				`
+// E_EnumeratedValueTwo is a derived int64 type which is used to represent
+// the enumerated node EnumeratedValueTwo. An additional value named
+// EnumeratedValueTwo_UNSET is added to the enumeration which is used as
+// the nil value, indicating that the enumeration was not explicitly set by
+// the program importing the generated structures.
+type E_EnumeratedValueTwo int64
+
+// IsYANGGoEnum ensures that EnumeratedValueTwo implements the yang.GoEnum
+// interface. This ensures that EnumeratedValueTwo can be identified as a
+// mapped type for a YANG enumeration.
+func (E_EnumeratedValueTwo) IsYANGGoEnum() {}
+
+// ΛMap returns the value lookup map associated with  EnumeratedValueTwo.
+func (E_EnumeratedValueTwo) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+// String returns a logging-friendly string for E_EnumeratedValueTwo.
+func (e E_EnumeratedValueTwo) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_EnumeratedValueTwo")
+}
+
+const (
+	// EnumeratedValueTwo_UNSET corresponds to the value UNSET of EnumeratedValueTwo
+	EnumeratedValueTwo_UNSET E_EnumeratedValueTwo = 0
+	// EnumeratedValueTwo_SPEED_2_5G corresponds to the value SPEED_2_5G of EnumeratedValueTwo
+	EnumeratedValueTwo_SPEED_2_5G E_EnumeratedValueTwo = 1
+	// EnumeratedValueTwo_SPEED_40G corresponds to the value SPEED_40G of EnumeratedValueTwo
+	EnumeratedValueTwo_SPEED_40G E_EnumeratedValueTwo = 2
+)
+`,
+			},
+			valMap: `
+// ΛEnum is a map, keyed by the name of the type defined for each enum in the
+// generated Go code, which provides a mapping between the constant int64 value
+// of each value of the enumeration, and the string that is used to represent it
+// in the YANG schema. The map is named ΛEnum in order to avoid clash with any
+// valid YANG identifier.
+var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
+	"E_BaseModule_Enumeration": {
+		1: {Name: "VALUE_1"},
+		2: {Name: "VALUE_2"},
+		3: {Name: "VALUE_3"},
+		4: {Name: "VALUE_4"},
+	},
+	"E_EnumeratedValueTwo": {
+		1: {Name: "SPEED_2.5G"},
+		2: {Name: "SPEED-40G"},
+	},
+}
+`,
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := writeGoEnumeratedTypes(tt.inEnums, tt.inUsedEnums)
+			if err != nil {
+				t.Fatalf("got unexpected error, err: %v", err)
+			}
+
+			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(enumGeneratedCode{}), cmpopts.EquateEmpty()); diff != "" {
+				t.Fatalf("got incorrect output, diff(-want,+got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestFindMapPaths ensures that the schema paths that an entity should be
+// mapped to are properly extracted from a schema element.
+func TestFindMapPaths(t *testing.T) {
+	tests := []struct {
+		name            string
+		inStruct        *Directory
+		inField         string
+		inCompressPaths bool
+		inAbsolutePaths bool
+		wantPaths       [][]string
+		wantErr         bool
+	}{{
+		name: "first-level container with path compression off",
+		inStruct: &Directory{
+			Name: "AContainer",
+			Path: []string{"", "a-module", "a-container"},
+			Fields: map[string]*yang.Entry{
+				"field-a": {
+					Name: "field-a",
+					Parent: &yang.Entry{
+						Name: "a-container",
+						Parent: &yang.Entry{
+							Name: "a-module",
+						},
+					},
+				},
+			},
+		},
+		inField:   "field-a",
+		wantPaths: [][]string{{"field-a"}},
+	}, {
+		name: "invalid parent path - shorter than directory path",
+		inStruct: &Directory{
+			Name: "AContainer",
+			Path: []string{"", "a-module", "a-container"},
+			Fields: map[string]*yang.Entry{
+				"field-q": {
+					Name: "field-q",
+					Parent: &yang.Entry{
+						Name: "q-container",
+					},
+				},
+			},
+		},
+		inField: "field-q",
+		wantErr: true,
+	}, {
+		name: "first-level container with path compression on",
+		inStruct: &Directory{
+			Name: "BContainer",
+			Path: []string{"", "a-module", "b-container"},
+			Fields: map[string]*yang.Entry{
+				"field-b": {
+					Name: "field-b",
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name: "b-container",
+							Parent: &yang.Entry{
+								Name: "a-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		inField:         "field-b",
+		inCompressPaths: true,
+		wantPaths:       [][]string{{"config", "field-b"}},
+	}, {
+		name: "container with absolute paths on",
+		inStruct: &Directory{
+			Name: "BContainer",
+			Path: []string{"", "a-module", "b-container", "c-container"},
+			Fields: map[string]*yang.Entry{
+				"field-d": {
+					Name: "field-d",
+					Parent: &yang.Entry{
+						Name: "c-container",
+						Parent: &yang.Entry{
+							Name: "b-container",
+							Parent: &yang.Entry{
+								Name: "a-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		inField:         "field-d",
+		inAbsolutePaths: true,
+		wantPaths:       [][]string{{"", "b-container", "c-container", "field-d"}},
+	}, {
+		name: "top-level module - not valid to map",
+		inStruct: &Directory{
+			Name:   "CContainer",
+			Path:   []string{"", "c-container"}, // Does not have a valid module.
+			Fields: map[string]*yang.Entry{"top": {}},
+		},
+		inField: "top",
+		wantErr: true,
+	}, {
+		name: "list with leafref key",
+		inStruct: &Directory{
+			Name: "DList",
+			Path: []string{"", "d-module", "d-container", "d-list"},
+			ListAttr: &YangListAttr{
+				KeyElems: []*yang.Entry{
+					{
+						Name: "d-key",
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+						},
+						Parent: &yang.Entry{
+							Name: "config",
+							Parent: &yang.Entry{
+								Name: "d-list",
+								Kind: yang.DirectoryEntry,
+								Dir: map[string]*yang.Entry{
+									"d-key": {
+										Name: "d-key",
+										Type: &yang.YangType{Kind: yang.Yleafref},
+									},
+								},
+								Parent: &yang.Entry{
+									Name: "d-container",
+									Parent: &yang.Entry{
+										Name: "d-module",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Fields: map[string]*yang.Entry{
+				"d-key": {
+					Name: "d-key",
+					Type: &yang.YangType{
+						Kind: yang.Yleafref,
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name: "d-list",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"d-key": {
+									Name: "d-key",
+									Type: &yang.YangType{Kind: yang.Yleafref},
+								},
+							},
+							Parent: &yang.Entry{
+								Name: "d-container",
+								Parent: &yang.Entry{
+									Name: "d-module",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		inField:         "d-key",
+		inCompressPaths: true,
+		wantPaths: [][]string{
+			{"config", "d-key"},
+			{"d-key"},
+		},
+	}}
+
+	for _, tt := range tests {
+		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inAbsolutePaths)
+		if err != nil {
+			if !tt.wantErr {
+				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, got unexpected error: %v",
+					tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, err)
+			}
+			continue
+		}
+
+		if diff := cmp.Diff(tt.wantPaths, got); diff != "" {
+			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, diff)
+		}
 	}
 }
 

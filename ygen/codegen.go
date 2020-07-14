@@ -343,17 +343,9 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	if len(errs) != 0 {
 		return nil, errs
 	}
-
-	var rootName string
-	if rootName = resolveRootName(cg.Config.TransformationOptions.FakeRootName, defaultRootName, cg.Config.TransformationOptions.GenerateFakeRoot); rootName != "" {
-		if r, ok := defns.Directories[fmt.Sprintf("/%s", rootName)]; ok {
-			rootName = r.Name
-		}
-	}
-
 	// Code generation begins
 	var codegenErr util.Errors
-	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config, rootName, defns.ModelData)
+	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config, defns.RootName(), defns.ModelData)
 	if err != nil {
 		return nil, util.AppendErr(codegenErr, err)
 	}
@@ -378,15 +370,8 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Range through the directories to find the enumerated and union types that we
 	// need. We have to do this without writing the code out, since we require some
 	// knowledge of these types to do code generation along with the values.
-	var fakeRootEntry *yang.Entry
 	for _, directoryName := range orderedDirNames {
 		thisDir := dirNameMap[directoryName]
-
-		// Note the fakeRoot since we need it later on.
-		if thisDir.IsFakeRoot {
-			fakeRootEntry = thisDir.Entry
-		}
-
 		// We need to find all the enumerated types that are in use within the schema
 		// such that we do not output types that are not used (which would potentially create a lot
 		// of extraneous code for included modules that we aren't generating for), and to create
@@ -493,7 +478,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		var err error
 		// TODO(robjs): Move building the schema tree internally to generating directory definitions, since this will
 		// allow a cleaner split of not returning yang.Entry fields to the downstream caller.
-		rawSchema, err = buildJSONTree(defns.ParsedModules, defns.Directories, fakeRootEntry, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled())
+		rawSchema, err = defns.SchemaTree()
 		if err != nil {
 			util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}
@@ -577,12 +562,45 @@ type EnumeratedType struct {
 }
 
 type Definitions struct {
-	Directories   map[string]*Directory
-	LeafTypes     map[string]map[string]*MappedType
-	Enums         map[string]*EnumeratedType
-	ModelData     []*gpb.ModelData
-	MappedPaths   map[string][][]string
-	ParsedModules []*yang.Entry
+	transformationOpts TransformationOpts
+	Directories        map[string]*Directory
+	LeafTypes          map[string]map[string]*MappedType
+	Enums              map[string]*EnumeratedType
+	ModelData          []*gpb.ModelData
+	MappedPaths        map[string][][]string
+	ParsedModules      []*yang.Entry
+}
+
+func (d *Definitions) SchemaTree() ([]byte, error) {
+	rawSchema, err := buildJSONTree(d.ParsedModules, d.Directories, d.RootEntry(), d.transformationOpts.CompressBehaviour.CompressEnabled())
+	if err != nil {
+		return nil, err
+	}
+	return rawSchema, nil
+}
+
+func (d *Definitions) RootDirectory() *Directory {
+	if !d.transformationOpts.GenerateFakeRoot {
+		return nil
+	}
+	v := d.Directories[fmt.Sprintf("/%s", resolveRootName(d.transformationOpts.FakeRootName, defaultRootName, d.transformationOpts.GenerateFakeRoot))]
+	return v
+}
+
+func (d *Definitions) RootEntry() *yang.Entry {
+	rd := d.RootDirectory()
+	if rd == nil {
+		return nil
+	}
+	return rd.Entry
+}
+
+func (d *Definitions) RootName() string {
+	rd := d.RootDirectory()
+	if rd == nil {
+		return ""
+	}
+	return rd.Name
 }
 
 // GetDirectoriesAndLeafTypes parses YANG files and returns two path-keyed
@@ -693,12 +711,13 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string) 
 	}
 
 	return &Definitions{
-		Directories:   directoryMap,
-		LeafTypes:     leafTypeMap,
-		Enums:         enumDefinitionMap,
-		ModelData:     mdef.modelData,
-		MappedPaths:   nodeYANGPath,
-		ParsedModules: mdef.modules,
+		transformationOpts: dcg.TransformationOptions,
+		Directories:        directoryMap,
+		LeafTypes:          leafTypeMap,
+		Enums:              enumDefinitionMap,
+		ModelData:          mdef.modelData,
+		MappedPaths:        nodeYANGPath,
+		ParsedModules:      mdef.modules,
 	}, nil
 }
 
