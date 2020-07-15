@@ -2334,7 +2334,7 @@ func TestGoLeafDefault(t *testing.T) {
 		name:   "enumerated default in leaf",
 		inLeaf: &yang.Entry{Default: "FORTY_TWO"},
 		inType: &MappedType{
-			NativeType:        fmt.Sprintf("%sEnumType", goEnumPrefix),
+			NativeType:        fmt.Sprintf("E_EnumType"),
 			IsEnumeratedValue: true,
 		},
 		want: ygot.String("EnumType_FORTY_TWO"),

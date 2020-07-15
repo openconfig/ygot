@@ -624,6 +624,9 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 }
 
 func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string) (*Definitions, util.Errors) {
+	if dcg.EnumPrefix == "" {
+		dcg.EnumPrefix = goEnumPrefix
+	}
 	cg := &GeneratorConfig{ParseOptions: dcg.ParseOptions, TransformationOptions: dcg.TransformationOptions}
 	// Extract the entities to be mapped into structs and enumerations in the output
 	// Go code. Extract the schematree from the modules provided such that it can be

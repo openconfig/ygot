@@ -89,11 +89,6 @@ type goGenState struct {
 	// was mapped to. This allows routines to determine, based on a particular YANG
 	// entry, how to refer to it when generating code.
 	uniqueDirectoryNames map[string]string
-	// generatedUnions stores a map, keyed by the output name for a union,
-	// that has already been output in the generated code. This ensures that
-	// where two entities re-use a union that has already been created (e.g.,
-	// a leafref to a union) then it is output only once in the generated code.
-	generatedUnions map[string]bool
 }
 
 // newGoGenState creates a new goGenState instance, initialised with the
@@ -109,7 +104,6 @@ func newGoGenState(schematree *schemaTree, eSet *enumSet) *goGenState {
 			ygot.EmptyTypeName:  true,
 		},
 		uniqueDirectoryNames: map[string]string{},
-		generatedUnions:      map[string]bool{},
 	}
 }
 
@@ -231,7 +225,8 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 	// Handle the case of a typedef which is actually an enumeration.
 
 	// TODO(robjs): change this to be a call to Lookup
-	mtype, err := s.enumSet.enumeratedTypedefTypeName(args)
+	mtype, err := s.enumSet.LookupTypedef(args.yangType, args.contextEntry)
+	//mtype, err := s.enumSet.enumeratedTypedefTypeName(args)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
@@ -290,19 +285,22 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 			return nil, fmt.Errorf("cannot map enum without context")
 		}
 		// TODO(robjs): Change this to be a call to lookup.
-		n, err := s.enumSet.enumName(args.contextEntry)
+		mtype, err := s.enumSet.LookupEnum(args.yangType, args.contextEntry)
+		//n, err := s.enumSet.enumName(args.contextEntry)
 		if err != nil {
 			return nil, err
 		}
 		if defVal != nil {
-			defVal = enumDefaultValue(n, *defVal, "")
+			mtype.DefaultValue = enumDefaultValue(mtype.NativeType, *defVal, goEnumPrefix)
 		}
-		return &MappedType{
+		mtype.ZeroValue = "0"
+		return mtype, nil
+		/*return &MappedType{
 			NativeType:        fmt.Sprintf("E_%s", n),
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 			DefaultValue:      defVal,
-		}, nil
+		}, nil*/
 	case yang.Yidentityref:
 		// Identityref leaves are mapped according to the base identity that they
 		// refer to - this is stored in the IdentityBase field of the context leaf
@@ -310,7 +308,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context")
 		}
-		n, err := s.enumSet.identityrefBaseTypeFromLeaf(args.contextEntry)
+		/*n, err := s.enumSet.identityrefBaseTypeFromLeaf(args.contextEntry)
 		if err != nil {
 			return nil, err
 		}
@@ -322,7 +320,18 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 			DefaultValue:      defVal,
-		}, nil
+		}, nil*/
+		//n, err := s.enumSet.identityrefBaseTypeFromLeaf(args.contextEntry)
+		//mtype := &MappedType{NativeType: n, IsEnumeratedValue: true}
+		mtype, err := s.enumSet.LookupIdentity(args.contextEntry.Type.IdentityBase)
+		if err != nil {
+			return nil, err
+		}
+		if defVal != nil {
+			mtype.DefaultValue = enumDefaultValue(mtype.NativeType, *defVal, goEnumPrefix)
+		}
+		mtype.ZeroValue = "0"
+		return mtype, nil
 	case yang.Ydecimal64:
 		return &MappedType{NativeType: "float64", ZeroValue: goZeroValues["float64"]}, nil
 	case yang.Yleafref:
@@ -446,20 +455,27 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 		// to map enumerated types to their module. This occurs in the case that the subtype
 		// is an identityref - in this case, the context entry that we are carrying is the
 		// leaf that refers to the union, not the specific subtype that is now being examined.
-		baseType, err := s.enumSet.identityrefBaseTypeFromIdentity(subtype.IdentityBase)
+		var err error
+		mtype, err = s.enumSet.LookupIdentity(subtype.IdentityBase)
 		if err != nil {
 			return append(errs, err)
 		}
+		/*baseType, err := s.enumSet.identityrefBaseTypeFromIdentity(subtype.IdentityBase)
+		if err != nil {
+			return append(errs, err)
+		}*/
 		defVal := genutil.TypeDefaultValue(subtype)
 		if defVal != nil {
-			defVal = enumDefaultValue(baseType, *defVal, "")
+			defVal = enumDefaultValue(mtype.NativeType, *defVal, goEnumPrefix)
 		}
-		mtype = &MappedType{
+		mtype.ZeroValue = "0"
+		mtype.DefaultValue = defVal
+		/*mtype = &MappedType{
 			NativeType:        fmt.Sprintf("E_%s", baseType),
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 			DefaultValue:      defVal,
-		}
+		}*/
 	default:
 		var err error
 

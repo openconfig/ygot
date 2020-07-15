@@ -97,8 +97,12 @@ func (e *enumSet) LookupTypedef(yt *yang.YangType, entry *yang.Entry) (*MappedTy
 	return mtype, nil
 }
 
-func (e *enumSet) LookupEnum(entry *yang.Entry) (*MappedType, error) {
-	return nil, nil
+func (e *enumSet) LookupEnum(yt *yang.YangType, entry *yang.Entry) (*MappedType, error) {
+	n, err := e.enumName(entry)
+	if err != nil {
+		return nil, err
+	}
+	return &MappedType{NativeType: fmt.Sprintf("%s%s", e.config.enumPrefix, n), IsEnumeratedValue: true}, nil
 }
 
 func (e *enumSet) LookupIdentity(i *yang.Identity) (*MappedType, error) {
@@ -214,12 +218,9 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs) (*MappedType, 
 	// types which is defined in RFC6020/RFC7950) then we establish what the type
 	// that we must actually perform the mapping for is. By default, start with
 	// the type that is specified in the schema.
-	fmt.Printf("%s is built-in? %v\n", args.contextEntry.Path(), util.IsYANGBaseType(args.yangType))
 	if !util.IsYANGBaseType(args.yangType) {
-		fmt.Printf("	the type was %s\n", args.yangType.Kind)
 		switch args.yangType.Kind {
 		case yang.Yenum, yang.Yidentityref:
-			fmt.Printf("	and was an enum/identityref.\n")
 			// In the case of a typedef that specifies an enumeration or identityref
 			// then generate a enumerated type in the Go code according to the contextEntry
 			// which has been provided by the calling code.
@@ -231,7 +232,6 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs) (*MappedType, 
 			if err != nil {
 				return nil, err
 			}
-			fmt.Printf("	so the type is %s\n", tn)
 
 			return &MappedType{
 				NativeType:        fmt.Sprintf("%s%s", s.config.enumPrefix, tn),
