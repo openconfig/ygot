@@ -81,6 +81,8 @@ type DirectoryGenConfig struct {
 	// may be transformed from a simple 1:1 mapping with respect to the
 	// given YANG schema.
 	TransformationOptions TransformationOpts
+
+	EnumPrefix string
 }
 
 // ParseOpts contains parsing configuration for a given schema.
@@ -338,6 +340,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	d := &DirectoryGenConfig{
 		ParseOptions:          cg.Config.ParseOptions,
 		TransformationOptions: cg.Config.TransformationOptions,
+		EnumPrefix:            goEnumPrefix,
 	}
 	defns, errs := d.GetDefinitions(yangFiles, includePaths)
 	if len(errs) != 0 {
@@ -632,7 +635,7 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string) 
 
 	dirsToProcess := map[string]*yang.Entry(mdef.directoryEntries)
 
-	enumSet, genEnums, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames)
+	enumSet, genEnums, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, dcg.EnumPrefix)
 	if errs != nil {
 		return nil, errs
 	}
@@ -780,11 +783,29 @@ func enumDefinition(enum *yangEnum, safeNameFn func(string) string) (*Enumerated
 // It returns a GeneratedProto3 struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
 func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto3, util.Errors) {
+
+	basePackageName := cg.Config.PackageName
+	if basePackageName == "" {
+		basePackageName = DefaultBasePackageName
+	}
+	enumPackageName := cg.Config.ProtoOptions.EnumPackageName
+	if enumPackageName == "" {
+		enumPackageName = DefaultEnumPackageName
+	}
+	ywrapperPath := cg.Config.ProtoOptions.YwrapperPath
+	if ywrapperPath == "" {
+		ywrapperPath = DefaultYwrapperPath
+	}
+	yextPath := cg.Config.ProtoOptions.YextPath
+	if yextPath == "" {
+		yextPath = DefaultYextPath
+	}
+
 	mdef, errs := mappedDefinitions(yangFiles, includePaths, &cg.Config)
 	if errs != nil {
 		return nil, errs
 	}
-	enumSet, penums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames)
+	enumSet, penums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, fmt.Sprintf("%s.%s.", basePackageName, enumPackageName))
 	if errs != nil {
 		return nil, errs
 	}
@@ -822,23 +843,6 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		msgMap[k] = m
 	}
 	sort.Strings(msgPaths)
-
-	basePackageName := cg.Config.PackageName
-	if basePackageName == "" {
-		basePackageName = DefaultBasePackageName
-	}
-	enumPackageName := cg.Config.ProtoOptions.EnumPackageName
-	if enumPackageName == "" {
-		enumPackageName = DefaultEnumPackageName
-	}
-	ywrapperPath := cg.Config.ProtoOptions.YwrapperPath
-	if ywrapperPath == "" {
-		ywrapperPath = DefaultYwrapperPath
-	}
-	yextPath := cg.Config.ProtoOptions.YextPath
-	if yextPath == "" {
-		yextPath = DefaultYextPath
-	}
 
 	// Only create the enums package if there are enums that are within the schema.
 	if len(protoEnums) > 0 {

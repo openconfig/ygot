@@ -229,7 +229,9 @@ func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, c
 func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames bool) (*MappedType, error) {
 	defVal := genutil.TypeDefaultValue(args.yangType)
 	// Handle the case of a typedef which is actually an enumeration.
-	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false)
+
+	// TODO(robjs): change this to be a call to Lookup
+	mtype, err := s.enumSet.enumeratedTypedefTypeName(args)
 	if err != nil {
 		// err is non nil when this was a typedef which included
 		// an invalid enumerated type.
@@ -287,7 +289,8 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enum without context")
 		}
-		n, err := s.enumSet.enumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames)
+		// TODO(robjs): Change this to be a call to lookup.
+		n, err := s.enumSet.enumName(args.contextEntry)
 		if err != nil {
 			return nil, err
 		}

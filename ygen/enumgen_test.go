@@ -1238,7 +1238,13 @@ func TestResolveNameClashSet(t *testing.T) {
 
 			for compressPaths := range map[bool]struct{}{false: {}, true: {}} {
 				t.Run(tt.name+fmt.Sprintf("@compressPaths:%v,noUnderscores:%v,shortenEnumLeafNames:%v", compressPaths, noUnderscores, tt.inShortenEnumLeafNames), func(t *testing.T) {
-					s := newEnumGenState()
+					s := newEnumGenState(
+						enumSetConfig{
+							compressPaths:        compressPaths,
+							noUnderscores:        noUnderscores,
+							shortenEnumLeafNames: tt.inShortenEnumLeafNames,
+						},
+					)
 					for k, v := range inDefinedEnums {
 						// Copy the values as this map may be modified.
 						s.definedEnums[k] = v
@@ -1250,7 +1256,7 @@ func TestResolveNameClashSet(t *testing.T) {
 						}
 						nameClashSets[k] = v
 					}
-					gotUniqueNamesMap, err := s.resolveNameClashSet(nameClashSets, compressPaths, noUnderscores, tt.inShortenEnumLeafNames)
+					gotUniqueNamesMap, err := s.resolveNameClashSet(nameClashSets)
 					wantErrSubstr := tt.wantErrSubstr
 					if !compressPaths && tt.wantUncompressFailDueToClash {
 						wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
@@ -3470,7 +3476,7 @@ func TestFindEnumSet(t *testing.T) {
 				wantEnumSet = tt.wantEnumSetUncompressed
 			}
 			t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v)", tt.name, compressed, tt.inSkipEnumDeduplication), func(t *testing.T) {
-				gotEnumSet, entries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames)
+				gotEnumSet, entries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames, "E_")
 
 				wantErrSubstr := tt.wantErrSubstr
 				if !compressed && tt.wantUncompressFailDueToClash {
@@ -3487,7 +3493,7 @@ func TestFindEnumSet(t *testing.T) {
 					return
 				}
 
-				if diff := cmp.Diff(gotEnumSet, wantEnumSet, cmp.AllowUnexported(enumSet{}), cmpopts.EquateEmpty()); diff != "" {
+				if diff := cmp.Diff(gotEnumSet, wantEnumSet, cmp.AllowUnexported(enumSet{}), cmpopts.EquateEmpty(), cmpopts.IgnoreTypes(enumSetConfig{})); diff != "" {
 					t.Errorf("enumSet (-got, +want):\n%s", diff)
 				}
 
