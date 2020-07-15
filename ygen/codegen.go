@@ -342,7 +342,9 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		TransformationOptions: cg.Config.TransformationOptions,
 		EnumPrefix:            goEnumPrefix,
 	}
-	defns, errs := d.GetDefinitions(yangFiles, includePaths)
+
+	lm := newGoGenState(nil, nil)
+	defns, errs := d.GetDefinitions(yangFiles, includePaths, lm)
 	if len(errs) != 0 {
 		return nil, errs
 	}
@@ -619,11 +621,21 @@ func (d *Definitions) RootName() string {
 // modules that are included by the specified set of modules, or submodules of
 // those modules). Any errors encountered during code generation are returned.
 func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePaths []string) (map[string]*Directory, map[string]map[string]*MappedType, util.Errors) {
-	g, errs := dcg.GetDefinitions(yangFiles, includePaths)
+	langMapper := newGoGenState(nil, nil)
+	g, errs := dcg.GetDefinitions(yangFiles, includePaths, langMapper)
 	return g.Directories, g.LeafTypes, errs
 }
 
-func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string) (*Definitions, util.Errors) {
+type LangMapper interface {
+	DirectoryName(*yang.Entry, genutil.CompressBehaviour) (string, error)
+	KeyLeafType(*yang.Entry, genutil.CompressBehaviour) (*MappedType, error)
+	LeafType(*yang.Entry, genutil.CompressBehaviour) (*MappedType, error)
+	SetEnumSet(*enumSet)
+	SetSchemaTree(*schemaTree)
+}
+
+// TODO(robjs): Make langMapper an argument here
+func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, langMapper LangMapper) (*Definitions, util.Errors) {
 	if dcg.EnumPrefix == "" {
 		dcg.EnumPrefix = goEnumPrefix
 	}
@@ -643,10 +655,10 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string) 
 		return nil, errs
 	}
 
-	// TODO(robjs): refactor this state type to be generic across generated languages.
-	// Store the returned schematree and enumSet within the state for this code generation.
-	gogen := newGoGenState(mdef.schematree, enumSet)
-	directoryMap, errs := gogen.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames)
+	langMapper.SetEnumSet(enumSet)
+	langMapper.SetSchemaTree(mdef.schematree)
+
+	directoryMap, errs := buildDirectoryDefinitions(langMapper, dirsToProcess, cg.TransformationOptions.CompressBehaviour)
 	if errs != nil {
 		return nil, errs
 	}
@@ -688,7 +700,7 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string) 
 			}
 
 			if isLeaf := field.IsLeaf() || field.IsLeafList(); isLeaf {
-				mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, dcg.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames)
+				mtype, err := langMapper.LeafType(field, dcg.TransformationOptions.CompressBehaviour)
 				if err != nil {
 					errs = util.AppendErr(errs, err)
 					continue
@@ -819,7 +831,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	protoMsgs, errs := protogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour)
+	protoMsgs, errs := buildDirectoryDefinitions(protogen, mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour)
 	if errs != nil {
 		return nil, errs
 	}

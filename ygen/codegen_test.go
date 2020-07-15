@@ -1841,8 +1841,11 @@ func TestGetDefinitions(t *testing.T) {
 	for _, tt := range tests {
 		c := tt.inConfig
 
+		// TODO(robjs): use a generic input type here.
+		langMapper := newGoGenState(nil, nil)
+
 		t.Run(fmt.Sprintf("%s:GetDirectoriesAndLeafTypes(compressBehaviour:%v,GenerateFakeRoot:%v)", tt.name, c.TransformationOptions.CompressBehaviour, c.TransformationOptions.GenerateFakeRoot), func(t *testing.T) {
-			got, errs := c.GetDefinitions(tt.inFiles, tt.inIncludePaths)
+			got, errs := c.GetDefinitions(tt.inFiles, tt.inIncludePaths, langMapper)
 			if errs != nil {
 				t.Fatal(errs)
 			}

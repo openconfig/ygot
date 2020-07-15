@@ -93,10 +93,11 @@ type goGenState struct {
 
 // newGoGenState creates a new goGenState instance, initialised with the
 // default state required for code generation.
+// TODO(robjs): allow schematree and enumSet to be set for testing.
 func newGoGenState(schematree *schemaTree, eSet *enumSet) *goGenState {
-	return &goGenState{
-		enumSet:    eSet,
-		schematree: schematree,
+	s := &goGenState{
+		//enumSet:    eSet,
+		//schematree: schematree,
 		definedGlobals: map[string]bool{
 			// Mark the name that is used for the binary type as a reserved name
 			// within the output structs.
@@ -105,6 +106,36 @@ func newGoGenState(schematree *schemaTree, eSet *enumSet) *goGenState {
 		},
 		uniqueDirectoryNames: map[string]string{},
 	}
+
+	if schematree != nil {
+		s.schematree = schematree
+	}
+
+	if eSet != nil {
+		s.enumSet = eSet
+	}
+
+	return s
+}
+
+func (s *goGenState) SetEnumSet(e *enumSet) {
+	s.enumSet = e
+}
+
+func (s *goGenState) SetSchemaTree(st *schemaTree) {
+	s.schematree = st
+}
+
+func (s *goGenState) DirectoryName(e *yang.Entry, cb genutil.CompressBehaviour) (string, error) {
+	return s.goStructName(e, cb.CompressEnabled()), nil
+}
+
+func (s *goGenState) KeyLeafType(e *yang.Entry, cb genutil.CompressBehaviour) (*MappedType, error) {
+	return s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, cb.CompressEnabled())
+}
+
+func (s *goGenState) LeafType(e *yang.Entry, cb genutil.CompressBehaviour) (*MappedType, error) {
+	return s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, cb.CompressEnabled())
 }
 
 // resolveTypeArgs is a structure used as an input argument to the yangTypeToGoType
@@ -133,10 +164,10 @@ type resolveTypeArgs struct {
 // genFakeRoot boolean specifies whether the fake root exists within the schema
 // such that it can be handled specifically in the path generation.
 // TODO(wenbli): Move this to genutil.
-func pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
+func pathToCamelCaseName(e *yang.Entry, compressOCPaths bool) string {
 	var pathElements []*yang.Entry
 
-	if genFakeRoot && IsFakeRoot(e) {
+	if IsFakeRoot(e) {
 		// Handle the special case of the root element if it exists.
 		pathElements = []*yang.Entry{e}
 	} else {
@@ -175,38 +206,14 @@ func pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRoot bool) strin
 // camel case. The genFakeRoot boolean specifies whether the fake root is to be
 // generated such that the struct name can consider the fake root entity
 // specifically.
-func (s *goGenState) goStructName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
-	uniqName := genutil.MakeNameUnique(pathToCamelCaseName(e, compressOCPaths, genFakeRoot), s.definedGlobals)
+func (s *goGenState) goStructName(e *yang.Entry, compressOCPaths bool) string {
+	uniqName := genutil.MakeNameUnique(pathToCamelCaseName(e, compressOCPaths), s.definedGlobals)
 
 	// Record the name of the struct that was unique such that it can be referenced
 	// by path.
 	s.uniqueDirectoryNames[e.Path()] = uniqName
 
 	return uniqName
-}
-
-// buildDirectoryDefinitions extracts the yang.Entry instances from a map of
-// entries that need struct definitions built for them. It resolves each
-// non-leaf yang.Entry to a Directory which contains the elements that are
-// needed for subsequent code generation, with the relationships between the
-// elements being determined by the compress behaviour and genFakeRoot (whether
-// a fake root element is generated). The skipEnumDedup argument specifies to
-// the code generation whether to try to output a single type for an
-// enumeration that is logically defined once in the output code, but
-// instantiated in multiple places in the schema tree.  The skipEnumDedup
-// argument specifies whether leaves of type 'enumeration' which are used more
-// than once in the schema should use a common output type in the generated Go
-// code. By default a type is shared.
-func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour, genFakeRoot, skipEnumDedup, shortenEnumLeafNames bool) (map[string]*Directory, []error) {
-	return buildDirectoryDefinitions(entries, compBehaviour,
-		// For Go, we map the name of the struct to the path elements
-		// in CamelCase separated by underscores.
-		func(e *yang.Entry) string {
-			return s.goStructName(e, compBehaviour.CompressEnabled(), genFakeRoot)
-		},
-		func(keyleaf *yang.Entry) (*MappedType, error) {
-			return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, compBehaviour.CompressEnabled(), skipEnumDedup, shortenEnumLeafNames)
-		})
 }
 
 // yangTypeToGoType takes a yang.YangType (YANG type definition) and maps it
@@ -220,7 +227,7 @@ func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, c
 // The skipEnumDedup argument specifies whether leaves of type enumeration that are
 // used more than once in the schema should share a common type. By default, a single
 // type for each leaf is created.
-func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames bool) (*MappedType, error) {
+func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths bool) (*MappedType, error) {
 	defVal := genutil.TypeDefaultValue(args.yangType)
 	// Handle the case of a typedef which is actually an enumeration.
 
@@ -276,7 +283,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 	case yang.Yunion:
 		// A YANG Union is a leaf that can take multiple values - its subtypes need
 		// to be extracted.
-		return s.goUnionType(args, compressOCPaths, skipEnumDedup, shortenEnumLeafNames)
+		return s.goUnionType(args, compressOCPaths)
 	case yang.Yenum:
 		// Enumeration types need to be resolved to a particular data path such
 		// that a created enumered Go type can be used to set their value. Hand
@@ -341,7 +348,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 		if err != nil {
 			return nil, err
 		}
-		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames)
+		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths)
 		if err != nil {
 			return nil, err
 		}
@@ -394,7 +401,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 // but used in multiple places.
 //
 // goUnionType returns an error if mapping is not possible.
-func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames bool) (*MappedType, error) {
+func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*MappedType, error) {
 	var errs []error
 	unionMappedTypes := make(map[int]*MappedType)
 
@@ -404,7 +411,7 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnum
 	// check, rather than iterating the slice of strings.
 	unionTypes := make(map[string]int)
 	for _, subtype := range args.yangType.Type {
-		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, unionMappedTypes, compressOCPaths, skipEnumDedup, shortenEnumLeafNames)...)
+		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, unionMappedTypes, compressOCPaths)...)
 	}
 
 	if errs != nil {
@@ -412,7 +419,7 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnum
 	}
 
 	resolvedType := &MappedType{
-		NativeType: fmt.Sprintf("%s_Union", pathToCamelCaseName(args.contextEntry, compressOCPaths, false)),
+		NativeType: fmt.Sprintf("%s_Union", pathToCamelCaseName(args.contextEntry, compressOCPaths)),
 		// Zero value is set to nil, other than in cases where there is
 		// a single type in the union.
 		ZeroValue: "nil",
@@ -437,13 +444,13 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnum
 // The skipEnumDedup argument specifies whether the current code generation is
 // de-duplicating enumerations where they are used in more than one place in
 // the schema.
-func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths, skipEnumDedup, shortenEnumLeafNames bool) []error {
+func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths bool) []error {
 	var errs []error
 	// If subtype.Type is not empty then this means that this type is defined to
 	// be a union itself.
 	if subtype.Type != nil {
 		for _, st := range subtype.Type {
-			errs = append(errs, s.goUnionSubTypes(st, ctx, currentTypes, unionMappedTypes, compressOCPaths, skipEnumDedup, shortenEnumLeafNames)...)
+			errs = append(errs, s.goUnionSubTypes(st, ctx, currentTypes, unionMappedTypes, compressOCPaths)...)
 		}
 		return errs
 	}
@@ -479,7 +486,7 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 	default:
 		var err error
 
-		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: subtype, contextEntry: ctx}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames)
+		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: subtype, contextEntry: ctx}, compressOCPaths)
 		if err != nil {
 			errs = append(errs, err)
 			return errs

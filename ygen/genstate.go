@@ -77,8 +77,7 @@ func IsYgenDefinedGoType(t *MappedType) bool {
 // including whether those elements within the YANG schema that are marked
 // config false (i.e. are read only) are excluded from the returned
 // directories.
-func buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour,
-	genDirectoryName func(*yang.Entry) string, resolveKeyTypeName func(keyleaf *yang.Entry) (*MappedType, error)) (map[string]*Directory, []error) {
+func buildDirectoryDefinitions(langMapper LangMapper, entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour) (map[string]*Directory, []error) {
 
 	var errs []error
 	mappedStructs := make(map[string]*Directory)
@@ -98,7 +97,11 @@ func buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour gen
 			}
 
 			// Encode the name of the struct according to the input function.
-			elem.Name = genDirectoryName(e)
+			var err error
+			elem.Name, err = langMapper.DirectoryName(e, compBehaviour)
+			if err != nil {
+				return nil, []error{err}
+			}
 
 			// Find the elements that should be rooted on this particular entity.
 			var fieldErr []error
@@ -122,7 +125,7 @@ func buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour gen
 			// be represented.
 			if e.IsList() {
 				// Resolve the type name of the key according to the input function.
-				lattr, listErr := buildListKey(e, compBehaviour.CompressEnabled(), resolveKeyTypeName)
+				lattr, listErr := buildListKey(e, compBehaviour, langMapper)
 				if listErr != nil {
 					errs = append(errs, listErr...)
 					continue
@@ -146,7 +149,7 @@ func buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour gen
 // identifier, with a value of a MappedType struct generated using resolveKeyTypeName which
 // indicates how that key leaf is to be represented in the generated language. The key
 // elements themselves are returned in the keyElems slice.
-func buildListKey(e *yang.Entry, compressOCPaths bool, resolveKeyTypeName func(keyleaf *yang.Entry) (*MappedType, error)) (*YangListAttr, []error) {
+func buildListKey(e *yang.Entry, compBehaviour genutil.CompressBehaviour, langMapper LangMapper) (*YangListAttr, []error) {
 	if !e.IsList() {
 		return nil, []error{fmt.Errorf("%s is not a list", e.Name)}
 	}
@@ -187,7 +190,7 @@ func buildListKey(e *yang.Entry, compressOCPaths bool, resolveKeyTypeName func(k
 				// schema. Therefore, when the key is a leafref for the OC case, then
 				// find the actual leaf that it points to, for other schemas, then ignore
 				// this lookup.
-				if compressOCPaths {
+				if compBehaviour.CompressEnabled() {
 					// keyleaf.Type.Path specifies the (goyang validated) path to the
 					// leaf that is the target of the reference when the keyleaf is a
 					// leafref.
@@ -220,13 +223,15 @@ func buildListKey(e *yang.Entry, compressOCPaths bool, resolveKeyTypeName func(k
 		}
 
 		listattr.KeyElems = append(listattr.KeyElems, keyleaf)
-		if resolveKeyTypeName != nil {
-			keyType, err := resolveKeyTypeName(keyleaf)
-			if err != nil {
-				errs = append(errs, err)
-			}
+
+		keyType, err := langMapper.KeyLeafType(keyleaf, compBehaviour)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		if keyType != nil {
 			listattr.Keys[keyleaf.Name] = keyType
 		}
+
 	}
 
 	return listattr, errs

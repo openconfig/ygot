@@ -245,7 +245,7 @@ func TestUnionSubTypes(t *testing.T) {
 
 			mtypes := make(map[int]*MappedType)
 			ctypes := make(map[string]int)
-			if errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false, false, true); !tt.wantErr && errs != nil {
+			if errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false); !tt.wantErr && errs != nil {
 				t.Errorf("unexpected errors: %v", errs)
 			}
 
@@ -893,7 +893,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				contextEntry: tt.ctx,
 			}
 
-			got, err := s.yangTypeToGoType(args, tt.inCompressPath, tt.inSkipEnumDedup, true)
+			got, err := s.yangTypeToGoType(args, tt.inCompressPath)
 			if tt.wantErr && err == nil {
 				t.Fatalf("did not get expected error (%v)", got)
 
@@ -1050,7 +1050,7 @@ func TestStructName(t *testing.T) {
 	for _, tt := range tests {
 		for compress, expected := range map[bool]string{false: tt.wantUncompressed, true: tt.wantCompressed} {
 			s := newGoGenState(nil, nil)
-			if out := s.goStructName(tt.inElement, compress, false); out != expected {
+			if out := s.goStructName(tt.inElement, compress); out != expected {
 				t.Errorf("%s (compress: %v): shortName output invalid - got: %s, want: %s", tt.name, compress, out, expected)
 			}
 		}
@@ -1238,7 +1238,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 
 		gotTypes := make(map[string]*MappedType)
 		for _, leaf := range tt.inLeaves {
-			mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths, tt.inSkipEnumDedup, true)
+			mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths)
 			if err != nil {
 				t.Errorf("%s: yangTypeToGoType(%v, %v): got unexpected err: %v, want: nil", tt.name, leaf.Type, leaf, err)
 				continue

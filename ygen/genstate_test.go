@@ -1230,8 +1230,6 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				if err != nil {
 					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
 				}
-				gogen := newGoGenState(st, nil)
-				protogen := newProtoGenState(st, nil)
 
 				structs := make(map[string]*yang.Entry)
 				enums := make(map[string]*yang.Entry)
@@ -1246,13 +1244,14 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					t.Fatalf("findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v", tt.in, structs, enums, c.compressBehaviour.CompressEnabled(), errs)
 				}
 
-				var got map[string]*Directory
+				var lm LangMapper
 				switch c.lang {
 				case golang:
-					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false, true)
+					lm = newGoGenState(st, nil)
 				case protobuf:
-					got, errs = protogen.buildDirectoryDefinitions(structs, c.compressBehaviour)
+					lm = newProtoGenState(st, nil)
 				}
+				got, errs := buildDirectoryDefinitions(lm, structs, c.compressBehaviour)
 				if errs != nil {
 					t.Fatal(errs)
 				}
@@ -1361,15 +1360,14 @@ func addEnumsToEnumMap(entry *yang.Entry, enumMap map[string]*yang.Entry) {
 // struct is returned representing the keys of the list e.
 func TestBuildListKey(t *testing.T) {
 	tests := []struct {
-		name                    string        // name is the test identifier.
-		in                      *yang.Entry   // in is the yang.Entry of the test list.
-		inCompress              bool          // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
-		inEntries               []*yang.Entry // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
-		inEnumEntries           []*yang.Entry // inEnumEntries is used to add more state for findEnumSet to test enum name generation.
-		inSkipEnumDedup         bool          // inSkipEnumDedup says whether to dedup identical enums encountered in the models.
-		inResolveKeyNameFuncNil bool          // inResolveKeyNameFuncNil specifies whether the key name function is not provided.
-		want                    YangListAttr  // want is the expected YangListAttr output.
-		wantErr                 bool          // wantErr is a boolean indicating whether errors are expected from buildListKeys
+		name            string                    // name is the test identifier.
+		in              *yang.Entry               // in is the yang.Entry of the test list.
+		inCompress      genutil.CompressBehaviour // inCompress is a boolean indicating whether CompressOCPaths should be true/false.
+		inEntries       []*yang.Entry             // inEntries is used to provide context entries in the schema, particularly where a leafref key is used.
+		inEnumEntries   []*yang.Entry             // inEnumEntries is used to add more state for findEnumSet to test enum name generation.
+		inSkipEnumDedup bool                      // inSkipEnumDedup says whether to dedup identical enums encountered in the models.
+		want            YangListAttr              // want is the expected YangListAttr output.
+		wantErr         bool                      // wantErr is a boolean indicating whether errors are expected from buildListKeys
 	}{{
 		name: "non-list",
 		in: &yang.Entry{
@@ -1463,7 +1461,7 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-		inCompress: true,
+		inCompress: genutil.PreferIntendedConfig,
 		want: YangListAttr{
 			Keys: map[string]*MappedType{
 				"keyleaf": {NativeType: "E_Container_Keyleaf"},
@@ -1479,7 +1477,8 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-	}, {
+		// TODO(robjs): Add handling for bad langMapper being provided.
+		/*}, {
 		name: "basic list key test with nil resolve key name function",
 		in: &yang.Entry{
 			Name:     "list",
@@ -1492,7 +1491,6 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-		inResolveKeyNameFuncNil: true,
 		want: YangListAttr{
 			KeyElems: []*yang.Entry{
 				{
@@ -1500,7 +1498,7 @@ func TestBuildListKey(t *testing.T) {
 					Type: &yang.YangType{Kind: yang.Ystring},
 				},
 			},
-		},
+		},*/
 	}, {
 		name: "multiple list keys",
 		in: &yang.Entry{
@@ -1598,7 +1596,7 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-		inCompress: true,
+		inCompress: genutil.PreferIntendedConfig,
 		wantErr:    true,
 	}, {
 		name: "list with leafref in invalid container",
@@ -1616,7 +1614,7 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-		inCompress: true,
+		inCompress: genutil.PreferIntendedConfig,
 		wantErr:    true,
 	}, {
 		name: "list with leafref that does not exist",
@@ -1638,7 +1636,7 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-		inCompress: true,
+		inCompress: genutil.PreferIntendedConfig,
 		wantErr:    true,
 	}, {
 		name: "single leafref key test",
@@ -1671,7 +1669,7 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-		inCompress: true,
+		inCompress: genutil.PreferIntendedConfig,
 		want: YangListAttr{
 			Keys: map[string]*MappedType{
 				"keyleafref": {NativeType: "string"},
@@ -1752,7 +1750,7 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-		inCompress: true,
+		inCompress: genutil.PreferIntendedConfig,
 		want: YangListAttr{
 			Keys: map[string]*MappedType{
 				"key1": {NativeType: "string"},
@@ -1794,7 +1792,7 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		},
-		inCompress: true,
+		inCompress: genutil.PreferIntendedConfig,
 		want: YangListAttr{
 			Keys: map[string]*MappedType{
 				"keyleafref": {NativeType: "string"},
@@ -1856,6 +1854,7 @@ func TestBuildListKey(t *testing.T) {
 				Parent: &yang.Entry{Name: "module"},
 			},
 		},
+		inCompress: genutil.Uncompressed,
 		want: YangListAttr{
 			Keys: map[string]*MappedType{
 				"keyleafref": {NativeType: "string"},
@@ -1924,7 +1923,7 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		}},
-		inCompress: true,
+		inCompress: genutil.PreferIntendedConfig,
 		want: YangListAttr{
 			Keys: map[string]*MappedType{
 				"keyleaf": {NativeType: "E_Container_EnumLeafLexicographicallyEarlier"},
@@ -1997,7 +1996,7 @@ func TestBuildListKey(t *testing.T) {
 				},
 			},
 		}},
-		inCompress:      true,
+		inCompress:      genutil.PreferIntendedConfig,
 		inSkipEnumDedup: true,
 		want: YangListAttr{
 			Keys: map[string]*MappedType{
@@ -2027,23 +2026,20 @@ func TestBuildListKey(t *testing.T) {
 			}
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.in, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, "E_")
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress.CompressEnabled(), false, tt.inSkipEnumDedup, true, "E_")
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
 				}
 				return
 			}
+
+			// TODO(robjs): This should be able to be tested with a generic langMapper.
 			s := newGoGenState(st, enumSet)
+			s.SetEnumSet(enumSet)
+			s.SetSchemaTree(st)
 
-			resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
-				return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup, true)
-			}
-			if tt.inResolveKeyNameFuncNil {
-				resolveKeyTypeName = nil
-			}
-
-			got, err := buildListKey(tt.in, tt.inCompress, resolveKeyTypeName)
+			got, err := buildListKey(tt.in, tt.inCompress, s)
 			if err != nil && !tt.wantErr {
 				t.Errorf("%s: could not build list key successfully %v", tt.name, err)
 			}

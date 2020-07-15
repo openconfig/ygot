@@ -65,21 +65,41 @@ func newProtoGenState(schematree *schemaTree, eSet *enumSet) *protoGenState {
 	}
 }
 
+func (s *protoGenState) SetEnumSet(e *enumSet) {
+	s.enumSet = e
+}
+
+func (s *protoGenState) SetSchemaTree(st *schemaTree) {
+	s.schematree = st
+}
+
+func (s *protoGenState) DirectoryName(e *yang.Entry, cb genutil.CompressBehaviour) (string, error) {
+	return s.protoMsgName(e, cb.CompressEnabled()), nil
+}
+
+func (s *protoGenState) KeyLeafType(e *yang.Entry, cb genutil.CompressBehaviour) (*MappedType, error) {
+	return nil, nil
+}
+
+func (s *protoGenState) LeafType(e *yang.Entry, cb genutil.CompressBehaviour) (*MappedType, error) {
+	return nil, fmt.Errorf("unsupported")
+}
+
 // buildDirectoryDefinitions extracts the yang.Entry instances from a map of
 // entries that need struct definitions built for them. It resolves each
 // non-leaf yang.Entry to a Directory which contains the elements that are
 // needed for subsequent code generation.
-func (s *protoGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour) (map[string]*Directory, []error) {
-	return buildDirectoryDefinitions(entries, compBehaviour,
-		// In the case of protobuf the message name is simply the camel
-		// case name that is specified.
-		func(e *yang.Entry) string {
-			return s.protoMsgName(e, compBehaviour.CompressEnabled())
-		},
-		// protobuf's key types are handled at a different place.
-		nil,
-	)
-}
+//func (s *protoGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour) (map[string]*Directory, []error) {
+//	return buildDirectoryDefinitions(entries, compBehaviour,
+//		// In the case of protobuf the message name is simply the camel
+//		// case name that is specified.
+//		func(e *yang.Entry) string {
+//			return s.protoMsgName(e, compBehaviour.CompressEnabled())
+//		},
+//		// protobuf's key types are handled at a different place.
+//		nil,
+//	)
+//}
 
 // resolveProtoTypeArgs specifies input parameters required for resolving types
 // from YANG to protobuf.
@@ -92,7 +112,7 @@ type resolveProtoTypeArgs struct {
 	// enumPackageName is the name of the package within which global enumerated values
 	// are defined (i.e., typedefs that contain enumerations, or YANG identities).
 	enumPackageName string
-	// scalaraTypeInSingleTypeUnion specifies whether scalar types should be used
+	// scalarTypeInSingleTypeUnion specifies whether scalar types should be used
 	// when a union contains only one base type, or whether the protobuf wrapper
 	// types should be used.
 	scalarTypeInSingleTypeUnion bool
