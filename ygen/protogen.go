@@ -860,7 +860,8 @@ func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]stri
 			p.Values = values
 			p.ValuePrefix = strings.ToUpper(enum.name)
 			p.Description = fmt.Sprintf("YANG identity %s", enum.entry.Type.IdentityBase.Name)
-		case enum.entry.Type.Kind == yang.Yenum:
+		//case enum.entry.Type.Kind == yang.Yenum:
+		case util.IsEnumerationLeaf(enum.entry):
 			ge, err := genProtoEnum(enum.entry, annotateEnumNames)
 			if err != nil {
 				errs = append(errs, err)

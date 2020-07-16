@@ -1890,7 +1890,7 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 // included entity. If errors are encountered whilst mapping the enumeration to
 // code, they are returned. The enumDefinition template is used to convert a
 // constructed generatedGoEnumeration struct to code within the function.
-func writeGoEnum(inputEnum *EnumeratedType) (string, error) {
+func writeGoEnum(inputEnum *goEnumeratedType) (string, error) {
 	var buf bytes.Buffer
 	if err := goTemplates["enumDefinition"].Execute(&buf, generatedGoEnumeration{
 		EnumerationPrefix: inputEnum.Name,

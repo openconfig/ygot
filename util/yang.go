@@ -212,6 +212,12 @@ func IsIdentityrefLeaf(e *yang.Entry) bool {
 	return e.Type.IdentityBase != nil
 }
 
+// IsEnumerationLeaf returns true if the supplied yang.Entry represents an
+// enumeration.
+func IsEnumerationLeaf(e *yang.Entry) bool {
+  return e.Type.Kind == yang.Yenum
+}
+
 // IsYANGBaseType determines whether the supplied YangType is a built-in type
 // in YANG, or a derived type (i.e., typedef).
 // TODO(wenbli): add unit test

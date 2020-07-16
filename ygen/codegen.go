@@ -474,7 +474,15 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		structSnippets = append(structSnippets, structOut)
 	}
 
-	genum, err := writeGoEnumeratedTypes(defns.Enums, usedEnumeratedTypes)
+	processedEnums, err := genGoEnumeratedTypes(defns.Enums)
+	if err != nil {
+		return nil, append(codegenErr, err)
+	}
+
+	genum, err := writeGoEnumeratedTypes(processedEnums, usedEnumeratedTypes)
+	if err != nil {
+		return nil, append(codegenErr, err)
+	}
 
 	var rawSchema []byte
 	var jsonSchema string
@@ -517,12 +525,71 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 
 }
 
+func genGoEnumeratedTypes(enums map[string]*EnumeratedYANGType) (map[string]*goEnumeratedType, error) {
+	et := map[string]*goEnumeratedType{}
+	for _, e := range enums {
+		// initialised to be UNSET, such that it is possible to determine that the enumerated value
+		// was not modified.
+		values := map[int64]string{
+			0: "UNSET",
+		}
+
+		// origValues stores the original set of value names, these are not maintained to be
+		// Go-safe, and are rather used to map back to the original schema values if required.
+		// 0 is not populated within this map, such that the values can be used to check whether
+		// there was a valid entry in the original schema. The value is stored as a ygot
+		// EnumDefinition, which stores the name, and in the case of identity values, the
+		// module within which the identity was defined.
+		origValues := map[int64]ygot.EnumDefinition{}
+
+		switch e.Kind {
+		case IdentityType:
+			// The inputEnum corresponds to an identityref - hence the values are defined
+			// based on the values that the identity has. Since there is no explicit ordering
+			// in an identity, then we go through and put the values in alphabetical order in
+			// order to avoid reordering during code generation of the same entity.
+			valNames := []string{}
+			valLookup := map[string]*yang.Identity{}
+			for _, v := range e.Identity().Values {
+				valNames = append(valNames, v.Name)
+				valLookup[v.Name] = v
+			}
+			sort.Strings(valNames)
+
+			for i, v := range valNames {
+				values[int64(i)+1] = safeGoEnumeratedValueName(v)
+				origValues[int64(i)+1] = ygot.EnumDefinition{
+					Name:           v,
+					DefiningModule: genutil.ParentModuleName(valLookup[v]),
+				}
+			}
+		case SimpleEnumerationType, DerivedEnumerationType, UnionEnumerationType:
+			// The remaining enumerated types are all represented as an Enum type within the
+			// Goyang entry construct. The values are accessed in a map keyed by an int64
+			// and with a value of the name of the enumerated value - retrieved via ValueMap().
+			for i, value := range e.Enum().ValueMap() {
+				values[i+1] = safeGoEnumeratedValueName(value)
+				origValues[i+1] = ygot.EnumDefinition{Name: value}
+			}
+		default:
+			return nil, fmt.Errorf("unknown enumerated type %v", e.Kind)
+		}
+
+		et[e.Name] = &goEnumeratedType{
+			Name:       e.Name,
+			CodeValues: values,
+			YANGValues: origValues,
+		}
+	}
+	return et, nil
+}
+
 type enumGeneratedCode struct {
 	enums  []string
 	valMap string
 }
 
-func writeGoEnumeratedTypes(enums map[string]*EnumeratedType, usedEnums map[string]bool) (*enumGeneratedCode, error) {
+func writeGoEnumeratedTypes(enums map[string]*goEnumeratedType, usedEnums map[string]bool) (*enumGeneratedCode, error) {
 	orderedEnumNames := []string{}
 	for _, e := range enums {
 		orderedEnumNames = append(orderedEnumNames, e.Name)
@@ -560,24 +627,38 @@ func writeGoEnumeratedTypes(enums map[string]*EnumeratedType, usedEnums map[stri
 	}, nil
 }
 
-type EnumeratedType struct {
+type goEnumeratedType struct {
 	Name       string
 	CodeValues map[int64]string
 	YANGValues map[int64]ygot.EnumDefinition
 }
 
 type Definitions struct {
+	// transformationOpts stores details of the schema transformations that were
+	// made when generating the IR, such that calling code can retrieve these
+	// elements without needing to be aware of the transformations.
 	transformationOpts TransformationOpts
-	Directories        map[string]*Directory
-	LeafTypes          map[string]map[string]*MappedType
-	Enums              map[string]*EnumeratedType
-	ModelData          []*gpb.ModelData
-	MappedPaths        map[string][][]string
-	ParsedModules      []*yang.Entry
+
+	// Directories is the set of containers (structs, messages) that should be
+	// generated from the generated code. The map is keyed by the path to the
+	// directory.
+	Directories map[string]*Directory
+	// LeafTypes stores the type that each leaf has been mapped to in the generated
+	// code. Directory entries are stored in the map for completeness, but are
+	// represented as a nil mapped type.
+	LeafTypes map[string]map[string]*MappedType
+	// Enums is the set of enumerated entries that are extracted from the generated
+	// code. The key of the map is the global name of the enumeration.
+	Enums map[string]*EnumeratedYANGType
+
+	// ModelData stores the metadata extracted from the input YANG modules.
+	ModelData     []*gpb.ModelData
+	MappedPaths   map[string][][]string
+	parsedModules []*yang.Entry
 }
 
 func (d *Definitions) SchemaTree() ([]byte, error) {
-	rawSchema, err := buildJSONTree(d.ParsedModules, d.Directories, d.RootEntry(), d.transformationOpts.CompressBehaviour.CompressEnabled())
+	rawSchema, err := buildJSONTree(d.parsedModules, d.Directories, d.RootEntry(), d.transformationOpts.CompressBehaviour.CompressEnabled())
 	if err != nil {
 		return nil, err
 	}
@@ -627,10 +708,25 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 }
 
 type LangMapper interface {
+	// DirectoryName maps an input yang.Entry to the name that should be used in the
+	// intermediate representation (IR).
 	DirectoryName(*yang.Entry, genutil.CompressBehaviour) (string, error)
+	// KeyLeafType maps an input yang.Entry which must represent a leaf to the
+	// type that should be used when the leaf is used in the context of a
+	// list key within the output IR.
 	KeyLeafType(*yang.Entry, genutil.CompressBehaviour) (*MappedType, error)
+	// LeafType maps an input yang.Entry which must represent a leaf to the
+	// type that should be used when the leaf is used in the context of a
+	// field within a directory within the output IR.
 	LeafType(*yang.Entry, genutil.CompressBehaviour) (*MappedType, error)
+
+	// SetEnumSet is used to supply a set of enumerated values to the
+	// mapper such that leaves that have enumerated types can be looked up.
 	SetEnumSet(*enumSet)
+
+	// SetSchemaTree is used to supply a copy of the YANG schema tree to
+	// the mapped such that leaves of type leafref can be resolved to
+	// their target leaves.
 	SetSchemaTree(*schemaTree)
 }
 
@@ -712,16 +808,39 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 		}
 	}
 
-	enumDefinitionMap := make(map[string]*EnumeratedType, len(genEnums))
-	// Populate map of enumerated types to return.
+	enumDefinitionMap := make(map[string]*EnumeratedYANGType, len(genEnums))
 	for _, enum := range genEnums {
-		// TODO(robjs): refactor this code to allow a generic function to be supplied
-		// here.
-		e, err := enumDefinition(enum, safeGoEnumeratedValueName)
-		if err != nil {
-			errs = append(errs, err)
+		et := &EnumeratedYANGType{
+			Name:     enum.name,
+			TypeName: enum.entry.Type.Name,
 		}
-		enumDefinitionMap[e.Name] = e
+		switch {
+		case util.IsIdentityrefLeaf(enum.entry):
+			et.Kind = IdentityType
+			et.identityBase = enum.entry.Type.IdentityBase
+		case util.IsSimpleEnumerationType(enum.entry.Type):
+			et.Kind = SimpleEnumerationType
+			et.enumType = enum.entry.Type.Enum
+		case enum.entry.Type.Kind == yang.Yunion:
+			et.Kind = UnionEnumerationType
+		case util.IsEnumerationLeaf(enum.entry):
+			et.Kind = DerivedEnumerationType
+			et.enumType = enum.entry.Type.Enum
+		case len(enum.entry.Type.Type) != 0:
+			errs = append(errs, fmt.Errorf("unimplemented: support for multiple enumerations within a union for %v", enum.name))
+		default:
+			errs = append(errs, fmt.Errorf("unknown type of enumerated value for %s, got: %v, type: %v", enum.name, enum, enum.entry.Type))
+		}
+
+		if a, ok := enum.entry.Annotation["valuePrefix"]; ok {
+			s, ok := a.([]string)
+			if !ok {
+				return nil, []error{fmt.Errorf("invalid annotation for valuePrefix of type %T, %v", a, a)}
+			}
+			et.ValuePrefix = s
+		}
+
+		enumDefinitionMap[enum.name] = et
 	}
 
 	if errs != nil {
@@ -730,67 +849,50 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 
 	return &Definitions{
 		transformationOpts: dcg.TransformationOptions,
-		Directories:        directoryMap,
-		LeafTypes:          leafTypeMap,
-		Enums:              enumDefinitionMap,
-		ModelData:          mdef.modelData,
-		MappedPaths:        nodeYANGPath,
-		ParsedModules:      mdef.modules,
+		parsedModules:      mdef.modules,
+
+		Directories: directoryMap,
+		LeafTypes:   leafTypeMap,
+		Enums:       enumDefinitionMap,
+		ModelData:   mdef.modelData,
+		MappedPaths: nodeYANGPath,
 	}, nil
 }
 
-func enumDefinition(enum *yangEnum, safeNameFn func(string) string) (*EnumeratedType, error) {
-	// initialised to be UNSET, such that it is possible to determine that the enumerated value
-	// was not modified.
-	values := map[int64]string{
-		0: "UNSET",
-	}
+type EnumeratedYANGType struct {
+	// Name is the name of the generated enumeration.
+	Name string
+	// Kind indicates whether the type is an enumeration, or an identityref.
+	Kind EnumeratedValueType
+	// ValuePrefix stores any prefix that has been annotated by the IR generation
+	// that specifies what prefix should be appended to value names within the type.
+	ValuePrefix []string
+	// TypeName stores the original YANG type name for the enumeration.
+	TypeName string
 
-	// origValues stores the original set of value names, these are not maintained to be
-	// Go-safe, and are rather used to map back to the original schema values if required.
-	// 0 is not populated within this map, such that the values can be used to check whether
-	// there was a valid entry in the original schema. The value is stored as a ygot
-	// EnumDefinition, which stores the name, and in the case of identity values, the
-	// module within which the identity was defined.
-	origValues := map[int64]ygot.EnumDefinition{}
-
-	switch {
-	case enum.entry.Type.IdentityBase != nil:
-		// The inputEnum corresponds to an identityref - hence the values are defined
-		// based on the values that the identity has. Since there is no explicit ordering
-		// in an identity, then we go through and put the values in alphabetical order in
-		// order to avoid reordering during code generation of the same entity.
-		valNames := []string{}
-		valLookup := map[string]*yang.Identity{}
-		for _, v := range enum.entry.Type.IdentityBase.Values {
-			valNames = append(valNames, v.Name)
-			valLookup[v.Name] = v
-		}
-		sort.Strings(valNames)
-
-		for i, v := range valNames {
-			values[int64(i)+1] = safeNameFn(v)
-			origValues[int64(i)+1] = ygot.EnumDefinition{
-				Name:           v,
-				DefiningModule: genutil.ParentModuleName(valLookup[v]),
-			}
-		}
-	default:
-		// The remaining enumerated types are all represented as an Enum type within the
-		// Goyang entry construct. The values are accessed in a map keyed by an int64
-		// and with a value of the name of the enumerated value - retrieved via ValueMap().
-		for i, value := range enum.entry.Type.Enum.ValueMap() {
-			values[i+1] = safeNameFn(value)
-			origValues[i+1] = ygot.EnumDefinition{Name: value}
-		}
-	}
-
-	return &EnumeratedType{
-		Name:       enum.name,
-		CodeValues: values,
-		YANGValues: origValues,
-	}, nil
+	// identityBase is populated if the enumerated type was an Identity.
+	identityBase *yang.Identity
+	// enumType is populated if the enumerated type was an enumeration.
+	enumType *yang.EnumType
 }
+
+func (e *EnumeratedYANGType) Identity() *yang.Identity {
+	return e.identityBase
+}
+
+func (e *EnumeratedYANGType) Enum() *yang.EnumType {
+	return e.enumType
+}
+
+type EnumeratedValueType int64
+
+const (
+	_ EnumeratedValueType = iota
+	SimpleEnumerationType
+	DerivedEnumerationType
+	UnionEnumerationType
+	IdentityType
+)
 
 // GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
 // The YANG schemas for which protobufs are to be created is supplied as the

@@ -21,7 +21,6 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -991,18 +990,11 @@ func TestGetDefinitions(t *testing.T) {
 					"a-leaf": {NativeType: "string", ZeroValue: `""`},
 				},
 			},
-			Enums: map[string]*EnumeratedType{
+			Enums: map[string]*EnumeratedYANGType{
 				"Child_Three": {
-					Name: "Child_Three",
-					CodeValues: map[int64]string{
-						0: "UNSET",
-						1: "ONE",
-						2: "TWO",
-					},
-					YANGValues: map[int64]ygot.EnumDefinition{
-						1: {Name: "ONE"},
-						2: {Name: "TWO"},
-					},
+					Name:     "Child_Three",
+					Kind:     SimpleEnumerationType,
+					TypeName: "enumeration",
 				},
 			},
 			ModelData: []*gpb.ModelData{
@@ -1134,18 +1126,11 @@ func TestGetDefinitions(t *testing.T) {
 					"a-leaf": {NativeType: "string", ZeroValue: `""`},
 				},
 			},
-			Enums: map[string]*EnumeratedType{
+			Enums: map[string]*EnumeratedYANGType{
 				"OpenconfigSimple_Parent_Child_Config_Three": {
-					Name: "OpenconfigSimple_Parent_Child_Config_Three",
-					CodeValues: map[int64]string{
-						0: "UNSET",
-						1: "ONE",
-						2: "TWO",
-					},
-					YANGValues: map[int64]ygot.EnumDefinition{
-						1: {Name: "ONE"},
-						2: {Name: "TWO"},
-					},
+					Name:     "OpenconfigSimple_Parent_Child_Config_Three",
+					Kind:     SimpleEnumerationType,
+					TypeName: "enumeration",
 				},
 			},
 			ModelData: []*gpb.ModelData{
@@ -1254,11 +1239,11 @@ func TestGetDefinitions(t *testing.T) {
 					"a-leaf": {NativeType: "string", ZeroValue: `""`},
 				},
 			},
-			Enums: map[string]*EnumeratedType{
+			Enums: map[string]*EnumeratedYANGType{
 				"Child_Three": {
-					Name:       "Child_Three",
-					CodeValues: map[int64]string{0: "UNSET", 1: "ONE", 2: "TWO"},
-					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "ONE"}, 2: {Name: "TWO"}},
+					Name:     "Child_Three",
+					Kind:     SimpleEnumerationType,
+					TypeName: "enumeration",
 				},
 			},
 			ModelData: []*gpb.ModelData{
@@ -1382,29 +1367,28 @@ func TestGetDefinitions(t *testing.T) {
 					},
 				},
 			},
-			Enums: map[string]*EnumeratedType{
+			Enums: map[string]*EnumeratedYANGType{
 				"AList_Value": {
-					Name:       "AList_Value",
-					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
-					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+					Name:        "AList_Value",
+					Kind:        DerivedEnumerationType,
+					TypeName:    "td",
+					ValuePrefix: []string{"enum-module", "a-lists", "a-list", "state", "value"},
 				},
 				"BList_Value": {
-					Name:       "BList_Value",
-					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
-					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+					Name:        "BList_Value",
+					Kind:        DerivedEnumerationType,
+					TypeName:    "td",
+					ValuePrefix: []string{"enum-module", "b-lists", "b-list", "state", "value"},
 				},
 				"EnumModule_Cl": {
-					Name:       "EnumModule_Cl",
-					CodeValues: map[int64]string{0: "UNSET", 1: "X"},
-					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "X"}},
+					Name:     "EnumModule_Cl",
+					Kind:     SimpleEnumerationType,
+					TypeName: "enumeration",
 				},
 				"EnumTypes_ID": {
-					Name:       "EnumTypes_ID",
-					CodeValues: map[int64]string{0: "UNSET", 1: "FORTY_TWO", 2: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH"},
-					YANGValues: map[int64]ygot.EnumDefinition{
-						1: {Name: "FORTY_TWO", DefiningModule: "enum-module"},
-						2: {Name: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH", DefiningModule: "enum-module"},
-					},
+					Name:     "EnumTypes_ID",
+					Kind:     IdentityType,
+					TypeName: "identityref",
 				},
 			},
 			ModelData: []*gpb.ModelData{
@@ -1497,29 +1481,28 @@ func TestGetDefinitions(t *testing.T) {
 				"/enum-module/a-lists/a-list": nil,
 				"/enum-module/b-lists/b-list": nil,
 			},
-			Enums: map[string]*EnumeratedType{
+			Enums: map[string]*EnumeratedYANGType{
 				"AList_Value": {
-					Name:       "AList_Value",
-					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
-					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+					Name:        "AList_Value",
+					Kind:        DerivedEnumerationType,
+					TypeName:    "td",
+					ValuePrefix: []string{"enum-module", "a-lists", "a-list", "state", "value"},
 				},
 				"BList_Value": {
-					Name:       "BList_Value",
-					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
-					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+					Name:        "BList_Value",
+					Kind:        DerivedEnumerationType,
+					TypeName:    "td",
+					ValuePrefix: []string{"enum-module", "b-lists", "b-list", "state", "value"},
 				},
 				"EnumModule_Cl": {
-					Name:       "EnumModule_Cl",
-					CodeValues: map[int64]string{0: "UNSET", 1: "X"},
-					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "X"}},
+					Name:     "EnumModule_Cl",
+					Kind:     SimpleEnumerationType,
+					TypeName: "enumeration",
 				},
 				"EnumTypes_ID": {
-					Name:       "EnumTypes_ID",
-					CodeValues: map[int64]string{0: "UNSET", 1: "FORTY_TWO", 2: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH"},
-					YANGValues: map[int64]ygot.EnumDefinition{
-						1: {Name: "FORTY_TWO", DefiningModule: "enum-module"},
-						2: {Name: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH", DefiningModule: "enum-module"},
-					},
+					Name:     "EnumTypes_ID",
+					Kind:     IdentityType,
+					TypeName: "identityref",
 				},
 			},
 			ModelData: []*gnmi.ModelData{
@@ -1621,11 +1604,11 @@ func TestGetDefinitions(t *testing.T) {
 					"a-leaf": {NativeType: "string", ZeroValue: `""`},
 				},
 			},
-			Enums: map[string]*EnumeratedType{
+			Enums: map[string]*EnumeratedYANGType{
 				"Child_Three": {
-					Name:       "Child_Three",
-					CodeValues: map[int64]string{0: "UNSET", 1: "ONE", 2: "TWO"},
-					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "ONE"}, 2: {Name: "TWO"}},
+					Name:     "Child_Three",
+					Kind:     SimpleEnumerationType,
+					TypeName: "enumeration",
 				},
 			},
 			ModelData: []*gnmi.ModelData{
@@ -1755,29 +1738,28 @@ func TestGetDefinitions(t *testing.T) {
 					},
 				},
 			},
-			Enums: map[string]*EnumeratedType{
+			Enums: map[string]*EnumeratedYANGType{
 				"AList_Value": {
-					Name:       "AList_Value",
-					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
-					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+					Name:        "AList_Value",
+					Kind:        DerivedEnumerationType,
+					TypeName:    "td",
+					ValuePrefix: []string{"enum-module", "a-lists", "a-list", "state", "value"},
 				},
 				"BList_Value": {
-					Name:       "BList_Value",
-					CodeValues: map[int64]string{0: "UNSET", 1: "A", 2: "B", 3: "C"},
-					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "A"}, 2: {Name: "B"}, 3: {Name: "C"}},
+					Name:        "BList_Value",
+					Kind:        DerivedEnumerationType,
+					TypeName:    "td",
+					ValuePrefix: []string{"enum-module", "b-lists", "b-list", "state", "value"},
 				},
 				"EnumModule_Cl": {
-					Name:       "EnumModule_Cl",
-					CodeValues: map[int64]string{0: "UNSET", 1: "X"},
-					YANGValues: map[int64]ygot.EnumDefinition{1: {Name: "X"}},
+					Name:     "EnumModule_Cl",
+					Kind:     SimpleEnumerationType,
+					TypeName: "enumeration",
 				},
 				"EnumTypes_ID": {
-					Name:       "EnumTypes_ID",
-					CodeValues: map[int64]string{0: "UNSET", 1: "FORTY_TWO", 2: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH"},
-					YANGValues: map[int64]ygot.EnumDefinition{
-						1: {Name: "FORTY_TWO", DefiningModule: "enum-module"},
-						2: {Name: "SO_LONG_AND_THANKS_FOR_ALL_THE_FISH", DefiningModule: "enum-module"},
-					},
+					Name:     "EnumTypes_ID",
+					Kind:     IdentityType,
+					TypeName: "identityref",
 				},
 			},
 			ModelData: []*gnmi.ModelData{
@@ -1858,6 +1840,7 @@ func TestGetDefinitions(t *testing.T) {
 				cmpopts.EquateEmpty(),
 				cmpopts.SortSlices(func(a, b *gpb.ModelData) bool { return a.Name < b.Name }),
 				cmpopts.IgnoreUnexported(Definitions{}),
+				cmpopts.IgnoreUnexported(EnumeratedYANGType{}),
 				protocmp.Transform()); diff != "" {
 				t.Fatalf("did not get expected definitions, (-want,+got):%s", diff)
 			}
@@ -2008,7 +1991,7 @@ func TestFindRootEntries(t *testing.T) {
 	}
 }
 
-func TestEnumDefinition(t *testing.T) {
+/*func TestGoEnumDefinition(t *testing.T) {
 	// In order to create a mock enum within goyang, we must construct it using the
 	// relevant methods, since the field of the EnumType struct (toString) that we
 	// need to set is not publicly exported.
@@ -2037,7 +2020,7 @@ func TestEnumDefinition(t *testing.T) {
 		name         string
 		inEnum       *yangEnum
 		inSafeNameFn func(string) string
-		want         *EnumeratedType
+		want         *EnumeratedYANGType
 	}{{
 		name: "enum from identityref",
 		inEnum: &yangEnum{
@@ -2055,7 +2038,7 @@ func TestEnumDefinition(t *testing.T) {
 			},
 		},
 		inSafeNameFn: safeName,
-		want: &EnumeratedType{
+		want: &EnumeratedYANGType{
 			Name: "EnumeratedValue",
 			CodeValues: map[int64]string{
 				0: "UNSET",
@@ -2078,7 +2061,7 @@ func TestEnumDefinition(t *testing.T) {
 			},
 		},
 		inSafeNameFn: safeName,
-		want: &EnumeratedType{
+		want: &EnumeratedYANGType{
 			Name: "EnumeratedValueTwo",
 			CodeValues: map[int64]string{
 				0: "UNSET",
@@ -2099,7 +2082,7 @@ func TestEnumDefinition(t *testing.T) {
 			},
 		},
 		inSafeNameFn: safeName,
-		want: &EnumeratedType{
+		want: &EnumeratedYANGType{
 			Name: "BaseModule_Enumeration",
 			CodeValues: map[int64]string{
 				0: "UNSET",
@@ -2129,21 +2112,21 @@ func TestEnumDefinition(t *testing.T) {
 			}
 		})
 	}
-}
+}*/
 
-// TestWriteGoEnumeratedTypes validates the enumerated type code generation from a YANG
+// TestWriteGoEnumeratedYANGTypes validates the enumerated type code generation from a YANG
 // module.
-func TestWriteGoEnumeratedTypes(t *testing.T) {
+func TestWriteGoEnumeratedYANGTypes(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		inEnums     map[string]*EnumeratedType
+		inEnums     map[string]*goEnumeratedType
 		inUsedEnums map[string]bool
 		want        *enumGeneratedCode
 	}{{
 		name: "single enum",
-		inEnums: map[string]*EnumeratedType{
-			"EnumeratedValue": &EnumeratedType{
+		inEnums: map[string]*goEnumeratedType{
+			"EnumeratedValue": &goEnumeratedType{
 				Name: "EnumeratedValue",
 				CodeValues: map[int64]string{
 					0: "UNSET",
@@ -2210,8 +2193,8 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 		},
 	}, {
 		name: "single enum - skipped",
-		inEnums: map[string]*EnumeratedType{
-			"EnumeratedValue": &EnumeratedType{
+		inEnums: map[string]*goEnumeratedType{
+			"EnumeratedValue": &goEnumeratedType{
 				Name: "EnumeratedValue",
 				CodeValues: map[int64]string{
 					0: "UNSET",
@@ -2230,7 +2213,7 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 		want:        &enumGeneratedCode{},
 	}, {
 		name: "multiple enumerations",
-		inEnums: map[string]*EnumeratedType{
+		inEnums: map[string]*goEnumeratedType{
 			"EnumeratedValueTwo": {
 				Name: "EnumeratedValueTwo",
 				CodeValues: map[int64]string{
