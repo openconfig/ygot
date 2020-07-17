@@ -208,7 +208,7 @@ func TestPathsFromProtoInternal(t *testing.T) {
 				},
 			}},
 		},
-		wantErrSubstring: "invalid list, maps to >1 schema path",
+		wantErrSubstring: "invalid list, does not map to 1 schema path",
 	}, {
 		desc: "repeated field that is not a list - unsupported",
 		inMsg: &epb.InvalidMessage{
@@ -231,7 +231,7 @@ func TestPathsFromProtoInternal(t *testing.T) {
 				BadType: []string{"one", "two"},
 			}},
 		},
-		wantErrSubstring: "invalid field in list",
+		wantErrSubstring: "list field is of unexpected map or list type",
 	}, {
 		desc: "invalid annotated path",
 		inMsg: &epb.InvalidMessage{
@@ -246,24 +246,38 @@ func TestPathsFromProtoInternal(t *testing.T) {
 			}},
 		},
 		wantErrSubstring: "received list key with leaf names that do not match",
+	}, {
+		desc: "multiple paths for a container",
+		inMsg: &epb.InvalidMessage{
+			MultipleAnnotationsForContainer: &epb.InvalidMessage{},
+		},
+		wantErrSubstring: "invalid container, maps to >1 schema path",
+	}, {
+		desc: "invalid path in list key",
+		inMsg: &epb.InvalidMessage{
+			Bkpm: []*epb.BadKeyPathMessage{{
+				Key: "hello world",
+			}},
+		},
+		wantErrSubstring: "invalid path",
+	}, {
+		desc: "bad annotation in list key",
+		inMsg: &epb.InvalidMessage{
+			Ikpk: []*epb.InvalidKeyPathKey{{
+				Key: "hello world",
+			}},
+		},
+		wantErrSubstring: "error parsing path /one[two]",
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got := map[*gpb.Path]interface{}{}
-			err := pathsFromProtoInternal(tt.inMsg, got, tt.inBasePath)
+			got, err := pathsFromProto(tt.inMsg)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
 
-			// Ensure that we don't need to write out an empty map in each of the
-			// cases above. This is just to make the test definition table cleaner
-			// whilst allowing us to manipulate basePath in the tests.
-			if len(got) == 0 {
-				got = nil
-			}
-
-			if diff := cmp.Diff(got, tt.wantPaths, protocmp.Transform(), cmpopts.SortMaps(testutil.PathLess)); diff != "" {
+			if diff := cmp.Diff(got, tt.wantPaths, protocmp.Transform(), cmpopts.EquateEmpty(), cmpopts.SortMaps(testutil.PathLess)); diff != "" {
 				t.Fatalf("did not get expected results, diff(-got,+want):\n%s", diff)
 			}
 		})

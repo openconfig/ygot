@@ -26,7 +26,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -68,7 +67,7 @@ func pathsFromProtoInternal(p proto.Message, vals map[*gpb.Path]interface{}, bas
 
 // parseField handles a single field of a protobuf message, as described by the supplied descriptor, and
 // with the specified value. It appends entries to the supplied vals map, keyed by the data tree path that
-// the fields map to, and with the parsed value from the supplied protobuf message. If the field supplied is a
+// the fields map to, and with the parsed value from the supplied protobuf message.
 func parseField(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[*gpb.Path]interface{}, basePath *gpb.Path) error {
 	if fd.IsMap() {
 		return errors.New("map fields are not supported in ygen-generated protobufs")
@@ -78,14 +77,13 @@ func parseField(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[
 	if err != nil {
 		return err
 	}
-	mapPath := annotatedPath
 
 	// Set to scalar value by default -- we extract the value from the
 	// wrapper message, or child messages if required.
 	val := v.Interface()
 
 	if fd.IsList() {
-		return parseList(fd, v, vals, basePath, mapPath)
+		return parseList(fd, v, vals, basePath, annotatedPath)
 	}
 
 	// Handle messages that are field values
@@ -104,19 +102,17 @@ func parseField(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[
 		case *wpb.UintValue:
 			val = t.GetValue()
 		case proto.Message:
+			if len(annotatedPath) != 1 {
+				return fmt.Errorf("invalid container, maps to >1 schema path, field: %s", fd.FullName())
+			}
 			return pathsFromProtoInternal(t, vals, basePath)
 		}
 	}
 
 	// Handle cases where there is >1 path specified for a field based on
 	// path compression.
-	for _, path := range mapPath {
-		tp := path
-		if basePath != nil {
-			tp = resolvedPath(basePath, path)
-		}
-
-		vals[tp] = val
+	for _, path := range annotatedPath {
+		vals[resolvedPath(basePath, path)] = val
 	}
 
 	return nil
@@ -144,7 +140,7 @@ func (m unpopRange) Range(f func(protoreflect.FieldDescriptor, protoreflect.Valu
 
 		v := m.Get(fd)
 		isProto2Scalar := fd.Syntax() == protoreflect.Proto2 && fd.Default().IsValid()
-		isSingularMessage := fd.Cardinality() != protoreflect.Repeated && fd.Message() != nil
+		isSingularMessage := fd.Cardinality() != protoreflect.Repeated && fd.Kind() == protoreflect.MessageKind
 		if isProto2Scalar || isSingularMessage {
 			v = protoreflect.Value{} // use invalid value to emit null
 		}
@@ -172,22 +168,20 @@ func (m unpopRange) Range(f func(protoreflect.FieldDescriptor, protoreflect.Valu
 func parseList(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[*gpb.Path]interface{}, basePath *gpb.Path, mapPath []*gpb.Path) error {
 	// Lists cannot map to >1 different schema path in the compressed form of generated
 	// protobufs.
-	if len(mapPath) > 1 {
-		return fmt.Errorf("invalid list, maps to >1 schema path, field: %s", fd.FullName())
+	if len(mapPath) != 1 {
+		return fmt.Errorf("invalid list, does not map to 1 schema path, field: %s", fd.FullName())
 	}
 	listPath := mapPath[0]
 
 	// TODO(robjs): This handles the case where we have a list - but not a leaf-list.
 	//              Add implementation to handle leaf lists.
 	l := v.List()
+	if fd.Kind() != protoreflect.MessageKind {
+		return fmt.Errorf("invalid list, value is not a proto message, %s - is %T", fd.FullName(), l.NewElement())
+	}
 	var listVal proto.Message
 	for i := 0; i < l.Len(); i++ {
-		lv := l.Get(i)
-
-		if fd.Kind() != protoreflect.MessageKind {
-			return fmt.Errorf("invalid list, value is not a proto message, %s - is %T", fd.FullName(), lv.Interface())
-		}
-		listMsg := lv.Message().Interface().(proto.Message)
+		listMsg := l.Get(i).Message().Interface().(proto.Message)
 
 		var listParseErr error
 		listKeys := map[string]string{}
@@ -225,13 +219,9 @@ func parseList(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[*
 			return fmt.Errorf("could not parse a field within the list %s , %v", fd.FullName(), listParseErr)
 		}
 
-		// Handle recursing down the tree for the list that we just extracted.
-		p := proto.Clone(listPath).(*gpb.Path)
-		if basePath != nil {
-			// This is the first time that we have found a path that requires a
-			// data tree path, not a schema tree path.
-			p = resolvedPath(basePath, listPath)
-		}
+		// This is the first time that we have found a path that requires a
+		// data tree path, not a schema tree path.
+		p := resolvedPath(basePath, listPath)
 
 		for kn, kv := range listKeys {
 			le := p.Elem[len(p.Elem)-1]
@@ -277,13 +267,13 @@ type parsedListField struct {
 // specified. It returns a parsedListField describing the individual field supplied.
 func parseListField(fd protoreflect.FieldDescriptor, v protoreflect.Value, basePath *gpb.Path) (*parsedListField, error) {
 	if fd.IsMap() || fd.IsList() {
-		return nil, fmt.Errorf("invalid field in list, %s", fd.FullName())
+		return nil, fmt.Errorf("list field is of unexpected map or list type: %q", fd.FullName())
 	}
 
 	if fd.Kind() == protoreflect.MessageKind {
 		if t, ok := v.Message().Interface().(proto.Message); ok {
-			// The only case of having proto.Message in a list key is when it is the
-			// value itself, therefore return this value.
+			// The only case of having proto.Message in a list key is when the field
+			// represents the list's value portion, therefore return this value.
 			return &parsedListField{member: t}, nil
 		}
 	}
@@ -320,9 +310,7 @@ func parseListField(fd protoreflect.FieldDescriptor, v protoreflect.Value, baseP
 	}
 
 	for _, path := range mappedPaths {
-		childElems := util.TrimGNMIPathElemPrefix(path, removePathKeys(basePath))
-		newPath := &gpb.Path{Elem: append(basePath.Elem, childElems.Elem...)}
-		p.mappedValues[newPath] = v.Interface()
+		p.mappedValues[resolvedPath(basePath, path)] = v.Interface()
 	}
 	return p, nil
 }
@@ -350,29 +338,20 @@ func annotatedSchemaPath(fd protoreflect.FieldDescriptor) ([]*gpb.Path, error) {
 // fieldName returns the name last element of the path supplied - corresponding
 // to the field that is being described by the specified path.
 func fieldName(path *gpb.Path) (string, error) {
-	if len(path.Elem) == 0 || path == nil {
+	if len(path.Elem) == 0 || path == nil || path.Elem[len(path.Elem)-1].Name == "" {
 		return "", fmt.Errorf("invalid path %s", path)
 	}
 	return path.Elem[len(path.Elem)-1].Name, nil
 }
 
 // resolvedPath fully resolves a path of an element with the annotation
-// supplied in the annotedPath, from the supplied dataTreePath - which
+// supplied in the annotatedPath, from the supplied basePath - which
 // is a resolved data tree path (which may include list keys).
-func resolvedPath(dataTreePath, annotatedPath *gpb.Path) *gpb.Path {
-	np := proto.Clone(dataTreePath).(*gpb.Path)
-	np.Elem = append(np.Elem, annotatedPath.Elem[len(dataTreePath.Elem):]...)
-	return np
-}
-
-// removePathKeys removes all the keys from elements in the supplied path,
-// returning the schema path for a particular input gNMI path.
-func removePathKeys(path *gpb.Path) *gpb.Path {
-	np := &gpb.Path{
-		Origin: path.Origin,
+func resolvedPath(basePath, annotatedPath *gpb.Path) *gpb.Path {
+	if basePath == nil {
+		return annotatedPath
 	}
-	for _, e := range path.Elem {
-		np.Elem = append(np.Elem, &gpb.PathElem{Name: e.Name})
-	}
+	np := proto.Clone(basePath).(*gpb.Path)
+	np.Elem = append(np.Elem, annotatedPath.Elem[len(basePath.Elem):]...)
 	return np
 }

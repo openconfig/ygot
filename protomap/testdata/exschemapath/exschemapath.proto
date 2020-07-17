@@ -78,6 +78,9 @@ message InvalidMessage {
     repeated BadMessageMember bm = 6 [(yext.schemapath) = "/five"];
     ywrapper.StringValue invalid_annotated_path = 7 [(yext.schemapath) = "/one[two]"];
     repeated BadMessageKeyTwo bk_two = 8 [(yext.schemapath) = "/six"];
+    InvalidMessage multiple_annotations_for_container = 9 [(yext.schemapath) = "/six|/seven"];
+    repeated BadKeyPathMessage bkpm = 10 [(yext.schemapath) = "/eight"];
+    repeated InvalidKeyPathKey ikpk = 11 [(yext.schemapath) = "/nine"];
 }
 
 message BadMessageKeyTwo {
@@ -91,4 +94,12 @@ message BadMessageKey {
 message BadMessageMember {
     string key = 1 [(yext.schemapath) = "/ok-key"];
     repeated string bad_type = 2 [(yext.schemapath) = "/bad-key"];
+}
+
+message BadKeyPathMessage {
+    string key = 1 [(yext.schemapath) = "/"];
+}
+
+message InvalidKeyPathKey {
+    string key = 1 [(yext.schemapath) = "/one[two]"];
 }
