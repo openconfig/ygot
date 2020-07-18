@@ -359,8 +359,10 @@ func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
 		skipValidation = opts.SkipValidation
 	}
 
-	if err := s.Validate(vopts...); !skipValidation && err != nil {
-		return "", fmt.Errorf("validation err: %v", err)
+	if !skipValidation {
+		if err := s.Validate(vopts...); err != nil {
+			return "", fmt.Errorf("validation err: %v", err)
+		}
 	}
 
 	v, err := makeJSON(s, opts)
