@@ -346,9 +346,10 @@ func addToEntryMap(to, from map[string]*yang.Entry) map[string]*yang.Entry {
 	return to
 }
 
-// EnumeratedUnionTypes recursively searches the set of yang.YangTypes supplied to
-// extract the enumerated types that are within a union.
-// It returns the enumerated types in tree order.
+// EnumeratedUnionTypes recursively searches the set of yang.YangTypes supplied
+// to extract the enumerated types that are within a union. The set of input
+// yang.YangTypes is expected to be the slice of types of the union type.
+// It returns the enumerated types in tree order of appearance.
 func EnumeratedUnionTypes(types []*yang.YangType) []*yang.YangType {
 	var eTypes []*yang.YangType
 	for _, t := range types {
@@ -362,21 +363,32 @@ func EnumeratedUnionTypes(types []*yang.YangType) []*yang.YangType {
 	return eTypes
 }
 
-// EnumeratedUnionSubsumingTypes returns the subsuming types of the enumerated
-// types of the input union type in tree order of enumerations. This matches
-// the order returned by EnumeratedUnionTypes. The input subsumingType is the
-// union type containing the input union subtypes.
-// The "subsuming type" of each `YangType` means the closest/innermost type
-// that's not a union subtype:
-// case 1: for any type not within a union, the subsuming type is itself.
-// case 2: for any type within a union, the subsuming type is the first
-// containing union type that's a typedef, or highest union type definition,
-// whichever one is closest to the type.
-func EnumeratedUnionSubsumingTypes(subsumingType *yang.YangType) []*yang.YangType {
-	return enumeratedUnionSubsumingTypes(subsumingType.Type, subsumingType)
+// SubsumingTypesOfEnumeratedUnionTypes returns the subsuming types of the enumerated
+// subtypes of the input union type in tree order of appearance. This matches
+// the order returned by EnumeratedUnionTypes, so that each slice entry
+// corresponds in index to the slice entry of EnumeratedUnionTypes's return value.
+//
+// The "subsuming type" of each union enumeration subtype *simply* refers to
+// the closest/innermost *named* type to which the subtype belongs.
+// "Named" can either mean a typedef name or a leaf name.
+//
+// Examples of the subsuming type of an enumeration within different YANG types
+// that are used directly by a YANG leaf's "type" statement:
+// - a typedef enumeration within any kind of union.
+//   - subsuming type is the enumeration itself, because the type is named.
+// - a non-typedef enumeration within a non-typedef union.
+//   - subsuming type is the union (i.e. type of the leaf, which is named).
+// - a non-typedef enumeration within a non-typedef union within a non-typedef union.
+//   - subsuming type is the outer union (i.e. type of the leaf, which is named).
+// - a non-typedef enumeration within a typedef union within a non-typedef union.
+//   - subsuming type is the (inner) typedef union.
+func SubsumingTypesOfEnumeratedUnionTypes(unionType *yang.YangType) []*yang.YangType {
+	return subsumingTypesOfEnumeratedUnionTypes(unionType.Type, unionType)
 }
 
-func enumeratedUnionSubsumingTypes(types []*yang.YangType, subsumingType *yang.YangType) []*yang.YangType {
+// subsumingTypesOfEnumeratedUnionTypes returns the subsuming types of the enumerated
+// subtypes of the input union type in tree order of appearance.
+func subsumingTypesOfEnumeratedUnionTypes(types []*yang.YangType, subsumingType *yang.YangType) []*yang.YangType {
 	var eTypes []*yang.YangType
 	for _, t := range types {
 		subsumingType := subsumingType
@@ -387,7 +399,7 @@ func enumeratedUnionSubsumingTypes(types []*yang.YangType, subsumingType *yang.Y
 		case IsEnumeratedType(t):
 			eTypes = append(eTypes, subsumingType)
 		case IsUnionType(t):
-			eTypes = append(eTypes, enumeratedUnionSubsumingTypes(t.Type, subsumingType)...)
+			eTypes = append(eTypes, subsumingTypesOfEnumeratedUnionTypes(t.Type, subsumingType)...)
 		}
 	}
 	return eTypes

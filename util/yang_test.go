@@ -966,11 +966,17 @@ func TestIsYgotAnnotation(t *testing.T) {
 }
 
 func TestEnumeratedUnionTypes(t *testing.T) {
+	// rootUnionTypeName is the name used to refer to the name of the union
+	// type containing the slice of input types to the functions.
+	rootUnionTypeName := "testUnionTypesRootTypeName"
 	tests := []struct {
-		desc            string
-		types           []*yang.YangType
-		want            []*yang.YangType
-		wantParentTypes []*yang.YangType
+		desc  string
+		types []*yang.YangType
+		want  []*yang.YangType
+		// wantSubsumingTypes refers to the list of closest/innermost
+		// *named* type for each corresponding enumeration subtype.
+		// named can either mean a typedef name or a leaf name.
+		wantSubsumingTypes []*yang.YangType
 	}{
 		{
 			desc: "single-level with no enumerated types",
@@ -981,8 +987,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 				Length: yang.YangRange{{
 					Min: yang.FromInt(10),
 					Max: yang.FromInt(20),
-				},
-				},
+				}},
 			}, {
 				Name: "int",
 				Kind: yang.Yint32,
@@ -998,8 +1003,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 				Length: yang.YangRange{{
 					Min: yang.FromInt(10),
 					Max: yang.FromInt(20),
-				},
-				},
+				}},
 			}, {
 				Name: "int",
 				Kind: yang.Yint32,
@@ -1017,8 +1021,8 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 				Name: "union-enum",
 				Kind: yang.Yenum,
 			}},
-			wantParentTypes: []*yang.YangType{{
-				Name: "parent-type",
+			wantSubsumingTypes: []*yang.YangType{{
+				Name: rootUnionTypeName,
 				Kind: yang.Yunion,
 			}, {
 				Name: "union-enum",
@@ -1039,8 +1043,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 				Length: yang.YangRange{{
 					Min: yang.FromInt(10),
 					Max: yang.FromInt(20),
-				},
-				},
+				}},
 			}, {
 				Name: "int",
 				Kind: yang.Yint32,
@@ -1057,8 +1060,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 					Length: yang.YangRange{{
 						Min: yang.FromInt(10),
 						Max: yang.FromInt(20),
-					},
-					},
+					}},
 				}, {
 					Name: "inner-int",
 					Kind: yang.Yint32,
@@ -1080,14 +1082,14 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 				Name: "enumeration",
 				Kind: yang.Yenum,
 			}},
-			wantParentTypes: []*yang.YangType{{
-				Name: "parent-type",
+			wantSubsumingTypes: []*yang.YangType{{
+				Name: rootUnionTypeName,
 				Kind: yang.Yunion,
 			}, {
 				Name: "inner-iref",
 				Kind: yang.Yidentityref,
 			}, {
-				Name: "parent-type",
+				Name: rootUnionTypeName,
 				Kind: yang.Yunion,
 			}},
 		},
@@ -1100,8 +1102,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 				Length: yang.YangRange{{
 					Min: yang.FromInt(10),
 					Max: yang.FromInt(20),
-				},
-				},
+				}},
 			}, {
 				Name: "int",
 				Kind: yang.Yint32,
@@ -1124,8 +1125,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 					Length: yang.YangRange{{
 						Min: yang.FromInt(10),
 						Max: yang.FromInt(20),
-					},
-					},
+					}},
 				}, {
 					Name: "inner-int",
 					Kind: yang.Yint32,
@@ -1148,8 +1148,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 						Length: yang.YangRange{{
 							Min: yang.FromInt(10),
 							Max: yang.FromInt(20),
-						},
-						},
+						}},
 					}, {
 						Name: "inner-inner-int",
 						Kind: yang.Yint32,
@@ -1174,8 +1173,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 					Length: yang.YangRange{{
 						Min: yang.FromInt(10),
 						Max: yang.FromInt(20),
-					},
-					},
+					}},
 				}, {
 					Name: "typedef-inner-int",
 					Kind: yang.Yint32,
@@ -1195,8 +1193,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 						Length: yang.YangRange{{
 							Min: yang.FromInt(10),
 							Max: yang.FromInt(20),
-						},
-						},
+						}},
 					}, {
 						Name: "nested-inner-int",
 						Kind: yang.Yint32,
@@ -1221,8 +1218,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 					Length: yang.YangRange{{
 						Min: yang.FromInt(10),
 						Max: yang.FromInt(20),
-					},
-					},
+					}},
 				}, {
 					Name: "typedef-inner-int2",
 					Kind: yang.Yint32,
@@ -1242,8 +1238,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 						Length: yang.YangRange{{
 							Min: yang.FromInt(10),
 							Max: yang.FromInt(20),
-						},
-						},
+						}},
 					}, {
 						Name: "nested-inner-int2",
 						Kind: yang.Yint32,
@@ -1317,11 +1312,11 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 				Name: "nested-union-enum2",
 				Kind: yang.Yenum,
 			}},
-			wantParentTypes: []*yang.YangType{{
+			wantSubsumingTypes: []*yang.YangType{{
 				Name: "iref",
 				Kind: yang.Yidentityref,
 			}, {
-				Name: "parent-type",
+				Name: rootUnionTypeName,
 				Kind: yang.Yunion,
 			}, {
 				Name: "union-enum",
@@ -1330,7 +1325,7 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 				Name: "inner-iref",
 				Kind: yang.Yidentityref,
 			}, {
-				Name: "parent-type",
+				Name: rootUnionTypeName,
 				Kind: yang.Yunion,
 			}, {
 				Name: "inner-union-enum",
@@ -1399,13 +1394,13 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run("parent union types:"+tt.desc, func(t *testing.T) {
-			if got, want := EnumeratedUnionSubsumingTypes(&yang.YangType{
-				Name: "parent-type",
+		t.Run("subsuming types:"+tt.desc, func(t *testing.T) {
+			if got, want := SubsumingTypesOfEnumeratedUnionTypes(&yang.YangType{
+				Name: rootUnionTypeName,
 				Kind: yang.Yunion,
 				Type: tt.types,
-			}), tt.wantParentTypes; !itemsEqual(got, want) {
-				t.Errorf("EnumeratedUnionSubsumingTypes got: %v want: %v", pretty.Sprint(got), pretty.Sprint(want))
+			}), tt.wantSubsumingTypes; !itemsEqual(got, want) {
+				t.Errorf("SubsumingTypesOfEnumeratedUnionTypes  got: %v want: %v", pretty.Sprint(got), pretty.Sprint(want))
 			}
 		})
 	}
