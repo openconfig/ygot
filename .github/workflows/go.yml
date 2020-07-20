@@ -92,9 +92,11 @@ jobs:
       - name: Run coverage
         run: |
           overalls -project ${GITHUB_WORKSPACE} -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ytypes/schema_tests,ypathgen/generator"
-          goveralls -coverprofile=overalls.coverprofile -service=github -repotoken=${{ secrets.COVERALLS_TOKEN }}
-        env:
-          COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
+
+      - name: Submit coverage
+        uses: shogo82148/actions-goveralls@v1
+        with:
+          path-to-profile: overalls.coverprofile
 
       - name: Go vet
         run: |
