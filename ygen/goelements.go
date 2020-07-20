@@ -138,6 +138,10 @@ func (s *goGenState) LeafType(e *yang.Entry, cb genutil.CompressBehaviour) (*Map
 	return s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, cb.CompressEnabled())
 }
 
+func (s *goGenState) LeafName(e *yang.Entry) (string, error) {
+	return genutil.EntryCamelCaseName(e), nil
+}
+
 // resolveTypeArgs is a structure used as an input argument to the yangTypeToGoType
 // function which allows extra context to be handed on. This provides the ability
 // to use not only the YangType but also the yang.Entry that the type was part of

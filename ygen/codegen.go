@@ -647,6 +647,8 @@ type Definitions struct {
 	// code. Directory entries are stored in the map for completeness, but are
 	// represented as a nil mapped type.
 	LeafTypes map[string]map[string]*MappedType
+
+	ParsedTree map[string]*ParsedTreeNode
 	// Enums is the set of enumerated entries that are extracted from the generated
 	// code. The key of the map is the global name of the enumeration.
 	Enums map[string]*EnumeratedYANGType
@@ -708,6 +710,9 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 }
 
 type LangMapper interface {
+	// LeafName maps an input yang.Entry to the name that should be used
+	// in the intermediate representation.
+	LeafName(e *yang.Entry) (string, error)
 	// DirectoryName maps an input yang.Entry to the name that should be used in the
 	// intermediate representation (IR).
 	DirectoryName(*yang.Entry, genutil.CompressBehaviour) (string, error)
@@ -730,7 +735,31 @@ type LangMapper interface {
 	SetSchemaTree(*schemaTree)
 }
 
-// TODO(robjs): Make langMapper an argument here
+type ParsedTreeNode struct {
+	Name       string
+	Fields     map[string]*NodeDetails
+	Path       []string
+	ListAttr   *YangListAttr
+	IsFakeRoot bool
+}
+
+type NodeDetails struct {
+	Name     string
+	Type     *MappedType
+	MapPaths [][]string
+
+	Default string
+}
+
+func dirToTreeNode(d *Directory) *ParsedTreeNode {
+	return &ParsedTreeNode{
+		Name:       d.Name,
+		Path:       d.Path,
+		ListAttr:   d.ListAttr,
+		IsFakeRoot: d.IsFakeRoot,
+	}
+}
+
 func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, langMapper LangMapper) (*Definitions, util.Errors) {
 	if dcg.EnumPrefix == "" {
 		dcg.EnumPrefix = goEnumPrefix
@@ -765,6 +794,12 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 		return nil, util.AppendErr(errs, err)
 	}
 
+	nodeMap := map[string]*ParsedTreeNode{}
+
+	// TODO(robjs): refactor this out.
+	// Populate map of leaf types for returning, and a combined map of paths
+	// that fields map to within the YANG schema.
+	leafTypeMap := make(map[string]map[string]*MappedType, len(directoryMap))
 	nodeYANGPath := make(map[string][][]string)
 	addMapPaths := func(parent *Directory, fieldName string) error {
 		// TODO(robjs): make the call here handle absolute paths.
@@ -775,13 +810,13 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 		nodeYANGPath[parent.Fields[fieldName].Path()] = np
 		return nil
 	}
-	// Populate map of leaf types for returning, and a combined map of paths
-	// that fields map to within the YANG schema.
-	leafTypeMap := make(map[string]map[string]*MappedType, len(directoryMap))
 
 	for _, directoryName := range orderedDirNames {
 		dir := dirNameMap[directoryName]
 		path := dir.Entry.Path()
+
+		nodeMap[path] = dirToTreeNode(dir)
+		nodeMap[path].Fields = make(map[string]*NodeDetails, len(dir.Fields))
 
 		leafTypeMap[path] = make(map[string]*MappedType, len(dir.Fields))
 		// Alphabetically order fields to produce deterministic output.
@@ -790,21 +825,37 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 
 			// Populate the paths that we are going to map this field to in the YANG schema
 			// to allow for path annotation.
+			np, err := findMapPaths(dir, fieldName, dcg.TransformationOptions.CompressBehaviour.CompressEnabled(), false)
+			if err != nil {
+				return nil, util.AppendErr(errs, fmt.Errorf("cannot find YANG paths to map %s field %s to, %v", dir.Entry.Path(), fieldName, err))
+			}
+
+			// TODO(robjs): refactor this out.
 			if err := addMapPaths(dir, fieldName); err != nil {
 				errs = append(errs, err)
 				continue
 			}
 
+			name, err := langMapper.LeafName(field)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("cannot generate name for leaf %s, %v", field.Path(), err))
+				continue
+			}
+
+			nd := &NodeDetails{Name: name, MapPaths: np, Default: field.Default}
 			if isLeaf := field.IsLeaf() || field.IsLeafList(); isLeaf {
 				mtype, err := langMapper.LeafType(field, dcg.TransformationOptions.CompressBehaviour)
 				if err != nil {
 					errs = util.AppendErr(errs, err)
 					continue
 				}
+				nd.Type = mtype
 				leafTypeMap[path][fieldName] = mtype
 			} else {
 				leafTypeMap[path][fieldName] = nil
+
 			}
+			nodeMap[path].Fields[fieldName] = nd
 		}
 	}
 
@@ -851,10 +902,13 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 		transformationOpts: dcg.TransformationOptions,
 		parsedModules:      mdef.modules,
 
-		Directories: directoryMap,
+		ParsedTree: nodeMap,
+		Enums:      enumDefinitionMap,
+		ModelData:  mdef.modelData,
+
+		// TODO(robjs): Remove these types.
 		LeafTypes:   leafTypeMap,
-		Enums:       enumDefinitionMap,
-		ModelData:   mdef.modelData,
+		Directories: directoryMap,
 		MappedPaths: nodeYANGPath,
 	}, nil
 }

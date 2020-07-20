@@ -85,6 +85,10 @@ func (s *protoGenState) LeafType(e *yang.Entry, cb genutil.CompressBehaviour) (*
 	return nil, fmt.Errorf("unsupported")
 }
 
+func (s *protoGenState) LeafName(e *yang.Entry) (string, error) {
+	return "", fmt.Errorf("unsupported")
+}
+
 // buildDirectoryDefinitions extracts the yang.Entry instances from a map of
 // entries that need struct definitions built for them. It resolves each
 // non-leaf yang.Entry to a Directory which contains the elements that are

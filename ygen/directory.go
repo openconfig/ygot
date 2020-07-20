@@ -86,20 +86,33 @@ func GetOrderedFieldNames(directory *Directory) []string {
 	return orderedFieldNames
 }
 
+func GetOrderedNodeFieldNames(directory *ParsedTreeNode) []string {
+	if directory == nil {
+		return nil
+	}
+
+	orderedFieldNames := make([]string, 0, len(directory.Fields))
+	for fieldName := range directory.Fields {
+		orderedFieldNames = append(orderedFieldNames, fieldName)
+	}
+	sort.Strings(orderedFieldNames)
+	return orderedFieldNames
+}
+
 // GoFieldNameMap returns a map containing the Go name for a field (key
 // is the field schema name). Camelcase and uniquification is done to ensure
 // compilation. Naming uniquification is done deterministically.
-func GoFieldNameMap(directory *Directory) map[string]string {
+func GoFieldNameMap(directory *ParsedTreeNode) map[string]string {
 	if directory == nil {
 		return nil
 	}
 	// Order by schema name; then, uniquify in order of schema name.
-	orderedFieldNames := GetOrderedFieldNames(directory)
+	orderedFieldNames := GetOrderedNodeFieldNames(directory)
 
 	uniqueGenFieldNames := map[string]bool{}
 	uniqueNameMap := make(map[string]string, len(directory.Fields))
 	for _, fieldName := range orderedFieldNames {
-		uniqueNameMap[fieldName] = genutil.MakeNameUnique(genutil.EntryCamelCaseName(directory.Fields[fieldName]), uniqueGenFieldNames)
+		uniqueNameMap[fieldName] = genutil.MakeNameUnique(directory.Fields[fieldName].Name, uniqueGenFieldNames)
 	}
 
 	return uniqueNameMap

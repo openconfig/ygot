@@ -1834,7 +1834,8 @@ func TestGetDefinitions(t *testing.T) {
 
 			if diff := cmp.Diff(tt.wantDefinitions, got,
 				cmpopts.IgnoreTypes(&yang.Entry{}),
-				cmpopts.IgnoreFields(Definitions{}, "ParsedModules"), // Ignore copied yang.Entries for modules.
+				cmpopts.IgnoreFields(Definitions{}, "ParsedTree"),
+				//cmpopts.IgnoreFields(Definitions{}, "ParsedModules"), // Ignore copied yang.Entries for modules.
 				// TODO(robjs): make KeyElems field private to ygen going forward, since it should not be referenced anywhere else.
 				cmpopts.IgnoreFields(YangListAttr{}, "KeyElems"),
 				cmpopts.EquateEmpty(),

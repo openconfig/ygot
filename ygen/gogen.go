@@ -1157,11 +1157,11 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 
 // IsScalarField determines which fields should be converted to pointers when
 // outputting structs; this is done to allow checks against nil.
-func IsScalarField(field *yang.Entry, t *MappedType) bool {
+func IsScalarField(_ *yang.Entry, t *MappedType) bool {
 	switch {
 	// A non-leaf has a generated type which are always stored by pointers.
-	case field.Kind != yang.LeafEntry:
-		return false
+	//case field.Kind != yang.LeafEntry:
+	//	return false
 	// A union shouldn't be a pointer since its field type is an interface;
 	case len(t.UnionTypes) >= 2:
 		return false
@@ -1169,7 +1169,7 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 	case t.IsEnumeratedValue:
 		return false
 	// an unmapped type (interface{}), byte slice, or a leaflist can also use nil already, so they should also not be pointers.
-	case t.NativeType == ygot.BinaryTypeName, t.NativeType == ygot.EmptyTypeName, t.NativeType == "interface{}", field.ListAttr != nil:
+	case t.NativeType == ygot.BinaryTypeName, t.NativeType == ygot.EmptyTypeName, t.NativeType == "interface{}":
 		return false
 	}
 	return true
@@ -1196,7 +1196,7 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *Directory, defs *Definitions, goOpts GoOpts, generateJSONSchema bool) (GoStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpts, generateJSONSchema bool) (GoStructCodeSnippet, []error) {
 	var errs []error
 
 	if targetStruct == nil {
@@ -1207,9 +1207,9 @@ func writeGoStruct(targetStruct *Directory, defs *Definitions, goOpts GoOpts, ge
 		return GoStructCodeSnippet{}, []error{fmt.Errorf("cannot create code with invalid Definitions for %s", targetStruct.Name)}
 	}
 
-	if targetStruct.Entry == nil {
-		return GoStructCodeSnippet{}, []error{fmt.Errorf("cannot create code for nil *yang.Entry at %s", targetStruct.Name)}
-	}
+	//if targetStruct.Entry == nil {
+	//		return GoStructCodeSnippet{}, []error{fmt.Errorf("cannot create code for nil *yang.Entry at %s", targetStruct.Name)}
+	//}
 
 	// structDef is used to store the attributes of the structure for which code is being
 	// generated.
@@ -1376,7 +1376,9 @@ func writeGoStruct(targetStruct *Directory, defs *Definitions, goOpts GoOpts, ge
 				genUnions = append(genUnions, intf)
 			}
 
-			if field.ListAttr != nil {
+			scalarField := false
+			switch {
+			case field.ListAttr != nil:
 				// If the field's ListAttr is set, then this indicates that this
 				// element is a leaf-list. We represent a leaf-list in the output
 				// code using a slice of the type that the element was mapped to.
@@ -1384,10 +1386,9 @@ func writeGoStruct(targetStruct *Directory, defs *Definitions, goOpts GoOpts, ge
 				// Slices have a nil zero value rather than the value of their
 				// underlying type.
 				zeroValue = "nil"
+			default:
+				scalarField = IsScalarField(field, mtype)
 			}
-
-			scalarField := IsScalarField(field, mtype)
-
 			definedNameMap[fName].IsPtr = scalarField
 
 			if goOpts.GenerateLeafGetters {
