@@ -29,18 +29,24 @@ import (
 func TestUnionSubTypes(t *testing.T) {
 	tests := []struct {
 		name       string
-		in         *yang.YangType
 		inCtxEntry *yang.Entry
-		want       []string
-		wantMtypes map[int]*MappedType
-		wantErr    bool
+		// inNoContext means to only pass in the type of the context
+		// entry as a parameter to goUnionSubTypes without the context entry.
+		inNoContext bool
+		want        []string
+		wantMtypes  map[int]*MappedType
+		wantErr     bool
 	}{{
 		name: "union of strings",
-		in: &yang.YangType{
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{
-				{Kind: yang.Ystring},
-				{Kind: yang.Ystring},
+		inCtxEntry: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{
+					{Kind: yang.Ystring},
+					{Kind: yang.Ystring},
+				},
 			},
 		},
 		want: []string{"string"},
@@ -49,11 +55,15 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 	}, {
 		name: "union of int8, string",
-		in: &yang.YangType{
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{
-				{Kind: yang.Yint8},
-				{Kind: yang.Ystring},
+		inCtxEntry: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{
+					{Kind: yang.Yint8},
+					{Kind: yang.Ystring},
+				},
 			},
 		},
 		want: []string{"int8", "string"},
@@ -63,21 +73,25 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 	}, {
 		name: "union of unions",
-		in: &yang.YangType{
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{
-				{
-					Kind: yang.Yunion,
-					Type: []*yang.YangType{
-						{Kind: yang.Ystring},
-						{Kind: yang.Yint32},
+		inCtxEntry: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{
+					{
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{
+							{Kind: yang.Ystring},
+							{Kind: yang.Yint32},
+						},
 					},
-				},
-				{
-					Kind: yang.Yunion,
-					Type: []*yang.YangType{
-						{Kind: yang.Yuint64},
-						{Kind: yang.Yint16},
+					{
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{
+							{Kind: yang.Yuint64},
+							{Kind: yang.Yint16},
+						},
 					},
 				},
 			},
@@ -91,30 +105,38 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 	}, {
 		name: "erroneous union without context",
-		in: &yang.YangType{
-			Name: "enumeration",
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{
-				{Kind: yang.Yenum, Name: "enumeration"},
-			},
-		},
-		wantErr: true,
-	}, {
-		name: "typedef enum within a union",
-		in: &yang.YangType{
-			Kind: yang.Yenum,
-			Name: "derived-enum",
-			Enum: &yang.EnumType{},
-			Base: &yang.Type{
-				Name: "enumeration",
-				Parent: &yang.Typedef{
-					Name: "derived-enum",
-					Parent: &yang.Module{
-						Name: "typedef-module",
+		inCtxEntry: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Name: "enumeration-union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Kind: yang.Yenum,
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				}},
+				Base: &yang.Type{
+					Name: "union",
+					Parent: &yang.Typedef{
+						Name: "enumeration-union",
+						Parent: &yang.Module{
+							Name: "typedef-module",
+						},
 					},
 				},
 			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
 		},
+		inNoContext: true,
+		wantErr:     true,
+	}, {
+		name: "typedef enum within a union",
 		inCtxEntry: &yang.Entry{
 			Name: "union-leaf",
 			Kind: yang.LeafEntry,
@@ -146,21 +168,20 @@ func TestUnionSubTypes(t *testing.T) {
 				},
 			},
 		},
-		want: []string{"E_TypedefModule_DerivedEnum"},
+		want: []string{"E_TypedefModule_DerivedEnum", "int16"},
 		wantMtypes: map[int]*MappedType{
 			0: {
 				NativeType:        "E_TypedefModule_DerivedEnum",
 				IsEnumeratedValue: true,
 				ZeroValue:         "0",
 			},
+			1: {
+				NativeType: "int16",
+				ZeroValue:  "0",
+			},
 		},
 	}, {
 		name: "enum within a typedef union",
-		in: &yang.YangType{
-			Kind: yang.Yenum,
-			Name: "enumeration",
-			Enum: &yang.EnumType{},
-		},
 		inCtxEntry: &yang.Entry{
 			Name: "union-leaf",
 			Kind: yang.LeafEntry,
@@ -192,30 +213,20 @@ func TestUnionSubTypes(t *testing.T) {
 				},
 			},
 		},
-		want: []string{"E_UnionModule_DerivedUnion_Enum"},
+		want: []string{"E_UnionModule_DerivedUnion_Enum", "int16"},
 		wantMtypes: map[int]*MappedType{
 			0: {
 				NativeType:        "E_UnionModule_DerivedUnion_Enum",
 				IsEnumeratedValue: true,
 				ZeroValue:         "0",
 			},
+			1: {
+				NativeType: "int16",
+				ZeroValue:  "0",
+			},
 		},
 	}, {
 		name: "typedef enum within a typedef union",
-		in: &yang.YangType{
-			Kind: yang.Yenum,
-			Name: "derived-enum",
-			Enum: &yang.EnumType{},
-			Base: &yang.Type{
-				Name: "enumeration",
-				Parent: &yang.Typedef{
-					Name: "derived-enum",
-					Parent: &yang.Module{
-						Name: "typedef-module",
-					},
-				},
-			},
-		},
 		inCtxEntry: &yang.Entry{
 			Name: "union-leaf",
 			Kind: yang.LeafEntry,
@@ -256,24 +267,20 @@ func TestUnionSubTypes(t *testing.T) {
 				},
 			},
 		},
-		want: []string{"E_TypedefModule_DerivedEnum"},
+		want: []string{"E_TypedefModule_DerivedEnum", "int16"},
 		wantMtypes: map[int]*MappedType{
 			0: {
 				NativeType:        "E_TypedefModule_DerivedEnum",
 				IsEnumeratedValue: true,
 				ZeroValue:         "0",
 			},
+			1: {
+				NativeType: "int16",
+				ZeroValue:  "0",
+			},
 		},
 	}, {
 		name: "union of a single enum",
-		in: &yang.YangType{
-			Name: "union",
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{{
-				Kind: yang.Yenum,
-				Name: "enumeration",
-			}},
-		},
 		inCtxEntry: &yang.Entry{
 			Name: "union-leaf",
 			Kind: yang.LeafEntry,
@@ -303,22 +310,6 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 	}, {
 		name: "union of identityrefs",
-		in: &yang.YangType{
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{{
-				Kind: yang.Yidentityref,
-				IdentityBase: &yang.Identity{
-					Name:   "id",
-					Parent: &yang.Module{Name: "basemod"},
-				},
-			}, {
-				Kind: yang.Yidentityref,
-				IdentityBase: &yang.Identity{
-					Name:   "id2",
-					Parent: &yang.Module{Name: "basemod2"},
-				},
-			}},
-		},
 		inCtxEntry: &yang.Entry{
 			Name: "context-leaf",
 			Type: &yang.YangType{
@@ -349,21 +340,6 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 	}, {
 		name: "union of single identityref",
-		in: &yang.YangType{
-			Name: "union",
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{{
-				Kind:    yang.Yidentityref,
-				Name:    "identityref",
-				Default: "prefix:CHIPS",
-				IdentityBase: &yang.Identity{
-					Name: "base-identity",
-					Parent: &yang.Module{
-						Name: "base-module",
-					},
-				},
-			}},
-		},
 		inCtxEntry: &yang.Entry{
 			Name: "union-leaf",
 			Kind: yang.LeafEntry,
@@ -409,15 +385,13 @@ func TestUnionSubTypes(t *testing.T) {
 			}
 			s := newGoGenState(nil, enumSet)
 
-			subsumingType := tt.in
-			if tt.inCtxEntry != nil {
-				// For enumerations, the input subsuming type into goUnionSubTypes
-				// is the union, and not the enumeration type.
-				subsumingType = tt.inCtxEntry.Type
-			}
 			mtypes := make(map[int]*MappedType)
 			ctypes := make(map[string]int)
-			if errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, subsumingType, ctypes, mtypes, false, false, true, true); !tt.wantErr && errs != nil {
+			ctxEntry := tt.inCtxEntry
+			if tt.inNoContext {
+				ctxEntry = nil
+			}
+			if errs := s.goUnionSubTypes(tt.inCtxEntry.Type, ctxEntry, ctypes, mtypes, false, false, true, true); !tt.wantErr && errs != nil {
 				t.Errorf("unexpected errors: %v", errs)
 			}
 
@@ -531,19 +505,19 @@ func TestYangTypeToGoType(t *testing.T) {
 		wantErr: true,
 	}, {
 		name: "union of string, int32",
-		in: &yang.YangType{
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{
-				{Kind: yang.Ystring, Name: "string"},
-				{Kind: yang.Yint8, Name: "int8"},
-			},
-		},
 		ctx: &yang.Entry{
 			Name: "leaf",
 			Parent: &yang.Entry{
 				Name: "container",
 				Parent: &yang.Entry{
 					Name: "module",
+				},
+			},
+			Type: &yang.YangType{
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{
+					{Kind: yang.Ystring, Name: "string"},
+					{Kind: yang.Yint8, Name: "int8"},
 				},
 			},
 		},
@@ -568,18 +542,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "derived identityref",
-		in: &yang.YangType{
-			Name: "derived-identityref",
-			Kind: yang.Yidentityref,
-			IdentityBase: &yang.Identity{
-				Name:   "base-identity",
-				Parent: &yang.Module{Name: "base-module"},
-			},
-			Base: &yang.Type{
-				Name:   "base-identity",
-				Parent: &yang.Module{Name: "base-module"},
-			},
-		},
 		ctx: &yang.Entry{
 			Name: "derived-identityref",
 			Type: &yang.YangType{
@@ -606,24 +568,12 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "derived identityref with default value",
-		in: &yang.YangType{
-			Kind:    yang.Yidentityref,
-			Name:    "derived-identityref",
-			Default: "AARDVARK",
-			IdentityBase: &yang.Identity{
-				Name:   "base-identity",
-				Parent: &yang.Module{Name: "base-module"},
-			},
-			Base: &yang.Type{
-				Name:   "base-identity",
-				Parent: &yang.Module{Name: "base-module"},
-			},
-		},
 		ctx: &yang.Entry{
 			Name: "derived-identityref",
 			Type: &yang.YangType{
-				Name: "derived-identityref",
-				Kind: yang.Yidentityref,
+				Name:    "derived-identityref",
+				Kind:    yang.Yidentityref,
+				Default: "AARDVARK",
 				IdentityBase: &yang.Identity{
 					Name:   "base-identity",
 					Parent: &yang.Module{Name: "base-module"},
@@ -646,7 +596,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "enumeration",
-		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration"},
 		ctx: &yang.Entry{
 			Name: "enumeration-leaf",
 			Type: &yang.YangType{
@@ -666,13 +615,13 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "enumeration with default",
-		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Default: "prefix:BLUE"},
 		ctx: &yang.Entry{
 			Name: "enumeration-leaf",
 			Type: &yang.YangType{
-				Name: "enumeration",
-				Kind: yang.Yenum,
-				Enum: &yang.EnumType{},
+				Name:    "enumeration",
+				Kind:    yang.Yenum,
+				Enum:    &yang.EnumType{},
+				Default: "prefix:BLUE",
 			},
 			Parent: &yang.Entry{Name: "base-module"},
 			Node: &yang.Enum{
@@ -687,13 +636,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "enumeration in union as the lone type with default",
-		in: &yang.YangType{
-			Name: "union",
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{
-				{Kind: yang.Yenum, Name: "enumeration", Default: "prefix:BLUE"},
-			},
-		},
 		ctx: &yang.Entry{
 			Name: "union-leaf",
 			Kind: yang.LeafEntry,
@@ -719,15 +661,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "typedef enumeration",
-		in: &yang.YangType{
-			Kind: yang.Yenum,
-			Name: "derived-enumeration",
-			Enum: &yang.EnumType{},
-			Base: &yang.Type{
-				Name:   "enumeration",
-				Parent: &yang.Module{Name: "base-module"},
-			},
-		},
 		ctx: &yang.Entry{
 			Name: "enumeration-leaf",
 			Type: &yang.YangType{
@@ -752,13 +685,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "typedef enumeration in union as the lone type",
-		in: &yang.YangType{
-			Name: "union",
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{
-				{Kind: yang.Yenum, Name: "enumeration"},
-			},
-		},
 		ctx: &yang.Entry{
 			Name: "union-leaf",
 			Kind: yang.LeafEntry,
@@ -784,22 +710,13 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "typedef enumeration with default",
-		in: &yang.YangType{
-			Kind:    yang.Yenum,
-			Name:    "derived-enumeration",
-			Default: "FISH",
-			Enum:    &yang.EnumType{},
-			Base: &yang.Type{
-				Name:   "enumeration",
-				Parent: &yang.Module{Name: "base-module"},
-			},
-		},
 		ctx: &yang.Entry{
 			Name: "enumeration-leaf",
 			Type: &yang.YangType{
-				Name: "derived-enumeration",
-				Kind: yang.Yenum,
-				Enum: &yang.EnumType{},
+				Name:    "derived-enumeration",
+				Kind:    yang.Yenum,
+				Enum:    &yang.EnumType{},
+				Default: "FISH",
 				Base: &yang.Type{
 					Name:   "enumeration",
 					Parent: &yang.Module{Name: "base-module"},
@@ -819,7 +736,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "identityref",
-		in:   &yang.YangType{Kind: yang.Yidentityref, Name: "identityref"},
 		ctx: &yang.Entry{
 			Name: "identityref",
 			Type: &yang.YangType{
@@ -845,7 +761,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "identityref with default",
-		in:   &yang.YangType{Kind: yang.Yidentityref, Name: "identityref", Default: "CHIPS"},
 		ctx: &yang.Entry{
 			Name: "identityref",
 			Type: &yang.YangType{
@@ -857,6 +772,7 @@ func TestYangTypeToGoType(t *testing.T) {
 						Name: "test-module",
 					},
 				},
+				Default: "CHIPS",
 			},
 			Node: &yang.Leaf{
 				Parent: &yang.Module{
@@ -872,21 +788,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "identityref in union as the lone type with default",
-		in: &yang.YangType{
-			Name: "union",
-			Kind: yang.Yunion,
-			Type: []*yang.YangType{{
-				Kind:    yang.Yidentityref,
-				Name:    "identityref",
-				Default: "prefix:CHIPS",
-				IdentityBase: &yang.Identity{
-					Name: "base-identity",
-					Parent: &yang.Module{
-						Name: "base-module",
-					},
-				},
-			}},
-		},
 		ctx: &yang.Entry{
 			Name: "union-leaf",
 			Kind: yang.LeafEntry,
@@ -921,7 +822,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "enumeration with compress paths",
-		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration"},
 		ctx: &yang.Entry{
 			Name: "eleaf",
 			Type: &yang.YangType{
@@ -943,7 +843,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 	}, {
 		name: "enumeration in submodule",
-		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration"},
 		ctx: &yang.Entry{
 			Name:   "eleaf",
 			Type:   &yang.YangType{Name: "enumeration", Kind: yang.Yenum, Enum: &yang.EnumType{}},
@@ -956,7 +855,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		want:           &MappedType{NativeType: "E_Container_Eleaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}, {
 		name: "leafref",
-		in:   &yang.YangType{Kind: yang.Yleafref, Name: "leafref", Path: "../c"},
 		ctx: &yang.Entry{
 			Name: "d",
 			Parent: &yang.Entry{
@@ -966,6 +864,7 @@ func TestYangTypeToGoType(t *testing.T) {
 					Parent: &yang.Entry{Name: "module"},
 				},
 			},
+			Type: &yang.YangType{Kind: yang.Yleafref, Name: "leafref", Path: "../c"},
 		},
 		inEntries: []*yang.Entry{
 			{
@@ -998,7 +897,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		want: &MappedType{NativeType: "uint32", ZeroValue: "0"},
 	}, {
 		name: "enumeration from grouping used in multiple places - skip deduplication",
-		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
 		ctx: &yang.Entry{
 			Name: "leaf",
 			Type: &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
@@ -1048,7 +946,6 @@ func TestYangTypeToGoType(t *testing.T) {
 		want:            &MappedType{NativeType: "E_Bar_Leaf", IsEnumeratedValue: true, ZeroValue: "0"},
 	}, {
 		name: "enumeration from grouping used in multiple places - with deduplication",
-		in:   &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
 		ctx: &yang.Entry{
 			Name: "leaf",
 			Type: &yang.YangType{Kind: yang.Yenum, Name: "enumeration", Enum: &yang.EnumType{}},
@@ -1097,6 +994,15 @@ func TestYangTypeToGoType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Populate the type from the entry's type when the
+			// entry exists, as the code might make pointer comparisons.
+			if tt.ctx != nil {
+				if tt.in != nil {
+					t.Fatalf("Test error: contextEntry and yangType both specified -- please only specify one of them, as yangType will be populated by contextEntry's Type field.")
+				}
+				tt.in = tt.ctx.Type
+			}
+
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.ctx, enumMap)
 			enumSet, _, errs := findEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true)

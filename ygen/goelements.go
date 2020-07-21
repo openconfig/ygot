@@ -120,17 +120,6 @@ func newGoGenState(schematree *schemaTree, eSet *enumSet) *goGenState {
 type resolveTypeArgs struct {
 	// yangType is a pointer to the yang.YangType that is to be mapped.
 	yangType *yang.YangType
-	// subsumingType is the closest/innermost type of yangType that's not a
-	// union subtype:
-	// case 1: for any type not within a union, the subsuming type is itself.
-	// case 2: for any type within a union, the subsuming type is the first
-	// containing union type that's a typedef, or highest union type
-	// definition, whichever one is closest to the type.
-	//
-	// subsumingType is particularly useful for specifying the containing
-	// union type when yangType is a union subtype.
-	// If unspecified, it is assumed that yangType is not a union subtype.
-	subsumingType *yang.YangType
 	// contextEntry is an optional yang.Entry which is supplied where a
 	// type requires knowledge of the leaf that it is used within to be
 	// mapped. For example, where a leaf is defined to have a type of a
@@ -403,7 +392,7 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnum
 	// check, rather than iterating the slice of strings.
 	unionTypes := make(map[string]int)
 	for _, subtype := range args.yangType.Type {
-		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, args.yangType, unionTypes, unionMappedTypes, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames)...)
+		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, unionMappedTypes, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames)...)
 	}
 
 	if errs != nil {
@@ -436,17 +425,13 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnum
 // The skipEnumDedup argument specifies whether the current code generation is
 // de-duplicating enumerations where they are used in more than one place in
 // the schema.
-func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, subsumingType *yang.YangType, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool) []error {
-	if !util.IsYANGBaseType(subtype) {
-		subsumingType = subtype
-	}
-
+func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool) []error {
 	var errs []error
 	// If subtype.Type is not empty then this means that this type is defined to
 	// be a union itself.
 	if subtype.Type != nil {
 		for _, st := range subtype.Type {
-			errs = append(errs, s.goUnionSubTypes(st, ctx, subsumingType, currentTypes, unionMappedTypes, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames)...)
+			errs = append(errs, s.goUnionSubTypes(st, ctx, currentTypes, unionMappedTypes, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames)...)
 		}
 		return errs
 	}
@@ -477,7 +462,7 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, su
 	default:
 		var err error
 
-		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: contextType, subsumingType: subsumingType, contextEntry: ctx}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames)
+		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: contextType, contextEntry: ctx}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames)
 		if err != nil {
 			errs = append(errs, err)
 			return errs

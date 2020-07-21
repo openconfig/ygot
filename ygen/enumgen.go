@@ -81,8 +81,7 @@ func newEnumSet() *enumSet {
 func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool) ([]*yangEnum, error) {
 	var es []*yangEnum
 
-	subsumingTypes := util.EnumeratedUnionSubsumingTypes(e.Type)
-	for i, t := range util.EnumeratedUnionTypes(e.Type.Type) {
+	for _, t := range util.EnumeratedUnionTypes(e.Type.Type) {
 		var en *yangEnum
 		switch {
 		case t.IdentityBase != nil:
@@ -106,12 +105,12 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 			var err error
 			enumNameSake := t
 			if useDefiningModuleForTypedefEnumNames {
-				enumNameSake = subsumingTypes[i]
+				enumNameSake = util.DefiningType(t, e.Type)
 			}
 			if util.IsYANGBaseType(enumNameSake) {
 				enumName, err = s.enumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
 			} else {
-				enumName, err = s.typedefEnumeratedName(resolveTypeArgs{contextEntry: e, yangType: t, subsumingType: subsumingTypes[i]}, noUnderscores, useDefiningModuleForTypedefEnumNames)
+				enumName, err = s.typedefEnumeratedName(resolveTypeArgs{contextEntry: e, yangType: t}, noUnderscores, useDefiningModuleForTypedefEnumNames)
 			}
 			if err != nil {
 				return nil, err
@@ -177,24 +176,20 @@ func (s *enumSet) enumName(e *yang.Entry, compressPaths, noUnderscores, skipDedu
 // enumerated type, the MappedType returned is nil, otherwise it should be
 // populated.
 func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (*MappedType, error) {
-	// If the type that is specified is not a built-in type (i.e., one of those
-	// types which is defined in RFC6020/RFC7950) then we establish what the type
-	// that we must actually perform the mapping for is. By default, start with
-	// the type that is specified in the schema.
-	// If the type is a built-in enumeration residing in a typedef union
-	// (indicated by args.subsumingType), and useDefiningModuleForTypedef
-	// is set, then it's also named as a typedef, with its name based on
-	// the union typedef's name.
-	if !util.IsYANGBaseType(args.yangType) || (useDefiningModuleForTypedefEnumNames && args.yangType.Kind == yang.Yenum && args.subsumingType != nil && !util.IsYANGBaseType(args.subsumingType)) {
-		switch args.yangType.Kind {
-		case yang.Yenum, yang.Yidentityref:
-			// In the case of a typedef that specifies an enumeration or identityref
-			// then generate a enumerated type in the Go code according to the contextEntry
-			// which has been provided by the calling code.
-			if args.contextEntry == nil {
-				return nil, fmt.Errorf("error mapping node %s due to lack of context", args.yangType.Name)
-			}
-
+	switch args.yangType.Kind {
+	case yang.Yenum, yang.Yidentityref:
+		// In the case of a typedef that specifies an enumeration or identityref
+		// then generate a enumerated type in the Go code according to the contextEntry
+		// which has been provided by the calling code.
+		if args.contextEntry == nil {
+			return nil, fmt.Errorf("error mapping node %s due to lack of context", args.yangType.Name)
+		}
+		// If the type that is specified is not a built-in type (i.e., one of those
+		// types which is defined in RFC6020/RFC7950) then we establish what the type
+		// that we must actually perform the mapping for is. By default, start with
+		// the type that is specified in the schema.
+		enumIsTypedef := args.yangType.Kind == yang.Yenum && !util.IsYANGBaseType(util.DefiningType(args.yangType, args.contextEntry.Type))
+		if !util.IsYANGBaseType(args.yangType) || (useDefiningModuleForTypedefEnumNames && enumIsTypedef) {
 			tn, err := s.typedefEnumeratedName(args, noUnderscores, useDefiningModuleForTypedefEnumNames)
 			if err != nil {
 				return nil, err
@@ -240,22 +235,17 @@ func (s *enumSet) identityBaseKey(i *yang.Identity) string {
 // if needed.
 func (s *enumSet) enumeratedTypedefKey(args resolveTypeArgs, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, error) {
 	typeName := args.yangType.Name
-	subsumingType := args.subsumingType
-	if subsumingType == nil {
-		// If subsumingType is not provided, then we assume that the given type is not a union subtype.
-		// Then by definition, its subsuming type is the type itself.
-		subsumingType = args.yangType
-	}
+	definingType := util.DefiningType(args.yangType, args.contextEntry.Type)
 
 	// Handle the case whereby we have been handed an enumeration that is within a
 	// union. We need to synthesise the name of the type here such that it is based on
 	// type name, plus the fact that it is an enumeration.
-	if subsumingType.Kind == yang.Yunion {
+	if definingType.Kind == yang.Yunion {
 		// We specifically say that this is an enumeration within the leaf.
 		if noUnderscores {
-			typeName = fmt.Sprintf("%sEnum", subsumingType.Name)
+			typeName = fmt.Sprintf("%sEnum", definingType.Name)
 		} else {
-			typeName = fmt.Sprintf("%s_Enum", subsumingType.Name)
+			typeName = fmt.Sprintf("%s_Enum", definingType.Name)
 		}
 	}
 	if args.contextEntry.Node == nil {
@@ -270,7 +260,7 @@ func (s *enumSet) enumeratedTypedefKey(args resolveTypeArgs, noUnderscores, useD
 		// enumeration may be nested under union types instead of being
 		// directly under the typedef, but this is good enough because extra
 		// path information doesn't hurt as long as we're consistent.
-		enumKey = yang.NodePath(subsumingType.Base.ParentNode())
+		enumKey = yang.NodePath(definingType.Base.ParentNode())
 	}
 	return enumKey, typeName, nil
 }
@@ -468,7 +458,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 			s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
 		default:
 			// This is a type which is defined through a typedef.
-			if err := s.resolveTypedefEnumeratedName(resolveTypeArgs{contextEntry: e, yangType: e.Type, subsumingType: e.Type}, noUnderscores, useDefiningModuleForTypedefEnumNames); err != nil {
+			if err := s.resolveTypedefEnumeratedName(resolveTypeArgs{contextEntry: e, yangType: e.Type}, noUnderscores, useDefiningModuleForTypedefEnumNames); err != nil {
 				errs = append(errs, err)
 			}
 		}
@@ -547,7 +537,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 			}
 		default:
 			// This is a type which is defined through a typedef.
-			typeName, err := s.enumSet.typedefEnumeratedName(resolveTypeArgs{contextEntry: e, yangType: e.Type, subsumingType: e.Type}, noUnderscores, useDefiningModuleForTypedefEnumNames)
+			typeName, err := s.enumSet.typedefEnumeratedName(resolveTypeArgs{contextEntry: e, yangType: e.Type}, noUnderscores, useDefiningModuleForTypedefEnumNames)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -758,11 +748,10 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 // user module's name) should be used to name enumerated typedefs.
 func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool) error {
 	enumTypes := util.EnumeratedUnionTypes(e.Type.Type)
-	subsumingTypes := util.EnumeratedUnionSubsumingTypes(e.Type)
 	if len(enumTypes) == 0 {
 		return fmt.Errorf("enumerated type had an empty union within it, path: %v, type: %v, enumerated: %v", e.Path(), e.Type, enumTypes)
 	}
-	for i, t := range enumTypes {
+	for _, t := range enumTypes {
 		switch {
 		case t.IdentityBase != nil:
 			if err := s.resolveIdentityrefBaseTypeFromIdentity(t.IdentityBase, noUnderscores); err != nil {
@@ -771,12 +760,12 @@ func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths,
 		case t.Enum != nil:
 			enumNameSake := t
 			if useDefiningModuleForTypedefEnumNames {
-				enumNameSake = subsumingTypes[i]
+				enumNameSake = util.DefiningType(t, e.Type)
 			}
 			if util.IsYANGBaseType(enumNameSake) {
 				s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
 			} else {
-				if err := s.resolveTypedefEnumeratedName(resolveTypeArgs{contextEntry: e, yangType: t, subsumingType: subsumingTypes[i]}, noUnderscores, useDefiningModuleForTypedefEnumNames); err != nil {
+				if err := s.resolveTypedefEnumeratedName(resolveTypeArgs{contextEntry: e, yangType: t}, noUnderscores, useDefiningModuleForTypedefEnumNames); err != nil {
 					return err
 				}
 			}
@@ -900,7 +889,7 @@ func (s *enumGenState) resolveTypedefEnumeratedName(args resolveTypeArgs, noUnde
 	// defining-module-name/typedef-name.
 	nodeForModuleName := args.contextEntry.Node
 	if useDefiningModuleForTypedefEnumNames {
-		nodeForModuleName = args.subsumingType.Base
+		nodeForModuleName = util.DefiningType(args.yangType, args.contextEntry.Type).Base
 	}
 	name := fmt.Sprintf("%s_%s", genutil.ParentModulePrettyName(nodeForModuleName), yang.CamelCase(typeName))
 	if noUnderscores {

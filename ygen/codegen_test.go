@@ -817,9 +817,6 @@ func TestSimpleStructs(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if tt.name != "enumeration behaviour - multiple enumerations within a union" {
-			continue
-		}
 		t.Run(tt.name, func(t *testing.T) {
 			genCode := func() (*GeneratedGoCode, string, map[string]interface{}) {
 				// Set defaults within the supplied configuration for these tests.
