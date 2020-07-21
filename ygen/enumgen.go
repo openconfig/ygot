@@ -112,7 +112,10 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 			// themselves are anonymous.
 			enumNameSake := t
 			if useDefiningModuleForTypedefEnumNames {
-				enumNameSake = util.DefiningType(t, e.Type)
+				var err error
+				if enumNameSake, err = util.DefiningType(t, e.Type); err != nil {
+					return nil, err
+				}
 			}
 			if util.IsYANGBaseType(enumNameSake) {
 				enumName, err = s.enumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
@@ -195,7 +198,11 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string,
 		// types which is defined in RFC6020/RFC7950) then we establish what the type
 		// that we must actually perform the mapping for is. By default, start with
 		// the type that is specified in the schema.
-		enumIsTypedef := args.yangType.Kind == yang.Yenum && !util.IsYANGBaseType(util.DefiningType(args.yangType, args.contextEntry.Type))
+		definingType, err := util.DefiningType(args.yangType, args.contextEntry.Type)
+		if err != nil {
+			return nil, err
+		}
+		enumIsTypedef := args.yangType.Kind == yang.Yenum && !util.IsYANGBaseType(definingType)
 		if !util.IsYANGBaseType(args.yangType) || (useDefiningModuleForTypedefEnumNames && enumIsTypedef) {
 			tn, err := s.typedefEnumeratedName(args, noUnderscores, useDefiningModuleForTypedefEnumNames)
 			if err != nil {
@@ -242,7 +249,10 @@ func (s *enumSet) identityBaseKey(i *yang.Identity) string {
 // if needed.
 func (s *enumSet) enumeratedTypedefKey(args resolveTypeArgs, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (string, string, error) {
 	typeName := args.yangType.Name
-	definingType := util.DefiningType(args.yangType, args.contextEntry.Type)
+	definingType, err := util.DefiningType(args.yangType, args.contextEntry.Type)
+	if err != nil {
+		return "", "", err
+	}
 
 	// Handle the case whereby we have been handed an enumeration that is within a
 	// union. We need to synthesise the name of the type here such that it is based on
@@ -771,7 +781,10 @@ func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths,
 			// themselves are anonymous.
 			enumNameSake := t
 			if useDefiningModuleForTypedefEnumNames {
-				enumNameSake = util.DefiningType(t, e.Type)
+				var err error
+				if enumNameSake, err = util.DefiningType(t, e.Type); err != nil {
+					return err
+				}
 			}
 			if util.IsYANGBaseType(enumNameSake) {
 				s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames)
@@ -900,7 +913,11 @@ func (s *enumGenState) resolveTypedefEnumeratedName(args resolveTypeArgs, noUnde
 	// defining-module-name/typedef-name.
 	nodeForModuleName := args.contextEntry.Node
 	if useDefiningModuleForTypedefEnumNames {
-		nodeForModuleName = util.DefiningType(args.yangType, args.contextEntry.Type).Base
+		definingType, err := util.DefiningType(args.yangType, args.contextEntry.Type)
+		if err != nil {
+			return err
+		}
+		nodeForModuleName = definingType.Base
 	}
 	name := fmt.Sprintf("%s_%s", genutil.ParentModulePrettyName(nodeForModuleName), yang.CamelCase(typeName))
 	if noUnderscores {
