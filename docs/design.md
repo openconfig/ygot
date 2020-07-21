@@ -151,9 +151,9 @@ struct names.
 * where an `enumeration` is defined within a `typedef` that contains a `union`,
   the enumerated language type that is generated is named according to the name 
   of the `typedef` with `_Enum` appended to the name. 
+  * This mapping is handled by `enumgen.go`:`resolveEnumeratedUnionEntry`.
 
   For example:
-
 ```
 module bar {
   ...
@@ -168,7 +168,6 @@ module bar {
 
   would result in a type named `Bar_Baz_Enum` being generated in the output
   code.
-  * This mapping is handled by `enumgen.go`:`resolveEnumeratedUnionEntry`.
 
 Only a single enumeration is generated for a `typedef` or `identity` -
 regardless of the number of times that is referenced throughout the code. This
