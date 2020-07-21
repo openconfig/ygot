@@ -16,6 +16,7 @@
 package util
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -379,7 +380,7 @@ func EnumeratedUnionTypes(types []*yang.YangType) []*yang.YangType {
 // DefiningType returns the type of definition of a subtype within a leaf type.
 // In the trivial case that the subtype is the leaf type itself, the leaf type
 // is returned; otherwise, subtype refers to a terminal union subtype within
-// the leaf's union type. A nil return means the type does not belong to the
+// the leaf's union type. An error is returned if the type does not belong to the
 // leaf type.
 //
 // The "defining type" of a union subtype is the closest, or innermost defining
@@ -396,11 +397,11 @@ func EnumeratedUnionTypes(types []*yang.YangType) []*yang.YangType {
 //   - defining type is the outer union (i.e. type of the leaf, which defines it).
 // - a non-typedef within a typedef union within a non-typedef union.
 //   - defining type is the (inner) typedef union.
-func DefiningType(subtype *yang.YangType, leafType *yang.YangType) *yang.YangType {
+func DefiningType(subtype *yang.YangType, leafType *yang.YangType) (*yang.YangType, error) {
 	if subtype == leafType {
 		// Trivial case where the subtype is the leaf type itself.
 		// The leaf type is a place of definition, and it's also the closest.
-		return leafType
+		return leafType, nil
 	}
 	return unionDefiningType(subtype, leafType, leafType)
 }
@@ -408,8 +409,8 @@ func DefiningType(subtype *yang.YangType, leafType *yang.YangType) *yang.YangTyp
 // unionDefiningType returns the type of definition of a union subtype.
 // subtype is the union subtype, unionType is the current union type where
 // we're looking for the subtype, and definingType is the defining type of
-// unionType. A nil return means the type was not found within the union.
-func unionDefiningType(subtype *yang.YangType, unionType *yang.YangType, definingType *yang.YangType) *yang.YangType {
+// unionType. An error is returned if the subtype was not found within the union.
+func unionDefiningType(subtype *yang.YangType, unionType *yang.YangType, definingType *yang.YangType) (*yang.YangType, error) {
 	for _, t := range unionType.Type {
 		definingType := definingType
 		if !IsYANGBaseType(t) {
@@ -417,14 +418,14 @@ func unionDefiningType(subtype *yang.YangType, unionType *yang.YangType, definin
 		}
 		switch {
 		case t == subtype:
-			return definingType
+			return definingType, nil
 		case IsUnionType(t):
-			if defType := unionDefiningType(subtype, t, definingType); defType != nil {
-				return defType
+			if defType, err := unionDefiningType(subtype, t, definingType); err == nil {
+				return defType, nil
 			}
 		}
 	}
-	return nil
+	return nil, fmt.Errorf("ygot/util: subtype %q not found within provided containing type %q", subtype.Name, unionType.Name)
 }
 
 // ResolveIfLeafRef returns a ptr to the schema pointed to by the leaf-ref path

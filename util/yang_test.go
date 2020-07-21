@@ -20,6 +20,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
@@ -1124,9 +1125,7 @@ var complexUnionType *yang.YangType = &yang.YangType{
 func typeNamesList(types []*yang.YangType) []string {
 	var list []string
 	for _, t := range types {
-		if t != nil {
-			list = append(list, t.Name)
-		}
+		list = append(list, t.Name)
 	}
 	return list
 }
@@ -1427,16 +1426,17 @@ func TestDefiningType(t *testing.T) {
 		inLeafType        *yang.YangType
 		inSubtypes        []*yang.YangType
 		wantDefiningTypes []*yang.YangType
+		wantErrSubstr     string
 	}{{
 		desc:              "trivial case -- subtype is itself",
 		inLeafType:        strType,
 		inSubtypes:        []*yang.YangType{strType},
 		wantDefiningTypes: []*yang.YangType{strType},
 	}, {
-		desc:              "subtype cannot be found",
-		inLeafType:        complexUnionType,
-		inSubtypes:        []*yang.YangType{strType},
-		wantDefiningTypes: []*yang.YangType{nil},
+		desc:          "subtype cannot be found",
+		inLeafType:    complexUnionType,
+		inSubtypes:    []*yang.YangType{strType},
+		wantErrSubstr: "not found within provided containing type",
 	}, {
 		desc:       "multi-level with typedef union",
 		inLeafType: complexUnionType,
@@ -1535,7 +1535,14 @@ func TestDefiningType(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			var gotTypes []string
 			for i, subtype := range tt.inSubtypes {
-				defType := DefiningType(subtype, tt.inLeafType)
+				defType, err := DefiningType(subtype, tt.inLeafType)
+				if diff := errdiff.Check(err, tt.wantErrSubstr); diff != "" {
+					t.Fatalf("did not get expected error:\n%s", diff)
+				}
+				if err != nil {
+					continue
+				}
+
 				if defType == nil && tt.wantDefiningTypes[i] != nil {
 					t.Errorf("subtype not found in union: %v", subtype)
 				}
