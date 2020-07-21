@@ -86,7 +86,7 @@ func GetOrderedFieldNames(directory *Directory) []string {
 	return orderedFieldNames
 }
 
-func GetOrderedNodeFieldNames(directory *ParsedTreeNode) []string {
+func GetOrderedNodeFieldNames(directory *ParsedDirectory) []string {
 	if directory == nil {
 		return nil
 	}
@@ -102,7 +102,7 @@ func GetOrderedNodeFieldNames(directory *ParsedTreeNode) []string {
 // GoFieldNameMap returns a map containing the Go name for a field (key
 // is the field schema name). Camelcase and uniquification is done to ensure
 // compilation. Naming uniquification is done deterministically.
-func GoFieldNameMap(directory *ParsedTreeNode) map[string]string {
+func GoFieldNameMap(directory *ParsedDirectory) map[string]string {
 	if directory == nil {
 		return nil
 	}
@@ -142,6 +142,41 @@ func GetOrderedDirectories(directory map[string]*Directory) ([]string, map[strin
 	sort.Strings(orderedDirNames)
 
 	return orderedDirNames, dirNameMap, nil
+}
+
+func getOrderedDirDetails(directory map[string]*Directory, compressEnabled, absolutePaths bool) ([]string, map[string]*ParsedDirectory, error) {
+	names, dirs, err := GetOrderedDirectories(directory)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dirDets := map[string]*ParsedDirectory{}
+	for n, d := range dirs {
+		dirDets[n] = parseDir(d)
+
+		dirDets[n].Fields = make(map[string]*NodeDetails, len(d.Fields))
+		for _, fn := range GetOrderedFieldNames(dir) {
+			field := dir.Fields[fieldName]
+
+			mp, err := findMapPaths(dir, fieldName, compressEnabled, absolutePaths)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			name, err := langMapper.LeafName(field)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			nd := &NodeDetails{
+				Name:     name,
+				MapPaths: mp,
+				Default:  field.Default,
+			}
+
+		}
+	}
+
 }
 
 // FindSchemaPath finds the relative or absolute schema path of a given field

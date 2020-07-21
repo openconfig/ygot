@@ -648,7 +648,7 @@ type Definitions struct {
 	// represented as a nil mapped type.
 	LeafTypes map[string]map[string]*MappedType
 
-	ParsedTree map[string]*ParsedTreeNode
+	ParsedTree map[string]*ParsedDirectory
 	// Enums is the set of enumerated entries that are extracted from the generated
 	// code. The key of the map is the global name of the enumeration.
 	Enums map[string]*EnumeratedYANGType
@@ -735,7 +735,7 @@ type LangMapper interface {
 	SetSchemaTree(*schemaTree)
 }
 
-type ParsedTreeNode struct {
+type ParsedDirectory struct {
 	Name       string
 	Fields     map[string]*NodeDetails
 	Path       []string
@@ -744,15 +744,24 @@ type ParsedTreeNode struct {
 }
 
 type NodeDetails struct {
-	Name     string
-	Type     *MappedType
-	MapPaths [][]string
-
-	Default string
+	Name       string
+	Type       NodeType
+	LangType   *MappedType
+	MapPaths   [][]string
+	SchemaPath string
+	Default    string
 }
 
-func dirToTreeNode(d *Directory) *ParsedTreeNode {
-	return &ParsedTreeNode{
+type NodeType int64
+
+const (
+	InvalidNode NodeType = iota
+	DirectoryNode
+	LeafNode
+)
+
+func parseDir(d *Directory) *ParsedDirectory {
+	return &ParsedDirectory{
 		Name:       d.Name,
 		Path:       d.Path,
 		ListAttr:   d.ListAttr,
@@ -794,7 +803,7 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 		return nil, util.AppendErr(errs, err)
 	}
 
-	nodeMap := map[string]*ParsedTreeNode{}
+	nodeMap := map[string]*ParsedDirectory{}
 
 	// TODO(robjs): refactor this out.
 	// Populate map of leaf types for returning, and a combined map of paths
@@ -815,8 +824,8 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 		dir := dirNameMap[directoryName]
 		path := dir.Entry.Path()
 
-		nodeMap[path] = dirToTreeNode(dir)
-		nodeMap[path].Fields = make(map[string]*NodeDetails, len(dir.Fields))
+		//nodeMap[path] = dirToTreeNode(dir)
+		//nodeMap[path].Fields = make(map[string]*NodeDetails, len(dir.Fields))
 
 		leafTypeMap[path] = make(map[string]*MappedType, len(dir.Fields))
 		// Alphabetically order fields to produce deterministic output.
