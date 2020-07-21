@@ -21,6 +21,7 @@ package ygen
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
@@ -69,7 +70,8 @@ type YangListAttr struct {
 	Keys map[string]*MappedType
 	// keyElems is a slice containing the pointers to yang.Entry structs that
 	// make up the list key.
-	KeyElems []*yang.Entry
+	KeyElems        []*yang.Entry
+	OrderedKeyNames []string
 }
 
 // GetOrderedFieldNames returns the field names of a Directory in alphabetical order.
@@ -102,17 +104,33 @@ func GetOrderedNodeFieldNames(directory *ParsedDirectory) []string {
 // GoFieldNameMap returns a map containing the Go name for a field (key
 // is the field schema name). Camelcase and uniquification is done to ensure
 // compilation. Naming uniquification is done deterministically.
-func GoFieldNameMap(directory *ParsedDirectory) map[string]string {
+func GoFieldNameMap(directory *Directory) map[string]string {
 	if directory == nil {
 		return nil
 	}
 	// Order by schema name; then, uniquify in order of schema name.
-	orderedFieldNames := GetOrderedNodeFieldNames(directory)
+	orderedFieldNames := GetOrderedFieldNames(directory)
 
 	uniqueGenFieldNames := map[string]bool{}
 	uniqueNameMap := make(map[string]string, len(directory.Fields))
 	for _, fieldName := range orderedFieldNames {
 		uniqueNameMap[fieldName] = genutil.MakeNameUnique(directory.Fields[fieldName].Name, uniqueGenFieldNames)
+	}
+
+	return uniqueNameMap
+}
+
+func goParsedDirectoryFieldNameMap(d *ParsedDirectory) map[string]string {
+	if d == nil {
+		return nil
+	}
+	// Order by schema name; then, uniquify in order of schema name.
+	orderedFieldNames := GetOrderedNodeFieldNames(d)
+
+	uniqueGenFieldNames := map[string]bool{}
+	uniqueNameMap := make(map[string]string, len(d.Fields))
+	for _, fieldName := range orderedFieldNames {
+		uniqueNameMap[fieldName] = genutil.MakeNameUnique(d.Fields[fieldName].Name, uniqueGenFieldNames)
 	}
 
 	return uniqueNameMap
@@ -144,38 +162,73 @@ func GetOrderedDirectories(directory map[string]*Directory) ([]string, map[strin
 	return orderedDirNames, dirNameMap, nil
 }
 
-func getOrderedDirDetails(directory map[string]*Directory, compressEnabled, absolutePaths bool) ([]string, map[string]*ParsedDirectory, error) {
+func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory, compBehaviour genutil.CompressBehaviour, absolutePaths bool) ([]string, map[string]*ParsedDirectory, error) {
 	names, dirs, err := GetOrderedDirectories(directory)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	orderedPaths := []string{}
 	dirDets := map[string]*ParsedDirectory{}
-	for n, d := range dirs {
-		dirDets[n] = parseDir(d)
+	for _, dirName := range names {
+		dir := dirs[dirName]
+		dirDets[dir.Entry.Path()] = parseDir(dir)
 
-		dirDets[n].Fields = make(map[string]*NodeDetails, len(d.Fields))
+		dirDets[dir.Entry.Path()].Fields = make(map[string]*NodeDetails, len(dir.Fields))
 		for _, fn := range GetOrderedFieldNames(dir) {
-			field := dir.Fields[fieldName]
+			field := dir.Fields[fn]
 
-			mp, err := findMapPaths(dir, fieldName, compressEnabled, absolutePaths)
+			mp, err := findMapPaths(dir, fn, compBehaviour.CompressEnabled(), absolutePaths)
 			if err != nil {
 				return nil, nil, err
+			}
+
+			mod, err := field.InstantiatingModule()
+			if err != nil {
+				return nil, nil, err
+			}
+
+			nd := &NodeDetails{
+				YANGDetails: YANGNodeDetails{
+					Default: field.Default,
+					Path:    strings.Split(field.Path(), "/"),
+					Module:  mod,
+					Name:    field.Name,
+				},
+				MapPaths: mp,
+				Type:     DirectoryNode,
 			}
 
 			name, err := langMapper.LeafName(field)
 			if err != nil {
 				return nil, nil, err
 			}
+			nd.Name = name
 
-			nd := &NodeDetails{
-				Name:     name,
-				MapPaths: mp,
-				Default:  field.Default,
+			if isLeaf := field.IsLeaf() || field.IsLeafList(); isLeaf {
+				mtype, err := langMapper.LeafType(field, compBehaviour)
+				if err != nil {
+					return nil, nil, err
+				}
+				t := LeafNode
+				if field.IsLeafList() {
+					t = LeafListNode
+				}
+
+				nd.Type = t
+				nd.LangType = mtype
 			}
 
+			if field.IsList() {
+				nd.Type = ListNode
+			}
+
+			dirDets[dir.Entry.Path()].Fields[nd.Name] = nd
 		}
+		orderedPaths = append(orderedPaths, dir.Entry.Path())
 	}
+
+	return orderedPaths, dirDets, nil
 
 }
 

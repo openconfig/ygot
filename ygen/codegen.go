@@ -356,10 +356,10 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}
 
 	// Alphabetically order directories to produce deterministic output.
-	orderedDirNames, dirNameMap, err := GetOrderedDirectories(defns.Directories)
+	/*orderedDirNames, dirNameMap, err := GetOrderedDirectories(defns.Directories)
 	if err != nil {
 		return nil, util.AppendErr(codegenErr, err)
-	}
+	}*/
 
 	usedEnumeratedTypes := map[string]bool{}
 	definedUnionTypes := map[string]map[string]*goUnionInterface{}
@@ -375,13 +375,115 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Range through the directories to find the enumerated and union types that we
 	// need. We have to do this without writing the code out, since we require some
 	// knowledge of these types to do code generation along with the values.
-	for _, directoryName := range orderedDirNames {
-		thisDir := dirNameMap[directoryName]
-		// We need to find all the enumerated types that are in use within the schema
-		// such that we do not output types that are not used (which would potentially create a lot
-		// of extraneous code for included modules that we aren't generating for), and to create
-		// the map of types that might exist within the generated code for unmarshalling.
-		fieldTypes := defns.LeafTypes[thisDir.Entry.Path()]
+	/*for _, directoryName := range orderedDirNames {
+	thisDir := dirNameMap[directoryName]
+	// We need to find all the enumerated types that are in use within the schema
+	// such that we do not output types that are not used (which would potentially create a lot
+	// of extraneous code for included modules that we aren't generating for), and to create
+	// the map of types that might exist within the generated code for unmarshalling.
+	fieldTypes := defns.LeafTypes[thisDir.Entry.Path()]
+
+	fns := []string{}
+	for n := range thisDir.Fields {
+		fns = append(fns, n)
+	}
+	sort.Strings(fns)
+
+	for _, fn := range fns {
+		f := thisDir.Fields[fn]
+		fType, ok := fieldTypes[f.Name]
+		if !ok {
+			codegenErr = util.AppendErr(codegenErr, fmt.Errorf("cannot find field %s in directory %s", f.Name, directoryName))
+			continue
+		}
+		schemaPath := util.SchemaTreePathNoModule(f)
+		switch {
+		case fType == nil:
+			// This is a directory, so we continue.
+			continue
+		case fType.IsEnumeratedValue:
+			usedEnumeratedTypes[fType.NativeType] = true
+			enumTypeMap[schemaPath] = []string{fType.NativeType}
+		case len(fType.UnionTypes) > 1:
+			if v := definedUnionTypes[directoryName][fType.NativeType]; v != nil {
+				continue
+			}
+
+			unionIntf := &goUnionInterface{
+				Name:           fType.NativeType,
+				Types:          map[string]string{},
+				LeafPath:       f.Path(),
+				ParentReceiver: thisDir.Name,
+			}
+
+			for ut := range fType.UnionTypes {
+				tn := yang.CamelCase(ut)
+				if ut == "interface{}" {
+					tn = "Interface"
+				}
+				unionIntf.Types[tn] = ut
+				unionIntf.TypeNames = append(unionIntf.TypeNames, ut)
+
+				if !isBuiltInType(ut) {
+					// Types that are in unions once they have been resolved are always
+					// enumerated types.
+					usedEnumeratedTypes[ut] = true
+					if enumTypeMap[schemaPath] == nil {
+						enumTypeMap[schemaPath] = []string{}
+					}
+					enumTypeMap[schemaPath] = append(enumTypeMap[schemaPath], ut)
+				}
+			}
+
+			sort.Strings(unionIntf.TypeNames)
+			if definedUnionTypes[directoryName] == nil {
+				definedUnionTypes[directoryName] = map[string]*goUnionInterface{}
+			}
+			definedUnionTypes[directoryName][fType.NativeType] = unionIntf
+		}
+	}*/
+
+	/*structOut, errs := writeGoStruct(thisDir, defns, cg.Config.GoOptions, cg.Config.GenerateJSONSchema)
+		if errs != nil {
+			codegenErr = util.AppendErrs(codegenErr, errs)
+			continue
+		}
+
+		// write the union types out
+		var b bytes.Buffer
+		tn := []string{}
+		for k := range definedUnionTypes[directoryName] {
+			tn = append(tn, k)
+		}
+		sort.Strings(tn)
+		for _, n := range tn {
+			if !generatedUnions[n] {
+				if err := generateUnionCode(&b, definedUnionTypes[directoryName][n]); err != nil {
+					codegenErr = util.AppendErr(codegenErr, err)
+					continue
+				}
+				generatedUnions[n] = true
+			}
+			if err := generateUnionHelper(&b, definedUnionTypes[directoryName][n]); err != nil {
+				codegenErr = util.AppendErr(codegenErr, err)
+				continue
+			}
+		}
+		structOut.Interfaces = b.String()
+
+		structSnippets = append(structSnippets, structOut)
+	}*/
+
+	ptNames, ptTypes, err := getOrderedDirDetails(lm, defns.Directories, d.TransformationOptions.CompressBehaviour, false)
+	if err != nil {
+		return nil, append(codegenErr, err)
+	}
+
+	// Range through the directories to find the enumerated and union types that we
+	// need. We have to do this without writing the code out, since we require some
+	// knowledge of these types to do code generation along with the values.
+	for _, directoryName := range ptNames {
+		thisDir := ptTypes[directoryName]
 
 		fns := []string{}
 		for n := range thisDir.Fields {
@@ -391,32 +493,29 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 
 		for _, fn := range fns {
 			f := thisDir.Fields[fn]
-			fType, ok := fieldTypes[f.Name]
-			if !ok {
-				codegenErr = util.AppendErr(codegenErr, fmt.Errorf("cannot find field %s in directory %s", f.Name, directoryName))
-				continue
-			}
-			schemaPath := util.SchemaTreePathNoModule(f)
+
+			// Strip the module name from the path.
+			schemaPath := util.SlicePathToString(append([]string{""}, f.YANGDetails.Path[2:]...))
 			switch {
-			case fType == nil:
+			case f.LangType == nil:
 				// This is a directory, so we continue.
 				continue
-			case fType.IsEnumeratedValue:
-				usedEnumeratedTypes[fType.NativeType] = true
-				enumTypeMap[schemaPath] = []string{fType.NativeType}
-			case len(fType.UnionTypes) > 1:
-				if v := definedUnionTypes[directoryName][fType.NativeType]; v != nil {
+			case f.LangType.IsEnumeratedValue:
+				usedEnumeratedTypes[f.LangType.NativeType] = true
+				enumTypeMap[schemaPath] = []string{f.LangType.NativeType}
+			case len(f.LangType.UnionTypes) > 1:
+				if v := definedUnionTypes[directoryName][f.LangType.NativeType]; v != nil {
 					continue
 				}
 
 				unionIntf := &goUnionInterface{
-					Name:           fType.NativeType,
+					Name:           f.LangType.NativeType,
 					Types:          map[string]string{},
-					LeafPath:       f.Path(),
+					LeafPath:       f.PathString(),
 					ParentReceiver: thisDir.Name,
 				}
 
-				for ut := range fType.UnionTypes {
+				for ut := range f.LangType.UnionTypes {
 					tn := yang.CamelCase(ut)
 					if ut == "interface{}" {
 						tn = "Interface"
@@ -439,17 +538,17 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 				if definedUnionTypes[directoryName] == nil {
 					definedUnionTypes[directoryName] = map[string]*goUnionInterface{}
 				}
-				definedUnionTypes[directoryName][fType.NativeType] = unionIntf
+				definedUnionTypes[directoryName][f.LangType.NativeType] = unionIntf
 			}
 		}
+	}
 
-		structOut, errs := writeGoStruct(thisDir, defns, cg.Config.GoOptions, cg.Config.GenerateJSONSchema)
+	for _, directoryName := range ptNames {
+		structOut, errs := writeGoStruct(ptTypes[directoryName], defns, cg.Config.GoOptions, cg.Config.GenerateJSONSchema)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
 		}
-
-		// write the union types out
 		var b bytes.Buffer
 		tn := []string{}
 		for k := range definedUnionTypes[directoryName] {
@@ -743,13 +842,23 @@ type ParsedDirectory struct {
 	IsFakeRoot bool
 }
 
+type YANGNodeDetails struct {
+	Name    string
+	Default string
+	Module  string
+	Path    []string
+}
+
 type NodeDetails struct {
-	Name       string
-	Type       NodeType
-	LangType   *MappedType
-	MapPaths   [][]string
-	SchemaPath string
-	Default    string
+	Name        string
+	YANGDetails YANGNodeDetails
+	Type        NodeType
+	LangType    *MappedType
+	MapPaths    [][]string
+}
+
+func (n *NodeDetails) PathString() string {
+	return util.SlicePathToString(n.YANGDetails.Path)
 }
 
 type NodeType int64
@@ -757,7 +866,9 @@ type NodeType int64
 const (
 	InvalidNode NodeType = iota
 	DirectoryNode
+	ListNode
 	LeafNode
+	LeafListNode
 )
 
 func parseDir(d *Directory) *ParsedDirectory {
@@ -803,8 +914,6 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 		return nil, util.AppendErr(errs, err)
 	}
 
-	nodeMap := map[string]*ParsedDirectory{}
-
 	// TODO(robjs): refactor this out.
 	// Populate map of leaf types for returning, and a combined map of paths
 	// that fields map to within the YANG schema.
@@ -820,52 +929,38 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 		return nil
 	}
 
+	// TODO(robjs): can be refactored out once downstream changes have been made.
 	for _, directoryName := range orderedDirNames {
 		dir := dirNameMap[directoryName]
 		path := dir.Entry.Path()
-
-		//nodeMap[path] = dirToTreeNode(dir)
-		//nodeMap[path].Fields = make(map[string]*NodeDetails, len(dir.Fields))
 
 		leafTypeMap[path] = make(map[string]*MappedType, len(dir.Fields))
 		// Alphabetically order fields to produce deterministic output.
 		for _, fieldName := range GetOrderedFieldNames(dir) {
 			field := dir.Fields[fieldName]
 
-			// Populate the paths that we are going to map this field to in the YANG schema
-			// to allow for path annotation.
-			np, err := findMapPaths(dir, fieldName, dcg.TransformationOptions.CompressBehaviour.CompressEnabled(), false)
-			if err != nil {
-				return nil, util.AppendErr(errs, fmt.Errorf("cannot find YANG paths to map %s field %s to, %v", dir.Entry.Path(), fieldName, err))
-			}
-
-			// TODO(robjs): refactor this out.
 			if err := addMapPaths(dir, fieldName); err != nil {
 				errs = append(errs, err)
 				continue
 			}
 
-			name, err := langMapper.LeafName(field)
-			if err != nil {
-				errs = append(errs, fmt.Errorf("cannot generate name for leaf %s, %v", field.Path(), err))
-				continue
-			}
-
-			nd := &NodeDetails{Name: name, MapPaths: np, Default: field.Default}
 			if isLeaf := field.IsLeaf() || field.IsLeafList(); isLeaf {
 				mtype, err := langMapper.LeafType(field, dcg.TransformationOptions.CompressBehaviour)
 				if err != nil {
 					errs = util.AppendErr(errs, err)
 					continue
 				}
-				nd.Type = mtype
 				leafTypeMap[path][fieldName] = mtype
 			} else {
 				leafTypeMap[path][fieldName] = nil
-
 			}
-			nodeMap[path].Fields[fieldName] = nd
 		}
+	}
+
+	// TODO(robjs): take absolutePaths as an argument.
+	_, dirDets, err := getOrderedDirDetails(langMapper, directoryMap, dcg.TransformationOptions.CompressBehaviour, false)
+	if err != nil {
+		return nil, util.AppendErr(errs, err)
 	}
 
 	enumDefinitionMap := make(map[string]*EnumeratedYANGType, len(genEnums))
@@ -911,11 +1006,11 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 		transformationOpts: dcg.TransformationOptions,
 		parsedModules:      mdef.modules,
 
-		ParsedTree: nodeMap,
+		ParsedTree: dirDets,
 		Enums:      enumDefinitionMap,
 		ModelData:  mdef.modelData,
 
-		// TODO(robjs): Remove these types.
+		// TODO(robjs): Remove these types once the downstream code is refactored.
 		LeafTypes:   leafTypeMap,
 		Directories: directoryMap,
 		MappedPaths: nodeYANGPath,

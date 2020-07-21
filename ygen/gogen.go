@@ -21,8 +21,8 @@ import (
 	"strings"
 	"text/template"
 
-	log "github.com/golang/glog"
 	"github.com/google/go-cmp/cmp"
+	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
@@ -1157,7 +1157,7 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 
 // IsScalarField determines which fields should be converted to pointers when
 // outputting structs; this is done to allow checks against nil.
-func IsScalarField(_ *yang.Entry, t *MappedType) bool {
+func IsScalarField(t *MappedType) bool {
 	switch {
 	// A non-leaf has a generated type which are always stored by pointers.
 	//case field.Kind != yang.LeafEntry:
@@ -1196,7 +1196,7 @@ func IsScalarField(_ *yang.Entry, t *MappedType) bool {
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpts, generateJSONSchema bool) (GoStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *ParsedDirectory, defs *Definitions, goOpts GoOpts, generateJSONSchema bool) (GoStructCodeSnippet, []error) {
 	var errs []error
 
 	if targetStruct == nil {
@@ -1206,10 +1206,6 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 	if defs == nil {
 		return GoStructCodeSnippet{}, []error{fmt.Errorf("cannot create code with invalid Definitions for %s", targetStruct.Name)}
 	}
-
-	//if targetStruct.Entry == nil {
-	//		return GoStructCodeSnippet{}, []error{fmt.Errorf("cannot create code for nil *yang.Entry at %s", targetStruct.Name)}
-	//}
 
 	// structDef is used to store the attributes of the structure for which code is being
 	// generated.
@@ -1237,8 +1233,6 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 	// definedNameMap defines a map, keyed by YANG identifier to the Go struct field name.
 	definedNameMap := map[string]*yangFieldMap{}
 
-	goFieldNameMap := GoFieldNameMap(targetStruct)
-
 	// genUnions stores the set of multi-type YANG unions that must have
 	// code generated for them.
 	genUnions := []goUnionInterface{}
@@ -1261,13 +1255,13 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 		})
 	}
 
-	dirFieldTypes, ok := defs.LeafTypes[targetStruct.Entry.Path()]
+	/*dirFieldTypes, ok := defs.LeafTypes[targetStruct.Entry.Path()]
 	if !ok {
 		return GoStructCodeSnippet{}, []error{fmt.Errorf("can't find leaf definitions for struct %s", targetStruct.Entry.Path())}
-	}
+	}*/
 
 	// Alphabetically order fields to produce deterministic output.
-	for _, fName := range GetOrderedFieldNames(targetStruct) {
+	for _, fName := range GetOrderedNodeFieldNames(targetStruct) {
 		// Iterate through the fields of the struct that we are generating code for.
 		// For each field, calculate the name of the field (ensuring that it is unique), and
 		// the corresponding type. fieldDef is used to store the definition of the field (name
@@ -1275,21 +1269,22 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 		var fieldDef *goStructField
 
 		field := targetStruct.Fields[fName]
-		fieldName := goFieldNameMap[fName]
-		definedNameMap[fName] = &yangFieldMap{YANGName: fName, GoName: fieldName}
+		//fieldName := goFieldNameMap[fName]
+		definedNameMap[fName] = &yangFieldMap{YANGName: field.YANGDetails.Name, GoName: field.Name}
 
-		switch {
-		case field.IsList():
+		switch field.Type {
+		case ListNode:
+			//case field.IsList():
 			// If the field within the struct is a list, then generate code for this list. This
 			// includes extracting any new types that are required to represent the key of a
 			// list that has multiple keys.
-			fieldType, multiKeyListKey, listMethods, err := yangListFieldToGoType(field, fieldName, targetStruct, defs.Directories, defs.LeafTypes)
+			fieldType, multiKeyListKey, listMethods, err := yangListFieldToGoType(field, targetStruct, defs.ParsedTree)
 			if err != nil {
 				errs = append(errs, err)
 			}
 
 			fieldDef = &goStructField{
-				Name:       fieldName,
+				Name:       field.Name,
 				Type:       fieldType,
 				IsYANGList: true,
 			}
@@ -1304,39 +1299,41 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 				associatedListKeyStructs = append(associatedListKeyStructs, multiKeyListKey)
 			}
 
-		case field.IsContainer():
+		case DirectoryNode:
+			//case field.IsContainer():
 			// This is a YANG container, so it is represented in code using a pointer to the struct type that
 			// is defined for the entity. findMappableEntities has already determined which fields are to
 			// be output, so no filtering of the set of fields is required here.
-			childDir, ok := defs.Directories[field.Path()]
+			childDir, ok := defs.ParsedTree[field.PathString()]
 			if !ok {
-				errs = append(errs, fmt.Errorf("could not resolve %s into a defined struct", field.Path()))
+				errs = append(errs, fmt.Errorf("could not resolve %s into a defined struct", field.PathString()))
 				continue
 			}
 
 			fieldDef = &goStructField{
-				Name:            fieldName,
+				Name:            field.Name,
 				Type:            fmt.Sprintf("*%s", childDir.Name),
 				IsYANGContainer: true,
 			}
 
-		case field.IsLeaf() || field.IsLeafList():
+		//case field.IsLeaf() || field.IsLeafList():
+		case LeafNode, LeafListNode:
 			// This is a leaf or leaf-list, so we look up the mapped type that was generated for it
 			// earlier in the generation process.
-			mtype, ok := dirFieldTypes[field.Name]
-			if !ok {
-				errs = append(errs, fmt.Errorf("field %s had an unknown type", field.Path()))
-				continue
-			}
+			//mtype, ok := dirFieldTypes[field.Name]
+			//if !ok {
+			//	errs = append(errs, fmt.Errorf("field %s had an unknown type", field.Path()))
+			//	continue
+			//}
 
-			if mtype.NativeType == "" {
-				errs = append(errs, fmt.Errorf("invalid empty type for field %s", field.Path()))
+			if field.LangType.NativeType == "" {
+				errs = append(errs, fmt.Errorf("invalid empty type for field %s", field.PathString()))
 			}
 
 			// Set the default type to the mapped Go type.
-			fType := mtype.NativeType
-			zeroValue := mtype.ZeroValue
-			defaultValue := goLeafDefault(field, mtype)
+			fType := field.LangType.NativeType
+			zeroValue := field.LangType.ZeroValue
+			defaultValue := goLeafDefault(field.YANGDetails.Default, field.LangType)
 
 			// Only if this union has more than one subtype do we generate the union;
 			// otherwise, we use that subtype directly.
@@ -1350,17 +1347,17 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 			// required to resolve it (e.g. storing the union entry so we make sure the name
 			// is used for the right union entry), we ignore it and allow wrong code to be
 			// generated.
-			if len(mtype.UnionTypes) > 1 && !genUnionSet[mtype.NativeType] {
-				genUnionSet[mtype.NativeType] = true
+			if len(field.LangType.UnionTypes) > 1 && !genUnionSet[field.LangType.NativeType] {
+				genUnionSet[field.LangType.NativeType] = true
 
 				intf := goUnionInterface{
-					Name:           mtype.NativeType,
+					Name:           field.LangType.NativeType,
 					Types:          map[string]string{},
-					LeafPath:       field.Path(),
+					LeafPath:       util.SlicePathToString(field.YANGDetails.Path),
 					ParentReceiver: targetStruct.Name,
 				}
 
-				for t := range mtype.UnionTypes {
+				for t := range field.LangType.UnionTypes {
 					tn := yang.CamelCase(t)
 					// Ensure that we sanitise the type name to be used in the
 					// output struct.
@@ -1378,7 +1375,7 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 
 			scalarField := false
 			switch {
-			case field.ListAttr != nil:
+			case field.Type == LeafListNode:
 				// If the field's ListAttr is set, then this indicates that this
 				// element is a leaf-list. We represent a leaf-list in the output
 				// code using a slice of the type that the element was mapped to.
@@ -1387,7 +1384,7 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 				// underlying type.
 				zeroValue = "nil"
 			default:
-				scalarField = IsScalarField(field, mtype)
+				scalarField = IsScalarField(field.LangType)
 			}
 			definedNameMap[fName].IsPtr = scalarField
 
@@ -1396,7 +1393,7 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 				// to the associatedLeafGetters slice to be generated along with other
 				// associated methods.
 				associatedLeafGetters = append(associatedLeafGetters, &generatedLeafGetter{
-					Name:     fieldName,
+					Name:     field.Name,
 					Type:     fType,
 					Zero:     zeroValue,
 					IsPtr:    scalarField,
@@ -1406,52 +1403,23 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 			}
 
 			fieldDef = &goStructField{
-				Name:          fieldName,
+				Name:          field.Name,
 				Type:          fType,
 				IsScalarField: scalarField,
 			}
 		default:
-			errs = append(errs, fmt.Errorf("unknown entity type for mapping to Go: %s, Kind: %v", field.Path(), field.Kind))
+			errs = append(errs, fmt.Errorf("unknown entity type for mapping to Go: %s, Kind: %v", field.YANGDetails.Path, field.Type))
 			continue
 		}
 
-		// Find the schema paths that the field corresponds to, such that these can
-		// be used as annotations (tags) within the generated struct. Go paths are
-		// always relative.
-		schemaMapPaths, ok := defs.MappedPaths[field.Path()]
-		if !ok {
-			errs = append(errs, fmt.Errorf("cannot find mapping path for %s", field.Path()))
-		}
-
 		var tagBuf bytes.Buffer
-		tagBuf.WriteString(`path:"`)
 		var metadataTagBuf bytes.Buffer
-		metadataTagBuf.WriteString(`path:"`)
-		for i, p := range schemaMapPaths {
-			tagBuf.WriteString(util.SlicePathToString(p))
-
-			// Copy the slice so that we don't modify it for future callers.
-			np := append(p[:0:0], p...)
-			np[len(np)-1] = fmt.Sprintf("@%s", np[len(np)-1])
-			metadataTagBuf.WriteString(util.SlicePathToString(np))
-
-			if i != len(schemaMapPaths)-1 {
-				tagBuf.WriteRune('|')
-				metadataTagBuf.WriteRune('|')
-			}
-		}
-		tagBuf.WriteByte('"')
-		metadataTagBuf.WriteString(`" ygotAnnotation:"true"`)
+		tagBuf.WriteString(mapPathString(field.MapPaths, ""))
+		metadataTagBuf.WriteString(mapPathString(field.MapPaths, "@"))
+		metadataTagBuf.WriteString(` ygotAnnotation:"true"`)
 
 		// Append a tag indicating the module that instantiates this field.
-		im, err := field.InstantiatingModule()
-		if err != nil {
-			// This is a non-fatal error, since it can only occur in testing. All YANG modules
-			// must have a specified namespace.
-			log.Infof("field %s has a nil module, error discarded", field.Path())
-		} else {
-			tagBuf.WriteString(fmt.Sprintf(` module:"%s"`, im))
-		}
+		tagBuf.WriteString(fmt.Sprintf(` module:"%s"`, field.YANGDetails.Module))
 
 		fieldDef.Tags = tagBuf.String()
 
@@ -1536,6 +1504,7 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 		}
 	}
 
+	fmt.Printf("%s\n", pretty.Sprint(definedNameMap))
 	if err := generateGetListKey(&methodBuf, targetStruct, definedNameMap); err != nil {
 		errs = append(errs, err)
 	}
@@ -1560,6 +1529,23 @@ func writeGoStruct(targetStruct *ParsedTreeNode, defs *Definitions, goOpts GoOpt
 		Methods:    methodBuf.String(),
 		ListKeys:   listkeyBuf.String(),
 	}, nil
+}
+
+func mapPathString(paths [][]string, prefix string) string {
+	var buf bytes.Buffer
+	buf.WriteString(`path:"`)
+	for i, p := range paths {
+		// Copy the slice so that we don't modify it for future callers.
+		np := append(p[:0:0], p...)
+		np[len(np)-1] = fmt.Sprintf("%s%s", prefix, np[len(np)-1])
+		buf.WriteString(util.SlicePathToString(np))
+
+		if i != len(paths)-1 {
+			buf.WriteRune('|')
+		}
+	}
+	buf.WriteString(`"`)
+	return buf.String()
 }
 
 func generateUnionCode(buf *bytes.Buffer, unionDef *goUnionInterface) error {
@@ -1759,8 +1745,11 @@ func generateListAppend(buf *bytes.Buffer, method *generatedGoListMethod) error 
 //	  "baz": *t.Baz,
 //	}
 //  }
-func generateGetListKey(buf *bytes.Buffer, s *Directory, nameMap map[string]*yangFieldMap) error {
-	if !s.isList() {
+func generateGetListKey(buf *bytes.Buffer, s *ParsedDirectory, nameMap map[string]*yangFieldMap) error {
+	//if !s.isList() {
+	//	return nil
+	//}
+	if s.ListAttr == nil {
 		return nil
 	}
 
@@ -1768,13 +1757,16 @@ func generateGetListKey(buf *bytes.Buffer, s *Directory, nameMap map[string]*yan
 		Receiver: s.Name,
 	}
 
-	kn := []string{}
+	/*kn := []string{}
 	for k := range s.ListAttr.Keys {
 		kn = append(kn, k)
 	}
 	sort.Strings(kn)
 
 	for _, k := range kn {
+		h.Keys = append(h.Keys, nameMap[k])
+	}*/
+	for _, k := range s.ListAttr.OrderedKeyNames {
 		h.Keys = append(h.Keys, nameMap[k])
 	}
 
@@ -1796,13 +1788,13 @@ func generateGetListKey(buf *bytes.Buffer, s *Directory, nameMap map[string]*yan
 //	  type.
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
-func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *Directory, directories map[string]*Directory, leafTypes map[string]map[string]*MappedType) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
+func yangListFieldToGoType(listField *NodeDetails, parent *ParsedDirectory, directories map[string]*ParsedDirectory) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
 	// this from the set of Directory structs for which code (a Go struct) will be
 	//  generated such that additional details can be used in the code generation.
-	listElem, ok := directories[listField.Path()]
+	listElem, ok := directories[listField.PathString()]
 	if !ok {
-		return "", nil, nil, fmt.Errorf("struct for %s did not exist", listField.Path())
+		return "", nil, nil, fmt.Errorf("struct for %s did not exist", listField.PathString())
 	}
 
 	// Find the name of the struct that refers to the list provided as input. The YANGCodeGenerator
@@ -1823,16 +1815,25 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 	var listKeys []goStructField
 	var listKeyStructName string
 
-	// Key name elements are ordered per Section 7.8.2 of RFC6020. Rely on this
-	// fact for determisitic ordering in output code and rendering.
-	keyElemNames := strings.Fields(listField.Key)
-	if found, inSchema := len(keyElemNames), len(listElem.ListAttr.Keys); found != inSchema {
-		return "", nil, nil, fmt.Errorf("missing key definitions, got %d but expected %d", found, inSchema)
+	shortestPath := func(ss [][]string) [][]string {
+		var shortest []string
+		for _, s := range ss {
+			if shortest == nil {
+				shortest = s
+				continue
+			}
+			if len(s) < len(shortest) {
+				shortest = s
+			}
+		}
+		return [][]string{shortest}
 	}
 
-	usedKeyElemNames := make(map[string]bool)
-	for _, keName := range keyElemNames {
-		keyType, ok := listElem.ListAttr.Keys[keName]
+	// Key name elements are ordered per Section 7.8.2 of RFC6020. Rely on this
+	// fact for determisitic ordering in output code and rendering.
+
+	for _, keName := range listElem.ListAttr.OrderedKeyNames {
+		keyType, ok := listElem.Fields[keName]
 		if !ok {
 			return "", nil, nil, fmt.Errorf("did not find type for key %s", keName)
 		}
@@ -1842,11 +1843,11 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 		}
 
 		keyField := goStructField{
-			Name: genutil.MakeNameUnique(genutil.EntryCamelCaseName(listField.Dir[keName]), usedKeyElemNames),
-			Type: keyType.NativeType,
-			Tags: fmt.Sprintf(`path:"%s"`, keName),
+			Name: keName,
+			Type: keyType.LangType.NativeType,
+			Tags: mapPathString(shortestPath(keyType.MapPaths), ""),
 		}
-		keyField.IsScalarField = IsScalarField(listField.Dir[keName], listElem.ListAttr.Keys[keName])
+		keyField.IsScalarField = IsScalarField(keyType.LangType)
 		listKeys = append(listKeys, keyField)
 	}
 
@@ -1856,26 +1857,27 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 		// a simple Go type as the key. Note that a leaf-list can never be
 		// a key, so we do not need to handle the case whereby we would have to
 		// have a slice which keys the list.
-		listType = fmt.Sprintf("map[%s]*%s", listKeys[0].Type, listName)
+		listType = fmt.Sprintf("map[%s]*%s", listElem.Fields[listElem.ListAttr.OrderedKeyNames[0]].LangType.NativeType, listName)
 	default:
 		// This is a list with multiple keys, so we need to generate a new structure
 		// that represents the list key itself - this struct is described in a
 		// generatedGoMultiKeyListStruct struct, which is then expanded by a template to the struct
 		// definition.
-		listKeyStructName = fmt.Sprintf("%s_%s_Key", parent.Name, listFieldName)
+		listKeyStructName = fmt.Sprintf("%s_Key", listElem.Name)
 		multiListKey = &generatedGoMultiKeyListStruct{
 			KeyStructName: listKeyStructName,
 			ParentPath:    util.SlicePathToString(parent.Path),
-			ListName:      listFieldName,
+			ListName:      listField.Name,
 			Keys:          listKeys,
 		}
 		listType = fmt.Sprintf("map[%s]*%s", listKeyStructName, listName)
 	}
 
+	fmt.Printf("listname is %s\n", listElem.Name)
 	// Generate the specification for the methods that should be generated for this
 	// list, such that this can be handed to the relevant templates to generate code.
 	listMethodSpec := &generatedGoListMethod{
-		ListName:  listFieldName,
+		ListName:  listField.Name,
 		ListType:  listName,
 		KeyStruct: listKeyStructName,
 		Keys:      listKeys,
@@ -2024,12 +2026,12 @@ func writeGoSchema(js []byte, schemaVarName string) (string, error) {
 // goLeafDefault returns the default value of the leaf e if specified. If it
 // is unspecified, the value specified by the type is returned if it is not nil,
 // otherwise nil is returned to indicate no default was specified.
-func goLeafDefault(e *yang.Entry, t *MappedType) *string {
-	if e.Default != "" {
+func goLeafDefault(def string, t *MappedType) *string {
+	if def != "" {
 		if t.IsEnumeratedValue {
-			return enumDefaultValue(t.NativeType, e.Default, goEnumPrefix)
+			return enumDefaultValue(t.NativeType, def, goEnumPrefix)
 		}
-		return quoteDefault(&e.Default, t.NativeType)
+		return quoteDefault(&def, t.NativeType)
 	}
 
 	if t.DefaultValue != nil {

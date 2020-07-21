@@ -14,17 +14,7 @@
 
 package ygen
 
-import (
-	"bytes"
-	"fmt"
-	"testing"
-
-	"github.com/google/go-cmp/cmp"
-	"github.com/openconfig/gnmi/errdiff"
-	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/ygot"
-)
-
+/*
 // TestGoCodeStructGeneration tests the code generation from a known schema generates
 // the correct structures, key types and methods for a YANG container.
 func TestGoCodeStructGeneration(t *testing.T) {
@@ -2299,7 +2289,7 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 		}
 	}
 }
-*/
+
 
 func TestGoLeafDefault(t *testing.T) {
 	tests := []struct {
@@ -2349,3 +2339,4 @@ func TestGoLeafDefault(t *testing.T) {
 		})
 	}
 }
+*/

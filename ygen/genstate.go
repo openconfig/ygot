@@ -170,6 +170,8 @@ func buildListKey(e *yang.Entry, compBehaviour genutil.CompressBehaviour, langMa
 	}
 
 	var errs []error
+	keyNames := []string{}
+	usedKeyNames := map[string]bool{}
 	keys := strings.Fields(e.Key)
 	for _, k := range keys {
 		// Extract the key leaf itself from the Dir of the list element. Dir is populated
@@ -224,15 +226,25 @@ func buildListKey(e *yang.Entry, compBehaviour genutil.CompressBehaviour, langMa
 
 		listattr.KeyElems = append(listattr.KeyElems, keyleaf)
 
+		keyName, err := langMapper.LeafName(keyleaf)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		kn := genutil.MakeNameUnique(keyName, usedKeyNames)
+		keyNames = append(keyNames, kn)
+
 		keyType, err := langMapper.KeyLeafType(keyleaf, compBehaviour)
 		if err != nil {
 			errs = append(errs, err)
 		}
 		if keyType != nil {
-			listattr.Keys[keyleaf.Name] = keyType
+			listattr.Keys[kn] = keyType
 		}
 
 	}
+
+	listattr.OrderedKeyNames = keyNames
 
 	return listattr, errs
 }
