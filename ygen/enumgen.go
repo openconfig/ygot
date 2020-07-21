@@ -25,6 +25,10 @@ import (
 	"github.com/openconfig/ygot/util"
 )
 
+const (
+	enumeratedUnionSuffix = "Enum"
+)
+
 // enumSet contains generated enum names which can be queried.
 // It should be constructed from findEnumSet().
 // The name sets should not be changed (essentially treat it as immutable), as
@@ -103,6 +107,9 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 		case t.Enum != nil:
 			var enumName string
 			var err error
+			// enumNameSake is the type that is going to be used to
+			// give this type its name, because enumerations
+			// themselves are anonymous.
 			enumNameSake := t
 			if useDefiningModuleForTypedefEnumNames {
 				enumNameSake = util.DefiningType(t, e.Type)
@@ -243,15 +250,16 @@ func (s *enumSet) enumeratedTypedefKey(args resolveTypeArgs, noUnderscores, useD
 	if definingType.Kind == yang.Yunion {
 		// We specifically say that this is an enumeration within the leaf.
 		if noUnderscores {
-			typeName = fmt.Sprintf("%sEnum", definingType.Name)
+			typeName = fmt.Sprintf("%s%s", definingType.Name, enumeratedUnionSuffix)
 		} else {
-			typeName = fmt.Sprintf("%s_Enum", definingType.Name)
+			typeName = fmt.Sprintf("%s_%s", definingType.Name, enumeratedUnionSuffix)
 		}
 	}
 	if args.contextEntry.Node == nil {
 		return "", "", fmt.Errorf("nil Node in enum type %s", args.contextEntry.Name)
 	}
 
+	// TODO(wenbli) to be deprecated: // https://github.com/openconfig/ygot/issues/404
 	// This is the old, buggy behaviour that causes same-named typedefs to shadow one another.
 	enumKey := fmt.Sprintf("%s/%s", genutil.ParentModuleName(args.contextEntry.Node), typeName)
 	if useDefiningModuleForTypedefEnumNames {
@@ -758,6 +766,9 @@ func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths,
 				return err
 			}
 		case t.Enum != nil:
+			// enumNameSake is the type that is going to be used to
+			// give this type its name, because enumerations
+			// themselves are anonymous.
 			enumNameSake := t
 			if useDefiningModuleForTypedefEnumNames {
 				enumNameSake = util.DefiningType(t, e.Type)

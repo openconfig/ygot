@@ -148,6 +148,26 @@ struct names.
   `enumeration` containing the builtin `enumeration`, with `_Enum` appended to
   the name.  So, if the union were named `baz`, and resides in module `bar`, the
   Go name is `Bar_Baz_Enum`.
+* where an `enumeration` is defined within a `typedef` that contains a `union`,
+  the enumerated language type that is generated is named according to the name 
+  of the `typedef` with `_Enum` appended to the name. 
+
+  For example:
+
+```
+module bar {
+  ...
+  typedef baz {
+     type union {
+        type enumeration { ... }
+        type string;
+     }
+  }
+}
+```
+
+  would result in a type named `Bar_Baz_Enum` being generated in the output
+  code.
   * This mapping is handled by `enumgen.go`:`resolveEnumeratedUnionEntry`.
 
 Only a single enumeration is generated for a `typedef` or `identity` -

@@ -32,6 +32,7 @@ module enum-multi-module {
         }
         // TODO(wenbli): td2's enum, td-enum, and the second enumeration are not being
         // generated because goyang fails to add them to the AST.
+        // https://github.com/openconfig/goyang/issues/131
         type t:td2;
         type t:td-enum;
         type enumeration {
