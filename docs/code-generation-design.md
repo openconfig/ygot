@@ -1,0 +1,123 @@
+# Multi-Stage Code Generation within `ygot`
+**Authors**: robjs<sup>†</sup>, wenbli<sup>†</sup>    <small>(<sup>†</sup>@google.com)</small>  
+**July 2020**
+
+## Overview
+Originally, the `ygen` package was developed to solely generate a single format of Go code from a YANG schema. Following this initial implementation, it has subsequently been extended to generate additional code artifacts, including a library for generating path-based helpers (`ypathgen`) and generating protobuf IDL files from a YANG schema. As each of these languages were added, some incremental changes were made (e.g., generating a set of leaf types and directory definitions for `ypathgen`, and refactoring of common state generation for protobuf-generation), but as new options for generation of code have been added to the `ygen` package, its complexity has increased. In order to reduce the maintenance effort for ygen, as well as allow simpler extension of the ygot-suite into generating new code from YANG modules (e.g., C++, or Python), some refactoring is required.
+
+Particularly, we intend to restructure ygen to enforce a strict multi-stage code generation process. The target end-to-end pipeline is targeted to be:
+
+ * An input set of YANG schemas is to be parsed by `goyang` and resolved through `yang.Node` representations into a set of `yang.Entry` structs. The set of `yang.Entry` structures that exist for a schema will be implemented to be lossless, such that there is no information that is available in the input YANG schema that cannot be extracted from them, and the original format of the structure is maintained.
+ * A refactored `ygen` library will take the input set of `yang.Entry` structures for a schema, and create an intermediate representation (IR) that:   
+   * Has undergone transformation of the schema that is required by the code generation process. The current schema transformations are described by `genutil.CompressBehaviour` and are implemented solely for OpenConfig modules. Their purpose is to simplify the generated code for particular users.
+   * Has resolved the types and names of entities that are to be output in the generated code. This should include the identification of directories, their fields and types, and any derived types that are needed by the generated code (typically enumerated types).
+
+   The IR produced by ygen will be lossy compared to the input YANG schema, and should expose the minimum required fields to the subsequent code generation stages. The IR should not include `yang.Entry` fields, such that there is an explicitly defined API that is available to code generation - and transformations that require full schema knowledge are applied within the `ygen` library itself.
+   
+   Further to this, the IR itself must be language-agnostic to the greatest extent possible -- with any language-specific requirements being through well-known interfaces that are implemented by downstream code generation.
+* A set of language-specific, and potentially use-case specific, code generation libraries that convert the IR into a specific set of output code. These language libraries may consume only the `ygen` IR, and convert this from the pre-transformed schema into generated code artifacts. Different binaries may be utilised to call these libraries which provide the user interface.
+
+This structure will have the following benefits:
+
+* Knowledge of schema transformations will be clearly encapsulated into the `ygen` library -- today, numerous methods that are outputting code must be aware of the different transformations that are being applied to the schema - resulting in complex state tracking being required through the entire generation process. This causes significant additional effort to understand all the hooks required in the code generation libraries to add new output formats.
+* Generation of names for output code entities is moved from being a just-in-time process, which requires careful consideration of order, or can potentially have non-deterministic output - to being an up-front process. Previous changes have shown the benefits of moving enumeration naming to an up-front process where there can be clear understanding of how names are to be resolved, ensuring that there is a strictly defined IR ensures that this pattern can be applied across the code base.
+* The requirement for expert knowledge of YANG for adding code generation can be reduced - for example, rather than requiring a developer adding to `ygen` to understand the structure of a `yang.Entry` and all the possible fields that can be used in these cases, `ygen` itself can clearly document the IR, and keep this to being a subset of the available information - for example, this allows abstraction of properties that depend on a characteristic of the YANG schema that can only be described in a `yang.Node` (e.g., how a element is defined in the actual YANG structure) away from code generation libraries.
+* In the future, the IR may form a more compact means to express the YANG schema that is being used by `ytypes` for validation and unmarshalling -- since there is a reasonable binary size, and memory overhead for storing the existing `yang.Entry` structure. This aim is not part of the initial goal of implementing this design.
+
+## Refactored `ygen` Design
+
+### Language-specific Implementation Characteristics
+
+In order to fully resolve the schema into an IR that includes all directories, and types, `ygen` must understand how to name these types. There are two approaches that could be taken to allow this.
+
+* Produce an abstract naming that is language agnostic that can be mapped by the language-specific libraries at output time. Adopting this approach keeps the `ygen` logic itself as simple as possible, but comes at the cost of needing to make assumptions as to the uniqueness required of names -- for example, for languages that use a single namespace for all generated directories (that is `struct` or `message` entities) then there would need to be a globally-unique identifier, for languages that have scoped naming (e.g., use different packages, or scopes for the output code) this global uniqueness may need to be undone. 
+* Provide an `interface` via which a 'naming' entity can be provided to the generated code. This interface allows for a language-generating library to pick a specific means by which to name entities, and use this as the means by which they are referenced in the output code. Using this design, each generating library can provide individual "safe naming" methods, e.g., choosing `CamelCase` over `names_with_underscores`, without needing each of these naming behaviours to be translated from an abstract format, or implemented within `ygen` itself.
+
+Based on prototyping, the language specific naming interface is to be adopted. Particularly, we define a `LangMapper` interface with the following characteristics:
+
+```golang
+type LangMapper interface {
+	// FieldName maps an input yang.Entry to the name that should be used
+	// in the intermediate representation. It is called for each field of
+	// a defined directory.
+	FieldName(e *yang.Entry) (string, error)
+	
+	// DirectoryName maps an input yang.Entry to the name that should be used in the
+	// intermediate representation (IR). It is called for any directory entity that
+	// is to be output in the generated code.
+	DirectoryName(*yang.Entry, genutil.CompressBehaviour) (string, error)
+	
+	// KeyLeafType maps an input yang.Entry which must represent a leaf to the
+	// type that should be used when the leaf is used in the context of a
+	// list key within the output IR.
+	KeyLeafType(*yang.Entry, genutil.CompressBehaviour) (*MappedType, error)
+	
+	// LeafType maps an input yang.Entry which must represent a leaf to the
+	// type that should be used when the leaf is used in the context of a
+	// field within a directory within the output IR.
+	LeafType(*yang.Entry, genutil.CompressBehaviour) (*MappedType, error)
+
+	// SetEnumSet is used to supply a set of enumerated values to the
+	// mapper such that leaves that have enumerated types can be looked up.
+	// An enumSet provides lookup methods that allow:
+	//  - simple enumerated types
+	//  - identityrefs
+	//  - enumerations within typedefs
+	//  - identityrefs within typedefs
+	// to be resolved to the corresponding type that is to be used in
+	// the IR.
+	SetEnumSet(*enumSet)
+
+	// SetSchemaTree is used to supply a copy of the YANG schema tree to
+	// the mapped such that leaves of type leafref can be resolved to
+	// their target leaves.
+	SetSchemaTree(*schemaTree)
+}
+```
+
+Within this interface:
+
+* There is some leakage of the schema transformations, and `yang.Entry` outside of the `ygen` library itself (since the package defining the interface must be aware of these). However, these are limited - and encapsulated cleanly within methods that return simple types to the `ygen` generator process.
+* Separate methods for naming leaves and directories are provided - it is expected that the `LeafName` can be used to name any field within the generated code, and requires only the input `yang.Entry`, where `DirectoryName` can be used to determine the name of a directory.
+* Since we do not want the generating package to need to be aware of the logic behing generating an enumerated type, or the entire schema tree, `ygen` supplies the `LangMapper` with a copy of the fully-resolved set of enumerated types, and the schema tree via which references can be looked up.
+* Two methods for generating leaf types are included - `LeafType` is used when the leaf being mapped to a type is a field of a `directory`, and `KeyLeafType` is used when a leaf is being mapped as part of a list key. The two methods are defined separately to ensure that where there are different types that are used for optional vs. mandatory contexts the mapping language can return different types. Most notably, this is the case in the `protobuf` output, where a wrapper type is used for standard leaves, whereas the simple built-in type is used when the field is mandatory as a list key.
+
+An implementation of a `LangMapper` keeps its own internal state that is not made accessible to the `ygen` library. Since a `LangMapper` implementation has access to the `yang.Entry`, it is able to use the entire context of a particular YANG entry to be able to choose how to map it to its name in the generated language.
+
+Other than the `LangMapper` interface, no other language-specific mapping code is implemented in the production of the IR.
+
+### Defining the ygen IR
+
+Currently, the `ypathgen` library defines a `GetDirectoriesAndLeafTypes` method that can be called to return:
+
+ * A map of the directories that are used in the generated code, keyed by the YANG path (represented as a string).
+ * A map of maps, keyed by directory name, with the inner map keyed by field name, returning the language-type to be used for a particular leaf.
+
+These types are sufficient for `ypathgen` to generate the code that it currently generates, but insufficient for all languages to be produced (or other formats of Go). Equally, there is some duplication between these types that requires cross-referencing between them which could be simplified.
+
+We propose to modify this return format - and define the IR to be:
+
+```golang
+type ParsedDirectory struct {
+	Name       string
+	Fields     map[string]*NodeDetails
+	Path       []string
+	ListAttr   *YangListAttr
+	IsFakeRoot bool
+}
+
+type YANGNodeDetails struct {
+	Name    string
+	Default string
+	Module  string
+	Path    []string
+}
+
+type NodeDetails struct {
+	Name        string
+	YANGDetails YANGNodeDetails
+	Type        NodeType
+	LangType    *MappedType
+	MapPaths    [][]string
+}
+```
