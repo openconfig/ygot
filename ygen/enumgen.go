@@ -26,6 +26,8 @@ import (
 )
 
 const (
+	// enumeratedUnionSuffix is the type name suffix given to enumerations
+	// defined as part of a union type.
 	enumeratedUnionSuffix = "Enum"
 )
 
@@ -257,7 +259,7 @@ func (s *enumSet) enumeratedTypedefKey(args resolveTypeArgs, noUnderscores, useD
 	// Handle the case whereby we have been handed an enumeration that is within a
 	// union. We need to synthesise the name of the type here such that it is based on
 	// type name, plus the fact that it is an enumeration.
-	if definingType.Kind == yang.Yunion {
+	if (useDefiningModuleForTypedefEnumNames && definingType.Kind == yang.Yunion) || (!useDefiningModuleForTypedefEnumNames && args.contextEntry.Type.Kind == yang.Yunion) {
 		// We specifically say that this is an enumeration within the leaf.
 		if noUnderscores {
 			typeName = fmt.Sprintf("%s%s", definingType.Name, enumeratedUnionSuffix)

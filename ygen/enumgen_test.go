@@ -2540,8 +2540,8 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		inShortenEnumLeafNames: true,
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule_Derived": {
-				name: "BaseModule_Derived",
+			"BaseModule_Derived_Enum": {
+				name: "BaseModule_Derived_Enum",
 				entry: &yang.Entry{
 					Name: "e",
 					Type: &yang.YangType{
@@ -2569,7 +2569,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"base-module/derived": "BaseModule_Derived",
+				"base-module/derived_Enum": "BaseModule_Derived_Enum",
 			},
 		},
 		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
@@ -2878,8 +2878,8 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		inShortenEnumLeafNames: true,
 		wantCompressed: map[string]*yangEnum{
-			"BaseModule_DerivedEnumeration": {
-				name: "BaseModule_DerivedEnumeration",
+			"BaseModule_DerivedEnumeration_Enum": {
+				name: "BaseModule_DerivedEnumeration_Enum",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -2890,7 +2890,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetCompressed: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"base-module/derived-enumeration": "BaseModule_DerivedEnumeration",
+				"base-module/derived-enumeration_Enum": "BaseModule_DerivedEnumeration_Enum",
 			},
 		},
 		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
