@@ -56,6 +56,12 @@ type LangMapper interface {
 	// type that should be used when the leaf is used in the context of a
 	// field within a directory within the output IR.
 	LeafType(*yang.Entry, genutil.CompressBehaviour) (*MappedType, error)
+	
+	// EnumeratedValueName maps an input string representing an enumerated
+	// value to a language-safe name for the enumerated value. This function
+	// should ensure that the returned string is sanitised to ensure that
+	// it can be directly output in the generated code.
+	EnumeratedValueName(string) (string, error)
 
 	// SetEnumSet is used to supply a set of enumerated values to the
 	// mapper such that leaves that have enumerated types can be looked up.
@@ -81,6 +87,7 @@ Within this interface:
 * Separate methods for naming leaves and directories are provided - it is expected that the `LeafName` can be used to name any field within the generated code, and requires only the input `yang.Entry`, where `DirectoryName` can be used to determine the name of a directory.
 * Since we do not want the generating package to need to be aware of the logic behing generating an enumerated type, or the entire schema tree, `ygen` supplies the `LangMapper` with a copy of the fully-resolved set of enumerated types, and the schema tree via which references can be looked up.
 * Two methods for generating leaf types are included - `LeafType` is used when the leaf being mapped to a type is a field of a `directory`, and `KeyLeafType` is used when a leaf is being mapped as part of a list key. The two methods are defined separately to ensure that where there are different types that are used for optional vs. mandatory contexts the mapping language can return different types. Most notably, this is the case in the `protobuf` output, where a wrapper type is used for standard leaves, whereas the simple built-in type is used when the field is mandatory as a list key.
+* A language-specific method to map enumerated value names - this function should handle the means by which a enumeration or identity name (as specified by the RFC7950 grammar) can be safely translated to a value which can be used in the target language.
 
 An implementation of a `LangMapper` keeps its own internal state that is not made accessible to the `ygen` library. Since a `LangMapper` implementation has access to the `yang.Entry`, it is able to use the entire context of a particular YANG entry to be able to choose how to map it to its name in the generated language.
 
@@ -95,29 +102,150 @@ Currently, the `ypathgen` library defines a `GetDirectoriesAndLeafTypes` method 
 
 These types are sufficient for `ypathgen` to generate the code that it currently generates, but insufficient for all languages to be produced (or other formats of Go). Equally, there is some duplication between these types that requires cross-referencing between them which could be simplified.
 
-We propose to modify this return format - and define the IR to be:
+We propose to modify this return format - and define the IR to be broken down into two subsets - encapsulated by a common type:
+
+```
+type Definitions struct {
+	// ParsedTree is the set of parsed directory entries, keyed by the YANG path
+	// to the directory.
+	ParsedTree map[string]*ParsedDirectory
+	
+	// Enums is the set of enumerated entries that are extracted from the generated
+	// code. The key of the map is the global name of the enumeration.
+	Enums map[string]*EnumeratedYANGType
+
+	// ModelData stores the metadata extracted from the input YANG modules.
+	ModelData     []*gpb.ModelData
+}
+```
+
+#### Definitions for Directory / Leaf Nodes
+
+The proposed IR for the directory types in the returned code is as follows. The base philosophy of whether fields are included within this representation is to keep to the set of fields made available to the code output library to their minimum, to ensure that there is clear encapsulation of the complexities of the YANG hierarchy within `ygen`.
 
 ```golang
+// ParsedDirectory describes a node that is the root of a subtree
+// within the generated code. Such a 'directory' may represent a
+// struct, or a message, within the generated code - and represents
+// a YANG 'container' or 'list' entry.
 type ParsedDirectory struct {
+   // Name is the language-specific name of the directory to be
+   // output.
 	Name       string
+	// Type describes the type of directory that is being produced -
+	// such that YANG 'list' entries can have special handling. 
+	Type		 DirType
+	// Fields is the set of direct children of the node that are
+	// to be output. It is keyed by the name of the child field
+	// using a language-specific format.
 	Fields     map[string]*NodeDetails
-	Path       []string
+	// ListAttr describes the attributes of a YANG list that
+	// are required in the output code (e.g., the characteristics
+	// of the list's keys).
 	ListAttr   *YangListAttr
+	// IsFakeRoot indicates whether the directory being described 
+	// is the root entity and has been synthetically generated by
+	// ygen.
 	IsFakeRoot bool
 }
 
-type YANGNodeDetails struct {
-	Name    string
-	Default string
-	Module  string
-	Path    []string
-}
-
+// NodeDetails describes an individual field of the generated
+// code tree. The Node may correspond to another Directory
+// entry in the output code, or a individual leaf node.
 type NodeDetails struct {
+   // Name is the language-specific name that should be used for
+   // the node.
 	Name        string
+	// YANGDetails stores details of the node from the original
+	// YANG schema, such that some characteristics can be accessed
+	// by the code generation process. Only details that are
+	// directly required are provided.
 	YANGDetails YANGNodeDetails
+	// Type describes the type of node that the leaf represents,
+	// allowing for container, list, leaf and leaf-list entries
+	// to be distinguished.
+	// In the future it can be used to store other node types that
+	// form a direct child of a subtree node.
 	Type        NodeType
+	// LangType describes the type that the node should be given in
+	// the output code, using the output of the language-specific
+	// type mapping provided by calling the LangMapper interface.
 	LangType    *MappedType
+	// MapPaths describes the paths that the output node should
+	// be mapped to in the output code - these annotations can be
+	// used to annotation the output code with the field(s) that it
+	// corresponds to in the YANG schema.
 	MapPaths    [][]string
 }
+
+// YANGNodeDetails stores the YANG-specific details of a node
+// within the schema.
+type YANGNodeDetails struct {
+	// Name is the name of the node from the YANG schema.
+	Name    string
+	// Default represents the 'default' value directly
+	// specified in the YANG schema.
+	Default string
+	// Module stores the name of the module that instantiates
+	// the node.
+	Module  string
+	// Path specifies the complete YANG schema node path.
+	Path    []string
+}
 ```
+
+#### Definitions for Enumerated Types
+
+YANG has a number of different types of enumerated values - particularly, `identity` and `enumeration` statements. Generated code may choose to treat these differently. For example, for an `enumeration` leaf - some languages may choose to use an embedded enumeration (e.g., protobuf can use a scoped `Enum` within a message). For this reason, some of the provenance of a particular value needs to be exposed to the downstream code generation libraries.
+
+Despite this, a significant amount of pre-parsing can be done by the `ygen` library to pre-process enumerated values prior to being output to code. Particularly:
+
+* Handling of an enumerated value's integer ID to an language-specific name can be created (using the relevant features of the `LangMapper` interface).
+* A reverse mapping between the integer ID and defining module and corresponding YANG identifier can be created.
+
+By performing this pre-processing, the functionality of the code generation library is constrained to determine how each type of enumeration should be output, and creating the language-specific constructs required for mapping (e.g., the enumeration map created in `ygen`'s current Go output).
+
+The IR format for enumerations is defined to be as follows:
+
+```golang
+type EnumeratedValueType int64
+
+const (
+	_ EnumeratedValueType = iota
+	SimpleEnumerationType
+	DerivedEnumerationType
+	UnionEnumerationType
+	IdentityType
+)
+
+type EnumeratedYANGType struct {
+	// Name is the name of the generated enumeration to be
+	// used in the generated code.
+	Name string
+	// Kind indicates the type of enumerated value that the
+	// EnumeratedYANGType represents - allowing for a code
+	// generation mechanism to select how different enumerated
+	// value types are output.
+	Kind EnumeratedValueType
+	// ValuePrefix stores any prefix that has been annotated by the IR generation
+	// that specifies what prefix should be appended to value names within the type.
+	ValuePrefix []string
+	// TypeName stores the original YANG type name for the enumeration.
+	TypeName string
+	
+	// ValToCodeName stores the mapping between the int64
+	// value for the enumeration, and its language-specific
+	// name.
+	ValToCodeName map[int64]string
+	// ValToYANGDetails stores the mapping between the
+	// int64 identifier for the enumeration value and its
+	// YANG-specific details (as defined by the ygot.EnumDefinition).
+	ValToYANGDetails map[int64]*ygot.EnumDefinition
+}
+```
+
+Some additional information - such as the `ValuePrefix` can be optionally generated when processing the enumerated types by the `LangMapper`, and is stored within the relevant `yang.Entry` as an `Annotation` field. 
+
+## Proposed Next Steps
+
+This design has been arrived at through significant prototyping work in the `ygen` code-base. Following agreement of this design, we will begin to refactor the existing ygen code to meet this pattern. This work will be considered a pre-requisite for a 1.0.0 release of ygot as a package.
