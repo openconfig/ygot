@@ -181,13 +181,15 @@ type ExampleMessage struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Bo  *ywrapper.BoolValue      `protobuf:"bytes,1,opt,name=bo,proto3" json:"bo,omitempty"`
-	By  *ywrapper.BytesValue     `protobuf:"bytes,2,opt,name=by,proto3" json:"by,omitempty"`
-	De  *ywrapper.Decimal64Value `protobuf:"bytes,3,opt,name=de,proto3" json:"de,omitempty"`
-	In  *ywrapper.IntValue       `protobuf:"bytes,4,opt,name=in,proto3" json:"in,omitempty"`
-	Str *ywrapper.StringValue    `protobuf:"bytes,5,opt,name=str,proto3" json:"str,omitempty"`
-	Ui  *ywrapper.UintValue      `protobuf:"bytes,6,opt,name=ui,proto3" json:"ui,omitempty"`
-	Ex  *ExampleMessageChild     `protobuf:"bytes,7,opt,name=ex,proto3" json:"ex,omitempty"`
+	Bo    *ywrapper.BoolValue       `protobuf:"bytes,1,opt,name=bo,proto3" json:"bo,omitempty"`
+	By    *ywrapper.BytesValue      `protobuf:"bytes,2,opt,name=by,proto3" json:"by,omitempty"`
+	De    *ywrapper.Decimal64Value  `protobuf:"bytes,3,opt,name=de,proto3" json:"de,omitempty"`
+	In    *ywrapper.IntValue        `protobuf:"bytes,4,opt,name=in,proto3" json:"in,omitempty"`
+	Str   *ywrapper.StringValue     `protobuf:"bytes,5,opt,name=str,proto3" json:"str,omitempty"`
+	Ui    *ywrapper.UintValue       `protobuf:"bytes,6,opt,name=ui,proto3" json:"ui,omitempty"`
+	Ex    *ExampleMessageChild      `protobuf:"bytes,7,opt,name=ex,proto3" json:"ex,omitempty"`
+	Em    []*ExampleMessageKey      `protobuf:"bytes,8,rep,name=em,proto3" json:"em,omitempty"`
+	Multi []*ExampleMessageMultiKey `protobuf:"bytes,9,rep,name=multi,proto3" json:"multi,omitempty"`
 }
 
 func (x *ExampleMessage) Reset() {
@@ -271,6 +273,20 @@ func (x *ExampleMessage) GetEx() *ExampleMessageChild {
 	return nil
 }
 
+func (x *ExampleMessage) GetEm() []*ExampleMessageKey {
+	if x != nil {
+		return x.Em
+	}
+	return nil
+}
+
+func (x *ExampleMessage) GetMulti() []*ExampleMessageMultiKey {
+	if x != nil {
+		return x.Multi
+	}
+	return nil
+}
+
 type ExampleMessageChild struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -318,6 +334,698 @@ func (x *ExampleMessageChild) GetStr() *ywrapper.StringValue {
 	return nil
 }
 
+type ExampleMessageKey struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	SingleKey string                    `protobuf:"bytes,1,opt,name=single_key,json=singleKey,proto3" json:"single_key,omitempty"`
+	Member    *ExampleMessageListMember `protobuf:"bytes,2,opt,name=member,proto3" json:"member,omitempty"`
+}
+
+func (x *ExampleMessageKey) Reset() {
+	*x = ExampleMessageKey{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ExampleMessageKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExampleMessageKey) ProtoMessage() {}
+
+func (x *ExampleMessageKey) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExampleMessageKey.ProtoReflect.Descriptor instead.
+func (*ExampleMessageKey) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ExampleMessageKey) GetSingleKey() string {
+	if x != nil {
+		return x.SingleKey
+	}
+	return ""
+}
+
+func (x *ExampleMessageKey) GetMember() *ExampleMessageListMember {
+	if x != nil {
+		return x.Member
+	}
+	return nil
+}
+
+type ExampleMessageListMember struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Str       *ywrapper.StringValue `protobuf:"bytes,1,opt,name=str,proto3" json:"str,omitempty"`
+	ChildList []*NestedListKey      `protobuf:"bytes,2,rep,name=child_list,json=childList,proto3" json:"child_list,omitempty"`
+}
+
+func (x *ExampleMessageListMember) Reset() {
+	*x = ExampleMessageListMember{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ExampleMessageListMember) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExampleMessageListMember) ProtoMessage() {}
+
+func (x *ExampleMessageListMember) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExampleMessageListMember.ProtoReflect.Descriptor instead.
+func (*ExampleMessageListMember) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ExampleMessageListMember) GetStr() *ywrapper.StringValue {
+	if x != nil {
+		return x.Str
+	}
+	return nil
+}
+
+func (x *ExampleMessageListMember) GetChildList() []*NestedListKey {
+	if x != nil {
+		return x.ChildList
+	}
+	return nil
+}
+
+type NestedListKey struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	KeyOne string            `protobuf:"bytes,1,opt,name=key_one,json=keyOne,proto3" json:"key_one,omitempty"`
+	Field  *NestedListMember `protobuf:"bytes,2,opt,name=field,proto3" json:"field,omitempty"`
+}
+
+func (x *NestedListKey) Reset() {
+	*x = NestedListKey{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *NestedListKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NestedListKey) ProtoMessage() {}
+
+func (x *NestedListKey) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NestedListKey.ProtoReflect.Descriptor instead.
+func (*NestedListKey) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *NestedListKey) GetKeyOne() string {
+	if x != nil {
+		return x.KeyOne
+	}
+	return ""
+}
+
+func (x *NestedListKey) GetField() *NestedListMember {
+	if x != nil {
+		return x.Field
+	}
+	return nil
+}
+
+type NestedListMember struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Str *ywrapper.StringValue `protobuf:"bytes,1,opt,name=str,proto3" json:"str,omitempty"`
+}
+
+func (x *NestedListMember) Reset() {
+	*x = NestedListMember{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *NestedListMember) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NestedListMember) ProtoMessage() {}
+
+func (x *NestedListMember) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NestedListMember.ProtoReflect.Descriptor instead.
+func (*NestedListMember) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *NestedListMember) GetStr() *ywrapper.StringValue {
+	if x != nil {
+		return x.Str
+	}
+	return nil
+}
+
+type ExampleMessageMultiKey struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Index  uint32              `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	Name   string              `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Member *MultiKeyListMember `protobuf:"bytes,3,opt,name=member,proto3" json:"member,omitempty"`
+}
+
+func (x *ExampleMessageMultiKey) Reset() {
+	*x = ExampleMessageMultiKey{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ExampleMessageMultiKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExampleMessageMultiKey) ProtoMessage() {}
+
+func (x *ExampleMessageMultiKey) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExampleMessageMultiKey.ProtoReflect.Descriptor instead.
+func (*ExampleMessageMultiKey) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ExampleMessageMultiKey) GetIndex() uint32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *ExampleMessageMultiKey) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ExampleMessageMultiKey) GetMember() *MultiKeyListMember {
+	if x != nil {
+		return x.Member
+	}
+	return nil
+}
+
+type MultiKeyListMember struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Child *ywrapper.StringValue `protobuf:"bytes,1,opt,name=child,proto3" json:"child,omitempty"`
+}
+
+func (x *MultiKeyListMember) Reset() {
+	*x = MultiKeyListMember{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *MultiKeyListMember) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MultiKeyListMember) ProtoMessage() {}
+
+func (x *MultiKeyListMember) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MultiKeyListMember.ProtoReflect.Descriptor instead.
+func (*MultiKeyListMember) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *MultiKeyListMember) GetChild() *ywrapper.StringValue {
+	if x != nil {
+		return x.Child
+	}
+	return nil
+}
+
+type InvalidMessage struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	MapField                        map[string]string     `protobuf:"bytes,1,rep,name=map_field,json=mapField,proto3" json:"map_field,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
+	NoAnnotation                    string                `protobuf:"bytes,2,opt,name=no_annotation,json=noAnnotation,proto3" json:"no_annotation,omitempty"`
+	Km                              []*ExampleMessageKey  `protobuf:"bytes,3,rep,name=km,proto3" json:"km,omitempty"`
+	Ke                              []string              `protobuf:"bytes,4,rep,name=ke,proto3" json:"ke,omitempty"`
+	Bk                              []*BadMessageKey      `protobuf:"bytes,5,rep,name=bk,proto3" json:"bk,omitempty"`
+	Bm                              []*BadMessageMember   `protobuf:"bytes,6,rep,name=bm,proto3" json:"bm,omitempty"`
+	InvalidAnnotatedPath            *ywrapper.StringValue `protobuf:"bytes,7,opt,name=invalid_annotated_path,json=invalidAnnotatedPath,proto3" json:"invalid_annotated_path,omitempty"`
+	BkTwo                           []*BadMessageKeyTwo   `protobuf:"bytes,8,rep,name=bk_two,json=bkTwo,proto3" json:"bk_two,omitempty"`
+	MultipleAnnotationsForContainer *InvalidMessage       `protobuf:"bytes,9,opt,name=multiple_annotations_for_container,json=multipleAnnotationsForContainer,proto3" json:"multiple_annotations_for_container,omitempty"`
+	Bkpm                            []*BadKeyPathMessage  `protobuf:"bytes,10,rep,name=bkpm,proto3" json:"bkpm,omitempty"`
+	Ikpk                            []*InvalidKeyPathKey  `protobuf:"bytes,11,rep,name=ikpk,proto3" json:"ikpk,omitempty"`
+}
+
+func (x *InvalidMessage) Reset() {
+	*x = InvalidMessage{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *InvalidMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InvalidMessage) ProtoMessage() {}
+
+func (x *InvalidMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InvalidMessage.ProtoReflect.Descriptor instead.
+func (*InvalidMessage) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *InvalidMessage) GetMapField() map[string]string {
+	if x != nil {
+		return x.MapField
+	}
+	return nil
+}
+
+func (x *InvalidMessage) GetNoAnnotation() string {
+	if x != nil {
+		return x.NoAnnotation
+	}
+	return ""
+}
+
+func (x *InvalidMessage) GetKm() []*ExampleMessageKey {
+	if x != nil {
+		return x.Km
+	}
+	return nil
+}
+
+func (x *InvalidMessage) GetKe() []string {
+	if x != nil {
+		return x.Ke
+	}
+	return nil
+}
+
+func (x *InvalidMessage) GetBk() []*BadMessageKey {
+	if x != nil {
+		return x.Bk
+	}
+	return nil
+}
+
+func (x *InvalidMessage) GetBm() []*BadMessageMember {
+	if x != nil {
+		return x.Bm
+	}
+	return nil
+}
+
+func (x *InvalidMessage) GetInvalidAnnotatedPath() *ywrapper.StringValue {
+	if x != nil {
+		return x.InvalidAnnotatedPath
+	}
+	return nil
+}
+
+func (x *InvalidMessage) GetBkTwo() []*BadMessageKeyTwo {
+	if x != nil {
+		return x.BkTwo
+	}
+	return nil
+}
+
+func (x *InvalidMessage) GetMultipleAnnotationsForContainer() *InvalidMessage {
+	if x != nil {
+		return x.MultipleAnnotationsForContainer
+	}
+	return nil
+}
+
+func (x *InvalidMessage) GetBkpm() []*BadKeyPathMessage {
+	if x != nil {
+		return x.Bkpm
+	}
+	return nil
+}
+
+func (x *InvalidMessage) GetIkpk() []*InvalidKeyPathKey {
+	if x != nil {
+		return x.Ikpk
+	}
+	return nil
+}
+
+type BadMessageKeyTwo struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (x *BadMessageKeyTwo) Reset() {
+	*x = BadMessageKeyTwo{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BadMessageKeyTwo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BadMessageKeyTwo) ProtoMessage() {}
+
+func (x *BadMessageKeyTwo) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BadMessageKeyTwo.ProtoReflect.Descriptor instead.
+func (*BadMessageKeyTwo) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *BadMessageKeyTwo) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+type BadMessageKey struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	BadKeyType float32 `protobuf:"fixed32,1,opt,name=bad_key_type,json=badKeyType,proto3" json:"bad_key_type,omitempty"`
+}
+
+func (x *BadMessageKey) Reset() {
+	*x = BadMessageKey{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BadMessageKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BadMessageKey) ProtoMessage() {}
+
+func (x *BadMessageKey) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BadMessageKey.ProtoReflect.Descriptor instead.
+func (*BadMessageKey) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *BadMessageKey) GetBadKeyType() float32 {
+	if x != nil {
+		return x.BadKeyType
+	}
+	return 0
+}
+
+type BadMessageMember struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Key     string   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	BadType []string `protobuf:"bytes,2,rep,name=bad_type,json=badType,proto3" json:"bad_type,omitempty"`
+}
+
+func (x *BadMessageMember) Reset() {
+	*x = BadMessageMember{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[14]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BadMessageMember) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BadMessageMember) ProtoMessage() {}
+
+func (x *BadMessageMember) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[14]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BadMessageMember.ProtoReflect.Descriptor instead.
+func (*BadMessageMember) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *BadMessageMember) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *BadMessageMember) GetBadType() []string {
+	if x != nil {
+		return x.BadType
+	}
+	return nil
+}
+
+type BadKeyPathMessage struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (x *BadKeyPathMessage) Reset() {
+	*x = BadKeyPathMessage{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[15]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BadKeyPathMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BadKeyPathMessage) ProtoMessage() {}
+
+func (x *BadKeyPathMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[15]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BadKeyPathMessage.ProtoReflect.Descriptor instead.
+func (*BadKeyPathMessage) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *BadKeyPathMessage) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+type InvalidKeyPathKey struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Key string `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+}
+
+func (x *InvalidKeyPathKey) Reset() {
+	*x = InvalidKeyPathKey{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[16]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *InvalidKeyPathKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InvalidKeyPathKey) ProtoMessage() {}
+
+func (x *InvalidKeyPathKey) ProtoReflect() protoreflect.Message {
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[16]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InvalidKeyPathKey.ProtoReflect.Descriptor instead.
+func (*InvalidKeyPathKey) Descriptor() ([]byte, []int) {
+	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *InvalidKeyPathKey) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
 type Root_InterfaceKey struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -330,7 +1038,7 @@ type Root_InterfaceKey struct {
 func (x *Root_InterfaceKey) Reset() {
 	*x = Root_InterfaceKey{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[5]
+		mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -343,7 +1051,7 @@ func (x *Root_InterfaceKey) String() string {
 func (*Root_InterfaceKey) ProtoMessage() {}
 
 func (x *Root_InterfaceKey) ProtoReflect() protoreflect.Message {
-	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[5]
+	mi := &file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -420,7 +1128,7 @@ var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_
 	0x70, 0x65, 0x72, 0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42,
 	0x1a, 0x82, 0x41, 0x17, 0x2f, 0x73, 0x79, 0x73, 0x74, 0x65, 0x6d, 0x2f, 0x63, 0x6f, 0x6e, 0x66,
 	0x69, 0x67, 0x2f, 0x68, 0x6f, 0x73, 0x74, 0x6e, 0x61, 0x6d, 0x65, 0x52, 0x08, 0x68, 0x6f, 0x73,
-	0x74, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0xf8, 0x02, 0x0a, 0x0e, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c,
+	0x74, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x84, 0x04, 0x0a, 0x0e, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c,
 	0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x2d, 0x0a, 0x02, 0x62, 0x6f, 0x18, 0x01,
 	0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x79, 0x77, 0x72, 0x61, 0x70, 0x70, 0x65, 0x72, 0x2e,
 	0x42, 0x6f, 0x6f, 0x6c, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x08, 0x82, 0x41, 0x05, 0x2f, 0x62,
@@ -444,16 +1152,151 @@ var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_
 	0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x45, 0x78, 0x61, 0x6d,
 	0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x43, 0x68, 0x69, 0x6c, 0x64, 0x42,
 	0x0b, 0x82, 0x41, 0x08, 0x2f, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x52, 0x02, 0x65, 0x78,
-	0x22, 0x4f, 0x0a, 0x13, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61,
-	0x67, 0x65, 0x43, 0x68, 0x69, 0x6c, 0x64, 0x12, 0x38, 0x0a, 0x03, 0x73, 0x74, 0x72, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x79, 0x77, 0x72, 0x61, 0x70, 0x70, 0x65, 0x72, 0x2e,
-	0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x0f, 0x82, 0x41, 0x0c,
-	0x2f, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x2f, 0x73, 0x74, 0x72, 0x52, 0x03, 0x73, 0x74,
-	0x72, 0x42, 0x3b, 0x5a, 0x39, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f,
-	0x6f, 0x70, 0x65, 0x6e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2f, 0x79, 0x67, 0x6f, 0x74, 0x2f,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x6d, 0x61, 0x70, 0x2f, 0x74, 0x65, 0x73, 0x74, 0x64, 0x61, 0x74,
-	0x61, 0x2f, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x12, 0x3e, 0x0a, 0x02, 0x65, 0x6d, 0x18, 0x08, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1f, 0x2e, 0x65,
+	0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x45, 0x78, 0x61, 0x6d,
+	0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4b, 0x65, 0x79, 0x42, 0x0d, 0x82,
+	0x41, 0x0a, 0x2f, 0x6c, 0x69, 0x73, 0x74, 0x2d, 0x6e, 0x61, 0x6d, 0x65, 0x52, 0x02, 0x65, 0x6d,
+	0x12, 0x4a, 0x0a, 0x05, 0x6d, 0x75, 0x6c, 0x74, 0x69, 0x18, 0x09, 0x20, 0x03, 0x28, 0x0b, 0x32,
+	0x24, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x45,
+	0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4d, 0x75, 0x6c,
+	0x74, 0x69, 0x4b, 0x65, 0x79, 0x42, 0x0e, 0x82, 0x41, 0x0b, 0x2f, 0x6d, 0x75, 0x6c, 0x74, 0x69,
+	0x2d, 0x6c, 0x69, 0x73, 0x74, 0x52, 0x05, 0x6d, 0x75, 0x6c, 0x74, 0x69, 0x22, 0x4f, 0x0a, 0x13,
+	0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x43, 0x68,
+	0x69, 0x6c, 0x64, 0x12, 0x38, 0x0a, 0x03, 0x73, 0x74, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x15, 0x2e, 0x79, 0x77, 0x72, 0x61, 0x70, 0x70, 0x65, 0x72, 0x2e, 0x53, 0x74, 0x72, 0x69,
+	0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x0f, 0x82, 0x41, 0x0c, 0x2f, 0x6d, 0x65, 0x73,
+	0x73, 0x61, 0x67, 0x65, 0x2f, 0x73, 0x74, 0x72, 0x52, 0x03, 0x73, 0x74, 0x72, 0x22, 0xa9, 0x01,
+	0x0a, 0x11, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
+	0x4b, 0x65, 0x79, 0x12, 0x54, 0x0a, 0x0a, 0x73, 0x69, 0x6e, 0x67, 0x6c, 0x65, 0x5f, 0x6b, 0x65,
+	0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x35, 0x82, 0x41, 0x32, 0x2f, 0x6c, 0x69, 0x73,
+	0x74, 0x2d, 0x6e, 0x61, 0x6d, 0x65, 0x2f, 0x73, 0x69, 0x6e, 0x67, 0x6c, 0x65, 0x2d, 0x6b, 0x65,
+	0x79, 0x7c, 0x2f, 0x6c, 0x69, 0x73, 0x74, 0x2d, 0x6e, 0x61, 0x6d, 0x65, 0x2f, 0x63, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x2f, 0x73, 0x69, 0x6e, 0x67, 0x6c, 0x65, 0x2d, 0x6b, 0x65, 0x79, 0x52, 0x09,
+	0x73, 0x69, 0x6e, 0x67, 0x6c, 0x65, 0x4b, 0x65, 0x79, 0x12, 0x3e, 0x0a, 0x06, 0x6d, 0x65, 0x6d,
+	0x62, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x26, 0x2e, 0x65, 0x78, 0x73, 0x63,
+	0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65,
+	0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4c, 0x69, 0x73, 0x74, 0x4d, 0x65, 0x6d, 0x62, 0x65,
+	0x72, 0x52, 0x06, 0x6d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x22, 0xb6, 0x01, 0x0a, 0x18, 0x45, 0x78,
+	0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4c, 0x69, 0x73, 0x74,
+	0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x44, 0x0a, 0x03, 0x73, 0x74, 0x72, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x79, 0x77, 0x72, 0x61, 0x70, 0x70, 0x65, 0x72, 0x2e, 0x53,
+	0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x1b, 0x82, 0x41, 0x18, 0x2f,
+	0x6c, 0x69, 0x73, 0x74, 0x2d, 0x6e, 0x61, 0x6d, 0x65, 0x2f, 0x61, 0x6e, 0x6f, 0x74, 0x68, 0x65,
+	0x72, 0x2d, 0x66, 0x69, 0x65, 0x6c, 0x64, 0x52, 0x03, 0x73, 0x74, 0x72, 0x12, 0x54, 0x0a, 0x0a,
+	0x63, 0x68, 0x69, 0x6c, 0x64, 0x5f, 0x6c, 0x69, 0x73, 0x74, 0x18, 0x02, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x1b, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e,
+	0x4e, 0x65, 0x73, 0x74, 0x65, 0x64, 0x4c, 0x69, 0x73, 0x74, 0x4b, 0x65, 0x79, 0x42, 0x18, 0x82,
+	0x41, 0x15, 0x2f, 0x6c, 0x69, 0x73, 0x74, 0x2d, 0x6e, 0x61, 0x6d, 0x65, 0x2f, 0x63, 0x68, 0x69,
+	0x6c, 0x64, 0x2d, 0x6c, 0x69, 0x73, 0x74, 0x52, 0x09, 0x63, 0x68, 0x69, 0x6c, 0x64, 0x4c, 0x69,
+	0x73, 0x74, 0x22, 0x80, 0x01, 0x0a, 0x0d, 0x4e, 0x65, 0x73, 0x74, 0x65, 0x64, 0x4c, 0x69, 0x73,
+	0x74, 0x4b, 0x65, 0x79, 0x12, 0x39, 0x0a, 0x07, 0x6b, 0x65, 0x79, 0x5f, 0x6f, 0x6e, 0x65, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x20, 0x82, 0x41, 0x1d, 0x2f, 0x6c, 0x69, 0x73, 0x74, 0x2d,
+	0x6e, 0x61, 0x6d, 0x65, 0x2f, 0x63, 0x68, 0x69, 0x6c, 0x64, 0x2d, 0x6c, 0x69, 0x73, 0x74, 0x2f,
+	0x6b, 0x65, 0x79, 0x2d, 0x6f, 0x6e, 0x65, 0x52, 0x06, 0x6b, 0x65, 0x79, 0x4f, 0x6e, 0x65, 0x12,
+	0x34, 0x0a, 0x05, 0x66, 0x69, 0x65, 0x6c, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1e,
+	0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x4e, 0x65,
+	0x73, 0x74, 0x65, 0x64, 0x4c, 0x69, 0x73, 0x74, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x52, 0x05,
+	0x66, 0x69, 0x65, 0x6c, 0x64, 0x22, 0x59, 0x0a, 0x10, 0x4e, 0x65, 0x73, 0x74, 0x65, 0x64, 0x4c,
+	0x69, 0x73, 0x74, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x45, 0x0a, 0x03, 0x73, 0x74, 0x72,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x79, 0x77, 0x72, 0x61, 0x70, 0x70, 0x65,
+	0x72, 0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x1c, 0x82,
+	0x41, 0x19, 0x2f, 0x6c, 0x69, 0x73, 0x74, 0x2d, 0x6e, 0x61, 0x6d, 0x65, 0x2f, 0x63, 0x68, 0x69,
+	0x6c, 0x64, 0x2d, 0x6c, 0x69, 0x73, 0x74, 0x2f, 0x73, 0x74, 0x72, 0x52, 0x03, 0x73, 0x74, 0x72,
+	0x22, 0xd8, 0x01, 0x0a, 0x16, 0x45, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73,
+	0x61, 0x67, 0x65, 0x4d, 0x75, 0x6c, 0x74, 0x69, 0x4b, 0x65, 0x79, 0x12, 0x43, 0x0a, 0x05, 0x69,
+	0x6e, 0x64, 0x65, 0x78, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x42, 0x2d, 0x82, 0x41, 0x2a, 0x2f,
+	0x6d, 0x75, 0x6c, 0x74, 0x69, 0x2d, 0x6c, 0x69, 0x73, 0x74, 0x2f, 0x69, 0x6e, 0x64, 0x65, 0x78,
+	0x7c, 0x2f, 0x6d, 0x75, 0x6c, 0x74, 0x69, 0x2d, 0x6c, 0x69, 0x73, 0x74, 0x2f, 0x63, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x2f, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x52, 0x05, 0x69, 0x6e, 0x64, 0x65, 0x78,
+	0x12, 0x3f, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x42, 0x2b,
+	0x82, 0x41, 0x28, 0x2f, 0x6d, 0x75, 0x6c, 0x74, 0x69, 0x2d, 0x6c, 0x69, 0x73, 0x74, 0x2f, 0x6e,
+	0x61, 0x6d, 0x65, 0x7c, 0x2f, 0x6d, 0x75, 0x6c, 0x74, 0x69, 0x2d, 0x6c, 0x69, 0x73, 0x74, 0x2f,
+	0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2f, 0x6e, 0x61, 0x6d, 0x65, 0x52, 0x04, 0x6e, 0x61, 0x6d,
+	0x65, 0x12, 0x38, 0x0a, 0x06, 0x6d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x18, 0x03, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x20, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68,
+	0x2e, 0x4d, 0x75, 0x6c, 0x74, 0x69, 0x4b, 0x65, 0x79, 0x4c, 0x69, 0x73, 0x74, 0x4d, 0x65, 0x6d,
+	0x62, 0x65, 0x72, 0x52, 0x06, 0x6d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x22, 0x5e, 0x0a, 0x12, 0x4d,
+	0x75, 0x6c, 0x74, 0x69, 0x4b, 0x65, 0x79, 0x4c, 0x69, 0x73, 0x74, 0x4d, 0x65, 0x6d, 0x62, 0x65,
+	0x72, 0x12, 0x48, 0x0a, 0x05, 0x63, 0x68, 0x69, 0x6c, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x15, 0x2e, 0x79, 0x77, 0x72, 0x61, 0x70, 0x70, 0x65, 0x72, 0x2e, 0x53, 0x74, 0x72, 0x69,
+	0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x1b, 0x82, 0x41, 0x18, 0x2f, 0x6d, 0x75, 0x6c,
+	0x74, 0x69, 0x2d, 0x6c, 0x69, 0x73, 0x74, 0x2f, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2f, 0x63,
+	0x68, 0x69, 0x6c, 0x64, 0x52, 0x05, 0x63, 0x68, 0x69, 0x6c, 0x64, 0x22, 0xb1, 0x06, 0x0a, 0x0e,
+	0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x5d,
+	0x0a, 0x09, 0x6d, 0x61, 0x70, 0x5f, 0x66, 0x69, 0x65, 0x6c, 0x64, 0x18, 0x01, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x2a, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68,
+	0x2e, 0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x2e,
+	0x4d, 0x61, 0x70, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x45, 0x6e, 0x74, 0x72, 0x79, 0x42, 0x14, 0x82,
+	0x41, 0x11, 0x2f, 0x61, 0x6e, 0x2f, 0x69, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x2f, 0x66, 0x69,
+	0x65, 0x6c, 0x64, 0x52, 0x08, 0x6d, 0x61, 0x70, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x12, 0x23, 0x0a,
+	0x0d, 0x6e, 0x6f, 0x5f, 0x61, 0x6e, 0x6e, 0x6f, 0x74, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x0c, 0x6e, 0x6f, 0x41, 0x6e, 0x6e, 0x6f, 0x74, 0x61, 0x74, 0x69,
+	0x6f, 0x6e, 0x12, 0x3d, 0x0a, 0x02, 0x6b, 0x6d, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1f,
+	0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x45, 0x78,
+	0x61, 0x6d, 0x70, 0x6c, 0x65, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4b, 0x65, 0x79, 0x42,
+	0x0c, 0x82, 0x41, 0x09, 0x2f, 0x6f, 0x6e, 0x65, 0x7c, 0x2f, 0x74, 0x77, 0x6f, 0x52, 0x02, 0x6b,
+	0x6d, 0x12, 0x19, 0x0a, 0x02, 0x6b, 0x65, 0x18, 0x04, 0x20, 0x03, 0x28, 0x09, 0x42, 0x09, 0x82,
+	0x41, 0x06, 0x2f, 0x74, 0x68, 0x72, 0x65, 0x65, 0x52, 0x02, 0x6b, 0x65, 0x12, 0x35, 0x0a, 0x02,
+	0x62, 0x6b, 0x18, 0x05, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68,
+	0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x42, 0x61, 0x64, 0x4d, 0x65, 0x73, 0x73, 0x61,
+	0x67, 0x65, 0x4b, 0x65, 0x79, 0x42, 0x08, 0x82, 0x41, 0x05, 0x2f, 0x66, 0x6f, 0x75, 0x72, 0x52,
+	0x02, 0x62, 0x6b, 0x12, 0x38, 0x0a, 0x02, 0x62, 0x6d, 0x18, 0x06, 0x20, 0x03, 0x28, 0x0b, 0x32,
+	0x1e, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x42,
+	0x61, 0x64, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x42,
+	0x08, 0x82, 0x41, 0x05, 0x2f, 0x66, 0x69, 0x76, 0x65, 0x52, 0x02, 0x62, 0x6d, 0x12, 0x59, 0x0a,
+	0x16, 0x69, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x5f, 0x61, 0x6e, 0x6e, 0x6f, 0x74, 0x61, 0x74,
+	0x65, 0x64, 0x5f, 0x70, 0x61, 0x74, 0x68, 0x18, 0x07, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e,
+	0x79, 0x77, 0x72, 0x61, 0x70, 0x70, 0x65, 0x72, 0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56,
+	0x61, 0x6c, 0x75, 0x65, 0x42, 0x0c, 0x82, 0x41, 0x09, 0x2f, 0x6f, 0x6e, 0x65, 0x5b, 0x74, 0x77,
+	0x6f, 0x5d, 0x52, 0x14, 0x69, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x41, 0x6e, 0x6e, 0x6f, 0x74,
+	0x61, 0x74, 0x65, 0x64, 0x50, 0x61, 0x74, 0x68, 0x12, 0x3e, 0x0a, 0x06, 0x62, 0x6b, 0x5f, 0x74,
+	0x77, 0x6f, 0x18, 0x08, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1e, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68,
+	0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68, 0x2e, 0x42, 0x61, 0x64, 0x4d, 0x65, 0x73, 0x73, 0x61,
+	0x67, 0x65, 0x4b, 0x65, 0x79, 0x54, 0x77, 0x6f, 0x42, 0x07, 0x82, 0x41, 0x04, 0x2f, 0x73, 0x69,
+	0x78, 0x52, 0x05, 0x62, 0x6b, 0x54, 0x77, 0x6f, 0x12, 0x79, 0x0a, 0x22, 0x6d, 0x75, 0x6c, 0x74,
+	0x69, 0x70, 0x6c, 0x65, 0x5f, 0x61, 0x6e, 0x6e, 0x6f, 0x74, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73,
+	0x5f, 0x66, 0x6f, 0x72, 0x5f, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x65, 0x72, 0x18, 0x09,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70,
+	0x61, 0x74, 0x68, 0x2e, 0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x4d, 0x65, 0x73, 0x73, 0x61,
+	0x67, 0x65, 0x42, 0x0e, 0x82, 0x41, 0x0b, 0x2f, 0x73, 0x69, 0x78, 0x7c, 0x2f, 0x73, 0x65, 0x76,
+	0x65, 0x6e, 0x52, 0x1f, 0x6d, 0x75, 0x6c, 0x74, 0x69, 0x70, 0x6c, 0x65, 0x41, 0x6e, 0x6e, 0x6f,
+	0x74, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x46, 0x6f, 0x72, 0x43, 0x6f, 0x6e, 0x74, 0x61, 0x69,
+	0x6e, 0x65, 0x72, 0x12, 0x3e, 0x0a, 0x04, 0x62, 0x6b, 0x70, 0x6d, 0x18, 0x0a, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x1f, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68,
+	0x2e, 0x42, 0x61, 0x64, 0x4b, 0x65, 0x79, 0x50, 0x61, 0x74, 0x68, 0x4d, 0x65, 0x73, 0x73, 0x61,
+	0x67, 0x65, 0x42, 0x09, 0x82, 0x41, 0x06, 0x2f, 0x65, 0x69, 0x67, 0x68, 0x74, 0x52, 0x04, 0x62,
+	0x6b, 0x70, 0x6d, 0x12, 0x3d, 0x0a, 0x04, 0x69, 0x6b, 0x70, 0x6b, 0x18, 0x0b, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x1f, 0x2e, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74, 0x68,
+	0x2e, 0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x4b, 0x65, 0x79, 0x50, 0x61, 0x74, 0x68, 0x4b,
+	0x65, 0x79, 0x42, 0x08, 0x82, 0x41, 0x05, 0x2f, 0x6e, 0x69, 0x6e, 0x65, 0x52, 0x04, 0x69, 0x6b,
+	0x70, 0x6b, 0x1a, 0x3b, 0x0a, 0x0d, 0x4d, 0x61, 0x70, 0x46, 0x69, 0x65, 0x6c, 0x64, 0x45, 0x6e,
+	0x74, 0x72, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x3a, 0x02, 0x38, 0x01, 0x22,
+	0x36, 0x0a, 0x10, 0x42, 0x61, 0x64, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4b, 0x65, 0x79,
+	0x54, 0x77, 0x6f, 0x12, 0x22, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x42, 0x10, 0x82, 0x41, 0x0d, 0x2f, 0x6f, 0x6e, 0x65, 0x7c, 0x2f, 0x6f, 0x6e, 0x65, 0x2f, 0x74,
+	0x77, 0x6f, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x22, 0x3f, 0x0a, 0x0d, 0x42, 0x61, 0x64, 0x4d, 0x65,
+	0x73, 0x73, 0x61, 0x67, 0x65, 0x4b, 0x65, 0x79, 0x12, 0x2e, 0x0a, 0x0c, 0x62, 0x61, 0x64, 0x5f,
+	0x6b, 0x65, 0x79, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x02, 0x42, 0x0c,
+	0x82, 0x41, 0x09, 0x2f, 0x66, 0x6f, 0x75, 0x72, 0x2f, 0x6b, 0x65, 0x79, 0x52, 0x0a, 0x62, 0x61,
+	0x64, 0x4b, 0x65, 0x79, 0x54, 0x79, 0x70, 0x65, 0x22, 0x58, 0x0a, 0x10, 0x42, 0x61, 0x64, 0x4d,
+	0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x4d, 0x65, 0x6d, 0x62, 0x65, 0x72, 0x12, 0x1c, 0x0a, 0x03,
+	0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x42, 0x0a, 0x82, 0x41, 0x07, 0x2f, 0x6f,
+	0x6b, 0x2d, 0x6b, 0x65, 0x79, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x26, 0x0a, 0x08, 0x62, 0x61,
+	0x64, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x42, 0x0b, 0x82, 0x41,
+	0x08, 0x2f, 0x62, 0x61, 0x64, 0x2d, 0x6b, 0x65, 0x79, 0x52, 0x07, 0x62, 0x61, 0x64, 0x54, 0x79,
+	0x70, 0x65, 0x22, 0x2b, 0x0a, 0x11, 0x42, 0x61, 0x64, 0x4b, 0x65, 0x79, 0x50, 0x61, 0x74, 0x68,
+	0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x16, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x42, 0x04, 0x82, 0x41, 0x01, 0x2f, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x22,
+	0x33, 0x0a, 0x11, 0x49, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64, 0x4b, 0x65, 0x79, 0x50, 0x61, 0x74,
+	0x68, 0x4b, 0x65, 0x79, 0x12, 0x1e, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x09, 0x42, 0x0c, 0x82, 0x41, 0x09, 0x2f, 0x6f, 0x6e, 0x65, 0x5b, 0x74, 0x77, 0x6f, 0x5d, 0x52,
+	0x03, 0x6b, 0x65, 0x79, 0x42, 0x3b, 0x5a, 0x39, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63,
+	0x6f, 0x6d, 0x2f, 0x6f, 0x70, 0x65, 0x6e, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x2f, 0x79, 0x67,
+	0x6f, 0x74, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x6d, 0x61, 0x70, 0x2f, 0x74, 0x65, 0x73, 0x74,
+	0x64, 0x61, 0x74, 0x61, 0x2f, 0x65, 0x78, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x70, 0x61, 0x74,
+	0x68, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -468,40 +1311,71 @@ func file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath
 	return file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDescData
 }
 
-var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_goTypes = []interface{}{
-	(*Root)(nil),                    // 0: exschemapath.Root
-	(*Interface)(nil),               // 1: exschemapath.Interface
-	(*System)(nil),                  // 2: exschemapath.System
-	(*ExampleMessage)(nil),          // 3: exschemapath.ExampleMessage
-	(*ExampleMessageChild)(nil),     // 4: exschemapath.ExampleMessageChild
-	(*Root_InterfaceKey)(nil),       // 5: exschemapath.Root.InterfaceKey
-	(*ywrapper.StringValue)(nil),    // 6: ywrapper.StringValue
-	(*ywrapper.BoolValue)(nil),      // 7: ywrapper.BoolValue
-	(*ywrapper.BytesValue)(nil),     // 8: ywrapper.BytesValue
-	(*ywrapper.Decimal64Value)(nil), // 9: ywrapper.Decimal64Value
-	(*ywrapper.IntValue)(nil),       // 10: ywrapper.IntValue
-	(*ywrapper.UintValue)(nil),      // 11: ywrapper.UintValue
+	(*Root)(nil),                     // 0: exschemapath.Root
+	(*Interface)(nil),                // 1: exschemapath.Interface
+	(*System)(nil),                   // 2: exschemapath.System
+	(*ExampleMessage)(nil),           // 3: exschemapath.ExampleMessage
+	(*ExampleMessageChild)(nil),      // 4: exschemapath.ExampleMessageChild
+	(*ExampleMessageKey)(nil),        // 5: exschemapath.ExampleMessageKey
+	(*ExampleMessageListMember)(nil), // 6: exschemapath.ExampleMessageListMember
+	(*NestedListKey)(nil),            // 7: exschemapath.NestedListKey
+	(*NestedListMember)(nil),         // 8: exschemapath.NestedListMember
+	(*ExampleMessageMultiKey)(nil),   // 9: exschemapath.ExampleMessageMultiKey
+	(*MultiKeyListMember)(nil),       // 10: exschemapath.MultiKeyListMember
+	(*InvalidMessage)(nil),           // 11: exschemapath.InvalidMessage
+	(*BadMessageKeyTwo)(nil),         // 12: exschemapath.BadMessageKeyTwo
+	(*BadMessageKey)(nil),            // 13: exschemapath.BadMessageKey
+	(*BadMessageMember)(nil),         // 14: exschemapath.BadMessageMember
+	(*BadKeyPathMessage)(nil),        // 15: exschemapath.BadKeyPathMessage
+	(*InvalidKeyPathKey)(nil),        // 16: exschemapath.InvalidKeyPathKey
+	(*Root_InterfaceKey)(nil),        // 17: exschemapath.Root.InterfaceKey
+	nil,                              // 18: exschemapath.InvalidMessage.MapFieldEntry
+	(*ywrapper.StringValue)(nil),     // 19: ywrapper.StringValue
+	(*ywrapper.BoolValue)(nil),       // 20: ywrapper.BoolValue
+	(*ywrapper.BytesValue)(nil),      // 21: ywrapper.BytesValue
+	(*ywrapper.Decimal64Value)(nil),  // 22: ywrapper.Decimal64Value
+	(*ywrapper.IntValue)(nil),        // 23: ywrapper.IntValue
+	(*ywrapper.UintValue)(nil),       // 24: ywrapper.UintValue
 }
 var file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_depIdxs = []int32{
 	2,  // 0: exschemapath.Root.system:type_name -> exschemapath.System
-	5,  // 1: exschemapath.Root.interface:type_name -> exschemapath.Root.InterfaceKey
-	6,  // 2: exschemapath.Interface.description:type_name -> ywrapper.StringValue
-	6,  // 3: exschemapath.System.hostname:type_name -> ywrapper.StringValue
-	7,  // 4: exschemapath.ExampleMessage.bo:type_name -> ywrapper.BoolValue
-	8,  // 5: exschemapath.ExampleMessage.by:type_name -> ywrapper.BytesValue
-	9,  // 6: exschemapath.ExampleMessage.de:type_name -> ywrapper.Decimal64Value
-	10, // 7: exschemapath.ExampleMessage.in:type_name -> ywrapper.IntValue
-	6,  // 8: exschemapath.ExampleMessage.str:type_name -> ywrapper.StringValue
-	11, // 9: exschemapath.ExampleMessage.ui:type_name -> ywrapper.UintValue
+	17, // 1: exschemapath.Root.interface:type_name -> exschemapath.Root.InterfaceKey
+	19, // 2: exschemapath.Interface.description:type_name -> ywrapper.StringValue
+	19, // 3: exschemapath.System.hostname:type_name -> ywrapper.StringValue
+	20, // 4: exschemapath.ExampleMessage.bo:type_name -> ywrapper.BoolValue
+	21, // 5: exschemapath.ExampleMessage.by:type_name -> ywrapper.BytesValue
+	22, // 6: exschemapath.ExampleMessage.de:type_name -> ywrapper.Decimal64Value
+	23, // 7: exschemapath.ExampleMessage.in:type_name -> ywrapper.IntValue
+	19, // 8: exschemapath.ExampleMessage.str:type_name -> ywrapper.StringValue
+	24, // 9: exschemapath.ExampleMessage.ui:type_name -> ywrapper.UintValue
 	4,  // 10: exschemapath.ExampleMessage.ex:type_name -> exschemapath.ExampleMessageChild
-	6,  // 11: exschemapath.ExampleMessageChild.str:type_name -> ywrapper.StringValue
-	1,  // 12: exschemapath.Root.InterfaceKey.interface:type_name -> exschemapath.Interface
-	13, // [13:13] is the sub-list for method output_type
-	13, // [13:13] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	5,  // 11: exschemapath.ExampleMessage.em:type_name -> exschemapath.ExampleMessageKey
+	9,  // 12: exschemapath.ExampleMessage.multi:type_name -> exschemapath.ExampleMessageMultiKey
+	19, // 13: exschemapath.ExampleMessageChild.str:type_name -> ywrapper.StringValue
+	6,  // 14: exschemapath.ExampleMessageKey.member:type_name -> exschemapath.ExampleMessageListMember
+	19, // 15: exschemapath.ExampleMessageListMember.str:type_name -> ywrapper.StringValue
+	7,  // 16: exschemapath.ExampleMessageListMember.child_list:type_name -> exschemapath.NestedListKey
+	8,  // 17: exschemapath.NestedListKey.field:type_name -> exschemapath.NestedListMember
+	19, // 18: exschemapath.NestedListMember.str:type_name -> ywrapper.StringValue
+	10, // 19: exschemapath.ExampleMessageMultiKey.member:type_name -> exschemapath.MultiKeyListMember
+	19, // 20: exschemapath.MultiKeyListMember.child:type_name -> ywrapper.StringValue
+	18, // 21: exschemapath.InvalidMessage.map_field:type_name -> exschemapath.InvalidMessage.MapFieldEntry
+	5,  // 22: exschemapath.InvalidMessage.km:type_name -> exschemapath.ExampleMessageKey
+	13, // 23: exschemapath.InvalidMessage.bk:type_name -> exschemapath.BadMessageKey
+	14, // 24: exschemapath.InvalidMessage.bm:type_name -> exschemapath.BadMessageMember
+	19, // 25: exschemapath.InvalidMessage.invalid_annotated_path:type_name -> ywrapper.StringValue
+	12, // 26: exschemapath.InvalidMessage.bk_two:type_name -> exschemapath.BadMessageKeyTwo
+	11, // 27: exschemapath.InvalidMessage.multiple_annotations_for_container:type_name -> exschemapath.InvalidMessage
+	15, // 28: exschemapath.InvalidMessage.bkpm:type_name -> exschemapath.BadKeyPathMessage
+	16, // 29: exschemapath.InvalidMessage.ikpk:type_name -> exschemapath.InvalidKeyPathKey
+	1,  // 30: exschemapath.Root.InterfaceKey.interface:type_name -> exschemapath.Interface
+	31, // [31:31] is the sub-list for method output_type
+	31, // [31:31] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_init() }
@@ -571,6 +1445,150 @@ func file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath
 			}
 		}
 		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ExampleMessageKey); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ExampleMessageListMember); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*NestedListKey); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*NestedListMember); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ExampleMessageMultiKey); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*MultiKeyListMember); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*InvalidMessage); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*BadMessageKeyTwo); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*BadMessageKey); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*BadMessageMember); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*BadKeyPathMessage); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*InvalidKeyPathKey); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Root_InterfaceKey); i {
 			case 0:
 				return &v.state
@@ -589,7 +1607,7 @@ func file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_github_com_openconfig_ygot_protomap_testdata_exschemapath_exschemapath_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
