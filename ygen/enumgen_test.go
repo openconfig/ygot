@@ -1290,9 +1290,9 @@ func TestFindEnumSet(t *testing.T) {
 		// wantUseDefiningModuleForTypedefEnumNames should be specified whenever the output
 		// is expected to be different when useDefiningModuleForTypedefEnumNames is set to
 		// true. Its output should be compression independent since typedef enum names are
-		// compression independent, so wantSame must be true when specified. When not
-		// specified, useDefiningModuleForTypedefEnumNames is expected to not have an effect
-		// on the output.
+		// compression independent, so it doesn't have compressed/uncompressed versions.
+		// When not specified, useDefiningModuleForTypedefEnumNames is expected to not have
+		// an effect on the output.
 		wantUseDefiningModuleForTypedefEnumNames        map[string]*yangEnum
 		wantEnumSetCompressed                           *enumSet
 		wantEnumSetUncompressed                         *enumSet
@@ -2573,8 +2573,8 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
-			"TypedefModule_Derived_Enum": {
-				name: "TypedefModule_Derived_Enum",
+			"TypedefModule_Derived": {
+				name: "TypedefModule_Derived",
 				entry: &yang.Entry{
 					Name: "e",
 					Type: &yang.YangType{
@@ -2602,7 +2602,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetUseDefiningModuleForTypedefEnumNames: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"/typedef-module/derived": "TypedefModule_Derived_Enum",
+				"/typedef-module/derived": "TypedefModule_Derived",
 			},
 		},
 		wantSame: true,
@@ -2627,6 +2627,18 @@ func TestFindEnumSet(t *testing.T) {
 					}, {
 						Kind: yang.Yint8,
 					}},
+					Base: &yang.Type{
+						Name: "union",
+						Parent: &yang.Typedef{
+							Name: "derived-type",
+							Parent: &yang.Typedef{
+								Name: "derived-type-container",
+								Parent: &yang.Module{
+									Name: "typedef-module",
+								},
+							},
+						},
+					},
 				},
 				Node: &yang.Enum{
 					Name: "e",
@@ -2656,8 +2668,10 @@ func TestFindEnumSet(t *testing.T) {
 				entry: &yang.Entry{
 					Name: "e",
 					Type: &yang.YangType{
+						Name: "derived-type",
 						Kind: yang.Yunion,
 						Type: []*yang.YangType{{
+							Name: "union",
 							Kind: yang.Yunion,
 							Type: []*yang.YangType{{
 								Name: "enumeration",
@@ -2669,7 +2683,18 @@ func TestFindEnumSet(t *testing.T) {
 						}, {
 							Kind: yang.Yint8,
 						}},
-						Enum: &yang.EnumType{},
+						Base: &yang.Type{
+							Name: "union",
+							Parent: &yang.Typedef{
+								Name: "derived-type",
+								Parent: &yang.Typedef{
+									Name: "derived-type-container",
+									Parent: &yang.Module{
+										Name: "typedef-module",
+									},
+								},
+							},
+						},
 					},
 					Node: &yang.Enum{
 						Parent: &yang.Container{
@@ -2698,10 +2723,13 @@ func TestFindEnumSet(t *testing.T) {
 				entry: &yang.Entry{
 					Name: "e",
 					Type: &yang.YangType{
+						Name: "derived-type",
 						Kind: yang.Yunion,
 						Type: []*yang.YangType{{
+							Name: "union",
 							Kind: yang.Yunion,
 							Type: []*yang.YangType{{
+								Name: "enumeration",
 								Kind: yang.Yenum,
 								Enum: &yang.EnumType{},
 							}, {
@@ -2710,7 +2738,18 @@ func TestFindEnumSet(t *testing.T) {
 						}, {
 							Kind: yang.Yint8,
 						}},
-						Enum: &yang.EnumType{},
+						Base: &yang.Type{
+							Name: "union",
+							Parent: &yang.Typedef{
+								Name: "derived-type",
+								Parent: &yang.Typedef{
+									Name: "derived-type-container",
+									Parent: &yang.Module{
+										Name: "typedef-module",
+									},
+								},
+							},
+						},
 					},
 					Node: &yang.Enum{
 						Parent: &yang.Container{
@@ -2741,6 +2780,36 @@ func TestFindEnumSet(t *testing.T) {
 		wantEnumSetUncompressed: &enumSet{
 			uniqueEnumeratedLeafNames: map[string]string{
 				"e:/base-module/container/state/e": "BaseModule_Container_State_E",
+			},
+		},
+		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
+			"TypedefModule_DerivedType_Enum": {
+				name: "TypedefModule_DerivedType_Enum",
+				entry: &yang.Entry{
+					Name: "e",
+					Type: &yang.YangType{
+						Name: "derived-type",
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{{
+							Name: "union",
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{{
+								Name: "enumeration",
+								Kind: yang.Yenum,
+								Enum: &yang.EnumType{},
+							}, {
+								Kind: yang.Ystring,
+							}},
+						}, {
+							Kind: yang.Yint8,
+						}},
+					},
+				},
+			},
+		},
+		wantEnumSetUseDefiningModuleForTypedefEnumNames: &enumSet{
+			uniqueEnumeratedTypedefNames: map[string]string{
+				"/typedef-module/derived-type-container/derived-type": "TypedefModule_DerivedType_Enum",
 			},
 		},
 	}, {
@@ -2825,8 +2894,8 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
-			"TypedefModule_DerivedEnumeration_Enum": {
-				name: "TypedefModule_DerivedEnumeration_Enum",
+			"TypedefModule_DerivedEnumeration": {
+				name: "TypedefModule_DerivedEnumeration",
 				entry: &yang.Entry{
 					Name: "enumeration-leaf",
 					Type: &yang.YangType{
@@ -2837,7 +2906,7 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantEnumSetUseDefiningModuleForTypedefEnumNames: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
-				"/typedef-module/derived-enumeration": "TypedefModule_DerivedEnumeration_Enum",
+				"/typedef-module/derived-enumeration": "TypedefModule_DerivedEnumeration",
 			},
 		},
 		wantSame: true,
@@ -3149,17 +3218,19 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantSame: true,
 	}, {
-		name: "typedef of union that contains multiple enumerations",
+		name: "union that contains multiple enumerations",
 		in: map[string]*yang.Entry{
-			"err": {
-				Name: "err",
+			"/test-container/config/union-leaf": {
+				Name: "union-leaf",
 				Type: &yang.YangType{
-					Name: "derived",
+					Name: "union",
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{{
+						Name: "enumeration",
 						Kind: yang.Yenum,
 						Enum: &yang.EnumType{},
 					}, {
+						Name: "enumeration",
 						Kind: yang.Yenum,
 						Enum: &yang.EnumType{},
 					}},
@@ -3168,10 +3239,13 @@ func TestFindEnumSet(t *testing.T) {
 					Name: "config",
 					Parent: &yang.Entry{
 						Name: "test-container",
+						Parent: &yang.Entry{
+							Name: "test-module",
+						},
 					},
 				},
 				Node: &yang.Leaf{
-					Name: "err",
+					Name: "union-leaf",
 					Parent: &yang.Container{
 						Name: "config",
 						Parent: &yang.Container{
@@ -3185,7 +3259,58 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 		inShortenEnumLeafNames: true,
-		wantErrSubstr:          "multiple enumerated types within a single enumeration not supported",
+		wantCompressed: map[string]*yangEnum{
+			"TestContainer_UnionLeaf": {
+				name: "TestContainer_UnionLeaf",
+				entry: &yang.Entry{
+					Name: "union-leaf",
+					Type: &yang.YangType{
+						Name: "union",
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{{
+							Name: "enumeration",
+							Kind: yang.Yenum,
+							Enum: &yang.EnumType{},
+						}, {
+							Name: "enumeration",
+							Kind: yang.Yenum,
+							Enum: &yang.EnumType{},
+						}},
+					},
+				},
+			},
+		},
+		wantUncompressed: map[string]*yangEnum{
+			"TestModule_TestContainer_Config_UnionLeaf": {
+				name: "TestModule_TestContainer_Config_UnionLeaf",
+				entry: &yang.Entry{
+					Name: "union-leaf",
+					Type: &yang.YangType{
+						Name: "union",
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{{
+							Name: "enumeration",
+							Kind: yang.Yenum,
+							Enum: &yang.EnumType{},
+						}, {
+							Name: "enumeration",
+							Kind: yang.Yenum,
+							Enum: &yang.EnumType{},
+						}},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"/test-module/test-container/config/union-leaf": "TestContainer_UnionLeaf",
+			},
+		},
+		wantEnumSetUncompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"/test-module/test-container/config/union-leaf": "TestModule_TestContainer_Config_UnionLeaf",
+			},
+		},
 	}, {
 		name: "typedef of union that contains an empty union",
 		in: map[string]*yang.Entry{
@@ -3982,9 +4107,9 @@ func TestFindEnumSet(t *testing.T) {
 			}
 			for _, useDefiningModuleForTypedefEnumNames := range []bool{false, true} {
 				if useDefiningModuleForTypedefEnumNames && hasDifferentTypedefTest {
-					if !tt.wantSame {
-						t.Fatalf("Test set-up error for %q: when testing typedef names, compression shouldn't have an effect on the output since typedef name generation is compression-independent", tt.name)
-					}
+					// when testing typedef names, compression shouldn't have an
+					// effect on the output since typedef name generation is
+					// compression-independent
 					wantEntries = tt.wantUseDefiningModuleForTypedefEnumNames
 					wantEnumSet = tt.wantEnumSetUseDefiningModuleForTypedefEnumNames
 				}

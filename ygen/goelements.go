@@ -436,6 +436,8 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 		return errs
 	}
 
+	contextType := subtype
+
 	var mtype *MappedType
 	switch subtype.Kind {
 	case yang.Yidentityref:
@@ -460,7 +462,7 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 	default:
 		var err error
 
-		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: subtype, contextEntry: ctx}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames)
+		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: contextType, contextEntry: ctx}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames)
 		if err != nil {
 			errs = append(errs, err)
 			return errs
