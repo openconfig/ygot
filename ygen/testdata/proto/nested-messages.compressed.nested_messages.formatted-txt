@@ -21,7 +21,7 @@ message TopLevel {
       ywrapper.StringValue a = 404127368 [(yext.schemapath) = "/top-level/child/grandchild/config/a"];
       openconfig.enums.NestedMessagesEnumt b = 404127371 [(yext.schemapath) = "/top-level/child/grandchild/config/b"];
       oneof c {
-        openconfig.enums.NestedMessagesEnumtEnum c_nestedmessagesenumtenum = 309051298;
+        openconfig.enums.NestedMessagesEnumt c_nestedmessagesenumt = 369673157;
         string c_string = 420673426;
       }
       ywrapper.StringValue x = 319593808 [(yext.schemapath) = "/top-level/child/grandchild/state/x"];

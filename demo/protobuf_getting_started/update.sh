@@ -21,6 +21,7 @@ go run ${SRCDIR}/proto_generator/protogenerator.go \
   -generate_fakeroot \
   -base_import_path="github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto" \
   -path=yang -output_dir=ribproto \
+  -typedef_enum_with_defmod \
   -enum_package_name=enums -package_name=openconfig \
   -exclude_modules=ietf-interfaces \
   yang/rib/openconfig-rib-bgp.yang

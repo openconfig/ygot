@@ -51,7 +51,7 @@ bgp_rib: <
           next_hop: <
             value: "10.0.1.1"
           >
-          origin: OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP
+          origin: OPENCONFIGBGPTYPESBGPORIGINATTRTYPE_EGP
           originator_id: <
             value: "192.0.2.42"
           >

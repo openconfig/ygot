@@ -27,6 +27,15 @@ enum OpenconfigBgpTypesAFISAFITYPE {
   OPENCONFIGBGPTYPESAFISAFITYPE_L2VPN_VPLS = 533405094 [(yext.yang_name) = "L2VPN_VPLS"];
 }
 
+// OpenconfigBgpTypesAsPathSegmentType represents an enumerated type generated for the YANG enumerated type as-path-segment-type.
+enum OpenconfigBgpTypesAsPathSegmentType {
+  OPENCONFIGBGPTYPESASPATHSEGMENTTYPE_UNSET = 0;
+  OPENCONFIGBGPTYPESASPATHSEGMENTTYPE_AS_SEQ = 1 [(yext.yang_name) = "AS_SEQ"];
+  OPENCONFIGBGPTYPESASPATHSEGMENTTYPE_AS_SET = 2 [(yext.yang_name) = "AS_SET"];
+  OPENCONFIGBGPTYPESASPATHSEGMENTTYPE_AS_CONFED_SEQUENCE = 3 [(yext.yang_name) = "AS_CONFED_SEQUENCE"];
+  OPENCONFIGBGPTYPESASPATHSEGMENTTYPE_AS_CONFED_SET = 4 [(yext.yang_name) = "AS_CONFED_SET"];
+}
+
 // OpenconfigBgpTypesBGPWELLKNOWNSTDCOMMUNITY represents an enumerated type generated for the YANG identity BGP_WELL_KNOWN_STD_COMMUNITY.
 enum OpenconfigBgpTypesBGPWELLKNOWNSTDCOMMUNITY {
   OPENCONFIGBGPTYPESBGPWELLKNOWNSTDCOMMUNITY_UNSET = 0;
@@ -34,6 +43,14 @@ enum OpenconfigBgpTypesBGPWELLKNOWNSTDCOMMUNITY {
   OPENCONFIGBGPTYPESBGPWELLKNOWNSTDCOMMUNITY_NO_EXPORT_SUBCONFED = 75227749 [(yext.yang_name) = "NO_EXPORT_SUBCONFED"];
   OPENCONFIGBGPTYPESBGPWELLKNOWNSTDCOMMUNITY_NOPEER = 77476850 [(yext.yang_name) = "NOPEER"];
   OPENCONFIGBGPTYPESBGPWELLKNOWNSTDCOMMUNITY_NO_ADVERTISE = 126797620 [(yext.yang_name) = "NO_ADVERTISE"];
+}
+
+// OpenconfigBgpTypesBgpOriginAttrType represents an enumerated type generated for the YANG enumerated type bgp-origin-attr-type.
+enum OpenconfigBgpTypesBgpOriginAttrType {
+  OPENCONFIGBGPTYPESBGPORIGINATTRTYPE_UNSET = 0;
+  OPENCONFIGBGPTYPESBGPORIGINATTRTYPE_IGP = 1 [(yext.yang_name) = "IGP"];
+  OPENCONFIGBGPTYPESBGPORIGINATTRTYPE_EGP = 2 [(yext.yang_name) = "EGP"];
+  OPENCONFIGBGPTYPESBGPORIGINATTRTYPE_INCOMPLETE = 3 [(yext.yang_name) = "INCOMPLETE"];
 }
 
 // OpenconfigPolicyTypesINSTALLPROTOCOLTYPE represents an enumerated type generated for the YANG identity INSTALL_PROTOCOL_TYPE.
@@ -46,23 +63,6 @@ enum OpenconfigPolicyTypesINSTALLPROTOCOLTYPE {
   OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP = 436650411 [(yext.yang_name) = "BGP"];
   OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_DIRECTLY_CONNECTED = 463126862 [(yext.yang_name) = "DIRECTLY_CONNECTED"];
   OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_OSPF3 = 470106339 [(yext.yang_name) = "OSPF3"];
-}
-
-// OpenconfigRibBgpAsPathSegmentType represents an enumerated type generated for the YANG enumerated type as-path-segment-type.
-enum OpenconfigRibBgpAsPathSegmentType {
-  OPENCONFIGRIBBGPASPATHSEGMENTTYPE_UNSET = 0;
-  OPENCONFIGRIBBGPASPATHSEGMENTTYPE_AS_SEQ = 1 [(yext.yang_name) = "AS_SEQ"];
-  OPENCONFIGRIBBGPASPATHSEGMENTTYPE_AS_SET = 2 [(yext.yang_name) = "AS_SET"];
-  OPENCONFIGRIBBGPASPATHSEGMENTTYPE_AS_CONFED_SEQUENCE = 3 [(yext.yang_name) = "AS_CONFED_SEQUENCE"];
-  OPENCONFIGRIBBGPASPATHSEGMENTTYPE_AS_CONFED_SET = 4 [(yext.yang_name) = "AS_CONFED_SET"];
-}
-
-// OpenconfigRibBgpBgpOriginAttrType represents an enumerated type generated for the YANG enumerated type bgp-origin-attr-type.
-enum OpenconfigRibBgpBgpOriginAttrType {
-  OPENCONFIGRIBBGPBGPORIGINATTRTYPE_UNSET = 0;
-  OPENCONFIGRIBBGPBGPORIGINATTRTYPE_IGP = 1 [(yext.yang_name) = "IGP"];
-  OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP = 2 [(yext.yang_name) = "EGP"];
-  OPENCONFIGRIBBGPBGPORIGINATTRTYPE_INCOMPLETE = 3 [(yext.yang_name) = "INCOMPLETE"];
 }
 
 // OpenconfigRibBgpTypesINVALIDROUTEREASON represents an enumerated type generated for the YANG identity INVALID_ROUTE_REASON.

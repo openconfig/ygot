@@ -111,15 +111,15 @@ type Platform_Component_Enumerated_Union interface {
 	Is_Platform_Component_Enumerated_Union()
 }
 
-// Platform_Component_Enumerated_Union_E_OpenconfigUnione_EnumOne_Enum is used when /openconfig-unione/platform/component/state/enumerated
-// is to be set to a E_OpenconfigUnione_EnumOne_Enum value.
-type Platform_Component_Enumerated_Union_E_OpenconfigUnione_EnumOne_Enum struct {
-	E_OpenconfigUnione_EnumOne_Enum	E_OpenconfigUnione_EnumOne_Enum
+// Platform_Component_Enumerated_Union_E_OpenconfigUnione_EnumOne is used when /openconfig-unione/platform/component/state/enumerated
+// is to be set to a E_OpenconfigUnione_EnumOne value.
+type Platform_Component_Enumerated_Union_E_OpenconfigUnione_EnumOne struct {
+	E_OpenconfigUnione_EnumOne	E_OpenconfigUnione_EnumOne
 }
 
-// Is_Platform_Component_Enumerated_Union ensures that Platform_Component_Enumerated_Union_E_OpenconfigUnione_EnumOne_Enum
+// Is_Platform_Component_Enumerated_Union ensures that Platform_Component_Enumerated_Union_E_OpenconfigUnione_EnumOne
 // implements the Platform_Component_Enumerated_Union interface.
-func (*Platform_Component_Enumerated_Union_E_OpenconfigUnione_EnumOne_Enum) Is_Platform_Component_Enumerated_Union() {}
+func (*Platform_Component_Enumerated_Union_E_OpenconfigUnione_EnumOne) Is_Platform_Component_Enumerated_Union() {}
 
 // Platform_Component_Enumerated_Union_String is used when /openconfig-unione/platform/component/state/enumerated
 // is to be set to a string value.
@@ -136,12 +136,12 @@ func (*Platform_Component_Enumerated_Union_String) Is_Platform_Component_Enumera
 // cannot be converted to a type within the union.
 func (t *Platform_Component) To_Platform_Component_Enumerated_Union(i interface{}) (Platform_Component_Enumerated_Union, error) {
 	switch v := i.(type) {
-	case E_OpenconfigUnione_EnumOne_Enum:
-		return &Platform_Component_Enumerated_Union_E_OpenconfigUnione_EnumOne_Enum{v}, nil
+	case E_OpenconfigUnione_EnumOne:
+		return &Platform_Component_Enumerated_Union_E_OpenconfigUnione_EnumOne{v}, nil
 	case string:
 		return &Platform_Component_Enumerated_Union_String{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %v to Platform_Component_Enumerated_Union, unknown union type, got: %T, want any of [E_OpenconfigUnione_EnumOne_Enum, string]", i, i)
+		return nil, fmt.Errorf("cannot convert %v to Platform_Component_Enumerated_Union, unknown union type, got: %T, want any of [E_OpenconfigUnione_EnumOne, string]", i, i)
 	}
 }
 
@@ -324,31 +324,31 @@ const (
 	DupEnum_B_B_B E_DupEnum_B = 2
 )
 
-// E_OpenconfigUnione_EnumOne_Enum is a derived int64 type which is used to represent
-// the enumerated node OpenconfigUnione_EnumOne_Enum. An additional value named
-// OpenconfigUnione_EnumOne_Enum_UNSET is added to the enumeration which is used as
+// E_OpenconfigUnione_EnumOne is a derived int64 type which is used to represent
+// the enumerated node OpenconfigUnione_EnumOne. An additional value named
+// OpenconfigUnione_EnumOne_UNSET is added to the enumeration which is used as
 // the nil value, indicating that the enumeration was not explicitly set by
 // the program importing the generated structures.
-type E_OpenconfigUnione_EnumOne_Enum int64
+type E_OpenconfigUnione_EnumOne int64
 
-// IsYANGGoEnum ensures that OpenconfigUnione_EnumOne_Enum implements the yang.GoEnum
-// interface. This ensures that OpenconfigUnione_EnumOne_Enum can be identified as a
+// IsYANGGoEnum ensures that OpenconfigUnione_EnumOne implements the yang.GoEnum
+// interface. This ensures that OpenconfigUnione_EnumOne can be identified as a
 // mapped type for a YANG enumeration.
-func (E_OpenconfigUnione_EnumOne_Enum) IsYANGGoEnum() {}
+func (E_OpenconfigUnione_EnumOne) IsYANGGoEnum() {}
 
-// ΛMap returns the value lookup map associated with  OpenconfigUnione_EnumOne_Enum.
-func (E_OpenconfigUnione_EnumOne_Enum) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+// ΛMap returns the value lookup map associated with  OpenconfigUnione_EnumOne.
+func (E_OpenconfigUnione_EnumOne) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
-// String returns a logging-friendly string for E_OpenconfigUnione_EnumOne_Enum.
-func (e E_OpenconfigUnione_EnumOne_Enum) String() string {
-	return ygot.EnumLogString(e, int64(e), "E_OpenconfigUnione_EnumOne_Enum")
+// String returns a logging-friendly string for E_OpenconfigUnione_EnumOne.
+func (e E_OpenconfigUnione_EnumOne) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_OpenconfigUnione_EnumOne")
 }
 
 const (
-	// OpenconfigUnione_EnumOne_Enum_UNSET corresponds to the value UNSET of OpenconfigUnione_EnumOne_Enum
-	OpenconfigUnione_EnumOne_Enum_UNSET E_OpenconfigUnione_EnumOne_Enum = 0
-	// OpenconfigUnione_EnumOne_Enum_ONE corresponds to the value ONE of OpenconfigUnione_EnumOne_Enum
-	OpenconfigUnione_EnumOne_Enum_ONE E_OpenconfigUnione_EnumOne_Enum = 1
+	// OpenconfigUnione_EnumOne_UNSET corresponds to the value UNSET of OpenconfigUnione_EnumOne
+	OpenconfigUnione_EnumOne_UNSET E_OpenconfigUnione_EnumOne = 0
+	// OpenconfigUnione_EnumOne_ONE corresponds to the value ONE of OpenconfigUnione_EnumOne
+	OpenconfigUnione_EnumOne_ONE E_OpenconfigUnione_EnumOne = 1
 )
 
 // E_OpenconfigUnione_HARDWARE is a derived int64 type which is used to represent
@@ -423,7 +423,7 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 		1: {Name: "B_A"},
 		2: {Name: "B_B"},
 	},
-	"E_OpenconfigUnione_EnumOne_Enum": {
+	"E_OpenconfigUnione_EnumOne": {
 		1: {Name: "ONE"},
 	},
 	"E_OpenconfigUnione_HARDWARE": {

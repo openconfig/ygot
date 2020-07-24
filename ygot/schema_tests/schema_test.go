@@ -79,7 +79,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 	n.PeerAs = ygot.Uint32(42)
-	n.SendCommunity = exampleoc.OpenconfigBgp_CommunityType_STANDARD
+	n.SendCommunity = exampleoc.OpenconfigBgpTypes_CommunityType_STANDARD
 
 	p.Bgp.Global.As = ygot.Uint32(42)
 
@@ -104,7 +104,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 								"192.0.2.1": {
 									NeighborAddress: ygot.String("192.0.2.1"),
 									PeerAs:          ygot.Uint32(42),
-									SendCommunity:   exampleoc.OpenconfigBgp_CommunityType_STANDARD,
+									SendCommunity:   exampleoc.OpenconfigBgpTypes_CommunityType_STANDARD,
 								},
 							},
 						},
@@ -154,7 +154,7 @@ func TestDiff(t *testing.T) {
 			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
 			n := b.GetOrCreateNeighbor("192.0.2.1")
 			n.PeerAs = ygot.Uint32(29636)
-			n.PeerType = exampleoc.OpenconfigBgp_PeerType_EXTERNAL
+			n.PeerType = exampleoc.OpenconfigBgpTypes_PeerType_EXTERNAL
 			return b
 		}(),
 		want: &gnmipb.Notification{

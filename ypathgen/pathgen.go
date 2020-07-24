@@ -113,6 +113,12 @@ type GenConfig struct {
 	// This is the same flag used by ygen: they must match for pathgen's
 	// generated code to be compatible with it.
 	ShortenEnumLeafNames bool
+	// UseDefiningModuleForTypedefEnumNames uses the defining module name
+	// to prefix typedef enumerated types instead of the module where the
+	// typedef enumerated value is used.
+	// This is the same flag used by ygen: they must match for pathgen's
+	// generated code to be compatible with it.
+	UseDefiningModuleForTypedefEnumNames bool
 	// ExcludeModules specifies any modules that are included within the set of
 	// modules that should have code generated for them that should be ignored during
 	// code generation. This is due to the fact that some schemas (e.g., OpenConfig
@@ -182,10 +188,11 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 			SkipEnumDeduplication: cg.SkipEnumDeduplication,
 		},
 		TransformationOptions: ygen.TransformationOpts{
-			CompressBehaviour:    compressBehaviour,
-			GenerateFakeRoot:     true,
-			FakeRootName:         cg.FakeRootName,
-			ShortenEnumLeafNames: cg.ShortenEnumLeafNames,
+			CompressBehaviour:                    compressBehaviour,
+			GenerateFakeRoot:                     true,
+			FakeRootName:                         cg.FakeRootName,
+			ShortenEnumLeafNames:                 cg.ShortenEnumLeafNames,
+			UseDefiningModuleForTypedefEnumNames: cg.UseDefiningModuleForTypedefEnumNames,
 		},
 	}
 	directories, leafTypeMap, errs := dcg.GetDirectoriesAndLeafTypes(yangFiles, includePaths)
