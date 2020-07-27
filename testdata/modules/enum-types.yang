@@ -18,4 +18,44 @@ module enum-types {
       }
     }
   }
+
+  typedef td2 {
+    type union {
+      type uint32;
+      type enumeration {
+        enum D;
+        enum E;
+        enum F;
+      }
+    }
+  }
+
+  typedef td-enum {
+    type enumeration {
+      enum ALPHA;
+      enum BRAVO;
+      enum CHARLIE;
+    }
+  }
+
+  typedef td-multi {
+    type union {
+      type uint32;
+      type td;
+      type enumeration {
+        enum ONE;
+        enum TWO;
+        enum THREE;
+      }
+      // TODO(wenbli): td2's enum, td-enum, and the second enumeration are not being
+      // generated because goyang fails to add them to the AST.
+      type td2;
+      type td-enum;
+      type enumeration {
+        enum FOUR;
+        enum FIVE;
+        enum SIX;
+      }
+    }
+  }
 }

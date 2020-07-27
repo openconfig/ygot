@@ -132,13 +132,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "enumeration in union as the lone type with default",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{
-				Name: "union",
-				Kind: yang.Yunion,
-				Type: []*yang.YangType{
-					{Kind: yang.Yenum, Name: "enumeration", Default: "prefix:BLUE"},
-				},
-			},
 			contextEntry: &yang.Entry{
 				Name: "union-leaf",
 				Kind: yang.LeafEntry,
@@ -163,13 +156,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "typedef enumeration in union as the lone type",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{
-				Name: "union",
-				Kind: yang.Yunion,
-				Type: []*yang.YangType{
-					{Kind: yang.Yenum, Name: "enumeration"},
-				},
-			},
 			contextEntry: &yang.Entry{
 				Name: "union-leaf",
 				Kind: yang.LeafEntry,
@@ -196,10 +182,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "derived identityref",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{
-				Kind: yang.Yidentityref,
-				Name: "derived-identityref",
-			},
 			contextEntry: &yang.Entry{
 				Type: &yang.YangType{
 					Name: "derived-identityref",
@@ -208,6 +190,10 @@ func TestYangTypeToProtoType(t *testing.T) {
 						Parent: &yang.Module{Name: "base-module"},
 					},
 					Kind: yang.Yidentityref,
+					Base: &yang.Type{
+						Name:   "base-identity",
+						Parent: &yang.Module{Name: "base-module"},
+					},
 				},
 				Node: &yang.Leaf{
 					Parent: &yang.Module{Name: "base-module"},
@@ -223,21 +209,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "identityref in union as the lone type with default",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{
-				Name: "union",
-				Kind: yang.Yunion,
-				Type: []*yang.YangType{{
-					Kind:    yang.Yidentityref,
-					Name:    "identityref",
-					Default: "prefix:CHIPS",
-					IdentityBase: &yang.Identity{
-						Name: "base-identity",
-						Parent: &yang.Module{
-							Name: "base-module",
-						},
-					},
-				}},
-			},
 			contextEntry: &yang.Entry{
 				Name: "union-leaf",
 				Kind: yang.LeafEntry,
@@ -253,6 +224,10 @@ func TestYangTypeToProtoType(t *testing.T) {
 							Parent: &yang.Module{
 								Name: "base-module",
 							},
+						},
+						Base: &yang.Type{
+							Name:   "base-identity",
+							Parent: &yang.Module{Name: "base-module"},
 						},
 					}},
 				},
@@ -281,10 +256,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "enumeration",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{
-				Kind: yang.Yenum,
-				Name: "enumeration",
-			},
 			contextEntry: &yang.Entry{
 				Name: "enumeration-leaf",
 				Type: &yang.YangType{
@@ -308,13 +279,16 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "typedef enumeration",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{Kind: yang.Yenum, Name: "derived-enumeration"},
 			contextEntry: &yang.Entry{
 				Name: "enumeration-leaf",
 				Type: &yang.YangType{
 					Name: "derived-enumeration",
 					Enum: &yang.EnumType{},
 					Kind: yang.Yenum,
+					Base: &yang.Type{
+						Name:   "enumeration",
+						Parent: &yang.Module{Name: "base-module"},
+					},
 				},
 				Node: &yang.Enum{
 					Parent: &yang.Module{
@@ -329,7 +303,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "identityref",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{Kind: yang.Yidentityref, Name: "identityref"},
 			contextEntry: &yang.Entry{
 				Name: "identityref",
 				Type: &yang.YangType{
@@ -355,7 +328,6 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "identityref with underscore in identity name",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{Kind: yang.Yidentityref, Name: "identityref"},
 			contextEntry: &yang.Entry{
 				Name: "identityref",
 				Type: &yang.YangType{
@@ -367,6 +339,10 @@ func TestYangTypeToProtoType(t *testing.T) {
 						},
 					},
 					Kind: yang.Yidentityref,
+					Base: &yang.Type{
+						Name:   "BASE_IDENTITY",
+						Parent: &yang.Module{Name: "test-module"},
+					},
 				},
 				Node: &yang.Leaf{
 					Parent: &yang.Module{
@@ -402,24 +378,24 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "leafref with bad path",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{
-				Kind: yang.Yleafref,
-				Path: "/foo/bar",
-			},
 			contextEntry: &yang.Entry{
 				Name: "leaf",
+				Type: &yang.YangType{
+					Kind: yang.Yleafref,
+					Path: "/foo/bar",
+				},
 			},
 		}},
 		wantErr: true,
 	}, {
 		name: "leafref with valid path",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{
-				Kind: yang.Yleafref,
-				Path: "/foo/bar",
-			},
 			contextEntry: &yang.Entry{
 				Name: "leaf",
+				Type: &yang.YangType{
+					Kind: yang.Yleafref,
+					Path: "/foo/bar",
+				},
 			},
 		}},
 		inEntries: []*yang.Entry{
@@ -447,12 +423,12 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "leafref to leafref",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{
-				Kind: yang.Yleafref,
-				Path: "/foo/bar",
-			},
 			contextEntry: &yang.Entry{
 				Name: "leaf",
+				Type: &yang.YangType{
+					Kind: yang.Yleafref,
+					Path: "/foo/bar",
+				},
 			},
 		}},
 		inEntries: []*yang.Entry{
@@ -480,6 +456,10 @@ func TestYangTypeToProtoType(t *testing.T) {
 						Type: &yang.YangType{
 							Kind:         yang.Yidentityref,
 							IdentityBase: &yang.Identity{Name: "IDENTITY"},
+							Base: &yang.Type{
+								Name:   "IDENTITY",
+								Parent: &yang.Module{Name: "enum-module"},
+							},
 						},
 						Parent: &yang.Entry{
 							Name: "foo",
@@ -502,12 +482,12 @@ func TestYangTypeToProtoType(t *testing.T) {
 	}, {
 		name: "leafref to union",
 		in: []resolveTypeArgs{{
-			yangType: &yang.YangType{
-				Kind: yang.Yleafref,
-				Path: "/foo/bar",
-			},
 			contextEntry: &yang.Entry{
 				Name: "leaf",
+				Type: &yang.YangType{
+					Kind: yang.Yleafref,
+					Path: "/foo/bar",
+				},
 			},
 		}},
 		inEntries: []*yang.Entry{
@@ -562,6 +542,18 @@ func TestYangTypeToProtoType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			for i := range tt.in {
+				st := &tt.in[i]
+				// Populate the type from the entry's type when the
+				// entry exists, as the code makes pointer comparisons.
+				if st.contextEntry != nil {
+					if st.yangType != nil {
+						t.Fatalf("Test error: contextEntry and yangType both specified -- please only specify one of them, as yangType will be populated by contextEntry's Type field.")
+					}
+					st.yangType = st.contextEntry.Type
+				}
+			}
+
 			rpt := resolveProtoTypeArgs{basePackageName: "basePackage", enumPackageName: "enumPackage"}
 			if tt.inResolveProtoTypeArgs != nil {
 				rpt = *tt.inResolveProtoTypeArgs
@@ -580,7 +572,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			for _, e := range enumMapFromEntries(tt.inEntries) {
 				addEnumsToEnumMap(e, enumMap)
 			}
-			enumSet, _, errs := findEnumSet(enumMap, false, true, false, true)
+			enumSet, _, errs := findEnumSet(enumMap, false, true, false, true, true)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
@@ -591,7 +583,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			s := newProtoGenState(st, enumSet)
 
 			for _, st := range tt.in {
-				gotWrapper, err := s.yangTypeToProtoType(st, rpt)
+				gotWrapper, err := s.yangTypeToProtoType(st, rpt, true)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("%s: yangTypeToProtoType(%v): got unexpected error, got: %v, want error: %v", tt.name, tt.in, err, tt.wantErr)
 					continue
@@ -601,7 +593,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 					t.Errorf("%s: yangTypeToProtoType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 				}
 
-				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt)
+				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt, true)
 				if (err != nil) != tt.wantErr {
 					t.Errorf("%s: yangTypeToProtoScalarType(%v, basePackage, enumPackage): got unexpected error: %v", tt.name, tt.in, err)
 				}

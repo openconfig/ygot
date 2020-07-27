@@ -169,6 +169,10 @@ func TestGenProto3Msg(t *testing.T) {
 								Kind: yang.Yenum,
 								Name: "derived-enum",
 								Enum: &yang.EnumType{},
+								Base: &yang.Type{
+									Name:   "enumeration",
+									Parent: &yang.Module{Name: "base"},
+								},
 							},
 						},
 					},
@@ -215,9 +219,9 @@ func TestGenProto3Msg(t *testing.T) {
 				Name:     "FieldTwoUnion",
 				YANGPath: "/parent/field-two union field field-two",
 				Fields: []*protoMsgField{{
-					Tag:  305727351,
-					Name: "field_two_basederivedenumenum",
-					Type: "base.enums.BaseDerivedEnumEnum",
+					Tag:  350335944,
+					Name: "field_two_basederivedenum",
+					Type: "base.enums.BaseDerivedEnum",
 				}, {
 					Tag:  226381575,
 					Name: "field_two_sint64",
@@ -654,7 +658,7 @@ func TestGenProto3Msg(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), tt.inCompressPaths, true, false, true)
+			enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), tt.inCompressPaths, true, false, true, true)
 			if errs != nil {
 				t.Fatalf("findEnumSet failed: %v", errs)
 			}
@@ -669,7 +673,7 @@ func TestGenProto3Msg(t *testing.T) {
 				enumPackageName:     tt.inEnumPackage,
 				baseImportPath:      tt.inBaseImportPath,
 				annotateSchemaPaths: tt.inAnnotateSchemaPaths,
-			}, tt.inParentPackage, tt.inChildMsgs)
+			}, tt.inParentPackage, tt.inChildMsgs, true)
 
 			if (errs != nil) != tt.wantErr {
 				t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
@@ -1414,7 +1418,7 @@ message MessageName {
 		t.Run(tt.name, func(t *testing.T) {
 			wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
 			for compress, want := range map[bool]*generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
-				enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), compress, true, false, true)
+				enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), compress, true, false, true, true)
 				if errs != nil {
 					t.Fatalf("findEnumSet failed: %v", errs)
 				}
@@ -1429,7 +1433,7 @@ message MessageName {
 					enumPackageName: tt.inEnumPackageName,
 					baseImportPath:  tt.inBaseImportPath,
 					nestedMessages:  tt.inNestedMessages,
-				})
+				}, true)
 
 				if (errs != nil) != wantErr[compress] {
 					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, wantErr[compress])
@@ -1633,7 +1637,7 @@ func TestGenListKeyProto(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs)
+		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs, true)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: genListKeyProto(%s, %s, %#v): got unexpected error returned, got: %v, want err: %v", tt.name, tt.inListPackage, tt.inListName, tt.inArgs, err, tt.wantErr)
 		}
