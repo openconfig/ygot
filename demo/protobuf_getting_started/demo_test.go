@@ -20,8 +20,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	ocpb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig"
 	ocepb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
@@ -41,7 +42,7 @@ func TestProtoGenerate(t *testing.T) {
 			localPref:       100,
 			med:             10,
 			nextHop:         "10.0.1.1",
-			origin:          ocepb.OpenconfigRibBgpBgpOriginAttrType_OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP,
+			origin:          ocepb.OpenconfigBgpTypesBgpOriginAttrType_OPENCONFIGBGPTYPESBGPORIGINATTRTYPE_EGP,
 			originatorID:    "192.0.2.42",
 			prefix:          "192.0.2.0/24",
 			protocolOrigin:  ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP,
@@ -59,12 +60,12 @@ func TestProtoGenerate(t *testing.T) {
 			t.Errorf("%s: ioutil.ReadFile(testdata/%s): could not read file, got: %v, want: nil", tt.name, tt.wantTextProto, err)
 		}
 
-		if err := proto.UnmarshalText(string(wantStr), want); err != nil {
-			t.Errorf("%s: proto.UnmarshalText(file: %s): could not unmarshal test proto, got: %v, want: nil", tt.name, tt.wantTextProto, err)
+		if err := prototext.Unmarshal(wantStr, want); err != nil {
+			t.Errorf("%s: prototext.Unmarshal(file: %s): could not unmarshal test proto, got: %v, want: nil", tt.name, tt.wantTextProto, err)
 		}
 
-		if !proto.Equal(got, want) {
-			t.Errorf("%s: %T: did not get expected return proto, diff(-got,+want):\n%s", tt.name, tt.inTestFunc, pretty.Compare(got, want))
+		if diff := cmp.Diff(got, want, protocmp.Transform()); diff != "" {
+			t.Errorf("%s: %T: did not get expected return proto, diff(-got,+want):\n%s", tt.name, tt.inTestFunc, diff)
 		}
 	}
 }

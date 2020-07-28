@@ -258,6 +258,16 @@ type Parent_ChildPathAny struct {
 	*ygot.NodePath
 }
 
+// Parent_Child_EnumPath represents the /enum-module/parent/child/state/enum YANG schema element.
+type Parent_Child_EnumPath struct {
+	*ygot.NodePath
+}
+
+// Parent_Child_EnumPathAny represents the wildcard version of the /enum-module/parent/child/state/enum YANG schema element.
+type Parent_Child_EnumPathAny struct {
+	*ygot.NodePath
+}
+
 // Parent_Child_IdPath represents the /enum-module/parent/child/state/id YANG schema element.
 type Parent_Child_IdPath struct {
 	*ygot.NodePath
@@ -266,6 +276,28 @@ type Parent_Child_IdPath struct {
 // Parent_Child_IdPathAny represents the wildcard version of the /enum-module/parent/child/state/id YANG schema element.
 type Parent_Child_IdPathAny struct {
 	*ygot.NodePath
+}
+
+// Enum returns from Parent_ChildPath the path struct for its child "enum".
+func (n *Parent_ChildPath) Enum() *Parent_Child_EnumPath {
+	return &Parent_Child_EnumPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "enum"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Enum returns from Parent_ChildPathAny the path struct for its child "enum".
+func (n *Parent_ChildPathAny) Enum() *Parent_Child_EnumPathAny {
+	return &Parent_Child_EnumPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "enum"},
+			map[string]interface{}{},
+			n,
+		),
+	}
 }
 
 // Id returns from Parent_ChildPath the path struct for its child "id".

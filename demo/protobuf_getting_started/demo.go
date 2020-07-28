@@ -35,7 +35,7 @@ func main() {
 		localPref:       100,
 		med:             10,
 		nextHop:         "10.0.1.1",
-		origin:          ocepb.OpenconfigRibBgpBgpOriginAttrType_OPENCONFIGRIBBGPBGPORIGINATTRTYPE_EGP,
+		origin:          ocepb.OpenconfigBgpTypesBgpOriginAttrType_OPENCONFIGBGPTYPESBGPORIGINATTRTYPE_EGP,
 		originatorID:    "192.0.2.42",
 		prefix:          "192.0.2.0/24",
 		protocolOrigin:  ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP,
@@ -52,13 +52,13 @@ func main() {
 
 // ipv4Prefix describes an IPv4 Prefix within the OpenConfig BGP RIB model.
 type ipv4Prefix struct {
-	atomicAggregate bool                                             // atomicAggregate is set when a downstream BGP speaker has aggregated the prefix.
-	localPref       uint64                                           // localPrefix is the value of the BGP LOCAL_PREFERENCE attribute.
-	med             uint64                                           // med is the value of the BGP multi-exit discriminator.
-	nextHop         string                                           // nextHop is the IP next-hop used for the BGP route.
-	origin          ocepb.OpenconfigRibBgpBgpOriginAttrType        // origin is the value of the ORIGIN attribute of the BGP prefix.
-	originatorID    string                                           // originatorID specifies the address of the BGP originator of the prefix.
-	prefix          string                                           // prefix is the IPv4 prefix for the route.
+	atomicAggregate bool                                           // atomicAggregate is set when a downstream BGP speaker has aggregated the prefix.
+	localPref       uint64                                         // localPrefix is the value of the BGP LOCAL_PREFERENCE attribute.
+	med             uint64                                         // med is the value of the BGP multi-exit discriminator.
+	nextHop         string                                         // nextHop is the IP next-hop used for the BGP route.
+	origin          ocepb.OpenconfigBgpTypesBgpOriginAttrType      // origin is the value of the ORIGIN attribute of the BGP prefix.
+	originatorID    string                                         // originatorID specifies the address of the BGP originator of the prefix.
+	prefix          string                                         // prefix is the IPv4 prefix for the route.
 	protocolOrigin  ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE // protocolOrigin specifies the route on the device via which the prefix was learnt.
 }
 
