@@ -7,20 +7,20 @@ Originally, the `ygen` package was developed to solely generate a single format 
 
 Particularly, we intend to restructure ygen to enforce a strict multi-stage code generation process. The target end-to-end pipeline is targeted to be:
 
- * An input set of YANG schemas is to be parsed by `goyang` and resolved through `yang.Node` representations into a set of `yang.Entry` structs. The set of `yang.Entry` structures that exist for a schema will be implemented to be lossless, such that there is no information that is available in the input YANG schema that cannot be extracted from them, and the original format of the structure is maintained.
- * A refactored `ygen` library will take the input set of `yang.Entry` structures for a schema, and create an intermediate representation (IR) that:   
+ 1. An input set of YANG schemas is to be parsed by `goyang` and resolved through `yang.Node` representations into a set of `yang.Entry` structs. The set of `yang.Entry` structures that exist for a schema will be implemented to be lossless, such that there is no information that is available in the input YANG schema that cannot be extracted from them, and the original format of the structure is maintained.
+ 1. A refactored `ygen` library will take the input set of `yang.Entry` structures for a schema, and create an intermediate representation (IR) that:
    * Has undergone transformation of the schema that is required by the code generation process. The current schema transformations are described by `genutil.CompressBehaviour` and are implemented solely for OpenConfig modules. Their purpose is to simplify the generated code for particular users.
    * Has resolved the types and names of entities that are to be output in the generated code. This should include the identification of directories, their fields and types, and any derived types that are needed by the generated code (typically enumerated types).
 
    The IR produced by ygen will be lossy compared to the input YANG schema, and should expose the minimum required fields to the subsequent code generation stages. The IR should not include `yang.Entry` fields, such that there is an explicitly defined API that is available to code generation - and transformations that require full schema knowledge are applied within the `ygen` library itself.
    
    Further to this, the IR itself must be language-agnostic to the greatest extent possible -- with any language-specific requirements being through well-known interfaces that are implemented by downstream code generation.
-* A set of language-specific, and potentially use-case specific, code generation libraries that convert the IR into a specific set of output code. These language libraries may consume only the `ygen` IR, and convert this from the pre-transformed schema into generated code artifacts. Different binaries may be utilised to call these libraries which provide the user interface.
+1. A set of language-specific, and potentially use-case specific, code generation libraries that convert the IR into a specific set of output code. These language libraries may consume only the `ygen` IR, and convert this from the pre-transformed schema into generated code artifacts. Different binaries may be utilised to call these libraries which provide the user interface.
 
 This structure will have the following benefits:
 
 * Knowledge of schema transformations will be clearly encapsulated into the `ygen` library -- today, numerous methods that are outputting code must be aware of the different transformations that are being applied to the schema - resulting in complex state tracking being required through the entire generation process. This causes significant additional effort to understand all the hooks required in the code generation libraries to add new output formats.
-* Generation of names for output code entities is moved from being a just-in-time process, which requires careful consideration of order, or can potentially have non-deterministic output - to being an up-front process. Previous changes have shown the benefits of moving enumeration naming to an up-front process where there can be clear understanding of how names are to be resolved, ensuring that there is a strictly defined IR ensures that this pattern can be applied across the code base.
+* Generation of names for output code entities is moved from being a on-the-fly process, which requires careful consideration of order, or can potentially have non-deterministic output - to being an up-front process. Previous changes have shown the benefits of moving enumeration naming to an up-front process where there can be clear understanding of how names are to be resolved, ensuring that there is a strictly defined IR ensures that this pattern can be applied across the code base.
 * The requirement for expert knowledge of YANG for adding code generation can be reduced - for example, rather than requiring a developer adding to `ygen` to understand the structure of a `yang.Entry` and all the possible fields that can be used in these cases, `ygen` itself can clearly document the IR, and keep this to being a subset of the available information - for example, this allows abstraction of properties that depend on a characteristic of the YANG schema that can only be described in a `yang.Node` (e.g., how a element is defined in the actual YANG structure) away from code generation libraries.
 * In the future, the IR may form a more compact means to express the YANG schema that is being used by `ytypes` for validation and unmarshalling -- since there is a reasonable binary size, and memory overhead for storing the existing `yang.Entry` structure. This aim is not part of the initial goal of implementing this design.
 
@@ -124,10 +124,9 @@ type Definitions struct {
 The proposed IR for the directory types in the returned code is as follows. The base philosophy of whether fields are included within this representation is to keep to the set of fields made available to the code output library to their minimum, to ensure that there is clear encapsulation of the complexities of the YANG hierarchy within `ygen`.
 
 ```golang
-// ParsedDirectory describes a node that is the root of a subtree
-// within the generated code. Such a 'directory' may represent a
-// struct, or a message, within the generated code - and represents
-// a YANG 'container' or 'list' entry.
+// ParsedDirectory describes an internal node within the generated
+// code. Such a 'directory' may represent a struct, or a message,
+// in the generated code. It represents a YANG 'container' or 'list'.
 type ParsedDirectory struct {
    // Name is the language-specific name of the directory to be
    // output.
@@ -212,12 +211,25 @@ type EnumeratedValueType int64
 
 const (
 	_ EnumeratedValueType = iota
+	// SimpleEnumerationType represents 'enumeration' leaves within
+	// the YANG schema.
 	SimpleEnumerationType
+	// DerivedEnumerationType represents enumerations that are within
+	// a YANG 'typedef'
 	DerivedEnumerationType
+	// UnionEnumerationType represents a 'type enumeration' within
+	// a union.
 	UnionEnumerationType
+	// DerivedUnionEnumeration type represents a 'enumeration' within
+	// a union that is itself within a typedef.
+	DerivedUnionEnumerationType
+	// IdentityType represents an enumeration that is an 'identity'
+	// within the YANG schema.
 	IdentityType
 )
 
+// EnumeratedYANGType is an abstract representation of an enumerated
+// type to be produced in the output code.
 type EnumeratedYANGType struct {
 	// Name is the name of the generated enumeration to be
 	// used in the generated code.
