@@ -1621,17 +1621,17 @@ func TestCopyStruct(t *testing.T) {
 		inDst:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
 		wantErr: true,
 	},
-	// {
-	// 	name:  "overwrite, slice fields not unique",
-	// 	inSrc: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
-	// 	inDst: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
-	// 	inOpts: []MergeOpt{
-	// 		&MergeStructOpt{
-	// 			Overwrite: true,
-	// 		},
-	// 	},
-	// 	wantDst: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
-	// },
+		{
+			name:  "overwrite, slice fields not unique",
+			inSrc: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
+			inDst: &copyTest{StringSlice: []string{"kingfisher"}},
+			inOpts: []MergeOpt{
+				&MergeStructOpt{
+					Overwrite: true,
+				},
+			},
+			wantDst: &copyTest{StringSlice: []string{"kingfisher", "mikkeler-draft-bear"}},
+		},
 	}
 
 	for _, tt := range tests {
