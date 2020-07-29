@@ -1777,6 +1777,20 @@ var mergeStructTests = []struct {
 	},
 	wantErr: "destination and source values were set when merging enum field",
 }, {
+	name: "overwrite enum merge: set to different values in both",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValueTwo,
+	},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
 	name:    "error, differing types",
 	inA:     &validatedMergeTest{String: String("great-divide-yeti")},
 	inB:     &validatedMergeTestTwo{String: String("north-coast-old-rasputin")},

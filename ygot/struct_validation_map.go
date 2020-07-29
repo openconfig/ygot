@@ -597,8 +597,12 @@ func copyStruct(dstVal, srcVal reflect.Value, opts ...MergeOpt) error {
 			// to the default value in the source.
 			vSrc, vDst := srcField.Int(), dstField.Int()
 			switch {
-			case vSrc != 0 && vDst != 0 && !fieldOverwriteEnabled(opts) && vSrc != vDst:
-				return fmt.Errorf("destination and source values were set when merging enum field, dst: %d, src: %d", vSrc, vDst)
+			case vSrc != 0 && vDst != 0 && vSrc != vDst:
+				if !fieldOverwriteEnabled(opts) {
+					return fmt.Errorf("destination and source values were set when merging enum field, dst: %d, src: %d", vSrc, vDst)
+				} else {
+					dstField.Set(srcField)
+				}
 			case vSrc != 0 && vDst == 0:
 				dstField.Set(srcField)
 			}
