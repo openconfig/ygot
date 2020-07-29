@@ -1419,9 +1419,7 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 		inOpts: []MergeOpt{
-			&MergeStructOpt{
-				Overwrite: true,
-			},
+			&MergeOverwriteExistingFields{},
 		},
 		wantDst: &copyTest{
 			StringMap: map[string]*copyTest{
@@ -1526,9 +1524,7 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 		inOpts: []MergeOpt{
-			&MergeStructOpt{
-				Overwrite: true,
-			},
+			&MergeOverwriteExistingFields{},
 		},
 		wantDst: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
@@ -1626,9 +1622,7 @@ func TestCopyStruct(t *testing.T) {
 			inSrc: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
 			inDst: &copyTest{StringSlice: []string{"kingfisher"}},
 			inOpts: []MergeOpt{
-				&MergeStructOpt{
-					Overwrite: true,
-				},
+				&MergeOverwriteExistingFields{},
 			},
 			wantDst: &copyTest{StringSlice: []string{"kingfisher", "mikkeler-draft-bear"}},
 		},
@@ -1688,6 +1682,14 @@ func (*validatedMergeTestWithSlice) ΛEnumTypeMap() map[string][]reflect.Type { 
 type validatedMergeTestSliceField struct {
 	String *string
 }
+
+type validatedMergeTestWithStructField struct {
+	StructField reflect.StructField
+}
+
+func (*validatedMergeTestWithStructField) Validate(...ValidationOption) error      { return nil }
+func (*validatedMergeTestWithStructField) IsYANGGoStruct()                         {}
+func (*validatedMergeTestWithStructField) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 
 type validatedMergeTestWithAnnotationSlice struct {
 	SliceField []Annotation `ygotAnnotation:"true"`
@@ -1794,9 +1796,7 @@ var mergeStructTests = []struct {
 	inA:  &validatedMergeTest{String: String("karbach-hopadillo")},
 	inB:  &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
 	inOpts: []MergeOpt{
-		&MergeStructOpt{
-			Overwrite: true,
-		},
+		&MergeOverwriteExistingFields{},
 	},
 	want: &validatedMergeTest{
 		String: String("blackwater-draw-brewing-co-border-town"),
@@ -1863,9 +1863,7 @@ var mergeStructTests = []struct {
 		UnionField: &copyUnionS{"mikkeler-pale-peter-and-mary"},
 	},
 	inOpts: []MergeOpt{
-		&MergeStructOpt{
-			Overwrite: true,
-		},
+		&MergeOverwriteExistingFields{},
 	},
 	want: &validatedMergeTest{
 		UnionField: &copyUnionS{"mikkeler-pale-peter-and-mary"},
@@ -1917,12 +1915,76 @@ var mergeStructTests = []struct {
 		UnionField: &copyUnionI{42},
 	},
 	inOpts: []MergeOpt{
-		&MergeStructOpt{
-			Overwrite: true,
-		},
+		&MergeOverwriteExistingFields{},
 	},
 	want: &validatedMergeTest{
 		UnionField: &copyUnionI{42},
+	},
+}, {
+	name: "merge struct fields",
+	inA: &validatedMergeTestWithStructField{
+		StructField: reflect.StructField{
+			Name: "greens-amber",
+		},
+	},
+	inB: &validatedMergeTestWithStructField{
+		StructField: reflect.StructField{
+			Name: "bira",
+			Tag:  `path:"foo"`,
+		},
+	},
+	want: &validatedMergeTestWithStructField{
+		StructField: reflect.StructField{
+			Name: "bira",
+			Tag:  `path:"foo"`,
+		},
+	},
+}, {
+	name: "merge struct fields with different tag",
+	inA: &validatedMergeTestWithStructField{
+		StructField: reflect.StructField{
+			Name: "greens-amber",
+			Tag:  `path:"foo"`,
+		},
+	},
+	inB: &validatedMergeTestWithStructField{
+		StructField: reflect.StructField{
+			Name: "bira",
+			Tag:  `path:"bar"`,
+		},
+	},
+	want: &validatedMergeTestWithStructField{
+		StructField: reflect.StructField{
+			Name: "bira",
+			Tag:  `path:"bar"`,
+		},
+	},
+}, {
+	name: "merge struct fields with no field in dst",
+	inA:  &validatedMergeTestWithStructField{},
+	inB: &validatedMergeTestWithStructField{
+		StructField: reflect.StructField{
+			Name: "bira",
+			Tag:  `path:"bar"`,
+		},
+	},
+	want: &validatedMergeTestWithStructField{
+		StructField: reflect.StructField{
+			Name: "bira",
+			Tag:  `path:"bar"`,
+		},
+	},
+}, {
+	name: "merge struct fields with no field in src",
+	inA: &validatedMergeTestWithStructField{
+		StructField: reflect.StructField{
+			Name: "bira",
+			Tag:  `path:"bar"`,
+		},
+	},
+	inB: &validatedMergeTestWithStructField{},
+	want: &validatedMergeTestWithStructField{
+		StructField: reflect.StructField{},
 	},
 }}
 

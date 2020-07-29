@@ -475,24 +475,24 @@ func MergeJSON(a, b map[string]interface{}) (map[string]interface{}, error) {
 	return o, nil
 }
 
-// MergeOpt is an interface that is implemented by the options to the MergeStructInto
-// function. It allows user specified options to be propagated to the merge
-// method.
+// MergeOpt is an interface that is implemented by the options to the
+// MergeStructs and MergeStructInto functions.
 type MergeOpt interface {
 	// IsMergeOpt is a marker method for each MergeOpt.
 	IsMergeOpt()
 }
 
-// DiffPathOpt is a DiffOpt that allows control of the path behaviour of the
-// Diff function.
-type MergeStructOpt struct {
-	// Overwrite specifies whether the dst struct can be overwritten with existing
-	// fields of src struct.
-	Overwrite bool
-}
+// MergeOverwriteExistingFields is a MergeOpt that allows control of the merge behaviour
+// of MergeStructs and MergeStructInto functions.
+// When used, fields that are populated in the destination struct will be overwritten
+// by values that are populated in the source struct. If the field is unpopulated in the source struct,
+// the value in the destination struct will not be modified.
+// When overwrite is set to false, an error will be produced if a field is set in both the source
+// and destination structs and their values are not equal.
+type MergeOverwriteExistingFields struct{}
 
 // IsMergeOpt marks MergeStructOpt as a merge option.
-func (*MergeStructOpt) IsMergeOpt() {}
+func (*MergeOverwriteExistingFields) IsMergeOpt() {}
 
 // MergeStructs takes two input ValidatedGoStructs and merges their contents,
 // returning a new ValidatedGoStruct. If the input structs a and b are of
@@ -546,22 +546,18 @@ func DeepCopy(s GoStruct) (GoStruct, error) {
 	return n.Interface().(GoStruct), nil
 }
 
-// hasMergeStructOpt extracts a MergeStructOpt from the opts slice provided. In
-// the case that there are multiple MergeStructOpt structs within opts slice, the
-// first is returned.
-func hasMergeStructOpt(opts []MergeOpt) *MergeStructOpt {
+// fieldOverwriteEnabled looks for the presence of MergeOverwriteExistingFields
+// from the MergeOpt slice provided.
+// In the case that there are multiple MergeOpt structs within the slice,
+// the first MergeOpt is used.
+func fieldOverwriteEnabled(opts []MergeOpt) bool {
 	for _, o := range opts {
-		switch v := o.(type) {
-		case *MergeStructOpt:
-			return v
+		switch o.(type) {
+		case *MergeOverwriteExistingFields:
+			return true
 		}
 	}
-	return nil
-}
-
-func canOverwriteStruct(opts []MergeOpt) bool {
-	mergeStructOpt := hasMergeStructOpt(opts)
-	return mergeStructOpt != nil && mergeStructOpt.Overwrite
+	return false
 }
 
 // copyStruct copies the fields of srcVal into the dstVal struct in-place.
@@ -601,7 +597,7 @@ func copyStruct(dstVal, srcVal reflect.Value, opts ...MergeOpt) error {
 			// to the default value in the source.
 			vSrc, vDst := srcField.Int(), dstField.Int()
 			switch {
-			case vSrc != 0 && vDst != 0 && !canOverwriteStruct(opts) && vSrc != vDst:
+			case vSrc != 0 && vDst != 0 && !fieldOverwriteEnabled(opts) && vSrc != vDst:
 				return fmt.Errorf("destination and source values were set when merging enum field, dst: %d, src: %d", vSrc, vDst)
 			case vSrc != 0 && vDst == 0:
 				dstField.Set(srcField)
@@ -652,7 +648,7 @@ func copyPtrField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 
 	if !util.IsNilOrInvalidValue(dstField) {
 		s, d := srcField.Elem().Interface(), dstField.Elem().Interface()
-		if diff := cmp.Diff(s, d); !canOverwriteStruct(opts) && diff != "" {
+		if diff := cmp.Diff(s, d); !fieldOverwriteEnabled(opts) && diff != "" {
 			return fmt.Errorf("destination value was set, but was not equal to source value when merging ptr field, (-src, +dst):\n%s", diff)
 		}
 	}
@@ -676,7 +672,7 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 	s := srcField.Elem().Elem() // Dereference src to a struct.
 	if !util.IsNilOrInvalidValue(dstField) {
 		dV := dstField.Elem().Elem() // Dereference dst to a struct.
-		if !canOverwriteStruct(opts) && !reflect.DeepEqual(s.Interface(), dV.Interface()) {
+		if !fieldOverwriteEnabled(opts) && !reflect.DeepEqual(s.Interface(), dV.Interface()) {
 			return fmt.Errorf("interface field was set in both src and dst and was not equal, src: %v, dst: %v", s.Interface(), dV.Interface())
 		}
 	}
