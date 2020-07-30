@@ -19,7 +19,7 @@ type IROptions struct {
 	// produced.
 	ParseOptions ParseOpts
 
-	// Transformation options speifies any transformations that should
+	// Transformation options specifies any transformations that should
 	// be applied to the input YANG schema when producing the IR.
 	TransformationOptions TransformationOpts
 }

@@ -61,7 +61,7 @@ type LangMapper interface {
 	// it can be directly output in the generated code.
 	EnumeratedValueName(string) (string, error)
 
-	// EnumerationTypePrefix specifies a prefix that should be used as a
+	// EnumeratedTypePrefix specifies a prefix that should be used as a
 	// prefix to types that are mapped from the YANG schema. The prefix
 	// is applied only to the type name - and not to the values within
 	// the enumeration.
