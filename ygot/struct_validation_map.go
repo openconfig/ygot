@@ -484,14 +484,13 @@ type MergeOpt interface {
 
 // MergeOverwriteExistingFields is a MergeOpt that allows control of the merge behaviour
 // of MergeStructs and MergeStructInto functions.
+//
 // When used, fields that are populated in the destination struct will be overwritten
-// by values that are populated in the source struct. If the field is unpopulated in the source struct,
-// the value in the destination struct will not be modified.
-// When overwrite is set to false, an error will be produced if a field is set in both the source
-// and destination structs and their values are not equal.
+// by values that are populated in the source struct. If the field is unpopulated
+// in the source struct, the value in the destination struct will not be modified.
 type MergeOverwriteExistingFields struct{}
 
-// IsMergeOpt marks MergeStructOpt as a merge option.
+// IsMergeOpt marks MergeStructOpt as a MergeOpt.
 func (*MergeOverwriteExistingFields) IsMergeOpt() {}
 
 // MergeStructs takes two input ValidatedGoStructs and merges their contents,
