@@ -80,12 +80,12 @@ type LangMapper interface {
 	//  - identityrefs within typedefs
 	// to be resolved to the corresponding type that is to be used in
 	// the IR.
-	SetEnumSet(*enumSet)
+	SetEnumSet(*EnumSet)
 
 	// SetSchemaTree is used to supply a copy of the YANG schema tree to
 	// the mapped such that leaves of type leafref can be resolved to
 	// their target leaves.
-	SetSchemaTree(*schemaTree)
+	SetSchemaTree(*SchemaTree)
 }
 
 // IR represents the returned intermediate representation produced by ygen.

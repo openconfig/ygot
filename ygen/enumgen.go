@@ -36,7 +36,7 @@ const (
 // The name sets should not be changed (essentially treat it as immutable), as
 // deduplication might have occurred, which depended on knowing all of the
 // entries beforehand.
-type enumSet struct {
+type EnumSet struct {
 	// uniqueIdentityNames is a map which is keyed by a string in the form of
 	// definingModule/identityName which stores the Go name of the enumerated Go type
 	// that has been created to represent the identity. This allows de-duplication

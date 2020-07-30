@@ -26,6 +26,20 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+// ResolveTypeArgs is a structure used as an input argument to functions that
+// map a particular leaf to a type.
+type ResolveTypeArgs struct {
+	// yangType is a pointer to the yang.YangType that is to be mapped.
+	YangType *yang.YangType
+	// contextEntry is an optional yang.Entry which is supplied where a
+	// type requires knowledge of the leaf that it is used within to be
+	// mapped. For example, where a leaf is defined to have a type of a
+	// user-defined type (typedef) that in turn has enumerated values - the
+	// context of the yang.Entry is required such that the leaf's context
+	// can be established.
+	ContextEntry *yang.Entry
+}
+
 const (
 	// GoDefaultYgotImportPath is the default import path used for the ygot library
 	// in the generated code.

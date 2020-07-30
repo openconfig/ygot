@@ -24,9 +24,9 @@ import (
 	"github.com/openconfig/ygot/util"
 )
 
-// schemaTree contains a ctree.Tree that stores a copy of the YANG schema tree
+// SchemaTree contains a ctree.Tree that stores a copy of the YANG schema tree
 // containing only leaf entries, such that schema paths can be referenced.
-type schemaTree struct {
+type SchemaTree struct {
 	ctree.Tree
 }
 
@@ -67,7 +67,7 @@ func buildSchemaTree(entries []*yang.Entry) (*schemaTree, error) {
 // it can be mapped to a native language type. It returns the yang.YangType that
 // is associated with the target, and the target yang.Entry, such that the
 // caller can map this to the relevant language type.
-func (t *schemaTree) resolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {
+func (t *SchemaTree) resolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {
 	if t == nil {
 		// This should not be possible if the calling code generation is
 		// well structured and builds the schematree during parsing of YANG
