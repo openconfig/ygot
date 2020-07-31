@@ -202,7 +202,9 @@ func StringToType(t reflect.Type, s string) (reflect.Value, error) {
 }
 
 // stringToKeyType converts given string to the type specified by the schema.
-// In the case that the type is an enum or union, the type becomes context-specific, so requires the parent GoStruct, the field name the string is associated with, as well as the type of the field.
+// In the case that the type is an enum or union, the type becomes
+// context-specific, so requires the parent GoStruct, the field name the string
+// is associated with, as well as the type of the field.
 func stringToKeyType(schema *yang.Entry, parent interface{}, fieldName string, value string) (reflect.Value, error) {
 	ykind := schema.Type.Kind
 	switch ykind {
