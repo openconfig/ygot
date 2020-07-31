@@ -1291,6 +1291,19 @@ func TestCopyStruct(t *testing.T) {
 		inDst:   &copyTest{},
 		wantDst: &copyTest{StringField: String("anchor-steam")},
 	}, {
+		name:    "error simple string pointer different value",
+		inSrc:   &copyTest{StringField: String("anchor-steam")},
+		inDst:   &copyTest{StringField: String("bira")},
+		wantErr: true,
+	}, {
+		name:  "overwrite simple string pointer different value",
+		inSrc: &copyTest{StringField: String("bira")},
+		inDst: &copyTest{StringField: String("anchor-steam")},
+		inOpts: []MergeOpt{
+			&MergeOverwriteExistingFields{},
+		},
+		wantDst: &copyTest{StringField: String("bira")},
+	}, {
 		name: "uint and string pointer",
 		inSrc: &copyTest{
 			StringField: String("fourpure-juicebox"),
