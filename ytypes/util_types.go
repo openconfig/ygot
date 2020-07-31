@@ -15,6 +15,7 @@
 package ytypes
 
 import (
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -47,6 +48,72 @@ func enumStringToValue(parent interface{}, fieldName, value string) (interface{}
 		return 0, fmt.Errorf("%s is not a valid value for enum field %s, type %s", value, fieldName, field.Type())
 	}
 	return ev, nil
+}
+
+// enumAndNonEnumTypesForUnion returns the list of enum and non-enum types for
+// a given union leaf's schema, provided a parent context.
+func enumAndNonEnumTypesForUnion(schema *yang.Entry, parentT reflect.Type) ([]reflect.Type, []yang.TypeKind, error) {
+	// Possible enum types, as []reflect.Type
+	ets, err := schemaToEnumTypes(schema, parentT)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Possible YANG scalar types, as []yang.TypeKind. This discards any
+	// yang.Type restrictions, since these are expected to be checked during
+	// verification after unmarshal.
+	sks, err := getUnionKindsNotEnums(schema)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	util.DbgPrint("enumAndNonEnumTypesForUnion: possible union types are enums %v or scalars %v", ets, sks)
+	return ets, sks, nil
+}
+
+// getLoneUnionType checks whether the provided union type was created from a
+// union of a single type. If so, it returns that single YANG type from the
+// provided enum and non-enum types lists (which is most conveniently extracted
+// from enumAndNonEnumTypesForUnion). If the union contains multiple types, it
+// returns the yang.Ynone type instead. If the lone type is an enum, then that
+// is indicated with the boolean return value.
+func getLoneUnionType(schema *yang.Entry, unionT reflect.Type, ets []reflect.Type, sks []yang.TypeKind) (yang.TypeKind, bool, error) {
+	// Single type union -- GoStruct field is that type rather than a union Interface type.
+	if !util.IsTypeInterface(unionT) && !util.IsTypeSliceOfInterface(unionT) {
+		// Is not an interface, we must have exactly one type in the union.
+		var yk yang.TypeKind
+		var isEnum bool
+		switch {
+		// That one type is either an enum or not an enum.
+		case len(sks) == 1 && len(ets) == 0:
+			yk = sks[0]
+		case len(sks) == 0 && len(ets) == 1:
+			yk = schema.Type.Type[0].Kind
+			isEnum = true
+		default:
+			return yang.Ynone, false, fmt.Errorf("got %v non-enum types and %v enum types for union schema %s for type %v, expect just one type in total", sks, ets, schema.Name, unionT)
+		}
+		return yk, isEnum, nil
+	}
+	return yang.Ynone, false, nil
+}
+
+// castToOneEnumValue loops through the given enum types in order in converting
+// the string value, and returns upon success. If the string value can't be
+// casted to any, nil is returned (without error).
+func castToOneEnumValue(ets []reflect.Type, value string) (interface{}, error) {
+	util.DbgPrint("castToOneEnumValue: %q", value)
+	for _, et := range ets {
+		util.DbgPrint("try to unmarshal into enum type %s", et)
+		ev, err := castToEnumValue(et, value)
+		if err != nil {
+			return nil, err
+		}
+		if ev != nil {
+			return ev, nil
+		}
+		util.DbgPrint("could not unmarshal %q into enum type: %s", value, err)
+	}
+	return nil, nil
 }
 
 // castToEnumValue returns value as the given type ft, if value is one of
@@ -132,6 +199,147 @@ func StringToType(t reflect.Type, s string) (reflect.Value, error) {
 		return reflect.ValueOf(s), nil
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("no matching type to cast for %v", t)
+}
+
+// stringToKeyType converts given string to the type specified by the schema.
+// In the case that the type is an enum or union, the type becomes context-specific, so requires the parent GoStruct, the field name the string is associated with, as well as the type of the field.
+func stringToKeyType(schema *yang.Entry, parent interface{}, fieldName string, value string) (reflect.Value, error) {
+	ykind := schema.Type.Kind
+	switch ykind {
+	// TODO(wenbli): case yang.Yempty: case yang.Ybits: case yang.Ybool:
+	case yang.Yint64:
+		u, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", value, ykind)
+		}
+		return reflect.ValueOf(u), nil
+	case yang.Yint32:
+		u, err := strconv.ParseInt(value, 10, 32)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", value, ykind)
+		}
+		return reflect.ValueOf(int32(u)), nil
+	case yang.Yint16:
+		u, err := strconv.ParseInt(value, 10, 16)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", value, ykind)
+		}
+		return reflect.ValueOf(int16(u)), nil
+	case yang.Yint8:
+		u, err := strconv.ParseInt(value, 10, 8)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", value, ykind)
+		}
+		return reflect.ValueOf(int8(u)), nil
+	case yang.Yuint64:
+		u, err := strconv.ParseUint(value, 10, 64)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", value, ykind)
+		}
+		return reflect.ValueOf(u), nil
+	case yang.Yuint32:
+		u, err := strconv.ParseUint(value, 10, 32)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", value, ykind)
+		}
+		return reflect.ValueOf(uint32(u)), nil
+	case yang.Yuint16:
+		u, err := strconv.ParseUint(value, 10, 16)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", value, ykind)
+		}
+		return reflect.ValueOf(uint16(u)), nil
+	case yang.Yuint8:
+		u, err := strconv.ParseUint(value, 10, 8)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("unable to convert %q to %v", value, ykind)
+		}
+		return reflect.ValueOf(uint8(u)), nil
+	case yang.Ybinary:
+		v, err := base64.StdEncoding.DecodeString(value)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("error in DecodeString for \n%v\n for schema %s: %v", value, schema.Name, err)
+		}
+		return reflect.ValueOf([]byte(v)), nil
+	case yang.Ystring:
+		return reflect.ValueOf(value), nil
+	case yang.Ydecimal64:
+		floatV, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("error parsing %v for schema %s: %v", value, schema.Name, err)
+		}
+		return reflect.ValueOf(floatV), nil
+	case yang.Yenum, yang.Yidentityref:
+		enumVal, err := enumStringToValue(parent, fieldName, value)
+		return reflect.ValueOf(enumVal), err
+	case yang.Yunion:
+		v, err := stringToUnionType(schema, parent, fieldName, value)
+		if err != nil {
+			return reflect.ValueOf(nil), err
+		}
+		fv := reflect.ValueOf(parent).Elem().FieldByName(fieldName)
+		ft := fv.Type()
+		if util.IsValuePtr(fv) {
+			ft = ft.Elem()
+		}
+		return getUnionVal(reflect.TypeOf(parent), ft, v.Interface())
+	}
+
+	return reflect.ValueOf(nil), fmt.Errorf("stringToKeyType: unsupported type %v for conversion from string %q, schema.Type: %v", ykind, value, schema.Type)
+}
+
+// stringToUnionType converts a string value into a suitable union type
+// determined by where it is located in the YANG tree.
+func stringToUnionType(schema *yang.Entry, parent interface{}, fieldName string, value string) (reflect.Value, error) {
+	util.DbgPrint("stringToUnionType value %v, into parent type %T field name %s, schema name %s", util.ValueStrDebug(value), parent, fieldName, schema.Name)
+	parentT := reflect.TypeOf(parent)
+	if !util.IsTypeStructPtr(parentT) {
+		return reflect.ValueOf(nil), fmt.Errorf("%T is not a struct ptr in stringToUnionType", parent)
+	}
+
+	dft, _ := parentT.Elem().FieldByName(fieldName)
+	destUnionFieldElemT := dft.Type
+
+	ets, sks, err := enumAndNonEnumTypesForUnion(schema, parentT)
+	if err != nil {
+		return reflect.ValueOf(nil), err
+	}
+
+	// Special case. If all possible union types map to a single go type, the
+	// GoStruct field is that type rather than a union Interface type.
+	loneType, _, err := getLoneUnionType(schema, destUnionFieldElemT, ets, sks)
+	if err != nil {
+		return reflect.ValueOf(nil), err
+	}
+	if loneType != yang.Ynone {
+		return stringToKeyType(yangKindToLeafEntry(loneType), parent, fieldName, value)
+	}
+
+	// For each possible union type, try to convert/unmarshal the value.
+	// Note that values can resolve into more than one struct type depending on
+	// the value and its range. In this case, no attempt is made to find the
+	// most restrictive type.
+	// Try to unmarshal to enum types first, since the case of union of string
+	// and enum could unmarshal into either. Only string values can be enum
+	// types.
+	ev, err := castToOneEnumValue(ets, value)
+	if err != nil {
+		return reflect.ValueOf(nil), err
+	}
+	if ev != nil {
+		return reflect.ValueOf(ev), err
+	}
+
+	for _, sk := range sks {
+		util.DbgPrint("try to convert string %q into type %s", value, sk)
+		gv, err := stringToKeyType(yangKindToLeafEntry(sk), parent, fieldName, value)
+		if err == nil {
+			return gv, nil
+		}
+		util.DbgPrint("could not unmarshal %v into type %s: %s", value, sk, err)
+	}
+
+	return reflect.ValueOf(nil), fmt.Errorf("could not find suitable union type to unmarshal value %q into parent struct type %T field %s", value, parent, fieldName)
 }
 
 // yangBuiltinTypeToGoType returns a pointer to the Go built-in value with

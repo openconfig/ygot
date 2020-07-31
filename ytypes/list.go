@@ -381,20 +381,29 @@ func makeValForInsert(schema *yang.Entry, parent interface{}, keys map[string]st
 
 	// Create an instance of map value type. Element is dereferenced as it is a pointer.
 	val := reflect.New(elmT.Elem())
-	// Helper to update the field corresponding to schema key.
-	setKey := func(schemaKey string, fieldVal string) error {
-		fn, err := schemaNameToFieldName(val.Elem(), schemaKey)
+	// Helper to update the field corresponding to the schema list's key.
+	setKey := func(keySchemaName string) error {
+		keyVal, ok := keys[keySchemaName]
+		if !ok {
+			return fmt.Errorf("missing %q key in %v", keySchemaName, keys)
+		}
+		keySchema, ok := schema.Dir[keySchemaName]
+		if !ok {
+			return fmt.Errorf("missing %q key in schema directory %v", keySchemaName, schema.Dir)
+		}
+		if keySchema.Type.Kind == yang.Yleafref {
+			leafrefPath := keySchema.Type.Path
+			if keySchema = keySchema.Find(leafrefPath); keySchema == nil {
+				return fmt.Errorf("cannot find leafref %q in schema directory %v", leafrefPath, schema.Dir)
+			}
+		}
+
+		fn, err := schemaNameToFieldName(val.Elem(), keySchemaName)
 		if err != nil {
 			return err
 		}
 
-		fv := val.Elem().FieldByName(fn)
-		ft := fv.Type()
-		if util.IsValuePtr(fv) {
-			ft = ft.Elem()
-		}
-
-		nv, err := StringToType(ft, fieldVal)
+		nv, err := stringToKeyType(keySchema, val.Interface(), fn, keyVal)
 		if err != nil {
 			return err
 		}
@@ -407,21 +416,15 @@ func makeValForInsert(schema *yang.Entry, parent interface{}, keys map[string]st
 			if err != nil {
 				return reflect.ValueOf(nil), err
 			}
-			schVal, ok := keys[schKey]
-			if !ok {
-				return reflect.ValueOf(nil), fmt.Errorf("missing %v key in %v", schKey, keys)
-			}
-			if err := setKey(schKey, schVal); err != nil {
+
+			if err := setKey(schKey); err != nil {
 				return reflect.ValueOf(nil), err
 			}
 		}
 		return val, nil
 	}
-	v, ok := keys[schema.Key]
-	if !ok {
-		return reflect.ValueOf(nil), fmt.Errorf("missing %v key in %v", schema.Key, keys)
-	}
-	if err := setKey(schema.Key, v); err != nil {
+
+	if err := setKey(schema.Key); err != nil {
 		return reflect.ValueOf(nil), err
 	}
 	return val, nil
@@ -453,7 +456,7 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 			}
 			util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
 			newKeyField := newKey.FieldByName(kfn)
-			if !util.ValuesAreSameType(newKeyField, nv) {
+			if !nv.Type().AssignableTo(newKeyField.Type()) {
 				return reflect.ValueOf(nil), fmt.Errorf("multi-key %v is not assignable to %v", nv.Type(), newKeyField.Type())
 			}
 			newKeyField.Set(nv)

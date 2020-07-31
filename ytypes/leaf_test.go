@@ -321,25 +321,25 @@ type Union1String struct {
 	String string
 }
 
-func (Union1String) IsUnion1() {}
+func (*Union1String) IsUnion1() {}
 
 type Union1Int16 struct {
 	Int16 int16
 }
 
-func (Union1Int16) IsUnion1() {}
+func (*Union1Int16) IsUnion1() {}
 
 type Union1EnumType struct {
 	EnumType EnumType
 }
 
-func (Union1EnumType) IsUnion1() {}
+func (*Union1EnumType) IsUnion1() {}
 
 type Union1BadLeaf struct {
 	BadLeaf *float32
 }
 
-func (Union1BadLeaf) IsUnion1() {}
+func (*Union1BadLeaf) IsUnion1() {}
 
 type UnionContainerCompressed struct {
 	UnionField *string `path:"union1"`
