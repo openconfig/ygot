@@ -210,6 +210,7 @@ func TestStringToType(t *testing.T) {
 		t       reflect.Type
 		wantErr bool
 	}{
+		{s: "hehehe", t: reflect.TypeOf("")},
 		{s: "123", t: reflect.TypeOf(uint16(10))},
 		{s: "123", t: reflect.TypeOf(uint32(20))},
 		{s: "123", t: reflect.TypeOf(int16(-30))},
@@ -238,19 +239,20 @@ func TestStringToType(t *testing.T) {
 }
 
 type allKeysListStruct struct {
-	StringKey    *string  `path:"stringKey"`
-	Int8Key      *int8    `path:"int8Key"`
-	Int16Key     *int16   `path:"int16Key"`
-	Int32Key     *int32   `path:"int32Key"`
-	Int64Key     *int64   `path:"int64Key"`
-	Uint8Key     *uint8   `path:"uint8Key"`
-	Uint16Key    *uint16  `path:"uint16Key"`
-	Uint32Key    *uint32  `path:"uint32Key"`
-	Uint64Key    *uint64  `path:"uint64Key"`
-	Decimal64Key *float64 `path:"decimal64Key"`
-	BinaryKey    Binary   `path:"binaryKey"`
-	EnumKey      EnumType `path:"key3"`
-	UnionKey     Union1   `path:"unionKey"`
+	StringKey        *string  `path:"stringKey"`
+	Int8Key          *int8    `path:"int8Key"`
+	Int16Key         *int16   `path:"int16Key"`
+	Int32Key         *int32   `path:"int32Key"`
+	Int64Key         *int64   `path:"int64Key"`
+	Uint8Key         *uint8   `path:"uint8Key"`
+	Uint16Key        *uint16  `path:"uint16Key"`
+	Uint32Key        *uint32  `path:"uint32Key"`
+	Uint64Key        *uint64  `path:"uint64Key"`
+	Decimal64Key     *float64 `path:"decimal64Key"`
+	BinaryKey        Binary   `path:"binaryKey"`
+	EnumKey          EnumType `path:"key3"`
+	UnionKey         Union1   `path:"unionKey"`
+	UnionLoneTypeKey *uint32  `path:"unionLoneTypeKey"`
 }
 
 func (t *allKeysListStruct) To_Union1(i interface{}) (Union1, error) {
@@ -361,6 +363,19 @@ func TestStringToKeyType(t *testing.T) {
 					},
 				},
 			},
+			"unionLoneTypeKey": {
+				Kind: yang.LeafEntry,
+				Name: "unionLoneTypeKey",
+				Type: &yang.YangType{
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{
+						{
+							Name: "uint32",
+							Kind: yang.Yuint32,
+						},
+					},
+				},
+			},
 		},
 	}
 	addParents(listSchema)
@@ -376,7 +391,7 @@ func TestStringToKeyType(t *testing.T) {
 	}{{
 		name:        "string",
 		inSchema:    listSchema.Dir["stringKey"],
-		inParent:    allKeysListStruct{},
+		inParent:    &allKeysListStruct{},
 		inFieldName: "StringKey",
 		in:          "hello, world!",
 		want:        "hello, world!",
@@ -451,6 +466,13 @@ func TestStringToKeyType(t *testing.T) {
 		in:          "NDI=",
 		want:        []byte("42"),
 	}, {
+		name:        "union lone type",
+		inSchema:    listSchema.Dir["unionLoneTypeKey"],
+		inParent:    &allKeysListStruct{},
+		inFieldName: "UnionLoneTypeKey",
+		in:          "42",
+		want:        uint32(42),
+	}, {
 		name:        "enum",
 		inSchema:    listSchema.Dir["enumKey"],
 		inParent:    &allKeysListStruct{},
@@ -473,11 +495,18 @@ func TestStringToKeyType(t *testing.T) {
 		in:          "1234-1234",
 		want:        &Union1String{"1234-1234"},
 	}, {
-		name:             "invalid: float for int",
-		inSchema:         listSchema.Dir["int32Key"],
+		name:             "invalid: struct is not a ptr when unmarshalling union",
+		inSchema:         listSchema.Dir["unionKey"],
+		inParent:         allKeysListStruct{},
+		inFieldName:      "UnionKey",
+		in:               "E_VALUE_FORTY_TWO",
+		wantErrSubstring: "not a struct ptr",
+	}, {
+		name:             "invalid: string for float",
+		inSchema:         listSchema.Dir["decimal64Key"],
 		inParent:         &allKeysListStruct{},
-		inFieldName:      "Int32Key",
-		in:               "-1234.1234",
+		inFieldName:      "Decimal64Key",
+		in:               "I am a float?",
 		wantErrSubstring: "unable to convert",
 	}, {
 		name:             "invalid: too big for int8",
@@ -486,6 +515,20 @@ func TestStringToKeyType(t *testing.T) {
 		inFieldName:      "Int8Key",
 		in:               "-1234",
 		wantErrSubstring: "unable to convert",
+	}, {
+		name:             "invalid: negative for uint64",
+		inSchema:         listSchema.Dir["uint64Key"],
+		inParent:         &allKeysListStruct{},
+		inFieldName:      "Uint64Key",
+		in:               "-1234",
+		wantErrSubstring: "unable to convert",
+	}, {
+		name:             "invalid: non-base64",
+		inSchema:         listSchema.Dir["binaryKey"],
+		inParent:         &allKeysListStruct{},
+		inFieldName:      "BinaryKey",
+		in:               "%",
+		wantErrSubstring: "error in DecodeString",
 	}}
 
 	for _, tt := range tests {

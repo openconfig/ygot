@@ -812,8 +812,6 @@ func (t *ListElemStructMapCreation) To_Union1(i interface{}) (Union1, error) {
 		return &Union1EnumType{v}, nil
 	case int16:
 		return &Union1Int16{v}, nil
-	case string:
-		return &Union1String{v}, nil
 	default:
 		return nil, fmt.Errorf("cannot convert %v to Union1, unknown union type, got: %T", i, i)
 	}
@@ -831,8 +829,6 @@ func (t *ListElemStructMapCreationLeafrefKeys) To_Union1(i interface{}) (Union1,
 		return &Union1EnumType{v}, nil
 	case int16:
 		return &Union1Int16{v}, nil
-	case string:
-		return &Union1String{v}, nil
 	default:
 		return nil, fmt.Errorf("cannot convert %v to Union1, unknown union type, got: %T", i, i)
 	}
@@ -880,10 +876,6 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 								{
 									Name: "enum-type",
 									Kind: yang.Yenum,
-								},
-								{
-									Name: "string",
-									Kind: yang.Ystring,
 								},
 								{
 									Name: "int16",
@@ -968,10 +960,6 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 											Kind: yang.Yenum,
 										},
 										{
-											Name: "string",
-											Kind: yang.Ystring,
-										},
-										{
 											Name: "int16",
 											Kind: yang.Yint16,
 										},
@@ -1009,9 +997,9 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1EnumType{EnumType(42)}},
 		},
 		{
-			desc: "success with string for union key",
-			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "E_VALUE_FORTY_BILLION"},
-			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1String{"E_VALUE_FORTY_BILLION"}},
+			desc: "success with int16 for union key",
+			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "1234"},
+			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1Int16{int16(1234)}},
 		},
 		// note that an extra key in the map is just ignored as long as the mandatory keys present.
 		{
@@ -1037,6 +1025,11 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 		{
 			desc:         "incorrect type for key2",
 			keys:         map[string]string{"key1": "int0", "key2": "forty_two", "key3": "E_VALUE_FORTY_TWO"},
+			errSubstring: "unable to convert",
+		},
+		{
+			desc:         "incorrect type for union key",
+			keys:         map[string]string{"key1": "int0", "key2": "forty_two", "key3": "YOU_CANT_UNMARSHAL_ME"},
 			errSubstring: "unable to convert",
 		},
 	}
