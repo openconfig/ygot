@@ -545,10 +545,8 @@ func DeepCopy(s GoStruct) (GoStruct, error) {
 	return n.Interface().(GoStruct), nil
 }
 
-// fieldOverwriteEnabled looks for the presence of MergeOverwriteExistingFields
-// from the MergeOpt slice provided.
-// In the case that there are multiple MergeOpt structs within the slice,
-// the first MergeOpt is used.
+// fieldOverwriteEnabled returns true if MergeOverwriteExistingFields
+// is present in the slice of MergeOpt.
 func fieldOverwriteEnabled(opts []MergeOpt) bool {
 	for _, o := range opts {
 		switch o.(type) {

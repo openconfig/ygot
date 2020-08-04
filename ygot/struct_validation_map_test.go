@@ -1696,14 +1696,6 @@ type validatedMergeTestSliceField struct {
 	String *string
 }
 
-type validatedMergeTestWithStructField struct {
-	StructField reflect.StructField
-}
-
-func (*validatedMergeTestWithStructField) Validate(...ValidationOption) error      { return nil }
-func (*validatedMergeTestWithStructField) IsYANGGoStruct()                         {}
-func (*validatedMergeTestWithStructField) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
-
 type validatedMergeTestWithAnnotationSlice struct {
 	SliceField []Annotation `ygotAnnotation:"true"`
 }
@@ -1946,72 +1938,6 @@ var mergeStructTests = []struct {
 	},
 	want: &validatedMergeTest{
 		UnionField: &copyUnionI{42},
-	},
-}, {
-	name: "merge struct fields",
-	inA: &validatedMergeTestWithStructField{
-		StructField: reflect.StructField{
-			Name: "greens-amber",
-		},
-	},
-	inB: &validatedMergeTestWithStructField{
-		StructField: reflect.StructField{
-			Name: "bira",
-			Tag:  `path:"foo"`,
-		},
-	},
-	want: &validatedMergeTestWithStructField{
-		StructField: reflect.StructField{
-			Name: "bira",
-			Tag:  `path:"foo"`,
-		},
-	},
-}, {
-	name: "merge struct fields with different tag",
-	inA: &validatedMergeTestWithStructField{
-		StructField: reflect.StructField{
-			Name: "greens-amber",
-			Tag:  `path:"foo"`,
-		},
-	},
-	inB: &validatedMergeTestWithStructField{
-		StructField: reflect.StructField{
-			Name: "bira",
-			Tag:  `path:"bar"`,
-		},
-	},
-	want: &validatedMergeTestWithStructField{
-		StructField: reflect.StructField{
-			Name: "bira",
-			Tag:  `path:"bar"`,
-		},
-	},
-}, {
-	name: "merge struct fields with no field in dst",
-	inA:  &validatedMergeTestWithStructField{},
-	inB: &validatedMergeTestWithStructField{
-		StructField: reflect.StructField{
-			Name: "bira",
-			Tag:  `path:"bar"`,
-		},
-	},
-	want: &validatedMergeTestWithStructField{
-		StructField: reflect.StructField{
-			Name: "bira",
-			Tag:  `path:"bar"`,
-		},
-	},
-}, {
-	name: "merge struct fields with no field in src",
-	inA: &validatedMergeTestWithStructField{
-		StructField: reflect.StructField{
-			Name: "bira",
-			Tag:  `path:"bar"`,
-		},
-	},
-	inB: &validatedMergeTestWithStructField{},
-	want: &validatedMergeTestWithStructField{
-		StructField: reflect.StructField{},
 	},
 }}
 
