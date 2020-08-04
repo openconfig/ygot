@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
@@ -658,6 +659,54 @@ func TestStripModulePrefixesStr(t *testing.T) {
 			if got, want := StripModulePrefixesStr(tt.path), tt.want; got != want {
 				t.Errorf("got: %v want: %v", got, want)
 			}
+		})
+	}
+}
+
+func TestReplacePathSuffix(t *testing.T) {
+	tests := []struct {
+		desc             string
+		inName           string
+		inNewSuffix      string
+		wantName         string
+		wantErrSubstring string
+	}{{
+		desc:        "valid with prefix",
+		inName:      "one:two",
+		inNewSuffix: "three",
+		wantName:    "one:three",
+	}, {
+		desc:        "valid without prefix",
+		inName:      "two",
+		inNewSuffix: "three",
+		wantName:    "three",
+	}, {
+		desc:             "invalid input",
+		inName:           "foo:bar:foo",
+		inNewSuffix:      "three",
+		wantErrSubstring: "path element did not form a valid name (name, prefix:name)",
+	}, {
+		desc:        "empty string",
+		inName:      "",
+		inNewSuffix: "foo",
+		wantName:    "foo",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := ReplacePathSuffix(tt.inName, tt.inNewSuffix)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("ReplacePathSuffix(%v, %v): did not get expected error:%s", tt.inName, tt.inNewSuffix, diff)
+			}
+
+			if err != nil {
+				return
+			}
+
+			if got != tt.wantName {
+				t.Errorf("ReplacePathSuffix(%v, %v): did not get expected name, got: %s, want: %s", tt.inName, tt.inNewSuffix, got, tt.wantName)
+			}
+
 		})
 	}
 }

@@ -476,6 +476,20 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.formatted-txt"),
 	}, {
+		name:    "OpenConfig schema test - list and associated method (rename, new) - using operational state",
+		inFiles: []string{filepath.Join(datapath, "openconfig-withlist.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferOperationalState,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+			GoOptions: GoOpts{
+				GenerateRenameMethod: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-withlist-opstate.formatted-txt"),
+	}, {
 		name:    "simple openconfig test, with a list that has an enumeration key",
 		inFiles: []string{filepath.Join(datapath, "openconfig-list-enum-key.yang")},
 		inConfig: GeneratorConfig{

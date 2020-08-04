@@ -832,6 +832,9 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 	enums := map[string]*yang.Entry{}
 	var rootElems, treeElems []*yang.Entry
 	for _, module := range modules {
+		// Need to transform the AST based on compression behaviour.
+		genutil.TransformEntry(module, cfg.TransformationOptions.CompressBehaviour)
+
 		errs = append(errs, findMappableEntities(module, dirs, enums, cfg.ParseOptions.ExcludeModules, cfg.TransformationOptions.CompressBehaviour.CompressEnabled(), modules)...)
 		if module == nil {
 			errs = append(errs, errors.New("found a nil module in the returned module set"))

@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/exampleoc"
+	"github.com/openconfig/ygot/exampleoc/opstateoc"
 	"github.com/openconfig/ygot/uexampleoc"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
@@ -91,6 +92,48 @@ func TestSet(t *testing.T) {
 	}, {
 		desc:     "set leafref with mismatched name - uncompressed schema",
 		inSchema: mustSchema(uexampleoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "components",
+			}, {
+				Name: "component",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "optical-channel",
+			}, {
+				Name: "state",
+			}, {
+				Name: "line-port",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "components",
+				}, {
+					Name: "component",
+					Key: map[string]string{
+						"name": "OCH-1-2",
+					},
+				}, {
+					Name: "optical-channel",
+				}, {
+					Name: "state",
+				}, {
+					Name: "line-port",
+				}},
+			},
+			Data: ygot.String("XCVR-1-2"),
+		},
+	}, {
+		desc:     "set leafref with mismatched name - operational state (compressed) schema",
+		inSchema: mustSchema(opstateoc.Schema),
 		inPath: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "components",
