@@ -37,6 +37,7 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	oc "github.com/openconfig/ygot/exampleoc"
+	"github.com/openconfig/ygot/exampleoc/opstateoc"
 	uoc "github.com/openconfig/ygot/uexampleoc"
 	scpb "google.golang.org/genproto/googleapis/rpc/code"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
@@ -151,6 +152,79 @@ func TestValidateInterface(t *testing.T) {
 		t.Errorf("bad vlan-id value: got nil, want error")
 	} else {
 		if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
+			t.Errorf("did not get expected vlan-id error, %s", diff)
+		}
+		testErrLog(t, "bad vlan-id value", err)
+	}
+
+	// Validate that we get two errors.
+	if errs := dev.Validate(); len(errs.(util.Errors)) != 2 {
+		var b bytes.Buffer
+		for _, err := range errs.(util.Errors) {
+			b.WriteString(fmt.Sprintf("	[%s]\n", err))
+		}
+		t.Errorf("did not get expected errors when validating device, got:\n %s (len: %d), want 5 errors", b.String(), len(errs.(util.Errors)))
+	}
+}
+
+func TestValidateInterfaceOpState(t *testing.T) {
+	dev := &opstateoc.Device{}
+	eth0, err := dev.NewInterface("eth0")
+	if err != nil {
+		t.Errorf("eth0.NewInterface(): got %v, want nil", err)
+	}
+
+	eth0.Description = ygot.String("eth0 description")
+	eth0.Type = opstateoc.IETFInterfaces_InterfaceType_ethernetCsmacd
+
+	// Validate the fake root device.
+	if err := dev.Validate(); err != nil {
+		t.Errorf("root success: got %s, want nil", err)
+	}
+	// Validate an element in the device subtree.
+	if err := eth0.Validate(); err != nil {
+		t.Errorf("eth0 success: got %s, want nil", err)
+	}
+
+	// Key in map != key field value in element. Key should be "eth0" here.
+	dev.Interface["bad_key"] = eth0
+	if err := dev.Validate(); err == nil {
+		t.Errorf("bad key: got nil, want error")
+	} else {
+		if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
+			t.Errorf("did not get expected vlan-id error, %s", diff)
+		}
+		testErrLog(t, "bad key", err)
+	}
+
+	vlan0, err := eth0.NewSubinterface(0)
+	if err != nil {
+		t.Errorf("eth0.NewSubinterface(): got %v, want nil", err)
+	}
+
+	// Device/interface/subinterfaces/subinterface/vlan
+	vlan0.Vlan = &opstateoc.Interface_Subinterface_Vlan{
+		VlanId: &opstateoc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
+			Uint16: 1234,
+		},
+	}
+
+	// Validate the vlan.
+	if err := vlan0.Validate(); err != nil {
+		t.Errorf("vlan0 success: got %s, want nil", err)
+	}
+
+	// Set vlan-id to be out of range (1-4094)
+	vlan0.Vlan = &opstateoc.Interface_Subinterface_Vlan{
+		VlanId: &opstateoc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
+			Uint16: 4095,
+		},
+	}
+	// Validate the vlan.
+	if err := vlan0.Validate(); err == nil {
+		t.Errorf("bad vlan-id value: got nil, want error")
+	} else {
+		if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/state/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
 			t.Errorf("did not get expected vlan-id error, %s", diff)
 		}
 		testErrLog(t, "bad vlan-id value", err)
@@ -450,6 +524,12 @@ func TestUnmarshal(t *testing.T) {
 			jsonFilePath: "bgp-example.json",
 			parent:       &oc.Device{},
 			unmarshalFn:  oc.Unmarshal,
+		},
+		{
+			desc:         "bgp",
+			jsonFilePath: "bgp-example-opstate.json",
+			parent:       &opstateoc.Device{},
+			unmarshalFn:  opstateoc.Unmarshal,
 		},
 		{
 			desc:              "interfaces",

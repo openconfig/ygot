@@ -23,6 +23,7 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	oc "github.com/openconfig/ygot/exampleoc"
+	"github.com/openconfig/ygot/exampleoc/opstateoc"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
 
@@ -41,7 +42,7 @@ func TestGetNodeFull(t *testing.T) {
 	rootSchema := oc.SchemaTree[reflect.TypeOf(oc.Device{}).Name()]
 	tests := []struct {
 		name             string
-		inRoot           *oc.Device
+		inRoot           ygot.GoStruct
 		inSchema         *yang.Entry
 		inPath           *gpb.Path
 		inOpts           []ytypes.GetNodeOpt
@@ -75,6 +76,45 @@ func TestGetNodeFull(t *testing.T) {
 		wantNodes: []*ytypes.TreeNode{{
 			Path: mustPath("/interfaces/interface[name=eth0]/config/description"),
 			Data: ygot.String("foo"),
+		}},
+	}, {
+		name: "interface leaf get using operational state",
+		inRoot: func() *opstateoc.Device {
+			d := &opstateoc.Device{}
+			d.GetOrCreateInterface("eth0").Description = ygot.String("foo")
+			return d
+		}(),
+		inSchema: rootSchema,
+		inPath:   mustPath("/interfaces/interface[name=eth0]/state/description"),
+		wantNodes: []*ytypes.TreeNode{{
+			Path: mustPath("/interfaces/interface[name=eth0]/state/description"),
+			Data: ygot.String("foo"),
+		}},
+	}, {
+		name: "interface leafref key get",
+		inRoot: func() *oc.Device {
+			d := &oc.Device{}
+			d.GetOrCreateInterface("eth0").Description = ygot.String("foo")
+			return d
+		}(),
+		inSchema: rootSchema,
+		inPath:   mustPath("/interfaces/interface[name=eth0]/name"),
+		wantNodes: []*ytypes.TreeNode{{
+			Path: mustPath("/interfaces/interface[name=eth0]/name"),
+			Data: ygot.String("eth0"),
+		}},
+	}, {
+		name: "interface leafref key get using operational state",
+		inRoot: func() *opstateoc.Device {
+			d := &opstateoc.Device{}
+			d.GetOrCreateInterface("eth0").Description = ygot.String("foo")
+			return d
+		}(),
+		inSchema: rootSchema,
+		inPath:   mustPath("/interfaces/interface[name=eth0]/name"),
+		wantNodes: []*ytypes.TreeNode{{
+			Path: mustPath("/interfaces/interface[name=eth0]/name"),
+			Data: ygot.String("eth0"),
 		}},
 	}, {
 		name: "bad path",

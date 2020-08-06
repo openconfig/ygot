@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"sort"
+	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
@@ -452,5 +453,53 @@ func addNewChild(m map[string]*yang.Entry, k string, v *yang.Entry, errs []error
 		return errs
 	}
 	errs = append(errs, fmt.Errorf("%s was duplicate", v.Path()))
+	return errs
+}
+
+// TransformEntry makes changes to the given AST subtree returned by goyang
+// depending on the compress behaviour.
+// Currently, only PreferOperationalState entails a transformation, where
+// leafrefs pointing to config leaves are changed to point to state leaves.
+func TransformEntry(e *yang.Entry, compressBehaviour CompressBehaviour) util.Errors {
+	if compressBehaviour != PreferOperationalState {
+		return nil
+	}
+
+	// In OpenConfig (all compressed schemas are by definition OpenConfig schemas),
+	// this is always safe to do - because there must be a 'state' leaf for each
+	// 'config' leaf, and this is guaranteed by the OpenConfig linter. In other
+	// schemas this wouldn't necessarily be the case.
+	pointLeafrefToState := func(e *yang.Entry) error {
+		refparts := strings.Split(e.Type.Path, "/")
+		if len(refparts) < 3 {
+			// The leafref would be of the form "../<0 or more elements>/config/<leaf name>"
+			return nil
+		}
+		parentContainerIndex := len(refparts) - 2
+		if util.StripModulePrefix(refparts[parentContainerIndex]) == "config" {
+			newName, err := util.ReplacePathSuffix(refparts[parentContainerIndex], "state")
+			if err != nil {
+				return err
+			}
+			refparts[parentContainerIndex] = newName
+		}
+		e.Type.Path = strings.Join(refparts, "/")
+		return nil
+	}
+
+	var errs util.Errors
+	for _, ch := range util.Children(e) {
+		switch {
+		case ch.IsLeaf(), ch.IsLeafList():
+			util.AppendErr(errs, pointLeafrefToState(ch))
+		case ch.IsContainer(), ch.IsList(), util.IsChoiceOrCase(ch):
+			// Recurse down the tree.
+			errs = util.AppendErrs(errs, TransformEntry(ch, compressBehaviour))
+		case ch.Kind == yang.AnyDataEntry:
+			continue
+		default:
+			errs = util.AppendErr(errs, fmt.Errorf("unknown type of entry %v in TransformEntry for %s", e.Kind, e.Path()))
+		}
+	}
 	return errs
 }

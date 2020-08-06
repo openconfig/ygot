@@ -265,6 +265,22 @@ func StripModulePrefix(name string) string {
 	}
 }
 
+// ReplacePathSuffix replaces the non-prefix part of a prefixed path name, or
+// the whole path name otherwise.
+// e.g. If replacing foo -> bar
+// - "foo" becomes "bar"
+// - "a:foo" becomes "a:bar"
+func ReplacePathSuffix(name, newSuffix string) (string, error) {
+	ps := strings.Split(name, ":")
+	switch len(ps) {
+	case 1:
+		return newSuffix, nil
+	case 2:
+		return ps[0] + ":" + newSuffix, nil
+	}
+	return "", fmt.Errorf("ygot.util: path element did not form a valid name (name, prefix:name): %q", name)
+}
+
 // PathStringToElements splits the string s, which represents a gNMI string
 // path into its constituent elements. It does not parse keys, which are left
 // unchanged within the path - but removes escape characters from element
