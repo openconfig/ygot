@@ -465,6 +465,10 @@ func TransformEntry(e *yang.Entry, compressBehaviour CompressBehaviour) util.Err
 		return nil
 	}
 
+	// In OpenConfig (all compressed schemas are by definition OpenConfig schemas),
+	// this is always safe to do - because there must be a 'state' leaf for each
+	// 'config' leaf, and this is guaranteed by the OpenConfig linter. In other
+	// schemas this wouldn't necessarily be the case.
 	pointLeafrefToState := func(e *yang.Entry) error {
 		refparts := strings.Split(e.Type.Path, "/")
 		if len(refparts) < 3 {

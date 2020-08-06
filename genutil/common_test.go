@@ -654,7 +654,7 @@ func TestFindChildren(t *testing.T) {
 }
 
 func TestTransformEntry(t *testing.T) {
-	inEntry := &yang.Entry{
+	inSchemaTemplate := &yang.Entry{
 		Name:     "interface",
 		Kind:     yang.DirectoryEntry,
 		Type:     &yang.YangType{},
@@ -723,7 +723,7 @@ func TestTransformEntry(t *testing.T) {
 			},
 		},
 	}
-	inEntry = &yang.Entry{
+	inSchemaTemplate = &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Type: &yang.YangType{},
@@ -738,7 +738,7 @@ func TestTransformEntry(t *testing.T) {
 						Kind: yang.CaseEntry,
 						Type: &yang.YangType{},
 						Dir: map[string]*yang.Entry{
-							"interface": inEntry,
+							"interface": inSchemaTemplate,
 						},
 					},
 				},
@@ -746,7 +746,7 @@ func TestTransformEntry(t *testing.T) {
 		},
 	}
 
-	wantEntry := &yang.Entry{
+	wantSchemaTemplate := &yang.Entry{
 		Name:     "interface",
 		Kind:     yang.DirectoryEntry,
 		Type:     &yang.YangType{},
@@ -815,7 +815,7 @@ func TestTransformEntry(t *testing.T) {
 			},
 		},
 	}
-	wantEntry = &yang.Entry{
+	wantSchemaTemplate = &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Type: &yang.YangType{},
@@ -830,7 +830,7 @@ func TestTransformEntry(t *testing.T) {
 						Kind: yang.CaseEntry,
 						Type: &yang.YangType{},
 						Dir: map[string]*yang.Entry{
-							"interface": wantEntry,
+							"interface": wantSchemaTemplate,
 						},
 					},
 				},
@@ -892,12 +892,12 @@ func TestTransformEntry(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			inEntry.Dir["choice"].Dir["case"].Dir["interface"].Dir["name"].Type.Path = tt.inLeafrefPath
-			wantEntry.Dir["choice"].Dir["case"].Dir["interface"].Dir["name"].Type.Path = tt.wantLeafrefPath
-			if errs := TransformEntry(inEntry, tt.inCompressBehaviour); errs != nil {
+			inSchemaTemplate.Dir["choice"].Dir["case"].Dir["interface"].Dir["name"].Type.Path = tt.inLeafrefPath
+			wantSchemaTemplate.Dir["choice"].Dir["case"].Dir["interface"].Dir["name"].Type.Path = tt.wantLeafrefPath
+			if errs := TransformEntry(inSchemaTemplate, tt.inCompressBehaviour); errs != nil {
 				t.Fatalf("Got unexpected errors: %v", errs)
 			}
-			if diff := cmp.Diff(wantEntry, inEntry, cmpopts.IgnoreUnexported(yang.Entry{})); diff != "" {
+			if diff := cmp.Diff(wantSchemaTemplate, inSchemaTemplate, cmpopts.IgnoreUnexported(yang.Entry{})); diff != "" {
 				t.Errorf("(-got, +want):\n%s", diff)
 			}
 		})
