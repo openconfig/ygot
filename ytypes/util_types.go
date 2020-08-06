@@ -276,7 +276,10 @@ func stringToUnionType(schema *yang.Entry, parent interface{}, fieldName string,
 		return reflect.ValueOf(nil), fmt.Errorf("stringToKeyType: %T is not a struct ptr", parent)
 	}
 	parentT := reflect.TypeOf(parent)
-	dft, _ := parentT.Elem().FieldByName(fieldName)
+	dft, found := parentT.Elem().FieldByName(fieldName)
+	if !found {
+		return reflect.ValueOf(nil), fmt.Errorf("stringToUnionType: field %q not found in parent type %T", fieldName, parent)
+	}
 	destUnionFieldElemT := dft.Type
 
 	ets, sks, err := enumAndNonEnumTypesForUnion(schema, parentT)

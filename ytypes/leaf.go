@@ -505,7 +505,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 			return err
 		}
 		if ev != nil {
-			return setFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, ev)
+			return setUnionFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, ev)
 		}
 	}
 
@@ -514,7 +514,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		sch := yangKindToLeafEntry(sk)
 		gv, err := unmarshalScalar(parent, sch, fieldName, value, enc)
 		if err == nil {
-			return setFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, gv)
+			return setUnionFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, gv)
 		}
 		util.DbgPrint("could not unmarshal %v into type %s: %s", value, sk, err)
 	}
@@ -522,10 +522,10 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	return fmt.Errorf("could not find suitable union type to unmarshal value %v type %T into parent struct type %T field %s", value, value, parent, fieldName)
 }
 
-// setFieldWithTypedValue sets the field destV that has type ft and the given
-// parent type with v, which must be a compatible union type.
-func setFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT reflect.Type, v interface{}) error {
-	util.DbgPrint("setFieldWithTypedValue value %v into type %s", util.ValueStrDebug(v), destElemT)
+// setUnionFieldWithTypedValue sets the field destV with value v after converting it
+// to destElemT using the union conversion function of the given parent type.
+func setUnionFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT reflect.Type, v interface{}) error {
+	util.DbgPrint("setUnionFieldWithTypedValue value %v into type %s", util.ValueStrDebug(v), destElemT)
 	eiv, err := getUnionVal(parentT, destElemT, v)
 	if err != nil {
 		return err

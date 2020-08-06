@@ -1407,6 +1407,11 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 	if got, want := errToString(err), wantErr; got != want {
 		t.Errorf("bad parent type: Unmarshal got error: %v, want error: %v", got, want)
 	}
+	err = unmarshalUnion(containerSchema, &LeafContainerStruct{}, "i-dont-exist", 42, JSONEncoding)
+	wantErr = `i-dont-exist is not a valid field name in *ytypes.LeafContainerStruct`
+	if got, want := errToString(err), wantErr; got != want {
+		t.Errorf("bad parent type: Unmarshal got error: %v, want error: %v", got, want)
+	}
 	if err := unmarshalLeaf(nil, nil, nil, JSONEncoding); err != nil {
 		t.Errorf("nil value: got error: %v, want error: nil", err)
 	}

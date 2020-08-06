@@ -502,6 +502,13 @@ func TestStringToKeyType(t *testing.T) {
 		in:               "E_VALUE_FORTY_TWO",
 		wantErrSubstring: "not a struct ptr",
 	}, {
+		name:             "invalid: field name not part of union type",
+		inSchema:         listSchema.Dir["unionKey"],
+		inParent:         &allKeysListStruct{},
+		inFieldName:      "NEKey",
+		in:               "E_VALUE_FORTY_TWO",
+		wantErrSubstring: `field "NEKey" not found in parent type`,
+	}, {
 		name:             "invalid: string for float",
 		inSchema:         listSchema.Dir["decimal64Key"],
 		inParent:         &allKeysListStruct{},
