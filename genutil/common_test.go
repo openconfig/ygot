@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
@@ -649,5 +650,256 @@ func TestFindChildren(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestTransformEntry(t *testing.T) {
+	inSchemaTemplate := &yang.Entry{
+		Name:     "interface",
+		Kind:     yang.DirectoryEntry,
+		Type:     &yang.YangType{},
+		ListAttr: &yang.ListAttr{},
+		Dir: map[string]*yang.Entry{
+			"config": {
+				Name:   "config",
+				Kind:   yang.DirectoryEntry,
+				Type:   &yang.YangType{},
+				Config: yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"type": {
+						Name:   "type",
+						Kind:   yang.LeafEntry,
+						Config: yang.TSTrue,
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
+					"name": {
+						Name:   "name",
+						Kind:   yang.LeafEntry,
+						Config: yang.TSTrue,
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
+				},
+			},
+			"state": {
+				Name:   "state",
+				Kind:   yang.DirectoryEntry,
+				Type:   &yang.YangType{},
+				Config: yang.TSFalse,
+				Dir: map[string]*yang.Entry{
+					"type": {
+						Name:   "type",
+						Kind:   yang.LeafEntry,
+						Config: yang.TSFalse,
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
+					"name": {
+						Name:   "name",
+						Kind:   yang.LeafEntry,
+						Config: yang.TSFalse,
+						Type:   &yang.YangType{Kind: yang.Ystring},
+					},
+					"admin-status": {
+						Name:   "admin-status",
+						Kind:   yang.LeafEntry,
+						Config: yang.TSFalse,
+						Type:   &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+			"name": {
+				Name:   "name",
+				Kind:   yang.LeafEntry,
+				Config: yang.TSTrue,
+				Type: &yang.YangType{
+					Kind: yang.Yleafref,
+					Path: "../config/name", // To be modified within test.
+				},
+			},
+		},
+	}
+	inSchemaTemplate = &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Type: &yang.YangType{},
+		Dir: map[string]*yang.Entry{
+			"choice": {
+				Name: "choice",
+				Kind: yang.ChoiceEntry,
+				Type: &yang.YangType{},
+				Dir: map[string]*yang.Entry{
+					"case": {
+						Name: "case",
+						Kind: yang.CaseEntry,
+						Type: &yang.YangType{},
+						Dir: map[string]*yang.Entry{
+							"interface": inSchemaTemplate,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	wantSchemaTemplate := &yang.Entry{
+		Name:     "interface",
+		Kind:     yang.DirectoryEntry,
+		Type:     &yang.YangType{},
+		ListAttr: &yang.ListAttr{},
+		Dir: map[string]*yang.Entry{
+			"config": {
+				Name:   "config",
+				Kind:   yang.DirectoryEntry,
+				Type:   &yang.YangType{},
+				Config: yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"type": {
+						Name:   "type",
+						Kind:   yang.LeafEntry,
+						Config: yang.TSTrue,
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
+					"name": {
+						Name:   "name",
+						Kind:   yang.LeafEntry,
+						Config: yang.TSTrue,
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
+				},
+			},
+			"state": {
+				Name:   "state",
+				Kind:   yang.DirectoryEntry,
+				Type:   &yang.YangType{},
+				Config: yang.TSFalse,
+				Dir: map[string]*yang.Entry{
+					"type": {
+						Name:   "type",
+						Kind:   yang.LeafEntry,
+						Config: yang.TSFalse,
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
+					"name": {
+						Name:   "name",
+						Kind:   yang.LeafEntry,
+						Config: yang.TSFalse,
+						Type:   &yang.YangType{Kind: yang.Ystring},
+					},
+					"admin-status": {
+						Name:   "admin-status",
+						Kind:   yang.LeafEntry,
+						Config: yang.TSFalse,
+						Type:   &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+			"name": {
+				Name:   "name",
+				Kind:   yang.LeafEntry,
+				Config: yang.TSTrue,
+				Type: &yang.YangType{
+					Kind: yang.Yleafref,
+					Path: "../config/name", // To be modified within test.
+				},
+			},
+		},
+	}
+	wantSchemaTemplate = &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Type: &yang.YangType{},
+		Dir: map[string]*yang.Entry{
+			"choice": {
+				Name: "choice",
+				Kind: yang.ChoiceEntry,
+				Type: &yang.YangType{},
+				Dir: map[string]*yang.Entry{
+					"case": {
+						Name: "case",
+						Kind: yang.CaseEntry,
+						Type: &yang.YangType{},
+						Dir: map[string]*yang.Entry{
+							"interface": wantSchemaTemplate,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		desc                string
+		inCompressBehaviour CompressBehaviour
+		inLeafrefPath       string
+		wantLeafrefPath     string
+	}{{
+		desc:                "no change from config to state",
+		inCompressBehaviour: PreferIntendedConfig,
+		inLeafrefPath:       "../config/name",
+		wantLeafrefPath:     "../config/name",
+	}, {
+		desc:                "basic change from config to state",
+		inCompressBehaviour: PreferOperationalState,
+		inLeafrefPath:       "../config/name",
+		wantLeafrefPath:     "../state/name",
+	}, {
+		desc:                "basic change from config to state with prefix",
+		inCompressBehaviour: PreferOperationalState,
+		inLeafrefPath:       "../pfx:config/name",
+		wantLeafrefPath:     "../pfx:state/name",
+	}, {
+		desc:                "longer path change from config to state",
+		inCompressBehaviour: PreferOperationalState,
+		inLeafrefPath:       "../../foo/config/name",
+		wantLeafrefPath:     "../../foo/state/name",
+	}, {
+		desc:                "longer path change from config to state with prefix",
+		inCompressBehaviour: PreferOperationalState,
+		inLeafrefPath:       "../../foo/pfx:config/name",
+		wantLeafrefPath:     "../../foo/pfx:state/name",
+	}, {
+		desc:                "state leafref -- intended config",
+		inCompressBehaviour: PreferIntendedConfig,
+		inLeafrefPath:       "../state/name",
+		wantLeafrefPath:     "../state/name",
+	}, {
+		desc:                "state leafref",
+		inCompressBehaviour: PreferOperationalState,
+		inLeafrefPath:       "../state/name",
+		wantLeafrefPath:     "../state/name",
+	}, {
+		desc:                "leafref in different format -- intended config",
+		inCompressBehaviour: PreferIntendedConfig,
+		inLeafrefPath:       "../name",
+		wantLeafrefPath:     "../name",
+	}, {
+		desc:                "leafref in different format",
+		inCompressBehaviour: PreferOperationalState,
+		inLeafrefPath:       "../name",
+		wantLeafrefPath:     "../name",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			inSchemaTemplate.Dir["choice"].Dir["case"].Dir["interface"].Dir["name"].Type.Path = tt.inLeafrefPath
+			wantSchemaTemplate.Dir["choice"].Dir["case"].Dir["interface"].Dir["name"].Type.Path = tt.wantLeafrefPath
+			if errs := TransformEntry(inSchemaTemplate, tt.inCompressBehaviour); errs != nil {
+				t.Fatalf("Got unexpected errors: %v", errs)
+			}
+			if diff := cmp.Diff(wantSchemaTemplate, inSchemaTemplate, cmpopts.IgnoreUnexported(yang.Entry{})); diff != "" {
+				t.Errorf("(-got, +want):\n%s", diff)
+			}
+		})
 	}
 }

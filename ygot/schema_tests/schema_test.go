@@ -25,6 +25,7 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/exampleoc"
+	"github.com/openconfig/ygot/exampleoc/opstateoc"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/uexampleoc"
 	"github.com/openconfig/ygot/ygot"
@@ -173,6 +174,32 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:   "diff BGP neighbour using prefer_operational_state",
+		inOrig: &opstateoc.NetworkInstance_Protocol_Bgp{},
+		inMod: func() *opstateoc.NetworkInstance_Protocol_Bgp {
+			d := &opstateoc.Device{}
+			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(opstateoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+			n := b.GetOrCreateNeighbor("192.0.2.1")
+			n.PeerAs = ygot.Uint32(29636)
+			n.PeerType = opstateoc.OpenconfigBgpTypes_PeerType_EXTERNAL
+			return b
+		}(),
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/neighbor-address"),
+				Val:  mustTypedValue("192.0.2.1"),
+			}, {
+				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/state/neighbor-address"),
+				Val:  mustTypedValue("192.0.2.1"),
+			}, {
+				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/state/peer-as"),
+				Val:  mustTypedValue(uint32(29636)),
+			}, {
+				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/state/peer-type"),
+				Val:  mustTypedValue("EXTERNAL"),
+			}},
+		},
+	}, {
 		desc:   "diff STP",
 		inOrig: &exampleoc.Device{},
 		inMod: func() *exampleoc.Device {
@@ -289,6 +316,19 @@ func TestNotificationOutput(t *testing.T) {
 			return d
 		}(),
 		wantTextpb: "testdata/notification_union_int64.txtpb",
+	}, {
+		name: "int64 union using operational state",
+		in: func() *opstateoc.Device {
+			d := &opstateoc.Device{}
+			t := d.GetOrCreateComponent("p1").GetOrCreateProperty("temperature")
+			v, err := t.To_Component_Property_Value_Union(int64(42))
+			if err != nil {
+				panic(err)
+			}
+			t.Value = v
+			return d
+		}(),
+		wantTextpb: "testdata/notification_union_int64_opstate.txtpb",
 	}}
 
 	for _, tt := range tests {
