@@ -1282,6 +1282,7 @@ func TestCopyStruct(t *testing.T) {
 		name    string
 		inSrc   GoStruct
 		inDst   GoStruct
+		inOpts  []MergeOpt
 		wantDst GoStruct
 		wantErr bool
 	}{{
@@ -1289,6 +1290,19 @@ func TestCopyStruct(t *testing.T) {
 		inSrc:   &copyTest{StringField: String("anchor-steam")},
 		inDst:   &copyTest{},
 		wantDst: &copyTest{StringField: String("anchor-steam")},
+	}, {
+		name:    "error simple string pointer different value",
+		inSrc:   &copyTest{StringField: String("anchor-steam")},
+		inDst:   &copyTest{StringField: String("bira")},
+		wantErr: true,
+	}, {
+		name:  "overwrite simple string pointer different value",
+		inSrc: &copyTest{StringField: String("bira")},
+		inDst: &copyTest{StringField: String("anchor-steam")},
+		inOpts: []MergeOpt{
+			&MergeOverwriteExistingFields{},
+		},
+		wantDst: &copyTest{StringField: String("bira")},
 	}, {
 		name: "uint and string pointer",
 		inSrc: &copyTest{
@@ -1406,7 +1420,7 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 	}, {
-		name: "unimplemented, string map with overlapping members",
+		name: "overwrite, string map with overlapping members",
 		inSrc: &copyTest{
 			StringMap: map[string]*copyTest{
 				"wild-beer-co": {StringField: String("wild-goose-chase")},
@@ -1417,7 +1431,27 @@ func TestCopyStruct(t *testing.T) {
 				"wild-beer-co": {StringField: String("wildebeest")},
 			},
 		},
-		wantErr: true, // Maps with matching keys are currently not merged.
+		inOpts: []MergeOpt{
+			&MergeOverwriteExistingFields{},
+		},
+		wantDst: &copyTest{
+			StringMap: map[string]*copyTest{
+				"wild-beer-co": {StringField: String("wildebeest")},
+			},
+		},
+	}, {
+		name: "error, string map with overlapping members",
+		inSrc: &copyTest{
+			StringMap: map[string]*copyTest{
+				"wild-beer-co": {StringField: String("wild-goose-chase")},
+			},
+		},
+		inDst: &copyTest{
+			StringMap: map[string]*copyTest{
+				"wild-beer-co": {StringField: String("wildebeest")},
+			},
+		},
+		wantErr: true,
 	}, {
 		name: "struct map",
 		inSrc: &copyTest{
@@ -1490,6 +1524,26 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 		wantErr: true,
+	}, {
+		name: "struct map with overlapping fields within the same key",
+		inSrc: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"new-belgium"}: {StringField: String("voodoo-ranger")},
+			},
+		},
+		inDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"new-belgium"}: {StringField: String("fat-tire")},
+			},
+		},
+		inOpts: []MergeOpt{
+			&MergeOverwriteExistingFields{},
+		},
+		wantDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"new-belgium"}: {StringField: String("fat-tire")},
+			},
+		},
 	}, {
 		name: "struct slice",
 		inSrc: &copyTest{
@@ -1575,7 +1629,17 @@ func TestCopyStruct(t *testing.T) {
 		inSrc:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
 		inDst:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
 		wantErr: true,
-	}}
+	},
+		{
+			name:  "overwrite, slice fields not unique",
+			inSrc: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
+			inDst: &copyTest{StringSlice: []string{"kingfisher"}},
+			inOpts: []MergeOpt{
+				&MergeOverwriteExistingFields{},
+			},
+			wantDst: &copyTest{StringSlice: []string{"kingfisher", "mikkeler-draft-bear"}},
+		},
+	}
 
 	for _, tt := range tests {
 		dst, src := reflect.ValueOf(tt.inDst).Elem(), reflect.ValueOf(tt.inSrc).Elem()
@@ -1584,7 +1648,7 @@ func TestCopyStruct(t *testing.T) {
 			wantDst = reflect.ValueOf(tt.wantDst).Elem()
 		}
 
-		err := copyStruct(dst, src)
+		err := copyStruct(dst, src, tt.inOpts...)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: copyStruct(%v, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
 		}
@@ -1662,6 +1726,7 @@ var mergeStructTests = []struct {
 	name    string
 	inA     ValidatedGoStruct
 	inB     ValidatedGoStruct
+	inOpts  []MergeOpt
 	want    ValidatedGoStruct
 	wantErr string
 }{{
@@ -1717,6 +1782,20 @@ var mergeStructTests = []struct {
 	},
 	wantErr: "destination and source values were set when merging enum field",
 }, {
+	name: "overwrite enum merge: set to different values in both",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValueTwo,
+	},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
 	name:    "error, differing types",
 	inA:     &validatedMergeTest{String: String("great-divide-yeti")},
 	inB:     &validatedMergeTestTwo{String: String("north-coast-old-rasputin")},
@@ -1731,6 +1810,16 @@ var mergeStructTests = []struct {
 	inA:     &validatedMergeTest{String: String("karbach-hopadillo")},
 	inB:     &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
 	wantErr: "destination value was set, but was not equal to source value when merging ptr field",
+}, {
+	name: "overwrite, field set in both structs",
+	inA:  &validatedMergeTest{String: String("karbach-hopadillo")},
+	inB:  &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		String: String("blackwater-draw-brewing-co-border-town"),
+	},
 }, {
 	name: "allow leaf overwrite if equal",
 	inA:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
@@ -1785,6 +1874,20 @@ var mergeStructTests = []struct {
 	},
 	wantErr: "interface field was set in both src and dst and was not equal",
 }, {
+	name: "overwrite merge union: values not equal",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"glutenberg-ipa"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionS{"mikkeler-pale-peter-and-mary"},
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		UnionField: &copyUnionS{"mikkeler-pale-peter-and-mary"},
+	},
+}, {
 	name: "merge union: values equal",
 	inA: &validatedMergeTest{
 		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
@@ -1822,6 +1925,20 @@ var mergeStructTests = []struct {
 		UnionField: &copyUnionI{42},
 	},
 	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "overwrite merge union: values not equal, and different types",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"greens-amber"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionI{42},
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		UnionField: &copyUnionI{42},
+	},
 }}
 
 func TestMergeStructs(t *testing.T) {
@@ -1831,6 +1948,7 @@ func TestMergeStructs(t *testing.T) {
 		name    string
 		inA     ValidatedGoStruct
 		inB     ValidatedGoStruct
+		inOpts  []MergeOpt
 		want    ValidatedGoStruct
 		wantErr string
 	}{
@@ -1841,7 +1959,7 @@ func TestMergeStructs(t *testing.T) {
 	})
 
 	for _, tt := range tests {
-		got, err := MergeStructs(tt.inA, tt.inB)
+		got, err := MergeStructs(tt.inA, tt.inB, tt.inOpts...)
 		if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
 			t.Errorf("%s: MergeStructs(%v, %v): did not get expected error status, %s", tt.name, tt.inA, tt.inB, diff)
 		}
@@ -1860,7 +1978,7 @@ func TestMergeStructInto(t *testing.T) {
 			t.Errorf("%s: DeepCopy(%v): unexpected error with testdata, %v", tt.name, tt.inA, err)
 			continue
 		}
-		err = MergeStructInto(got.(ValidatedGoStruct), tt.inB)
+		err = MergeStructInto(got.(ValidatedGoStruct), tt.inB, tt.inOpts...)
 		if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
 			t.Errorf("%s: MergeStructInto(%v, %v): did not get expected error status, %s", tt.name, tt.inA, tt.inB, diff)
 		}
