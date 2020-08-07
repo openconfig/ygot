@@ -217,7 +217,7 @@ func StringToType(t reflect.Type, s string) (reflect.Value, error) {
 func stringToKeyType(schema *yang.Entry, parent interface{}, fieldName string, value string) (reflect.Value, error) {
 	ykind := schema.Type.Kind
 	switch ykind {
-	// TODO(wenbli): case yang.Yempty: case yang.Ybits: case yang.Ybool:
+	// TODO(wenbli): case yang.Ybits: case yang.Ybool:
 	case yang.Yint64, yang.Yint32, yang.Yint16, yang.Yint8:
 		bits, err := yangIntTypeBits(ykind)
 		if err != nil {
