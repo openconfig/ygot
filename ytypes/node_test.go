@@ -92,6 +92,15 @@ type ContainerEnumKey struct {
 	StructKeyList map[EnumType]*ListElemEnumKey `path:"config/simple-key-list"`
 }
 
+type ListElemBoolKey struct {
+	Key1          *bool  `path:"key1"`
+	Int32LeafName *int32 `path:"int32-leaf-field"`
+}
+
+type ContainerBoolKey struct {
+	StructKeyList map[bool]*ListElemBoolKey `path:"config/simple-key-list"`
+}
+
 type ListElemStruct4 struct {
 	Key1 *uint32 `path:"key1"`
 }
@@ -276,6 +285,33 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 		},
 	}
 
+	containerWithBoolKey := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"config": {
+				Name: "config",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"simple-key-list": {
+						Name:     "simple-key-list",
+						Kind:     yang.DirectoryEntry,
+						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						Key:      "key1",
+						Config:   yang.TSTrue,
+						Dir: map[string]*yang.Entry{
+							"key1": {
+								Name: "key1",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Ybool},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	tests := []struct {
 		inDesc           string
 		inParent         interface{}
@@ -447,6 +483,13 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			},
 			inPath: mustPath("/config/simple-key-list[key1=E_VALUE_FORTY_TWO]"),
 			want:   &ListElemEnumKey{Key1: 42, Int32LeafName: ygot.Int32(99)},
+		},
+		{
+			inDesc:   "success finding bool key",
+			inSchema: containerWithBoolKey,
+			inParent: &ContainerBoolKey{},
+			inPath:   mustPath("/config/simple-key-list[key1=true]"),
+			want:     &ListElemBoolKey{Key1: ygot.Bool(true)},
 		},
 	}
 

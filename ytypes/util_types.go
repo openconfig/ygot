@@ -206,6 +206,14 @@ func StringToType(t reflect.Type, s string) (reflect.Value, error) {
 		return reflect.ValueOf(u).Convert(t), nil
 	case reflect.String:
 		return reflect.ValueOf(s), nil
+	case reflect.Bool:
+		switch s {
+		case "true":
+			return reflect.ValueOf(true), nil
+		case "false":
+			return reflect.ValueOf(false), nil
+		}
+		return reflect.ValueOf(nil), fmt.Errorf("cannot cast to bool from %q", s)
 	}
 	return reflect.ValueOf(nil), fmt.Errorf("no matching type to cast for %v", t)
 }

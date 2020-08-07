@@ -214,6 +214,9 @@ func TestStringToType(t *testing.T) {
 		{s: "123", t: reflect.TypeOf(uint16(10))},
 		{s: "123", t: reflect.TypeOf(uint32(20))},
 		{s: "123", t: reflect.TypeOf(int16(-30))},
+		{s: "true", t: reflect.TypeOf(true)},
+		{s: "false", t: reflect.TypeOf(false)},
+		{s: "yes", t: reflect.TypeOf(false), wantErr: true},
 		// invalid value for the type
 		{s: "fortytwo", t: reflect.TypeOf(uint16(0)), wantErr: true},
 		// overflowing value for the type
