@@ -321,25 +321,25 @@ type Union1String struct {
 	String string
 }
 
-func (Union1String) IsUnion1() {}
+func (*Union1String) IsUnion1() {}
 
 type Union1Int16 struct {
 	Int16 int16
 }
 
-func (Union1Int16) IsUnion1() {}
+func (*Union1Int16) IsUnion1() {}
 
 type Union1EnumType struct {
 	EnumType EnumType
 }
 
-func (Union1EnumType) IsUnion1() {}
+func (*Union1EnumType) IsUnion1() {}
 
 type Union1BadLeaf struct {
 	BadLeaf *float32
 }
 
-func (Union1BadLeaf) IsUnion1() {}
+func (*Union1BadLeaf) IsUnion1() {}
 
 type UnionContainerCompressed struct {
 	UnionField *string `path:"union1"`
@@ -1404,6 +1404,11 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 	// bad parent type
 	err = unmarshalUnion(containerSchema, LeafContainerStruct{}, "int8-leaf", 42, JSONEncoding)
 	wantErr = `ytypes.LeafContainerStruct is not a struct ptr in unmarshalUnion`
+	if got, want := errToString(err), wantErr; got != want {
+		t.Errorf("bad parent type: Unmarshal got error: %v, want error: %v", got, want)
+	}
+	err = unmarshalUnion(containerSchema, &LeafContainerStruct{}, "i-dont-exist", 42, JSONEncoding)
+	wantErr = `i-dont-exist is not a valid field name in *ytypes.LeafContainerStruct`
 	if got, want := errToString(err), wantErr; got != want {
 		t.Errorf("bad parent type: Unmarshal got error: %v, want error: %v", got, want)
 	}

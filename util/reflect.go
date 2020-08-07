@@ -414,14 +414,14 @@ func isFieldTypeCompatible(ft reflect.StructField, v reflect.Value) bool {
 		if !v.IsValid() {
 			return true
 		}
-		return v.Type() == ft.Type
+		return v.Type().AssignableTo(ft.Type)
 	}
 
 	if !v.IsValid() {
 		return false
 	}
 
-	return v.Type() == ft.Type
+	return v.Type().AssignableTo(ft.Type)
 }
 
 // IsValueTypeCompatible reports whether f.Set(v) can be called successfully on

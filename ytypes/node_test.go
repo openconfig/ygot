@@ -428,7 +428,7 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			inSchema:         containerWithEnumKey,
 			inParent:         &ContainerEnumKey{},
 			inPath:           mustPath("/config/simple-key-list[key1=42]"),
-			wantErrSubstring: "no enum matching with 42",
+			wantErrSubstring: "42 is not a valid value for enum field",
 		},
 		{
 			inDesc:   "success finding enum key",
@@ -617,14 +617,14 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 			inSchema:         containerWithMultiKeyedList,
 			inParent:         &ContainerStruct3{},
 			inPath:           mustPath("/struct-key-list[key1=forty-two][key2=42][key3=INVALID_ENUM]/outer/inner/string-leaf-field"),
-			wantErrSubstring: "no enum matching with INVALID_ENUM: <nil>",
+			wantErrSubstring: "INVALID_ENUM is not a valid value for enum field",
 		},
 		{
 			inDesc:           "fail get due to partial key for struct keyed list",
 			inSchema:         containerWithMultiKeyedList,
 			inParent:         &ContainerStruct3{},
 			inPath:           mustPath("/struct-key-list[key1=forty-two][key2=42]/outer"),
-			wantErrSubstring: "missing key3 key in map",
+			wantErrSubstring: `missing "key3" key in map`,
 		},
 	}
 

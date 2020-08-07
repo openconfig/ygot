@@ -536,6 +536,7 @@ func keyMapAsStrings(keys map[string]interface{}) (map[string]string, error) {
 // KeyValueAsString returns a string representation of the interface{} supplied. If the
 // type provided cannot be represented as a string for use in a gNMI path, an error is
 // returned.
+// TODO(wenbli): Add support for bool.
 func KeyValueAsString(v interface{}) (string, error) {
 	kv := reflect.ValueOf(v)
 	if _, isEnum := v.(GoEnum); isEnum {

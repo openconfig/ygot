@@ -783,8 +783,65 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 	}
 }
 
+type KeyStructMapCreation struct {
+	Key1     string   `path:"key1"`
+	Key2     int32    `path:"key2"`
+	EnumKey  EnumType `path:"key3"`
+	UnionKey Union1   `path:"key4"`
+}
+
+type ListElemStructMapCreation struct {
+	Key1     *string  `path:"key1"`
+	Key2     *int32   `path:"key2"`
+	EnumKey  EnumType `path:"key3"`
+	UnionKey Union1   `path:"key4"`
+	LeafName *int32   `path:"leaf-field"`
+}
+
+type ListElemStructMapCreationLeafrefKeys struct {
+	Key1     *string  `path:"config/key1|key1"`
+	Key2     *int32   `path:"config/key2|key2"`
+	EnumKey  EnumType `path:"config/key3|key3"`
+	UnionKey Union1   `path:"config/key4|key4"`
+	LeafName *int32   `path:"config/leaf-field"`
+}
+
+func (t *ListElemStructMapCreation) To_Union1(i interface{}) (Union1, error) {
+	switch v := i.(type) {
+	case EnumType:
+		return &Union1EnumType{v}, nil
+	case int16:
+		return &Union1Int16{v}, nil
+	default:
+		return nil, fmt.Errorf("cannot convert %v to Union1, unknown union type, got: %T", i, i)
+	}
+}
+
+func (*ListElemStructMapCreation) ΛEnumTypeMap() map[string][]reflect.Type {
+	return map[string][]reflect.Type{
+		"/container/struct-key-list/key4": {reflect.TypeOf(EnumType(0))},
+	}
+}
+
+func (t *ListElemStructMapCreationLeafrefKeys) To_Union1(i interface{}) (Union1, error) {
+	switch v := i.(type) {
+	case EnumType:
+		return &Union1EnumType{v}, nil
+	case int16:
+		return &Union1Int16{v}, nil
+	default:
+		return nil, fmt.Errorf("cannot convert %v to Union1, unknown union type, got: %T", i, i)
+	}
+}
+
+func (*ListElemStructMapCreationLeafrefKeys) ΛEnumTypeMap() map[string][]reflect.Type {
+	return map[string][]reflect.Type{
+		"/container/struct-key-list-leafref-keys/config/key4": {reflect.TypeOf(EnumType(0))},
+	}
+}
+
 func TestStructMapKeyValueCreation(t *testing.T) {
-	containerWithLeafListSchema := &yang.Entry{
+	containerWithMapKeySchema := &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
@@ -792,7 +849,7 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
 				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
-				Key:      "key1 key2 key3",
+				Key:      "key1 key2 key3 key4",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
 					"key1": {
@@ -810,6 +867,23 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 						Name: "key3",
 						Type: &yang.YangType{Kind: yang.Yenum},
 					},
+					"key4": {
+						Kind: yang.LeafEntry,
+						Name: "key4",
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{
+								{
+									Name: "enum-type",
+									Kind: yang.Yenum,
+								},
+								{
+									Name: "int16",
+									Kind: yang.Yint16,
+								},
+							},
+						},
+					},
 					"leaf-field": {
 						Kind: yang.LeafEntry,
 						Name: "leaf-field",
@@ -817,42 +891,121 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 					},
 				},
 			},
+			"struct-key-list-leafref-keys": {
+				Name:     "struct-key-list-leafref-keys",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key1 key2 key3 key4",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key1": {
+						Kind: yang.LeafEntry,
+						Name: "key1",
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../config/key1",
+						},
+					},
+					"key2": {
+						Kind: yang.LeafEntry,
+						Name: "key2",
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../config/key2",
+						},
+					},
+					"key3": {
+						Kind: yang.LeafEntry,
+						Name: "key3",
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../config/key3",
+						},
+					},
+					"key4": {
+						Kind: yang.LeafEntry,
+						Name: "key4",
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../config/key4",
+						},
+					},
+					"config": {
+						Name: "config",
+						Kind: yang.DirectoryEntry,
+						Dir: map[string]*yang.Entry{
+							"key1": {
+								Kind: yang.LeafEntry,
+								Name: "key1",
+								Type: &yang.YangType{Kind: yang.Ystring},
+							},
+							"key2": {
+								Kind: yang.LeafEntry,
+								Name: "key2",
+								Type: &yang.YangType{Kind: yang.Yint32},
+							},
+							"key3": {
+								Kind: yang.LeafEntry,
+								Name: "key3",
+								Type: &yang.YangType{Kind: yang.Yenum},
+							},
+							"key4": {
+								Kind: yang.LeafEntry,
+								Name: "key4",
+								Type: &yang.YangType{
+									Kind: yang.Yunion,
+									Type: []*yang.YangType{
+										{
+											Name: "enum-type",
+											Kind: yang.Yenum,
+										},
+										{
+											Name: "int16",
+											Kind: yang.Yint16,
+										},
+									},
+								},
+							},
+							"leaf-field": {
+								Kind: yang.LeafEntry,
+								Name: "leaf-field",
+								Type: &yang.YangType{Kind: yang.Yint32},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
-
-	type KeyStruct struct {
-		Key1    string   `path:"key1"`
-		Key2    int32    `path:"key2"`
-		EnumKey EnumType `path:"key3"`
-	}
-
-	type ListElemStruct struct {
-		Key1     *string  `path:"key1"`
-		Key2     *int32   `path:"key2"`
-		EnumKey  EnumType `path:"key3"`
-		LeafName *int32   `path:"leaf-field"`
-	}
+	addParents(containerWithMapKeySchema)
 
 	type ContainerStruct struct {
-		StructKeyList map[KeyStruct]*ListElemStruct `path:"struct-key-list"`
+		StructKeyList            map[KeyStructMapCreation]*ListElemStructMapCreation            `path:"struct-key-list"`
+		StructKeyListLeafrefKeys map[KeyStructMapCreation]*ListElemStructMapCreationLeafrefKeys `path:"struct-key-list-leafref-keys"`
 	}
 
-	tests := []struct {
+	type test struct {
 		desc         string
 		keys         map[string]string
-		want         KeyStruct
+		want         KeyStructMapCreation
 		errSubstring string
-	}{
+	}
+	tests := []*test{
 		{
-			desc: "success",
-			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO"},
-			want: KeyStruct{Key1: "int0", Key2: 42, EnumKey: 42},
+			desc: "success with enum for union key",
+			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "E_VALUE_FORTY_TWO"},
+			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1EnumType{EnumType(42)}},
+		},
+		{
+			desc: "success with int16 for union key",
+			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "1234"},
+			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1Int16{int16(1234)}},
 		},
 		// note that an extra key in the map is just ignored as long as the mandatory keys present.
 		{
 			desc:         "not existing key",
 			keys:         map[string]string{"key4": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO"},
-			errSubstring: "missing key1",
+			errSubstring: `missing "key1"`,
 		},
 		{
 			desc:         "overflowing key",
@@ -862,32 +1015,35 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 		{
 			desc:         "upper case key",
 			keys:         map[string]string{"Key1": "int0", "key2": "14294967296", "key3": "E_VALUE_FORTY_TWO"},
-			errSubstring: "missing key1",
+			errSubstring: `missing "key1"`,
 		},
 		{
 			desc:         "missing key",
 			keys:         map[string]string{"key2": "42", "key3": "E_VALUE_FORTY_TWO"},
-			errSubstring: "missing key1",
+			errSubstring: `missing "key1"`,
 		},
 		{
 			desc:         "incorrect type for key2",
 			keys:         map[string]string{"key1": "int0", "key2": "forty_two", "key3": "E_VALUE_FORTY_TWO"},
 			errSubstring: "unable to convert",
 		},
+		{
+			desc:         "incorrect type for union key",
+			keys:         map[string]string{"key1": "int0", "key2": "forty_two", "key3": "YOU_CANT_UNMARSHAL_ME"},
+			errSubstring: "unable to convert",
+		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			parent := &ContainerStruct{}
-			util.InitializeStructField(parent, "StructKeyList")
-			v, e := makeValForInsert(containerWithLeafListSchema, parent.StructKeyList, tt.keys)
+	testFunc := func(t *testing.T, tt *test, listName string, schema *yang.Entry, list interface{}) {
+		t.Run(tt.desc+" "+listName, func(t *testing.T) {
+			v, e := makeValForInsert(schema, list, tt.keys)
 			if diff := errdiff.Substring(e, tt.errSubstring); diff != "" {
 				t.Fatalf("got %v, want error %v", e, tt.errSubstring)
 			}
 			if e != nil {
 				return
 			}
-			k, e := makeKeyForInsert(containerWithLeafListSchema, parent.StructKeyList, v)
+			k, e := makeKeyForInsert(schema, list, v)
 			if diff := errdiff.Substring(e, tt.errSubstring); diff != "" {
 				t.Fatalf("got %v, want error %v", e, tt.errSubstring)
 			}
@@ -898,6 +1054,14 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 				t.Errorf("(-want, +got):\n%s", diff)
 			}
 		})
+	}
+
+	for _, tt := range tests {
+		parent := &ContainerStruct{}
+		util.InitializeStructField(parent, "StructKeyList")
+		testFunc(t, tt, "StructKeyList", containerWithMapKeySchema.Dir["struct-key-list"], parent.StructKeyList)
+		util.InitializeStructField(parent, "StructKeyListLeafrefKeys")
+		testFunc(t, tt, "StructKeyListLeafrefKeys", containerWithMapKeySchema.Dir["struct-key-list-leafref-keys"], parent.StructKeyListLeafrefKeys)
 	}
 }
 
@@ -915,6 +1079,27 @@ type ListStringStruct struct {
 
 func (l *ListUintStruct) String() string {
 	return fmt.Sprintf("Key: %d", *l.Key)
+}
+
+type ListUnionStruct struct {
+	Key Union1 `path:"key"`
+}
+
+func (t *ListUnionStruct) To_Union1(i interface{}) (Union1, error) {
+	switch v := i.(type) {
+	case EnumType:
+		return &Union1EnumType{v}, nil
+	case int16:
+		return &Union1Int16{v}, nil
+	default:
+		return nil, fmt.Errorf("cannot convert %v to Union1, unknown union type, got: %T", i, i)
+	}
+}
+
+func (*ListUnionStruct) ΛEnumTypeMap() map[string][]reflect.Type {
+	return map[string][]reflect.Type{
+		"/key": {reflect.TypeOf(EnumType(0))},
+	}
 }
 
 func TestSimpleMapKeyValueCreation(t *testing.T) {
@@ -1054,7 +1239,81 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 				},
 			},
 			container:    &simpleStruct{KeyList: map[string]*ListStringStruct{}},
-			errSubstring: "missing key",
+			errSubstring: `missing "key"`,
+		},
+		{
+			desc: "success - union/enum <key,value> creation",
+			keys: map[string]string{"key": "E_VALUE_FORTY_TWO"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{
+								{
+									Name: "enum-type",
+									Kind: yang.Yenum,
+								},
+								{
+									Name: "int16",
+									Kind: yang.Yint16,
+								},
+							},
+						},
+					},
+					"leaf-field": {
+						Kind: yang.LeafEntry,
+						Name: "leaf-field",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+			},
+			container: &simpleStruct{KeyList: map[Union1]*ListUnionStruct{}},
+			want:      &Union1EnumType{EnumType(42)},
+		},
+		{
+			desc: "unsupported type - union <key,value> creation",
+			keys: map[string]string{"key": "FOOBAR"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{
+								{
+									Name: "enum-type",
+									Kind: yang.Yenum,
+								},
+								{
+									Name: "int16",
+									Kind: yang.Yint16,
+								},
+							},
+						},
+					},
+					"leaf-field": {
+						Kind: yang.LeafEntry,
+						Name: "leaf-field",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[Union1]*ListUnionStruct{}},
+			errSubstring: "could not find suitable union type",
 		},
 		{
 			desc:         "parent is not reflect.Map kind",
@@ -1104,8 +1363,8 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			if e != nil {
 				return
 			}
-			if k.Interface() != tt.want {
-				t.Errorf("got %v, want %v", k.Interface(), tt.want)
+			if diff := cmp.Diff(k.Interface(), tt.want); diff != "" {
+				t.Errorf("(-got, +want):\n%s", diff)
 			}
 		})
 	}
@@ -1199,7 +1458,7 @@ func TestInsertAndGetKey(t *testing.T) {
 				},
 			},
 			inParent:         map[uint32]*ListUintStruct{},
-			wantErrSubstring: "missing missing-key key in map[]",
+			wantErrSubstring: `missing "missing-key" key in map[]`,
 		},
 		{
 			inDesc: "fail creating key due to not matching type",

@@ -132,6 +132,62 @@ func TestSet(t *testing.T) {
 			Data: ygot.String("XCVR-1-2"),
 		},
 	}, {
+		desc:     "set list with union type - compressed schema",
+		inSchema: mustSchema(exampleoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "network-instances",
+			}, {
+				Name: "network-instance",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "afts",
+			}, {
+				Name: "mpls",
+			}, {
+				Name: "label-entry",
+				Key: map[string]string{
+					"label": "483414",
+				},
+			}, {
+				Name: "state",
+			}, {
+				Name: "next-hop-group",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_UintVal{5},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "network-instances",
+				}, {
+					Name: "network-instance",
+					Key: map[string]string{
+						"name": "OCH-1-2",
+					},
+				}, {
+					Name: "afts",
+				}, {
+					Name: "mpls",
+				}, {
+					Name: "label-entry",
+					Key: map[string]string{
+						"label": "483414",
+					},
+				}, {
+					Name: "state",
+				}, {
+					Name: "next-hop-group",
+				}},
+			},
+			Data: ygot.Uint64(5),
+		},
+	}, {
 		desc:     "set leafref with mismatched name - operational state (compressed) schema",
 		inSchema: mustSchema(opstateoc.Schema),
 		inPath: &gpb.Path{
