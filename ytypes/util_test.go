@@ -249,6 +249,7 @@ type allKeysListStruct struct {
 	Uint32Key        *uint32  `path:"uint32Key"`
 	Uint64Key        *uint64  `path:"uint64Key"`
 	Decimal64Key     *float64 `path:"decimal64Key"`
+	BoolKey          *bool    `path:"boolKey"`
 	BinaryKey        Binary   `path:"binaryKey"`
 	EnumKey          EnumType `path:"key3"`
 	UnionKey         Union1   `path:"unionKey"`
@@ -331,6 +332,11 @@ func TestStringToKeyType(t *testing.T) {
 				Kind: yang.LeafEntry,
 				Name: "decimal64Key",
 				Type: &yang.YangType{Kind: yang.Ydecimal64},
+			},
+			"boolKey": {
+				Kind: yang.LeafEntry,
+				Name: "boolKey",
+				Type: &yang.YangType{Kind: yang.Ybool},
 			},
 			"binaryKey": {
 				Kind: yang.LeafEntry,
@@ -458,6 +464,27 @@ func TestStringToKeyType(t *testing.T) {
 		inFieldName: "Decimal64Key",
 		in:          "2.718281828",
 		want:        float64(2.718281828),
+	}, {
+		name:        "bool (true)",
+		inSchema:    listSchema.Dir["boolKey"],
+		inParent:    &allKeysListStruct{},
+		inFieldName: "BoolKey",
+		in:          "true",
+		want:        true,
+	}, {
+		name:             "invalid bool",
+		inSchema:         listSchema.Dir["boolKey"],
+		inParent:         &allKeysListStruct{},
+		inFieldName:      "BoolKey",
+		in:               "yes",
+		wantErrSubstring: `cannot convert "yes" to bool`,
+	}, {
+		name:        "bool (false)",
+		inSchema:    listSchema.Dir["boolKey"],
+		inParent:    &allKeysListStruct{},
+		inFieldName: "BoolKey",
+		in:          "false",
+		want:        false,
 	}, {
 		name:        "binary",
 		inSchema:    listSchema.Dir["binaryKey"],

@@ -217,7 +217,7 @@ func StringToType(t reflect.Type, s string) (reflect.Value, error) {
 func stringToKeyType(schema *yang.Entry, parent interface{}, fieldName string, value string) (reflect.Value, error) {
 	ykind := schema.Type.Kind
 	switch ykind {
-	// TODO(wenbli): case yang.Ybits: case yang.Ybool:
+	// TODO(wenbli): case yang.Ybits:
 	case yang.Yint64, yang.Yint32, yang.Yint16, yang.Yint8:
 		bits, err := yangIntTypeBits(ykind)
 		if err != nil {
@@ -252,6 +252,14 @@ func stringToKeyType(schema *yang.Entry, parent interface{}, fieldName string, v
 		return reflect.ValueOf([]byte(v)), nil
 	case yang.Ystring:
 		return reflect.ValueOf(value), nil
+	case yang.Ybool:
+		switch value {
+		case "true":
+			return reflect.ValueOf(true), nil
+		case "false":
+			return reflect.ValueOf(false), nil
+		}
+		return reflect.ValueOf(nil), fmt.Errorf("stringToKeyType: cannot convert %q to bool, schema.Type: %v", value, schema.Type)
 	case yang.Ydecimal64:
 		floatV, err := strconv.ParseFloat(value, 64)
 		if err != nil {

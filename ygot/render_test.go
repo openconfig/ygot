@@ -2610,6 +2610,14 @@ func TestKeyValueAsString(t *testing.T) {
 			want: "42",
 		},
 		{
+			i:    true,
+			want: "true",
+		},
+		{
+			i:    false,
+			want: "false",
+		},
+		{
 			i:    Binary{'b', 'i', 'n', 'a', 'r', 'y'},
 			want: "YmluYXJ5",
 		},
