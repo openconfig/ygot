@@ -279,6 +279,12 @@ func stringToKeyType(schema *yang.Entry, parent interface{}, fieldName string, v
 		return reflect.ValueOf(enumVal), err
 	case yang.Yunion:
 		return stringToUnionType(schema, parent, fieldName, value)
+	case yang.Yleafref:
+		schema, err := util.FindLeafRefSchema(schema, schema.Type.Path)
+		if err != nil {
+			return reflect.ValueOf(nil), fmt.Errorf("stringToKeyType: unable to find target schema from leafref schema: %s", err)
+		}
+		return stringToKeyType(schema, parent, fieldName, value)
 	}
 
 	return reflect.ValueOf(nil), fmt.Errorf("stringToKeyType: unsupported type %v for conversion from string %q, schema.Type: %v", ykind, value, schema.Type)

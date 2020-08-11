@@ -242,21 +242,24 @@ func TestStringToType(t *testing.T) {
 }
 
 type allKeysListStruct struct {
-	StringKey        *string  `path:"stringKey"`
-	Int8Key          *int8    `path:"int8Key"`
-	Int16Key         *int16   `path:"int16Key"`
-	Int32Key         *int32   `path:"int32Key"`
-	Int64Key         *int64   `path:"int64Key"`
-	Uint8Key         *uint8   `path:"uint8Key"`
-	Uint16Key        *uint16  `path:"uint16Key"`
-	Uint32Key        *uint32  `path:"uint32Key"`
-	Uint64Key        *uint64  `path:"uint64Key"`
-	Decimal64Key     *float64 `path:"decimal64Key"`
-	BoolKey          *bool    `path:"boolKey"`
-	BinaryKey        Binary   `path:"binaryKey"`
-	EnumKey          EnumType `path:"key3"`
-	UnionKey         Union1   `path:"unionKey"`
-	UnionLoneTypeKey *uint32  `path:"unionLoneTypeKey"`
+	StringKey           *string  `path:"stringKey"`
+	Int8Key             *int8    `path:"int8Key"`
+	Int16Key            *int16   `path:"int16Key"`
+	Int32Key            *int32   `path:"int32Key"`
+	Int64Key            *int64   `path:"int64Key"`
+	Uint8Key            *uint8   `path:"uint8Key"`
+	Uint16Key           *uint16  `path:"uint16Key"`
+	Uint32Key           *uint32  `path:"uint32Key"`
+	Uint64Key           *uint64  `path:"uint64Key"`
+	Decimal64Key        *float64 `path:"decimal64Key"`
+	BoolKey             *bool    `path:"boolKey"`
+	BinaryKey           Binary   `path:"binaryKey"`
+	EnumKey             EnumType `path:"enumKey"`
+	LeafrefKey          *uint64  `path:"leafrefKey"`
+	LeafrefToLeafrefKey *uint64  `path:"leafrefToLeafrefKey"`
+	LeafrefToUnionKey   Union1   `path:"leafrefToUnionKey"`
+	UnionKey            Union1   `path:"unionKey"`
+	UnionLoneTypeKey    *uint32  `path:"unionLoneTypeKey"`
 }
 
 func (t *allKeysListStruct) To_Union1(i interface{}) (Union1, error) {
@@ -350,6 +353,21 @@ func TestStringToKeyType(t *testing.T) {
 				Kind: yang.LeafEntry,
 				Name: "enumKey",
 				Type: &yang.YangType{Kind: yang.Yenum},
+			},
+			"leafrefKey": {
+				Kind: yang.LeafEntry,
+				Name: "leafrefKey",
+				Type: &yang.YangType{Kind: yang.Yleafref, Path: "../uint64Key"},
+			},
+			"leafrefToLeafrefKey": {
+				Kind: yang.LeafEntry,
+				Name: "leafrefToLeafrefKey",
+				Type: &yang.YangType{Kind: yang.Yleafref, Path: "../leafrefKey"},
+			},
+			"leafrefToUnionKey": {
+				Kind: yang.LeafEntry,
+				Name: "leafrefToUnionKey",
+				Type: &yang.YangType{Kind: yang.Yleafref, Path: "../unionKey"},
 			},
 			"unionKey": {
 				Kind: yang.LeafEntry,
@@ -524,6 +542,27 @@ func TestStringToKeyType(t *testing.T) {
 		inFieldName: "UnionKey",
 		in:          "1234-1234",
 		want:        &Union1String{"1234-1234"},
+	}, {
+		name:        "leafref",
+		inSchema:    listSchema.Dir["leafrefKey"],
+		inParent:    &allKeysListStruct{},
+		inFieldName: "LeafrefKey",
+		in:          "1234",
+		want:        uint64(1234),
+	}, {
+		name:        "leafref to leafref",
+		inSchema:    listSchema.Dir["leafrefToLeafrefKey"],
+		inParent:    &allKeysListStruct{},
+		inFieldName: "LeafrefToLeafrefKey",
+		in:          "2345",
+		want:        uint64(2345),
+	}, {
+		name:        "leafref to union",
+		inSchema:    listSchema.Dir["leafrefToUnionKey"],
+		inParent:    &allKeysListStruct{},
+		inFieldName: "LeafrefToUnionKey",
+		in:          "2345-2345",
+		want:        &Union1String{"2345-2345"},
 	}, {
 		name:             "invalid: struct is not a ptr when unmarshalling union",
 		inSchema:         listSchema.Dir["unionKey"],
