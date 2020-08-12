@@ -139,16 +139,19 @@ func FindSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]
 	return findSchemaPath(parent, fieldName, false, absolutePaths)
 }
 
-// FindShadowedSchemaPath finds the relative or absolute schema path of a given field
-// of a Directory. If the field is not found, *no error is returned*.
+// FindShadowedSchemaPath finds the relative or absolute schema path of a given
+// shadowed field (field duplicated and deprioritized via compression) of a
+// Directory. If the field is not found, nil is returned as the path, and no
+// error is returned.
 func FindShadowedSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]string, error) {
 	return findSchemaPath(parent, fieldName, true, absolutePaths)
 }
 
 // findSchemaPath finds the relative or absolute schema path of a given field
-// of a Directory. The Field is specified as a name in order to guarantee its
-// existence before processing. The field can be either a normal field or a
-// shadowed field representing a compressed-out leaf value.
+// of a Directory, or the shadowed field (field duplicated and deprioritized
+// via compression) of a Directory. The Field is specified as a name in order
+// to guarantee its existence before processing, but no error is returned if
+// shadowField is true.
 func findSchemaPath(parent *Directory, fieldName string, shadowField, absolutePaths bool) ([]string, error) {
 	field, ok := parent.Fields[fieldName]
 	if shadowField {

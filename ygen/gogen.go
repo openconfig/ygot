@@ -2050,7 +2050,10 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 // findMapPaths takes an input field name for a parent Directory and calculates the set of schemapaths that it represents.
 // If absolutePaths is set, the paths are absolute otherwise they are relative to the parent. If
 // the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
-// path is also returned.
+// path is also returned. If keepShadowSchemaPaths is set, then the path of the
+// field duplicated via compression is also returned.
+// The first returned path is the path of the direct child, with the shadow
+// child's path afterwards, and the key leafref, if any, last.
 // TODO(wenbli): This is used by both Go and proto generation, it should be moved to genstate.go or genutil.
 func findMapPaths(parent *Directory, fieldName string, compressPaths, keepShadowSchemaPaths, absolutePaths bool) ([][]string, error) {
 	childPath, err := FindSchemaPath(parent, fieldName, absolutePaths)
