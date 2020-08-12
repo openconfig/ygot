@@ -18,8 +18,8 @@ message Device {
 message TopLevel {
   message Child {
     message Grandchild {
-      ywrapper.StringValue a = 404127368 [(yext.schemapath) = "/top-level/child/grandchild/config/a"];
-      openconfig.enums.NestedMessagesEnumt b = 404127371 [(yext.schemapath) = "/top-level/child/grandchild/config/b"];
+      ywrapper.StringValue a = 404127368 [(yext.schemapath) = "/top-level/child/grandchild/config/a|/top-level/child/grandchild/state/a"];
+      openconfig.enums.NestedMessagesEnumt b = 404127371 [(yext.schemapath) = "/top-level/child/grandchild/config/b|/top-level/child/grandchild/state/b"];
       oneof c {
         openconfig.enums.NestedMessagesEnumt c_nestedmessagesenumt = 369673157;
         string c_string = 420673426;
@@ -29,7 +29,7 @@ message TopLevel {
     Grandchild grandchild = 265269555 [(yext.schemapath) = "/top-level/child/grandchild"];
   }
   message Enum {
-    ywrapper.StringValue l = 282566055 [(yext.schemapath) = "/top-level/enumsc/enum/config/l"];
+    ywrapper.StringValue l = 282566055 [(yext.schemapath) = "/top-level/enumsc/enum/config/l|/top-level/enumsc/enum/state/l"];
   }
   message EnumKey {
     enum E {
@@ -37,7 +37,7 @@ message TopLevel {
       E_A = 1 [(yext.yang_name) = "A"];
       E_B = 2 [(yext.yang_name) = "B"];
     }
-    E e = 1 [(yext.schemapath) = "/top-level/enumsc/enum/config/e|/top-level/enumsc/enum/e"];
+    E e = 1 [(yext.schemapath) = "/top-level/enumsc/enum/config/e|/top-level/enumsc/enum/state/e|/top-level/enumsc/enum/e"];
     Enum enum = 2;
   }
   message Idref {
@@ -45,11 +45,11 @@ message TopLevel {
       string u_string = 44885770;
       uint64 u_uint64 = 423874955;
     }
-    ywrapper.StringValue l = 372609659 [(yext.schemapath) = "/top-level/idrefsc/idref/config/l"];
-    repeated UUnion u = 372609634 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u"];
+    ywrapper.StringValue l = 372609659 [(yext.schemapath) = "/top-level/idrefsc/idref/config/l|/top-level/idrefsc/idref/state/l"];
+    repeated UUnion u = 372609634 [(yext.schemapath) = "/top-level/idrefsc/idref/config/u|/top-level/idrefsc/idref/state/u"];
   }
   message IdrefKey {
-    openconfig.enums.NestedMessagesKEY i = 1 [(yext.schemapath) = "/top-level/idrefsc/idref/config/i|/top-level/idrefsc/idref/i"];
+    openconfig.enums.NestedMessagesKEY i = 1 [(yext.schemapath) = "/top-level/idrefsc/idref/config/i|/top-level/idrefsc/idref/state/i|/top-level/idrefsc/idref/i"];
     Idref idref = 2;
   }
   message Unk {

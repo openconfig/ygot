@@ -526,7 +526,7 @@ func TestUnmarshal(t *testing.T) {
 			unmarshalFn:  oc.Unmarshal,
 		},
 		{
-			desc:         "bgp",
+			desc:         "bgp with prefer_operational_state",
 			jsonFilePath: "bgp-example-opstate.json",
 			parent:       &opstateoc.Device{},
 			unmarshalFn:  opstateoc.Unmarshal,

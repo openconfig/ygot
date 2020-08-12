@@ -130,6 +130,10 @@ type TransformationOpts struct {
 	// entry should determined. Specifically, whether compression is
 	// enabled, and whether state fields in the schema should be excluded.
 	CompressBehaviour genutil.CompressBehaviour
+	// KeepShadowSchemaPaths indicates whether when OpenConfig path
+	// compression is enabled, that the shadowed paths are still
+	// represented within the generated code.
+	KeepShadowSchemaPaths bool
 	// GenerateFakeRoot specifies whether an entity that represents the
 	// root of the YANG schema tree should be generated in the generated
 	// code.
@@ -398,7 +402,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var structSnippets []GoStructCodeSnippet
 	for _, directoryName := range orderedDirNames {
 		structOut, errs := writeGoStruct(dirNameMap[directoryName], directoryMap, gogen,
-			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.GoOptions)
+			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.TransformationOptions.KeepShadowSchemaPaths, cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.GoOptions)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
@@ -656,13 +660,14 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		m := msgMap[n]
 
 		genMsg, errs := writeProto3Msg(m, protoMsgs, protogen, &protoMsgConfig{
-			compressPaths:       cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(),
-			basePackageName:     basePackageName,
-			enumPackageName:     enumPackageName,
-			baseImportPath:      cg.Config.ProtoOptions.BaseImportPath,
-			annotateSchemaPaths: cg.Config.ProtoOptions.AnnotateSchemaPaths,
-			annotateEnumNames:   cg.Config.ProtoOptions.AnnotateEnumNames,
-			nestedMessages:      cg.Config.ProtoOptions.NestedMessages,
+			compressPaths:         cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(),
+			keepShadowSchemaPaths: cg.Config.TransformationOptions.KeepShadowSchemaPaths,
+			basePackageName:       basePackageName,
+			enumPackageName:       enumPackageName,
+			baseImportPath:        cg.Config.ProtoOptions.BaseImportPath,
+			annotateSchemaPaths:   cg.Config.ProtoOptions.AnnotateSchemaPaths,
+			annotateEnumNames:     cg.Config.ProtoOptions.AnnotateEnumNames,
+			nestedMessages:        cg.Config.ProtoOptions.NestedMessages,
 		}, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
 
 		if errs != nil {

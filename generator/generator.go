@@ -68,6 +68,7 @@ var (
 	fakeRootName                         = flag.String("fakeroot_name", "", "The name of the fake root entity.")
 	skipEnumDedup                        = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
 	preferOperationalState               = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves in the generated Go code with compressed schema paths. This flag is only valid for compress_paths=true and exclude_state=false.")
+	keepShadowSchemaPaths                = flag.Bool("keep_shadow_schema_paths", false, "If set to true when compress_paths=true as well, the shadowed schema path will be accepted as part of the converted schema, e.g. during marshalling and unmarshalling.")
 	shortenEnumLeafNames                 = flag.Bool("shorten_enum_leaf_names", false, "If also set to true when compress_paths=true, all leaves of type enumeration will by default not be prefixed with the name of its residing module.")
 	useDefiningModuleForTypedefEnumNames = flag.Bool("typedef_enum_with_defmod", false, "If set to true, all typedefs of type enumeration or identity will be prefixed with the name of its module of definition instead of its residing module.")
 	ygotImportPath                       = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
@@ -306,6 +307,7 @@ func main() {
 			},
 			TransformationOptions: ygen.TransformationOpts{
 				CompressBehaviour:                    compressBehaviour,
+				KeepShadowSchemaPaths:                *keepShadowSchemaPaths,
 				GenerateFakeRoot:                     *generateFakeRoot,
 				FakeRootName:                         *fakeRootName,
 				ShortenEnumLeafNames:                 *shortenEnumLeafNames,
