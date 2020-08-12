@@ -35,12 +35,13 @@ import (
 // the schema, and where digested data is stored that is friendly to the code
 // generation algorithm.
 type Directory struct {
-	Name       string                 // Name is the name of the struct to be generated.
-	Entry      *yang.Entry            // Entry is the yang.Entry that corresponds to the schema element being converted to a struct.
-	Fields     map[string]*yang.Entry // Fields is a map, keyed by the YANG node identifier, of the entries that are the struct fields.
-	Path       []string               // Path is a slice of strings indicating the element's path.
-	ListAttr   *YangListAttr          // ListAttr is used to store characteristics of structs that represent YANG lists.
-	IsFakeRoot bool                   // IsFakeRoot indicates that the struct is a fake root struct, so specific mapping rules should be implemented.
+	Name           string                 // Name is the name of the struct to be generated.
+	Entry          *yang.Entry            // Entry is the yang.Entry that corresponds to the schema element being converted to a struct.
+	Fields         map[string]*yang.Entry // Fields is a map, keyed by the YANG node identifier, of the entries that are the struct fields.
+	ShadowedFields map[string]*yang.Entry // ShadowedFields is a map, keyed by the YANG node identifier, of the field entries duplicated via compression.
+	Path           []string               // Path is a slice of strings indicating the element's path.
+	ListAttr       *YangListAttr          // ListAttr is used to store characteristics of structs that represent YANG lists.
+	IsFakeRoot     bool                   // IsFakeRoot indicates that the struct is a fake root struct, so specific mapping rules should be implemented.
 }
 
 // isList returns true if the Directory describes a list.
@@ -135,9 +136,28 @@ func GetOrderedDirectories(directory map[string]*Directory) ([]string, map[strin
 // of a Directory. The Field is specified as a name in order to guarantee its
 // existence before processing.
 func FindSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]string, error) {
+	return findSchemaPath(parent, fieldName, false, absolutePaths)
+}
+
+// FindShadowedSchemaPath finds the relative or absolute schema path of a given field
+// of a Directory. If the field is not found, *no error is returned*.
+func FindShadowedSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]string, error) {
+	return findSchemaPath(parent, fieldName, true, absolutePaths)
+}
+
+// findSchemaPath finds the relative or absolute schema path of a given field
+// of a Directory. The Field is specified as a name in order to guarantee its
+// existence before processing. The field can be either a normal field or a
+// shadowed field representing a compressed-out leaf value.
+func findSchemaPath(parent *Directory, fieldName string, shadowField, absolutePaths bool) ([]string, error) {
 	field, ok := parent.Fields[fieldName]
+	if shadowField {
+		if field, ok = parent.ShadowedFields[fieldName]; !ok {
+			return nil, nil
+		}
+	}
 	if !ok {
-		return nil, fmt.Errorf("FindSchemaPath: field name %q does not exist in Directory %s", fieldName, parent.Path)
+		return nil, fmt.Errorf("FindSchemaPath(shadowField:%v): field name %q does not exist in Directory %s", shadowField, fieldName, parent.Path)
 	}
 	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
 
@@ -150,7 +170,7 @@ func FindSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]
 	// in the parent's, we walk from index X of the field's path (where X
 	// is the number of elements in the path of the parent).
 	if len(fieldSlicePath) < len(parent.Path) {
-		return nil, fmt.Errorf("FindSchemaPath: field %v is not a valid child of %v", fieldSlicePath, parent.Path)
+		return nil, fmt.Errorf("FindSchemaPath(shadowField:%v): field %v is not a valid child of %v", shadowField, fieldSlicePath, parent.Path)
 	}
 	return fieldSlicePath[len(parent.Path)-1:], nil
 }

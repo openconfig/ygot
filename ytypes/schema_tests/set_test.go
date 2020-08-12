@@ -230,6 +230,48 @@ func TestSet(t *testing.T) {
 			Data: ygot.String("XCVR-1-2"),
 		},
 	}, {
+		desc:     "set config (shadowed) leafref with mismatched name - operational state (compressed) schema",
+		inSchema: mustSchema(opstateoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "components",
+			}, {
+				Name: "component",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "optical-channel",
+			}, {
+				Name: "config",
+			}, {
+				Name: "line-port",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "components",
+				}, {
+					Name: "component",
+					Key: map[string]string{
+						"name": "OCH-1-2",
+					},
+				}, {
+					Name: "optical-channel",
+				}, {
+					Name: "config",
+				}, {
+					Name: "line-port",
+				}},
+			},
+			Data: ygot.String("XCVR-1-2"),
+		},
+	}, {
 		desc:     "bad path",
 		inSchema: mustSchema(uexampleoc.Schema),
 		inPath: &gpb.Path{

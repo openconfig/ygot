@@ -102,7 +102,7 @@ func buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour gen
 
 			// Find the elements that should be rooted on this particular entity.
 			var fieldErr []error
-			elem.Fields, fieldErr = genutil.FindAllChildren(e, compBehaviour)
+			elem.Fields, elem.ShadowedFields, fieldErr = genutil.FindAllChildren(e, compBehaviour)
 			if fieldErr != nil {
 				errs = append(errs, fieldErr...)
 				continue

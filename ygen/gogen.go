@@ -1263,6 +1263,8 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 //  - state - the current generator state, as a genState pointer.
 //  - compressOCPaths - a bool indicating whether OpenConfig path compression is enabled for
 //    this schema.
+//  - keepShadowSchemaPaths - a bool indicating whether when OpenConfig path compression is
+//    enabled, that the shadowed paths are still represented within the generated struct.
 //  - generateJSONSchema - a bool indicating whether the generated code should include the
 //    JSON representation of the YANG schema for this element.
 //  - goOpts - Go specific code generation options as a GoOpts struct.
@@ -1275,7 +1277,7 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, gogen *goGenState, compressPaths, generateJSONSchema, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, goOpts GoOpts) (GoStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, gogen *goGenState, compressPaths, keepShadowSchemaPaths, generateJSONSchema, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, goOpts GoOpts) (GoStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -1510,7 +1512,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		// Find the schema paths that the field corresponds to, such that these can
 		// be used as annotations (tags) within the generated struct. Go paths are
 		// always relative.
-		schemaMapPaths, err := findMapPaths(targetStruct, fName, compressPaths, false)
+		schemaMapPaths, err := findMapPaths(targetStruct, fName, compressPaths, keepShadowSchemaPaths, false)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -2050,12 +2052,19 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 // the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
 // path is also returned.
 // TODO(wenbli): This is used by both Go and proto generation, it should be moved to genstate.go or genutil.
-func findMapPaths(parent *Directory, fieldName string, compressPaths, absolutePaths bool) ([][]string, error) {
+func findMapPaths(parent *Directory, fieldName string, compressPaths, keepShadowSchemaPaths, absolutePaths bool) ([][]string, error) {
 	childPath, err := FindSchemaPath(parent, fieldName, absolutePaths)
 	if err != nil {
 		return nil, err
 	}
 	mapPaths := [][]string{childPath}
+	shadowChildPath, err := FindShadowedSchemaPath(parent, fieldName, absolutePaths)
+	if err != nil {
+		return nil, err
+	}
+	if len(shadowChildPath) > 0 && keepShadowSchemaPaths {
+		mapPaths = append(mapPaths, shadowChildPath)
+	}
 	if !compressPaths || parent.ListAttr == nil {
 		return mapPaths, nil
 	}

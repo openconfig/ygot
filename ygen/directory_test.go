@@ -306,12 +306,13 @@ func TestFindSchemaPath(t *testing.T) {
 	}
 
 	tests := []struct {
-		name            string
-		inDirectory     *Directory
-		inFieldName     string
-		inAbsolutePaths bool
-		want            []string
-		wantErrSubstr   string
+		name                  string
+		inDirectory           *Directory
+		inFieldName           string
+		inAbsolutePaths       bool
+		want                  []string
+		wantErrSubstr         string
+		wantErrSubstrShadowed string
 	}{{
 		name:            "simple relative path",
 		inDirectory:     simpleDir,
@@ -329,7 +330,9 @@ func TestFindSchemaPath(t *testing.T) {
 		inDirectory:     simpleDir,
 		inFieldName:     "baazar",
 		inAbsolutePaths: false,
+		want:            nil,
 		wantErrSubstr:   "field name \"baazar\" does not exist in Directory",
+		// When shadowField is set, no error is returned when the field can't be found.
 	}, {
 		name: "directory has problematically-long path",
 		inDirectory: &Directory{
@@ -348,9 +351,10 @@ func TestFindSchemaPath(t *testing.T) {
 				},
 			},
 		},
-		inFieldName:     "baz",
-		inAbsolutePaths: false,
-		wantErrSubstr:   "is not a valid child",
+		inFieldName:           "baz",
+		inAbsolutePaths:       false,
+		wantErrSubstr:         "is not a valid child",
+		wantErrSubstrShadowed: "is not a valid child",
 	}, {
 		name:            "list key relative path",
 		inDirectory:     listDir,
@@ -370,6 +374,24 @@ func TestFindSchemaPath(t *testing.T) {
 			got, err := FindSchemaPath(tt.inDirectory, tt.inFieldName, tt.inAbsolutePaths)
 			if diff := errdiff.Check(err, tt.wantErrSubstr); diff != "" {
 				t.Fatalf("FindSchemaPath, %v", diff)
+			}
+			if !cmp.Equal(got, tt.want) {
+				t.Fatalf("want: %s\ngot: %s", tt.want, got)
+			}
+		})
+	}
+
+	for _, tt := range tests {
+		// Move over the shadowed fields to be the same as the direct fields (if not already done).
+		if tt.inDirectory.ShadowedFields == nil {
+			tt.inDirectory.ShadowedFields = tt.inDirectory.Fields
+			tt.inDirectory.Fields = nil
+		}
+
+		t.Run(tt.name+" (ShadowedFields)", func(t *testing.T) {
+			got, err := FindShadowedSchemaPath(tt.inDirectory, tt.inFieldName, tt.inAbsolutePaths)
+			if diff := errdiff.Check(err, tt.wantErrSubstrShadowed); diff != "" {
+				t.Fatalf("FindShadowedSchemaPath, %v", diff)
 			}
 			if !cmp.Equal(got, tt.want) {
 				t.Fatalf("want: %s\ngot: %s", tt.want, got)

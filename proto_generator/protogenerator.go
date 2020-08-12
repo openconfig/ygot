@@ -50,6 +50,7 @@ var (
 	callerName                           = flag.String("caller_name", "proto_generator", "The name of the generator binary that should be recorded in output files.")
 	excludeState                         = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Protobuf messages.")
 	preferOperationalState               = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves in the generated messages with compressed schema paths. This flag is only valid for compress_paths=true and exclude_state=false.")
+	keepShadowSchemaPaths                = flag.Bool("keep_shadow_schema_paths", false, "If set to true when compress_paths=true as well, the shadowed schema path will be accepted as part of the converted schema.")
 	skipEnumDedup                        = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
 	useDefiningModuleForTypedefEnumNames = flag.Bool("typedef_enum_with_defmod", false, "If set to true, all typedefs of type enumeration or identity will be prefixed with the name of its module of definition instead of its residing module.")
 )
@@ -110,6 +111,7 @@ func main() {
 		},
 		TransformationOptions: ygen.TransformationOpts{
 			CompressBehaviour:                    compressBehaviour,
+			KeepShadowSchemaPaths:                *keepShadowSchemaPaths,
 			GenerateFakeRoot:                     *generateFakeRoot,
 			FakeRootName:                         *fakeRootName,
 			UseDefiningModuleForTypedefEnumNames: *useDefiningModuleForTypedefEnumNames,

@@ -1725,7 +1725,7 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 				// Always generate the JSON schema for this test.
-				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inSkipEnumDedup, true, true, nil, tt.inGoOpts)
+				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, false, true, tt.inSkipEnumDedup, true, true, nil, tt.inGoOpts)
 
 				if len(errs) != 0 && !want.wantErr {
 					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): received unexpected errors: %v",
@@ -1982,13 +1982,14 @@ const (
 // mapped to are properly extracted from a schema element.
 func TestFindMapPaths(t *testing.T) {
 	tests := []struct {
-		name            string
-		inStruct        *Directory
-		inField         string
-		inCompressPaths bool
-		inAbsolutePaths bool
-		wantPaths       [][]string
-		wantErr         bool
+		name                    string
+		inStruct                *Directory
+		inField                 string
+		inCompressPaths         bool
+		inKeepShadowSchemaPaths bool
+		inAbsolutePaths         bool
+		wantPaths               [][]string
+		wantErr                 bool
 	}{{
 		name: "first-level container with path compression off",
 		inStruct: &Directory{
@@ -2043,10 +2044,62 @@ func TestFindMapPaths(t *testing.T) {
 					},
 				},
 			},
+			ShadowedFields: map[string]*yang.Entry{
+				"field-b": {
+					Name: "field-b",
+					Parent: &yang.Entry{
+						Name: "state",
+						Parent: &yang.Entry{
+							Name: "b-container",
+							Parent: &yang.Entry{
+								Name: "a-module",
+							},
+						},
+					},
+				},
+			},
 		},
 		inField:         "field-b",
 		inCompressPaths: true,
 		wantPaths:       [][]string{{"config", "field-b"}},
+	}, {
+		name: "first-level container with path compression on and keepShadowSchemaPaths on",
+		inStruct: &Directory{
+			Name: "BContainer",
+			Path: []string{"", "a-module", "b-container"},
+			Fields: map[string]*yang.Entry{
+				"field-b": {
+					Name: "field-b",
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name: "b-container",
+							Parent: &yang.Entry{
+								Name: "a-module",
+							},
+						},
+					},
+				},
+			},
+			ShadowedFields: map[string]*yang.Entry{
+				"field-b": {
+					Name: "field-b",
+					Parent: &yang.Entry{
+						Name: "state",
+						Parent: &yang.Entry{
+							Name: "b-container",
+							Parent: &yang.Entry{
+								Name: "a-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		inField:                 "field-b",
+		inCompressPaths:         true,
+		inKeepShadowSchemaPaths: true,
+		wantPaths:               [][]string{{"config", "field-b"}, {"state", "field-b"}},
 	}, {
 		name: "container with absolute paths on",
 		inStruct: &Directory{
@@ -2150,17 +2203,17 @@ func TestFindMapPaths(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inAbsolutePaths)
+		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inKeepShadowSchemaPaths, tt.inAbsolutePaths)
 		if err != nil {
 			if !tt.wantErr {
-				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, got unexpected error: %v",
-					tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, err)
+				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, keepShadowSchemaPaths: %v, got unexpected error: %v",
+					tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inKeepShadowSchemaPaths, err)
 			}
 			continue
 		}
 
 		if diff := cmp.Diff(tt.wantPaths, got); diff != "" {
-			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, diff)
+			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, keepShadowSchemaPaths: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inKeepShadowSchemaPaths, diff)
 		}
 	}
 }
