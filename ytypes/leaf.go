@@ -120,12 +120,12 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
    {
            Name:             "ipv4-address",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
    },
    {
            Name:             "ipv6-address",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
            Type:             [],
    }]
  }
@@ -153,7 +153,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
    {
            Name:             "port-string",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
    },
    {
            Name:             "port-integer",

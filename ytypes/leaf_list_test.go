@@ -181,8 +181,9 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 				Name: "leaf",
 				Kind: yang.LeafEntry,
 				Type: &yang.YangType{
-					Kind:    yang.Ystring,
-					Pattern: []string{"b+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b+"},
+					POSIXPattern: []string{"^b+$"},
 				},
 			},
 		},
@@ -212,8 +213,9 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
 					Kind: yang.Yuint32,

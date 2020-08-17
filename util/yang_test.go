@@ -66,6 +66,47 @@ func TestSchemaTreeRoot(t *testing.T) {
 	}
 }
 
+func TestSanitizedPattern(t *testing.T) {
+	tests := []struct {
+		desc string
+		in   *yang.YangType
+		want []string
+	}{{
+		desc: "both are present",
+		in: &yang.YangType{
+			Pattern:      []string{`abc`},
+			POSIXPattern: []string{`^def$`, `^ghi$`},
+		},
+		want: []string{`^def$`, `^ghi$`},
+	}, {
+		desc: "POSIXPattern only present",
+		in: &yang.YangType{
+			POSIXPattern: []string{`^def$`},
+		},
+		want: []string{`^def$`},
+	}, {
+		desc: "Pattern only present",
+		in: &yang.YangType{
+			Pattern: []string{`abc`},
+		},
+		want: []string{`^(abc)$`},
+	}, {
+		desc: "Pattern only present, with different sanitization behaviours",
+		in: &yang.YangType{
+			Pattern: []string{`^abc`, `^abc$`, `abc$`, `a$b^c[^d]\\\ne`},
+		},
+		want: []string{`^abc$`, `^abc$`, `^(abc)$`, `^(a\$b\^c[^d]\\\ne)$`},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if diff := cmp.Diff(SanitizedPattern(tt.in), tt.want); diff != "" {
+				t.Errorf("(-got, +want):\n%s", diff)
+			}
+		})
+	}
+}
+
 // TestYangHelperChecks tests a known set of input data against the helper
 // functions that check the type of a particular element in yanghelpers.go.
 func TestYangHelperChecks(t *testing.T) {
@@ -655,18 +696,20 @@ func TestIsYangTypes(t *testing.T) {
 				Type: &yang.YangType{
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{{
-						Name:    "string",
-						Pattern: []string{"^a.*$"},
-						Kind:    yang.Ystring,
+						Name:         "string",
+						Pattern:      []string{"a.*"},
+						POSIXPattern: []string{"^a.*$"},
+						Kind:         yang.Ystring,
 						Length: yang.YangRange{{
 							Min: yang.FromInt(10),
 							Max: yang.FromInt(20),
 						},
 						},
 					}, {
-						Name:    "string",
-						Pattern: []string{"^b.*$"},
-						Kind:    yang.Ystring,
+						Name:         "string",
+						Pattern:      []string{"b.*"},
+						POSIXPattern: []string{"^b.*$"},
+						Kind:         yang.Ystring,
 						Length: yang.YangRange{{
 							Min: yang.FromInt(10),
 							Max: yang.FromInt(20),
@@ -688,9 +731,10 @@ func TestIsYangTypes(t *testing.T) {
 				Type: &yang.YangType{
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{{
-						Name:    "string",
-						Pattern: []string{"^a.*$"},
-						Kind:    yang.Ystring,
+						Name:         "string",
+						Pattern:      []string{"a.*"},
+						POSIXPattern: []string{"^a.*$"},
+						Kind:         yang.Ystring,
 						Length: yang.YangRange{{
 							Min: yang.FromInt(10),
 							Max: yang.FromInt(20),
@@ -974,9 +1018,10 @@ var complexUnionType *yang.YangType = &yang.YangType{
 	Name: complexUnionTypeName,
 	Kind: yang.Yunion,
 	Type: []*yang.YangType{{
-		Name:    "string",
-		Pattern: []string{"^a.*$"},
-		Kind:    yang.Ystring,
+		Name:         "string",
+		Pattern:      []string{"a.*"},
+		POSIXPattern: []string{"^a.*$"},
+		Kind:         yang.Ystring,
 		Length: yang.YangRange{{
 			Min: yang.FromInt(10),
 			Max: yang.FromInt(20),
@@ -994,9 +1039,10 @@ var complexUnionType *yang.YangType = &yang.YangType{
 		Name: "union",
 		Kind: yang.Yunion,
 		Type: []*yang.YangType{{
-			Name:    "string",
-			Pattern: []string{"^b.*$"},
-			Kind:    yang.Ystring,
+			Name:         "string",
+			Pattern:      []string{"b.*"},
+			POSIXPattern: []string{"^b.*$"},
+			Kind:         yang.Ystring,
 			Length: yang.YangRange{{
 				Min: yang.FromInt(10),
 				Max: yang.FromInt(20),
@@ -1014,9 +1060,10 @@ var complexUnionType *yang.YangType = &yang.YangType{
 			Name: "inner-typedef-union",
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{{
-				Name:    "string",
-				Pattern: []string{"^c.*$"},
-				Kind:    yang.Ystring,
+				Name:         "string",
+				Pattern:      []string{"c.*"},
+				POSIXPattern: []string{"^c.*$"},
+				Kind:         yang.Ystring,
 				Length: yang.YangRange{{
 					Min: yang.FromInt(10),
 					Max: yang.FromInt(20),
@@ -1036,9 +1083,10 @@ var complexUnionType *yang.YangType = &yang.YangType{
 		Name: "typedef-union",
 		Kind: yang.Yunion,
 		Type: []*yang.YangType{{
-			Name:    "string",
-			Pattern: []string{"^d.*$"},
-			Kind:    yang.Ystring,
+			Name:         "string",
+			Pattern:      []string{"d.*"},
+			POSIXPattern: []string{"^d.*$"},
+			Kind:         yang.Ystring,
 			Length: yang.YangRange{{
 				Min: yang.FromInt(10),
 				Max: yang.FromInt(20),
@@ -1056,9 +1104,10 @@ var complexUnionType *yang.YangType = &yang.YangType{
 			Name: "nested-typedef-union",
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{{
-				Name:    "string",
-				Pattern: []string{"^e.*$"},
-				Kind:    yang.Ystring,
+				Name:         "string",
+				Pattern:      []string{"e.*"},
+				POSIXPattern: []string{"^e.*$"},
+				Kind:         yang.Ystring,
 				Length: yang.YangRange{{
 					Min: yang.FromInt(10),
 					Max: yang.FromInt(20),
@@ -1078,9 +1127,10 @@ var complexUnionType *yang.YangType = &yang.YangType{
 		Name: "typedef-union2",
 		Kind: yang.Yunion,
 		Type: []*yang.YangType{{
-			Name:    "string",
-			Pattern: []string{"^f.*$"},
-			Kind:    yang.Ystring,
+			Name:         "string",
+			Pattern:      []string{"f.*"},
+			POSIXPattern: []string{"^f.*$"},
+			Kind:         yang.Ystring,
 			Length: yang.YangRange{{
 				Min: yang.FromInt(10),
 				Max: yang.FromInt(20),
@@ -1098,9 +1148,10 @@ var complexUnionType *yang.YangType = &yang.YangType{
 			Name: "nested-typedef-union2",
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{{
-				Name:    "string",
-				Pattern: []string{"^g.*$"},
-				Kind:    yang.Ystring,
+				Name:         "string",
+				Pattern:      []string{"g.*"},
+				POSIXPattern: []string{"^g.*$"},
+				Kind:         yang.Ystring,
 				Length: yang.YangRange{{
 					Min: yang.FromInt(10),
 					Max: yang.FromInt(20),
@@ -1247,9 +1298,10 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 	}{{
 		desc: "single-level with no enumerated types",
 		inTypes: []*yang.YangType{{
-			Name:    "string",
-			Pattern: []string{"^a.*$"},
-			Kind:    yang.Ystring,
+			Name:         "string",
+			Pattern:      []string{"a.*"},
+			POSIXPattern: []string{"^a.*$"},
+			Kind:         yang.Ystring,
 			Length: yang.YangRange{{
 				Min: yang.FromInt(10),
 				Max: yang.FromInt(20),
@@ -1262,9 +1314,10 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 	}, {
 		desc: "single-level with mixed types",
 		inTypes: []*yang.YangType{{
-			Name:    "string",
-			Pattern: []string{"^a.*$"},
-			Kind:    yang.Ystring,
+			Name:         "string",
+			Pattern:      []string{"a.*"},
+			POSIXPattern: []string{"^a.*$"},
+			Kind:         yang.Ystring,
 			Length: yang.YangRange{{
 				Min: yang.FromInt(10),
 				Max: yang.FromInt(20),
@@ -1293,9 +1346,10 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 	}, {
 		desc: "multi-level with mixed types",
 		inTypes: []*yang.YangType{{
-			Name:    "string",
-			Pattern: []string{"^a.*$"},
-			Kind:    yang.Ystring,
+			Name:         "string",
+			Pattern:      []string{"a.*"},
+			POSIXPattern: []string{"^a.*$"},
+			Kind:         yang.Ystring,
 			Length: yang.YangRange{{
 				Min: yang.FromInt(10),
 				Max: yang.FromInt(20),
@@ -1310,9 +1364,10 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 			Name: "union",
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{{
-				Name:    "string",
-				Pattern: []string{"^a.*$"},
-				Kind:    yang.Ystring,
+				Name:         "string",
+				Pattern:      []string{"a.*"},
+				POSIXPattern: []string{"^a.*$"},
+				Kind:         yang.Ystring,
 				Length: yang.YangRange{{
 					Min: yang.FromInt(10),
 					Max: yang.FromInt(20),
@@ -1412,9 +1467,10 @@ func TestEnumeratedUnionTypes(t *testing.T) {
 
 func TestDefiningType(t *testing.T) {
 	strType := &yang.YangType{
-		Name:    "string",
-		Pattern: []string{"^a.*$"},
-		Kind:    yang.Ystring,
+		Name:         "string",
+		Pattern:      []string{"a.*"},
+		POSIXPattern: []string{"^a.*$"},
+		Kind:         yang.Ystring,
 		Length: yang.YangRange{{
 			Min: yang.FromInt(10),
 			Max: yang.FromInt(20),
