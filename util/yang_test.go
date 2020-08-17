@@ -81,9 +81,9 @@ func TestSanitizedPattern(t *testing.T) {
 	}, {
 		desc: "POSIXPattern only present",
 		in: &yang.YangType{
-			POSIXPattern: []string{`^def$`},
+			POSIXPattern: []string{``, `^def$`},
 		},
-		want: []string{`^def$`},
+		want: []string{``, `^def$`},
 	}, {
 		desc: "Pattern only present",
 		in: &yang.YangType{
@@ -93,9 +93,9 @@ func TestSanitizedPattern(t *testing.T) {
 	}, {
 		desc: "Pattern only present, with different sanitization behaviours",
 		in: &yang.YangType{
-			Pattern: []string{`^abc`, `^abc$`, `abc$`, `a$b^c[^d]\\\ne`},
+			Pattern: []string{``, `^abc`, `^abc$`, `abc$`, `a$b^c[^d]\\\ne`},
 		},
-		want: []string{`^abc$`, `^abc$`, `^(abc)$`, `^(a\$b\^c[^d]\\\ne)$`},
+		want: []string{``, `^abc$`, `^abc$`, `^(abc)$`, `^(a\$b\^c[^d]\\\ne)$`},
 	}}
 
 	for _, tt := range tests {

@@ -23,8 +23,8 @@ import (
 
 var validStringSchema = yrangeAndPatternToStringSchema("valid-string-schema", yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)}, nil, nil)
 
-func yrangeAndPatternToStringSchema(schemaName string, yr yang.YRange, posixRePattern []string, rePattern []string) *yang.Entry {
-	return &yang.Entry{Name: schemaName, Type: &yang.YangType{Kind: yang.Ystring, Length: yang.YangRange{yr}, POSIXPattern: posixRePattern, Pattern: rePattern}}
+func yrangeAndPatternToStringSchema(schemaName string, yr yang.YRange, POSIXRePattern []string, rePattern []string) *yang.Entry {
+	return &yang.Entry{Name: schemaName, Type: &yang.YangType{Kind: yang.Ystring, Length: yang.YangRange{yr}, POSIXPattern: POSIXRePattern, Pattern: rePattern}}
 }
 
 func TestValidateStringSchema(t *testing.T) {
@@ -70,7 +70,7 @@ func TestValidateStringSchemaRanges(t *testing.T) {
 		desc       string
 		length     yang.YRange
 		schemaName string
-		posixRe    []string
+		POSIXRe    []string
 		wantErr    bool
 	}{
 		{
@@ -82,19 +82,19 @@ func TestValidateStringSchemaRanges(t *testing.T) {
 			desc:       "unset min success",
 			length:     yang.YRange{Min: util.YangMinNumber, Max: yang.FromInt(10)},
 			schemaName: "range-10-or-less",
-			posixRe:    []string{`^ab.$`, `^.*bc$`},
+			POSIXRe:    []string{`^ab.$`, `^.*bc$`},
 		},
 		{
 			desc:       "unset max success",
 			length:     yang.YRange{Min: yang.FromInt(2), Max: util.YangMaxNumber},
 			schemaName: "range-2-or-more",
-			posixRe:    []string{`^ab.$`, `^.*bc$`},
+			POSIXRe:    []string{`^ab.$`, `^.*bc$`},
 		},
 		{
 			desc:       "unset min and max success",
 			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
-			posixRe:    []string{`^ab.$`, `^.*bc$`},
+			POSIXRe:    []string{`^ab.$`, `^.*bc$`},
 		},
 		{
 			desc:       "bad length range",
@@ -118,14 +118,14 @@ func TestValidateStringSchemaRanges(t *testing.T) {
 			desc:       "bad pattern",
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "bad-pattern",
-			posixRe:    []string{"(^(.*)"},
+			POSIXRe:    []string{"(^(.*)"},
 			wantErr:    true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			err := validateStringSchema(yrangeAndPatternToStringSchema(tt.schemaName, tt.length, tt.posixRe, nil))
+			err := validateStringSchema(yrangeAndPatternToStringSchema(tt.schemaName, tt.length, tt.POSIXRe, nil))
 			if got, want := (err != nil), tt.wantErr; got != want {
 				t.Errorf("%s: validateStringSchema got error: %v, want error? %v", tt.desc, err, tt.wantErr)
 			}
@@ -140,7 +140,7 @@ func TestValidateString(t *testing.T) {
 		length     yang.YRange
 		schemaName string
 		re         []string
-		posixRe    []string
+		POSIXRe    []string
 		val        interface{}
 		wantErr    bool
 	}{
@@ -149,7 +149,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
 			re:         []string{`ab.`, `.*bc`},
-			posixRe:    []string{`^ab.$`, `^.*bc$`},
+			POSIXRe:    []string{`^ab.$`, `^.*bc$`},
 			val:        "abc",
 		},
 		{
@@ -157,7 +157,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
 			re:         []string{`a+|\.`},
-			posixRe:    []string{`^(a+|\.)$`},
+			POSIXRe:    []string{`^(a+|\.)$`},
 			val:        "aaa aaa",
 			wantErr:    true,
 		},
@@ -166,7 +166,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: yang.FromInt(20), Max: yang.FromInt(10)},
 			schemaName: "bad-range",
 			re:         []string{`ab.`, `.*bc`},
-			posixRe:    []string{`^ab.$`, `^.*bc$`},
+			POSIXRe:    []string{`^ab.$`, `^.*bc$`},
 			val:        "abc",
 			wantErr:    true,
 		},
@@ -175,7 +175,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
 			re:         []string{`ab.`, `.*bc`},
-			posixRe:    []string{`^ab.$`, `^.*bc$`},
+			POSIXRe:    []string{`^ab.$`, `^.*bc$`},
 			val:        "acbc",
 			wantErr:    true,
 		},
@@ -184,7 +184,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
 			re:         []string{`[a|b]*`},
-			posixRe:    []string{`^[a|b]*$`},
+			POSIXRe:    []string{`^[a|b]*$`},
 			val:        "abbbab",
 		},
 		{
@@ -192,7 +192,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
 			re:         []string{`[a|b]*`},
-			posixRe:    []string{`^[a|b]*$`},
+			POSIXRe:    []string{`^[a|b]*$`},
 			val:        "abbcbab",
 			wantErr:    true,
 		},
@@ -201,7 +201,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
 			re:         []string{`ab.`, `.*bc`},
-			posixRe:    []string{`^ab.$`, `^.*bc$`},
+			POSIXRe:    []string{`^ab.$`, `^.*bc$`},
 			val:        "acbc",
 			wantErr:    true,
 		},
@@ -231,7 +231,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[ab]{2}([cd])?`},
-			posixRe:    []string{`^[ab]{2}([cd])?$`},
+			POSIXRe:    []string{`^[ab]{2}([cd])?$`},
 			val:        "abc",
 		},
 		{
@@ -239,7 +239,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[ab]{2}([cd])?`},
-			posixRe:    []string{`^[ab]{2}([cd])?$`},
+			POSIXRe:    []string{`^[ab]{2}([cd])?$`},
 			val:        "cdb",
 			wantErr:    true,
 		},
@@ -248,7 +248,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[0-9]+`},
-			posixRe:    []string{`^[0-9]+$`},
+			POSIXRe:    []string{`^[0-9]+$`},
 			val:        "abcd999",
 			wantErr:    true,
 		},
@@ -257,7 +257,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`^[ab]{2}([cd])?$`},
-			posixRe:    []string{`^[ab]{2}([cd])?$`},
+			POSIXRe:    []string{`^[ab]{2}([cd])?$`},
 			val:        "aad",
 		},
 		{
@@ -265,7 +265,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`$[0-9]+`},
-			posixRe:    []string{`^\$[0-9]+$`},
+			POSIXRe:    []string{`^\$[0-9]+$`},
 			val:        "$100",
 		},
 		{
@@ -273,7 +273,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[a-z]+^`},
-			posixRe:    []string{`^[a-z]+\^$`},
+			POSIXRe:    []string{`^[a-z]+\^$`},
 			val:        "caret^",
 		},
 		{
@@ -281,7 +281,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[0-9]+\.[0-9]+`},
-			posixRe:    []string{`^[0-9]+\.[0-9]+$`},
+			POSIXRe:    []string{`^[0-9]+\.[0-9]+$`},
 			val:        "10.10",
 		},
 		{
@@ -289,7 +289,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`foo\\^bar`},
-			posixRe:    []string{`^foo\\\^bar$`},
+			POSIXRe:    []string{`^foo\\\^bar$`},
 			val:        `foo\^bar`,
 		},
 		{
@@ -297,7 +297,7 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[^:][0-9a-fA-F]+`},
-			posixRe:    []string{`^[^:][0-9a-fA-F]+$`},
+			POSIXRe:    []string{`^[^:][0-9a-fA-F]+$`},
 			val:        ":FFFF",
 			wantErr:    true,
 		},
@@ -306,14 +306,14 @@ func TestValidateString(t *testing.T) {
 			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
 			schemaName: "range-any",
 			re:         []string{`[^:][0-9a-fA-F]+`},
-			posixRe:    []string{`^[^:][0-9a-fA-F]+$`},
+			POSIXRe:    []string{`^[^:][0-9a-fA-F]+$`},
 			val:        "CAFE",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			err := validateString(yrangeAndPatternToStringSchema(tt.schemaName, tt.length, tt.posixRe, tt.re), tt.val)
+			err := validateString(yrangeAndPatternToStringSchema(tt.schemaName, tt.length, tt.POSIXRe, tt.re), tt.val)
 			if got, want := (err != nil), tt.wantErr; got != want {
 				t.Errorf("%s: s.validateString(%v) got error: %v, want error? %t", tt.desc, tt.val, err, tt.wantErr)
 			}
