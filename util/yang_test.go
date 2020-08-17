@@ -68,40 +68,49 @@ func TestSchemaTreeRoot(t *testing.T) {
 
 func TestSanitizedPattern(t *testing.T) {
 	tests := []struct {
-		desc string
-		in   *yang.YangType
-		want []string
+		desc        string
+		in          *yang.YangType
+		want        []string
+		wantIsPOSIX bool
 	}{{
 		desc: "both are present",
 		in: &yang.YangType{
 			Pattern:      []string{`abc`},
 			POSIXPattern: []string{`^def$`, `^ghi$`},
 		},
-		want: []string{`^def$`, `^ghi$`},
+		want:        []string{`^def$`, `^ghi$`},
+		wantIsPOSIX: true,
 	}, {
 		desc: "POSIXPattern only present",
 		in: &yang.YangType{
 			POSIXPattern: []string{``, `^def$`},
 		},
-		want: []string{``, `^def$`},
+		want:        []string{``, `^def$`},
+		wantIsPOSIX: true,
 	}, {
 		desc: "Pattern only present",
 		in: &yang.YangType{
 			Pattern: []string{`abc`},
 		},
-		want: []string{`^(abc)$`},
+		want:        []string{`^(abc)$`},
+		wantIsPOSIX: false,
 	}, {
 		desc: "Pattern only present, with different sanitization behaviours",
 		in: &yang.YangType{
 			Pattern: []string{``, `^abc`, `^abc$`, `abc$`, `a$b^c[^d]\\\ne`},
 		},
-		want: []string{``, `^abc$`, `^abc$`, `^(abc)$`, `^(a\$b\^c[^d]\\\ne)$`},
+		want:        []string{``, `^abc$`, `^abc$`, `^(abc)$`, `^(a\$b\^c[^d]\\\ne)$`},
+		wantIsPOSIX: false,
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if diff := cmp.Diff(SanitizedPattern(tt.in), tt.want); diff != "" {
+			gotPatterns, gotIsPOSIX := SanitizedPattern(tt.in)
+			if diff := cmp.Diff(gotPatterns, tt.want); diff != "" {
 				t.Errorf("(-got, +want):\n%s", diff)
+			}
+			if diff := cmp.Diff(gotIsPOSIX, tt.wantIsPOSIX); diff != "" {
+				t.Errorf("(-gotIsPOSIX, +wantIsPOSIX):\n%s", diff)
 			}
 		})
 	}

@@ -225,9 +225,10 @@ func IsYANGBaseType(t *yang.YangType) bool {
 // SanitizedPattern returns the values of the posix-pattern extension
 // statements for the YangType. If it's empty, then it returns the values from
 // the pattern statements with anchors attached (if missing).
-func SanitizedPattern(t *yang.YangType) []string {
+// It also returns whether the patterns are POSIX.
+func SanitizedPattern(t *yang.YangType) ([]string, bool) {
 	if len(t.POSIXPattern) != 0 {
-		return t.POSIXPattern
+		return t.POSIXPattern, true
 	}
 	var pat []string
 	for _, p := range t.Pattern {
@@ -235,7 +236,7 @@ func SanitizedPattern(t *yang.YangType) []string {
 		// equivalent to a full match of whole string.
 		pat = append(pat, fixYangRegexp(p))
 	}
-	return pat
+	return pat, false
 }
 
 // fixYangRegexp takes a pattern regular expression from a YANG module and

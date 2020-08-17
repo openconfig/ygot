@@ -47,8 +47,15 @@ func validateString(schema *yang.Entry, value interface{}) error {
 	}
 
 	// Check that the value satisfies any regex patterns.
-	for _, p := range util.SanitizedPattern(schema.Type) {
-		r, err := regexp.CompilePOSIX(p)
+	patterns, isPOSIX := util.SanitizedPattern(schema.Type)
+	for _, p := range patterns {
+		var r *regexp.Regexp
+		var err error
+		if isPOSIX {
+			r, err = regexp.CompilePOSIX(p)
+		} else {
+			r, err = regexp.Compile(p)
+		}
 		if err != nil {
 			return err
 		}
@@ -103,8 +110,15 @@ func validateStringSchema(schema *yang.Entry) error {
 		return fmt.Errorf("string schema %s has wrong type %v", schema.Name, schema.Type.Kind)
 	}
 
-	for _, p := range util.SanitizedPattern(schema.Type) {
-		if _, err := regexp.CompilePOSIX(p); err != nil {
+	patterns, isPOSIX := util.SanitizedPattern(schema.Type)
+	for _, p := range patterns {
+		var err error
+		if isPOSIX {
+			_, err = regexp.CompilePOSIX(p)
+		} else {
+			_, err = regexp.Compile(p)
+		}
+		if err != nil {
 			return fmt.Errorf("error generating regexp %s %v for schema %s", p, err, schema.Name)
 		}
 	}
