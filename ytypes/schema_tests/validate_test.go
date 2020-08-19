@@ -494,9 +494,15 @@ func TestValidateRoutingPolicy(t *testing.T) {
 	// type string {
 	//    pattern '^([0-9]+\.\.[0-9]+)|exact$';
 	// }
-	dev.RoutingPolicy.DefinedSets.PrefixSet["prefix1"].Prefix[prefixKey1].MasklengthRange = ygot.String("bad_element_key")
-	if err := dev.Validate(); err == nil {
-		t.Errorf("bad regex: got nil, want error")
+	badMaskLengthRange := "bad_element_key"
+	prefixKey1.MasklengthRange = badMaskLengthRange
+	dev.RoutingPolicy.DefinedSets.PrefixSet["prefix1"].Prefix[prefixKey1] = &oc.RoutingPolicy_DefinedSets_PrefixSet_Prefix{
+		IpPrefix:        ygot.String("255.255.255.0/20"),
+		MasklengthRange: ygot.String(badMaskLengthRange),
+	}
+	err := dev.Validate()
+	if diff := errdiff.Substring(err, "does not match regular expression pattern"); diff != "" {
+		t.Errorf("did not get expected bad regex error, %s", diff)
 	} else {
 		testErrLog(t, "bad regex", err)
 	}
