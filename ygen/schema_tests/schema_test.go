@@ -228,7 +228,7 @@ func TestEnumStringFunction(t *testing.T) {
 	}, {
 		desc:   "out-of-range: UNSET",
 		inEnum: exampleoc.Interface_OperStatus_UNSET,
-		want:   "",
+		want:   "UNSET",
 	}, {
 		desc:   "out-of-range: too high",
 		inEnum: exampleoc.E_Interface_OperStatus(100),

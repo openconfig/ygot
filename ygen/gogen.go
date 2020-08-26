@@ -1883,7 +1883,7 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 	// initialised to be UNSET, such that it is possible to determine that the enumerated value
 	// was not modified.
 	values := map[int64]string{
-		0: "UNSET",
+		0: ygot.GoEnumZeroName,
 	}
 
 	// origValues stores the original set of value names, these are not maintained to be

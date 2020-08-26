@@ -34,6 +34,9 @@ import (
 )
 
 const (
+	// GoEnumZeroName is the string value used to represent an unset
+	// enumeration/identity value in Go.
+	GoEnumZeroName = "UNSET"
 	// indentString represents the default indentation string used for
 	// JSON. Three spaces are used based on the legacy use of EmitJSON.
 	indentString string = "   "
@@ -140,7 +143,7 @@ func EnumLogString(e GoEnum, val int64, enumTypeName string) string {
 	enumDef, ok := e.ΛMap()[enumTypeName][val]
 	if !ok {
 		if val == 0 {
-			return ""
+			return GoEnumZeroName
 		}
 		return fmt.Sprintf("out-of-range %s enum value: %v", enumTypeName, val)
 	}
