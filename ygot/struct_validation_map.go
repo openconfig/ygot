@@ -139,6 +139,9 @@ func enumFieldToString(field reflect.Value, appendModuleName bool) (string, bool
 func EnumLogString(e GoEnum, val int64, enumTypeName string) string {
 	enumDef, ok := e.ΛMap()[enumTypeName][val]
 	if !ok {
+		if val == 0 {
+			return ""
+		}
 		return fmt.Sprintf("out-of-range %s enum value: %v", enumTypeName, val)
 	}
 	return enumDef.Name

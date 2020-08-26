@@ -326,7 +326,7 @@ func TestEnumLogString(t *testing.T) {
 		inEnum:         EUNSET,
 		inVal:          int64(EUNSET),
 		inEnumTypeName: "enumTest",
-		want:           "out-of-range enumTest enum value: 0",
+		want:           "",
 	}, {
 		desc:           "way out of range",
 		inEnum:         EONE,
