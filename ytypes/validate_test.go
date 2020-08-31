@@ -15,6 +15,7 @@
 package ytypes
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -46,6 +47,17 @@ type FakeRootStruct struct {
 
 func (*FakeRootStruct) IsYANGGoStruct() {}
 
+func customValidation(val interface{}) error {
+	fmt.Println("Inside customValidate")
+	fakeRoot, ok := val.(*FakeRootStruct)
+	if !ok {
+		return fmt.Errorf("not valid fakeroot")
+	}
+	if fakeRoot.LeafThree == nil || *fakeRoot.LeafThree != "kingfisher" {
+		return fmt.Errorf("leafThree should be kingfisher")
+	}
+	return nil
+}
 func TestValidate(t *testing.T) {
 	leafSchema := &yang.Entry{Name: "leaf-schema", Kind: yang.LeafEntry, Type: &yang.YangType{Kind: yang.Ystring}}
 
@@ -188,6 +200,37 @@ func TestValidate(t *testing.T) {
 				LeafTwo: ygot.String("two"),
 			},
 			opts: []ygot.ValidationOption{&LeafrefOptions{IgnoreMissingData: true}},
+		},
+		{
+			desc:   "fakeroot with custom validation",
+			schema: fakerootSchema,
+			val: &FakeRootStruct{
+				LeafOne: ygot.String("one"),
+				LeafTwo: ygot.String("one"),
+			},
+			opts:       []ygot.ValidationOption{&CustomValidationOptions{CustomValidate: customValidation}},
+			wantErr:    "leafThree should be kingfisher",
+			wantErrLen: 1,
+		},
+		{
+			desc:   "fakeroot with custom validation and ignore bad leafref",
+			schema: fakerootSchema,
+			val: &FakeRootStruct{
+				LeafTwo: ygot.String("two"),
+			},
+			opts:       []ygot.ValidationOption{&LeafrefOptions{IgnoreMissingData: true}, &CustomValidationOptions{CustomValidate: customValidation}},
+			wantErr:    "leafThree should be kingfisher",
+			wantErrLen: 1,
+		},
+		{
+			desc:   "fakeroot with custom validation and bad leafref",
+			schema: fakerootSchema,
+			val: &FakeRootStruct{
+				LeafTwo: ygot.String("two"),
+			},
+			opts:       []ygot.ValidationOption{&CustomValidationOptions{CustomValidate: customValidation}},
+			wantErr:    "pointed-to value with path ../leaf-one from field LeafTwo value two (string ptr) schema /device/leaf-two is empty set, leafThree should be kingfisher",
+			wantErrLen: 2,
 		},
 		{
 			desc:   "two errors",
