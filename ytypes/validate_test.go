@@ -47,7 +47,8 @@ type FakeRootStruct struct {
 
 func (*FakeRootStruct) IsYANGGoStruct() {}
 
-func customValidation(val ygot.GoStruct) error {
+func customValidation(val interface{}) error {
+	fmt.Println("Inside customValidate")
 	fakeRoot, ok := val.(*FakeRootStruct)
 	if !ok {
 		return fmt.Errorf("not valid fakeroot")
@@ -207,7 +208,7 @@ func TestValidate(t *testing.T) {
 				LeafOne: ygot.String("one"),
 				LeafTwo: ygot.String("one"),
 			},
-			opts:       []ygot.ValidationOption{&CustomValidationOptions{FakeRootCustomValidate: customValidation}},
+			opts:       []ygot.ValidationOption{&CustomValidationOptions{CustomValidate: customValidation}},
 			wantErr:    "leafThree should be kingfisher",
 			wantErrLen: 1,
 		},
@@ -217,7 +218,7 @@ func TestValidate(t *testing.T) {
 			val: &FakeRootStruct{
 				LeafTwo: ygot.String("two"),
 			},
-			opts:       []ygot.ValidationOption{&LeafrefOptions{IgnoreMissingData: true}, &CustomValidationOptions{FakeRootCustomValidate: customValidation}},
+			opts:       []ygot.ValidationOption{&LeafrefOptions{IgnoreMissingData: true}, &CustomValidationOptions{CustomValidate: customValidation}},
 			wantErr:    "leafThree should be kingfisher",
 			wantErrLen: 1,
 		},
@@ -227,7 +228,7 @@ func TestValidate(t *testing.T) {
 			val: &FakeRootStruct{
 				LeafTwo: ygot.String("two"),
 			},
-			opts:       []ygot.ValidationOption{&CustomValidationOptions{FakeRootCustomValidate: customValidation}},
+			opts:       []ygot.ValidationOption{&CustomValidationOptions{CustomValidate: customValidation}},
 			wantErr:    "pointed-to value with path ../leaf-one from field LeafTwo value two (string ptr) schema /device/leaf-two is empty set, leafThree should be kingfisher",
 			wantErrLen: 2,
 		},
