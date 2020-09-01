@@ -43,15 +43,11 @@ type LeafrefOptions struct {
 // interface.
 func (*LeafrefOptions) IsValidationOption() {}
 
-// CustomValidFuncType defines the signature of the user defined method
-// which will be used for custom validating the container
-type CustomValidFuncType func(ygot.GoStruct) error
-
 // CustomValidationOptions controls the custom validate function to be
 // invoked on the root
 type CustomValidationOptions struct {
 	// FakeRootCustomValidate specifies the user implemented method
-	FakeRootCustomValidate CustomValidFuncType
+	FakeRootCustomValidate func(ygot.GoStruct) error
 }
 
 // IsValidationOption ensures that CustomValidationOptions implements the ValidationOption
