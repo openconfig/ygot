@@ -467,6 +467,8 @@ func (n *{{ .Struct.TypeName }}) {{ .MethodName -}} ({{ .KeyParamListStr }}) *{{
 }
 `)
 
+	// goKeyBuilderTemplate generates a setter for a list key. This is used in the
+	// builder style for the list API.
 	goKeyBuilderTemplate = mustTemplate("goKeyBuilder", `
 // {{ .MethodName }} sets {{ .TypeName }}'s key "{{ .KeySchemaName }}" to the specified value.
 func (n *{{ .TypeName }}) {{ .MethodName }}({{ .KeyParamName }} {{ .KeyParamType }}) *{{ .TypeName }} {
