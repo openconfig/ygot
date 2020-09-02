@@ -228,45 +228,6 @@ message {{ .Name }} {
 {{- end }}
 }`)
 
-	// protoListKeyTemplate is generated as a wrapper around each list entry within
-	// a YANG schema that has a key.
-	protoListKeyTemplate = mustMakeTemplate("list", `
-// {{ .Name }} represents the list element {{ .YANGPath }} of the YANG schema. It
-// contains only the keys of the list, and an embedded message containing all entries
-// below this entity in the schema.
-message {{ .Name }} {
-{{- range $ename, $enum := .Enums }}
-  enum {{ $ename }} {
-    {{- range $i, $val := $enum.Values }}
-    {{ toUpper $ename }}_{{ $val.ProtoLabel }} = {{ $i }}
-    {{- if ne $val.YANGLabel "" }} [(yext.yang_name) = "{{ $val.YANGLabel }}"]{{ end -}}
-    ;
-    {{- end }}
-  }
-{{- end -}}
-{{- range $idx, $field := .Fields }}
-  {{ if $field.IsOneOf -}}
-  oneof {{ $field.Name }} {
-    {{- range $ooField := .OneOfFields }}
-    {{ $ooField.Type }} {{ $ooField.Name }} = {{ $ooField.Tag }};
-    {{- end }}
-  }
-  {{- else -}}
-  {{ $field.Type }} {{ $field.Name }} = {{ $field.Tag }}
-  {{- $noOptions := len .Options -}}
-  {{- if ne $noOptions 0 }} [
-    {{- range $i, $opt := $field.Options -}}
-      {{- $opt.Name }} = {{ $opt.Value -}}
-      {{- if ne (inc $i) $noOptions -}}, {{- end }}
-   {{- end -}}
-  ]
-  {{- end -}}
-  ;
-  {{- end }}
-{{- end -}}
-}
-`)
-
 	// protoEnumTemplate is the template used to generate enumerations that are
 	// not within a message. Such enums are used where there are referenced YANG
 	// identity nodes, and where there are typedefs which include an enumeration.
