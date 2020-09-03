@@ -43,6 +43,17 @@ type LeafrefOptions struct {
 // interface.
 func (*LeafrefOptions) IsValidationOption() {}
 
+// CustomValidationOptions controls the custom validate function to be
+// invoked on the root
+type CustomValidationOptions struct {
+	// FakeRootCustomValidate specifies the user implemented method
+	FakeRootCustomValidate func(ygot.GoStruct) error
+}
+
+// IsValidationOption ensures that CustomValidationOptions implements the ValidationOption
+// interface.
+func (*CustomValidationOptions) IsValidationOption() {}
+
 // Validate recursively validates the value of the given data tree struct
 // against the given schema.
 func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOption) util.Errors {
@@ -60,10 +71,13 @@ func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOpti
 	// and overwrite with the last within the options slice, rather than
 	// explicitly returning an error.
 	var leafrefOpt *LeafrefOptions
+	var customValidOpt *CustomValidationOptions
 	for _, o := range opts {
 		switch v := o.(type) {
 		case *LeafrefOptions:
 			leafrefOpt = v
+		case *CustomValidationOptions:
+			customValidOpt = v
 		}
 	}
 
@@ -72,6 +86,14 @@ func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOpti
 		// Leafref validation traverses entire tree from the root. Do this only
 		// once from the fakeroot.
 		errs = ValidateLeafRefData(schema, value, leafrefOpt)
+		// If CustomValidation is enabled, call the CustomValidateFunc
+		// and append the error, if any
+		gsv, ok := value.(ygot.GoStruct)
+		if ok && customValidOpt != nil {
+			if err := customValidOpt.FakeRootCustomValidate(gsv); err != nil {
+				errs = util.AppendErr(errs, err)
+			}
+		}
 	}
 
 	util.DbgPrint("Validate with value %v, type %T, schema name %s", util.ValueStr(value), value, schema.Name)
@@ -92,6 +114,5 @@ func Validate(schema *yang.Entry, value interface{}, opts ...ygot.ValidationOpti
 	case schema.IsChoice():
 		return util.AppendErrs(errs, util.NewErrs(fmt.Errorf("cannot pass choice schema %s to Validate", schema.Name)))
 	}
-
 	return util.AppendErrs(errs, util.NewErrs(fmt.Errorf("unknown schema type for type %T, value %v", value, value)))
 }
