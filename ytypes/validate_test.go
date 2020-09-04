@@ -207,7 +207,7 @@ func TestValidate(t *testing.T) {
 				LeafOne: ygot.String("one"),
 				LeafTwo: ygot.String("one"),
 			},
-			opts:       []ygot.ValidationOption{&CustomValidationOptions{FakeRootCustomValidate: customValidation}},
+			opts:       []ygot.ValidationOption{&CustomValidationOptions{ValidatorFn: customValidation}},
 			wantErr:    "leafThree should be kingfisher",
 			wantErrLen: 1,
 		},
@@ -217,7 +217,7 @@ func TestValidate(t *testing.T) {
 			val: &FakeRootStruct{
 				LeafTwo: ygot.String("two"),
 			},
-			opts:       []ygot.ValidationOption{&LeafrefOptions{IgnoreMissingData: true}, &CustomValidationOptions{FakeRootCustomValidate: customValidation}},
+			opts:       []ygot.ValidationOption{&LeafrefOptions{IgnoreMissingData: true}, &CustomValidationOptions{ValidatorFn: customValidation}},
 			wantErr:    "leafThree should be kingfisher",
 			wantErrLen: 1,
 		},
@@ -227,7 +227,7 @@ func TestValidate(t *testing.T) {
 			val: &FakeRootStruct{
 				LeafTwo: ygot.String("two"),
 			},
-			opts:       []ygot.ValidationOption{&CustomValidationOptions{FakeRootCustomValidate: customValidation}},
+			opts:       []ygot.ValidationOption{&CustomValidationOptions{ValidatorFn: customValidation}},
 			wantErr:    "pointed-to value with path ../leaf-one from field LeafTwo value two (string ptr) schema /device/leaf-two is empty set, leafThree should be kingfisher",
 			wantErrLen: 2,
 		},
