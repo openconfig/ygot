@@ -76,3 +76,7 @@ func (*Binary) IsUnion1() {}
 func (String) IsUnion()  {}
 func (Int64) IsUnion()   {}
 func (*Binary) IsUnion() {}
+
+func (String) Is_UnionLeafTypeSimple()  {}
+func (Uint32) Is_UnionLeafTypeSimple()  {}
+func (*Binary) Is_UnionLeafTypeSimple() {}
