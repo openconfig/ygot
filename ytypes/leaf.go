@@ -564,7 +564,7 @@ func getUnionVal(parentT reflect.Type, destElemT reflect.Type, v interface{}) (r
 }
 
 // getUnionKindsNotEnums returns all the YANG kinds under the given schema node,
-// dereferencing any refs.
+// dereferencing any refs. Duplicate types are deduped.
 func getUnionKindsNotEnums(schema *yang.Entry) ([]yang.TypeKind, error) {
 	var uks []yang.TypeKind
 	m := make(map[yang.TypeKind]interface{})
@@ -573,10 +573,10 @@ func getUnionKindsNotEnums(schema *yang.Entry) ([]yang.TypeKind, error) {
 		return nil, err
 	}
 	for _, yt := range uts {
-		m[yt.Kind] = nil
-	}
-	for k := range m {
-		uks = append(uks, k)
+		if _, ok := m[yt.Kind]; !ok {
+			m[yt.Kind] = nil
+			uks = append(uks, yt.Kind)
+		}
 	}
 	return uks, nil
 }
