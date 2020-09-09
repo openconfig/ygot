@@ -24,6 +24,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -308,14 +309,13 @@ func TestValidateLeaf(t *testing.T) {
 // UnionContainer and types below are defined outside function scope because
 // type methods cannot be defined in function scope.
 type UnionContainer struct {
-	UnionField Union1 `path:"union1"`
+	UnionField testutil.Union1 `path:"union1"`
 }
 
 func (*UnionContainer) IsYANGGoStruct() {}
 
-type Union1 interface {
-	IsUnion1()
-}
+// IsUnion1 ensures EnumType satisfies the testutil.Union1 interface.
+func (EnumType) IsUnion1() {}
 
 type Union1String struct {
 	String string
@@ -378,6 +378,10 @@ func TestValidateLeafUnion(t *testing.T) {
 							Name: "enum",
 							Kind: yang.Yenum,
 						},
+						{
+							Name: "bin",
+							Kind: yang.Ybinary,
+						},
 					},
 				},
 			},
@@ -423,7 +427,7 @@ func TestValidateLeafUnion(t *testing.T) {
 							Pattern: []string{"a+"},
 						},
 						{
-							Name:    "int16",
+							Name:    "string2",
 							Kind:    yang.Ystring,
 							Pattern: []string{"b+"},
 						},
@@ -449,7 +453,7 @@ func TestValidateLeafUnion(t *testing.T) {
 							Pattern: []string{"a+"},
 						},
 						{
-							Name:    "int16",
+							Name:    "string2",
 							Kind:    yang.Ystring,
 							Pattern: []string{"b+"},
 						},
@@ -470,6 +474,8 @@ func TestValidateLeafUnion(t *testing.T) {
 		},
 	}
 
+	bin := testutil.Binary("abc")
+
 	tests := []struct {
 		desc    string
 		schema  *yang.Entry
@@ -479,52 +485,83 @@ func TestValidateLeafUnion(t *testing.T) {
 		{
 			desc:   "success string",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1String{"aaa"}},
+			val:    &UnionContainer{UnionField: testutil.String("aaa")},
 		},
 		{
 			desc:   "success int16",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1Int16{1}},
+			val:    &UnionContainer{UnionField: testutil.Int16(42)},
+		},
+		{
+			desc:   "success int64",
+			schema: unionContainerSchema,
+			val:    &UnionContainer{UnionField: testutil.Int64(42)},
 		},
 		{
 			desc:   "success enum",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1EnumType{EnumType: 42}},
+			val:    &UnionContainer{UnionField: EnumType(42)},
 		},
 		{
 			desc:    "bad regex",
+			schema:  unionContainerSchema,
+			val:     &UnionContainer{UnionField: testutil.String("bbb")},
+			wantErr: true,
+		},
+		{
+			desc:   "success binary",
+			schema: unionContainerSchema,
+			val:    &UnionContainer{UnionField: &bin},
+		},
+		{
+			desc:   "success string (wrapper union type)",
+			schema: unionContainerSchema,
+			val:    &UnionContainer{UnionField: &Union1String{"aaa"}},
+		},
+		{
+			desc:   "success int16 (wrapper union type)",
+			schema: unionContainerSchema,
+			val:    &UnionContainer{UnionField: &Union1Int16{1}},
+		},
+		{
+			desc:   "success enum (wrapper union type)",
+			schema: unionContainerSchema,
+			val:    &UnionContainer{UnionField: &Union1EnumType{EnumType: 42}},
+		},
+		{
+			desc:    "bad regex (wrapper union type)",
 			schema:  unionContainerSchema,
 			val:     &UnionContainer{UnionField: &Union1String{"bbb"}},
 			wantErr: true,
 		},
 		{
-			desc:    "bad type",
+			desc:    "bad type (wrapper union type)",
 			schema:  unionContainerSchema,
 			val:     &UnionContainer{UnionField: &Union1BadLeaf{BadLeaf: ygot.Float32(0)}},
 			wantErr: true,
 		},
 		{
-			desc:   "success no wrapping struct enum",
+			desc:   "success single-valued union: enum",
 			schema: unionContainerSingleEnumSchema,
 			val:    &UnionContainerSingleEnum{UnionField: EnumType(42)},
 		},
 		{
-			desc:   "success no wrapping struct string",
+			desc:   "success single-valued union: string",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
 		},
 		{
-			desc:   "success no wrapping struct int16",
+			desc:   "success single-valued union: int16",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("bbb")},
 		},
 		{
-			desc:   "success no wrapping struct string",
+			desc:   "success single-valued union: string",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
 		},
 		{
-			desc:    "no wrapping struct no schemas match",
+			desc:    "single-valued union: no schemas match",
 			schema:  unionContainerSchemaNoWrappingStruct,
 			val:     &UnionContainerCompressed{UnionField: ygot.String("ccc")},
 			wantErr: true,
@@ -553,10 +590,10 @@ func TestValidateLeafUnion(t *testing.T) {
 	}
 
 	// Additional tests through private API.
-	if err := validateUnion(unionContainerSchema, nil); err != nil {
+	if err := validateUnion(unionContainerSchema.Dir["union1"], nil); err != nil {
 		t.Errorf("nil value: got error: %v, want error: nil", err)
 	}
-	if err := validateUnion(unionContainerSchema, 42); err == nil {
+	if err := validateUnion(unionContainerSchema.Dir["union1"], 42); err == nil {
 		t.Errorf("bad value type: got error: nil, want type error")
 	}
 }

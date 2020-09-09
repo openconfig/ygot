@@ -17,6 +17,7 @@ package ytypes
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"regexp"
 	"unicode/utf8"
 
@@ -33,11 +34,16 @@ func validateString(schema *yang.Entry, value interface{}) error {
 		return err
 	}
 
+	vv := reflect.ValueOf(value)
+
 	// Check that type of value is the type expected from the schema.
-	stringVal, ok := value.(string)
-	if !ok {
+	if vv.Kind() != reflect.String {
 		return fmt.Errorf("non string type %T with value %v for schema %s", value, value, schema.Name)
 	}
+
+	// This value could be a union typedef string, so convert it to make
+	// sure it's the primitive string type.
+	stringVal := vv.Convert(reflect.TypeOf("")).Interface().(string)
 
 	// Check that the length is within the allowed range.
 	allowedRanges := schema.Type.Length

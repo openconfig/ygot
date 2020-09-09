@@ -62,6 +62,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 		if ykind != yang.Ybinary {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect []byte for binary value %v for schema %s, have type %v", value, schema.Name, ykind))
 		}
+		rv = value
 	case reflect.Int64:
 		if ykind != yang.Yenum && ykind != yang.Yidentityref && ykind != yang.Yunion {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect Int64 for enum type for schema %s, have type %v", schema.Name, ykind))
@@ -71,13 +72,17 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect Bool for empty type for schema %s, have type %v", schema.Name, ykind))
 		}
 		rv = value
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float64, reflect.String:
+		if ykind != yang.Yunion {
+			return util.NewErrs(fmt.Errorf("bad leaf type: expect %v for union type for schema %s, have type %v", rkind, schema.Name, ykind))
+		}
 	default:
 		return util.NewErrs(fmt.Errorf("bad leaf value type %v, expect Ptr or Int64 for schema %s", rkind, schema.Name))
 	}
 
 	switch ykind {
 	case yang.Ybinary:
-		return util.NewErrs(validateBinary(schema, value))
+		return util.NewErrs(validateBinary(schema, rv))
 	case yang.Ybits:
 		return nil
 		// TODO(mostrowski): restore when representation is decided.
@@ -217,22 +222,13 @@ func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
 
 	util.DbgPrint("validateUnion %s", schema.Name)
 	v := reflect.ValueOf(value)
-	switch v.Kind() {
-	case reflect.Ptr:
-		// The union is usually a ptr - either a struct ptr or Go value ptr like *string.
-		// Enum types are also represented as a struct for union where the field
-		// has the enum type.
+	if v.Kind() == reflect.Ptr {
+		// The union could be a ptr - either a struct ptr or Go value ptr like *string.
 		v = v.Elem()
-	case reflect.Int64:
-		// A union containing a single enumerated type would simply resolve to the
-		// enum type, which represented directly by a derived Int64 type.
-	default:
-		return util.NewErrs(fmt.Errorf("wrong value type for union %s: got: %T, expect ptr or Int64 (enumerated type)", schema.Name, value))
 	}
 
-	// Unions of enum types are passed as ptr to interface to struct ptr.
-	// Normalize to a union struct.
-	// TODO(wenbli): Remove this if statement in a future PR.
+	// All wrapper unions and unsupported types for simplified unions are passed as ptr to interface to struct ptr.
+	// Normalize these to a union struct.
 	// v here is already a struct, as multi-type unions are represented as
 	// interfaces within their parents' structs, *not* ptrs to interfaces.
 	if util.IsValueInterface(v) {
