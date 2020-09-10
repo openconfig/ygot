@@ -475,6 +475,34 @@ func TestValidateLeafRefData(t *testing.T) {
 		{
 			desc: "union leafref - string",
 			in: &Container{
+				Union: testutil.String("val"),
+				Container2: &Container2{
+					LeafRefToUnion: testutil.String("val"),
+				},
+			},
+		},
+		{
+			desc: "union leafref - integer",
+			in: &Container{
+				Union: testutil.Int16(42),
+				Container2: &Container2{
+					LeafRefToUnion: testutil.Int16(42),
+				},
+			},
+		},
+		{
+			desc: "union leafref - failure",
+			in: &Container{
+				Union: testutil.Int16(42),
+				Container2: &Container2{
+					LeafRefToUnion: testutil.Int16(4444),
+				},
+			},
+			wantErr: "field name LeafRefToUnion value 4444 (int16) schema path /leaf-ref-to-union has leafref path ../../union not equal to any target nodes",
+		},
+		{
+			desc: "union (wrapped union) leafref - string",
+			in: &Container{
 				Union: &Union1String{"val"},
 				Container2: &Container2{
 					LeafRefToUnion: &Union1String{"val"},
@@ -482,7 +510,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			},
 		},
 		{
-			desc: "union leafref - integer",
+			desc: "union (wrapped union) leafref - integer",
 			in: &Container{
 				Union: &Union1Int16{42},
 				Container2: &Container2{
@@ -491,7 +519,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			},
 		},
 		{
-			desc: "union leafref - failure",
+			desc: "union (wrapped union) leafref - failure",
 			in: &Container{
 				Union: &Union1Int16{42},
 				Container2: &Container2{
