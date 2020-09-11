@@ -176,16 +176,13 @@ func TestPathCreation(t *testing.T) {
 	}, {
 		name: "union key (uint32 value)",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
-			label100 := &oc.NetworkInstance_Mpls_SignalingProtocols_SegmentRouting_Interface_SidCounter_MplsLabel_Union_Uint32{100}
-			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(label100).InOctets()
+			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(oc.Uint32(100)).InOctets()
 		},
 		wantPath: "/network-instances/network-instance[name=RED]/mpls/signaling-protocols/segment-routing/interfaces/interface[interface-id=eth1]/sid-counters/sid-counter[mpls-label=100]/state/in-octets",
 	}, {
 		name: "union key (enum value)",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
-			implicitNull := oc.OpenconfigMplsTypes_MplsLabel_Enum_IMPLICIT_NULL
-			iNullInUnion := &oc.NetworkInstance_Mpls_SignalingProtocols_SegmentRouting_Interface_SidCounter_MplsLabel_Union_E_OpenconfigMplsTypes_MplsLabel_Enum{implicitNull}
-			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(iNullInUnion).InOctets()
+			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(oc.OpenconfigMplsTypes_MplsLabel_Enum_IMPLICIT_NULL).InOctets()
 		},
 		wantPath: "/network-instances/network-instance[name=RED]/mpls/signaling-protocols/segment-routing/interfaces/interface[interface-id=eth1]/sid-counters/sid-counter[mpls-label=IMPLICIT_NULL]/state/in-octets",
 	}, {

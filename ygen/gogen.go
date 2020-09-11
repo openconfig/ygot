@@ -211,11 +211,14 @@ type goStructField struct {
 // goUnionInterface contains a definition of an interface that should
 // be generated for a multi-type union in YANG.
 type goUnionInterface struct {
-	Name           string            // Name is the name of the interface
-	Types          map[string]string // Types is a map keyed by the camelcase type name, with values of the Go types in the union.
-	LeafPath       string            // LeafPath stores the path for the leaf for which the multi-type union is being generated.
-	ParentReceiver string            // ParentReceiver is the name of the struct that is a parent of this union field. It is used to allow methods to be created which simplify handling the union in the calling code.
-	TypeNames      []string          // TypeNames is an list of Go type names within the union.
+	Name                 string                 // Name is the name of the interface
+	Types                map[string]string      // Types is a map keyed by the camelcase type name, with values of the Go types in the union.
+	LeafPath             string                 // LeafPath stores the path for the leaf for which the multi-type union is being generated.
+	ParentReceiver       string                 // ParentReceiver is the name of the struct that is a parent of this union field. It is used to allow methods to be created which simplify handling the union in the calling code.
+	TypeNames            []string               // TypeNames is an list of Go type names within the union.
+	ConversionSpecs      []*unionConversionSpec // ConversionSpecs contains information on how to convert primitive types to their own union-satisfying types.
+	HasUnsupported       bool                   // HasUnsupported indicates that at least one of the union's subtypes is unsupported.
+	SubtypeDocumentation string                 // SubtypeDocumentation gives a documentation-style string on the subtypes of the union.
 }
 
 // generatedGoStruct is used to repesent a Go structure to be handed to a template for output.
@@ -352,6 +355,49 @@ type {{ .BinaryTypeName }} []byte
 // empty. It is used such that empty fields can be distinguished from boolean fields
 // in the generated code.
 type {{ .EmptyTypeName }} bool
+
+{{- if .GoOptions.GenerateSimpleUnions }}
+
+// Int8 is an int8 type assignable to unions of which it is a subtype.
+type Int8 int8
+
+// Int16 is an int16 type assignable to unions of which it is a subtype.
+type Int16 int16
+
+// Int32 is an int32 type assignable to unions of which it is a subtype.
+type Int32 int32
+
+// Int64 is an int64 type assignable to unions of which it is a subtype.
+type Int64 int64
+
+// Uint8 is a uint8 type assignable to unions of which it is a subtype.
+type Uint8 uint8
+
+// Uint16 is a uint16 type assignable to unions of which it is a subtype.
+type Uint16 uint16
+
+// Uint32 is a uint32 type assignable to unions of which it is a subtype.
+type Uint32 uint32
+
+// Uint64 is a uint64 type assignable to unions of which it is a subtype.
+type Uint64 uint64
+
+// Float64 is a float64 type assignable to unions of which it is a subtype.
+type Float64 float64
+
+// String is a string type assignable to unions of which it is a subtype.
+type String string
+
+// Bool is a bool type assignable to unions of which it is a subtype.
+type Bool bool
+
+// Unsupported is an interface{} wrapper type for unsupported types. It is
+// assignable to unions of which it is a subtype.
+type Unsupported struct {
+	Value interface{}
+}
+
+{{- end }}
 
 {{- if .GenerateSchema }}
 
@@ -970,8 +1016,8 @@ var (
 type {{ .Name }} interface {
 	Is_{{ .Name }}()
 }
-{{ $intfName := .Name -}}
-{{- $path := .LeafPath -}}
+{{ $intfName := .Name }}
+{{- $path := .LeafPath }}
 {{- range $typeName, $type := .Types }}
 // {{ $intfName }}_{{ $typeName }} is used when {{ $path }}
 // is to be set to a {{ $type }} value.
@@ -982,15 +1028,15 @@ type {{ $intfName }}_{{ $typeName }} struct {
 // Is_{{ $intfName }} ensures that {{ $intfName }}_{{ $typeName }}
 // implements the {{ $intfName }} interface.
 func (*{{ $intfName }}_{{ $typeName }}) Is_{{ $intfName }}() {}
-{{ end }}
+{{ end -}}
 `)
 
 	// unionHelperTemplate defines a template that defines a helper method
 	// with a particular receiver type that allows an input type to be converted
 	// to its corresponding type in the union type.
 	unionHelperTemplate = mustMakeTemplate("unionHelper", `
-{{- $intfName := .Name -}}
-{{- $path := .LeafPath -}}
+{{- $intfName := .Name }}
+{{- $path := .LeafPath }}
 // To_{{ .Name }} takes an input interface{} and attempts to convert it to a struct
 // which implements the {{ .Name }} union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
@@ -1009,6 +1055,63 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 		{{- end -}}
 		]", i, i)
 	}
+}
+`)
+
+	// unionTypeSimpleTemplate outputs the type that corresponds to a multi-type union
+	// in the YANG schema. It does so by enhancing generated typedefs.
+	unionTypeSimpleTemplate = mustMakeTemplate("unionTypeSimple", `
+// {{ .Name }} is an interface that is implemented by valid types for the union
+// for the leaf {{ .LeafPath }} within the YANG schema.
+// Union type can be one of [{{ .SubtypeDocumentation }}].
+type {{ .Name }} interface {
+	// Union type can be one of [{{ .SubtypeDocumentation }}]
+	Documentation_for_{{ .Name }}()
+}
+{{ $intfName := .Name -}}
+{{- $path := .LeafPath -}}
+{{- range $typeName, $type := .Types }}
+// Documentation_for_{{ $intfName }} ensures that {{ $typeName }}
+// implements the {{ $intfName }} interface.
+func ({{ $typeName }}) Documentation_for_{{ $intfName }}() {}
+{{ end -}}
+`)
+
+	// unionHelperSimpleTemplate defines a template that defines a helper method
+	// with a particular receiver type that allows an input type to be converted
+	// to its corresponding type in the union type.
+	unionHelperSimpleTemplate = mustMakeTemplate("unionHelperSimple", `
+{{- $intfName := .Name }}
+{{- $path := .LeafPath }}
+// To_{{ .Name }} takes an input interface{} and attempts to convert it to a struct
+// which implements the {{ .Name }} union. It returns an error if the interface{} supplied
+// cannot be converted to a type within the union.
+func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, error) {
+	if v, ok := i.({{ .Name }}); ok {
+		return v, nil
+	}
+	{{ $length := len .ConversionSpecs -}} {{ $hasLength := ne $length 0 -}} {{ if or $hasLength .HasUnsupported -}}
+	switch v := i.(type) {
+	{{ range $i, $conversionSpec := .ConversionSpecs -}}
+	case {{ $conversionSpec.PrimitiveType }}:
+		{{ if ne $conversionSpec.ConversionPrepSnippet "" -}}
+		{{ $conversionSpec.ConversionPrepSnippet }}
+		{{ end -}}
+		return {{ $conversionSpec.ConversionSnippet }}, nil
+	{{ end -}}
+	{{ if .HasUnsupported -}}
+	case interface{}:
+		return &Unsupported{v}, nil
+	{{ end -}}
+	}
+	{{ end -}}
+	return nil, fmt.Errorf("cannot convert %v to {{ .Name }}, unknown union type, got: %T, want any of [
+	{{- $length := len .TypeNames -}}
+	{{- range $i, $type := .TypeNames -}}
+		{{ $type }}
+		{{- if ne (inc $i) $length -}}, {{ end -}}
+	{{- end -}}
+	]", i, i)
 }
 `)
 
@@ -1322,6 +1425,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 					ParentReceiver: targetStruct.Name,
 				}
 
+				var genTypes []string
 				for t := range mtype.UnionTypes {
 					// If the type within the union is not a builtin type then we store
 					// it within the enumMap, since it is an enumerated type.
@@ -1335,12 +1439,34 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 					if t == "interface{}" {
 						tn = "Interface"
 					}
+					if goOpts.GenerateSimpleUnions {
+						switch t {
+						case "interface{}":
+							tn = "*Unsupported"
+						case ygot.BinaryTypeName:
+							tn = "*" + ygot.BinaryTypeName
+						}
+					}
 					intf.Types[tn] = t
+					genTypes = append(genTypes, tn)
 					intf.TypeNames = append(intf.TypeNames, t)
 				}
-				// Sort the names of the types into determinstic order.
+				// Sort the names of the types into deterministic order.
 				sort.Strings(intf.TypeNames)
-
+				sort.Strings(genTypes)
+				// Populate the union type conversion snippets.
+				for _, t := range intf.TypeNames {
+					if cs, ok := unionConversionSnippets[t]; ok {
+						switch t {
+						case "interface{}":
+							intf.HasUnsupported = true
+						default:
+							intf.ConversionSpecs = append(intf.ConversionSpecs, cs)
+						}
+					}
+				}
+				// Create the subtype documentation string.
+				intf.SubtypeDocumentation = strings.Join(genTypes, ", ")
 				genUnions = append(genUnions, intf)
 			}
 
@@ -1515,16 +1641,27 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 	// are used for multi-type unions within the struct.
 	var interfaceBuf bytes.Buffer
 	for _, intf := range genUnions {
-		if _, ok := gogen.generatedUnions[intf.Name]; !ok {
-			if err := unionTypeTemplate.Execute(&interfaceBuf, intf); err != nil {
+		if goOpts.GenerateSimpleUnions {
+			if _, ok := gogen.generatedUnions[intf.Name]; !ok {
+				if err := unionTypeSimpleTemplate.Execute(&interfaceBuf, intf); err != nil {
+					errs = append(errs, err)
+				}
+				gogen.generatedUnions[intf.Name] = true
+			}
+			if err := unionHelperSimpleTemplate.Execute(&interfaceBuf, intf); err != nil {
 				errs = append(errs, err)
 			}
-			gogen.generatedUnions[intf.Name] = true
+		} else {
+			if _, ok := gogen.generatedUnions[intf.Name]; !ok {
+				if err := unionTypeTemplate.Execute(&interfaceBuf, intf); err != nil {
+					errs = append(errs, err)
+				}
+				gogen.generatedUnions[intf.Name] = true
+			}
+			if err := unionHelperTemplate.Execute(&interfaceBuf, intf); err != nil {
+				errs = append(errs, err)
+			}
 		}
-		if err := unionHelperTemplate.Execute(&interfaceBuf, intf); err != nil {
-			errs = append(errs, err)
-		}
-
 	}
 
 	if generateJSONSchema {

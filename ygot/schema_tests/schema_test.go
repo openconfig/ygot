@@ -26,6 +26,7 @@ import (
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/exampleoc/opstateoc"
+	"github.com/openconfig/ygot/exampleoc/wrapperunionoc"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/uexampleoc"
 	"github.com/openconfig/ygot/ygot"
@@ -250,8 +251,19 @@ func TestJSONOutput(t *testing.T) {
 			acl := d.GetOrCreateAcl()
 			set := acl.GetOrCreateAclSet("set", exampleoc.OpenconfigAcl_ACL_TYPE_ACL_IPV6)
 			entry := set.GetOrCreateAclEntry(100)
-			entry.GetOrCreateIpv6().Protocol = &exampleoc.Acl_AclSet_AclEntry_Ipv6_Protocol_Union_E_OpenconfigPacketMatchTypes_IP_PROTOCOL{
-				exampleoc.OpenconfigPacketMatchTypes_IP_PROTOCOL_UNSET,
+			entry.GetOrCreateIpv6().Protocol = exampleoc.OpenconfigPacketMatchTypes_IP_PROTOCOL_UNSET
+			return d
+		}(),
+		wantFile: "testdata/unsetenum.json",
+	}, {
+		name: "unset enumeration using wrapper union generated code",
+		in: func() *wrapperunionoc.Device {
+			d := &wrapperunionoc.Device{}
+			acl := d.GetOrCreateAcl()
+			set := acl.GetOrCreateAclSet("set", wrapperunionoc.OpenconfigAcl_ACL_TYPE_ACL_IPV6)
+			entry := set.GetOrCreateAclEntry(100)
+			entry.GetOrCreateIpv6().Protocol = &wrapperunionoc.Acl_AclSet_AclEntry_Ipv6_Protocol_Union_E_OpenconfigPacketMatchTypes_IP_PROTOCOL{
+				wrapperunionoc.OpenconfigPacketMatchTypes_IP_PROTOCOL_UNSET,
 			}
 			return d
 		}(),
@@ -308,6 +320,15 @@ func TestNotificationOutput(t *testing.T) {
 		in: func() *exampleoc.Device {
 			d := &exampleoc.Device{}
 			t := d.GetOrCreateComponent("p1").GetOrCreateProperty("temperature")
+			t.Value = exampleoc.Int64(42)
+			return d
+		}(),
+		wantTextpb: "testdata/notification_union_int64.txtpb",
+	}, {
+		name: "int64 union using wrapper union generated code",
+		in: func() *wrapperunionoc.Device {
+			d := &wrapperunionoc.Device{}
+			t := d.GetOrCreateComponent("p1").GetOrCreateProperty("temperature")
 			v, err := t.To_Component_Property_Value_Union(int64(42))
 			if err != nil {
 				panic(err)
@@ -321,11 +342,7 @@ func TestNotificationOutput(t *testing.T) {
 		in: func() *opstateoc.Device {
 			d := &opstateoc.Device{}
 			t := d.GetOrCreateComponent("p1").GetOrCreateProperty("temperature")
-			v, err := t.To_Component_Property_Value_Union(int64(42))
-			if err != nil {
-				panic(err)
-			}
-			t.Value = v
+			t.Value = opstateoc.Int64(42)
 			return d
 		}(),
 		wantTextpb: "testdata/notification_union_int64_opstate.txtpb",

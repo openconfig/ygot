@@ -31,6 +31,20 @@ const (
 	goEnumPrefix string = "E_"
 )
 
+// unionConversionSpec stores snippets that converts primitive Go types to
+// union typedef types.
+type unionConversionSpec struct {
+	// PrimitiveType is the primitive Go type from which to convert to the
+	// union type.
+	PrimitiveType string
+	// ConversionPrepSnippet contains a snippet that must be placed before
+	// the conversion spec for the conversion to be valid.
+	ConversionPrepSnippet string
+	// ConversionSnippet is the code snippet that converts the primitive
+	// type to the union type.
+	ConversionSnippet string
+}
+
 var (
 	// validGoBuiltinTypes stores the valid types that the Go code generation
 	// produces, such that resolved types can be checked as to whether they are
@@ -70,6 +84,26 @@ var (
 		"interface{}":       "nil",
 		ygot.BinaryTypeName: "nil",
 		ygot.EmptyTypeName:  "false",
+	}
+
+	// unionConversionSnippets stores the valid primitive types that the Go
+	// code generation produces that can be used as a union subtype, and
+	// information on how to convert it to a union-satisfying type.
+	unionConversionSnippets = map[string]*unionConversionSpec{
+		"int8":              {PrimitiveType: "int8", ConversionSnippet: "Int8(v)"},
+		"int16":             {PrimitiveType: "int16", ConversionSnippet: "Int16(v)"},
+		"int32":             {PrimitiveType: "int32", ConversionSnippet: "Int32(v)"},
+		"int64":             {PrimitiveType: "int64", ConversionSnippet: "Int64(v)"},
+		"uint8":             {PrimitiveType: "uint8", ConversionSnippet: "Uint8(v)"},
+		"uint16":            {PrimitiveType: "uint16", ConversionSnippet: "Uint16(v)"},
+		"uint32":            {PrimitiveType: "uint32", ConversionSnippet: "Uint32(v)"},
+		"uint64":            {PrimitiveType: "uint64", ConversionSnippet: "Uint64(v)"},
+		"float64":           {PrimitiveType: "float64", ConversionSnippet: "Float64(v)"},
+		"string":            {PrimitiveType: "string", ConversionSnippet: "String(v)"},
+		"bool":              {PrimitiveType: "bool", ConversionSnippet: "Bool(v)"},
+		"interface{}":       {PrimitiveType: "interface{}", ConversionSnippet: "&Unsupported{v}"},
+		ygot.BinaryTypeName: {PrimitiveType: "[]byte", ConversionPrepSnippet: fmt.Sprintf("b := %s(v)", ygot.BinaryTypeName), ConversionSnippet: "&b"},
+		ygot.EmptyTypeName:  {PrimitiveType: "bool", ConversionSnippet: ygot.EmptyTypeName + "(v)"},
 	}
 )
 
