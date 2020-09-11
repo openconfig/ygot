@@ -68,6 +68,10 @@ type Union1 interface {
 	IsUnion1()
 }
 
+type Union2 interface {
+	IsUnion2()
+}
+
 func (String) IsUnion1()  {}
 func (Int16) IsUnion1()   {}
 func (Int64) IsUnion1()   {}
@@ -76,6 +80,10 @@ func (*Binary) IsUnion1() {}
 func (String) IsUnion()  {}
 func (Int64) IsUnion()   {}
 func (*Binary) IsUnion() {}
+
+func (Int16) IsUnion2()   {}
+func (Int64) IsUnion2()   {}
+func (*Binary) IsUnion2() {}
 
 func (String) Is_UnionLeafTypeSimple()  {}
 func (Uint32) Is_UnionLeafTypeSimple()  {}

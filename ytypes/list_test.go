@@ -785,27 +785,32 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 }
 
 type KeyStructMapCreation struct {
-	Key1     string          `path:"key1"`
-	Key2     int32           `path:"key2"`
-	EnumKey  EnumType        `path:"key3"`
-	UnionKey testutil.Union1 `path:"key4"`
+	Key1           string          `path:"key1"`
+	Key2           int32           `path:"key2"`
+	EnumKey        EnumType        `path:"key3"`
+	UnionKey       testutil.Union1 `path:"key4"`
+	UnionKeySimple testutil.Union2 `path:"key5"`
 }
 
 type ListElemStructMapCreation struct {
-	Key1     *string         `path:"key1"`
-	Key2     *int32          `path:"key2"`
-	EnumKey  EnumType        `path:"key3"`
-	UnionKey testutil.Union1 `path:"key4"`
-	LeafName *int32          `path:"leaf-field"`
+	Key1           *string         `path:"key1"`
+	Key2           *int32          `path:"key2"`
+	EnumKey        EnumType        `path:"key3"`
+	UnionKey       testutil.Union1 `path:"key4"`
+	UnionKeySimple testutil.Union2 `path:"key5"`
+	LeafName       *int32          `path:"leaf-field"`
 }
 
 type ListElemStructMapCreationLeafrefKeys struct {
-	Key1     *string         `path:"config/key1|key1"`
-	Key2     *int32          `path:"config/key2|key2"`
-	EnumKey  EnumType        `path:"config/key3|key3"`
-	UnionKey testutil.Union1 `path:"config/key4|key4"`
-	LeafName *int32          `path:"config/leaf-field"`
+	Key1           *string         `path:"config/key1|key1"`
+	Key2           *int32          `path:"config/key2|key2"`
+	EnumKey        EnumType        `path:"config/key3|key3"`
+	UnionKey       testutil.Union1 `path:"config/key4|key4"`
+	UnionKeySimple testutil.Union2 `path:"config/key5|key5"`
+	LeafName       *int32          `path:"config/leaf-field"`
 }
+
+func (EnumType) IsUnion2() {}
 
 func (t *ListElemStructMapCreation) To_Union1(i interface{}) (testutil.Union1, error) {
 	switch v := i.(type) {
@@ -818,9 +823,26 @@ func (t *ListElemStructMapCreation) To_Union1(i interface{}) (testutil.Union1, e
 	}
 }
 
+func (*ListElemStructMapCreation) To_Union2(i interface{}) (testutil.Union2, error) {
+	if v, ok := i.(testutil.Union2); ok {
+		return v, nil
+	}
+	switch v := i.(type) {
+	case []byte:
+		b := testutil.Binary(v)
+		return &b, nil
+	case int16:
+		return testutil.Int16(v), nil
+	case int64:
+		return testutil.Int64(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to testutil.Union2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+}
+
 func (*ListElemStructMapCreation) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
 		"/container/struct-key-list/key4": {reflect.TypeOf(EnumType(0))},
+		"/container/struct-key-list/key5": {reflect.TypeOf(EnumType(0))},
 	}
 }
 
@@ -835,9 +857,26 @@ func (t *ListElemStructMapCreationLeafrefKeys) To_Union1(i interface{}) (testuti
 	}
 }
 
+func (*ListElemStructMapCreationLeafrefKeys) To_Union2(i interface{}) (testutil.Union2, error) {
+	if v, ok := i.(testutil.Union2); ok {
+		return v, nil
+	}
+	switch v := i.(type) {
+	case []byte:
+		b := testutil.Binary(v)
+		return &b, nil
+	case int16:
+		return testutil.Int16(v), nil
+	case int64:
+		return testutil.Int64(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to testutil.Union2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+}
+
 func (*ListElemStructMapCreationLeafrefKeys) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
 		"/container/struct-key-list-leafref-keys/config/key4": {reflect.TypeOf(EnumType(0))},
+		"/container/struct-key-list-leafref-keys/config/key5": {reflect.TypeOf(EnumType(0))},
 	}
 }
 
@@ -881,6 +920,31 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 								{
 									Name: "int16",
 									Kind: yang.Yint16,
+								},
+							},
+						},
+					},
+					"key5": {
+						Kind: yang.LeafEntry,
+						Name: "key5",
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{
+								{
+									Name: "enum-type",
+									Kind: yang.Yenum,
+								},
+								{
+									Name: "int16",
+									Kind: yang.Yint16,
+								},
+								{
+									Name: "int64",
+									Kind: yang.Yint64,
+								},
+								{
+									Name: "binary",
+									Kind: yang.Ybinary,
 								},
 							},
 						},
@@ -931,6 +995,14 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 							Path: "../config/key4",
 						},
 					},
+					"key5": {
+						Kind: yang.LeafEntry,
+						Name: "key5",
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../config/key5",
+						},
+					},
 					"config": {
 						Name: "config",
 						Kind: yang.DirectoryEntry,
@@ -967,6 +1039,31 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 									},
 								},
 							},
+							"key5": {
+								Kind: yang.LeafEntry,
+								Name: "key5",
+								Type: &yang.YangType{
+									Kind: yang.Yunion,
+									Type: []*yang.YangType{
+										{
+											Name: "enum-type",
+											Kind: yang.Yenum,
+										},
+										{
+											Name: "int16",
+											Kind: yang.Yint16,
+										},
+										{
+											Name: "int64",
+											Kind: yang.Yint64,
+										},
+										{
+											Name: "binary",
+											Kind: yang.Ybinary,
+										},
+									},
+								},
+							},
 							"leaf-field": {
 								Kind: yang.LeafEntry,
 								Name: "leaf-field",
@@ -994,13 +1091,18 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 	tests := []*test{
 		{
 			desc: "success with enum for union key",
-			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "E_VALUE_FORTY_TWO"},
-			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1EnumType{EnumType(42)}},
+			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "E_VALUE_FORTY_TWO", "key5": "E_VALUE_FORTY_TWO"},
+			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1EnumType{EnumType(42)}, UnionKeySimple: EnumType(42)},
 		},
 		{
 			desc: "success with int16 for union key",
-			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "1234"},
-			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1Int16{int16(1234)}},
+			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "1234", "key5": "1234"},
+			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1Int16{int16(1234)}, UnionKeySimple: testutil.Int16(1234)},
+		},
+		{
+			desc: "success with binary for union key",
+			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "1234", "key5": base64testStringEncoded},
+			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1Int16{int16(1234)}, UnionKeySimple: &testBinary},
 		},
 		// note that an extra key in the map is just ignored as long as the mandatory keys present.
 		{
@@ -1098,6 +1200,32 @@ func (t *ListUnionStruct) To_Union1(i interface{}) (testutil.Union1, error) {
 }
 
 func (*ListUnionStruct) ΛEnumTypeMap() map[string][]reflect.Type {
+	return map[string][]reflect.Type{
+		"/key": {reflect.TypeOf(EnumType(0))},
+	}
+}
+
+type ListUnionStructSimple struct {
+	Key testutil.Union2 `path:"key"`
+}
+
+func (*ListUnionStructSimple) To_Union2(i interface{}) (testutil.Union2, error) {
+	if v, ok := i.(testutil.Union2); ok {
+		return v, nil
+	}
+	switch v := i.(type) {
+	case []byte:
+		b := testutil.Binary(v)
+		return &b, nil
+	case int16:
+		return testutil.Int16(v), nil
+	case int64:
+		return testutil.Int64(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to testutil.Union2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+}
+
+func (*ListUnionStructSimple) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
 		"/key": {reflect.TypeOf(EnumType(0))},
 	}
@@ -1266,6 +1394,186 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 									Name: "int16",
 									Kind: yang.Yint16,
 								},
+								{
+									Name: "int64",
+									Kind: yang.Yint64,
+								},
+								{
+									Name: "binary",
+									Kind: yang.Ybinary,
+								},
+							},
+						},
+					},
+					"leaf-field": {
+						Kind: yang.LeafEntry,
+						Name: "leaf-field",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+			},
+			container: &simpleStruct{KeyList: map[testutil.Union2]*ListUnionStructSimple{}},
+			want:      EnumType(42),
+		},
+		{
+			desc: "success - union/binary <key,value> creation",
+			keys: map[string]string{"key": base64testStringEncoded},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{
+								{
+									Name: "enum-type",
+									Kind: yang.Yenum,
+								},
+								{
+									Name: "int16",
+									Kind: yang.Yint16,
+								},
+								{
+									Name: "int64",
+									Kind: yang.Yint64,
+								},
+								{
+									Name: "binary",
+									Kind: yang.Ybinary,
+								},
+							},
+						},
+					},
+					"leaf-field": {
+						Kind: yang.LeafEntry,
+						Name: "leaf-field",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+			},
+			container: &simpleStruct{KeyList: map[testutil.Union2]*ListUnionStructSimple{}},
+			want:      &testBinary,
+		},
+		{
+			desc: "success - union/int64 <key,value> creation",
+			keys: map[string]string{"key": "-1234567890"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{
+								{
+									Name: "enum-type",
+									Kind: yang.Yenum,
+								},
+								{
+									Name: "int16",
+									Kind: yang.Yint16,
+								},
+								{
+									Name: "int64",
+									Kind: yang.Yint64,
+								},
+								{
+									Name: "binary",
+									Kind: yang.Ybinary,
+								},
+							},
+						},
+					},
+					"leaf-field": {
+						Kind: yang.LeafEntry,
+						Name: "leaf-field",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+			},
+			container: &simpleStruct{KeyList: map[testutil.Union2]*ListUnionStructSimple{}},
+			want:      testutil.Int64(-1234567890),
+		},
+		{
+			desc: "unsupported type - union <key,value> creation",
+			keys: map[string]string{"key": "FOOBAR"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{
+								{
+									Name: "enum-type",
+									Kind: yang.Yenum,
+								},
+								{
+									Name: "int16",
+									Kind: yang.Yint16,
+								},
+								{
+									Name: "int64",
+									Kind: yang.Yint64,
+								},
+								{
+									Name: "binary",
+									Kind: yang.Ybinary,
+								},
+							},
+						},
+					},
+					"leaf-field": {
+						Kind: yang.LeafEntry,
+						Name: "leaf-field",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[testutil.Union2]*ListUnionStructSimple{}},
+			errSubstring: "could not find suitable union type",
+		},
+		{
+			desc: "success - union/enum <key,value> creation (wrapper union)",
+			keys: map[string]string{"key": "E_VALUE_FORTY_TWO"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{
+								{
+									Name: "enum-type",
+									Kind: yang.Yenum,
+								},
+								{
+									Name: "int16",
+									Kind: yang.Yint16,
+								},
 							},
 						},
 					},
@@ -1280,7 +1588,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			want:      &Union1EnumType{EnumType(42)},
 		},
 		{
-			desc: "unsupported type - union <key,value> creation",
+			desc: "unsupported type - union <key,value> creation (wrapper union)",
 			keys: map[string]string{"key": "FOOBAR"},
 			inSchema: &yang.Entry{
 				Name:     "key-list",
@@ -1561,6 +1869,40 @@ func (*unionKeyTestStructChild) To_Union1(i interface{}) (testutil.Union1, error
 	}
 }
 
+type unionKeyTestStructSimple struct {
+	UnionKey map[testutil.Union2]*unionKeyTestStructChildSimple `path:"union-key"`
+}
+
+func (*unionKeyTestStructSimple) IsYANGGoStruct() {}
+
+type unionKeyTestStructChildSimple struct {
+	Key testutil.Union2 `path:"key"`
+}
+
+func (*unionKeyTestStructChildSimple) IsYANGGoStruct() {}
+
+func (*unionKeyTestStructChildSimple) ΛEnumTypeMap() map[string][]reflect.Type {
+	return map[string][]reflect.Type{
+		"/key": {reflect.TypeOf(EnumType(0))},
+	}
+}
+
+func (*unionKeyTestStructChildSimple) To_Union2(i interface{}) (testutil.Union2, error) {
+	if v, ok := i.(testutil.Union2); ok {
+		return v, nil
+	}
+	switch v := i.(type) {
+	case []byte:
+		b := testutil.Binary(v)
+		return &b, nil
+	case int16:
+		return testutil.Int16(v), nil
+	case int64:
+		return testutil.Int64(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to testutil.Union2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+}
+
 func TestUnmarshalUnionKeyedList(t *testing.T) {
 	schema := &yang.Entry{
 		Name: "union-key-test-struct",
@@ -1599,6 +1941,46 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 		},
 	}
 
+	schemaSimple := &yang.Entry{
+		Name: "union-key-test-struct-simple",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"union-key": {
+				Name:     "union-key",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: &yang.ListAttr{},
+				Key:      "key",
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Name: "key",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{
+								{
+									Name: "enum-type",
+									Kind: yang.Yenum,
+								},
+								{
+									Name: "int16",
+									Kind: yang.Yint16,
+								},
+								{
+									Name: "int64",
+									Kind: yang.Yint64,
+								},
+								{
+									Name: "binary",
+									Kind: yang.Ybinary,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	tests := []struct {
 		name             string
 		inParent         ygot.GoStruct
@@ -1608,6 +1990,43 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 		wantErrSubstring string
 	}{{
 		name:     "union with enum value key",
+		inParent: &unionKeyTestStructSimple{},
+		inSchema: schemaSimple,
+		inJSON: `{
+					"union-key": [
+						{
+							"key": "E_VALUE_FORTY_TWO"
+						}
+					]
+				 }`,
+	}, {
+		name:     "union with string and int16 key",
+		inParent: &unionKeyTestStructSimple{},
+		inSchema: schemaSimple,
+		inJSON: `{
+					"union-key": [
+						{
+							"key": 42
+						},
+						{
+							"key": "` + base64testStringEncoded + `"
+						}
+					]
+				}`,
+	}, {
+		name:     "bad enum type",
+		inParent: &unionKeyTestStructSimple{},
+		inSchema: schemaSimple,
+		inJSON: `{
+					"union-key": [
+						{
+							"key": "hello, world!"
+						}
+					]
+				}`,
+		wantErrSubstring: "could not find suitable union type to unmarshal value",
+	}, {
+		name:     "union with enum value key (wrapper union)",
 		inParent: &unionKeyTestStruct{},
 		inSchema: schema,
 		inJSON: `{
@@ -1618,7 +2037,7 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 					]
 				 }`,
 	}, {
-		name:     "union with string and int16 key",
+		name:     "union with string and int16 key (wrapper union)",
 		inParent: &unionKeyTestStruct{},
 		inSchema: schema,
 		inJSON: `{
@@ -1632,7 +2051,7 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 					]
 				}`,
 	}, {
-		name:     "bad enum type",
+		name:     "bad enum type (wrapper union)",
 		inParent: &unionKeyTestStruct{},
 		inSchema: schema,
 		inJSON: `{
@@ -1646,16 +2065,17 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			js := map[string]interface{}{}
+			if err := json.Unmarshal([]byte(tt.inJSON), &js); err != nil {
+				t.Errorf("json.Unmarshal(%v): got unexpected error, %v", tt.inJSON, err)
+				return
+			}
 
-		js := map[string]interface{}{}
-		if err := json.Unmarshal([]byte(tt.inJSON), &js); err != nil {
-			t.Errorf("%s: json.Unmarshal(%v): got unexpected error, %v", tt.name, tt.inJSON, err)
-			continue
-		}
-
-		err := Unmarshal(tt.inSchema, tt.inParent, js, tt.inUnmarshalOpts...)
-		if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
-			t.Errorf("%s: Unmarshal(%v, %v, %v): did not get expected error, %s", tt.name, tt.inSchema, tt.inParent, tt.inUnmarshalOpts, diff)
-		}
+			err := Unmarshal(tt.inSchema, tt.inParent, js, tt.inUnmarshalOpts...)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("Unmarshal(%v, %v, %v): did not get expected error, %s", tt.inSchema, tt.inParent, tt.inUnmarshalOpts, diff)
+			}
+		})
 	}
 }
