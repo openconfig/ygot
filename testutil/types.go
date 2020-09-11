@@ -88,3 +88,13 @@ func (*Binary) IsUnion2() {}
 func (String) Is_UnionLeafTypeSimple()  {}
 func (Uint32) Is_UnionLeafTypeSimple()  {}
 func (*Binary) Is_UnionLeafTypeSimple() {}
+
+func (String) IsExampleUnion()       {}
+func (Float64) IsExampleUnion()      {}
+func (Int64) IsExampleUnion()        {}
+func (Bool) IsExampleUnion()         {}
+func (YANGEmpty) IsExampleUnion()    {}
+func (*Binary) IsExampleUnion()      {}
+func (*Unsupported) IsExampleUnion() {}
+
+func (*Unsupported) IsU() {}

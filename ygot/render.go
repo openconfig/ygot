@@ -40,6 +40,26 @@ const (
 	EmptyTypeName string = "YANGEmpty"
 )
 
+var (
+	// unionTypedefUnderlyingTypes stores the underlying types of the
+	// typedefs used to represent union subtypes in the Go generated code.
+	// Only typedefs that are hashable are listed here.
+	unionTypedefUnderlyingTypes = map[string]reflect.Type{
+		"Int8":        reflect.TypeOf(int8(0)),
+		"Int16":       reflect.TypeOf(int16(0)),
+		"Int32":       reflect.TypeOf(int32(0)),
+		"Int64":       reflect.TypeOf(int64(0)),
+		"Uint8":       reflect.TypeOf(uint8(0)),
+		"Uint16":      reflect.TypeOf(uint16(0)),
+		"Uint32":      reflect.TypeOf(uint32(0)),
+		"Uint64":      reflect.TypeOf(uint64(0)),
+		"Float64":     reflect.TypeOf(float64(0.0)),
+		"String":      reflect.TypeOf(string("")),
+		"Bool":        reflect.TypeOf(bool(true)),
+		EmptyTypeName: reflect.TypeOf(bool(true)),
+	}
+)
+
 // path stores the elements of a path for a particular leaf,
 // such that it can be used as a key for maps.
 type path struct {
@@ -549,16 +569,16 @@ func KeyValueAsString(v interface{}) (string, error) {
 	switch kv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return fmt.Sprintf("%d", v), nil
+	case reflect.Float64:
+		return fmt.Sprintf("%g", v), nil
 	case reflect.String:
-		return v.(string), nil
+		return fmt.Sprintf("%s", v), nil
 	case reflect.Bool:
-		switch v.(bool) {
-		case true:
-			return "true", nil
-		case false:
-			return "false", nil
-		}
+		return fmt.Sprintf("%t", v), nil
 	case reflect.Ptr:
+		if !util.IsValueStructPtr(kv) && kv.Type().Elem().Name() == BinaryTypeName {
+			return KeyValueAsString(kv.Elem().Interface())
+		}
 		iv, err := unionPtrValue(kv, false)
 		if err != nil {
 			return "", err
@@ -651,9 +671,12 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 	switch {
 	case util.IsValueNil(vv) || !vv.IsValid():
 		return nil, nil
-	case vv.Type().Kind() == reflect.Int64:
-		// Invalid int64 that is not an enum.
+	case vv.Type().Kind() == reflect.Int64 && unionTypedefUnderlyingTypes[vv.Type().Name()] == nil:
+		// Invalid int64 that is not an enum or a union typedef type.
 		return nil, fmt.Errorf("cannot represent field value %v as TypedValue", val)
+	case util.IsValuePtr(vv) && vv.Type().Elem().Name() == BinaryTypeName:
+		vv = vv.Elem()
+		fallthrough
 	case vv.Type().Name() == BinaryTypeName:
 		// This is a binary type which is defiend as a []byte, so we encode it as the bytes.
 		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{vv.Bytes()}}, nil
@@ -680,6 +703,10 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 		vv = vv.Elem()
 		if util.IsNilOrInvalidValue(vv) {
 			return nil, nil
+		}
+	default:
+		if underlyingType, ok := unionTypedefUnderlyingTypes[vv.Type().Name()]; ok && vv.Type().ConvertibleTo(underlyingType) {
+			vv = vv.Convert(underlyingType)
 		}
 	}
 
@@ -779,22 +806,24 @@ func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, e
 			// Occurs in two cases:
 			// 1) Where there is a leaflist of mixed types.
 			// 2) Where there is a leaflist of unions.
-			ival := e.Interface()
-			switch reflect.TypeOf(ival).Kind() {
-			case reflect.Ptr:
+			var err error
+			ev := e.Elem()
+			switch {
+			case ev.Kind() == reflect.Ptr && ev.Elem().Type().Name() == BinaryTypeName:
+				sval = append(sval, ev.Elem().Bytes())
+			case ev.Kind() == reflect.Ptr:
 				uval, err := unionInterfaceValue(e, appendModuleName)
 				if err != nil {
 					return nil, err
 				}
-
-				sval, err = appendTypedValue(sval, reflect.ValueOf(uval), appendModuleName)
-				if err != nil {
+				if sval, err = appendTypedValue(sval, reflect.ValueOf(uval), appendModuleName); err != nil {
 					return nil, err
 				}
 			default:
-				var err error
-				sval, err = appendTypedValue(sval, e, appendModuleName)
-				if err != nil {
+				if underlyingType, ok := unionTypedefUnderlyingTypes[ev.Type().Name()]; ok && ev.Type().ConvertibleTo(underlyingType) {
+					ev = ev.Convert(underlyingType)
+				}
+				if sval, err = appendTypedValue(sval, ev, appendModuleName); err != nil {
 					return nil, err
 				}
 			}
@@ -1339,9 +1368,20 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 		// an interface in the generated Go structures - extract the relevant value
 		// and return this.
 		var err error
-		value, err = unionInterfaceValue(field, appmod)
-		if err != nil {
-			return nil, err
+		switch {
+		case util.IsValueInterfaceToStructPtr(field):
+			if value, err = unionInterfaceValue(field, appmod); err != nil {
+				return nil, err
+			}
+		case field.Elem().Kind() == reflect.Ptr && field.Elem().Elem().Type().Name() == BinaryTypeName && field.Elem().Elem().Kind() == reflect.Slice:
+			if value, err = jsonSlice(field.Elem().Elem(), parentMod, args); err != nil {
+				return nil, err
+			}
+			return value, nil
+		default:
+			if value, err = resolveUnionVal(field.Elem().Interface(), appmod); err != nil {
+				return nil, err
+			}
 		}
 		if args.jType == RFC7951 {
 			value = writeIETFScalarJSON(value)
