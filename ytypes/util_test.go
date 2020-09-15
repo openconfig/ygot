@@ -243,29 +243,29 @@ func TestStringToType(t *testing.T) {
 }
 
 type allKeysListStruct struct {
-	StringKey               *string         `path:"stringKey"`
-	Int8Key                 *int8           `path:"int8Key"`
-	Int16Key                *int16          `path:"int16Key"`
-	Int32Key                *int32          `path:"int32Key"`
-	Int64Key                *int64          `path:"int64Key"`
-	Uint8Key                *uint8          `path:"uint8Key"`
-	Uint16Key               *uint16         `path:"uint16Key"`
-	Uint32Key               *uint32         `path:"uint32Key"`
-	Uint64Key               *uint64         `path:"uint64Key"`
-	Decimal64Key            *float64        `path:"decimal64Key"`
-	BoolKey                 *bool           `path:"boolKey"`
-	BinaryKey               Binary          `path:"binaryKey"`
-	EnumKey                 EnumType        `path:"enumKey"`
-	LeafrefKey              *uint64         `path:"leafrefKey"`
-	LeafrefToLeafrefKey     *uint64         `path:"leafrefToLeafrefKey"`
-	LeafrefToUnionKey       testutil.Union1 `path:"leafrefToUnionKey"`
-	UnionKey                testutil.Union1 `path:"unionKey"`
-	UnionLoneTypeKey        *uint32         `path:"unionLoneTypeKey"`
-	LeafrefToUnionKeySimple testutil.Union2 `path:"leafrefToUnionKeySimple"`
-	UnionKeySimple          testutil.Union2 `path:"unionKeySimple"`
+	StringKey               *string             `path:"stringKey"`
+	Int8Key                 *int8               `path:"int8Key"`
+	Int16Key                *int16              `path:"int16Key"`
+	Int32Key                *int32              `path:"int32Key"`
+	Int64Key                *int64              `path:"int64Key"`
+	Uint8Key                *uint8              `path:"uint8Key"`
+	Uint16Key               *uint16             `path:"uint16Key"`
+	Uint32Key               *uint32             `path:"uint32Key"`
+	Uint64Key               *uint64             `path:"uint64Key"`
+	Decimal64Key            *float64            `path:"decimal64Key"`
+	BoolKey                 *bool               `path:"boolKey"`
+	BinaryKey               Binary              `path:"binaryKey"`
+	EnumKey                 EnumType            `path:"enumKey"`
+	LeafrefKey              *uint64             `path:"leafrefKey"`
+	LeafrefToLeafrefKey     *uint64             `path:"leafrefToLeafrefKey"`
+	LeafrefToUnionKey       testutil.TestUnion  `path:"leafrefToUnionKey"`
+	UnionKey                testutil.TestUnion  `path:"unionKey"`
+	UnionLoneTypeKey        *uint32             `path:"unionLoneTypeKey"`
+	LeafrefToUnionKeySimple testutil.TestUnion2 `path:"leafrefToUnionKeySimple"`
+	UnionKeySimple          testutil.TestUnion2 `path:"unionKeySimple"`
 }
 
-func (t *allKeysListStruct) To_Union1(i interface{}) (testutil.Union1, error) {
+func (t *allKeysListStruct) To_TestUnion(i interface{}) (testutil.TestUnion, error) {
 	switch v := i.(type) {
 	case EnumType:
 		return &Union1EnumType{v}, nil
@@ -274,12 +274,12 @@ func (t *allKeysListStruct) To_Union1(i interface{}) (testutil.Union1, error) {
 	case string:
 		return &Union1String{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %v to testutil.Union1, unknown union type, got: %T", i, i)
+		return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion, unknown union type, got: %T", i, i)
 	}
 }
 
-func (*allKeysListStruct) To_Union2(i interface{}) (testutil.Union2, error) {
-	if v, ok := i.(testutil.Union2); ok {
+func (*allKeysListStruct) To_TestUnion2(i interface{}) (testutil.TestUnion2, error) {
+	if v, ok := i.(testutil.TestUnion2); ok {
 		return v, nil
 	}
 	switch v := i.(type) {
@@ -291,7 +291,7 @@ func (*allKeysListStruct) To_Union2(i interface{}) (testutil.Union2, error) {
 	case int64:
 		return testutil.Int64(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to testutil.Union2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
 }
 
 func (*allKeysListStruct) ΛEnumTypeMap() map[string][]reflect.Type {
