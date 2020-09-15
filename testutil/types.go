@@ -64,31 +64,31 @@ type Unsupported struct {
 	Value interface{}
 }
 
-// Union1 is an interface defined within *this* (testutil) package that is
+// TestUnion is an interface defined within *this* (testutil) package that is
 // satisfied by a subset of the above union types to aid testing within other
 // packages.
 // Enumerations defined within other test packages can still satisfy this
-// interface by defining an IsUnion1() method.
-type Union1 interface {
-	IsUnion1()
+// interface by defining an IsTestUnion() method.
+type TestUnion interface {
+	IsTestUnion()
 }
 
-type Union2 interface {
-	IsUnion2()
+type TestUnion2 interface {
+	IsTestUnion2()
 }
 
-func (String) IsUnion1()  {}
-func (Int16) IsUnion1()   {}
-func (Int64) IsUnion1()   {}
-func (*Binary) IsUnion1() {}
+func (String) IsTestUnion()  {}
+func (Int16) IsTestUnion()   {}
+func (Int64) IsTestUnion()   {}
+func (*Binary) IsTestUnion() {}
 
 func (String) IsUnion()  {}
 func (Int64) IsUnion()   {}
 func (*Binary) IsUnion() {}
 
-func (Int16) IsUnion2()   {}
-func (Int64) IsUnion2()   {}
-func (*Binary) IsUnion2() {}
+func (Int16) IsTestUnion2()   {}
+func (Int64) IsTestUnion2()   {}
+func (*Binary) IsTestUnion2() {}
 
 func (String) Is_UnionLeafTypeSimple()  {}
 func (Uint32) Is_UnionLeafTypeSimple()  {}
