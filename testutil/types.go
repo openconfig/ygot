@@ -64,6 +64,11 @@ type Unsupported struct {
 	Value interface{}
 }
 
+// Union1 is an interface defined within *this* (testutil) package that is
+// satisfied by a subset of the above union types to aid testing within other
+// packages.
+// Enumerations defined within other test packages can still satisfy this
+// interface by defining an IsUnion1() method.
 type Union1 interface {
 	IsUnion1()
 }
