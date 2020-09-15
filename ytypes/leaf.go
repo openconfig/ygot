@@ -52,7 +52,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(err)
 	}
 
-	var rv interface{}
+	rv := value
 	ykind := schema.Type.Kind
 	rkind := reflect.ValueOf(value).Kind()
 	switch rkind {
@@ -62,7 +62,6 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 		if ykind != yang.Ybinary {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect []byte for binary value %v for schema %s, have type %v", value, schema.Name, ykind))
 		}
-		rv = value
 	case reflect.Int64:
 		if ykind != yang.Yenum && ykind != yang.Yidentityref && ykind != yang.Yunion {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect Int64 for enum type for schema %s, have type %v", schema.Name, ykind))
@@ -71,7 +70,6 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 		if ykind != yang.Yempty {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect Bool for empty type for schema %s, have type %v", schema.Name, ykind))
 		}
-		rv = value
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float64, reflect.String:
 		if ykind != yang.Yunion {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect %v for union type for schema %s, have type %v", rkind, schema.Name, ykind))
@@ -96,12 +94,12 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 	case yang.Ydecimal64:
 		return util.NewErrs(validateDecimal(schema, rv))
 	case yang.Yenum, yang.Yidentityref:
-		if rkind != reflect.Int64 && !isValueInterfacePtrToEnum(reflect.ValueOf(value)) {
-			return util.NewErrs(fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rkind, schema.Name, ykind))
+		if rvkind := reflect.TypeOf(rv).Kind(); rvkind != reflect.Int64 {
+			return util.NewErrs(fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rvkind, schema.Name, ykind))
 		}
 		return nil
 	case yang.Yunion:
-		return validateUnion(schema, value)
+		return validateUnion(schema, rv)
 	}
 	if isIntegerType(ykind) {
 		return util.NewErrs(validateInt(schema, rv))
@@ -856,18 +854,4 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonToleranc
 		}
 	}
 	return ok
-}
-
-// isValueInterfacePtrToEnum reports whether v is an interface ptr to enum type.
-func isValueInterfacePtrToEnum(v reflect.Value) bool {
-	if v.Kind() != reflect.Ptr {
-		return false
-	}
-	v = v.Elem()
-	if v.Kind() != reflect.Interface {
-		return false
-	}
-	v = v.Elem()
-
-	return v.Kind() == reflect.Int64
 }
