@@ -310,37 +310,37 @@ func TestValidateLeaf(t *testing.T) {
 // UnionContainer and types below are defined outside function scope because
 // type methods cannot be defined in function scope.
 type UnionContainer struct {
-	UnionField testutil.Union1 `path:"union1"`
+	UnionField testutil.TestUnion `path:"union1"`
 }
 
 func (*UnionContainer) IsYANGGoStruct() {}
 
-// IsUnion1 ensures EnumType satisfies the testutil.Union1 interface.
-func (EnumType) IsUnion1() {}
+// IsTestUnion ensures EnumType satisfies the testutil.TestUnion interface.
+func (EnumType) IsTestUnion() {}
 
 type Union1String struct {
 	String string
 }
 
-func (*Union1String) IsUnion1() {}
+func (*Union1String) IsTestUnion() {}
 
 type Union1Int16 struct {
 	Int16 int16
 }
 
-func (*Union1Int16) IsUnion1() {}
+func (*Union1Int16) IsTestUnion() {}
 
 type Union1EnumType struct {
 	EnumType EnumType
 }
 
-func (*Union1EnumType) IsUnion1() {}
+func (*Union1EnumType) IsTestUnion() {}
 
 type Union1BadLeaf struct {
 	BadLeaf *float32
 }
 
-func (*Union1BadLeaf) IsUnion1() {}
+func (*Union1BadLeaf) IsTestUnion() {}
 
 type UnionContainerCompressed struct {
 	UnionField *string `path:"union1"`

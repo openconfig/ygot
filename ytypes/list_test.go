@@ -785,46 +785,46 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 }
 
 type KeyStructMapCreation struct {
-	Key1           string          `path:"key1"`
-	Key2           int32           `path:"key2"`
-	EnumKey        EnumType        `path:"key3"`
-	UnionKey       testutil.Union1 `path:"key4"`
-	UnionKeySimple testutil.Union2 `path:"key5"`
+	Key1           string              `path:"key1"`
+	Key2           int32               `path:"key2"`
+	EnumKey        EnumType            `path:"key3"`
+	UnionKey       testutil.TestUnion  `path:"key4"`
+	UnionKeySimple testutil.TestUnion2 `path:"key5"`
 }
 
 type ListElemStructMapCreation struct {
-	Key1           *string         `path:"key1"`
-	Key2           *int32          `path:"key2"`
-	EnumKey        EnumType        `path:"key3"`
-	UnionKey       testutil.Union1 `path:"key4"`
-	UnionKeySimple testutil.Union2 `path:"key5"`
-	LeafName       *int32          `path:"leaf-field"`
+	Key1           *string             `path:"key1"`
+	Key2           *int32              `path:"key2"`
+	EnumKey        EnumType            `path:"key3"`
+	UnionKey       testutil.TestUnion  `path:"key4"`
+	UnionKeySimple testutil.TestUnion2 `path:"key5"`
+	LeafName       *int32              `path:"leaf-field"`
 }
 
 type ListElemStructMapCreationLeafrefKeys struct {
-	Key1           *string         `path:"config/key1|key1"`
-	Key2           *int32          `path:"config/key2|key2"`
-	EnumKey        EnumType        `path:"config/key3|key3"`
-	UnionKey       testutil.Union1 `path:"config/key4|key4"`
-	UnionKeySimple testutil.Union2 `path:"config/key5|key5"`
-	LeafName       *int32          `path:"config/leaf-field"`
+	Key1           *string             `path:"config/key1|key1"`
+	Key2           *int32              `path:"config/key2|key2"`
+	EnumKey        EnumType            `path:"config/key3|key3"`
+	UnionKey       testutil.TestUnion  `path:"config/key4|key4"`
+	UnionKeySimple testutil.TestUnion2 `path:"config/key5|key5"`
+	LeafName       *int32              `path:"config/leaf-field"`
 }
 
-func (EnumType) IsUnion2() {}
+func (EnumType) IsTestUnion2() {}
 
-func (t *ListElemStructMapCreation) To_Union1(i interface{}) (testutil.Union1, error) {
+func (t *ListElemStructMapCreation) To_TestUnion(i interface{}) (testutil.TestUnion, error) {
 	switch v := i.(type) {
 	case EnumType:
 		return &Union1EnumType{v}, nil
 	case int16:
 		return &Union1Int16{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %v to testutil.Union1, unknown union type, got: %T", i, i)
+		return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion, unknown union type, got: %T", i, i)
 	}
 }
 
-func (*ListElemStructMapCreation) To_Union2(i interface{}) (testutil.Union2, error) {
-	if v, ok := i.(testutil.Union2); ok {
+func (*ListElemStructMapCreation) To_TestUnion2(i interface{}) (testutil.TestUnion2, error) {
+	if v, ok := i.(testutil.TestUnion2); ok {
 		return v, nil
 	}
 	switch v := i.(type) {
@@ -836,7 +836,7 @@ func (*ListElemStructMapCreation) To_Union2(i interface{}) (testutil.Union2, err
 	case int64:
 		return testutil.Int64(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to testutil.Union2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
 }
 
 func (*ListElemStructMapCreation) ΛEnumTypeMap() map[string][]reflect.Type {
@@ -846,19 +846,19 @@ func (*ListElemStructMapCreation) ΛEnumTypeMap() map[string][]reflect.Type {
 	}
 }
 
-func (t *ListElemStructMapCreationLeafrefKeys) To_Union1(i interface{}) (testutil.Union1, error) {
+func (t *ListElemStructMapCreationLeafrefKeys) To_TestUnion(i interface{}) (testutil.TestUnion, error) {
 	switch v := i.(type) {
 	case EnumType:
 		return &Union1EnumType{v}, nil
 	case int16:
 		return &Union1Int16{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %v to testutil.Union1, unknown union type, got: %T", i, i)
+		return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion, unknown union type, got: %T", i, i)
 	}
 }
 
-func (*ListElemStructMapCreationLeafrefKeys) To_Union2(i interface{}) (testutil.Union2, error) {
-	if v, ok := i.(testutil.Union2); ok {
+func (*ListElemStructMapCreationLeafrefKeys) To_TestUnion2(i interface{}) (testutil.TestUnion2, error) {
+	if v, ok := i.(testutil.TestUnion2); ok {
 		return v, nil
 	}
 	switch v := i.(type) {
@@ -870,7 +870,7 @@ func (*ListElemStructMapCreationLeafrefKeys) To_Union2(i interface{}) (testutil.
 	case int64:
 		return testutil.Int64(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to testutil.Union2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
 }
 
 func (*ListElemStructMapCreationLeafrefKeys) ΛEnumTypeMap() map[string][]reflect.Type {
@@ -1185,17 +1185,17 @@ func (l *ListUintStruct) String() string {
 }
 
 type ListUnionStruct struct {
-	Key testutil.Union1 `path:"key"`
+	Key testutil.TestUnion `path:"key"`
 }
 
-func (t *ListUnionStruct) To_Union1(i interface{}) (testutil.Union1, error) {
+func (t *ListUnionStruct) To_TestUnion(i interface{}) (testutil.TestUnion, error) {
 	switch v := i.(type) {
 	case EnumType:
 		return &Union1EnumType{v}, nil
 	case int16:
 		return &Union1Int16{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %v to testutil.Union1, unknown union type, got: %T", i, i)
+		return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion, unknown union type, got: %T", i, i)
 	}
 }
 
@@ -1206,11 +1206,11 @@ func (*ListUnionStruct) ΛEnumTypeMap() map[string][]reflect.Type {
 }
 
 type ListUnionStructSimple struct {
-	Key testutil.Union2 `path:"key"`
+	Key testutil.TestUnion2 `path:"key"`
 }
 
-func (*ListUnionStructSimple) To_Union2(i interface{}) (testutil.Union2, error) {
-	if v, ok := i.(testutil.Union2); ok {
+func (*ListUnionStructSimple) To_TestUnion2(i interface{}) (testutil.TestUnion2, error) {
+	if v, ok := i.(testutil.TestUnion2); ok {
 		return v, nil
 	}
 	switch v := i.(type) {
@@ -1222,7 +1222,7 @@ func (*ListUnionStructSimple) To_Union2(i interface{}) (testutil.Union2, error) 
 	case int64:
 		return testutil.Int64(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to testutil.Union2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
 }
 
 func (*ListUnionStructSimple) ΛEnumTypeMap() map[string][]reflect.Type {
@@ -1412,7 +1412,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 					},
 				},
 			},
-			container: &simpleStruct{KeyList: map[testutil.Union2]*ListUnionStructSimple{}},
+			container: &simpleStruct{KeyList: map[testutil.TestUnion2]*ListUnionStructSimple{}},
 			want:      EnumType(42),
 		},
 		{
@@ -1457,7 +1457,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 					},
 				},
 			},
-			container: &simpleStruct{KeyList: map[testutil.Union2]*ListUnionStructSimple{}},
+			container: &simpleStruct{KeyList: map[testutil.TestUnion2]*ListUnionStructSimple{}},
 			want:      &testBinary,
 		},
 		{
@@ -1502,7 +1502,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 					},
 				},
 			},
-			container: &simpleStruct{KeyList: map[testutil.Union2]*ListUnionStructSimple{}},
+			container: &simpleStruct{KeyList: map[testutil.TestUnion2]*ListUnionStructSimple{}},
 			want:      testutil.Int64(-1234567890),
 		},
 		{
@@ -1547,7 +1547,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 					},
 				},
 			},
-			container:    &simpleStruct{KeyList: map[testutil.Union2]*ListUnionStructSimple{}},
+			container:    &simpleStruct{KeyList: map[testutil.TestUnion2]*ListUnionStructSimple{}},
 			errSubstring: "could not find suitable union type",
 		},
 		{
@@ -1584,7 +1584,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 					},
 				},
 			},
-			container: &simpleStruct{KeyList: map[testutil.Union1]*ListUnionStruct{}},
+			container: &simpleStruct{KeyList: map[testutil.TestUnion]*ListUnionStruct{}},
 			want:      &Union1EnumType{EnumType(42)},
 		},
 		{
@@ -1621,7 +1621,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 					},
 				},
 			},
-			container:    &simpleStruct{KeyList: map[testutil.Union1]*ListUnionStruct{}},
+			container:    &simpleStruct{KeyList: map[testutil.TestUnion]*ListUnionStruct{}},
 			errSubstring: "could not find suitable union type",
 		},
 		{
@@ -1839,13 +1839,13 @@ func TestInsertAndGetKey(t *testing.T) {
 }
 
 type unionKeyTestStruct struct {
-	UnionKey map[testutil.Union1]*unionKeyTestStructChild `path:"union-key"`
+	UnionKey map[testutil.TestUnion]*unionKeyTestStructChild `path:"union-key"`
 }
 
 func (*unionKeyTestStruct) IsYANGGoStruct() {}
 
 type unionKeyTestStructChild struct {
-	Key testutil.Union1 `path:"key"`
+	Key testutil.TestUnion `path:"key"`
 }
 
 func (*unionKeyTestStructChild) IsYANGGoStruct() {}
@@ -1856,7 +1856,7 @@ func (*unionKeyTestStructChild) ΛEnumTypeMap() map[string][]reflect.Type {
 	}
 }
 
-func (*unionKeyTestStructChild) To_Union1(i interface{}) (testutil.Union1, error) {
+func (*unionKeyTestStructChild) To_TestUnion(i interface{}) (testutil.TestUnion, error) {
 	switch v := i.(type) {
 	case string:
 		return &Union1String{v}, nil
@@ -1865,18 +1865,18 @@ func (*unionKeyTestStructChild) To_Union1(i interface{}) (testutil.Union1, error
 	case EnumType:
 		return &Union1EnumType{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %v to testutil.Union1, unknown union type, got: %T, want any of [string, int16, enum]", i, i)
+		return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion, unknown union type, got: %T, want any of [string, int16, enum]", i, i)
 	}
 }
 
 type unionKeyTestStructSimple struct {
-	UnionKey map[testutil.Union2]*unionKeyTestStructChildSimple `path:"union-key"`
+	UnionKey map[testutil.TestUnion2]*unionKeyTestStructChildSimple `path:"union-key"`
 }
 
 func (*unionKeyTestStructSimple) IsYANGGoStruct() {}
 
 type unionKeyTestStructChildSimple struct {
-	Key testutil.Union2 `path:"key"`
+	Key testutil.TestUnion2 `path:"key"`
 }
 
 func (*unionKeyTestStructChildSimple) IsYANGGoStruct() {}
@@ -1887,8 +1887,8 @@ func (*unionKeyTestStructChildSimple) ΛEnumTypeMap() map[string][]reflect.Type 
 	}
 }
 
-func (*unionKeyTestStructChildSimple) To_Union2(i interface{}) (testutil.Union2, error) {
-	if v, ok := i.(testutil.Union2); ok {
+func (*unionKeyTestStructChildSimple) To_TestUnion2(i interface{}) (testutil.TestUnion2, error) {
+	if v, ok := i.(testutil.TestUnion2); ok {
 		return v, nil
 	}
 	switch v := i.(type) {
@@ -1900,7 +1900,7 @@ func (*unionKeyTestStructChildSimple) To_Union2(i interface{}) (testutil.Union2,
 	case int64:
 		return testutil.Int64(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to testutil.Union2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
 }
 
 func TestUnmarshalUnionKeyedList(t *testing.T) {
