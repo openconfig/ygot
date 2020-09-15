@@ -213,9 +213,9 @@ type goStructField struct {
 type goUnionInterface struct {
 	Name                 string                 // Name is the name of the interface
 	Types                map[string]string      // Types is a map keyed by the camelcase type name, with values of the Go types in the union.
-	LeafPath             string                 // LeafPath stores the path for the leaf for which the multi-type union is being generated.
+	LeafPath             string                 // LeafPath stores the path of the leaf for which the multi-type union is being generated.
 	ParentReceiver       string                 // ParentReceiver is the name of the struct that is a parent of this union field. It is used to allow methods to be created which simplify handling the union in the calling code.
-	TypeNames            []string               // TypeNames is an list of Go type names within the union.
+	TypeNames            []string               // TypeNames is a list of Go type names within the union.
 	ConversionSpecs      []*unionConversionSpec // ConversionSpecs contains information on how to convert primitive types to their own union-satisfying types.
 	HasUnsupported       bool                   // HasUnsupported indicates that at least one of the union's subtypes is unsupported.
 	SubtypeDocumentation string                 // SubtypeDocumentation gives a documentation-style string on the subtypes of the union.

@@ -31,7 +31,7 @@ const (
 	goEnumPrefix string = "E_"
 )
 
-// unionConversionSpec stores snippets that converts primitive Go types to
+// unionConversionSpec stores snippets that convert primitive Go types to
 // union typedef types.
 type unionConversionSpec struct {
 	// PrimitiveType is the primitive Go type from which to convert to the
