@@ -216,16 +216,16 @@ func TestValidateLeafRefData(t *testing.T) {
 		LeafRefToList *int32 `path:"int32-ref-to-list"`
 	}
 	type Container2 struct {
-		LeafRefToInt32         *int32          `path:"int32-ref-to-leaf"`
-		LeafRefToEnum          EnumType        `path:"enum-ref-to-leaf"`
-		LeafRefToLeafList      *int32          `path:"int32-ref-to-leaf-list"`
-		LeafListRefToLeafList  []*int32        `path:"leaf-list-ref-to-leaf-list"`
-		LeafRefToList          *int32          `path:"int32-ref-to-list"`
-		LeafRefToListEnumKeyed *int32          `path:"int32-ref-to-list-enum-keyed"`
-		Key                    *int32          `path:"key"`
-		Container3             *Container3     `path:"container3"`
-		LeafListLeafRefToInt32 []*int32        `path:"leaf-list-with-leafref"`
-		LeafRefToUnion         testutil.Union1 `path:"leaf-ref-to-union"`
+		LeafRefToInt32         *int32             `path:"int32-ref-to-leaf"`
+		LeafRefToEnum          EnumType           `path:"enum-ref-to-leaf"`
+		LeafRefToLeafList      *int32             `path:"int32-ref-to-leaf-list"`
+		LeafListRefToLeafList  []*int32           `path:"leaf-list-ref-to-leaf-list"`
+		LeafRefToList          *int32             `path:"int32-ref-to-list"`
+		LeafRefToListEnumKeyed *int32             `path:"int32-ref-to-list-enum-keyed"`
+		Key                    *int32             `path:"key"`
+		Container3             *Container3        `path:"container3"`
+		LeafListLeafRefToInt32 []*int32           `path:"leaf-list-with-leafref"`
+		LeafRefToUnion         testutil.TestUnion `path:"leaf-ref-to-union"`
 	}
 	type ListElement struct {
 		Key   *int32 `path:"key"`
@@ -243,7 +243,7 @@ func TestValidateLeafRefData(t *testing.T) {
 		Key           *int32                             `path:"key"`
 		Enum          EnumType                           `path:"enum"`
 		Container2    *Container2                        `path:"container2"`
-		Union         testutil.Union1                    `path:"union"`
+		Union         testutil.TestUnion                 `path:"union"`
 	}
 
 	tests := []struct {
