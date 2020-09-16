@@ -58,6 +58,8 @@ func ParentModuleName(node yang.Node) string {
 // supplied as the node argument. If the discovered root node of the node is found
 // to be a submodule, the name of the parent module is returned. If the root has
 // a camel case extension, this is returned rather than the actual module name.
+// If organization prefixes (e.g. "openconfig", "ietf") are given, they are
+// trimmed from the module name if a match is found.
 func ParentModulePrettyName(node yang.Node, orgPrefixesToTrim ...string) string {
 	definingMod := definingModule(node)
 	if name, ok := CamelCaseNameExt(definingMod.Exts()); ok {
