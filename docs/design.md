@@ -309,8 +309,8 @@ container foo {
 }
 ```
 
-The `bar` container can be mapped to one of the following generated Go code
-depending on the generation flag.
+The `bar` container can be translated to Go code according to one of the
+following strategies:
 
 #### Simplified Union Leaves (Recommended)
 In this representation, generated defined types are used to represent all concrete union types.
