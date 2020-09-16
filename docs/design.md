@@ -298,15 +298,62 @@ container foo {
 	container bar {
 		leaf union-leaf {
 			type union {
-				type string;
 				type int8;
+				type enumeration {
+					enum ONE;
+					enum TWO;
+				}
 			}
 		}
 	}
 }
 ```
 
-the `bar` container is mapped to:
+The `bar` container can be mapped to one of the following generated Go code
+depending on the generation flag.
+
+#### Simplified Union Leaves (Recommended)
+In this representation, generated defined types are used to represent all concrete union types.
+```go
+type Binary []byte
+type YANGEmpty bool
+type Int8 int8
+type Int16 int16
+// ... etc.
+type String string
+type Bool bool
+```
+
+```go
+type Bar struct {
+	UnionLeaf		Foo_Bar_UnionLeaf_Union		`path:"union-leaf"`
+}
+
+type Foo_Bar_UnionLeaf_Union interface {
+	// Union type can be one of [Int8, E_Foo_Bar_UnionLeaf]
+	Documentation_for_Foo_Bar_UnionLeaf_Union()
+}
+
+func (Int8) Documentation_for_Foo_Bar_UnionLeaf_Union() {}
+
+func (E_Foo_Bar_UnionLeaf) Documentation_for_Foo_Bar_UnionLeaf_Union() {}
+```
+
+The `UnionLeaf` field can be set to any defined type/typedef (including enumeration
+typedefs) that implements the `Foo_Bar_UnionLeaf_Union` interface. These
+typedefs are re-used for different union types; so, it's possible to assign an
+`Int8` value to any union which has `int8` in its definition.
+
+##### Note on using binary as a possible union value
+Because `Binary`'s underlying `[]byte` type is not hashable, `*Binary` is
+instead used to represent those union types. This means that when a union
+containing `binary` is used as a list key, the resulting generated map would be
+unable to index normally using a new `&Binary{}` value since it's the pointer
+value that's hashed, instead of the actual `Binary` value. In such cases, a loop
+through the map is necessary to obtain the list element keyed by the `*Binary`
+type.
+
+#### Wrapper Union Leaves
 
 ```go
 type Bar struct {
@@ -317,18 +364,21 @@ type Foo_Bar_UnionLeaf_Union interface {
 	Is_Foo_Bar_UnionLeaf_Union()
 }
 
-type Foo_Bar_UnionLeaf_Union_String struct {
-	String string
-}
-
-func (Foo_Bar_UnionLeaf_Union_String) Is_Foo_Bar_UnionLeaf_Union() {}
-
 type Foo_Bar_UnionLeaf_Union_Int8 struct {
 	Int8 int8
 }
 
 func (Foo_Bar_UnionLeaf_Union_Int8) Is_Foo_Bar_UnionLeaf_Union() {}
+
+type Foo_Bar_UnionLeaf_Union_E_Foo_Bar_UnionLeaf struct {
+	E_Foo_Bar_UnionLeaf E_Foo_Bar_UnionLeaf
+}
+
+func (Foo_Bar_UnionLeaf_Union_E_Foo_Bar_UnionLeaf) Is_Foo_Bar_UnionLeaf_Union() {}
 ```
 
-The `UnionLeaf` field can be set to any of the structs that implement the `Foo_Bar_UnionLeaf_Union` interface. Since these structs are single-field entities, a struct initialiser that does not specify the field name can be used (e.g., `Foo_Bar_UnionLeaf_Union_String{"baz"}`), similarly to the generate Go code for a Protobuf `oneof`.
-
+The `UnionLeaf` field can be set to any of the structs that implement the
+`Foo_Bar_UnionLeaf_Union` interface. Since these structs are single-field
+entities, a struct initialiser that does not specify the field name can be used
+(e.g., `Foo_Bar_UnionLeaf_Union_Int8{42}`), similarly to the generate Go code
+for a Protobuf `oneof`.
