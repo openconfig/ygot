@@ -16,6 +16,7 @@ cp ../../demo/getting_started/yang/{ietf,iana}* deps
 go run ../../generator/generator.go -path=public,deps -output_file=oc.go \
   -package_name=wrapperunionoc -generate_fakeroot -fakeroot_name=device -compress_paths=true \
   -shorten_enum_leaf_names \
+  -enum_org_prefixes_to_trim=openconfig \
   -typedef_enum_with_defmod \
   -exclude_modules=ietf-interfaces \
   -generate_rename \

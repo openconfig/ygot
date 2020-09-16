@@ -343,7 +343,7 @@ func TestValidateSystemAaa(t *testing.T) {
 			Aaa: &oc.System_Aaa{
 				Authentication: &oc.System_Aaa_Authentication{
 					AuthenticationMethod: []oc.System_Aaa_Authentication_AuthenticationMethod_Union{
-						oc.OpenconfigAaaTypes_AAA_METHOD_TYPE_LOCAL,
+						oc.AaaTypes_AAA_METHOD_TYPE_LOCAL,
 					},
 				},
 			},
@@ -366,8 +366,8 @@ func TestValidateSystemAaaWrapperUnion(t *testing.T) {
 			Aaa: &woc.System_Aaa{
 				Authentication: &woc.System_Aaa_Authentication{
 					AuthenticationMethod: []woc.System_Aaa_Authentication_AuthenticationMethod_Union{
-						&woc.System_Aaa_Authentication_AuthenticationMethod_Union_E_OpenconfigAaaTypes_AAA_METHOD_TYPE{
-							E_OpenconfigAaaTypes_AAA_METHOD_TYPE: woc.OpenconfigAaaTypes_AAA_METHOD_TYPE_LOCAL,
+						&woc.System_Aaa_Authentication_AuthenticationMethod_Union_E_AaaTypes_AAA_METHOD_TYPE{
+							E_AaaTypes_AAA_METHOD_TYPE: woc.AaaTypes_AAA_METHOD_TYPE_LOCAL,
 						},
 					},
 				},
@@ -455,7 +455,7 @@ func TestValidateSystemNtp(t *testing.T) {
 func TestValidateNetworkInstance(t *testing.T) {
 	// Struct key: schema Key is compound key "identifier name"
 	instance1protocol1Key := oc.NetworkInstance_Protocol_Key{
-		Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+		Identifier: oc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 		Name:       "protocol1",
 	}
 	dev := &oc.Device{
@@ -464,7 +464,7 @@ func TestValidateNetworkInstance(t *testing.T) {
 				Name: ygot.String("instance1"),
 				Protocol: map[oc.NetworkInstance_Protocol_Key]*oc.NetworkInstance_Protocol{
 					instance1protocol1Key: {
-						Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						Identifier: oc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 						Name:       ygot.String("protocol1"),
 					},
 				},
@@ -758,7 +758,7 @@ type Bgp struct {
 }
 
 type Bgp_Global struct {
-	AfiSafi               map[E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*Bgp_Global_AfiSafi `path:"afi-safis/afi-safi" module:"openconfig-bgp"`
+	AfiSafi               map[E_BgpTypes_AFI_SAFI_TYPE]*Bgp_Global_AfiSafi `path:"afi-safis/afi-safi" module:"openconfig-bgp"`
 	As                    *uint32                                                    `path:"config/as" module:"openconfig-bgp"`
 	Confederation         *Bgp_Global_Confederation                                  `path:"confederation" module:"openconfig-bgp"`
 	...
@@ -766,7 +766,7 @@ type Bgp_Global struct {
 
 // Bgp_Neighbor represents the /openconfig-bgp/bgp/neighbors/neighbor YANG schema element.
 type Bgp_Neighbor struct {
-	AfiSafi                map[E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*Bgp_Neighbor_AfiSafi `path:"afi-safis/afi-safi" module:"openconfig-bgp"`
+	AfiSafi                map[E_BgpTypes_AFI_SAFI_TYPE]*Bgp_Neighbor_AfiSafi `path:"afi-safis/afi-safi" module:"openconfig-bgp"`
 	ApplyPolicy            *Bgp_Neighbor_ApplyPolicy                                    `path:"apply-policy" module:"openconfig-bgp"`
 	AsPathOptions          *Bgp_Neighbor_AsPathOptions                                  `path:"as-path-options" module:"openconfig-bgp"`
 	...
@@ -778,7 +778,7 @@ type Bgp_Neighbor struct {
 type Bgp_Neighbor_AfiSafi struct {
 	Active             *bool                                    `path:"state/active" module:"openconfig-bgp"`
 	AddPaths           *Bgp_Neighbor_AfiSafi_AddPaths           `path:"add-paths" module:"openconfig-bgp"`
-	AfiSafiName        E_OpenconfigBgpTypes_AFI_SAFI_TYPE       `path:"config/afi-safi-name|afi-safi-name" module:"openconfig-bgp"`
+	AfiSafiName        E_BgpTypes_AFI_SAFI_TYPE       `path:"config/afi-safi-name|afi-safi-name" module:"openconfig-bgp"`
 	ApplyPolicy        *Bgp_Neighbor_AfiSafi_ApplyPolicy        `path:"apply-policy" module:"openconfig-bgp"`
 	...
 }
@@ -841,7 +841,7 @@ func TestNewNode(t *testing.T) {
 					},
 				},
 			},
-			want:       oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE(0),
+			want:       oc.E_BgpTypes_AFI_SAFI_TYPE(0),
 			wantStatus: statusOK,
 		},
 		{

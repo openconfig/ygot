@@ -164,13 +164,13 @@ func TestPathCreation(t *testing.T) {
 	}, {
 		name: "identity ref key",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
-			return root.NetworkInstance("DEFAULT").Protocol(oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").Enabled()
+			return root.NetworkInstance("DEFAULT").Protocol(oc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").Enabled()
 		},
 		wantPath: "/network-instances/network-instance[name=DEFAULT]/protocols/protocol[identifier=BGP][name=15169]/config/enabled",
 	}, {
 		name: "enumeration key",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
-			return root.NetworkInstance("DEFAULT").Mpls().SignalingProtocols().Ldp().InterfaceAttributes().Interface("eth1").AddressFamily(oc.OpenconfigMplsLdp_MplsLdpAfi_IPV4).AfiName()
+			return root.NetworkInstance("DEFAULT").Mpls().SignalingProtocols().Ldp().InterfaceAttributes().Interface("eth1").AddressFamily(oc.MplsLdp_MplsLdpAfi_IPV4).AfiName()
 		},
 		wantPath: "/network-instances/network-instance[name=DEFAULT]/mpls/signaling-protocols/ldp/interface-attributes/interfaces/interface[interface-id=eth1]/address-families/address-family[afi-name=IPV4]/config/afi-name",
 	}, {
@@ -182,7 +182,7 @@ func TestPathCreation(t *testing.T) {
 	}, {
 		name: "union key (enum value)",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
-			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(oc.OpenconfigMplsTypes_MplsLabel_Enum_IMPLICIT_NULL).InOctets()
+			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(oc.MplsTypes_MplsLabel_Enum_IMPLICIT_NULL).InOctets()
 		},
 		wantPath: "/network-instances/network-instance[name=RED]/mpls/signaling-protocols/segment-routing/interfaces/interface[interface-id=eth1]/sid-counters/sid-counter[mpls-label=IMPLICIT_NULL]/state/in-octets",
 	}, {
@@ -360,7 +360,7 @@ func TestWildcardPathCreation(t *testing.T) {
 	}, {
 		name: "multi-keyed wildcarding",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
-			return root.Acl().AclSet("foo", oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4)
+			return root.Acl().AclSet("foo", oc.Acl_ACL_TYPE_ACL_IPV4)
 		},
 		wantPath: "/acl/acl-sets/acl-set[name=foo][type=ACL_IPV4]",
 		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
@@ -374,7 +374,7 @@ func TestWildcardPathCreation(t *testing.T) {
 		},
 		wantPath: "/acl/acl-sets/acl-set[name=*][type=*]",
 		makeWildPath: func(root *oc.DevicePath) ygot.PathStruct {
-			return root.Acl().AclSetAnyName(oc.OpenconfigAcl_ACL_TYPE_ACL_IPV4)
+			return root.Acl().AclSetAnyName(oc.Acl_ACL_TYPE_ACL_IPV4)
 		},
 		wantWildPath:    "/acl/acl-sets/acl-set[name=*][type=ACL_IPV4]",
 		bothAreWildcard: true,

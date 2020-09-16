@@ -572,7 +572,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			for _, e := range enumMapFromEntries(tt.inEntries) {
 				addEnumsToEnumMap(e, enumMap)
 			}
-			enumSet, _, errs := findEnumSet(enumMap, false, true, false, true, true)
+			enumSet, _, errs := findEnumSet(enumMap, false, true, false, true, true, nil)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)

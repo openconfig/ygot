@@ -69,7 +69,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 	}
 	ygot.BuildEmptyTree(ni)
 
-	p, err := ni.NewProtocol(exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169")
+	p, err := ni.NewProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169")
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 	n.PeerAs = ygot.Uint32(42)
-	n.SendCommunity = exampleoc.OpenconfigBgpTypes_CommunityType_STANDARD
+	n.SendCommunity = exampleoc.BgpTypes_CommunityType_STANDARD
 
 	p.Bgp.Global.As = ygot.Uint32(42)
 
@@ -93,10 +93,10 @@ func TestBuildEmptyDevice(t *testing.T) {
 				Name: ygot.String("DEFAULT"),
 				Protocol: map[exampleoc.NetworkInstance_Protocol_Key]*exampleoc.NetworkInstance_Protocol{
 					{
-						Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 						Name:       "15169",
 					}: {
-						Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 						Name:       ygot.String("15169"),
 						Bgp: &exampleoc.NetworkInstance_Protocol_Bgp{
 							Global: &exampleoc.NetworkInstance_Protocol_Bgp_Global{
@@ -106,7 +106,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 								"192.0.2.1": {
 									NeighborAddress: ygot.String("192.0.2.1"),
 									PeerAs:          ygot.Uint32(42),
-									SendCommunity:   exampleoc.OpenconfigBgpTypes_CommunityType_STANDARD,
+									SendCommunity:   exampleoc.BgpTypes_CommunityType_STANDARD,
 								},
 							},
 						},
@@ -153,10 +153,10 @@ func TestDiff(t *testing.T) {
 		inOrig: &exampleoc.NetworkInstance_Protocol_Bgp{},
 		inMod: func() *exampleoc.NetworkInstance_Protocol_Bgp {
 			d := &exampleoc.Device{}
-			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
 			n := b.GetOrCreateNeighbor("192.0.2.1")
 			n.PeerAs = ygot.Uint32(29636)
-			n.PeerType = exampleoc.OpenconfigBgpTypes_PeerType_EXTERNAL
+			n.PeerType = exampleoc.BgpTypes_PeerType_EXTERNAL
 			return b
 		}(),
 		want: &gnmipb.Notification{
@@ -206,9 +206,9 @@ func TestDiff(t *testing.T) {
 		inMod: func() *exampleoc.Device {
 			d := &exampleoc.Device{}
 			e := d.GetOrCreateStp().GetOrCreateGlobal()
-			e.EnabledProtocol = []exampleoc.E_OpenconfigSpanningTreeTypes_STP_PROTOCOL{
-				exampleoc.OpenconfigSpanningTreeTypes_STP_PROTOCOL_MSTP,
-				exampleoc.OpenconfigSpanningTreeTypes_STP_PROTOCOL_RSTP,
+			e.EnabledProtocol = []exampleoc.E_SpanningTreeTypes_STP_PROTOCOL{
+				exampleoc.SpanningTreeTypes_STP_PROTOCOL_MSTP,
+				exampleoc.SpanningTreeTypes_STP_PROTOCOL_RSTP,
 			}
 			return d
 		}(),
@@ -249,9 +249,9 @@ func TestJSONOutput(t *testing.T) {
 		in: func() *exampleoc.Device {
 			d := &exampleoc.Device{}
 			acl := d.GetOrCreateAcl()
-			set := acl.GetOrCreateAclSet("set", exampleoc.OpenconfigAcl_ACL_TYPE_ACL_IPV6)
+			set := acl.GetOrCreateAclSet("set", exampleoc.Acl_ACL_TYPE_ACL_IPV6)
 			entry := set.GetOrCreateAclEntry(100)
-			entry.GetOrCreateIpv6().Protocol = exampleoc.OpenconfigPacketMatchTypes_IP_PROTOCOL_UNSET
+			entry.GetOrCreateIpv6().Protocol = exampleoc.PacketMatchTypes_IP_PROTOCOL_UNSET
 			return d
 		}(),
 		wantFile: "testdata/unsetenum.json",
@@ -260,10 +260,10 @@ func TestJSONOutput(t *testing.T) {
 		in: func() *wrapperunionoc.Device {
 			d := &wrapperunionoc.Device{}
 			acl := d.GetOrCreateAcl()
-			set := acl.GetOrCreateAclSet("set", wrapperunionoc.OpenconfigAcl_ACL_TYPE_ACL_IPV6)
+			set := acl.GetOrCreateAclSet("set", wrapperunionoc.Acl_ACL_TYPE_ACL_IPV6)
 			entry := set.GetOrCreateAclEntry(100)
-			entry.GetOrCreateIpv6().Protocol = &wrapperunionoc.Acl_AclSet_AclEntry_Ipv6_Protocol_Union_E_OpenconfigPacketMatchTypes_IP_PROTOCOL{
-				wrapperunionoc.OpenconfigPacketMatchTypes_IP_PROTOCOL_UNSET,
+			entry.GetOrCreateIpv6().Protocol = &wrapperunionoc.Acl_AclSet_AclEntry_Ipv6_Protocol_Union_E_PacketMatchTypes_IP_PROTOCOL{
+				wrapperunionoc.PacketMatchTypes_IP_PROTOCOL_UNSET,
 			}
 			return d
 		}(),

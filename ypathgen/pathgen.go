@@ -113,6 +113,9 @@ type GenConfig struct {
 	// This is the same flag used by ygen: they must match for pathgen's
 	// generated code to be compatible with it.
 	ShortenEnumLeafNames bool
+	// EnumOrgPrefixesToTrim trims the organization name from the module
+	// part of the name of enumeration leaves if there is a match.
+	EnumOrgPrefixesToTrim []string
 	// UseDefiningModuleForTypedefEnumNames uses the defining module name
 	// to prefix typedef enumerated types instead of the module where the
 	// typedef enumerated value is used.
@@ -192,6 +195,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 			GenerateFakeRoot:                     true,
 			FakeRootName:                         cg.FakeRootName,
 			ShortenEnumLeafNames:                 cg.ShortenEnumLeafNames,
+			EnumOrgPrefixesToTrim:                cg.EnumOrgPrefixesToTrim,
 			UseDefiningModuleForTypedefEnumNames: cg.UseDefiningModuleForTypedefEnumNames,
 		},
 	}
