@@ -69,10 +69,12 @@ func ParentModulePrettyName(node yang.Node, orgPrefixesToTrim ...string) string 
 	return yang.CamelCase(TrimOrgPrefix(definingMod.NName(), orgPrefixesToTrim...))
 }
 
-// TrimOrgPrefix checks each input organization prefix
+// TrimOrgPrefix checks each input organization prefix (e.g. "openconfig", "ietf")
 // (https://tools.ietf.org/html/rfc8407#section-4.1), and if matching the input
 // module name, trims it and returns it. If none is matching, the original
 // module name is returned.
+// E.g. If "openconfig" is provided as a prefix to trim, then
+// "openconfig-interfaces" becomes simply "interfaces".
 func TrimOrgPrefix(modName string, orgPrefixesToTrim ...string) string {
 	for _, pfx := range orgPrefixesToTrim {
 		if trimmedModName := strings.TrimPrefix(modName, pfx+"-"); trimmedModName != modName {
