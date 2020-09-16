@@ -339,19 +339,19 @@ func (Int8) Documentation_for_Foo_Bar_UnionLeaf_Union() {}
 func (E_Foo_Bar_UnionLeaf) Documentation_for_Foo_Bar_UnionLeaf_Union() {}
 ```
 
-The `UnionLeaf` field can be set to any defined type/typedef (including enumeration
+The `UnionLeaf` field can be set to any defined type (including enumeration
 typedefs) that implements the `Foo_Bar_UnionLeaf_Union` interface. These
 typedefs are re-used for different union types; so, it's possible to assign an
 `Int8` value to any union which has `int8` in its definition.
 
 ##### Note on using binary as a possible union value
 Because `Binary`'s underlying `[]byte` type is not hashable, `*Binary` is
-instead used to represent those union types. This means that when a union
-containing `binary` is used as a list key, the resulting generated map would be
-unable to index normally using a new `&Binary{}` value since it's the pointer
-value that's hashed, instead of the actual `Binary` value. In such cases, a loop
-through the map is necessary to obtain the list element keyed by the `*Binary`
-type.
+instead used to represent those union types's `binary` values. This means that
+when a union containing `binary` is used as a list key, the resulting generated
+map would be unable to index normally using a new `&Binary{}` value since it's
+the pointer value that's hashed, instead of the actual `Binary` value. In such
+cases, a loop through the map is necessary to obtain the list element keyed by
+the `*Binary` type.
 
 #### Wrapper Union Leaves
 
