@@ -153,6 +153,15 @@ func TestValidateString(t *testing.T) {
 			val:        "abc",
 		},
 		{
+			desc:       "failure due to anchors",
+			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
+			schemaName: "range-2-to-10",
+			re:         []string{`ab.`, `.*bc`},
+			POSIXRe:    []string{`^ab.$`, `^.*bc$`},
+			val:        "abcc",
+			wantErr:    true,
+		},
+		{
 			desc:       "logical expression",
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
