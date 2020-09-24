@@ -668,12 +668,11 @@ func TestGenProto3Msg(t *testing.T) {
 			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 			gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
-				compressPaths:         tt.inCompressPaths,
-				keepShadowSchemaPaths: false,
-				basePackageName:       tt.inBasePackage,
-				enumPackageName:       tt.inEnumPackage,
-				baseImportPath:        tt.inBaseImportPath,
-				annotateSchemaPaths:   tt.inAnnotateSchemaPaths,
+				compressPaths:       tt.inCompressPaths,
+				basePackageName:     tt.inBasePackage,
+				enumPackageName:     tt.inEnumPackage,
+				baseImportPath:      tt.inBaseImportPath,
+				annotateSchemaPaths: tt.inAnnotateSchemaPaths,
 			}, tt.inParentPackage, tt.inChildMsgs, true)
 
 			if (errs != nil) != tt.wantErr {

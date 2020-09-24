@@ -595,7 +595,7 @@ func TestUnmarshal(t *testing.T) {
 		opts              []ytypes.UnmarshalOpt
 		unmarshalFn       ytypes.UnmarshalFunc
 		wantValidationErr string
-		wantErr           string
+		wantErrSubstring  string
 		outjsonFilePath   string // outjsonFilePath is the output JSON expected, when not specified it is assumed input == output.
 	}{
 		{
@@ -611,10 +611,18 @@ func TestUnmarshal(t *testing.T) {
 			unmarshalFn:  oc.Unmarshal,
 		},
 		{
-			desc:         "bgp with prefer_operational_state",
-			jsonFilePath: "bgp-example-opstate.json",
-			parent:       &opstateoc.Device{},
-			unmarshalFn:  opstateoc.Unmarshal,
+			desc:             "bgp, given shadow path but for schema that doesn't ignore shadow paths",
+			jsonFilePath:     "bgp-example-opstate-with-shadow.json",
+			parent:           &oc.Device{},
+			unmarshalFn:      oc.Unmarshal,
+			wantErrSubstring: "JSON contains unexpected field state",
+		},
+		{
+			desc:            "bgp with prefer_operational_state, with schema ignoring shadow paths",
+			jsonFilePath:    "bgp-example-opstate-with-shadow.json",
+			parent:          &opstateoc.Device{},
+			unmarshalFn:     opstateoc.Unmarshal,
+			outjsonFilePath: "bgp-example-opstate.json",
 		},
 		{
 			desc:              "interfaces",
@@ -706,8 +714,8 @@ func TestUnmarshal(t *testing.T) {
 			}
 
 			err = tt.unmarshalFn(j, tt.parent, tt.opts...)
-			if got, want := errToString(err), tt.wantErr; got != want {
-				t.Errorf("%s: got error: %v, want error: %v ", tt.desc, got, want)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("did not get expected error, %s", diff)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {

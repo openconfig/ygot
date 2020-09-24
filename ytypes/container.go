@@ -191,6 +191,12 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		}
 		allSchemaPaths = append(allSchemaPaths, sp...)
 
+		ssp, err := shadowDataTreePaths(schema, cschema, ft)
+		if err != nil {
+			return err
+		}
+		allSchemaPaths = append(allSchemaPaths, ssp...)
+
 		jsonValue, err := getJSONTreeValForField(schema, cschema, ft, jsonTree)
 		if err != nil {
 			return err

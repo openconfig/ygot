@@ -273,14 +273,13 @@ type generatedProto3Message struct {
 
 // protoMsgConfig defines the set of configuration options required to generate a Protobuf message.
 type protoMsgConfig struct {
-	compressPaths         bool   // compressPaths indicates whether path compression should be enabled.
-	keepShadowSchemaPaths bool   // keepShadowSchemaPaths indicates whether shadowed paths are still represented within the generated code.
-	basePackageName       string // basePackageName specifies the package name that is the base for all child packages.
-	enumPackageName       string // enumPackageName specifies the package in which global enum definitions are specified.
-	baseImportPath        string // baseImportPath specifies the path that should be used for importing the generated files.
-	annotateSchemaPaths   bool   // annotateSchemaPaths uses the yext protobuf field extensions to annotate the paths from the schema into the output protobuf.
-	annotateEnumNames     bool   // annotateEnumNames uses the yext protobuf enum value extensions to annoate the original YANG name for an enum into the output protobuf.
-	nestedMessages        bool   // nestedMessages indicates whether nested messages should be output for the protobuf schema.
+	compressPaths       bool   // compressPaths indicates whether path compression should be enabled.
+	basePackageName     string // basePackageName specifies the package name that is the base for all child packages.
+	enumPackageName     string // enumPackageName specifies the package in which global enum definitions are specified.
+	baseImportPath      string // baseImportPath specifies the path that should be used for importing the generated files.
+	annotateSchemaPaths bool   // annotateSchemaPaths uses the yext protobuf field extensions to annotate the paths from the schema into the output protobuf.
+	annotateEnumNames   bool   // annotateEnumNames uses the yext protobuf enum value extensions to annoate the original YANG name for an enum into the output protobuf.
+	nestedMessages      bool   // nestedMessages indicates whether nested messages should be output for the protobuf schema.
 }
 
 // writeProto3Message outputs the generated Protobuf3 code for a particular protobuf message. It takes:
@@ -608,7 +607,7 @@ func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *protoGen
 		}
 
 		if cfg.annotateSchemaPaths {
-			o, err := protoSchemaPathAnnotation(msg, name, cfg.compressPaths, cfg.keepShadowSchemaPaths)
+			o, err := protoSchemaPathAnnotation(msg, name, cfg.compressPaths)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -1180,7 +1179,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 		}
 
 		if args.cfg.annotateSchemaPaths {
-			o, err := protoSchemaPathAnnotation(args.directory, k, args.cfg.compressPaths, args.cfg.keepShadowSchemaPaths)
+			o, err := protoSchemaPathAnnotation(args.directory, k, args.cfg.compressPaths)
 			if err != nil {
 				return nil, err
 			}
@@ -1335,9 +1334,9 @@ func protoPackageToFilePath(pkg string) []string {
 
 // protoSchemaPathAnnotation takes a protobuf message and field, and returns the protobuf
 // field option definitions required to annotate it with its schema path(s).
-func protoSchemaPathAnnotation(msg *Directory, fieldName string, compressPaths, keepShadowSchemaPaths bool) (*protoOption, error) {
+func protoSchemaPathAnnotation(msg *Directory, fieldName string, compressPaths bool) (*protoOption, error) {
 	// protobuf paths are always absolute.
-	smapp, err := findMapPaths(msg, fieldName, compressPaths, keepShadowSchemaPaths, true)
+	smapp, err := findMapPaths(msg, fieldName, compressPaths, false, true)
 	if err != nil {
 		return nil, err
 	}

@@ -332,7 +332,7 @@ func TestFindSchemaPath(t *testing.T) {
 		inAbsolutePaths: false,
 		want:            nil,
 		wantErrSubstr:   "field name \"baazar\" does not exist in Directory",
-		// When shadowField is set, no error is returned when the field can't be found.
+		// wantErrSubstrShadowed is missing here: when shadowSchemaPaths is set, no error is returned when the field can't be found.
 	}, {
 		name: "directory has problematically-long path",
 		inDirectory: &Directory{
@@ -389,7 +389,7 @@ func TestFindSchemaPath(t *testing.T) {
 		}
 
 		t.Run(tt.name+" (ShadowedFields)", func(t *testing.T) {
-			got, err := FindShadowedSchemaPath(tt.inDirectory, tt.inFieldName, tt.inAbsolutePaths)
+			got, err := findSchemaPath(tt.inDirectory, tt.inFieldName, true, tt.inAbsolutePaths)
 			if diff := errdiff.Check(err, tt.wantErrSubstrShadowed); diff != "" {
 				t.Fatalf("FindShadowedSchemaPath, %v", diff)
 			}

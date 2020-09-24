@@ -190,15 +190,6 @@ func TestDiff(t *testing.T) {
 				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/neighbor-address"),
 				Val:  mustTypedValue("192.0.2.1"),
 			}, {
-				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/config/neighbor-address"),
-				Val:  mustTypedValue("192.0.2.1"),
-			}, {
-				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/config/peer-as"),
-				Val:  mustTypedValue(uint32(29636)),
-			}, {
-				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/config/peer-type"),
-				Val:  mustTypedValue("EXTERNAL"),
-			}, {
 				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/state/neighbor-address"),
 				Val:  mustTypedValue("192.0.2.1"),
 			}, {

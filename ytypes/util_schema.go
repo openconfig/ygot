@@ -194,6 +194,16 @@ func dataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][
 	return n, err
 }
 
+// shadowDataTreePaths returns all the shadow data tree paths corresponding to schemaPaths.
+// Any intermediate nodes not found in the data tree (i.e. choice/case) are
+// removed from the paths.
+func shadowDataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][]string, error) {
+	out := util.ShadowSchemaPaths(f)
+	n, err := removeNonDataPathElements(parentSchema, schema, out)
+	util.DbgPrint("have shadow paths %v, removing non-data from %s -> %v", out, schema.Name, n)
+	return n, err
+}
+
 // removeNonDataPathElements removes any path elements in paths not found in
 // the data tree given the terminal node schema and the schema of its parent.
 func removeNonDataPathElements(parentSchema, schema *yang.Entry, paths [][]string) ([][]string, error) {

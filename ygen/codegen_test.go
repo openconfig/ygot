@@ -537,7 +537,7 @@ func TestSimpleStructs(t *testing.T) {
 			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
-				KeepShadowSchemaPaths:                true,
+				IgnoreShadowSchemaPaths:              true,
 				ShortenEnumLeafNames:                 true,
 				UseDefiningModuleForTypedefEnumNames: true,
 			},
@@ -2031,7 +2031,7 @@ func TestGenerateProto3(t *testing.T) {
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
-				KeepShadowSchemaPaths:                true,
+				IgnoreShadowSchemaPaths:              true,
 				GenerateFakeRoot:                     true,
 				UseDefiningModuleForTypedefEnumNames: true,
 			},

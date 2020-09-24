@@ -139,28 +139,20 @@ func FindSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]
 	return findSchemaPath(parent, fieldName, false, absolutePaths)
 }
 
-// FindShadowedSchemaPath finds the relative or absolute schema path of a given
-// shadowed field (field duplicated and deprioritized via compression) of a
-// Directory. If the field is not found, nil is returned as the path, and no
-// error is returned.
-func FindShadowedSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]string, error) {
-	return findSchemaPath(parent, fieldName, true, absolutePaths)
-}
-
 // findSchemaPath finds the relative or absolute schema path of a given field
-// of a Directory, or the shadowed field (field duplicated and deprioritized
-// via compression) of a Directory. The Field is specified as a name in order
-// to guarantee its existence before processing, but no error is returned if
-// shadowField is true.
-func findSchemaPath(parent *Directory, fieldName string, shadowField, absolutePaths bool) ([]string, error) {
+// of a Directory, or the shadowed field path (field duplicated and
+// deprioritized via compression) of a Directory. The Field is specified as a
+// name in order to guarantee its existence before processing.
+// NOTE: If shadowSchemaPaths is true, no error is returned if fieldName is not found.
+func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, absolutePaths bool) ([]string, error) {
 	field, ok := parent.Fields[fieldName]
-	if shadowField {
+	if shadowSchemaPaths {
 		if field, ok = parent.ShadowedFields[fieldName]; !ok {
 			return nil, nil
 		}
 	}
 	if !ok {
-		return nil, fmt.Errorf("FindSchemaPath(shadowField:%v): field name %q does not exist in Directory %s", shadowField, fieldName, parent.Path)
+		return nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): field name %q does not exist in Directory %s", shadowSchemaPaths, fieldName, parent.Path)
 	}
 	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
 
@@ -173,7 +165,7 @@ func findSchemaPath(parent *Directory, fieldName string, shadowField, absolutePa
 	// in the parent's, we walk from index X of the field's path (where X
 	// is the number of elements in the path of the parent).
 	if len(fieldSlicePath) < len(parent.Path) {
-		return nil, fmt.Errorf("FindSchemaPath(shadowField:%v): field %v is not a valid child of %v", shadowField, fieldSlicePath, parent.Path)
+		return nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): field %v is not a valid child of %v", shadowSchemaPaths, fieldSlicePath, parent.Path)
 	}
 	return fieldSlicePath[len(parent.Path)-1:], nil
 }

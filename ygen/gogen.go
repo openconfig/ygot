@@ -1263,8 +1263,8 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 //  - state - the current generator state, as a genState pointer.
 //  - compressOCPaths - a bool indicating whether OpenConfig path compression is enabled for
 //    this schema.
-//  - keepShadowSchemaPaths - a bool indicating whether when OpenConfig path compression is
-//    enabled, that the shadowed paths are still represented within the generated struct.
+//  - ignoreShadowSchemaPaths - a bool indicating that when OpenConfig path compression is
+//    enabled, the shadowed paths are ignored while unmarshalling.
 //  - generateJSONSchema - a bool indicating whether the generated code should include the
 //    JSON representation of the YANG schema for this element.
 //  - goOpts - Go specific code generation options as a GoOpts struct.
@@ -1277,7 +1277,7 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, gogen *goGenState, compressPaths, keepShadowSchemaPaths, generateJSONSchema, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, goOpts GoOpts) (GoStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, gogen *goGenState, compressPaths, ignoreShadowSchemaPaths, generateJSONSchema, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, goOpts GoOpts) (GoStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -1509,32 +1509,57 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			continue
 		}
 
+		var tagBuf, metadataTagBuf bytes.Buffer
+		// addSchemaPathsToBuffers adds the slice of paths to the tag
+		// and metadata tag buffers.
+		addSchemaPathsToBuffers := func(schemaPaths [][]string, addToMetadata bool) {
+			for i, p := range schemaPaths {
+				tagBuf.WriteString(util.SlicePathToString(p))
+
+				// Prepend "@" to the last element in the schema path.
+				p[len(p)-1] = fmt.Sprintf("@%s", p[len(p)-1])
+				if addToMetadata {
+					metadataTagBuf.WriteString(util.SlicePathToString(p))
+				}
+
+				if i != len(schemaPaths)-1 {
+					tagBuf.WriteRune('|')
+					if addToMetadata {
+						metadataTagBuf.WriteRune('|')
+					}
+				}
+			}
+			tagBuf.WriteByte('"')
+			if addToMetadata {
+				metadataTagBuf.WriteByte('"')
+			}
+		}
+
+		tagBuf.WriteString(`path:"`)
+		metadataTagBuf.WriteString(`path:"`)
 		// Find the schema paths that the field corresponds to, such that these can
 		// be used as annotations (tags) within the generated struct. Go paths are
 		// always relative.
-		schemaMapPaths, err := findMapPaths(targetStruct, fName, compressPaths, keepShadowSchemaPaths, false)
+		schemaMapPaths, err := findMapPaths(targetStruct, fName, compressPaths, false, false)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
+		addSchemaPathsToBuffers(schemaMapPaths, true)
 
-		var tagBuf bytes.Buffer
-		tagBuf.WriteString(`path:"`)
-		var metadataTagBuf bytes.Buffer
-		metadataTagBuf.WriteString(`path:"`)
-		for i, p := range schemaMapPaths {
-			tagBuf.WriteString(util.SlicePathToString(p))
-
-			p[len(p)-1] = fmt.Sprintf("@%s", p[len(p)-1])
-			metadataTagBuf.WriteString(util.SlicePathToString(p))
-
-			if i != len(schemaMapPaths)-1 {
-				tagBuf.WriteRune('|')
-				metadataTagBuf.WriteRune('|')
+		if ignoreShadowSchemaPaths {
+			shadowSchemaMapPaths, err := findMapPaths(targetStruct, fName, compressPaths, true, false)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			if len(shadowSchemaMapPaths) > 0 {
+				tagBuf.WriteString(` shadow-path:"`)
+				addSchemaPathsToBuffers(shadowSchemaMapPaths, false)
 			}
 		}
-		tagBuf.WriteByte('"')
-		metadataTagBuf.WriteString(`" ygotAnnotation:"true"`)
+
+		metadataTagBuf.WriteString(` ygotAnnotation:"true"`)
 
 		// Append a tag indicating the module that instantiates this field.
 		im, err := field.InstantiatingModule()
@@ -2050,25 +2075,23 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 // findMapPaths takes an input field name for a parent Directory and calculates the set of schemapaths that it represents.
 // If absolutePaths is set, the paths are absolute otherwise they are relative to the parent. If
 // the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
-// path is also returned. If keepShadowSchemaPaths is set, then the path of the
-// field duplicated via compression is also returned.
+// path is also returned. If shadowSchemaPaths is set, then the path of the
+// field deprioritized via compression is returned instead of the prioritized paths.
 // The first returned path is the path of the direct child, with the shadow
 // child's path afterwards, and the key leafref, if any, last.
 // TODO(wenbli): This is used by both Go and proto generation, it should be moved to genstate.go or genutil.
-func findMapPaths(parent *Directory, fieldName string, compressPaths, keepShadowSchemaPaths, absolutePaths bool) ([][]string, error) {
-	childPath, err := FindSchemaPath(parent, fieldName, absolutePaths)
+func findMapPaths(parent *Directory, fieldName string, compressPaths, shadowSchemaPaths, absolutePaths bool) ([][]string, error) {
+	childPath, err := findSchemaPath(parent, fieldName, shadowSchemaPaths, absolutePaths)
 	if err != nil {
 		return nil, err
 	}
-	mapPaths := [][]string{childPath}
-	shadowChildPath, err := FindShadowedSchemaPath(parent, fieldName, absolutePaths)
-	if err != nil {
-		return nil, err
+	var mapPaths [][]string
+	if childPath != nil {
+		mapPaths = append(mapPaths, childPath)
 	}
-	if len(shadowChildPath) > 0 && keepShadowSchemaPaths {
-		mapPaths = append(mapPaths, shadowChildPath)
-	}
-	if !compressPaths || parent.ListAttr == nil {
+	// Only for compressed data schema paths for list fields do we have the
+	// possibility for a direct leafref path as a second path for the field.
+	if !compressPaths || parent.ListAttr == nil || shadowSchemaPaths {
 		return mapPaths, nil
 	}
 

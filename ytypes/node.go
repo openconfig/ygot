@@ -53,6 +53,12 @@ type retrieveNodeArgs struct {
 	// specifically to deal with uint values being streamed as positive int
 	// values.
 	tolerateJSONInconsistenciesForVal bool
+	// shadowPath is an implementation field indicating that the current
+	// path being traversed is a shadow path, and should result in a silent
+	// traversal, i.e. a normal traversal except any modifications to leaf
+	// values are skipped (non-existing GoStructs are still initialized),
+	// and any value retrieved is always nil.
+	shadowPath bool
 }
 
 // retrieveNode is an internal function that retrieves the node specified by
@@ -69,6 +75,12 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 			if !(schema.IsLeaf() || schema.IsLeafList()) {
 				return nil, status.Errorf(codes.Unknown, "path %v points to a node with non-leaf schema %v", traversedPath, schema)
 			}
+		}
+		// Shadow traversal returns the node with nil schema and data.
+		if args.shadowPath {
+			return []*TreeNode{{
+				Path: traversedPath,
+			}}, nil
 		}
 		return []*TreeNode{{
 			Path:   traversedPath,
@@ -127,10 +139,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			return nil, status.Errorf(codes.Unknown, "failed to get schema paths for %T, field %s: %s", root, ft.Name, err)
 		}
 
-		for _, p := range schPaths {
-			if !util.PathMatchesPrefix(path, p) {
-				continue
-			}
+		checkPath := func(p []string, args retrieveNodeArgs) ([]*TreeNode, error) {
 			to := len(p)
 			if util.IsTypeMap(ft.Type) {
 				to--
@@ -154,7 +163,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			// may be dealing with a leaf or leaf list node. We should set the val
 			// to the corresponding field in GoStruct. If the field is an annotation,
 			// the field doesn't have a schema, so it is handled seperately.
-			if !util.IsValueNil(args.val) && len(path.Elem) == to {
+			if !util.IsValueNil(args.val) && len(path.Elem) == to && !args.shadowPath {
 				switch {
 				case util.IsYgotAnnotation(ft):
 					if err := util.UpdateField(root, ft.Name, args.val); err != nil {
@@ -182,6 +191,20 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				np.Elem = append(np.Elem, path.GetElem()[i])
 			}
 			return retrieveNode(cschema, fv.Interface(), util.TrimGNMIPathPrefix(path, p[0:to]), np, args)
+		}
+
+		for _, p := range schPaths {
+			if !util.PathMatchesPrefix(path, p) {
+				continue
+			}
+			return checkPath(p, args)
+		}
+		for _, p := range util.ShadowSchemaPaths(ft) {
+			if !util.PathMatchesPrefix(path, p) {
+				continue
+			}
+			args.shadowPath = true
+			return checkPath(p, args)
 		}
 	}
 
@@ -245,7 +268,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			}
 			if keyAsString == pathKey {
 				remainingPath := util.PopGNMIPath(path)
-				if args.delete && len(remainingPath.GetElem()) == 0 {
+				if args.delete && len(remainingPath.GetElem()) == 0 && !args.shadowPath {
 					rv.SetMapIndex(k, reflect.Value{})
 					return nil, nil
 				}
@@ -299,7 +322,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 				return nil, status.Errorf(codes.Unknown, "could not extract keys from %v: %v", traversedPath, err)
 			}
 			remainingPath := util.PopGNMIPath(path)
-			if args.delete && len(remainingPath.GetElem()) == 0 {
+			if args.delete && len(remainingPath.GetElem()) == 0 && !args.shadowPath {
 				rv.SetMapIndex(k, reflect.Value{})
 				return nil, nil
 			}

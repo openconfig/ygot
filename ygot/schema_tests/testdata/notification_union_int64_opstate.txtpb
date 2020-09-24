@@ -41,39 +41,6 @@ update: <
       >
     >
     elem: <
-      name: "config"
-    >
-    elem: <
-      name: "name"
-    >
-  >
-  val: <
-    string_val: "temperature"
-  >
->
-update: <
-  path: <
-    elem: <
-      name: "components"
-    >
-    elem: <
-      name: "component"
-      key: <
-        key: "name"
-        value: "p1"
-      >
-    >
-    elem: <
-      name: "properties"
-    >
-    elem: <
-      name: "property"
-      key: <
-        key: "name"
-        value: "temperature"
-      >
-    >
-    elem: <
       name: "state"
     >
     elem: <
@@ -137,39 +104,6 @@ update: <
       >
     >
     elem: <
-      name: "config"
-    >
-    elem: <
-      name: "value"
-    >
-  >
-  val: <
-    int_val: 42
-  >
->
-update: <
-  path: <
-    elem: <
-      name: "components"
-    >
-    elem: <
-      name: "component"
-      key: <
-        key: "name"
-        value: "p1"
-      >
-    >
-    elem: <
-      name: "properties"
-    >
-    elem: <
-      name: "property"
-      key: <
-        key: "name"
-        value: "temperature"
-      >
-    >
-    elem: <
       name: "state"
     >
     elem: <
@@ -178,29 +112,6 @@ update: <
   >
   val: <
     int_val: 42
-  >
->
-update: <
-  path: <
-    elem: <
-      name: "components"
-    >
-    elem: <
-      name: "component"
-      key: <
-        key: "name"
-        value: "p1"
-      >
-    >
-    elem: <
-      name: "config"
-    >
-    elem: <
-      name: "name"
-    >
-  >
-  val: <
-    string_val: "p1"
   >
 >
 update: <
