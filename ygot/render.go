@@ -576,9 +576,6 @@ func KeyValueAsString(v interface{}) (string, error) {
 	case reflect.Bool:
 		return fmt.Sprintf("%t", v), nil
 	case reflect.Ptr:
-		if !util.IsValueStructPtr(kv) && kv.Type().Elem().Name() == BinaryTypeName {
-			return KeyValueAsString(kv.Elem().Interface())
-		}
 		iv, err := unionPtrValue(kv, false)
 		if err != nil {
 			return "", err
@@ -674,9 +671,6 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 	case vv.Type().Kind() == reflect.Int64 && unionTypedefUnderlyingTypes[vv.Type().Name()] == nil:
 		// Invalid int64 that is not an enum or a union typedef type.
 		return nil, fmt.Errorf("cannot represent field value %v as TypedValue", val)
-	case util.IsValuePtr(vv) && vv.Type().Elem().Name() == BinaryTypeName:
-		vv = vv.Elem()
-		fallthrough
 	case vv.Type().Name() == BinaryTypeName:
 		// This is a binary type which is defiend as a []byte, so we encode it as the bytes.
 		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{vv.Bytes()}}, nil
@@ -809,8 +803,6 @@ func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, e
 			var err error
 			ev := e.Elem()
 			switch {
-			case ev.Kind() == reflect.Ptr && ev.Elem().Type().Name() == BinaryTypeName:
-				sval = append(sval, ev.Elem().Bytes())
 			case ev.Kind() == reflect.Ptr:
 				uval, err := unionInterfaceValue(e, appendModuleName)
 				if err != nil {
@@ -819,6 +811,11 @@ func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, e
 				if sval, err = appendTypedValue(sval, reflect.ValueOf(uval), appendModuleName); err != nil {
 					return nil, err
 				}
+			case ev.Kind() == reflect.Slice:
+				if ev.Type().Name() != BinaryTypeName {
+					return nil, fmt.Errorf("unknown union type within a slice: %v", e.Type().Name())
+				}
+				sval = append(sval, ev.Bytes())
 			default:
 				if underlyingType, ok := unionTypedefUnderlyingTypes[ev.Type().Name()]; ok && ev.Type().ConvertibleTo(underlyingType) {
 					ev = ev.Convert(underlyingType)
@@ -1373,8 +1370,8 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 			if value, err = unionInterfaceValue(field, appmod); err != nil {
 				return nil, err
 			}
-		case field.Elem().Kind() == reflect.Ptr && field.Elem().Elem().Type().Name() == BinaryTypeName && field.Elem().Elem().Kind() == reflect.Slice:
-			if value, err = jsonSlice(field.Elem().Elem(), parentMod, args); err != nil {
+		case field.Elem().Kind() == reflect.Slice && field.Elem().Type().Name() == BinaryTypeName:
+			if value, err = jsonSlice(field.Elem(), parentMod, args); err != nil {
 				return nil, err
 			}
 			return value, nil
