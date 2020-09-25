@@ -1094,9 +1094,6 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 	switch v := i.(type) {
 	{{ range $i, $conversionSpec := .ConversionSpecs -}}
 	case {{ $conversionSpec.PrimitiveType }}:
-		{{ if ne $conversionSpec.ConversionPrepSnippet "" -}}
-		{{ $conversionSpec.ConversionPrepSnippet }}
-		{{ end -}}
 		return {{ $conversionSpec.ConversionSnippet }}, nil
 	{{ end -}}
 	{{ if .HasUnsupported -}}
@@ -1443,8 +1440,6 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 						switch t {
 						case "interface{}":
 							tn = "*Unsupported"
-						case ygot.BinaryTypeName:
-							tn = "*" + ygot.BinaryTypeName
 						}
 					}
 					intf.Types[tn] = t

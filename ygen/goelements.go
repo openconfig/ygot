@@ -37,9 +37,6 @@ type unionConversionSpec struct {
 	// PrimitiveType is the primitive Go type from which to convert to the
 	// union type.
 	PrimitiveType string
-	// ConversionPrepSnippet contains a snippet that must be placed before
-	// the conversion spec for the conversion to be valid.
-	ConversionPrepSnippet string
 	// ConversionSnippet is the code snippet that converts the primitive
 	// type to the union type.
 	ConversionSnippet string
@@ -102,7 +99,7 @@ var (
 		"string":            {PrimitiveType: "string", ConversionSnippet: "String(v)"},
 		"bool":              {PrimitiveType: "bool", ConversionSnippet: "Bool(v)"},
 		"interface{}":       {PrimitiveType: "interface{}", ConversionSnippet: "&Unsupported{v}"},
-		ygot.BinaryTypeName: {PrimitiveType: "[]byte", ConversionPrepSnippet: fmt.Sprintf("b := %s(v)", ygot.BinaryTypeName), ConversionSnippet: "&b"},
+		ygot.BinaryTypeName: {PrimitiveType: "[]byte", ConversionSnippet: ygot.BinaryTypeName + "(v)"},
 		ygot.EmptyTypeName:  {PrimitiveType: "bool", ConversionSnippet: ygot.EmptyTypeName + "(v)"},
 	}
 )
