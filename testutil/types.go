@@ -77,29 +77,30 @@ type TestUnion2 interface {
 	IsTestUnion2()
 }
 
-func (String) IsTestUnion()  {}
-func (Int16) IsTestUnion()   {}
-func (Int64) IsTestUnion()   {}
-func (*Binary) IsTestUnion() {}
+func (String) IsTestUnion() {}
+func (Int16) IsTestUnion()  {}
+func (Int64) IsTestUnion()  {}
+func (Binary) IsTestUnion() {}
 
-func (String) IsUnion()  {}
-func (Int64) IsUnion()   {}
-func (*Binary) IsUnion() {}
+func (String) IsUnion() {}
+func (Int64) IsUnion()  {}
+func (Binary) IsUnion() {}
 
-func (Int16) IsTestUnion2()   {}
-func (Int64) IsTestUnion2()   {}
-func (*Binary) IsTestUnion2() {}
+func (Int16) IsTestUnion2()  {}
+func (Int64) IsTestUnion2()  {}
+func (Binary) IsTestUnion2() {}
+func (Bool) IsTestUnion2()   {}
 
-func (String) Is_UnionLeafTypeSimple()  {}
-func (Uint32) Is_UnionLeafTypeSimple()  {}
-func (*Binary) Is_UnionLeafTypeSimple() {}
+func (String) Is_UnionLeafTypeSimple() {}
+func (Uint32) Is_UnionLeafTypeSimple() {}
+func (Binary) Is_UnionLeafTypeSimple() {}
 
 func (String) IsExampleUnion()       {}
 func (Float64) IsExampleUnion()      {}
 func (Int64) IsExampleUnion()        {}
 func (Bool) IsExampleUnion()         {}
 func (YANGEmpty) IsExampleUnion()    {}
-func (*Binary) IsExampleUnion()      {}
+func (Binary) IsExampleUnion()       {}
 func (*Unsupported) IsExampleUnion() {}
 
 func (*Unsupported) IsU() {}

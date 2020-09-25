@@ -181,8 +181,7 @@ func (*LeafListContainer) To_UnionLeafTypeSimple(i interface{}) (UnionLeafTypeSi
 	}
 	switch v := i.(type) {
 	case []byte:
-		b := testutil.Binary(v)
-		return &b, nil
+		return testutil.Binary(v), nil
 	case string:
 		return testutil.String(v), nil
 	case uint32:
