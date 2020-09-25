@@ -1423,11 +1423,11 @@ func TestCopyStruct(t *testing.T) {
 	}, {
 		name: "union field: binary",
 		inSrc: &copyTest{
-			UnionField: &testBinary1,
+			UnionField: testBinary1,
 		},
 		inDst: &copyTest{},
 		wantDst: &copyTest{
-			UnionField: &testBinary1,
+			UnionField: testBinary1,
 		},
 	}, {
 		name: "string slice",
@@ -2014,54 +2014,65 @@ var mergeStructTests = []struct {
 }, {
 	name: "merge union: binary values not equal",
 	inA: &validatedMergeTest{
-		UnionField: &testBinary1,
+		UnionField: testBinary1,
 	},
 	inB: &validatedMergeTest{
-		UnionField: &testBinary2,
+		UnionField: testBinary2,
 	},
 	wantErr: "interface field was set in both src and dst and was not equal",
 }, {
 	name: "overwrite merge union: binary values not equal",
 	inA: &validatedMergeTest{
-		UnionField: &testBinary1,
+		UnionField: testBinary1,
 	},
 	inB: &validatedMergeTest{
-		UnionField: &testBinary2,
+		UnionField: testBinary2,
 	},
 	inOpts: []MergeOpt{
 		&MergeOverwriteExistingFields{},
 	},
 	want: &validatedMergeTest{
-		UnionField: &testBinary2,
+		UnionField: testBinary2,
+	},
+}, {
+	name: "merge union: int values equal",
+	inA: &validatedMergeTest{
+		UnionField: testutil.Int64(42),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.Int64(42),
+	},
+	want: &validatedMergeTest{
+		UnionField: testutil.Int64(42),
 	},
 }, {
 	name: "merge union: binary values equal",
 	inA: &validatedMergeTest{
-		UnionField: &testBinary1,
+		UnionField: testBinary1,
 	},
 	inB: &validatedMergeTest{
-		UnionField: &testBinary1,
+		UnionField: testBinary1,
 	},
 	want: &validatedMergeTest{
-		UnionField: &testBinary1,
+		UnionField: testBinary1,
 	},
 }, {
 	name: "merge union: binary value set in src and not dst",
 	inA: &validatedMergeTest{
-		UnionField: &testBinary1,
+		UnionField: testBinary1,
 	},
 	inB: &validatedMergeTest{},
 	want: &validatedMergeTest{
-		UnionField: &testBinary1,
+		UnionField: testBinary1,
 	},
 }, {
 	name: "merge union: binary value set in dst and not src",
 	inA:  &validatedMergeTest{},
 	inB: &validatedMergeTest{
-		UnionField: &testBinary1,
+		UnionField: testBinary1,
 	},
 	want: &validatedMergeTest{
-		UnionField: &testBinary1,
+		UnionField: testBinary1,
 	},
 }, {
 	name: "merge union (wrapper union): values not equal",

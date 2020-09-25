@@ -1,0 +1,47 @@
+module openconfig-binary-multi-list {
+  namespace "urn:ocbmlist";
+  prefix "oc";
+
+  description
+    "A simple test module that is used to verify code generation for a
+    schema that contains a multi-keyed list with a binary key";
+
+  grouping multi-key-config {
+    leaf key1 { type uint32; }
+    leaf key2 { type binary; }
+  }
+
+  grouping lists-top {
+    container model {
+      container b {
+        list multi-key {
+          key "key1 key2";
+
+          leaf key1 {
+            type leafref {
+              path "../config/key1";
+            }
+          }
+
+          leaf key2 {
+            type leafref {
+              path "../config/key2";
+            }
+          }
+
+          container config {
+            uses multi-key-config;
+          }
+
+          container state {
+            config false;
+            uses multi-key-config;
+          }
+        }
+      }
+    }
+  }
+
+  uses lists-top;
+
+}
