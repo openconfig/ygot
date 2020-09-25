@@ -483,17 +483,17 @@ func TestValidateLeafUnion(t *testing.T) {
 		{
 			desc:   "success string",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: testutil.String("aaa")},
+			val:    &UnionContainer{UnionField: testutil.UnionString("aaa")},
 		},
 		{
 			desc:   "success int16",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: testutil.Int16(42)},
+			val:    &UnionContainer{UnionField: testutil.UnionInt16(42)},
 		},
 		{
 			desc:   "success int64",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: testutil.Int64(42)},
+			val:    &UnionContainer{UnionField: testutil.UnionInt64(42)},
 		},
 		{
 			desc:   "success enum",
@@ -503,7 +503,7 @@ func TestValidateLeafUnion(t *testing.T) {
 		{
 			desc:    "bad regex",
 			schema:  unionContainerSchema,
-			val:     &UnionContainer{UnionField: testutil.String("bbb")},
+			val:     &UnionContainer{UnionField: testutil.UnionString("bbb")},
 			wantErr: true,
 		},
 		{
@@ -1039,9 +1039,9 @@ func (*LeafContainerStruct) To_UnionLeafTypeSimple(i interface{}) (UnionLeafType
 	case []byte:
 		return testutil.Binary(v), nil
 	case string:
-		return testutil.String(v), nil
+		return testutil.UnionString(v), nil
 	case uint32:
-		return testutil.Uint32(v), nil
+		return testutil.UnionUint32(v), nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to UnionLeafTypeSimple, unknown union type, got: %T, want any of [string, uint32, EnumType, EnumType2, Binary]", i, i)
 }
@@ -1121,12 +1121,12 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		{
 			desc: "union string success",
 			json: `{"union-leaf-simple" : "forty-two"}`,
-			want: LeafContainerStruct{UnionLeafSimple: testutil.String("forty-two")},
+			want: LeafContainerStruct{UnionLeafSimple: testutil.UnionString("forty-two")},
 		},
 		{
 			desc: "union uint32 success",
 			json: `{"union-leaf-simple" : 42}`,
-			want: LeafContainerStruct{UnionLeafSimple: testutil.Uint32(42)},
+			want: LeafContainerStruct{UnionLeafSimple: testutil.UnionUint32(42)},
 		},
 		{
 			desc: "union binary success",
@@ -1154,7 +1154,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			want: LeafContainerStruct{
 				UnionLeafSliceSimple: []UnionLeafTypeSimple{
 					EnumType2(43),
-					testutil.Uint32(40),
+					testutil.UnionUint32(40),
 				},
 			},
 		},
