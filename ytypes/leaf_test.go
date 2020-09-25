@@ -474,8 +474,6 @@ func TestValidateLeafUnion(t *testing.T) {
 		},
 	}
 
-	bin := testutil.Binary("abc")
-
 	tests := []struct {
 		desc    string
 		schema  *yang.Entry
@@ -511,7 +509,7 @@ func TestValidateLeafUnion(t *testing.T) {
 		{
 			desc:   "success binary",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &bin},
+			val:    &UnionContainer{UnionField: testutil.Binary("abc")},
 		},
 		{
 			desc:   "success string (wrapper union type)",
@@ -1039,8 +1037,7 @@ func (*LeafContainerStruct) To_UnionLeafTypeSimple(i interface{}) (UnionLeafType
 	}
 	switch v := i.(type) {
 	case []byte:
-		b := testutil.Binary(v)
-		return &b, nil
+		return testutil.Binary(v), nil
 	case string:
 		return testutil.String(v), nil
 	case uint32:
@@ -1050,8 +1047,6 @@ func (*LeafContainerStruct) To_UnionLeafTypeSimple(i interface{}) (UnionLeafType
 }
 
 func TestUnmarshalLeafJSONEncoding(t *testing.T) {
-	testBinary := testutil.Binary(base64testString)
-
 	tests := []struct {
 		desc    string
 		json    string
@@ -1136,7 +1131,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		{
 			desc: "union binary success",
 			json: `{"union-leaf-simple" : "` + base64testStringEncoded + `"}`,
-			want: LeafContainerStruct{UnionLeafSimple: &testBinary},
+			want: LeafContainerStruct{UnionLeafSimple: testutil.Binary(base64testString)},
 		},
 		{
 			desc: "union enum success",
@@ -1816,8 +1811,6 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
 	}
 
-	testBinary := testutil.Binary("value")
-
 	tests := []struct {
 		desc     string
 		inSchema *yang.Entry
@@ -2029,7 +2022,7 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 					BytesVal: []byte("value"),
 				},
 			},
-			wantVal: &LeafContainerStruct{UnionLeafSimple: &testBinary},
+			wantVal: &LeafContainerStruct{UnionLeafSimple: testutil.Binary("value")},
 		},
 		{
 			desc:     "success unmarshalling union (wrapper union) leaf string field",
