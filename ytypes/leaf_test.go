@@ -483,17 +483,17 @@ func TestValidateLeafUnion(t *testing.T) {
 		{
 			desc:   "success string",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: testutil.String("aaa")},
+			val:    &UnionContainer{UnionField: testutil.UnionString("aaa")},
 		},
 		{
 			desc:   "success int16",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: testutil.Int16(42)},
+			val:    &UnionContainer{UnionField: testutil.UnionInt16(42)},
 		},
 		{
 			desc:   "success int64",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: testutil.Int64(42)},
+			val:    &UnionContainer{UnionField: testutil.UnionInt64(42)},
 		},
 		{
 			desc:   "success enum",
@@ -503,7 +503,7 @@ func TestValidateLeafUnion(t *testing.T) {
 		{
 			desc:    "bad regex",
 			schema:  unionContainerSchema,
-			val:     &UnionContainer{UnionField: testutil.String("bbb")},
+			val:     &UnionContainer{UnionField: testutil.UnionString("bbb")},
 			wantErr: true,
 		},
 		{
