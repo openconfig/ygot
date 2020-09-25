@@ -59,7 +59,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 	case reflect.Ptr:
 		rv = reflect.ValueOf(value).Elem().Interface()
 	case reflect.Slice:
-		if ykind != yang.Ybinary {
+		if ykind != yang.Ybinary && ykind != yang.Yunion {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect []byte for binary value %v for schema %s, have type %v", value, schema.Name, ykind))
 		}
 	case reflect.Int64:

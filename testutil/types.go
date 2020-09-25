@@ -73,11 +73,11 @@ type TestUnion interface {
 	IsTestUnion()
 }
 
-func (String) IsTestUnion()  {}
-func (Int16) IsTestUnion()   {}
-func (Int64) IsTestUnion()   {}
-func (*Binary) IsTestUnion() {}
+func (String) IsTestUnion() {}
+func (Int16) IsTestUnion()  {}
+func (Int64) IsTestUnion()  {}
+func (Binary) IsTestUnion() {}
 
-func (String) IsUnion()  {}
-func (Int64) IsUnion()   {}
-func (*Binary) IsUnion() {}
+func (String) IsUnion() {}
+func (Int64) IsUnion()  {}
+func (Binary) IsUnion() {}

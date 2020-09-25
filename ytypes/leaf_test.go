@@ -474,8 +474,6 @@ func TestValidateLeafUnion(t *testing.T) {
 		},
 	}
 
-	bin := testutil.Binary("abc")
-
 	tests := []struct {
 		desc    string
 		schema  *yang.Entry
@@ -511,7 +509,7 @@ func TestValidateLeafUnion(t *testing.T) {
 		{
 			desc:   "success binary",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &bin},
+			val:    &UnionContainer{UnionField: testutil.Binary("abc")},
 		},
 		{
 			desc:   "success string (wrapper union type)",
