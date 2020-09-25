@@ -687,7 +687,7 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 		}
 		dstField.Set(d)
 		return nil
-	case srcField.Elem().Kind() == reflect.Ptr && srcField.Elem().Elem().Type().Name() == BinaryTypeName:
+	case srcField.Elem().Kind() == reflect.Slice && srcField.Elem().Type().Name() == BinaryTypeName:
 		if !util.IsNilOrInvalidValue(dstField) {
 			s, d := srcField.Interface(), dstField.Interface()
 			if diff := cmp.Diff(s, d); !fieldOverwriteEnabled(opts) && diff != "" {
@@ -695,14 +695,12 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 			}
 		}
 
-		srcVal := srcField.Elem().Elem()
+		srcVal := srcField.Elem()
 		ns := reflect.Zero(srcVal.Type())
 		for i := 0; i < srcVal.Len(); i++ {
 			ns = reflect.Append(ns, srcVal.Index(i))
 		}
-		nsp := reflect.New(srcVal.Type())
-		nsp.Elem().Set(ns)
-		dstField.Set(nsp)
+		dstField.Set(ns)
 		return nil
 	case util.IsValueScalar(srcField.Elem()) && (isGoEnum || unionTypedefUnderlyingTypes[srcField.Elem().Type().Name()] != nil):
 		if !util.IsNilOrInvalidValue(dstField) {

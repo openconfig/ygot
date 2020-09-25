@@ -284,8 +284,7 @@ func (*allKeysListStruct) To_TestUnion2(i interface{}) (testutil.TestUnion2, err
 	}
 	switch v := i.(type) {
 	case []byte:
-		b := testutil.Binary(v)
-		return &b, nil
+		return testutil.Binary(v), nil
 	case int16:
 		return testutil.Int16(v), nil
 	case int64:
@@ -590,7 +589,7 @@ func TestStringToKeyType(t *testing.T) {
 		inParent:    &allKeysListStruct{},
 		inFieldName: "UnionKeySimple",
 		in:          base64testStringEncoded,
-		want:        &testBinary,
+		want:        testBinary,
 	}, {
 		name:        "union/int16",
 		inSchema:    listSchema.Dir["unionKeySimple"],

@@ -829,8 +829,7 @@ func (*ListElemStructMapCreation) To_TestUnion2(i interface{}) (testutil.TestUni
 	}
 	switch v := i.(type) {
 	case []byte:
-		b := testutil.Binary(v)
-		return &b, nil
+		return testutil.Binary(v), nil
 	case int16:
 		return testutil.Int16(v), nil
 	case int64:
@@ -863,8 +862,7 @@ func (*ListElemStructMapCreationLeafrefKeys) To_TestUnion2(i interface{}) (testu
 	}
 	switch v := i.(type) {
 	case []byte:
-		b := testutil.Binary(v)
-		return &b, nil
+		return testutil.Binary(v), nil
 	case int16:
 		return testutil.Int16(v), nil
 	case int64:
@@ -1102,7 +1100,7 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 		{
 			desc: "success with binary for union key",
 			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "1234", "key5": base64testStringEncoded},
-			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1Int16{int16(1234)}, UnionKeySimple: &testBinary},
+			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1Int16{int16(1234)}, UnionKeySimple: testBinary},
 		},
 		// note that an extra key in the map is just ignored as long as the mandatory keys present.
 		{
@@ -1215,8 +1213,7 @@ func (*ListUnionStructSimple) To_TestUnion2(i interface{}) (testutil.TestUnion2,
 	}
 	switch v := i.(type) {
 	case []byte:
-		b := testutil.Binary(v)
-		return &b, nil
+		return testutil.Binary(v), nil
 	case int16:
 		return testutil.Int16(v), nil
 	case int64:
@@ -1416,6 +1413,9 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			want:      EnumType(42),
 		},
 		{
+			// NOTE: This currently never appears in practice since
+			// binary values are never allowed as part of list
+			// keys.
 			desc: "success - union/binary <key,value> creation",
 			keys: map[string]string{"key": base64testStringEncoded},
 			inSchema: &yang.Entry{
@@ -1458,7 +1458,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 				},
 			},
 			container: &simpleStruct{KeyList: map[testutil.TestUnion2]*ListUnionStructSimple{}},
-			want:      &testBinary,
+			want:      testBinary,
 		},
 		{
 			desc: "success - union/int64 <key,value> creation",
@@ -1892,9 +1892,8 @@ func (*unionKeyTestStructChildSimple) To_TestUnion2(i interface{}) (testutil.Tes
 		return v, nil
 	}
 	switch v := i.(type) {
-	case []byte:
-		b := testutil.Binary(v)
-		return &b, nil
+	case bool:
+		return testutil.Bool(v), nil
 	case int16:
 		return testutil.Int16(v), nil
 	case int64:
@@ -1970,8 +1969,8 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 									Kind: yang.Yint64,
 								},
 								{
-									Name: "binary",
-									Kind: yang.Ybinary,
+									Name: "bool",
+									Kind: yang.Ybool,
 								},
 							},
 						},
@@ -2009,7 +2008,7 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 							"key": 42
 						},
 						{
-							"key": "` + base64testStringEncoded + `"
+							"key": true
 						}
 					]
 				}`,

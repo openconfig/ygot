@@ -287,6 +287,11 @@ Such that the `Foo` field is a map, keyed on the type of the key leaf (`fookey`)
 
 Each YANG list that exists within a container has a helper-method generated for it. For a list named `foo`, the parent container (`C`) has a `NewFoo(fookey string)` method generated, taking a key value as an argument, and returning a new member of the map within the `foo` list.
 
+##### Note on using binary as a list key type
+Because `Binary`'s underlying `[]byte` type is not hashable, YANG models
+containing lists with `binary` as a key value, or a `union` type containing a
+`binary` type is not supported by ygot, and will not compile.
+
 ### YANG Union Leaves
 
 In order to preserve strict type validation at compile time, `union` leaves within the YANG schema are mapped to an Go `interface` which is subsequently implemented for each type that is defined within the YANG union.
@@ -343,15 +348,6 @@ The `UnionLeaf` field can be set to any defined type (including enumeration
 typedefs) that implements the `Foo_Bar_UnionLeaf_Union` interface. These
 typedefs are re-used for different union types; so, it's possible to assign an
 `Int8` value to any union which has `int8` in its definition.
-
-##### Note on using binary as a possible union value
-Because `Binary`'s underlying `[]byte` type is not hashable, `*Binary` is
-instead used to represent those union types's `binary` values. This means that
-when a union containing `binary` is used as a list key, the resulting generated
-map would be unable to index normally using a new `&Binary{}` value since it's
-the pointer value that's hashed, instead of the actual `Binary` value. In such
-cases, a loop through the map is necessary to obtain the list element keyed by
-the `*Binary` type.
 
 #### Wrapper Union Leaves
 
