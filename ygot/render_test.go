@@ -578,7 +578,7 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 			S: String("foo"),
 			E: EnumTestVALTWO,
 			X: &renderExampleUnionString{"hello"},
-			Y: &testBinary,
+			Y: testBinary,
 		}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
@@ -1125,7 +1125,7 @@ func TestTogNMINotifications(t *testing.T) {
 	}, {
 		name:        "struct with binary union",
 		inTimestamp: 42,
-		inStruct:    &renderExample{UnionValSimple: &testBinary},
+		inStruct:    &renderExample{UnionValSimple: testBinary},
 		want: []*gnmipb.Notification{{
 			Timestamp: 42,
 			Update: []*gnmipb.Update{{
@@ -1138,7 +1138,7 @@ func TestTogNMINotifications(t *testing.T) {
 		inTimestamp: 42,
 		inStruct: &renderExample{
 			UnionLeafListSimple: []exampleUnion{
-				&testBinary,
+				testBinary,
 				EnumTestVALTWO,
 				testutil.Int64(42),
 				testutil.Float64(3.14),
@@ -2147,7 +2147,7 @@ func TestConstructJSON(t *testing.T) {
 			EnabledAddressFamiliesSimple: []exampleUnion{
 				testutil.Float64(3.14),
 				testutil.Int64(42),
-				&testBinary,
+				testBinary,
 				EnumTestVALONE,
 			},
 		},
@@ -2186,7 +2186,7 @@ func TestConstructJSON(t *testing.T) {
 	}, {
 		name: "union example - binary",
 		in: &exampleBgpNeighbor{
-			TransportAddressSimple: &testBinary,
+			TransportAddressSimple: testBinary,
 		},
 		wantIETF: map[string]interface{}{
 			"state": map[string]interface{}{
@@ -2825,7 +2825,7 @@ func TestLeaflistToSlice(t *testing.T) {
 		wantSlice: []interface{}{true, false},
 	}, {
 		name:      "union",
-		inVal:     reflect.ValueOf([]exampleUnion{testutil.String("hello"), testutil.Float64(3.14), testutil.Int64(42), EnumTestVALTWO, &testBinary, &unsupported}),
+		inVal:     reflect.ValueOf([]exampleUnion{testutil.String("hello"), testutil.Float64(3.14), testutil.Int64(42), EnumTestVALTWO, testBinary, &unsupported}),
 		wantSlice: []interface{}{"hello", float64(3.14), int64(42), "VAL_TWO", []byte(base64testString), "Foo"},
 	}, {
 		name:      "union (wrapped union)",
@@ -2945,7 +2945,7 @@ func TestKeyValueAsString(t *testing.T) {
 			want: "true",
 		},
 		{
-			i:    &testBinary,
+			i:    testBinary,
 			want: base64testStringEncoded,
 		},
 		{
@@ -3055,7 +3055,7 @@ func TestEncodeTypedValue(t *testing.T) {
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{3.14}},
 	}, {
 		name:  "binary union encoding",
-		inVal: &testBinary,
+		inVal: testBinary,
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
 	}, {
 		name:  "bool type union encoding",
@@ -3067,7 +3067,7 @@ func TestEncodeTypedValue(t *testing.T) {
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
 	}, {
 		name:  "slice union encoding",
-		inVal: []exampleUnion{testutil.String("hello"), testutil.Int64(42), testutil.Float64(3.14), &testBinary, testutil.Bool(true), testutil.YANGEmpty(false)},
+		inVal: []exampleUnion{testutil.String("hello"), testutil.Int64(42), testutil.Float64(3.14), testBinary, testutil.Bool(true), testutil.YANGEmpty(false)},
 		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
 			&gnmipb.ScalarArray{
 				Element: []*gnmipb.TypedValue{
