@@ -2594,10 +2594,10 @@ type uFieldMulti struct {
 
 func (*uFieldMulti) IsU() {}
 
-func TestUnionInterfaceValue(t *testing.T) {
+func TestUnwrapUnionInterfaceValue(t *testing.T) {
 
-	// This is the only test that is used by the simple union API -- it is
-	// for unsupported types.
+	// This is the only unwrap test that is used by the simple union API
+	// (i.e. unsupported types).
 	testZero := &unionTestOne{
 		UField: &testutil.Unsupported{"Foo"},
 	}
@@ -2686,16 +2686,16 @@ func TestUnionInterfaceValue(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := unionInterfaceValue(tt.in, tt.inAppendMod)
+		got, err := unwrapUnionInterfaceValue(tt.in, tt.inAppendMod)
 		if err != nil {
 			if !tt.wantErr {
-				t.Errorf("%s: unionInterfaceValue(%v): got unexpected error: %v", tt.name, tt.in, err)
+				t.Errorf("%s: unwrapUnionInterfaceValue(%v): got unexpected error: %v", tt.name, tt.in, err)
 			}
 			continue
 		}
 
 		if got != tt.want {
-			t.Errorf("%s: unionInterfaceValue(%v): did not get expected value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+			t.Errorf("%s: unwrapUnionInterfaceValue(%v): did not get expected value, got: %v, want: %v", tt.name, tt.in, got, tt.want)
 		}
 	}
 }
