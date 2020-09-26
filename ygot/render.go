@@ -46,18 +46,18 @@ var (
 	// represent union subtypes for the "Simplified Union Leaf" way of
 	// representatiing unions in the Go generated code.
 	unionSingletonUnderlyingTypes = map[string]reflect.Type{
-		"Int8":        reflect.TypeOf(int8(0)),
-		"Int16":       reflect.TypeOf(int16(0)),
-		"Int32":       reflect.TypeOf(int32(0)),
-		"Int64":       reflect.TypeOf(int64(0)),
-		"Uint8":       reflect.TypeOf(uint8(0)),
-		"Uint16":      reflect.TypeOf(uint16(0)),
-		"Uint32":      reflect.TypeOf(uint32(0)),
-		"Uint64":      reflect.TypeOf(uint64(0)),
-		"Float64":     reflect.TypeOf(float64(0.0)),
-		"String":      reflect.TypeOf(string("")),
-		"Bool":        reflect.TypeOf(bool(true)),
-		EmptyTypeName: reflect.TypeOf(bool(true)),
+		"UnionInt8":    reflect.TypeOf(int8(0)),
+		"UnionInt16":   reflect.TypeOf(int16(0)),
+		"UnionInt32":   reflect.TypeOf(int32(0)),
+		"UnionInt64":   reflect.TypeOf(int64(0)),
+		"UnionUint8":   reflect.TypeOf(uint8(0)),
+		"UnionUint16":  reflect.TypeOf(uint16(0)),
+		"UnionUint32":  reflect.TypeOf(uint32(0)),
+		"UnionUint64":  reflect.TypeOf(uint64(0)),
+		"UnionFloat64": reflect.TypeOf(float64(0.0)),
+		"UnionString":  reflect.TypeOf(string("")),
+		"UnionBool":    reflect.TypeOf(bool(true)),
+		EmptyTypeName:  reflect.TypeOf(bool(true)),
 		// Note: BinaryTypeName is missing here since it's a slice.
 	}
 )
