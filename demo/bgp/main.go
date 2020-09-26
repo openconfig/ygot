@@ -101,7 +101,7 @@ func CreateDemoBGPInstance() (*oc.Bgp, error) {
 
 	// Set the peer as a route reflector client using the String union helper typedef.
 	bgp.Neighbor["192.0.2.1"].RouteReflector = &oc.Bgp_Neighbor_RouteReflector{
-		RouteReflectorClusterId: oc.String("10.0.1.2"),
+		RouteReflectorClusterId: oc.UnionString("10.0.1.2"),
 	}
 
 	return bgp, nil

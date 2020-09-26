@@ -320,7 +320,7 @@ func TestNotificationOutput(t *testing.T) {
 		in: func() *exampleoc.Device {
 			d := &exampleoc.Device{}
 			t := d.GetOrCreateComponent("p1").GetOrCreateProperty("temperature")
-			t.Value = exampleoc.Int64(42)
+			t.Value = exampleoc.UnionInt64(42)
 			return d
 		}(),
 		wantTextpb: "testdata/notification_union_int64.txtpb",
@@ -342,7 +342,7 @@ func TestNotificationOutput(t *testing.T) {
 		in: func() *opstateoc.Device {
 			d := &opstateoc.Device{}
 			t := d.GetOrCreateComponent("p1").GetOrCreateProperty("temperature")
-			t.Value = opstateoc.Int64(42)
+			t.Value = opstateoc.UnionInt64(42)
 			return d
 		}(),
 		wantTextpb: "testdata/notification_union_int64_opstate.txtpb",

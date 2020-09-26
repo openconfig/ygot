@@ -132,7 +132,7 @@ func TestValidateInterface(t *testing.T) {
 
 	// Device/interface/subinterfaces/subinterface/vlan
 	vlan0.Vlan = &oc.Interface_Subinterface_Vlan{
-		VlanId: oc.Uint16(1234),
+		VlanId: oc.UnionUint16(1234),
 	}
 
 	// Validate the vlan.
@@ -142,15 +142,14 @@ func TestValidateInterface(t *testing.T) {
 
 	// Set vlan-id to be out of range (1-4094)
 	vlan0.Vlan = &oc.Interface_Subinterface_Vlan{
-		VlanId: oc.Uint16(4095),
+		VlanId: oc.UnionUint16(4095),
 	}
 	// Validate the vlan.
-	if err := vlan0.Validate(); err == nil {
-		t.Errorf("bad vlan-id value: got nil, want error")
-	} else {
-		if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
-			t.Errorf("did not get expected vlan-id error, %s", diff)
-		}
+	err = vlan0.Validate()
+	if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
+		t.Errorf("did not get expected vlan-id error, %s", diff)
+	}
+	if err != nil {
 		testErrLog(t, "bad vlan-id value", err)
 	}
 
@@ -168,7 +167,7 @@ func TestValidateInterfaceWrapperUnion(t *testing.T) {
 	dev := &woc.Device{}
 	eth0, err := dev.NewInterface("eth0")
 	if err != nil {
-		t.Errorf("eth0.NewInterface(): got %v, want nil", err)
+		t.Errorf("dev.NewInterface(): got %v, want nil", err)
 	}
 
 	eth0.Description = ygot.String("eth0 description")
@@ -185,12 +184,11 @@ func TestValidateInterfaceWrapperUnion(t *testing.T) {
 
 	// Key in map != key field value in element. Key should be "eth0" here.
 	dev.Interface["bad_key"] = eth0
-	if err := dev.Validate(); err == nil {
-		t.Errorf("bad key: got nil, want error")
-	} else {
-		if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
-			t.Errorf("did not get expected vlan-id error, %s", diff)
-		}
+	err = dev.Validate()
+	if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
+		t.Errorf("did not get expected vlan-id error, %s", diff)
+	}
+	if err != nil {
 		testErrLog(t, "bad key", err)
 	}
 
@@ -274,7 +272,7 @@ func TestValidateInterfaceOpState(t *testing.T) {
 
 	// Device/interface/subinterfaces/subinterface/vlan
 	vlan0.Vlan = &opstateoc.Interface_Subinterface_Vlan{
-		VlanId: opstateoc.Uint16(1234),
+		VlanId: opstateoc.UnionUint16(1234),
 	}
 
 	// Validate the vlan.
@@ -284,7 +282,7 @@ func TestValidateInterfaceOpState(t *testing.T) {
 
 	// Set vlan-id to be out of range (1-4094)
 	vlan0.Vlan = &opstateoc.Interface_Subinterface_Vlan{
-		VlanId: opstateoc.Uint16(4095),
+		VlanId: opstateoc.UnionUint16(4095),
 	}
 	// Validate the vlan.
 	if err := vlan0.Validate(); err == nil {
@@ -510,7 +508,7 @@ func TestValidateLocalRoutes(t *testing.T) {
 		NextHop: map[string]*oc.LocalRoutes_Static_NextHop{
 			"10.10.10.10": {
 				Index:   ygot.String("10.10.10.10"),
-				NextHop: oc.String("10.10.10.1"),
+				NextHop: oc.UnionString("10.10.10.1"),
 			},
 		},
 	}

@@ -30,42 +30,42 @@ type Binary []byte
 // in the generated code.
 type YANGEmpty bool
 
-// Int8 is an int8 type assignable to unions of which it is a subtype.
-type Int8 int8
+// UnionInt8 is an int8 type assignable to unions of which it is a subtype.
+type UnionInt8 int8
 
-// Int16 is an int16 type assignable to unions of which it is a subtype.
-type Int16 int16
+// UnionInt16 is an int16 type assignable to unions of which it is a subtype.
+type UnionInt16 int16
 
-// Int32 is an int32 type assignable to unions of which it is a subtype.
-type Int32 int32
+// UnionInt32 is an int32 type assignable to unions of which it is a subtype.
+type UnionInt32 int32
 
-// Int64 is an int64 type assignable to unions of which it is a subtype.
-type Int64 int64
+// UnionInt64 is an int64 type assignable to unions of which it is a subtype.
+type UnionInt64 int64
 
-// Uint8 is a uint8 type assignable to unions of which it is a subtype.
-type Uint8 uint8
+// UnionUint8 is a uint8 type assignable to unions of which it is a subtype.
+type UnionUint8 uint8
 
-// Uint16 is a uint16 type assignable to unions of which it is a subtype.
-type Uint16 uint16
+// UnionUint16 is a uint16 type assignable to unions of which it is a subtype.
+type UnionUint16 uint16
 
-// Uint32 is a uint32 type assignable to unions of which it is a subtype.
-type Uint32 uint32
+// UnionUint32 is a uint32 type assignable to unions of which it is a subtype.
+type UnionUint32 uint32
 
-// Uint64 is a uint64 type assignable to unions of which it is a subtype.
-type Uint64 uint64
+// UnionUint64 is a uint64 type assignable to unions of which it is a subtype.
+type UnionUint64 uint64
 
-// Float64 is a float64 type assignable to unions of which it is a subtype.
-type Float64 float64
+// UnionFloat64 is a float64 type assignable to unions of which it is a subtype.
+type UnionFloat64 float64
 
-// String is a string type assignable to unions of which it is a subtype.
-type String string
+// UnionString is a string type assignable to unions of which it is a subtype.
+type UnionString string
 
-// Bool is a bool type assignable to unions of which it is a subtype.
-type Bool bool
+// UnionBool is a bool type assignable to unions of which it is a subtype.
+type UnionBool bool
 
-// Unsupported is an interface{} wrapper type for unsupported types. It is
+// UnionUnsupported is an interface{} wrapper type for unsupported types. It is
 // assignable to unions of which it is a subtype.
-type Unsupported struct {
+type UnionUnsupported struct {
 	Value interface{}
 }
 
@@ -106,19 +106,19 @@ func (*Platform_Component) IsYANGGoStruct() {}
 
 // Platform_Component_E1_Union is an interface that is implemented by valid types for the union
 // for the leaf /openconfig-unione/platform/component/state/e1 within the YANG schema.
-// Union type can be one of [String, Uint32].
+// Union type can be one of [UnionString, UnionUint32].
 type Platform_Component_E1_Union interface {
-	// Union type can be one of [String, Uint32]
+	// Union type can be one of [UnionString, UnionUint32]
 	Documentation_for_Platform_Component_E1_Union()
 }
 
-// Documentation_for_Platform_Component_E1_Union ensures that String
+// Documentation_for_Platform_Component_E1_Union ensures that UnionString
 // implements the Platform_Component_E1_Union interface.
-func (String) Documentation_for_Platform_Component_E1_Union() {}
+func (UnionString) Documentation_for_Platform_Component_E1_Union() {}
 
-// Documentation_for_Platform_Component_E1_Union ensures that Uint32
+// Documentation_for_Platform_Component_E1_Union ensures that UnionUint32
 // implements the Platform_Component_E1_Union interface.
-func (Uint32) Documentation_for_Platform_Component_E1_Union() {}
+func (UnionUint32) Documentation_for_Platform_Component_E1_Union() {}
 
 // To_Platform_Component_E1_Union takes an input interface{} and attempts to convert it to a struct
 // which implements the Platform_Component_E1_Union union. It returns an error if the interface{} supplied
@@ -129,18 +129,18 @@ func (t *Platform_Component) To_Platform_Component_E1_Union(i interface{}) (Plat
 	}
 	switch v := i.(type) {
 	case string:
-		return String(v), nil
+		return UnionString(v), nil
 	case uint32:
-		return Uint32(v), nil
+		return UnionUint32(v), nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to Platform_Component_E1_Union, unknown union type, got: %T, want any of [string, uint32]", i, i)
 }
 
 // Platform_Component_Enumerated_Union is an interface that is implemented by valid types for the union
 // for the leaf /openconfig-unione/platform/component/state/enumerated within the YANG schema.
-// Union type can be one of [E_OpenconfigUnione_EnumOne, String].
+// Union type can be one of [E_OpenconfigUnione_EnumOne, UnionString].
 type Platform_Component_Enumerated_Union interface {
-	// Union type can be one of [E_OpenconfigUnione_EnumOne, String]
+	// Union type can be one of [E_OpenconfigUnione_EnumOne, UnionString]
 	Documentation_for_Platform_Component_Enumerated_Union()
 }
 
@@ -148,9 +148,9 @@ type Platform_Component_Enumerated_Union interface {
 // implements the Platform_Component_Enumerated_Union interface.
 func (E_OpenconfigUnione_EnumOne) Documentation_for_Platform_Component_Enumerated_Union() {}
 
-// Documentation_for_Platform_Component_Enumerated_Union ensures that String
+// Documentation_for_Platform_Component_Enumerated_Union ensures that UnionString
 // implements the Platform_Component_Enumerated_Union interface.
-func (String) Documentation_for_Platform_Component_Enumerated_Union() {}
+func (UnionString) Documentation_for_Platform_Component_Enumerated_Union() {}
 
 // To_Platform_Component_Enumerated_Union takes an input interface{} and attempts to convert it to a struct
 // which implements the Platform_Component_Enumerated_Union union. It returns an error if the interface{} supplied
@@ -161,30 +161,30 @@ func (t *Platform_Component) To_Platform_Component_Enumerated_Union(i interface{
 	}
 	switch v := i.(type) {
 	case string:
-		return String(v), nil
+		return UnionString(v), nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to Platform_Component_Enumerated_Union, unknown union type, got: %T, want any of [E_OpenconfigUnione_EnumOne, string]", i, i)
 }
 
 // Platform_Component_Power_Union is an interface that is implemented by valid types for the union
 // for the leaf /openconfig-unione/platform/component/state/power within the YANG schema.
-// Union type can be one of [*Unsupported, E_Component_Power, Uint32].
+// Union type can be one of [*UnionUnsupported, E_Component_Power, UnionUint32].
 type Platform_Component_Power_Union interface {
-	// Union type can be one of [*Unsupported, E_Component_Power, Uint32]
+	// Union type can be one of [*UnionUnsupported, E_Component_Power, UnionUint32]
 	Documentation_for_Platform_Component_Power_Union()
 }
 
-// Documentation_for_Platform_Component_Power_Union ensures that *Unsupported
+// Documentation_for_Platform_Component_Power_Union ensures that *UnionUnsupported
 // implements the Platform_Component_Power_Union interface.
-func (*Unsupported) Documentation_for_Platform_Component_Power_Union() {}
+func (*UnionUnsupported) Documentation_for_Platform_Component_Power_Union() {}
 
 // Documentation_for_Platform_Component_Power_Union ensures that E_Component_Power
 // implements the Platform_Component_Power_Union interface.
 func (E_Component_Power) Documentation_for_Platform_Component_Power_Union() {}
 
-// Documentation_for_Platform_Component_Power_Union ensures that Uint32
+// Documentation_for_Platform_Component_Power_Union ensures that UnionUint32
 // implements the Platform_Component_Power_Union interface.
-func (Uint32) Documentation_for_Platform_Component_Power_Union() {}
+func (UnionUint32) Documentation_for_Platform_Component_Power_Union() {}
 
 // To_Platform_Component_Power_Union takes an input interface{} and attempts to convert it to a struct
 // which implements the Platform_Component_Power_Union union. It returns an error if the interface{} supplied
@@ -195,7 +195,7 @@ func (t *Platform_Component) To_Platform_Component_Power_Union(i interface{}) (P
 	}
 	switch v := i.(type) {
 	case uint32:
-		return Uint32(v), nil
+		return UnionUint32(v), nil
 	case interface{}:
 		return &Unsupported{v}, nil
 	}

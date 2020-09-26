@@ -31,42 +31,42 @@ type Binary []byte
 // in the generated code.
 type YANGEmpty bool
 
-// Int8 is an int8 type assignable to unions of which it is a subtype.
-type Int8 int8
+// UnionInt8 is an int8 type assignable to unions of which it is a subtype.
+type UnionInt8 int8
 
-// Int16 is an int16 type assignable to unions of which it is a subtype.
-type Int16 int16
+// UnionInt16 is an int16 type assignable to unions of which it is a subtype.
+type UnionInt16 int16
 
-// Int32 is an int32 type assignable to unions of which it is a subtype.
-type Int32 int32
+// UnionInt32 is an int32 type assignable to unions of which it is a subtype.
+type UnionInt32 int32
 
-// Int64 is an int64 type assignable to unions of which it is a subtype.
-type Int64 int64
+// UnionInt64 is an int64 type assignable to unions of which it is a subtype.
+type UnionInt64 int64
 
-// Uint8 is a uint8 type assignable to unions of which it is a subtype.
-type Uint8 uint8
+// UnionUint8 is a uint8 type assignable to unions of which it is a subtype.
+type UnionUint8 uint8
 
-// Uint16 is a uint16 type assignable to unions of which it is a subtype.
-type Uint16 uint16
+// UnionUint16 is a uint16 type assignable to unions of which it is a subtype.
+type UnionUint16 uint16
 
-// Uint32 is a uint32 type assignable to unions of which it is a subtype.
-type Uint32 uint32
+// UnionUint32 is a uint32 type assignable to unions of which it is a subtype.
+type UnionUint32 uint32
 
-// Uint64 is a uint64 type assignable to unions of which it is a subtype.
-type Uint64 uint64
+// UnionUint64 is a uint64 type assignable to unions of which it is a subtype.
+type UnionUint64 uint64
 
-// Float64 is a float64 type assignable to unions of which it is a subtype.
-type Float64 float64
+// UnionFloat64 is a float64 type assignable to unions of which it is a subtype.
+type UnionFloat64 float64
 
-// String is a string type assignable to unions of which it is a subtype.
-type String string
+// UnionString is a string type assignable to unions of which it is a subtype.
+type UnionString string
 
-// Bool is a bool type assignable to unions of which it is a subtype.
-type Bool bool
+// UnionBool is a bool type assignable to unions of which it is a subtype.
+type UnionBool bool
 
-// Unsupported is an interface{} wrapper type for unsupported types. It is
+// UnionUnsupported is an interface{} wrapper type for unsupported types. It is
 // assignable to unions of which it is a subtype.
-type Unsupported struct {
+type UnionUnsupported struct {
 	Value interface{}
 }
 
@@ -90,9 +90,9 @@ func (t *AList) ΛListKeyMap() (map[string]interface{}, error) {
 
 // AList_Value_Union is an interface that is implemented by valid types for the union
 // for the leaf /enum-module/a-lists/a-list/state/value within the YANG schema.
-// Union type can be one of [E_AList_Value, Uint32].
+// Union type can be one of [E_AList_Value, UnionUint32].
 type AList_Value_Union interface {
-	// Union type can be one of [E_AList_Value, Uint32]
+	// Union type can be one of [E_AList_Value, UnionUint32]
 	Documentation_for_AList_Value_Union()
 }
 
@@ -100,9 +100,9 @@ type AList_Value_Union interface {
 // implements the AList_Value_Union interface.
 func (E_AList_Value) Documentation_for_AList_Value_Union() {}
 
-// Documentation_for_AList_Value_Union ensures that Uint32
+// Documentation_for_AList_Value_Union ensures that UnionUint32
 // implements the AList_Value_Union interface.
-func (Uint32) Documentation_for_AList_Value_Union() {}
+func (UnionUint32) Documentation_for_AList_Value_Union() {}
 
 // To_AList_Value_Union takes an input interface{} and attempts to convert it to a struct
 // which implements the AList_Value_Union union. It returns an error if the interface{} supplied
@@ -113,7 +113,7 @@ func (t *AList) To_AList_Value_Union(i interface{}) (AList_Value_Union, error) {
 	}
 	switch v := i.(type) {
 	case uint32:
-		return Uint32(v), nil
+		return UnionUint32(v), nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to AList_Value_Union, unknown union type, got: %T, want any of [E_AList_Value, uint32]", i, i)
 }
@@ -138,9 +138,9 @@ func (t *BList) ΛListKeyMap() (map[string]interface{}, error) {
 
 // BList_Value_Union is an interface that is implemented by valid types for the union
 // for the leaf /enum-module/b-lists/b-list/state/value within the YANG schema.
-// Union type can be one of [E_BList_Value, Uint32].
+// Union type can be one of [E_BList_Value, UnionUint32].
 type BList_Value_Union interface {
-	// Union type can be one of [E_BList_Value, Uint32]
+	// Union type can be one of [E_BList_Value, UnionUint32]
 	Documentation_for_BList_Value_Union()
 }
 
@@ -148,9 +148,9 @@ type BList_Value_Union interface {
 // implements the BList_Value_Union interface.
 func (E_BList_Value) Documentation_for_BList_Value_Union() {}
 
-// Documentation_for_BList_Value_Union ensures that Uint32
+// Documentation_for_BList_Value_Union ensures that UnionUint32
 // implements the BList_Value_Union interface.
-func (Uint32) Documentation_for_BList_Value_Union() {}
+func (UnionUint32) Documentation_for_BList_Value_Union() {}
 
 // To_BList_Value_Union takes an input interface{} and attempts to convert it to a struct
 // which implements the BList_Value_Union union. It returns an error if the interface{} supplied
@@ -161,7 +161,7 @@ func (t *BList) To_BList_Value_Union(i interface{}) (BList_Value_Union, error) {
 	}
 	switch v := i.(type) {
 	case uint32:
-		return Uint32(v), nil
+		return UnionUint32(v), nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to BList_Value_Union, unknown union type, got: %T, want any of [E_BList_Value, uint32]", i, i)
 }

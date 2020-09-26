@@ -176,7 +176,7 @@ func TestPathCreation(t *testing.T) {
 	}, {
 		name: "union key (uint32 value)",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
-			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(oc.Uint32(100)).InOctets()
+			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(oc.UnionUint32(100)).InOctets()
 		},
 		wantPath: "/network-instances/network-instance[name=RED]/mpls/signaling-protocols/segment-routing/interfaces/interface[interface-id=eth1]/sid-counters/sid-counter[mpls-label=100]/state/in-octets",
 	}, {
