@@ -831,9 +831,9 @@ func (*ListElemStructMapCreation) To_TestUnion2(i interface{}) (testutil.TestUni
 	case []byte:
 		return testutil.Binary(v), nil
 	case int16:
-		return testutil.Int16(v), nil
+		return testutil.UnionInt16(v), nil
 	case int64:
-		return testutil.Int64(v), nil
+		return testutil.UnionInt64(v), nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
 }
@@ -864,9 +864,9 @@ func (*ListElemStructMapCreationLeafrefKeys) To_TestUnion2(i interface{}) (testu
 	case []byte:
 		return testutil.Binary(v), nil
 	case int16:
-		return testutil.Int16(v), nil
+		return testutil.UnionInt16(v), nil
 	case int64:
-		return testutil.Int64(v), nil
+		return testutil.UnionInt64(v), nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
 }
@@ -1095,7 +1095,7 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 		{
 			desc: "success with int16 for union key",
 			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "1234", "key5": "1234"},
-			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1Int16{int16(1234)}, UnionKeySimple: testutil.Int16(1234)},
+			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1Int16{int16(1234)}, UnionKeySimple: testutil.UnionInt16(1234)},
 		},
 		{
 			desc: "success with binary for union key",
@@ -1215,9 +1215,9 @@ func (*ListUnionStructSimple) To_TestUnion2(i interface{}) (testutil.TestUnion2,
 	case []byte:
 		return testutil.Binary(v), nil
 	case int16:
-		return testutil.Int16(v), nil
+		return testutil.UnionInt16(v), nil
 	case int64:
-		return testutil.Int64(v), nil
+		return testutil.UnionInt64(v), nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
 }
@@ -1503,7 +1503,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 				},
 			},
 			container: &simpleStruct{KeyList: map[testutil.TestUnion2]*ListUnionStructSimple{}},
-			want:      testutil.Int64(-1234567890),
+			want:      testutil.UnionInt64(-1234567890),
 		},
 		{
 			desc: "unsupported type - union <key,value> creation",
@@ -1893,11 +1893,11 @@ func (*unionKeyTestStructChildSimple) To_TestUnion2(i interface{}) (testutil.Tes
 	}
 	switch v := i.(type) {
 	case bool:
-		return testutil.Bool(v), nil
+		return testutil.UnionBool(v), nil
 	case int16:
-		return testutil.Int16(v), nil
+		return testutil.UnionInt16(v), nil
 	case int64:
-		return testutil.Int64(v), nil
+		return testutil.UnionInt64(v), nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
 }
