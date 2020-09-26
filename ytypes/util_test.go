@@ -286,9 +286,9 @@ func (*allKeysListStruct) To_TestUnion2(i interface{}) (testutil.TestUnion2, err
 	case []byte:
 		return testutil.Binary(v), nil
 	case int16:
-		return testutil.Int16(v), nil
+		return testutil.UnionInt16(v), nil
 	case int64:
-		return testutil.Int64(v), nil
+		return testutil.UnionInt64(v), nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
 }
@@ -596,7 +596,7 @@ func TestStringToKeyType(t *testing.T) {
 		inParent:    &allKeysListStruct{},
 		inFieldName: "UnionKeySimple",
 		in:          "1234",
-		want:        testutil.Int16(1234),
+		want:        testutil.UnionInt16(1234),
 	}, {
 		name:        "union/enum (wrapper union)",
 		inSchema:    listSchema.Dir["unionKey"],
@@ -632,7 +632,7 @@ func TestStringToKeyType(t *testing.T) {
 		inParent:    &allKeysListStruct{},
 		inFieldName: "LeafrefToUnionKeySimple",
 		in:          "1234",
-		want:        testutil.Int16(1234),
+		want:        testutil.UnionInt16(1234),
 	}, {
 		name:             "invalid: field name not part of union type",
 		inSchema:         listSchema.Dir["unionKey"],

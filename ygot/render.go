@@ -41,22 +41,44 @@ const (
 )
 
 var (
-	// unionTypedefUnderlyingTypes stores the underlying types of the
-	// typedefs used to represent union subtypes in the Go generated code.
-	// Only typedefs that are hashable are listed here.
-	unionTypedefUnderlyingTypes = map[string]reflect.Type{
-		"Int8":        reflect.TypeOf(int8(0)),
-		"Int16":       reflect.TypeOf(int16(0)),
-		"Int32":       reflect.TypeOf(int32(0)),
-		"Int64":       reflect.TypeOf(int64(0)),
-		"Uint8":       reflect.TypeOf(uint8(0)),
-		"Uint16":      reflect.TypeOf(uint16(0)),
-		"Uint32":      reflect.TypeOf(uint32(0)),
-		"Uint64":      reflect.TypeOf(uint64(0)),
-		"Float64":     reflect.TypeOf(float64(0.0)),
-		"String":      reflect.TypeOf(string("")),
-		"Bool":        reflect.TypeOf(bool(true)),
-		EmptyTypeName: reflect.TypeOf(bool(true)),
+	// SimpleUnionBuiltinGoTypes stores the valid types that the Go code
+	// generation produces for simple union types given a regular leaf type
+	// name in Go.
+	SimpleUnionBuiltinGoTypes = map[string]string{
+		"int8":         "UnionInt8",
+		"int16":        "UnionInt16",
+		"int32":        "UnionInt32",
+		"int64":        "UnionInt64",
+		"uint8":        "UnionUint8",
+		"uint16":       "UnionUint16",
+		"uint32":       "UnionUint32",
+		"uint64":       "UnionUint64",
+		"float64":      "UnionFloat64",
+		"string":       "UnionString",
+		"bool":         "UnionBool",
+		"interface{}":  "*UnionUnsupported",
+		BinaryTypeName: BinaryTypeName,
+		EmptyTypeName:  EmptyTypeName,
+	}
+
+	// unionSingletonUnderlyingTypes stores the underlying types of the
+	// singleton (i.e. non-struct, non-slice, non-map) typedefs used to
+	// represent union subtypes for the "Simplified Union Leaf" way of
+	// representatiing unions in the Go generated code.
+	unionSingletonUnderlyingTypes = map[string]reflect.Type{
+		"UnionInt8":    reflect.TypeOf(int8(0)),
+		"UnionInt16":   reflect.TypeOf(int16(0)),
+		"UnionInt32":   reflect.TypeOf(int32(0)),
+		"UnionInt64":   reflect.TypeOf(int64(0)),
+		"UnionUint8":   reflect.TypeOf(uint8(0)),
+		"UnionUint16":  reflect.TypeOf(uint16(0)),
+		"UnionUint32":  reflect.TypeOf(uint32(0)),
+		"UnionUint64":  reflect.TypeOf(uint64(0)),
+		"UnionFloat64": reflect.TypeOf(float64(0.0)),
+		"UnionString":  reflect.TypeOf(string("")),
+		"UnionBool":    reflect.TypeOf(bool(true)),
+		EmptyTypeName:  reflect.TypeOf(bool(true)),
+		// Note: BinaryTypeName is missing here since it's a slice.
 	}
 )
 
@@ -427,7 +449,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 			continue
 		case reflect.Interface:
 			// This is a union value.
-			/*val, err := unionInterfaceValue(fval, false)
+			/*val, err := unwrapUnionInterfaceValue(fval, false)
 			if err != nil {
 				errs.Add(err)
 				continue
@@ -668,8 +690,8 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 	switch {
 	case util.IsValueNil(vv) || !vv.IsValid():
 		return nil, nil
-	case vv.Type().Kind() == reflect.Int64 && unionTypedefUnderlyingTypes[vv.Type().Name()] == nil:
-		// Invalid int64 that is not an enum or a union typedef type.
+	case vv.Type().Kind() == reflect.Int64 && unionSingletonUnderlyingTypes[vv.Type().Name()] == nil:
+		// Invalid int64 that is not an enum or a simple union Int64 type.
 		return nil, fmt.Errorf("cannot represent field value %v as TypedValue", val)
 	case vv.Type().Name() == BinaryTypeName:
 		// This is a binary type which is defiend as a []byte, so we encode it as the bytes.
@@ -688,7 +710,7 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 		}
 		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{arr}}, nil
 	case util.IsValueStructPtr(vv):
-		nv, err := unionInterfaceValue(vv, false)
+		nv, err := unwrapUnionInterfaceValue(vv, false)
 		if err != nil {
 			return nil, fmt.Errorf("cannot resolve union field value: %v", err)
 		}
@@ -699,7 +721,10 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 			return nil, nil
 		}
 	default:
-		if underlyingType, ok := unionTypedefUnderlyingTypes[vv.Type().Name()]; ok && vv.Type().ConvertibleTo(underlyingType) {
+		if underlyingType, ok := unionSingletonUnderlyingTypes[vv.Type().Name()]; ok {
+			if !vv.Type().ConvertibleTo(underlyingType) {
+				return nil, fmt.Errorf("ygot internal implementation bug: union type %q inconvertible to underlying type %q", vv.Type().Name(), underlyingType)
+			}
 			vv = vv.Convert(underlyingType)
 		}
 	}
@@ -804,7 +829,7 @@ func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, e
 			ev := e.Elem()
 			switch {
 			case ev.Kind() == reflect.Ptr:
-				uval, err := unionInterfaceValue(e, appendModuleName)
+				uval, err := unwrapUnionInterfaceValue(e, appendModuleName)
 				if err != nil {
 					return nil, err
 				}
@@ -817,7 +842,7 @@ func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, e
 				}
 				sval = append(sval, ev.Bytes())
 			default:
-				if underlyingType, ok := unionTypedefUnderlyingTypes[ev.Type().Name()]; ok && ev.Type().ConvertibleTo(underlyingType) {
+				if underlyingType, ok := unionSingletonUnderlyingTypes[ev.Type().Name()]; ok && ev.Type().ConvertibleTo(underlyingType) {
 					ev = ev.Convert(underlyingType)
 				}
 				if sval, err = appendTypedValue(sval, ev, appendModuleName); err != nil {
@@ -1367,7 +1392,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 		var err error
 		switch {
 		case util.IsValueInterfaceToStructPtr(field):
-			if value, err = unionInterfaceValue(field, appmod); err != nil {
+			if value, err = unwrapUnionInterfaceValue(field, appmod); err != nil {
 				return nil, err
 			}
 		case field.Elem().Kind() == reflect.Slice && field.Elem().Type().Name() == BinaryTypeName:
@@ -1483,9 +1508,9 @@ func jsonAnnotationSlice(v reflect.Value) (interface{}, error) {
 	return vals, nil
 }
 
-// unionInterfaceValue takes an input reflect.Value which must contain
-// an interface Value, and resolves it from the generated union struct to
-// the value which should be used for the YANG leaf.
+// unwrapUnionInterfaceValue takes an input reflect.Value which must contain
+// an interface Value, and resolves it from the generated wrapper union struct
+// to the value which should be used for the YANG leaf.
 //
 // In a generated GoStruct, a union with more than one type is implemented
 // as an interface which is implemented by the types that are valid for the
@@ -1522,7 +1547,7 @@ func jsonAnnotationSlice(v reflect.Value) (interface{}, error) {
 //
 // This function extracts field index 0 of the struct within the interface and returns
 // the value.
-func unionInterfaceValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
+func unwrapUnionInterfaceValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
 	var s reflect.Value
 	switch {
 	case util.IsValueInterfaceToStructPtr(v):
@@ -1541,7 +1566,7 @@ func unionInterfaceValue(v reflect.Value, appendModuleName bool) (interface{}, e
 }
 
 // unionPtrValue returns the value of a union when it is stored as a pointer. The
-// type of the union field is as per the description in unionInterfaceValue. Union
+// type of the union field is as per the description in unwrapUnionInterfaceValue. Union
 // pointer values are used when a list is keyed by a union.
 func unionPtrValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
 	if !util.IsValueStructPtr(v) {
