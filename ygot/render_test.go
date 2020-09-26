@@ -548,7 +548,7 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 			S: String("foo"),
 			E: EnumTestVALTWO,
 			X: &renderExampleUnionString{"hello"},
-			Y: testutil.Float64(3.14),
+			Y: testutil.UnionFloat64(3.14),
 		}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
@@ -638,7 +638,7 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 			S: String("foo"),
 			E: EnumTestVALTHREE,
 			X: &renderExampleUnionString{"hello"},
-			Y: testutil.Int64(314),
+			Y: testutil.UnionInt64(314),
 		}),
 		inPath: &gnmiPath{
 			pathElemPath: []*gnmipb.PathElem{
@@ -1103,7 +1103,7 @@ func TestTogNMINotifications(t *testing.T) {
 	}, {
 		name:        "struct with int64 union",
 		inTimestamp: 42,
-		inStruct:    &renderExample{UnionValSimple: testutil.Int64(42)},
+		inStruct:    &renderExample{UnionValSimple: testutil.UnionInt64(42)},
 		want: []*gnmipb.Notification{{
 			Timestamp: 42,
 			Update: []*gnmipb.Update{{
@@ -1114,7 +1114,7 @@ func TestTogNMINotifications(t *testing.T) {
 	}, {
 		name:        "struct with float64 union",
 		inTimestamp: 42,
-		inStruct:    &renderExample{UnionValSimple: testutil.Float64(3.14)},
+		inStruct:    &renderExample{UnionValSimple: testutil.UnionFloat64(3.14)},
 		want: []*gnmipb.Notification{{
 			Timestamp: 42,
 			Update: []*gnmipb.Update{{
@@ -1140,8 +1140,8 @@ func TestTogNMINotifications(t *testing.T) {
 			UnionLeafListSimple: []exampleUnion{
 				testBinary,
 				EnumTestVALTWO,
-				testutil.Int64(42),
-				testutil.Float64(3.14),
+				testutil.UnionInt64(42),
+				testutil.UnionFloat64(3.14),
 			},
 		},
 		want: []*gnmipb.Notification{{
@@ -2145,8 +2145,8 @@ func TestConstructJSON(t *testing.T) {
 		name: "union leaf-list example",
 		in: &exampleBgpNeighbor{
 			EnabledAddressFamiliesSimple: []exampleUnion{
-				testutil.Float64(3.14),
-				testutil.Int64(42),
+				testutil.UnionFloat64(3.14),
+				testutil.UnionInt64(42),
 				testBinary,
 				EnumTestVALONE,
 			},
@@ -2164,7 +2164,7 @@ func TestConstructJSON(t *testing.T) {
 	}, {
 		name: "union example - string",
 		in: &exampleBgpNeighbor{
-			TransportAddressSimple: testutil.String("42.42.42.42"),
+			TransportAddressSimple: testutil.UnionString("42.42.42.42"),
 		},
 		wantIETF: map[string]interface{}{
 			"state": map[string]interface{}{
@@ -2197,7 +2197,7 @@ func TestConstructJSON(t *testing.T) {
 	}, {
 		name: "union with IETF content",
 		in: &exampleBgpNeighbor{
-			TransportAddressSimple: testutil.Float64(3.14),
+			TransportAddressSimple: testutil.UnionFloat64(3.14),
 		},
 		wantIETF: map[string]interface{}{
 			"state": map[string]interface{}{
@@ -2599,7 +2599,7 @@ func TestUnwrapUnionInterfaceValue(t *testing.T) {
 	// This is the only unwrap test that is used by the simple union API
 	// (i.e. unsupported types).
 	testZero := &unionTestOne{
-		UField: &testutil.Unsupported{"Foo"},
+		UField: &testutil.UnionUnsupported{"Foo"},
 	}
 
 	testOne := &unionTestOne{
@@ -2721,7 +2721,7 @@ func TestUnionPtrValue(t *testing.T) {
 	}{{
 		// This is the only test that is used by the simple union API.
 		name:    "simple value ptr for unsupported type",
-		inValue: reflect.ValueOf(&testutil.Unsupported{"one"}),
+		inValue: reflect.ValueOf(&testutil.UnionUnsupported{"one"}),
 		want:    "one",
 	}, {
 		name:    "simple value ptr",
@@ -2758,7 +2758,7 @@ func TestUnionPtrValue(t *testing.T) {
 }
 
 func TestLeaflistToSlice(t *testing.T) {
-	unsupported := testutil.Unsupported{"Foo"}
+	unsupported := testutil.UnionUnsupported{"Foo"}
 
 	tests := []struct {
 		name               string
@@ -2825,7 +2825,7 @@ func TestLeaflistToSlice(t *testing.T) {
 		wantSlice: []interface{}{true, false},
 	}, {
 		name:      "union",
-		inVal:     reflect.ValueOf([]exampleUnion{testutil.String("hello"), testutil.Float64(3.14), testutil.Int64(42), EnumTestVALTWO, testBinary, &unsupported}),
+		inVal:     reflect.ValueOf([]exampleUnion{testutil.UnionString("hello"), testutil.UnionFloat64(3.14), testutil.UnionInt64(42), EnumTestVALTWO, testBinary, &unsupported}),
 		wantSlice: []interface{}{"hello", float64(3.14), int64(42), "VAL_TWO", []byte(base64testString), "Foo"},
 	}, {
 		name:      "union (wrapped union)",
@@ -2861,7 +2861,7 @@ func TestLeaflistToSlice(t *testing.T) {
 type binary2 []byte
 
 func TestKeyValueAsString(t *testing.T) {
-	unsupported := testutil.Unsupported{"Foo"}
+	unsupported := testutil.UnionUnsupported{"Foo"}
 
 	tests := []struct {
 		i                interface{}
@@ -2925,23 +2925,23 @@ func TestKeyValueAsString(t *testing.T) {
 			want: "hello",
 		},
 		{
-			i:    testutil.String("hello"),
+			i:    testutil.UnionString("hello"),
 			want: "hello",
 		},
 		{
-			i:    testutil.Int8(-5),
+			i:    testutil.UnionInt8(-5),
 			want: "-5",
 		},
 		{
-			i:    testutil.Uint64(42),
+			i:    testutil.UnionUint64(42),
 			want: "42",
 		},
 		{
-			i:    testutil.Float64(3.14),
+			i:    testutil.UnionFloat64(3.14),
 			want: "3.14",
 		},
 		{
-			i:    testutil.Bool(true),
+			i:    testutil.UnionBool(true),
 			want: "true",
 		},
 		{
@@ -3043,15 +3043,15 @@ func TestEncodeTypedValue(t *testing.T) {
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"val"}},
 	}, {
 		name:  "string union encoding",
-		inVal: testutil.String("hello"),
+		inVal: testutil.UnionString("hello"),
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
 	}, {
 		name:  "Int64 union encoding",
-		inVal: testutil.Int64(42),
+		inVal: testutil.UnionInt64(42),
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{42}},
 	}, {
 		name:  "decimal64 union encoding",
-		inVal: testutil.Float64(3.14),
+		inVal: testutil.UnionFloat64(3.14),
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{3.14}},
 	}, {
 		name:  "binary union encoding",
@@ -3059,7 +3059,7 @@ func TestEncodeTypedValue(t *testing.T) {
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
 	}, {
 		name:  "bool type union encoding",
-		inVal: testutil.Bool(true),
+		inVal: testutil.UnionBool(true),
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
 	}, {
 		name:  "empty type union encoding",
@@ -3067,7 +3067,7 @@ func TestEncodeTypedValue(t *testing.T) {
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
 	}, {
 		name:  "slice union encoding",
-		inVal: []exampleUnion{testutil.String("hello"), testutil.Int64(42), testutil.Float64(3.14), testBinary, testutil.Bool(true), testutil.YANGEmpty(false)},
+		inVal: []exampleUnion{testutil.UnionString("hello"), testutil.UnionInt64(42), testutil.UnionFloat64(3.14), testBinary, testutil.UnionBool(true), testutil.YANGEmpty(false)},
 		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
 			&gnmipb.ScalarArray{
 				Element: []*gnmipb.TypedValue{
@@ -3214,13 +3214,13 @@ func TestFindUpdatedLeaves(t *testing.T) {
 	}, {
 		name: "union",
 		in: &renderExample{
-			UnionValSimple: testutil.Int64(42),
+			UnionValSimple: testutil.UnionInt64(42),
 		},
 		inParent: &gnmiPath{pathElemPath: []*gnmipb.PathElem{}},
 		wantLeaves: map[*path]interface{}{
 			{p: &gnmiPath{
 				pathElemPath: mustPathElem("union-val-simple"),
-			}}: testutil.Int64(42),
+			}}: testutil.UnionInt64(42),
 		},
 	}, {
 		name: "union (wrapped union)",
