@@ -92,7 +92,7 @@ func CreateAFTInstance() (*oc.Device, error) {
 	// types for the interface that implements the union within NewLabelEntry.
 	// Since these types have a single fied, then we can use the anonymous
 	// initialiser.
-	if _, err := ni.Afts.NewLabelEntry(oc.Uint32(128)); err != nil {
+	if _, err := ni.Afts.NewLabelEntry(oc.UnionUint32(128)); err != nil {
 		return nil, err
 	}
 
@@ -106,8 +106,8 @@ func CreateAFTInstance() (*oc.Device, error) {
 	// subtypes of the union. For enumerations and identities, the values
 	// themselves satisfy the union interface since it's not a primitive type.
 	nh.PushedMplsLabelStack = []oc.NetworkInstance_Afts_NextHop_PushedMplsLabelStack_Union{
-		oc.Uint32(42),
-		oc.Uint32(84),
+		oc.UnionUint32(42),
+		oc.UnionUint32(84),
 		oc.OpenconfigMplsTypes_MplsLabel_Enum_IPV4_EXPLICIT_NULL,
 	}
 

@@ -290,7 +290,8 @@ Each YANG list that exists within a container has a helper-method generated for 
 ##### Note on using binary as a list key type
 Because `Binary`'s underlying `[]byte` type is not hashable, YANG models
 containing lists with `binary` as a key value, or a `union` type containing a
-`binary` type is not supported by ygot, and will not compile.
+`binary` type is not supported. An error is returned by the Go code generation
+process for such cases, this is a known limitation.
 
 ### YANG Union Leaves
 

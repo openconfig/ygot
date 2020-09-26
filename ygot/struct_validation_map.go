@@ -702,7 +702,7 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 		}
 		dstField.Set(ns)
 		return nil
-	case util.IsValueScalar(srcField.Elem()) && (isGoEnum || unionTypedefUnderlyingTypes[srcField.Elem().Type().Name()] != nil):
+	case util.IsValueScalar(srcField.Elem()) && (isGoEnum || unionSingletonUnderlyingTypes[srcField.Elem().Type().Name()] != nil):
 		if !util.IsNilOrInvalidValue(dstField) {
 			s, d := srcField.Interface(), dstField.Interface()
 			if diff := cmp.Diff(s, d); !fieldOverwriteEnabled(opts) && diff != "" {
