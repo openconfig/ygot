@@ -41,6 +41,26 @@ const (
 )
 
 var (
+	// SimpleUnionBuiltinGoTypes stores the valid types that the Go code
+	// generation produces for simple union types given a regular leaf type
+	// name in Go.
+	SimpleUnionBuiltinGoTypes = map[string]string{
+		"int8":         "UnionInt8",
+		"int16":        "UnionInt16",
+		"int32":        "UnionInt32",
+		"int64":        "UnionInt64",
+		"uint8":        "UnionUint8",
+		"uint16":       "UnionUint16",
+		"uint32":       "UnionUint32",
+		"uint64":       "UnionUint64",
+		"float64":      "UnionFloat64",
+		"string":       "UnionString",
+		"bool":         "UnionBool",
+		"interface{}":  "*UnionUnsupported",
+		BinaryTypeName: BinaryTypeName,
+		EmptyTypeName:  EmptyTypeName,
+	}
+
 	// unionSingletonUnderlyingTypes stores the underlying types of the
 	// singleton (i.e. non-struct, non-slice, non-map) typedefs used to
 	// represent union subtypes for the "Simplified Union Leaf" way of

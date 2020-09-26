@@ -132,7 +132,7 @@ func TestValidateInterface(t *testing.T) {
 
 	// Device/interface/subinterfaces/subinterface/vlan
 	vlan0.Vlan = &oc.Interface_Subinterface_Vlan{
-		VlanId: oc.Uint16(1234),
+		VlanId: oc.UnionUint16(1234),
 	}
 
 	// Validate the vlan.
@@ -142,7 +142,7 @@ func TestValidateInterface(t *testing.T) {
 
 	// Set vlan-id to be out of range (1-4094)
 	vlan0.Vlan = &oc.Interface_Subinterface_Vlan{
-		VlanId: oc.Uint16(4095),
+		VlanId: oc.UnionUint16(4095),
 	}
 	// Validate the vlan.
 	if err := vlan0.Validate(); err == nil {
@@ -274,7 +274,7 @@ func TestValidateInterfaceOpState(t *testing.T) {
 
 	// Device/interface/subinterfaces/subinterface/vlan
 	vlan0.Vlan = &opstateoc.Interface_Subinterface_Vlan{
-		VlanId: opstateoc.Uint16(1234),
+		VlanId: opstateoc.UnionUint16(1234),
 	}
 
 	// Validate the vlan.
@@ -284,7 +284,7 @@ func TestValidateInterfaceOpState(t *testing.T) {
 
 	// Set vlan-id to be out of range (1-4094)
 	vlan0.Vlan = &opstateoc.Interface_Subinterface_Vlan{
-		VlanId: opstateoc.Uint16(4095),
+		VlanId: opstateoc.UnionUint16(4095),
 	}
 	// Validate the vlan.
 	if err := vlan0.Validate(); err == nil {
@@ -510,7 +510,7 @@ func TestValidateLocalRoutes(t *testing.T) {
 		NextHop: map[string]*oc.LocalRoutes_Static_NextHop{
 			"10.10.10.10": {
 				Index:   ygot.String("10.10.10.10"),
-				NextHop: oc.String("10.10.10.1"),
+				NextHop: oc.UnionString("10.10.10.1"),
 			},
 		},
 	}
