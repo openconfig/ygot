@@ -183,9 +183,9 @@ func (*LeafListContainer) To_UnionLeafTypeSimple(i interface{}) (UnionLeafTypeSi
 	case []byte:
 		return testutil.Binary(v), nil
 	case string:
-		return testutil.String(v), nil
+		return testutil.UnionString(v), nil
 	case uint32:
-		return testutil.Uint32(v), nil
+		return testutil.UnionUint32(v), nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to UnionLeafTypeSimple, unknown union type, got: %T, want any of [string, uint32, EnumType, EnumType2, Binary]", i, i)
 }
@@ -356,9 +356,9 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 				},
 			}},
 			want: LeafListContainer{UnionLeafSliceSimple: []UnionLeafTypeSimple{
-				testutil.String("forty two"),
+				testutil.UnionString("forty two"),
 				EnumType(42),
-				testutil.Uint32(42),
+				testutil.UnionUint32(42),
 			}},
 		},
 		{
