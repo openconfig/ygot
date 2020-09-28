@@ -50,17 +50,6 @@ const (
 	pathStructsFileFmt = "path_structs-%d.go"
 )
 
-type commaSepFlag []string
-
-func (f *commaSepFlag) String() string {
-	return strings.Join(*f, ",")
-}
-
-func (f *commaSepFlag) Set(value string) error {
-	*f = strings.Split(value, ",")
-	return nil
-}
-
 var (
 	generateGoStructs       = flag.Bool("generate_structs", true, "If true, then Go code for YANG path construction (schema/Go structs) will be generated.")
 	generatePathStructs     = flag.Bool("generate_path_structs", false, "If true, then Go code for YANG path construction (path structs) will be generated.")
@@ -82,7 +71,8 @@ var (
 	shortenEnumLeafNames                 = flag.Bool("shorten_enum_leaf_names", false, "If also set to true when compress_paths=true, all leaves of type enumeration will by default not be prefixed with the name of its residing module.")
 	useDefiningModuleForTypedefEnumNames = flag.Bool("typedef_enum_with_defmod", false, "If set to true, all typedefs of type enumeration or identity will be prefixed with the name of its module of definition instead of its residing module.")
 	ygotImportPath                       = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
-	enumOrgPrefixesToTrim                commaSepFlag
+	trimEnumOpenConfigPrefix             = flag.Bool("trim_enum_openconfig_prefix", false, `If set to true when compressPaths=true, the organizational prefix "openconfig-" is trimmed from the module part of the name of enumerated names in the generated code`)
+	enumOrgPrefixesToTrim                []string
 
 	// Flags used for GoStruct generation only.
 	generateFakeRoot     = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
@@ -244,13 +234,22 @@ func writeFiles(dir string, out map[string]string) error {
 	return nil
 }
 
+// processFlags does some minimal processing of flags where otherwise
+// inconvenient before they're passed to the code generators.
+func processFlags() {
+	if *compressPaths && *trimEnumOpenConfigPrefix {
+		// No organization name is trimmed if compress paths is false.
+		enumOrgPrefixesToTrim = []string{"openconfig"}
+	}
+}
+
 // main parses command-line flags to determine the set of YANG modules for
 // which code generation should be performed, and calls the codegen library
 // to generate Go code corresponding to their schema. The output is written
 // to the specified file.
 func main() {
-	flag.Var(&enumOrgPrefixesToTrim, "enum_org_prefixes_to_trim", `Comma-separated list of organization names (e.g. "ietf") to trim from the module part of the name of enumerated names in the generated code.`)
 	flag.Parse()
+	processFlags()
 	// Extract the set of modules that code is to be generated for,
 	// throwing an error if the set is empty.
 	generateModules := flag.Args()
