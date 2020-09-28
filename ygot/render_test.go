@@ -816,6 +816,12 @@ type renderExampleUnionInt64 struct {
 
 func (*renderExampleUnionInt64) IsRenderUnionExample() {}
 
+type renderExampleUnionBinary struct {
+	Binary Binary
+}
+
+func (*renderExampleUnionBinary) IsRenderUnionExample() {}
+
 // renderExampleUnionInvalid is an invalid union struct.
 type renderExampleUnionInvalid struct {
 	String string
@@ -1166,7 +1172,7 @@ func TestTogNMINotifications(t *testing.T) {
 			}},
 		}},
 	}, {
-		name:        "struct with union (wrapper union)",
+		name:        "struct with string union (wrapper union)",
 		inTimestamp: 42,
 		inStruct:    &renderExample{UnionVal: &renderExampleUnionString{"hello"}},
 		want: []*gnmipb.Notification{{
@@ -1185,6 +1191,17 @@ func TestTogNMINotifications(t *testing.T) {
 			Update: []*gnmipb.Update{{
 				Path: &gnmipb.Path{Element: []string{"union-val"}},
 				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{42}},
+			}},
+		}},
+	}, {
+		name:        "struct with binary union (wrapper union)",
+		inTimestamp: 42,
+		inStruct:    &renderExample{UnionVal: &renderExampleUnionBinary{Binary(base64testString)}},
+		want: []*gnmipb.Notification{{
+			Timestamp: 42,
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"union-val"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
 			}},
 		}},
 	}, {
@@ -1486,22 +1503,24 @@ func TestTogNMINotifications(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := TogNMINotifications(tt.inStruct, tt.inTimestamp, tt.inConfig)
-		if err != nil {
-			if !tt.wantErr {
-				t.Errorf("%s: TogNMINotifications(%v, %v, %v): got unexpected error: %v", tt.name, tt.inStruct, tt.inTimestamp, tt.inConfig, err)
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := TogNMINotifications(tt.inStruct, tt.inTimestamp, tt.inConfig)
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("%s: TogNMINotifications(%v, %v, %v): got unexpected error: %v", tt.name, tt.inStruct, tt.inTimestamp, tt.inConfig, err)
+				}
+				return
 			}
-			continue
-		}
 
-		// Avoid test flakiness by ignoring the update ordering. Required because
-		// there is no order to the map of fields that are returned by the struct
-		// output.
+			// Avoid test flakiness by ignoring the update ordering. Required because
+			// there is no order to the map of fields that are returned by the struct
+			// output.
 
-		if !testutil.NotificationSetEqual(got, tt.want) {
-			diff := cmp.Diff(got, tt.want, protocmp.Transform())
-			t.Errorf("%s: TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
-		}
+			if !testutil.NotificationSetEqual(got, tt.want) {
+				diff := cmp.Diff(got, tt.want, protocmp.Transform())
+				t.Errorf("%s: TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
+			}
+		})
 	}
 }
 
@@ -1592,6 +1611,12 @@ type exampleTransportAddressEnum struct {
 }
 
 func (*exampleTransportAddressEnum) IsExampleTransportAddress() {}
+
+type exampleTransportAddressBinary struct {
+	Binary Binary
+}
+
+func (*exampleTransportAddressBinary) IsExampleTransportAddress() {}
 
 // invalidGoStruct explicitly does not implement the GoStruct interface.
 type invalidGoStruct struct {
@@ -2235,13 +2260,24 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantSame: true,
 	}, {
-		name: "union example (wrapper union)",
+		name: "union enum example (wrapper union)",
 		in: &exampleBgpNeighbor{
 			TransportAddress: &exampleTransportAddressEnum{EnumTestVALONE},
 		},
 		wantIETF: map[string]interface{}{
 			"state": map[string]interface{}{
 				"transport-address": "VAL_ONE",
+			},
+		},
+		wantSame: true,
+	}, {
+		name: "union binary example (wrapper union)",
+		in: &exampleBgpNeighbor{
+			TransportAddress: &exampleTransportAddressBinary{Binary(base64testString)},
+		},
+		wantIETF: map[string]interface{}{
+			"state": map[string]interface{}{
+				"transport-address": base64testStringEncoded,
 			},
 		},
 		wantSame: true,
