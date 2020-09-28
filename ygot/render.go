@@ -429,12 +429,6 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 			continue
 		case reflect.Interface:
 			// This is a union value.
-			/*val, err := unwrapUnionInterfaceValue(fval, false)
-			if err != nil {
-				errs.Add(err)
-				continue
-			}*/
-
 			for _, p := range mapPaths {
 				leaves[&path{p}] = fval.Interface()
 			}
@@ -674,7 +668,7 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 		// Invalid int64 that is not an enum or a simple union Int64 type.
 		return nil, fmt.Errorf("cannot represent field value %v as TypedValue", val)
 	case vv.Type().Name() == BinaryTypeName:
-		// This is a binary type which is defiend as a []byte, so we encode it as the bytes.
+		// This is a binary type which is defined as a []byte, so we encode it as the bytes.
 		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{vv.Bytes()}}, nil
 	case vv.Type().Name() == EmptyTypeName:
 		return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{vv.Bool()}}, nil
@@ -695,6 +689,10 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 			return nil, fmt.Errorf("cannot resolve union field value: %v", err)
 		}
 		vv = reflect.ValueOf(nv)
+		// Apart from binary, all other possible union subtypes are scalars or typedefs of scalars.
+		if vv.Type().Name() == BinaryTypeName {
+			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{vv.Bytes()}}, nil
+		}
 	case util.IsValuePtr(vv):
 		vv = vv.Elem()
 		if util.IsNilOrInvalidValue(vv) {
@@ -1374,6 +1372,12 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 		case util.IsValueInterfaceToStructPtr(field):
 			if value, err = unwrapUnionInterfaceValue(field, appmod); err != nil {
 				return nil, err
+			}
+			if value != nil && reflect.TypeOf(value).Name() == BinaryTypeName {
+				if value, err = jsonSlice(reflect.ValueOf(value), parentMod, args); err != nil {
+					return nil, err
+				}
+				return value, nil
 			}
 		case field.Elem().Kind() == reflect.Slice && field.Elem().Type().Name() == BinaryTypeName:
 			if value, err = jsonSlice(field.Elem(), parentMod, args); err != nil {
