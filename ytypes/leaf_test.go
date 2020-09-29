@@ -1683,6 +1683,36 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			},
 		},
 	}
+	unionSchemaSimple := &yang.Entry{
+		Parent: containerSchema,
+		Name:   "union-leaf-simple",
+		Kind:   yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind: yang.Yuint32,
+				},
+				{
+					Kind: yang.Yenum,
+				},
+				{
+					Kind: yang.Ybinary,
+				},
+				{
+					Kind: yang.Yidentityref,
+				},
+				{
+					Kind: yang.Yleafref,
+					Path: "../leaf",
+				},
+				{
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
+				},
+			},
+		},
+	}
 	unionSchema := &yang.Entry{
 		Parent: containerSchema,
 		Name:   "union-leaf",
@@ -1960,6 +1990,42 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 		},
 		{
 			desc:     "success unmarshalling union leaf string field",
+			inSchema: unionSchemaSimple,
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{
+					StringVal: "forty two",
+				},
+			},
+			wantVal: &LeafContainerStruct{UnionLeafSimple: testutil.UnionString("forty two")},
+		},
+		{
+			desc:     "fail unmarshalling nil for union leaf field",
+			inSchema: unionSchemaSimple,
+			inVal:    nil,
+			wantErr:  "nil value to unmarshal",
+		},
+		{
+			desc:     "success unmarshalling union leaf enum field",
+			inSchema: unionSchemaSimple,
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{
+					StringVal: "E_VALUE_FORTY_TWO",
+				},
+			},
+			wantVal: &LeafContainerStruct{UnionLeafSimple: EnumType(42)},
+		},
+		{
+			desc:     "success unmarshalling union leaf binary field",
+			inSchema: unionSchemaSimple,
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_BytesVal{
+					BytesVal: []byte("value"),
+				},
+			},
+			wantVal: &LeafContainerStruct{UnionLeafSimple: testutil.Binary("value")},
+		},
+		{
+			desc:     "success unmarshalling union (wrapper union) leaf string field",
 			inSchema: unionSchema,
 			inVal: &gpb.TypedValue{
 				Value: &gpb.TypedValue_StringVal{
@@ -1969,13 +2035,13 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantVal: &LeafContainerStruct{UnionLeaf: &UnionLeafType_String{String: "forty two"}},
 		},
 		{
-			desc:     "fail unmarshalling nil for union leaf string field",
+			desc:     "fail unmarshalling nil for union (wrapper union) leaf string field",
 			inSchema: unionSchema,
 			inVal:    nil,
 			wantErr:  "nil value to unmarshal",
 		},
 		{
-			desc:     "success unmarshalling union leaf enum field",
+			desc:     "success unmarshalling union (wrapper union) leaf enum field",
 			inSchema: unionSchema,
 			inVal: &gpb.TypedValue{
 				Value: &gpb.TypedValue_StringVal{
