@@ -1180,17 +1180,17 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_EnumType2{EnumType2: 43}},
 		},
 		{
-			desc: "union no struct success, correct type, value unvalidated",
+			desc: "union no struct success, correct type, value unvalidated (wrapper union)",
 			json: `{"union-leaf2" : "ccc"}`,
 			want: LeafContainerStruct{UnionLeaf2: ygot.String("ccc")},
 		},
 		{
-			desc: "leaf-list of single type union success, single value",
+			desc: "leaf-list of single type union success, single value (wrapper union)",
 			json: `{"union-stleaflist": ["ccc"]}`,
 			want: LeafContainerStruct{UnionLeafSingleType: []string{"ccc"}},
 		},
 		{
-			desc: "leaf-list of single type union success, multi-value",
+			desc: "leaf-list of single type union success, multi-value (wrapper union)",
 			json: `{"union-stleaflist": ["ccc", "ddd"]}`,
 			want: LeafContainerStruct{UnionLeafSingleType: []string{"ccc", "ddd"}},
 		},
