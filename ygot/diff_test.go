@@ -988,12 +988,12 @@ func TestDiff(t *testing.T) {
 				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
 					&gnmipb.ScalarArray{
 						Element: []*gnmipb.TypedValue{
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{42}},
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{3.14}},
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{false}}},
+							{Value: &gnmipb.TypedValue_StringVal{"hello"}},
+							{Value: &gnmipb.TypedValue_IntVal{42}},
+							{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+							{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
+							{Value: &gnmipb.TypedValue_BoolVal{true}},
+							{Value: &gnmipb.TypedValue_BoolVal{false}}},
 					}},
 				},
 			}, {
@@ -1171,12 +1171,12 @@ func TestDiff(t *testing.T) {
 				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
 					&gnmipb.ScalarArray{
 						Element: []*gnmipb.TypedValue{
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"world"}},
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{84}},
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{6.28}},
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte("abc")}},
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{false}},
-							&gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}}},
+							{Value: &gnmipb.TypedValue_StringVal{"world"}},
+							{Value: &gnmipb.TypedValue_IntVal{84}},
+							{Value: &gnmipb.TypedValue_FloatVal{6.28}},
+							{Value: &gnmipb.TypedValue_BytesVal{[]byte("abc")}},
+							{Value: &gnmipb.TypedValue_BoolVal{false}},
+							{Value: &gnmipb.TypedValue_BoolVal{true}}},
 					}},
 				},
 			}, {
