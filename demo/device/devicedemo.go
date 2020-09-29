@@ -98,7 +98,7 @@ func CreateDemoDeviceInstance() (*oc.Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.Type = &oc.Component_Type_Union_E_OpenconfigPlatformTypes_OPENCONFIG_SOFTWARE_COMPONENT{oc.OpenconfigPlatformTypes_OPENCONFIG_SOFTWARE_COMPONENT_OPERATING_SYSTEM}
+	c.Type = oc.OpenconfigPlatformTypes_OPENCONFIG_SOFTWARE_COMPONENT_OPERATING_SYSTEM
 
 	// Create a second device instance, and populate the OS component under
 	// it. This code demonstrates how ygot.MergeStructs can be used to combine

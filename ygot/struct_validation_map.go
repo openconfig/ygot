@@ -666,23 +666,53 @@ func copyInterfaceField(dstField, srcField reflect.Value, opts ...MergeOpt) erro
 		return nil
 	}
 
-	if !util.IsValueInterface(srcField) || !util.IsValueStructPtr(srcField.Elem()) {
-		return fmt.Errorf("invalid interface type received: %T", srcField.Interface())
-	}
-	s := srcField.Elem().Elem() // Dereference src to a struct.
-	if !util.IsNilOrInvalidValue(dstField) {
-		dV := dstField.Elem().Elem() // Dereference dst to a struct.
-		if !fieldOverwriteEnabled(opts) && !reflect.DeepEqual(s.Interface(), dV.Interface()) {
-			return fmt.Errorf("interface field was set in both src and dst and was not equal, src: %v, dst: %v", s.Interface(), dV.Interface())
-		}
+	if !util.IsValueInterface(srcField) {
+		return fmt.Errorf("non-interface type received: %T", srcField.Interface())
 	}
 
-	d := reflect.New(s.Type())
-	if err := copyStruct(d.Elem(), s, opts...); err != nil {
-		return err
+	_, isGoEnum := srcField.Elem().Interface().(GoEnum)
+	switch {
+	case util.IsValueStructPtr(srcField.Elem()):
+		s := srcField.Elem().Elem() // Dereference src to a struct.
+		if !util.IsNilOrInvalidValue(dstField) {
+			dV := dstField.Elem().Elem() // Dereference dst to a struct.
+			if diff := cmp.Diff(s.Interface(), dV.Interface()); !fieldOverwriteEnabled(opts) && diff != "" {
+				return fmt.Errorf("interface field was set in both src and dst and was not equal, (-src, +dst):\n%s", diff)
+			}
+		}
+
+		d := reflect.New(s.Type())
+		if err := copyStruct(d.Elem(), s, opts...); err != nil {
+			return err
+		}
+		dstField.Set(d)
+		return nil
+	case srcField.Elem().Kind() == reflect.Slice && srcField.Elem().Type().Name() == BinaryTypeName:
+		if !util.IsNilOrInvalidValue(dstField) {
+			s, d := srcField.Interface(), dstField.Interface()
+			if diff := cmp.Diff(s, d); !fieldOverwriteEnabled(opts) && diff != "" {
+				return fmt.Errorf("interface field was set in both src and dst and was not equal, (-src, +dst):\n%s", diff)
+			}
+		}
+
+		srcVal := srcField.Elem()
+		ns := reflect.Zero(srcVal.Type())
+		for i := 0; i < srcVal.Len(); i++ {
+			ns = reflect.Append(ns, srcVal.Index(i))
+		}
+		dstField.Set(ns)
+		return nil
+	case util.IsValueScalar(srcField.Elem()) && (isGoEnum || unionSingletonUnderlyingTypes[srcField.Elem().Type().Name()] != nil):
+		if !util.IsNilOrInvalidValue(dstField) {
+			s, d := srcField.Interface(), dstField.Interface()
+			if diff := cmp.Diff(s, d); !fieldOverwriteEnabled(opts) && diff != "" {
+				return fmt.Errorf("interface field was set in both src and dst and was not equal, (-src, +dst):\n%s", diff)
+			}
+		}
+		dstField.Set(srcField)
+		return nil
 	}
-	dstField.Set(d)
-	return nil
+	return fmt.Errorf("invalid interface type received: %T", srcField.Interface())
 }
 
 // copyMapField copies srcField into dstField. Both srcField and dstField are
@@ -830,7 +860,7 @@ func copySliceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 }
 
 // uniqueSlices takes two reflect.Values which must represent slices, and determines
-// whether a and b contain the same item. It returns true if the slices have unique
+// whether a and b are disjoint. It returns true if the slices have unique
 // members, and false if not.
 func uniqueSlices(a, b reflect.Value) (bool, error) {
 	if !util.IsValueSlice(a) || !util.IsValueSlice(b) {

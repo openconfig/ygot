@@ -27,6 +27,9 @@ func TestGenerateCode(t *testing.T) {
 	}{{
 		name: "openconfig interfaces",
 		inConfig: &ygen.GeneratorConfig{
+			GoOptions: ygen.GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			ParseOptions: ygen.ParseOpts{
 				ExcludeModules: []string{"ietf-interfaces"},
 			},
@@ -44,6 +47,9 @@ func TestGenerateCode(t *testing.T) {
 	}, {
 		name: "openconfig interfaces with no compression",
 		inConfig: &ygen.GeneratorConfig{
+			GoOptions: ygen.GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			ParseOptions: ygen.ParseOpts{
 				ExcludeModules: []string{"ietf-interfaces"},
 			},

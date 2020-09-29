@@ -189,6 +189,10 @@ type GoOpts struct {
 	// list fields of a struct. These methods take an input list member type, extract
 	// the key and append the supplied value to the list.
 	GenerateAppendMethod bool
+	// GenerateSimpleUnions specifies whether simple typedefs are used to
+	// represent union subtypes in the generated code instead of using
+	// wrapper types.
+	GenerateSimpleUnions bool
 	// GenerateLeafGetters specifies whether Get* methods should be created for
 	// leaf fields of a struct. Care should be taken with this option since a Get
 	// method returns the *Go* zero value for a particular entity if the field is
@@ -337,6 +341,27 @@ func IsFakeRoot(e *yang.Entry) bool {
 	return e != nil && e.Node != nil && e.Node.NName() == rootElementNodeName
 }
 
+// checkForBinaryKeys returns a non-empty list of errors if the input directory
+// has one or more binary types (including union types containing binary types)
+// as a list key.
+func checkForBinaryKeys(dir *Directory) []error {
+	var errs []error
+	if dir.ListAttr != nil {
+		for _, t := range dir.ListAttr.Keys {
+			if t.NativeType == ygot.BinaryTypeName {
+				errs = append(errs, fmt.Errorf("list %s has a binary key -- this is unsupported", strings.Join(dir.Path, "/")))
+				continue
+			}
+			for typeName := range t.UnionTypes {
+				if typeName == ygot.BinaryTypeName {
+					errs = append(errs, fmt.Errorf("list %s has a union key containing a binary -- this is unsupported", strings.Join(dir.Path, "/")))
+				}
+			}
+		}
+	}
+	return errs
+}
+
 // GenerateGoCode takes a slice of strings containing the path to a set of YANG
 // files which contain YANG modules, and a second slice of strings which
 // specifies the set of paths that are to be searched for associated models (e.g.,
@@ -397,6 +422,10 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	enumTypeMap := map[string][]string{}
 	var structSnippets []GoStructCodeSnippet
 	for _, directoryName := range orderedDirNames {
+		if errs := checkForBinaryKeys(dirNameMap[directoryName]); len(errs) != 0 {
+			codegenErr = util.AppendErrs(codegenErr, errs)
+			continue
+		}
 		structOut, errs := writeGoStruct(dirNameMap[directoryName], directoryMap, gogen,
 			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.GoOptions)
 		if errs != nil {

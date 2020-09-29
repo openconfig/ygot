@@ -32,6 +32,45 @@ type Binary []byte
 // in the generated code.
 type YANGEmpty bool
 
+// UnionInt8 is an int8 type assignable to unions of which it is a subtype.
+type UnionInt8 int8
+
+// UnionInt16 is an int16 type assignable to unions of which it is a subtype.
+type UnionInt16 int16
+
+// UnionInt32 is an int32 type assignable to unions of which it is a subtype.
+type UnionInt32 int32
+
+// UnionInt64 is an int64 type assignable to unions of which it is a subtype.
+type UnionInt64 int64
+
+// UnionUint8 is a uint8 type assignable to unions of which it is a subtype.
+type UnionUint8 uint8
+
+// UnionUint16 is a uint16 type assignable to unions of which it is a subtype.
+type UnionUint16 uint16
+
+// UnionUint32 is a uint32 type assignable to unions of which it is a subtype.
+type UnionUint32 uint32
+
+// UnionUint64 is a uint64 type assignable to unions of which it is a subtype.
+type UnionUint64 uint64
+
+// UnionFloat64 is a float64 type assignable to unions of which it is a subtype.
+type UnionFloat64 float64
+
+// UnionString is a string type assignable to unions of which it is a subtype.
+type UnionString string
+
+// UnionBool is a bool type assignable to unions of which it is a subtype.
+type UnionBool bool
+
+// UnionUnsupported is an interface{} wrapper type for unsupported types. It is
+// assignable to unions of which it is a subtype.
+type UnionUnsupported struct {
+	Value interface{}
+}
+
 var (
 	SchemaTree map[string]*yang.Entry
 )
@@ -174,42 +213,32 @@ func (t *Bgp_Neighbor) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnum
 
 // Bgp_Neighbor_EnabledAddressFamily_Union is an interface that is implemented by valid types for the union
 // for the leaf /openconfig-options/bgp/neighbors/neighbor/state/enabled-address-family within the YANG schema.
+// Union type can be one of [E_OpenconfigOptions_AFI, UnionUint32].
 type Bgp_Neighbor_EnabledAddressFamily_Union interface {
-	Is_Bgp_Neighbor_EnabledAddressFamily_Union()
+	// Union type can be one of [E_OpenconfigOptions_AFI, UnionUint32]
+	Documentation_for_Bgp_Neighbor_EnabledAddressFamily_Union()
 }
 
-// Bgp_Neighbor_EnabledAddressFamily_Union_E_OpenconfigOptions_AFI is used when /openconfig-options/bgp/neighbors/neighbor/state/enabled-address-family
-// is to be set to a E_OpenconfigOptions_AFI value.
-type Bgp_Neighbor_EnabledAddressFamily_Union_E_OpenconfigOptions_AFI struct {
-	E_OpenconfigOptions_AFI	E_OpenconfigOptions_AFI
-}
-
-// Is_Bgp_Neighbor_EnabledAddressFamily_Union ensures that Bgp_Neighbor_EnabledAddressFamily_Union_E_OpenconfigOptions_AFI
+// Documentation_for_Bgp_Neighbor_EnabledAddressFamily_Union ensures that E_OpenconfigOptions_AFI
 // implements the Bgp_Neighbor_EnabledAddressFamily_Union interface.
-func (*Bgp_Neighbor_EnabledAddressFamily_Union_E_OpenconfigOptions_AFI) Is_Bgp_Neighbor_EnabledAddressFamily_Union() {}
+func (E_OpenconfigOptions_AFI) Documentation_for_Bgp_Neighbor_EnabledAddressFamily_Union() {}
 
-// Bgp_Neighbor_EnabledAddressFamily_Union_Uint32 is used when /openconfig-options/bgp/neighbors/neighbor/state/enabled-address-family
-// is to be set to a uint32 value.
-type Bgp_Neighbor_EnabledAddressFamily_Union_Uint32 struct {
-	Uint32	uint32
-}
-
-// Is_Bgp_Neighbor_EnabledAddressFamily_Union ensures that Bgp_Neighbor_EnabledAddressFamily_Union_Uint32
+// Documentation_for_Bgp_Neighbor_EnabledAddressFamily_Union ensures that UnionUint32
 // implements the Bgp_Neighbor_EnabledAddressFamily_Union interface.
-func (*Bgp_Neighbor_EnabledAddressFamily_Union_Uint32) Is_Bgp_Neighbor_EnabledAddressFamily_Union() {}
+func (UnionUint32) Documentation_for_Bgp_Neighbor_EnabledAddressFamily_Union() {}
 
 // To_Bgp_Neighbor_EnabledAddressFamily_Union takes an input interface{} and attempts to convert it to a struct
 // which implements the Bgp_Neighbor_EnabledAddressFamily_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *Bgp_Neighbor) To_Bgp_Neighbor_EnabledAddressFamily_Union(i interface{}) (Bgp_Neighbor_EnabledAddressFamily_Union, error) {
-	switch v := i.(type) {
-	case E_OpenconfigOptions_AFI:
-		return &Bgp_Neighbor_EnabledAddressFamily_Union_E_OpenconfigOptions_AFI{v}, nil
-	case uint32:
-		return &Bgp_Neighbor_EnabledAddressFamily_Union_Uint32{v}, nil
-	default:
-		return nil, fmt.Errorf("cannot convert %v to Bgp_Neighbor_EnabledAddressFamily_Union, unknown union type, got: %T, want any of [E_OpenconfigOptions_AFI, uint32]", i, i)
+	if v, ok := i.(Bgp_Neighbor_EnabledAddressFamily_Union); ok {
+		return v, nil
 	}
+	switch v := i.(type) {
+	case uint32:
+		return UnionUint32(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to Bgp_Neighbor_EnabledAddressFamily_Union, unknown union type, got: %T, want any of [E_OpenconfigOptions_AFI, uint32]", i, i)
 }
 
 // Device represents the /device YANG schema element.

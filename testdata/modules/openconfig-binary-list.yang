@@ -1,0 +1,40 @@
+module openconfig-binary-list {
+  namespace "urn:ocblist";
+  prefix "oc";
+
+  description
+    "A simple test module that is used to verify code generation for a
+    schema that contains a list with a binary key";
+
+  grouping single-key-config {
+    leaf key { type binary; }
+  }
+
+  grouping lists-top {
+    container model {
+      container a {
+        list single-key {
+          key "key";
+
+          leaf key {
+            type leafref {
+              path "../config/key";
+            }
+          }
+
+          container config {
+            uses single-key-config;
+          }
+
+          container state {
+            config false;
+            uses single-key-config;
+          }
+        }
+      }
+    }
+  }
+
+  uses lists-top;
+
+}

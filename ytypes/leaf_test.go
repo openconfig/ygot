@@ -24,6 +24,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -32,6 +33,7 @@ import (
 var (
 	base64testString        = "forty two"
 	base64testStringEncoded = base64.StdEncoding.EncodeToString([]byte(base64testString))
+	testBinary              = testutil.Binary(base64testString)
 )
 
 func typeToLeafSchema(name string, t yang.TypeKind) *yang.Entry {
@@ -308,38 +310,37 @@ func TestValidateLeaf(t *testing.T) {
 // UnionContainer and types below are defined outside function scope because
 // type methods cannot be defined in function scope.
 type UnionContainer struct {
-	UnionField Union1 `path:"union1"`
+	UnionField testutil.TestUnion `path:"union1"`
 }
 
 func (*UnionContainer) IsYANGGoStruct() {}
 
-type Union1 interface {
-	IsUnion1()
-}
+// IsTestUnion ensures EnumType satisfies the testutil.TestUnion interface.
+func (EnumType) IsTestUnion() {}
 
 type Union1String struct {
 	String string
 }
 
-func (*Union1String) IsUnion1() {}
+func (*Union1String) IsTestUnion() {}
 
 type Union1Int16 struct {
 	Int16 int16
 }
 
-func (*Union1Int16) IsUnion1() {}
+func (*Union1Int16) IsTestUnion() {}
 
 type Union1EnumType struct {
 	EnumType EnumType
 }
 
-func (*Union1EnumType) IsUnion1() {}
+func (*Union1EnumType) IsTestUnion() {}
 
 type Union1BadLeaf struct {
 	BadLeaf *float32
 }
 
-func (*Union1BadLeaf) IsUnion1() {}
+func (*Union1BadLeaf) IsTestUnion() {}
 
 type UnionContainerCompressed struct {
 	UnionField *string `path:"union1"`
@@ -378,6 +379,10 @@ func TestValidateLeafUnion(t *testing.T) {
 						{
 							Name: "enum",
 							Kind: yang.Yenum,
+						},
+						{
+							Name: "bin",
+							Kind: yang.Ybinary,
 						},
 					},
 				},
@@ -425,7 +430,7 @@ func TestValidateLeafUnion(t *testing.T) {
 							POSIXPattern: []string{"^a+$"},
 						},
 						{
-							Name:         "int16",
+							Name:         "string2",
 							Kind:         yang.Ystring,
 							Pattern:      []string{"b+"},
 							POSIXPattern: []string{"^b+$"},
@@ -453,7 +458,7 @@ func TestValidateLeafUnion(t *testing.T) {
 							POSIXPattern: []string{"^a+$"},
 						},
 						{
-							Name:         "int16",
+							Name:         "string2",
 							Kind:         yang.Ystring,
 							Pattern:      []string{"b+"},
 							POSIXPattern: []string{"^b+$"},
@@ -485,52 +490,83 @@ func TestValidateLeafUnion(t *testing.T) {
 		{
 			desc:   "success string",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1String{"aaa"}},
+			val:    &UnionContainer{UnionField: testutil.UnionString("aaa")},
 		},
 		{
 			desc:   "success int16",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1Int16{1}},
+			val:    &UnionContainer{UnionField: testutil.UnionInt16(42)},
+		},
+		{
+			desc:   "success int64",
+			schema: unionContainerSchema,
+			val:    &UnionContainer{UnionField: testutil.UnionInt64(42)},
 		},
 		{
 			desc:   "success enum",
 			schema: unionContainerSchema,
-			val:    &UnionContainer{UnionField: &Union1EnumType{EnumType: 42}},
+			val:    &UnionContainer{UnionField: EnumType(42)},
 		},
 		{
 			desc:    "bad regex",
+			schema:  unionContainerSchema,
+			val:     &UnionContainer{UnionField: testutil.UnionString("bbb")},
+			wantErr: true,
+		},
+		{
+			desc:   "success binary",
+			schema: unionContainerSchema,
+			val:    &UnionContainer{UnionField: testutil.Binary("abc")},
+		},
+		{
+			desc:   "success string (wrapper union type)",
+			schema: unionContainerSchema,
+			val:    &UnionContainer{UnionField: &Union1String{"aaa"}},
+		},
+		{
+			desc:   "success int16 (wrapper union type)",
+			schema: unionContainerSchema,
+			val:    &UnionContainer{UnionField: &Union1Int16{1}},
+		},
+		{
+			desc:   "success enum (wrapper union type)",
+			schema: unionContainerSchema,
+			val:    &UnionContainer{UnionField: &Union1EnumType{EnumType: 42}},
+		},
+		{
+			desc:    "bad regex (wrapper union type)",
 			schema:  unionContainerSchema,
 			val:     &UnionContainer{UnionField: &Union1String{"bbb"}},
 			wantErr: true,
 		},
 		{
-			desc:    "bad type",
+			desc:    "bad type (wrapper union type)",
 			schema:  unionContainerSchema,
 			val:     &UnionContainer{UnionField: &Union1BadLeaf{BadLeaf: ygot.Float32(0)}},
 			wantErr: true,
 		},
 		{
-			desc:   "success no wrapping struct enum",
+			desc:   "success single-valued union: enum",
 			schema: unionContainerSingleEnumSchema,
 			val:    &UnionContainerSingleEnum{UnionField: EnumType(42)},
 		},
 		{
-			desc:   "success no wrapping struct string",
+			desc:   "success single-valued union: string",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
 		},
 		{
-			desc:   "success no wrapping struct int16",
+			desc:   "success single-valued union: int16",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("bbb")},
 		},
 		{
-			desc:   "success no wrapping struct string",
+			desc:   "success single-valued union: string",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
 		},
 		{
-			desc:    "no wrapping struct no schemas match",
+			desc:    "single-valued union: no schemas match",
 			schema:  unionContainerSchemaNoWrappingStruct,
 			val:     &UnionContainerCompressed{UnionField: ygot.String("ccc")},
 			wantErr: true,
@@ -559,10 +595,10 @@ func TestValidateLeafUnion(t *testing.T) {
 	}
 
 	// Additional tests through private API.
-	if err := validateUnion(unionContainerSchema, nil); err != nil {
+	if err := validateUnion(unionContainerSchema.Dir["union1"], nil); err != nil {
 		t.Errorf("nil value: got error: %v, want error: nil", err)
 	}
-	if err := validateUnion(unionContainerSchema, 42); err == nil {
+	if err := validateUnion(unionContainerSchema.Dir["union1"], 42); err == nil {
 		t.Errorf("bad value type: got error: nil, want type error")
 	}
 }
@@ -922,27 +958,29 @@ func TestValidateLeafRef(t *testing.T) {
 }
 
 type LeafContainerStruct struct {
-	Int8Leaf            *int8           `path:"int8-leaf"`
-	Int8LeafList        []int8          `path:"int8-leaflist"`
-	Uint8Leaf           *uint8          `path:"uint8-leaf"`
-	Int16Leaf           *int16          `path:"int16-leaf"`
-	Uint16Leaf          *uint16         `path:"uint16-leaf"`
-	Int32Leaf           *int32          `path:"int32-leaf"`
-	Uint32Leaf          *uint32         `path:"uint32-leaf"`
-	Int64Leaf           *int64          `path:"int64-leaf"`
-	Uint64Leaf          *uint64         `path:"uint64-leaf"`
-	StringLeaf          *string         `path:"string-leaf"`
-	BinaryLeaf          Binary          `path:"binary-leaf"`
-	BoolLeaf            *bool           `path:"bool-leaf"`
-	DecimalLeaf         *float64        `path:"decimal-leaf"`
-	EnumLeaf            EnumType        `path:"enum-leaf"`
-	UnionEnumLeaf       EnumType        `path:"union-enum-leaf"`
-	UnionLeaf           UnionLeafType   `path:"union-leaf"`
-	UnionLeaf2          *string         `path:"union-leaf2"`
-	EmptyLeaf           YANGEmpty       `path:"empty-leaf"`
-	UnionLeafSlice      []UnionLeafType `path:"union-leaflist"`
-	UnionLeafSingleType []string        `path:"union-stleaflist"`
-	UnionEnumLeaflist   []EnumType      `path:"union-enum-leaflist"`
+	Int8Leaf             *int8                 `path:"int8-leaf"`
+	Int8LeafList         []int8                `path:"int8-leaflist"`
+	Uint8Leaf            *uint8                `path:"uint8-leaf"`
+	Int16Leaf            *int16                `path:"int16-leaf"`
+	Uint16Leaf           *uint16               `path:"uint16-leaf"`
+	Int32Leaf            *int32                `path:"int32-leaf"`
+	Uint32Leaf           *uint32               `path:"uint32-leaf"`
+	Int64Leaf            *int64                `path:"int64-leaf"`
+	Uint64Leaf           *uint64               `path:"uint64-leaf"`
+	StringLeaf           *string               `path:"string-leaf"`
+	BinaryLeaf           Binary                `path:"binary-leaf"`
+	BoolLeaf             *bool                 `path:"bool-leaf"`
+	DecimalLeaf          *float64              `path:"decimal-leaf"`
+	EnumLeaf             EnumType              `path:"enum-leaf"`
+	UnionEnumLeaf        EnumType              `path:"union-enum-leaf"`
+	UnionLeaf            UnionLeafType         `path:"union-leaf"`
+	UnionLeaf2           *string               `path:"union-leaf2"`
+	EmptyLeaf            YANGEmpty             `path:"empty-leaf"`
+	UnionLeafSlice       []UnionLeafType       `path:"union-leaflist"`
+	UnionLeafSingleType  []string              `path:"union-stleaflist"`
+	UnionEnumLeaflist    []EnumType            `path:"union-enum-leaflist"`
+	UnionLeafSimple      UnionLeafTypeSimple   `path:"union-leaf-simple"`
+	UnionLeafSliceSimple []UnionLeafTypeSimple `path:"union-leaflist-simple"`
 }
 
 type UnionLeafType interface {
@@ -983,10 +1021,12 @@ func (*UnionLeafType_EnumType2) ΛMap() map[string]map[int64]ygot.EnumDefinition
 
 func (*LeafContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
-		"/container-schema/union-leaf":          {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
-		"/container-schema/union-enum-leaf":     {reflect.TypeOf(EnumType(0))},
-		"/container-schema/union-leaflist":      {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
-		"/container-schema/union-enum-leaflist": {reflect.TypeOf(EnumType(0))},
+		"/container-schema/union-leaf":            {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-enum-leaf":       {reflect.TypeOf(EnumType(0))},
+		"/container-schema/union-leaflist":        {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-enum-leaflist":   {reflect.TypeOf(EnumType(0))},
+		"/container-schema/union-leaf-simple":     {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-leaflist-simple": {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
 	}
 }
 
@@ -1003,6 +1043,29 @@ func (*LeafContainerStruct) To_UnionLeafType(i interface{}) (UnionLeafType, erro
 	default:
 		return nil, fmt.Errorf("cannot convert %v to To_UnionLeafType, unknown union type, got: %T, want any of [string, uint32]", i, i)
 	}
+}
+
+type UnionLeafTypeSimple interface {
+	Is_UnionLeafTypeSimple()
+}
+
+func (EnumType) Is_UnionLeafTypeSimple() {}
+
+func (EnumType2) Is_UnionLeafTypeSimple() {}
+
+func (*LeafContainerStruct) To_UnionLeafTypeSimple(i interface{}) (UnionLeafTypeSimple, error) {
+	if v, ok := i.(UnionLeafTypeSimple); ok {
+		return v, nil
+	}
+	switch v := i.(type) {
+	case []byte:
+		return testutil.Binary(v), nil
+	case string:
+		return testutil.UnionString(v), nil
+	case uint32:
+		return testutil.UnionUint32(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to UnionLeafTypeSimple, unknown union type, got: %T, want any of [string, uint32, EnumType, EnumType2, Binary]", i, i)
 }
 
 func TestUnmarshalLeafJSONEncoding(t *testing.T) {
@@ -1079,46 +1142,86 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		},
 		{
 			desc: "union string success",
+			json: `{"union-leaf-simple" : "forty-two"}`,
+			want: LeafContainerStruct{UnionLeafSimple: testutil.UnionString("forty-two")},
+		},
+		{
+			desc: "union uint32 success",
+			json: `{"union-leaf-simple" : 42}`,
+			want: LeafContainerStruct{UnionLeafSimple: testutil.UnionUint32(42)},
+		},
+		{
+			desc: "union binary success",
+			json: `{"union-leaf-simple" : "` + base64testStringEncoded + `"}`,
+			want: LeafContainerStruct{UnionLeafSimple: testutil.Binary(base64testString)},
+		},
+		{
+			desc: "union enum success",
+			json: `{"union-leaf-simple" : "E_VALUE_FORTY_TWO"}`,
+			want: LeafContainerStruct{UnionLeafSimple: EnumType(42)},
+		},
+		{
+			desc: "union enum2 success",
+			json: `{"union-leaf-simple" : "E_VALUE_FORTY_THREE"}`,
+			want: LeafContainerStruct{UnionLeafSimple: EnumType2(43)},
+		},
+		{
+			desc: "leaf-list of union success, single value",
+			json: `{"union-leaflist-simple": ["E_VALUE_FORTY_THREE"]}`,
+			want: LeafContainerStruct{UnionLeafSliceSimple: []UnionLeafTypeSimple{EnumType2(43)}},
+		},
+		{
+			desc: "leaf-list of union success, multi-value",
+			json: `{"union-leaflist-simple": ["E_VALUE_FORTY_THREE", 40]}`,
+			want: LeafContainerStruct{
+				UnionLeafSliceSimple: []UnionLeafTypeSimple{
+					EnumType2(43),
+					testutil.UnionUint32(40),
+				},
+			},
+		},
+		{
+			desc: "union string success (wrapper union)",
 			json: `{"union-leaf" : "forty-two"}`,
 			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_String{String: "forty-two"}},
 		},
 		{
-			desc: "union uint32 success",
+			desc: "union uint32 success (wrapper union)",
 			json: `{"union-leaf" : 42}`,
 			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_Uint32{Uint32: 42}},
 		},
 		{
-			desc: "union enum success",
+			desc: "union enum success (wrapper union)",
 			json: `{"union-leaf" : "E_VALUE_FORTY_TWO"}`,
 			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_EnumType{EnumType: 42}},
 		},
 		{
-			desc: "union enum2 success",
+			desc: "union enum2 success (wrapper union)",
 			json: `{"union-leaf" : "E_VALUE_FORTY_THREE"}`,
 			want: LeafContainerStruct{UnionLeaf: &UnionLeafType_EnumType2{EnumType2: 43}},
 		},
 		{
-			desc: "union no struct success, correct type, value unvalidated",
+			desc: "union no struct success, correct type, value unvalidated (wrapper union)",
 			json: `{"union-leaf2" : "ccc"}`,
 			want: LeafContainerStruct{UnionLeaf2: ygot.String("ccc")},
 		},
 		{
-			desc: "leaf-list of single type union success, single value",
+			desc: "leaf-list of single type union success, single value (wrapper union)",
 			json: `{"union-stleaflist": ["ccc"]}`,
 			want: LeafContainerStruct{UnionLeafSingleType: []string{"ccc"}},
 		},
 		{
-			desc: "leaf-list of single type union success, multi-value",
+			desc: "leaf-list of single type union success, multi-value (wrapper union)",
 			json: `{"union-stleaflist": ["ccc", "ddd"]}`,
 			want: LeafContainerStruct{UnionLeafSingleType: []string{"ccc", "ddd"}},
 		},
 		{
-			desc: "leaf-list of union success, single value",
+			desc: "leaf-list of union success, single value (wrapper union)",
 			json: `{"union-leaflist": ["E_VALUE_FORTY_THREE"]}`,
 			want: LeafContainerStruct{UnionLeafSlice: []UnionLeafType{&UnionLeafType_EnumType2{EnumType2: 43}}},
 		},
 		{
-			desc: "leaf-list of union success, multi-value",
+			desc: "leaf-list of union success, multi-value (wrapper union)",
 			json: `{"union-leaflist": ["E_VALUE_FORTY_THREE", "eeee"]}`,
 			want: LeafContainerStruct{
 				UnionLeafSlice: []UnionLeafType{
@@ -1193,9 +1296,14 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			wantErr: `E_BAD_VALUE is not a valid value for enum field EnumLeaf, type ytypes.EnumType`,
 		},
 		{
-			desc:    "union bad type",
+			desc:    "union bad type (wrapper union)",
 			json:    `{"union-leaf" : -42}`,
 			wantErr: `could not find suitable union type to unmarshal value -42 type float64 into parent struct type *ytypes.LeafContainerStruct field UnionLeaf`,
+		},
+		{
+			desc:    "union bad type",
+			json:    `{"union-leaf-simple" : -42}`,
+			wantErr: `could not find suitable union type to unmarshal value -42 type float64 into parent struct type *ytypes.LeafContainerStruct field UnionLeafSimple`,
 		},
 		{
 			desc:    "binary bad type",
@@ -1235,6 +1343,63 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 					Kind:         yang.Ystring,
 					Pattern:      []string{"b+"},
 					POSIXPattern: []string{"^b+$"},
+				},
+			},
+		},
+	}
+
+	unionSchemaSimple := &yang.Entry{
+		Name: "union-leaf-simple",
+		Kind: yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind: yang.Yuint32,
+				},
+				{
+					Kind: yang.Yenum,
+				},
+				{
+					Kind: yang.Ybinary,
+				},
+				{
+					Kind: yang.Yidentityref,
+				},
+				{
+					Kind: yang.Yleafref,
+					Path: "../leaf",
+				},
+				{
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
+				},
+			},
+		},
+	}
+
+	unionLeafListSchemaSimple := &yang.Entry{
+		Name:     "union-leaflist-simple",
+		Kind:     yang.LeafEntry,
+		ListAttr: &yang.ListAttr{},
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind: yang.Yuint32,
+				},
+				{
+					Kind: yang.Yenum,
+				},
+				{
+					Kind: yang.Ybinary,
+				},
+				{
+					Kind: yang.Yidentityref,
+				},
+				{
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
 				},
 			},
 		},
@@ -1385,6 +1550,8 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		typeToLeafSchema("decimal-leaf", yang.Ydecimal64),
 		typeToLeafSchema("empty-leaf", yang.Yempty),
 		enumLeafSchema,
+		unionSchemaSimple,
+		unionLeafListSchemaSimple,
 		unionSchema,
 		unionNoStructSchema,
 		unionLeafListSchema,
@@ -1542,6 +1709,36 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 					Kind:         yang.Ystring,
 					Pattern:      []string{"b+"},
 					POSIXPattern: []string{"^b+$"},
+				},
+			},
+		},
+	}
+	unionSchemaSimple := &yang.Entry{
+		Parent: containerSchema,
+		Name:   "union-leaf-simple",
+		Kind:   yang.LeafEntry,
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind: yang.Yuint32,
+				},
+				{
+					Kind: yang.Yenum,
+				},
+				{
+					Kind: yang.Ybinary,
+				},
+				{
+					Kind: yang.Yidentityref,
+				},
+				{
+					Kind: yang.Yleafref,
+					Path: "../leaf",
+				},
+				{
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
 				},
 			},
 		},
@@ -1826,6 +2023,42 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 		},
 		{
 			desc:     "success unmarshalling union leaf string field",
+			inSchema: unionSchemaSimple,
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{
+					StringVal: "forty two",
+				},
+			},
+			wantVal: &LeafContainerStruct{UnionLeafSimple: testutil.UnionString("forty two")},
+		},
+		{
+			desc:     "fail unmarshalling nil for union leaf field",
+			inSchema: unionSchemaSimple,
+			inVal:    nil,
+			wantErr:  "nil value to unmarshal",
+		},
+		{
+			desc:     "success unmarshalling union leaf enum field",
+			inSchema: unionSchemaSimple,
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{
+					StringVal: "E_VALUE_FORTY_TWO",
+				},
+			},
+			wantVal: &LeafContainerStruct{UnionLeafSimple: EnumType(42)},
+		},
+		{
+			desc:     "success unmarshalling union leaf binary field",
+			inSchema: unionSchemaSimple,
+			inVal: &gpb.TypedValue{
+				Value: &gpb.TypedValue_BytesVal{
+					BytesVal: []byte(base64testString),
+				},
+			},
+			wantVal: &LeafContainerStruct{UnionLeafSimple: testBinary},
+		},
+		{
+			desc:     "success unmarshalling union (wrapper union) leaf string field",
 			inSchema: unionSchema,
 			inVal: &gpb.TypedValue{
 				Value: &gpb.TypedValue_StringVal{
@@ -1835,13 +2068,13 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			wantVal: &LeafContainerStruct{UnionLeaf: &UnionLeafType_String{String: "forty two"}},
 		},
 		{
-			desc:     "fail unmarshalling nil for union leaf string field",
+			desc:     "fail unmarshalling nil for union (wrapper union) leaf string field",
 			inSchema: unionSchema,
 			inVal:    nil,
 			wantErr:  "nil value to unmarshal",
 		},
 		{
-			desc:     "success unmarshalling union leaf enum field",
+			desc:     "success unmarshalling union (wrapper union) leaf enum field",
 			inSchema: unionSchema,
 			inVal: &gpb.TypedValue{
 				Value: &gpb.TypedValue_StringVal{

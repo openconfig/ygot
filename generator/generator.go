@@ -73,19 +73,20 @@ var (
 	ygotImportPath                       = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
 
 	// Flags used for GoStruct generation only.
-	generateFakeRoot    = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
-	generateSchema      = flag.Bool("include_schema", true, "If set to true, the YANG schema will be encoded as JSON and stored in the generated code artefact.")
-	ytypesImportPath    = flag.String("ytypes_path", genutil.GoDefaultYtypesImportPath, "The import path to use for ytypes.")
-	goyangImportPath    = flag.String("goyang_path", genutil.GoDefaultGoyangImportPath, "The import path to use for goyang's yang package.")
-	generateRename      = flag.Bool("generate_rename", false, "If set to true, rename methods are generated for lists within the Go code.")
-	addAnnotations      = flag.Bool("annotations", false, "If set to true, metadata annotations are added within the generated structs.")
-	annotationPrefix    = flag.String("annotation_prefix", ygen.DefaultAnnotationPrefix, "String to be appended to each metadata field within the generated structs if annoations is set to true.")
-	excludeState        = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Go code.")
-	generateAppend      = flag.Bool("generate_append", false, "If set to true, append methods are generated for YANG lists (Go maps) within the Go code.")
-	generateGetters     = flag.Bool("generate_getters", false, "If set to true, getter methdos that retrieve or create an element are generated for YANG container (Go struct pointer) or list (Go map) fields within the generated code.")
-	generateDelete      = flag.Bool("generate_delete", false, "If set to true, delete methods are generated for YANG lists (Go maps) within the Go code.")
-	generateLeafGetters = flag.Bool("generate_leaf_getters", false, "If set to true, getters for YANG leaves are generated within the Go code. Caution should be exercised when using leaf getters, since values that are explicitly set to the Go default/zero value are not distinguishable from those that are unset when retrieved via the GetXXX method.")
-	includeModelData    = flag.Bool("include_model_data", false, "If set to true, a slice of gNMI ModelData messages are included in the generated Go code containing the details of the input schemas from which the code was generated.")
+	generateFakeRoot     = flag.Bool("generate_fakeroot", false, "If set to true, a fake element at the root of the data tree is generated. By default the fake root entity is named Device, its name can be controlled with the fakeroot_name flag.")
+	generateSchema       = flag.Bool("include_schema", true, "If set to true, the YANG schema will be encoded as JSON and stored in the generated code artefact.")
+	ytypesImportPath     = flag.String("ytypes_path", genutil.GoDefaultYtypesImportPath, "The import path to use for ytypes.")
+	goyangImportPath     = flag.String("goyang_path", genutil.GoDefaultGoyangImportPath, "The import path to use for goyang's yang package.")
+	generateRename       = flag.Bool("generate_rename", false, "If set to true, rename methods are generated for lists within the Go code.")
+	addAnnotations       = flag.Bool("annotations", false, "If set to true, metadata annotations are added within the generated structs.")
+	annotationPrefix     = flag.String("annotation_prefix", ygen.DefaultAnnotationPrefix, "String to be appended to each metadata field within the generated structs if annoations is set to true.")
+	excludeState         = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Go code.")
+	generateAppend       = flag.Bool("generate_append", false, "If set to true, append methods are generated for YANG lists (Go maps) within the Go code.")
+	generateGetters      = flag.Bool("generate_getters", false, "If set to true, getter methdos that retrieve or create an element are generated for YANG container (Go struct pointer) or list (Go map) fields within the generated code.")
+	generateDelete       = flag.Bool("generate_delete", false, "If set to true, delete methods are generated for YANG lists (Go maps) within the Go code.")
+	generateLeafGetters  = flag.Bool("generate_leaf_getters", false, "If set to true, getters for YANG leaves are generated within the Go code. Caution should be exercised when using leaf getters, since values that are explicitly set to the Go default/zero value are not distinguishable from those that are unset when retrieved via the GetXXX method.")
+	generateSimpleUnions = flag.Bool("generate_simple_unions", false, "If set to true, then generated typedefs will be used to represent union subtypes within Go code instead of wrapper struct types.")
+	includeModelData     = flag.Bool("include_model_data", false, "If set to true, a slice of gNMI ModelData messages are included in the generated Go code containing the details of the input schemas from which the code was generated.")
 
 	// Flags used for PathStruct generation only.
 	schemaStructPath        = flag.String("schema_struct_path", "", "The Go import path for the schema structs package. This should be specified if and only if schema structs are not being generated at the same time as path structs.")
@@ -324,6 +325,7 @@ func main() {
 				GenerateDeleteMethod: *generateDelete,
 				GenerateAppendMethod: *generateAppend,
 				GenerateLeafGetters:  *generateLeafGetters,
+				GenerateSimpleUnions: *generateSimpleUnions,
 				IncludeModelData:     *includeModelData,
 			},
 		})
