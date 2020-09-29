@@ -3107,12 +3107,12 @@ func TestEncodeTypedValue(t *testing.T) {
 		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
 			&gnmipb.ScalarArray{
 				Element: []*gnmipb.TypedValue{
-					&gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
-					&gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{42}},
-					&gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{3.14}},
-					&gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
-					&gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
-					&gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{false}}},
+					{Value: &gnmipb.TypedValue_StringVal{"hello"}},
+					{Value: &gnmipb.TypedValue_IntVal{42}},
+					{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+					{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
+					{Value: &gnmipb.TypedValue_BoolVal{true}},
+					{Value: &gnmipb.TypedValue_BoolVal{false}}},
 			}},
 		},
 	}, {
