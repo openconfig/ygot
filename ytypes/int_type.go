@@ -38,6 +38,22 @@ var (
 		yang.Yuint32: yang.Uint32Range,
 		yang.Yuint64: yang.Uint64Range,
 	}
+
+	// typeKindFromKind maps the primitive type kinds of Go to the
+	// enumerated TypeKind used in goyang.
+	typeKindFromKind = map[reflect.Kind]yang.TypeKind{
+		reflect.Int8:    yang.Yint8,
+		reflect.Int16:   yang.Yint16,
+		reflect.Int32:   yang.Yint32,
+		reflect.Int64:   yang.Yint64,
+		reflect.Uint8:   yang.Yuint8,
+		reflect.Uint16:  yang.Yuint16,
+		reflect.Uint32:  yang.Yuint32,
+		reflect.Uint64:  yang.Yuint64,
+		reflect.Bool:    yang.Ybool,
+		reflect.Float64: yang.Ydecimal64,
+		reflect.String:  yang.Ystring,
+	}
 )
 
 // validateInt validates value, which must be a Go integer type, against the
@@ -54,7 +70,7 @@ func validateInt(schema *yang.Entry, value interface{}) error {
 	ranges := schema.Type.Range
 
 	// Check that type of value is the type expected from the schema.
-	if yang.TypeKindFromName[reflect.TypeOf(value).Name()] != kind {
+	if typeKindFromKind[reflect.TypeOf(value).Kind()] != kind {
 		return fmt.Errorf("non %v type %T with value %v for schema %s", kind, value, value, schema.Name)
 	}
 

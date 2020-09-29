@@ -31,6 +31,45 @@ type Binary []byte
 // in the generated code.
 type YANGEmpty bool
 
+// UnionInt8 is an int8 type assignable to unions of which it is a subtype.
+type UnionInt8 int8
+
+// UnionInt16 is an int16 type assignable to unions of which it is a subtype.
+type UnionInt16 int16
+
+// UnionInt32 is an int32 type assignable to unions of which it is a subtype.
+type UnionInt32 int32
+
+// UnionInt64 is an int64 type assignable to unions of which it is a subtype.
+type UnionInt64 int64
+
+// UnionUint8 is a uint8 type assignable to unions of which it is a subtype.
+type UnionUint8 uint8
+
+// UnionUint16 is a uint16 type assignable to unions of which it is a subtype.
+type UnionUint16 uint16
+
+// UnionUint32 is a uint32 type assignable to unions of which it is a subtype.
+type UnionUint32 uint32
+
+// UnionUint64 is a uint64 type assignable to unions of which it is a subtype.
+type UnionUint64 uint64
+
+// UnionFloat64 is a float64 type assignable to unions of which it is a subtype.
+type UnionFloat64 float64
+
+// UnionString is a string type assignable to unions of which it is a subtype.
+type UnionString string
+
+// UnionBool is a bool type assignable to unions of which it is a subtype.
+type UnionBool bool
+
+// UnionUnsupported is an interface{} wrapper type for unsupported types. It is
+// assignable to unions of which it is a subtype.
+type UnionUnsupported struct {
+	Value interface{}
+}
+
 // AList represents the /enum-module/a-lists/a-list YANG schema element.
 type AList struct {
 	Value	AList_Value_Union	`path:"state/value|value" module:"enum-module"`
@@ -51,42 +90,32 @@ func (t *AList) ΛListKeyMap() (map[string]interface{}, error) {
 
 // AList_Value_Union is an interface that is implemented by valid types for the union
 // for the leaf /enum-module/a-lists/a-list/state/value within the YANG schema.
+// Union type can be one of [E_EnumModule_AList_Value, UnionUint32].
 type AList_Value_Union interface {
-	Is_AList_Value_Union()
+	// Union type can be one of [E_EnumModule_AList_Value, UnionUint32]
+	Documentation_for_AList_Value_Union()
 }
 
-// AList_Value_Union_E_EnumModule_AList_Value is used when /enum-module/a-lists/a-list/state/value
-// is to be set to a E_EnumModule_AList_Value value.
-type AList_Value_Union_E_EnumModule_AList_Value struct {
-	E_EnumModule_AList_Value	E_EnumModule_AList_Value
-}
-
-// Is_AList_Value_Union ensures that AList_Value_Union_E_EnumModule_AList_Value
+// Documentation_for_AList_Value_Union ensures that E_EnumModule_AList_Value
 // implements the AList_Value_Union interface.
-func (*AList_Value_Union_E_EnumModule_AList_Value) Is_AList_Value_Union() {}
+func (E_EnumModule_AList_Value) Documentation_for_AList_Value_Union() {}
 
-// AList_Value_Union_Uint32 is used when /enum-module/a-lists/a-list/state/value
-// is to be set to a uint32 value.
-type AList_Value_Union_Uint32 struct {
-	Uint32	uint32
-}
-
-// Is_AList_Value_Union ensures that AList_Value_Union_Uint32
+// Documentation_for_AList_Value_Union ensures that UnionUint32
 // implements the AList_Value_Union interface.
-func (*AList_Value_Union_Uint32) Is_AList_Value_Union() {}
+func (UnionUint32) Documentation_for_AList_Value_Union() {}
 
 // To_AList_Value_Union takes an input interface{} and attempts to convert it to a struct
 // which implements the AList_Value_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *AList) To_AList_Value_Union(i interface{}) (AList_Value_Union, error) {
-	switch v := i.(type) {
-	case E_EnumModule_AList_Value:
-		return &AList_Value_Union_E_EnumModule_AList_Value{v}, nil
-	case uint32:
-		return &AList_Value_Union_Uint32{v}, nil
-	default:
-		return nil, fmt.Errorf("cannot convert %v to AList_Value_Union, unknown union type, got: %T, want any of [E_EnumModule_AList_Value, uint32]", i, i)
+	if v, ok := i.(AList_Value_Union); ok {
+		return v, nil
 	}
+	switch v := i.(type) {
+	case uint32:
+		return UnionUint32(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to AList_Value_Union, unknown union type, got: %T, want any of [E_EnumModule_AList_Value, uint32]", i, i)
 }
 
 // BList represents the /enum-module/b-lists/b-list YANG schema element.
@@ -109,42 +138,32 @@ func (t *BList) ΛListKeyMap() (map[string]interface{}, error) {
 
 // BList_Value_Union is an interface that is implemented by valid types for the union
 // for the leaf /enum-module/b-lists/b-list/state/value within the YANG schema.
+// Union type can be one of [E_EnumModule_BList_Value, UnionUint32].
 type BList_Value_Union interface {
-	Is_BList_Value_Union()
+	// Union type can be one of [E_EnumModule_BList_Value, UnionUint32]
+	Documentation_for_BList_Value_Union()
 }
 
-// BList_Value_Union_E_EnumModule_BList_Value is used when /enum-module/b-lists/b-list/state/value
-// is to be set to a E_EnumModule_BList_Value value.
-type BList_Value_Union_E_EnumModule_BList_Value struct {
-	E_EnumModule_BList_Value	E_EnumModule_BList_Value
-}
-
-// Is_BList_Value_Union ensures that BList_Value_Union_E_EnumModule_BList_Value
+// Documentation_for_BList_Value_Union ensures that E_EnumModule_BList_Value
 // implements the BList_Value_Union interface.
-func (*BList_Value_Union_E_EnumModule_BList_Value) Is_BList_Value_Union() {}
+func (E_EnumModule_BList_Value) Documentation_for_BList_Value_Union() {}
 
-// BList_Value_Union_Uint32 is used when /enum-module/b-lists/b-list/state/value
-// is to be set to a uint32 value.
-type BList_Value_Union_Uint32 struct {
-	Uint32	uint32
-}
-
-// Is_BList_Value_Union ensures that BList_Value_Union_Uint32
+// Documentation_for_BList_Value_Union ensures that UnionUint32
 // implements the BList_Value_Union interface.
-func (*BList_Value_Union_Uint32) Is_BList_Value_Union() {}
+func (UnionUint32) Documentation_for_BList_Value_Union() {}
 
 // To_BList_Value_Union takes an input interface{} and attempts to convert it to a struct
 // which implements the BList_Value_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *BList) To_BList_Value_Union(i interface{}) (BList_Value_Union, error) {
-	switch v := i.(type) {
-	case E_EnumModule_BList_Value:
-		return &BList_Value_Union_E_EnumModule_BList_Value{v}, nil
-	case uint32:
-		return &BList_Value_Union_Uint32{v}, nil
-	default:
-		return nil, fmt.Errorf("cannot convert %v to BList_Value_Union, unknown union type, got: %T, want any of [E_EnumModule_BList_Value, uint32]", i, i)
+	if v, ok := i.(BList_Value_Union); ok {
+		return v, nil
 	}
+	switch v := i.(type) {
+	case uint32:
+		return UnionUint32(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to BList_Value_Union, unknown union type, got: %T, want any of [E_EnumModule_BList_Value, uint32]", i, i)
 }
 
 // C represents the /enum-module/c YANG schema element.
