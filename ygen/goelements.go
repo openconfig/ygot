@@ -31,6 +31,17 @@ const (
 	goEnumPrefix string = "E_"
 )
 
+// unionConversionSpec stores snippets that convert primitive Go types to
+// union typedef types.
+type unionConversionSpec struct {
+	// PrimitiveType is the primitive Go type from which to convert to the
+	// union type.
+	PrimitiveType string
+	// ConversionSnippet is the code snippet that converts the primitive
+	// type to the union type.
+	ConversionSnippet string
+}
+
 var (
 	// validGoBuiltinTypes stores the valid types that the Go code generation
 	// produces, such that resolved types can be checked as to whether they are
@@ -70,6 +81,26 @@ var (
 		"interface{}":       "nil",
 		ygot.BinaryTypeName: "nil",
 		ygot.EmptyTypeName:  "false",
+	}
+
+	// unionConversionSnippets stores the valid primitive types that the Go
+	// code generation produces that can be used as a union subtype, and
+	// information on how to convert it to a union-satisfying type.
+	unionConversionSnippets = map[string]*unionConversionSpec{
+		"int8":              {PrimitiveType: "int8", ConversionSnippet: ygot.SimpleUnionBuiltinGoTypes["int8"] + "(v)"},
+		"int16":             {PrimitiveType: "int16", ConversionSnippet: ygot.SimpleUnionBuiltinGoTypes["int16"] + "(v)"},
+		"int32":             {PrimitiveType: "int32", ConversionSnippet: ygot.SimpleUnionBuiltinGoTypes["int32"] + "(v)"},
+		"int64":             {PrimitiveType: "int64", ConversionSnippet: ygot.SimpleUnionBuiltinGoTypes["int64"] + "(v)"},
+		"uint8":             {PrimitiveType: "uint8", ConversionSnippet: ygot.SimpleUnionBuiltinGoTypes["uint8"] + "(v)"},
+		"uint16":            {PrimitiveType: "uint16", ConversionSnippet: ygot.SimpleUnionBuiltinGoTypes["uint16"] + "(v)"},
+		"uint32":            {PrimitiveType: "uint32", ConversionSnippet: ygot.SimpleUnionBuiltinGoTypes["uint32"] + "(v)"},
+		"uint64":            {PrimitiveType: "uint64", ConversionSnippet: ygot.SimpleUnionBuiltinGoTypes["uint64"] + "(v)"},
+		"float64":           {PrimitiveType: "float64", ConversionSnippet: ygot.SimpleUnionBuiltinGoTypes["float64"] + "(v)"},
+		"string":            {PrimitiveType: "string", ConversionSnippet: ygot.SimpleUnionBuiltinGoTypes["string"] + "(v)"},
+		"bool":              {PrimitiveType: "bool", ConversionSnippet: ygot.SimpleUnionBuiltinGoTypes["bool"] + "(v)"},
+		"interface{}":       {PrimitiveType: "interface{}", ConversionSnippet: "&UnionUnsupported{v}"},
+		ygot.BinaryTypeName: {PrimitiveType: "[]byte", ConversionSnippet: ygot.BinaryTypeName + "(v)"},
+		ygot.EmptyTypeName:  {PrimitiveType: "bool", ConversionSnippet: ygot.EmptyTypeName + "(v)"},
 	}
 )
 

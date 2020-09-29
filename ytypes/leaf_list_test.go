@@ -24,6 +24,7 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
@@ -146,14 +147,16 @@ func TestValidateLeafList(t *testing.T) {
 }
 
 type LeafListContainer struct {
-	Int32LeafList  []*int32        `path:"int32-leaf-list"`
-	EnumLeafList   []EnumType      `path:"enum-leaf-list"`
-	UnionLeafSlice []UnionLeafType `path:"union-leaflist"`
+	Int32LeafList        []*int32              `path:"int32-leaf-list"`
+	EnumLeafList         []EnumType            `path:"enum-leaf-list"`
+	UnionLeafSlice       []UnionLeafType       `path:"union-leaflist"`
+	UnionLeafSliceSimple []UnionLeafTypeSimple `path:"union-leaflist-simple"`
 }
 
 func (*LeafListContainer) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
-		"/container-schema/union-leaflist": {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-leaflist":        {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
+		"/container-schema/union-leaflist-simple": {reflect.TypeOf(EnumType(0)), reflect.TypeOf(EnumType2(0))},
 	}
 }
 
@@ -170,6 +173,21 @@ func (*LeafListContainer) To_UnionLeafType(i interface{}) (UnionLeafType, error)
 	default:
 		return nil, fmt.Errorf("cannot convert %v to To_UnionLeafType, unknown union type, got: %T, want any of [string, uint32]", i, i)
 	}
+}
+
+func (*LeafListContainer) To_UnionLeafTypeSimple(i interface{}) (UnionLeafTypeSimple, error) {
+	if v, ok := i.(UnionLeafTypeSimple); ok {
+		return v, nil
+	}
+	switch v := i.(type) {
+	case []byte:
+		return testutil.Binary(v), nil
+	case string:
+		return testutil.UnionString(v), nil
+	case uint32:
+		return testutil.UnionUint32(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to UnionLeafTypeSimple, unknown union type, got: %T, want any of [string, uint32, EnumType, EnumType2, Binary]", i, i)
 }
 
 func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
@@ -206,6 +224,28 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 	unionLeafListSchema := &yang.Entry{
 		Parent:   containerSchema,
 		Name:     "union-leaflist",
+		Kind:     yang.LeafEntry,
+		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		Type: &yang.YangType{
+			Kind: yang.Yunion,
+			Type: []*yang.YangType{
+				{
+					Kind:    yang.Ystring,
+					Pattern: []string{"a+"},
+				},
+				{
+					Kind: yang.Yuint32,
+				},
+				{
+					Kind: yang.Yenum,
+				},
+			},
+		},
+	}
+
+	unionLeafListSchemaSimple := &yang.Entry{
+		Parent:   containerSchema,
+		Name:     "union-leaflist-simple",
 		Kind:     yang.LeafEntry,
 		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
 		Type: &yang.YangType{
@@ -305,6 +345,36 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 		},
 		{
 			desc: "unionleaf success",
+			sch:  unionLeafListSchemaSimple,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_StringVal{StringVal: "forty two"}},
+						{Value: &gpb.TypedValue_StringVal{StringVal: "E_VALUE_FORTY_TWO"}},
+						{Value: &gpb.TypedValue_UintVal{UintVal: 42}},
+					},
+				},
+			}},
+			want: LeafListContainer{UnionLeafSliceSimple: []UnionLeafTypeSimple{
+				testutil.UnionString("forty two"),
+				EnumType(42),
+				testutil.UnionUint32(42),
+			}},
+		},
+		{
+			desc: "fail unionleaf no suitable type",
+			sch:  unionLeafListSchemaSimple,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+					},
+				},
+			}},
+			wantErr: "could not find suitable union type to unmarshal value " + (&gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}}).String(),
+		},
+		{
+			desc: "unionleaf success (wrapper union)",
 			sch:  unionLeafListSchema,
 			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
 				LeaflistVal: &gpb.ScalarArray{
@@ -322,7 +392,7 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 			}},
 		},
 		{
-			desc: "fail unionleaf no suitable type",
+			desc: "fail unionleaf no suitable type (wrapper union)",
 			sch:  unionLeafListSchema,
 			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
 				LeaflistVal: &gpb.ScalarArray{
@@ -361,18 +431,20 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		var parent LeafListContainer
-		err := unmarshalGeneric(tt.sch, &parent, tt.val, GNMIEncoding)
-		if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
-			t.Errorf("%s: unmarshalGeneric(%v, %v, %v): diff(-got,+want):\n%s", tt.desc, tt.sch, parent, tt.val, diff)
-		}
-		if err != nil {
-			continue
-		}
-		got, want := parent, tt.want
-		if diff := cmp.Diff(want, got); diff != "" {
-			t.Errorf("%s: unmarshalGeneric (-want, +got):\n%s", tt.desc, diff)
-		}
+		t.Run(tt.desc, func(t *testing.T) {
+			var parent LeafListContainer
+			err := unmarshalGeneric(tt.sch, &parent, tt.val, GNMIEncoding)
+			if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
+				t.Errorf("unmarshalGeneric(%v, %v, %v): diff(-got,+want):\n%s", tt.sch, parent, tt.val, diff)
+			}
+			if err != nil {
+				return
+			}
+			got, want := parent, tt.want
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("unmarshalGeneric (-want, +got):\n%s", diff)
+			}
+		})
 	}
 }
 

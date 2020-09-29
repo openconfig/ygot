@@ -413,7 +413,7 @@ type yangTestCase struct {
 	inExcludeModules    []string        // inExcludeModules is the set of modules that should be excluded from code generation.
 	inConfig            GeneratorConfig // inConfig specifies the configuration that should be used for the generator test case.
 	wantStructsCodeFile string          // wantsStructsCodeFile is the path of the generated Go code that the output of the test should be compared to.
-	wantErr             bool            // wantErr specifies whether the test should expect an error.
+	wantErrSubstring    string          // wantErrSubstring specifies whether the test should expect an error.
 	wantSchemaFile      string          // wantSchemaFile is the path to the schema JSON that the output of the test should be compared to.
 }
 
@@ -431,16 +431,23 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "simple openconfig test, with compression",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
 				UseDefiningModuleForTypedefEnumNames: true,
-			}},
+			},
+		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple.formatted-txt"),
 	}, {
 		name:    "simple openconfig test, with no compression",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				ShortenEnumLeafNames:                 true,
 				UseDefiningModuleForTypedefEnumNames: true,
@@ -452,8 +459,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
-				AddAnnotationFields: true,
-				AnnotationPrefix:    "☃",
+				AddAnnotationFields:  true,
+				AnnotationPrefix:     "☃",
+				GenerateSimpleUnions: true,
 			},
 			TransformationOptions: TransformationOpts{
 				ShortenEnumLeafNames:                 true,
@@ -472,6 +480,7 @@ func TestSimpleStructs(t *testing.T) {
 			},
 			GoOptions: GoOpts{
 				GenerateRenameMethod: true,
+				GenerateSimpleUnions: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.formatted-txt"),
@@ -486,6 +495,7 @@ func TestSimpleStructs(t *testing.T) {
 			},
 			GoOptions: GoOpts{
 				GenerateRenameMethod: true,
+				GenerateSimpleUnions: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-withlist-opstate.formatted-txt"),
@@ -493,6 +503,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "simple openconfig test, with a list that has an enumeration key",
 		inFiles: []string{filepath.Join(datapath, "openconfig-list-enum-key.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
@@ -504,6 +517,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "openconfig test with a identityref union",
 		inFiles: []string{filepath.Join(datapath, "openconfig-unione.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
@@ -512,9 +528,23 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-unione.formatted-txt"),
 	}, {
+		name:    "openconfig test with a identityref union (wrapper unions)",
+		inFiles: []string{filepath.Join(datapath, "openconfig-unione.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-unione.wrapper-unions.formatted-txt"),
+	}, {
 		name:    "openconfig tests with fakeroot",
 		inFiles: []string{filepath.Join(datapath, "openconfig-fakeroot.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				GenerateFakeRoot:                     true,
@@ -527,6 +557,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "openconfig noncompressed tests with fakeroot",
 		inFiles: []string{filepath.Join(datapath, "openconfig-fakeroot.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				GenerateFakeRoot:                     true,
 				ShortenEnumLeafNames:                 true,
@@ -538,6 +571,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "schema test with compression",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
@@ -551,6 +587,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "schema test without compression",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			GenerateJSONSchema: true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/schema/openconfig-options-nocompress.formatted-txt"),
@@ -559,6 +598,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "schema test with fakeroot",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				GenerateFakeRoot:                     true,
@@ -573,6 +615,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "schema test with fakeroot and no compression",
 		inFiles: []string{filepath.Join(TestRoot, "testdata/schema/openconfig-options.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				GenerateFakeRoot:                     true,
 				UseDefiningModuleForTypedefEnumNames: true,
@@ -585,6 +630,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "schema test with camelcase annotations",
 		inFiles: []string{filepath.Join(datapath, "openconfig-camelcase.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				GenerateFakeRoot:                     true,
@@ -597,6 +645,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "structs test with camelcase annotations",
 		inFiles: []string{filepath.Join(datapath, "openconfig-enumcamelcase.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
@@ -615,6 +666,9 @@ func TestSimpleStructs(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple-augment.yang"),
 		},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour: genutil.PreferIntendedConfig,
 				GenerateFakeRoot:  true,
@@ -636,10 +690,11 @@ func TestSimpleStructs(t *testing.T) {
 			StoreRawSchema:     true,
 			GenerateJSONSchema: true,
 			GoOptions: GoOpts{
-				SchemaVarName:    "YANGSchema",
-				GoyangImportPath: "foo/goyang",
-				YgotImportPath:   "bar/ygot",
-				YtypesImportPath: "baz/ytypes",
+				SchemaVarName:        "YANGSchema",
+				GoyangImportPath:     "foo/goyang",
+				YgotImportPath:       "bar/ygot",
+				YtypesImportPath:     "baz/ytypes",
+				GenerateSimpleUnions: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/schema/openconfig-options-explicit.formatted-txt"),
@@ -648,6 +703,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "module with entities at the root",
 		inFiles: []string{filepath.Join(datapath, "root-entities.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				FakeRootName:     "fakeroot",
 				GenerateFakeRoot: true,
@@ -664,6 +722,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles:          []string{filepath.Join(datapath, "excluded-module.yang")},
 		inExcludeModules: []string{"excluded-module-two"},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				GenerateFakeRoot: true,
 				FakeRootName:     "office",
@@ -674,6 +735,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "module with excluded config false",
 		inFiles: []string{filepath.Join(datapath, "", "openconfig-config-false.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour: genutil.UncompressedExcludeDerivedState,
 				GenerateFakeRoot:  true,
@@ -684,6 +748,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "module with excluded config false - with compression",
 		inFiles: []string{filepath.Join(datapath, "", "openconfig-config-false.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				GenerateFakeRoot:  true,
 				CompressBehaviour: genutil.ExcludeDerivedState,
@@ -701,6 +768,7 @@ func TestSimpleStructs(t *testing.T) {
 				GenerateAppendMethod: true,
 				GenerateGetters:      true,
 				GenerateDeleteMethod: true,
+				GenerateSimpleUnions: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.getters-append.formatted-txt"),
@@ -708,6 +776,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "module with excluded state, with RO list, path compression on",
 		inFiles: []string{filepath.Join(datapath, "", "exclude-state-ro-list.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				GenerateFakeRoot:  true,
 				CompressBehaviour: genutil.ExcludeDerivedState,
@@ -719,6 +790,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
 		inIncludePaths: []string{filepath.Join(datapath, "modules")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
@@ -727,10 +801,25 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.formatted-txt"),
 	}, {
+		name:           "enumeration behaviour (wrapper unions) - resolution across submodules and grouping re-use within union",
+		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
+		inIncludePaths: []string{filepath.Join(datapath, "modules")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.wrapper-unions.formatted-txt"),
+	}, {
 		name:           "enumeration behaviour - resolution across submodules and grouping re-use within union, with enumeration leaf names not shortened",
 		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
 		inIncludePaths: []string{filepath.Join(datapath, "modules")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				UseDefiningModuleForTypedefEnumNames: true,
@@ -742,6 +831,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
 		inIncludePaths: []string{filepath.Join(datapath, "modules")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames: true,
@@ -753,16 +845,32 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
 		inIncludePaths: []string{filepath.Join(datapath, "modules")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour: genutil.PreferIntendedConfig,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.long-enum-names.residing-module-typedef-enum-name.formatted-txt"),
 	}, {
+		name:           "enumeration behaviour - resolution across submodules and grouping re-use within union, with typedef enum names being prefixed by the module of their use/residence rather than of their definition, and enumeration leaf names not shortened",
+		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
+		inIncludePaths: []string{filepath.Join(datapath, "modules")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour: genutil.PreferIntendedConfig,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.long-enum-names.residing-module-typedef-enum-name.wrapper-unions.formatted-txt"),
+	}, {
 		name:           "enumeration behaviour - multiple enumerations within a union",
 		inFiles:        []string{filepath.Join(datapath, "", "enum-multi-module.yang")},
 		inIncludePaths: []string{filepath.Join(datapath, "modules")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
@@ -781,7 +889,8 @@ func TestSimpleStructs(t *testing.T) {
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 			},
 			GoOptions: GoOpts{
-				GenerateLeafGetters: true,
+				GenerateLeafGetters:  true,
+				GenerateSimpleUnions: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.leaf-getters.formatted-txt"),
@@ -789,11 +898,23 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "uncompressed module with two different enums",
 		inFiles: []string{filepath.Join(datapath, "", "enum-list-uncompressed.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				GenerateFakeRoot: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-list-uncompressed.formatted-txt"),
+	}, {
+		name:    "uncompressed module with two different enums (wrapper unions)",
+		inFiles: []string{filepath.Join(datapath, "", "enum-list-uncompressed.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-list-uncompressed.wrapper-unions.formatted-txt"),
 	}, {
 		name:    "with model data",
 		inFiles: []string{filepath.Join(datapath, "", "openconfig-versioned-mod.yang")},
@@ -803,7 +924,8 @@ func TestSimpleStructs(t *testing.T) {
 				CompressBehaviour: genutil.PreferIntendedConfig,
 			},
 			GoOptions: GoOpts{
-				IncludeModelData: true,
+				IncludeModelData:     true,
+				GenerateSimpleUnions: true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-versioned-mod.formatted-txt"),
@@ -811,6 +933,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "model with deduplicated enums",
 		inFiles: []string{filepath.Join(datapath, "enum-duplication.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				GenerateFakeRoot: true,
 			},
@@ -820,6 +945,9 @@ func TestSimpleStructs(t *testing.T) {
 		name:    "model with enums that are in the same grouping duplicated",
 		inFiles: []string{filepath.Join(datapath, "enum-duplication.yang")},
 		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
 			TransformationOptions: TransformationOpts{
 				GenerateFakeRoot: true,
 			},
@@ -828,11 +956,56 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-duplication-dup.formatted-txt"),
+	}, {
+		name:    "OpenConfig schema test - list with binary key",
+		inFiles: []string{filepath.Join(datapath, "openconfig-binary-list.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+			GoOptions: GoOpts{
+				GenerateRenameMethod: true,
+				GenerateSimpleUnions: true,
+			},
+		},
+		wantErrSubstring: "has a binary key",
+	}, {
+		name:    "OpenConfig schema test - multi-keyed list with binary key",
+		inFiles: []string{filepath.Join(datapath, "openconfig-binary-multi-list.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+			GoOptions: GoOpts{
+				GenerateRenameMethod: true,
+				GenerateSimpleUnions: true,
+			},
+		},
+		wantErrSubstring: "has a binary key",
+	}, {
+		name:    "OpenConfig schema test - list with union key containing binary",
+		inFiles: []string{filepath.Join(datapath, "openconfig-union-binary-list.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+			GoOptions: GoOpts{
+				GenerateRenameMethod: true,
+				GenerateSimpleUnions: true,
+			},
+		},
+		wantErrSubstring: "has a union key containing a binary",
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			genCode := func() (*GeneratedGoCode, string, map[string]interface{}) {
+			genCode := func() (*GeneratedGoCode, string, map[string]interface{}, error) {
 				// Set defaults within the supplied configuration for these tests.
 				if tt.inConfig.Caller == "" {
 					// Set the name of the caller explicitly to avoid issues when
@@ -844,9 +1017,16 @@ func TestSimpleStructs(t *testing.T) {
 
 				cg := NewYANGCodeGenerator(&tt.inConfig)
 
-				gotGeneratedCode, err := cg.GenerateGoCode(tt.inFiles, tt.inIncludePaths)
-				if err != nil && !tt.wantErr {
-					t.Fatalf("%s: cg.GenerateCode(%v, %v): Config: %+v, got unexpected error: %v, want: nil", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
+				gotGeneratedCode, errs := cg.GenerateGoCode(tt.inFiles, tt.inIncludePaths)
+				var err error
+				if len(errs) > 0 {
+					err = fmt.Errorf("%w", errs)
+				}
+				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+					t.Fatalf("%s: cg.GenerateCode(%v, %v): Config: %+v, Did not get expected error: %s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, diff)
+				}
+				if err != nil {
+					return nil, "", nil, err
 				}
 
 				// Write all the received structs into a single file such that
@@ -875,10 +1055,13 @@ func TestSimpleStructs(t *testing.T) {
 						t.Fatalf("%s: json.Unmarshal(..., %v), could not unmarshal received JSON: %v", tt.name, gotGeneratedCode.RawJSONSchema, err)
 					}
 				}
-				return gotGeneratedCode, gotCode.String(), gotJSON
+				return gotGeneratedCode, gotCode.String(), gotJSON, nil
 			}
 
-			gotGeneratedCode, gotCode, gotJSON := genCode()
+			gotGeneratedCode, gotCode, gotJSON, err := genCode()
+			if err != nil {
+				return
+			}
 
 			if tt.wantSchemaFile != "" {
 				wantSchema, rferr := ioutil.ReadFile(tt.wantSchemaFile)
@@ -914,7 +1097,7 @@ func TestSimpleStructs(t *testing.T) {
 			}
 
 			for i := 0; i < deflakeRuns; i++ {
-				_, gotAttempt, _ := genCode()
+				_, gotAttempt, _, _ := genCode()
 				if gotAttempt != gotCode {
 					diff, _ := testutil.GenerateUnifiedDiff(gotAttempt, gotCode)
 					t.Fatalf("flaky code generation, diff:\n%s", diff)
