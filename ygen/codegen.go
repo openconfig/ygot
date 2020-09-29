@@ -189,6 +189,10 @@ type GoOpts struct {
 	// list fields of a struct. These methods take an input list member type, extract
 	// the key and append the supplied value to the list.
 	GenerateAppendMethod bool
+	// GenerateSimpleUnions specifies whether simple typedefs are used to
+	// represent union subtypes in the generated code instead of using
+	// wrapper types.
+	GenerateSimpleUnions bool
 	// GenerateLeafGetters specifies whether Get* methods should be created for
 	// leaf fields of a struct. Care should be taken with this option since a Get
 	// method returns the *Go* zero value for a particular entity if the field is

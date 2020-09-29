@@ -38,6 +38,7 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	oc "github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/exampleoc/opstateoc"
+	woc "github.com/openconfig/ygot/exampleoc/wrapperunionoc"
 	uoc "github.com/openconfig/ygot/uexampleoc"
 	scpb "google.golang.org/genproto/googleapis/rpc/code"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
@@ -131,7 +132,76 @@ func TestValidateInterface(t *testing.T) {
 
 	// Device/interface/subinterfaces/subinterface/vlan
 	vlan0.Vlan = &oc.Interface_Subinterface_Vlan{
-		VlanId: &oc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
+		VlanId: oc.UnionUint16(1234),
+	}
+
+	// Validate the vlan.
+	if err := vlan0.Validate(); err != nil {
+		t.Errorf("vlan0 success: got %s, want nil", err)
+	}
+
+	// Set vlan-id to be out of range (1-4094)
+	vlan0.Vlan = &oc.Interface_Subinterface_Vlan{
+		VlanId: oc.UnionUint16(4095),
+	}
+	// Validate the vlan.
+	if err := vlan0.Validate(); err == nil {
+		t.Errorf("bad vlan-id value: got nil, want error")
+	} else {
+		if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
+			t.Errorf("did not get expected vlan-id error, %s", diff)
+		}
+		testErrLog(t, "bad vlan-id value", err)
+	}
+
+	// Validate that we get two errors.
+	if errs := dev.Validate(); len(errs.(util.Errors)) != 2 {
+		var b bytes.Buffer
+		for _, err := range errs.(util.Errors) {
+			b.WriteString(fmt.Sprintf("	[%s]\n", err))
+		}
+		t.Errorf("did not get expected errors when validating device, got:\n %s (len: %d), want 5 errors", b.String(), len(errs.(util.Errors)))
+	}
+}
+
+func TestValidateInterfaceWrapperUnion(t *testing.T) {
+	dev := &woc.Device{}
+	eth0, err := dev.NewInterface("eth0")
+	if err != nil {
+		t.Errorf("eth0.NewInterface(): got %v, want nil", err)
+	}
+
+	eth0.Description = ygot.String("eth0 description")
+	eth0.Type = woc.IETFInterfaces_InterfaceType_ethernetCsmacd
+
+	// Validate the fake root device.
+	if err := dev.Validate(); err != nil {
+		t.Errorf("root success: got %s, want nil", err)
+	}
+	// Validate an element in the device subtree.
+	if err := eth0.Validate(); err != nil {
+		t.Errorf("eth0 success: got %s, want nil", err)
+	}
+
+	// Key in map != key field value in element. Key should be "eth0" here.
+	dev.Interface["bad_key"] = eth0
+	if err := dev.Validate(); err == nil {
+		t.Errorf("bad key: got nil, want error")
+	} else {
+		if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
+			t.Errorf("did not get expected vlan-id error, %s", diff)
+		}
+		testErrLog(t, "bad key", err)
+	}
+
+	vlan0, err := eth0.NewSubinterface(0)
+	if err != nil {
+		t.Errorf("eth0.NewSubinterface(): got %v, want nil", err)
+	}
+
+	// Device/interface/subinterfaces/subinterface/vlan
+	vlan0.Vlan = &woc.Interface_Subinterface_Vlan{
+		VlanId: &woc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
 			Uint16: 1234,
 		},
 	}
@@ -142,8 +212,8 @@ func TestValidateInterface(t *testing.T) {
 	}
 
 	// Set vlan-id to be out of range (1-4094)
-	vlan0.Vlan = &oc.Interface_Subinterface_Vlan{
-		VlanId: &oc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
+	vlan0.Vlan = &woc.Interface_Subinterface_Vlan{
+		VlanId: &woc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
 			Uint16: 4095,
 		},
 	}
@@ -204,9 +274,7 @@ func TestValidateInterfaceOpState(t *testing.T) {
 
 	// Device/interface/subinterfaces/subinterface/vlan
 	vlan0.Vlan = &opstateoc.Interface_Subinterface_Vlan{
-		VlanId: &opstateoc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
-			Uint16: 1234,
-		},
+		VlanId: opstateoc.UnionUint16(1234),
 	}
 
 	// Validate the vlan.
@@ -216,9 +284,7 @@ func TestValidateInterfaceOpState(t *testing.T) {
 
 	// Set vlan-id to be out of range (1-4094)
 	vlan0.Vlan = &opstateoc.Interface_Subinterface_Vlan{
-		VlanId: &opstateoc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
-			Uint16: 4095,
-		},
+		VlanId: opstateoc.UnionUint16(4095),
 	}
 	// Validate the vlan.
 	if err := vlan0.Validate(); err == nil {
@@ -277,8 +343,31 @@ func TestValidateSystemAaa(t *testing.T) {
 			Aaa: &oc.System_Aaa{
 				Authentication: &oc.System_Aaa_Authentication{
 					AuthenticationMethod: []oc.System_Aaa_Authentication_AuthenticationMethod_Union{
-						&oc.System_Aaa_Authentication_AuthenticationMethod_Union_E_OpenconfigAaaTypes_AAA_METHOD_TYPE{
-							E_OpenconfigAaaTypes_AAA_METHOD_TYPE: oc.OpenconfigAaaTypes_AAA_METHOD_TYPE_LOCAL,
+						oc.OpenconfigAaaTypes_AAA_METHOD_TYPE_LOCAL,
+					},
+				},
+			},
+		},
+	}
+
+	// Validate the fake root device.
+	if err := dev.Validate(); err != nil {
+		t.Errorf("root success: got %s, want nil", err)
+	}
+	// Validate an element in the device subtree.
+	if err := dev.System.Validate(); err != nil {
+		t.Errorf("system success: got %s, want nil", err)
+	}
+}
+
+func TestValidateSystemAaaWrapperUnion(t *testing.T) {
+	dev := &woc.Device{
+		System: &woc.System{
+			Aaa: &woc.System_Aaa{
+				Authentication: &woc.System_Aaa_Authentication{
+					AuthenticationMethod: []woc.System_Aaa_Authentication_AuthenticationMethod_Union{
+						&woc.System_Aaa_Authentication_AuthenticationMethod_Union_E_OpenconfigAaaTypes_AAA_METHOD_TYPE{
+							E_OpenconfigAaaTypes_AAA_METHOD_TYPE: woc.OpenconfigAaaTypes_AAA_METHOD_TYPE_LOCAL,
 						},
 					},
 				},
@@ -420,10 +509,8 @@ func TestValidateLocalRoutes(t *testing.T) {
 	lrs := &oc.LocalRoutes_Static{
 		NextHop: map[string]*oc.LocalRoutes_Static_NextHop{
 			"10.10.10.10": {
-				Index: ygot.String("10.10.10.10"),
-				NextHop: &oc.LocalRoutes_Static_NextHop_NextHop_Union_String{
-					String: "10.10.10.1",
-				},
+				Index:   ygot.String("10.10.10.10"),
+				NextHop: oc.UnionString("10.10.10.1"),
 			},
 		},
 	}
@@ -577,6 +664,20 @@ func TestUnmarshal(t *testing.T) {
 			jsonFilePath:    "system-cpu.json",
 			parent:          &uoc.Device{},
 			unmarshalFn:     uoc.Unmarshal,
+			outjsonFilePath: "system-cpu.json",
+		},
+		{
+			desc:            "relay agent leaf-list of single type union (wrapper union)",
+			jsonFilePath:    "relay-agent.json",
+			parent:          &woc.Device{},
+			unmarshalFn:     woc.Unmarshal,
+			outjsonFilePath: "relay-agent.json",
+		},
+		{
+			desc:            "unmarshal list with union key (wrapper union)",
+			jsonFilePath:    "system-cpu.json",
+			parent:          &woc.Device{},
+			unmarshalFn:     woc.Unmarshal,
 			outjsonFilePath: "system-cpu.json",
 		},
 	}
