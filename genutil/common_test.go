@@ -191,9 +191,10 @@ func TestTypeDefaultValue(t *testing.T) {
 // a simplified and unsimplified schema can be tested.
 func TestFindChildren(t *testing.T) {
 	tests := []struct {
-		name      string
-		inElement *yang.Entry
-		want      map[CompressBehaviour][]yang.Entry
+		name       string
+		inElement  *yang.Entry
+		want       map[CompressBehaviour][]yang.Entry
+		wantShadow map[CompressBehaviour][]yang.Entry
 		// wantErr says whether a given compressBehaviour expects errors.
 		wantErr map[CompressBehaviour]bool
 	}{{
@@ -340,6 +341,39 @@ func TestFindChildren(t *testing.T) {
 					},
 				},
 			},
+		},
+		wantShadow: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig: []yang.Entry{
+				{
+					Name:   "name",
+					Config: yang.TSFalse,
+					Type: &yang.YangType{
+						Kind: yang.Ystring,
+					},
+				},
+				{
+					Name:   "type",
+					Config: yang.TSFalse,
+					Type:   &yang.YangType{Kind: yang.Ystring},
+				},
+			},
+			Uncompressed:                    nil,
+			ExcludeDerivedState:             nil,
+			UncompressedExcludeDerivedState: nil,
+			PreferOperationalState: []yang.Entry{
+				{
+					Name:   "name",
+					Config: yang.TSTrue,
+					Type: &yang.YangType{
+						Kind: yang.Ystring,
+					},
+				},
+				{
+					Name:   "type",
+					Config: yang.TSTrue,
+					Type:   &yang.YangType{Kind: yang.Ystring},
+				},
+			},
 		}}, {
 		name: "surrounding-container",
 		inElement: &yang.Entry{
@@ -385,6 +419,11 @@ func TestFindChildren(t *testing.T) {
 					Type:   &yang.YangType{},
 				},
 			},
+		},
+		wantShadow: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig:   nil,
+			PreferOperationalState: nil,
+			Uncompressed:           nil,
 		}}, {
 		name: "duplicate-elements-in-config",
 		inElement: &yang.Entry{
@@ -470,6 +509,11 @@ func TestFindChildren(t *testing.T) {
 					Type: &yang.YangType{},
 				},
 			},
+		},
+		wantShadow: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig:   nil,
+			PreferOperationalState: nil,
+			Uncompressed:           nil,
 		}}, {
 		name: "choice entry within state",
 		inElement: &yang.Entry{
@@ -507,6 +551,11 @@ func TestFindChildren(t *testing.T) {
 			Uncompressed: []yang.Entry{{
 				Name: "state",
 			}},
+		},
+		wantShadow: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig:   nil,
+			PreferOperationalState: nil,
+			Uncompressed:           nil,
 		}}, {
 		name: "choice entry within config",
 		inElement: &yang.Entry{
@@ -544,6 +593,11 @@ func TestFindChildren(t *testing.T) {
 			Uncompressed: []yang.Entry{{
 				Name: "config",
 			}},
+		},
+		wantShadow: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig:   nil,
+			PreferOperationalState: nil,
+			Uncompressed:           nil,
 		}}, {
 		name: "exclude container which is config false",
 		inElement: &yang.Entry{
@@ -557,6 +611,10 @@ func TestFindChildren(t *testing.T) {
 		want: map[CompressBehaviour][]yang.Entry{
 			ExcludeDerivedState:             []yang.Entry{},
 			UncompressedExcludeDerivedState: []yang.Entry{},
+		},
+		wantShadow: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig: nil,
+			Uncompressed:         nil,
 		}}, {
 		name: "exclude leaf which is config false",
 		inElement: &yang.Entry{
@@ -571,6 +629,10 @@ func TestFindChildren(t *testing.T) {
 		want: map[CompressBehaviour][]yang.Entry{
 			ExcludeDerivedState:             []yang.Entry{{Name: "config-true"}},
 			UncompressedExcludeDerivedState: []yang.Entry{{Name: "config-true"}},
+		},
+		wantShadow: map[CompressBehaviour][]yang.Entry{
+			ExcludeDerivedState:             nil,
+			UncompressedExcludeDerivedState: nil,
 		}}, {
 		name: "exclude read-only list within a container with compression",
 		inElement: &yang.Entry{
@@ -600,6 +662,10 @@ func TestFindChildren(t *testing.T) {
 				Name:   "surrounding-container",
 				Config: yang.TSTrue,
 			}},
+		},
+		wantShadow: map[CompressBehaviour][]yang.Entry{
+			PreferIntendedConfig: nil,
+			Uncompressed:         nil,
 		}}}
 
 	for _, tt := range tests {
@@ -613,19 +679,21 @@ func TestFindChildren(t *testing.T) {
 			// If this isn't a test case that has anything to test, we skip it.
 			wantErr, ok := tt.wantErr[c]
 			want := tt.want[c]
-			if !ok && want == nil {
+			wantShadow := tt.wantShadow[c]
+			if !ok && want == nil && wantShadow == nil {
 				// If not checking for either an error or output, then assume it's an uninteresting case.
 				continue
 			}
 
 			t.Run(fmt.Sprintf("%s:(compressBehaviour:%v)", tt.name, c), func(t *testing.T) {
-				elems, errs := FindAllChildren(tt.inElement, c)
+				elems, shadowElems, errs := FindAllChildren(tt.inElement, c)
 				if !wantErr && errs != nil {
 					t.Errorf("Unexpected errors %v for children of %s", errs, tt.inElement.Name)
 				} else if wantErr && errs == nil {
 					t.Error("Did not receive expected error")
 				}
 
+				// Check direct children.
 				retMap := map[string]*yang.Entry{}
 				for _, elem := range elems {
 					retMap[elem.Name] = elem
@@ -635,6 +703,7 @@ func TestFindChildren(t *testing.T) {
 					elem, ok := retMap[expectEntry.Name]
 					if !ok {
 						t.Errorf("Could not find expected child %s in %s", expectEntry.Name, tt.inElement.Name)
+						continue
 					}
 					delete(retMap, expectEntry.Name)
 					if elem.Config != expectEntry.Config {
@@ -647,6 +716,31 @@ func TestFindChildren(t *testing.T) {
 
 				if len(retMap) != 0 && want != nil {
 					t.Errorf("Got unexpected entries, got: %v, want: nil", retMap)
+				}
+
+				// Check shadow children.
+				shadowRetMap := map[string]*yang.Entry{}
+				for _, elem := range shadowElems {
+					shadowRetMap[elem.Name] = elem
+				}
+
+				for _, expectEntry := range wantShadow {
+					elem, ok := shadowRetMap[expectEntry.Name]
+					if !ok {
+						t.Errorf("Could not find expected shadow child %s in %s", expectEntry.Name, tt.inElement.Name)
+						continue
+					}
+					delete(shadowRetMap, expectEntry.Name)
+					if elem.Config != expectEntry.Config {
+						t.Errorf("Shadow element %s had wrong config status %s", expectEntry.Name, elem.Config)
+					}
+					if elem.Type != nil && elem.Type.Kind != expectEntry.Type.Kind {
+						t.Errorf("Shadow element %s had wrong type %s", expectEntry.Name, elem.Type.Kind)
+					}
+				}
+
+				if len(shadowRetMap) != 0 && want != nil {
+					t.Errorf("Got unexpected shadow entries, got: %v, want: nil", shadowRetMap)
 				}
 			})
 		}
