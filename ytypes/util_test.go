@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -242,27 +243,27 @@ func TestStringToType(t *testing.T) {
 }
 
 type allKeysListStruct struct {
-	StringKey           *string  `path:"stringKey"`
-	Int8Key             *int8    `path:"int8Key"`
-	Int16Key            *int16   `path:"int16Key"`
-	Int32Key            *int32   `path:"int32Key"`
-	Int64Key            *int64   `path:"int64Key"`
-	Uint8Key            *uint8   `path:"uint8Key"`
-	Uint16Key           *uint16  `path:"uint16Key"`
-	Uint32Key           *uint32  `path:"uint32Key"`
-	Uint64Key           *uint64  `path:"uint64Key"`
-	Decimal64Key        *float64 `path:"decimal64Key"`
-	BoolKey             *bool    `path:"boolKey"`
-	BinaryKey           Binary   `path:"binaryKey"`
-	EnumKey             EnumType `path:"enumKey"`
-	LeafrefKey          *uint64  `path:"leafrefKey"`
-	LeafrefToLeafrefKey *uint64  `path:"leafrefToLeafrefKey"`
-	LeafrefToUnionKey   Union1   `path:"leafrefToUnionKey"`
-	UnionKey            Union1   `path:"unionKey"`
-	UnionLoneTypeKey    *uint32  `path:"unionLoneTypeKey"`
+	StringKey           *string            `path:"stringKey"`
+	Int8Key             *int8              `path:"int8Key"`
+	Int16Key            *int16             `path:"int16Key"`
+	Int32Key            *int32             `path:"int32Key"`
+	Int64Key            *int64             `path:"int64Key"`
+	Uint8Key            *uint8             `path:"uint8Key"`
+	Uint16Key           *uint16            `path:"uint16Key"`
+	Uint32Key           *uint32            `path:"uint32Key"`
+	Uint64Key           *uint64            `path:"uint64Key"`
+	Decimal64Key        *float64           `path:"decimal64Key"`
+	BoolKey             *bool              `path:"boolKey"`
+	BinaryKey           Binary             `path:"binaryKey"`
+	EnumKey             EnumType           `path:"enumKey"`
+	LeafrefKey          *uint64            `path:"leafrefKey"`
+	LeafrefToLeafrefKey *uint64            `path:"leafrefToLeafrefKey"`
+	LeafrefToUnionKey   testutil.TestUnion `path:"leafrefToUnionKey"`
+	UnionKey            testutil.TestUnion `path:"unionKey"`
+	UnionLoneTypeKey    *uint32            `path:"unionLoneTypeKey"`
 }
 
-func (t *allKeysListStruct) To_Union1(i interface{}) (Union1, error) {
+func (t *allKeysListStruct) To_TestUnion(i interface{}) (testutil.TestUnion, error) {
 	switch v := i.(type) {
 	case EnumType:
 		return &Union1EnumType{v}, nil
@@ -271,7 +272,7 @@ func (t *allKeysListStruct) To_Union1(i interface{}) (Union1, error) {
 	case string:
 		return &Union1String{v}, nil
 	default:
-		return nil, fmt.Errorf("cannot convert %v to Union1, unknown union type, got: %T", i, i)
+		return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion, unknown union type, got: %T", i, i)
 	}
 }
 
