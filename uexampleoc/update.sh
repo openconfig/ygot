@@ -21,6 +21,7 @@ go run ../generator/generator.go -path=public,deps -output_file=oc.go \
   -generate_append \
   -generate_getters \
   -generate_leaf_getters \
+  -generate_simple_unions \
   -annotations \
   public/release/models/system/openconfig-system.yang \
   public/release/models/platform/openconfig-platform.yang \

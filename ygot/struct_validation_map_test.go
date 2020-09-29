@@ -37,6 +37,11 @@ const (
 	TestRoot string = ""
 )
 
+var (
+	testBinary1 = testutil.Binary("abc")
+	testBinary2 = testutil.Binary("def")
+)
+
 // errToString returns an error as a string.
 func errToString(err error) string {
 	if err == nil {
@@ -1207,6 +1212,21 @@ const (
 	EnumTypeValueTwo enumType = 2
 )
 
+func (enumType) IsYANGGoEnum() {}
+
+func (e enumType) String() string {
+	return EnumLogString(e, int64(e), "enumType")
+}
+
+func (enumType) ΛMap() map[string]map[int64]EnumDefinition {
+	return map[string]map[int64]EnumDefinition{
+		"enumType": {
+			1: EnumDefinition{Name: "Value", DefiningModule: "valone-mod"},
+			2: EnumDefinition{Name: "Value_Two", DefiningModule: "valtwo-mod"},
+		},
+	}
+}
+
 type copyUnion interface {
 	IsUnion()
 }
@@ -1222,6 +1242,8 @@ type copyUnionI struct {
 }
 
 func (*copyUnionI) IsUnion() {}
+
+func (enumType) IsUnion() {}
 
 type copyMapKey struct {
 	A string
@@ -1358,13 +1380,54 @@ func TestCopyStruct(t *testing.T) {
 			EnumValue: EnumTypeValue,
 		},
 	}, {
-		name: "union field",
+		name: "union field (wrapper union)",
 		inSrc: &copyTest{
 			UnionField: &copyUnionS{"new-belgium-fat-tire"},
 		},
 		inDst: &copyTest{},
 		wantDst: &copyTest{
 			UnionField: &copyUnionS{"new-belgium-fat-tire"},
+		},
+	}, {
+		name: "union field: string",
+		inSrc: &copyTest{
+			UnionField: testutil.UnionString("new-belgium-fat-tire"),
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			UnionField: testutil.UnionString("new-belgium-fat-tire"),
+		},
+	}, {
+		name: "union field: int64",
+		inSrc: &copyTest{
+			UnionField: testutil.UnionInt64(42),
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			UnionField: testutil.UnionInt64(42),
+		},
+	}, {
+		name:    "union field: empty",
+		inSrc:   &copyTest{},
+		inDst:   &copyTest{},
+		wantDst: &copyTest{},
+	}, {
+		name: "union field: enum",
+		inSrc: &copyTest{
+			UnionField: EnumTypeValue,
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			UnionField: EnumTypeValue,
+		},
+	}, {
+		name: "union field: binary",
+		inSrc: &copyTest{
+			UnionField: testBinary1,
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			UnionField: testBinary1,
 		},
 	}, {
 		name: "string slice",
@@ -1865,7 +1928,154 @@ var mergeStructTests = []struct {
 	},
 	wantErr: "source and destination lists must be unique",
 }, {
-	name: "merge union: values not equal",
+	name: "merge union: string values not equal",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("glutenberg-ipa"),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionString("mikkeler-pale-peter-and-mary"),
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "overwrite merge union: string values not equal",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("glutenberg-ipa"),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionString("mikkeler-pale-peter-and-mary"),
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionString("mikkeler-pale-peter-and-mary"),
+	},
+}, {
+	name: "merge union: string values equal",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("ipswich-ale-celia-saison"),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionString("ipswich-ale-celia-saison"),
+	},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionString("ipswich-ale-celia-saison"),
+	},
+}, {
+	name: "merge union: string value set in src and not dst",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("estrella-damn-daura"),
+	},
+	inB: &validatedMergeTest{},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionString("estrella-damn-daura"),
+	},
+}, {
+	name: "merge union: string value set in dst and not src",
+	inA:  &validatedMergeTest{},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionString("two-brothers-prairie-path-golden-ale"),
+	},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionString("two-brothers-prairie-path-golden-ale"),
+	},
+}, {
+	name: "merge union: values not equal, and different types",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("greens-amber"),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "overwrite merge: values not equal, and different types",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("greens-amber"),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+}, {
+	name: "merge union: enum values not equal",
+	inA: &validatedMergeTest{
+		UnionField: EnumTypeValue,
+	},
+	inB: &validatedMergeTest{
+		UnionField: EnumTypeValueTwo,
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "merge union: binary values not equal",
+	inA: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	inB: &validatedMergeTest{
+		UnionField: testBinary2,
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "overwrite merge union: binary values not equal",
+	inA: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	inB: &validatedMergeTest{
+		UnionField: testBinary2,
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		UnionField: testBinary2,
+	},
+}, {
+	name: "merge union: int values equal",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+}, {
+	name: "merge union: binary values equal",
+	inA: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	inB: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	want: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+}, {
+	name: "merge union: binary value set in src and not dst",
+	inA: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	inB: &validatedMergeTest{},
+	want: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+}, {
+	name: "merge union: binary value set in dst and not src",
+	inA:  &validatedMergeTest{},
+	inB: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	want: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+}, {
+	name: "merge union (wrapper union): values not equal",
 	inA: &validatedMergeTest{
 		UnionField: &copyUnionS{"glutenberg-ipa"},
 	},
@@ -1874,7 +2084,7 @@ var mergeStructTests = []struct {
 	},
 	wantErr: "interface field was set in both src and dst and was not equal",
 }, {
-	name: "overwrite merge union: values not equal",
+	name: "overwrite merge union (wrapper union): values not equal",
 	inA: &validatedMergeTest{
 		UnionField: &copyUnionS{"glutenberg-ipa"},
 	},
@@ -1888,7 +2098,7 @@ var mergeStructTests = []struct {
 		UnionField: &copyUnionS{"mikkeler-pale-peter-and-mary"},
 	},
 }, {
-	name: "merge union: values equal",
+	name: "merge union (wrapper union): values equal",
 	inA: &validatedMergeTest{
 		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
 	},
@@ -1899,7 +2109,7 @@ var mergeStructTests = []struct {
 		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
 	},
 }, {
-	name: "merge union: set in src and not dst",
+	name: "merge union (wrapper union): set in src and not dst",
 	inA: &validatedMergeTest{
 		UnionField: &copyUnionS{"estrella-damn-daura"},
 	},
@@ -1908,7 +2118,7 @@ var mergeStructTests = []struct {
 		UnionField: &copyUnionS{"estrella-damn-daura"},
 	},
 }, {
-	name: "merge union: set in dst and not src",
+	name: "merge union (wrapper union): set in dst and not src",
 	inA:  &validatedMergeTest{},
 	inB: &validatedMergeTest{
 		UnionField: &copyUnionS{"two-brothers-prairie-path-golden-ale"},
@@ -1917,7 +2127,7 @@ var mergeStructTests = []struct {
 		UnionField: &copyUnionS{"two-brothers-prairie-path-golden-ale"},
 	},
 }, {
-	name: "merge union: values not equal, and different types",
+	name: "merge union (wrapper union): values not equal, and different types",
 	inA: &validatedMergeTest{
 		UnionField: &copyUnionS{"greens-amber"},
 	},
@@ -1926,7 +2136,7 @@ var mergeStructTests = []struct {
 	},
 	wantErr: "interface field was set in both src and dst and was not equal",
 }, {
-	name: "overwrite merge union: values not equal, and different types",
+	name: "overwrite merge union (wrapper union): values not equal, and different types",
 	inA: &validatedMergeTest{
 		UnionField: &copyUnionS{"greens-amber"},
 	},

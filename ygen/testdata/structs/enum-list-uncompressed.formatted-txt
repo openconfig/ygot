@@ -30,6 +30,45 @@ type Binary []byte
 // in the generated code.
 type YANGEmpty bool
 
+// UnionInt8 is an int8 type assignable to unions of which it is a subtype.
+type UnionInt8 int8
+
+// UnionInt16 is an int16 type assignable to unions of which it is a subtype.
+type UnionInt16 int16
+
+// UnionInt32 is an int32 type assignable to unions of which it is a subtype.
+type UnionInt32 int32
+
+// UnionInt64 is an int64 type assignable to unions of which it is a subtype.
+type UnionInt64 int64
+
+// UnionUint8 is a uint8 type assignable to unions of which it is a subtype.
+type UnionUint8 uint8
+
+// UnionUint16 is a uint16 type assignable to unions of which it is a subtype.
+type UnionUint16 uint16
+
+// UnionUint32 is a uint32 type assignable to unions of which it is a subtype.
+type UnionUint32 uint32
+
+// UnionUint64 is a uint64 type assignable to unions of which it is a subtype.
+type UnionUint64 uint64
+
+// UnionFloat64 is a float64 type assignable to unions of which it is a subtype.
+type UnionFloat64 float64
+
+// UnionString is a string type assignable to unions of which it is a subtype.
+type UnionString string
+
+// UnionBool is a bool type assignable to unions of which it is a subtype.
+type UnionBool bool
+
+// UnionUnsupported is an interface{} wrapper type for unsupported types. It is
+// assignable to unions of which it is a subtype.
+type UnionUnsupported struct {
+	Value interface{}
+}
+
 // Device represents the /device YANG schema element.
 type Device struct {
 	A	*EnumTestUncompressed_A	`path:"a" module:"enum-test-uncompressed"`
@@ -98,42 +137,32 @@ func (t *EnumTestUncompressed_A_B) ΛListKeyMap() (map[string]interface{}, error
 
 // EnumTestUncompressed_A_B_State_C_Union is an interface that is implemented by valid types for the union
 // for the leaf /enum-test-uncompressed/a/b/c within the YANG schema.
+// Union type can be one of [E_EnumTestUncompressed_A_B_State_C, UnionUint8].
 type EnumTestUncompressed_A_B_State_C_Union interface {
-	Is_EnumTestUncompressed_A_B_State_C_Union()
+	// Union type can be one of [E_EnumTestUncompressed_A_B_State_C, UnionUint8]
+	Documentation_for_EnumTestUncompressed_A_B_State_C_Union()
 }
 
-// EnumTestUncompressed_A_B_State_C_Union_E_EnumTestUncompressed_A_B_State_C is used when /enum-test-uncompressed/a/b/c
-// is to be set to a E_EnumTestUncompressed_A_B_State_C value.
-type EnumTestUncompressed_A_B_State_C_Union_E_EnumTestUncompressed_A_B_State_C struct {
-	E_EnumTestUncompressed_A_B_State_C	E_EnumTestUncompressed_A_B_State_C
-}
-
-// Is_EnumTestUncompressed_A_B_State_C_Union ensures that EnumTestUncompressed_A_B_State_C_Union_E_EnumTestUncompressed_A_B_State_C
+// Documentation_for_EnumTestUncompressed_A_B_State_C_Union ensures that E_EnumTestUncompressed_A_B_State_C
 // implements the EnumTestUncompressed_A_B_State_C_Union interface.
-func (*EnumTestUncompressed_A_B_State_C_Union_E_EnumTestUncompressed_A_B_State_C) Is_EnumTestUncompressed_A_B_State_C_Union() {}
+func (E_EnumTestUncompressed_A_B_State_C) Documentation_for_EnumTestUncompressed_A_B_State_C_Union() {}
 
-// EnumTestUncompressed_A_B_State_C_Union_Uint8 is used when /enum-test-uncompressed/a/b/c
-// is to be set to a uint8 value.
-type EnumTestUncompressed_A_B_State_C_Union_Uint8 struct {
-	Uint8	uint8
-}
-
-// Is_EnumTestUncompressed_A_B_State_C_Union ensures that EnumTestUncompressed_A_B_State_C_Union_Uint8
+// Documentation_for_EnumTestUncompressed_A_B_State_C_Union ensures that UnionUint8
 // implements the EnumTestUncompressed_A_B_State_C_Union interface.
-func (*EnumTestUncompressed_A_B_State_C_Union_Uint8) Is_EnumTestUncompressed_A_B_State_C_Union() {}
+func (UnionUint8) Documentation_for_EnumTestUncompressed_A_B_State_C_Union() {}
 
 // To_EnumTestUncompressed_A_B_State_C_Union takes an input interface{} and attempts to convert it to a struct
 // which implements the EnumTestUncompressed_A_B_State_C_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *EnumTestUncompressed_A_B) To_EnumTestUncompressed_A_B_State_C_Union(i interface{}) (EnumTestUncompressed_A_B_State_C_Union, error) {
-	switch v := i.(type) {
-	case E_EnumTestUncompressed_A_B_State_C:
-		return &EnumTestUncompressed_A_B_State_C_Union_E_EnumTestUncompressed_A_B_State_C{v}, nil
-	case uint8:
-		return &EnumTestUncompressed_A_B_State_C_Union_Uint8{v}, nil
-	default:
-		return nil, fmt.Errorf("cannot convert %v to EnumTestUncompressed_A_B_State_C_Union, unknown union type, got: %T, want any of [E_EnumTestUncompressed_A_B_State_C, uint8]", i, i)
+	if v, ok := i.(EnumTestUncompressed_A_B_State_C_Union); ok {
+		return v, nil
 	}
+	switch v := i.(type) {
+	case uint8:
+		return UnionUint8(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to EnumTestUncompressed_A_B_State_C_Union, unknown union type, got: %T, want any of [E_EnumTestUncompressed_A_B_State_C, uint8]", i, i)
 }
 
 // EnumTestUncompressed_A_B_State represents the /enum-test-uncompressed/a/b/state YANG schema element.
@@ -145,18 +174,19 @@ type EnumTestUncompressed_A_B_State struct {
 // interface. This allows functions that need to handle this struct to
 // identify it as being generated by ygen.
 func (*EnumTestUncompressed_A_B_State) IsYANGGoStruct() {}
+
 // To_EnumTestUncompressed_A_B_State_C_Union takes an input interface{} and attempts to convert it to a struct
 // which implements the EnumTestUncompressed_A_B_State_C_Union union. It returns an error if the interface{} supplied
 // cannot be converted to a type within the union.
 func (t *EnumTestUncompressed_A_B_State) To_EnumTestUncompressed_A_B_State_C_Union(i interface{}) (EnumTestUncompressed_A_B_State_C_Union, error) {
-	switch v := i.(type) {
-	case E_EnumTestUncompressed_A_B_State_C:
-		return &EnumTestUncompressed_A_B_State_C_Union_E_EnumTestUncompressed_A_B_State_C{v}, nil
-	case uint8:
-		return &EnumTestUncompressed_A_B_State_C_Union_Uint8{v}, nil
-	default:
-		return nil, fmt.Errorf("cannot convert %v to EnumTestUncompressed_A_B_State_C_Union, unknown union type, got: %T, want any of [E_EnumTestUncompressed_A_B_State_C, uint8]", i, i)
+	if v, ok := i.(EnumTestUncompressed_A_B_State_C_Union); ok {
+		return v, nil
 	}
+	switch v := i.(type) {
+	case uint8:
+		return UnionUint8(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to EnumTestUncompressed_A_B_State_C_Union, unknown union type, got: %T, want any of [E_EnumTestUncompressed_A_B_State_C, uint8]", i, i)
 }
 
 // E_EnumTestUncompressed_A_B_State_C is a derived int64 type which is used to represent
