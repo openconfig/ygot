@@ -94,3 +94,13 @@ func (UnionBool) IsTestUnion2()  {}
 func (UnionString) Is_UnionLeafTypeSimple() {}
 func (UnionUint32) Is_UnionLeafTypeSimple() {}
 func (Binary) Is_UnionLeafTypeSimple()      {}
+
+func (UnionString) IsExampleUnion()       {}
+func (UnionFloat64) IsExampleUnion()      {}
+func (UnionInt64) IsExampleUnion()        {}
+func (UnionBool) IsExampleUnion()         {}
+func (YANGEmpty) IsExampleUnion()         {}
+func (Binary) IsExampleUnion()            {}
+func (*UnionUnsupported) IsExampleUnion() {}
+
+func (*UnionUnsupported) IsU() {}
