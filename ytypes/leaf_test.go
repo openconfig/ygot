@@ -33,6 +33,7 @@ import (
 var (
 	base64testString        = "forty two"
 	base64testStringEncoded = base64.StdEncoding.EncodeToString([]byte(base64testString))
+	testBinary              = testutil.Binary(base64testString)
 )
 
 func typeToLeafSchema(name string, t yang.TypeKind) *yang.Entry {
@@ -2019,10 +2020,10 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			inSchema: unionSchemaSimple,
 			inVal: &gpb.TypedValue{
 				Value: &gpb.TypedValue_BytesVal{
-					BytesVal: []byte("value"),
+					BytesVal: []byte(base64testString),
 				},
 			},
-			wantVal: &LeafContainerStruct{UnionLeafSimple: testutil.Binary("value")},
+			wantVal: &LeafContainerStruct{UnionLeafSimple: testBinary},
 		},
 		{
 			desc:     "success unmarshalling union (wrapper union) leaf string field",

@@ -73,6 +73,10 @@ type TestUnion interface {
 	IsTestUnion()
 }
 
+type TestUnion2 interface {
+	IsTestUnion2()
+}
+
 func (UnionString) IsTestUnion() {}
 func (UnionInt16) IsTestUnion()  {}
 func (UnionInt64) IsTestUnion()  {}
@@ -81,6 +85,11 @@ func (Binary) IsTestUnion()      {}
 func (UnionString) IsUnion() {}
 func (UnionInt64) IsUnion()  {}
 func (Binary) IsUnion()      {}
+
+func (UnionInt16) IsTestUnion2() {}
+func (UnionInt64) IsTestUnion2() {}
+func (Binary) IsTestUnion2()     {}
+func (UnionBool) IsTestUnion2()  {}
 
 func (UnionString) Is_UnionLeafTypeSimple() {}
 func (UnionUint32) Is_UnionLeafTypeSimple() {}
