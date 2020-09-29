@@ -938,6 +938,7 @@ func TestValidateLeafRef(t *testing.T) {
 
 type LeafContainerStruct struct {
 	Int8Leaf             *int8                 `path:"int8-leaf"`
+	Int8LeafConfig       *int8                 `path:"config/inner-int8-leaf" shadow-path:"state/inner-int8-leaf"`
 	Int8LeafList         []int8                `path:"int8-leaflist"`
 	Uint8Leaf            *uint8                `path:"uint8-leaf"`
 	Int16Leaf            *int16                `path:"int16-leaf"`
@@ -1063,6 +1064,16 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			desc: "int8 success",
 			json: `{"int8-leaf" : -42}`,
 			want: LeafContainerStruct{Int8Leaf: ygot.Int8(-42)},
+		},
+		{
+			desc: "config int8 success",
+			json: `{"config" : { "inner-int8-leaf" : -42} }`,
+			want: LeafContainerStruct{Int8LeafConfig: ygot.Int8(-42)},
+		},
+		{
+			desc: "state int8 success ignoring",
+			json: `{"state" : { "inner-int8-leaf" : -42} }`,
+			want: LeafContainerStruct{},
 		},
 		{
 			desc: "uint8 success",
@@ -1311,6 +1322,27 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		},
 	}
 
+	configInt8Schema := typeToLeafSchema("inner-int8-leaf", yang.Yint8)
+	stateInt8Schema := typeToLeafSchema("inner-int8-leaf", yang.Yint8)
+
+	configSchema := &yang.Entry{
+		Name: "config",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"inner-int8-leaf": configInt8Schema,
+		},
+	}
+	configInt8Schema.Parent = configSchema
+
+	stateSchema := &yang.Entry{
+		Name: "state",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"inner-int8-leaf": stateInt8Schema,
+		},
+	}
+	stateInt8Schema.Parent = stateSchema
+
 	containerSchema := &yang.Entry{
 		Name: "container-schema",
 		Kind: yang.DirectoryEntry,
@@ -1323,8 +1355,12 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 					Pattern: []string{"b+"},
 				},
 			},
+			"config": configSchema,
+			"state":  stateSchema,
 		},
 	}
+	configSchema.Parent = containerSchema
+	stateSchema.Parent = containerSchema
 
 	unionSchemaSimple := &yang.Entry{
 		Name: "union-leaf-simple",

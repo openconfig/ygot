@@ -61,14 +61,15 @@ var (
 	compressPaths           = flag.Bool("compress_paths", false, "If set to true, the schema's paths are compressed, according to OpenConfig YANG module conventions. Path structs generation currently only supports compressed paths.")
 
 	// Common flags used for GoStruct and PathStruct generation.
-	yangPaths                            = flag.String("path", "", "Comma separated list of paths to be recursively searched for included modules or submodules within the defined YANG modules.")
-	excludeModules                       = flag.String("exclude_modules", "", "Comma separated set of module names that should be excluded from code generation this can be used to ensure overlapping namespaces can be ignored.")
-	packageName                          = flag.String("package_name", "ocstructs", "The name of the Go package that should be generated.")
-	ignoreCircDeps                       = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
-	fakeRootName                         = flag.String("fakeroot_name", "", "The name of the fake root entity.")
-	skipEnumDedup                        = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
-	preferOperationalState               = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves in the generated Go code with compressed schema paths. This flag is only valid for compress_paths=true and exclude_state=false.")
-	ignoreShadowSchemaPaths              = flag.Bool("ignore_shadow_schema_paths", false, "If set to true when compress_paths=true, the shadowed schema path will be ignored while unmarshalling instead of causing an error.")
+	yangPaths              = flag.String("path", "", "Comma separated list of paths to be recursively searched for included modules or submodules within the defined YANG modules.")
+	excludeModules         = flag.String("exclude_modules", "", "Comma separated set of module names that should be excluded from code generation this can be used to ensure overlapping namespaces can be ignored.")
+	packageName            = flag.String("package_name", "ocstructs", "The name of the Go package that should be generated.")
+	ignoreCircDeps         = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
+	fakeRootName           = flag.String("fakeroot_name", "", "The name of the fake root entity.")
+	skipEnumDedup          = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
+	preferOperationalState = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves in the generated Go code with compressed schema paths. This flag is only valid for compress_paths=true and exclude_state=false.")
+	// TODO(wenbli): Invalid shadow paths currently do not cause an error during JSON unmarshalling.
+	ignoreShadowSchemaPaths              = flag.Bool("ignore_shadow_schema_paths", false, "If set to true when compress_paths=true, the shadowed schema path will be ignored while unmarshalling instead of causing an error. NOTE: Invalid shadow paths currently do not cause an error during JSON unmarshalling.")
 	shortenEnumLeafNames                 = flag.Bool("shorten_enum_leaf_names", false, "If also set to true when compress_paths=true, all leaves of type enumeration will by default not be prefixed with the name of its residing module.")
 	useDefiningModuleForTypedefEnumNames = flag.Bool("typedef_enum_with_defmod", false, "If set to true, all typedefs of type enumeration or identity will be prefixed with the name of its module of definition instead of its residing module.")
 	ygotImportPath                       = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")

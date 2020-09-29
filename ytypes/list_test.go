@@ -521,31 +521,58 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 }
 
 func TestUnmarshalKeyedList(t *testing.T) {
+	keyListSchema := func() *yang.Entry {
+		return &yang.Entry{
+			Name:     "key-list",
+			Kind:     yang.DirectoryEntry,
+			ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+			Key:      "key",
+			Config:   yang.TSTrue,
+			Dir: map[string]*yang.Entry{
+				"key": {
+					Kind: yang.LeafEntry,
+					Name: "key",
+					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+				"leaf-field": {
+					Kind: yang.LeafEntry,
+					Name: "leaf-field",
+					Type: &yang.YangType{Kind: yang.Yint32},
+				},
+			},
+		}
+	}
+
 	containerWithLeafListSchema := &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
-			"key-list": {
-				Name:     "key-list",
-				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
-				Key:      "key",
-				Config:   yang.TSTrue,
+			"key-list": keyListSchema(),
+		},
+	}
+	addParents(containerWithLeafListSchema)
+
+	containerWithPreferConfigSchema := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"config": {
+				Name: "config",
+				Kind: yang.DirectoryEntry,
 				Dir: map[string]*yang.Entry{
-					"key": {
-						Kind: yang.LeafEntry,
-						Name: "key",
-						Type: &yang.YangType{Kind: yang.Ystring},
-					},
-					"leaf-field": {
-						Kind: yang.LeafEntry,
-						Name: "leaf-field",
-						Type: &yang.YangType{Kind: yang.Yint32},
-					},
+					"key-list": keyListSchema(),
+				},
+			},
+			"state": {
+				Name: "state",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"key-list": keyListSchema(),
 				},
 			},
 		},
 	}
+	addParents(containerWithPreferConfigSchema)
 
 	type ListElemStruct struct {
 		Key       *string `path:"key"`
@@ -555,17 +582,25 @@ func TestUnmarshalKeyedList(t *testing.T) {
 		KeyList map[string]*ListElemStruct `path:"key-list"`
 	}
 
+	type ContainerStructPreferConfig struct {
+		KeyList map[string]*ListElemStruct `path:"config/key-list" shadow-path:"state/key-list"`
+	}
+
 	tests := []struct {
 		desc    string
 		json    string
-		want    ContainerStruct
+		schema  *yang.Entry
+		parent  interface{}
+		want    interface{}
 		opts    []UnmarshalOpt
 		wantErr string
 	}{
 		{
-			desc: "success",
-			json: `{ "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] }`,
-			want: ContainerStruct{
+			desc:   "success",
+			json:   `{ "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] }`,
+			schema: containerWithLeafListSchema,
+			parent: &ContainerStruct{},
+			want: &ContainerStruct{
 				KeyList: map[string]*ListElemStruct{
 					"forty-two": {
 						Key:       ygot.String("forty-two"),
@@ -575,15 +610,40 @@ func TestUnmarshalKeyedList(t *testing.T) {
 			},
 		},
 		{
+			desc:   "success with config path",
+			json:   `{ "config": { "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] } }`,
+			schema: containerWithPreferConfigSchema,
+			parent: &ContainerStructPreferConfig{},
+			want: &ContainerStructPreferConfig{
+				KeyList: map[string]*ListElemStruct{
+					"forty-two": {
+						Key:       ygot.String("forty-two"),
+						LeafField: ygot.Int32(42),
+					},
+				},
+			},
+		},
+		{
+			desc:   "success ignoring shadowed state path",
+			json:   `{ "state": { "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] } }`,
+			schema: containerWithPreferConfigSchema,
+			parent: &ContainerStructPreferConfig{},
+			want:   &ContainerStructPreferConfig{},
+		},
+		{
 			desc:    "bad field",
 			json:    `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
+			schema:  containerWithLeafListSchema,
+			parent:  &ContainerStruct{},
 			wantErr: `parent container key-list (type *ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
 		},
 		{
-			desc: "ignore unknown field",
-			json: `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
-			opts: []UnmarshalOpt{&IgnoreExtraFields{}},
-			want: ContainerStruct{
+			desc:   "ignore unknown field",
+			json:   `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
+			opts:   []UnmarshalOpt{&IgnoreExtraFields{}},
+			schema: containerWithLeafListSchema,
+			parent: &ContainerStruct{},
+			want: &ContainerStruct{
 				KeyList: map[string]*ListElemStruct{
 					"forty-two": {
 						Key: ygot.String("forty-two"),
@@ -596,19 +656,17 @@ func TestUnmarshalKeyedList(t *testing.T) {
 	var jsonTree interface{}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			var parent ContainerStruct
-
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
 				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
 			}
 
-			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree, tt.opts...)
+			err := Unmarshal(tt.schema, tt.parent, jsonTree, tt.opts...)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				got, want := parent, tt.want
+				got, want := tt.parent, tt.want
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}

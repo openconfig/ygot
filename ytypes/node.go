@@ -155,7 +155,9 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			// corresponding field to its zero value. The zero value is the unset value for
 			// any node type, whether leaf or non-leaf.
 			if args.delete && len(path.Elem) == to {
-				fv.Set(reflect.Zero(ft.Type))
+				if !args.shadowPath {
+					fv.Set(reflect.Zero(ft.Type))
+				}
 				return nil, nil
 			}
 

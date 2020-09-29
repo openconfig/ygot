@@ -191,6 +191,15 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		}
 		allSchemaPaths = append(allSchemaPaths, sp...)
 
+		// If there are shadow schema paths, also whitelist these to avoid an unmarshalling error.
+		// TODO(wenbli): Since only the first-level path name is checked for invalid names,
+		// any JSON with invalid paths under the current shadow path name would not cause an
+		// error.  e.g. If config is shadowed, and ("config/bar" is the jsonValue, but only
+		// "config/foo" exists, there would be no error, even though unmarshalling
+		// "state/bar" would cause an error, and so should "config/bar").
+		// To improve the check, one way would be to add a new unmarshal flag
+		// "skipLeafModification" that is supplied to downstream unmarshal* calls whenever
+		// the path traversal enters a shadowed part of the schema.
 		ssp, err := shadowDataTreePaths(schema, cschema, ft)
 		if err != nil {
 			return err
