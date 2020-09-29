@@ -145,12 +145,11 @@ func TestValidateInterface(t *testing.T) {
 		VlanId: oc.UnionUint16(4095),
 	}
 	// Validate the vlan.
-	if err := vlan0.Validate(); err == nil {
-		t.Errorf("bad vlan-id value: got nil, want error")
-	} else {
-		if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
-			t.Errorf("did not get expected vlan-id error, %s", diff)
-		}
+	err = vlan0.Validate()
+	if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
+		t.Errorf("did not get expected vlan-id error, %s", diff)
+	}
+	if err != nil {
 		testErrLog(t, "bad vlan-id value", err)
 	}
 
@@ -168,7 +167,7 @@ func TestValidateInterfaceWrapperUnion(t *testing.T) {
 	dev := &woc.Device{}
 	eth0, err := dev.NewInterface("eth0")
 	if err != nil {
-		t.Errorf("eth0.NewInterface(): got %v, want nil", err)
+		t.Errorf("dev.NewInterface(): got %v, want nil", err)
 	}
 
 	eth0.Description = ygot.String("eth0 description")
@@ -185,12 +184,11 @@ func TestValidateInterfaceWrapperUnion(t *testing.T) {
 
 	// Key in map != key field value in element. Key should be "eth0" here.
 	dev.Interface["bad_key"] = eth0
-	if err := dev.Validate(); err == nil {
-		t.Errorf("bad key: got nil, want error")
-	} else {
-		if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
-			t.Errorf("did not get expected vlan-id error, %s", diff)
-		}
+	err = dev.Validate()
+	if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
+		t.Errorf("did not get expected vlan-id error, %s", diff)
+	}
+	if err != nil {
 		testErrLog(t, "bad key", err)
 	}
 
