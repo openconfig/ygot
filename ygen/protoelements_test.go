@@ -360,11 +360,13 @@ func TestYangTypeToProtoType(t *testing.T) {
 			yangType: &yang.YangType{
 				Kind: yang.Yunion,
 				Type: []*yang.YangType{{
-					Kind:    yang.Ystring,
-					Pattern: []string{"a.*"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a.*"},
+					POSIXPattern: []string{"^a.*$"},
 				}, {
-					Kind:    yang.Ystring,
-					Pattern: []string{"b.*"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b.*"},
+					POSIXPattern: []string{"^b.*$"},
 				}},
 			},
 		}},

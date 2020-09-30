@@ -16,6 +16,7 @@
 package util
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strings"
@@ -219,6 +220,83 @@ func IsIdentityrefLeaf(e *yang.Entry) bool {
 func IsYANGBaseType(t *yang.YangType) bool {
 	_, ok := yang.TypeKindFromName[t.Name]
 	return ok
+}
+
+// SanitizedPattern returns the values of the posix-pattern extension
+// statements for the YangType. If it's empty, then it returns the values from
+// the pattern statements with anchors attached (if missing).
+// It also returns whether the patterns are POSIX.
+func SanitizedPattern(t *yang.YangType) ([]string, bool) {
+	if len(t.POSIXPattern) != 0 {
+		return t.POSIXPattern, true
+	}
+	var pat []string
+	for _, p := range t.Pattern {
+		// fixYangRegexp adds ^(...)$ around the pattern - the result is
+		// equivalent to a full match of whole string.
+		pat = append(pat, fixYangRegexp(p))
+	}
+	return pat, false
+}
+
+// fixYangRegexp takes a pattern regular expression from a YANG module and
+// returns it into a format which can be used by the Go regular expression
+// library. YANG uses a W3C standard that is defined to be implicitly anchored
+// at the head or tail of the expression. See
+// https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#regexs for details.
+func fixYangRegexp(pattern string) string {
+	var buf bytes.Buffer
+	var inEscape bool
+	var prevChar rune
+	addParens := false
+
+	for i, ch := range pattern {
+		if i == 0 && ch != '^' {
+			buf.WriteRune('^')
+			// Add parens around entire expression to prevent logical
+			// subexpressions associating with leading/trailing ^ / $.
+			buf.WriteRune('(')
+			addParens = true
+		}
+
+		switch ch {
+		case '$':
+			// Dollar signs need to be escaped unless they are at
+			// the end of the pattern, or are already escaped.
+			if !inEscape && i != len(pattern)-1 {
+				buf.WriteRune('\\')
+			}
+		case '^':
+			// Carets need to be escaped unless they are already
+			// escaped, indicating set negation ([^.*]) or at the
+			// start of the string.
+			if !inEscape && prevChar != '[' && i != 0 {
+				buf.WriteRune('\\')
+			}
+		}
+
+		// If the previous character was an escape character, then we
+		// leave the escape, otherwise check whether this is an escape
+		// char and if so, then enter escape.
+		inEscape = !inEscape && ch == '\\'
+
+		if i == len(pattern)-1 && addParens && ch == '$' {
+			buf.WriteRune(')')
+		}
+
+		buf.WriteRune(ch)
+
+		if i == len(pattern)-1 && ch != '$' {
+			if addParens {
+				buf.WriteRune(')')
+			}
+			buf.WriteRune('$')
+		}
+
+		prevChar = ch
+	}
+
+	return buf.String()
 }
 
 // IsConfig takes a yang.Entry and traverses up the tree to find the config
