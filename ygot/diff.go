@@ -272,7 +272,13 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 		// If this is an enumerated value in the output structs, then check whether
 		// it is set. Only include values that are set to a non-zero value.
 		if _, isEnum := ival.(GoEnum); isEnum {
-			if ni.FieldValue.Int() == 0 {
+			val := ni.FieldValue
+			// If the value is a simple union enum, then extract
+			// the underlying enum value from the interface.
+			if val.Kind() == reflect.Interface {
+				val = val.Elem()
+			}
+			if val.Int() == 0 {
 				return
 			}
 		}
