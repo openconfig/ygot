@@ -911,6 +911,7 @@ func TestDiff(t *testing.T) {
 				testutil.UnionString("hello"),
 				testutil.UnionInt64(42),
 				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
 				testBinary,
 				testutil.UnionBool(true),
 				testutil.YANGEmpty(false),
@@ -991,6 +992,7 @@ func TestDiff(t *testing.T) {
 							{Value: &gnmipb.TypedValue_StringVal{"hello"}},
 							{Value: &gnmipb.TypedValue_IntVal{42}},
 							{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+							{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
 							{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
 							{Value: &gnmipb.TypedValue_BoolVal{true}},
 							{Value: &gnmipb.TypedValue_BoolVal{false}}},
@@ -1013,6 +1015,102 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:   "union addition: enum",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: EnumTestVALONE,
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
+			}},
+		},
+	}, {
+		desc:   "union addition: int64",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.UnionInt64(1),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{1}},
+			}},
+		},
+	}, {
+		desc:   "union addition: float64",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.UnionFloat64(3.14),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+			}},
+		},
+	}, {
+		desc:   "union addition: bool",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.UnionBool(true),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
+			}},
+		},
+	}, {
+		desc:   "union addition: empty",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.YANGEmpty(true),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
+			}},
+		},
+	}, {
+		desc:   "union addition: binary",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testBinary,
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
+			}},
+		},
+	}, {
 		desc: "multiple element set in both - no diff",
 		inOrig: &renderExample{
 			IntVal:    Int32(42),
@@ -1028,6 +1126,7 @@ func TestDiff(t *testing.T) {
 				testutil.UnionString("hello"),
 				testutil.UnionInt64(42),
 				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
 				testBinary,
 				testutil.UnionBool(true),
 				testutil.YANGEmpty(false),
@@ -1049,6 +1148,7 @@ func TestDiff(t *testing.T) {
 				testutil.UnionString("hello"),
 				testutil.UnionInt64(42),
 				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
 				testBinary,
 				testutil.UnionBool(true),
 				testutil.YANGEmpty(false),
@@ -1073,6 +1173,7 @@ func TestDiff(t *testing.T) {
 				testutil.UnionString("hello"),
 				testutil.UnionInt64(42),
 				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
 				testBinary,
 				testutil.UnionBool(true),
 				testutil.YANGEmpty(false),
@@ -1094,6 +1195,7 @@ func TestDiff(t *testing.T) {
 				testutil.UnionString("world"),
 				testutil.UnionInt64(84),
 				testutil.UnionFloat64(6.28),
+				EnumTestVALTWO,
 				testBinary1,
 				testutil.UnionBool(false),
 				testutil.YANGEmpty(true),
@@ -1174,6 +1276,7 @@ func TestDiff(t *testing.T) {
 							{Value: &gnmipb.TypedValue_StringVal{"world"}},
 							{Value: &gnmipb.TypedValue_IntVal{84}},
 							{Value: &gnmipb.TypedValue_FloatVal{6.28}},
+							{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
 							{Value: &gnmipb.TypedValue_BytesVal{[]byte("abc")}},
 							{Value: &gnmipb.TypedValue_BoolVal{false}},
 							{Value: &gnmipb.TypedValue_BoolVal{true}}},
