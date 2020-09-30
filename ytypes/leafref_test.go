@@ -103,9 +103,10 @@ func TestValidateLeafRefData(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "string",
-							Kind:    yang.Ystring,
-							Pattern: []string{"a+"},
+							Name:         "string",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"a+"},
+							POSIXPattern: []string{"^a+$"},
 						},
 						{
 							Name: "int16",
