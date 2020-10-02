@@ -178,8 +178,8 @@ func SchemaTypeStr(schema *yang.Entry) string {
 // YangTypeToDebugString returns a debug string representation of a YangType.
 func YangTypeToDebugString(yt *yang.YangType) string {
 	out := fmt.Sprintf("(TypeKind: %s", yang.TypeKindToName[yt.Kind])
-	if len(yt.Pattern) != 0 {
-		out += fmt.Sprintf(", Pattern: %s", strings.Join(yt.Pattern, " or "))
+	if p, isPOSIX := SanitizedPattern(yt); len(p) != 0 {
+		out += fmt.Sprintf(", Sanitized pattern (POSIX: %v): %s", isPOSIX, strings.Join(p, " or "))
 	}
 	if len(yt.Range) != 0 {
 		out += fmt.Sprintf(", Range: %s", yt.Range.String())

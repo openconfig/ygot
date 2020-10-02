@@ -1601,8 +1601,8 @@ func TestGenListKeyProto(t *testing.T) {
 						Type: &yang.YangType{
 							Kind: yang.Yunion,
 							Type: []*yang.YangType{
-								{Kind: yang.Ystring, Pattern: []string{"b.*"}},
-								{Kind: yang.Ystring, Pattern: []string{"a.*"}},
+								{Kind: yang.Ystring, POSIXPattern: []string{"^b.*$"}},
+								{Kind: yang.Ystring, POSIXPattern: []string{"^a.*$"}},
 							},
 						},
 					},

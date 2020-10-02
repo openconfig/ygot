@@ -2,6 +2,8 @@ module openconfig-options {
   prefix "oco";
   namespace "urn:oco";
 
+  import openconfig-extensions { prefix oc-ext; }
+
   identity AFI;
   identity IPV4_UNICAST { base AFI; }
 
@@ -9,10 +11,12 @@ module openconfig-options {
     leaf peer-address {
       type union {
         type string {
-          pattern "[0-9\.]+";
+          pattern '[0-9\.]+';
+          oc-ext:posix-pattern '^[0-9\.]+$';
         }
         type string {
-          pattern "[0-9A-F:]+";
+          pattern '[0-9A-F:]+';
+          oc-ext:posix-pattern '^[0-9A-F:]+$';
         }
       }
     }
