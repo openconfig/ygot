@@ -346,6 +346,16 @@ func TestNotificationOutput(t *testing.T) {
 			return d
 		}(),
 		wantTextpb: "testdata/notification_union_int64_opstate.txtpb",
+	}, {
+		name: "unset enumeration",
+		in: func() *uexampleoc.Device {
+			d := &uexampleoc.Device{}
+			c := d.GetOrCreateInterfaces().GetOrCreateInterface("eth0").GetOrCreateConfig()
+			c.Mtu = ygot.Uint16(9100)
+			c.Tpid = uexampleoc.OpenconfigVlanTypes_TPID_TYPES_UNSET
+			return d
+		}(),
+		wantTextpb: "testdata/ethernet-notifications.txtpb",
 	}}
 
 	for _, tt := range tests {

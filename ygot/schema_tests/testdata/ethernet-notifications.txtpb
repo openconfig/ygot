@@ -1,0 +1,43 @@
+update: <
+  path: <
+    elem: <
+      name: "interfaces"
+    >
+    elem: <
+      name: "interface"
+      key: <
+        key: "name"
+        value: "eth0"
+      >
+    >
+    elem: <
+      name: "config"
+    >
+    elem: <
+      name: "mtu"
+    >
+  >
+  val: <
+    uint_val: 9100
+  >
+>
+update: <
+  path: <
+    elem: <
+      name: "interfaces"
+    >
+    elem: <
+      name: "interface"
+      key: <
+        key: "name"
+        value: "eth0"
+      >
+    >
+    elem: <
+      name: "name"
+    >
+  >
+  val: <
+    string_val: "eth0"
+  >
+>
