@@ -175,15 +175,35 @@ func TestSchemaTypeStr(t *testing.T) {
 }
 
 func TestYangTypeToDebugString(t *testing.T) {
-	yangType := &yang.YangType{
-		Kind:    yang.Ystring,
-		Pattern: []string{"abc"},
-		Range:   yang.YangRange{yang.YRange{Min: YangMinNumber, Max: YangMaxNumber}},
-	}
+	tests := []struct {
+		desc    string
+		inType  *yang.YangType
+		wantStr string
+	}{{
+		desc: "POSIX",
+		inType: &yang.YangType{
+			Kind:         yang.Ystring,
+			Pattern:      []string{"abc"},
+			POSIXPattern: []string{"^abc$"},
+			Range:        yang.YangRange{yang.YRange{Min: YangMinNumber, Max: YangMaxNumber}},
+		},
+		wantStr: `(TypeKind: string, Sanitized pattern (POSIX: true): ^abc$, Range: min..max)`,
+	}, {
+		desc: "non-POSIX",
+		inType: &yang.YangType{
+			Kind:    yang.Ystring,
+			Pattern: []string{"abc"},
+			Range:   yang.YangRange{yang.YRange{Min: YangMinNumber, Max: YangMaxNumber}},
+		},
+		wantStr: `(TypeKind: string, Sanitized pattern (POSIX: false): ^(abc)$, Range: min..max)`,
+	}}
 
-	wantStr := `(TypeKind: string, Pattern: abc, Range: min..max)`
-	if got, want := YangTypeToDebugString(yangType), wantStr; got != want {
-		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got, want := YangTypeToDebugString(tt.inType), tt.wantStr; got != want {
+				t.Errorf("got:\n%s\nwant:\n%s", got, want)
+			}
+		})
 	}
 }
 

@@ -15,13 +15,13 @@
 package ytypes
 
 import (
-	"bytes"
 	"fmt"
 	"reflect"
 	"regexp"
 	"unicode/utf8"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.4.
@@ -53,13 +53,18 @@ func validateString(schema *yang.Entry, value interface{}) error {
 	}
 
 	// Check that the value satisfies any regex patterns.
-	for _, p := range schema.Type.Pattern {
-		r, err := regexp.Compile(fixYangRegexp(p))
+	patterns, isPOSIX := util.SanitizedPattern(schema.Type)
+	for _, p := range patterns {
+		var r *regexp.Regexp
+		var err error
+		if isPOSIX {
+			r, err = regexp.CompilePOSIX(p)
+		} else {
+			r, err = regexp.Compile(p)
+		}
 		if err != nil {
 			return err
 		}
-		// fixYangRegexp adds ^(...)$ around the pattern - the result is
-		// equivalent to a full match of whole string.
 		if !r.MatchString(stringVal) {
 			return fmt.Errorf("%q does not match regular expression pattern %q for schema %s", stringVal, r, schema.Name)
 		}
@@ -111,69 +116,18 @@ func validateStringSchema(schema *yang.Entry) error {
 		return fmt.Errorf("string schema %s has wrong type %v", schema.Name, schema.Type.Kind)
 	}
 
-	for _, p := range schema.Type.Pattern {
-		if _, err := regexp.Compile(fixYangRegexp(p)); err != nil {
+	patterns, isPOSIX := util.SanitizedPattern(schema.Type)
+	for _, p := range patterns {
+		var err error
+		if isPOSIX {
+			_, err = regexp.CompilePOSIX(p)
+		} else {
+			_, err = regexp.Compile(p)
+		}
+		if err != nil {
 			return fmt.Errorf("error generating regexp %s %v for schema %s", p, err, schema.Name)
 		}
 	}
 
 	return validateLengthSchema(schema)
-}
-
-// fixYangRegexp takes a pattern regular expression from a YANG module and
-// returns it into a format which can be used by the Go regular expression
-// library. YANG uses a W3C standard that is defined to be implicitly anchored
-// at the head or tail of the expression. See
-// https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#regexs for details.
-func fixYangRegexp(pattern string) string {
-	var buf bytes.Buffer
-	var inEscape bool
-	var prevChar rune
-	addParens := false
-
-	for i, ch := range pattern {
-		if i == 0 && ch != '^' {
-			buf.WriteRune('^')
-			// Add parens around entire expression to prevent logical
-			// subexpressions associating with leading/trailing ^ / $.
-			buf.WriteRune('(')
-			addParens = true
-		}
-
-		switch ch {
-		case '$':
-			// Dollar signs need to be escaped unless they are at
-			// the end of the pattern, or are already escaped.
-			if !inEscape && i != len(pattern)-1 {
-				buf.WriteRune('\\')
-			}
-		case '^':
-			// Carets need to be escaped unless they are already
-			// escaped, indicating set negation ([^.*]) or at the
-			// start of the string.
-			if !inEscape && prevChar != '[' && i != 0 {
-				buf.WriteRune('\\')
-			}
-		}
-
-		// If the previous character was an escape character, then we
-		// leave the escape, otherwise check whether this is an escape
-		// char and if so, then enter escape.
-		inEscape = !inEscape && ch == '\\'
-
-		buf.WriteRune(ch)
-
-		if i == len(pattern)-1 {
-			if addParens {
-				buf.WriteRune(')')
-			}
-			if ch != '$' {
-				buf.WriteRune('$')
-			}
-		}
-
-		prevChar = ch
-	}
-
-	return buf.String()
 }
