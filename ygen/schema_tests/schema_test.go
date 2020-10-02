@@ -62,12 +62,12 @@ func TestMultiKeyListRename(t *testing.T) {
 		t.Fatalf("could not create DEFAULT network instance, got: %v, want: nil", err)
 	}
 
-	if _, err := ni.NewProtocol(exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169"); err != nil {
+	if _, err := ni.NewProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169"); err != nil {
 		t.Fatalf("could not create BGP protocol instance, got: %v, want: nil", err)
 	}
 
-	oldBGP := exampleoc.NetworkInstance_Protocol_Key{Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, Name: "15169"}
-	newBGP := exampleoc.NetworkInstance_Protocol_Key{Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, Name: "36040"}
+	oldBGP := exampleoc.NetworkInstance_Protocol_Key{Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, Name: "15169"}
+	newBGP := exampleoc.NetworkInstance_Protocol_Key{Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, Name: "36040"}
 	if err := ni.RenameProtocol(oldBGP, newBGP); err != nil {
 		t.Fatalf("could not rename BGP protocol instance, got: %v, want: nil", err)
 	}
@@ -80,8 +80,8 @@ func TestMultiKeyListRename(t *testing.T) {
 		t.Fatalf("did not find new BGP protocol instance, got: %v, want: nil", err)
 	}
 
-	if ni.Protocol[newBGP].Identifier != exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP {
-		t.Errorf("did not have correct identifier in newBGP, got: %v, want: OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP", ni.Protocol[newBGP].Identifier)
+	if ni.Protocol[newBGP].Identifier != exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP {
+		t.Errorf("did not have correct identifier in newBGP, got: %v, want: PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP", ni.Protocol[newBGP].Identifier)
 	}
 
 	if !cmp.Equal(ni.Protocol[newBGP].Name, ygot.String("36040")) {
@@ -119,7 +119,7 @@ func TestMultiKeyAppend(t *testing.T) {
 	}
 
 	p := &exampleoc.NetworkInstance_Protocol{
-		Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+		Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 		Name:       ygot.String("15169"),
 	}
 
@@ -127,7 +127,7 @@ func TestMultiKeyAppend(t *testing.T) {
 		t.Errorf("AppendProtocol(%v): did not get expected error status, got: %v, want: nil", p, err)
 	}
 
-	wantKey := exampleoc.NetworkInstance_Protocol_Key{Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, Name: "15169"}
+	wantKey := exampleoc.NetworkInstance_Protocol_Key{Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, Name: "15169"}
 	if _, ok := in.NetworkInstance["DEFAULT"].Protocol[wantKey]; !ok {
 		t.Errorf("AppendProtocol(%v): did not find element after append, got: %v, want: true", p, ok)
 	}
@@ -155,9 +155,9 @@ func TestGetOrCreateSimpleList(t *testing.T) {
 
 func TestGetOrCreateMultiKeyList(t *testing.T) {
 	d := &exampleoc.Device{}
-	d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ISIS, "0").GetOrCreateIsis().GetOrCreateGlobal().MaxEcmpPaths = ygot.Uint8(42)
+	d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_ISIS, "0").GetOrCreateIsis().GetOrCreateGlobal().MaxEcmpPaths = ygot.Uint8(42)
 
-	if got, want := *d.NetworkInstance["DEFAULT"].Protocol[exampleoc.NetworkInstance_Protocol_Key{Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_ISIS, Name: "0"}].Isis.Global.MaxEcmpPaths, uint8(42); got != want {
+	if got, want := *d.NetworkInstance["DEFAULT"].Protocol[exampleoc.NetworkInstance_Protocol_Key{Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_ISIS, Name: "0"}].Isis.Global.MaxEcmpPaths, uint8(42); got != want {
 		t.Errorf("GetOrCreateNetworkInstance('DEFAULT').GetOrCreateProtocol(ISIS, '0').GetOrCreateGlobal().MaxEcmpPaths: got incorrect return value, got: %v, want: %v", got, want)
 	}
 }
@@ -215,7 +215,7 @@ func TestEnumStringFunction(t *testing.T) {
 		want   string
 	}{{
 		desc:   "in range: IP_REACHABILITY_TAG64",
-		inEnum: exampleoc.OpenconfigIsisLsdbTypes_ISIS_SUBTLV_TYPE_IP_REACHABILITY_TAG64,
+		inEnum: exampleoc.IsisLsdbTypes_ISIS_SUBTLV_TYPE_IP_REACHABILITY_TAG64,
 		want:   "IP_REACHABILITY_TAG64",
 	}, {
 		desc:   "in range: UP",

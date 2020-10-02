@@ -428,7 +428,7 @@ type yangTestCase struct {
 // invalid.
 func TestSimpleStructs(t *testing.T) {
 	tests := []yangTestCase{{
-		name:    "simple openconfig test, with compression",
+		name:    "simple openconfig test, with compression, with (useless) enum org name trimming",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
@@ -437,6 +437,7 @@ func TestSimpleStructs(t *testing.T) {
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
+				EnumOrgPrefixesToTrim:                []string{"openconfig"},
 				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
@@ -454,6 +455,34 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-no-compress.formatted-txt"),
+	}, {
+		name:    "simple openconfig test, with compression, without shortened enum leaf names, with enum org name trimming",
+		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				EnumOrgPrefixesToTrim:                []string{"openconfig"},
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple.long-enum-names.trimmed-enum.formatted-txt"),
+	}, {
+		name:    "simple openconfig test, with no compression, with enum org name trimming",
+		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+			TransformationOptions: TransformationOpts{
+				ShortenEnumLeafNames:                 true,
+				EnumOrgPrefixesToTrim:                []string{"openconfig"},
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-no-compress.trimmed-enum.formatted-txt"),
 	}, {
 		name:    "OpenConfig schema test - with annotations",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
@@ -513,6 +542,21 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-list-enum-key.formatted-txt"),
+	}, {
+		name:    "simple openconfig test, with a list that has an enumeration key, with enum org name trimming",
+		inFiles: []string{filepath.Join(datapath, "openconfig-list-enum-key.yang")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				EnumOrgPrefixesToTrim:                []string{"openconfig"},
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-list-enum-key.trimmed-enum.formatted-txt"),
 	}, {
 		name:    "openconfig test with a identityref union",
 		inFiles: []string{filepath.Join(datapath, "openconfig-unione.yang")},
