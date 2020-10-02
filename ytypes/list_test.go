@@ -1982,9 +1982,10 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 									Kind: yang.Yenum,
 								},
 								{
-									Name:    "string",
-									Kind:    yang.Ystring,
-									Pattern: []string{"a+"},
+									Name:         "string",
+									Kind:         yang.Ystring,
+									Pattern:      []string{"a+"},
+									POSIXPattern: []string{"^a+$"},
 								},
 								{
 									Name: "int16",

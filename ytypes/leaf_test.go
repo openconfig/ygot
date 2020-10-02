@@ -367,9 +367,10 @@ func TestValidateLeafUnion(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "string",
-							Kind:    yang.Ystring,
-							Pattern: []string{"a+"},
+							Name:         "string",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"a+"},
+							POSIXPattern: []string{"^a+$"},
 						},
 						{
 							Name: "int16",
@@ -423,14 +424,16 @@ func TestValidateLeafUnion(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "string",
-							Kind:    yang.Ystring,
-							Pattern: []string{"a+"},
+							Name:         "string",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"a+"},
+							POSIXPattern: []string{"^a+$"},
 						},
 						{
-							Name:    "string2",
-							Kind:    yang.Ystring,
-							Pattern: []string{"b+"},
+							Name:         "string2",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"b+"},
+							POSIXPattern: []string{"^b+$"},
 						},
 					},
 				},
@@ -449,23 +452,26 @@ func TestValidateLeafUnion(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "string",
-							Kind:    yang.Ystring,
-							Pattern: []string{"a+"},
+							Name:         "string",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"a+"},
+							POSIXPattern: []string{"^a+$"},
 						},
 						{
-							Name:    "string2",
-							Kind:    yang.Ystring,
-							Pattern: []string{"b+"},
+							Name:         "string2",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"b+"},
+							POSIXPattern: []string{"^b+$"},
 						},
 						{
 							Name: "bad-leaf",
 							Kind: yang.Yunion,
 							Type: []*yang.YangType{
 								{
-									Name:    "bad-leaf",
-									Kind:    yang.Ystring,
-									Pattern: []string{"c+"},
+									Name:         "bad-leaf",
+									Kind:         yang.Ystring,
+									Pattern:      []string{"c+"},
+									POSIXPattern: []string{"^c+$"},
 								},
 							},
 						},
@@ -638,7 +644,11 @@ func TestValidateLeafRef(t *testing.T) {
 				"leaf-type": {
 					Kind: yang.LeafEntry,
 					Name: "leaf-type",
-					Type: &yang.YangType{Kind: yang.Ystring, Pattern: []string{"a+"}},
+					Type: &yang.YangType{
+						Kind:         yang.Ystring,
+						Pattern:      []string{"a+"},
+						POSIXPattern: []string{"^a+$"},
+					},
 				},
 			},
 		},
@@ -694,7 +704,11 @@ func TestValidateLeafRef(t *testing.T) {
 				"leaf-type": {
 					Kind: yang.LeafEntry,
 					Name: "leaf-type",
-					Type: &yang.YangType{Kind: yang.Ystring, Pattern: []string{"a+"}},
+					Type: &yang.YangType{
+						Kind:         yang.Ystring,
+						Pattern:      []string{"a+"},
+						POSIXPattern: []string{"^a+$"},
+					},
 				},
 			},
 		},
@@ -719,7 +733,11 @@ func TestValidateLeafRef(t *testing.T) {
 				"leaf-type": {
 					Kind: yang.LeafEntry,
 					Name: "leaf-type",
-					Type: &yang.YangType{Kind: yang.Ystring, Pattern: []string{"a+"}},
+					Type: &yang.YangType{
+						Kind:         yang.Ystring,
+						Pattern:      []string{"a+"},
+						POSIXPattern: []string{"^a+$"},
+					},
 				},
 			},
 		},
@@ -791,8 +809,9 @@ func TestValidateLeafRef(t *testing.T) {
 						"key": {
 							Name: "key",
 							Type: &yang.YangType{
-								Kind:    yang.Ystring,
-								Pattern: []string{"b.*"},
+								Kind:         yang.Ystring,
+								Pattern:      []string{"b.*"},
+								POSIXPattern: []string{"^b.*$"},
 							},
 						},
 					},
@@ -808,8 +827,9 @@ func TestValidateLeafRef(t *testing.T) {
 				"leaf2": {
 					Name: "leaf2",
 					Type: &yang.YangType{
-						Kind:    yang.Ystring,
-						Pattern: []string{"b.*"},
+						Kind:         yang.Ystring,
+						Pattern:      []string{"b.*"},
+						POSIXPattern: []string{"^b.*$"},
 					},
 				},
 			},
@@ -837,8 +857,9 @@ func TestValidateLeafRef(t *testing.T) {
 				"key": {
 					Name: "key",
 					Type: &yang.YangType{
-						Kind:    yang.Ystring,
-						Pattern: []string{"b.*"},
+						Kind:         yang.Ystring,
+						Pattern:      []string{"b.*"},
+						POSIXPattern: []string{"^b.*$"},
 					},
 				},
 			},
@@ -1351,8 +1372,9 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 				Name: "leaf",
 				Kind: yang.LeafEntry,
 				Type: &yang.YangType{
-					Kind:    yang.Ystring,
-					Pattern: []string{"b+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b+"},
+					POSIXPattern: []string{"^b+$"},
 				},
 			},
 			"config": configSchema,
@@ -1426,8 +1448,9 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
 					Kind: yang.Yuint32,
@@ -1454,8 +1477,9 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
 					Kind: yang.Yuint32,
@@ -1479,12 +1503,14 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 				{
 					// Note that Validate is not called as part of Unmarshal,
 					// therefore any string pattern will actually match.
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"b+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b+"},
+					POSIXPattern: []string{"^b+$"},
 				},
 			},
 		},
@@ -1500,12 +1526,14 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 				{
 					// Note that Validate is not called as part of Unmarshal,
 					// therefore any string pattern will actually match.
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"b+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b+"},
+					POSIXPattern: []string{"^b+$"},
 				},
 			},
 		},
@@ -1714,8 +1742,9 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 				Name: "leaf",
 				Kind: yang.LeafEntry,
 				Type: &yang.YangType{
-					Kind:    yang.Ystring,
-					Pattern: []string{"b+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b+"},
+					POSIXPattern: []string{"^b+$"},
 				},
 			},
 		},
@@ -1758,8 +1787,9 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
 					Kind: yang.Yuint32,
@@ -1829,12 +1859,14 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 				{
 					// Note that Validate is not called as part of Unmarshal,
 					// therefore any string pattern will actually match.
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"b+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b+"},
+					POSIXPattern: []string{"^b+$"},
 				},
 			},
 		},
