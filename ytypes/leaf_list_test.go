@@ -33,7 +33,7 @@ var validLeafListSchema = &yang.Entry{
 	Name:     "valid-leaf-list-schema",
 	Kind:     yang.LeafEntry,
 	Type:     &yang.YangType{Kind: yang.Ystring},
-	ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+	ListAttr: &yang.ListAttr{MinElements: 0},
 }
 
 func TestValidateLeafListSchema(t *testing.T) {
@@ -82,7 +82,7 @@ func TestValidateLeafListSchema(t *testing.T) {
 func TestValidateLeafList(t *testing.T) {
 	leafListSchema := &yang.Entry{
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: &yang.ListAttr{MinElements: 0},
 		Type:     &yang.YangType{Kind: yang.Ystring},
 		Name:     "leaf-list-schema",
 	}
@@ -210,7 +210,7 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 		Parent:   containerSchema,
 		Name:     "int32-leaf-list",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: &yang.ListAttr{MinElements: 0},
 		Type:     &yang.YangType{Kind: yang.Yint32},
 	}
 
@@ -218,7 +218,7 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 		Parent:   containerSchema,
 		Name:     "enum-leaf-list",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: &yang.ListAttr{MinElements: 0},
 		Type:     &yang.YangType{Kind: yang.Yenum},
 	}
 
@@ -226,7 +226,7 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 		Parent:   containerSchema,
 		Name:     "union-leaflist",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: &yang.ListAttr{MinElements: 0},
 		Type: &yang.YangType{
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
@@ -249,7 +249,7 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 		Parent:   containerSchema,
 		Name:     "union-leaflist-simple",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: &yang.ListAttr{MinElements: 0},
 		Type: &yang.YangType{
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
@@ -458,13 +458,13 @@ func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 			"int32-leaf-list": {
 				Name:     "int32-leaf-list",
 				Kind:     yang.LeafEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: &yang.ListAttr{MinElements: 0},
 				Type:     &yang.YangType{Kind: yang.Yint32},
 			},
 			"enum-leaf-list": {
 				Name:     "enum-leaf-list",
 				Kind:     yang.LeafEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: &yang.ListAttr{MinElements: 0},
 				Type:     &yang.YangType{Kind: yang.Yenum},
 			},
 		},

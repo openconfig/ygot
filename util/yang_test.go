@@ -961,7 +961,7 @@ func TestIsOrNotKeyedList(t *testing.T) {
 			desc: "keyed list",
 			schema: &yang.Entry{
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: &yang.ListAttr{MinElements: 0},
 				Key:      "key",
 				Dir:      map[string]*yang.Entry{},
 			},
@@ -972,7 +972,7 @@ func TestIsOrNotKeyedList(t *testing.T) {
 			desc: "unkeyed list",
 			schema: &yang.Entry{
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: &yang.ListAttr{MinElements: 0},
 				Dir:      map[string]*yang.Entry{},
 			},
 			wantKeyedList:   false,
@@ -1727,12 +1727,12 @@ func TestValidateLeafRefData(t *testing.T) {
 				Name:     "leaf-list",
 				Kind:     yang.LeafEntry,
 				Type:     &yang.YangType{Kind: yang.Yint32},
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: &yang.ListAttr{MinElements: 0},
 			},
 			"list": {
 				Name:     "list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: &yang.ListAttr{MinElements: 0},
 				Key:      "key",
 				Dir: map[string]*yang.Entry{
 					"key": {
@@ -1813,7 +1813,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "../../int32",
 						},
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: &yang.ListAttr{MinElements: 0},
 					},
 					"absolute-to-int32": {
 						Name: "absolute-to-int32",
@@ -1822,7 +1822,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "/int32",
 						},
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: &yang.ListAttr{MinElements: 0},
 					},
 					"recursive": {
 						Name: "recursive",
@@ -1831,7 +1831,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "../leaf-list-with-leafref",
 						},
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: &yang.ListAttr{MinElements: 0},
 					},
 					"bad-path": {
 						Name: "bad-path",
@@ -1840,7 +1840,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "../../missing",
 						},
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: &yang.ListAttr{MinElements: 0},
 					},
 					"missing-path": {
 						Name: "missing-path",
@@ -1848,7 +1848,7 @@ func TestValidateLeafRefData(t *testing.T) {
 						Type: &yang.YangType{
 							Kind: yang.Yleafref,
 						},
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: &yang.ListAttr{MinElements: 0},
 					},
 				},
 			},

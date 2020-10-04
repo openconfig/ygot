@@ -89,7 +89,7 @@ func TestGetNodeSimpleKeyedList(t *testing.T) {
 					"simple-key-list": &yang.Entry{
 						Name:     "simple-key-list",
 						Kind:     yang.DirectoryEntry,
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: &yang.ListAttr{MinElements: 0},
 						Key:      "key1",
 						Config:   yang.TSTrue,
 						Dir: map[string]*yang.Entry{
@@ -341,7 +341,7 @@ func TestGetNodeStructKeyedList(t *testing.T) {
 			"struct-key-list": &yang.Entry{
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: &yang.ListAttr{MinElements: 0},
 				Key:      "key1 key2 key3",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{

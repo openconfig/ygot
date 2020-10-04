@@ -103,27 +103,18 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 	// If min/max element attr is present in the schema, this must be a list or
 	// leaf-list. Check that the data tree falls within the required size
 	// bounds.
-	if v := schema.ListAttr.MinElements; v != nil {
-		if minN, err := yang.ParseInt(v.Name); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if min, err := minN.Int(); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if min < 0 {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s has negative min required elements", schema.Name))
-		} else if int64(size) < min {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, min))
-		}
+	min := schema.ListAttr.MinElements
+	if min < 0 {
+		errors = util.AppendErr(errors, fmt.Errorf("list %s has negative min required elements", schema.Name))
+	} else if uint64(size) < min {
+		errors = util.AppendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, min))
 	}
-	if v := schema.ListAttr.MaxElements; v != nil {
-		if maxN, err := yang.ParseInt(v.Name); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if max, err := maxN.Int(); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if max < 0 {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s has negative max required elements", schema.Name))
-		} else if int64(size) > max {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, max))
-		}
+
+	max := schema.ListAttr.MaxElements
+	if max < 0 {
+		errors = util.AppendErr(errors, fmt.Errorf("list %s has negative max required elements", schema.Name))
+	} else if uint64(size) > max {
+		errors = util.AppendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, max))
 	}
 
 	return errors

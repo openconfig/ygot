@@ -1507,7 +1507,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		Name:     "int8-leaflist",
 		Kind:     yang.LeafEntry,
 		Type:     &yang.YangType{Kind: yang.Yint8},
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: &yang.ListAttr{MinElements: 0},
 	}
 
 	unionSingleEnumSchema := &yang.Entry{
@@ -1841,7 +1841,7 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 		Name:     "int8-leaflist",
 		Kind:     yang.LeafEntry,
 		Type:     &yang.YangType{Kind: yang.Yint8},
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: &yang.ListAttr{MinElements: 0},
 	}
 
 	tests := []struct {
