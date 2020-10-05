@@ -142,7 +142,7 @@ func TestSchemaTypeStr(t *testing.T) {
 			schema: &yang.Entry{
 				Kind:     yang.DirectoryEntry,
 				Dir:      map[string]*yang.Entry{},
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: NewListAttr(),
 			},
 			want: "list",
 		},
@@ -155,14 +155,14 @@ func TestSchemaTypeStr(t *testing.T) {
 		{
 			schema: &yang.Entry{
 				Kind:     yang.LeafEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: NewListAttr(),
 			},
 			want: "leaf-list",
 		},
 		{
 			schema: &yang.Entry{
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: NewListAttr(),
 			},
 			want: "other",
 		},
@@ -210,7 +210,7 @@ func TestYangTypeToDebugString(t *testing.T) {
 func TestSchemaTreeString(t *testing.T) {
 	schema := &yang.Entry{
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: NewListAttr(),
 		Key:      "key_field_name",
 		Config:   yang.TSTrue,
 		Dir: map[string]*yang.Entry{
@@ -238,7 +238,7 @@ func TestDataSchemaTreesString(t *testing.T) {
 			"key-list": {
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: NewListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{

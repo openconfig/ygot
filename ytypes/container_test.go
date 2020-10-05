@@ -21,6 +21,7 @@ import (
 
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -131,7 +132,7 @@ func TestValidateContainer(t *testing.T) {
 				Name:     "child-list",
 				Kind:     yang.DirectoryEntry,
 				Key:      "leaf2",
-				ListAttr: &yang.ListAttr{},
+				ListAttr: util.NewListAttr(),
 				Dir: map[string]*yang.Entry{
 					"config": {
 						Dir: map[string]*yang.Entry{

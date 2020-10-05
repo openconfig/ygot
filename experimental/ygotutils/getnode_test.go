@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -89,7 +90,7 @@ func TestGetNodeSimpleKeyedList(t *testing.T) {
 					"simple-key-list": &yang.Entry{
 						Name:     "simple-key-list",
 						Kind:     yang.DirectoryEntry,
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: util.NewListAttr(),
 						Key:      "key1",
 						Config:   yang.TSTrue,
 						Dir: map[string]*yang.Entry{
@@ -341,7 +342,7 @@ func TestGetNodeStructKeyedList(t *testing.T) {
 			"struct-key-list": &yang.Entry{
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: util.NewListAttr(),
 				Key:      "key1 key2 key3",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{

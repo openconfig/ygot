@@ -23,6 +23,7 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -304,7 +305,7 @@ func TestStringToKeyType(t *testing.T) {
 	listSchema := &yang.Entry{
 		Name:     "struct-key-list",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: util.NewListAttr(),
 		Key:      "every key, but irrelevant in this test",
 		Config:   yang.TSTrue,
 		Dir: map[string]*yang.Entry{

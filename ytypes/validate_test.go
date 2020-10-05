@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -83,7 +84,7 @@ func TestValidate(t *testing.T) {
 
 	leafListSchema := &yang.Entry{
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: util.NewListAttr(),
 		Type:     &yang.YangType{Kind: yang.Ystring},
 		Name:     "leaf-list-schema",
 	}
@@ -91,7 +92,7 @@ func TestValidate(t *testing.T) {
 	listSchema := &yang.Entry{
 		Name:     "list-schema",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: util.NewListAttr(),
 		Dir: map[string]*yang.Entry{
 			"leaf-name": {
 				Kind: yang.LeafEntry,

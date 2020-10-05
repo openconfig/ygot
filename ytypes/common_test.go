@@ -16,6 +16,7 @@ package ytypes
 
 import (
 	"fmt"
+	"math"
 	"reflect"
 	"testing"
 
@@ -103,42 +104,24 @@ func TestValidateListAttr(t *testing.T) {
 		Name:     "min1",
 		Kind:     yang.LeafEntry,
 		Type:     &yang.YangType{Kind: yang.Ystring},
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "1"}},
+		ListAttr: &yang.ListAttr{MinElements: 1, MaxElements: math.MaxUint64},
 	}
 	validLeafListSchemaMax3 := &yang.Entry{
 		Name:     "max3",
 		Kind:     yang.LeafEntry,
 		Type:     &yang.YangType{Kind: yang.Ystring},
-		ListAttr: &yang.ListAttr{MaxElements: &yang.Value{Name: "3"}},
+		ListAttr: &yang.ListAttr{MaxElements: 3},
 	}
 	validLeafListSchemaMin1Max3 := &yang.Entry{
 		Name:     "min1max3",
 		Kind:     yang.LeafEntry,
 		Type:     &yang.YangType{Kind: yang.Ystring},
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "1"}, MaxElements: &yang.Value{Name: "3"}},
+		ListAttr: &yang.ListAttr{MinElements: 1, MaxElements: 3},
 	}
 	invalidLeafListSchemaNoAttr := &yang.Entry{
 		Name: "no_attr",
 		Kind: yang.LeafEntry,
 		Type: &yang.YangType{Kind: yang.Ystring},
-	}
-	invalidLeafListSchemaBadRange := &yang.Entry{
-		Name:     "bad_range",
-		Kind:     yang.LeafEntry,
-		Type:     &yang.YangType{Kind: yang.Ystring},
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "bad"}},
-	}
-	invalidLeafListSchemaNegativeMinRange := &yang.Entry{
-		Name:     "negative_min_range",
-		Kind:     yang.LeafEntry,
-		Type:     &yang.YangType{Kind: yang.Ystring},
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "-1"}},
-	}
-	invalidLeafListSchemaNegativeMaxRange := &yang.Entry{
-		Name:     "negative_min_range",
-		Kind:     yang.LeafEntry,
-		Type:     &yang.YangType{Kind: yang.Ystring},
-		ListAttr: &yang.ListAttr{MaxElements: &yang.Value{Name: "-1"}},
 	}
 
 	tests := []struct {
@@ -155,21 +138,6 @@ func TestValidateListAttr(t *testing.T) {
 		{
 			desc:    "missing ListAttr",
 			schema:  invalidLeafListSchemaNoAttr,
-			wantErr: true,
-		},
-		{
-			desc:    "bad range value",
-			schema:  invalidLeafListSchemaBadRange,
-			wantErr: true,
-		},
-		{
-			desc:    "negative min range value",
-			schema:  invalidLeafListSchemaNegativeMinRange,
-			wantErr: true,
-		},
-		{
-			desc:    "negative max range value",
-			schema:  invalidLeafListSchemaNegativeMaxRange,
 			wantErr: true,
 		},
 		{
@@ -296,7 +264,7 @@ func TestForEachSchemaNode(t *testing.T) {
 			"list1": {
 				Kind:     yang.DirectoryEntry,
 				Name:     "list1",
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: util.NewListAttr(),
 				Dir: map[string]*yang.Entry{
 					"string": {
 						Kind: yang.LeafEntry,
