@@ -291,7 +291,7 @@ func (g *gnmiPath) StripPrefix(pfx *gnmiPath) (*gnmiPath, error) {
 	}
 
 	for i, e := range pfx.pathElemPath {
-		if !util.PathElemsEqual(g.pathElemPath[i], e) {
+		if !util.PathElemEqual(g.pathElemPath[i], e) {
 			return nil, fmt.Errorf("prefix is not a prefix of the supplied path, %v is not a subset of %v", pfx, g)
 		}
 	}
