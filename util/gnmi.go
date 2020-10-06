@@ -42,9 +42,9 @@ func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 	return true
 }
 
-// PathElemEqual replaces the proto.Equal() check for PathElems.
+// PathElemsEqual replaces the proto.Equal() check for PathElems.
 // This significantly improves comparison speed.
-func PathElemEqual(a, b *gpb.PathElem) bool {
+func PathElemsEqual(a, b *gpb.PathElem) bool {
 	// This check allows avoiding to deal with any null PathElems later on.
 	if a == nil || b == nil {
 		return a == nil && b == nil
@@ -65,12 +65,13 @@ func PathElemEqual(a, b *gpb.PathElem) bool {
 	return true
 }
 
-func PathElemsEqual(a, b []*gpb.PathElem) bool {
+// PathElemSlicesEqual compares whether two PathElem slices are equal.
+func PathElemSlicesEqual(a, b []*gpb.PathElem) bool {
 	if len(a) != len(b) {
 		return false
 	}
 	for i := range a {
-		if !PathElemEqual(a[i], b[i]) {
+		if !PathElemsEqual(a[i], b[i]) {
 			return false
 		}
 	}
@@ -84,7 +85,7 @@ func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
 		return false
 	}
 	for i, v := range prefix.Elem {
-		if !PathElemEqual(v, path.GetElem()[i]) {
+		if !PathElemsEqual(v, path.GetElem()[i]) {
 			return false
 		}
 	}
@@ -134,7 +135,7 @@ func FindPathElemPrefix(paths []*gpb.Path) *gpb.Path {
 				// loop, so we use this as the base element to
 				// compare the other paths to.
 				elem = e.Elem[i]
-			case !PathElemEqual(e.Elem[i], elem):
+			case !PathElemsEqual(e.Elem[i], elem):
 				return prefix
 			}
 		}

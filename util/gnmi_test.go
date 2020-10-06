@@ -235,7 +235,7 @@ func TestPopGNMIPath(t *testing.T) {
 	}
 }
 
-func TestPathElemEqual(t *testing.T) {
+func TestPathElemsEqual(t *testing.T) {
 	tests := []struct {
 		desc string
 		lhs  *gpb.PathElem
@@ -324,14 +324,14 @@ func TestPathElemEqual(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got := PathElemEqual(tt.lhs, tt.rhs); got != tt.want {
+			if got := PathElemsEqual(tt.lhs, tt.rhs); got != tt.want {
 				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestPathElemsEqual(t *testing.T) {
+func TestPathElemSlicesEqual(t *testing.T) {
 	tests := []struct {
 		desc     string
 		inElemsA []*gpb.PathElem
@@ -423,7 +423,7 @@ func TestPathElemsEqual(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got := PathElemsEqual(tt.inElemsA, tt.inElemsB); got != tt.want {
+			if got := PathElemSlicesEqual(tt.inElemsA, tt.inElemsB); got != tt.want {
 				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
 			}
 		})
