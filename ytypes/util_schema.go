@@ -88,7 +88,7 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(fmt.Errorf("schema %s ListAttr is nil", schema.Name))
 	}
 
-	var size uint64 = 0
+	var size uint64
 	if value != nil {
 		switch reflect.TypeOf(value).Kind() {
 		case reflect.Slice, reflect.Map:
