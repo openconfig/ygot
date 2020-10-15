@@ -88,13 +88,11 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(fmt.Errorf("schema %s ListAttr is nil", schema.Name))
 	}
 
-	var size int
-	if value == nil {
-		size = 0
-	} else {
+	var size uint64
+	if value != nil {
 		switch reflect.TypeOf(value).Kind() {
 		case reflect.Slice, reflect.Map:
-			size = reflect.ValueOf(value).Len()
+			size = uint64(reflect.ValueOf(value).Len())
 		default:
 			return util.NewErrs(fmt.Errorf("value %v type %T must be map or slice type for schema %s", value, value, schema.Name))
 		}
@@ -103,29 +101,12 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 	// If min/max element attr is present in the schema, this must be a list or
 	// leaf-list. Check that the data tree falls within the required size
 	// bounds.
-	if v := schema.ListAttr.MinElements; v != nil {
-		if minN, err := yang.ParseInt(v.Name); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if min, err := minN.Int(); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if min < 0 {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s has negative min required elements", schema.Name))
-		} else if int64(size) < min {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, min))
-		}
+	if size < schema.ListAttr.MinElements {
+		errors = util.AppendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, schema.ListAttr.MinElements))
 	}
-	if v := schema.ListAttr.MaxElements; v != nil {
-		if maxN, err := yang.ParseInt(v.Name); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if max, err := maxN.Int(); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if max < 0 {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s has negative max required elements", schema.Name))
-		} else if int64(size) > max {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, max))
-		}
+	if size > schema.ListAttr.MaxElements {
+		errors = util.AppendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, schema.ListAttr.MaxElements))
 	}
-
 	return errors
 }
 
