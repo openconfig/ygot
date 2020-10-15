@@ -25,7 +25,6 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -1508,7 +1507,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		Name:     "int8-leaflist",
 		Kind:     yang.LeafEntry,
 		Type:     &yang.YangType{Kind: yang.Yint8},
-		ListAttr: util.NewListAttr(),
+		ListAttr: yang.NewDefaultListAttr(),
 	}
 
 	unionSingleEnumSchema := &yang.Entry{
@@ -1842,7 +1841,7 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 		Name:     "int8-leaflist",
 		Kind:     yang.LeafEntry,
 		Type:     &yang.YangType{Kind: yang.Yint8},
-		ListAttr: util.NewListAttr(),
+		ListAttr: yang.NewDefaultListAttr(),
 	}
 
 	tests := []struct {

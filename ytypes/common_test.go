@@ -264,7 +264,7 @@ func TestForEachSchemaNode(t *testing.T) {
 			"list1": {
 				Kind:     yang.DirectoryEntry,
 				Name:     "list1",
-				ListAttr: util.NewListAttr(),
+				ListAttr: yang.NewDefaultListAttr(),
 				Dir: map[string]*yang.Entry{
 					"string": {
 						Kind: yang.LeafEntry,

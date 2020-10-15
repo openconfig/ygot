@@ -18,7 +18,6 @@ package util
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"reflect"
 	"strings"
 
@@ -37,13 +36,6 @@ var (
 // to the yang.Entry struct of the root entity of the structs within the
 // SchemaTree.
 const CompressedSchemaAnnotation string = "isCompressedSchema"
-
-func NewListAttr() *yang.ListAttr {
-	return &yang.ListAttr{
-		MinElements: 0,
-		MaxElements: math.MaxUint64,
-	}
-}
 
 // Children returns all child elements of a directory element e that are not
 // RPC entries.

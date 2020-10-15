@@ -22,7 +22,6 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -43,12 +42,12 @@ func TestValidateLeafRefData(t *testing.T) {
 				Name:     "leaf-list",
 				Kind:     yang.LeafEntry,
 				Type:     &yang.YangType{Kind: yang.Yint32},
-				ListAttr: util.NewListAttr(),
+				ListAttr: yang.NewDefaultListAttr(),
 			},
 			"list": {
 				Name:     "list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: util.NewListAttr(),
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Dir: map[string]*yang.Entry{
 					"key": {
@@ -66,7 +65,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			"list-enum-keyed": {
 				Name:     "list-enum-keyed",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: util.NewListAttr(),
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Dir: map[string]*yang.Entry{
 					"key": {
@@ -155,7 +154,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "../../../leaf-list",
 						},
-						ListAttr: util.NewListAttr(),
+						ListAttr: yang.NewDefaultListAttr(),
 					},
 					"int32-ref-to-list": {
 						Name: "int32-ref-to-list",
@@ -199,7 +198,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "../../int32",
 						},
-						ListAttr: util.NewListAttr(),
+						ListAttr: yang.NewDefaultListAttr(),
 					},
 					"leaf-ref-to-union": {
 						Name: "leaf-ref-to-union",
