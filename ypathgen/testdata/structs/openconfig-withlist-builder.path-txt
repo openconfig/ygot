@@ -68,12 +68,14 @@ func (n *ModelPathAny) MultiKeyAny() *Model_MultiKeyPathAny {
 }
 
 // WithKey1 sets Model_MultiKeyPathAny's key "key1" to the specified value.
+// Key1: uint32
 func (n *Model_MultiKeyPathAny) WithKey1(Key1 uint32) *Model_MultiKeyPathAny {
 	ygot.ModifyKey(n.NodePath, "key1", Key1)
 	return n
 }
 
 // WithKey2 sets Model_MultiKeyPathAny's key "key2" to the specified value.
+// Key2: uint64
 func (n *Model_MultiKeyPathAny) WithKey2(Key2 uint64) *Model_MultiKeyPathAny {
 	ygot.ModifyKey(n.NodePath, "key2", Key2)
 	return n
@@ -102,6 +104,7 @@ func (n *ModelPathAny) SingleKeyAny() *Model_SingleKeyPathAny {
 }
 
 // SingleKey returns from ModelPath the path struct for its child "single-key".
+// Key: string
 func (n *ModelPath) SingleKey(Key string) *Model_SingleKeyPath {
 	return &Model_SingleKeyPath{
 		NodePath: ygot.NewNodePath(
@@ -113,6 +116,7 @@ func (n *ModelPath) SingleKey(Key string) *Model_SingleKeyPath {
 }
 
 // SingleKey returns from ModelPathAny the path struct for its child "single-key".
+// Key: string
 func (n *ModelPathAny) SingleKey(Key string) *Model_SingleKeyPathAny {
 	return &Model_SingleKeyPathAny{
 		NodePath: ygot.NewNodePath(
