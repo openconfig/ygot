@@ -24,6 +24,67 @@ import (
 	"github.com/openconfig/ygot/genutil"
 )
 
+func TestOrderedUnionTypes(t *testing.T) {
+	tests := []struct {
+		desc string
+		in   *MappedType
+		want []string
+	}{{
+		desc: "union type with 2 elements",
+		in: &MappedType{
+			NativeType: "A_Union",
+			UnionTypes: map[string]int{
+				"Binary":  1,
+				"float64": 2,
+			},
+		},
+		want: []string{
+			"Binary",
+			"float64",
+		},
+	}, {
+		desc: "union type with 3 elements",
+		in: &MappedType{
+			NativeType: "A_Union",
+			UnionTypes: map[string]int{
+				"uint64":  3,
+				"float64": 2,
+				"Binary":  1,
+			},
+		},
+		want: []string{
+			"Binary",
+			"float64",
+			"uint64",
+		},
+	}, {
+		desc: "non-union type",
+		in: &MappedType{
+			NativeType: "string",
+		},
+		want: nil,
+	}, {
+		desc: "union type with a single element",
+		in: &MappedType{
+			NativeType: "string",
+			UnionTypes: map[string]int{
+				"string": 0,
+			},
+		},
+		want: []string{
+			"string",
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if diff := cmp.Diff(tt.in.OrderedUnionTypes(), tt.want); diff != "" {
+				t.Errorf("(-got, +want):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestBuildDirectoryDefinitions(t *testing.T) {
 	tests := []struct {
 		name                                    string

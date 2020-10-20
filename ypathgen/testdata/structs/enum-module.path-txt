@@ -162,6 +162,7 @@ func (n *DevicePath) AListAny() *AListPathAny {
 }
 
 // AList returns from DevicePath the path struct for its child "a-list".
+// Value: [UnionUint32, E_EnumTypes_Td_Enum]
 func (n *DevicePath) AList(Value AList_Value_Union) *AListPath {
 	return &AListPath{
 		NodePath: ygot.NewNodePath(
@@ -184,6 +185,7 @@ func (n *DevicePath) BListAny() *BListPathAny {
 }
 
 // BList returns from DevicePath the path struct for its child "b-list".
+// Value: [UnionUint32, E_EnumTypes_Td_Enum]
 func (n *DevicePath) BList(Value BList_Value_Union) *BListPath {
 	return &BListPath{
 		NodePath: ygot.NewNodePath(

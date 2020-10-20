@@ -1006,6 +1006,7 @@ func (n *RootPath) ListAny() *ListPathAny {
 }
 
 // ListAnyKey2AnyUnionKey returns from RootPath the path struct for its child "list".
+// Key1: string
 func (n *RootPath) ListAnyKey2AnyUnionKey(Key1 string) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
@@ -1017,6 +1018,7 @@ func (n *RootPath) ListAnyKey2AnyUnionKey(Key1 string) *ListPathAny {
 }
 
 // ListAnyKey1AnyUnionKey returns from RootPath the path struct for its child "list".
+// Key2: oc.Binary
 func (n *RootPath) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
@@ -1028,6 +1030,8 @@ func (n *RootPath) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListPathAny {
 }
 
 // ListAnyUnionKey returns from RootPath the path struct for its child "list".
+// Key1: string
+// Key2: oc.Binary
 func (n *RootPath) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
@@ -1039,6 +1043,7 @@ func (n *RootPath) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListPathAny {
 }
 
 // ListAnyKey1AnyKey2 returns from RootPath the path struct for its child "list".
+// UnionKey: [oc.UnionString, oc.Binary]
 func (n *RootPath) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
@@ -1050,6 +1055,8 @@ func (n *RootPath) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union
 }
 
 // ListAnyKey2 returns from RootPath the path struct for its child "list".
+// Key1: string
+// UnionKey: [oc.UnionString, oc.Binary]
 func (n *RootPath) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
@@ -1061,6 +1068,8 @@ func (n *RootPath) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey
 }
 
 // ListAnyKey1 returns from RootPath the path struct for its child "list".
+// Key2: oc.Binary
+// UnionKey: [oc.UnionString, oc.Binary]
 func (n *RootPath) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
@@ -1072,6 +1081,9 @@ func (n *RootPath) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_Union
 }
 
 // List returns from RootPath the path struct for its child "list".
+// Key1: string
+// Key2: oc.Binary
+// UnionKey: [oc.UnionString, oc.Binary]
 func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPath {
 	return &ListPath{
 		NodePath: ygot.NewNodePath(
@@ -1551,6 +1563,7 @@ func (n *RootPath) ListWithStateAny() *ListWithStatePathAny {
 }
 
 // ListWithState returns from RootPath the path struct for its child "list-with-state".
+// Key: float64
 func (n *RootPath) ListWithState(Key float64) *ListWithStatePath {
 	return &ListWithStatePath{
 		NodePath: ygot.NewNodePath(
@@ -1930,6 +1943,7 @@ func (n *ContainerPathAny) ListAny() *Container_ListPathAny {
 }
 
 // List returns from ContainerPath the path struct for its child "list".
+// Key: string
 func (n *ContainerPath) List(Key string) *Container_ListPath {
 	return &Container_ListPath{
 		NodePath: ygot.NewNodePath(
@@ -1941,6 +1955,7 @@ func (n *ContainerPath) List(Key string) *Container_ListPath {
 }
 
 // List returns from ContainerPathAny the path struct for its child "list".
+// Key: string
 func (n *ContainerPathAny) List(Key string) *Container_ListPathAny {
 	return &Container_ListPathAny{
 		NodePath: ygot.NewNodePath(
@@ -1983,6 +1998,7 @@ func (n *ContainerPathAny) ListAny() *Container_ListPathAny {
 }
 
 // WithKey sets Container_ListPathAny's key "key" to the specified value.
+// Key: string
 func (n *Container_ListPathAny) WithKey(Key string) *Container_ListPathAny {
 	ygot.ModifyKey(n.NodePath, "key", Key)
 	return n
@@ -2038,6 +2054,7 @@ func (n *RootPath) ListWithStateAny() *ListWithStatePathAny {
 }
 
 // ListWithState returns from RootPath the path struct for its child "list-with-state".
+// Key: float64
 func (n *RootPath) ListWithState(Key float64) *ListWithStatePath {
 	return &ListWithStatePath{
 		NodePath: ygot.NewNodePath(
@@ -2086,18 +2103,21 @@ func (n *RootPath) ListAny() *ListPathAny {
 }
 
 // WithKey1 sets ListPathAny's key "key1" to the specified value.
+// Key1: string
 func (n *ListPathAny) WithKey1(Key1 string) *ListPathAny {
 	ygot.ModifyKey(n.NodePath, "key1", Key1)
 	return n
 }
 
 // WithKey2 sets ListPathAny's key "key2" to the specified value.
+// Key2: oc.Binary
 func (n *ListPathAny) WithKey2(Key2 oc.Binary) *ListPathAny {
 	ygot.ModifyKey(n.NodePath, "key2", Key2)
 	return n
 }
 
 // WithUnionKey sets ListPathAny's key "union-key" to the specified value.
+// UnionKey: [oc.UnionString, oc.Binary]
 func (n *ListPathAny) WithUnionKey(UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
 	ygot.ModifyKey(n.NodePath, "union-key", UnionKey)
 	return n
@@ -2124,7 +2144,8 @@ func TestMakeKeyParams(t *testing.T) {
 	tests := []struct {
 		name             string
 		in               *ygen.YangListAttr
-		want             []keyParam
+		wantKeyParams    []keyParam
+		wantDocStrings   []string
 		wantErrSubstring string
 	}{{
 		name:             "empty listattr",
@@ -2136,14 +2157,16 @@ func TestMakeKeyParams(t *testing.T) {
 			Keys:     map[string]*ygen.MappedType{"fluorine": {NativeType: "string"}},
 			KeyElems: []*yang.Entry{{Name: "fluorine"}},
 		},
-		want: []keyParam{{name: "fluorine", varName: "Fluorine", typeName: "string"}},
+		wantKeyParams:  []keyParam{{name: "fluorine", varName: "Fluorine", typeName: "string"}},
+		wantDocStrings: []string{"Fluorine: string"},
 	}, {
 		name: "simple int param, also testing camel-case",
 		in: &ygen.YangListAttr{
 			Keys:     map[string]*ygen.MappedType{"cl-cl": {NativeType: "int"}},
 			KeyElems: []*yang.Entry{{Name: "cl-cl"}},
 		},
-		want: []keyParam{{name: "cl-cl", varName: "ClCl", typeName: "int"}},
+		wantKeyParams:  []keyParam{{name: "cl-cl", varName: "ClCl", typeName: "int"}},
+		wantDocStrings: []string{"ClCl: int"},
 	}, {
 		name: "name uniquification",
 		in: &ygen.YangListAttr{
@@ -2153,17 +2176,19 @@ func TestMakeKeyParams(t *testing.T) {
 			},
 			KeyElems: []*yang.Entry{{Name: "cl-cl"}, {Name: "clCl"}},
 		},
-		want: []keyParam{
+		wantKeyParams: []keyParam{
 			{name: "cl-cl", varName: "ClCl", typeName: "int"},
 			{name: "clCl", varName: "ClCl_", typeName: "int"},
 		},
+		wantDocStrings: []string{"ClCl: int", "ClCl_: int"},
 	}, {
 		name: "unsupported type",
 		in: &ygen.YangListAttr{
 			Keys:     map[string]*ygen.MappedType{"fluorine": {NativeType: "interface{}"}},
 			KeyElems: []*yang.Entry{{Name: "fluorine"}},
 		},
-		want: []keyParam{{name: "fluorine", varName: "Fluorine", typeName: "string"}},
+		wantKeyParams:  []keyParam{{name: "fluorine", varName: "Fluorine", typeName: "string"}},
+		wantDocStrings: []string{"Fluorine: string"},
 	}, {
 		name: "keyElems doesn't match keys",
 		in: &ygen.YangListAttr{
@@ -2189,12 +2214,13 @@ func TestMakeKeyParams(t *testing.T) {
 			},
 			KeyElems: []*yang.Entry{{Name: "fluorine"}, {Name: "cl-cl"}, {Name: "bromine"}, {Name: "iodine"}},
 		},
-		want: []keyParam{
+		wantKeyParams: []keyParam{
 			{name: "fluorine", varName: "Fluorine", typeName: "string"},
 			{name: "cl-cl", varName: "ClCl", typeName: "int"},
 			{name: "bromine", varName: "Bromine", typeName: "complex128"},
 			{name: "iodine", varName: "Iodine", typeName: "float64"},
 		},
+		wantDocStrings: []string{"Fluorine: string", "ClCl: int", "Bromine: complex128", "Iodine: float64"},
 	}, {
 		name: "enumerated and union parameters",
 		in: &ygen.YangListAttr{
@@ -2204,10 +2230,11 @@ func TestMakeKeyParams(t *testing.T) {
 			},
 			KeyElems: []*yang.Entry{{Name: "astatine"}, {Name: "tennessine"}},
 		},
-		want: []keyParam{
+		wantKeyParams: []keyParam{
 			{name: "astatine", varName: "Astatine", typeName: "oc.Halogen"},
 			{name: "tennessine", varName: "Tennessine", typeName: "oc.Ununseptium"},
 		},
+		wantDocStrings: []string{"Astatine: oc.Halogen", "Tennessine: [oc.UnionInt32, oc.UnionFloat64]"},
 	}, {
 		name: "Binary and Empty",
 		in: &ygen.YangListAttr{
@@ -2217,17 +2244,22 @@ func TestMakeKeyParams(t *testing.T) {
 			},
 			KeyElems: []*yang.Entry{{Name: "cl-cl"}, {Name: "bromine"}},
 		},
-		want: []keyParam{
+		wantKeyParams: []keyParam{
 			{name: "cl-cl", varName: "ClCl", typeName: "oc.YANGEmpty"},
 			{name: "bromine", varName: "Bromine", typeName: "oc.Binary"},
 		},
+		wantDocStrings: []string{"ClCl: oc.YANGEmpty", "Bromine: oc.Binary"},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := makeKeyParams(tt.in, "oc.")
-			if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(keyParam{})); diff != "" {
-				t.Errorf("(-want, +got):\n%s", diff)
+			gotKeyParams, gotDocStrings, err := makeKeyParams(tt.in, "oc.")
+			if diff := cmp.Diff(tt.wantKeyParams, gotKeyParams, cmp.AllowUnexported(keyParam{})); diff != "" {
+				t.Errorf("keyParams (-want, +got):\n%s", diff)
+			}
+
+			if diff := cmp.Diff(tt.wantDocStrings, gotDocStrings); diff != "" {
+				t.Errorf("param docstrings (-want, +got):\n%s", diff)
 			}
 
 			if diff := errdiff.Check(err, tt.wantErrSubstring); diff != "" {
