@@ -1049,16 +1049,17 @@ func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAccessor string) 
 		if len(mappedType.UnionTypes) > 1 {
 			var genTypes []string
 			for _, name := range mappedType.OrderedUnionTypes() {
-				unionTypeName := yang.CamelCase(name)
-				// Ensure that we sanitise the type name to be used in the
-				// output struct.
-				if name == "interface{}" {
-					unionTypeName = "Interface"
-				}
+				unionTypeName := name
 				if simpleName, ok := ygot.SimpleUnionBuiltinGoTypes[name]; ok {
 					unionTypeName = simpleName
 				}
-				genTypes = append(genTypes, schemaStructPkgAccessor+unionTypeName)
+				// Add schemaStructPkgAccessor.
+				if strings.HasPrefix(unionTypeName, "*") {
+					unionTypeName = "*" + schemaStructPkgAccessor + unionTypeName[1:]
+				} else {
+					unionTypeName = schemaStructPkgAccessor + unionTypeName
+				}
+				genTypes = append(genTypes, unionTypeName)
 			}
 			// Create the subtype documentation string.
 			typeDocString = "[" + strings.Join(genTypes, ", ") + "]"

@@ -2220,13 +2220,13 @@ func TestMakeKeyParams(t *testing.T) {
 		in: &ygen.YangListAttr{
 			Keys: map[string]*ygen.MappedType{
 				"astatine":   {NativeType: "Halogen", IsEnumeratedValue: true},
-				"tennessine": {NativeType: "Ununseptium", UnionTypes: map[string]int{"int32": 1, "float64": 2}},
+				"tennessine": {NativeType: "Ununseptium", UnionTypes: map[string]int{"int32": 1, "float64": 2, "interface{}": 3}},
 			},
 			KeyElems: []*yang.Entry{{Name: "astatine"}, {Name: "tennessine"}},
 		},
 		wantKeyParams: []keyParam{
 			{name: "astatine", varName: "Astatine", typeName: "oc.Halogen", typeDocString: "Astatine: oc.Halogen"},
-			{name: "tennessine", varName: "Tennessine", typeName: "oc.Ununseptium", typeDocString: "Tennessine: [oc.UnionInt32, oc.UnionFloat64]"},
+			{name: "tennessine", varName: "Tennessine", typeName: "oc.Ununseptium", typeDocString: "Tennessine: [oc.UnionInt32, oc.UnionFloat64, *oc.UnionUnsupported]"},
 		},
 	}, {
 		name: "Binary and Empty",
