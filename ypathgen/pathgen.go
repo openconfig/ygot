@@ -809,7 +809,7 @@ func generateChildConstructorsForLeafOrContainer(methodBuf *strings.Builder, fie
 func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAccessor string) []error {
 	var errors []error
 	// List of function parameters as would appear in the method definition.
-	keyParams, keyTypeDocstrings, err := makeKeyParams(listAttr, schemaStructPkgAccessor)
+	keyParams, err := makeKeyParams(listAttr, schemaStructPkgAccessor)
 	if err != nil {
 		return append(errors, err)
 	}
@@ -848,7 +848,6 @@ func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, l
 	// Generate key-builder methods for the wildcard version of the PathStruct.
 	// Although non-wildcard PathStruct is unnecessary, it is kept for generation simplicity.
 	for i := 0; i != keyN; i++ {
-		fieldData.KeyParamDocStrs = keyTypeDocstrings
 		if err := goKeyBuilderTemplate.Execute(methodBuf,
 			struct {
 				MethodName     string
@@ -863,7 +862,7 @@ func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, l
 				KeySchemaName:  keyParams[i].name,
 				KeyParamName:   keyParams[i].varName,
 				KeyParamType:   keyParams[i].typeName,
-				KeyParamDocStr: keyTypeDocstrings[i],
+				KeyParamDocStr: keyParams[i].typeDocString,
 			}); err != nil {
 			errors = append(errors, err)
 		}
@@ -880,7 +879,7 @@ func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, l
 func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAccessor string) []error {
 	var errors []error
 	// List of function parameters as would appear in the method definition.
-	keyParams, keyTypeDocstrings, err := makeKeyParams(listAttr, schemaStructPkgAccessor)
+	keyParams, err := makeKeyParams(listAttr, schemaStructPkgAccessor)
 	if err != nil {
 		return append(errors, err)
 	}
@@ -911,7 +910,7 @@ func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen
 			// Add selected parameters to the parameter list.
 			param := keyParams[paramIndex]
 			paramListStrs = append(paramListStrs, fmt.Sprintf("%s %s", param.varName, param.typeName))
-			paramDocStrs = append(paramDocStrs, keyTypeDocstrings[paramIndex])
+			paramDocStrs = append(paramDocStrs, param.typeDocString)
 			keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": %s`, param.name, param.varName))
 			i++
 		}
@@ -994,9 +993,10 @@ func getFieldTypeName(directory *ygen.Directory, directoryFieldName string, goFi
 }
 
 type keyParam struct {
-	name     string
-	varName  string
-	typeName string
+	name          string
+	varName       string
+	typeName      string
+	typeDocString string
 }
 
 // makeKeyParams generates the list of go parameter list components for a child
@@ -1013,13 +1013,11 @@ type keyParam struct {
 // }
 // param out: [{"fluroine", "Fluorine", "string"}, {"iodine-liquid", "IodineLiquid", "oc.A_Union"}]
 // docstring out: ["Fluorine: string", "IodineLiquid: [oc.Binary, oc.UnionUint64]"]
-func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAccessor string) ([]keyParam, []string, error) {
+func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAccessor string) ([]keyParam, error) {
 	if len(listAttr.KeyElems) == 0 {
-		return nil, nil, fmt.Errorf("makeKeyParams: invalid list - has no key; cannot process param list string")
+		return nil, fmt.Errorf("makeKeyParams: invalid list - has no key; cannot process param list string")
 	}
 
-	// keyTypeDocstrings is an in-order slice of docstrings for each of the list's types.
-	var keyTypeDocstrings []string
 	// Create parameter list *in order* of keys, which should be in schema order.
 	var keyParams []keyParam
 	// NOTE: Although the generated key names might not match their
@@ -1031,9 +1029,9 @@ func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAccessor string) 
 		mappedType, ok := listAttr.Keys[keyElem.Name]
 		switch {
 		case !ok:
-			return nil, nil, fmt.Errorf("makeKeyParams: key doesn't have a mappedType: %s", keyElem.Name)
+			return nil, fmt.Errorf("makeKeyParams: key doesn't have a mappedType: %s", keyElem.Name)
 		case mappedType == nil:
-			return nil, nil, fmt.Errorf("makeKeyParams: mappedType for key is nil: %s", keyElem.Name)
+			return nil, fmt.Errorf("makeKeyParams: mappedType for key is nil: %s", keyElem.Name)
 		}
 
 		var typeName string
@@ -1046,7 +1044,6 @@ func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAccessor string) 
 			typeName = mappedType.NativeType
 		}
 		varName := goKeyNameMap[keyElem.Name]
-		keyParams = append(keyParams, keyParam{name: keyElem.Name, varName: varName, typeName: typeName})
 
 		typeDocString := typeName
 		if len(mappedType.UnionTypes) > 1 {
@@ -1066,9 +1063,15 @@ func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAccessor string) 
 			// Create the subtype documentation string.
 			typeDocString = "[" + strings.Join(genTypes, ", ") + "]"
 		}
-		keyTypeDocstrings = append(keyTypeDocstrings, varName+": "+typeDocString)
+
+		keyParams = append(keyParams, keyParam{
+			name:          keyElem.Name,
+			varName:       varName,
+			typeName:      typeName,
+			typeDocString: varName + ": " + typeDocString,
+		})
 	}
-	return keyParams, keyTypeDocstrings, nil
+	return keyParams, nil
 }
 
 // combinations returns the mathematical combinations of the numbers from 0 to n-1.
