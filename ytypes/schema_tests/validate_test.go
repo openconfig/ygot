@@ -601,7 +601,7 @@ func TestUnmarshal(t *testing.T) {
 		opts              []ytypes.UnmarshalOpt
 		unmarshalFn       ytypes.UnmarshalFunc
 		wantValidationErr string
-		wantErr           string
+		wantErrSubstring  string
 		outjsonFilePath   string // outjsonFilePath is the output JSON expected, when not specified it is assumed input == output.
 	}{
 		{
@@ -642,12 +642,33 @@ func TestUnmarshal(t *testing.T) {
 			unmarshalFn:  oc.Unmarshal,
 		},
 		{
-			desc:            "basic with extra fields",
+			desc:            "basic with extra fields - ignored",
 			jsonFilePath:    "basic-extra.json",
 			parent:          &oc.Device{},
 			unmarshalFn:     oc.Unmarshal,
 			opts:            []ytypes.UnmarshalOpt{&ytypes.IgnoreExtraFields{}},
 			outjsonFilePath: "basic.json",
+		},
+		{
+			desc:             "basic with extra fields - not ignored",
+			jsonFilePath:     "basic-extra.json",
+			parent:           &oc.Device{},
+			unmarshalFn:      oc.Unmarshal,
+			wantErrSubstring: "JSON contains unexpected field",
+		},
+		{
+			desc:             "extra leaf within a config subtree",
+			jsonFilePath:     "basic-extra-config.json",
+			parent:           &oc.Device{},
+			unmarshalFn:      oc.Unmarshal,
+			wantErrSubstring: "JSON contains unexpected field",
+		},
+		{
+			desc:             "basic with extra fields - lower in tree",
+			jsonFilePath:     "unexpected-ntp.json",
+			parent:           &oc.Device{},
+			unmarshalFn:      oc.Unmarshal,
+			wantErrSubstring: "JSON contains unexpected field",
 		},
 		{
 			desc:            "relay agent leaf-list of single type union",
@@ -712,8 +733,8 @@ func TestUnmarshal(t *testing.T) {
 			}
 
 			err = tt.unmarshalFn(j, tt.parent, tt.opts...)
-			if got, want := errToString(err), tt.wantErr; got != want {
-				t.Errorf("%s: got error: %v, want error: %v ", tt.desc, got, want)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("%s: %s ", tt.desc, diff)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
