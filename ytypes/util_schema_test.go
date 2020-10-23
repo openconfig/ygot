@@ -30,11 +30,11 @@ func TestCheckDataTreeAgainstPaths(t *testing.T) {
 		inJSONTree: map[string]interface{}{
 			"hello": "world",
 		},
-		inDataPaths: [][]string{[]string{"hello"}},
+		inDataPaths: [][]string{{"hello"}},
 	}, {
 		desc:        "unpopulated fields",
 		inJSONTree:  map[string]interface{}{},
-		inDataPaths: [][]string{[]string{"hello"}},
+		inDataPaths: [][]string{{"hello"}},
 	}, {
 		desc: "missing keys",
 		inJSONTree: map[string]interface{}{
@@ -56,7 +56,7 @@ func TestCheckDataTreeAgainstPaths(t *testing.T) {
 			},
 		},
 		inDataPaths: [][]string{
-			[]string{"config", "description"},
+			{"config", "description"},
 		},
 	}, {
 		desc: "hierarchical fields, not populated",
@@ -66,8 +66,8 @@ func TestCheckDataTreeAgainstPaths(t *testing.T) {
 			},
 		},
 		inDataPaths: [][]string{
-			[]string{"config", "fish"},
-			[]string{"fish"},
+			{"config", "fish"},
+			{"fish"},
 		},
 		wantErrSubstring: "JSON contains unexpected field duplex",
 	}, {
@@ -75,7 +75,7 @@ func TestCheckDataTreeAgainstPaths(t *testing.T) {
 	}, {
 		desc: "nil JSON",
 		inDataPaths: [][]string{
-			[]string{"mtu"},
+			{"mtu"},
 		},
 	}}
 
