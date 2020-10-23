@@ -226,9 +226,6 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		}
 	}
 
-	fmt.Printf("reached here with JSON Tree %v\n", jsonTree)
-	fmt.Printf("allSchemaPaths is %v\n", allSchemaPaths)
-	fmt.Printf("hasIgnoreExtraFields is %v\n", hasIgnoreExtraFields(opts))
 	// Only check for missing fields if the IgnoreExtraFields option isn't specified.
 	if !hasIgnoreExtraFields(opts) {
 		// Go over all JSON fields to make sure that each one is covered
@@ -236,23 +233,6 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		if err := checkDataTreeAgainstPaths(jsonTree, allSchemaPaths); err != nil {
 			return fmt.Errorf("parent container %s (type %T): %s", schema.Name, parent, err)
 		}
-
-		// if util.IsCompressedSchema(util.SchemaTreeRoot(schema)) {
-		// 	// We have to check any element that might have been compressed out of the
-		// 	// schema which otherwise wouldn't be checked - in this case, this means
-		// 	// handling the contents of a 'config' or 'state' container, or a container
-		// 	// that contains only a list.
-		// 	for _, cschema := range schema.Dir {
-		// 		if !util.IsOCCompressedValidElement(cschema) {
-		// 			je, ok := jsonTree[cschema.Name]
-		// 			if !ok {
-		// 				continue
-		// 			}
-		// 			if err := checkDataTreeAgainstPaths
-		// 		}
-		// 	}
-		// }
-
 	}
 
 	util.DbgPrint("container after unmarshal:\n%s\n", pretty.Sprint(destv.Interface()))

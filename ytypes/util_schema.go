@@ -19,7 +19,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 )
@@ -207,106 +206,57 @@ func removeNonDataPathElements(parentSchema, schema *yang.Entry, paths [][]strin
 	return out, nil
 }
 
+// checkDataTreeAgainstPaths checks that all paths that are defined in jsonTree are valid according
+// to the paths that are supplied in dataPaths. In the case that the slice of dataPaths contains elements
+// that consist of more than one path (e.g., [config description]) the paths are recursively checked. This
+// ensures that where there are elements that are compressed out of the data tree, then they are validated.
+// It returns an error if there are fields that are in the JSON that are not specified in the dataPaths.
 func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]string) error {
-
-	// for each path that is specified, if it's of length 1, then skip
-	// if it's of length >1, check whether there's a child in the JSON tree
-	// - and if so, append this to the check list.
-
-	type checkSet struct {
-		tree map[string]interface{}
-		keys []string
-	}
-
-	// toCheck := []checkSet{}
-	// // We have to declare this up-front to call an anonymous function recursively.
-	// var findChildren func(map[string]interface{}, [][]string) error
-	// findChildren = func(jt map[string]interface{}, dataPaths [][]string) error {
-	// 	keys := []string{}
-	// 	childDirs := map[string]checkSet{}
-	// 	for _, d := range dataPaths {
-	// 		ch := d[0]
-	// 		keys = append(keys, ch)
-	// 		if len(d) > 1 {
-	// 			if _, ok := jt[ch]; ok {
-	// 				chTree, ok := jt[ch].(map[string]interface{})
-	// 			}
-	// 			if !ok {
-	// 					return fmt.Errorf("field %s was not of type map[string]interface{} when checking keys in %v", d, jt)
-	// 			}
-
-	// 			cs, ok := childDirs[cs]
-	// 			if !ok {
-	// 				childDirs[cs] = {
-	// 					tree: chTree
-	// 				}
-	// 			}
-	// 			childDirs[cs].keys = append()
-
-	// 				if err := findChildren(chTree, [][]string{d[1:]}); err != nil {
-	// 					return err
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// 	toCheck = append(toCheck, checkSet{tree: jt, keys: keys})
-	// 	return nil
-	// }
-
+	// Primarily, we build a tree that consists of all the valid paths that we were provided
+	// in the dataPaths tree.
 	tree := map[string]interface{}{}
 	for _, ch := range dataPaths {
 		parent := tree
 		for i := 0; i < len(ch)-1; i++ {
-			tree[ch[i]] = map[string]interface{}{}
-			parent = tree[ch[i]].(map[string]interface{})
+			chn := util.StripModulePrefix(ch[i])
+			if tree[chn] == nil {
+				tree[chn] = map[string]interface{}{}
+			}
+			parent = tree[chn].(map[string]interface{})
 		}
-		parent[ch[len(ch)-1]] = true
+		parent[util.StripModulePrefix(ch[len(ch)-1])] = true
 	}
-	pretty.Print("%v\n", tree)
 
-	// if err := findChecks(jsonTree, dataPaths); err != nil {
-	// 	return err
-	// }
-	// fmt.Printf("checkSets are %v\n\n\n\n\n", toCheck)
-
-	// for _, chk := range toCheck {
-	// 	pm := map[string]bool{}
-	// 	for _, k := range chk.keys {
-	// 		pm[util.StripModulePrefix(k)] = true
-	// 	}
-	// 	for jf := range chk.tree {
-	// 		if !pm[util.StripModulePrefix(jf)] {
-	// 			return fmt.Errorf("JSON contains unexpected field %s", jf)
-	// 		}
-	// 	}
-	// }
+	var missingKeys []string
+	// We have to define the function up-front so that we can recursively call the
+	// anonymous function.
+	var checkTree func(map[string]interface{}, map[string]interface{})
+	checkTree = func(jsonTree map[string]interface{}, keyTree map[string]interface{}) {
+		for key := range jsonTree {
+			key = util.StripModulePrefix(key)
+			if _, ok := keyTree[key]; !ok {
+				missingKeys = append(missingKeys, key)
+			}
+			if ct, ok := keyTree[key].(map[string]interface{}); ok {
+				if jt, ok := jsonTree[key].(map[string]interface{}); ok {
+					checkTree(jt, ct)
+				}
+			}
+		}
+	}
+	checkTree(jsonTree, tree)
+	switch len(missingKeys) {
+	case 0:
+	case 1:
+		// Retain backwards compatibility with previous implementation that reported
+		// only the first error key.
+		return fmt.Errorf("JSON contains unexpected field %s", missingKeys[0])
+	default:
+		return fmt.Errorf("JSON contains unexpected field %v", missingKeys)
+	}
 
 	return nil
 }
-
-/*// checkDataTreeAgainstPaths checks each of dataPaths against the first level
-// of the data tree. It returns an error with the first element in the data tree first
-// level that is not found in dataPaths.
-// This function is used to verify that the jsonTree does not contain any elements
-// in the first level that do not have data paths found in the schema.
-func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]string) error {
-	// Go over all first level JSON tree map keys to make sure they all point
-	// to valid schema paths.
-	pm := map[string]bool{}
-	for _, sp := range dataPaths {
-		pm[util.StripModulePrefix(sp[0])] = true
-	}
-	fmt.Printf("jsonTree is %v\n", jsonTree)
-	util.DbgSchema("check dataPaths %v against dataTree %v\n", pm, jsonTree)
-	for jf := range jsonTree {
-		_, ok := pm[util.StripModulePrefix(jf)]
-		if !ok {
-			return fmt.Errorf("JSON contains unexpected field %s", jf)
-		}
-	}
-
-	return nil
-}*/
 
 // removeRootPrefix removes the root prefix from root schema entities e.g.
 // Bgp_Global has path "/bgp/global" == {"", "bgp", "global"}
