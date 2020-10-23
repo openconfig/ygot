@@ -17,6 +17,7 @@ package ytypes
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -252,6 +253,7 @@ func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]st
 		// only the first error key.
 		return fmt.Errorf("JSON contains unexpected field %s", missingKeys[0])
 	default:
+		sort.Strings(missingKeys)
 		return fmt.Errorf("JSON contains unexpected field %v", missingKeys)
 	}
 
