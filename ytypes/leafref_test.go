@@ -42,12 +42,12 @@ func TestValidateLeafRefData(t *testing.T) {
 				Name:     "leaf-list",
 				Kind:     yang.LeafEntry,
 				Type:     &yang.YangType{Kind: yang.Yint32},
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 			},
 			"list": {
 				Name:     "list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Dir: map[string]*yang.Entry{
 					"key": {
@@ -65,7 +65,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			"list-enum-keyed": {
 				Name:     "list-enum-keyed",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Dir: map[string]*yang.Entry{
 					"key": {
@@ -103,9 +103,10 @@ func TestValidateLeafRefData(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "string",
-							Kind:    yang.Ystring,
-							Pattern: []string{"a+"},
+							Name:         "string",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"a+"},
+							POSIXPattern: []string{"^a+$"},
 						},
 						{
 							Name: "int16",
@@ -153,7 +154,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "../../../leaf-list",
 						},
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 					},
 					"int32-ref-to-list": {
 						Name: "int32-ref-to-list",
@@ -197,7 +198,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "../../int32",
 						},
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 					},
 					"leaf-ref-to-union": {
 						Name: "leaf-ref-to-union",

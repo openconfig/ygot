@@ -32,6 +32,7 @@ func TestResolveNameClashSet(t *testing.T) {
 		inDefinedEnumsNoUnderscores map[string]bool
 		inNameClashSets             map[string]map[string]*yang.Entry
 		inShortenEnumLeafNames      bool
+		inEnumOrgPrefixesToTrim     []string
 		// wantUncompressFailDueToClash means the uncompressed test run will fail in
 		// deviation from the compressed case due to existence of a name clash, which can
 		// only be resolved for compressed paths.
@@ -186,6 +187,77 @@ func TestResolveNameClashSet(t *testing.T) {
 		},
 		wantUniqueNamesMapNoUnderscores: map[string]string{
 			"enum-a": "BaseModuleFoo",
+			"enum-b": "SupportModuleFoo",
+		},
+	}, {
+		name: "resolving name clash at module name with trimming",
+		inDefinedEnums: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inDefinedEnumsNoUnderscores: map[string]bool{
+			"Baz": true,
+			"Foo": true,
+		},
+		inNameClashSets: map[string]map[string]*yang.Entry{
+			"Foo": {
+				"enum-a": &yang.Entry{
+					Name: "enum-a",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-a",
+							Parent: &yang.Container{
+								Name: "gran-gran-a",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-a",
+						Parent: &yang.Entry{
+							Name: "gran-gran-a",
+							Parent: &yang.Entry{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				"enum-b": &yang.Entry{
+					Name: "enum-b",
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "parent-b",
+							Parent: &yang.Container{
+								Name: "gran-gran-b",
+								Parent: &yang.Module{
+									Name: "support-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "parent-b",
+						Parent: &yang.Entry{
+							Name: "gran-gran-b",
+							Parent: &yang.Entry{
+								Name: "support-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		inShortenEnumLeafNames:       true,
+		inEnumOrgPrefixesToTrim:      []string{"base"},
+		wantUncompressFailDueToClash: true,
+		wantUniqueNamesMap: map[string]string{
+			"enum-a": "Module_Foo",
+			"enum-b": "SupportModule_Foo",
+		},
+		wantUniqueNamesMapNoUnderscores: map[string]string{
+			"enum-a": "ModuleFoo",
 			"enum-b": "SupportModuleFoo",
 		},
 	}, {
@@ -1250,7 +1322,7 @@ func TestResolveNameClashSet(t *testing.T) {
 						}
 						nameClashSets[k] = v
 					}
-					gotUniqueNamesMap, err := s.resolveNameClashSet(nameClashSets, compressPaths, noUnderscores, tt.inShortenEnumLeafNames)
+					gotUniqueNamesMap, err := s.resolveNameClashSet(nameClashSets, compressPaths, noUnderscores, tt.inShortenEnumLeafNames, tt.inEnumOrgPrefixesToTrim)
 					wantErrSubstr := tt.wantErrSubstr
 					if !compressPaths && tt.wantUncompressFailDueToClash {
 						wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
@@ -1285,6 +1357,7 @@ func TestFindEnumSet(t *testing.T) {
 		inOmitUnderscores       bool
 		inSkipEnumDeduplication bool
 		inShortenEnumLeafNames  bool
+		inEnumOrgPrefixesToTrim []string
 		wantCompressed          map[string]*yangEnum
 		wantUncompressed        map[string]*yangEnum
 		// wantUseDefiningModuleForTypedefEnumNames should be specified whenever the output
@@ -1353,6 +1426,58 @@ func TestFindEnumSet(t *testing.T) {
 		wantEnumSetCompressed: &enumSet{
 			uniqueIdentityNames: map[string]string{
 				"/test-module/base-identity": "TestModule_BaseIdentity",
+			},
+		},
+		wantSame: true,
+	}, {
+		name: "simple identityref with org name trimming",
+		in: map[string]*yang.Entry{
+			"/container/config/identityref-leaf": {
+				Name: "identityref-leaf",
+				Type: &yang.YangType{
+					Name: "identityref",
+					IdentityBase: &yang.Identity{
+						Name: "base-identity",
+						Parent: &yang.Module{
+							Name: "test-module",
+						},
+					},
+				},
+			},
+			"/container/state/identityref-leaf": {
+				Name: "identityref-leaf",
+				Type: &yang.YangType{
+					Name: "identityref",
+					IdentityBase: &yang.Identity{
+						Name: "base-identity",
+						Parent: &yang.Module{
+							Name: "test-module",
+						},
+					},
+				},
+			},
+		},
+		inShortenEnumLeafNames:  true,
+		inEnumOrgPrefixesToTrim: []string{"test"},
+		wantCompressed: map[string]*yangEnum{
+			"Module_BaseIdentity": {
+				name: "Module_BaseIdentity",
+				entry: &yang.Entry{
+					Name: "identityref-leaf",
+					Type: &yang.YangType{
+						IdentityBase: &yang.Identity{
+							Name: "base-identity",
+							Parent: &yang.Module{
+								Name: "test-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueIdentityNames: map[string]string{
+				"/test-module/base-identity": "Module_BaseIdentity",
 			},
 		},
 		wantSame: true,
@@ -1517,6 +1642,108 @@ func TestFindEnumSet(t *testing.T) {
 			},
 		},
 	}, {
+		name: "simple enumeration with org name trimming",
+		in: map[string]*yang.Entry{
+			"/container/config/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "config",
+					Parent: &yang.Entry{
+						Name:   "container",
+						Parent: &yang.Entry{Name: "base-module"},
+					},
+				},
+			},
+			"/container/state/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Container{
+						Name: "state",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "state",
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "base-module",
+						},
+					},
+				},
+			},
+		},
+		inShortenEnumLeafNames:  true,
+		inEnumOrgPrefixesToTrim: []string{"base"},
+		wantCompressed: map[string]*yangEnum{
+			"Container_EnumerationLeaf": {
+				name: "Container_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantUncompressed: map[string]*yangEnum{
+			"Module_Container_State_EnumerationLeaf": {
+				name: "Module_Container_State_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"Module_Container_Config_EnumerationLeaf": {
+				name: "Module_Container_Config_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"/base-module/container/config/enumeration-leaf": "Container_EnumerationLeaf",
+			},
+		},
+		wantEnumSetUncompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"/base-module/container/config/enumeration-leaf": "Module_Container_Config_EnumerationLeaf",
+				"/base-module/container/state/enumeration-leaf":  "Module_Container_State_EnumerationLeaf",
+			},
+		},
+	}, {
 		name: "simple enumeration without shortened names",
 		in: map[string]*yang.Entry{
 			"/container/config/enumeration-leaf": {
@@ -1614,6 +1841,107 @@ func TestFindEnumSet(t *testing.T) {
 			uniqueEnumeratedLeafNames: map[string]string{
 				"/base-module/container/config/enumeration-leaf": "BaseModule_Container_Config_EnumerationLeaf",
 				"/base-module/container/state/enumeration-leaf":  "BaseModule_Container_State_EnumerationLeaf",
+			},
+		},
+	}, {
+		name: "simple enumeration without shortened names with org name trimming",
+		in: map[string]*yang.Entry{
+			"/container/config/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "config",
+					Parent: &yang.Entry{
+						Name:   "container",
+						Parent: &yang.Entry{Name: "base-module"},
+					},
+				},
+			},
+			"/container/state/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "enumeration",
+					Enum: &yang.EnumType{},
+				},
+				Node: &yang.Enum{
+					Name: "enumeration-leaf",
+					Parent: &yang.Container{
+						Name: "state",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "state",
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "base-module",
+						},
+					},
+				},
+			},
+		},
+		inEnumOrgPrefixesToTrim: []string{"base"},
+		wantCompressed: map[string]*yangEnum{
+			"Module_Container_EnumerationLeaf": {
+				name: "Module_Container_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantUncompressed: map[string]*yangEnum{
+			"Module_Container_State_EnumerationLeaf": {
+				name: "Module_Container_State_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+			"Module_Container_Config_EnumerationLeaf": {
+				name: "Module_Container_Config_EnumerationLeaf",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"/base-module/container/config/enumeration-leaf": "Module_Container_EnumerationLeaf",
+			},
+		},
+		wantEnumSetUncompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"/base-module/container/config/enumeration-leaf": "Module_Container_Config_EnumerationLeaf",
+				"/base-module/container/state/enumeration-leaf":  "Module_Container_State_EnumerationLeaf",
 			},
 		},
 	}, {
@@ -2313,6 +2641,121 @@ func TestFindEnumSet(t *testing.T) {
 		},
 		wantSame: true,
 	}, {
+		name: "typedef which is an enumeration with org name trimming",
+		in: map[string]*yang.Entry{
+			"/container/config/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "derived-enumeration",
+					Enum: &yang.EnumType{},
+					Base: &yang.Type{
+						Name: "enumeration",
+						Parent: &yang.Typedef{
+							Name: "derived-enumeration",
+							Parent: &yang.Module{
+								Name: "typedef-module",
+							},
+						},
+					},
+				},
+				Node: &yang.Enum{
+					Name: "derived-enumeration",
+					Parent: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "config",
+					Parent: &yang.Entry{
+						Name: "container",
+						Parent: &yang.Entry{
+							Name: "base-module",
+						},
+					},
+				},
+			},
+			"/container/state/enumeration-leaf": {
+				Name: "enumeration-leaf",
+				Type: &yang.YangType{
+					Name: "derived-enumeration",
+					Enum: &yang.EnumType{},
+					Base: &yang.Type{
+						Name: "enumeration",
+						Parent: &yang.Typedef{
+							Name: "derived-enumeration",
+							Parent: &yang.Module{
+								Name: "typedef-module",
+							},
+						},
+					},
+				},
+				Node: &yang.Enum{
+					Name: "derived-enumeration",
+					Parent: &yang.Container{
+						Name: "config",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "state",
+					Node: &yang.Container{Name: "state"}, Parent: &yang.Entry{
+						Name: "container",
+						Node: &yang.Container{Name: "container"},
+						Parent: &yang.Entry{
+							Name: "base-module",
+							Node: &yang.Module{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		inShortenEnumLeafNames:  true,
+		inEnumOrgPrefixesToTrim: []string{"typedef", "base"},
+		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
+			"Module_DerivedEnumeration": {
+				name: "Module_DerivedEnumeration",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantEnumSetUseDefiningModuleForTypedefEnumNames: &enumSet{
+			uniqueEnumeratedTypedefNames: map[string]string{
+				"/typedef-module/derived-enumeration": "Module_DerivedEnumeration",
+			},
+		},
+		wantCompressed: map[string]*yangEnum{
+			"Module_DerivedEnumeration": {
+				name: "Module_DerivedEnumeration",
+				entry: &yang.Entry{
+					Name: "enumeration-leaf",
+					Type: &yang.YangType{
+						Enum: &yang.EnumType{},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedTypedefNames: map[string]string{
+				"base-module/derived-enumeration": "Module_DerivedEnumeration",
+			},
+		},
+		wantSame: true,
+	}, {
 		name: "conflict for typedefs which is an enumeration (does not fail when useDefiningModuleForTypedefEnumNames is false)",
 		in: map[string]*yang.Entry{
 			"/alpha/a/enumeration-leaf": {
@@ -2810,6 +3253,213 @@ func TestFindEnumSet(t *testing.T) {
 		wantEnumSetUseDefiningModuleForTypedefEnumNames: &enumSet{
 			uniqueEnumeratedTypedefNames: map[string]string{
 				"/typedef-module/derived-type-container/derived-type": "TypedefModule_DerivedType_Enum",
+			},
+		},
+	}, {
+		name: "typedef of union that contains an enumeration (not typedef) with org name trimmed",
+		in: map[string]*yang.Entry{
+			"/container/state/e": {
+				Name: "e",
+				Type: &yang.YangType{
+					Name: "derived-type",
+					Kind: yang.Yunion,
+					Type: []*yang.YangType{{
+						Name: "union",
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{{
+							Name: "enumeration",
+							Kind: yang.Yenum,
+							Enum: &yang.EnumType{},
+						}, {
+							Kind: yang.Ystring,
+						}},
+					}, {
+						Kind: yang.Yint8,
+					}},
+					Base: &yang.Type{
+						Name: "union",
+						Parent: &yang.Typedef{
+							Name: "derived-type",
+							Parent: &yang.Typedef{
+								Name: "derived-type-container",
+								Parent: &yang.Module{
+									Name: "typedef-module",
+								},
+							},
+						},
+					},
+				},
+				Node: &yang.Enum{
+					Name: "e",
+					Parent: &yang.Container{
+						Name: "state",
+						Parent: &yang.Container{
+							Name: "container",
+							Parent: &yang.Module{
+								Name: "base-module",
+							},
+						},
+					},
+				},
+				Parent: &yang.Entry{
+					Name: "state",
+					Parent: &yang.Entry{
+						Name:   "container",
+						Parent: &yang.Entry{Name: "base-module"},
+					},
+				},
+			},
+		},
+		inShortenEnumLeafNames:  true,
+		inEnumOrgPrefixesToTrim: []string{"typedef"},
+		wantCompressed: map[string]*yangEnum{
+			"Container_E": {
+				name: "Container_E",
+				entry: &yang.Entry{
+					Name: "e",
+					Type: &yang.YangType{
+						Name: "derived-type",
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{{
+							Name: "union",
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{{
+								Name: "enumeration",
+								Kind: yang.Yenum,
+								Enum: &yang.EnumType{},
+							}, {
+								Kind: yang.Ystring,
+							}},
+						}, {
+							Kind: yang.Yint8,
+						}},
+						Base: &yang.Type{
+							Name: "union",
+							Parent: &yang.Typedef{
+								Name: "derived-type",
+								Parent: &yang.Typedef{
+									Name: "derived-type-container",
+									Parent: &yang.Module{
+										Name: "typedef-module",
+									},
+								},
+							},
+						},
+					},
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "state",
+							Parent: &yang.Container{
+								Name: "container",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "state",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		wantUncompressed: map[string]*yangEnum{
+			"BaseModule_Container_State_E": {
+				name: "BaseModule_Container_State_E",
+				entry: &yang.Entry{
+					Name: "e",
+					Type: &yang.YangType{
+						Name: "derived-type",
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{{
+							Name: "union",
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{{
+								Name: "enumeration",
+								Kind: yang.Yenum,
+								Enum: &yang.EnumType{},
+							}, {
+								Kind: yang.Ystring,
+							}},
+						}, {
+							Kind: yang.Yint8,
+						}},
+						Base: &yang.Type{
+							Name: "union",
+							Parent: &yang.Typedef{
+								Name: "derived-type",
+								Parent: &yang.Typedef{
+									Name: "derived-type-container",
+									Parent: &yang.Module{
+										Name: "typedef-module",
+									},
+								},
+							},
+						},
+					},
+					Node: &yang.Enum{
+						Parent: &yang.Container{
+							Name: "state",
+							Parent: &yang.Container{
+								Name: "container",
+								Parent: &yang.Module{
+									Name: "base-module",
+								},
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "state",
+						Parent: &yang.Entry{
+							Name:   "container",
+							Parent: &yang.Entry{Name: "base-module"},
+						},
+					},
+				},
+			},
+		},
+		wantEnumSetCompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"container:/base-module/container/state/e": "Container_E",
+			},
+		},
+		wantEnumSetUncompressed: &enumSet{
+			uniqueEnumeratedLeafNames: map[string]string{
+				"e:/base-module/container/state/e": "BaseModule_Container_State_E",
+			},
+		},
+		wantUseDefiningModuleForTypedefEnumNames: map[string]*yangEnum{
+			"Module_DerivedType_Enum": {
+				name: "Module_DerivedType_Enum",
+				entry: &yang.Entry{
+					Name: "e",
+					Type: &yang.YangType{
+						Name: "derived-type",
+						Kind: yang.Yunion,
+						Type: []*yang.YangType{{
+							Name: "union",
+							Kind: yang.Yunion,
+							Type: []*yang.YangType{{
+								Name: "enumeration",
+								Kind: yang.Yenum,
+								Enum: &yang.EnumType{},
+							}, {
+								Kind: yang.Ystring,
+							}},
+						}, {
+							Kind: yang.Yint8,
+						}},
+					},
+				},
+			},
+		},
+		wantEnumSetUseDefiningModuleForTypedefEnumNames: &enumSet{
+			uniqueEnumeratedTypedefNames: map[string]string{
+				"/typedef-module/derived-type-container/derived-type": "Module_DerivedType_Enum",
 			},
 		},
 	}, {
@@ -4113,8 +4763,8 @@ func TestFindEnumSet(t *testing.T) {
 					wantEntries = tt.wantUseDefiningModuleForTypedefEnumNames
 					wantEnumSet = tt.wantEnumSetUseDefiningModuleForTypedefEnumNames
 				}
-				t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v,useDefiningModuleForTypedefEnumNames:%v)", tt.name, compressed, tt.inSkipEnumDeduplication, useDefiningModuleForTypedefEnumNames), func(t *testing.T) {
-					gotEnumSet, gotEntries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames, useDefiningModuleForTypedefEnumNames)
+				t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v,useDefiningModuleForTypedefEnumNames:%v,enumOrgPrefixesToTrim:%v)", tt.name, compressed, tt.inSkipEnumDeduplication, useDefiningModuleForTypedefEnumNames, tt.inEnumOrgPrefixesToTrim), func(t *testing.T) {
+					gotEnumSet, gotEntries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, tt.inEnumOrgPrefixesToTrim)
 					wantErrSubstr := tt.wantErrSubstr
 					if !compressed && tt.wantUncompressFailDueToClash {
 						wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"

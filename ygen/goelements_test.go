@@ -379,7 +379,7 @@ func TestUnionSubTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, true)
+			enumSet, _, errs := findEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, true, nil)
 			if errs != nil {
 				t.Fatal(errs)
 			}
@@ -391,7 +391,7 @@ func TestUnionSubTypes(t *testing.T) {
 			if tt.inNoContext {
 				ctxEntry = nil
 			}
-			if errs := s.goUnionSubTypes(tt.inCtxEntry.Type, ctxEntry, ctypes, mtypes, false, false, true, true); !tt.wantErr && errs != nil {
+			if errs := s.goUnionSubTypes(tt.inCtxEntry.Type, ctxEntry, ctypes, mtypes, false, false, true, true, nil); !tt.wantErr && errs != nil {
 				t.Errorf("unexpected errors: %v", errs)
 			}
 
@@ -1005,7 +1005,7 @@ func TestYangTypeToGoType(t *testing.T) {
 
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.ctx, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true)
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, nil)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
@@ -1027,7 +1027,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				contextEntry: tt.ctx,
 			}
 
-			got, err := s.yangTypeToGoType(args, tt.inCompressPath, tt.inSkipEnumDedup, true, true)
+			got, err := s.yangTypeToGoType(args, tt.inCompressPath, tt.inSkipEnumDedup, true, true, nil)
 			if tt.wantErr && err == nil {
 				t.Fatalf("did not get expected error (%v)", got)
 
@@ -1381,7 +1381,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, true)
+			enumSet, _, errs := findEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, true, nil)
 			if errs != nil {
 				t.Fatalf("findEnumSet failed: %v", errs)
 			}
@@ -1389,7 +1389,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 
 			gotTypes := make(map[string]*MappedType)
 			for _, leaf := range tt.inLeaves {
-				mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths, tt.inSkipEnumDedup, true, true)
+				mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths, tt.inSkipEnumDedup, true, true, nil)
 				if err != nil {
 					t.Errorf("%s: yangTypeToGoType(%v, %v): got unexpected err: %v, want: nil", tt.name, leaf.Type, leaf, err)
 					continue

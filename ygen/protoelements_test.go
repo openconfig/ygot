@@ -360,11 +360,13 @@ func TestYangTypeToProtoType(t *testing.T) {
 			yangType: &yang.YangType{
 				Kind: yang.Yunion,
 				Type: []*yang.YangType{{
-					Kind:    yang.Ystring,
-					Pattern: []string{"a.*"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a.*"},
+					POSIXPattern: []string{"^a.*$"},
 				}, {
-					Kind:    yang.Ystring,
-					Pattern: []string{"b.*"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b.*"},
+					POSIXPattern: []string{"^b.*$"},
 				}},
 			},
 		}},
@@ -572,7 +574,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			for _, e := range enumMapFromEntries(tt.inEntries) {
 				addEnumsToEnumMap(e, enumMap)
 			}
-			enumSet, _, errs := findEnumSet(enumMap, false, true, false, true, true)
+			enumSet, _, errs := findEnumSet(enumMap, false, true, false, true, true, nil)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)

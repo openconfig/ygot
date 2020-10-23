@@ -24,6 +24,67 @@ import (
 	"github.com/openconfig/ygot/genutil"
 )
 
+func TestOrderedUnionTypes(t *testing.T) {
+	tests := []struct {
+		desc string
+		in   *MappedType
+		want []string
+	}{{
+		desc: "union type with 2 elements",
+		in: &MappedType{
+			NativeType: "A_Union",
+			UnionTypes: map[string]int{
+				"Binary":  1,
+				"float64": 2,
+			},
+		},
+		want: []string{
+			"Binary",
+			"float64",
+		},
+	}, {
+		desc: "union type with 3 elements",
+		in: &MappedType{
+			NativeType: "A_Union",
+			UnionTypes: map[string]int{
+				"uint64":  3,
+				"float64": 2,
+				"Binary":  1,
+			},
+		},
+		want: []string{
+			"Binary",
+			"float64",
+			"uint64",
+		},
+	}, {
+		desc: "non-union type",
+		in: &MappedType{
+			NativeType: "string",
+		},
+		want: nil,
+	}, {
+		desc: "union type with a single element",
+		in: &MappedType{
+			NativeType: "string",
+			UnionTypes: map[string]int{
+				"string": 0,
+			},
+		},
+		want: []string{
+			"string",
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if diff := cmp.Diff(tt.in.OrderedUnionTypes(), tt.want); diff != "" {
+				t.Errorf("(-got, +want):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestBuildDirectoryDefinitions(t *testing.T) {
 	tests := []struct {
 		name                                    string
@@ -1249,7 +1310,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				var got map[string]*Directory
 				switch c.lang {
 				case golang:
-					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false, true, true)
+					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false, true, true, nil)
 				case protobuf:
 					got, errs = protogen.buildDirectoryDefinitions(structs, c.compressBehaviour)
 				}
@@ -2027,7 +2088,7 @@ func TestBuildListKey(t *testing.T) {
 			}
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.in, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true)
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true, nil)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
@@ -2037,7 +2098,7 @@ func TestBuildListKey(t *testing.T) {
 			s := newGoGenState(st, enumSet)
 
 			resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
-				return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup, true, true)
+				return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup, true, true, nil)
 			}
 			if tt.inResolveKeyNameFuncNil {
 				resolveKeyTypeName = nil

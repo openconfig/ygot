@@ -98,7 +98,7 @@ func CreateDemoDeviceInstance() (*oc.Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.Type = oc.OpenconfigPlatformTypes_OPENCONFIG_SOFTWARE_COMPONENT_OPERATING_SYSTEM
+	c.Type = oc.PlatformTypes_OPENCONFIG_SOFTWARE_COMPONENT_OPERATING_SYSTEM
 
 	// Create a second device instance, and populate the OS component under
 	// it. This code demonstrates how ygot.MergeStructs can be used to combine
@@ -139,7 +139,7 @@ func addNetworkInstance(d *oc.Device) error {
 		return err
 	}
 
-	p, err := netinst.NewProtocol(oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169")
+	p, err := netinst.NewProtocol(oc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169")
 	if err != nil {
 		return err
 	}

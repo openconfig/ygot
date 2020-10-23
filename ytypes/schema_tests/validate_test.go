@@ -21,12 +21,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
@@ -143,12 +141,11 @@ func TestValidateInterface(t *testing.T) {
 		VlanId: oc.UnionUint16(4095),
 	}
 	// Validate the vlan.
-	if err := vlan0.Validate(); err == nil {
-		t.Errorf("bad vlan-id value: got nil, want error")
-	} else {
-		if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
-			t.Errorf("did not get expected vlan-id error, %s", diff)
-		}
+	err = vlan0.Validate()
+	if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
+		t.Errorf("did not get expected vlan-id error, %s", diff)
+	}
+	if err != nil {
 		testErrLog(t, "bad vlan-id value", err)
 	}
 
@@ -166,7 +163,7 @@ func TestValidateInterfaceWrapperUnion(t *testing.T) {
 	dev := &woc.Device{}
 	eth0, err := dev.NewInterface("eth0")
 	if err != nil {
-		t.Errorf("eth0.NewInterface(): got %v, want nil", err)
+		t.Errorf("dev.NewInterface(): got %v, want nil", err)
 	}
 
 	eth0.Description = ygot.String("eth0 description")
@@ -183,12 +180,11 @@ func TestValidateInterfaceWrapperUnion(t *testing.T) {
 
 	// Key in map != key field value in element. Key should be "eth0" here.
 	dev.Interface["bad_key"] = eth0
-	if err := dev.Validate(); err == nil {
-		t.Errorf("bad key: got nil, want error")
-	} else {
-		if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
-			t.Errorf("did not get expected vlan-id error, %s", diff)
-		}
+	err = dev.Validate()
+	if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
+		t.Errorf("did not get expected vlan-id error, %s", diff)
+	}
+	if err != nil {
 		testErrLog(t, "bad key", err)
 	}
 
@@ -341,7 +337,7 @@ func TestValidateSystemAaa(t *testing.T) {
 			Aaa: &oc.System_Aaa{
 				Authentication: &oc.System_Aaa_Authentication{
 					AuthenticationMethod: []oc.System_Aaa_Authentication_AuthenticationMethod_Union{
-						oc.OpenconfigAaaTypes_AAA_METHOD_TYPE_LOCAL,
+						oc.AaaTypes_AAA_METHOD_TYPE_LOCAL,
 					},
 				},
 			},
@@ -364,8 +360,8 @@ func TestValidateSystemAaaWrapperUnion(t *testing.T) {
 			Aaa: &woc.System_Aaa{
 				Authentication: &woc.System_Aaa_Authentication{
 					AuthenticationMethod: []woc.System_Aaa_Authentication_AuthenticationMethod_Union{
-						&woc.System_Aaa_Authentication_AuthenticationMethod_Union_E_OpenconfigAaaTypes_AAA_METHOD_TYPE{
-							E_OpenconfigAaaTypes_AAA_METHOD_TYPE: woc.OpenconfigAaaTypes_AAA_METHOD_TYPE_LOCAL,
+						&woc.System_Aaa_Authentication_AuthenticationMethod_Union_E_AaaTypes_AAA_METHOD_TYPE{
+							E_AaaTypes_AAA_METHOD_TYPE: woc.AaaTypes_AAA_METHOD_TYPE_LOCAL,
 						},
 					},
 				},
@@ -453,7 +449,7 @@ func TestValidateSystemNtp(t *testing.T) {
 func TestValidateNetworkInstance(t *testing.T) {
 	// Struct key: schema Key is compound key "identifier name"
 	instance1protocol1Key := oc.NetworkInstance_Protocol_Key{
-		Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+		Identifier: oc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 		Name:       "protocol1",
 	}
 	dev := &oc.Device{
@@ -462,7 +458,7 @@ func TestValidateNetworkInstance(t *testing.T) {
 				Name: ygot.String("instance1"),
 				Protocol: map[oc.NetworkInstance_Protocol_Key]*oc.NetworkInstance_Protocol{
 					instance1protocol1Key: {
-						Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						Identifier: oc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 						Name:       ygot.String("protocol1"),
 					},
 				},
@@ -579,9 +575,15 @@ func TestValidateRoutingPolicy(t *testing.T) {
 	// type string {
 	//    pattern '^([0-9]+\.\.[0-9]+)|exact$';
 	// }
-	dev.RoutingPolicy.DefinedSets.PrefixSet["prefix1"].Prefix[prefixKey1].MasklengthRange = ygot.String("bad_element_key")
-	if err := dev.Validate(); err == nil {
-		t.Errorf("bad regex: got nil, want error")
+	badMaskLengthRange := "bad_element_key"
+	prefixKey1.MasklengthRange = badMaskLengthRange
+	dev.RoutingPolicy.DefinedSets.PrefixSet["prefix1"].Prefix[prefixKey1] = &oc.RoutingPolicy_DefinedSets_PrefixSet_Prefix{
+		IpPrefix:        ygot.String("255.255.255.0/20"),
+		MasklengthRange: ygot.String(badMaskLengthRange),
+	}
+	err := dev.Validate()
+	if diff := errdiff.Substring(err, "does not match regular expression pattern"); diff != "" {
+		t.Errorf("did not get expected bad regex error, %s", diff)
 	} else {
 		testErrLog(t, "bad regex", err)
 	}

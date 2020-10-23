@@ -413,7 +413,7 @@ type yangTestCase struct {
 	inExcludeModules    []string        // inExcludeModules is the set of modules that should be excluded from code generation.
 	inConfig            GeneratorConfig // inConfig specifies the configuration that should be used for the generator test case.
 	wantStructsCodeFile string          // wantsStructsCodeFile is the path of the generated Go code that the output of the test should be compared to.
-	wantErr             bool            // wantErr specifies whether the test should expect an error.
+	wantErrSubstring    string          // wantErrSubstring specifies whether the test should expect an error.
 	wantSchemaFile      string          // wantSchemaFile is the path to the schema JSON that the output of the test should be compared to.
 }
 
@@ -428,7 +428,7 @@ type yangTestCase struct {
 // invalid.
 func TestSimpleStructs(t *testing.T) {
 	tests := []yangTestCase{{
-		name:    "simple openconfig test, with compression",
+		name:    "simple openconfig test, with compression, with (useless) enum org name trimming",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
@@ -437,6 +437,7 @@ func TestSimpleStructs(t *testing.T) {
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
+				EnumOrgPrefixesToTrim:                []string{"openconfig"},
 				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
@@ -454,6 +455,34 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-no-compress.formatted-txt"),
+	}, {
+		name:    "simple openconfig test, with compression, without shortened enum leaf names, with enum org name trimming",
+		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				EnumOrgPrefixesToTrim:                []string{"openconfig"},
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple.long-enum-names.trimmed-enum.formatted-txt"),
+	}, {
+		name:    "simple openconfig test, with no compression, with enum org name trimming",
+		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+			TransformationOptions: TransformationOpts{
+				ShortenEnumLeafNames:                 true,
+				EnumOrgPrefixesToTrim:                []string{"openconfig"},
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-no-compress.trimmed-enum.formatted-txt"),
 	}, {
 		name:    "OpenConfig schema test - with annotations",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
@@ -513,6 +542,21 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-list-enum-key.formatted-txt"),
+	}, {
+		name:    "simple openconfig test, with a list that has an enumeration key, with enum org name trimming",
+		inFiles: []string{filepath.Join(datapath, "openconfig-list-enum-key.yang")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				EnumOrgPrefixesToTrim:                []string{"openconfig"},
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-list-enum-key.trimmed-enum.formatted-txt"),
 	}, {
 		name:    "openconfig test with a identityref union",
 		inFiles: []string{filepath.Join(datapath, "openconfig-unione.yang")},
@@ -956,11 +1000,56 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-duplication-dup.formatted-txt"),
+	}, {
+		name:    "OpenConfig schema test - list with binary key",
+		inFiles: []string{filepath.Join(datapath, "openconfig-binary-list.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+			GoOptions: GoOpts{
+				GenerateRenameMethod: true,
+				GenerateSimpleUnions: true,
+			},
+		},
+		wantErrSubstring: "has a binary key",
+	}, {
+		name:    "OpenConfig schema test - multi-keyed list with binary key",
+		inFiles: []string{filepath.Join(datapath, "openconfig-binary-multi-list.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+			GoOptions: GoOpts{
+				GenerateRenameMethod: true,
+				GenerateSimpleUnions: true,
+			},
+		},
+		wantErrSubstring: "has a binary key",
+	}, {
+		name:    "OpenConfig schema test - list with union key containing binary",
+		inFiles: []string{filepath.Join(datapath, "openconfig-union-binary-list.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+			GoOptions: GoOpts{
+				GenerateRenameMethod: true,
+				GenerateSimpleUnions: true,
+			},
+		},
+		wantErrSubstring: "has a union key containing a binary",
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			genCode := func() (*GeneratedGoCode, string, map[string]interface{}) {
+			genCode := func() (*GeneratedGoCode, string, map[string]interface{}, error) {
 				// Set defaults within the supplied configuration for these tests.
 				if tt.inConfig.Caller == "" {
 					// Set the name of the caller explicitly to avoid issues when
@@ -972,9 +1061,16 @@ func TestSimpleStructs(t *testing.T) {
 
 				cg := NewYANGCodeGenerator(&tt.inConfig)
 
-				gotGeneratedCode, err := cg.GenerateGoCode(tt.inFiles, tt.inIncludePaths)
-				if err != nil && !tt.wantErr {
-					t.Fatalf("%s: cg.GenerateCode(%v, %v): Config: %+v, got unexpected error: %v, want: nil", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, err)
+				gotGeneratedCode, errs := cg.GenerateGoCode(tt.inFiles, tt.inIncludePaths)
+				var err error
+				if len(errs) > 0 {
+					err = fmt.Errorf("%w", errs)
+				}
+				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+					t.Fatalf("%s: cg.GenerateCode(%v, %v): Config: %+v, Did not get expected error: %s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, diff)
+				}
+				if err != nil {
+					return nil, "", nil, err
 				}
 
 				// Write all the received structs into a single file such that
@@ -1003,10 +1099,13 @@ func TestSimpleStructs(t *testing.T) {
 						t.Fatalf("%s: json.Unmarshal(..., %v), could not unmarshal received JSON: %v", tt.name, gotGeneratedCode.RawJSONSchema, err)
 					}
 				}
-				return gotGeneratedCode, gotCode.String(), gotJSON
+				return gotGeneratedCode, gotCode.String(), gotJSON, nil
 			}
 
-			gotGeneratedCode, gotCode, gotJSON := genCode()
+			gotGeneratedCode, gotCode, gotJSON, err := genCode()
+			if err != nil {
+				return
+			}
 
 			if tt.wantSchemaFile != "" {
 				wantSchema, rferr := ioutil.ReadFile(tt.wantSchemaFile)
@@ -1042,7 +1141,7 @@ func TestSimpleStructs(t *testing.T) {
 			}
 
 			for i := 0; i < deflakeRuns; i++ {
-				_, gotAttempt, _ := genCode()
+				_, gotAttempt, _, _ := genCode()
 				if gotAttempt != gotCode {
 					diff, _ := testutil.GenerateUnifiedDiff(gotAttempt, gotCode)
 					t.Fatalf("flaky code generation, diff:\n%s", diff)
