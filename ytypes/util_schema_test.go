@@ -47,7 +47,7 @@ func TestCheckDataTreeAgainstPaths(t *testing.T) {
 			"hello":   "world",
 			"bonjour": "la-mode",
 		},
-		wantErrSubstring: `JSON contains unexpected field [hello bonjour]`,
+		wantErrSubstring: `JSON contains unexpected field [bonjour hello]`,
 	}, {
 		desc: "hierarchical fields, populated",
 		inJSONTree: map[string]interface{}{
