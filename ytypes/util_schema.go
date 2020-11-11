@@ -207,13 +207,16 @@ func removeNonDataPathElements(parentSchema, schema *yang.Entry, paths [][]strin
 	return out, nil
 }
 
-// checkDataTreeAgainstPaths checks that all paths that are defined in jsonTree are valid according
-// to the paths that are supplied in dataPaths. In the case that the slice of dataPaths contains elements
-// that consist of more than one path (e.g., [config description]) the paths are recursively checked. This
-// ensures that where there are elements that are compressed out of the data tree, then they are validated.
-// It returns an error if there are fields that are in the JSON that are not specified in the dataPaths.
+// checkDataTreeAgainstPaths checks that all paths that are defined in jsonTree match at least one of
+// the paths that are supplied in dataPaths. A match exists when a path prefix of a jsonTree element is
+// equal to one or more of the given dataPaths. Since each dataPath is checked as a valid prefix, the
+// maximum depth of the check is limited to the length of the dataPaths specified. For example, if the jsonTree
+// contains an element which has the path /foo/bar/baz, and dataPaths specifies /foo, then only /foo is checked
+// to be a valid path, no assertions are made about the validity of 'bar' as a child of 'foo'.
+// are valid according
+// checkDataTreePaths returns an error if there are fields that are in the JSON that are not specified in the dataPaths.
 func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]string) error {
-	// Primarily, we build a tree that consists of all the valid paths that we were provided
+	// Primarily, we build a trie that consists of all the valid paths that we were provided
 	// in the dataPaths tree.
 	tree := map[string]interface{}{}
 	for _, ch := range dataPaths {
