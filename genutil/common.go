@@ -187,9 +187,11 @@ func TranslateToCompressBehaviour(compressPaths, excludeState, preferOperational
 // should have code generated for them. In general, this means data tree elements that are
 // directly connected to a particular data tree element; however, when compression of the
 // schema is enabled then recursion is required. The second return value is
-// only non-empty during compression, and it contains the fields that have been
-// duplicated via compression, and are thus "shadow" fields of their
-// corresponding direct fields within the first return value.
+// only populated when compression is enabled, and it contains the fields that
+// have been removed due to being a duplicate field (e.g., `config/foo` is a
+// duplicate of `state/foo` when `PreferOperationalState` is used), and are
+// thus "shadow" fields of their corresponding direct fields within the first
+// return value.
 //
 // For example, if we have a YANG tree:
 //    /interface (list)
@@ -337,9 +339,9 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 	// children of the struct that represents the entry e being processed. It is
 	// keyed by the name of the child YANG node ((yang.Entry).Name).
 	directChildren := make(map[string]*yang.Entry)
-	// shadowChildren is are direct children that are duplicates of direct
-	// childrens that have the same name and de-prioritized due to the
-	// specified compression behaviour.
+	// shadowChildren store duplicate fields as determined by the specified
+	// compression behaviour. Each of these fields has a corresponding
+	// directChildren entry of the same name.
 	shadowChildren := make(map[string]*yang.Entry)
 	for _, currChild := range orderedChildNames {
 		switch {
@@ -363,8 +365,7 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 					ch := map[string]*yang.Entry{"": configStateChild}
 					if util.IsChoiceOrCase(configStateChild) {
 						// Compress out (do not map) choice/case nodes that are in the
-						// config or state container. This is again specifically for the
-						// OpenConfig routing policy model.
+						// config or state container.
 						ch = util.FindFirstNonChoiceOrCase(configStateChild)
 					}
 					for _, n := range ch {
@@ -378,7 +379,7 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 					}
 				} else {
 					// Handle the specific case of having a choice underneath a config
-					// or state container as this occurs in the routing policy model.
+					// or state container.
 					if util.IsChoiceOrCase(configStateChild) {
 						errs = addNonChoiceChildren(directChildren, configStateChild, errs)
 					} else {
