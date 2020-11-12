@@ -304,7 +304,7 @@ func TestStringToKeyType(t *testing.T) {
 	listSchema := &yang.Entry{
 		Name:     "struct-key-list",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Key:      "every key, but irrelevant in this test",
 		Config:   yang.TSTrue,
 		Dir: map[string]*yang.Entry{

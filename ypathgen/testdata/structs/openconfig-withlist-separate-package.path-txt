@@ -69,6 +69,7 @@ func (n *ModelAny) MultiKeyAny() *Model_MultiKeyAny {
 }
 
 // MultiKeyAnyKey2 returns from Model the path struct for its child "multi-key".
+// Key1: uint32
 func (n *Model) MultiKeyAnyKey2(Key1 uint32) *Model_MultiKeyAny {
 	return &Model_MultiKeyAny{
 		NodePath: ygot.NewNodePath(
@@ -80,6 +81,7 @@ func (n *Model) MultiKeyAnyKey2(Key1 uint32) *Model_MultiKeyAny {
 }
 
 // MultiKeyAnyKey2 returns from ModelAny the path struct for its child "multi-key".
+// Key1: uint32
 func (n *ModelAny) MultiKeyAnyKey2(Key1 uint32) *Model_MultiKeyAny {
 	return &Model_MultiKeyAny{
 		NodePath: ygot.NewNodePath(
@@ -91,6 +93,7 @@ func (n *ModelAny) MultiKeyAnyKey2(Key1 uint32) *Model_MultiKeyAny {
 }
 
 // MultiKeyAnyKey1 returns from Model the path struct for its child "multi-key".
+// Key2: uint64
 func (n *Model) MultiKeyAnyKey1(Key2 uint64) *Model_MultiKeyAny {
 	return &Model_MultiKeyAny{
 		NodePath: ygot.NewNodePath(
@@ -102,6 +105,7 @@ func (n *Model) MultiKeyAnyKey1(Key2 uint64) *Model_MultiKeyAny {
 }
 
 // MultiKeyAnyKey1 returns from ModelAny the path struct for its child "multi-key".
+// Key2: uint64
 func (n *ModelAny) MultiKeyAnyKey1(Key2 uint64) *Model_MultiKeyAny {
 	return &Model_MultiKeyAny{
 		NodePath: ygot.NewNodePath(
@@ -113,6 +117,8 @@ func (n *ModelAny) MultiKeyAnyKey1(Key2 uint64) *Model_MultiKeyAny {
 }
 
 // MultiKey returns from Model the path struct for its child "multi-key".
+// Key1: uint32
+// Key2: uint64
 func (n *Model) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKey {
 	return &Model_MultiKey{
 		NodePath: ygot.NewNodePath(
@@ -124,6 +130,8 @@ func (n *Model) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKey {
 }
 
 // MultiKey returns from ModelAny the path struct for its child "multi-key".
+// Key1: uint32
+// Key2: uint64
 func (n *ModelAny) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKeyAny {
 	return &Model_MultiKeyAny{
 		NodePath: ygot.NewNodePath(
@@ -157,6 +165,7 @@ func (n *ModelAny) SingleKeyAny() *Model_SingleKeyAny {
 }
 
 // SingleKey returns from Model the path struct for its child "single-key".
+// Key: string
 func (n *Model) SingleKey(Key string) *Model_SingleKey {
 	return &Model_SingleKey{
 		NodePath: ygot.NewNodePath(
@@ -168,6 +177,7 @@ func (n *Model) SingleKey(Key string) *Model_SingleKey {
 }
 
 // SingleKey returns from ModelAny the path struct for its child "single-key".
+// Key: string
 func (n *ModelAny) SingleKey(Key string) *Model_SingleKeyAny {
 	return &Model_SingleKeyAny{
 		NodePath: ygot.NewNodePath(
