@@ -819,19 +819,8 @@ func writeProtoEnums(enums map[string]*yangEnum, annotateEnumNames bool) ([]stri
 			}
 			p.Values = ge.Values
 
-			// If the supplied enum entry has the valuePrefix annotation then use it to
-			// calculate the enum value names.
+			// Capitalize name per proto style.
 			p.ValuePrefix = strings.ToUpper(enum.name)
-			if e, ok := enum.entry.Annotation["valuePrefix"]; ok {
-				t, ok := e.([]string)
-				if ok {
-					var pp []string
-					for _, pe := range t {
-						pp = append(pp, strings.ToUpper(safeProtoIdentifierName(yang.CamelCase(pe))))
-					}
-					p.ValuePrefix = strings.Join(pp, "_")
-				}
-			}
 
 			p.Description = fmt.Sprintf("YANG enumerated type %s", enum.entry.Type.Name)
 		case len(enum.entry.Type.Type) != 0:
