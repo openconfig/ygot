@@ -1026,7 +1026,7 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 		case ch.Kind == yang.AnyDataEntry:
 			continue
 		default:
-			errs = util.AppendErr(errs, fmt.Errorf("unknown type of entry %v in findMappableEntities for %s", e.Kind, e.Path()))
+			errs = util.AppendErr(errs, fmt.Errorf("unknown type of entry %v in findMappableEntities for %s", ch.Kind, ch.Path()))
 		}
 	}
 	return errs
