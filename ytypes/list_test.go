@@ -1910,7 +1910,7 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 			"union-key": {
 				Name:     "union-key",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Dir: map[string]*yang.Entry{
 					"key": {
@@ -1948,7 +1948,7 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 			"union-key": {
 				Name:     "union-key",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Dir: map[string]*yang.Entry{
 					"key": {

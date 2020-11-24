@@ -62,7 +62,7 @@ func TestValidateLeafListSchema(t *testing.T) {
 				Name:     "invalid-leaflist",
 				Kind:     yang.LeafEntry,
 				Type:     &yang.YangType{Kind: yang.Yempty},
-				ListAttr: &yang.ListAttr{},
+				ListAttr: yang.NewDefaultListAttr(),
 			},
 			wantErr: true,
 		},

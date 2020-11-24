@@ -811,7 +811,7 @@ func TestProtoPackageName(t *testing.T) {
 		inEntry: &yang.Entry{
 			Name:     "list",
 			Kind:     yang.DirectoryEntry,
-			ListAttr: &yang.ListAttr{},
+			ListAttr: yang.NewDefaultListAttr(),
 			Dir:      map[string]*yang.Entry{},
 			Parent: &yang.Entry{
 				Name: "surrounding-container",

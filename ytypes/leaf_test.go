@@ -815,7 +815,7 @@ func TestValidateLeafRef(t *testing.T) {
 							},
 						},
 					},
-					ListAttr: &yang.ListAttr{},
+					ListAttr: yang.NewDefaultListAttr(),
 				},
 			},
 		},
@@ -1381,7 +1381,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 	unionLeafListSchemaSimple := &yang.Entry{
 		Name:     "union-leaflist-simple",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{},
+		ListAttr: yang.NewDefaultListAttr(),
 		Type: &yang.YangType{
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
@@ -1436,7 +1436,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 	unionLeafListSchema := &yang.Entry{
 		Name:     "union-leaflist",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{},
+		ListAttr: yang.NewDefaultListAttr(),
 		Type: &yang.YangType{
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
@@ -1483,7 +1483,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 	unionSTLeafListSchema := &yang.Entry{
 		Name:     "union-stleaflist",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{},
+		ListAttr: yang.NewDefaultListAttr(),
 		Type: &yang.YangType{
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
@@ -1525,7 +1525,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 	unionSingleEnumLeafListSchema := &yang.Entry{
 		Name:     "union-enum-leaflist",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{},
+		ListAttr: yang.NewDefaultListAttr(),
 		Type: &yang.YangType{
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
@@ -1801,7 +1801,7 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 		Parent:   containerSchema,
 		Name:     "union-enum-leaflist",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{},
+		ListAttr: yang.NewDefaultListAttr(),
 		Type: &yang.YangType{
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
@@ -1816,7 +1816,7 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 		Parent:   containerSchema,
 		Name:     "union-stleaflist",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{},
+		ListAttr: yang.NewDefaultListAttr(),
 		Type: &yang.YangType{
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{

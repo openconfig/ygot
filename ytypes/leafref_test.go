@@ -593,7 +593,7 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 							"example": {
 								Name:     "example",
 								Kind:     yang.DirectoryEntry,
-								ListAttr: &yang.ListAttr{},
+								ListAttr: yang.NewDefaultListAttr(),
 								Dir: map[string]*yang.Entry{
 									"conf": {
 										Name: "conf",
@@ -1003,7 +1003,7 @@ func TestLeafrefValidateCurrent(t *testing.T) {
 		Name:     "target",
 		Key:      "key",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{},
+		ListAttr: yang.NewDefaultListAttr(),
 		Parent:   rootSchema,
 	}
 	rootSchema.Dir["target"] = targetListSchema
@@ -1026,7 +1026,7 @@ func TestLeafrefValidateCurrent(t *testing.T) {
 		Name:     "ref",
 		Kind:     yang.DirectoryEntry,
 		Key:      "key",
-		ListAttr: &yang.ListAttr{},
+		ListAttr: yang.NewDefaultListAttr(),
 		Parent:   rootSchema,
 	}
 	rootSchema.Dir["ref"] = refListSchema

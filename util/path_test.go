@@ -489,7 +489,7 @@ func TestFindLeafRefSchema(t *testing.T) {
 						"interface": {
 							Name:     "interface",
 							Kind:     yang.DirectoryEntry,
-							ListAttr: &yang.ListAttr{},
+							ListAttr: yang.NewDefaultListAttr(),
 							Dir: map[string]*yang.Entry{
 								"name": {
 									Name: "name",

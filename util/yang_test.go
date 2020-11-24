@@ -162,7 +162,7 @@ func TestYangHelperChecks(t *testing.T) {
 			Dir: map[string]*yang.Entry{
 				"child": {},
 			},
-			ListAttr: &yang.ListAttr{},
+			ListAttr: yang.NewDefaultListAttr(),
 		},
 		wantDir:             true,
 		wantList:            true,
@@ -195,7 +195,7 @@ func TestYangHelperChecks(t *testing.T) {
 			Dir: map[string]*yang.Entry{
 				"singular": {
 					Name:     "singular",
-					ListAttr: &yang.ListAttr{},
+					ListAttr: yang.NewDefaultListAttr(),
 					Dir:      map[string]*yang.Entry{},
 				},
 			},
@@ -234,7 +234,7 @@ func TestYangHelperChecks(t *testing.T) {
 		inEntry: &yang.Entry{
 			Name:     "leaf-list",
 			Kind:     yang.LeafEntry,
-			ListAttr: &yang.ListAttr{},
+			ListAttr: yang.NewDefaultListAttr(),
 			Parent:   &yang.Entry{},
 		},
 		wantLeafList:        true,
@@ -478,7 +478,7 @@ func TestDirectEntryChild(t *testing.T) {
 		inChild: &yang.Entry{
 			Name:     "item-two",
 			Dir:      map[string]*yang.Entry{},
-			ListAttr: &yang.ListAttr{},
+			ListAttr: yang.NewDefaultListAttr(),
 			Parent: &yang.Entry{
 				Name: "module",
 			},
@@ -495,7 +495,7 @@ func TestDirectEntryChild(t *testing.T) {
 		inChild: &yang.Entry{
 			Name:     "item-three",
 			Dir:      map[string]*yang.Entry{},
-			ListAttr: &yang.ListAttr{},
+			ListAttr: yang.NewDefaultListAttr(),
 			Parent: &yang.Entry{
 				Name: "item-two",
 				Parent: &yang.Entry{
@@ -547,7 +547,7 @@ func TestDirectEntryChild(t *testing.T) {
 			Name:     "child",
 			Kind:     yang.DirectoryEntry,
 			Dir:      map[string]*yang.Entry{},
-			ListAttr: &yang.ListAttr{},
+			ListAttr: yang.NewDefaultListAttr(),
 			Parent: &yang.Entry{
 				Name: "surrounding-container",
 				Parent: &yang.Entry{

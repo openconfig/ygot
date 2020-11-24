@@ -967,7 +967,7 @@ func TestGetNode(t *testing.T) {
 		Kind:     yang.DirectoryEntry,
 		Parent:   rootSchema,
 		Key:      "key",
-		ListAttr: &yang.ListAttr{},
+		ListAttr: yang.NewDefaultListAttr(),
 		Dir:      map[string]*yang.Entry{},
 	}
 	rootSchema.Dir["list"] = simpleListSchema
@@ -984,7 +984,7 @@ func TestGetNode(t *testing.T) {
 		Kind:     yang.DirectoryEntry,
 		Parent:   rootSchema,
 		Key:      "keyone keytwo",
-		ListAttr: &yang.ListAttr{},
+		ListAttr: yang.NewDefaultListAttr(),
 		Dir:      map[string]*yang.Entry{},
 	}
 	rootSchema.Dir["multilist"] = multiKeyListSchema
@@ -1010,7 +1010,7 @@ func TestGetNode(t *testing.T) {
 		Kind:     yang.DirectoryEntry,
 		Parent:   rootSchema,
 		Key:      "key",
-		ListAttr: &yang.ListAttr{},
+		ListAttr: yang.NewDefaultListAttr(),
 		Dir:      map[string]*yang.Entry{},
 	}
 	rootSchema.Dir["childlist"] = childListSchema

@@ -1065,13 +1065,13 @@ func TestStructName(t *testing.T) {
 				Parent: &yang.Entry{
 					Name:     "interface",
 					Dir:      map[string]*yang.Entry{},
-					ListAttr: &yang.ListAttr{},
+					ListAttr: yang.NewDefaultListAttr(),
 					Parent: &yang.Entry{
 						Name: "interfaces",
 						Dir: map[string]*yang.Entry{
 							"interface": {
 								Dir:      map[string]*yang.Entry{},
-								ListAttr: &yang.ListAttr{},
+								ListAttr: yang.NewDefaultListAttr(),
 							},
 						},
 						Parent: &yang.Entry{
@@ -1097,13 +1097,13 @@ func TestStructName(t *testing.T) {
 					Parent: &yang.Entry{
 						Name:     "interface",
 						Dir:      map[string]*yang.Entry{},
-						ListAttr: &yang.ListAttr{},
+						ListAttr: yang.NewDefaultListAttr(),
 						Parent: &yang.Entry{
 							Name: "interfaces",
 							Dir: map[string]*yang.Entry{
 								"interface": {
 									Dir:      map[string]*yang.Entry{},
-									ListAttr: &yang.ListAttr{},
+									ListAttr: yang.NewDefaultListAttr(),
 								},
 							},
 							Parent: &yang.Entry{
@@ -1126,14 +1126,14 @@ func TestStructName(t *testing.T) {
 				Dir:  map[string]*yang.Entry{},
 				Parent: &yang.Entry{
 					Name:     "address",
-					ListAttr: &yang.ListAttr{},
+					ListAttr: yang.NewDefaultListAttr(),
 					Dir:      map[string]*yang.Entry{},
 					Parent: &yang.Entry{
 						Name: "addresses",
 						Dir: map[string]*yang.Entry{
 							"address": {
 								Dir:      map[string]*yang.Entry{},
-								ListAttr: &yang.ListAttr{},
+								ListAttr: yang.NewDefaultListAttr(),
 							},
 						},
 						Parent: &yang.Entry{
@@ -1141,27 +1141,27 @@ func TestStructName(t *testing.T) {
 							Dir:  map[string]*yang.Entry{},
 							Parent: &yang.Entry{
 								Name:     "subinterface",
-								ListAttr: &yang.ListAttr{},
+								ListAttr: yang.NewDefaultListAttr(),
 								Dir:      map[string]*yang.Entry{},
 								Parent: &yang.Entry{
 									Name: "subinterfaces",
 									Dir: map[string]*yang.Entry{
 										"subinterface": {
 											Name:     "subinterface",
-											ListAttr: &yang.ListAttr{},
+											ListAttr: yang.NewDefaultListAttr(),
 											Dir:      map[string]*yang.Entry{},
 										},
 									},
 									Parent: &yang.Entry{
 										Name:     "interface",
 										Dir:      map[string]*yang.Entry{},
-										ListAttr: &yang.ListAttr{},
+										ListAttr: yang.NewDefaultListAttr(),
 										Parent: &yang.Entry{
 											Name: "interfaces",
 											Dir: map[string]*yang.Entry{
 												"interface": {
 													Dir:      map[string]*yang.Entry{},
-													ListAttr: &yang.ListAttr{},
+													ListAttr: yang.NewDefaultListAttr(),
 												},
 											},
 											Parent: &yang.Entry{
