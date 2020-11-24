@@ -838,8 +838,9 @@ func (*renderExampleUnionEnum) IsRenderUnionExample() {}
 
 // renderExampleChild is a child of the renderExample struct.
 type renderExampleChild struct {
-	Val  *uint64  `path:"val"`
-	Enum EnumTest `path:"enum"`
+	Val   *uint64   `path:"val"`
+	Enum  EnumTest  `path:"enum"`
+	Empty YANGEmpty `path:"empty"`
 }
 
 // IsYANGGoStruct implements the GoStruct interface.
@@ -3378,6 +3379,14 @@ func TestMarshal7951(t *testing.T) {
 		desc: "empty type",
 		in:   &renderExample{Empty: true},
 		want: `{"empty":[null]}`,
+	}, {
+		desc: "union empty type",
+		in:   &renderExample{UnionValSimple: testutil.YANGEmpty(true)},
+		want: `{"union-val-simple":[null]}`,
+	}, {
+		desc: "union empty type (wrapped union)",
+		in:   &renderExample{UnionVal: &renderExampleUnionEmpty{true}},
+		want: `{"union-val-simple":[null]}`,
 	}, {
 		desc: "indentation requested",
 		in: &renderExample{
