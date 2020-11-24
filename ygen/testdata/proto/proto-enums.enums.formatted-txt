@@ -12,8 +12,8 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
 // ProtoEnumsAD represents an enumerated type generated for the YANG enumerated type enum-union-typedef.
 enum ProtoEnumsAD {
-  PROTOENUMS_A_D_UNSET = 0;
-  PROTOENUMS_A_D_B_VAL = 1;
+  PROTOENUMSAD_UNSET = 0;
+  PROTOENUMSAD_B_VAL = 1;
 }
 
 // ProtoEnumsBASEIDENTITY represents an enumerated type generated for the YANG identity BASE_IDENTITY.
