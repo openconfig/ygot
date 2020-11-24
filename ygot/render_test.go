@@ -822,12 +822,6 @@ type renderExampleUnionBinary struct {
 
 func (*renderExampleUnionBinary) IsRenderUnionExample() {}
 
-type renderExampleUnionEmpty struct {
-	YANGEmpty YANGEmpty
-}
-
-func (*renderExampleUnionEmpty) IsRenderUnionExample() {}
-
 // renderExampleUnionInvalid is an invalid union struct.
 type renderExampleUnionInvalid struct {
 	String string
