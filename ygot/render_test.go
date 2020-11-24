@@ -822,6 +822,12 @@ type renderExampleUnionBinary struct {
 
 func (*renderExampleUnionBinary) IsRenderUnionExample() {}
 
+type renderExampleUnionEmpty struct {
+	YANGEmpty YANGEmpty
+}
+
+func (*renderExampleUnionEmpty) IsRenderUnionExample() {}
+
 // renderExampleUnionInvalid is an invalid union struct.
 type renderExampleUnionInvalid struct {
 	String string
@@ -3379,14 +3385,6 @@ func TestMarshal7951(t *testing.T) {
 		desc: "empty type",
 		in:   &renderExample{Empty: true},
 		want: `{"empty":[null]}`,
-	}, {
-		desc: "union empty type",
-		in:   &renderExample{UnionValSimple: testutil.YANGEmpty(true)},
-		want: `{"union-val-simple":[null]}`,
-	}, {
-		desc: "union empty type (wrapped union)",
-		in:   &renderExample{UnionVal: &renderExampleUnionEmpty{true}},
-		want: `{"union-val-simple":[null]}`,
 	}, {
 		desc: "indentation requested",
 		in: &renderExample{
