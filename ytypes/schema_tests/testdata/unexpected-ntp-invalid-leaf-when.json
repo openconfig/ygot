@@ -1,0 +1,17 @@
+{
+    "system": {
+        "ntp": {
+            "servers": {
+                "server": [
+                    {
+                        "address": "xx:xx:xx:xx:xx:xx",
+                        "state": {
+                            "stratum": 16,
+                            "when": -484302876
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
