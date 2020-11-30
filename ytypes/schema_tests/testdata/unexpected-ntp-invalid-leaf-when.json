@@ -6,15 +6,7 @@
                     {
                         "address": "xx:xx:xx:xx:xx:xx",
                         "state": {
-                            "offset": "0",
-                            "peer-type": "UNICAST",
-                            "poll-interval": 1024,
-                            "reach": 0,
-                            "refid": "INIT",
-                            "root-delay": 0,
-                            "root-dispersion": "0",
                             "stratum": 16,
-                            "tally-code": "REJECT",
                             "when": -484302876
                         }
                     }

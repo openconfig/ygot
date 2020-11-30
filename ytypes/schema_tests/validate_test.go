@@ -661,10 +661,10 @@ func TestUnmarshal(t *testing.T) {
 		},
 		{
 			desc:             "basic with extra fields - lower in tree",
-			jsonFilePath:     "unexpected-ntp.json",
+			jsonFilePath:     "unexpected-ntp-invalid-leaf-when.json",
 			parent:           &oc.Device{},
 			unmarshalFn:      oc.Unmarshal,
-			wantErrSubstring: "JSON contains unexpected field",
+			wantErrSubstring: "JSON contains unexpected field when",
 		},
 		{
 			desc:            "relay agent leaf-list of single type union",

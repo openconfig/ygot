@@ -213,7 +213,7 @@ func removeNonDataPathElements(parentSchema, schema *yang.Entry, paths [][]strin
 // maximum depth of the check is limited to the length of the dataPaths specified. For example, if the jsonTree
 // contains an element which has the path /foo/bar/baz, and dataPaths specifies /foo, then only /foo is checked
 // to be a valid path, no assertions are made about the validity of 'bar' as a child of 'foo'.
-// are valid according
+//
 // checkDataTreePaths returns an error if there are fields that are in the JSON that are not specified in the dataPaths.
 func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]string) error {
 	// Primarily, we build a trie that consists of all the valid paths that we were provided
