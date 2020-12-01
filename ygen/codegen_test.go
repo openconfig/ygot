@@ -1707,7 +1707,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			}
 
 			// This checks the "Name" and "Path" attributes of the output Directories.
-			if diff := cmp.Diff(tt.wantDirMap, gotDirMap, cmpopts.IgnoreFields(Directory{}, "Entry", "Fields", "ListAttr", "IsFakeRoot")); diff != "" {
+			if diff := cmp.Diff(tt.wantDirMap, gotDirMap, cmpopts.IgnoreFields(Directory{}, "Entry", "Fields", "ShadowedFields", "ListAttr", "IsFakeRoot"), cmpopts.EquateEmpty()); diff != "" {
 				t.Fatalf("(-want +got):\n%s", diff)
 			}
 
