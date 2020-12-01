@@ -17,6 +17,7 @@ package ytypes
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -88,13 +89,11 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(fmt.Errorf("schema %s ListAttr is nil", schema.Name))
 	}
 
-	var size int
-	if value == nil {
-		size = 0
-	} else {
+	var size uint64
+	if value != nil {
 		switch reflect.TypeOf(value).Kind() {
 		case reflect.Slice, reflect.Map:
-			size = reflect.ValueOf(value).Len()
+			size = uint64(reflect.ValueOf(value).Len())
 		default:
 			return util.NewErrs(fmt.Errorf("value %v type %T must be map or slice type for schema %s", value, value, schema.Name))
 		}
@@ -103,29 +102,12 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 	// If min/max element attr is present in the schema, this must be a list or
 	// leaf-list. Check that the data tree falls within the required size
 	// bounds.
-	if v := schema.ListAttr.MinElements; v != nil {
-		if minN, err := yang.ParseInt(v.Name); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if min, err := minN.Int(); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if min < 0 {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s has negative min required elements", schema.Name))
-		} else if int64(size) < min {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, min))
-		}
+	if size < schema.ListAttr.MinElements {
+		errors = util.AppendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, schema.ListAttr.MinElements))
 	}
-	if v := schema.ListAttr.MaxElements; v != nil {
-		if maxN, err := yang.ParseInt(v.Name); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if max, err := maxN.Int(); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if max < 0 {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s has negative max required elements", schema.Name))
-		} else if int64(size) > max {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, max))
-		}
+	if size > schema.ListAttr.MaxElements {
+		errors = util.AppendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, schema.ListAttr.MaxElements))
 	}
-
 	return errors
 }
 
@@ -235,23 +217,57 @@ func removeNonDataPathElements(parentSchema, schema *yang.Entry, paths [][]strin
 	return out, nil
 }
 
-// checkDataTreeAgainstPaths checks each of dataPaths against the first level
-// of the data tree. It returns an error with the first element in the data tree first
-// level that is not found in dataPaths.
-// This function is used to verify that the jsonTree does not contain any elements
-// in the first level that do not have data paths found in the schema.
+// checkDataTreeAgainstPaths checks that all paths that are defined in jsonTree match at least one of
+// the paths that are supplied in dataPaths. A match exists when a path prefix of a jsonTree element is
+// equal to one or more of the given dataPaths. Since each dataPath is checked as a valid prefix, the
+// maximum depth of the check is limited to the length of the dataPaths specified. For example, if the jsonTree
+// contains an element which has the path /foo/bar/baz, and dataPaths specifies /foo, then only /foo is checked
+// to be a valid path, no assertions are made about the validity of 'bar' as a child of 'foo'.
+//
+// checkDataTreePaths returns an error if there are fields that are in the JSON that are not specified in the dataPaths.
 func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]string) error {
-	// Go over all first level JSON tree map keys to make sure they all point
-	// to valid schema paths.
-	pm := map[string]bool{}
-	for _, sp := range dataPaths {
-		pm[util.StripModulePrefix(sp[0])] = true
-	}
-	util.DbgSchema("check dataPaths %v against dataTree %v\n", pm, jsonTree)
-	for jf := range jsonTree {
-		if !pm[util.StripModulePrefix(jf)] {
-			return fmt.Errorf("JSON contains unexpected field %s", jf)
+	// Primarily, we build a trie that consists of all the valid paths that we were provided
+	// in the dataPaths tree.
+	tree := map[string]interface{}{}
+	for _, ch := range dataPaths {
+		parent := tree
+		for i := 0; i < len(ch)-1; i++ {
+			chn := util.StripModulePrefix(ch[i])
+			if tree[chn] == nil {
+				tree[chn] = map[string]interface{}{}
+			}
+			parent = tree[chn].(map[string]interface{})
 		}
+		parent[util.StripModulePrefix(ch[len(ch)-1])] = true
+	}
+
+	var missingKeys []string
+	// We have to define the function up-front so that we can recursively call the
+	// anonymous function.
+	var checkTree func(map[string]interface{}, map[string]interface{})
+	checkTree = func(jsonTree map[string]interface{}, keyTree map[string]interface{}) {
+		for key := range jsonTree {
+			key = util.StripModulePrefix(key)
+			if _, ok := keyTree[key]; !ok {
+				missingKeys = append(missingKeys, key)
+			}
+			if ct, ok := keyTree[key].(map[string]interface{}); ok {
+				if jt, ok := jsonTree[key].(map[string]interface{}); ok {
+					checkTree(jt, ct)
+				}
+			}
+		}
+	}
+	checkTree(jsonTree, tree)
+	switch len(missingKeys) {
+	case 0:
+	case 1:
+		// Retain backwards compatibility with previous implementation that reported
+		// only the first error key.
+		return fmt.Errorf("JSON contains unexpected field %s", missingKeys[0])
+	default:
+		sort.Strings(missingKeys)
+		return fmt.Errorf("JSON contains unexpected field %v", missingKeys)
 	}
 
 	return nil

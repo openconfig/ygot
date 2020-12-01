@@ -131,7 +131,7 @@ func TestValidateContainer(t *testing.T) {
 				Name:     "child-list",
 				Kind:     yang.DirectoryEntry,
 				Key:      "leaf2",
-				ListAttr: &yang.ListAttr{},
+				ListAttr: yang.NewDefaultListAttr(),
 				Dir: map[string]*yang.Entry{
 					"config": {
 						Dir: map[string]*yang.Entry{

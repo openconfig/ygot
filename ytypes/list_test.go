@@ -31,7 +31,7 @@ import (
 var validListSchema = &yang.Entry{
 	Name:     "valid-list-schema",
 	Kind:     yang.DirectoryEntry,
-	ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+	ListAttr: yang.NewDefaultListAttr(),
 	Key:      "key_field_name",
 	Config:   yang.TSTrue,
 	Dir: map[string]*yang.Entry{
@@ -78,7 +78,7 @@ func TestValidateListSchema(t *testing.T) {
 			schema: &yang.Entry{
 				Name:     "missing-key-field-schema",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
 					"key_field_name": {
@@ -95,7 +95,7 @@ func TestValidateListSchema(t *testing.T) {
 			schema: &yang.Entry{
 				Name:     "missing-key-leaf-schema",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key_field_name",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -146,7 +146,7 @@ func TestValidateListNoKey(t *testing.T) {
 	listSchema := &yang.Entry{
 		Name:     "list-schema",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Dir: map[string]*yang.Entry{
 			"leaf-name": {
 				Kind: yang.LeafEntry,
@@ -219,7 +219,7 @@ func TestValidateListSimpleKey(t *testing.T) {
 	listSchema := &yang.Entry{
 		Name:     "list-schema",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Key:      "keyfield-name",
 		Config:   yang.TSTrue,
 		Dir: map[string]*yang.Entry{
@@ -294,7 +294,7 @@ func TestValidateListStructKey(t *testing.T) {
 	listSchemaStructKey := &yang.Entry{
 		Name:     "list-schema-struct-key",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Key:      "Key1 Key2",
 		Config:   yang.TSTrue,
 		Dir: map[string]*yang.Entry{
@@ -428,7 +428,7 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 			"struct-list": {
 				Name:     "struct-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Dir: map[string]*yang.Entry{
 					"leaf-field": {
 						Kind: yang.LeafEntry,
@@ -525,7 +525,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 		return &yang.Entry{
 			Name:     "key-list",
 			Kind:     yang.DirectoryEntry,
-			ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+			ListAttr: yang.NewDefaultListAttr(),
 			Key:      "key",
 			Config:   yang.TSTrue,
 			Dir: map[string]*yang.Entry{
@@ -683,7 +683,7 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 			"struct-key-list": {
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key1 key2 key3",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -777,7 +777,7 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 	listSchema := &yang.Entry{
 		Name:     "struct-list",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Dir: map[string]*yang.Entry{
 			"leaf-field": {
 				Kind: yang.LeafEntry,
@@ -944,7 +944,7 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 			"struct-key-list": {
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key1 key2 key3 key4",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1015,7 +1015,7 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 			"struct-key-list-leafref-keys": {
 				Name:     "struct-key-list-leafref-keys",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key1 key2 key3 key4",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1301,7 +1301,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1321,7 +1321,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1341,7 +1341,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1361,7 +1361,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1381,7 +1381,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1406,7 +1406,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1431,7 +1431,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1479,7 +1479,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1524,7 +1524,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1569,7 +1569,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1614,7 +1614,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1651,7 +1651,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1698,7 +1698,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "missing-key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1763,7 +1763,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1783,7 +1783,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Config:   yang.TSTrue,
 				Dir:      map[string]*yang.Entry{},
 			},
@@ -1794,7 +1794,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1813,7 +1813,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "missing-key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1832,7 +1832,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1852,7 +1852,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key1 key2 key3",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{

@@ -210,8 +210,8 @@
                                                 ]
                                             },
                                             "ListAttr": {
-                                                "MinElements": null,
-                                                "MaxElements": null,
+                                                "MinElements": 0,
+                                                "MaxElements": 18446744073709551615,
                                                 "OrderedBy": null
                                             }
                                         },
@@ -311,8 +311,8 @@
                             },
                             "Key": "peer-address",
                             "ListAttr": {
-                                "MinElements": null,
-                                "MaxElements": null,
+                                "MinElements": 0,
+                                "MaxElements": 18446744073709551615,
                                 "OrderedBy": null
                             },
                             "Annotation": {

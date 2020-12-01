@@ -1,0 +1,11 @@
+{
+ "openconfig-bgp:bgp": {
+   "global": {
+     "config": {
+       "invalid-leaf": "HELLO WORLD",
+       "as": 12345,
+       "router-id": "10.10.10.10"
+     }
+   }
+ }    
+}

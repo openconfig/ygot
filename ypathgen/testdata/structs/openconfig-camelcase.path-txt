@@ -47,6 +47,7 @@ func (n *BGPPathAny) NeighborAny() *BGP_NeighborPathAny {
 }
 
 // Neighbor returns from BGPPath the path struct for its child "neighbor".
+// PeerIP: string
 func (n *BGPPath) Neighbor(PeerIP string) *BGP_NeighborPath {
 	return &BGP_NeighborPath{
 		NodePath: ygot.NewNodePath(
@@ -58,6 +59,7 @@ func (n *BGPPath) Neighbor(PeerIP string) *BGP_NeighborPath {
 }
 
 // Neighbor returns from BGPPathAny the path struct for its child "neighbor".
+// PeerIP: string
 func (n *BGPPathAny) Neighbor(PeerIP string) *BGP_NeighborPathAny {
 	return &BGP_NeighborPathAny{
 		NodePath: ygot.NewNodePath(

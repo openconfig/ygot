@@ -142,7 +142,7 @@ var containerWithStringKey = &yang.Entry{
 				"simple-key-list": {
 					Name:     "simple-key-list",
 					Kind:     yang.DirectoryEntry,
-					ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+					ListAttr: yang.NewDefaultListAttr(),
 					Key:      "key1",
 					Config:   yang.TSTrue,
 					Dir: map[string]*yang.Entry{
@@ -171,7 +171,7 @@ var containerWithStringKey = &yang.Entry{
 												"int32-leaf-list": {
 													Name:     "int32-leaf-list",
 													Kind:     yang.LeafEntry,
-													ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+													ListAttr: yang.NewDefaultListAttr(),
 													Type:     &yang.YangType{Kind: yang.Yint32},
 												},
 												"string-leaf-field": {
@@ -209,7 +209,7 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					"simple-key-list": {
 						Name:     "simple-key-list",
 						Kind:     yang.DirectoryEntry,
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 						Key:      "key1",
 						Config:   yang.TSTrue,
 						Dir: map[string]*yang.Entry{
@@ -269,7 +269,7 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					"simple-key-list": {
 						Name:     "simple-key-list",
 						Kind:     yang.DirectoryEntry,
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 						Key:      "key1",
 						Config:   yang.TSTrue,
 						Dir: map[string]*yang.Entry{
@@ -296,7 +296,7 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					"simple-key-list": {
 						Name:     "simple-key-list",
 						Kind:     yang.DirectoryEntry,
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 						Key:      "key1",
 						Config:   yang.TSTrue,
 						Dir: map[string]*yang.Entry{
@@ -590,7 +590,7 @@ var containerWithMultiKeyedList *yang.Entry = &yang.Entry{
 		"struct-key-list": {
 			Name:     "struct-key-list",
 			Kind:     yang.DirectoryEntry,
-			ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+			ListAttr: yang.NewDefaultListAttr(),
 			Key:      "key1 key2 key3",
 			Config:   yang.TSTrue,
 			Dir: map[string]*yang.Entry{
@@ -629,7 +629,7 @@ var containerWithMultiKeyedList *yang.Entry = &yang.Entry{
 										"int32-leaf-list": {
 											Name:     "int32-leaf-list",
 											Kind:     yang.LeafEntry,
-											ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+											ListAttr: yang.NewDefaultListAttr(),
 											Type:     &yang.YangType{Kind: yang.Yint32},
 										},
 										"string-leaf-field": {
@@ -762,7 +762,7 @@ var simpleSchema = &yang.Entry{
 								"int32-leaf-list": {
 									Name:     "int32-leaf-list",
 									Kind:     yang.LeafEntry,
-									ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+									ListAttr: yang.NewDefaultListAttr(),
 									Type:     &yang.YangType{Kind: yang.Yint32},
 								},
 								"string-leaf-field": {
@@ -978,7 +978,7 @@ func TestGetNode(t *testing.T) {
 	leafListSchema := &yang.Entry{
 		Name:     "int32-leaf-list",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Type:     &yang.YangType{Kind: yang.Yint32},
 	}
 	rootSchema.Dir["int32-leaf-list"] = leafListSchema
