@@ -219,7 +219,7 @@ func TestValidateListSimpleKey(t *testing.T) {
 	listSchema := &yang.Entry{
 		Name:     "list-schema",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: yang.NewDefaultListAttr(),
+		ListAttr: &yang.ListAttr{},
 		Key:      "keyfield-name",
 		Config:   yang.TSTrue,
 		Dir: map[string]*yang.Entry{
