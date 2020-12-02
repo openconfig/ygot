@@ -130,6 +130,12 @@ type TransformationOpts struct {
 	// entry should determined. Specifically, whether compression is
 	// enabled, and whether state fields in the schema should be excluded.
 	CompressBehaviour genutil.CompressBehaviour
+	// IgnoreShadowSchemaPaths indicates whether when OpenConfig path
+	// compression is enabled, that the shadowed paths are to be ignored
+	// while while unmarshalling.
+	// TODO(wenbli): Invalid shadow paths currently do not cause an error
+	// during JSON unmarshalling.
+	IgnoreShadowSchemaPaths bool
 	// GenerateFakeRoot specifies whether an entity that represents the
 	// root of the YANG schema tree should be generated in the generated
 	// code.
@@ -430,7 +436,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 			continue
 		}
 		structOut, errs := writeGoStruct(dirNameMap[directoryName], directoryMap, gogen,
-			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim, cg.Config.GoOptions)
+			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.TransformationOptions.IgnoreShadowSchemaPaths, cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim, cg.Config.GoOptions)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue

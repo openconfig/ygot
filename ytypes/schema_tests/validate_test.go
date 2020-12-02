@@ -613,10 +613,18 @@ func TestUnmarshal(t *testing.T) {
 			unmarshalFn:  oc.Unmarshal,
 		},
 		{
-			desc:         "bgp",
-			jsonFilePath: "bgp-example-opstate.json",
-			parent:       &opstateoc.Device{},
-			unmarshalFn:  opstateoc.Unmarshal,
+			desc:             "bgp, given shadow path but for schema that doesn't ignore shadow paths",
+			jsonFilePath:     "bgp-example-opstate-with-shadow.json",
+			parent:           &oc.Device{},
+			unmarshalFn:      oc.Unmarshal,
+			wantErrSubstring: "JSON contains unexpected field state",
+		},
+		{
+			desc:            "bgp with prefer_operational_state, with schema ignoring shadow paths",
+			jsonFilePath:    "bgp-example-opstate-with-shadow.json",
+			parent:          &opstateoc.Device{},
+			unmarshalFn:     opstateoc.Unmarshal,
+			outjsonFilePath: "bgp-example-opstate.json",
 		},
 		{
 			desc:              "interfaces",
@@ -730,7 +738,7 @@ func TestUnmarshal(t *testing.T) {
 
 			err = tt.unmarshalFn(j, tt.parent, tt.opts...)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
-				t.Errorf("%s: %s ", tt.desc, diff)
+				t.Errorf("%s: did not get expected error: %s", tt.desc, diff)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {

@@ -38,6 +38,22 @@ func SchemaPaths(f reflect.StructField) ([][]string, error) {
 	return out, nil
 }
 
+// ShadowSchemaPaths returns all the paths in the shadow-path tag. If the tag
+// doesn't exist, a nil slice is returned.
+func ShadowSchemaPaths(f reflect.StructField) [][]string {
+	var out [][]string
+	pathTag, ok := f.Tag.Lookup("shadow-path")
+	if !ok || pathTag == "" {
+		return nil
+	}
+
+	ps := strings.Split(pathTag, "|")
+	for _, p := range ps {
+		out = append(out, stripModulePrefixes(strings.Split(p, "/")))
+	}
+	return out
+}
+
 // RelativeSchemaPath returns a path to the schema for the struct field f.
 // Paths are embedded in the "path" struct tag and can be either simple:
 //   e.g. "path:a"
