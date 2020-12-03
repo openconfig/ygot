@@ -122,7 +122,7 @@ type GenConfig struct {
 	// This is the same flag used by ygen: they must match for pathgen's
 	// generated code to be compatible with it.
 	UseDefiningModuleForTypedefEnumNames bool
-	// AppendEnumSuffixForSimpleEnumUnions appends an "Enum" suffix to the
+	// AppendEnumSuffixForSimpleUnionEnums appends an "Enum" suffix to the
 	// enumeration name for simple (i.e. non-typedef) leaves which are
 	// unions with an enumeration inside. This makes all inlined
 	// enumerations within unions, whether typedef or not, have this
@@ -134,7 +134,7 @@ type GenConfig struct {
 	// NOTE: This flag does not affect proto generation, since simple enum
 	// union leaves are named differently from findEnumSet's standard
 	// naming.
-	AppendEnumSuffixForSimpleEnumUnions bool
+	AppendEnumSuffixForSimpleUnionEnums bool
 	// ExcludeModules specifies any modules that are included within the set of
 	// modules that should have code generated for them that should be ignored during
 	// code generation. This is due to the fact that some schemas (e.g., OpenConfig
@@ -210,7 +210,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 			ShortenEnumLeafNames:                 cg.ShortenEnumLeafNames,
 			EnumOrgPrefixesToTrim:                cg.EnumOrgPrefixesToTrim,
 			UseDefiningModuleForTypedefEnumNames: cg.UseDefiningModuleForTypedefEnumNames,
-			AppendEnumSuffixForSimpleEnumUnions:  cg.AppendEnumSuffixForSimpleEnumUnions,
+			AppendEnumSuffixForSimpleUnionEnums:  cg.AppendEnumSuffixForSimpleUnionEnums,
 		},
 	}
 	directories, leafTypeMap, errs := dcg.GetDirectoriesAndLeafTypes(yangFiles, includePaths)

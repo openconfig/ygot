@@ -158,7 +158,7 @@ type TransformationOpts struct {
 	// to prefix typedef enumerated types instead of the module where the
 	// typedef enumerated value is used.
 	UseDefiningModuleForTypedefEnumNames bool
-	// AppendEnumSuffixForSimpleEnumUnions appends an "Enum" suffix to the
+	// AppendEnumSuffixForSimpleUnionEnums appends an "Enum" suffix to the
 	// enumeration name for simple (i.e. non-typedef) leaves which are
 	// unions with an enumeration inside. This makes all inlined
 	// enumerations within unions, whether typedef or not, have this
@@ -170,7 +170,7 @@ type TransformationOpts struct {
 	// NOTE: This flag does not affect proto generation, since simple enum
 	// union leaves are named differently from findEnumSet's standard
 	// naming.
-	AppendEnumSuffixForSimpleEnumUnions bool
+	AppendEnumSuffixForSimpleUnionEnums bool
 }
 
 // GoOpts stores Go specific options for the code generation library.
@@ -405,7 +405,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	enumSet, goEnums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.TransformationOptions.AppendEnumSuffixForSimpleEnumUnions, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim)
+	enumSet, goEnums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.TransformationOptions.AppendEnumSuffixForSimpleUnionEnums, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, errs
 	}
@@ -534,7 +534,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 
 	dirsToProcess := map[string]*yang.Entry(mdef.directoryEntries)
 
-	enumSet, _, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.TransformationOptions.AppendEnumSuffixForSimpleEnumUnions, cg.TransformationOptions.EnumOrgPrefixesToTrim)
+	enumSet, _, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.TransformationOptions.AppendEnumSuffixForSimpleUnionEnums, cg.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, nil, errs
 	}

@@ -116,7 +116,7 @@ func main() {
 			// This flag does not affect proto generation, since simple enum
 			// union leaves are named differently from findEnumSet's standard
 			// naming.
-			AppendEnumSuffixForSimpleEnumUnions: true,
+			AppendEnumSuffixForSimpleUnionEnums: true,
 		},
 		PackageName: *packageName,
 		Caller:      *callerName,
