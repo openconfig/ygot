@@ -1358,8 +1358,14 @@ func TestFindEnumSet(t *testing.T) {
 		inSkipEnumDeduplication bool
 		inShortenEnumLeafNames  bool
 		inEnumOrgPrefixesToTrim []string
-		wantCompressed          map[string]*yangEnum
-		wantUncompressed        map[string]*yangEnum
+		// isSimpleEnumeratedUnionLeaf indicates to the test that
+		// appendEnumSuffixForSimpleUnionEnums=true affects the name of
+		// the enumeration when useDefiningModuleForTypedefEnumNames is
+		// also set to true. Here, a change is only expected when
+		// useDefiningModuleForTypedefEnumNames is set to true.
+		isSimpleEnumeratedUnionLeaf bool
+		wantCompressed              map[string]*yangEnum
+		wantUncompressed            map[string]*yangEnum
 		// wantUseDefiningModuleForTypedefEnumNames should be specified whenever the output
 		// is expected to be different when useDefiningModuleForTypedefEnumNames is set to
 		// true. Its output should be compression independent since typedef enum names are
@@ -3681,7 +3687,8 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		inShortenEnumLeafNames: true,
+		inShortenEnumLeafNames:      true,
+		isSimpleEnumeratedUnionLeaf: true,
 		wantCompressed: map[string]*yangEnum{
 			"Container_E": {
 				name: "Container_E",
@@ -4612,7 +4619,8 @@ func TestFindEnumSet(t *testing.T) {
 				},
 			},
 		},
-		inShortenEnumLeafNames: true,
+		inShortenEnumLeafNames:      true,
+		isSimpleEnumeratedUnionLeaf: true,
 		wantCompressed: map[string]*yangEnum{
 			"TestContainer_UnionLeaf": {
 				name: "TestContainer_UnionLeaf",
@@ -4763,17 +4771,38 @@ func TestFindEnumSet(t *testing.T) {
 					wantEntries = tt.wantUseDefiningModuleForTypedefEnumNames
 					wantEnumSet = tt.wantEnumSetUseDefiningModuleForTypedefEnumNames
 				}
-				t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v,useDefiningModuleForTypedefEnumNames:%v,enumOrgPrefixesToTrim:%v)", tt.name, compressed, tt.inSkipEnumDeduplication, useDefiningModuleForTypedefEnumNames, tt.inEnumOrgPrefixesToTrim), func(t *testing.T) {
-					gotEnumSet, gotEntries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, tt.inEnumOrgPrefixesToTrim)
-					wantErrSubstr := tt.wantErrSubstr
-					if !compressed && tt.wantUncompressFailDueToClash {
-						wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
+				for _, appendEnumSuffixForSimpleUnionEnums := range []bool{false, true} {
+					if appendEnumSuffixForSimpleUnionEnums && tt.isSimpleEnumeratedUnionLeaf && useDefiningModuleForTypedefEnumNames {
+						enumSuffix := enumeratedUnionSuffix
+						if !tt.inOmitUnderscores {
+							enumSuffix = "_" + enumSuffix
+						}
+						modWantEntries := map[string]*yangEnum{}
+						for key, val := range wantEntries {
+							e := *val
+							e.name += enumSuffix
+							modWantEntries[key+enumSuffix] = &e
+						}
+						modEnumSet := *wantEnumSet
+						modEnumSet.uniqueEnumeratedLeafNames = map[string]string{}
+						for key, val := range wantEnumSet.uniqueEnumeratedLeafNames {
+							modEnumSet.uniqueEnumeratedLeafNames[key] = val + enumSuffix
+						}
+						wantEntries = modWantEntries
+						wantEnumSet = &modEnumSet
 					}
-					if tt.wantErrOnlyForUseDefiningModuleForTypedefEnumNames && !useDefiningModuleForTypedefEnumNames {
-						wantErrSubstr = ""
-					}
-					doChecks(t, errs, wantErrSubstr, gotEnumSet, wantEnumSet, gotEntries, wantEntries)
-				})
+					t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v,useDefiningModuleForTypedefEnumNames:%v,enumOrgPrefixesToTrim:%v,appendEnumSuffixForSimpleUnionEnums:%v)", tt.name, compressed, tt.inSkipEnumDeduplication, useDefiningModuleForTypedefEnumNames, tt.inEnumOrgPrefixesToTrim, appendEnumSuffixForSimpleUnionEnums), func(t *testing.T) {
+						gotEnumSet, gotEntries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, tt.inEnumOrgPrefixesToTrim)
+						wantErrSubstr := tt.wantErrSubstr
+						if !compressed && tt.wantUncompressFailDueToClash {
+							wantErrSubstr = "clash in enumerated name occurred despite paths being uncompressed"
+						}
+						if tt.wantErrOnlyForUseDefiningModuleForTypedefEnumNames && !useDefiningModuleForTypedefEnumNames {
+							wantErrSubstr = ""
+						}
+						doChecks(t, errs, wantErrSubstr, gotEnumSet, wantEnumSet, gotEntries, wantEntries)
+					})
+				}
 			}
 		}
 	}
