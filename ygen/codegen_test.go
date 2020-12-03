@@ -831,6 +831,21 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "exclude-state-ro-list.formatted-txt"),
 	}, {
+		name:           "different union enumeration types",
+		inFiles:        []string{filepath.Join(datapath, "", "enum-union.yang")},
+		inIncludePaths: []string{filepath.Join(datapath, "modules")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-union.formatted-txt"),
+	}, {
 		name:           "enumeration behaviour - resolution across submodules and grouping re-use within union",
 		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
 		inIncludePaths: []string{filepath.Join(datapath, "modules")},
