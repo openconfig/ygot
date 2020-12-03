@@ -1902,6 +1902,19 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_test_a.parent.child": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.child.formatted-txt"),
 		},
 	}, {
+		name:    "enumeration under unions test with compression",
+		inFiles: []string{filepath.Join(datapath, "enum-union.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour: genutil.PreferIntendedConfig,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.outer.formatted-txt"),
+			"openconfig.outer": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.outer.inner.formatted-txt"),
+			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.enums.formatted-txt"),
+		},
+	}, {
 		name:     "yang schema with a list",
 		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.yang")},
 		inConfig: GeneratorConfig{TransformationOptions: TransformationOpts{CompressBehaviour: genutil.PreferIntendedConfig}},

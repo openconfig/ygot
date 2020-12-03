@@ -58,8 +58,8 @@ module enum-union {
     }
   }
 
-  container Outer {
-    container Inner {
+  container outer {
+    container inner {
       container config {
         uses union-enums;
       }
