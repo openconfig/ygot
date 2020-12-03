@@ -318,7 +318,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enum without context")
 		}
-		n, err := s.enumSet.enumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, enumOrgPrefixesToTrim)
+		n, err := s.enumSet.enumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, false, enumOrgPrefixesToTrim)
 		if err != nil {
 			return nil, err
 		}
