@@ -838,8 +838,9 @@ func (*renderExampleUnionEnum) IsRenderUnionExample() {}
 
 // renderExampleChild is a child of the renderExample struct.
 type renderExampleChild struct {
-	Val  *uint64  `path:"val"`
-	Enum EnumTest `path:"enum"`
+	Val   *uint64   `path:"val"`
+	Enum  EnumTest  `path:"enum"`
+	Empty YANGEmpty `path:"empty"`
 }
 
 // IsYANGGoStruct implements the GoStruct interface.

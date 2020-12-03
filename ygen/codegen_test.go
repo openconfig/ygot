@@ -537,6 +537,7 @@ func TestSimpleStructs(t *testing.T) {
 			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				IgnoreShadowSchemaPaths:              true,
 				ShortenEnumLeafNames:                 true,
 				UseDefiningModuleForTypedefEnumNames: true,
 			},
@@ -829,6 +830,37 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "exclude-state-ro-list.formatted-txt"),
+	}, {
+		name:           "different union enumeration types",
+		inFiles:        []string{filepath.Join(datapath, "", "enum-union.yang")},
+		inIncludePaths: []string{filepath.Join(datapath, "modules")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-union.formatted-txt"),
+	}, {
+		name:           "different union enumeration types with consistent naming for union-inlined enums",
+		inFiles:        []string{filepath.Join(datapath, "", "enum-union.yang")},
+		inIncludePaths: []string{filepath.Join(datapath, "modules")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+				AppendEnumSuffixForSimpleEnumUnions:  true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-union.consistent.formatted-txt"),
 	}, {
 		name:           "enumeration behaviour - resolution across submodules and grouping re-use within union",
 		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
@@ -1707,7 +1739,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			}
 
 			// This checks the "Name" and "Path" attributes of the output Directories.
-			if diff := cmp.Diff(tt.wantDirMap, gotDirMap, cmpopts.IgnoreFields(Directory{}, "Entry", "Fields", "ListAttr", "IsFakeRoot")); diff != "" {
+			if diff := cmp.Diff(tt.wantDirMap, gotDirMap, cmpopts.IgnoreFields(Directory{}, "Entry", "Fields", "ShadowedFields", "ListAttr", "IsFakeRoot"), cmpopts.EquateEmpty()); diff != "" {
 				t.Fatalf("(-want +got):\n%s", diff)
 			}
 
@@ -1886,6 +1918,20 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_test_a.parent.child": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.child.formatted-txt"),
 		},
 	}, {
+		name:    "enumeration under unions test with compression",
+		inFiles: []string{filepath.Join(datapath, "enum-union.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                   genutil.PreferIntendedConfig,
+				AppendEnumSuffixForSimpleEnumUnions: true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.outer.formatted-txt"),
+			"openconfig.outer": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.outer.inner.formatted-txt"),
+			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.enums.formatted-txt"),
+		},
+	}, {
 		name:     "yang schema with a list",
 		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.yang")},
 		inConfig: GeneratorConfig{TransformationOptions: TransformationOpts{CompressBehaviour: genutil.PreferIntendedConfig}},
@@ -2030,6 +2076,7 @@ func TestGenerateProto3(t *testing.T) {
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				IgnoreShadowSchemaPaths:              true,
 				GenerateFakeRoot:                     true,
 				UseDefiningModuleForTypedefEnumNames: true,
 			},

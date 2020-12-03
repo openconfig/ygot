@@ -113,6 +113,10 @@ func main() {
 			GenerateFakeRoot:                     *generateFakeRoot,
 			FakeRootName:                         *fakeRootName,
 			UseDefiningModuleForTypedefEnumNames: *useDefiningModuleForTypedefEnumNames,
+			// This flag does not affect proto generation, since simple enum
+			// union leaves are named differently from findEnumSet's standard
+			// naming.
+			AppendEnumSuffixForSimpleEnumUnions: true,
 		},
 		PackageName: *packageName,
 		Caller:      *callerName,

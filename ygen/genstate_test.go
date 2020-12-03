@@ -153,6 +153,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 				},
+				ShadowedFields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
 				Path: []string{"", "module", "s1"},
 			},
 		},
@@ -163,6 +167,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+				},
+				ShadowedFields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
 				Path: []string{"", "module", "s1"},
 			},
@@ -229,6 +237,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 				},
+				ShadowedFields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
 				Path: []string{"", "module", "s1"},
 			},
 		},
@@ -239,6 +251,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 					"l3": {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
+				},
+				ShadowedFields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
 				Path: []string{"", "module", "s1"},
 			},
@@ -478,6 +494,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"l3":              {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 					"outer-container": {Name: "outer-container"},
 				},
+				ShadowedFields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
 				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/outer-container": {
@@ -492,6 +512,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				Fields: map[string]*yang.Entry{
 					"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				ShadowedFields: map[string]*yang.Entry{
+					"inner-leaf": {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 				Path: []string{"", "module", "s1", "outer-container", "inner-container"},
 			},
@@ -505,6 +528,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"l3":              {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 					"outer-container": {Name: "outer-container"},
 				},
+				ShadowedFields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
 				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/outer-container": {
@@ -519,6 +546,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				Fields: map[string]*yang.Entry{
 					"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				ShadowedFields: map[string]*yang.Entry{
+					"inner-leaf": {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 				Path: []string{"", "module", "s1", "outer-container", "inner-container"},
 			},
@@ -588,6 +618,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"l3":              {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 					"outer-container": {Name: "outer-container"},
 				},
+				ShadowedFields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Yint8}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
 				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/outer-container": {
@@ -602,6 +636,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				Fields: map[string]*yang.Entry{
 					"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				ShadowedFields: map[string]*yang.Entry{
+					"inner-leaf": {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 				Path: []string{"", "module", "s1", "outer-container", "inner-container"},
 			},
@@ -615,6 +652,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"l3":              {Name: "l3", Type: &yang.YangType{Kind: yang.Yint32}},
 					"outer-container": {Name: "outer-container"},
 				},
+				ShadowedFields: map[string]*yang.Entry{
+					"l1": {Name: "l1", Type: &yang.YangType{Kind: yang.Ystring}},
+					"l2": {Name: "l2", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
 				Path: []string{"", "module", "s1"},
 			},
 			"/module/s1/outer-container": {
@@ -629,6 +670,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				Fields: map[string]*yang.Entry{
 					"inner-leaf":       {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 					"inner-state-leaf": {Name: "inner-state-leaf", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				ShadowedFields: map[string]*yang.Entry{
+					"inner-leaf": {Name: "inner-leaf", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 				Path: []string{"", "module", "s1", "outer-container", "inner-container"},
 			},
@@ -825,6 +869,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
 					"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
+				ShadowedFields: map[string]*yang.Entry{
+					"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
+					"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
 				Path: []string{"", "module", "top-container"},
 			},
 		},
@@ -832,6 +880,10 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 			"/module/top-container": {
 				Name: "TopContainer",
 				Fields: map[string]*yang.Entry{
+					"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
+					"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
+				},
+				ShadowedFields: map[string]*yang.Entry{
 					"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Yint8}},
 					"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yint8}},
 				},
@@ -944,6 +996,9 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 			"/module/container/list": {
 				Name: "Container_List",
 				Fields: map[string]*yang.Entry{
+					"key": {Name: "key", Type: &yang.YangType{Kind: yang.Ystring}},
+				},
+				ShadowedFields: map[string]*yang.Entry{
 					"key": {Name: "key", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 				ListAttr: &YangListAttr{
@@ -1223,6 +1278,13 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 		}
 		return names
 	}
+	shadowedFieldNames := func(dir *Directory) []string {
+		names := []string{}
+		for k := range dir.ShadowedFields {
+			names = append(names, k)
+		}
+		return names
+	}
 
 	langName := func(l generatedLanguage) string {
 		languageName := map[generatedLanguage]string{
@@ -1319,11 +1381,11 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				}
 
 				// This checks the "Name" and maybe "Path" attributes of the output Directories.
-				ignoreFields := []string{"Entry", "Fields", "IsFakeRoot"}
+				ignoreFields := []string{"Entry", "Fields", "ShadowedFields", "IsFakeRoot"}
 				if !tt.checkPath {
 					ignoreFields = append(ignoreFields, "Path")
 				}
-				if diff := cmp.Diff(c.want, got, cmpopts.IgnoreFields(Directory{}, ignoreFields...), cmpopts.IgnoreFields(YangListAttr{}, "KeyElems")); diff != "" {
+				if diff := cmp.Diff(c.want, got, cmpopts.IgnoreFields(Directory{}, ignoreFields...), cmpopts.IgnoreFields(YangListAttr{}, "KeyElems"), cmpopts.EquateEmpty()); diff != "" {
 					t.Errorf("(-want +got):\n%s", diff)
 				}
 
@@ -1352,6 +1414,26 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 						if fieldv.Type != nil && cmpfield.Type != nil {
 							if fieldv.Type.Kind != cmpfield.Type.Kind {
 								t.Errorf("Field %s of %s did not have expected type got: %s, want: %s", fieldk, gotName, cmpfield.Type.Kind, fieldv.Type.Kind)
+							}
+						}
+					}
+					if len(gotDir.ShadowedFields) != len(wantDir.ShadowedFields) {
+						t.Fatalf("Did not get expected set of shadowed fields for %s, got: %v, want: %v", gotName, shadowedFieldNames(gotDir), shadowedFieldNames(wantDir))
+					}
+					for fieldk, fieldv := range wantDir.ShadowedFields {
+						cmpfield, ok := gotDir.ShadowedFields[fieldk]
+						if !ok {
+							t.Errorf("Could not find expected shadowed field %s in %s, got: %v", fieldk, gotName, gotDir.Fields)
+							continue // Fatal error for this field only.
+						}
+
+						if fieldv.Name != cmpfield.Name {
+							t.Errorf("Shadowed field %s of %s did not have expected name, got: %v, want: %v", fieldk, gotName, cmpfield.Name, fieldv.Name)
+						}
+
+						if fieldv.Type != nil && cmpfield.Type != nil {
+							if fieldv.Type.Kind != cmpfield.Type.Kind {
+								t.Errorf("Shadowed field %s of %s did not have expected type got: %s, want: %s", fieldk, gotName, cmpfield.Type.Kind, fieldv.Type.Kind)
 							}
 						}
 					}
@@ -2088,7 +2170,7 @@ func TestBuildListKey(t *testing.T) {
 			}
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.in, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true, nil)
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress, false, tt.inSkipEnumDedup, true, true, true, nil)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)

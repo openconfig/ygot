@@ -263,7 +263,8 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 
 		ni.Annotation = []interface{}{vp}
 
-		if util.IsNilOrInvalidValue(ni.FieldValue) || util.IsValueStructPtr(ni.FieldValue) || util.IsValueMap(ni.FieldValue) {
+		// Ignore non-data, or default data values.
+		if util.IsNilOrInvalidValue(ni.FieldValue) || util.IsValueNilOrDefault(ni.FieldValue.Interface()) || util.IsValueStructPtr(ni.FieldValue) || util.IsValueMap(ni.FieldValue) {
 			return
 		}
 

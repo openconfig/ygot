@@ -151,6 +151,7 @@ type basicStruct struct {
 	StringValue *string                     `path:"string-value"`
 	StructValue *basicStructTwo             `path:"struct-value"`
 	MapValue    map[string]*basicListMember `path:"map-list"`
+	EmptyValue  YANGEmpty                   `path:"empty-value"`
 }
 
 func (*basicStruct) IsYANGGoStruct() {}
@@ -429,6 +430,16 @@ func TestFindSetLeaves(t *testing.T) {
 		desc:     "struct with fields missing path annotation",
 		inStruct: &errorStruct{Value: String("foo")},
 		wantErr:  "error from ForEachDataField iteration: field Value did not specify a path",
+	}, {
+		desc:     "struct with empty value",
+		inStruct: &basicStruct{EmptyValue: YANGEmpty(true)},
+		want: map[*pathSpec]interface{}{
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{{Name: "empty-value"}},
+				}},
+			}: YANGEmpty(true),
+		},
 	}, {
 		desc: "multi-level string values",
 		inStruct: &basicStruct{
