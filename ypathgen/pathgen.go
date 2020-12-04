@@ -131,9 +131,6 @@ type GenConfig struct {
 	// UseDefiningModuleForTypedefEnumNames, and will be removed in v1, it
 	// only applies when useDefiningModuleForTypedefEnumNames is also set
 	// to true.
-	// NOTE: This flag does not affect proto generation, since simple enum
-	// union leaves are named differently from findEnumSet's standard
-	// naming.
 	AppendEnumSuffixForSimpleUnionEnums bool
 	// ExcludeModules specifies any modules that are included within the set of
 	// modules that should have code generated for them that should be ignored during
@@ -210,7 +207,9 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 			ShortenEnumLeafNames:                 cg.ShortenEnumLeafNames,
 			EnumOrgPrefixesToTrim:                cg.EnumOrgPrefixesToTrim,
 			UseDefiningModuleForTypedefEnumNames: cg.UseDefiningModuleForTypedefEnumNames,
-			AppendEnumSuffixForSimpleUnionEnums:  cg.AppendEnumSuffixForSimpleUnionEnums,
+		},
+		GoOptions: ygen.GoOpts{
+			AppendEnumSuffixForSimpleUnionEnums: cg.AppendEnumSuffixForSimpleUnionEnums,
 		},
 	}
 	directories, leafTypeMap, errs := dcg.GetDirectoriesAndLeafTypes(yangFiles, includePaths)

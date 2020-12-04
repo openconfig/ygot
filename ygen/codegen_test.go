@@ -851,13 +851,13 @@ func TestSimpleStructs(t *testing.T) {
 		inIncludePaths: []string{filepath.Join(datapath, "modules")},
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
-				GenerateSimpleUnions: true,
+				GenerateSimpleUnions:                true,
+				AppendEnumSuffixForSimpleUnionEnums: true,
 			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 				ShortenEnumLeafNames:                 true,
 				UseDefiningModuleForTypedefEnumNames: true,
-				AppendEnumSuffixForSimpleUnionEnums:  true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-union.consistent.formatted-txt"),
@@ -1922,8 +1922,7 @@ func TestGenerateProto3(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "enum-union.yang")},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
-				CompressBehaviour:                   genutil.PreferIntendedConfig,
-				AppendEnumSuffixForSimpleUnionEnums: true,
+				CompressBehaviour: genutil.PreferIntendedConfig,
 			},
 		},
 		wantOutputFiles: map[string]string{
