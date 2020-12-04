@@ -1907,12 +1907,34 @@ func TestGenerateProto3(t *testing.T) {
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour: genutil.PreferIntendedConfig,
+				GenerateFakeRoot:  true,
+			},
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames: true,
+				NestedMessages:    true,
 			},
 		},
 		wantOutputFiles: map[string]string{
-			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.outer.formatted-txt"),
-			"openconfig.outer": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.outer.inner.formatted-txt"),
-			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.enums.formatted-txt"),
+			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.inconsistent.formatted-txt"),
+			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.enums.inconsistent.formatted-txt"),
+		},
+	}, {
+		name:    "enumeration under unions test with compression and with UseDefiningModuleForTypedefEnumNames=true",
+		inFiles: []string{filepath.Join(datapath, "enum-union.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				GenerateFakeRoot:                     true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames: true,
+				NestedMessages:    true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.inconsistent.defining-module-typedef-enum-name.formatted-txt"),
+			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.enums.inconsistent.defining-module-typedef-enum-name.formatted-txt"),
 		},
 	}, {
 		name:     "yang schema with a list",
@@ -2258,7 +2280,7 @@ func TestGenerateProto3(t *testing.T) {
 					if diffl, _ := testutil.GenerateUnifiedDiff(wantCode, gotCodeBuf.String()); diffl != "" {
 						diff = diffl
 					}
-					t.Fatalf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-want, +got):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
+					t.Errorf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-want, +got):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
 				}
 			}
 
