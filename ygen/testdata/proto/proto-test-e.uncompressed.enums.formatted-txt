@@ -10,32 +10,8 @@ package openconfig.enums;
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
-// ProtoTestEAnimalsAnimalConfigSpecies represents an enumerated type generated for the YANG enumerated type union.
-enum ProtoTestEAnimalsAnimalConfigSpecies {
-  PROTOTESTEANIMALSANIMALCONFIGSPECIES_UNSET = 0;
-  PROTOTESTEANIMALSANIMALCONFIGSPECIES_TAXIDEA_TAXUS = 1;
-  PROTOTESTEANIMALSANIMALCONFIGSPECIES_CERVUS_CANADENSIS = 2;
-  PROTOTESTEANIMALSANIMALCONFIGSPECIES_OVIS_CANADENSIS = 3;
-}
-
-// ProtoTestEBarsBarBaz represents an enumerated type generated for the YANG enumerated type union.
-enum ProtoTestEBarsBarBaz {
-  PROTOTESTEBARSBARBAZ_UNSET = 0;
-  PROTOTESTEBARSBARBAZ_X = 1;
-  PROTOTESTEBARSBARBAZ_Y = 2;
-  PROTOTESTEBARSBARBAZ_Z = 3;
-}
-
 // ProtoTestEID represents an enumerated type generated for the YANG identity ID.
 enum ProtoTestEID {
   PROTOTESTEID_UNSET = 0;
   PROTOTESTEID_IDVAL = 77312850;
-}
-
-// ProtoTestETestConfigC represents an enumerated type generated for the YANG enumerated type union.
-enum ProtoTestETestConfigC {
-  PROTOTESTETESTCONFIGC_UNSET = 0;
-  PROTOTESTETESTCONFIGC_D = 1;
-  PROTOTESTETESTCONFIGC_E = 2;
-  PROTOTESTETESTCONFIGC_F = 3;
 }

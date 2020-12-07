@@ -17,11 +17,15 @@ message A {
     A_UNSET = 0;
     A_C_VAL_D_VAL = 1;
   }
+  enum D {
+    D_UNSET = 0;
+    D_B_VAL = 1;
+  }
   A a = 314438335;
   openconfig.enums.ProtoEnumsBASEIDENTITY b = 314438332;
   openconfig.enums.ProtoEnumsEnumTypedef c = 314438333;
   oneof d {
-    openconfig.enums.ProtoEnumsEnumUnionTypedefEnum d_protoenumsenumuniontypedefenum = 90474227;
+    D d_d = 436785703;
     string d_string = 483106466;
   }
   oneof e {
