@@ -631,14 +631,6 @@ func TestUnmarshalKeyedList(t *testing.T) {
 			want:   &ContainerStructPreferConfig{},
 		},
 		{
-			// TODO(wenbli): Since the shadow value is more than 1 level deep below "state", it doesn't produce an error.
-			desc:   "success ignoring non-existent shadowed state path",
-			json:   `{ "state": { "key-list" : [ { "key" : "forty-two", "non-existent-field" : 42} ] } }`,
-			schema: containerWithPreferConfigSchema,
-			parent: &ContainerStructPreferConfig{},
-			want:   &ContainerStructPreferConfig{},
-		},
-		{
 			desc:    "bad field",
 			json:    `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
 			schema:  containerWithLeafListSchema,
