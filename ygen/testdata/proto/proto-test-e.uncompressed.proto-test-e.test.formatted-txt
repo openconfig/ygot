@@ -19,11 +19,11 @@ message Config {
     A_B = 2;
     A_C = 3;
   }
-  enum C {
-    C_UNSET = 0;
-    C_D = 1;
-    C_E = 2;
-    C_F = 3;
+  enum CEnum {
+    CENUM_UNSET = 0;
+    CENUM_D = 1;
+    CENUM_E = 2;
+    CENUM_F = 3;
   }
   A a = 205874313;
   oneof b {
@@ -31,7 +31,7 @@ message Config {
     string b_string = 464943506;
   }
   oneof c {
-    C c_c = 41292265;
+    CEnum c_cenum = 70014038;
     string c_string = 30323953;
   }
 }
@@ -44,11 +44,11 @@ message State {
     A_B = 2;
     A_C = 3;
   }
-  enum C {
-    C_UNSET = 0;
-    C_D = 1;
-    C_E = 2;
-    C_F = 3;
+  enum CEnum {
+    CENUM_UNSET = 0;
+    CENUM_D = 1;
+    CENUM_E = 2;
+    CENUM_F = 3;
   }
   A a = 138530090;
   oneof b {
@@ -56,7 +56,7 @@ message State {
     string b_string = 216646479;
   }
   oneof c {
-    C c_c = 403813766;
+    CEnum c_cenum = 54354737;
     string c_string = 187790664;
   }
 }

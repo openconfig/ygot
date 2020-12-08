@@ -80,6 +80,9 @@ type DirectoryGenConfig struct {
 	// may be transformed from a simple 1:1 mapping with respect to the
 	// given YANG schema.
 	TransformationOptions TransformationOpts
+	// GoOptions stores a struct which stores Go code generation specific
+	// options for the code generaton.
+	GoOptions GoOpts
 }
 
 // ParseOpts contains parsing configuration for a given schema.
@@ -213,6 +216,16 @@ type GoOpts struct {
 	// IncludeModelData specifies whether gNMI ModelData messages should be generated
 	// in the output code.
 	IncludeModelData bool
+	// AppendEnumSuffixForSimpleUnionEnums appends an "Enum" suffix to the
+	// enumeration name for simple (i.e. non-typedef) leaves which are
+	// unions with an enumeration inside. This makes all inlined
+	// enumerations within unions, whether typedef or not, have this
+	// suffix, achieving consistency. Since this flag is planned to be a
+	// v1 compatibility flag along with
+	// UseDefiningModuleForTypedefEnumNames, and will be removed in v1, it
+	// only applies when useDefiningModuleForTypedefEnumNames is also set
+	// to true.
+	AppendEnumSuffixForSimpleUnionEnums bool
 }
 
 // ProtoOpts stores Protobuf specific options for the code generation library.
@@ -248,6 +261,10 @@ type ProtoOpts struct {
 	// output for the protobuf schema. If false, a separate package
 	// is generated per package.
 	NestedMessages bool
+	// UseConsistentNamesForProtoUnionEnums, when set, avoids using the schema
+	// path as the name of enumerations under unions in generated proto
+	// code, and also appends a suffix to non-typedef union enums.
+	UseConsistentNamesForProtoUnionEnums bool
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -390,7 +407,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	enumSet, goEnums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim)
+	enumSet, goEnums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.GoOptions.AppendEnumSuffixForSimpleUnionEnums, false, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, errs
 	}
@@ -508,7 +525,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 		return nil, nil, util.Errors{fmt.Errorf("GetDirectoriesAndLeafTypes currently does not have unit tests for when compression is disabled; if support needed, add unit tests and remove this error")}
 	}
 
-	cg := &GeneratorConfig{ParseOptions: dcg.ParseOptions, TransformationOptions: dcg.TransformationOptions}
+	cg := &GeneratorConfig{ParseOptions: dcg.ParseOptions, TransformationOptions: dcg.TransformationOptions, GoOptions: dcg.GoOptions}
 	// Extract the entities to be mapped into structs and enumerations in the output
 	// Go code. Extract the schematree from the modules provided such that it can be
 	// used to reference entities within the tree.
@@ -519,7 +536,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 
 	dirsToProcess := map[string]*yang.Entry(mdef.directoryEntries)
 
-	enumSet, _, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.TransformationOptions.EnumOrgPrefixesToTrim)
+	enumSet, _, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.GoOptions.AppendEnumSuffixForSimpleUnionEnums, false, cg.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, nil, errs
 	}
@@ -621,7 +638,10 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	if errs != nil {
 		return nil, errs
 	}
-	enumSet, penums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim)
+	// If UseConsistentNamesForProtoUnionEnums=true, then also set
+	// appendEnumSuffixForSimpleUnionEnums=true for consistent union enum
+	// names.
+	enumSet, penums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums, cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, errs
 	}
@@ -699,7 +719,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			annotateSchemaPaths: cg.Config.ProtoOptions.AnnotateSchemaPaths,
 			annotateEnumNames:   cg.Config.ProtoOptions.AnnotateEnumNames,
 			nestedMessages:      cg.Config.ProtoOptions.NestedMessages,
-		}, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
+		}, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums)
 
 		if errs != nil {
 			yerr = util.AppendErrs(yerr, errs)

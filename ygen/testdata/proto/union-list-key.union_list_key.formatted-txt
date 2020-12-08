@@ -34,33 +34,18 @@ message A {
 
 message Z {
   message Za {
-    enum Ab {
-      AB_UNSET = 0;
-      AB_A = 1 [(yext.yang_name) = "A"];
-      AB_B = 2 [(yext.yang_name) = "B"];
-    }
-    enum Ac {
-      AC_UNSET = 0;
-      AC_A = 1 [(yext.yang_name) = "A"];
-      AC_B = 2 [(yext.yang_name) = "B"];
-    }
     oneof ab {
-      Ab ab_ab = 331624049;
+      openconfig.enums.UnionListKeyEuEnum ab_unionlistkeyeuenum = 221033643;
       string ab_string = 508594323;
     }
     oneof ac {
-      Ac ac_ac = 389810075;
+      openconfig.enums.UnionListKeyEuEnum ac_unionlistkeyeuenum = 145862492;
       string ac_string = 248557068;
     }
   }
   message ZaKey {
-    enum Zb {
-      ZB_UNSET = 0;
-      ZB_A = 1 [(yext.yang_name) = "A"];
-      ZB_B = 2 [(yext.yang_name) = "B"];
-    }
     oneof zb {
-      Ab zb_ab = 331624049;
+      openconfig.enums.UnionListKeyEuEnum zb_unionlistkeyeuenum = 221033643;
       string zb_string = 508594323;
     }
     Za za = 2;

@@ -105,7 +105,10 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 	if size < schema.ListAttr.MinElements {
 		errors = util.AppendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, schema.ListAttr.MinElements))
 	}
-	if size > schema.ListAttr.MaxElements {
+	// 0 is an invalid value for MaxElements
+	// (https://tools.ietf.org/html/rfc7950#section-7.7.6).
+	// For useability it best represents the value "unbounded".
+	if schema.ListAttr.MaxElements != 0 && size > schema.ListAttr.MaxElements {
 		errors = util.AppendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, schema.ListAttr.MaxElements))
 	}
 	return errors
