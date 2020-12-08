@@ -831,6 +831,21 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "exclude-state-ro-list.formatted-txt"),
 	}, {
+		name:           "different union enumeration types",
+		inFiles:        []string{filepath.Join(datapath, "", "enum-union.yang")},
+		inIncludePaths: []string{filepath.Join(datapath, "modules")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-union.formatted-txt"),
+	}, {
 		name:           "enumeration behaviour - resolution across submodules and grouping re-use within union",
 		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
 		inIncludePaths: []string{filepath.Join(datapath, "modules")},
@@ -1887,6 +1902,41 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_test_a.parent.child": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.child.formatted-txt"),
 		},
 	}, {
+		name:    "enumeration under unions test with compression",
+		inFiles: []string{filepath.Join(datapath, "enum-union.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour: genutil.PreferIntendedConfig,
+				GenerateFakeRoot:  true,
+			},
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames: true,
+				NestedMessages:    true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.inconsistent.formatted-txt"),
+			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.enums.inconsistent.formatted-txt"),
+		},
+	}, {
+		name:    "enumeration under unions test with compression and with UseDefiningModuleForTypedefEnumNames=true",
+		inFiles: []string{filepath.Join(datapath, "enum-union.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				GenerateFakeRoot:                     true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+			ProtoOptions: ProtoOpts{
+				AnnotateEnumNames: true,
+				NestedMessages:    true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.inconsistent.defining-module-typedef-enum-name.formatted-txt"),
+			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.enums.inconsistent.defining-module-typedef-enum-name.formatted-txt"),
+		},
+	}, {
 		name:     "yang schema with a list",
 		inFiles:  []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-b.yang")},
 		inConfig: GeneratorConfig{TransformationOptions: TransformationOpts{CompressBehaviour: genutil.PreferIntendedConfig}},
@@ -2230,7 +2280,7 @@ func TestGenerateProto3(t *testing.T) {
 					if diffl, _ := testutil.GenerateUnifiedDiff(wantCode, gotCodeBuf.String()); diffl != "" {
 						diff = diffl
 					}
-					t.Fatalf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-want, +got):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
+					t.Errorf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-want, +got):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
 				}
 			}
 
