@@ -233,27 +233,34 @@ func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]st
 		parent := tree
 		for i := 0; i < len(ch)-1; i++ {
 			chn := util.StripModulePrefix(ch[i])
-			if tree[chn] == nil {
-				tree[chn] = map[string]interface{}{}
+			if parent[chn] == nil {
+				parent[chn] = map[string]interface{}{}
 			}
-			parent = tree[chn].(map[string]interface{})
+			parent = parent[chn].(map[string]interface{})
 		}
 		parent[util.StripModulePrefix(ch[len(ch)-1])] = true
 	}
 
 	var missingKeys []string
+	var unexpectedLeafNodes []string
 	// We have to define the function up-front so that we can recursively call the
 	// anonymous function.
 	var checkTree func(map[string]interface{}, map[string]interface{})
 	checkTree = func(jsonTree map[string]interface{}, keyTree map[string]interface{}) {
 		for key := range jsonTree {
-			key = util.StripModulePrefix(key)
-			if _, ok := keyTree[key]; !ok {
-				missingKeys = append(missingKeys, key)
+			shortKey := util.StripModulePrefix(key)
+			if _, ok := keyTree[shortKey]; !ok {
+				missingKeys = append(missingKeys, shortKey)
 			}
-			if ct, ok := keyTree[key].(map[string]interface{}); ok {
+			if ct, ok := keyTree[shortKey].(map[string]interface{}); ok {
+				// If this is a non-leaf node for keyTree, then
+				// it should also be a non-leaf node for jsonTree.
+				// The converse is not true, since keyTree is
+				// just a partial path.
 				if jt, ok := jsonTree[key].(map[string]interface{}); ok {
 					checkTree(jt, ct)
+				} else {
+					unexpectedLeafNodes = append(unexpectedLeafNodes, shortKey)
 				}
 			}
 		}
@@ -270,6 +277,9 @@ func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]st
 		return fmt.Errorf("JSON contains unexpected field %v", missingKeys)
 	}
 
+	if len(unexpectedLeafNodes) != 0 {
+		return fmt.Errorf("JSON contains unexpected leaf field(s) %v at non-leaf node", unexpectedLeafNodes)
+	}
 	return nil
 }
 

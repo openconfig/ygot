@@ -69,7 +69,16 @@ func TestCheckDataTreeAgainstPaths(t *testing.T) {
 			{"config"},
 		},
 	}, {
-		desc: "JSON path shorter than the specified datapath",
+		desc: "JSON path two elements shorter than the specified datapath",
+		inJSONTree: map[string]interface{}{
+			"config": "feathers-mcgraw",
+		},
+		inDataPaths: [][]string{
+			{"config", "name", "penguin"},
+		},
+		wantErrSubstring: `JSON contains unexpected leaf field(s) [config] at non-leaf node`,
+	}, {
+		desc: "JSON path single element shorter than the specified datapath",
 		inJSONTree: map[string]interface{}{
 			"config": map[string]interface{}{
 				"name": "feathers-mcgraw",
@@ -78,7 +87,7 @@ func TestCheckDataTreeAgainstPaths(t *testing.T) {
 		inDataPaths: [][]string{
 			{"config", "name", "penguin"},
 		},
-		wantErrSubstring: `JSON contains unexpected field name`,
+		wantErrSubstring: `JSON contains unexpected leaf field(s) [name] at non-leaf node`,
 	}, {
 		desc: "hierarchical fields, not populated",
 		inJSONTree: map[string]interface{}{
