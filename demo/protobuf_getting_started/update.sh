@@ -22,6 +22,7 @@ go run ${SRCDIR}/proto_generator/protogenerator.go \
   -base_import_path="github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto" \
   -path=yang -output_dir=ribproto \
   -typedef_enum_with_defmod \
+  -consistent_union_enum_names \
   -enum_package_name=enums -package_name=openconfig \
   -exclude_modules=ietf-interfaces \
   yang/rib/openconfig-rib-bgp.yang
