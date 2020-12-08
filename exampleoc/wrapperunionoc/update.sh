@@ -18,6 +18,7 @@ go run ../../generator/generator.go -path=public,deps -output_file=oc.go \
   -shorten_enum_leaf_names \
   -trim_enum_openconfig_prefix \
   -typedef_enum_with_defmod \
+  -enum_suffix_for_simple_union_enums \
   -exclude_modules=ietf-interfaces \
   -generate_rename \
   -generate_append \

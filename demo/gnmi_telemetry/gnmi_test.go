@@ -3,12 +3,12 @@ package main
 import (
 	"io/ioutil"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/ygot/ygot"
-	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/encoding/prototext"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -65,8 +65,11 @@ func TestRenderToGNMINotifications(t *testing.T) {
 		}
 
 		if !updateSetEqual(gotProtos[0].Update, want.Update) {
-			diff := cmp.Diff(want, gotProtos[0], protocmp.Transform())
-			t.Errorf("%s: renderToGNMINotifications(%v, %v, %v): did not get expected output, diff(-want,+got):\n%s", tt.name, tt.inStruct, tt.inTimestamp, tt.inUsePathElem, diff)
+			var txtprotos []string
+			for _, update := range gotProtos[0].Update {
+				txtprotos = append(txtprotos, prototext.Format(update))
+			}
+			t.Errorf("%s: renderToGNMINotifications(%v, %v, %v): did not get expected output, got proto:\n%s", tt.name, tt.inStruct, tt.inTimestamp, tt.inUsePathElem, strings.Join(txtprotos, "\n"))
 		}
 	}
 }
