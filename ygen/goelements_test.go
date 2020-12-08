@@ -379,7 +379,7 @@ func TestUnionSubTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, true, true, nil)
+			enumSet, _, errs := findEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, true, true, true, nil)
 			if errs != nil {
 				t.Fatal(errs)
 			}
@@ -1005,7 +1005,7 @@ func TestYangTypeToGoType(t *testing.T) {
 
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.ctx, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, nil)
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, true, true, true, nil)
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
@@ -1381,7 +1381,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, true, true, nil)
+			enumSet, _, errs := findEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, true, true, true, nil)
 			if errs != nil {
 				t.Fatalf("findEnumSet failed: %v", errs)
 			}

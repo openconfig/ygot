@@ -658,7 +658,7 @@ func TestGenProto3Msg(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), tt.inCompressPaths, true, false, true, true, true, nil)
+			enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), tt.inCompressPaths, true, false, true, true, true, true, nil)
 			if errs != nil {
 				t.Fatalf("findEnumSet failed: %v", errs)
 			}
@@ -673,7 +673,7 @@ func TestGenProto3Msg(t *testing.T) {
 				enumPackageName:     tt.inEnumPackage,
 				baseImportPath:      tt.inBaseImportPath,
 				annotateSchemaPaths: tt.inAnnotateSchemaPaths,
-			}, tt.inParentPackage, tt.inChildMsgs, true)
+			}, tt.inParentPackage, tt.inChildMsgs, true, true)
 
 			if (errs != nil) != tt.wantErr {
 				t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
@@ -1418,7 +1418,7 @@ message MessageName {
 		t.Run(tt.name, func(t *testing.T) {
 			wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
 			for compress, want := range map[bool]*generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
-				enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), compress, true, false, true, true, true, nil)
+				enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), compress, true, false, true, true, true, true, nil)
 				if errs != nil {
 					t.Fatalf("findEnumSet failed: %v", errs)
 				}
@@ -1433,7 +1433,7 @@ message MessageName {
 					enumPackageName: tt.inEnumPackageName,
 					baseImportPath:  tt.inBaseImportPath,
 					nestedMessages:  tt.inNestedMessages,
-				}, true)
+				}, true, true)
 
 				if (errs != nil) != wantErr[compress] {
 					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, wantErr[compress])
@@ -1637,7 +1637,7 @@ func TestGenListKeyProto(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs, true)
+		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs, true, true)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: genListKeyProto(%s, %s, %#v): got unexpected error returned, got: %v, want err: %v", tt.name, tt.inListPackage, tt.inListName, tt.inArgs, err, tt.wantErr)
 		}
@@ -1870,6 +1870,8 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		inEntry: &yang.Entry{
 			Name: "field-name",
 			Type: &yang.YangType{
+				Name: "union",
+				Kind: yang.Yunion,
 				Type: []*yang.YangType{
 					{
 						Name: "enumeration",
@@ -1897,7 +1899,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			Type: "string",
 		}},
 		wantEnums: map[string]*protoMsgEnum{
-			"FieldName": {
+			"FieldNameEnum": {
 				Values: map[int64]protoEnumValue{
 					0: {ProtoLabel: "UNSET"},
 					1: {ProtoLabel: "SPEED_2_5G", YANGLabel: "SPEED_2.5G"},
@@ -1905,6 +1907,41 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name:   "union with an enumeration, but union is typedef",
+		inName: "FieldName",
+		inEntry: &yang.Entry{
+			Name: "field-name",
+			Type: &yang.YangType{
+				Name: "derived-union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{
+					{
+						Name: "enumeration",
+						Kind: yang.Yenum,
+						Enum: testYANGEnums["enumOne"],
+					},
+					{Kind: yang.Ystring},
+				},
+			},
+		},
+		inMappedType: &MappedType{
+			UnionTypes: map[string]int{
+				"SomeEnumType": 0,
+				"string":       1,
+			},
+		},
+		inAnnotateEnumNames: true,
+		wantFields: []*protoMsgField{{
+			Tag:  29065580,
+			Name: "FieldName_someenumtype",
+			Type: "SomeEnumType",
+		}, {
+			Tag:  173535000,
+			Name: "FieldName_string",
+			Type: "string",
+		}},
+		wantEnums: nil,
 	}, {
 		name:   "leaflist of union",
 		inName: "FieldName",
@@ -1941,7 +1978,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames)
+		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, true, true)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, err, tt.wantErr)
 		}
