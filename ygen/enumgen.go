@@ -141,6 +141,8 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 						// We skip generating the enum in the global proto enum file when the
 						// enumeration is a non-typedef enumeration within a non-typedef union
 						// type, and with consistent name generation.
+						// TODO(wenbli): Once the enum name flags are removed, this code
+						// should be deleted.
 						"skipGlobalProtoGeneration": useDefiningModuleForTypedefEnumNames && util.IsYANGBaseType(enumNameSake) && useConsistentNamesForProtoUnionEnums,
 					},
 				},
