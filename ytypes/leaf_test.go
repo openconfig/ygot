@@ -1097,6 +1097,11 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			want: LeafContainerStruct{},
 		},
 		{
+			desc:    "non-existent state fail ignoring",
+			json:    `{"state" : { "non-existent-leaf" : -42} }`,
+			wantErr: `parent container container-schema (type *ytypes.LeafContainerStruct): JSON contains unexpected field non-existent-leaf`,
+		},
+		{
 			desc: "uint8 success",
 			json: `{"uint8-leaf" : 42}`,
 			want: LeafContainerStruct{Uint8Leaf: ygot.Uint8(42)},

@@ -136,8 +136,6 @@ type TransformationOpts struct {
 	// IgnoreShadowSchemaPaths indicates whether when OpenConfig path
 	// compression is enabled, that the shadowed paths are to be ignored
 	// while while unmarshalling.
-	// TODO(wenbli): Invalid shadow paths currently do not cause an error
-	// during JSON unmarshalling.
 	IgnoreShadowSchemaPaths bool
 	// GenerateFakeRoot specifies whether an entity that represents the
 	// root of the YANG schema tree should be generated in the generated

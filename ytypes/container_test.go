@@ -426,6 +426,13 @@ func TestUnmarshalContainer(t *testing.T) {
 			json:    `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 42 } } }`,
 			wantErr: `parent container container-field (type *ytypes.ContainerStructPreferStateNoShadow): JSON contains unexpected field config`,
 		},
+		{
+			desc:    "fail ignoring invalid shadow leaf",
+			schema:  containerSchema,
+			parent:  &ParentContainerStructPreferState{},
+			json:    `{ "container-field": { "leaf2-field": 43, "config": { "non-existent-field": 42 } } }`,
+			wantErr: `parent container container-field (type *ytypes.ContainerStructPreferState): JSON contains unexpected field non-existent-field`,
+		},
 	}
 
 	var jsonTree interface{}
