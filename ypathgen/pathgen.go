@@ -254,7 +254,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 	// Get NodeDataMap for the schema.
 	nodeDataMap, es := getNodeDataMap(directories, leafTypeMap, schemaStructPkgAccessor, cg.PathStructSuffix)
 	if es != nil {
-		util.AppendErrs(errs, es)
+		errs = util.AppendErrs(errs, es)
 	}
 
 	if len(errs) == 0 {

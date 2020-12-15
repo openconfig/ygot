@@ -477,17 +477,17 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		var err error
 		rawSchema, err = buildJSONTree(mdef.modules, gogen.uniqueDirectoryNames, mdef.directoryEntries["/"], cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled())
 		if err != nil {
-			util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
+			codegenErr = util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}
 
 		if rawSchema != nil {
 			if jsonSchema, err = writeGoSchema(rawSchema, cg.Config.GoOptions.SchemaVarName); err != nil {
-				util.AppendErr(codegenErr, err)
+				codegenErr = util.AppendErr(codegenErr, err)
 			}
 		}
 
 		if enumTypeMapCode, err = generateEnumTypeMap(enumTypeMap); err != nil {
-			util.AppendErr(codegenErr, err)
+			codegenErr = util.AppendErr(codegenErr, err)
 		}
 	}
 
@@ -608,7 +608,7 @@ func generateEnumCode(goEnums map[string]*yangEnum) ([]string, string, util.Erro
 	for _, enumName := range orderedEnumNames {
 		enumOut, err := writeGoEnum(enumNameMap[enumName])
 		if err != nil {
-			util.AppendErr(errs, err)
+			errs = util.AppendErr(errs, err)
 			continue
 		}
 		enumSnippets = append(enumSnippets, enumOut.constDef)
@@ -620,7 +620,7 @@ func generateEnumCode(goEnums map[string]*yangEnum) ([]string, string, util.Erro
 	// string values.
 	enumMap, err := generateEnumMap(enumValueMap)
 	if err != nil {
-		util.AppendErr(errs, err)
+		errs = util.AppendErr(errs, err)
 	}
 	if len(errs) == 0 {
 		errs = nil
