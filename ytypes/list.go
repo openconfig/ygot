@@ -406,10 +406,10 @@ func makeValForInsert(schema *yang.Entry, parent interface{}, keys map[string]st
 				pv := util.SplitPath(leafrefPath)
 				v, ok := rootSch.Dir[util.StripModulePrefix(pv[1])]
 				if !ok {
-					return fmt.Errorf("cannot resolve leafref, %s (can't find %s in %v)", leafrefPath, util.StripModulePrefix(pv[1]), rootSch.Dir)
+					return fmt.Errorf("cannot resolve leafref, %s (can't find top-level %s in %v at %s)", leafrefPath, util.StripModulePrefix(pv[1]), rootSch.Dir, rootSch.Name)
 				}
 				if keySchema = v.Find(strings.Join(pv[2:], "/")); keySchema == nil {
-					return fmt.Errorf("cannot find leafref")
+					return fmt.Errorf("cannot find leafref %s from %v", strings.Join(pv[2:], "/"), v.Name)
 				}
 			default:
 				if keySchema = keySchema.Find(leafrefPath); keySchema == nil {

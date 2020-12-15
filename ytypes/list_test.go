@@ -1136,7 +1136,6 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 	type ContainerStruct struct {
 		StructKeyList            map[KeyStructMapCreation]*ListElemStructMapCreation            `path:"struct-key-list"`
 		StructKeyListLeafrefKeys map[KeyStructMapCreation]*ListElemStructMapCreationLeafrefKeys `path:"struct-key-list-leafref-keys"`
-		SingleLeafrefKey         map[string]*ListElemSingleMapCreation                          `path:"single-leafref-key"`
 	}
 
 	type test struct {
@@ -1712,6 +1711,153 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			},
 			container:    &simpleStruct{KeyList: map[uint32]*ListUintStruct{}},
 			errSubstring: "does not contain a field with tag missing-key",
+		},
+		{
+			desc: "absolute leafref used as key of list",
+			keys: map[string]string{"key": "string-value"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: yang.NewDefaultListAttr(),
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yleafref, Path: "/cs:foo/cs:bar"},
+						Parent: &yang.Entry{
+							Name: "key",
+							Parent: &yang.Entry{
+								Name: "list-parent",
+								Parent: &yang.Entry{
+									Name: "root",
+									// This is the root.
+									Dir: map[string]*yang.Entry{
+										"foo": &yang.Entry{
+											Dir: map[string]*yang.Entry{
+												"bar": &yang.Entry{
+													Type: &yang.YangType{
+														Kind: yang.Ystring,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			container: &simpleStruct{KeyList: map[string]*ListStringStruct{}},
+			want:      "string-value",
+		},
+		{
+			desc: "absolute leafref used as key of list - but can't find second-level node",
+			keys: map[string]string{"key": "string-value"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: yang.NewDefaultListAttr(),
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yleafref, Path: "/cs:foo/cs:baz"},
+						Parent: &yang.Entry{
+							Name: "key",
+							Parent: &yang.Entry{
+								Name: "list-parent",
+								Parent: &yang.Entry{
+									Name: "root",
+									// This is the root.
+									Dir: map[string]*yang.Entry{
+										"foo": &yang.Entry{
+											Dir: map[string]*yang.Entry{
+												"bar": &yang.Entry{
+													Type: &yang.YangType{
+														Kind: yang.Ystring,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[string]*ListStringStruct{}},
+			errSubstring: "cannot find leafref cs:baz",
+		},
+		{
+			desc: "absolute leafref used as key of list - but can't find top-level node",
+			keys: map[string]string{"key": "string-value"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: yang.NewDefaultListAttr(),
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yleafref, Path: "/cs:foo/cs:baz"},
+						Parent: &yang.Entry{
+							Name: "key",
+							Parent: &yang.Entry{
+								Name: "list-parent",
+								Parent: &yang.Entry{
+									Name: "root",
+									// This is the root.
+									Dir: map[string]*yang.Entry{
+										// "foo" is not specified here.
+										"bat": &yang.Entry{
+											Dir: map[string]*yang.Entry{
+												"bar": &yang.Entry{
+													Type: &yang.YangType{
+														Kind: yang.Ystring,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[string]*ListStringStruct{}},
+			errSubstring: "can't find top-level foo",
+		},
+		{
+			desc: "absolute leafref used as key of list - but can't find top-level node",
+			keys: map[string]string{"key": "string-value"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: yang.NewDefaultListAttr(),
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yleafref, Path: "../baz"},
+						Parent: &yang.Entry{
+							Name: "key",
+						},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[string]*ListStringStruct{}},
+			errSubstring: `cannot find leafref "../baz"`,
 		},
 	}
 	for _, tt := range tests {
