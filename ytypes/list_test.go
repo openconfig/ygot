@@ -1136,6 +1136,7 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 	type ContainerStruct struct {
 		StructKeyList            map[KeyStructMapCreation]*ListElemStructMapCreation            `path:"struct-key-list"`
 		StructKeyListLeafrefKeys map[KeyStructMapCreation]*ListElemStructMapCreationLeafrefKeys `path:"struct-key-list-leafref-keys"`
+		SingleLeafrefKey         map[string]*ListElemSingleMapCreation                          `path:"single-leafref-key"`
 	}
 
 	type test struct {

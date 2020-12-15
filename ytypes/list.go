@@ -393,8 +393,28 @@ func makeValForInsert(schema *yang.Entry, parent interface{}, keys map[string]st
 		}
 		if keySchema.Type.Kind == yang.Yleafref {
 			leafrefPath := keySchema.Type.Path
-			if keySchema = keySchema.Find(leafrefPath); keySchema == nil {
-				return fmt.Errorf("cannot find leafref %q in schema directory %v", leafrefPath, schema.Dir)
+			switch {
+			case leafrefPath[0] == '/':
+				// If this is an absolute path, we need to implement this search without Find, since
+				// we do not have the complete goyang yang.Entry schema tree available to us. We know
+				// that we can use Find at any node other than the root, therefore we do the first
+				// resolution from the root ourselves, and then use Find to complete the rest of the
+				// path, which ensures that this is safe.
+				rootSch := keySchema
+				for ; rootSch.Parent != nil; rootSch = rootSch.Parent {
+				}
+				pv := util.SplitPath(leafrefPath)
+				v, ok := rootSch.Dir[util.StripModulePrefix(pv[1])]
+				if !ok {
+					return fmt.Errorf("cannot resolve leafref, %s (can't find %s in %v)", leafrefPath, util.StripModulePrefix(pv[1]), rootSch.Dir)
+				}
+				if keySchema = v.Find(strings.Join(pv[2:], "/")); keySchema == nil {
+					return fmt.Errorf("cannot find leafref")
+				}
+			default:
+				if keySchema = keySchema.Find(leafrefPath); keySchema == nil {
+					return fmt.Errorf("cannot find leafref %q in schema directory %v", leafrefPath, schema.Dir)
+				}
 			}
 		}
 
