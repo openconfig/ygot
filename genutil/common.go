@@ -502,7 +502,7 @@ func TransformEntry(e *yang.Entry, compressBehaviour CompressBehaviour) util.Err
 	for _, ch := range util.Children(e) {
 		switch {
 		case ch.IsLeaf(), ch.IsLeafList():
-			util.AppendErr(errs, pointLeafrefToState(ch))
+			errs = util.AppendErr(errs, pointLeafrefToState(ch))
 		case ch.IsContainer(), ch.IsList(), util.IsChoiceOrCase(ch):
 			// Recurse down the tree.
 			errs = util.AppendErrs(errs, TransformEntry(ch, compressBehaviour))
