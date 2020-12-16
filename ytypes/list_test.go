@@ -1734,9 +1734,9 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 									Name: "root",
 									// This is the root.
 									Dir: map[string]*yang.Entry{
-										"foo": &yang.Entry{
+										"foo": {
 											Dir: map[string]*yang.Entry{
-												"bar": &yang.Entry{
+												"bar": {
 													Type: &yang.YangType{
 														Kind: yang.Ystring,
 													},
@@ -1775,9 +1775,9 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 									Name: "root",
 									// This is the root.
 									Dir: map[string]*yang.Entry{
-										"foo": &yang.Entry{
+										"foo": {
 											Dir: map[string]*yang.Entry{
-												"bar": &yang.Entry{
+												"bar": {
 													Type: &yang.YangType{
 														Kind: yang.Ystring,
 													},
@@ -1817,9 +1817,9 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 									// This is the root.
 									Dir: map[string]*yang.Entry{
 										// "foo" is not specified here.
-										"bat": &yang.Entry{
+										"bat": {
 											Dir: map[string]*yang.Entry{
-												"bar": &yang.Entry{
+												"bar": {
 													Type: &yang.YangType{
 														Kind: yang.Ystring,
 													},
