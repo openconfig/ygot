@@ -1,0 +1,12 @@
+module testschema {
+  prefix "ts";
+  namespace "urn:ts";
+
+  container target {
+    list entity {
+      key "name";
+
+      leaf name { type string; }
+    }
+  }
+}
