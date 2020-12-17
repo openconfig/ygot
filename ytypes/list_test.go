@@ -1792,7 +1792,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 				},
 			},
 			container:    &simpleStruct{KeyList: map[string]*ListStringStruct{}},
-			errSubstring: "cannot find leafref cs:baz",
+			errSubstring: "cannot find absolute leafref cs:baz",
 		},
 		{
 			desc: "absolute leafref used as key of list - but can't find top-level node",
