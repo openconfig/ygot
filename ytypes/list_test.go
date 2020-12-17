@@ -1837,7 +1837,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			errSubstring: "can't find top-level foo",
 		},
 		{
-			desc: "absolute leafref used as key of list - but can't find top-level node",
+			desc: "relative leafref used as key of list - but can't find referenced node",
 			keys: map[string]string{"key": "string-value"},
 			inSchema: &yang.Entry{
 				Name:     "key-list",
