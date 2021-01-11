@@ -820,6 +820,10 @@ func copySliceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 	}
 
 	if _, ok := srcField.Interface().([]Annotation); !ok {
+		if diff := cmp.Diff(srcField.Interface(), dstField.Interface()); diff == "" {
+			return nil
+		}
+
 		unique, err := uniqueSlices(dstField, srcField)
 		if err != nil {
 			return fmt.Errorf("error checking src and dst for uniqueness, got: %v", err)
