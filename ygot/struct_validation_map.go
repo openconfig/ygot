@@ -822,7 +822,7 @@ func copySliceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 	}
 
 	if _, ok := srcField.Interface().([]Annotation); !ok {
-		if diff := cmp.Diff(srcField.Interface(), dstField.Interface()); diff == "" {
+		if cmp.Equal(srcField.Interface(), dstField.Interface()) {
 			return nil
 		}
 
