@@ -497,8 +497,10 @@ func (*MergeOverwriteExistingFields) IsMergeOpt() {}
 // returning a new ValidatedGoStruct. If the input structs a and b are of
 // different types, an error is returned.
 //
-// Where two structs contain maps or slices that are populated in both a and b
-// their contents are merged. If a leaf is populated in both a and b, an error
+// Where two structs contain maps or slices that are populated in both a and b,
+// merge is skipped if their contents are equal, and their contents are merged
+// if unequal; however, an error is returned for slices if their elements are
+// overlapping but not equal. If a leaf is populated in both a and b, an error
 // is returned if the value of the leaf is not equal.
 func MergeStructs(a, b ValidatedGoStruct, opts ...MergeOpt) (ValidatedGoStruct, error) {
 	if reflect.TypeOf(a) != reflect.TypeOf(b) {
@@ -820,6 +822,10 @@ func copySliceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 	}
 
 	if _, ok := srcField.Interface().([]Annotation); !ok {
+		if cmp.Equal(srcField.Interface(), dstField.Interface()) {
+			return nil
+		}
+
 		unique, err := uniqueSlices(dstField, srcField)
 		if err != nil {
 			return fmt.Errorf("error checking src and dst for uniqueness, got: %v", err)

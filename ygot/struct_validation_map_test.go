@@ -1691,7 +1691,7 @@ func TestCopyStruct(t *testing.T) {
 		name:    "error, slice fields not unique",
 		inSrc:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
 		inDst:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
-		wantErr: true,
+		wantDst: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
 	},
 		{
 			name:  "overwrite, slice fields not unique",
@@ -1713,7 +1713,7 @@ func TestCopyStruct(t *testing.T) {
 
 		err := copyStruct(dst, src, tt.inOpts...)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: copyStruct(%v, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
+			t.Fatalf("%s: copyStruct(%v, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
 		}
 
 		if err != nil {
@@ -1924,9 +1924,40 @@ var mergeStructTests = []struct {
 		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
 	},
 	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	wantErr: "source and destination lists must be unique",
+}, {
+	name: "error - merge fields with slice with duplicate strings, with dst and src reversed",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	inB: &validatedMergeTestWithSlice{
 		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
 	},
 	wantErr: "source and destination lists must be unique",
+}, {
+	name: "merge fields with identical slices",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	want: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+}, {
+	name: "merge fields with identical slices with length 2",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	want: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
 }, {
 	name: "merge union: string values not equal",
 	inA: &validatedMergeTest{
