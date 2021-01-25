@@ -332,7 +332,7 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 	// be direct children of the entity representing e.
 	var errs []error
 	// prioNames is the set of names under the prioritized data container
-	// that are added as children. This is a whitelist for any shadowed
+	// that are added as children. This is a list of any allowed shadowed
 	// names in the deprioritized data container.
 	prioNames := map[string]bool{}
 	// directChildren is used to store the nodes that will be mapped to be direct
@@ -387,7 +387,7 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 					}
 				}
 				// If this is the prioritized data container, add the names to the
-				// whitelist. When processing nodes under the deprioritized data container,
+				// allow list. When processing nodes under the deprioritized data container,
 				// we will tolerate duplication of any names in this set, but not any other
 				// names.
 				if e.Dir[currChild].Name == prioData {

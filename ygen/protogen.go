@@ -674,7 +674,7 @@ func addProtoListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDef
 
 // addProtoContainerField modifies the field definition in fieldDef (which must correspond to a container field of
 // a YANG schema) to contain the definition of the field described by the args. It returns a slice of strings containing
-// the protobuf package imports that are required for the container defintion.
+// the protobuf package imports that are required for the container definition.
 func addProtoContainerField(fieldDef *protoMsgField, args *protoDefinitionArgs) ([]string, error) {
 	childmsg, ok := args.definedDirectories[args.field.Path()]
 	if !ok {

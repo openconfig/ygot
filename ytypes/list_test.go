@@ -1995,7 +1995,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			wantErrSubstring: "uint32 is not assignable to string",
 		},
 		{
-			inDesc: "fail creating key due to not maching key type - struct key",
+			inDesc: "fail creating key due to not matching key type - struct key",
 			inSchema: &yang.Entry{
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,

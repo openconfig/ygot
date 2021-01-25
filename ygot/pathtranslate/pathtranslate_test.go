@@ -220,7 +220,7 @@ func TestPathElem(t *testing.T) {
 			},
 		},
 		{
-			inDesc:           "fail path due to insuffucient keys to fill the key struct",
+			inDesc:           "fail path due to insufficient keys to fill the key struct",
 			inPath:           []string{"a", "b", "simpleKeyedLists", "simpleKeyedList", "key1", "structKeyedLists", "structKeyedList", "key1", "key2"},
 			wantErrSubstring: "got 2, want 3 keys for /a/b/simpleKeyedLists/simpleKeyedList/structKeyedLists/structKeyedList",
 		},

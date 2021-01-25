@@ -125,7 +125,7 @@ func newPathElemGNMIPath(e []*gnmipb.PathElem) *gnmiPath {
 	return &gnmiPath{pathElemPath: e}
 }
 
-// isValid determines whether a gnmiPath is valid by determing whether the
+// isValid determines whether a gnmiPath is valid by determining whether the
 // elementPath and structuredPath are both set or both unset.
 func (g *gnmiPath) isValid() bool {
 	return (g.stringSlicePath == nil) != (g.pathElemPath == nil)
