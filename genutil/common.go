@@ -387,7 +387,7 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 					}
 				}
 				// If this is the prioritized data container, add the names to the
-				// whitelist. When processing nodes under the deprioritized data container,
+				// allow list. When processing nodes under the deprioritized data container,
 				// we will tolerate duplication of any names in this set, but not any other
 				// names.
 				if e.Dir[currChild].Name == prioData {
