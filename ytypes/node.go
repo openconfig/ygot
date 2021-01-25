@@ -164,7 +164,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			// If val in args is set to a non-nil value and the path is exhausted, we
 			// may be dealing with a leaf or leaf list node. We should set the val
 			// to the corresponding field in GoStruct. If the field is an annotation,
-			// the field doesn't have a schema, so it is handled seperately.
+			// the field doesn't have a schema, so it is handled separately.
 			if !util.IsValueNil(args.val) && len(path.Elem) == to && !args.shadowPath {
 				switch {
 				case util.IsYgotAnnotation(ft):
