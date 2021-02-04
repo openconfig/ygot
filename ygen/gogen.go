@@ -1397,11 +1397,29 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			}
 
 			// Set the default type to the mapped Go type.
+			var defaultValue *string
+			switch {
+			case field.Default != "":
+				defaultValue = &field.Default
+			case mtype.DefaultValue != nil:
+				defaultValue = mtype.DefaultValue
+			}
+			if defaultValue != nil {
+				var err error
+				if defaultValue, err = gogen.yangDefaultValueToGoDefaultValue(*defaultValue, resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim); err != nil {
+					errs = append(errs, err)
+				}
+			}
+			if !goOpts.GenerateSimpleUnions {
+				// TODO(wenbli): In ygot v1, we should no longer
+				// support the wrapper union generated code, so this
+				// call would be obsolete.
+				defaultValue = goLeafDefault(field, mtype)
+			}
+
 			fType := mtype.NativeType
 			schemapath := util.SchemaTreePathNoModule(field)
 			zeroValue := mtype.ZeroValue
-			defaultValue := goLeafDefault(field, mtype)
-
 			// Only if this union has more than one subtype do we generate the union;
 			// otherwise, we use that subtype directly.
 			// Also, make sure to process a union type once and only once within the struct.

@@ -23,9 +23,13 @@ module enum-union {
     }
   }
 
+  typedef derived-uint8 {
+    type uint8;
+  }
+
   typedef days-of-week {
     type union {
-      type uint8;
+      type derived-uint8;
       type weekend-days;
     }
   }
@@ -40,6 +44,7 @@ module enum-union {
           enum THREE;
         }
       }
+      default TWO;
     }
 
     leaf leaf2 {
@@ -47,14 +52,28 @@ module enum-union {
         type uint64;
         type weekend-days;
       }
+      default SUNDAY;
     }
 
     leaf leaf3 {
       type cyclone-scales;
+      default SUPER;
     }
 
     leaf leaf4 {
       type days-of-week;
+      default 3;
+    }
+
+    leaf leaf5 {
+      type union {
+        type enumeration {
+          enum UN;
+          enum DEUX;
+          enum TROIS;
+        }
+      }
+      default DEUX;
     }
   }
 
