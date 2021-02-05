@@ -28,6 +28,7 @@ module enum-union {
     type uint8 {
       range 1..5;
     }
+    default 5;
   }
 
   typedef days-of-week {

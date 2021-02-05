@@ -131,7 +131,7 @@ func (t *Outer_Inner) GetLeaf2() Outer_Inner_Leaf2_Union {
 // before retrieving the leaf's value.
 func (t *Outer_Inner) GetLeaf3() Outer_Inner_Leaf3_Union {
 	if t == nil || t.Leaf3 ==  nil {
-		return nil
+		return EnumUnion_CycloneScales_Enum_SUPER
 	}
 	return t.Leaf3
 }
