@@ -22,14 +22,12 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 )
 
 var (
 	base64testString        = "forty two"
 	base64testStringEncoded = base64.StdEncoding.EncodeToString([]byte(base64testString))
-	testBinary              = testutil.Binary(base64testString)
 )
 
 // TestUnionSubTypes extracts the types which make up a YANG union from a
@@ -1522,6 +1520,11 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 		wantKind:      yang.Ybinary,
 		wantUnionName: ygot.String("Binary(\"" + base64testStringEncoded + "\")"),
 	}, {
+		name:    "invalid binary",
+		inType:  &yang.YangType{Kind: yang.Ybinary},
+		in:      "~~~",
+		wantErr: true,
+	}, {
 		name:          "string",
 		inType:        &yang.YangType{Kind: yang.Ystring},
 		in:            "foo",
@@ -1560,23 +1563,20 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 		in:      "yes",
 		wantErr: true,
 	}, {
-		name:     "leafref without valid path",
-		inType:   &yang.YangType{Kind: yang.Yleafref},
-		in:       "foo",
-		wantErr:  true,
-		wantKind: yang.Ynone,
+		name:    "leafref without valid path",
+		inType:  &yang.YangType{Kind: yang.Yleafref},
+		in:      "foo",
+		wantErr: true,
 	}, {
-		name:     "enum without context",
-		inType:   &yang.YangType{Kind: yang.Yenum},
-		in:       "foo",
-		wantErr:  true,
-		wantKind: yang.Ynone,
+		name:    "enum without context",
+		inType:  &yang.YangType{Kind: yang.Yenum},
+		in:      "foo",
+		wantErr: true,
 	}, {
-		name:     "identityref without context",
-		inType:   &yang.YangType{Kind: yang.Yidentityref},
-		in:       "foo",
-		wantErr:  true,
-		wantKind: yang.Ynone,
+		name:    "identityref without context",
+		inType:  &yang.YangType{Kind: yang.Yidentityref},
+		in:      "foo",
+		wantErr: true,
 	}, {
 		name: "union with enum without context",
 		inType: &yang.YangType{
@@ -1586,9 +1586,8 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 				{Kind: yang.Yenum, Name: "enumeration"},
 			},
 		},
-		in:       "foo",
-		wantErr:  true,
-		wantKind: yang.Ynone,
+		in:      "foo",
+		wantErr: true,
 	}, {
 		name: "union of string, int32, given an int-compatible value",
 		ctx: &yang.Entry{
@@ -1734,7 +1733,7 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 		want:     ygot.String("BaseModule_BaseIdentity_BAR"),
 		wantKind: yang.Yunion,
 	}, {
-		name: "identityref in union with string",
+		name: "identityref in union with string, with prefix",
 		ctx: &yang.Entry{
 			Name: "union-leaf",
 			Kind: yang.LeafEntry,
@@ -1766,8 +1765,44 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 				},
 			},
 		},
-		in:       "BAR",
+		in:       "oc:BAR",
 		want:     ygot.String("BaseModule_BaseIdentity_BAR"),
+		wantKind: yang.Yunion,
+	}, {
+		name: "identityref in union with string, but resolves to string",
+		ctx: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Name: "union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Kind:    yang.Yidentityref,
+					Name:    "identityref",
+					Default: "prefix:CHIPS",
+					IdentityBase: &yang.Identity{
+						Name: "base-identity",
+						Parent: &yang.Module{
+							Name: "base-module",
+						},
+						Values: []*yang.Identity{
+							{Name: "FOO"},
+							{Name: "BAR"},
+						},
+					},
+				}, {
+					Kind: yang.Ystring,
+				}},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		},
+		in:       "BOO",
+		want:     ygot.String("UnionString(\"BOO\")"),
 		wantKind: yang.Yunion,
 	}, {
 		name: "enumeration",
@@ -1787,7 +1822,7 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 		want:     ygot.String("BaseModule_EnumerationLeaf_BLUE"),
 		wantKind: yang.Yenum,
 	}, {
-		name: "enumeration",
+		name: "enumeration not found",
 		ctx: &yang.Entry{
 			Name: "enumeration-leaf",
 			Type: &yang.YangType{
@@ -1804,7 +1839,7 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 		wantErr:  true,
 		wantKind: yang.Ynone,
 	}, {
-		name: "enumeration in union as the lone type",
+		name: "enumeration in union as the lone type, with prefix",
 		ctx: &yang.Entry{
 			Name: "union-leaf",
 			Kind: yang.LeafEntry,
@@ -1825,7 +1860,7 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 				Parent: &yang.Module{Name: "base-module"},
 			},
 		},
-		in:       "BLUE",
+		in:       "oc:BLUE",
 		want:     ygot.String("BaseModule_UnionLeaf_Enum_BLUE"),
 		wantKind: yang.Yunion,
 	}, {
@@ -1851,7 +1886,28 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 		want:     ygot.String("BaseModule_DerivedEnumeration_RED"),
 		wantKind: yang.Yenum,
 	}, {
-		name: "typedef union with enumeration as the lone type",
+		name: "typedef enumeration not found",
+		ctx: &yang.Entry{
+			Name: "enumeration-leaf",
+			Type: &yang.YangType{
+				Name: "derived-enumeration",
+				Kind: yang.Yenum,
+				Enum: testEnumType,
+				Base: &yang.Type{
+					Name:   "enumeration",
+					Parent: &yang.Module{Name: "base-module"},
+				},
+			},
+			Node: &yang.Enum{
+				Parent: &yang.Module{
+					Name: "base-module",
+				},
+			},
+		},
+		in:      "YELLOW",
+		wantErr: true,
+	}, {
+		name: "typedef union with enumeration as the lone type, with prefix",
 		ctx: &yang.Entry{
 			Name: "union-leaf",
 			Kind: yang.LeafEntry,
@@ -1873,7 +1929,7 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 				},
 			},
 		},
-		in:       "RED",
+		in:       "oc:RED",
 		want:     ygot.String("BaseModule_UnionLeaf_Enum_RED"),
 		wantKind: yang.Yunion,
 	}, {

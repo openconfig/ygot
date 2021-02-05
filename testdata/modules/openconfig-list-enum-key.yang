@@ -43,7 +43,7 @@ module openconfig-list-enum-key {
           base "foo-identity";
         }
       }
-      default BAR;
+      default oc:BAR;
     }
   }
 

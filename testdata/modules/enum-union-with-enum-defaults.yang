@@ -21,15 +21,18 @@ module enum-union {
         enum SUPER;
       }
     }
+    default SUPER;
   }
 
-  typedef derived-uint8 {
-    type uint8;
+  typedef weekday {
+    type uint8 {
+      range 1..5;
+    }
   }
 
   typedef days-of-week {
     type union {
-      type derived-uint8;
+      type weekday;
       type weekend-days;
     }
   }
@@ -57,7 +60,6 @@ module enum-union {
 
     leaf leaf3 {
       type cyclone-scales;
-      default SUPER;
     }
 
     leaf leaf4 {
