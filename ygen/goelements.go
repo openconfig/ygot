@@ -291,9 +291,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 		// within a typedef. We explicitly set the zero and default values
 		// here.
 		mtype.ZeroValue = "0"
-		if defVal != nil {
-			mtype.DefaultValue = enumDefaultValue(mtype.NativeType, *defVal, goEnumPrefix)
-		}
+		mtype.DefaultValue = defVal
 
 		return mtype, nil
 	}
@@ -680,8 +678,8 @@ func (s *goGenState) yangDefaultValueToGoDefaultValueAux(value string, args reso
 		}
 		return s.yangDefaultValueToGoDefaultValueAux(value, resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
 	case yang.Yunion:
-		// Try to convert to each type in order.
-		for _, t := range util.FlattenedTypes(args.yangType.Type) {
+		// Try to convert to each type in order, but try the enumerated types first.
+		for _, t := range append(util.EnumeratedUnionTypes(args.yangType.Type), util.FlattenedTypes(args.yangType.Type)...) {
 			snippetRef, convertedKind, err := s.yangDefaultValueToGoDefaultValueAux(value, resolveTypeArgs{yangType: t, contextEntry: args.contextEntry}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
 			if err == nil {
 				if simpleName, ok := simpleUnionConversionsFromKind[convertedKind]; ok {
