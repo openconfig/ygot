@@ -291,9 +291,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 		// within a typedef. We explicitly set the zero and default values
 		// here.
 		mtype.ZeroValue = "0"
-		if defVal != nil {
-			mtype.DefaultValue = enumDefaultValue(mtype.NativeType, *defVal, goEnumPrefix)
-		}
+		mtype.DefaultValue = defVal
 
 		return mtype, nil
 	}
@@ -371,7 +369,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 			DefaultValue:      defVal,
 		}, nil
 	case yang.Ydecimal64:
-		return &MappedType{NativeType: "float64", ZeroValue: goZeroValues["float64"]}, nil
+		return &MappedType{NativeType: "float64", ZeroValue: goZeroValues["float64"], DefaultValue: defVal}, nil
 	case yang.Yleafref:
 		// This is a leafref, so we check what the type of the leaf that it
 		// references is by looking it up in the schematree.
@@ -453,7 +451,8 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnum
 		NativeType: fmt.Sprintf("%s_Union", pathToCamelCaseName(args.contextEntry, compressOCPaths, false)),
 		// Zero value is set to nil, other than in cases where there is
 		// a single type in the union.
-		ZeroValue: "nil",
+		ZeroValue:    "nil",
+		DefaultValue: genutil.TypeDefaultValue(args.yangType),
 	}
 	// If there is only one type inside the union, then promote it to replace the union type.
 	if len(unionMappedTypes) == 1 {
@@ -679,8 +678,8 @@ func (s *goGenState) yangDefaultValueToGoDefaultValueAux(value string, args reso
 		}
 		return s.yangDefaultValueToGoDefaultValueAux(value, resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
 	case yang.Yunion:
-		// Try to convert to each type in order.
-		for _, t := range util.FlattenedTypes(args.yangType.Type) {
+		// Try to convert to each type in order, but try the enumerated types first.
+		for _, t := range append(util.EnumeratedUnionTypes(args.yangType.Type), util.FlattenedTypes(args.yangType.Type)...) {
 			snippetRef, convertedKind, err := s.yangDefaultValueToGoDefaultValueAux(value, resolveTypeArgs{yangType: t, contextEntry: args.contextEntry}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
 			if err == nil {
 				if simpleName, ok := simpleUnionConversionsFromKind[convertedKind]; ok {
