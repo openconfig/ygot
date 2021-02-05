@@ -70,7 +70,7 @@ jobs:
         working-directory: go/src/github.com/openconfig/ygot/ygen/testdata
         run: |
           function test-go-build() {
-            tmpdir=$(mktemp -d)
+            tmpdir=$(mktemp -d -p go/src/github.com/openconfig/ygot/ygen/testdata)
             name=$(basename $1)
             cp "$1" "$tmpdir"/"${name}.go"
             cd $tmpdir
