@@ -1741,6 +1741,8 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 				Name: "union",
 				Kind: yang.Yunion,
 				Type: []*yang.YangType{{
+					Kind: yang.Ystring,
+				}, {
 					Kind:    yang.Yidentityref,
 					Name:    "identityref",
 					Default: "prefix:CHIPS",
@@ -1754,8 +1756,6 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 							{Name: "BAR"},
 						},
 					},
-				}, {
-					Kind: yang.Ystring,
 				}},
 			},
 			Parent: &yang.Entry{Name: "base-module"},
@@ -1861,6 +1861,56 @@ func TestYangDefaultValueToGoDefaultValue(t *testing.T) {
 			},
 		},
 		in:       "oc:BLUE",
+		want:     ygot.String("BaseModule_UnionLeaf_Enum_BLUE"),
+		wantKind: yang.Yunion,
+	}, {
+		name: "enumeration in union with string as the second union type",
+		ctx: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Name: "union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Name: "enumeration",
+					Kind: yang.Yenum,
+					Enum: testEnumType,
+				}, {
+					Kind: yang.Ystring,
+				}},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Enum{
+				Name:   "enum",
+				Parent: &yang.Module{Name: "base-module"},
+			},
+		},
+		in:       "BLUE",
+		want:     ygot.String("BaseModule_UnionLeaf_Enum_BLUE"),
+		wantKind: yang.Yunion,
+	}, {
+		name: "enumeration in union with string as the first union type",
+		ctx: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Name: "union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Kind: yang.Ystring,
+				}, {
+					Name: "enumeration",
+					Kind: yang.Yenum,
+					Enum: testEnumType,
+				}},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Enum{
+				Name:   "enum",
+				Parent: &yang.Module{Name: "base-module"},
+			},
+		},
+		in:       "BLUE",
 		want:     ygot.String("BaseModule_UnionLeaf_Enum_BLUE"),
 		wantKind: yang.Yunion,
 	}, {
