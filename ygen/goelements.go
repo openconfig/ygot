@@ -553,7 +553,7 @@ func (s *goGenState) yangDefaultValueToGoDefaultValue(value string, args resolve
 	return snippet, err
 }
 
-// yangDefaultValueToGoDefaultValue takes a default value, and its associated
+// yangDefaultValueToGoDefaultValueAux takes a default value, and its associated
 // type, schema entry, and other generation flags, and maps it to a Go snippet
 // reference that would represent the value in the generated Go code.
 // If it is unable to convert the default value according to the given type and
