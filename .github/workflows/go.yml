@@ -71,7 +71,7 @@ jobs:
         run: |
           function test-go-build() {
             tmpdir=$(mktemp -d)
-            cp "$1" "$tmpdir"/"${f}.go"
+            cp "$1" "$tmpdir"/"${1}.go"
             cd $tmpdir
             goimports -w *.go
             go build
