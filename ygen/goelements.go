@@ -291,9 +291,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 		// within a typedef. We explicitly set the zero and default values
 		// here.
 		mtype.ZeroValue = "0"
-		if defVal != nil {
-			mtype.DefaultValue = enumDefaultValue(mtype.NativeType, *defVal, goEnumPrefix)
-		}
+		mtype.DefaultValue = defVal
 
 		return mtype, nil
 	}

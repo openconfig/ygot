@@ -598,7 +598,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			NativeType:        "E_BaseModule_DerivedIdentityref",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
-			DefaultValue:      ygot.String("BaseModule_DerivedIdentityref_AARDVARK"),
+			DefaultValue:      ygot.String("AARDVARK"),
 		},
 	}, {
 		name: "enumeration",
@@ -738,7 +738,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			NativeType:        "E_BaseModule_DerivedEnumeration",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
-			DefaultValue:      ygot.String("BaseModule_DerivedEnumeration_FISH"),
+			DefaultValue:      ygot.String("FISH"),
 		},
 	}, {
 		name: "identityref",
