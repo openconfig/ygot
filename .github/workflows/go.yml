@@ -67,6 +67,40 @@ jobs:
         run:  go test -race -v ./...
         working-directory: go/src/github.com/openconfig/ygot
 
+      - name: Check that Go integration test files compile
+        working-directory: go/src/github.com/openconfig/ygot/ygen/testdata
+        run: |
+          function test-go-build() {
+            tmpdir=$(mktemp -d)
+            cp "$1" "$tmpdir"/"${f}.go"
+            cd $tmpdir
+            goimports -w *.go
+            go build
+            cd -
+            rm -r $tmpdir
+          }
+
+          expectFail=(
+            "openconfig-simple-annotations.formatted-txt"
+            "enum-union-with-enum-defaults.wrapper-unions.formatted-txt.go"
+          )
+          for f in structs/*.formatted-txt; do
+            if [[ ${expectFail[@]} =~ ${f} ]]; then
+              continue
+            fi
+            test-go-build $f
+          done
+
+          expectFail=(
+            "openconfig-options-explicit.formatted-txt.go"
+          )
+          for f in schema/*.formatted-txt; do
+            if [[ ${expectFail[@]} =~ ${f} ]]; then
+              continue
+            fi
+            test-go-build $f
+          done
+
   static_analysis:
     name: Static Analysis
     runs-on: ubuntu-latest

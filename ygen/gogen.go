@@ -1098,7 +1098,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 	{{ end -}}
 	{{ if .HasUnsupported -}}
 	case interface{}:
-		return &Unsupported{v}, nil
+		return &UnionUnsupported{v}, nil
 	{{ end -}}
 	}
 	{{ end -}}

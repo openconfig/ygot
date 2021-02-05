@@ -197,7 +197,7 @@ func (t *Platform_Component) To_Platform_Component_Power_Union(i interface{}) (P
 	case uint32:
 		return UnionUint32(v), nil
 	case interface{}:
-		return &Unsupported{v}, nil
+		return &UnionUnsupported{v}, nil
 	}
 	return nil, fmt.Errorf("cannot convert %v to Platform_Component_Power_Union, unknown union type, got: %T, want any of [E_Component_Power, interface{}, uint32]", i, i)
 }
