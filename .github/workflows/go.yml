@@ -86,7 +86,7 @@ jobs:
             "enum-union-with-enum-defaults.wrapper-unions.formatted-txt.go"
           )
           for f in structs/*.formatted-txt; do
-            if [[ ${expectFail[@]} =~ ${f} ]]; then
+            if [[ ${expectFail[@]} =~ $(basename $f) ]]; then
               continue
             fi
             test-go-build $f
@@ -96,7 +96,7 @@ jobs:
             "openconfig-options-explicit.formatted-txt.go"
           )
           for f in schema/*.formatted-txt; do
-            if [[ ${expectFail[@]} =~ ${f} ]]; then
+            if [[ ${expectFail[@]} =~ $(basename $f) ]]; then
               continue
             fi
             test-go-build $f
