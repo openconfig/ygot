@@ -33,7 +33,7 @@ func validateLengthSchema(schema *yang.Entry) error {
 		return nil
 	}
 	for _, r := range schema.Type.Length {
-		// This is a limited sanity check. It's assumed that a full check is
+		// This is a limited quick check. It's assumed that a full check is
 		// done in the goyang parser.
 		minLen, maxLen := r.Min, r.Max
 		if minLen.Kind != yang.MinNumber && minLen.Kind != yang.Positive {

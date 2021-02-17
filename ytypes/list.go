@@ -202,7 +202,7 @@ func validateStructElems(schema *yang.Entry, value interface{}) util.Errors {
 	return errors
 }
 
-// validateListSchema validates the given list type schema. This is a sanity
+// validateListSchema validates the given list type schema. This is a quick
 // check validation rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.

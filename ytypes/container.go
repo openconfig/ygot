@@ -253,7 +253,7 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 }
 
 // validateContainerSchema validates the given container type schema. This is a
-// sanity check validation rather than a comprehensive validation against the
+// quick check validation rather than a comprehensive validation against the
 // RFC. It is assumed that such a validation is done when the schema is parsed
 // from source YANG.
 func validateContainerSchema(schema *yang.Entry) error {
