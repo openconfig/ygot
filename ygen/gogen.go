@@ -1406,7 +1406,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			}
 			if defaultValue != nil {
 				var err error
-				if defaultValue, err = gogen.yangDefaultValueToGoDefaultValue(*defaultValue, resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim); err != nil {
+				if defaultValue, _, err = gogen.yangDefaultValueToGo(*defaultValue, resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim); err != nil {
 					errs = append(errs, err)
 				}
 			}

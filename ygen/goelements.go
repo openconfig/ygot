@@ -25,6 +25,7 @@ import (
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
+	"github.com/openconfig/ygot/ytypes"
 )
 
 const (
@@ -330,7 +331,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 		return s.goUnionType(args, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
 	case yang.Yenum:
 		// Enumeration types need to be resolved to a particular data path such
-		// that a created enumered Go type can be used to set their value. Hand
+		// that a created enumerated Go type can be used to set their value. Hand
 		// the leaf to the enumName function to determine the name.
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enum without context")
@@ -529,13 +530,16 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 	return errs
 }
 
-// yangDefaultValueToGoDefaultValue takes a default value, and its associated
+// yangDefaultValueToGo takes a default value, and its associated
 // type, schema entry, and other generation flags, and maps it to a Go snippet
 // reference that would represent the value in the generated Go code.
 // If it is unable to convert the default value according to the given type and
 // context schema entry, an error is returned.
 // NOTE: This function currently ONLY supports generating default union value
 // snippets for simple unions.
+//
+// The yang.TypeKind return value specifies a non-Yunion, non-Yleafref TypeKind
+// that the default value is converted to.
 //
 // A resolveTypeArgs structure is used as the input argument which specifies a
 // pointer to the YangType; and optionally context required to resolve the name
@@ -546,24 +550,7 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 // The skipEnumDedup argument specifies whether leaves of type enumeration that are
 // used more than once in the schema should share a common type. By default, a single
 // type for each leaf is created.
-func (s *goGenState) yangDefaultValueToGoDefaultValue(value string, args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*string, error) {
-	snippet, _, err := s.yangDefaultValueToGoDefaultValueAux(value, args, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
-	return snippet, err
-}
-
-// yangDefaultValueToGoDefaultValueAux takes a default value, and its associated
-// type, schema entry, and other generation flags, and maps it to a Go snippet
-// reference that would represent the value in the generated Go code.
-// If it is unable to convert the default value according to the given type and
-// context schema entry, an error is returned.
-// NOTE: This function currently ONLY supports generating default union value
-// snippets for simple unions.
-//
-// The yang.TypeKind return value specifies the last non-Yleafref TypeKind
-// encountered while recursively converting the default value. This helps
-// determine what union wrapper snippet to generate when a leafref is
-// encountered within a union.
-func (s *goGenState) yangDefaultValueToGoDefaultValueAux(value string, args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*string, yang.TypeKind, error) {
+func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*string, yang.TypeKind, error) {
 	// Handle the case of a typedef which is actually an enumeration.
 	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
@@ -578,11 +565,11 @@ func (s *goGenState) yangDefaultValueToGoDefaultValueAux(value string, args reso
 		switch args.yangType.Kind {
 		case yang.Yenum:
 			if !args.yangType.Enum.IsDefined(value) {
-				return nil, yang.Ynone, fmt.Errorf("ygen: typedef enum value %q not found in enum with type name %q", value, args.yangType.Name)
+				return nil, yang.Ynone, fmt.Errorf("default value conversion: typedef enum value %q not found in enum with type name %q", value, args.yangType.Name)
 			}
 		case yang.Yidentityref:
 			if !args.yangType.IdentityBase.IsDefined(value) {
-				return nil, yang.Ynone, fmt.Errorf("ygen: typedef identity value %q not found in enum with type name %q", value, args.yangType.Name)
+				return nil, yang.Ynone, fmt.Errorf("default value conversion: typedef identity value %q not found in enum with type name %q", value, args.yangType.Name)
 			}
 		}
 		return enumDefaultValue(mtype.NativeType, value, goEnumPrefix), args.yangType.Kind, nil
@@ -600,28 +587,49 @@ func (s *goGenState) yangDefaultValueToGoDefaultValueAux(value string, args reso
 			return nil, yang.Ynone, err
 		}
 		if signed {
-			_, err = strconv.ParseInt(value, 10, bits)
+			val, err := strconv.ParseInt(value, 10, bits)
+			if err != nil {
+				return nil, yang.Ynone, fmt.Errorf("default value conversion: unable to convert default value %q to %v: %v", value, ykind, err)
+			}
+			if err := ytypes.ValidateIntRestrictions(args.yangType, val); err != nil {
+				return nil, yang.Ynone, fmt.Errorf("default value conversion: %q doesn't match int restrictions: %v", value, err)
+			}
 		} else {
-			_, err = strconv.ParseUint(value, 10, bits)
+			val, err := strconv.ParseUint(value, 10, bits)
+			if err != nil {
+				return nil, yang.Ynone, fmt.Errorf("default value conversion: unable to convert default value %q to %v: %v", value, ykind, err)
+			}
+			if err := ytypes.ValidateUintRestrictions(args.yangType, val); err != nil {
+				return nil, yang.Ynone, fmt.Errorf("default value conversion: %q doesn't match int restrictions: %v", value, err)
+			}
 		}
 		if err != nil {
-			return nil, yang.Ynone, fmt.Errorf("ygen: unable to convert default value %q to %v: %v", value, ykind, err)
+			return nil, yang.Ynone, fmt.Errorf("default value conversion: unable to convert default value %q to %v: %v", value, ykind, err)
 		}
 		return &value, ykind, nil
 	case yang.Ydecimal64:
-		_, err := strconv.ParseFloat(value, 64)
+		val, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			return nil, yang.Ynone, fmt.Errorf("ygen: unable to convert default value %q to %v: %v", value, ykind, err)
+			return nil, yang.Ynone, fmt.Errorf("default value conversion: unable to convert default value %q to %v: %v", value, ykind, err)
+		}
+		if err := ytypes.ValidateDecimalRestrictions(args.yangType, val); err != nil {
+			return nil, yang.Ynone, fmt.Errorf("default value conversion: %q doesn't match int restrictions: %v", value, err)
 		}
 		return &value, ykind, nil
 	case yang.Ybinary:
-		_, err := base64.StdEncoding.DecodeString(value)
+		bytes, err := base64.StdEncoding.DecodeString(value)
 		if err != nil {
-			return nil, yang.Ynone, fmt.Errorf("error in DecodeString for \n%v\n for type name %q: %q", value, args.yangType.Name, err)
+			return nil, yang.Ynone, fmt.Errorf("default value conversion: error in DecodeString for \n%v\n for type name %q: %q", value, args.yangType.Name, err)
+		}
+		if err := ytypes.ValidateBinaryRestrictions(args.yangType, bytes); err != nil {
+			return nil, yang.Ynone, fmt.Errorf("default value conversion: %q doesn't match binary restrictions: %v", value, err)
 		}
 		value := fmt.Sprintf(ygot.BinaryTypeName+"(%q)", value)
 		return &value, ykind, nil
 	case yang.Ystring:
+		if err := ytypes.ValidateStringRestrictions(args.yangType, value); err != nil {
+			return nil, yang.Ynone, fmt.Errorf("default value conversion: %q doesn't match string restrictions: %v", value, err)
+		}
 		value := fmt.Sprintf("%q", value)
 		return &value, ykind, nil
 	case yang.Ybool:
@@ -629,21 +637,21 @@ func (s *goGenState) yangDefaultValueToGoDefaultValueAux(value string, args reso
 		case "true", "false":
 			return &value, ykind, nil
 		}
-		return nil, yang.Ynone, fmt.Errorf("ygen: cannot convert default value %q to bool, type name: %q", value, args.yangType.Name)
+		return nil, yang.Ynone, fmt.Errorf("default value conversion: cannot convert default value %q to bool, type name: %q", value, args.yangType.Name)
 	case yang.Yempty:
-		return nil, yang.Ynone, fmt.Errorf("ygen: received default value %q, but an empty type cannot have a default value", value)
+		return nil, yang.Ynone, fmt.Errorf("default value conversion: received default value %q, but an empty type cannot have a default value", value)
 	case yang.Yenum:
 		// Enumeration types need to be resolved to a particular data path such
-		// that a created enumered Go type can be used to set their value. Hand
+		// that a created enumerated Go type can be used to set their value. Hand
 		// the leaf to the enumName function to determine the name.
 		if args.contextEntry == nil {
-			return nil, yang.Ynone, fmt.Errorf("ygen: cannot map enum without context")
+			return nil, yang.Ynone, fmt.Errorf("default value conversion: cannot map enum without context")
 		}
 		if strings.Contains(value, ":") {
 			value = strings.Split(value, ":")[1]
 		}
 		if !args.yangType.Enum.IsDefined(value) {
-			return nil, yang.Ynone, fmt.Errorf("ygen: enum value %q not found in enum with type name %q", value, args.yangType.Name)
+			return nil, yang.Ynone, fmt.Errorf("default value conversion: enum value %q not found in enum with type name %q", value, args.yangType.Name)
 		}
 		n, err := s.enumSet.enumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, false, enumOrgPrefixesToTrim)
 		if err != nil {
@@ -655,13 +663,13 @@ func (s *goGenState) yangDefaultValueToGoDefaultValueAux(value string, args reso
 		// refer to - this is stored in the IdentityBase field of the context leaf
 		// which is determined by the identityrefBaseTypeFromLeaf.
 		if args.contextEntry == nil {
-			return nil, yang.Ynone, fmt.Errorf("ygen: cannot map identityref without context")
+			return nil, yang.Ynone, fmt.Errorf("default value conversion: cannot map identityref without context")
 		}
 		if strings.Contains(value, ":") {
 			value = strings.Split(value, ":")[1]
 		}
 		if !args.yangType.IdentityBase.IsDefined(value) {
-			return nil, yang.Ynone, fmt.Errorf("ygen: identity value %q not found in enum with type name %q", value, args.yangType.Name)
+			return nil, yang.Ynone, fmt.Errorf("default value conversion: identity value %q not found in enum with type name %q", value, args.yangType.Name)
 		}
 		n, err := s.enumSet.identityrefBaseTypeFromIdentity(args.yangType.IdentityBase)
 		if err != nil {
@@ -675,24 +683,24 @@ func (s *goGenState) yangDefaultValueToGoDefaultValueAux(value string, args reso
 		if err != nil {
 			return nil, yang.Ynone, err
 		}
-		return s.yangDefaultValueToGoDefaultValueAux(value, resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
+		return s.yangDefaultValueToGo(value, resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
 	case yang.Yunion:
 		// Try to convert to each type in order, but try the enumerated types first.
-		for _, t := range append(util.EnumeratedUnionTypes(args.yangType.Type), util.FlattenedTypes(args.yangType.Type)...) {
-			snippetRef, convertedKind, err := s.yangDefaultValueToGoDefaultValueAux(value, resolveTypeArgs{yangType: t, contextEntry: args.contextEntry}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
+		for _, t := range util.FlattenedTypes(args.yangType.Type) {
+			snippetRef, convertedKind, err := s.yangDefaultValueToGo(value, resolveTypeArgs{yangType: t, contextEntry: args.contextEntry}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
 			if err == nil {
 				if simpleName, ok := simpleUnionConversionsFromKind[convertedKind]; ok {
 					convertedSnippet := fmt.Sprintf("%s(%s)", simpleName, *snippetRef)
 					snippetRef = &convertedSnippet
 				}
-				return snippetRef, ykind, nil
+				return snippetRef, convertedKind, nil
 			}
 		}
-		return nil, yang.Ynone, fmt.Errorf("ygen: cannot convert default value %q to any union subtype, type name %q", value, args.yangType.Name)
+		return nil, yang.Ynone, fmt.Errorf("default value conversion: cannot convert default value %q to any union subtype, type name %q", value, args.yangType.Name)
 	default:
 		// Default values are not supported for unsupported types, so
 		// just generate the zero value instead.
 		// TODO(wenbli): support bit type.
-		return nil, yang.Ynone, fmt.Errorf("ygen: cannot create default value for unsupported type %v, type name: %q", ykind, args.yangType.Name)
+		return nil, yang.Ynone, fmt.Errorf("default value conversion: cannot create default value for unsupported type %v, type name: %q", ykind, args.yangType.Name)
 	}
 }
