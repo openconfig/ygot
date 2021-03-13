@@ -742,7 +742,7 @@ func copyMapField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 	}
 
 	if dstField.Len() == 0 {
-		dstField.Set(reflect.MakeMapWithSize(reflect.MapOf(m.key, m.value), 0))
+		dstField.Set(reflect.MakeMapWithSize(reflect.MapOf(m.key, m.value), srcField.Len()))
 	}
 
 	dstKeys := map[interface{}]bool{}
