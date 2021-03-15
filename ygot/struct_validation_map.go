@@ -741,39 +741,26 @@ func copyMapField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 		return err
 	}
 
-	srcKeys := srcField.MapKeys()
-	dstKeys := dstField.MapKeys()
-
-	nm := reflect.MakeMapWithSize(reflect.MapOf(m.key, m.value), srcField.Len())
-
-	mapsToMap := []struct {
-		keys  []reflect.Value
-		field reflect.Value
-	}{
-		{srcKeys, srcField},
-		{dstKeys, dstField},
+	if dstField.Len() == 0 {
+		dstField.Set(reflect.MakeMapWithSize(reflect.MapOf(m.key, m.value), srcField.Len()))
 	}
-	existingKeys := map[interface{}]reflect.Value{}
 
-	for _, m := range mapsToMap {
-		for _, k := range m.keys {
-			// If the key already exists, then determine the existing item to merge
-			// into.
-			v := m.field.MapIndex(k)
-			var d reflect.Value
-			var ok bool
-			if d, ok = existingKeys[k.Interface()]; !ok {
-				d = reflect.New(v.Elem().Type())
-				existingKeys[k.Interface()] = v
-			}
+	dstKeys := map[interface{}]bool{}
+	for _, k := range dstField.MapKeys() {
+		dstKeys[k.Interface()] = true
+	}
 
-			if err := copyStruct(d.Elem(), v.Elem(), opts...); err != nil {
-				return err
-			}
-			nm.SetMapIndex(k, d)
+	for _, k := range srcField.MapKeys() {
+		v := srcField.MapIndex(k)
+		d := reflect.New(v.Elem().Type())
+		if _, ok := dstKeys[k.Interface()]; ok {
+			d = dstField.MapIndex(k)
 		}
+		if err := copyStruct(d.Elem(), v.Elem(), opts...); err != nil {
+			return err
+		}
+		dstField.SetMapIndex(k, d)
 	}
-	dstField.Set(nm)
 	return nil
 }
 
@@ -838,30 +825,21 @@ func copySliceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 	}
 
 	if !util.IsTypeStructPtr(srcField.Type().Elem()) {
-		ns := reflect.MakeSlice(reflect.SliceOf(srcField.Type().Elem()), 0, 0)
-		for _, field := range []reflect.Value{dstField, srcField} {
-			for i := 0; i < field.Len(); i++ {
-				v := field.Index(i)
-				ns = reflect.Append(ns, v)
-			}
+		for i := 0; i < srcField.Len(); i++ {
+			v := srcField.Index(i)
+			dstField.Set(reflect.Append(dstField, v))
 		}
-		dstField.Set(ns)
 		return nil
 	}
 
-	ns := reflect.MakeSlice(reflect.SliceOf(srcField.Type().Elem()), 0, 0)
-	for _, field := range []reflect.Value{dstField, srcField} {
-		for i := 0; i < field.Len(); i++ {
-			v := field.Index(i)
-			d := reflect.New(v.Type().Elem())
-			if err := copyStruct(d.Elem(), v.Elem(), opts...); err != nil {
-				return err
-			}
-			ns = reflect.Append(ns, d)
+	for i := 0; i < srcField.Len(); i++ {
+		v := srcField.Index(i)
+		d := reflect.New(v.Type().Elem())
+		if err := copyStruct(d.Elem(), v.Elem(), opts...); err != nil {
+			return err
 		}
+		dstField.Set(reflect.Append(dstField, v))
 	}
-
-	dstField.Set(ns)
 	return nil
 }
 
