@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
@@ -29,47 +29,21 @@ jobs:
           go-version: ${{ matrix.go }}
         id: go
 
-      - name: Install protoc-gen-go
-        run: |
-          go get -u google.golang.org/protobuf/cmd/protoc-gen-go
-
-      - name: Install goimports
-        run: |
-          go get -u golang.org/x/tools/cmd/goimports
-
-      - name: Install Staticcheck
-        run: |
-          go get -u honnef.co/go/tools/cmd/staticcheck
-
-      - name: Check out code
+      - name: Check out ygot code
         uses: actions/checkout@v2
-        with:
-          path: go/src/github.com/openconfig/ygot
-
-      - name: Get dependencies
-        run: |
-          go get -v -t -d ./...
-        working-directory: go/src/github.com/openconfig/ygot
-
-      - name: Generate dependencies
-        run: make generate
-        working-directory: go/src/github.com/openconfig/ygot
 
       - name: Build packages
-        run: go build -v ./...
-        working-directory: go/src/github.com/openconfig/ygot
+        run: make build
 
       - name: Run Tests
-        run: go test -v ./...
-        working-directory: go/src/github.com/openconfig/ygot
+        run: make test
 
       - name: Run race tests
-        run:  go test -race -v ./...
-        working-directory: go/src/github.com/openconfig/ygot
+        run: make testrace
 
   static_analysis:
     name: Static Analysis
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Install Go
@@ -89,7 +63,7 @@ jobs:
 
       - name: Get dependencies
         run: |
-          go get -v -t -d ./...
+          make deps
 
       - name: Run coverage
         run: |

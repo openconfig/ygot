@@ -1,21 +1,20 @@
-#!/bin/bash
-
-clean() {
-  rm -rf public
-  rm -rf deps
-}
+#!/bin/bash -e
 
 if [ -z ${SRCDIR} ]; then
    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
    SRCDIR=${DIR}/../..
 fi
 
-# Ensure that the .pb.go has been generated for the extensions
-# that are required.
-(cd ${SRCDIR}/proto/yext && SRCDIR=${SRCDIR} go generate)
-(cd ${SRCDIR}/proto/ywrapper && SRCDIR=${SRCDIR} go generate)
+GO_PATH="$(go env GOPATH)"
 
-clean
+if [ -z ${GO_PATH} ]; then
+  echo "no GOPATH defined!!!"
+
+  exit 1
+fi
+
+GO111MODULE=off go get -u github.com/openconfig/ygot || :
+GO111MODULE=off go get -u github.com/google/protobuf || :
 
 go run ${SRCDIR}/proto_generator/protogenerator.go \
   -generate_fakeroot \
@@ -27,10 +26,7 @@ go run ${SRCDIR}/proto_generator/protogenerator.go \
   -exclude_modules=ietf-interfaces \
   yang/rib/openconfig-rib-bgp.yang
 
-go get -u github.com/google/protobuf
-proto_imports=".:${SRCDIR}/../../../../src/github.com/google/protobuf/src:${SRCDIR}/../../../../src"
+PROTO_IMPORTS=".:${GO_PATH}/src/github.com/google/protobuf/src:${GO_PATH}/src"
 find ribproto -name "*.proto" | while read l; do
-  protoc -I=$proto_imports --go_out=. $l
+  protoc -I$PROTO_IMPORTS --go_out=. $l --go_opt=paths=source_relative
 done
-
-clean
