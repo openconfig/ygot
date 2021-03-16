@@ -25,6 +25,17 @@ import (
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.8.
 
+// ValidateBinaryRestrictions checks that the given binary string matches the
+// schema's length restrictions (if any). It returns an error if the validation
+// fails.
+func ValidateBinaryRestrictions(schemaType *yang.YangType, binaryVal []byte) error {
+	allowedRanges := schemaType.Length
+	if !lengthOk(allowedRanges, uint64(len(binaryVal))) {
+		return fmt.Errorf("length %d is outside range %v", len(binaryVal), allowedRanges)
+	}
+	return nil
+}
+
 // validateBinary validates value, which must be a Go string type, against the
 // given schema.
 func validateBinary(schema *yang.Entry, value interface{}) error {
@@ -43,11 +54,10 @@ func validateBinary(schema *yang.Entry, value interface{}) error {
 
 	// Check that the length is within the allowed range.
 	binaryVal := reflect.ValueOf(value).Bytes()
-	allowedRanges := schema.Type.Length
-	if !lengthOk(allowedRanges, uint64(len(binaryVal))) {
-		return fmt.Errorf("length %d is outside range %v for schema %s", len(binaryVal), allowedRanges, schema.Name)
-	}
 
+	if err := ValidateBinaryRestrictions(schema.Type, binaryVal); err != nil {
+		return fmt.Errorf("schema %q: %v", schema.Name, err)
+	}
 	return nil
 }
 

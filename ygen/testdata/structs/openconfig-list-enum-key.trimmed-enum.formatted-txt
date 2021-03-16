@@ -148,6 +148,7 @@ func (t *Top) NewEks(K E_Eks_K) (*Top_Eks, error){
 type Top_Ekm struct {
 	K1	E_Ekm_K1	`path:"config/k1|k1" module:"openconfig-list-enum-key"`
 	K2	E_ListEnumKey_FooIdentity	`path:"config/k2|k2" module:"openconfig-list-enum-key"`
+	K3	Top_Ekm_K3_Union	`path:"config/k3" module:"openconfig-list-enum-key"`
 }
 
 // IsYANGGoStruct ensures that Top_Ekm implements the yang.GoStruct
@@ -163,6 +164,36 @@ func (t *Top_Ekm) ΛListKeyMap() (map[string]interface{}, error) {
 		"k1": t.K1,
 		"k2": t.K2,
 	}, nil
+}
+
+// Top_Ekm_K3_Union is an interface that is implemented by valid types for the union
+// for the leaf /openconfig-list-enum-key/top/multi-key/ekm/config/k3 within the YANG schema.
+// Union type can be one of [E_ListEnumKey_FooIdentity, UnionInt16].
+type Top_Ekm_K3_Union interface {
+	// Union type can be one of [E_ListEnumKey_FooIdentity, UnionInt16]
+	Documentation_for_Top_Ekm_K3_Union()
+}
+
+// Documentation_for_Top_Ekm_K3_Union ensures that E_ListEnumKey_FooIdentity
+// implements the Top_Ekm_K3_Union interface.
+func (E_ListEnumKey_FooIdentity) Documentation_for_Top_Ekm_K3_Union() {}
+
+// Documentation_for_Top_Ekm_K3_Union ensures that UnionInt16
+// implements the Top_Ekm_K3_Union interface.
+func (UnionInt16) Documentation_for_Top_Ekm_K3_Union() {}
+
+// To_Top_Ekm_K3_Union takes an input interface{} and attempts to convert it to a struct
+// which implements the Top_Ekm_K3_Union union. It returns an error if the interface{} supplied
+// cannot be converted to a type within the union.
+func (t *Top_Ekm) To_Top_Ekm_K3_Union(i interface{}) (Top_Ekm_K3_Union, error) {
+	if v, ok := i.(Top_Ekm_K3_Union); ok {
+		return v, nil
+	}
+	switch v := i.(type) {
+	case int16:
+		return UnionInt16(v), nil
+	}
+	return nil, fmt.Errorf("cannot convert %v to Top_Ekm_K3_Union, unknown union type, got: %T, want any of [E_ListEnumKey_FooIdentity, int16]", i, i)
 }
 
 // Top_Eks represents the /openconfig-list-enum-key/top/single-key/eks YANG schema element.
