@@ -1,6 +1,6 @@
 # ygot Makefile
 #
-# This makefile is used by Travis CI to run tests against the ygot library.
+# This makefile is used to build and test the ygot library.
 #
 export GO111MODULE := on
 
