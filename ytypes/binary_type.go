@@ -91,8 +91,8 @@ func validateBinarySlice(schema *yang.Entry, value interface{}) error {
 	return nil
 }
 
-// validateBinarySchema validates the given binary type schema. This is a sanity
-// check validation rather than a comprehensive validation against the RFC.
+// validateBinarySchema validates the given binary type schema. This is a quick
+// check rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.
 func validateBinarySchema(schema *yang.Entry) error {
