@@ -1811,7 +1811,7 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 			// The other attributes for wantDir are not tested, as
 			// most of the work is passed to mappedDefinitions()
 			// and buildDirectoryDefinitions(), making a good
-			// sanity check here sufficient.
+			// quick check here sufficient.
 
 			// This checks the "NativeType" and "IsEnumeratedValue" attributes of the output leaf types.
 			// Since this is an integration test, many lower-level detail checks are omitted.

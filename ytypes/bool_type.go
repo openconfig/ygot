@@ -65,7 +65,7 @@ func validateBoolSlice(schema *yang.Entry, value interface{}) error {
 	return nil
 }
 
-// validateBoolSchema validates the given bool type schema. This is a sanity
+// validateBoolSchema validates the given bool type schema. This is a quick
 // check validation rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.

@@ -82,9 +82,9 @@ func validateDecimalSlice(schema *yang.Entry, value interface{}) error {
 }
 
 // validateDecimalSchema validates the given decimal type schema. This is a
-// sanity check validation rather than a comprehensive validation against the
-// RFC. It is assumed that such a validation is done when the schema is parsed
-// from source YANG.
+// quick check rather than a comprehensive validation against the RFC. It is
+// assumed that such a validation is done when the schema is parsed from source
+// YANG.
 func validateDecimalSchema(schema *yang.Entry) error {
 	if schema == nil {
 		return fmt.Errorf("decimal schema is nil")
