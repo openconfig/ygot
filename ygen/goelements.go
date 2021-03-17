@@ -370,7 +370,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 			DefaultValue:      defVal,
 		}, nil
 	case yang.Ydecimal64:
-		return &MappedType{NativeType: "float64", ZeroValue: goZeroValues["float64"]}, nil
+		return &MappedType{NativeType: "float64", ZeroValue: goZeroValues["float64"], DefaultValue: defVal}, nil
 	case yang.Yleafref:
 		// This is a leafref, so we check what the type of the leaf that it
 		// references is by looking it up in the schematree.
@@ -452,7 +452,8 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnum
 		NativeType: fmt.Sprintf("%s_Union", pathToCamelCaseName(args.contextEntry, compressOCPaths, false)),
 		// Zero value is set to nil, other than in cases where there is
 		// a single type in the union.
-		ZeroValue: "nil",
+		ZeroValue:    "nil",
+		DefaultValue: genutil.TypeDefaultValue(args.yangType),
 	}
 	// If there is only one type inside the union, then promote it to replace the union type.
 	if len(unionMappedTypes) == 1 {
