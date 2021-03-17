@@ -142,7 +142,7 @@ func TestValidateInterface(t *testing.T) {
 	}
 	// Validate the vlan.
 	err = vlan0.Validate()
-	if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
+	if diff := errdiff.Substring(err, `/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: schema "": unsigned integer value 4095 is outside specified ranges`); diff != "" {
 		t.Errorf("did not get expected vlan-id error, %s", diff)
 	}
 	if err != nil {
@@ -215,7 +215,7 @@ func TestValidateInterfaceWrapperUnion(t *testing.T) {
 	if err := vlan0.Validate(); err == nil {
 		t.Errorf("bad vlan-id value: got nil, want error")
 	} else {
-		if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
+		if diff := errdiff.Substring(err, `/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: schema "": unsigned integer value 4095 is outside specified ranges`); diff != "" {
 			t.Errorf("did not get expected vlan-id error, %s", diff)
 		}
 		testErrLog(t, "bad vlan-id value", err)
@@ -284,7 +284,7 @@ func TestValidateInterfaceOpState(t *testing.T) {
 	if err := vlan0.Validate(); err == nil {
 		t.Errorf("bad vlan-id value: got nil, want error")
 	} else {
-		if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/state/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
+		if diff := errdiff.Substring(err, `/device/interfaces/interface/subinterfaces/subinterface/vlan/state/vlan-id: schema "": unsigned integer value 4095 is outside specified ranges`); diff != "" {
 			t.Errorf("did not get expected vlan-id error, %s", diff)
 		}
 		testErrLog(t, "bad vlan-id value", err)

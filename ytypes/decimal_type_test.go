@@ -138,6 +138,12 @@ func TestValidateDecimalType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
+			if val, ok := tt.val.(float64); ok && tt.schema != nil && tt.schema.Type != nil {
+				if err := ValidateDecimalRestrictions(tt.schema.Type, val); err != nil {
+					t.Fatalf("ValidateDecimalRestrictions(%v) got error: %v, want error? %v", tt.val, err, tt.wantErr)
+				}
+			}
+
 			err := validateDecimal(tt.schema, tt.val)
 			if got, want := (err != nil), tt.wantErr; got != want {
 				t.Errorf("%s: validateDecimal(%v) got error: %v, want error? %v", tt.desc, tt.val, err, tt.wantErr)
