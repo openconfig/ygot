@@ -1604,7 +1604,7 @@ func TestCopyStruct(t *testing.T) {
 		},
 		wantDst: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
-				{"new-belgium"}: {StringField: String("voodoo-ranger")},
+				{"new-belgium"}: {StringField: String("mysterious-ranger")},
 			},
 		},
 	}, {
