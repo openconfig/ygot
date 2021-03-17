@@ -433,6 +433,7 @@ func TestSimpleStructs(t *testing.T) {
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
 				GenerateSimpleUnions: true,
+				GenerateLeafGetters:  true,
 			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
@@ -448,6 +449,7 @@ func TestSimpleStructs(t *testing.T) {
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
 				GenerateSimpleUnions: true,
+				GenerateLeafGetters:  true,
 			},
 			TransformationOptions: TransformationOpts{
 				ShortenEnumLeafNames:                 true,
@@ -837,6 +839,7 @@ func TestSimpleStructs(t *testing.T) {
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
 				GenerateSimpleUnions: true,
+				GenerateLeafGetters:  true,
 			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
@@ -852,6 +855,7 @@ func TestSimpleStructs(t *testing.T) {
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
 				GenerateSimpleUnions:                true,
+				GenerateLeafGetters:                 true,
 				AppendEnumSuffixForSimpleUnionEnums: true,
 			},
 			TransformationOptions: TransformationOpts{
@@ -862,12 +866,46 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-union.consistent.formatted-txt"),
 	}, {
+		name:           "different union enumeration types with default enum values",
+		inFiles:        []string{filepath.Join(datapath, "", "enum-union-with-enum-defaults.yang")},
+		inIncludePaths: []string{filepath.Join(datapath, "modules")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions:                true,
+				GenerateLeafGetters:                 true,
+				AppendEnumSuffixForSimpleUnionEnums: true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-union-with-enum-defaults.formatted-txt"),
+	}, {
+		name:           "different union enumeration types with default enum values (wrapper union)",
+		inFiles:        []string{filepath.Join(datapath, "", "enum-union-with-enum-defaults.yang")},
+		inIncludePaths: []string{filepath.Join(datapath, "modules")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateLeafGetters:                 true,
+				AppendEnumSuffixForSimpleUnionEnums: true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-union-with-enum-defaults.wrapper-unions.formatted-txt"),
+	}, {
 		name:           "enumeration behaviour - resolution across submodules and grouping re-use within union",
 		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
 		inIncludePaths: []string{filepath.Join(datapath, "modules")},
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
 				GenerateSimpleUnions: true,
+				GenerateLeafGetters:  true,
 			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,

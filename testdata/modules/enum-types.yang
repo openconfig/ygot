@@ -36,6 +36,7 @@ module enum-types {
       enum BRAVO;
       enum CHARLIE;
     }
+    default ALPHA;
   }
 
   typedef td-multi {

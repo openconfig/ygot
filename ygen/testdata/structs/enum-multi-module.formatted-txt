@@ -93,15 +93,19 @@ func (*Parent_Child) IsYANGGoStruct() {}
 
 // Parent_Child_InlineMultiValue_Union is an interface that is implemented by valid types for the union
 // for the leaf /enum-multi-module/parent/child/state/inline-multi-value within the YANG schema.
-// Union type can be one of [E_Child_InlineMultiValue, E_EnumTypes_Td_Enum, UnionUint32].
+// Union type can be one of [E_Child_InlineMultiValue, E_EnumTypes_TdEnum, E_EnumTypes_Td_Enum, UnionUint32].
 type Parent_Child_InlineMultiValue_Union interface {
-	// Union type can be one of [E_Child_InlineMultiValue, E_EnumTypes_Td_Enum, UnionUint32]
+	// Union type can be one of [E_Child_InlineMultiValue, E_EnumTypes_TdEnum, E_EnumTypes_Td_Enum, UnionUint32]
 	Documentation_for_Parent_Child_InlineMultiValue_Union()
 }
 
 // Documentation_for_Parent_Child_InlineMultiValue_Union ensures that E_Child_InlineMultiValue
 // implements the Parent_Child_InlineMultiValue_Union interface.
 func (E_Child_InlineMultiValue) Documentation_for_Parent_Child_InlineMultiValue_Union() {}
+
+// Documentation_for_Parent_Child_InlineMultiValue_Union ensures that E_EnumTypes_TdEnum
+// implements the Parent_Child_InlineMultiValue_Union interface.
+func (E_EnumTypes_TdEnum) Documentation_for_Parent_Child_InlineMultiValue_Union() {}
 
 // Documentation_for_Parent_Child_InlineMultiValue_Union ensures that E_EnumTypes_Td_Enum
 // implements the Parent_Child_InlineMultiValue_Union interface.
@@ -122,16 +126,20 @@ func (t *Parent_Child) To_Parent_Child_InlineMultiValue_Union(i interface{}) (Pa
 	case uint32:
 		return UnionUint32(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to Parent_Child_InlineMultiValue_Union, unknown union type, got: %T, want any of [E_Child_InlineMultiValue, E_EnumTypes_Td_Enum, uint32]", i, i)
+	return nil, fmt.Errorf("cannot convert %v to Parent_Child_InlineMultiValue_Union, unknown union type, got: %T, want any of [E_Child_InlineMultiValue, E_EnumTypes_TdEnum, E_EnumTypes_Td_Enum, uint32]", i, i)
 }
 
 // Parent_Child_MultiValue_Union is an interface that is implemented by valid types for the union
 // for the leaf /enum-multi-module/parent/child/state/multi-value within the YANG schema.
-// Union type can be one of [E_EnumTypes_TdMulti_Enum, E_EnumTypes_Td_Enum, UnionUint32].
+// Union type can be one of [E_EnumTypes_TdEnum, E_EnumTypes_TdMulti_Enum, E_EnumTypes_Td_Enum, UnionUint32].
 type Parent_Child_MultiValue_Union interface {
-	// Union type can be one of [E_EnumTypes_TdMulti_Enum, E_EnumTypes_Td_Enum, UnionUint32]
+	// Union type can be one of [E_EnumTypes_TdEnum, E_EnumTypes_TdMulti_Enum, E_EnumTypes_Td_Enum, UnionUint32]
 	Documentation_for_Parent_Child_MultiValue_Union()
 }
+
+// Documentation_for_Parent_Child_MultiValue_Union ensures that E_EnumTypes_TdEnum
+// implements the Parent_Child_MultiValue_Union interface.
+func (E_EnumTypes_TdEnum) Documentation_for_Parent_Child_MultiValue_Union() {}
 
 // Documentation_for_Parent_Child_MultiValue_Union ensures that E_EnumTypes_TdMulti_Enum
 // implements the Parent_Child_MultiValue_Union interface.
@@ -156,7 +164,7 @@ func (t *Parent_Child) To_Parent_Child_MultiValue_Union(i interface{}) (Parent_C
 	case uint32:
 		return UnionUint32(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to Parent_Child_MultiValue_Union, unknown union type, got: %T, want any of [E_EnumTypes_TdMulti_Enum, E_EnumTypes_Td_Enum, uint32]", i, i)
+	return nil, fmt.Errorf("cannot convert %v to Parent_Child_MultiValue_Union, unknown union type, got: %T, want any of [E_EnumTypes_TdEnum, E_EnumTypes_TdMulti_Enum, E_EnumTypes_Td_Enum, uint32]", i, i)
 }
 
 // E_Child_InlineMultiValue is a derived int64 type which is used to represent
@@ -188,6 +196,37 @@ const (
 	Child_InlineMultiValue_TWO E_Child_InlineMultiValue = 2
 	// Child_InlineMultiValue_THREE corresponds to the value THREE of Child_InlineMultiValue
 	Child_InlineMultiValue_THREE E_Child_InlineMultiValue = 3
+)
+
+// E_EnumTypes_TdEnum is a derived int64 type which is used to represent
+// the enumerated node EnumTypes_TdEnum. An additional value named
+// EnumTypes_TdEnum_UNSET is added to the enumeration which is used as
+// the nil value, indicating that the enumeration was not explicitly set by
+// the program importing the generated structures.
+type E_EnumTypes_TdEnum int64
+
+// IsYANGGoEnum ensures that EnumTypes_TdEnum implements the yang.GoEnum
+// interface. This ensures that EnumTypes_TdEnum can be identified as a
+// mapped type for a YANG enumeration.
+func (E_EnumTypes_TdEnum) IsYANGGoEnum() {}
+
+// ΛMap returns the value lookup map associated with  EnumTypes_TdEnum.
+func (E_EnumTypes_TdEnum) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+// String returns a logging-friendly string for E_EnumTypes_TdEnum.
+func (e E_EnumTypes_TdEnum) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_EnumTypes_TdEnum")
+}
+
+const (
+	// EnumTypes_TdEnum_UNSET corresponds to the value UNSET of EnumTypes_TdEnum
+	EnumTypes_TdEnum_UNSET E_EnumTypes_TdEnum = 0
+	// EnumTypes_TdEnum_ALPHA corresponds to the value ALPHA of EnumTypes_TdEnum
+	EnumTypes_TdEnum_ALPHA E_EnumTypes_TdEnum = 1
+	// EnumTypes_TdEnum_BRAVO corresponds to the value BRAVO of EnumTypes_TdEnum
+	EnumTypes_TdEnum_BRAVO E_EnumTypes_TdEnum = 2
+	// EnumTypes_TdEnum_CHARLIE corresponds to the value CHARLIE of EnumTypes_TdEnum
+	EnumTypes_TdEnum_CHARLIE E_EnumTypes_TdEnum = 3
 )
 
 // E_EnumTypes_TdMulti_Enum is a derived int64 type which is used to represent
@@ -262,6 +301,11 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 		1: {Name: "ONE"},
 		2: {Name: "TWO"},
 		3: {Name: "THREE"},
+	},
+	"E_EnumTypes_TdEnum": {
+		1: {Name: "ALPHA"},
+		2: {Name: "BRAVO"},
+		3: {Name: "CHARLIE"},
 	},
 	"E_EnumTypes_TdMulti_Enum": {
 		1: {Name: "ONE"},

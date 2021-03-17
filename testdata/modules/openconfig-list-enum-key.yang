@@ -33,6 +33,17 @@ module openconfig-list-enum-key {
       type identityref {
         base "foo-identity";
       }
+      default BAZ;
+    }
+
+    leaf k3 {
+      type union {
+        type int16;
+        type identityref {
+          base "foo-identity";
+        }
+      }
+      default oc:BAR;
     }
   }
 
