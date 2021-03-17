@@ -26,6 +26,37 @@ import (
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.4.
 
+// ValidateStringRestrictions checks that the given string matches the string
+// schema's length and pattern restrictions (if any). It returns an error if
+// the validation fails.
+func ValidateStringRestrictions(schemaType *yang.YangType, stringVal string) error {
+	// Check that the length is within the allowed range.
+	allowedRanges := schemaType.Length
+	strLen := uint64(utf8.RuneCountInString(stringVal))
+	if !lengthOk(allowedRanges, strLen) {
+		return fmt.Errorf("length %d is outside range %v", strLen, allowedRanges)
+	}
+
+	// Check that the value satisfies any regex patterns.
+	patterns, isPOSIX := util.SanitizedPattern(schemaType)
+	for _, p := range patterns {
+		var r *regexp.Regexp
+		var err error
+		if isPOSIX {
+			r, err = regexp.CompilePOSIX(p)
+		} else {
+			r, err = regexp.Compile(p)
+		}
+		if err != nil {
+			return err
+		}
+		if !r.MatchString(stringVal) {
+			return fmt.Errorf("%q does not match regular expression pattern %q", stringVal, r)
+		}
+	}
+	return nil
+}
+
 // validateString validates value, which must be a Go string type, against the
 // given schema.
 func validateString(schema *yang.Entry, value interface{}) error {
@@ -45,31 +76,9 @@ func validateString(schema *yang.Entry, value interface{}) error {
 	// sure it's the primitive string type.
 	stringVal := vv.Convert(reflect.TypeOf("")).Interface().(string)
 
-	// Check that the length is within the allowed range.
-	allowedRanges := schema.Type.Length
-	strLen := uint64(utf8.RuneCountInString(stringVal))
-	if !lengthOk(allowedRanges, strLen) {
-		return fmt.Errorf("length %d is outside range %v for schema %s", strLen, allowedRanges, schema.Name)
+	if err := ValidateStringRestrictions(schema.Type, stringVal); err != nil {
+		return fmt.Errorf("schema %q: %v", schema.Name, err)
 	}
-
-	// Check that the value satisfies any regex patterns.
-	patterns, isPOSIX := util.SanitizedPattern(schema.Type)
-	for _, p := range patterns {
-		var r *regexp.Regexp
-		var err error
-		if isPOSIX {
-			r, err = regexp.CompilePOSIX(p)
-		} else {
-			r, err = regexp.Compile(p)
-		}
-		if err != nil {
-			return err
-		}
-		if !r.MatchString(stringVal) {
-			return fmt.Errorf("%q does not match regular expression pattern %q for schema %s", stringVal, r, schema.Name)
-		}
-	}
-
 	return nil
 }
 

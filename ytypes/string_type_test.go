@@ -322,6 +322,15 @@ func TestValidateString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
+			stringVal, ok := tt.val.(string)
+			if ok {
+				err := ValidateStringRestrictions(yrangeAndPatternToStringSchema(tt.schemaName, tt.length, tt.POSIXRe, tt.re).Type, stringVal)
+				if got, want := (err != nil), tt.wantErr; got != want {
+					t.Fatalf("%s: ValidateStringRestrictions(%v) got error: %v, want error? %t", tt.desc, stringVal, err, tt.wantErr)
+				}
+				testErrLog(t, tt.desc, err)
+			}
+
 			err := validateString(yrangeAndPatternToStringSchema(tt.schemaName, tt.length, tt.POSIXRe, tt.re), tt.val)
 			if got, want := (err != nil), tt.wantErr; got != want {
 				t.Errorf("%s: s.validateString(%v) got error: %v, want error? %t", tt.desc, tt.val, err, tt.wantErr)

@@ -333,13 +333,23 @@ func TestValidateInt(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			for _, ty := range yangIntTypes {
 				for _, val := range tt.inValues {
-					if err := validateInt(typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges), toGoType(ty, val)); err != nil {
+					schema := typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges)
+
+					if err := ValidateIntRestrictions(schema.Type, val); err != nil {
+						t.Fatalf("Validate for %v: %v should be inside ranges %v", ty, val, tt.ranges)
+					}
+					if err := validateInt(schema, toGoType(ty, val)); err != nil {
 						t.Errorf("%s: Validate for %v: %v should be inside ranges %v",
 							tt.desc, ty, val, tt.ranges)
 					}
 				}
 				for _, val := range tt.outValues {
-					if err := validateInt(typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges), toGoType(ty, val)); err == nil {
+					schema := typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges)
+
+					if err := ValidateIntRestrictions(schema.Type, val); err == nil {
+						t.Fatalf("Validate for %v: %v should be outside ranges %v", ty, val, tt.ranges)
+					}
+					if err := validateInt(schema, toGoType(ty, val)); err == nil {
 						t.Errorf("%s: Validate for %v: %v should be outside ranges %v",
 							tt.desc, ty, val, tt.ranges)
 					}
@@ -404,13 +414,23 @@ func TestValidateUint(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			for _, ty := range yangIntTypes {
 				for _, val := range tt.inValues {
-					if err := validateInt(typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges), toGoType(ty, val)); err != nil {
+					schema := typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges)
+
+					if err := ValidateUintRestrictions(schema.Type, uint64(val)); err != nil {
+						t.Fatalf("Validate for %v: %v should be inside ranges %v", ty, val, tt.ranges)
+					}
+					if err := validateInt(schema, toGoType(ty, val)); err != nil {
 						t.Errorf("%s: Validate for %v: %v should be inside ranges %v",
 							tt.desc, ty, val, tt.ranges)
 					}
 				}
 				for _, val := range tt.outValues {
-					if err := validateInt(typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges), toGoType(ty, val)); err == nil {
+					schema := typeAndRangeToIntSchema(tt.desc+"-schema", ty, tt.ranges)
+
+					if err := ValidateUintRestrictions(schema.Type, uint64(val)); err == nil {
+						t.Fatalf("Validate for %v: %v should be outside ranges %v", ty, val, tt.ranges)
+					}
+					if err := validateInt(schema, toGoType(ty, val)); err == nil {
 						t.Errorf("%s: Validate for %v: %v should be outside ranges %v",
 							tt.desc, ty, val, tt.ranges)
 					}
