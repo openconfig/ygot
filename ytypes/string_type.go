@@ -110,8 +110,8 @@ func validateStringSlice(schema *yang.Entry, value interface{}) error {
 	return nil
 }
 
-// validateStringSchema validates the given string type schema. This is a sanity
-// check validation rather than a comprehensive validation against the RFC.
+// validateStringSchema validates the given string type schema. This is a quick
+// check rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.
 func validateStringSchema(schema *yang.Entry) error {
