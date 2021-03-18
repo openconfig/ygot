@@ -82,12 +82,6 @@ jobs:
           }
 
           expectFail=(
-            # "Other Symbol" (SO) category is not a valid identifier character
-            # in Go since it's not a unicode letter.
-            "openconfig-simple-annotations.formatted-txt"
-            # Enum defaults for union types is not supported for wrapper
-            # unions.
-            "enum-union-with-enum-defaults.wrapper-unions.formatted-txt.go"
           )
           for f in structs/*.formatted-txt; do
             if [[ ${expectFail[@]} =~ $(basename $f) ]]; then
