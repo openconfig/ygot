@@ -71,9 +71,9 @@ type UnionUnsupported struct {
 
 // OpenconfigSimple_Parent represents the /openconfig-simple/parent YANG schema element.
 type OpenconfigSimple_Parent struct {
-	☃Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
+	🅰Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
 	Child	*OpenconfigSimple_Parent_Child	`path:"child" module:"openconfig-simple"`
-	☃Child	[]ygot.Annotation	`path:"@child" ygotAnnotation:"true"`
+	🅰Child	[]ygot.Annotation	`path:"@child" ygotAnnotation:"true"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigSimple_Parent implements the yang.GoStruct
@@ -83,11 +83,11 @@ func (*OpenconfigSimple_Parent) IsYANGGoStruct() {}
 
 // OpenconfigSimple_Parent_Child represents the /openconfig-simple/parent/child YANG schema element.
 type OpenconfigSimple_Parent_Child struct {
-	☃Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
+	🅰Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
 	Config	*OpenconfigSimple_Parent_Child_Config	`path:"config" module:"openconfig-simple"`
-	☃Config	[]ygot.Annotation	`path:"@config" ygotAnnotation:"true"`
+	🅰Config	[]ygot.Annotation	`path:"@config" ygotAnnotation:"true"`
 	State	*OpenconfigSimple_Parent_Child_State	`path:"state" module:"openconfig-simple"`
-	☃State	[]ygot.Annotation	`path:"@state" ygotAnnotation:"true"`
+	🅰State	[]ygot.Annotation	`path:"@state" ygotAnnotation:"true"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigSimple_Parent_Child implements the yang.GoStruct
@@ -97,13 +97,13 @@ func (*OpenconfigSimple_Parent_Child) IsYANGGoStruct() {}
 
 // OpenconfigSimple_Parent_Child_Config represents the /openconfig-simple/parent/child/config YANG schema element.
 type OpenconfigSimple_Parent_Child_Config struct {
-	☃Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
+	🅰Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
 	Four	Binary	`path:"four" module:"openconfig-simple"`
-	☃Four	[]ygot.Annotation	`path:"@four" ygotAnnotation:"true"`
+	🅰Four	[]ygot.Annotation	`path:"@four" ygotAnnotation:"true"`
 	One	*string	`path:"one" module:"openconfig-simple"`
-	☃One	[]ygot.Annotation	`path:"@one" ygotAnnotation:"true"`
+	🅰One	[]ygot.Annotation	`path:"@one" ygotAnnotation:"true"`
 	Three	E_OpenconfigSimple_Parent_Child_Config_Three	`path:"three" module:"openconfig-simple"`
-	☃Three	[]ygot.Annotation	`path:"@three" ygotAnnotation:"true"`
+	🅰Three	[]ygot.Annotation	`path:"@three" ygotAnnotation:"true"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigSimple_Parent_Child_Config implements the yang.GoStruct
@@ -113,15 +113,15 @@ func (*OpenconfigSimple_Parent_Child_Config) IsYANGGoStruct() {}
 
 // OpenconfigSimple_Parent_Child_State represents the /openconfig-simple/parent/child/state YANG schema element.
 type OpenconfigSimple_Parent_Child_State struct {
-	☃Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
+	🅰Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
 	Four	Binary	`path:"four" module:"openconfig-simple"`
-	☃Four	[]ygot.Annotation	`path:"@four" ygotAnnotation:"true"`
+	🅰Four	[]ygot.Annotation	`path:"@four" ygotAnnotation:"true"`
 	One	*string	`path:"one" module:"openconfig-simple"`
-	☃One	[]ygot.Annotation	`path:"@one" ygotAnnotation:"true"`
+	🅰One	[]ygot.Annotation	`path:"@one" ygotAnnotation:"true"`
 	Three	E_OpenconfigSimple_Parent_Child_Config_Three	`path:"three" module:"openconfig-simple"`
-	☃Three	[]ygot.Annotation	`path:"@three" ygotAnnotation:"true"`
+	🅰Three	[]ygot.Annotation	`path:"@three" ygotAnnotation:"true"`
 	Two	*string	`path:"two" module:"openconfig-simple"`
-	☃Two	[]ygot.Annotation	`path:"@two" ygotAnnotation:"true"`
+	🅰Two	[]ygot.Annotation	`path:"@two" ygotAnnotation:"true"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigSimple_Parent_Child_State implements the yang.GoStruct
@@ -131,11 +131,11 @@ func (*OpenconfigSimple_Parent_Child_State) IsYANGGoStruct() {}
 
 // OpenconfigSimple_RemoteContainer represents the /openconfig-simple/remote-container YANG schema element.
 type OpenconfigSimple_RemoteContainer struct {
-	☃Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
+	🅰Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
 	Config	*OpenconfigSimple_RemoteContainer_Config	`path:"config" module:"openconfig-simple"`
-	☃Config	[]ygot.Annotation	`path:"@config" ygotAnnotation:"true"`
+	🅰Config	[]ygot.Annotation	`path:"@config" ygotAnnotation:"true"`
 	State	*OpenconfigSimple_RemoteContainer_State	`path:"state" module:"openconfig-simple"`
-	☃State	[]ygot.Annotation	`path:"@state" ygotAnnotation:"true"`
+	🅰State	[]ygot.Annotation	`path:"@state" ygotAnnotation:"true"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigSimple_RemoteContainer implements the yang.GoStruct
@@ -145,9 +145,9 @@ func (*OpenconfigSimple_RemoteContainer) IsYANGGoStruct() {}
 
 // OpenconfigSimple_RemoteContainer_Config represents the /openconfig-simple/remote-container/config YANG schema element.
 type OpenconfigSimple_RemoteContainer_Config struct {
-	☃Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
+	🅰Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
 	ALeaf	*string	`path:"a-leaf" module:"openconfig-simple"`
-	☃ALeaf	[]ygot.Annotation	`path:"@a-leaf" ygotAnnotation:"true"`
+	🅰ALeaf	[]ygot.Annotation	`path:"@a-leaf" ygotAnnotation:"true"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigSimple_RemoteContainer_Config implements the yang.GoStruct
@@ -157,9 +157,9 @@ func (*OpenconfigSimple_RemoteContainer_Config) IsYANGGoStruct() {}
 
 // OpenconfigSimple_RemoteContainer_State represents the /openconfig-simple/remote-container/state YANG schema element.
 type OpenconfigSimple_RemoteContainer_State struct {
-	☃Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
+	🅰Metadata	[]ygot.Annotation	`path:"@" ygotAnnotation:"true"`
 	ALeaf	*string	`path:"a-leaf" module:"openconfig-simple"`
-	☃ALeaf	[]ygot.Annotation	`path:"@a-leaf" ygotAnnotation:"true"`
+	🅰ALeaf	[]ygot.Annotation	`path:"@a-leaf" ygotAnnotation:"true"`
 }
 
 // IsYANGGoStruct ensures that OpenconfigSimple_RemoteContainer_State implements the yang.GoStruct

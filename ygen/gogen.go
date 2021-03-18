@@ -1406,7 +1406,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			}
 			if defaultValue != nil {
 				var err error
-				if defaultValue, _, err = gogen.yangDefaultValueToGo(*defaultValue, resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim); err != nil {
+				if defaultValue, _, err = gogen.yangDefaultValueToGo(*defaultValue, resolveTypeArgs{yangType: field.Type, contextEntry: field}, len(mtype.UnionTypes) == 1, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim); err != nil {
 					errs = append(errs, err)
 				}
 			}
@@ -1415,6 +1415,10 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 				// support the wrapper union generated code, so this
 				// call would be obsolete.
 				defaultValue = goLeafDefault(field, mtype)
+				if defaultValue != nil && len(mtype.UnionTypes) > 1 {
+					errs = append(errs, fmt.Errorf("path %q: default value not supported for wrapper union values, please generate using simplified union leaves", field.Path()))
+					continue
+				}
 			}
 
 			fType := mtype.NativeType

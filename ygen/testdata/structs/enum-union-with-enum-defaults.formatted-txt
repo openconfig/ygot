@@ -87,6 +87,8 @@ type Outer_Inner struct {
 	Leaf3	Outer_Inner_Leaf3_Union	`path:"config/leaf3" module:"enum-union"`
 	Leaf4	Outer_Inner_Leaf4_Union	`path:"config/leaf4" module:"enum-union"`
 	Leaf5	E_Inner_Leaf5_Enum	`path:"config/leaf5" module:"enum-union"`
+	SingletonUnionBinary	Binary	`path:"config/singleton-union-binary" module:"enum-union"`
+	SingletonUnionString	*string	`path:"config/singleton-union-string" module:"enum-union"`
 }
 
 // IsYANGGoStruct ensures that Outer_Inner implements the yang.GoStruct
@@ -162,6 +164,34 @@ func (t *Outer_Inner) GetLeaf5() E_Inner_Leaf5_Enum {
 		return Inner_Leaf5_Enum_DEUX
 	}
 	return t.Leaf5
+}
+
+// GetSingletonUnionBinary retrieves the value of the leaf SingletonUnionBinary from the Outer_Inner
+// struct. Caution should be exercised whilst using this method since it will return
+// the Go zero value if the field is explicitly unset. If the caller explicitly does
+// not care if SingletonUnionBinary is set, it can safely use t.GetSingletonUnionBinary()
+// to retrieve the value. In the case that the caller has different actions based on
+// whether the leaf is set or unset, it should use 'if t.SingletonUnionBinary == nil'
+// before retrieving the leaf's value.
+func (t *Outer_Inner) GetSingletonUnionBinary() Binary {
+	if t == nil || t.SingletonUnionBinary ==  nil {
+		return Binary("abc=")
+	}
+	return t.SingletonUnionBinary
+}
+
+// GetSingletonUnionString retrieves the value of the leaf SingletonUnionString from the Outer_Inner
+// struct. Caution should be exercised whilst using this method since it will return
+// the Go zero value if the field is explicitly unset. If the caller explicitly does
+// not care if SingletonUnionString is set, it can safely use t.GetSingletonUnionString()
+// to retrieve the value. In the case that the caller has different actions based on
+// whether the leaf is set or unset, it should use 'if t.SingletonUnionString == nil'
+// before retrieving the leaf's value.
+func (t *Outer_Inner) GetSingletonUnionString() string {
+	if t == nil || t.SingletonUnionString == nil {
+		return "abc="
+	}
+	return *t.SingletonUnionString
 }
 
 // Outer_Inner_Leaf1_Union is an interface that is implemented by valid types for the union
