@@ -491,7 +491,7 @@ func TestSimpleStructs(t *testing.T) {
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
 				AddAnnotationFields:  true,
-				AnnotationPrefix:     "🅰",
+				AnnotationPrefix:     "ᗩ",
 				GenerateSimpleUnions: true,
 			},
 			TransformationOptions: TransformationOpts{
