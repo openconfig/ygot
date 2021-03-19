@@ -1410,12 +1410,15 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 					errs = append(errs, err)
 				}
 			}
+			// TODO(wenbli): In ygot v1, we should no longer
+			// support the wrapper union generated code, so this if
+			// block would be obsolete.
 			if !goOpts.GenerateSimpleUnions {
-				// TODO(wenbli): In ygot v1, we should no longer
-				// support the wrapper union generated code, so this
-				// call would be obsolete.
 				defaultValue = goLeafDefault(field, mtype)
 				if defaultValue != nil && len(mtype.UnionTypes) > 1 {
+					// If the default value is applied to a union type, we will generate
+					// non-compilable code when generating wrapper unions, so error out and inform
+					// the user instead of having the user find out that the code doesn't compile.
 					errs = append(errs, fmt.Errorf("path %q: default value not supported for wrapper union values, please generate using simplified union leaves", field.Path()))
 					continue
 				}

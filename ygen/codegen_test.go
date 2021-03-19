@@ -897,8 +897,7 @@ func TestSimpleStructs(t *testing.T) {
 				UseDefiningModuleForTypedefEnumNames: true,
 			},
 		},
-		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-union-with-enum-defaults.wrapper-unions.formatted-txt"),
-		wantErrSubstring:    "default value not supported for wrapper union values, please generate using simplified union leaves",
+		wantErrSubstring: "default value not supported for wrapper union values, please generate using simplified union leaves",
 	}, {
 		name:           "enumeration behaviour - resolution across submodules and grouping re-use within union",
 		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
