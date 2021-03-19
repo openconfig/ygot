@@ -232,6 +232,8 @@ func (*Parent) IsYANGGoStruct() {}
 type Parent_Child struct {
 	Enum	E_EnumTypes_TdEnum	`path:"state/enum" module:"enum-module"`
 	Id	E_EnumTypes_ID	`path:"config/id" module:"enum-module"`
+	Id2	E_EnumTypes_ID	`path:"config/id2" module:"enum-module"`
+	InlineEnum	E_Child_InlineEnum	`path:"config/inline-enum" module:"enum-module"`
 }
 
 // IsYANGGoStruct ensures that Parent_Child implements the yang.GoStruct
@@ -266,6 +268,67 @@ func (t *Parent_Child) GetId() E_EnumTypes_ID {
 	}
 	return t.Id
 }
+
+// GetId2 retrieves the value of the leaf Id2 from the Parent_Child
+// struct. Caution should be exercised whilst using this method since it will return
+// the Go zero value if the field is explicitly unset. If the caller explicitly does
+// not care if Id2 is set, it can safely use t.GetId2()
+// to retrieve the value. In the case that the caller has different actions based on
+// whether the leaf is set or unset, it should use 'if t.Id2 == nil'
+// before retrieving the leaf's value.
+func (t *Parent_Child) GetId2() E_EnumTypes_ID {
+	if t == nil || t.Id2 ==  0 {
+		return EnumTypes_ID_SO_LONG_AND_THANKS_FOR_ALL_THE_FISH
+	}
+	return t.Id2
+}
+
+// GetInlineEnum retrieves the value of the leaf InlineEnum from the Parent_Child
+// struct. Caution should be exercised whilst using this method since it will return
+// the Go zero value if the field is explicitly unset. If the caller explicitly does
+// not care if InlineEnum is set, it can safely use t.GetInlineEnum()
+// to retrieve the value. In the case that the caller has different actions based on
+// whether the leaf is set or unset, it should use 'if t.InlineEnum == nil'
+// before retrieving the leaf's value.
+func (t *Parent_Child) GetInlineEnum() E_Child_InlineEnum {
+	if t == nil || t.InlineEnum ==  0 {
+		return Child_InlineEnum_THYMINE
+	}
+	return t.InlineEnum
+}
+
+// E_Child_InlineEnum is a derived int64 type which is used to represent
+// the enumerated node Child_InlineEnum. An additional value named
+// Child_InlineEnum_UNSET is added to the enumeration which is used as
+// the nil value, indicating that the enumeration was not explicitly set by
+// the program importing the generated structures.
+type E_Child_InlineEnum int64
+
+// IsYANGGoEnum ensures that Child_InlineEnum implements the yang.GoEnum
+// interface. This ensures that Child_InlineEnum can be identified as a
+// mapped type for a YANG enumeration.
+func (E_Child_InlineEnum) IsYANGGoEnum() {}
+
+// ΛMap returns the value lookup map associated with  Child_InlineEnum.
+func (E_Child_InlineEnum) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
+
+// String returns a logging-friendly string for E_Child_InlineEnum.
+func (e E_Child_InlineEnum) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_Child_InlineEnum")
+}
+
+const (
+	// Child_InlineEnum_UNSET corresponds to the value UNSET of Child_InlineEnum
+	Child_InlineEnum_UNSET E_Child_InlineEnum = 0
+	// Child_InlineEnum_ADENINE corresponds to the value ADENINE of Child_InlineEnum
+	Child_InlineEnum_ADENINE E_Child_InlineEnum = 1
+	// Child_InlineEnum_THYMINE corresponds to the value THYMINE of Child_InlineEnum
+	Child_InlineEnum_THYMINE E_Child_InlineEnum = 2
+	// Child_InlineEnum_CYTOSINE corresponds to the value CYTOSINE of Child_InlineEnum
+	Child_InlineEnum_CYTOSINE E_Child_InlineEnum = 3
+	// Child_InlineEnum_GUANINE corresponds to the value GUANINE of Child_InlineEnum
+	Child_InlineEnum_GUANINE E_Child_InlineEnum = 4
+)
 
 // E_EnumModule_Cl is a derived int64 type which is used to represent
 // the enumerated node EnumModule_Cl. An additional value named
@@ -391,6 +454,12 @@ const (
 // in the YANG schema. The map is named ΛEnum in order to avoid clash with any
 // valid YANG identifier.
 var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
+	"E_Child_InlineEnum": {
+		1: {Name: "ADENINE"},
+		2: {Name: "THYMINE"},
+		3: {Name: "CYTOSINE"},
+		4: {Name: "GUANINE"},
+	},
 	"E_EnumModule_Cl": {
 		1: {Name: "X"},
 	},

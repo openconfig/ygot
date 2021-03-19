@@ -378,7 +378,7 @@ func TestUnionSubTypes(t *testing.T) {
 				UnionTypes:        nil,
 				IsEnumeratedValue: true,
 				ZeroValue:         "0",
-				DefaultValue:      ygot.String("BaseModule_BaseIdentity_CHIPS"),
+				DefaultValue:      ygot.String("prefix:CHIPS"),
 			},
 		},
 	}}
@@ -640,7 +640,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			NativeType:        "E_BaseModule_EnumerationLeaf",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
-			DefaultValue:      ygot.String("BaseModule_EnumerationLeaf_BLUE"),
+			DefaultValue:      ygot.String("prefix:BLUE"),
 		},
 	}, {
 		name: "enumeration in union as the lone type with default",
@@ -665,7 +665,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			UnionTypes:        map[string]int{"E_BaseModule_UnionLeaf_Enum": 0},
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
-			DefaultValue:      ygot.String("BaseModule_UnionLeaf_Enum_BLUE"),
+			DefaultValue:      ygot.String("prefix:BLUE"),
 		},
 	}, {
 		name: "typedef enumeration",
@@ -792,7 +792,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			NativeType:        "E_TestModule_BaseIdentity",
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
-			DefaultValue:      ygot.String("TestModule_BaseIdentity_CHIPS"),
+			DefaultValue:      ygot.String("CHIPS"),
 		},
 	}, {
 		name: "identityref in union as the lone type with default",
@@ -826,7 +826,7 @@ func TestYangTypeToGoType(t *testing.T) {
 			UnionTypes:        map[string]int{"E_BaseModule_BaseIdentity": 0},
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
-			DefaultValue:      ygot.String("BaseModule_BaseIdentity_CHIPS"),
+			DefaultValue:      ygot.String("prefix:CHIPS"),
 		},
 	}, {
 		name: "enumeration with compress paths",

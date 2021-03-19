@@ -340,11 +340,8 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 		if err != nil {
 			return nil, err
 		}
-		if defVal != nil {
-			defVal = enumDefaultValue(n, *defVal, "")
-		}
 		return &MappedType{
-			NativeType:        fmt.Sprintf("E_%s", n),
+			NativeType:        fmt.Sprintf("%s%s", goEnumPrefix, n),
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 			DefaultValue:      defVal,
@@ -360,11 +357,8 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 		if err != nil {
 			return nil, err
 		}
-		if defVal != nil {
-			defVal = enumDefaultValue(n, *defVal, "")
-		}
 		return &MappedType{
-			NativeType:        fmt.Sprintf("E_%s", n),
+			NativeType:        fmt.Sprintf("%s%s", goEnumPrefix, n),
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 			DefaultValue:      defVal,
@@ -500,11 +494,8 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 			return append(errs, err)
 		}
 		defVal := genutil.TypeDefaultValue(subtype)
-		if defVal != nil {
-			defVal = enumDefaultValue(baseType, *defVal, "")
-		}
 		mtype = &MappedType{
-			NativeType:        fmt.Sprintf("E_%s", baseType),
+			NativeType:        fmt.Sprintf("%s%s", goEnumPrefix, baseType),
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 			DefaultValue:      defVal,
