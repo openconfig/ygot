@@ -4,7 +4,6 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
   schedule:
     - cron: "0 0 * * *"
 
@@ -66,6 +65,41 @@ jobs:
       - name: Run race tests
         run:  go test -race -v ./...
         working-directory: go/src/github.com/openconfig/ygot
+
+      - name: Check that Go integration test files compile
+        working-directory: go/src/github.com/openconfig/ygot/ygen/testdata
+        run: |
+          function test-go-build() {
+            cwd=$(pwd)
+            tmpdir=$(mktemp -d -p $cwd)
+            name=$(basename $1)
+            cp "$1" "$tmpdir"/"${name}.go"
+            cd $tmpdir
+            goimports -w *.go
+            go build
+            cd $cwd
+            rm -r $tmpdir
+          }
+
+          expectFail=(
+          )
+          for f in structs/*.formatted-txt; do
+            if [[ ${expectFail[@]} =~ $(basename $f) ]]; then
+              continue
+            fi
+            test-go-build $f
+          done
+
+          expectFail=(
+            # fake ygot and ytype paths specified in generation options.
+            "openconfig-options-explicit.formatted-txt.go"
+          )
+          for f in schema/*.formatted-txt; do
+            if [[ ${expectFail[@]} =~ $(basename $f) ]]; then
+              continue
+            fi
+            test-go-build $f
+          done
 
   static_analysis:
     name: Static Analysis

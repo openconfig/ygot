@@ -1098,7 +1098,7 @@ func (t *{{ .ParentReceiver }}) To_{{ .Name }}(i interface{}) ({{ .Name }}, erro
 	{{ end -}}
 	{{ if .HasUnsupported -}}
 	case interface{}:
-		return &Unsupported{v}, nil
+		return &UnionUnsupported{v}, nil
 	{{ end -}}
 	}
 	{{ end -}}
@@ -1406,15 +1406,22 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 			}
 			if defaultValue != nil {
 				var err error
-				if defaultValue, _, err = gogen.yangDefaultValueToGo(*defaultValue, resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim); err != nil {
+				if defaultValue, _, err = gogen.yangDefaultValueToGo(*defaultValue, resolveTypeArgs{yangType: field.Type, contextEntry: field}, len(mtype.UnionTypes) == 1, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim); err != nil {
 					errs = append(errs, err)
 				}
 			}
+			// TODO(wenbli): In ygot v1, we should no longer
+			// support the wrapper union generated code, so this if
+			// block would be obsolete.
 			if !goOpts.GenerateSimpleUnions {
-				// TODO(wenbli): In ygot v1, we should no longer
-				// support the wrapper union generated code, so this
-				// call would be obsolete.
 				defaultValue = goLeafDefault(field, mtype)
+				if defaultValue != nil && len(mtype.UnionTypes) > 1 {
+					// If the default value is applied to a union type, we will generate
+					// non-compilable code when generating wrapper unions, so error out and inform
+					// the user instead of having the user find out that the code doesn't compile.
+					errs = append(errs, fmt.Errorf("path %q: default value not supported for wrapper union values, please generate using simplified union leaves", field.Path()))
+					continue
+				}
 			}
 
 			fType := mtype.NativeType

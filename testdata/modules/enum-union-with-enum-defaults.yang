@@ -31,6 +31,24 @@ module enum-union {
     default 5;
   }
 
+  typedef singleton-union-binary {
+    type union {
+      type binary {
+        length 1..5;
+      }
+    }
+    default "cba=";
+  }
+
+  typedef singleton-union-string {
+    type union {
+      type string {
+        length 1..5;
+      }
+    }
+    default "cba=";
+  }
+
   typedef days-of-week {
     type union {
       type weekday;
@@ -84,6 +102,16 @@ module enum-union {
     container inner {
       container config {
         uses union-enums;
+
+        leaf singleton-union-binary {
+          type singleton-union-binary;
+          default "abc=";
+        }
+
+        leaf singleton-union-string {
+          type singleton-union-string;
+          default "abc=";
+        }
       }
       container state {
         config false;

@@ -531,9 +531,10 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 	return errs
 }
 
-// yangDefaultValueToGo takes a default value, and its associated
-// type, schema entry, and other generation flags, and maps it to a Go snippet
-// reference that would represent the value in the generated Go code.
+// yangDefaultValueToGo takes a default value, and its associated type, schema
+// entry, whether it is a union with a single type, and other generation flags,
+// and maps it to a Go snippet reference that would represent the value in the
+// generated Go code.
 // If it is unable to convert the default value according to the given type and
 // context schema entry, an error is returned.
 // NOTE: This function currently ONLY supports generating default union value
@@ -551,7 +552,7 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 // The skipEnumDedup argument specifies whether leaves of type enumeration that are
 // used more than once in the schema should share a common type. By default, a single
 // type for each leaf is created.
-func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*string, yang.TypeKind, error) {
+func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*string, yang.TypeKind, error) {
 	// Handle the case of a typedef which is actually an enumeration.
 	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
@@ -684,15 +685,17 @@ func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, co
 		if err != nil {
 			return nil, yang.Ynone, err
 		}
-		return s.yangDefaultValueToGo(value, resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
+		return s.yangDefaultValueToGo(value, resolveTypeArgs{yangType: target.Type, contextEntry: target}, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
 	case yang.Yunion:
 		// Try to convert to each type in order, but try the enumerated types first.
 		for _, t := range util.FlattenedTypes(args.yangType.Type) {
-			snippetRef, convertedKind, err := s.yangDefaultValueToGo(value, resolveTypeArgs{yangType: t, contextEntry: args.contextEntry}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
+			snippetRef, convertedKind, err := s.yangDefaultValueToGo(value, resolveTypeArgs{yangType: t, contextEntry: args.contextEntry}, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
 			if err == nil {
-				if simpleName, ok := simpleUnionConversionsFromKind[convertedKind]; ok {
-					convertedSnippet := fmt.Sprintf("%s(%s)", simpleName, *snippetRef)
-					snippetRef = &convertedSnippet
+				if !isSingletonUnion {
+					if simpleName, ok := simpleUnionConversionsFromKind[convertedKind]; ok {
+						convertedSnippet := fmt.Sprintf("%s(%s)", simpleName, *snippetRef)
+						snippetRef = &convertedSnippet
+					}
 				}
 				return snippetRef, convertedKind, nil
 			}
