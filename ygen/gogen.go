@@ -2240,6 +2240,9 @@ func goLeafDefault(e *yang.Entry, t *MappedType) *string {
 	}
 
 	if t.DefaultValue != nil {
+		if t.IsEnumeratedValue {
+			return enumDefaultValue(t.NativeType, *t.DefaultValue, goEnumPrefix)
+		}
 		return quoteDefault(t.DefaultValue, t.NativeType)
 	}
 

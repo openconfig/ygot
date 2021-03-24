@@ -280,6 +280,26 @@ type Parent_Child_IdPathAny struct {
 	*ygot.NodePath
 }
 
+// Parent_Child_Id2Path represents the /enum-module/parent/child/state/id2 YANG schema element.
+type Parent_Child_Id2Path struct {
+	*ygot.NodePath
+}
+
+// Parent_Child_Id2PathAny represents the wildcard version of the /enum-module/parent/child/state/id2 YANG schema element.
+type Parent_Child_Id2PathAny struct {
+	*ygot.NodePath
+}
+
+// Parent_Child_InlineEnumPath represents the /enum-module/parent/child/state/inline-enum YANG schema element.
+type Parent_Child_InlineEnumPath struct {
+	*ygot.NodePath
+}
+
+// Parent_Child_InlineEnumPathAny represents the wildcard version of the /enum-module/parent/child/state/inline-enum YANG schema element.
+type Parent_Child_InlineEnumPathAny struct {
+	*ygot.NodePath
+}
+
 // Enum returns from Parent_ChildPath the path struct for its child "enum".
 func (n *Parent_ChildPath) Enum() *Parent_Child_EnumPath {
 	return &Parent_Child_EnumPath{
@@ -318,6 +338,50 @@ func (n *Parent_ChildPathAny) Id() *Parent_Child_IdPathAny {
 	return &Parent_Child_IdPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "id"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Id2 returns from Parent_ChildPath the path struct for its child "id2".
+func (n *Parent_ChildPath) Id2() *Parent_Child_Id2Path {
+	return &Parent_Child_Id2Path{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "id2"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Id2 returns from Parent_ChildPathAny the path struct for its child "id2".
+func (n *Parent_ChildPathAny) Id2() *Parent_Child_Id2PathAny {
+	return &Parent_Child_Id2PathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "id2"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// InlineEnum returns from Parent_ChildPath the path struct for its child "inline-enum".
+func (n *Parent_ChildPath) InlineEnum() *Parent_Child_InlineEnumPath {
+	return &Parent_Child_InlineEnumPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "inline-enum"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// InlineEnum returns from Parent_ChildPathAny the path struct for its child "inline-enum".
+func (n *Parent_ChildPathAny) InlineEnum() *Parent_Child_InlineEnumPathAny {
+	return &Parent_Child_InlineEnumPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "inline-enum"},
 			map[string]interface{}{},
 			n,
 		),

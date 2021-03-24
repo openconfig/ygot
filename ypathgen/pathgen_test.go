@@ -491,6 +491,14 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				YANGTypeName:          "identityref",
 			},
+			"Parent_Child_Id2Path": {
+				GoTypeName:            "E_EnumTypes_ID",
+				GoFieldName:           "Id2",
+				SubsumingGoStructName: "Parent_Child",
+				IsLeaf:                true,
+				IsScalarField:         false,
+				YANGTypeName:          "identityref",
+			},
 			"Parent_Child_EnumPath": {
 				GoTypeName:            "E_EnumTypes_TdEnum",
 				GoFieldName:           "Enum",
@@ -498,6 +506,14 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         false,
 				YANGTypeName:          "td-enum",
+			},
+			"Parent_Child_InlineEnumPath": {
+				GoTypeName:            "E_Child_InlineEnum",
+				GoFieldName:           "InlineEnum",
+				SubsumingGoStructName: "Parent_Child",
+				IsLeaf:                true,
+				IsScalarField:         false,
+				YANGTypeName:          "enumeration",
 			}},
 	}, {
 		name:                                   "simple openconfig test with choice and cases",
