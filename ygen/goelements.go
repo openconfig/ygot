@@ -596,9 +596,6 @@ func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, is
 				return nil, yang.Ynone, fmt.Errorf("default value conversion: %q doesn't match int restrictions: %v", value, err)
 			}
 		}
-		if err != nil {
-			return nil, yang.Ynone, fmt.Errorf("default value conversion: unable to convert default value %q to %v: %v", value, ykind, err)
-		}
 		return &value, ykind, nil
 	case yang.Ydecimal64:
 		val, err := strconv.ParseFloat(value, 64)
