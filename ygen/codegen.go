@@ -159,6 +159,9 @@ type TransformationOpts struct {
 	// to prefix typedef enumerated types instead of the module where the
 	// typedef enumerated value is used.
 	UseDefiningModuleForTypedefEnumNames bool
+	// IncludeDescriptions specifies that YANG entry descriptions are added
+	// to the JSON schema. Set to false to reduces the size of generated schema
+	IncludeDescriptions bool
 }
 
 // GoOpts stores Go specific options for the code generation library.
@@ -475,7 +478,8 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var enumTypeMapCode string
 	if cg.Config.GenerateJSONSchema {
 		var err error
-		rawSchema, err = buildJSONTree(mdef.modules, gogen.uniqueDirectoryNames, mdef.directoryEntries["/"], cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled())
+		rawSchema, err = buildJSONTree(mdef.modules, gogen.uniqueDirectoryNames, mdef.directoryEntries["/"],
+			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.TransformationOptions.IncludeDescriptions)
 		if err != nil {
 			codegenErr = util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}

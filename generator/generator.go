@@ -74,6 +74,7 @@ var (
 	appendEnumSuffixForSimpleUnionEnums  = flag.Bool("enum_suffix_for_simple_union_enums", false, "If set to true when typedef_enum_with_defmod is also true, all inlined enumerations within unions will be suffixed with \"Enum\", instead of adding the suffix only for inlined enumerations within typedef unions.")
 	ygotImportPath                       = flag.String("ygot_path", genutil.GoDefaultYgotImportPath, "The import path to use for ygot.")
 	trimEnumOpenConfigPrefix             = flag.Bool("trim_enum_openconfig_prefix", false, `If set to true when compressPaths=true, the organizational prefix "openconfig-" is trimmed from the module part of the name of enumerated names in the generated code`)
+	includeDescriptions                  = flag.Bool("include_descriptions", false, "If set to true when generateSchema=true, the YANG descriptions will be included in the generated code artefact.")
 	enumOrgPrefixesToTrim                []string
 
 	// Flags used for GoStruct generation only.
@@ -327,6 +328,7 @@ func main() {
 				ShortenEnumLeafNames:                 *shortenEnumLeafNames,
 				EnumOrgPrefixesToTrim:                enumOrgPrefixesToTrim,
 				UseDefiningModuleForTypedefEnumNames: *useDefiningModuleForTypedefEnumNames,
+				IncludeDescriptions:                  *includeDescriptions,
 			},
 			PackageName:        *packageName,
 			GenerateJSONSchema: *generateSchema,
