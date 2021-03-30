@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
@@ -281,7 +280,7 @@ func TestBuildJSONTree(t *testing.T) {
 		}
 
 		got := string(gotb)
-		if diff := pretty.Compare(got, tt.want); diff != "" {
+		if diff := cmp.Diff(got, tt.want); diff != "" {
 			if diffl, err := testutil.GenerateUnifiedDiff(tt.want, got); err == nil {
 				diff = diffl
 			}
