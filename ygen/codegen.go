@@ -67,6 +67,9 @@ type GeneratorConfig struct {
 	GoOptions GoOpts
 	// ProtoOptions stores a struct which contains Protobuf specific options.
 	ProtoOptions ProtoOpts
+	// IncludeDescriptions specifies that YANG entry descriptions are added
+	// to the JSON schema. Is false by default, to reduce the size of generated schema
+	IncludeDescriptions bool
 }
 
 // DirectoryGenConfig contains the configuration necessary to generate a set of
@@ -475,7 +478,8 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var enumTypeMapCode string
 	if cg.Config.GenerateJSONSchema {
 		var err error
-		rawSchema, err = buildJSONTree(mdef.modules, gogen.uniqueDirectoryNames, mdef.directoryEntries["/"], cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled())
+		rawSchema, err = buildJSONTree(mdef.modules, gogen.uniqueDirectoryNames, mdef.directoryEntries["/"],
+			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.IncludeDescriptions)
 		if err != nil {
 			codegenErr = util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}

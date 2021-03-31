@@ -36,13 +36,13 @@ import (
 // they correspond to in the generated code, and the absolute schema path that
 // the entry corresponds to. In the case that the fake root struct that is provided
 // is nil, a synthetic root entry is used to store the schema tree.
-func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry, compressed bool) ([]byte, error) {
+func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry, compressed bool, inclDescriptions bool) ([]byte, error) {
 	rootEntry := &yang.Entry{
 		Dir:        map[string]*yang.Entry{},
 		Annotation: map[string]interface{}{},
 	}
 	for _, m := range ms {
-		annotateChildren(m, dn)
+		annotateChildren(m, dn, inclDescriptions)
 		for _, ch := range util.Children(m) {
 			if _, ex := rootEntry.Dir[ch.Name]; ex {
 				return nil, fmt.Errorf("overlapping root children for key %s", ch.Name)
@@ -80,27 +80,29 @@ func buildJSONTree(ms []*yang.Entry, dn map[string]string, fakeroot *yang.Entry,
 // to its path in the supplied dn map. The dn map is assumed to contain the
 // names of unique directories that are generated within the code to be output.
 // The children of e are recursively annotated.
-func annotateChildren(e *yang.Entry, dn map[string]string) {
-	annotateEntry(e, dn)
+func annotateChildren(e *yang.Entry, dn map[string]string, inclDescriptions bool) {
+	annotateEntry(e, dn, inclDescriptions)
 	for _, ch := range util.Children(e) {
-		annotateEntry(ch, dn)
+		annotateEntry(ch, dn, inclDescriptions)
 		if ch.IsDir() {
 			ch.Annotation["schemapath"] = ch.Path()
 			// Recurse to annotate the children of this entry.
-			annotateChildren(ch, dn)
+			annotateChildren(ch, dn, inclDescriptions)
 		}
 	}
 }
 
 // annotateEntry modifies the yang.Entry e to:
 //  - set the description to be the nil string to reduce
-//    filesizes of serialised schemas.
+//    filesizes of serialised schemas (only when inclDescriptions=false)
 //  - add the struct name corresponding to the path of the entry
 //    in the supplied dn map to the annotations.
 //  - add the YANG schema path to the annotations, where e
 //    corresponds to a YANG directory.
-func annotateEntry(e *yang.Entry, dn map[string]string) {
-	e.Description = ""
+func annotateEntry(e *yang.Entry, dn map[string]string, inclDescriptions bool) {
+	if !inclDescriptions {
+		e.Description = ""
+	}
 	if e.Annotation == nil {
 		e.Annotation = map[string]interface{}{}
 	}
