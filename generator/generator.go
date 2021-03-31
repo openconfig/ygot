@@ -328,10 +328,10 @@ func main() {
 				ShortenEnumLeafNames:                 *shortenEnumLeafNames,
 				EnumOrgPrefixesToTrim:                enumOrgPrefixesToTrim,
 				UseDefiningModuleForTypedefEnumNames: *useDefiningModuleForTypedefEnumNames,
-				IncludeDescriptions:                  *includeDescriptions,
 			},
-			PackageName:        *packageName,
-			GenerateJSONSchema: *generateSchema,
+			PackageName:         *packageName,
+			GenerateJSONSchema:  *generateSchema,
+			IncludeDescriptions: *includeDescriptions,
 			GoOptions: ygen.GoOpts{
 				YgotImportPath:                      *ygotImportPath,
 				YtypesImportPath:                    *ytypesImportPath,
