@@ -26,6 +26,35 @@ import (
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.4.
 
+var (
+	POSIXregexCache = map[string]*regexp.Regexp{}
+	RE2regexCache   = map[string]*regexp.Regexp{}
+)
+
+// compilePattern returns the compiled regex for the given regex
+// pattern. It caches previous look-ups for faster performance.
+// Go's regexp implementation might be relatively slow compared to other
+// languages: https://github.com/golang/go/issues/11646
+func compilePattern(pattern string, isPOSIX bool) (*regexp.Regexp, error) {
+	regexCache := RE2regexCache
+	regexCompile := regexp.Compile
+	if isPOSIX {
+		regexCache = POSIXregexCache
+		regexCompile = regexp.CompilePOSIX
+	}
+
+	r, ok := regexCache[pattern]
+	if !ok {
+		var err error
+		r, err = regexCompile(pattern)
+		if err != nil {
+			return nil, err
+		}
+		regexCache[pattern] = r
+	}
+	return r, nil
+}
+
 // ValidateStringRestrictions checks that the given string matches the string
 // schema's length and pattern restrictions (if any). It returns an error if
 // the validation fails.
@@ -40,13 +69,7 @@ func ValidateStringRestrictions(schemaType *yang.YangType, stringVal string) err
 	// Check that the value satisfies any regex patterns.
 	patterns, isPOSIX := util.SanitizedPattern(schemaType)
 	for _, p := range patterns {
-		var r *regexp.Regexp
-		var err error
-		if isPOSIX {
-			r, err = regexp.CompilePOSIX(p)
-		} else {
-			r, err = regexp.Compile(p)
-		}
+		r, err := compilePattern(p, isPOSIX)
 		if err != nil {
 			return err
 		}
@@ -127,13 +150,7 @@ func validateStringSchema(schema *yang.Entry) error {
 
 	patterns, isPOSIX := util.SanitizedPattern(schema.Type)
 	for _, p := range patterns {
-		var err error
-		if isPOSIX {
-			_, err = regexp.CompilePOSIX(p)
-		} else {
-			_, err = regexp.Compile(p)
-		}
-		if err != nil {
+		if _, err := compilePattern(p, isPOSIX); err != nil {
 			return fmt.Errorf("error generating regexp %s %v for schema %s", p, err, schema.Name)
 		}
 	}
