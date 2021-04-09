@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"sync"
 	"unicode/utf8"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -27,8 +28,19 @@ import (
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.4.
 
 var (
-	POSIXregexCache = map[string]*regexp.Regexp{}
-	RE2regexCache   = map[string]*regexp.Regexp{}
+	// posixRegexCache stores previously-compiled Regexp objects.
+	// This helps the performance of validation of, say, a large prefix
+	// list that have the same pattern specification.
+	//
+	// Concurrency Requirements
+	//
+	// Only the regexp cache has to be protected by mutexes, since
+	// a Regexp is safe for concurrent use by multiple goroutines:
+	// https://golang.org/src/regexp/regexp.go
+	posixRegexCache = map[string]*regexp.Regexp{}
+	posixRegexMutex = &sync.RWMutex{}
+	re2RegexCache   = map[string]*regexp.Regexp{}
+	re2RegexMutex   = &sync.RWMutex{}
 )
 
 // compilePattern returns the compiled regex for the given regex
@@ -36,21 +48,31 @@ var (
 // Go's regexp implementation might be relatively slow compared to other
 // languages: https://github.com/golang/go/issues/11646
 func compilePattern(pattern string, isPOSIX bool) (*regexp.Regexp, error) {
-	regexCache := RE2regexCache
+	regexCache := re2RegexCache
+	regexMutex := re2RegexMutex
 	regexCompile := regexp.Compile
 	if isPOSIX {
-		regexCache = POSIXregexCache
+		regexCache = posixRegexCache
 		regexCompile = regexp.CompilePOSIX
+		regexMutex = posixRegexMutex
 	}
 
+	regexMutex.RLock()
 	r, ok := regexCache[pattern]
+	regexMutex.RUnlock()
 	if !ok {
 		var err error
 		r, err = regexCompile(pattern)
 		if err != nil {
 			return nil, err
 		}
+		// It's true that there may be multiple writers into the map at the same time.
+		// This, however, doesn't impact correctness, since all
+		// compiled Regexp objects are acceptable, and the object is
+		// simply dropped at the end of this function.
+		regexMutex.Lock()
 		regexCache[pattern] = r
+		regexMutex.Unlock()
 	}
 	return r, nil
 }
