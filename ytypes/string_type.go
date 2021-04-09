@@ -27,55 +27,73 @@ import (
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.4.
 
-var (
-	// posixRegexCache stores previously-compiled Regexp objects.
-	// This helps the performance of validation of, say, a large prefix
-	// list that have the same pattern specification.
-	//
-	// Concurrency Requirements
-	//
-	// Only the regexp cache has to be protected by mutexes, since
-	// a Regexp is safe for concurrent use by multiple goroutines:
-	// https://golang.org/src/regexp/regexp.go
-	posixRegexCache = map[string]*regexp.Regexp{}
-	posixRegexMutex = &sync.RWMutex{}
-	re2RegexCache   = map[string]*regexp.Regexp{}
-	re2RegexMutex   = &sync.RWMutex{}
-)
+// reCache is the global regexp cache used for speeding up the validation of
+// pattern-restricted strings.
+var reCache = newRegexpCache()
+
+// regexpCache stores previously-compiled Regexp objects.
+// This helps the performance of validation of, say, a large prefix
+// list that have the same pattern specification.
+//
+// Concurrency Requirements
+//
+// Only the regexp cache map has to be protected by mutexes, since
+// a Regexp is safe for concurrent use by multiple goroutines:
+// https://golang.org/src/regexp/regexp.go
+type regexpCache struct {
+	posixMu sync.RWMutex
+	posix   map[string]*regexp.Regexp
+
+	re2Mu sync.RWMutex
+	re2   map[string]*regexp.Regexp
+}
+
+// newRegexpCache returns a regexpCache with all fields in a useable, empty
+// state.
+func newRegexpCache() *regexpCache {
+	return &regexpCache{
+		posix: map[string]*regexp.Regexp{},
+		re2:   map[string]*regexp.Regexp{},
+	}
+}
 
 // compilePattern returns the compiled regex for the given regex
 // pattern. It caches previous look-ups for faster performance.
 // Go's regexp implementation might be relatively slow compared to other
 // languages: https://github.com/golang/go/issues/11646
-func compilePattern(pattern string, isPOSIX bool) (*regexp.Regexp, error) {
-	regexCache := re2RegexCache
-	regexMutex := re2RegexMutex
+func (c *regexpCache) compilePattern(pattern string, isPOSIX bool) (*regexp.Regexp, error) {
+	regexCache := c.re2
+	regexMutex := &c.re2Mu
 	regexCompile := regexp.Compile
 	if isPOSIX {
-		regexCache = posixRegexCache
+		regexCache = c.posix
+		regexMutex = &c.posixMu
 		regexCompile = regexp.CompilePOSIX
-		regexMutex = posixRegexMutex
 	}
 
-	regexMutex.RLock()
-	r, ok := regexCache[pattern]
-	regexMutex.RUnlock()
-	if !ok {
-		var err error
-		r, err = regexCompile(pattern)
-		if err != nil {
-			return nil, err
-		}
-		// It's true that there may be multiple writers into the map at
-		// the same time. This, however, doesn't impact correctness,
-		// since any compiled Regexp objects are acceptable, and
-		// displaced objects are simply dropped at the end of this
-		// function.
-		regexMutex.Lock()
-		regexCache[pattern] = r
-		regexMutex.Unlock()
+	// Attempt to read a previously cached regexp.Regexp.
+	if re := func() *regexp.Regexp {
+		regexMutex.RLock()
+		defer regexMutex.RUnlock()
+		return regexCache[pattern]
+	}(); re != nil {
+		return re, nil
 	}
-	return r, nil
+
+	// Read unsuccessful (cache-miss). Compile and populate the cache.
+	re, err := regexCompile(pattern)
+	if err != nil {
+		return nil, err
+	}
+	// Multiple unsuccessful readers might try to populate their own
+	// compiled regexp.Regexp objects into the same cache entry.
+	// This is ok, as since any regexp.Regexp value for the same cache
+	// entry is equivalent, it does not matter which compiled instance is
+	// introduced into the map, or returned to the caller.
+	regexMutex.Lock()
+	defer regexMutex.Unlock()
+	regexCache[pattern] = re
+	return re, nil
 }
 
 // ValidateStringRestrictions checks that the given string matches the string
@@ -92,7 +110,7 @@ func ValidateStringRestrictions(schemaType *yang.YangType, stringVal string) err
 	// Check that the value satisfies any regex patterns.
 	patterns, isPOSIX := util.SanitizedPattern(schemaType)
 	for _, p := range patterns {
-		r, err := compilePattern(p, isPOSIX)
+		r, err := reCache.compilePattern(p, isPOSIX)
 		if err != nil {
 			return err
 		}
@@ -173,7 +191,7 @@ func validateStringSchema(schema *yang.Entry) error {
 
 	patterns, isPOSIX := util.SanitizedPattern(schema.Type)
 	for _, p := range patterns {
-		if _, err := compilePattern(p, isPOSIX); err != nil {
+		if _, err := reCache.compilePattern(p, isPOSIX); err != nil {
 			return fmt.Errorf("error generating regexp %s %v for schema %s", p, err, schema.Name)
 		}
 	}
