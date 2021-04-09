@@ -24,10 +24,10 @@ import (
 func BenchmarkPOSIXPattern(b *testing.B) {
 	d := &oc.Device{}
 	prefixSet := d.GetOrCreateRoutingPolicy().GetOrCreateDefinedSets().GetOrCreatePrefixSet("foo")
-	for i := 0; i != 100; i++ {
+	for i := 0; i != 256; i++ {
 		prefixSet.NewPrefix(fmt.Sprintf("%d.%d.%d.0/24", i, i, i), "exact")
 	}
-	for i := 0; i != 100; i++ {
+	for i := 0; i != 256; i++ {
 		prefixSet.NewPrefix(fmt.Sprintf("FFFF:%d:EEEE:AAAA::/64", i), "60..64")
 	}
 

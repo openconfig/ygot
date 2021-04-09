@@ -66,10 +66,11 @@ func compilePattern(pattern string, isPOSIX bool) (*regexp.Regexp, error) {
 		if err != nil {
 			return nil, err
 		}
-		// It's true that there may be multiple writers into the map at the same time.
-		// This, however, doesn't impact correctness, since all
-		// compiled Regexp objects are acceptable, and the object is
-		// simply dropped at the end of this function.
+		// It's true that there may be multiple writers into the map at
+		// the same time. This, however, doesn't impact correctness,
+		// since any compiled Regexp objects are acceptable, and
+		// displaced objects are simply dropped at the end of this
+		// function.
 		regexMutex.Lock()
 		regexCache[pattern] = r
 		regexMutex.Unlock()
