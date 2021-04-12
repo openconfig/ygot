@@ -2285,6 +2285,7 @@ func TestGenerateProto3(t *testing.T) {
 				AnnotateEnumNames:   true,
 				AnnotateSchemaPaths: true,
 				NestedMessages:      true,
+				GoPackageName:       "github.com/openconfig/a/package",
 			},
 		},
 		wantOutputFiles: map[string]string{

@@ -154,6 +154,7 @@ type proto3Header struct {
 	CallerName             string   // CallerName indicates the name of the entity initiating code generation.
 	YwrapperPath           string   // YwrapperPath is the path to the ywrapper.proto file, excluding the filename.
 	YextPath               string   // YextPath is the path to the yext.proto file, excluding the filename.
+	GoPackageName          string   // GoPackageName is the contents of the go_package fileoption in the generated protobuf.
 }
 
 var disallowedInProtoIDRegexp = regexp.MustCompile(`[^a-zA-Z0-9_]`)
@@ -183,6 +184,11 @@ import "{{ .YwrapperPath }}/ywrapper.proto";
 import "{{ .YextPath }}/yext.proto";
 {{- range $importedProto := .Imports }}
 import "{{ $importedProto }}";
+{{- end -}}
+
+{{- if ne .GoPackageName "" }}
+
+go_package = "{{ .GoPackageName }}";
 {{- end }}
 `)
 

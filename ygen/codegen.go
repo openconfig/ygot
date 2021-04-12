@@ -268,6 +268,10 @@ type ProtoOpts struct {
 	// path as the name of enumerations under unions in generated proto
 	// code, and also appends a suffix to non-typedef union enums.
 	UseConsistentNamesForProtoUnionEnums bool
+	// GoPackageName specifies the name that should be used for the go_package
+	// package option within the generated protobuf code. For later versions
+	// of protoc-gen-go this is a required option.
+	GoPackageName string
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -773,9 +777,10 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			CallerName:             cg.Config.Caller,
 			YwrapperPath:           ywrapperPath,
 			YextPath:               yextPath,
+			GoPackageName:          cg.Config.ProtoOptions.GoPackageName,
 		})
 		if err != nil {
-			yerr = util.AppendErrs(yerr, errs)
+			yerr = util.AppendErrs(yerr, []error{err})
 			continue
 		}
 		pkg.Header = h
