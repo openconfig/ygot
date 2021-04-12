@@ -10,7 +10,7 @@ package openconfig.enums;
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
-go_package = "github.com/foo/bar/openconfig/enums";
+option go_package = "github.com/foo/bar/openconfig/enums";
 
 // EnumUnionCycloneScalesEnum represents an enumerated type generated for the YANG enumerated type cyclone-scales.
 enum EnumUnionCycloneScalesEnum {

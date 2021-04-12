@@ -10,7 +10,7 @@ package openconfig.proto_test_c.entity;
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
-go_package = "github.com/foo/baz/openconfig/proto_test_c/entity";
+option go_package = "github.com/foo/baz/openconfig/proto_test_c/entity";
 
 // Config represents the /proto-test-c/entity/config YANG schema element.
 message Config {
