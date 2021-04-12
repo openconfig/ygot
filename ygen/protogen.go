@@ -188,7 +188,7 @@ import "{{ $importedProto }}";
 
 {{- if ne .GoPackageName "" }}
 
-go_package = "{{ .GoPackageName }}";
+option go_package = "{{ .GoPackageName }}";
 {{- end }}
 `)
 
