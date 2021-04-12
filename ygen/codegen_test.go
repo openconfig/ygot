@@ -2037,6 +2037,7 @@ func TestGenerateProto3(t *testing.T) {
 				AnnotateEnumNames:                    true,
 				NestedMessages:                       true,
 				UseConsistentNamesForProtoUnionEnums: true,
+				GoPackageBase:                        "github.com/foo/bar",
 			},
 		},
 		wantOutputFiles: map[string]string{
@@ -2054,6 +2055,11 @@ func TestGenerateProto3(t *testing.T) {
 	}, {
 		name:    "yang schema with simple enumerations",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.yang")},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				GoPackageBase: "github.com/foo/baz",
+			},
+		},
 		wantOutputFiles: map[string]string{
 			"openconfig.proto_test_c":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.formatted-txt"),
 			"openconfig.proto_test_c.entity":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.entity.formatted-txt"),
@@ -2285,7 +2291,7 @@ func TestGenerateProto3(t *testing.T) {
 				AnnotateEnumNames:   true,
 				AnnotateSchemaPaths: true,
 				NestedMessages:      true,
-				GoPackageName:       "github.com/openconfig/a/package",
+				GoPackageBase:       "github.com/openconfig/a/package",
 			},
 		},
 		wantOutputFiles: map[string]string{
