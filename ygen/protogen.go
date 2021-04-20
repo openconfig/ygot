@@ -186,7 +186,7 @@ import "{{ .YextPath }}/yext.proto";
 import "{{ $importedProto }}";
 {{- end -}}
 
-{{- if ne .GoPackageName "" }}
+{{- if .GoPackageName }}
 
 option go_package = "{{ .GoPackageName }}";
 {{- end }}
