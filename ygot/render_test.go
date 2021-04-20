@@ -1525,6 +1525,491 @@ func TestTogNMINotifications(t *testing.T) {
 	}
 }
 
+func TestTogNMISetRequest(t *testing.T) {
+	tests := []struct {
+		name     string
+		inStruct GoStruct
+		inConfig GNMIConfig
+		want     *gnmipb.SetRequest
+		wantErr  bool
+	}{{
+		name:     "simple single leaf example",
+		inStruct: &renderExample{Str: String("hello")},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"str"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
+			}},
+		},
+	}, {
+		name:     "simple float value leaf example",
+		inStruct: &renderExample{FloatVal: Float32(42.0)},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"floatval"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{42.0}},
+			}},
+		},
+	}, {
+		name: "struct with invalid GoStruct map",
+		inStruct: &renderExample{
+			InvalidMap: map[string]*invalidGoStruct{
+				"test": {Value: String("test")},
+			},
+		},
+		wantErr: true,
+	}, {
+		name:     "nil value",
+		inStruct: nil,
+		wantErr:  true,
+	}, {
+		name:     "no path tags on struct",
+		inStruct: &invalidGoStructEntity{NoPath: String("foo")},
+		wantErr:  true,
+	}, {
+		name: "struct with invalid pointer",
+		inStruct: &renderExample{
+			InvalidPtr: &invalidGoStruct{Value: String("fish")},
+		},
+		wantErr: true,
+	}, {
+		name: "simple binary single leaf example",
+		inStruct: &renderExample{
+			Binary: Binary([]byte{42}),
+		},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"binary"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte{42}}},
+			}},
+		},
+	}, {
+		name:     "struct with enum",
+		inStruct: &renderExample{EnumField: EnumTestVALONE},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"enum"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
+			}},
+		},
+	}, {
+		name:     "struct with invalid enum",
+		inStruct: &renderExample{EnumField: EnumTestVALTHREE},
+		wantErr:  true,
+	}, {
+		name:     "struct with leaflist",
+		inStruct: &renderExample{LeafList: []string{"one", "two"}},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"leaf-list"}},
+				Val: &gnmipb.TypedValue{
+					Value: &gnmipb.TypedValue_LeaflistVal{
+						&gnmipb.ScalarArray{
+							Element: []*gnmipb.TypedValue{{
+								Value: &gnmipb.TypedValue_StringVal{"one"},
+							}, {
+								Value: &gnmipb.TypedValue_StringVal{"two"},
+							}},
+						},
+					},
+				},
+			}},
+		},
+	}, {
+		name:     "struct with enum union",
+		inStruct: &renderExample{UnionValSimple: EnumTestVALONE},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"union-val-simple"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
+			}},
+		},
+	}, {
+		name:     "struct with int64 union",
+		inStruct: &renderExample{UnionValSimple: testutil.UnionInt64(42)},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"union-val-simple"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{42}},
+			}},
+		},
+	}, {
+		name:     "struct with float64 union",
+		inStruct: &renderExample{UnionValSimple: testutil.UnionFloat64(3.14)},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"union-val-simple"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+			}},
+		},
+	}, {
+		name:     "struct with binary union",
+		inStruct: &renderExample{UnionValSimple: testBinary},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"union-val-simple"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
+			}},
+		},
+	}, {
+		name: "string with leaf-list of union",
+		inStruct: &renderExample{
+			UnionLeafListSimple: []exampleUnion{
+				testBinary,
+				EnumTestVALTWO,
+				testutil.UnionInt64(42),
+				testutil.UnionFloat64(3.14),
+			},
+		},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"union-list-simple"}},
+				Val: &gnmipb.TypedValue{
+					Value: &gnmipb.TypedValue_LeaflistVal{
+						&gnmipb.ScalarArray{
+							Element: []*gnmipb.TypedValue{{
+								Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)},
+							}, {
+								Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"},
+							}, {
+								Value: &gnmipb.TypedValue_IntVal{42},
+							}, {
+								Value: &gnmipb.TypedValue_FloatVal{3.14},
+							}},
+						},
+					},
+				},
+			}},
+		},
+	}, {
+		name:     "struct with string union (wrapper union)",
+		inStruct: &renderExample{UnionVal: &renderExampleUnionString{"hello"}},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"union-val"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
+			}},
+		},
+	}, {
+		name:     "struct with int64 union (wrapper union)",
+		inStruct: &renderExample{UnionVal: &renderExampleUnionInt64{42}},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"union-val"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{42}},
+			}},
+		},
+	}, {
+		name:     "struct with binary union (wrapper union)",
+		inStruct: &renderExample{UnionVal: &renderExampleUnionBinary{Binary(base64testString)}},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"union-val"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
+			}},
+		},
+	}, {
+		name:     "invalid union (wrapper union)",
+		inStruct: &renderExample{UnionVal: &renderExampleUnionInvalid{String: "hello", Int8: 42}},
+		wantErr:  true,
+	}, {
+		name: "string with leaf-list of union (wrapper union)",
+		inStruct: &renderExample{
+			UnionLeafList: []renderExampleUnion{
+				&renderExampleUnionString{"frog"},
+			},
+		},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"union-list"}},
+				Val: &gnmipb.TypedValue{
+					Value: &gnmipb.TypedValue_LeaflistVal{
+						&gnmipb.ScalarArray{
+							Element: []*gnmipb.TypedValue{{
+								Value: &gnmipb.TypedValue_StringVal{"frog"},
+							}},
+						},
+					},
+				},
+			}},
+		},
+	}, {
+		name: "struct with mixed leaflist",
+		inStruct: &renderExample{MixedList: []interface{}{
+			42.42, int8(-42), int16(-84), int32(-168), int64(-336),
+			uint8(12), uint16(144), uint32(20736), uint64(429981696),
+			true, EnumTestVALTWO, float32(42.0),
+		}},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"mixed-list"}},
+				Val: &gnmipb.TypedValue{
+					Value: &gnmipb.TypedValue_LeaflistVal{
+						&gnmipb.ScalarArray{
+							Element: []*gnmipb.TypedValue{{
+								Value: &gnmipb.TypedValue_FloatVal{42.42},
+							}, {
+								Value: &gnmipb.TypedValue_IntVal{-42},
+							}, {
+								Value: &gnmipb.TypedValue_IntVal{-84},
+							}, {
+								Value: &gnmipb.TypedValue_IntVal{-168},
+							}, {
+								Value: &gnmipb.TypedValue_IntVal{-336},
+							}, {
+								Value: &gnmipb.TypedValue_UintVal{12},
+							}, {
+								Value: &gnmipb.TypedValue_UintVal{144},
+							}, {
+								Value: &gnmipb.TypedValue_UintVal{20736},
+							}, {
+								Value: &gnmipb.TypedValue_UintVal{429981696},
+							}, {
+								Value: &gnmipb.TypedValue_BoolVal{true},
+							}, {
+								Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"},
+							}, {
+								Value: &gnmipb.TypedValue_FloatVal{42.0},
+							}},
+						},
+					},
+				},
+			}},
+		},
+	}, {
+		name: "struct with child struct",
+		inStruct: &renderExample{
+			Str:    String("beeblebrox"),
+			IntVal: Int32(42),
+			Ch:     &renderExampleChild{Val: Uint64(42)},
+		},
+		inConfig: GNMIConfig{
+			StringSlicePrefix: []string{"base"},
+		},
+		want: &gnmipb.SetRequest{
+			Prefix: &gnmipb.Path{
+				Element: []string{"base"},
+			},
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"str"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"beeblebrox"}},
+			}, {
+				Path: &gnmipb.Path{Element: []string{"int-val"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{42}},
+			}, {
+				Path: &gnmipb.Path{Element: []string{"ch", "val"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{42}},
+			}},
+		},
+	}, {
+		name: "struct with list",
+		inStruct: &renderExample{
+			List: map[uint32]*renderExampleList{
+				42: {String("hello")},
+				84: {String("zaphod")},
+			},
+		},
+		inConfig: GNMIConfig{
+			StringSlicePrefix: []string{"heart", "of", "gold"},
+		},
+		want: &gnmipb.SetRequest{
+			Prefix: &gnmipb.Path{Element: []string{"heart", "of", "gold"}},
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"list", "42", "val"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
+			}, {
+				Path: &gnmipb.Path{Element: []string{"list", "42", "state", "val"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"hello"}},
+			}, {
+				Path: &gnmipb.Path{Element: []string{"list", "84", "val"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"zaphod"}},
+			}, {
+				Path: &gnmipb.Path{Element: []string{"list", "84", "state", "val"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"zaphod"}},
+			}},
+		},
+	}, {
+		name: "struct with enum keyed list",
+		inStruct: &renderExample{
+			EnumList: map[EnumTest]*renderExampleEnumList{
+				EnumTestVALTWO: {EnumTestVALTWO},
+			},
+		},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "key"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+			}, {
+				Path: &gnmipb.Path{Element: []string{"enum-list", "VAL_TWO", "config", "key"}},
+				Val:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+			}},
+		},
+	}, {
+		name: "keyless list",
+		inStruct: &renderExample{
+			KeylessList: []*renderExampleList{
+				{String("trillian")},
+				{String("arthur")},
+			},
+		},
+		wantErr: true, //unimplemented.
+	}, {
+		name: "invalid element in leaf-list",
+		inStruct: &renderExample{
+			MixedList: []interface{}{struct{ Foo string }{"bar"}},
+		},
+		wantErr: true,
+	}, {
+		name: "invalid slice within a slice",
+		inStruct: &renderExample{
+			MixedList: []interface{}{[]string{"foo"}},
+		},
+		wantErr: true,
+	}, {
+		name: "simple pathElemExample",
+		inStruct: &pathElemExample{
+			StringField: String("foo"),
+			List: map[string]*pathElemExampleChild{
+				"p1": {Val: String("p1"), OtherField: Uint8(42)},
+				"p2": {Val: String("p2"), OtherField: Uint8(84)},
+			},
+		},
+		inConfig: GNMIConfig{UsePathElem: true},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "string-field",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"foo"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p1"},
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"p1"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p1"},
+					}, {
+						Name: "config",
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"p1"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p1"},
+					}, {
+						Name: "other-field",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{42}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p2"},
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"p2"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p2"},
+					}, {
+						Name: "config",
+					}, {
+						Name: "val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"p2"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "list",
+						Key:  map[string]string{"val": "p2"},
+					}, {
+						Name: "other-field",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{84}},
+			}},
+		},
+	}, {
+		name: "multi key example with path elements",
+		inStruct: &pathElemExample{
+			MKey: map[pathElemExampleMultiKeyChildKey]*pathElemExampleMultiKeyChild{
+				{Foo: "foo", Bar: 16}: {Foo: String("foo"), Bar: Uint16(16)},
+			},
+		},
+		inConfig: GNMIConfig{UsePathElem: true},
+		want: &gnmipb.SetRequest{
+			Replace: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "m-key",
+						Key: map[string]string{
+							"foo": "foo",
+							"bar": "16",
+						},
+					}, {
+						Name: "foo",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"foo"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "m-key",
+						Key: map[string]string{
+							"foo": "foo",
+							"bar": "16",
+						},
+					}, {
+						Name: "bar",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_UintVal{16}},
+			}},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := TogNMISetRequest(tt.inStruct, tt.inConfig)
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("%s: TogNMISetRequest(%v, %v): got unexpected error: %v", tt.name, tt.inStruct, tt.inConfig, err)
+				}
+				return
+			}
+
+			// Avoid test flakiness by ignoring the update ordering. Required because
+			// there is no order to the map of fields that are returned by the struct
+			// output.
+
+			if !testutil.SetRequestEqual(got, tt.want) {
+				diff := cmp.Diff(got, tt.want, protocmp.Transform())
+				t.Errorf("%s: TogNMISetRequest(%v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, diff)
+			}
+		})
+	}
+}
+
 // exampleDevice and the following structs are a set of structs used for more
 // complex testing in TestConstructIETFJSON
 type exampleDevice struct {

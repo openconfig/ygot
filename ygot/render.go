@@ -298,9 +298,9 @@ func (g *gnmiPath) StripPrefix(pfx *gnmiPath) (*gnmiPath, error) {
 	return newPathElemGNMIPath(g.pathElemPath[len(pfx.pathElemPath):]), nil
 }
 
-// GNMINotificationsConfig specifies arguments determining how the
+// GNMIConfig specifies arguments determining how the
 // gNMI output should be created by ygot.
-type GNMINotificationsConfig struct {
+type GNMIConfig struct {
 	// UsePathElem specifies whether the elem field of the gNMI Path
 	// message should be used for the paths in the output notification. If
 	// set to false, the element field is used.
@@ -317,6 +317,10 @@ type GNMINotificationsConfig struct {
 	PathElemPrefix []*gnmipb.PathElem
 }
 
+// GNMINotificationsConfig specifies arguments determining how the
+// gNMI output should be created by ygot.
+type GNMINotificationsConfig = GNMIConfig
+
 // TogNMINotifications takes an input GoStruct and renders it to slice of
 // Notification messages, marked with the specified timestamp. The configuration
 // provided determines the path format utilised, and the prefix to be included
@@ -327,7 +331,6 @@ type GNMINotificationsConfig struct {
 // abstraction. It can also be refactored to simply use the findSetleaves function
 // which has a cleaner implementation using the reworked iterfunction util.
 func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*gnmipb.Notification, error) {
-
 	var pfx *gnmiPath
 	if cfg.UsePathElem {
 		pfx = newPathElemGNMIPath(cfg.PathElemPrefix)
@@ -346,6 +349,25 @@ func TogNMINotifications(s GoStruct, ts int64, cfg GNMINotificationsConfig) ([]*
 	}
 
 	return msgs, nil
+}
+
+// TogNMISetRequest takes an input GoStruct and renders it to a single
+// SetRequest message. The configuration provided determines the path format
+// utilised, and the prefix to be included in the message if relevant.
+func TogNMISetRequest(s GoStruct, cfg GNMIConfig) (*gnmipb.SetRequest, error) {
+	var pfx *gnmiPath
+	if cfg.UsePathElem {
+		pfx = newPathElemGNMIPath(cfg.PathElemPrefix)
+	} else {
+		pfx = newStringSliceGNMIPath(cfg.StringSlicePrefix)
+	}
+
+	leaves := map[*path]interface{}{}
+	if err := findUpdatedLeaves(leaves, s, pfx); err != nil {
+		return nil, err
+	}
+
+	return leavesToSetRequest(leaves, pfx)
 }
 
 // findUpdatedLeaves appends the valid leaves that are within the supplied
@@ -664,6 +686,43 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath
 	}
 
 	return []*gnmipb.Notification{n}, nil
+}
+
+// leavesToSetRequest takes an input map of leaves, and outputs a single
+// SetRequest with only the replace list populated. The delete, update, and
+// extension fields are ignored. If an error is encountered it is returned.
+func leavesToSetRequest(leaves map[*path]interface{}, pfx *gnmiPath) (*gnmipb.SetRequest, error) {
+	r := &gnmipb.SetRequest{}
+
+	p, err := pfx.ToProto()
+	if err != nil {
+		return nil, err
+	}
+	r.Prefix = p
+
+	for pk, v := range leaves {
+		path, err := pk.p.StripPrefix(pfx)
+		if err != nil {
+			return nil, err
+		}
+
+		ppath, err := path.ToProto()
+		if err != nil {
+			return nil, err
+		}
+
+		val, err := EncodeTypedValue(v, gnmipb.Encoding_JSON)
+		if err != nil {
+			return nil, err
+		}
+
+		r.Replace = append(r.Replace, &gnmipb.Update{
+			Path: ppath,
+			Val:  val,
+		})
+	}
+
+	return r, nil
 }
 
 // EncodeTypedValue encodes val into a gNMI TypedValue message, using the specified encoding

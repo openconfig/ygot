@@ -136,7 +136,7 @@ func SubscribeResponseSetEqual(a, b []*gnmipb.SubscribeResponse) bool {
 
 // NotificationSetEqual compares the contents of a and b and returns true if
 // they are equal. Order of the slices is ignored. The set of ComparerOpts
-// supplied are used to influnce the equality comparison between members
+// supplied are used to influence the equality comparison between members
 // of a and b.
 func NotificationSetEqual(a, b []*gnmipb.Notification, opts ...ComparerOpt) bool {
 	ignoreTS := hasIgnoreTimestamp(opts)
@@ -171,6 +171,29 @@ func NotificationSetEqual(a, b []*gnmipb.Notification, opts ...ComparerOpt) bool
 	return true
 }
 
+// SetRequestEqual compares the contents of a and b and returns true if
+// they are equal. The set of ComparerOpts supplied are used to influence
+// the equality comparison between members of a and b.
+func SetRequestEqual(a, b *gnmipb.SetRequest, opts ...ComparerOpt) bool {
+	cmps := comparers(opts)
+	cmps = append(cmps, []cmp.Option{cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty(), protocmp.Transform()}...)
+
+	n := &setRequestMatch{
+		prefix: proto.Equal(a.GetPrefix(), b.GetPrefix()),
+		delete: cmp.Equal(a.GetDelete(), b.GetDelete(), cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty(), protocmp.Transform()),
+		replace: cmp.Equal(a.GetReplace(), b.GetReplace(),
+			cmps...,
+		),
+		update: cmp.Equal(a.GetUpdate(), b.GetUpdate(),
+			cmps...,
+		),
+		extension: cmp.Equal(a.GetExtension(), b.GetExtension(),
+			cmps...,
+		),
+	}
+	return n.matched()
+}
+
 // JSONIETFComparer compares the two provided JSON IETF TypedValues to
 // determine whether their contents are the same. If either value is
 // invalid JSON, the function returns false.
@@ -199,6 +222,21 @@ type notificationMatch struct {
 // a matched pair.
 func (n *notificationMatch) matched() bool {
 	return n.timestamp && n.prefix && n.update && n.delete
+}
+
+// setRequestMatch tracks whether a gNMI SetRequest pair has matched.
+type setRequestMatch struct {
+	prefix    bool
+	update    bool
+	delete    bool
+	replace   bool
+	extension bool
+}
+
+// matched determines whether the receiver setRequestMatch n represents
+// a matched pair.
+func (s *setRequestMatch) matched() bool {
+	return s.prefix && s.update && s.delete && s.replace && s.extension
 }
 
 // UpdateSetEqual compares the contents of a and b and returns true if they are
