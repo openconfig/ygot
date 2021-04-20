@@ -268,6 +268,11 @@ type ProtoOpts struct {
 	// path as the name of enumerations under unions in generated proto
 	// code, and also appends a suffix to non-typedef union enums.
 	UseConsistentNamesForProtoUnionEnums bool
+	// GoPackageBase specifies the base of the names that are used in
+	// the go_package file option for generated protobufs. Additional
+	// package identifiers are appended to the go_package - such that
+	// the format <base>/<path>/<to>/<package> is used.
+	GoPackageBase string
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -764,6 +769,10 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	}
 
 	for n, pkg := range genProto.Packages {
+		var gpn string
+		if cg.Config.ProtoOptions.GoPackageBase != "" {
+			gpn = fmt.Sprintf("%s/%s", cg.Config.ProtoOptions.GoPackageBase, strings.ReplaceAll(n, ".", "/"))
+		}
 		h, err := writeProto3Header(proto3Header{
 			PackageName:            n,
 			Imports:                stringKeys(pkgImports[n]),
@@ -773,9 +782,10 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			CallerName:             cg.Config.Caller,
 			YwrapperPath:           ywrapperPath,
 			YextPath:               yextPath,
+			GoPackageName:          gpn,
 		})
 		if err != nil {
-			yerr = util.AppendErrs(yerr, errs)
+			yerr = util.AppendErrs(yerr, []error{err})
 			continue
 		}
 		pkg.Header = h
