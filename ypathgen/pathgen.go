@@ -194,7 +194,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 	// debug instead of making ypathgen having to catch every error.
 	compressBehaviour, err := genutil.TranslateToCompressBehaviour(true, cg.ExcludeState, cg.PreferOperationalState)
 	if err != nil {
-		return nil, nil, util.NewErrs(fmt.Errorf("ypathgen: unable to translate compress behaviour: %v\n", err))
+		return nil, nil, util.NewErrs(fmt.Errorf("ypathgen: unable to translate compress behaviour: %v", err))
 	}
 
 	dcg := &ygen.DirectoryGenConfig{
