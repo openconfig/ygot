@@ -49,6 +49,8 @@ func TestGeneratePathCode(t *testing.T) {
 		inIncludePaths []string
 		// inPreferOperationalState says whether to prefer operational state over intended config in the path-building methods.
 		inPreferOperationalState bool
+		// inExcludeState determines whether derived state leaves are excluded from the path-building methods.
+		inExcludeState bool
 		// inListBuilderKeyThreshold determines the minimum number of keys beyond which the builder API is used for building the paths.
 		inListBuilderKeyThreshold uint
 		// inShortenEnumLeafNames says whether the enum leaf names are shortened (i.e. module name removed) in the generated Go code corresponding to the generated path library.
@@ -198,6 +200,69 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         true,
 				YANGTypeName:          "string",
+			},
+			"RemoteContainerPath": {
+				GoTypeName:            "*RemoteContainer",
+				GoFieldName:           "RemoteContainer",
+				SubsumingGoStructName: "RemoteContainer",
+				IsLeaf:                false,
+				IsScalarField:         false,
+			},
+			"RemoteContainer_ALeafPath": {
+				GoTypeName:            "string",
+				GoFieldName:           "ALeaf",
+				SubsumingGoStructName: "RemoteContainer",
+				IsLeaf:                true,
+				IsScalarField:         true,
+				YANGTypeName:          "string",
+			}},
+	}, {
+		name:                                   "simple openconfig test with excludeState=true",
+		inFiles:                                []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inExcludeState:                         true,
+		inShortenEnumLeafNames:                 true,
+		inUseDefiningModuleForTypedefEnumNames: true,
+		wantStructsCodeFile:                    filepath.Join(TestRoot, "testdata/structs/openconfig-simple-excludestate.path-txt"),
+		inSchemaStructPkgPath:                  "",
+		inPathStructSuffix:                     "Path",
+		wantNodeDataMap: NodeDataMap{
+			"ParentPath": {
+				GoTypeName:            "*Parent",
+				GoFieldName:           "Parent",
+				SubsumingGoStructName: "Parent",
+				IsLeaf:                false,
+				IsScalarField:         false,
+			},
+			"Parent_ChildPath": {
+				GoTypeName:            "*Parent_Child",
+				GoFieldName:           "Child",
+				SubsumingGoStructName: "Parent_Child",
+				IsLeaf:                false,
+				IsScalarField:         false,
+			},
+			"Parent_Child_FourPath": {
+				GoTypeName:            "Binary",
+				GoFieldName:           "Four",
+				SubsumingGoStructName: "Parent_Child",
+				IsLeaf:                true,
+				IsScalarField:         false,
+				YANGTypeName:          "binary",
+			},
+			"Parent_Child_OnePath": {
+				GoTypeName:            "string",
+				GoFieldName:           "One",
+				SubsumingGoStructName: "Parent_Child",
+				IsLeaf:                true,
+				IsScalarField:         true,
+				YANGTypeName:          "string",
+			},
+			"Parent_Child_ThreePath": {
+				GoTypeName:            "E_Child_Three",
+				GoFieldName:           "Three",
+				SubsumingGoStructName: "Parent_Child",
+				IsLeaf:                true,
+				IsScalarField:         false,
+				YANGTypeName:          "enumeration",
 			},
 			"RemoteContainerPath": {
 				GoTypeName:            "*RemoteContainer",
@@ -604,6 +669,7 @@ func TestGeneratePathCode(t *testing.T) {
 				cg.FakeRootName = "device"
 				cg.PathStructSuffix = tt.inPathStructSuffix
 				cg.PreferOperationalState = tt.inPreferOperationalState
+				cg.ExcludeState = tt.inExcludeState
 				cg.ListBuilderKeyThreshold = tt.inListBuilderKeyThreshold
 				cg.ShortenEnumLeafNames = tt.inShortenEnumLeafNames
 				cg.UseDefiningModuleForTypedefEnumNames = tt.inUseDefiningModuleForTypedefEnumNames

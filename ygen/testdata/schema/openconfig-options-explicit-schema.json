@@ -102,7 +102,7 @@
                         "state": {
                             "Name": "state",
                             "Kind": 1,
-                            "Config": 0,
+                            "Config": 2,
                             "Prefix": {
                                 "Name": "ocs",
                                 "Source": {
