@@ -444,7 +444,7 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple.formatted-txt"),
 	}, {
-		name:    "simple openconfig test, with exluded state, with compression, with enum org name trimming",
+		name:    "simple openconfig test, with excluded state, with compression, with enum org name trimming",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
