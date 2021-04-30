@@ -444,6 +444,22 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple.formatted-txt"),
 	}, {
+		name:    "simple openconfig test, with exluded state, with compression, with enum org name trimming",
+		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions: true,
+				GenerateLeafGetters:  true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.ExcludeDerivedState,
+				ShortenEnumLeafNames:                 true,
+				EnumOrgPrefixesToTrim:                []string{"openconfig"},
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-excludestate.formatted-txt"),
+	}, {
 		name:    "simple openconfig test, with no compression",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{

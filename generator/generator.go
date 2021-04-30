@@ -94,7 +94,9 @@ var (
 	includeModelData     = flag.Bool("include_model_data", false, "If set to true, a slice of gNMI ModelData messages are included in the generated Go code containing the details of the input schemas from which the code was generated.")
 
 	// Flags used for PathStruct generation only.
-	schemaStructPath        = flag.String("schema_struct_path", "", "The Go import path for the schema structs package. This should be specified if and only if schema structs are not being generated at the same time as path structs.")
+	schemaStructPath = flag.String("schema_struct_path", "", "The Go import path for the schema structs package. This should be specified if and only if schema structs are not being generated at the same time as path structs.")
+	// TODO(wenbli): This flag should be merged with excludeState in ygot's v1 release.
+	excludeStatePathStruct  = flag.Bool("exclude_state_path_struct", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated path struct code.")
 	listBuilderKeyThreshold = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the path structs' builder API is used for key population. 0 means infinity.")
 	pathStructSuffix        = flag.String("path_struct_suffix", "Path", "The suffix string appended to each generated path struct in order to differentiate their names from their corresponding schema struct names.")
 )
@@ -407,6 +409,7 @@ func main() {
 			YgotImportPath:      *ygotImportPath,
 		},
 		PreferOperationalState:               *preferOperationalState,
+		ExcludeState:                         *excludeStatePathStruct,
 		SkipEnumDeduplication:                *skipEnumDedup,
 		ShortenEnumLeafNames:                 *shortenEnumLeafNames,
 		EnumOrgPrefixesToTrim:                enumOrgPrefixesToTrim,
