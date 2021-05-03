@@ -154,6 +154,8 @@ type GenConfig struct {
 	// 0 (default) means no threshold, i.e. always use the key-combination
 	// API format.
 	ListBuilderKeyThreshold uint
+	// GenerateWildcardPaths means to generate wildcard nodes and paths.
+	GenerateWildcardPaths bool
 }
 
 // GoImports contains package import options.
@@ -246,7 +248,11 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 				util.NewErrs(fmt.Errorf("GeneratePathCode: Implementation bug -- node %s not found in dirNameMap", directoryName)))
 		}
 
-		structSnippet, es := generateDirectorySnippet(directory, directories, schemaStructPkgAccessor, cg.PathStructSuffix, cg.ListBuilderKeyThreshold)
+		var listBuilderKeyThreshold uint
+		if cg.GenerateWildcardPaths {
+			listBuilderKeyThreshold = cg.ListBuilderKeyThreshold
+		}
+		structSnippet, es := generateDirectorySnippet(directory, directories, schemaStructPkgAccessor, cg.PathStructSuffix, listBuilderKeyThreshold, cg.GenerateWildcardPaths)
 		if es != nil {
 			errs = util.AppendErrs(errs, es)
 		}
@@ -465,10 +471,13 @@ type {{ .TypeName }} struct {
 	*ygot.{{ .PathBaseTypeName }}
 }
 
+{{- if .GenerateWildcardPaths }}
+
 // {{ .TypeName }}{{ .WildcardSuffix }} represents the wildcard version of the {{ .YANGPath }} YANG schema element.
 type {{ .TypeName }}{{ .WildcardSuffix }} struct {
 	*ygot.{{ .PathBaseTypeName }}
 }
+{{- end }}
 `)
 
 	// goPathChildConstructorTemplate generates the child constructor method
@@ -634,12 +643,14 @@ type goPathStructData struct {
 	// WildcardSuffix is the suffix given to the wildcard versions of
 	// each node that distinguishes each from its non-wildcard counterpart.
 	WildcardSuffix string
+	// GenerateWildcardPaths means to generate wildcard nodes and paths.
+	GenerateWildcardPaths bool
 }
 
 // getStructData returns the goPathStructData corresponding to a Directory,
 // which is used to store the attributes of the template for which code is
 // being generated.
-func getStructData(directory *ygen.Directory, pathStructSuffix string) goPathStructData {
+func getStructData(directory *ygen.Directory, pathStructSuffix string, generateWildcardPaths bool) goPathStructData {
 	return goPathStructData{
 		TypeName:                directory.Name + pathStructSuffix,
 		YANGPath:                util.SlicePathToString(directory.Path),
@@ -647,6 +658,7 @@ func getStructData(directory *ygen.Directory, pathStructSuffix string) goPathStr
 		FakeRootBaseTypeName:    ygot.FakeRootBaseTypeName,
 		PathStructInterfaceName: ygot.PathStructInterfaceName,
 		WildcardSuffix:          WildcardSuffix,
+		GenerateWildcardPaths:   generateWildcardPaths,
 	}
 }
 
@@ -670,7 +682,7 @@ type goPathFieldData struct {
 // the fields of the struct. directory is the parsed information of a schema
 // node, and directories is a map from path to a parsed schema node for all
 // nodes in the schema.
-func generateDirectorySnippet(directory *ygen.Directory, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint) (GoPathStructCodeSnippet, util.Errors) {
+func generateDirectorySnippet(directory *ygen.Directory, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint, generateWildcardPaths bool) (GoPathStructCodeSnippet, util.Errors) {
 	var errs util.Errors
 	// structBuf is used to store the code associated with the struct defined for
 	// the target YANG entity.
@@ -678,7 +690,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 	var methodBuf strings.Builder
 
 	// Output struct snippets.
-	structData := getStructData(directory, pathStructSuffix)
+	structData := getStructData(directory, pathStructSuffix, generateWildcardPaths)
 	if ygen.IsFakeRoot(directory.Entry) {
 		// Fakeroot has its unique output.
 		if err := goPathFakeRootTemplate.Execute(&structBuf, structData); err != nil {
@@ -700,7 +712,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		}
 		goFieldName := goFieldNameMap[fieldName]
 
-		if es := generateChildConstructors(&methodBuf, directory, fieldName, goFieldName, directories, schemaStructPkgAccessor, pathStructSuffix, listBuilderKeyThreshold); es != nil {
+		if es := generateChildConstructors(&methodBuf, directory, fieldName, goFieldName, directories, schemaStructPkgAccessor, pathStructSuffix, listBuilderKeyThreshold, generateWildcardPaths); es != nil {
 			errs = util.AppendErrs(errs, es)
 		}
 
@@ -718,6 +730,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 					PathBaseTypeName:        ygot.PathBaseTypeName,
 					PathStructInterfaceName: ygot.PathStructInterfaceName,
 					WildcardSuffix:          WildcardSuffix,
+					GenerateWildcardPaths:   generateWildcardPaths,
 				}
 				if err := goPathStructTemplate.Execute(&structBuf, structData); err != nil {
 					errs = util.AppendErr(errs, err)
@@ -743,7 +756,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 // field name to be used as the generated method's name and the incremental
 // type name of of the child path struct, and a map of all directories of the
 // whole schema keyed by their schema paths.
-func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint) []error {
+func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint, generateWildcardPaths bool) []error {
 	field, ok := directory.Fields[directoryFieldName]
 	if !ok {
 		return []error{fmt.Errorf("generateChildConstructors: field %s not found in directory %v", directoryFieldName, directory)}
@@ -753,7 +766,7 @@ func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Direc
 		return []error{err}
 	}
 
-	structData := getStructData(directory, pathStructSuffix)
+	structData := getStructData(directory, pathStructSuffix, generateWildcardPaths)
 	relPath, err := ygen.FindSchemaPath(directory, directoryFieldName, false)
 	if err != nil {
 		return []error{err}
@@ -773,7 +786,7 @@ func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Direc
 
 	switch {
 	case !field.IsList():
-		return generateChildConstructorsForLeafOrContainer(methodBuf, fieldData, isUnderFakeRoot)
+		return generateChildConstructorsForLeafOrContainer(methodBuf, fieldData, isUnderFakeRoot, generateWildcardPaths)
 	case fieldDirectory.ListAttr == nil:
 		// TODO(wenbli): keyless lists as a path are not supported by gNMI, but this
 		// library is currently intended for gNMI, so need to decide on a long-term solution.
@@ -789,14 +802,14 @@ func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Direc
 		// confusing for the user.
 		return generateChildConstructorsForListBuilderFormat(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, schemaStructPkgAccessor)
 	default:
-		return generateChildConstructorsForList(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, schemaStructPkgAccessor)
+		return generateChildConstructorsForList(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, generateWildcardPaths, schemaStructPkgAccessor)
 	}
 }
 
 // generateChildConstructorsForLeafOrContainer writes into methodBuf the child
 // constructor snippets for the container or leaf template output information
 // contained in fieldData.
-func generateChildConstructorsForLeafOrContainer(methodBuf *strings.Builder, fieldData goPathFieldData, isUnderFakeRoot bool) []error {
+func generateChildConstructorsForLeafOrContainer(methodBuf *strings.Builder, fieldData goPathFieldData, isUnderFakeRoot, generateWildcardPaths bool) []error {
 	// Generate child constructor for the non-wildcard version of the parent struct.
 	var errors []error
 	if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
@@ -808,11 +821,13 @@ func generateChildConstructorsForLeafOrContainer(methodBuf *strings.Builder, fie
 		return errors
 	}
 
-	// Generate child constructor for the wildcard version of the parent struct.
-	fieldData.TypeName += WildcardSuffix
-	fieldData.Struct.TypeName += WildcardSuffix
-	if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
-		errors = append(errors, err)
+	if generateWildcardPaths {
+		// Generate child constructor for the wildcard version of the parent struct.
+		fieldData.TypeName += WildcardSuffix
+		fieldData.Struct.TypeName += WildcardSuffix
+		if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
+			errors = append(errors, err)
+		}
 	}
 	return errors
 }
@@ -892,7 +907,7 @@ func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, l
 // childConstructor template output information for if the node were a
 // container (which contains a subset of the basic information required for
 // the list constructor methods).
-func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAccessor string) []error {
+func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot, generateWildcardPaths bool, schemaStructPkgAccessor string) []error {
 	var errors []error
 	// List of function parameters as would appear in the method definition.
 	keyParams, err := makeKeyParams(listAttr, schemaStructPkgAccessor)
@@ -913,6 +928,10 @@ func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen
 	// For each combination of parameter indices to be part of the method
 	// parameter list (i.e. NOT wildcarded).
 	for comboIndex, combo := range combos {
+		if !generateWildcardPaths && comboIndex != len(combos)-1 {
+			// All but the last combo contain wildcard paths.
+			continue
+		}
 		var paramListStrs, paramDocStrs, keyEntryStrs []string
 		var anySuffixes []string
 
@@ -968,12 +987,14 @@ func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen
 			continue
 		}
 
-		// Generate child constructor method for wildcard version of parent struct.
-		fieldData.Struct.TypeName = wildcardParentTypeName
-		// Override the corner case for generating the non-wildcard child.
-		fieldData.TypeName = wildcardFieldTypeName
-		if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
-			errors = append(errors, err)
+		if generateWildcardPaths {
+			// Generate child constructor method for wildcard version of parent struct.
+			fieldData.Struct.TypeName = wildcardParentTypeName
+			// Override the corner case for generating the non-wildcard child.
+			fieldData.TypeName = wildcardFieldTypeName
+			if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
+				errors = append(errors, err)
+			}
 		}
 	}
 	return errors
