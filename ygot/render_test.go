@@ -1990,6 +1990,22 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantIETF: map[string]interface{}{
 			"ch": map[string]interface{}{"val": "42"},
+			// RFC7951 Section 5.4, the list is a name /array pair, an array must be [], not null RFC8259 Sectiob 5
+			"list": []interface{}{},
+		},
+		wantInternal: map[string]interface{}{
+			"ch": map[string]interface{}{"val": 42},
+		},
+	}, {
+		name: "empty map nil",
+		in: &renderExample{
+			Ch: &renderExampleChild{
+				Val: Uint64(42),
+			},
+			List: nil,
+		},
+		wantIETF: map[string]interface{}{
+			"ch": map[string]interface{}{"val": "42"},
 		},
 		wantInternal: map[string]interface{}{
 			"ch": map[string]interface{}{"val": 42},
@@ -3370,7 +3386,8 @@ func TestMarshal7951(t *testing.T) {
 	}, {
 		desc: "empty map",
 		in:   map[string]*renderExample{},
-		want: `null`,
+		// null as empty array is not valid, RFC7951 section 5.4 specify that the array must be an array, and JSON empty arrays are not null value
+		want: `[]`,
 	}, {
 		desc: "nil string pointer",
 		in:   (*string)(nil),
