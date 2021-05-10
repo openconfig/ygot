@@ -1258,10 +1258,10 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (inte
 	sort.Strings(mapKeys)
 
 	if len(mapKeys) == 0 {
-        // empty list should be encoded as empty list
-        if args.jType == RFC7951 {
-            return []interface{}{}, nil
-        }
+		// empty list should be encoded as empty list
+		if args.jType == RFC7951 {
+			return []interface{}{}, nil
+		}
 		return nil, nil
 	}
 

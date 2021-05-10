@@ -1990,8 +1990,8 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantIETF: map[string]interface{}{
 			"ch": map[string]interface{}{"val": "42"},
-            // RFC7951 Section 5.4, the list is a name /array pair, an array must be [], not null RFC8259 Sectiob 5
-            "list" : []interface{}{},
+			// RFC7951 Section 5.4, the list is a name /array pair, an array must be [], not null RFC8259 Sectiob 5
+			"list": []interface{}{},
 		},
 		wantInternal: map[string]interface{}{
 			"ch": map[string]interface{}{"val": 42},
@@ -2011,551 +2011,551 @@ func TestConstructJSON(t *testing.T) {
 			"ch": map[string]interface{}{"val": 42},
 		},
 	},
-        {
-		name:     "empty child",
-		in:       &renderExample{Ch: &renderExampleChild{}},
-		wantIETF: map[string]interface{}{},
-	}, {
-		name:    "child with invalid map contents",
-		in:      &invalidGoStructMap{Map: map[string]*invalidGoStructMapChild{"foobar": {InvalidField: "foobar"}}},
-		wantErr: true,
-	}, {
-		name:    "child that is not a GoStruct",
-		in:      &invalidGoStructMap{FooBar: map[string]*invalidGoStruct{"foobar": {Value: String("fooBar")}}},
-		wantErr: true,
-	}, {
-		name: "json test with complex children",
-		in: &renderExample{
-			Ch: &renderExampleChild{
-				Val: Uint64(42),
+		{
+			name:     "empty child",
+			in:       &renderExample{Ch: &renderExampleChild{}},
+			wantIETF: map[string]interface{}{},
+		}, {
+			name:    "child with invalid map contents",
+			in:      &invalidGoStructMap{Map: map[string]*invalidGoStructMapChild{"foobar": {InvalidField: "foobar"}}},
+			wantErr: true,
+		}, {
+			name:    "child that is not a GoStruct",
+			in:      &invalidGoStructMap{FooBar: map[string]*invalidGoStruct{"foobar": {Value: String("fooBar")}}},
+			wantErr: true,
+		}, {
+			name: "json test with complex children",
+			in: &renderExample{
+				Ch: &renderExampleChild{
+					Val: Uint64(42),
+				},
+				MixedList: []interface{}{EnumTestVALONE, "test", 42},
+				List: map[uint32]*renderExampleList{
+					42: {Val: String("forty two")},
+					84: {Val: String("eighty four")},
+				},
+				EnumList: map[EnumTest]*renderExampleEnumList{
+					EnumTestVALONE: {Key: EnumTestVALONE},
+				},
 			},
-			MixedList: []interface{}{EnumTestVALONE, "test", 42},
-			List: map[uint32]*renderExampleList{
-				42: {Val: String("forty two")},
-				84: {Val: String("eighty four")},
-			},
-			EnumList: map[EnumTest]*renderExampleEnumList{
-				EnumTestVALONE: {Key: EnumTestVALONE},
-			},
-		},
-		inAppendMod: true,
-		wantIETF: map[string]interface{}{
-			"ch": map[string]interface{}{"val": "42"},
-			"enum-list": []interface{}{
-				map[string]interface{}{
-					"config": map[string]interface{}{
+			inAppendMod: true,
+			wantIETF: map[string]interface{}{
+				"ch": map[string]interface{}{"val": "42"},
+				"enum-list": []interface{}{
+					map[string]interface{}{
+						"config": map[string]interface{}{
+							"key": "foo:VAL_ONE",
+						},
 						"key": "foo:VAL_ONE",
 					},
-					"key": "foo:VAL_ONE",
 				},
-			},
-			"list": []interface{}{
-				map[string]interface{}{
-					"state": map[string]interface{}{
+				"list": []interface{}{
+					map[string]interface{}{
+						"state": map[string]interface{}{
+							"val": "forty two",
+						},
 						"val": "forty two",
 					},
-					"val": "forty two",
-				},
-				map[string]interface{}{
-					"state": map[string]interface{}{
+					map[string]interface{}{
+						"state": map[string]interface{}{
+							"val": "eighty four",
+						},
 						"val": "eighty four",
 					},
-					"val": "eighty four",
 				},
+				"mixed-list": []interface{}{"foo:VAL_ONE", "test", uint32(42)},
 			},
-			"mixed-list": []interface{}{"foo:VAL_ONE", "test", uint32(42)},
-		},
-		wantInternal: map[string]interface{}{
-			"ch": map[string]interface{}{"val": 42},
-			"enum-list": map[string]interface{}{
-				"VAL_ONE": map[string]interface{}{
-					"config": map[string]interface{}{
+			wantInternal: map[string]interface{}{
+				"ch": map[string]interface{}{"val": 42},
+				"enum-list": map[string]interface{}{
+					"VAL_ONE": map[string]interface{}{
+						"config": map[string]interface{}{
+							"key": "VAL_ONE",
+						},
 						"key": "VAL_ONE",
 					},
-					"key": "VAL_ONE",
 				},
-			},
-			"list": map[string]interface{}{
-				"42": map[string]interface{}{
-					"state": map[string]interface{}{
+				"list": map[string]interface{}{
+					"42": map[string]interface{}{
+						"state": map[string]interface{}{
+							"val": "forty two",
+						},
 						"val": "forty two",
 					},
-					"val": "forty two",
-				},
-				"84": map[string]interface{}{
-					"state": map[string]interface{}{
+					"84": map[string]interface{}{
+						"state": map[string]interface{}{
+							"val": "eighty four",
+						},
 						"val": "eighty four",
 					},
-					"val": "eighty four",
 				},
+				"mixed-list": []interface{}{"VAL_ONE", "test", uint32(42)},
 			},
-			"mixed-list": []interface{}{"VAL_ONE", "test", uint32(42)},
-		},
-	}, {
-		name: "device example #1",
-		in: &exampleDevice{
-			Bgp: &exampleBgp{
-				Global: &exampleBgpGlobal{
-					As:       Uint32(15169),
-					RouterID: String("192.0.2.1"),
-				},
-			},
-		},
-		wantIETF: map[string]interface{}{
-			"bgp": map[string]interface{}{
-				"global": map[string]interface{}{
-					"config": map[string]interface{}{
-						"as":        15169,
-						"router-id": "192.0.2.1",
+		}, {
+			name: "device example #1",
+			in: &exampleDevice{
+				Bgp: &exampleBgp{
+					Global: &exampleBgpGlobal{
+						As:       Uint32(15169),
+						RouterID: String("192.0.2.1"),
 					},
 				},
 			},
-		},
-		wantSame: true,
-	}, {
-		name: "device example #2",
-		in: &exampleDevice{
-			Bgp: &exampleBgp{
-				Neighbor: map[string]*exampleBgpNeighbor{
-					"192.0.2.1": {
-						Description:     String("a neighbor"),
-						Enabled:         Bool(true),
-						NeighborAddress: String("192.0.2.1"),
-						PeerAs:          Uint32(29636),
-					},
-					"100.64.32.96": {
-						Description:     String("a second neighbor"),
-						Enabled:         Bool(false),
-						NeighborAddress: String("100.64.32.96"),
-						PeerAs:          Uint32(5413),
+			wantIETF: map[string]interface{}{
+				"bgp": map[string]interface{}{
+					"global": map[string]interface{}{
+						"config": map[string]interface{}{
+							"as":        15169,
+							"router-id": "192.0.2.1",
+						},
 					},
 				},
 			},
-		},
-		wantIETF: map[string]interface{}{
-			"bgp": map[string]interface{}{
-				"neighbors": map[string]interface{}{
-					"neighbor": []interface{}{
-						map[string]interface{}{
-							"config": map[string]interface{}{
-								"description":      "a second neighbor",
-								"enabled":          false,
+			wantSame: true,
+		}, {
+			name: "device example #2",
+			in: &exampleDevice{
+				Bgp: &exampleBgp{
+					Neighbor: map[string]*exampleBgpNeighbor{
+						"192.0.2.1": {
+							Description:     String("a neighbor"),
+							Enabled:         Bool(true),
+							NeighborAddress: String("192.0.2.1"),
+							PeerAs:          Uint32(29636),
+						},
+						"100.64.32.96": {
+							Description:     String("a second neighbor"),
+							Enabled:         Bool(false),
+							NeighborAddress: String("100.64.32.96"),
+							PeerAs:          Uint32(5413),
+						},
+					},
+				},
+			},
+			wantIETF: map[string]interface{}{
+				"bgp": map[string]interface{}{
+					"neighbors": map[string]interface{}{
+						"neighbor": []interface{}{
+							map[string]interface{}{
+								"config": map[string]interface{}{
+									"description":      "a second neighbor",
+									"enabled":          false,
+									"neighbor-address": "100.64.32.96",
+									"peer-as":          5413,
+								},
 								"neighbor-address": "100.64.32.96",
-								"peer-as":          5413,
 							},
-							"neighbor-address": "100.64.32.96",
-						},
-						map[string]interface{}{
-							"config": map[string]interface{}{
-								"description":      "a neighbor",
-								"enabled":          true,
+							map[string]interface{}{
+								"config": map[string]interface{}{
+									"description":      "a neighbor",
+									"enabled":          true,
+									"neighbor-address": "192.0.2.1",
+									"peer-as":          29636,
+								},
 								"neighbor-address": "192.0.2.1",
-								"peer-as":          29636,
 							},
-							"neighbor-address": "192.0.2.1",
 						},
 					},
 				},
 			},
-		},
-		wantInternal: map[string]interface{}{
-			"bgp": map[string]interface{}{
-				"neighbors": map[string]interface{}{
-					"neighbor": map[string]interface{}{
-						"192.0.2.1": map[string]interface{}{
-							"config": map[string]interface{}{
-								"description":      "a neighbor",
-								"enabled":          true,
+			wantInternal: map[string]interface{}{
+				"bgp": map[string]interface{}{
+					"neighbors": map[string]interface{}{
+						"neighbor": map[string]interface{}{
+							"192.0.2.1": map[string]interface{}{
+								"config": map[string]interface{}{
+									"description":      "a neighbor",
+									"enabled":          true,
+									"neighbor-address": "192.0.2.1",
+									"peer-as":          29636,
+								},
 								"neighbor-address": "192.0.2.1",
-								"peer-as":          29636,
 							},
-							"neighbor-address": "192.0.2.1",
-						},
-						"100.64.32.96": map[string]interface{}{
-							"config": map[string]interface{}{
-								"description":      "a second neighbor",
-								"enabled":          false,
+							"100.64.32.96": map[string]interface{}{
+								"config": map[string]interface{}{
+									"description":      "a second neighbor",
+									"enabled":          false,
+									"neighbor-address": "100.64.32.96",
+									"peer-as":          5413,
+								},
 								"neighbor-address": "100.64.32.96",
-								"peer-as":          5413,
 							},
-							"neighbor-address": "100.64.32.96",
 						},
 					},
 				},
 			},
-		},
-	}, {
-		name: "union leaf-list example",
-		in: &exampleBgpNeighbor{
-			EnabledAddressFamiliesSimple: []exampleUnion{
-				testutil.UnionFloat64(3.14),
-				testutil.UnionInt64(42),
-				testBinary,
-				EnumTestVALONE,
-			},
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"enabled-address-families-simple": []interface{}{"3.14", "42", base64testStringEncoded, "VAL_ONE"},
-			},
-		},
-		wantInternal: map[string]interface{}{
-			"state": map[string]interface{}{
-				"enabled-address-families-simple": []interface{}{3.14, 42, base64testStringEncoded, "VAL_ONE"},
-			},
-		},
-	}, {
-		name: "union example - string",
-		in: &exampleBgpNeighbor{
-			TransportAddressSimple: testutil.UnionString("42.42.42.42"),
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"transport-address-simple": "42.42.42.42",
-			},
-		},
-		wantSame: true,
-	}, {
-		name: "union example - enum",
-		in: &exampleBgpNeighbor{
-			TransportAddressSimple: EnumTestVALONE,
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"transport-address-simple": "VAL_ONE",
-			},
-		},
-		wantSame: true,
-	}, {
-		name: "union example - binary",
-		in: &exampleBgpNeighbor{
-			TransportAddressSimple: testBinary,
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"transport-address-simple": base64testStringEncoded,
-			},
-		},
-		wantSame: true,
-	}, {
-		name: "union with IETF content",
-		in: &exampleBgpNeighbor{
-			TransportAddressSimple: testutil.UnionFloat64(3.14),
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"transport-address-simple": "3.14",
-			},
-		},
-		wantInternal: map[string]interface{}{
-			"state": map[string]interface{}{
-				"transport-address-simple": 3.14,
-			},
-		},
-	}, {
-		name: "union leaf-list example (wrapper union)",
-		in: &exampleBgpNeighbor{
-			EnabledAddressFamilies: []exampleBgpNeighborEnabledAddressFamiliesUnion{
-				&exampleBgpNeighborEnabledAddressFamiliesUnionString{"IPV4"},
-				&exampleBgpNeighborEnabledAddressFamiliesUnionBinary{[]byte{42}},
-			},
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"enabled-address-families": []interface{}{"IPV4", "Kg=="},
-			},
-		},
-		wantSame: true,
-	}, {
-		name: "union example (wrapper union)",
-		in: &exampleBgpNeighbor{
-			TransportAddress: &exampleTransportAddressString{"42.42.42.42"},
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"transport-address": "42.42.42.42",
-			},
-		},
-		wantSame: true,
-	}, {
-		name: "union enum example (wrapper union)",
-		in: &exampleBgpNeighbor{
-			TransportAddress: &exampleTransportAddressEnum{EnumTestVALONE},
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"transport-address": "VAL_ONE",
-			},
-		},
-		wantSame: true,
-	}, {
-		name: "union binary example (wrapper union)",
-		in: &exampleBgpNeighbor{
-			TransportAddress: &exampleTransportAddressBinary{Binary(base64testString)},
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"transport-address": base64testStringEncoded,
-			},
-		},
-		wantSame: true,
-	}, {
-		name: "union with IETF content (wrapper union)",
-		in: &exampleBgpNeighbor{
-			TransportAddress: &exampleTransportAddressUint64{42},
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"transport-address": "42",
-			},
-		},
-		wantInternal: map[string]interface{}{
-			"state": map[string]interface{}{
-				"transport-address": 42,
-			},
-		},
-	}, {
-		name: "union leaf-list with IETF content (wrapper union)",
-		in: &exampleBgpNeighbor{
-			EnabledAddressFamilies: []exampleBgpNeighborEnabledAddressFamiliesUnion{
-				&exampleBgpNeighborEnabledAddressFamiliesUnionString{"IPV6"},
-				&exampleBgpNeighborEnabledAddressFamiliesUnionUint64{42},
-			},
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"enabled-address-families": []interface{}{"IPV6", "42"},
-			},
-		},
-		wantInternal: map[string]interface{}{
-			"state": map[string]interface{}{
-				"enabled-address-families": []interface{}{"IPV6", 42},
-			},
-		},
-	}, {
-		name: "binary example",
-		in: &exampleBgpNeighbor{
-			MessageDump: []byte{1, 2, 3, 4},
-			Updates:     []Binary{[]byte{1, 2, 3}, {1, 2, 3, 4}},
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"message-dump": "AQIDBA==",
-				"updates":      []string{"AQID", "AQIDBA=="},
-			},
-		},
-		wantSame: true,
-	}, {
-		name: "binary example 2",
-		in: &exampleBgpNeighbor{
-			MessageDump: Binary(base64testString),
-		},
-		wantIETF: map[string]interface{}{
-			"state": map[string]interface{}{
-				"message-dump": base64testStringEncoded,
-			},
-		},
-		wantSame: true,
-	}, {
-		name: "module append example",
-		in: &ietfRenderExample{
-			F1: String("foo"),
-			F2: String("bar"),
-			F3: &ietfRenderExampleChild{
-				F4: String("baz"),
-				F5: String("hat"),
-			},
-		},
-		inAppendMod: true,
-		wantIETF: map[string]interface{}{
-			"f1mod:f1": "foo",
-			"f2mod:config": map[string]interface{}{
-				"f2": "bar",
-			},
-			"f1mod:f3": map[string]interface{}{
-				"f42mod:config": map[string]interface{}{
-					"f4": "baz",
+		}, {
+			name: "union leaf-list example",
+			in: &exampleBgpNeighbor{
+				EnabledAddressFamiliesSimple: []exampleUnion{
+					testutil.UnionFloat64(3.14),
+					testutil.UnionInt64(42),
+					testBinary,
+					EnumTestVALONE,
 				},
-				"f5": "hat",
 			},
-		},
-		wantInternal: map[string]interface{}{
-			"f1": "foo",
-			"config": map[string]interface{}{
-				"f2": "bar",
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"enabled-address-families-simple": []interface{}{"3.14", "42", base64testStringEncoded, "VAL_ONE"},
+				},
 			},
-			"f3": map[string]interface{}{
+			wantInternal: map[string]interface{}{
+				"state": map[string]interface{}{
+					"enabled-address-families-simple": []interface{}{3.14, 42, base64testStringEncoded, "VAL_ONE"},
+				},
+			},
+		}, {
+			name: "union example - string",
+			in: &exampleBgpNeighbor{
+				TransportAddressSimple: testutil.UnionString("42.42.42.42"),
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"transport-address-simple": "42.42.42.42",
+				},
+			},
+			wantSame: true,
+		}, {
+			name: "union example - enum",
+			in: &exampleBgpNeighbor{
+				TransportAddressSimple: EnumTestVALONE,
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"transport-address-simple": "VAL_ONE",
+				},
+			},
+			wantSame: true,
+		}, {
+			name: "union example - binary",
+			in: &exampleBgpNeighbor{
+				TransportAddressSimple: testBinary,
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"transport-address-simple": base64testStringEncoded,
+				},
+			},
+			wantSame: true,
+		}, {
+			name: "union with IETF content",
+			in: &exampleBgpNeighbor{
+				TransportAddressSimple: testutil.UnionFloat64(3.14),
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"transport-address-simple": "3.14",
+				},
+			},
+			wantInternal: map[string]interface{}{
+				"state": map[string]interface{}{
+					"transport-address-simple": 3.14,
+				},
+			},
+		}, {
+			name: "union leaf-list example (wrapper union)",
+			in: &exampleBgpNeighbor{
+				EnabledAddressFamilies: []exampleBgpNeighborEnabledAddressFamiliesUnion{
+					&exampleBgpNeighborEnabledAddressFamiliesUnionString{"IPV4"},
+					&exampleBgpNeighborEnabledAddressFamiliesUnionBinary{[]byte{42}},
+				},
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"enabled-address-families": []interface{}{"IPV4", "Kg=="},
+				},
+			},
+			wantSame: true,
+		}, {
+			name: "union example (wrapper union)",
+			in: &exampleBgpNeighbor{
+				TransportAddress: &exampleTransportAddressString{"42.42.42.42"},
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"transport-address": "42.42.42.42",
+				},
+			},
+			wantSame: true,
+		}, {
+			name: "union enum example (wrapper union)",
+			in: &exampleBgpNeighbor{
+				TransportAddress: &exampleTransportAddressEnum{EnumTestVALONE},
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"transport-address": "VAL_ONE",
+				},
+			},
+			wantSame: true,
+		}, {
+			name: "union binary example (wrapper union)",
+			in: &exampleBgpNeighbor{
+				TransportAddress: &exampleTransportAddressBinary{Binary(base64testString)},
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"transport-address": base64testStringEncoded,
+				},
+			},
+			wantSame: true,
+		}, {
+			name: "union with IETF content (wrapper union)",
+			in: &exampleBgpNeighbor{
+				TransportAddress: &exampleTransportAddressUint64{42},
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"transport-address": "42",
+				},
+			},
+			wantInternal: map[string]interface{}{
+				"state": map[string]interface{}{
+					"transport-address": 42,
+				},
+			},
+		}, {
+			name: "union leaf-list with IETF content (wrapper union)",
+			in: &exampleBgpNeighbor{
+				EnabledAddressFamilies: []exampleBgpNeighborEnabledAddressFamiliesUnion{
+					&exampleBgpNeighborEnabledAddressFamiliesUnionString{"IPV6"},
+					&exampleBgpNeighborEnabledAddressFamiliesUnionUint64{42},
+				},
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"enabled-address-families": []interface{}{"IPV6", "42"},
+				},
+			},
+			wantInternal: map[string]interface{}{
+				"state": map[string]interface{}{
+					"enabled-address-families": []interface{}{"IPV6", 42},
+				},
+			},
+		}, {
+			name: "binary example",
+			in: &exampleBgpNeighbor{
+				MessageDump: []byte{1, 2, 3, 4},
+				Updates:     []Binary{[]byte{1, 2, 3}, {1, 2, 3, 4}},
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"message-dump": "AQIDBA==",
+					"updates":      []string{"AQID", "AQIDBA=="},
+				},
+			},
+			wantSame: true,
+		}, {
+			name: "binary example 2",
+			in: &exampleBgpNeighbor{
+				MessageDump: Binary(base64testString),
+			},
+			wantIETF: map[string]interface{}{
+				"state": map[string]interface{}{
+					"message-dump": base64testStringEncoded,
+				},
+			},
+			wantSame: true,
+		}, {
+			name: "module append example",
+			in: &ietfRenderExample{
+				F1: String("foo"),
+				F2: String("bar"),
+				F3: &ietfRenderExampleChild{
+					F4: String("baz"),
+					F5: String("hat"),
+				},
+			},
+			inAppendMod: true,
+			wantIETF: map[string]interface{}{
+				"f1mod:f1": "foo",
+				"f2mod:config": map[string]interface{}{
+					"f2": "bar",
+				},
+				"f1mod:f3": map[string]interface{}{
+					"f42mod:config": map[string]interface{}{
+						"f4": "baz",
+					},
+					"f5": "hat",
+				},
+			},
+			wantInternal: map[string]interface{}{
+				"f1": "foo",
 				"config": map[string]interface{}{
-					"f4": "baz",
+					"f2": "bar",
 				},
-				"f5": "hat",
-			},
-		},
-	}, {
-		name: "list at root",
-		in: &listAtRoot{
-			Foo: map[string]*listAtRootChild{
-				"bar": {
-					Bar: String("bar"),
-				},
-				"baz": {
-					Bar: String("baz"),
+				"f3": map[string]interface{}{
+					"config": map[string]interface{}{
+						"f4": "baz",
+					},
+					"f5": "hat",
 				},
 			},
-		},
-		wantIETF: map[string]interface{}{
-			"foo": []interface{}{
-				map[string]interface{}{"bar": "bar"},
-				map[string]interface{}{"bar": "baz"},
-			},
-		},
-		wantInternal: map[string]interface{}{
-			"foo": map[string]interface{}{
-				"bar": map[string]interface{}{
-					"bar": "bar",
-				},
-				"baz": map[string]interface{}{
-					"bar": "baz",
+		}, {
+			name: "list at root",
+			in: &listAtRoot{
+				Foo: map[string]*listAtRootChild{
+					"bar": {
+						Bar: String("bar"),
+					},
+					"baz": {
+						Bar: String("baz"),
+					},
 				},
 			},
-		},
-	}, {
-		name: "list at root enum keyed",
-		in: &listAtRootEnumKeyed{
-			Foo: map[EnumTest]*listAtRootChildEnumKeyed{
-				EnumTest(1): {
-					Bar: EnumTest(1),
-				},
-				EnumTest(2): {
-					Bar: EnumTest(2),
+			wantIETF: map[string]interface{}{
+				"foo": []interface{}{
+					map[string]interface{}{"bar": "bar"},
+					map[string]interface{}{"bar": "baz"},
 				},
 			},
-		},
-		wantIETF: map[string]interface{}{
-			"foo": []interface{}{
-				map[string]interface{}{"bar": "VAL_ONE"},
-				map[string]interface{}{"bar": "VAL_TWO"},
-			},
-		},
-		wantInternal: map[string]interface{}{
-			"foo": map[string]interface{}{
-				"VAL_ONE": map[string]interface{}{
-					"bar": "VAL_ONE",
-				},
-				"VAL_TWO": map[string]interface{}{
-					"bar": "VAL_TWO",
+			wantInternal: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": map[string]interface{}{
+						"bar": "bar",
+					},
+					"baz": map[string]interface{}{
+						"bar": "baz",
+					},
 				},
 			},
-		},
-	}, {
-		name: "list at root enum keyed with zero enum",
-		in: &listAtRootEnumKeyed{
-			Foo: map[EnumTest]*listAtRootChildEnumKeyed{
-				EnumTest(0): {
-					Bar: EnumTest(0),
-				},
-				EnumTest(2): {
-					Bar: EnumTest(2),
-				},
-			},
-		},
-		wantErr: true,
-	}, {
-		name: "list at root enum keyed but invalid enum value",
-		in: &listAtRootEnumKeyed{
-			Foo: map[EnumTest]*listAtRootChildEnumKeyed{
-				EnumTest(42): {
-					Bar: EnumTest(42),
-				},
-				EnumTest(2): {
-					Bar: EnumTest(2),
+		}, {
+			name: "list at root enum keyed",
+			in: &listAtRootEnumKeyed{
+				Foo: map[EnumTest]*listAtRootChildEnumKeyed{
+					EnumTest(1): {
+						Bar: EnumTest(1),
+					},
+					EnumTest(2): {
+						Bar: EnumTest(2),
+					},
 				},
 			},
-		},
-		wantErr: true,
-	}, {
-		name: "annotated struct",
-		in: &annotatedJSONTestStruct{
-			ΛFieldThree: []Annotation{
-				&testAnnotation{AnnotationFieldOne: "alexander-valley"},
+			wantIETF: map[string]interface{}{
+				"foo": []interface{}{
+					map[string]interface{}{"bar": "VAL_ONE"},
+					map[string]interface{}{"bar": "VAL_TWO"},
+				},
 			},
-		},
-		wantIETF: map[string]interface{}{
-			"@one": []interface{}{
-				map[string]interface{}{"field": "alexander-valley"},
+			wantInternal: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"VAL_ONE": map[string]interface{}{
+						"bar": "VAL_ONE",
+					},
+					"VAL_TWO": map[string]interface{}{
+						"bar": "VAL_TWO",
+					},
+				},
 			},
-			"config": map[string]interface{}{
-				"@two": []interface{}{
+		}, {
+			name: "list at root enum keyed with zero enum",
+			in: &listAtRootEnumKeyed{
+				Foo: map[EnumTest]*listAtRootChildEnumKeyed{
+					EnumTest(0): {
+						Bar: EnumTest(0),
+					},
+					EnumTest(2): {
+						Bar: EnumTest(2),
+					},
+				},
+			},
+			wantErr: true,
+		}, {
+			name: "list at root enum keyed but invalid enum value",
+			in: &listAtRootEnumKeyed{
+				Foo: map[EnumTest]*listAtRootChildEnumKeyed{
+					EnumTest(42): {
+						Bar: EnumTest(42),
+					},
+					EnumTest(2): {
+						Bar: EnumTest(2),
+					},
+				},
+			},
+			wantErr: true,
+		}, {
+			name: "annotated struct",
+			in: &annotatedJSONTestStruct{
+				ΛFieldThree: []Annotation{
+					&testAnnotation{AnnotationFieldOne: "alexander-valley"},
+				},
+			},
+			wantIETF: map[string]interface{}{
+				"@one": []interface{}{
+					map[string]interface{}{"field": "alexander-valley"},
+				},
+				"config": map[string]interface{}{
+					"@two": []interface{}{
+						map[string]interface{}{"field": "alexander-valley"},
+					},
+				},
+			},
+			wantSame: true,
+		}, {
+			name: "annotation with two paths",
+			in: &annotatedJSONTestStruct{
+				Field: String("russian-river"),
+				ΛField: []Annotation{
+					&testAnnotation{AnnotationFieldOne: "alexander-valley"},
+				},
+			},
+			wantIETF: map[string]interface{}{
+				"field": "russian-river",
+				"@field": []interface{}{
 					map[string]interface{}{"field": "alexander-valley"},
 				},
 			},
-		},
-		wantSame: true,
-	}, {
-		name: "annotation with two paths",
-		in: &annotatedJSONTestStruct{
-			Field: String("russian-river"),
-			ΛField: []Annotation{
-				&testAnnotation{AnnotationFieldOne: "alexander-valley"},
+			wantSame: true,
+		}, {
+			name: "error in annotation - cannot marshal",
+			in: &annotatedJSONTestStruct{
+				Field: String("dry-creek"),
+				ΛField: []Annotation{
+					&errorAnnotation{AnnotationField: "chalk-hill"},
+				},
 			},
-		},
-		wantIETF: map[string]interface{}{
-			"field": "russian-river",
-			"@field": []interface{}{
-				map[string]interface{}{"field": "alexander-valley"},
+			wantErr:     true,
+			wantJSONErr: true,
+		}, {
+			name: "error in annotation - unmarshalable",
+			in: &annotatedJSONTestStruct{
+				Field: String("los-carneros"),
+				ΛField: []Annotation{
+					&unmarshalableJSON{AnnotationField: "knights-valley"},
+				},
 			},
-		},
-		wantSame: true,
-	}, {
-		name: "error in annotation - cannot marshal",
-		in: &annotatedJSONTestStruct{
-			Field: String("dry-creek"),
-			ΛField: []Annotation{
-				&errorAnnotation{AnnotationField: "chalk-hill"},
+			wantErr:     true,
+			wantJSONErr: true,
+		}, {
+			name:     "unset enum",
+			in:       &renderExample{EnumField: EnumTestUNSET},
+			wantIETF: map[string]interface{}{},
+			wantSame: true,
+		}, {
+			name: "set enum in union",
+			in:   &renderExample{UnionValSimple: EnumTestVALONE},
+			wantIETF: map[string]interface{}{
+				"union-val-simple": "VAL_ONE",
 			},
-		},
-		wantErr:     true,
-		wantJSONErr: true,
-	}, {
-		name: "error in annotation - unmarshalable",
-		in: &annotatedJSONTestStruct{
-			Field: String("los-carneros"),
-			ΛField: []Annotation{
-				&unmarshalableJSON{AnnotationField: "knights-valley"},
+			wantSame: true,
+		}, {
+			name:     "unset enum in union",
+			in:       &renderExample{UnionValSimple: EnumTestUNSET},
+			wantIETF: map[string]interface{}{},
+			wantSame: true,
+		}, {
+			name: "set enum in union (wrapper union)",
+			in:   &renderExample{UnionVal: &renderExampleUnionEnum{EnumTestVALONE}},
+			wantIETF: map[string]interface{}{
+				"union-val": "VAL_ONE",
 			},
-		},
-		wantErr:     true,
-		wantJSONErr: true,
-	}, {
-		name:     "unset enum",
-		in:       &renderExample{EnumField: EnumTestUNSET},
-		wantIETF: map[string]interface{}{},
-		wantSame: true,
-	}, {
-		name: "set enum in union",
-		in:   &renderExample{UnionValSimple: EnumTestVALONE},
-		wantIETF: map[string]interface{}{
-			"union-val-simple": "VAL_ONE",
-		},
-		wantSame: true,
-	}, {
-		name:     "unset enum in union",
-		in:       &renderExample{UnionValSimple: EnumTestUNSET},
-		wantIETF: map[string]interface{}{},
-		wantSame: true,
-	}, {
-		name: "set enum in union (wrapper union)",
-		in:   &renderExample{UnionVal: &renderExampleUnionEnum{EnumTestVALONE}},
-		wantIETF: map[string]interface{}{
-			"union-val": "VAL_ONE",
-		},
-		wantSame: true,
-	}, {
-		name:     "unset enum in union (wrapper union)",
-		in:       &renderExample{UnionVal: &renderExampleUnionEnum{EnumTestUNSET}},
-		wantIETF: map[string]interface{}{},
-		wantSame: true,
-	}}
+			wantSame: true,
+		}, {
+			name:     "unset enum in union (wrapper union)",
+			in:       &renderExample{UnionVal: &renderExampleUnionEnum{EnumTestUNSET}},
+			wantIETF: map[string]interface{}{},
+			wantSame: true,
+		}}
 
 	for _, tt := range tests {
 		t.Run(tt.name+" ConstructIETFJSON", func(t *testing.T) {
@@ -3387,7 +3387,7 @@ func TestMarshal7951(t *testing.T) {
 	}, {
 		desc: "empty map",
 		in:   map[string]*renderExample{},
-        // null as empty array is not valid, RFC7951 section 5.4 specify that the array must be an array, and JSON empty arrays are not null value
+		// null as empty array is not valid, RFC7951 section 5.4 specify that the array must be an array, and JSON empty arrays are not null value
 		want: `[]`,
 	}, {
 		desc: "nil string pointer",
