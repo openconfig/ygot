@@ -61,6 +61,7 @@ func TestGeneratePathCode(t *testing.T) {
 		inGenerateWildcardPaths bool
 		inSchemaStructPkgPath   string
 		inPathStructSuffix      string
+		inSimplifyWildcardPaths bool
 		// checkYANGPath says whether to check for the YANG path in the NodeDataMap.
 		checkYANGPath bool
 		// wantStructsCodeFile is the path of the generated Go code that the output of the test should be compared to.
@@ -295,6 +296,17 @@ func TestGeneratePathCode(t *testing.T) {
 		inPathStructSuffix:                     "Path",
 		wantStructsCodeFile:                    filepath.Join(TestRoot, "testdata/structs/openconfig-withlist.path-txt"),
 	}, {
+		name:                                   "simple openconfig test with list, and inSimplifyWildcardPaths=true",
+		inFiles:                                []string{filepath.Join(datapath, "openconfig-withlist.yang")},
+		inPreferOperationalState:               true,
+		inShortenEnumLeafNames:                 true,
+		inUseDefiningModuleForTypedefEnumNames: true,
+		inGenerateWildcardPaths:                true,
+		inSchemaStructPkgPath:                  "",
+		inPathStructSuffix:                     "Path",
+		inSimplifyWildcardPaths:                true,
+		wantStructsCodeFile:                    filepath.Join(TestRoot, "testdata/structs/openconfig-withlist-simplifyallwc.path-txt"),
+	}, {
 		name:                                   "simple openconfig test with list without wildcard paths",
 		inFiles:                                []string{filepath.Join(datapath, "openconfig-withlist.yang")},
 		inPreferOperationalState:               true,
@@ -305,7 +317,7 @@ func TestGeneratePathCode(t *testing.T) {
 		inPathStructSuffix:                     "Path",
 		wantStructsCodeFile:                    filepath.Join(TestRoot, "testdata/structs/openconfig-withlist-nowildcard.path-txt"),
 	}, {
-		name:                                   "simple openconfig test with list",
+		name:                                   "simple openconfig test with list in separate package",
 		inFiles:                                []string{filepath.Join(datapath, "openconfig-withlist.yang")},
 		inPreferOperationalState:               true,
 		inShortenEnumLeafNames:                 true,
@@ -699,6 +711,7 @@ func TestGeneratePathCode(t *testing.T) {
 				cg.ShortenEnumLeafNames = tt.inShortenEnumLeafNames
 				cg.UseDefiningModuleForTypedefEnumNames = tt.inUseDefiningModuleForTypedefEnumNames
 				cg.GenerateWildcardPaths = tt.inGenerateWildcardPaths
+				cg.SimplifyWildcardPaths = tt.inSimplifyWildcardPaths
 
 				gotCode, gotNodeDataMap, err := cg.GeneratePathCode(tt.inFiles, tt.inIncludePaths)
 				if err != nil && !tt.wantErr {
@@ -1119,19 +1132,7 @@ func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List
 }
 `
 
-// wantListMethods is the expected child constructor methods for the test list node.
-const wantListMethods = `
-// ListAny returns from RootPath the path struct for its child "list".
-func (n *RootPath) ListAny() *ListPathAny {
-	return &ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": "*", "key2": "*", "union-key": "*"},
-			n,
-		),
-	}
-}
-
+const wantListMethodsWildcardCommon = `
 // ListAnyKey2AnyUnionKey returns from RootPath the path struct for its child "list".
 // Key1: string
 func (n *RootPath) ListAnyKey2AnyUnionKey(Key1 string) *ListPathAny {
@@ -1206,7 +1207,36 @@ func (n *RootPath) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_Union
 		),
 	}
 }
-` + wantListMethodsNonWildcard
+`
+
+// wantListMethods is the expected child constructor methods for the test list node.
+const wantListMethods = `
+// ListAny returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAny() *ListPathAny {
+	return &ListPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key1": "*", "key2": "*", "union-key": "*"},
+			n,
+		),
+	}
+}
+` + wantListMethodsWildcardCommon + wantListMethodsNonWildcard
+
+// wantListMethodsSimplified is the expected child constructor methods for
+// the test list node when SimplifyWildcardPaths=true.
+const wantListMethodsSimplified = `
+// ListAny returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAny() *ListPathAny {
+	return &ListPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+` + wantListMethodsWildcardCommon + wantListMethodsNonWildcard
 
 func TestGetNodeDataMap(t *testing.T) {
 	_, directories, leafTypeMap := getSchemaAndDirs()
@@ -1988,7 +2018,7 @@ func (n *List) UnionKey() *List_UnionKey {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, true)
+			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, true, false)
 			if gotErr != nil {
 				t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
 			}
@@ -1999,7 +2029,7 @@ func (n *List) UnionKey() *List_UnionKey {
 		})
 
 		t.Run(tt.name+" no wildcard", func(t *testing.T) {
-			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, false)
+			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, false, false)
 			if gotErr != nil {
 				t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
 			}
@@ -2120,6 +2150,7 @@ func TestGenerateChildConstructor(t *testing.T) {
 		inListBuilderKeyThreshold uint
 		inPathStructSuffix        string
 		inGenerateWildcardPaths   bool
+		inSimplifyWildcardPaths   bool
 		want                      string
 	}{{
 		name:                    "container method",
@@ -2420,6 +2451,17 @@ func (n *RootPath) ListWithState(Key float64) *ListWithStatePath {
 		inGenerateWildcardPaths:   true,
 		want:                      wantListMethods,
 	}, {
+		name:                      "root-level list methods with builder API threshold over the number of keys, inSimplifyWildcardPaths=true",
+		inDirectory:               directories["/root"],
+		inDirectories:             directories,
+		inFieldName:               "list",
+		inUniqueFieldName:         "List",
+		inListBuilderKeyThreshold: 4,
+		inPathStructSuffix:        "Path",
+		inGenerateWildcardPaths:   true,
+		inSimplifyWildcardPaths:   true,
+		want:                      wantListMethodsSimplified,
+	}, {
 		name:                      "root-level list methods over key threshold -- should use builder API",
 		inDirectory:               directories["/root"],
 		inDirectories:             directories,
@@ -2466,7 +2508,7 @@ func (n *ListPathAny) WithUnionKey(UnionKey oc.RootModule_List_UnionKey_Union) *
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf strings.Builder
-			if errs := generateChildConstructors(&buf, tt.inDirectory, tt.inFieldName, tt.inUniqueFieldName, tt.inDirectories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, tt.inGenerateWildcardPaths); errs != nil {
+			if errs := generateChildConstructors(&buf, tt.inDirectory, tt.inFieldName, tt.inUniqueFieldName, tt.inDirectories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, tt.inGenerateWildcardPaths, tt.inSimplifyWildcardPaths); errs != nil {
 				t.Fatal(errs)
 			}
 
