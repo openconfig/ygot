@@ -1990,7 +1990,7 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantIETF: map[string]interface{}{
 			"ch": map[string]interface{}{"val": "42"},
-			// RFC7951 Section 5.4, the list is a name /array pair, an array must be [], not null RFC8259 Sectiob 5
+			/// RFC7951 Section 5.4 defines a YANG list as an JSON array. Per RFC 8259 Section 5 an empty array should be [] rather than 'null'.
 			"list": []interface{}{},
 		},
 		wantInternal: map[string]interface{}{
