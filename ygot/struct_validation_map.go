@@ -39,17 +39,26 @@ const (
 	indentString string = "   "
 )
 
-// structTagsToLibPaths takes an input struct field as a reflect.Type, and determines
+// structTagToLibPaths takes an input struct field as a reflect.Type, and determines
 // the set of validation library paths that it maps to. Returns the paths as a slice of
 // empty interface slices, or an error.
-func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath) ([]*gnmiPath, error) {
+func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath, preferShadowPath bool) ([]*gnmiPath, error) {
 	if !parentPath.isValid() {
 		return nil, fmt.Errorf("invalid path format in parentPath (%v, %v)", parentPath.stringSlicePath == nil, parentPath.pathElemPath == nil)
 	}
 
-	pathAnnotation, ok := f.Tag.Lookup("path")
-	if !ok {
-		return nil, fmt.Errorf("field did not specify a path")
+	var pathAnnotation string
+	var ok bool
+	switch preferShadowPath {
+	case true:
+		if pathAnnotation, ok = f.Tag.Lookup("shadow-path"); ok {
+			break
+		}
+		fallthrough
+	case false:
+		if pathAnnotation, ok = f.Tag.Lookup("path"); !ok {
+			return nil, fmt.Errorf("field did not specify a path")
+		}
 	}
 
 	var mapPaths []*gnmiPath
