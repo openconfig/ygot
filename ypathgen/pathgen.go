@@ -156,9 +156,22 @@ type GenConfig struct {
 	ListBuilderKeyThreshold uint
 	// GenerateWildcardPaths means to generate wildcard nodes and paths.
 	GenerateWildcardPaths bool
-	// SimplifyWildcardPaths causes non-builder-generated wildcard nodes
-	// where all keys are wildcarded to omit the [key="*"] in the generated
-	// path.
+	// SimplifyWildcardPaths causes non-builder-style generated wildcard
+	// nodes, where all key values are wildcards, to omit the [key="*"] in
+	// the generated path.
+	//
+	// e.g. For the following path node,
+	//
+	// list foo {
+	//  key "one two three";
+	// }
+	//
+	// "foo[one=*][two=*][three=*]" would be the string representation for
+	// all keys being wildcards when this flag is false, whereas simply
+	// "foo" when the flag is true. These two representations are
+	// equivalent per the gNMI specification.
+	// If any key is not a wildcard, then this flag doesn't apply, since
+	// all key values must now be specified in the path.
 	SimplifyWildcardPaths bool
 }
 
@@ -960,12 +973,13 @@ func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen
 		// Create the string for the method parameter list, docstrings, and ygot.NodePath's key list.
 		fieldData.KeyParamListStr = strings.Join(paramListStrs, ", ")
 		fieldData.KeyParamDocStrs = paramDocStrs
+		fieldData.KeyEntriesStr = strings.Join(keyEntryStrs, ", ")
 		if simplifyWildcardPaths && comboIndex == 0 {
-			// The zeroth index has everything wildcarded, so it doesn't need to specify any key value.
-			// This is a tweak that helps with vendor compatibility.
+			// The zeroth index has every key as a wildcard, so
+			// we can equivalently omit specifying any key values
+			// per the gNMI spec if the user prefers this
+			// alternative simplified format.
 			fieldData.KeyEntriesStr = ""
-		} else {
-			fieldData.KeyEntriesStr = strings.Join(keyEntryStrs, ", ")
 		}
 
 		// Add wildcard description suffixes to the base method name
