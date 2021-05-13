@@ -156,6 +156,23 @@ type GenConfig struct {
 	ListBuilderKeyThreshold uint
 	// GenerateWildcardPaths means to generate wildcard nodes and paths.
 	GenerateWildcardPaths bool
+	// SimplifyWildcardPaths causes non-builder-style generated wildcard
+	// nodes, where all key values are wildcards, to omit the [key="*"] in
+	// the generated path.
+	//
+	// e.g. For the following path node,
+	//
+	// list foo {
+	//  key "one two three";
+	// }
+	//
+	// "foo[one=*][two=*][three=*]" would be the string representation for
+	// all keys being wildcards when this flag is false, whereas simply
+	// "foo" when the flag is true. These two representations are
+	// equivalent per the gNMI specification.
+	// If any key is not a wildcard, then this flag doesn't apply, since
+	// all key values must now be specified in the path.
+	SimplifyWildcardPaths bool
 }
 
 // GoImports contains package import options.
@@ -252,7 +269,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 		if cg.GenerateWildcardPaths {
 			listBuilderKeyThreshold = cg.ListBuilderKeyThreshold
 		}
-		structSnippet, es := generateDirectorySnippet(directory, directories, schemaStructPkgAccessor, cg.PathStructSuffix, listBuilderKeyThreshold, cg.GenerateWildcardPaths)
+		structSnippet, es := generateDirectorySnippet(directory, directories, schemaStructPkgAccessor, cg.PathStructSuffix, listBuilderKeyThreshold, cg.GenerateWildcardPaths, cg.SimplifyWildcardPaths)
 		if es != nil {
 			errs = util.AppendErrs(errs, es)
 		}
@@ -682,7 +699,7 @@ type goPathFieldData struct {
 // the fields of the struct. directory is the parsed information of a schema
 // node, and directories is a map from path to a parsed schema node for all
 // nodes in the schema.
-func generateDirectorySnippet(directory *ygen.Directory, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint, generateWildcardPaths bool) (GoPathStructCodeSnippet, util.Errors) {
+func generateDirectorySnippet(directory *ygen.Directory, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint, generateWildcardPaths, simplifyWildcardPaths bool) (GoPathStructCodeSnippet, util.Errors) {
 	var errs util.Errors
 	// structBuf is used to store the code associated with the struct defined for
 	// the target YANG entity.
@@ -712,7 +729,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		}
 		goFieldName := goFieldNameMap[fieldName]
 
-		if es := generateChildConstructors(&methodBuf, directory, fieldName, goFieldName, directories, schemaStructPkgAccessor, pathStructSuffix, listBuilderKeyThreshold, generateWildcardPaths); es != nil {
+		if es := generateChildConstructors(&methodBuf, directory, fieldName, goFieldName, directories, schemaStructPkgAccessor, pathStructSuffix, listBuilderKeyThreshold, generateWildcardPaths, simplifyWildcardPaths); es != nil {
 			errs = util.AppendErrs(errs, es)
 		}
 
@@ -756,7 +773,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 // field name to be used as the generated method's name and the incremental
 // type name of of the child path struct, and a map of all directories of the
 // whole schema keyed by their schema paths.
-func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint, generateWildcardPaths bool) []error {
+func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint, generateWildcardPaths, simplifyWildcardPaths bool) []error {
 	field, ok := directory.Fields[directoryFieldName]
 	if !ok {
 		return []error{fmt.Errorf("generateChildConstructors: field %s not found in directory %v", directoryFieldName, directory)}
@@ -802,7 +819,7 @@ func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Direc
 		// confusing for the user.
 		return generateChildConstructorsForListBuilderFormat(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, schemaStructPkgAccessor)
 	default:
-		return generateChildConstructorsForList(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, generateWildcardPaths, schemaStructPkgAccessor)
+		return generateChildConstructorsForList(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, generateWildcardPaths, simplifyWildcardPaths, schemaStructPkgAccessor)
 	}
 }
 
@@ -907,7 +924,7 @@ func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, l
 // childConstructor template output information for if the node were a
 // container (which contains a subset of the basic information required for
 // the list constructor methods).
-func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot, generateWildcardPaths bool, schemaStructPkgAccessor string) []error {
+func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot, generateWildcardPaths, simplifyWildcardPaths bool, schemaStructPkgAccessor string) []error {
 	var errors []error
 	// List of function parameters as would appear in the method definition.
 	keyParams, err := makeKeyParams(listAttr, schemaStructPkgAccessor)
@@ -957,6 +974,13 @@ func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen
 		fieldData.KeyParamListStr = strings.Join(paramListStrs, ", ")
 		fieldData.KeyParamDocStrs = paramDocStrs
 		fieldData.KeyEntriesStr = strings.Join(keyEntryStrs, ", ")
+		if simplifyWildcardPaths && comboIndex == 0 {
+			// The zeroth index has every key as a wildcard, so
+			// we can equivalently omit specifying any key values
+			// per the gNMI spec if the user prefers this
+			// alternative simplified format.
+			fieldData.KeyEntriesStr = ""
+		}
 
 		// Add wildcard description suffixes to the base method name
 		// for wildcarded parameters.
