@@ -195,37 +195,31 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 		}
 
 		args := args
-		switch args.reverseShadowPath {
-		case true:
+		if args.reverseShadowPath {
 			schPaths := util.ShadowSchemaPaths(ft)
 			for _, p := range schPaths {
-				if !util.PathMatchesPrefix(path, p) {
-					continue
+				if util.PathMatchesPrefix(path, p) {
+					return checkPath(p, args)
 				}
-				return checkPath(p, args)
 			}
 
 			if len(schPaths) != 0 {
 				args.shadowPath = true
 			}
-			fallthrough
-		case false:
-			schPaths, err := util.SchemaPaths(ft)
-			if err != nil {
-				return nil, status.Errorf(codes.Unknown, "failed to get schema paths for %T, field %s: %s", root, ft.Name, err)
-			}
-			for _, p := range schPaths {
-				if !util.PathMatchesPrefix(path, p) {
-					continue
-				}
+		}
+		schPaths, err := util.SchemaPaths(ft)
+		if err != nil {
+			return nil, status.Errorf(codes.Unknown, "failed to get schema paths for %T, field %s: %s", root, ft.Name, err)
+		}
+		for _, p := range schPaths {
+			if util.PathMatchesPrefix(path, p) {
 				return checkPath(p, args)
 			}
-			if !args.reverseShadowPath {
-				args.shadowPath = true
-				for _, p := range util.ShadowSchemaPaths(ft) {
-					if !util.PathMatchesPrefix(path, p) {
-						continue
-					}
+		}
+		if !args.reverseShadowPath {
+			args.shadowPath = true
+			for _, p := range util.ShadowSchemaPaths(ft) {
+				if util.PathMatchesPrefix(path, p) {
 					return checkPath(p, args)
 				}
 			}
