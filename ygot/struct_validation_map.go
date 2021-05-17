@@ -49,13 +49,10 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath, preferShad
 
 	var pathAnnotation string
 	var ok bool
-	switch preferShadowPath {
-	case true:
-		if pathAnnotation, ok = f.Tag.Lookup("shadow-path"); ok {
-			break
-		}
-		fallthrough
-	case false:
+	if preferShadowPath {
+		pathAnnotation, ok = f.Tag.Lookup("shadow-path")
+	}
+	if !ok {
 		if pathAnnotation, ok = f.Tag.Lookup("path"); !ok {
 			return nil, fmt.Errorf("field did not specify a path")
 		}

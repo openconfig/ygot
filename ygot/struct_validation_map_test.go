@@ -292,11 +292,11 @@ func TestStructTagToLibPaths(t *testing.T) {
 	for _, tt := range tests {
 		got, err := structTagToLibPaths(tt.inField, tt.inParent, tt.inPreferShadowPath)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, err, tt.wantErr)
+			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, err, tt.wantErr)
 		}
 
 		if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
-			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, diff)
+			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, diff)
 		}
 	}
 }
