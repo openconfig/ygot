@@ -194,8 +194,20 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			return retrieveNode(cschema, fv.Interface(), util.TrimGNMIPathPrefix(path, p[0:to]), np, args)
 		}
 
+		// Continue traversal on the first-encountered annotated
+		// GoStruct path that forms a prefix of the input path.
+		//
+		// Note that we first look through the non-shadow path, and if
+		// no matches are found, we then look through the shadow path
+		// to find matches. If the input path matches a shadow path,
+		// then the traversal continues, although the final operation
+		// is marked as a no-op.
+		//
+		// If the user has opted to reverse the "shadow-path" and
+		// "path" tags, then the above-described traversal is reversed.
 		args := args
 		if args.reverseShadowPath {
+			// Look through shadow paths first instead.
 			schPaths := util.ShadowSchemaPaths(ft)
 			for _, p := range schPaths {
 				if util.PathMatchesPrefix(path, p) {
@@ -204,6 +216,9 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			}
 
 			if len(schPaths) != 0 {
+				// Only if there exists shadow paths do we
+				// treat the non-shadow paths as no-ops.
+				// Otherwise, there is no reversal to do.
 				args.shadowPath = true
 			}
 		}
@@ -217,6 +232,8 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			}
 		}
 		if !args.reverseShadowPath {
+			// Look through shadow paths last, and mark operations
+			// as no-ops.
 			args.shadowPath = true
 			for _, p := range util.ShadowSchemaPaths(ft) {
 				if util.PathMatchesPrefix(path, p) {
