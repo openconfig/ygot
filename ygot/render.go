@@ -382,7 +382,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 			}
 		}
 
-		mapPaths, err := structTagToLibPaths(ftype, parent)
+		mapPaths, err := structTagToLibPaths(ftype, parent, false)
 		if err != nil {
 			errs.Add(fmt.Errorf("%v->%s: %v", parent, ftype.Name, err))
 			continue
@@ -917,6 +917,10 @@ type RFC7951JSONConfig struct {
 	// elements that are defined within a different YANG module than their
 	// parent.
 	AppendModuleName bool
+	// PreferShadowPath uses the name of the "shadow-path" tag of a
+	// GoStruct to determine the marshalled path elements instead of the
+	// "path" tag, whenever the former is present.
+	PreferShadowPath bool
 }
 
 // IsMarshal7951Arg marks the RFC7951JSONConfig struct as a valid argument to
@@ -977,7 +981,6 @@ func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 		case JSONIndent:
 			indent = string(v)
 		}
-
 	}
 	j, err := jsonValue(reflect.ValueOf(d), "", jsonOutputConfig{
 		jType:         RFC7951,
@@ -1056,7 +1059,7 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			appendModName = true
 		}
 
-		mapPaths, err := structTagToLibPaths(fType, newStringSliceGNMIPath([]string{}))
+		mapPaths, err := structTagToLibPaths(fType, newStringSliceGNMIPath([]string{}), args.rfc7951Config != nil && args.rfc7951Config.PreferShadowPath)
 		if err != nil {
 			errs.Add(fmt.Errorf("%s: %v", fType.Name, err))
 			continue

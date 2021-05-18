@@ -52,11 +52,12 @@ func errToString(err error) string {
 
 func TestStructTagToLibPaths(t *testing.T) {
 	tests := []struct {
-		name     string
-		inField  reflect.StructField
-		inParent *gnmiPath
-		want     []*gnmiPath
-		wantErr  bool
+		name               string
+		inField            reflect.StructField
+		inParent           *gnmiPath
+		inPreferShadowPath bool
+		want               []*gnmiPath
+		wantErr            bool
 	}{{
 		name: "invalid input path",
 		inField: reflect.StructField{
@@ -79,6 +80,43 @@ func TestStructTagToLibPaths(t *testing.T) {
 		},
 		want: []*gnmiPath{{
 			stringSlicePath: []string{"foo"},
+		}},
+	}, {
+		name: "multi-element single tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo", "bar"},
+		}},
+	}, {
+		name: "multi-element single tag with shadow-path example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo", "bar"},
+		}},
+	}, {
+		name: "multi-element single tag with preferred shadow-path example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		inPreferShadowPath: true,
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"far", "boo"},
 		}},
 	}, {
 		name: "empty tag example",
@@ -133,6 +171,19 @@ func TestStructTagToLibPaths(t *testing.T) {
 			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}},
 		}},
 	}, {
+		name: "simple pathelem single tag with shadow-path preferred but not found example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inPreferShadowPath: true,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}},
+		}},
+	}, {
 		name: "empty tag pathelem example",
 		inField: reflect.StructField{
 			Name: "field",
@@ -143,6 +194,43 @@ func TestStructTagToLibPaths(t *testing.T) {
 		},
 		want: []*gnmiPath{{
 			pathElemPath: []*gnmipb.PathElem{},
+		}},
+	}, {
+		name: "multi-element single tag pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}},
+		}},
+	}, {
+		name: "multi-element single tag with shadow-path pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}},
+		}},
+	}, {
+		name: "multi-element single tag with preferred shadow-path pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inPreferShadowPath: true,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "far"}, {Name: "boo"}},
 		}},
 	}, {
 		name: "multiple pathelem path",
@@ -172,16 +260,43 @@ func TestStructTagToLibPaths(t *testing.T) {
 		}, {
 			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "foo"}, {Name: "baz"}},
 		}},
+	}, {
+		name: "populated pathelem parent path with shadow-path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "baz"}},
+		}, {
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "foo"}, {Name: "baz"}},
+		}},
+	}, {
+		name: "populated pathelem parent path with preferred shadow-path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz" shadow-path:"far/boo"`,
+		},
+		inPreferShadowPath: true,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "far"}, {Name: "boo"}},
+		}},
 	}}
 
 	for _, tt := range tests {
-		got, err := structTagToLibPaths(tt.inField, tt.inParent)
+		got, err := structTagToLibPaths(tt.inField, tt.inParent, tt.inPreferShadowPath)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, err, tt.wantErr)
+			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, err, tt.wantErr)
 		}
 
 		if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
-			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, diff)
+			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, diff)
 		}
 	}
 }
