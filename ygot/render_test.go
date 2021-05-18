@@ -766,7 +766,7 @@ type YANGEmpty bool
 
 // renderExample is used within TestTogNMINotifications as a GoStruct.
 type renderExample struct {
-	Str                 *string                             `path:"str"`
+	Str                 *string                             `path:"str" shadow-path:"srt"`
 	IntVal              *int32                              `path:"int-val"`
 	Int64Val            *int64                              `path:"int64-val"`
 	FloatVal            *float32                            `path:"floatval"`
@@ -3343,12 +3343,31 @@ func TestMarshal7951(t *testing.T) {
 		},
 		want: `{"str":"test-string"}`,
 	}, {
+		desc: "simple GoStruct with PreferShadowPath",
+		in: &renderExample{
+			Str: String("test-string"),
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{PreferShadowPath: true},
+		},
+		want: `{"srt":"test-string"}`,
+	}, {
 		desc: "map of GoStructs",
 		in: map[string]*renderExample{
 			"one": {Str: String("one")},
 			"two": {Str: String("two")},
 		},
 		want: `[{"str":"one"},{"str":"two"}]`,
+	}, {
+		desc: "map of GoStructs with PreferShadowPath",
+		in: map[string]*renderExample{
+			"one": {Str: String("one")},
+			"two": {Str: String("two")},
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{PreferShadowPath: true},
+		},
+		want: `[{"srt":"one"},{"srt":"two"}]`,
 	}, {
 		desc: "map of invalid type",
 		in: map[string]string{
