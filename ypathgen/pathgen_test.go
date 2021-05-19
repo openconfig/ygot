@@ -83,6 +83,7 @@ func TestGeneratePathCode(t *testing.T) {
 		wantNodeDataMap: NodeDataMap{
 			"ParentPath": {
 				GoTypeName:            "*Parent",
+				LocalGoTypeName:       "*Parent",
 				GoFieldName:           "Parent",
 				SubsumingGoStructName: "Parent",
 				IsLeaf:                false,
@@ -91,6 +92,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_ChildPath": {
 				GoTypeName:            "*Parent_Child",
+				LocalGoTypeName:       "*Parent_Child",
 				GoFieldName:           "Child",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                false,
@@ -99,6 +101,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_FourPath": {
 				GoTypeName:            "Binary",
+				LocalGoTypeName:       "Binary",
 				GoFieldName:           "Four",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -108,6 +111,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_OnePath": {
 				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
 				GoFieldName:           "One",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -117,6 +121,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_ThreePath": {
 				GoTypeName:            "E_Child_Three",
+				LocalGoTypeName:       "E_Child_Three",
 				GoFieldName:           "Three",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -126,6 +131,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_TwoPath": {
 				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
 				GoFieldName:           "Two",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -135,6 +141,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"RemoteContainerPath": {
 				GoTypeName:            "*RemoteContainer",
+				LocalGoTypeName:       "*RemoteContainer",
 				GoFieldName:           "RemoteContainer",
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                false,
@@ -143,6 +150,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"RemoteContainer_ALeafPath": {
 				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
 				GoFieldName:           "ALeaf",
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                true,
@@ -162,6 +170,7 @@ func TestGeneratePathCode(t *testing.T) {
 		wantNodeDataMap: NodeDataMap{
 			"ParentPath": {
 				GoTypeName:            "*Parent",
+				LocalGoTypeName:       "*Parent",
 				GoFieldName:           "Parent",
 				SubsumingGoStructName: "Parent",
 				IsLeaf:                false,
@@ -169,6 +178,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_ChildPath": {
 				GoTypeName:            "*Parent_Child",
+				LocalGoTypeName:       "*Parent_Child",
 				GoFieldName:           "Child",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                false,
@@ -176,6 +186,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_FourPath": {
 				GoTypeName:            "Binary",
+				LocalGoTypeName:       "Binary",
 				GoFieldName:           "Four",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -184,6 +195,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_OnePath": {
 				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
 				GoFieldName:           "One",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -192,6 +204,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_ThreePath": {
 				GoTypeName:            "E_Child_Three",
+				LocalGoTypeName:       "E_Child_Three",
 				GoFieldName:           "Three",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -200,6 +213,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_TwoPath": {
 				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
 				GoFieldName:           "Two",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -208,6 +222,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"RemoteContainerPath": {
 				GoTypeName:            "*RemoteContainer",
+				LocalGoTypeName:       "*RemoteContainer",
 				GoFieldName:           "RemoteContainer",
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                false,
@@ -215,6 +230,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"RemoteContainer_ALeafPath": {
 				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
 				GoFieldName:           "ALeaf",
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                true,
@@ -234,6 +250,7 @@ func TestGeneratePathCode(t *testing.T) {
 		wantNodeDataMap: NodeDataMap{
 			"ParentPath": {
 				GoTypeName:            "*Parent",
+				LocalGoTypeName:       "*Parent",
 				GoFieldName:           "Parent",
 				SubsumingGoStructName: "Parent",
 				IsLeaf:                false,
@@ -241,6 +258,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_ChildPath": {
 				GoTypeName:            "*Parent_Child",
+				LocalGoTypeName:       "*Parent_Child",
 				GoFieldName:           "Child",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                false,
@@ -248,6 +266,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_FourPath": {
 				GoTypeName:            "Binary",
+				LocalGoTypeName:       "Binary",
 				GoFieldName:           "Four",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -256,6 +275,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_OnePath": {
 				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
 				GoFieldName:           "One",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -264,6 +284,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_ThreePath": {
 				GoTypeName:            "E_Child_Three",
+				LocalGoTypeName:       "E_Child_Three",
 				GoFieldName:           "Three",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -272,6 +293,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"RemoteContainerPath": {
 				GoTypeName:            "*RemoteContainer",
+				LocalGoTypeName:       "*RemoteContainer",
 				GoFieldName:           "RemoteContainer",
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                false,
@@ -279,6 +301,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"RemoteContainer_ALeafPath": {
 				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
 				GoFieldName:           "ALeaf",
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                true,
@@ -350,6 +373,7 @@ func TestGeneratePathCode(t *testing.T) {
 		wantNodeDataMap: NodeDataMap{
 			"DupEnumPath": {
 				GoTypeName:            "*DupEnum",
+				LocalGoTypeName:       "*DupEnum",
 				GoFieldName:           "DupEnum",
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                false,
@@ -357,6 +381,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"DupEnum_APath": {
 				GoTypeName:            "E_DupEnum_A",
+				LocalGoTypeName:       "E_DupEnum_A",
 				GoFieldName:           "A",
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                true,
@@ -365,6 +390,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"DupEnum_BPath": {
 				GoTypeName:            "E_DupEnum_B",
+				LocalGoTypeName:       "E_DupEnum_B",
 				GoFieldName:           "B",
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                true,
@@ -373,6 +399,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"PlatformPath": {
 				GoTypeName:            "*Platform",
+				LocalGoTypeName:       "*Platform",
 				GoFieldName:           "Platform",
 				SubsumingGoStructName: "Platform",
 				IsLeaf:                false,
@@ -380,6 +407,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_ComponentPath": {
 				GoTypeName:            "*Platform_Component",
+				LocalGoTypeName:       "*Platform_Component",
 				GoFieldName:           "Component",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                false,
@@ -387,6 +415,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_Component_E1Path": {
 				GoTypeName:            "Platform_Component_E1_Union",
+				LocalGoTypeName:       "Platform_Component_E1_Union",
 				GoFieldName:           "E1",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
@@ -395,6 +424,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_Component_EnumeratedPath": {
 				GoTypeName:            "Platform_Component_Enumerated_Union",
+				LocalGoTypeName:       "Platform_Component_Enumerated_Union",
 				GoFieldName:           "Enumerated",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
@@ -403,6 +433,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_Component_PowerPath": {
 				GoTypeName:            "Platform_Component_Power_Union",
+				LocalGoTypeName:       "Platform_Component_Power_Union",
 				GoFieldName:           "Power",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
@@ -411,6 +442,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_Component_R1Path": {
 				GoTypeName:            "Platform_Component_E1_Union",
+				LocalGoTypeName:       "Platform_Component_E1_Union",
 				GoFieldName:           "R1",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
@@ -419,6 +451,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_Component_TypePath": {
 				GoTypeName:            "Platform_Component_Type_Union",
+				LocalGoTypeName:       "Platform_Component_Type_Union",
 				GoFieldName:           "Type",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
@@ -436,6 +469,7 @@ func TestGeneratePathCode(t *testing.T) {
 		wantNodeDataMap: NodeDataMap{
 			"DupEnumPath": {
 				GoTypeName:            "*DupEnum",
+				LocalGoTypeName:       "*DupEnum",
 				GoFieldName:           "DupEnum",
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                false,
@@ -443,6 +477,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"DupEnum_APath": {
 				GoTypeName:            "E_OpenconfigUnione_DupEnum_A",
+				LocalGoTypeName:       "E_OpenconfigUnione_DupEnum_A",
 				GoFieldName:           "A",
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                true,
@@ -451,6 +486,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"DupEnum_BPath": {
 				GoTypeName:            "E_OpenconfigUnione_DupEnum_B",
+				LocalGoTypeName:       "E_OpenconfigUnione_DupEnum_B",
 				GoFieldName:           "B",
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                true,
@@ -459,6 +495,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"PlatformPath": {
 				GoTypeName:            "*Platform",
+				LocalGoTypeName:       "*Platform",
 				GoFieldName:           "Platform",
 				SubsumingGoStructName: "Platform",
 				IsLeaf:                false,
@@ -466,6 +503,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_ComponentPath": {
 				GoTypeName:            "*Platform_Component",
+				LocalGoTypeName:       "*Platform_Component",
 				GoFieldName:           "Component",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                false,
@@ -473,6 +511,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_Component_E1Path": {
 				GoTypeName:            "Platform_Component_E1_Union",
+				LocalGoTypeName:       "Platform_Component_E1_Union",
 				GoFieldName:           "E1",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
@@ -481,6 +520,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_Component_EnumeratedPath": {
 				GoTypeName:            "Platform_Component_Enumerated_Union",
+				LocalGoTypeName:       "Platform_Component_Enumerated_Union",
 				GoFieldName:           "Enumerated",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
@@ -489,6 +529,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_Component_PowerPath": {
 				GoTypeName:            "Platform_Component_Power_Union",
+				LocalGoTypeName:       "Platform_Component_Power_Union",
 				GoFieldName:           "Power",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
@@ -497,6 +538,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_Component_R1Path": {
 				GoTypeName:            "Platform_Component_E1_Union",
+				LocalGoTypeName:       "Platform_Component_E1_Union",
 				GoFieldName:           "R1",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
@@ -505,6 +547,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Platform_Component_TypePath": {
 				GoTypeName:            "Platform_Component_Type_Union",
+				LocalGoTypeName:       "Platform_Component_Type_Union",
 				GoFieldName:           "Type",
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
@@ -524,6 +567,7 @@ func TestGeneratePathCode(t *testing.T) {
 		wantNodeDataMap: NodeDataMap{
 			"AListPath": {
 				GoTypeName:            "*AList",
+				LocalGoTypeName:       "*AList",
 				GoFieldName:           "AList",
 				SubsumingGoStructName: "AList",
 				IsLeaf:                false,
@@ -531,6 +575,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"AList_ValuePath": {
 				GoTypeName:            "AList_Value_Union",
+				LocalGoTypeName:       "AList_Value_Union",
 				GoFieldName:           "Value",
 				SubsumingGoStructName: "AList",
 				IsLeaf:                true,
@@ -539,6 +584,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"BListPath": {
 				GoTypeName:            "*BList",
+				LocalGoTypeName:       "*BList",
 				GoFieldName:           "BList",
 				SubsumingGoStructName: "BList",
 				IsLeaf:                false,
@@ -546,6 +592,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"BList_ValuePath": {
 				GoTypeName:            "BList_Value_Union",
+				LocalGoTypeName:       "BList_Value_Union",
 				GoFieldName:           "Value",
 				SubsumingGoStructName: "BList",
 				IsLeaf:                true,
@@ -554,6 +601,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"CPath": {
 				GoTypeName:            "*C",
+				LocalGoTypeName:       "*C",
 				GoFieldName:           "C",
 				SubsumingGoStructName: "C",
 				IsLeaf:                false,
@@ -561,6 +609,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"C_ClPath": {
 				GoTypeName:            "E_EnumModule_Cl",
+				LocalGoTypeName:       "E_EnumModule_Cl",
 				GoFieldName:           "Cl",
 				SubsumingGoStructName: "C",
 				IsLeaf:                true,
@@ -569,6 +618,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"ParentPath": {
 				GoTypeName:            "*Parent",
+				LocalGoTypeName:       "*Parent",
 				GoFieldName:           "Parent",
 				SubsumingGoStructName: "Parent",
 				IsLeaf:                false,
@@ -576,6 +626,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_ChildPath": {
 				GoTypeName:            "*Parent_Child",
+				LocalGoTypeName:       "*Parent_Child",
 				GoFieldName:           "Child",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                false,
@@ -583,6 +634,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_IdPath": {
 				GoTypeName:            "E_EnumTypes_ID",
+				LocalGoTypeName:       "E_EnumTypes_ID",
 				GoFieldName:           "Id",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -591,6 +643,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_Id2Path": {
 				GoTypeName:            "E_EnumTypes_ID",
+				LocalGoTypeName:       "E_EnumTypes_ID",
 				GoFieldName:           "Id2",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -599,6 +652,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_EnumPath": {
 				GoTypeName:            "E_EnumTypes_TdEnum",
+				LocalGoTypeName:       "E_EnumTypes_TdEnum",
 				GoFieldName:           "Enum",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -607,6 +661,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Parent_Child_InlineEnumPath": {
 				GoTypeName:            "E_Child_InlineEnum",
+				LocalGoTypeName:       "E_Child_InlineEnum",
 				GoFieldName:           "InlineEnum",
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
@@ -639,6 +694,7 @@ func TestGeneratePathCode(t *testing.T) {
 		wantNodeDataMap: NodeDataMap{
 			"Native": {
 				GoTypeName:            "*oc.Native",
+				LocalGoTypeName:       "*Native",
 				GoFieldName:           "Native",
 				SubsumingGoStructName: "Native",
 				IsLeaf:                false,
@@ -646,6 +702,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Native_A": {
 				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
 				GoFieldName:           "A",
 				SubsumingGoStructName: "Native",
 				IsLeaf:                true,
@@ -654,6 +711,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Target": {
 				GoTypeName:            "*oc.Target",
+				LocalGoTypeName:       "*Target",
 				GoFieldName:           "Target",
 				SubsumingGoStructName: "Target",
 				IsLeaf:                false,
@@ -661,6 +719,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Target_Foo": {
 				GoTypeName:            "*oc.Target_Foo",
+				LocalGoTypeName:       "*Target_Foo",
 				GoFieldName:           "Foo",
 				SubsumingGoStructName: "Target_Foo",
 				IsLeaf:                false,
@@ -668,6 +727,7 @@ func TestGeneratePathCode(t *testing.T) {
 			},
 			"Target_Foo_A": {
 				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
 				GoFieldName:           "A",
 				SubsumingGoStructName: "Target_Foo",
 				IsLeaf:                true,
@@ -1314,6 +1374,7 @@ func TestGetNodeDataMap(t *testing.T) {
 		wantNodeDataMap: NodeDataMap{
 			"Container_LeafPath": {
 				GoTypeName:            "int32",
+				LocalGoTypeName:       "int32",
 				GoFieldName:           "Leaf",
 				SubsumingGoStructName: "Container",
 				IsLeaf:                true,
@@ -1331,6 +1392,7 @@ func TestGetNodeDataMap(t *testing.T) {
 		wantNodeDataMap: NodeDataMap{
 			"Container_Path": {
 				GoTypeName:            "*struct.Container",
+				LocalGoTypeName:       "*Container",
 				GoFieldName:           "Container",
 				SubsumingGoStructName: "Container",
 				IsLeaf:                false,
@@ -1338,6 +1400,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"Container_Leaf_Path": {
 				GoTypeName:            "struct.Binary",
+				LocalGoTypeName:       "Binary",
 				GoFieldName:           "Leaf",
 				SubsumingGoStructName: "Container",
 				IsLeaf:                true,
@@ -1381,6 +1444,7 @@ func TestGetNodeDataMap(t *testing.T) {
 		wantNodeDataMap: NodeDataMap{
 			"ContainerPath": {
 				GoTypeName:            "*Container",
+				LocalGoTypeName:       "*Container",
 				GoFieldName:           "Container",
 				SubsumingGoStructName: "Container",
 				IsLeaf:                false,
@@ -1388,6 +1452,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"ContainerWithConfigPath": {
 				GoTypeName:            "*ContainerWithConfig",
+				LocalGoTypeName:       "*ContainerWithConfig",
 				GoFieldName:           "ContainerWithConfig",
 				SubsumingGoStructName: "ContainerWithConfig",
 				IsLeaf:                false,
@@ -1395,6 +1460,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"ContainerWithConfig_LeafPath": {
 				GoTypeName:            "Binary",
+				LocalGoTypeName:       "Binary",
 				GoFieldName:           "Leaf",
 				SubsumingGoStructName: "ContainerWithConfig",
 				IsLeaf:                true,
@@ -1402,6 +1468,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"ContainerWithConfig_LeaflistPath": {
 				GoTypeName:            "[]uint32",
+				LocalGoTypeName:       "[]uint32",
 				GoFieldName:           "Leaflist",
 				SubsumingGoStructName: "ContainerWithConfig",
 				IsLeaf:                true,
@@ -1409,6 +1476,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"ContainerWithConfig_Leaflist2Path": {
 				GoTypeName:            "[]Binary",
+				LocalGoTypeName:       "[]Binary",
 				GoFieldName:           "Leaflist2",
 				SubsumingGoStructName: "ContainerWithConfig",
 				IsLeaf:                true,
@@ -1416,6 +1484,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"Container_LeafPath": {
 				GoTypeName:            "int32",
+				LocalGoTypeName:       "int32",
 				GoFieldName:           "Leaf",
 				SubsumingGoStructName: "Container",
 				IsLeaf:                true,
@@ -1424,6 +1493,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"LeafPath": {
 				GoTypeName:            "Binary",
+				LocalGoTypeName:       "Binary",
 				GoFieldName:           "Leaf",
 				SubsumingGoStructName: "Root",
 				IsLeaf:                true,
@@ -1432,6 +1502,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"ListPath": {
 				GoTypeName:            "*List",
+				LocalGoTypeName:       "*List",
 				GoFieldName:           "List",
 				SubsumingGoStructName: "List",
 				IsLeaf:                false,
@@ -1439,6 +1510,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"ListWithStatePath": {
 				GoTypeName:            "*ListWithState",
+				LocalGoTypeName:       "*ListWithState",
 				GoFieldName:           "ListWithState",
 				SubsumingGoStructName: "ListWithState",
 				IsLeaf:                false,
@@ -1446,6 +1518,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"ListWithState_KeyPath": {
 				GoTypeName:            "float64",
+				LocalGoTypeName:       "float64",
 				GoFieldName:           "Key",
 				SubsumingGoStructName: "ListWithState",
 				IsLeaf:                true,
@@ -1453,6 +1526,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"List_Key1Path": {
 				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
 				GoFieldName:           "Key1",
 				SubsumingGoStructName: "List",
 				IsLeaf:                true,
@@ -1460,6 +1534,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"List_Key2Path": {
 				GoTypeName:            "Binary",
+				LocalGoTypeName:       "Binary",
 				GoFieldName:           "Key2",
 				SubsumingGoStructName: "List",
 				IsLeaf:                true,
@@ -1467,6 +1542,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			},
 			"List_UnionKeyPath": {
 				GoTypeName:            "RootModule_List_UnionKey_Union",
+				LocalGoTypeName:       "RootModule_List_UnionKey_Union",
 				GoFieldName:           "UnionKey",
 				SubsumingGoStructName: "List",
 				IsLeaf:                true,
