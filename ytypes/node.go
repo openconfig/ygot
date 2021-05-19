@@ -204,7 +204,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 		// is marked as a no-op.
 		//
 		// If the user has opted to reverse the "shadow-path" and
-		// "path" tags, then the above-described traversal is reversed.
+		// "path" tags, then the order of the look-ups is reversed.
 		args := args
 		if args.reverseShadowPath {
 			// Look through shadow paths first instead.
