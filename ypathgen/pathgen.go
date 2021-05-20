@@ -388,10 +388,14 @@ type NodeDataMap map[string]*NodeData
 
 // NodeData contains information about the ygen-generated code of a YANG schema node.
 type NodeData struct {
-	// GoTypeName is the type name of the node as part of the schema
-	// structs, which is qualified by the SchemaStructPkgAlias if
-	// necessary. It could be a GoStruct or a leaf type.
+	// GoTypeName is the generated Go type name of a schema node. It is
+	// qualified by the SchemaStructPkgAlias if necessary. It could be a
+	// GoStruct or a leaf type.
 	GoTypeName string
+	// LocalGoTypeName is the generated Go type name of a schema node, but
+	// always with the SchemaStructPkgAlias stripped. It could be a
+	// GoStruct or a leaf type.
+	LocalGoTypeName string
 	// GoFieldName is the field name of the node under its parent struct.
 	GoFieldName string
 	// SubsumingGoStructName is the GoStruct type name corresponding to the node. If
@@ -571,18 +575,24 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 				subsumingGoStructName = directories[dir.Fields[fieldName].Path()].Name
 			}
 
-			var goTypeName string
+			var goTypeName, localGoTypeName string
 			switch {
 			case !isLeaf:
 				goTypeName = "*" + schemaStructPkgAccessor + subsumingGoStructName
+				localGoTypeName = "*" + subsumingGoStructName
 			case field.ListAttr != nil && ygen.IsYgenDefinedGoType(mType):
 				goTypeName = "[]" + schemaStructPkgAccessor + mType.NativeType
+				localGoTypeName = "[]" + mType.NativeType
 			case ygen.IsYgenDefinedGoType(mType):
 				goTypeName = schemaStructPkgAccessor + mType.NativeType
+				localGoTypeName = mType.NativeType
 			case field.ListAttr != nil:
 				goTypeName = "[]" + mType.NativeType
 			default:
 				goTypeName = mType.NativeType
+			}
+			if localGoTypeName == "" {
+				localGoTypeName = goTypeName
 			}
 
 			var yangTypeName string
@@ -591,6 +601,7 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 			}
 			nodeDataMap[pathStructName] = &NodeData{
 				GoTypeName:            goTypeName,
+				LocalGoTypeName:       localGoTypeName,
 				GoFieldName:           goFieldNameMap[fieldName],
 				SubsumingGoStructName: subsumingGoStructName,
 				IsLeaf:                isLeaf,
