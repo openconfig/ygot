@@ -15,9 +15,7 @@
 package ypathgen
 
 import (
-	"fmt"
 	"io/ioutil"
-	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -803,11 +801,6 @@ func TestGeneratePathCode(t *testing.T) {
 			wantCode := string(wantCodeBytes)
 
 			if gotCode != wantCode {
-				// FIXME(wenbli): debug codegen or pathgen
-				if err := ioutil.WriteFile(fmt.Sprintf("/usr/local/google/home/wenbli/tmp/%s", path.Base(tt.wantStructsCodeFile)), []byte(gotCode), 0644); err != nil {
-					panic(err)
-				}
-
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
@@ -921,11 +914,6 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 			} else {
 				for i := range gotCode {
 					if gotCode[i] != wantCode[i] {
-						// FIXME(wenbli): debug
-						if err := ioutil.WriteFile(fmt.Sprintf("/usr/local/google/home/wenbli/tmp/%s", path.Base(tt.wantStructsCodeFiles[i])), []byte(gotCode[i]), 0644); err != nil {
-							panic(err)
-						}
-
 						// Use difflib to generate a unified diff between the
 						// two code snippets such that this is simpler to debug
 						// in the test output.
