@@ -59,6 +59,10 @@ type retrieveNodeArgs struct {
 	// values are skipped (non-existing GoStructs are still initialized),
 	// and any value retrieved is always nil.
 	shadowPath bool
+	// reverseShadowPath reverses the meaning of the "path" and
+	// "shadow-path" tags when both are present while processing a
+	// GoStruct.
+	reverseShadowPath bool
 }
 
 // retrieveNode is an internal function that retrieves the node specified by
@@ -134,11 +138,6 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			}
 		}
 
-		schPaths, err := util.SchemaPaths(ft)
-		if err != nil {
-			return nil, status.Errorf(codes.Unknown, "failed to get schema paths for %T, field %s: %s", root, ft.Name, err)
-		}
-
 		checkPath := func(p []string, args retrieveNodeArgs) ([]*TreeNode, error) {
 			to := len(p)
 			if util.IsTypeMap(ft.Type) {
@@ -195,18 +194,52 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			return retrieveNode(cschema, fv.Interface(), util.TrimGNMIPathPrefix(path, p[0:to]), np, args)
 		}
 
-		for _, p := range schPaths {
-			if !util.PathMatchesPrefix(path, p) {
-				continue
+		// Continue traversal on the first-encountered annotated
+		// GoStruct path that forms a prefix of the input path.
+		//
+		// Note that we first look through the non-shadow path, and if
+		// no matches are found, we then look through the shadow path
+		// to find matches. If the input path matches a shadow path,
+		// then the traversal continues, although the final operation
+		// is marked as a no-op.
+		//
+		// If the user has opted to reverse the "shadow-path" and
+		// "path" tags, then the order of the look-ups is reversed.
+		args := args
+		if args.reverseShadowPath {
+			// Look through shadow paths first instead.
+			schPaths := util.ShadowSchemaPaths(ft)
+			for _, p := range schPaths {
+				if util.PathMatchesPrefix(path, p) {
+					return checkPath(p, args)
+				}
 			}
-			return checkPath(p, args)
+
+			if len(schPaths) != 0 {
+				// Only if there exists shadow paths do we
+				// treat the non-shadow paths as no-ops.
+				// Otherwise, there is no reversal to do.
+				args.shadowPath = true
+			}
 		}
-		for _, p := range util.ShadowSchemaPaths(ft) {
-			if !util.PathMatchesPrefix(path, p) {
-				continue
+		schPaths, err := util.SchemaPaths(ft)
+		if err != nil {
+			return nil, status.Errorf(codes.Unknown, "failed to get schema paths for %T, field %s: %s", root, ft.Name, err)
+		}
+		for _, p := range schPaths {
+			if util.PathMatchesPrefix(path, p) {
+				return checkPath(p, args)
 			}
+		}
+		if !args.reverseShadowPath {
+			// Look through shadow paths last, and mark operations
+			// as no-ops.
 			args.shadowPath = true
-			return checkPath(p, args)
+			for _, p := range util.ShadowSchemaPaths(ft) {
+				if util.PathMatchesPrefix(path, p) {
+					return checkPath(p, args)
+				}
+			}
 		}
 	}
 
@@ -354,14 +387,23 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 	return matches, nil
 }
 
+// GetOrCreateNodeOpt defines an interface that can be used to supply arguments to functions using GetOrCreateNode.
+type GetOrCreateNodeOpt interface {
+	// IsGetOrCreateNodeOpt is a marker method that is used to identify an instance of GetOrCreateNodeOpt.
+	IsGetOrCreateNodeOpt()
+}
+
 // GetOrCreateNode function retrieves the node specified by the supplied path from the root which must have the
 // schema supplied. It strictly matches keys in the path, in other words doesn't treat partial match as match.
 // However, if there is no match, a new entry in the map is created. GetOrCreateNode also initializes the nodes
 // along the path if they are nil.
 // Function returns the value and schema of the node as well as error.
 // Note that this function may modify the supplied root even if the function fails.
-func GetOrCreateNode(schema *yang.Entry, root interface{}, path *gpb.Path) (interface{}, *yang.Entry, error) {
-	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{modifyRoot: true})
+func GetOrCreateNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetOrCreateNodeOpt) (interface{}, *yang.Entry, error) {
+	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
+		modifyRoot:        true,
+		reverseShadowPath: hasGetOrCreateNodeReverseShadowPaths(opts),
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -386,9 +428,10 @@ type TreeNode struct {
 func GetNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetNodeOpt) ([]*TreeNode, error) {
 	return retrieveNode(schema, root, path, nil, retrieveNodeArgs{
 		// We never want to modify the input root, so we specify modifyRoot.
-		modifyRoot:      false,
-		partialKeyMatch: hasPartialKeyMatch(opts),
-		handleWildcards: hasHandleWildcards(opts),
+		modifyRoot:        false,
+		partialKeyMatch:   hasPartialKeyMatch(opts),
+		handleWildcards:   hasHandleWildcards(opts),
+		reverseShadowPath: hasGetNodeReverseShadowPaths(opts),
 	})
 }
 
@@ -455,6 +498,7 @@ func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface
 		modifyRoot:                        hasInitMissingElements(opts),
 		val:                               val,
 		tolerateJSONInconsistenciesForVal: hasTolerateJSONInconsistencies(opts),
+		reverseShadowPath:                 hasSetNodeReverseShadowPaths(opts),
 	})
 
 	if err != nil {
@@ -511,13 +555,90 @@ func hasTolerateJSONInconsistencies(opts []SetNodeOpt) bool {
 	return false
 }
 
+// DelNodeOpt defines an interface that can be used to supply arguments to functions using DeleteNode.
+type DelNodeOpt interface {
+	// IsDelNodeOpt is a marker method that is used to identify an instance of DelNodeOpt.
+	IsDelNodeOpt()
+}
+
+// ReverseShadowPaths signals to reverse the meaning of the "path" and
+// "shadow-path" tags when both are present while processing a GoStruct. This
+// means paths matching "shadow-path" will be unmarshalled, while paths
+// matching "path" will be silently ignored.
+type ReverseShadowPaths struct{}
+
+// IsGetOrCreateNodeOpt implements the GetOrCreateNodeOpt interface.
+func (*ReverseShadowPaths) IsGetOrCreateNodeOpt() {}
+
+// IsGetNodeOpt implements the GetNodeOpt interface.
+func (*ReverseShadowPaths) IsGetNodeOpt() {}
+
+// IsSetNodeOpt implements the SetNodeOpt interface.
+func (*ReverseShadowPaths) IsSetNodeOpt() {}
+
+// IsDelNodeOpt implements the DelNodeOpt interface.
+func (*ReverseShadowPaths) IsDelNodeOpt() {}
+
+// hasGetOrCreateNodeReverseShadowPaths determines whether there is an instance
+// of ReverseShadowPaths within the supplied GetOrCreateNodeOpt slice. It is
+// used to determine whether to reverse the meaning of the "path" and
+// "shadow-path" tags when both are present while processing a GoStruct.
+func hasGetOrCreateNodeReverseShadowPaths(opts []GetOrCreateNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*ReverseShadowPaths); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// hasGetNodeReverseShadowPaths determines whether there is an instance of
+// ReverseShadowPaths within the supplied GetNodeOpt slice. It is used to
+// determine whether to reverse the meaning of the "path" and "shadow-path"
+// tags when both are present while processing a GoStruct.
+func hasGetNodeReverseShadowPaths(opts []GetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*ReverseShadowPaths); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// hasSetNodeReverseShadowPaths determines whether there is an instance of
+// ReverseShadowPaths within the supplied SetNodeOpt slice. It is used to
+// determine whether to reverse the meaning of the "path" and "shadow-path"
+// tags when both are present while processing a GoStruct.
+func hasSetNodeReverseShadowPaths(opts []SetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*ReverseShadowPaths); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// hasDelNodeReverseShadowPaths determines whether there is an instance of
+// ReverseShadowPaths within the supplied DelNodeOpt slice. It is used to
+// determine whether to reverse the meaning of the "path" and "shadow-path"
+// tags when both are present while processing a GoStruct.
+func hasDelNodeReverseShadowPaths(opts []DelNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*ReverseShadowPaths); ok {
+			return true
+		}
+	}
+	return false
+}
+
 // DeleteNode zeroes the value of the node specified by the supplied path from
 // the specified root, whose schema must also be supplied. If the node
 // specified by that path is already its zero value, or an intermediate node
 // in the path is nil (implying the node is already deleted), then the call is a no-op.
-func DeleteNode(schema *yang.Entry, root interface{}, path *gpb.Path) error {
+func DeleteNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...DelNodeOpt) error {
 	_, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
-		delete: true,
+		delete:            true,
+		reverseShadowPath: hasDelNodeReverseShadowPaths(opts),
 	})
 
 	return err
