@@ -24,6 +24,11 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
+// PathAndStruct returns the path struct and an empty Device for the path "/device".
+func (n *DevicePath) PathAndStruct() (*DevicePath, *Device) {
+	return n, &Device{}
+}
+
 // DupEnum returns from DevicePath the path struct for its child "dup-enum".
 func (n *DevicePath) DupEnum() *DupEnumPath {
 	return &DupEnumPath{
@@ -54,6 +59,11 @@ type DupEnumPath struct {
 // DupEnumPathAny represents the wildcard version of the /openconfig-unione/dup-enum YANG schema element.
 type DupEnumPathAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty DupEnum for the path "/openconfig-unione/dup-enum".
+func (n *DupEnumPath) PathAndStruct() (*DupEnumPath, *DupEnum) {
+	return n, &DupEnum{}
 }
 
 // DupEnum_APath represents the /openconfig-unione/dup-enum/state/A YANG schema element.
@@ -130,6 +140,11 @@ type PlatformPathAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty Platform for the path "/openconfig-unione/platform".
+func (n *PlatformPath) PathAndStruct() (*PlatformPath, *Platform) {
+	return n, &Platform{}
+}
+
 // Component returns from PlatformPath the path struct for its child "component".
 func (n *PlatformPath) Component() *Platform_ComponentPath {
 	return &Platform_ComponentPath{
@@ -160,6 +175,11 @@ type Platform_ComponentPath struct {
 // Platform_ComponentPathAny represents the wildcard version of the /openconfig-unione/platform/component YANG schema element.
 type Platform_ComponentPathAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty Platform_Component for the path "/openconfig-unione/platform/component".
+func (n *Platform_ComponentPath) PathAndStruct() (*Platform_ComponentPath, *Platform_Component) {
+	return n, &Platform_Component{}
 }
 
 // Platform_Component_E1Path represents the /openconfig-unione/platform/component/state/e1 YANG schema element.

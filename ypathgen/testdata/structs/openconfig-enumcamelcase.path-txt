@@ -24,6 +24,11 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
+// PathAndStruct returns the path struct and an empty Device for the path "/device".
+func (n *DevicePath) PathAndStruct() (*DevicePath, *Device) {
+	return n, &Device{}
+}
+
 // Foo returns from DevicePath the path struct for its child "foo".
 func (n *DevicePath) Foo() *FooPath {
 	return &FooPath{
@@ -43,6 +48,11 @@ type FooPath struct {
 // FooPathAny represents the wildcard version of the /openconfig-enumcamelcase/foo YANG schema element.
 type FooPathAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty Foo for the path "/openconfig-enumcamelcase/foo".
+func (n *FooPath) PathAndStruct() (*FooPath, *Foo) {
+	return n, &Foo{}
 }
 
 // Foo_BarPath represents the /openconfig-enumcamelcase/foo/bar YANG schema element.

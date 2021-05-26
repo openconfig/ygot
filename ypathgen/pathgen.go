@@ -501,6 +501,15 @@ type {{ .TypeName }}{{ .WildcardSuffix }} struct {
 {{- end }}
 `)
 
+	// goPathAndStructHelperTemplate generates a helper for non-leaves that returns
+	// the PathStruct and an empty corresponding GoStruct.
+	goPathAndStructHelperTemplate = mustTemplate("goPathAndStructHelper", `
+// PathAndStruct returns the path struct and an empty {{ .GoStructTypeName }} for the path "{{ .YANGPath }}".
+func (n *{{ .TypeName }}) PathAndStruct() (*{{ .TypeName }}, *{{ .GoStructTypeName }}) {
+	return n, &{{ .GoStructTypeName }}{}
+}
+`)
+
 	// goPathChildConstructorTemplate generates the child constructor method
 	// for a generated struct by returning an instantiation of the child's
 	// path struct object.
@@ -659,6 +668,8 @@ func writeHeader(yangFiles, includePaths []string, cg *GenConfig, genCode *Gener
 type goPathStructData struct {
 	// TypeName is the type name of the struct being output.
 	TypeName string
+	// GoStructTypeName is the type name of the corresponding GoStruct.
+	GoStructTypeName string
 	// YANGPath is the schema path of the struct being output.
 	YANGPath string
 	// PathBaseTypeName is the type name of the common embedded path struct.
@@ -678,9 +689,10 @@ type goPathStructData struct {
 // getStructData returns the goPathStructData corresponding to a Directory,
 // which is used to store the attributes of the template for which code is
 // being generated.
-func getStructData(directory *ygen.Directory, pathStructSuffix string, generateWildcardPaths bool) goPathStructData {
+func getStructData(directory *ygen.Directory, pathStructSuffix, schemaStructPkgAccessor string, generateWildcardPaths bool) goPathStructData {
 	return goPathStructData{
 		TypeName:                directory.Name + pathStructSuffix,
+		GoStructTypeName:        schemaStructPkgAccessor + directory.Name,
 		YANGPath:                util.SlicePathToString(directory.Path),
 		PathBaseTypeName:        ygot.PathBaseTypeName,
 		FakeRootBaseTypeName:    ygot.FakeRootBaseTypeName,
@@ -718,13 +730,16 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 	var methodBuf strings.Builder
 
 	// Output struct snippets.
-	structData := getStructData(directory, pathStructSuffix, generateWildcardPaths)
+	structData := getStructData(directory, pathStructSuffix, schemaStructPkgAccessor, generateWildcardPaths)
 	if ygen.IsFakeRoot(directory.Entry) {
 		// Fakeroot has its unique output.
 		if err := goPathFakeRootTemplate.Execute(&structBuf, structData); err != nil {
 			return GoPathStructCodeSnippet{}, util.AppendErr(errs, err)
 		}
 	} else if err := goPathStructTemplate.Execute(&structBuf, structData); err != nil {
+		return GoPathStructCodeSnippet{}, util.AppendErr(errs, err)
+	}
+	if err := goPathAndStructHelperTemplate.Execute(&structBuf, structData); err != nil {
 		return GoPathStructCodeSnippet{}, util.AppendErr(errs, err)
 	}
 
@@ -794,7 +809,7 @@ func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Direc
 		return []error{err}
 	}
 
-	structData := getStructData(directory, pathStructSuffix, generateWildcardPaths)
+	structData := getStructData(directory, pathStructSuffix, schemaStructPkgAccessor, generateWildcardPaths)
 	relPath, err := ygen.FindSchemaPath(directory, directoryFieldName, false)
 	if err != nil {
 		return []error{err}

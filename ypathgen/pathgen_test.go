@@ -15,7 +15,9 @@
 package ypathgen
 
 import (
+	"fmt"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -914,6 +916,11 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 			} else {
 				for i := range gotCode {
 					if gotCode[i] != wantCode[i] {
+						// FIXME(wenbli): debug
+						if err := ioutil.WriteFile(fmt.Sprintf("/usr/local/google/home/wenbli/tmp/%s", path.Base(tt.wantStructsCodeFiles[i])), []byte(gotCode[i]), 0644); err != nil {
+							panic(err)
+						}
+
 						// Use difflib to generate a unified diff between the
 						// two code snippets such that this is simpler to debug
 						// in the test output.
@@ -1612,6 +1619,11 @@ type ContainerWithConfigAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty oc.ContainerWithConfig for the path "/root-module/container-with-config".
+func (n *ContainerWithConfig) PathAndStruct() (*ContainerWithConfig, *oc.ContainerWithConfig) {
+	return n, &oc.ContainerWithConfig{}
+}
+
 // ContainerWithConfig_Leaf represents the /root-module/container-with-config/state/leaf YANG schema element.
 type ContainerWithConfig_Leaf struct {
 	*ygot.NodePath
@@ -1718,6 +1730,11 @@ type ContainerWithConfig struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty oc.ContainerWithConfig for the path "/root-module/container-with-config".
+func (n *ContainerWithConfig) PathAndStruct() (*ContainerWithConfig, *oc.ContainerWithConfig) {
+	return n, &oc.ContainerWithConfig{}
+}
+
 // ContainerWithConfig_Leaf represents the /root-module/container-with-config/state/leaf YANG schema element.
 type ContainerWithConfig_Leaf struct {
 	*ygot.NodePath
@@ -1783,6 +1800,11 @@ type RootPath struct {
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
 func DeviceRoot(id string) *RootPath {
 	return &RootPath{ygot.NewDeviceRootBase(id)}
+}
+
+// PathAndStruct returns the path struct and an empty oc.Root for the path "/root".
+func (n *RootPath) PathAndStruct() (*RootPath, *oc.Root) {
+	return n, &oc.Root{}
 }
 
 // LeafPath represents the /root-module/leaf YANG schema element.
@@ -1866,6 +1888,11 @@ func DeviceRoot(id string) *RootPath {
 	return &RootPath{ygot.NewDeviceRootBase(id)}
 }
 
+// PathAndStruct returns the path struct and an empty oc.Root for the path "/root".
+func (n *RootPath) PathAndStruct() (*RootPath, *oc.Root) {
+	return n, &oc.Root{}
+}
+
 // LeafPath represents the /root-module/leaf YANG schema element.
 type LeafPath struct {
 	*ygot.NodePath
@@ -1932,6 +1959,11 @@ type List struct {
 // ListAny represents the wildcard version of the /root-module/list-container/list YANG schema element.
 type ListAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty oc.List for the path "/root-module/list-container/list".
+func (n *List) PathAndStruct() (*List, *oc.List) {
+	return n, &oc.List{}
 }
 
 // List_Key1 represents the /root-module/list-container/list/key1 YANG schema element.
@@ -2038,6 +2070,11 @@ func (n *ListAny) UnionKey() *List_UnionKeyAny {
 // List represents the /root-module/list-container/list YANG schema element.
 type List struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty oc.List for the path "/root-module/list-container/list".
+func (n *List) PathAndStruct() (*List, *oc.List) {
+	return n, &oc.List{}
 }
 
 // List_Key1 represents the /root-module/list-container/list/key1 YANG schema element.

@@ -25,6 +25,11 @@ func DeviceRoot(id string) *Device {
 	return &Device{ygot.NewDeviceRootBase(id)}
 }
 
+// PathAndStruct returns the path struct and an empty oc.Device for the path "/device".
+func (n *Device) PathAndStruct() (*Device, *oc.Device) {
+	return n, &oc.Device{}
+}
+
 // Model returns from Device the path struct for its child "model".
 func (n *Device) Model() *Model {
 	return &Model{
@@ -44,6 +49,11 @@ type Model struct {
 // ModelAny represents the wildcard version of the /openconfig-withlist/model YANG schema element.
 type ModelAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty oc.Model for the path "/openconfig-withlist/model".
+func (n *Model) PathAndStruct() (*Model, *oc.Model) {
+	return n, &oc.Model{}
 }
 
 // MultiKeyAny returns from Model the path struct for its child "multi-key".
@@ -198,6 +208,11 @@ type Model_MultiKeyAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty oc.Model_MultiKey for the path "/openconfig-withlist/model/b/multi-key".
+func (n *Model_MultiKey) PathAndStruct() (*Model_MultiKey, *oc.Model_MultiKey) {
+	return n, &oc.Model_MultiKey{}
+}
+
 // Model_MultiKey_Key1 represents the /openconfig-withlist/model/b/multi-key/state/key1 YANG schema element.
 type Model_MultiKey_Key1 struct {
 	*ygot.NodePath
@@ -270,6 +285,11 @@ type Model_SingleKey struct {
 // Model_SingleKeyAny represents the wildcard version of the /openconfig-withlist/model/a/single-key YANG schema element.
 type Model_SingleKeyAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty oc.Model_SingleKey for the path "/openconfig-withlist/model/a/single-key".
+func (n *Model_SingleKey) PathAndStruct() (*Model_SingleKey, *oc.Model_SingleKey) {
+	return n, &oc.Model_SingleKey{}
 }
 
 // Model_SingleKey_Key represents the /openconfig-withlist/model/a/single-key/state/key YANG schema element.

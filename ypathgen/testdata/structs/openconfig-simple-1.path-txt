@@ -25,6 +25,11 @@ type Parent_ChildAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty oc.Parent_Child for the path "/openconfig-simple/parent/child".
+func (n *Parent_Child) PathAndStruct() (*Parent_Child, *oc.Parent_Child) {
+	return n, &oc.Parent_Child{}
+}
+
 // Parent_Child_Four represents the /openconfig-simple/parent/child/state/four YANG schema element.
 type Parent_Child_Four struct {
 	*ygot.NodePath
@@ -161,6 +166,11 @@ type RemoteContainer struct {
 // RemoteContainerAny represents the wildcard version of the /openconfig-simple/remote-container YANG schema element.
 type RemoteContainerAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty oc.RemoteContainer for the path "/openconfig-simple/remote-container".
+func (n *RemoteContainer) PathAndStruct() (*RemoteContainer, *oc.RemoteContainer) {
+	return n, &oc.RemoteContainer{}
 }
 
 // RemoteContainer_ALeaf represents the /openconfig-simple/remote-container/state/a-leaf YANG schema element.

@@ -26,6 +26,11 @@ func DeviceRoot(id string) *Device {
 	return &Device{ygot.NewDeviceRootBase(id)}
 }
 
+// PathAndStruct returns the path struct and an empty oc.Device for the path "/device".
+func (n *Device) PathAndStruct() (*Device, *oc.Device) {
+	return n, &oc.Device{}
+}
+
 // Native returns from Device the path struct for its child "native".
 func (n *Device) Native() *Native {
 	return &Native{
@@ -56,6 +61,11 @@ type Native struct {
 // NativeAny represents the wildcard version of the /openconfig-simple-target/native YANG schema element.
 type NativeAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty oc.Native for the path "/openconfig-simple-target/native".
+func (n *Native) PathAndStruct() (*Native, *oc.Native) {
+	return n, &oc.Native{}
 }
 
 // Native_A represents the /openconfig-simple-target/native/state/a YANG schema element.
@@ -100,6 +110,11 @@ type TargetAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty oc.Target for the path "/openconfig-simple-target/target".
+func (n *Target) PathAndStruct() (*Target, *oc.Target) {
+	return n, &oc.Target{}
+}
+
 // Foo returns from Target the path struct for its child "foo".
 func (n *Target) Foo() *Target_Foo {
 	return &Target_Foo{
@@ -130,6 +145,11 @@ type Target_Foo struct {
 // Target_FooAny represents the wildcard version of the /openconfig-simple-target/target/foo YANG schema element.
 type Target_FooAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty oc.Target_Foo for the path "/openconfig-simple-target/target/foo".
+func (n *Target_Foo) PathAndStruct() (*Target_Foo, *oc.Target_Foo) {
+	return n, &oc.Target_Foo{}
 }
 
 // Target_Foo_A represents the /openconfig-simple-target/target/foo/state/a YANG schema element.
