@@ -55,6 +55,11 @@ func (n *ModelPath) PathAndStruct() (*ModelPath, *Model) {
 	return n, &Model{}
 }
 
+// PathAndStruct returns the wildcard path struct and an empty Model for the path "/openconfig-withlist/model".
+func (n *ModelPathAny) PathAndStruct() (*ModelPathAny, *Model) {
+	return n, &Model{}
+}
+
 // MultiKeyAny returns from ModelPath the path struct for its child "multi-key".
 func (n *ModelPath) MultiKeyAny() *Model_MultiKeyPathAny {
 	return &Model_MultiKeyPathAny{
@@ -212,6 +217,11 @@ func (n *Model_MultiKeyPath) PathAndStruct() (*Model_MultiKeyPath, *Model_MultiK
 	return n, &Model_MultiKey{}
 }
 
+// PathAndStruct returns the wildcard path struct and an empty Model_MultiKey for the path "/openconfig-withlist/model/b/multi-key".
+func (n *Model_MultiKeyPathAny) PathAndStruct() (*Model_MultiKeyPathAny, *Model_MultiKey) {
+	return n, &Model_MultiKey{}
+}
+
 // Model_MultiKey_Key1Path represents the /openconfig-withlist/model/b/multi-key/state/key1 YANG schema element.
 type Model_MultiKey_Key1Path struct {
 	*ygot.NodePath
@@ -288,6 +298,11 @@ type Model_SingleKeyPathAny struct {
 
 // PathAndStruct returns the path struct and an empty Model_SingleKey for the path "/openconfig-withlist/model/a/single-key".
 func (n *Model_SingleKeyPath) PathAndStruct() (*Model_SingleKeyPath, *Model_SingleKey) {
+	return n, &Model_SingleKey{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty Model_SingleKey for the path "/openconfig-withlist/model/a/single-key".
+func (n *Model_SingleKeyPathAny) PathAndStruct() (*Model_SingleKeyPathAny, *Model_SingleKey) {
 	return n, &Model_SingleKey{}
 }
 

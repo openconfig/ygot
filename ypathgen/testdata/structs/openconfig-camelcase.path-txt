@@ -29,6 +29,11 @@ func (n *BGPPath) PathAndStruct() (*BGPPath, *BGP) {
 	return n, &BGP{}
 }
 
+// PathAndStruct returns the wildcard path struct and an empty BGP for the path "/openconfig-camelcase/bgp".
+func (n *BGPPathAny) PathAndStruct() (*BGPPathAny, *BGP) {
+	return n, &BGP{}
+}
+
 // NeighborAny returns from BGPPath the path struct for its child "neighbor".
 func (n *BGPPath) NeighborAny() *BGP_NeighborPathAny {
 	return &BGP_NeighborPathAny{
@@ -87,6 +92,11 @@ type BGP_NeighborPathAny struct {
 
 // PathAndStruct returns the path struct and an empty BGP_Neighbor for the path "/openconfig-camelcase/bgp/neighbors/neighbor".
 func (n *BGP_NeighborPath) PathAndStruct() (*BGP_NeighborPath, *BGP_Neighbor) {
+	return n, &BGP_Neighbor{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty BGP_Neighbor for the path "/openconfig-camelcase/bgp/neighbors/neighbor".
+func (n *BGP_NeighborPathAny) PathAndStruct() (*BGP_NeighborPathAny, *BGP_Neighbor) {
 	return n, &BGP_Neighbor{}
 }
 

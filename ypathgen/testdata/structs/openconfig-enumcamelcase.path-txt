@@ -55,6 +55,11 @@ func (n *FooPath) PathAndStruct() (*FooPath, *Foo) {
 	return n, &Foo{}
 }
 
+// PathAndStruct returns the wildcard path struct and an empty Foo for the path "/openconfig-enumcamelcase/foo".
+func (n *FooPathAny) PathAndStruct() (*FooPathAny, *Foo) {
+	return n, &Foo{}
+}
+
 // Foo_BarPath represents the /openconfig-enumcamelcase/foo/bar YANG schema element.
 type Foo_BarPath struct {
 	*ygot.NodePath

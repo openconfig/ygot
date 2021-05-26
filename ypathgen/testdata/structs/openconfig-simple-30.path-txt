@@ -66,6 +66,11 @@ func (n *ParentPath) PathAndStruct() (*ParentPath, *Parent) {
 	return n, &Parent{}
 }
 
+// PathAndStruct returns the wildcard path struct and an empty Parent for the path "/openconfig-simple/parent".
+func (n *ParentPathAny) PathAndStruct() (*ParentPathAny, *Parent) {
+	return n, &Parent{}
+}
+
 // Child returns from ParentPath the path struct for its child "child".
 func (n *ParentPath) Child() *Parent_ChildPath {
 	return &Parent_ChildPath{

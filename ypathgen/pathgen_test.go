@@ -803,6 +803,11 @@ func TestGeneratePathCode(t *testing.T) {
 			wantCode := string(wantCodeBytes)
 
 			if gotCode != wantCode {
+				// FIXME(wenbli): debug codegen or pathgen
+				if err := ioutil.WriteFile(fmt.Sprintf("/usr/local/google/home/wenbli/tmp/%s", path.Base(tt.wantStructsCodeFile)), []byte(gotCode), 0644); err != nil {
+					panic(err)
+				}
+
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
@@ -1624,6 +1629,11 @@ func (n *ContainerWithConfig) PathAndStruct() (*ContainerWithConfig, *oc.Contain
 	return n, &oc.ContainerWithConfig{}
 }
 
+// PathAndStruct returns the wildcard path struct and an empty oc.ContainerWithConfig for the path "/root-module/container-with-config".
+func (n *ContainerWithConfigAny) PathAndStruct() (*ContainerWithConfigAny, *oc.ContainerWithConfig) {
+	return n, &oc.ContainerWithConfig{}
+}
+
 // ContainerWithConfig_Leaf represents the /root-module/container-with-config/state/leaf YANG schema element.
 type ContainerWithConfig_Leaf struct {
 	*ygot.NodePath
@@ -1963,6 +1973,11 @@ type ListAny struct {
 
 // PathAndStruct returns the path struct and an empty oc.List for the path "/root-module/list-container/list".
 func (n *List) PathAndStruct() (*List, *oc.List) {
+	return n, &oc.List{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty oc.List for the path "/root-module/list-container/list".
+func (n *ListAny) PathAndStruct() (*ListAny, *oc.List) {
 	return n, &oc.List{}
 }
 

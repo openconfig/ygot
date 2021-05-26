@@ -475,6 +475,11 @@ type {{ .TypeName }} struct {
 func DeviceRoot(id string) *{{ .TypeName }} {
 	return &{{ .TypeName }}{ygot.New{{- .FakeRootBaseTypeName }}(id)}
 }
+
+// PathAndStruct returns the path struct and an empty {{ .GoStructTypeName }} for the path "{{ .YANGPath }}".
+func (n *{{ .TypeName }}) PathAndStruct() (*{{ .TypeName }}, *{{ .GoStructTypeName }}) {
+	return n, &{{ .GoStructTypeName }}{}
+}
 `)
 
 	// goPathStructTemplate defines the template for the type definition of
@@ -508,6 +513,14 @@ type {{ .TypeName }}{{ .WildcardSuffix }} struct {
 func (n *{{ .TypeName }}) PathAndStruct() (*{{ .TypeName }}, *{{ .GoStructTypeName }}) {
 	return n, &{{ .GoStructTypeName }}{}
 }
+
+{{- if .GenerateWildcardPaths }}
+
+// PathAndStruct returns the wildcard path struct and an empty {{ .GoStructTypeName }} for the path "{{ .YANGPath }}".
+func (n *{{ .TypeName }}{{ .WildcardSuffix }}) PathAndStruct() (*{{ .TypeName }}{{ .WildcardSuffix }}, *{{ .GoStructTypeName }}) {
+	return n, &{{ .GoStructTypeName }}{}
+}
+{{- end }}
 `)
 
 	// goPathChildConstructorTemplate generates the child constructor method
@@ -736,11 +749,13 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		if err := goPathFakeRootTemplate.Execute(&structBuf, structData); err != nil {
 			return GoPathStructCodeSnippet{}, util.AppendErr(errs, err)
 		}
-	} else if err := goPathStructTemplate.Execute(&structBuf, structData); err != nil {
-		return GoPathStructCodeSnippet{}, util.AppendErr(errs, err)
-	}
-	if err := goPathAndStructHelperTemplate.Execute(&structBuf, structData); err != nil {
-		return GoPathStructCodeSnippet{}, util.AppendErr(errs, err)
+	} else {
+		if err := goPathStructTemplate.Execute(&structBuf, structData); err != nil {
+			return GoPathStructCodeSnippet{}, util.AppendErr(errs, err)
+		}
+		if err := goPathAndStructHelperTemplate.Execute(&structBuf, structData); err != nil {
+			return GoPathStructCodeSnippet{}, util.AppendErr(errs, err)
+		}
 	}
 
 	goFieldNameMap := ygen.GoFieldNameMap(directory)

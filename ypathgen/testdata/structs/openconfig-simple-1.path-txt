@@ -30,6 +30,11 @@ func (n *Parent_Child) PathAndStruct() (*Parent_Child, *oc.Parent_Child) {
 	return n, &oc.Parent_Child{}
 }
 
+// PathAndStruct returns the wildcard path struct and an empty oc.Parent_Child for the path "/openconfig-simple/parent/child".
+func (n *Parent_ChildAny) PathAndStruct() (*Parent_ChildAny, *oc.Parent_Child) {
+	return n, &oc.Parent_Child{}
+}
+
 // Parent_Child_Four represents the /openconfig-simple/parent/child/state/four YANG schema element.
 type Parent_Child_Four struct {
 	*ygot.NodePath
@@ -170,6 +175,11 @@ type RemoteContainerAny struct {
 
 // PathAndStruct returns the path struct and an empty oc.RemoteContainer for the path "/openconfig-simple/remote-container".
 func (n *RemoteContainer) PathAndStruct() (*RemoteContainer, *oc.RemoteContainer) {
+	return n, &oc.RemoteContainer{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty oc.RemoteContainer for the path "/openconfig-simple/remote-container".
+func (n *RemoteContainerAny) PathAndStruct() (*RemoteContainerAny, *oc.RemoteContainer) {
 	return n, &oc.RemoteContainer{}
 }
 
