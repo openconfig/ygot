@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/ygot/exampleoc"
+	"github.com/openconfig/ygot/exampleoc/opstateoc"
 	"github.com/openconfig/ygot/uexampleoc"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
@@ -131,6 +132,171 @@ func TestSet(t *testing.T) {
 			Data: ygot.String("XCVR-1-2"),
 		},
 	}, {
+		desc:     "set list with union type - compressed schema",
+		inSchema: mustSchema(exampleoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "network-instances",
+			}, {
+				Name: "network-instance",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "afts",
+			}, {
+				Name: "mpls",
+			}, {
+				Name: "label-entry",
+				Key: map[string]string{
+					"label": "483414",
+				},
+			}, {
+				Name: "state",
+			}, {
+				Name: "next-hop-group",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_UintVal{5},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "network-instances",
+				}, {
+					Name: "network-instance",
+					Key: map[string]string{
+						"name": "OCH-1-2",
+					},
+				}, {
+					Name: "afts",
+				}, {
+					Name: "mpls",
+				}, {
+					Name: "label-entry",
+					Key: map[string]string{
+						"label": "483414",
+					},
+				}, {
+					Name: "state",
+				}, {
+					Name: "next-hop-group",
+				}},
+			},
+			Data: ygot.Uint64(5),
+		},
+	}, {
+		desc:     "set leafref with mismatched name - operational state (compressed) schema",
+		inSchema: mustSchema(opstateoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "components",
+			}, {
+				Name: "component",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "optical-channel",
+			}, {
+				Name: "state",
+			}, {
+				Name: "line-port",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "components",
+				}, {
+					Name: "component",
+					Key: map[string]string{
+						"name": "OCH-1-2",
+					},
+				}, {
+					Name: "optical-channel",
+				}, {
+					Name: "state",
+				}, {
+					Name: "line-port",
+				}},
+			},
+			Data: ygot.String("XCVR-1-2"),
+		},
+	}, {
+		desc:     "set config (shadowed schema) list key - operational state (compressed) schema - schema ignores shadow-path",
+		inSchema: mustSchema(opstateoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "components",
+			}, {
+				Name: "component",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "optical-channel",
+			}, {
+				Name: "config",
+			}, {
+				Name: "line-port",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "components",
+				}, {
+					Name: "component",
+					Key: map[string]string{
+						"name": "OCH-1-2",
+					},
+				}, {
+					Name: "optical-channel",
+				}, {
+					Name: "config",
+				}, {
+					Name: "line-port",
+				}},
+			},
+			// No error, but leaf is not set when shadow-path is provided.
+			Data: nil,
+		},
+	}, {
+		desc:     "set state (shadowed schema) key list - compressed schema - schema doesn't contain shadow-path",
+		inSchema: mustSchema(exampleoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "components",
+			}, {
+				Name: "component",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "optical-channel",
+			}, {
+				Name: "state",
+			}, {
+				Name: "line-port",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+		},
+		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantErrSubstring: "no match found",
+	}, {
 		desc:     "bad path",
 		inSchema: mustSchema(uexampleoc.Schema),
 		inPath: &gpb.Path{
@@ -186,8 +352,8 @@ func TestSet(t *testing.T) {
 			}
 
 			if !cmp.Equal(got[0], tt.wantNode, opts...) {
-				diff := cmp.Diff(got[0], tt.wantNode, opts...)
-				t.Fatalf("did not get expected node, got: %v, want: %v, diff:\n%s", got[0], tt.wantNode, diff)
+				diff := cmp.Diff(tt.wantNode, got[0], opts...)
+				t.Fatalf("did not get expected node, got: %v, want: %v, diff (-want, +got):\n%s", got[0], tt.wantNode, diff)
 			}
 		})
 	}

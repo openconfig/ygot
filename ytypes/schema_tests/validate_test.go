@@ -21,14 +21,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
-	"reflect"
 	"sort"
 	"strings"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/google/go-cmp/cmp"
-	"github.com/openconfig/ygot/experimental/ygotutils"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
@@ -37,6 +33,8 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	oc "github.com/openconfig/ygot/exampleoc"
+	"github.com/openconfig/ygot/exampleoc/opstateoc"
+	woc "github.com/openconfig/ygot/exampleoc/wrapperunionoc"
 	uoc "github.com/openconfig/ygot/uexampleoc"
 	scpb "google.golang.org/genproto/googleapis/rpc/code"
 	spb "google.golang.org/genproto/googleapis/rpc/status"
@@ -130,7 +128,74 @@ func TestValidateInterface(t *testing.T) {
 
 	// Device/interface/subinterfaces/subinterface/vlan
 	vlan0.Vlan = &oc.Interface_Subinterface_Vlan{
-		VlanId: &oc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
+		VlanId: oc.UnionUint16(1234),
+	}
+
+	// Validate the vlan.
+	if err := vlan0.Validate(); err != nil {
+		t.Errorf("vlan0 success: got %s, want nil", err)
+	}
+
+	// Set vlan-id to be out of range (1-4094)
+	vlan0.Vlan = &oc.Interface_Subinterface_Vlan{
+		VlanId: oc.UnionUint16(4095),
+	}
+	// Validate the vlan.
+	err = vlan0.Validate()
+	if diff := errdiff.Substring(err, `/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: schema "": unsigned integer value 4095 is outside specified ranges`); diff != "" {
+		t.Errorf("did not get expected vlan-id error, %s", diff)
+	}
+	if err != nil {
+		testErrLog(t, "bad vlan-id value", err)
+	}
+
+	// Validate that we get two errors.
+	if errs := dev.Validate(); len(errs.(util.Errors)) != 2 {
+		var b bytes.Buffer
+		for _, err := range errs.(util.Errors) {
+			b.WriteString(fmt.Sprintf("	[%s]\n", err))
+		}
+		t.Errorf("did not get expected errors when validating device, got:\n %s (len: %d), want 5 errors", b.String(), len(errs.(util.Errors)))
+	}
+}
+
+func TestValidateInterfaceWrapperUnion(t *testing.T) {
+	dev := &woc.Device{}
+	eth0, err := dev.NewInterface("eth0")
+	if err != nil {
+		t.Errorf("dev.NewInterface(): got %v, want nil", err)
+	}
+
+	eth0.Description = ygot.String("eth0 description")
+	eth0.Type = woc.IETFInterfaces_InterfaceType_ethernetCsmacd
+
+	// Validate the fake root device.
+	if err := dev.Validate(); err != nil {
+		t.Errorf("root success: got %s, want nil", err)
+	}
+	// Validate an element in the device subtree.
+	if err := eth0.Validate(); err != nil {
+		t.Errorf("eth0 success: got %s, want nil", err)
+	}
+
+	// Key in map != key field value in element. Key should be "eth0" here.
+	dev.Interface["bad_key"] = eth0
+	err = dev.Validate()
+	if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
+		t.Errorf("did not get expected vlan-id error, %s", diff)
+	}
+	if err != nil {
+		testErrLog(t, "bad key", err)
+	}
+
+	vlan0, err := eth0.NewSubinterface(0)
+	if err != nil {
+		t.Errorf("eth0.NewSubinterface(): got %v, want nil", err)
+	}
+
+	// Device/interface/subinterfaces/subinterface/vlan
+	vlan0.Vlan = &woc.Interface_Subinterface_Vlan{
+		VlanId: &woc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
 			Uint16: 1234,
 		},
 	}
@@ -141,8 +206,8 @@ func TestValidateInterface(t *testing.T) {
 	}
 
 	// Set vlan-id to be out of range (1-4094)
-	vlan0.Vlan = &oc.Interface_Subinterface_Vlan{
-		VlanId: &oc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
+	vlan0.Vlan = &woc.Interface_Subinterface_Vlan{
+		VlanId: &woc.Interface_Subinterface_Vlan_VlanId_Union_Uint16{
 			Uint16: 4095,
 		},
 	}
@@ -150,7 +215,76 @@ func TestValidateInterface(t *testing.T) {
 	if err := vlan0.Validate(); err == nil {
 		t.Errorf("bad vlan-id value: got nil, want error")
 	} else {
-		if diff := errdiff.Substring(err, "/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: unsigned integer value 4095 is outside specified ranges"); diff != "" {
+		if diff := errdiff.Substring(err, `/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: schema "": unsigned integer value 4095 is outside specified ranges`); diff != "" {
+			t.Errorf("did not get expected vlan-id error, %s", diff)
+		}
+		testErrLog(t, "bad vlan-id value", err)
+	}
+
+	// Validate that we get two errors.
+	if errs := dev.Validate(); len(errs.(util.Errors)) != 2 {
+		var b bytes.Buffer
+		for _, err := range errs.(util.Errors) {
+			b.WriteString(fmt.Sprintf("	[%s]\n", err))
+		}
+		t.Errorf("did not get expected errors when validating device, got:\n %s (len: %d), want 5 errors", b.String(), len(errs.(util.Errors)))
+	}
+}
+
+func TestValidateInterfaceOpState(t *testing.T) {
+	dev := &opstateoc.Device{}
+	eth0, err := dev.NewInterface("eth0")
+	if err != nil {
+		t.Errorf("eth0.NewInterface(): got %v, want nil", err)
+	}
+
+	eth0.Description = ygot.String("eth0 description")
+	eth0.Type = opstateoc.IETFInterfaces_InterfaceType_ethernetCsmacd
+
+	// Validate the fake root device.
+	if err := dev.Validate(); err != nil {
+		t.Errorf("root success: got %s, want nil", err)
+	}
+	// Validate an element in the device subtree.
+	if err := eth0.Validate(); err != nil {
+		t.Errorf("eth0 success: got %s, want nil", err)
+	}
+
+	// Key in map != key field value in element. Key should be "eth0" here.
+	dev.Interface["bad_key"] = eth0
+	if err := dev.Validate(); err == nil {
+		t.Errorf("bad key: got nil, want error")
+	} else {
+		if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
+			t.Errorf("did not get expected vlan-id error, %s", diff)
+		}
+		testErrLog(t, "bad key", err)
+	}
+
+	vlan0, err := eth0.NewSubinterface(0)
+	if err != nil {
+		t.Errorf("eth0.NewSubinterface(): got %v, want nil", err)
+	}
+
+	// Device/interface/subinterfaces/subinterface/vlan
+	vlan0.Vlan = &opstateoc.Interface_Subinterface_Vlan{
+		VlanId: opstateoc.UnionUint16(1234),
+	}
+
+	// Validate the vlan.
+	if err := vlan0.Validate(); err != nil {
+		t.Errorf("vlan0 success: got %s, want nil", err)
+	}
+
+	// Set vlan-id to be out of range (1-4094)
+	vlan0.Vlan = &opstateoc.Interface_Subinterface_Vlan{
+		VlanId: opstateoc.UnionUint16(4095),
+	}
+	// Validate the vlan.
+	if err := vlan0.Validate(); err == nil {
+		t.Errorf("bad vlan-id value: got nil, want error")
+	} else {
+		if diff := errdiff.Substring(err, `/device/interfaces/interface/subinterfaces/subinterface/vlan/state/vlan-id: schema "": unsigned integer value 4095 is outside specified ranges`); diff != "" {
 			t.Errorf("did not get expected vlan-id error, %s", diff)
 		}
 		testErrLog(t, "bad vlan-id value", err)
@@ -203,8 +337,31 @@ func TestValidateSystemAaa(t *testing.T) {
 			Aaa: &oc.System_Aaa{
 				Authentication: &oc.System_Aaa_Authentication{
 					AuthenticationMethod: []oc.System_Aaa_Authentication_AuthenticationMethod_Union{
-						&oc.System_Aaa_Authentication_AuthenticationMethod_Union_E_OpenconfigAaaTypes_AAA_METHOD_TYPE{
-							E_OpenconfigAaaTypes_AAA_METHOD_TYPE: oc.OpenconfigAaaTypes_AAA_METHOD_TYPE_LOCAL,
+						oc.AaaTypes_AAA_METHOD_TYPE_LOCAL,
+					},
+				},
+			},
+		},
+	}
+
+	// Validate the fake root device.
+	if err := dev.Validate(); err != nil {
+		t.Errorf("root success: got %s, want nil", err)
+	}
+	// Validate an element in the device subtree.
+	if err := dev.System.Validate(); err != nil {
+		t.Errorf("system success: got %s, want nil", err)
+	}
+}
+
+func TestValidateSystemAaaWrapperUnion(t *testing.T) {
+	dev := &woc.Device{
+		System: &woc.System{
+			Aaa: &woc.System_Aaa{
+				Authentication: &woc.System_Aaa_Authentication{
+					AuthenticationMethod: []woc.System_Aaa_Authentication_AuthenticationMethod_Union{
+						&woc.System_Aaa_Authentication_AuthenticationMethod_Union_E_AaaTypes_AAA_METHOD_TYPE{
+							E_AaaTypes_AAA_METHOD_TYPE: woc.AaaTypes_AAA_METHOD_TYPE_LOCAL,
 						},
 					},
 				},
@@ -292,7 +449,7 @@ func TestValidateSystemNtp(t *testing.T) {
 func TestValidateNetworkInstance(t *testing.T) {
 	// Struct key: schema Key is compound key "identifier name"
 	instance1protocol1Key := oc.NetworkInstance_Protocol_Key{
-		Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+		Identifier: oc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 		Name:       "protocol1",
 	}
 	dev := &oc.Device{
@@ -301,7 +458,7 @@ func TestValidateNetworkInstance(t *testing.T) {
 				Name: ygot.String("instance1"),
 				Protocol: map[oc.NetworkInstance_Protocol_Key]*oc.NetworkInstance_Protocol{
 					instance1protocol1Key: {
-						Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						Identifier: oc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 						Name:       ygot.String("protocol1"),
 					},
 				},
@@ -346,10 +503,8 @@ func TestValidateLocalRoutes(t *testing.T) {
 	lrs := &oc.LocalRoutes_Static{
 		NextHop: map[string]*oc.LocalRoutes_Static_NextHop{
 			"10.10.10.10": {
-				Index: ygot.String("10.10.10.10"),
-				NextHop: &oc.LocalRoutes_Static_NextHop_NextHop_Union_String{
-					String: "10.10.10.1",
-				},
+				Index:   ygot.String("10.10.10.10"),
+				NextHop: oc.UnionString("10.10.10.1"),
 			},
 		},
 	}
@@ -420,9 +575,15 @@ func TestValidateRoutingPolicy(t *testing.T) {
 	// type string {
 	//    pattern '^([0-9]+\.\.[0-9]+)|exact$';
 	// }
-	dev.RoutingPolicy.DefinedSets.PrefixSet["prefix1"].Prefix[prefixKey1].MasklengthRange = ygot.String("bad_element_key")
-	if err := dev.Validate(); err == nil {
-		t.Errorf("bad regex: got nil, want error")
+	badMaskLengthRange := "bad_element_key"
+	prefixKey1.MasklengthRange = badMaskLengthRange
+	dev.RoutingPolicy.DefinedSets.PrefixSet["prefix1"].Prefix[prefixKey1] = &oc.RoutingPolicy_DefinedSets_PrefixSet_Prefix{
+		IpPrefix:        ygot.String("255.255.255.0/20"),
+		MasklengthRange: ygot.String(badMaskLengthRange),
+	}
+	err := dev.Validate()
+	if diff := errdiff.Substring(err, "does not match regular expression pattern"); diff != "" {
+		t.Errorf("did not get expected bad regex error, %s", diff)
 	} else {
 		testErrLog(t, "bad regex", err)
 	}
@@ -436,7 +597,7 @@ func TestUnmarshal(t *testing.T) {
 		opts              []ytypes.UnmarshalOpt
 		unmarshalFn       ytypes.UnmarshalFunc
 		wantValidationErr string
-		wantErr           string
+		wantErrSubstring  string
 		outjsonFilePath   string // outjsonFilePath is the output JSON expected, when not specified it is assumed input == output.
 	}{
 		{
@@ -450,6 +611,20 @@ func TestUnmarshal(t *testing.T) {
 			jsonFilePath: "bgp-example.json",
 			parent:       &oc.Device{},
 			unmarshalFn:  oc.Unmarshal,
+		},
+		{
+			desc:             "bgp, given shadow path but for schema that doesn't ignore shadow paths",
+			jsonFilePath:     "bgp-example-opstate-with-shadow.json",
+			parent:           &oc.Device{},
+			unmarshalFn:      oc.Unmarshal,
+			wantErrSubstring: "JSON contains unexpected field state",
+		},
+		{
+			desc:            "bgp with prefer_operational_state, with schema ignoring shadow paths",
+			jsonFilePath:    "bgp-example-opstate-with-shadow.json",
+			parent:          &opstateoc.Device{},
+			unmarshalFn:     opstateoc.Unmarshal,
+			outjsonFilePath: "bgp-example-opstate.json",
 		},
 		{
 			desc:              "interfaces",
@@ -471,12 +646,33 @@ func TestUnmarshal(t *testing.T) {
 			unmarshalFn:  oc.Unmarshal,
 		},
 		{
-			desc:            "basic with extra fields",
+			desc:            "basic with extra fields - ignored",
 			jsonFilePath:    "basic-extra.json",
 			parent:          &oc.Device{},
 			unmarshalFn:     oc.Unmarshal,
 			opts:            []ytypes.UnmarshalOpt{&ytypes.IgnoreExtraFields{}},
 			outjsonFilePath: "basic.json",
+		},
+		{
+			desc:             "basic with extra fields - not ignored",
+			jsonFilePath:     "basic-extra.json",
+			parent:           &oc.Device{},
+			unmarshalFn:      oc.Unmarshal,
+			wantErrSubstring: "JSON contains unexpected field",
+		},
+		{
+			desc:             "extra leaf within a config subtree",
+			jsonFilePath:     "basic-extra-config.json",
+			parent:           &oc.Device{},
+			unmarshalFn:      oc.Unmarshal,
+			wantErrSubstring: "JSON contains unexpected field",
+		},
+		{
+			desc:             "basic with extra fields - lower in tree",
+			jsonFilePath:     "unexpected-ntp-invalid-leaf-when.json",
+			parent:           &oc.Device{},
+			unmarshalFn:      oc.Unmarshal,
+			wantErrSubstring: "JSON contains unexpected field when",
 		},
 		{
 			desc:            "relay agent leaf-list of single type union",
@@ -497,6 +693,20 @@ func TestUnmarshal(t *testing.T) {
 			jsonFilePath:    "system-cpu.json",
 			parent:          &uoc.Device{},
 			unmarshalFn:     uoc.Unmarshal,
+			outjsonFilePath: "system-cpu.json",
+		},
+		{
+			desc:            "relay agent leaf-list of single type union (wrapper union)",
+			jsonFilePath:    "relay-agent.json",
+			parent:          &woc.Device{},
+			unmarshalFn:     woc.Unmarshal,
+			outjsonFilePath: "relay-agent.json",
+		},
+		{
+			desc:            "unmarshal list with union key (wrapper union)",
+			jsonFilePath:    "system-cpu.json",
+			parent:          &woc.Device{},
+			unmarshalFn:     woc.Unmarshal,
 			outjsonFilePath: "system-cpu.json",
 		},
 	}
@@ -527,8 +737,8 @@ func TestUnmarshal(t *testing.T) {
 			}
 
 			err = tt.unmarshalFn(j, tt.parent, tt.opts...)
-			if got, want := errToString(err), tt.wantErr; got != want {
-				t.Errorf("%s: got error: %v, want error: %v ", tt.desc, got, want)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("%s: did not get expected error: %s", tt.desc, diff)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
@@ -549,278 +759,6 @@ func TestUnmarshal(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-/*
-type Device struct {
-	Aps              *Aps                        `path:"" rootname:"aps" module:"openconfig-transport-line-protection"`
-	Bgp              *Bgp                        `path:"" rootname:"bgp" module:"openconfig-bgp"`
-	Component        map[string]*Component       `path:"components/component" rootname:"component" module:"openconfig-platform"`
-	Interface        map[string]*Interface       `path:"interfaces/interface" rootname:"interface" module:"openconfig-interfaces"`
-	Lacp             *Lacp                       `path:"" rootname:"lacp" module:"openconfig-lacp"`
-	Lldp             *Lldp                       `path:"" rootname:"lldp" module:"openconfig-lldp"`
-	LocalRoutes      *LocalRoutes                `path:"" rootname:"local-routes" module:"openconfig-local-routing"`
-	Mpls             *Mpls                       `path:"" rootname:"mpls" module:"openconfig-mpls"`
-	NetworkInstance  map[string]*NetworkInstance `path:"network-instances/network-instance" rootname:"network-instance" module:"openconfig-network-instance"`
-	OpticalAmplifier *OpticalAmplifier           `path:"" rootname:"optical-amplifier" module:"openconfig-optical-amplifier"`
-	RoutingPolicy    *RoutingPolicy              `path:"" rootname:"routing-policy" module:"openconfig-routing-policy"`
-	Stp              *Stp                        `path:"" rootname:"stp" module:"openconfig-spanning-tree"`
-	System           *System                     `path:"" rootname:"system" module:"openconfig-system"`
-	TerminalDevice   *TerminalDevice             `path:"" rootname:"terminal-device" module:"openconfig-terminal-device"`
-}
-
-type Bgp struct {
-	Global    *Bgp_Global               `path:"/bgp/global" module:"openconfig-bgp"`
-	Neighbor  map[string]*Bgp_Neighbor  `path:"/bgp/neighbors/neighbor" module:"openconfig-bgp"`
-	PeerGroup map[string]*Bgp_PeerGroup `path:"/bgp/peer-groups/peer-group" module:"openconfig-bgp"`
-}
-
-type Bgp_Global struct {
-	AfiSafi               map[E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*Bgp_Global_AfiSafi `path:"afi-safis/afi-safi" module:"openconfig-bgp"`
-	As                    *uint32                                                    `path:"config/as" module:"openconfig-bgp"`
-	Confederation         *Bgp_Global_Confederation                                  `path:"confederation" module:"openconfig-bgp"`
-	...
-}
-
-// Bgp_Neighbor represents the /openconfig-bgp/bgp/neighbors/neighbor YANG schema element.
-type Bgp_Neighbor struct {
-	AfiSafi                map[E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*Bgp_Neighbor_AfiSafi `path:"afi-safis/afi-safi" module:"openconfig-bgp"`
-	ApplyPolicy            *Bgp_Neighbor_ApplyPolicy                                    `path:"apply-policy" module:"openconfig-bgp"`
-	AsPathOptions          *Bgp_Neighbor_AsPathOptions                                  `path:"as-path-options" module:"openconfig-bgp"`
-	...
-	NeighborAddress        *string                                                      `path:"config/neighbor-address|neighbor-address" module:"openconfig-bgp"`
-	...
-}
-
-// Bgp_Neighbor_AfiSafi represents the /openconfig-bgp/bgp/neighbors/neighbor/afi-safis/afi-safi YANG schema element.
-type Bgp_Neighbor_AfiSafi struct {
-	Active             *bool                                    `path:"state/active" module:"openconfig-bgp"`
-	AddPaths           *Bgp_Neighbor_AfiSafi_AddPaths           `path:"add-paths" module:"openconfig-bgp"`
-	AfiSafiName        E_OpenconfigBgpTypes_AFI_SAFI_TYPE       `path:"config/afi-safi-name|afi-safi-name" module:"openconfig-bgp"`
-	ApplyPolicy        *Bgp_Neighbor_AfiSafi_ApplyPolicy        `path:"apply-policy" module:"openconfig-bgp"`
-	...
-}
-
-*/
-
-func TestNewNode(t *testing.T) {
-	tests := []struct {
-		desc       string
-		rootType   interface{}
-		gnmiPath   *gpb.Path
-		want       interface{}
-		wantStatus spb.Status
-	}{
-		{
-			desc:       "empty path",
-			rootType:   &oc.Device{},
-			gnmiPath:   toGNMIPath(nil),
-			want:       &oc.Device{},
-			wantStatus: statusOK,
-		},
-		{
-			desc:       "bgp/global/confederation",
-			rootType:   &oc.Device{},
-			gnmiPath:   toGNMIPath([]string{"bgp", "global", "confederation"}),
-			want:       &oc.Bgp_Global_Confederation{},
-			wantStatus: statusOK,
-		},
-		{
-			desc:     "path with keys bgp/neighbors/neighbor...",
-			rootType: &oc.Device{},
-			gnmiPath: &gpb.Path{
-				Elem: []*gpb.PathElem{
-					{
-						Name: "bgp",
-					},
-					{
-						Name: "neighbors",
-					},
-					{
-						Name: "neighbor",
-						Key: map[string]string{
-							"some-key1": "some-key-value1",
-						},
-					},
-					{
-						Name: "afi-safis",
-					},
-					{
-						Name: "afi-safi",
-						Key: map[string]string{
-							"some-key2": "some-key-value2",
-						},
-					},
-					{
-						Name: "config",
-					},
-					{
-						Name: "afi-safi-name",
-					},
-				},
-			},
-			want:       oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE(0),
-			wantStatus: statusOK,
-		},
-		{
-			desc:     "bad path",
-			rootType: &oc.Device{},
-			gnmiPath: toGNMIPath([]string{"bad", "path"}),
-			wantStatus: spb.Status{
-				Code:    int32(scpb.Code_NOT_FOUND),
-				Message: `could not find path in tree beyond type *exampleoc.Device, remaining path ` + toGNMIPath([]string{"bad", "path"}).String(),
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		n, status := ygotutils.NewNode(reflect.TypeOf(tt.rootType), tt.gnmiPath)
-		if got, want := status, tt.wantStatus; got.GetMessage() != want.GetMessage() {
-			t.Errorf("%s: got status: %v, want status: %v ", tt.desc, got, want)
-		}
-		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
-		if isOK(status) {
-			got, want := n, tt.want
-			if diff := cmp.Diff(want, got); diff != "" {
-				t.Errorf("%s: (-want, +got):\n%s", tt.desc, diff)
-			}
-		}
-	}
-}
-
-// TODO(robjs): Remove this testing once we have removed the ygot utils experimental package.
-func TestGetNode(t *testing.T) {
-	testDevice := &oc.Device{
-		Bgp: &oc.Bgp{
-			Global: &oc.Bgp_Global{
-				Confederation: &oc.Bgp_Global_Confederation{},
-			},
-			Neighbor: map[string]*oc.Bgp_Neighbor{
-				"address1": {
-					ApplyPolicy:     &oc.Bgp_Neighbor_ApplyPolicy{},
-					NeighborAddress: ygot.String("address1"),
-				},
-			},
-		},
-	}
-
-	tests := []struct {
-		desc       string
-		gnmiPath   *gpb.Path
-		want       interface{}
-		wantStatus spb.Status
-	}{
-		{
-			desc:       "empty path",
-			gnmiPath:   toGNMIPath(nil),
-			want:       testDevice,
-			wantStatus: statusOK,
-		},
-		{
-			desc:       "bgp/global/confederation",
-			gnmiPath:   toGNMIPath([]string{"bgp", "global", "confederation"}),
-			want:       testDevice.Bgp.Global.Confederation,
-			wantStatus: statusOK,
-		},
-		{
-			desc: "path with keys bgp/neighbors/neighbor...",
-			gnmiPath: &gpb.Path{
-				Elem: []*gpb.PathElem{
-					{
-						Name: "bgp",
-					},
-					{
-						Name: "neighbors",
-					},
-					{
-						Name: "neighbor",
-						Key: map[string]string{
-							"neighbor-address": "address1",
-						},
-					},
-					{
-						Name: "apply-policy",
-					},
-				},
-			},
-			want:       testDevice.Bgp.Neighbor["address1"].ApplyPolicy,
-			wantStatus: statusOK,
-		},
-		{
-			desc: "bad key field",
-			gnmiPath: &gpb.Path{
-				Elem: []*gpb.PathElem{
-					{
-						Name: "bgp",
-					},
-					{
-						Name: "neighbors",
-					},
-					{
-						Name: "neighbor",
-						Key: map[string]string{
-							"bad-key-field": "address1",
-						},
-					},
-					{
-						Name: "apply-policy",
-					},
-				},
-			},
-			wantStatus: spb.Status{
-				Code:    int32(scpb.Code_INVALID_ARGUMENT),
-				Message: `gnmi path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "neighbor", Key: map[string]string{"bad-key-field": "address1"}}, {Name: "apply-policy"}}}).String() + ` does not contain a map entry for the schema key field name neighbor-address, parent type map[string]*exampleoc.Bgp_Neighbor`,
-			},
-		},
-		{
-			desc: "bad key value",
-			gnmiPath: &gpb.Path{
-				Elem: []*gpb.PathElem{
-					{
-						Name: "bgp",
-					},
-					{
-						Name: "neighbors",
-					},
-					{
-						Name: "neighbor",
-						Key: map[string]string{
-							"neighbor-address": "bad key value",
-						},
-					},
-					{
-						Name: "apply-policy",
-					},
-				},
-			},
-			wantStatus: spb.Status{
-				Code:    int32(scpb.Code_NOT_FOUND),
-				Message: `could not find path in tree beyond schema node neighbor, (type map[string]*exampleoc.Bgp_Neighbor), remaining path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "neighbor", Key: map[string]string{"neighbor-address": "bad key value"}}, {Name: "apply-policy"}}}).String(),
-			},
-		},
-		{
-			desc:     "bad path",
-			gnmiPath: toGNMIPath([]string{"bad", "path"}),
-			wantStatus: spb.Status{
-				Code:    int32(scpb.Code_NOT_FOUND),
-				Message: `could not find path in tree beyond schema node device, (type *exampleoc.Device), remaining path ` + toGNMIPath([]string{"bad", "path"}).String(),
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		n, status := ygotutils.GetNode(oc.SchemaTree["Device"], testDevice, tt.gnmiPath)
-		if got, want := status, tt.wantStatus; !proto.Equal(&got, &want) {
-			t.Errorf("%s: got status: %v, want status: %v ", tt.desc, got, want)
-		}
-		testErrLog(t, tt.desc, fmt.Errorf(status.GetMessage()))
-		if isOK(status) {
-			got, want := n, tt.want
-			if diff := cmp.Diff(want, got); diff != "" {
-				t.Errorf("%s: (-want, +got):\n%s", tt.desc, diff)
-			}
-		}
 	}
 }
 

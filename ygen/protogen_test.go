@@ -46,11 +46,7 @@ func protoMsgEq(a, b *protoMsg) bool {
 		return e
 	}
 
-	if !cmp.Equal(fieldMap(a.Fields), fieldMap(b.Fields)) {
-		return false
-	}
-
-	return true
+	return cmp.Equal(fieldMap(a.Fields), fieldMap(b.Fields))
 }
 
 func TestGenProto3Msg(t *testing.T) {
@@ -173,6 +169,10 @@ func TestGenProto3Msg(t *testing.T) {
 								Kind: yang.Yenum,
 								Name: "derived-enum",
 								Enum: &yang.EnumType{},
+								Base: &yang.Type{
+									Name:   "enumeration",
+									Parent: &yang.Module{Name: "base"},
+								},
 							},
 						},
 					},
@@ -219,9 +219,9 @@ func TestGenProto3Msg(t *testing.T) {
 				Name:     "FieldTwoUnion",
 				YANGPath: "/parent/field-two union field field-two",
 				Fields: []*protoMsgField{{
-					Tag:  305727351,
-					Name: "field_two_basederivedenumenum",
-					Type: "base.enums.BaseDerivedEnumEnum",
+					Tag:  350335944,
+					Name: "field_two_basederivedenum",
+					Type: "base.enums.BaseDerivedEnum",
 				}, {
 					Tag:  226381575,
 					Name: "field_two_sint64",
@@ -753,48 +753,55 @@ func TestGenProto3Msg(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		s := newProtoGenState(nil)
-		// Seed the state with the supplied message names that have been provided.
-		s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
-
-		gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
-			compressPaths:       tt.inCompressPaths,
-			basePackageName:     tt.inBasePackage,
-			enumPackageName:     tt.inEnumPackage,
-			baseImportPath:      tt.inBaseImportPath,
-			annotateSchemaPaths: tt.inAnnotateSchemaPaths,
-		}, tt.inParentPackage, tt.inChildMsgs)
-
-		if (errs != nil) != tt.wantErr {
-			t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
-		}
-
-		if tt.wantErr {
-			continue
-		}
-
-		notSeen := map[string]bool{}
-		for _, w := range tt.wantMsgs {
-			notSeen[w.Name] = true
-		}
-
-		for _, got := range gotMsgs {
-			want, ok := tt.wantMsgs[got.Name]
-			if !ok {
-				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): got unexpected message, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, got.Name, tt.wantMsgs)
-				continue
+		t.Run(tt.name, func(t *testing.T) {
+			enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), tt.inCompressPaths, true, false, true, true, true, true, nil)
+			if errs != nil {
+				t.Fatalf("findEnumSet failed: %v", errs)
 			}
-			delete(notSeen, got.Name)
+			s := newProtoGenState(nil, enumSet)
 
-			if !protoMsgEq(got, want) {
-				diff := pretty.Compare(got, want)
-				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): did not get expected protobuf message definition, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, diff)
+			// Seed the state with the supplied message names that have been provided.
+			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
+
+			gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
+				compressPaths:       tt.inCompressPaths,
+				basePackageName:     tt.inBasePackage,
+				enumPackageName:     tt.inEnumPackage,
+				baseImportPath:      tt.inBaseImportPath,
+				annotateSchemaPaths: tt.inAnnotateSchemaPaths,
+			}, tt.inParentPackage, tt.inChildMsgs, true, true)
+
+			if (errs != nil) != tt.wantErr {
+				t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
 			}
-		}
 
-		if len(notSeen) != 0 {
-			t.Errorf("%s: genProtoMsg(%#v, %#v, *genState); did not test all returned messages, got remaining messages: %v, want: none", tt.name, tt.inMsg, tt.inMsgs, notSeen)
-		}
+			if tt.wantErr {
+				return
+			}
+
+			notSeen := map[string]bool{}
+			for _, w := range tt.wantMsgs {
+				notSeen[w.Name] = true
+			}
+
+			for _, got := range gotMsgs {
+				want, ok := tt.wantMsgs[got.Name]
+				if !ok {
+					t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): got unexpected message, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, got.Name, tt.wantMsgs)
+					continue
+				}
+				delete(notSeen, got.Name)
+
+				if !protoMsgEq(got, want) {
+					diff := pretty.Compare(got, want)
+					t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): did not get expected protobuf message definition, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, diff)
+				}
+			}
+
+			if len(notSeen) != 0 {
+				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState); did not test all returned messages, got remaining messages: %v, want: none", tt.name, tt.inMsg, tt.inMsgs, notSeen)
+			}
+		})
 	}
 }
 
@@ -1073,6 +1080,12 @@ message MessageName {
 						Name: "enumeration",
 						Kind: yang.Yenum,
 						Enum: enumeratedLeafDef,
+					},
+					Node: &yang.Container{
+						Name: "message-name",
+						Parent: &yang.Module{
+							Name: "module",
+						},
 					},
 				},
 			},
@@ -1498,43 +1511,50 @@ message MessageName {
 	}}
 
 	for _, tt := range tests {
-		wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
-		for compress, want := range map[bool]*generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newProtoGenState(nil)
-			// Seed the message names with the supplied input.
-			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
-
-			got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
-				compressPaths:   compress,
-				basePackageName: tt.inBasePackageName,
-				enumPackageName: tt.inEnumPackageName,
-				baseImportPath:  tt.inBaseImportPath,
-				nestedMessages:  tt.inNestedMessages,
-			})
-
-			if (errs != nil) != wantErr[compress] {
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, wantErr[compress])
-			}
-
-			if errs != nil || got == nil {
-				continue
-			}
-
-			if got.PackageName != want.PackageName {
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.PackageName, want.PackageName)
-			}
-
-			if diff := cmp.Diff(got.RequiredImports, want.RequiredImports); diff != "" {
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, (-got, +want):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
-			}
-
-			if diff := pretty.Compare(got.MessageCode, want.MessageCode); diff != "" {
-				if diffl, err := testutil.GenerateUnifiedDiff(got.MessageCode, want.MessageCode); err == nil {
-					diff = diffl
+		t.Run(tt.name, func(t *testing.T) {
+			wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
+			for compress, want := range map[bool]*generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
+				enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), compress, true, false, true, true, true, true, nil)
+				if errs != nil {
+					t.Fatalf("findEnumSet failed: %v", errs)
 				}
-				t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+				s := newProtoGenState(nil, enumSet)
+
+				// Seed the message names with the supplied input.
+				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
+
+				got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
+					compressPaths:   compress,
+					basePackageName: tt.inBasePackageName,
+					enumPackageName: tt.inEnumPackageName,
+					baseImportPath:  tt.inBaseImportPath,
+					nestedMessages:  tt.inNestedMessages,
+				}, true, true)
+
+				if (errs != nil) != wantErr[compress] {
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, wantErr[compress])
+				}
+
+				if errs != nil || got == nil {
+					continue
+				}
+
+				if got.PackageName != want.PackageName {
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.PackageName, want.PackageName)
+				}
+
+				if diff := cmp.Diff(want.RequiredImports, got.RequiredImports); diff != "" {
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, (-want, +got,):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+				}
+
+				if diff := pretty.Compare(got.MessageCode, want.MessageCode); diff != "" {
+					if diffl, err := testutil.GenerateUnifiedDiff(want.MessageCode, got.MessageCode); err == nil {
+						diff = diffl
+					}
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-want, +got):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+				}
 			}
-		}
+		})
 	}
 }
 
@@ -1677,8 +1697,8 @@ func TestGenListKeyProto(t *testing.T) {
 						Type: &yang.YangType{
 							Kind: yang.Yunion,
 							Type: []*yang.YangType{
-								{Kind: yang.Ystring, Pattern: []string{"b.*"}},
-								{Kind: yang.Ystring, Pattern: []string{"a.*"}},
+								{Kind: yang.Ystring, POSIXPattern: []string{"^b.*$"}},
+								{Kind: yang.Ystring, POSIXPattern: []string{"^a.*$"}},
 							},
 						},
 					},
@@ -1713,7 +1733,7 @@ func TestGenListKeyProto(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs)
+		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs, true, true)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: genListKeyProto(%s, %s, %#v): got unexpected error returned, got: %v, want err: %v", tt.name, tt.inListPackage, tt.inListName, tt.inArgs, err, tt.wantErr)
 		}
@@ -1946,6 +1966,8 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		inEntry: &yang.Entry{
 			Name: "field-name",
 			Type: &yang.YangType{
+				Name: "union",
+				Kind: yang.Yunion,
 				Type: []*yang.YangType{
 					{
 						Name: "enumeration",
@@ -1973,7 +1995,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			Type: "string",
 		}},
 		wantEnums: map[string]*protoMsgEnum{
-			"FieldName": {
+			"FieldNameEnum": {
 				Values: map[int64]protoEnumValue{
 					0: {ProtoLabel: "UNSET"},
 					1: {ProtoLabel: "SPEED_2_5G", YANGLabel: "SPEED_2.5G"},
@@ -1981,6 +2003,41 @@ func TestUnionFieldToOneOf(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name:   "union with an enumeration, but union is typedef",
+		inName: "FieldName",
+		inEntry: &yang.Entry{
+			Name: "field-name",
+			Type: &yang.YangType{
+				Name: "derived-union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{
+					{
+						Name: "enumeration",
+						Kind: yang.Yenum,
+						Enum: testYANGEnums["enumOne"],
+					},
+					{Kind: yang.Ystring},
+				},
+			},
+		},
+		inMappedType: &MappedType{
+			UnionTypes: map[string]int{
+				"SomeEnumType": 0,
+				"string":       1,
+			},
+		},
+		inAnnotateEnumNames: true,
+		wantFields: []*protoMsgField{{
+			Tag:  29065580,
+			Name: "FieldName_someenumtype",
+			Type: "SomeEnumType",
+		}, {
+			Tag:  173535000,
+			Name: "FieldName_string",
+			Type: "string",
+		}},
+		wantEnums: nil,
 	}, {
 		name:   "leaflist of union",
 		inName: "FieldName",
@@ -2017,7 +2074,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames)
+		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, true, true)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, err, tt.wantErr)
 		}

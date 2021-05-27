@@ -27,8 +27,8 @@ import (
 // protoGenState contains the functionality and state for generating proto
 // names for the generated code.
 type protoGenState struct {
-	// enumGen contains functionality and state for generating enum names.
-	enumGen *enumGenState
+	// enumSet contains the generated enum names which can be queried.
+	enumSet *enumSet
 	// schematree is a copy of the YANG schema tree, containing only leaf
 	// entries, such that schema paths can be referenced.
 	schematree *schemaTree
@@ -54,9 +54,9 @@ type protoGenState struct {
 
 // newProtoGenState creates a new protoGenState instance, initialised with the
 // default state required for code generation.
-func newProtoGenState(schematree *schemaTree) *protoGenState {
+func newProtoGenState(schematree *schemaTree, eSet *enumSet) *protoGenState {
 	return &protoGenState{
-		enumGen:              newEnumGenState(),
+		enumSet:              eSet,
 		schematree:           schematree,
 		definedGlobals:       map[string]bool{},
 		uniqueDirectoryNames: map[string]string{},
@@ -98,6 +98,39 @@ type resolveProtoTypeArgs struct {
 	scalarTypeInSingleTypeUnion bool
 }
 
+// yangEnumTypeToProtoType takes an input resolveTypeArgs (containing a Yenum
+// yang.YangType and a context node) and returns the protobuf type that it is
+// to be represented by. The types that are used in the protobuf are wrapper
+// types as described in the YANG to Protobuf translation specification.
+// If the input type is not a Yenum, an error is returned.
+func yangEnumTypeToProtoType(args resolveTypeArgs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums bool) (*MappedType, error) {
+	if args.yangType.Kind != yang.Yenum {
+		return nil, fmt.Errorf("input type to yangEnumTypeToProtoType is not a Yenum: %s", args.contextEntry.Path())
+	}
+	// Return any enumeration simply as the leaf's CamelCase name
+	// since it will be mapped to the correct name at output file to ensure
+	// that there are no collisions. Enumerations are mapped to an embedded
+	// enum within the message.
+	if args.contextEntry == nil {
+		return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
+	}
+	// However, if the enumeration is inlined within a union, then
+	// we add a suffix to indicate that it is part of a larger
+	// union type.
+	typeName := yang.CamelCase(args.contextEntry.Name)
+	definingType, err := util.DefiningType(args.yangType, args.contextEntry.Type)
+	if err != nil {
+		return nil, err
+	}
+	if useDefiningModuleForTypedefEnumNames && useConsistentNamesForProtoUnionEnums && definingType.Kind == yang.Yunion {
+		typeName += enumeratedUnionSuffix
+	}
+	return &MappedType{
+		NativeType:        typeName,
+		IsEnumeratedValue: true,
+	}, nil
+}
+
 // yangTypeToProtoType takes an input resolveTypeArgs (containing a yang.YangType
 // and a context node) and returns the protobuf type that it is to be represented
 // by. The types that are used in the protobuf are wrapper types as described
@@ -108,9 +141,9 @@ type resolveProtoTypeArgs struct {
 //
 // See https://github.com/openconfig/ygot/blob/master/docs/yang-to-protobuf-transformations-spec.md
 // for additional details as to the transformation from YANG to Protobuf.
-func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
+func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveProtoTypeArgs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums bool) (*MappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumGen.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
+	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		return nil, err
 	}
@@ -140,31 +173,25 @@ func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveP
 		if err != nil {
 			return nil, err
 		}
-		return s.yangTypeToProtoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, pargs)
+		return s.yangTypeToProtoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, pargs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 	case yang.Yenum:
-		// Return any enumeration simply as the leaf's CamelCase name
-		// since it will be mapped to the correct name at output file to ensure
-		// that there are no collisions. Enumerations are mapped to an embedded
-		// enum within the message.
-		if args.contextEntry == nil {
-			return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
-		}
-		return &MappedType{
-			NativeType:        yang.CamelCase(args.contextEntry.Name),
-			IsEnumeratedValue: true,
-		}, nil
+		return yangEnumTypeToProtoType(args, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 	case yang.Yidentityref:
 		// TODO(https://github.com/openconfig/ygot/issues/33) - refactor to allow
 		// this call outside of the switch.
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
+		n, err := s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase)
+		if err != nil {
+			return nil, err
+		}
 		return &MappedType{
-			NativeType:        s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase),
+			NativeType:        n,
 			IsEnumeratedValue: true,
 		}, nil
 	case yang.Yunion:
-		return s.protoUnionType(args, pargs)
+		return s.protoUnionType(args, pargs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 	default:
 		// TODO(robjs): Implement types that are missing within this function.
 		// Missing types are:
@@ -179,9 +206,9 @@ func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveP
 // yangTypeToProtoScalarType takes an input resolveTypeArgs and returns the protobuf
 // in-built type that is used to represent it. It is used within list keys where the
 // value cannot be nil/unset.
-func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
+func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs resolveProtoTypeArgs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums bool) (*MappedType, error) {
 	// Handle typedef cases.
-	mtype, err := s.enumGen.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true)
+	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, fmt.Sprintf("%s.%s.", pargs.basePackageName, pargs.enumPackageName), true, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
 		return nil, err
 	}
@@ -210,29 +237,23 @@ func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs re
 		if err != nil {
 			return nil, err
 		}
-		return s.yangTypeToProtoScalarType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, pargs)
+		return s.yangTypeToProtoScalarType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, pargs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 	case yang.Yenum:
-		// Return any enumeration simply as the leaf's CamelCase name
-		// since it will be mapped to the correct name at output file to ensure
-		// that there are no collisions. Enumerations are mapped to an embedded
-		// enum within the message.
-		if args.contextEntry == nil {
-			return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
-		}
-		return &MappedType{
-			NativeType:        yang.CamelCase(args.contextEntry.Name),
-			IsEnumeratedValue: true,
-		}, nil
+		return yangEnumTypeToProtoType(args, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 	case yang.Yidentityref:
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
+		n, err := s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase)
+		if err != nil {
+			return nil, err
+		}
 		return &MappedType{
-			NativeType:        s.protoIdentityName(pargs, args.contextEntry.Type.IdentityBase),
+			NativeType:        n,
 			IsEnumeratedValue: true,
 		}, nil
 	case yang.Yunion:
-		return s.protoUnionType(args, pargs)
+		return s.protoUnionType(args, pargs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 	default:
 		// TODO(robjs): implement missing types.
 		//	- binary
@@ -261,9 +282,9 @@ func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs re
 // }
 //
 // The MappedType's UnionTypes can be output through a template into the oneof.
-func (s *protoGenState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
+func (s *protoGenState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeArgs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums bool) (*MappedType, error) {
 	unionTypes := make(map[string]*yang.YangType)
-	if errs := s.protoUnionSubTypes(args.yangType, args.contextEntry, unionTypes, pargs); errs != nil {
+	if errs := s.protoUnionSubTypes(args.yangType, args.contextEntry, unionTypes, pargs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums); errs != nil {
 		return nil, fmt.Errorf("errors mapping element: %v", errs)
 	}
 
@@ -289,12 +310,12 @@ func (s *protoGenState) protoUnionType(args resolveTypeArgs, pargs resolveProtoT
 				n, err = s.yangTypeToProtoScalarType(resolveTypeArgs{
 					yangType:     t,
 					contextEntry: args.contextEntry,
-				}, pargs)
+				}, pargs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 			} else {
 				n, err = s.yangTypeToProtoType(resolveTypeArgs{
 					yangType:     t,
 					contextEntry: args.contextEntry,
-				}, pargs)
+				}, pargs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 			}
 
 			if err != nil {
@@ -327,11 +348,11 @@ func (s *protoGenState) protoUnionType(args resolveTypeArgs, pargs resolveProtoT
 // with is required for mapping. The currentType map is updated as an in-out argument. The basePackageName and enumPackageName
 // are used to map enumerated typedefs and identityrefs to the correct type. It returns a slice of errors if they occur
 // mapping subtypes.
-func (s *protoGenState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]*yang.YangType, pargs resolveProtoTypeArgs) []error {
+func (s *protoGenState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]*yang.YangType, pargs resolveProtoTypeArgs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums bool) []error {
 	var errs []error
 	if util.IsUnionType(subtype) {
 		for _, st := range subtype.Type {
-			errs = append(errs, s.protoUnionSubTypes(st, ctx, currentTypes, pargs)...)
+			errs = append(errs, s.protoUnionSubTypes(st, ctx, currentTypes, pargs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)...)
 		}
 		return errs
 	}
@@ -339,15 +360,19 @@ func (s *protoGenState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Ent
 	var mtype *MappedType
 	switch subtype.Kind {
 	case yang.Yidentityref:
+		n, err := s.protoIdentityName(pargs, subtype.IdentityBase)
+		if err != nil {
+			return append(errs, err)
+		}
 		// Handle the case that the context entry is not the correct entry to deal with. This occurs when the subtype is
 		// an identityref.
 		mtype = &MappedType{
-			NativeType:        s.protoIdentityName(pargs, subtype.IdentityBase),
+			NativeType:        n,
 			IsEnumeratedValue: true,
 		}
 	default:
 		var err error
-		mtype, err = s.yangTypeToProtoScalarType(resolveTypeArgs{yangType: subtype, contextEntry: ctx}, pargs)
+		mtype, err = s.yangTypeToProtoScalarType(resolveTypeArgs{yangType: subtype, contextEntry: ctx}, pargs, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 		if err != nil {
 			return append(errs, err)
 		}
@@ -440,6 +465,10 @@ func (s *protoGenState) protobufPackage(e *yang.Entry, compressPaths bool) strin
 }
 
 // protoIdentityName returns the name that should be used for an identityref base.
-func (s *protoGenState) protoIdentityName(pargs resolveProtoTypeArgs, i *yang.Identity) string {
-	return fmt.Sprintf("%s.%s.%s", pargs.basePackageName, pargs.enumPackageName, s.enumGen.identityrefBaseTypeFromIdentity(i, true))
+func (s *protoGenState) protoIdentityName(pargs resolveProtoTypeArgs, i *yang.Identity) (string, error) {
+	n, err := s.enumSet.identityrefBaseTypeFromIdentity(i)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s.%s.%s", pargs.basePackageName, pargs.enumPackageName, n), nil
 }

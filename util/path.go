@@ -38,6 +38,22 @@ func SchemaPaths(f reflect.StructField) ([][]string, error) {
 	return out, nil
 }
 
+// ShadowSchemaPaths returns all the paths in the shadow-path tag. If the tag
+// doesn't exist, a nil slice is returned.
+func ShadowSchemaPaths(f reflect.StructField) [][]string {
+	var out [][]string
+	pathTag, ok := f.Tag.Lookup("shadow-path")
+	if !ok || pathTag == "" {
+		return nil
+	}
+
+	ps := strings.Split(pathTag, "|")
+	for _, p := range ps {
+		out = append(out, stripModulePrefixes(strings.Split(p, "/")))
+	}
+	return out
+}
+
 // RelativeSchemaPath returns a path to the schema for the struct field f.
 // Paths are embedded in the "path" struct tag and can be either simple:
 //   e.g. "path:a"
@@ -157,10 +173,10 @@ func removeXPATHPredicates(s string) (string, error) {
 			i += len(ss)
 		case si == -1 || ei == -1:
 			// This substring contained a mismatched pair of []s.
-			return "", fmt.Errorf("Mismatched brackets within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
+			return "", fmt.Errorf("mismatched brackets within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
 		case si > ei:
 			// This substring contained a ] before a [.
-			return "", fmt.Errorf("Incorrect ordering of [] within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
+			return "", fmt.Errorf("incorrect ordering of [] within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
 		default:
 			// This substring contained a matched set of []s.
 			b.WriteString(ss[0:si])
@@ -263,6 +279,22 @@ func StripModulePrefix(name string) string {
 	default:
 		return name
 	}
+}
+
+// ReplacePathSuffix replaces the non-prefix part of a prefixed path name, or
+// the whole path name otherwise.
+// e.g. If replacing foo -> bar
+// - "foo" becomes "bar"
+// - "a:foo" becomes "a:bar"
+func ReplacePathSuffix(name, newSuffix string) (string, error) {
+	ps := strings.Split(name, ":")
+	switch len(ps) {
+	case 1:
+		return newSuffix, nil
+	case 2:
+		return ps[0] + ":" + newSuffix, nil
+	}
+	return "", fmt.Errorf("ygot.util: path element did not form a valid name (name, prefix:name): %q", name)
 }
 
 // PathStringToElements splits the string s, which represents a gNMI string

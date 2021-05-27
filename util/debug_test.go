@@ -142,7 +142,7 @@ func TestSchemaTypeStr(t *testing.T) {
 			schema: &yang.Entry{
 				Kind:     yang.DirectoryEntry,
 				Dir:      map[string]*yang.Entry{},
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 			},
 			want: "list",
 		},
@@ -155,14 +155,14 @@ func TestSchemaTypeStr(t *testing.T) {
 		{
 			schema: &yang.Entry{
 				Kind:     yang.LeafEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 			},
 			want: "leaf-list",
 		},
 		{
 			schema: &yang.Entry{
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 			},
 			want: "other",
 		},
@@ -175,22 +175,42 @@ func TestSchemaTypeStr(t *testing.T) {
 }
 
 func TestYangTypeToDebugString(t *testing.T) {
-	yangType := &yang.YangType{
-		Kind:    yang.Ystring,
-		Pattern: []string{"abc"},
-		Range:   yang.YangRange{yang.YRange{Min: YangMinNumber, Max: YangMaxNumber}},
-	}
+	tests := []struct {
+		desc    string
+		inType  *yang.YangType
+		wantStr string
+	}{{
+		desc: "POSIX",
+		inType: &yang.YangType{
+			Kind:         yang.Ystring,
+			Pattern:      []string{"abc"},
+			POSIXPattern: []string{"^abc$"},
+			Range:        yang.YangRange{yang.YRange{Min: YangMinNumber, Max: YangMaxNumber}},
+		},
+		wantStr: `(TypeKind: string, Sanitized pattern (POSIX: true): ^abc$, Range: min..max)`,
+	}, {
+		desc: "non-POSIX",
+		inType: &yang.YangType{
+			Kind:    yang.Ystring,
+			Pattern: []string{"abc"},
+			Range:   yang.YangRange{yang.YRange{Min: YangMinNumber, Max: YangMaxNumber}},
+		},
+		wantStr: `(TypeKind: string, Sanitized pattern (POSIX: false): ^(abc)$, Range: min..max)`,
+	}}
 
-	wantStr := `(TypeKind: string, Pattern: abc, Range: min..max)`
-	if got, want := YangTypeToDebugString(yangType), wantStr; got != want {
-		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got, want := YangTypeToDebugString(tt.inType), tt.wantStr; got != want {
+				t.Errorf("got:\n%s\nwant:\n%s", got, want)
+			}
+		})
 	}
 }
 
 func TestSchemaTreeString(t *testing.T) {
 	schema := &yang.Entry{
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Key:      "key_field_name",
 		Config:   yang.TSTrue,
 		Dir: map[string]*yang.Entry{
@@ -218,7 +238,7 @@ func TestDataSchemaTreesString(t *testing.T) {
 			"key-list": {
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{

@@ -70,7 +70,7 @@ func CreateDemoBGPInstance() (*oc.Bgp, error) {
 	// The returned struct represents the new peer that was created.
 	nPeer.PeerAs = ygot.Uint32(29636)
 	nPeer.Description = ygot.String("catalyst2 Services Ltd")
-	nPeer.PeerType = oc.OpenconfigBgp_PeerType_INTERNAL
+	nPeer.PeerType = oc.BgpTypes_PeerType_INTERNAL
 
 	// Initialize all containers underneath the newly created peer. This allows us
 	// to now specify containers in the hierarchy that we didn't yet initialize.
@@ -99,15 +99,9 @@ func CreateDemoBGPInstance() (*oc.Bgp, error) {
 		},
 	}
 
-	// Set the peer as a route reflector client using the To_Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union
-	// helper function.
-	cid, err := (*oc.Bgp_Neighbor_RouteReflector)(nil).To_Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union("10.0.1.2")
-	if err != nil {
-		return nil, err
-	}
-
+	// Set the peer as a route reflector client using the String union helper typedef.
 	bgp.Neighbor["192.0.2.1"].RouteReflector = &oc.Bgp_Neighbor_RouteReflector{
-		RouteReflectorClusterId: cid,
+		RouteReflectorClusterId: oc.UnionString("10.0.1.2"),
 	}
 
 	return bgp, nil

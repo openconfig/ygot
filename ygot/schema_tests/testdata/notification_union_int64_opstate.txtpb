@@ -1,0 +1,139 @@
+update: <
+  path: <
+    elem: <
+      name: "components"
+    >
+    elem: <
+      name: "component"
+      key: <
+        key: "name"
+        value: "p1"
+      >
+    >
+    elem: <
+      name: "name"
+    >
+  >
+  val: <
+    string_val: "p1"
+  >
+>
+update: <
+  path: <
+    elem: <
+      name: "components"
+    >
+    elem: <
+      name: "component"
+      key: <
+        key: "name"
+        value: "p1"
+      >
+    >
+    elem: <
+      name: "properties"
+    >
+    elem: <
+      name: "property"
+      key: <
+        key: "name"
+        value: "temperature"
+      >
+    >
+    elem: <
+      name: "state"
+    >
+    elem: <
+      name: "name"
+    >
+  >
+  val: <
+    string_val: "temperature"
+  >
+>
+update: <
+  path: <
+    elem: <
+      name: "components"
+    >
+    elem: <
+      name: "component"
+      key: <
+        key: "name"
+        value: "p1"
+      >
+    >
+    elem: <
+      name: "properties"
+    >
+    elem: <
+      name: "property"
+      key: <
+        key: "name"
+        value: "temperature"
+      >
+    >
+    elem: <
+      name: "name"
+    >
+  >
+  val: <
+    string_val: "temperature"
+  >
+>
+update: <
+  path: <
+    elem: <
+      name: "components"
+    >
+    elem: <
+      name: "component"
+      key: <
+        key: "name"
+        value: "p1"
+      >
+    >
+    elem: <
+      name: "properties"
+    >
+    elem: <
+      name: "property"
+      key: <
+        key: "name"
+        value: "temperature"
+      >
+    >
+    elem: <
+      name: "state"
+    >
+    elem: <
+      name: "value"
+    >
+  >
+  val: <
+    int_val: 42
+  >
+>
+update: <
+  path: <
+    elem: <
+      name: "components"
+    >
+    elem: <
+      name: "component"
+      key: <
+        key: "name"
+        value: "p1"
+      >
+    >
+    elem: <
+      name: "state"
+    >
+    elem: <
+      name: "name"
+    >
+  >
+  val: <
+    string_val: "p1"
+  >
+>

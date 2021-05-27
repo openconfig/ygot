@@ -63,7 +63,7 @@ func validateLeafList(schema *yang.Entry, value interface{}) util.Errors {
 	return errors
 }
 
-// validateLeafListSchema validates the given list type schema. This is a sanity
+// validateLeafListSchema validates the given list type schema. This is a quick
 // check validation rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.
@@ -90,7 +90,10 @@ func validateLeafListSchema(schema *yang.Entry) error {
 //   value is a gNMI TypedValue if enc is GNMIEncoding, represented as TypedValue_LeafListVal
 func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}, enc Encoding) error {
 	if util.IsValueNil(value) {
-		return nil
+		if enc == JSONEncoding {
+			return nil
+		}
+		return fmt.Errorf("unmarshalLeafList: invalid nil value to unmarshal")
 	}
 	// Check that the schema itself is valid.
 	if err := validateLeafListSchema(schema); err != nil {
@@ -112,6 +115,9 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 		sa, ok := tv.GetValue().(*gpb.TypedValue_LeaflistVal)
 		if !ok {
 			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect *gpb.TypedValue_LeaflistVal set in *gpb.TypedValue", schema.Name, util.ValueStr(value), tv.GetValue())
+		}
+		if len(sa.LeaflistVal.GetElement()) == 0 {
+			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got empty leaf list, expect non-empty leaf list", schema.Name, util.ValueStr(value))
 		}
 		for _, v := range sa.LeaflistVal.GetElement() {
 			if err := unmarshalGeneric(&leafSchema, parent, v, enc); err != nil {

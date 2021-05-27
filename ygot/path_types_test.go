@@ -17,18 +17,24 @@ package ygot
 import (
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/proto"
 )
 
+type deviceRoot struct {
+	*DeviceRootBase
+}
+
 func TestResolvePath(t *testing.T) {
-	root := &NodePath{}
+	wantId := "FOO"
+	wantCustomData := map[string]interface{}{"foo": "bar"}
+	root := deviceRoot{NewDeviceRootBase(wantId)}
+	root.PutCustomData("foo", "bar")
 
 	tests := []struct {
 		name        string
 		in          PathStruct
 		wantPathStr string
-		wantRoot    PathStruct
 		wantErr     bool
 	}{{
 		name: "simple",
@@ -42,12 +48,10 @@ func TestResolvePath(t *testing.T) {
 			},
 		},
 		wantPathStr: "/parent/child",
-		wantRoot:    root,
 	}, {
 		name:        "root",
 		in:          root,
 		wantPathStr: "/",
-		wantRoot:    root,
 	}, {
 		name: "list",
 		in: &NodePath{
@@ -60,7 +64,6 @@ func TestResolvePath(t *testing.T) {
 			},
 		},
 		wantPathStr: "/parent/values/value[ID=5]",
-		wantRoot:    root,
 	}, {
 		name: "list with unconvertible key value",
 		in: &NodePath{
@@ -73,31 +76,33 @@ func TestResolvePath(t *testing.T) {
 			},
 		},
 		wantPathStr: "",
-		wantRoot:    nil,
 		wantErr:     true,
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			wantP, err := StringToStructuredPath(tt.wantPathStr)
+			wantPath, err := StringToStructuredPath(tt.wantPathStr)
 			if err != nil {
 				t.Fatal(err)
 			}
-			wantPath := wantP.Elem
+			wantPath.Target = wantId
 
-			gotRoot, gotPath, gotErrs := ResolvePath(tt.in)
+			gotPath, gotCustomData, gotErrs := ResolvePath(tt.in)
 			if gotErrs != nil && !tt.wantErr {
 				t.Fatal(gotErrs)
 			} else if gotErrs == nil && tt.wantErr {
 				t.Fatal("expected error but did not receive any")
 			}
-
-			if gotRoot != tt.wantRoot {
-				t.Errorf("root not expected - got: %v, want: %v", gotRoot, tt.wantRoot)
+			if gotErrs != nil {
+				return
 			}
 
 			if diff := cmp.Diff(wantPath, gotPath, cmp.Comparer(proto.Equal)); diff != "" {
-				t.Errorf("ResolvePath returned diff (-want +got):\n%s", diff)
+				t.Errorf("ResolvePath returned diff (-want, +got):\n%s", diff)
+			}
+
+			if diff := cmp.Diff(wantCustomData, gotCustomData); diff != "" {
+				t.Errorf("ResolvePath: customData is not same as expected (-want, +got)\n%s", diff)
 			}
 		})
 	}

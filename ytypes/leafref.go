@@ -16,7 +16,6 @@ package ytypes
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -143,23 +142,27 @@ func leafRefToGNMIPath(root *util.NodeInfo, path string, pathQueryNode *util.Pat
 
 			gp.Key = make(map[string]string)
 			ns, err := dataNodesAtPath(root, pathNoKeysToGNMIPath(v), pathQueryNode)
-			var j []byte
+			var j string
 			switch len(ns) {
 			case 0:
 			case 1:
-				actualValue := ns[0]
 				if err != nil {
 					return nil, err
 				}
-				j, err = json.Marshal(actualValue)
-				if err != nil {
-					return nil, err
+				rval := reflect.ValueOf(ns[0])
+				if util.IsValuePtr(rval) {
+					rval = rval.Elem()
 				}
+				// NOTE: Normally we'd like to use ygot.KeyValueAsString for conversion
+				// to a key's PathElem string representation, but since this is just a
+				// temporary path use during validation, we don't care if it is slightly
+				// off -- only that it works to uniquely identify the key value.
+				j = fmt.Sprint(rval)
 			default:
 				return nil, fmt.Errorf("expect single node to match value at path %s, got %d", v, len(ns))
 			}
 
-			gp.Key = map[string]string{k: removeQuotes(string(j))}
+			gp.Key = map[string]string{k: j}
 		}
 		out.Elem = append(out.Elem, gp)
 	}
@@ -290,7 +293,6 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 	}
 
 	for _, sourceNode := range sourceNodes {
-		match := false
 		for _, other := range matchNodes {
 			if util.IsValueNilOrDefault(other) {
 				continue
@@ -301,8 +303,7 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 				util.DbgPrint("comparing leafref values %s vs %s", util.ValueStrDebug(sourceNode), util.ValueStrDebug(other))
 				if util.DeepEqualDerefPtrs(sourceNode, other) {
 					util.DbgPrint("values are equal")
-					match = true
-					break
+					return true, nil
 				}
 			case util.IsValueSlice(ov):
 				sourceNode := ni.FieldValue.Interface()
@@ -310,8 +311,7 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 				for i := 0; i < ov.Len(); i++ {
 					if util.DeepEqualDerefPtrs(sourceNode, ov.Index(i).Interface()) {
 						util.DbgPrint("value exists in list")
-						match = true
-						break
+						return true, nil
 					}
 				}
 			case util.IsValueStructPtr(ov):
@@ -320,17 +320,13 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 				ovv := ov.Elem().FieldByIndex([]int{0})
 				svv := ni.FieldValue.Elem().Elem().FieldByIndex([]int{0})
 				if cmp.Equal(ovv.Interface(), svv.Interface()) {
-					match = true
-					break
+					return true, nil
 				}
 			}
 		}
-		if !match {
-			return false, nil
-		}
 	}
 
-	return true, nil
+	return false, nil
 }
 
 // getDataTreeRoot returns the root NodeInfo element for the current node.
@@ -496,12 +492,6 @@ func splitUnquoted(source, splitStr string) []string {
 // isInQuotes reports whether s starts and ends with the quote character.
 func isInQuotes(s string) bool {
 	return strings.HasPrefix(s, "\"") && strings.HasSuffix(s, "\"")
-}
-
-// removeQuotes removes quotes around s if they are present.
-func removeQuotes(s string) string {
-	out := strings.TrimPrefix(s, "\"")
-	return strings.TrimSuffix(out, "\"")
 }
 
 // pathNoKeysToGNMIPath converts the supplied path, which may not contain any

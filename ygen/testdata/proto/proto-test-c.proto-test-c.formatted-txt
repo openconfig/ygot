@@ -12,6 +12,8 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 import "openconfig/proto_test_c/elists/elists.proto";
 import "openconfig/proto_test_c/entity/entity.proto";
 
+option go_package = "github.com/foo/baz/openconfig/proto_test_c";
+
 // ElistKey represents the /proto-test-c/elists/elist YANG schema element.
 message ElistKey {
   enum One {

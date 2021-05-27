@@ -20,12 +20,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/util"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -150,6 +151,7 @@ type basicStruct struct {
 	StringValue *string                     `path:"string-value"`
 	StructValue *basicStructTwo             `path:"struct-value"`
 	MapValue    map[string]*basicListMember `path:"map-list"`
+	EmptyValue  YANGEmpty                   `path:"empty-value"`
 }
 
 func (*basicStruct) IsYANGGoStruct() {}
@@ -429,6 +431,16 @@ func TestFindSetLeaves(t *testing.T) {
 		inStruct: &errorStruct{Value: String("foo")},
 		wantErr:  "error from ForEachDataField iteration: field Value did not specify a path",
 	}, {
+		desc:     "struct with empty value",
+		inStruct: &basicStruct{EmptyValue: YANGEmpty(true)},
+		want: map[*pathSpec]interface{}{
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{{Name: "empty-value"}},
+				}},
+			}: YANGEmpty(true),
+		},
+	}, {
 		desc: "multi-level string values",
 		inStruct: &basicStruct{
 			StringValue: String("value-one"),
@@ -620,13 +632,13 @@ func TestFindSetLeaves(t *testing.T) {
 			t.Errorf("%s: findSetLeaves(%v): did not get expected error: %v", tt.desc, tt.inStruct, err)
 			continue
 		}
-		if diff := cmp.Diff(got, tt.want,
+		if diff := cmp.Diff(tt.want, got,
 			cmpopts.SortMaps(func(x, y *pathSpec) bool {
 				return x.String() < y.String()
 			}),
 			cmp.Comparer(proto.Equal),
 		); diff != "" {
-			t.Errorf("%s: findSetLeaves(%v): did not get expected output, diff(-got,+want):\n%s", tt.desc, tt.inStruct, diff)
+			t.Errorf("%s: findSetLeaves(%v): did not get expected output, diff(-want, +got):\n%s", tt.desc, tt.inStruct, diff)
 		}
 	}
 }
@@ -827,6 +839,13 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:   "extra empty child struct in modified -- no difference",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			Ch: &renderExampleChild{},
+		},
+		want: &gnmipb.Notification{},
+	}, {
 		desc: "single path deletion in modified",
 		inOrig: &renderExample{
 			Str: String("chardonnay"),
@@ -896,10 +915,20 @@ func TestDiff(t *testing.T) {
 			Ch: &renderExampleChild{
 				Val: Uint64(42),
 			},
-			LeafList: []string{"merlot", "pinot-noir"},
-			UnionVal: &renderExampleUnionString{"semillon"},
-			Binary:   Binary{42, 42, 42},
-			Empty:    true,
+			LeafList:       []string{"merlot", "pinot-noir"},
+			UnionVal:       &renderExampleUnionString{"semillon"},
+			UnionValSimple: testutil.UnionString("vermouth"),
+			UnionLeafListSimple: []exampleUnion{
+				testutil.UnionString("hello"),
+				testutil.UnionInt64(42),
+				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
+				testBinary,
+				testutil.UnionBool(true),
+				testutil.YANGEmpty(false),
+			},
+			Binary: Binary{42, 42, 42},
+			Empty:  true,
 		},
 		want: &gnmipb.Notification{
 			Update: []*gnmipb.Update{{
@@ -958,6 +987,31 @@ func TestDiff(t *testing.T) {
 			}, {
 				Path: &gnmipb.Path{
 					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"vermouth"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-list-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
+					&gnmipb.ScalarArray{
+						Element: []*gnmipb.TypedValue{
+							{Value: &gnmipb.TypedValue_StringVal{"hello"}},
+							{Value: &gnmipb.TypedValue_IntVal{42}},
+							{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+							{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
+							{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
+							{Value: &gnmipb.TypedValue_BoolVal{true}},
+							{Value: &gnmipb.TypedValue_BoolVal{false}}},
+					}},
+				},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
 						Name: "binary",
 					}},
 				},
@@ -972,6 +1026,102 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:   "union addition: enum",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: EnumTestVALONE,
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
+			}},
+		},
+	}, {
+		desc:   "union addition: int64",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.UnionInt64(1),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{1}},
+			}},
+		},
+	}, {
+		desc:   "union addition: float64",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.UnionFloat64(3.14),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+			}},
+		},
+	}, {
+		desc:   "union addition: bool",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.UnionBool(true),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
+			}},
+		},
+	}, {
+		desc:   "union addition: empty",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.YANGEmpty(true),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
+			}},
+		},
+	}, {
+		desc:   "union addition: binary",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testBinary,
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
+			}},
+		},
+	}, {
 		desc: "multiple element set in both - no diff",
 		inOrig: &renderExample{
 			IntVal:    Int32(42),
@@ -980,10 +1130,20 @@ func TestDiff(t *testing.T) {
 			Ch: &renderExampleChild{
 				Val: Uint64(42),
 			},
-			LeafList: []string{"merlot", "pinot-noir"},
-			UnionVal: &renderExampleUnionString{"semillon"},
-			Binary:   Binary{42, 42, 42},
-			Empty:    true,
+			LeafList:       []string{"merlot", "pinot-noir"},
+			UnionVal:       &renderExampleUnionString{"semillon"},
+			UnionValSimple: testutil.UnionString("vermouth"),
+			UnionLeafListSimple: []exampleUnion{
+				testutil.UnionString("hello"),
+				testutil.UnionInt64(42),
+				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
+				testBinary,
+				testutil.UnionBool(true),
+				testutil.YANGEmpty(false),
+			},
+			Binary: Binary{42, 42, 42},
+			Empty:  true,
 		},
 		inMod: &renderExample{
 			IntVal:    Int32(42),
@@ -992,10 +1152,20 @@ func TestDiff(t *testing.T) {
 			Ch: &renderExampleChild{
 				Val: Uint64(42),
 			},
-			LeafList: []string{"merlot", "pinot-noir"},
-			UnionVal: &renderExampleUnionString{"semillon"},
-			Binary:   Binary{42, 42, 42},
-			Empty:    true,
+			LeafList:       []string{"merlot", "pinot-noir"},
+			UnionVal:       &renderExampleUnionString{"semillon"},
+			UnionValSimple: testutil.UnionString("vermouth"),
+			UnionLeafListSimple: []exampleUnion{
+				testutil.UnionString("hello"),
+				testutil.UnionInt64(42),
+				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
+				testBinary,
+				testutil.UnionBool(true),
+				testutil.YANGEmpty(false),
+			},
+			Binary: Binary{42, 42, 42},
+			Empty:  true,
 		},
 		want: &gnmipb.Notification{},
 	}, {
@@ -1007,10 +1177,20 @@ func TestDiff(t *testing.T) {
 			Ch: &renderExampleChild{
 				Val: Uint64(43),
 			},
-			LeafList: []string{"syrah", "tempranillo"},
-			UnionVal: &renderExampleUnionString{"viognier"},
-			Binary:   Binary{43, 43, 43},
-			Empty:    false,
+			LeafList:       []string{"syrah", "tempranillo"},
+			UnionVal:       &renderExampleUnionString{"viognier"},
+			UnionValSimple: testutil.UnionString("vermouth"),
+			UnionLeafListSimple: []exampleUnion{
+				testutil.UnionString("hello"),
+				testutil.UnionInt64(42),
+				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
+				testBinary,
+				testutil.UnionBool(true),
+				testutil.YANGEmpty(false),
+			},
+			Binary: Binary{43, 43, 43},
+			Empty:  false,
 		},
 		inMod: &renderExample{
 			IntVal:    Int32(42),
@@ -1019,10 +1199,20 @@ func TestDiff(t *testing.T) {
 			Ch: &renderExampleChild{
 				Val: Uint64(42),
 			},
-			LeafList: []string{"alcase", "anjou"},
-			UnionVal: &renderExampleUnionString{"arbois"},
-			Binary:   Binary{42, 42, 42},
-			Empty:    true,
+			LeafList:       []string{"alcase", "anjou"},
+			UnionVal:       &renderExampleUnionString{"arbois"},
+			UnionValSimple: testutil.UnionFloat64(2.71828),
+			UnionLeafListSimple: []exampleUnion{
+				testutil.UnionString("world"),
+				testutil.UnionInt64(84),
+				testutil.UnionFloat64(6.28),
+				EnumTestVALTWO,
+				testBinary1,
+				testutil.UnionBool(false),
+				testutil.YANGEmpty(true),
+			},
+			Binary: Binary{42, 42, 42},
+			Empty:  true,
 		},
 		want: &gnmipb.Notification{
 			Update: []*gnmipb.Update{{
@@ -1078,6 +1268,31 @@ func TestDiff(t *testing.T) {
 					}},
 				},
 				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"arbois"}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{2.71828}},
+			}, {
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-list-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
+					&gnmipb.ScalarArray{
+						Element: []*gnmipb.TypedValue{
+							{Value: &gnmipb.TypedValue_StringVal{"world"}},
+							{Value: &gnmipb.TypedValue_IntVal{84}},
+							{Value: &gnmipb.TypedValue_FloatVal{6.28}},
+							{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
+							{Value: &gnmipb.TypedValue_BytesVal{[]byte("abc")}},
+							{Value: &gnmipb.TypedValue_BoolVal{false}},
+							{Value: &gnmipb.TypedValue_BoolVal{true}}},
+					}},
+				},
 			}, {
 				Path: &gnmipb.Path{
 					Elem: []*gnmipb.PathElem{{
@@ -1298,7 +1513,7 @@ func TestDiff(t *testing.T) {
 		// To re-use the NotificationSetEqual helper, we put the want and got into
 		// a slice.
 		if !testutil.NotificationSetEqual([]*gnmipb.Notification{tt.want}, []*gnmipb.Notification{got}) {
-			diff := pretty.Compare(got, tt.want)
+			diff := cmp.Diff(got, tt.want, protocmp.Transform())
 			t.Errorf("%s: Diff(%s, %s): did not get expected Notification, diff(-got,+want):\n%s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), diff)
 		}
 	}

@@ -11,21 +11,18 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	"fmt"
-
-	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	oc "github.com/openconfig/ygot/ypathgen/testdata/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 )
 
 // Parent represents the /openconfig-simple/parent YANG schema element.
 type Parent struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // ParentAny represents the wildcard version of the /openconfig-simple/parent YANG schema element.
 type ParentAny struct {
-	ygot.NodePath
+	*ygot.NodePath
 }
 
 // Child returns from Parent the path struct for its child "child".

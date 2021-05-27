@@ -49,6 +49,7 @@ func TestGoCodeStructGeneration(t *testing.T) {
 		// determine the names of referenced lists and structs.
 		inUniqueDirectoryNames map[string]string
 		inGoOpts               GoOpts
+		inSkipEnumDedup        bool
 		wantCompressed         wantGoStructOut
 		wantUncompressed       wantGoStructOut
 		wantSame               bool
@@ -1267,7 +1268,17 @@ func (t *Tstruct) DeleteListWithKey(KeyLeafOne string, KeyLeafTwo int8) {
 // the supplied ListWithKey already exist in the list, an error is
 // returned.
 func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
-	key := Tstruct_ListWithKey_Key{KeyLeafOne: *v.KeyLeafOne,KeyLeafTwo: *v.KeyLeafTwo,
+	if v.KeyLeafOne == nil {
+		return fmt.Errorf("invalid nil key for KeyLeafOne")
+	}
+
+	if v.KeyLeafTwo == nil {
+		return fmt.Errorf("invalid nil key for KeyLeafTwo")
+	}
+
+	key := Tstruct_ListWithKey_Key{
+		KeyLeafOne: *v.KeyLeafOne,
+		KeyLeafTwo: *v.KeyLeafTwo,
 	}
 
 	// Initialise the list within the receiver struct if it has not already been
@@ -1443,6 +1454,10 @@ func (t *Tstruct) DeleteListWithKey(KeyLeaf string) {
 // the supplied ListWithKey already exist in the list, an error is
 // returned.
 func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
+	if v.KeyLeaf == nil {
+		return fmt.Errorf("invalid nil key received for KeyLeaf")
+	}
+
 	key := *v.KeyLeaf
 
 	// Initialise the list within the receiver struct if it has not already been
@@ -1706,11 +1721,11 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 				tt.wantUncompressed = tt.wantCompressed
 			}
 			for compressed, want := range map[bool]wantGoStructOut{true: tt.wantCompressed, false: tt.wantUncompressed} {
-				s := newGoGenState(nil)
+				s := newGoGenState(nil, nil)
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 				// Always generate the JSON schema for this test.
-				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, true, tt.inGoOpts)
+				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, false, true, tt.inSkipEnumDedup, true, true, nil, tt.inGoOpts)
 
 				if len(errs) != 0 && !want.wantErr {
 					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): received unexpected errors: %v",
@@ -1731,34 +1746,34 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 				}
 
 				if diff := pretty.Compare(want.structs, got.StructDef); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.StructDef, want.structs); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(want.structs, got.StructDef); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-got,+want):\n%s",
+					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-want, +got):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
 				if diff := pretty.Compare(want.keys, got.ListKeys); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.ListKeys, want.keys); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(want.keys, got.ListKeys); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-got,+want):\n%s",
+					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-want, +got):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
 				if diff := pretty.Compare(want.methods, got.Methods); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.Methods, want.methods); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(want.methods, got.Methods); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): generated methods incorrect, diff (-got,+want):\n%s",
+					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): generated methods incorrect, diff (-want, +got):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 
 				if diff := pretty.Compare(want.interfaces, got.Interfaces); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(got.Interfaces, want.interfaces); err == nil {
+					if diffl, err := testutil.GenerateUnifiedDiff(want.interfaces, got.Interfaces); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s: writeGoStruct(compressPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-got,+want):\n%s",
+					t.Errorf("%s: writeGoStruct(compressPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-want, +got):\n%s",
 						tt.name, compressed, tt.inStructToMap, diff)
 				}
 			}
@@ -1823,6 +1838,11 @@ func (E_EnumeratedValue) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  EnumeratedValue.
 func (E_EnumeratedValue) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_EnumeratedValue.
+func (e E_EnumeratedValue) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_EnumeratedValue")
+}
+
 const (
 	// EnumeratedValue_UNSET corresponds to the value UNSET of EnumeratedValue
 	EnumeratedValue_UNSET E_EnumeratedValue = 0
@@ -1866,6 +1886,11 @@ func (E_EnumeratedValueTwo) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  EnumeratedValueTwo.
 func (E_EnumeratedValueTwo) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_EnumeratedValueTwo.
+func (e E_EnumeratedValueTwo) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_EnumeratedValueTwo")
+}
+
 const (
 	// EnumeratedValueTwo_UNSET corresponds to the value UNSET of EnumeratedValueTwo
 	EnumeratedValueTwo_UNSET E_EnumeratedValueTwo = 0
@@ -1906,6 +1931,11 @@ func (E_BaseModule_Enumeration) IsYANGGoEnum() {}
 // ΛMap returns the value lookup map associated with  BaseModule_Enumeration.
 func (E_BaseModule_Enumeration) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
 
+// String returns a logging-friendly string for E_BaseModule_Enumeration.
+func (e E_BaseModule_Enumeration) String() string {
+	return ygot.EnumLogString(e, int64(e), "E_BaseModule_Enumeration")
+}
+
 const (
 	// BaseModule_Enumeration_UNSET corresponds to the value UNSET of BaseModule_Enumeration
 	BaseModule_Enumeration_UNSET E_BaseModule_Enumeration = 0
@@ -1939,10 +1969,10 @@ const (
 
 		if diff := pretty.Compare(tt.want, got); diff != "" {
 			fmt.Println(diff)
-			if diffl, err := testutil.GenerateUnifiedDiff(got.constDef, tt.want.constDef); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(tt.want.constDef, got.constDef); err == nil {
 				diff = diffl
 			}
-			t.Errorf("%s: writeGoEnum(%v): got incorrect output, diff(-got,+want):\n%s",
+			t.Errorf("%s: writeGoEnum(%v): got incorrect output, diff(-want, +got):\n%s",
 				tt.name, tt.in, diff)
 		}
 	}
@@ -1952,13 +1982,14 @@ const (
 // mapped to are properly extracted from a schema element.
 func TestFindMapPaths(t *testing.T) {
 	tests := []struct {
-		name            string
-		inStruct        *Directory
-		inField         string
-		inCompressPaths bool
-		inAbsolutePaths bool
-		wantPaths       [][]string
-		wantErr         bool
+		name                      string
+		inStruct                  *Directory
+		inField                   string
+		inCompressPaths           bool
+		inIgnoreShadowSchemaPaths bool
+		inAbsolutePaths           bool
+		wantPaths                 [][]string
+		wantErr                   bool
 	}{{
 		name: "first-level container with path compression off",
 		inStruct: &Directory{
@@ -2013,10 +2044,62 @@ func TestFindMapPaths(t *testing.T) {
 					},
 				},
 			},
+			ShadowedFields: map[string]*yang.Entry{
+				"field-b": {
+					Name: "field-b",
+					Parent: &yang.Entry{
+						Name: "state",
+						Parent: &yang.Entry{
+							Name: "b-container",
+							Parent: &yang.Entry{
+								Name: "a-module",
+							},
+						},
+					},
+				},
+			},
 		},
 		inField:         "field-b",
 		inCompressPaths: true,
 		wantPaths:       [][]string{{"config", "field-b"}},
+	}, {
+		name: "first-level container with path compression on and ignoreShadowSchemaPaths on",
+		inStruct: &Directory{
+			Name: "BContainer",
+			Path: []string{"", "a-module", "b-container"},
+			Fields: map[string]*yang.Entry{
+				"field-b": {
+					Name: "field-b",
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name: "b-container",
+							Parent: &yang.Entry{
+								Name: "a-module",
+							},
+						},
+					},
+				},
+			},
+			ShadowedFields: map[string]*yang.Entry{
+				"field-b": {
+					Name: "field-b",
+					Parent: &yang.Entry{
+						Name: "state",
+						Parent: &yang.Entry{
+							Name: "b-container",
+							Parent: &yang.Entry{
+								Name: "a-module",
+							},
+						},
+					},
+				},
+			},
+		},
+		inField:                   "field-b",
+		inCompressPaths:           true,
+		inIgnoreShadowSchemaPaths: true,
+		wantPaths:                 [][]string{{"state", "field-b"}},
 	}, {
 		name: "container with absolute paths on",
 		inStruct: &Directory{
@@ -2110,6 +2193,30 @@ func TestFindMapPaths(t *testing.T) {
 					},
 				},
 			},
+			ShadowedFields: map[string]*yang.Entry{
+				"d-key": {
+					Name: "d-key",
+					Parent: &yang.Entry{
+						Name: "state",
+						Parent: &yang.Entry{
+							Name: "d-list",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"d-key": {
+									Name: "d-key",
+									Type: &yang.YangType{Kind: yang.Yleafref},
+								},
+							},
+							Parent: &yang.Entry{
+								Name: "d-container",
+								Parent: &yang.Entry{
+									Name: "d-module",
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 		inField:         "d-key",
 		inCompressPaths: true,
@@ -2117,20 +2224,112 @@ func TestFindMapPaths(t *testing.T) {
 			{"config", "d-key"},
 			{"d-key"},
 		},
+	}, {
+		name: "list with leafref key with ignoreShadowSchemaPaths on",
+		inStruct: &Directory{
+			Name: "DList",
+			Path: []string{"", "d-module", "d-container", "d-list"},
+			ListAttr: &YangListAttr{
+				KeyElems: []*yang.Entry{
+					{
+						Name: "d-key",
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+						},
+						Parent: &yang.Entry{
+							Name: "config",
+							Parent: &yang.Entry{
+								Name: "d-list",
+								Kind: yang.DirectoryEntry,
+								Dir: map[string]*yang.Entry{
+									"d-key": {
+										Name: "d-key",
+										Type: &yang.YangType{Kind: yang.Yleafref},
+									},
+								},
+								Parent: &yang.Entry{
+									Name: "d-container",
+									Parent: &yang.Entry{
+										Name: "d-module",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Fields: map[string]*yang.Entry{
+				"d-key": {
+					Name: "d-key",
+					Type: &yang.YangType{
+						Kind: yang.Yleafref,
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name: "d-list",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"d-key": {
+									Name: "d-key",
+									Type: &yang.YangType{Kind: yang.Yleafref},
+								},
+							},
+							Parent: &yang.Entry{
+								Name: "d-container",
+								Parent: &yang.Entry{
+									Name: "d-module",
+								},
+							},
+						},
+					},
+				},
+			},
+			ShadowedFields: map[string]*yang.Entry{
+				"d-key": {
+					Name: "d-key",
+					Parent: &yang.Entry{
+						Name: "state",
+						Parent: &yang.Entry{
+							Name: "d-list",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"d-key": {
+									Name: "d-key",
+									Type: &yang.YangType{Kind: yang.Yleafref},
+								},
+							},
+							Parent: &yang.Entry{
+								Name: "d-container",
+								Parent: &yang.Entry{
+									Name: "d-module",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		inField:                   "d-key",
+		inCompressPaths:           true,
+		inIgnoreShadowSchemaPaths: true,
+		wantPaths: [][]string{
+			{"state", "d-key"},
+		},
 	}}
 
 	for _, tt := range tests {
-		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inAbsolutePaths)
+		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inIgnoreShadowSchemaPaths, tt.inAbsolutePaths)
 		if err != nil {
 			if !tt.wantErr {
-				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, got unexpected error: %v",
-					tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, err)
+				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, ignoreShadowSchemaPaths: %v, got unexpected error: %v",
+					tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inIgnoreShadowSchemaPaths, err)
 			}
 			continue
 		}
 
 		if diff := cmp.Diff(tt.wantPaths, got); diff != "" {
-			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, diff)
+			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, ignoreShadowSchemaPaths: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inIgnoreShadowSchemaPaths, diff)
 		}
 	}
 }
@@ -2205,8 +2404,8 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 
 		if tt.wantMap != got {
 			diff := fmt.Sprintf("got: %s, want %s", got, tt.wantMap)
-			if diffl, err := testutil.GenerateUnifiedDiff(got, tt.wantMap); err == nil {
-				diff = "diff (-got, +want):\n" + diffl
+			if diffl, err := testutil.GenerateUnifiedDiff(tt.wantMap, got); err == nil {
+				diff = "diff (-want, +got):\n" + diffl
 			}
 			t.Errorf("%s: did not get expected generated enum, %s", tt.name, diff)
 		}

@@ -25,7 +25,10 @@ import (
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/exampleoc"
+	"github.com/openconfig/ygot/exampleoc/opstateoc"
+	"github.com/openconfig/ygot/exampleoc/wrapperunionoc"
 	"github.com/openconfig/ygot/testutil"
+	"github.com/openconfig/ygot/uexampleoc"
 	"github.com/openconfig/ygot/ygot"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -66,7 +69,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 	}
 	ygot.BuildEmptyTree(ni)
 
-	p, err := ni.NewProtocol(exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169")
+	p, err := ni.NewProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169")
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
@@ -78,7 +81,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 	n.PeerAs = ygot.Uint32(42)
-	n.SendCommunity = exampleoc.OpenconfigBgp_CommunityType_STANDARD
+	n.SendCommunity = exampleoc.BgpTypes_CommunityType_STANDARD
 
 	p.Bgp.Global.As = ygot.Uint32(42)
 
@@ -89,8 +92,11 @@ func TestBuildEmptyDevice(t *testing.T) {
 			"DEFAULT": {
 				Name: ygot.String("DEFAULT"),
 				Protocol: map[exampleoc.NetworkInstance_Protocol_Key]*exampleoc.NetworkInstance_Protocol{
-					{exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169"}: {
-						Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+					{
+						Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						Name:       "15169",
+					}: {
+						Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 						Name:       ygot.String("15169"),
 						Bgp: &exampleoc.NetworkInstance_Protocol_Bgp{
 							Global: &exampleoc.NetworkInstance_Protocol_Bgp_Global{
@@ -100,7 +106,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 								"192.0.2.1": {
 									NeighborAddress: ygot.String("192.0.2.1"),
 									PeerAs:          ygot.Uint32(42),
-									SendCommunity:   exampleoc.OpenconfigBgp_CommunityType_STANDARD,
+									SendCommunity:   exampleoc.BgpTypes_CommunityType_STANDARD,
 								},
 							},
 						},
@@ -147,10 +153,10 @@ func TestDiff(t *testing.T) {
 		inOrig: &exampleoc.NetworkInstance_Protocol_Bgp{},
 		inMod: func() *exampleoc.NetworkInstance_Protocol_Bgp {
 			d := &exampleoc.Device{}
-			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
 			n := b.GetOrCreateNeighbor("192.0.2.1")
 			n.PeerAs = ygot.Uint32(29636)
-			n.PeerType = exampleoc.OpenconfigBgp_PeerType_EXTERNAL
+			n.PeerType = exampleoc.BgpTypes_PeerType_EXTERNAL
 			return b
 		}(),
 		want: &gnmipb.Notification{
@@ -169,14 +175,40 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:   "diff BGP neighbour using prefer_operational_state",
+		inOrig: &opstateoc.NetworkInstance_Protocol_Bgp{},
+		inMod: func() *opstateoc.NetworkInstance_Protocol_Bgp {
+			d := &opstateoc.Device{}
+			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(opstateoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+			n := b.GetOrCreateNeighbor("192.0.2.1")
+			n.PeerAs = ygot.Uint32(29636)
+			n.PeerType = opstateoc.OpenconfigBgpTypes_PeerType_EXTERNAL
+			return b
+		}(),
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/neighbor-address"),
+				Val:  mustTypedValue("192.0.2.1"),
+			}, {
+				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/state/neighbor-address"),
+				Val:  mustTypedValue("192.0.2.1"),
+			}, {
+				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/state/peer-as"),
+				Val:  mustTypedValue(uint32(29636)),
+			}, {
+				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/state/peer-type"),
+				Val:  mustTypedValue("EXTERNAL"),
+			}},
+		},
+	}, {
 		desc:   "diff STP",
 		inOrig: &exampleoc.Device{},
 		inMod: func() *exampleoc.Device {
 			d := &exampleoc.Device{}
 			e := d.GetOrCreateStp().GetOrCreateGlobal()
-			e.EnabledProtocol = []exampleoc.E_OpenconfigSpanningTreeTypes_STP_PROTOCOL{
-				exampleoc.OpenconfigSpanningTreeTypes_STP_PROTOCOL_MSTP,
-				exampleoc.OpenconfigSpanningTreeTypes_STP_PROTOCOL_RSTP,
+			e.EnabledProtocol = []exampleoc.E_SpanningTreeTypes_STP_PROTOCOL{
+				exampleoc.SpanningTreeTypes_STP_PROTOCOL_MSTP,
+				exampleoc.SpanningTreeTypes_STP_PROTOCOL_RSTP,
 			}
 			return d
 		}(),
@@ -210,17 +242,28 @@ func TestDiff(t *testing.T) {
 func TestJSONOutput(t *testing.T) {
 	tests := []struct {
 		name     string
-		in       *exampleoc.Device
+		in       ygot.ValidatedGoStruct
 		wantFile string
 	}{{
 		name: "unset enumeration",
 		in: func() *exampleoc.Device {
 			d := &exampleoc.Device{}
 			acl := d.GetOrCreateAcl()
-			set := acl.GetOrCreateAclSet("set", exampleoc.OpenconfigAcl_ACL_TYPE_ACL_IPV6)
+			set := acl.GetOrCreateAclSet("set", exampleoc.Acl_ACL_TYPE_ACL_IPV6)
 			entry := set.GetOrCreateAclEntry(100)
-			entry.GetOrCreateIpv6().Protocol = &exampleoc.Acl_AclSet_AclEntry_Ipv6_Protocol_Union_E_OpenconfigPacketMatchTypes_IP_PROTOCOL{
-				exampleoc.OpenconfigPacketMatchTypes_IP_PROTOCOL_UNSET,
+			entry.GetOrCreateIpv6().Protocol = exampleoc.PacketMatchTypes_IP_PROTOCOL_UNSET
+			return d
+		}(),
+		wantFile: "testdata/unsetenum.json",
+	}, {
+		name: "unset enumeration using wrapper union generated code",
+		in: func() *wrapperunionoc.Device {
+			d := &wrapperunionoc.Device{}
+			acl := d.GetOrCreateAcl()
+			set := acl.GetOrCreateAclSet("set", wrapperunionoc.Acl_ACL_TYPE_ACL_IPV6)
+			entry := set.GetOrCreateAclEntry(100)
+			entry.GetOrCreateIpv6().Protocol = &wrapperunionoc.Acl_AclSet_AclEntry_Ipv6_Protocol_Union_E_PacketMatchTypes_IP_PROTOCOL{
+				wrapperunionoc.PacketMatchTypes_IP_PROTOCOL_UNSET,
 			}
 			return d
 		}(),
@@ -244,6 +287,92 @@ func TestJSONOutput(t *testing.T) {
 					diff = diffl
 				}
 				t.Fatalf("did not get expected output, diff(-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestNotificationOutput(t *testing.T) {
+	tests := []struct {
+		name       string
+		in         ygot.ValidatedGoStruct
+		wantTextpb string
+	}{{
+		name: "int64 from root",
+		in: func() *exampleoc.Device {
+			d := &exampleoc.Device{}
+			d.GetOrCreateInterface("eth0")
+			is := d.GetOrCreateLldp().GetOrCreateInterface("eth0").GetOrCreateNeighbor("neighbor")
+			is.LastUpdate = ygot.Int64(42)
+			return d
+		}(),
+		wantTextpb: "testdata/notification_int64.txtpb",
+	}, {
+		name: "int64 uncompressed",
+		in: func() *uexampleoc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_State {
+			s := &uexampleoc.OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_State{}
+			s.LastUpdate = ygot.Int64(42)
+			return s
+		}(),
+		wantTextpb: "testdata/uncompressed_notification_int64.txtpb",
+	}, {
+		name: "int64 union",
+		in: func() *exampleoc.Device {
+			d := &exampleoc.Device{}
+			t := d.GetOrCreateComponent("p1").GetOrCreateProperty("temperature")
+			t.Value = exampleoc.UnionInt64(42)
+			return d
+		}(),
+		wantTextpb: "testdata/notification_union_int64.txtpb",
+	}, {
+		name: "int64 union using wrapper union generated code",
+		in: func() *wrapperunionoc.Device {
+			d := &wrapperunionoc.Device{}
+			t := d.GetOrCreateComponent("p1").GetOrCreateProperty("temperature")
+			v, err := t.To_Component_Property_Value_Union(int64(42))
+			if err != nil {
+				panic(err)
+			}
+			t.Value = v
+			return d
+		}(),
+		wantTextpb: "testdata/notification_union_int64.txtpb",
+	}, {
+		name: "int64 union using operational state",
+		in: func() *opstateoc.Device {
+			d := &opstateoc.Device{}
+			t := d.GetOrCreateComponent("p1").GetOrCreateProperty("temperature")
+			t.Value = opstateoc.UnionInt64(42)
+			return d
+		}(),
+		wantTextpb: "testdata/notification_union_int64_opstate.txtpb",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wantTxtpb, err := ioutil.ReadFile(tt.wantTextpb)
+			if err != nil {
+				t.Fatalf("could not read textproto, %v", err)
+			}
+
+			wantNoti := &gnmipb.Notification{}
+			if err := proto.UnmarshalText(string(wantTxtpb), wantNoti); err != nil {
+				t.Fatalf("cannot unmarshal wanted textproto, %v", err)
+			}
+
+			gotSet, err := ygot.TogNMINotifications(tt.in, 0, ygot.GNMINotificationsConfig{
+				UsePathElem: true,
+			})
+			if err != nil {
+				t.Fatalf("cannot marshal input to gNMI Notifications, %v", err)
+			}
+
+			if !testutil.NotificationSetEqual(gotSet, []*gnmipb.Notification{wantNoti}) {
+				diff, err := testutil.GenerateUnifiedDiff(proto.MarshalTextString(wantNoti), proto.MarshalTextString(gotSet[0]))
+				if err != nil {
+					t.Errorf("cannot diff generated protobufs, %v", err)
+				}
+				t.Fatalf("did not get unexpected Notifications, diff(-want,+got):\n%s", diff)
 			}
 		})
 	}

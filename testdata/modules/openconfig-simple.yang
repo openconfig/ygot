@@ -25,6 +25,7 @@ module openconfig-simple {
         uses parent-config;
       }
       container state {
+        config false;
         uses parent-config;
         leaf two { type string; }
       }

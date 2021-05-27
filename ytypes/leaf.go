@@ -52,14 +52,14 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(err)
 	}
 
-	var rv interface{}
+	rv := value
 	ykind := schema.Type.Kind
 	rkind := reflect.ValueOf(value).Kind()
 	switch rkind {
 	case reflect.Ptr:
 		rv = reflect.ValueOf(value).Elem().Interface()
 	case reflect.Slice:
-		if ykind != yang.Ybinary {
+		if ykind != yang.Ybinary && ykind != yang.Yunion {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect []byte for binary value %v for schema %s, have type %v", value, schema.Name, ykind))
 		}
 	case reflect.Int64:
@@ -70,14 +70,17 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 		if ykind != yang.Yempty {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect Bool for empty type for schema %s, have type %v", schema.Name, ykind))
 		}
-		rv = value
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float64, reflect.String:
+		if ykind != yang.Yunion {
+			return util.NewErrs(fmt.Errorf("bad leaf type: expect %v for union type for schema %s, have type %v", rkind, schema.Name, ykind))
+		}
 	default:
 		return util.NewErrs(fmt.Errorf("bad leaf value type %v, expect Ptr or Int64 for schema %s", rkind, schema.Name))
 	}
 
 	switch ykind {
 	case yang.Ybinary:
-		return util.NewErrs(validateBinary(schema, value))
+		return util.NewErrs(validateBinary(schema, rv))
 	case yang.Ybits:
 		return nil
 		// TODO(mostrowski): restore when representation is decided.
@@ -91,12 +94,12 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 	case yang.Ydecimal64:
 		return util.NewErrs(validateDecimal(schema, rv))
 	case yang.Yenum, yang.Yidentityref:
-		if rkind != reflect.Int64 && !isValueInterfacePtrToEnum(reflect.ValueOf(value)) {
-			return util.NewErrs(fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rkind, schema.Name, ykind))
+		if rvkind := reflect.TypeOf(rv).Kind(); rvkind != reflect.Int64 {
+			return util.NewErrs(fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rvkind, schema.Name, ykind))
 		}
 		return nil
 	case yang.Yunion:
-		return validateUnion(schema, value)
+		return validateUnion(schema, rv)
 	}
 	if isIntegerType(ykind) {
 		return util.NewErrs(validateInt(schema, rv))
@@ -120,12 +123,12 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
    {
            Name:             "ipv4-address",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
    },
    {
            Name:             "ipv6-address",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
            Type:             [],
    }]
  }
@@ -153,7 +156,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
    {
            Name:             "port-string",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
    },
    {
            Name:             "port-integer",
@@ -217,22 +220,13 @@ func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
 
 	util.DbgPrint("validateUnion %s", schema.Name)
 	v := reflect.ValueOf(value)
-	switch reflect.TypeOf(value).Kind() {
-	case reflect.Ptr:
-		// The union is usually a ptr - either a struct ptr or Go value ptr like *string.
-		// Enum types are also represented as a struct for union where the field
-		// has the enum type.
+	if v.Kind() == reflect.Ptr {
+		// The union could be a ptr - either a struct ptr or Go value ptr like *string.
 		v = v.Elem()
-	case reflect.Int64:
-		// A union containing a single enumerated type would simply resolve to the
-		// enum type, which represented directly by a derived Int64 type.
-	default:
-		return util.NewErrs(fmt.Errorf("wrong value type for union %s: got: %T, expect ptr or Int64 (enumerated type)", schema.Name, value))
 	}
 
-	// Unions of enum types are passed as ptr to interface to struct ptr.
-	// Normalize to a union struct.
-	// TODO(wenbli): Remove this if statement in a future PR.
+	// All wrapper unions and unsupported types for simplified unions are passed as ptr to interface to struct ptr.
+	// Normalize these to a union struct.
 	// v here is already a struct, as multi-type unions are represented as
 	// interfaces within their parents' structs, *not* ptrs to interfaces.
 	if util.IsValueInterface(v) {
@@ -316,8 +310,8 @@ func findMatchingSchemasInUnion(ytype *yang.YangType, value interface{}) []*yang
 	return matches
 }
 
-// validateLeafSchema validates the given leaf type schema. This is a sanity
-// check validation rather than a comprehensive validation against the RFC.
+// validateLeafSchema validates the given leaf type schema. This is a quick
+// check rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.
 func validateLeafSchema(schema *yang.Entry) error {
@@ -344,7 +338,10 @@ type Binary []byte
 //   schema points to the schema for the leaf type.
 func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, enc Encoding) error {
 	if util.IsValueNil(value) {
-		return nil
+		if enc == JSONEncoding {
+			return nil
+		}
+		return fmt.Errorf("unmarshalLeaf: invalid nil value to unmarshal")
 	}
 
 	var err error
@@ -436,41 +433,21 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	dft, _ := parentT.Elem().FieldByName(fieldName)
 	destUnionFieldElemT := dft.Type
 
-	// Possible enum types, as []reflect.Type
-	ets, err := schemaToEnumTypes(schema, parentT)
+	ets, sks, err := enumAndNonEnumTypesForUnion(schema, parentT)
 	if err != nil {
 		return err
 	}
-	// Possible YANG scalar types, as []yang.TypeKind. This discards any
-	// yang.Type restrictions, since these are expected to be checked during
-	// verification after unmarshal.
-	sks, err := getUnionKindsNotEnums(schema)
-	if err != nil {
-		return err
-	}
-
-	util.DbgPrint("possible union types are enums %v or scalars %v", ets, sks)
 
 	// Special case. If all possible union types map to a single go type, the
 	// GoStruct field is that type rather than a union Interface type.
-	if !util.IsTypeInterface(destUnionFieldElemT) && !util.IsTypeSliceOfInterface(destUnionFieldElemT) {
-		// Is not an interface, we must have exactly one type in the union.
-		var yk yang.TypeKind
-		var isEnum bool
-		switch {
-		// That one type is either an enum or not an enum.
-		case len(sks) == 1 && len(ets) == 0:
-			yk = sks[0]
-		case len(sks) == 0 && len(ets) == 1:
-			yk = schema.Type.Type[0].Kind
-			isEnum = true
-		default:
-			return fmt.Errorf("got %v non-enum types and %v enum types for union schema %s for type %T, expect just one type in total", sks, ets, fieldName, parent)
-		}
-
-		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value, enc)
+	loneType, isEnum, err := getLoneUnionType(schema, destUnionFieldElemT, ets, sks)
+	if err != nil {
+		return err
+	}
+	if loneType != yang.Ynone {
+		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(loneType), fieldName, value, enc)
 		if err != nil {
-			return fmt.Errorf("could not unmarshal %v into type %s", value, yk)
+			return fmt.Errorf("could not unmarshal %v into type %s", value, loneType)
 		}
 
 		if !util.IsTypeSlice(destUnionFieldElemT) {
@@ -517,16 +494,12 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	}
 
 	if ok {
-		for _, et := range ets {
-			util.DbgPrint("try to unmarshal into enum type %s", et)
-			ev, err := castToEnumValue(et, valueStr)
-			if err != nil {
-				return err
-			}
-			if ev != nil {
-				return setFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, ev)
-			}
-			util.DbgPrint("could not unmarshal %v into enum type: %s", value, err)
+		ev, err := castToOneEnumValue(ets, valueStr)
+		if err != nil {
+			return err
+		}
+		if ev != nil {
+			return setUnionFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, ev)
 		}
 	}
 
@@ -535,7 +508,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		sch := yangKindToLeafEntry(sk)
 		gv, err := unmarshalScalar(parent, sch, fieldName, value, enc)
 		if err == nil {
-			return setFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, gv)
+			return setUnionFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, gv)
 		}
 		util.DbgPrint("could not unmarshal %v into type %s: %s", value, sk, err)
 	}
@@ -543,32 +516,14 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	return fmt.Errorf("could not find suitable union type to unmarshal value %v type %T into parent struct type %T field %s", value, value, parent, fieldName)
 }
 
-// setFieldWithTypedValue sets the field destV that has type ft and the given
-// parent type with v, which must be a compatible enum type.
-func setFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT reflect.Type, v interface{}) error {
-	util.DbgPrint("setFieldWithTypedValue value %v into type %s", util.ValueStrDebug(v), destElemT)
-	if destElemT.Kind() == reflect.Slice {
-		// leaf-list case
-		destElemT = destElemT.Elem()
+// setUnionFieldWithTypedValue sets the field destV with value v after converting it
+// to destElemT using the union conversion function of the given parent type.
+func setUnionFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT reflect.Type, v interface{}) error {
+	util.DbgPrint("setUnionFieldWithTypedValue value %v into type %s", util.ValueStrDebug(v), destElemT)
+	eiv, err := getUnionVal(parentT, destElemT, v)
+	if err != nil {
+		return err
 	}
-	mn := "To_" + destElemT.Name()
-	mapMethod := reflect.New(parentT).Elem().MethodByName(mn)
-	if !mapMethod.IsValid() {
-		return fmt.Errorf("%s does not have a %s function", destElemT.Name(), mn)
-	}
-	ec := mapMethod.Call([]reflect.Value{reflect.ValueOf(v)})
-	if len(ec) != 2 {
-		return fmt.Errorf("%s %s function returns %d params", destElemT.Name(), mn, len(ec))
-	}
-	ei := ec[0].Interface()
-	ee := ec[1].Interface()
-	if ee != nil {
-		return fmt.Errorf("unmarshaled %v type %T does not have a union type: %v", v, v, ee)
-	}
-
-	util.DbgPrint("unmarshaling %v into type %s", v, reflect.TypeOf(ei))
-
-	eiv := reflect.ValueOf(ei)
 	if destV.Type().Kind() == reflect.Slice {
 		destV.Set(reflect.Append(destV, eiv))
 	} else {
@@ -578,8 +533,36 @@ func setFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT
 	return nil
 }
 
+// getUnionVal converts the input value v to the target union type using the
+// union conversion function of the parent type.
+func getUnionVal(parentT reflect.Type, destElemT reflect.Type, v interface{}) (reflect.Value, error) {
+	util.DbgPrint("getUnionVal value %v into type %s", util.ValueStrDebug(v), destElemT)
+	if destElemT.Kind() == reflect.Slice {
+		// leaf-list case
+		destElemT = destElemT.Elem()
+	}
+	mn := "To_" + destElemT.Name()
+	mapMethod := reflect.New(parentT).Elem().MethodByName(mn)
+	if !mapMethod.IsValid() {
+		return reflect.ValueOf(nil), fmt.Errorf("%s does not have a %s function", destElemT.Name(), mn)
+	}
+	ec := mapMethod.Call([]reflect.Value{reflect.ValueOf(v)})
+	if len(ec) != 2 {
+		return reflect.ValueOf(nil), fmt.Errorf("%s %s function returns %d params", destElemT.Name(), mn, len(ec))
+	}
+	ei := ec[0].Interface()
+	ee := ec[1].Interface()
+	if ee != nil {
+		return reflect.ValueOf(nil), fmt.Errorf("unmarshaled %v type %T does not have a union type: %v", v, v, ee)
+	}
+
+	util.DbgPrint("unmarshaling %v into type %s", v, reflect.TypeOf(ei))
+
+	return reflect.ValueOf(ei), nil
+}
+
 // getUnionKindsNotEnums returns all the YANG kinds under the given schema node,
-// dereferencing any refs.
+// dereferencing any refs. Duplicate types are deduped.
 func getUnionKindsNotEnums(schema *yang.Entry) ([]yang.TypeKind, error) {
 	var uks []yang.TypeKind
 	m := make(map[yang.TypeKind]interface{})
@@ -588,10 +571,10 @@ func getUnionKindsNotEnums(schema *yang.Entry) ([]yang.TypeKind, error) {
 		return nil, err
 	}
 	for _, yt := range uts {
-		m[yt.Kind] = nil
-	}
-	for k := range m {
-		uks = append(uks, k)
+		if _, ok := m[yt.Kind]; !ok {
+			m[yt.Kind] = nil
+			uks = append(uks, yt.Kind)
+		}
 	}
 	return uks, nil
 }
@@ -660,7 +643,10 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 //     Required if the unmarshaled type is an enum.
 func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, value interface{}, enc Encoding) (interface{}, error) {
 	if util.IsValueNil(value) {
-		return nil, nil
+		if enc == JSONEncoding {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("unmarshalScalar: invalid nil value to unmarshal")
 	}
 
 	if err := validateLeafSchema(schema); err != nil {
@@ -809,10 +795,17 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 		}
 		return rv.Interface(), nil
 	case yang.Ybinary:
-		return tv.GetBytesVal(), nil
+		bytes := tv.GetBytesVal()
+		if bytes == nil {
+			return nil, fmt.Errorf("received BytesVal is nil -- this is invalid")
+		}
+		return bytes, nil
 	case yang.Ydecimal64:
 		switch v := tv.GetValue().(type) {
 		case *gpb.TypedValue_DecimalVal:
+			if v.DecimalVal == nil {
+				return nil, fmt.Errorf("received DecimalVal is nil -- this is invalid")
+			}
 			prec := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(v.DecimalVal.Precision)), nil)
 			// Second return value indicates whether returned float64 value exactly
 			// represents the division. We don't want to fail unmarshalling as float64
@@ -861,18 +854,4 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonToleranc
 		}
 	}
 	return ok
-}
-
-// isValueInterfacePtrToEnum reports whether v is an interface ptr to enum type.
-func isValueInterfacePtrToEnum(v reflect.Value) bool {
-	if v.Kind() != reflect.Ptr {
-		return false
-	}
-	v = v.Elem()
-	if v.Kind() != reflect.Interface {
-		return false
-	}
-	v = v.Elem()
-
-	return v.Kind() == reflect.Int64
 }

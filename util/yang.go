@@ -16,6 +16,8 @@
 package util
 
 import (
+	"bytes"
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -220,6 +222,83 @@ func IsYANGBaseType(t *yang.YangType) bool {
 	return ok
 }
 
+// SanitizedPattern returns the values of the posix-pattern extension
+// statements for the YangType. If it's empty, then it returns the values from
+// the pattern statements with anchors attached (if missing).
+// It also returns whether the patterns are POSIX.
+func SanitizedPattern(t *yang.YangType) ([]string, bool) {
+	if len(t.POSIXPattern) != 0 {
+		return t.POSIXPattern, true
+	}
+	var pat []string
+	for _, p := range t.Pattern {
+		// fixYangRegexp adds ^(...)$ around the pattern - the result is
+		// equivalent to a full match of whole string.
+		pat = append(pat, fixYangRegexp(p))
+	}
+	return pat, false
+}
+
+// fixYangRegexp takes a pattern regular expression from a YANG module and
+// returns it into a format which can be used by the Go regular expression
+// library. YANG uses a W3C standard that is defined to be implicitly anchored
+// at the head or tail of the expression. See
+// https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#regexs for details.
+func fixYangRegexp(pattern string) string {
+	var buf bytes.Buffer
+	var inEscape bool
+	var prevChar rune
+	addParens := false
+
+	for i, ch := range pattern {
+		if i == 0 && ch != '^' {
+			buf.WriteRune('^')
+			// Add parens around entire expression to prevent logical
+			// subexpressions associating with leading/trailing ^ / $.
+			buf.WriteRune('(')
+			addParens = true
+		}
+
+		switch ch {
+		case '$':
+			// Dollar signs need to be escaped unless they are at
+			// the end of the pattern, or are already escaped.
+			if !inEscape && i != len(pattern)-1 {
+				buf.WriteRune('\\')
+			}
+		case '^':
+			// Carets need to be escaped unless they are already
+			// escaped, indicating set negation ([^.*]) or at the
+			// start of the string.
+			if !inEscape && prevChar != '[' && i != 0 {
+				buf.WriteRune('\\')
+			}
+		}
+
+		// If the previous character was an escape character, then we
+		// leave the escape, otherwise check whether this is an escape
+		// char and if so, then enter escape.
+		inEscape = !inEscape && ch == '\\'
+
+		if i == len(pattern)-1 && addParens && ch == '$' {
+			buf.WriteRune(')')
+		}
+
+		buf.WriteRune(ch)
+
+		if i == len(pattern)-1 && ch != '$' {
+			if addParens {
+				buf.WriteRune(')')
+			}
+			buf.WriteRune('$')
+		}
+
+		prevChar = ch
+	}
+
+	return buf.String()
+}
+
 // IsConfig takes a yang.Entry and traverses up the tree to find the config
 // state of that element. In YANG, if the config parameter is unset, then it is
 // is inherited from the parent of the element - hence we must walk up the tree to find
@@ -237,10 +316,7 @@ func IsConfig(e *yang.Entry) bool {
 
 	// Reached the last element in the tree without explicit configuration
 	// being set.
-	if e.Config == yang.TSFalse {
-		return false
-	}
-	return true
+	return e.Config != yang.TSFalse
 }
 
 // isPathChild takes an input slice of strings representing a path and determines
@@ -349,8 +425,23 @@ func addToEntryMap(to, from map[string]*yang.Entry) map[string]*yang.Entry {
 	return to
 }
 
-// EnumeratedUnionTypes recursively searches the set of yang.YangTypes supplied to
-// extract the enumerated types that are within a union.
+// FlattenedTypes returns in tree order (in-order) the subtypes of a union type.
+func FlattenedTypes(types []*yang.YangType) []*yang.YangType {
+	var ret []*yang.YangType
+	for _, t := range types {
+		if IsUnionType(t) {
+			ret = append(ret, FlattenedTypes(t.Type)...)
+		} else {
+			ret = append(ret, t)
+		}
+	}
+	return ret
+}
+
+// EnumeratedUnionTypes recursively searches the set of yang.YangTypes supplied
+// to extract the enumerated types that are within a union. The set of input
+// yang.YangTypes is expected to be the slice of types of the union type.
+// It returns the enumerated types in tree order of appearance.
 func EnumeratedUnionTypes(types []*yang.YangType) []*yang.YangType {
 	var eTypes []*yang.YangType
 	for _, t := range types {
@@ -362,6 +453,57 @@ func EnumeratedUnionTypes(types []*yang.YangType) []*yang.YangType {
 		}
 	}
 	return eTypes
+}
+
+// DefiningType returns the type of definition of a subtype within a leaf type.
+// In the trivial case that the subtype is the leaf type itself, the leaf type
+// is returned; otherwise, subtype refers to a terminal union subtype within
+// the leaf's union type. An error is returned if the type does not belong to the
+// leaf type.
+//
+// The "defining type" of a union subtype is the closest, or innermost defining
+// type to which the subtype belongs. The "defining type" can either mean a
+// typedef-defined type or a leaf-defined type.
+//
+// Examples of the defining type of union subtypes within a top-level union
+// used under a leaf:
+// - a typedef within any kind or level of unions.
+//   - defining type is the typedef itself -- the closest place of definition.
+// - a non-typedef within a non-typedef union.
+//   - defining type is the union (i.e. type of the leaf, which defines it)
+// - a non-typedef within a non-typedef union within a non-typedef union.
+//   - defining type is the outer union (i.e. type of the leaf, which defines it).
+// - a non-typedef within a typedef union within a non-typedef union.
+//   - defining type is the (inner) typedef union.
+func DefiningType(subtype *yang.YangType, leafType *yang.YangType) (*yang.YangType, error) {
+	if subtype == leafType {
+		// Trivial case where the subtype is the leaf type itself.
+		// The leaf type is a place of definition, and it's also the closest.
+		return leafType, nil
+	}
+	return unionDefiningType(subtype, leafType, leafType)
+}
+
+// unionDefiningType returns the type of definition of a union subtype.
+// subtype is the union subtype, unionType is the current union type where
+// we're looking for the subtype, and definingType is the defining type of
+// unionType. An error is returned if the subtype was not found within the union.
+func unionDefiningType(subtype *yang.YangType, unionType *yang.YangType, definingType *yang.YangType) (*yang.YangType, error) {
+	for _, t := range unionType.Type {
+		definingType := definingType
+		if !IsYANGBaseType(t) {
+			definingType = t
+		}
+		switch {
+		case t == subtype:
+			return definingType, nil
+		case IsUnionType(t):
+			if defType, err := unionDefiningType(subtype, t, definingType); err == nil {
+				return defType, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("ygot/util: subtype %q not found within provided containing type %q", subtype.Name, unionType.Name)
 }
 
 // ResolveIfLeafRef returns a ptr to the schema pointed to by the leaf-ref path

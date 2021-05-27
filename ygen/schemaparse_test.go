@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
@@ -30,50 +29,58 @@ import (
 func TestBuildJSONTree(t *testing.T) {
 	// Simple YANG hierarchy for test case.
 	simpleModule := &yang.Entry{
-		Name: "a-module",
-		Kind: yang.DirectoryEntry,
+		Name:        "a-module",
+		Kind:        yang.DirectoryEntry,
+		Description: "A module",
 	}
 	simpleContainer := &yang.Entry{
-		Name:   "simple-container",
-		Kind:   yang.DirectoryEntry,
-		Parent: simpleModule,
+		Name:        "simple-container",
+		Kind:        yang.DirectoryEntry,
+		Parent:      simpleModule,
+		Description: "Simple Container",
 	}
 	simpleLeaf := &yang.Entry{
-		Name:   "simple-leaf",
-		Kind:   yang.LeafEntry,
-		Parent: simpleContainer,
+		Name:        "simple-leaf",
+		Kind:        yang.LeafEntry,
+		Parent:      simpleContainer,
+		Description: "Simple Leaf",
 	}
 	simpleContainer.Dir = map[string]*yang.Entry{"simple-leaf": simpleLeaf}
 	simpleModule.Dir = map[string]*yang.Entry{"simple-container": simpleContainer}
 
 	// More complex YANG hierarchy with multiple modules, and children.
 	moduleTwo := &yang.Entry{
-		Name: "a-module",
-		Kind: yang.DirectoryEntry,
+		Name:        "a-module",
+		Kind:        yang.DirectoryEntry,
+		Description: "A Module",
 	}
 	moduleTwoContainerOne := &yang.Entry{
-		Name:   "container-one",
-		Kind:   yang.DirectoryEntry,
-		Parent: moduleTwo,
+		Name:        "container-one",
+		Kind:        yang.DirectoryEntry,
+		Parent:      moduleTwo,
+		Description: "Container One",
 	}
 	moduleTwoContainerOne.Dir = map[string]*yang.Entry{
 		"ch-one": {
-			Name:   "ch-one",
-			Kind:   yang.LeafEntry,
-			Type:   &yang.YangType{Kind: yang.Ystring},
-			Parent: moduleTwoContainerOne,
+			Name:        "ch-one",
+			Kind:        yang.LeafEntry,
+			Type:        &yang.YangType{Kind: yang.Ystring},
+			Parent:      moduleTwoContainerOne,
+			Description: "Ch One",
 		},
 		"ch-two": {
-			Name:   "ch-two",
-			Kind:   yang.LeafEntry,
-			Type:   &yang.YangType{Kind: yang.Yuint32},
-			Parent: moduleTwoContainerOne,
+			Name:        "ch-two",
+			Kind:        yang.LeafEntry,
+			Type:        &yang.YangType{Kind: yang.Yuint32},
+			Parent:      moduleTwoContainerOne,
+			Description: "Ch Two",
 		},
 	}
 	moduleTwoContainerTwo := &yang.Entry{
-		Name:   "container-two",
-		Kind:   yang.DirectoryEntry,
-		Parent: moduleTwo,
+		Name:        "container-two",
+		Kind:        yang.DirectoryEntry,
+		Parent:      moduleTwo,
+		Description: "Container Two",
 	}
 	moduleTwoContainerTwo.Dir = map[string]*yang.Entry{
 		"ch2-leafone": {
@@ -81,6 +88,7 @@ func TestBuildJSONTree(t *testing.T) {
 			Kind:   yang.LeafEntry,
 			Type:   &yang.YangType{Kind: yang.Ystring},
 			Parent: moduleTwoContainerTwo,
+			// No description
 		},
 	}
 	moduleTwo.Dir = map[string]*yang.Entry{
@@ -89,20 +97,22 @@ func TestBuildJSONTree(t *testing.T) {
 	}
 
 	tests := []struct {
-		name             string
-		inEntries        []*yang.Entry
-		inDirectoryNames map[string]string
-		inFakeRoot       *yang.Entry
-		inCompressed     bool
-		want             string
-		wantErr          string
+		name                  string
+		inEntries             []*yang.Entry
+		inDirectoryNames      map[string]string
+		inFakeRoot            *yang.Entry
+		inCompressed          bool
+		inIncludeDescriptions bool
+		want                  string
+		wantErr               string
 	}{{
 		name:      "simple module entry",
 		inEntries: []*yang.Entry{simpleModule},
 		inDirectoryNames: map[string]string{
 			"/a-module/simple-container": "SimpleContainer",
 		},
-		inCompressed: true,
+		inCompressed:          true,
+		inIncludeDescriptions: false,
 		want: `{
     "Name": "",
     "Kind": 0,
@@ -138,6 +148,7 @@ func TestBuildJSONTree(t *testing.T) {
 			"/module-two/container-one":  "C1",
 			"/module-two/container-two":  "C2",
 		},
+		inIncludeDescriptions: true, // Descriptions of simpleModule will have been overwritten during first set of tests
 		want: `{
     "Name": "",
     "Kind": 0,
@@ -145,11 +156,13 @@ func TestBuildJSONTree(t *testing.T) {
     "Dir": {
         "container-one": {
             "Name": "container-one",
+            "Description": "Container One",
             "Kind": 1,
             "Config": 0,
             "Dir": {
                 "ch-one": {
                     "Name": "ch-one",
+                    "Description": "Ch One",
                     "Kind": 0,
                     "Config": 0,
                     "Type": {
@@ -159,6 +172,7 @@ func TestBuildJSONTree(t *testing.T) {
                 },
                 "ch-two": {
                     "Name": "ch-two",
+                    "Description": "Ch Two",
                     "Kind": 0,
                     "Config": 0,
                     "Type": {
@@ -173,6 +187,7 @@ func TestBuildJSONTree(t *testing.T) {
         },
         "container-two": {
             "Name": "container-two",
+            "Description": "Container Two",
             "Kind": 1,
             "Config": 0,
             "Dir": {
@@ -259,17 +274,17 @@ func TestBuildJSONTree(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		gotb, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot, tt.inCompressed)
+		gotb, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot, tt.inCompressed, tt.inIncludeDescriptions)
 		if err != nil && err.Error() != tt.wantErr {
 			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inEntries, tt.inDirectoryNames, err, tt.wantErr)
 		}
 
 		got := string(gotb)
-		if diff := pretty.Compare(got, tt.want); diff != "" {
-			if diffl, err := testutil.GenerateUnifiedDiff(got, tt.want); err == nil {
+		if diff := cmp.Diff(got, tt.want); diff != "" {
+			if diffl, err := testutil.GenerateUnifiedDiff(tt.want, got); err == nil {
 				diff = diffl
 			}
-			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected JSON tree, diff(-got,+want):\n%s", tt.name, tt.inEntries, tt.inDirectoryNames, diff)
+			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected JSON tree, diff(-want, +got):\n%s", tt.name, tt.inEntries, tt.inDirectoryNames, diff)
 		}
 	}
 }
@@ -436,15 +451,16 @@ func TestSchemaRoundtrip(t *testing.T) {
 	annotatedFakeRootContainerEntry.Dir["leaf"] = annotatedFakeRootLeafEntry
 
 	tests := []struct {
-		name             string
-		inEntries        []*yang.Entry
-		inFakeRoot       *yang.Entry
-		inDirectoryNames map[string]string
-		inCompressed     bool
-		want             map[string]*yang.Entry
-		wantJSONErr      string
-		wantGzipErr      string
-		wantSchemaErr    string
+		name               string
+		inEntries          []*yang.Entry
+		inFakeRoot         *yang.Entry
+		inDirectoryNames   map[string]string
+		inCompressed       bool
+		inInclDescriptions bool
+		want               map[string]*yang.Entry
+		wantJSONErr        string
+		wantGzipErr        string
+		wantSchemaErr      string
 	}{{
 		name:      "simple schema",
 		inEntries: []*yang.Entry{moduleEntry},
@@ -466,10 +482,11 @@ func TestSchemaRoundtrip(t *testing.T) {
 			"Container": annotatedFakeRootContainerEntry,
 			"Device":    annotatedFakeRootEntry,
 		},
+		inInclDescriptions: true,
 	}}
 
 	for _, tt := range tests {
-		gotByte, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot, tt.inCompressed)
+		gotByte, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot, tt.inCompressed, tt.inInclDescriptions)
 		if err != nil && err.Error() != tt.wantJSONErr {
 			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inEntries, tt.inDirectoryNames, err, tt.wantJSONErr)
 			continue
@@ -491,8 +508,8 @@ func TestSchemaRoundtrip(t *testing.T) {
 			// Use JSON serialisation for test debugging output.
 			gotj, _ := json.MarshalIndent(got, "", strings.Repeat(" ", 4))
 			wantj, _ := json.MarshalIndent(tt.want, "", strings.Repeat(" ", 4))
-			diff, _ := testutil.GenerateUnifiedDiff(string(gotj), string(wantj))
-			t.Errorf("%s: GzipToSchema(...): did not get expected output, diff(-got,+want):\n%s", tt.name, diff)
+			diff, _ := testutil.GenerateUnifiedDiff(string(wantj), string(gotj))
+			t.Errorf("%s: GzipToSchema(...): did not get expected output, diff(-want, +got):\n%s", tt.name, diff)
 		}
 	}
 }

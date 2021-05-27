@@ -19,13 +19,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/goyang/pkg/yang"
+	"google.golang.org/protobuf/proto"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
-
-// TODO(mostrowski): move below functions into path package.
 
 // PathMatchesPrefix reports whether prefix is a prefix of path.
 func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
@@ -46,21 +44,34 @@ func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 
 // PathElemsEqual replaces the proto.Equal() check for PathElems.
 // This significantly improves comparison speed.
-func PathElemsEqual(this, other *gpb.PathElem) bool {
+func PathElemsEqual(a, b *gpb.PathElem) bool {
 	// This check allows avoiding to deal with any null PathElems later on.
-	if this == nil || other == nil {
-		return this == nil && other == nil
+	if a == nil || b == nil {
+		return a == nil && b == nil
 	}
 
-	if this.Name != other.Name {
+	if a.Name != b.Name {
 		return false
 	}
-	if len(this.Key) != len(other.Key) {
+	if len(a.Key) != len(b.Key) {
 		return false
 	}
 
-	for k, v := range this.Key {
-		if vo, ok := other.Key[k]; !ok || vo != v {
+	for k, v := range a.Key {
+		if vo, ok := b.Key[k]; !ok || vo != v {
+			return false
+		}
+	}
+	return true
+}
+
+// PathElemSlicesEqual compares whether two PathElem slices are equal.
+func PathElemSlicesEqual(a, b []*gpb.PathElem) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !PathElemsEqual(a[i], b[i]) {
 			return false
 		}
 	}
@@ -90,9 +101,9 @@ func TrimGNMIPathPrefix(path *gpb.Path, prefix []string) *gpb.Path {
 	if !PathMatchesPrefix(path, prefix) {
 		return path
 	}
-	out := *path
+	out := proto.Clone(path).(*gpb.Path)
 	out.Elem = out.GetElem()[len(prefix):]
-	return &out
+	return out
 }
 
 // TrimGNMIPathElemPrefix returns the path with the prefix trimmed. It returns

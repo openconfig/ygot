@@ -20,6 +20,9 @@ module enum-module {
       container state {
         config false;
         uses child-config;
+        leaf enum {
+          type t:td-enum;
+        }
       }
     }
   }
@@ -29,6 +32,23 @@ module enum-module {
       type identityref {
         base t:ID;
       }
+    }
+
+    leaf id2 {
+      type identityref {
+        base t:ID;
+      }
+      default SO_LONG_AND_THANKS_FOR_ALL_THE_FISH;
+    }
+
+    leaf inline-enum {
+      type enumeration {
+        enum ADENINE;
+        enum THYMINE;
+        enum CYTOSINE;
+        enum GUANINE;
+      }
+      default THYMINE;
     }
   }
 
