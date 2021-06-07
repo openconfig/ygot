@@ -273,11 +273,15 @@ func parseListField(fd protoreflect.FieldDescriptor, v protoreflect.Value, baseP
 	}
 
 	if fd.Kind() == protoreflect.MessageKind {
-		if t, ok := v.Message().Interface().(proto.Message); ok {
-			// The only case of having proto.Message in a list key is when the field
-			// represents the list's value portion, therefore return this value.
-			return &parsedListField{member: t}, nil
+		// Deal with the case where the list member is set to nil.
+		if !v.IsValid() {
+			return nil, fmt.Errorf("invalid list member, %v", v)
 		}
+
+		// The only case of having proto.Message in a list key is when the field
+		// represents the list's value portion, therefore return this value.
+		return &parsedListField{member: v.Message().Interface()}, nil
+
 	}
 
 	mapPaths, err := annotatedSchemaPath(fd)

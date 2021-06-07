@@ -17,8 +17,11 @@ func TestGRIBIAFT(t *testing.T) {
 		wantErr   bool
 	}{{
 		desc: "IPv4 Entry with key",
-		inProto: &gribi_aft.Afts_Ipv4EntryKey{
-			Prefix: "1.0.0.0/24",
+		inProto: &gribi_aft.Afts{
+			Ipv4Entry: []*gribi_aft.Afts_Ipv4EntryKey{{
+				Prefix:    "1.0.0.0/24",
+				Ipv4Entry: &gribi_aft.Afts_Ipv4Entry{},
+			}},
 		},
 		wantPaths: map[string]interface{}{},
 	}}
