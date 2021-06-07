@@ -170,6 +170,12 @@ func TestPathsFromProtoInternal(t *testing.T) {
 			mustPath("/list-name[single-key=k2]/another-field"):     "val-two",
 		},
 	}, {
+		desc: "list with single key, no value specified",
+		inMsg: &epb.ExampleMessage{
+			Em: []*epb.ExampleMessageKey{{}},
+		},
+		wantErrSubstring: "nil list member",
+	}, {
 		desc: "list with multiple keys",
 		inMsg: &epb.ExampleMessage{
 			Multi: []*epb.ExampleMessageMultiKey{{
