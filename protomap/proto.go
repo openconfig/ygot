@@ -82,7 +82,6 @@ func parseField(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[
 	// wrapper message, or child messages if required.
 	val := v.Interface()
 
-	fmt.Printf("%v is a list? %v\n", fd.FullName(), fd.IsList())
 	if fd.IsList() {
 		return parseList(fd, v, vals, basePath, annotatedPath)
 	}
@@ -224,7 +223,6 @@ func parseList(fd protoreflect.FieldDescriptor, v protoreflect.Value, vals map[*
 		// data tree path, not a schema tree path.
 		p := resolvedPath(basePath, listPath)
 
-		fmt.Printf("keys are %v\n", listKeys)
 		for kn, kv := range listKeys {
 			le := p.Elem[len(p.Elem)-1]
 			if le.Key == nil {
