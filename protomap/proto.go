@@ -273,7 +273,7 @@ func parseListField(fd protoreflect.FieldDescriptor, v protoreflect.Value, baseP
 	if fd.Kind() == protoreflect.MessageKind {
 		// Deal with the case where the list member is set to nil.
 		if !v.IsValid() {
-			return nil, fmt.Errorf("invalid list member, %v", v)
+			return nil, fmt.Errorf("nil list member in field %s, %v", fd.FullName(), v)
 		}
 
 		// The only case of having proto.Message in a list key is when the field
