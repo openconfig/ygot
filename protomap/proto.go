@@ -33,10 +33,10 @@ import (
 	wpb "github.com/openconfig/ygot/proto/ywrapper"
 )
 
-// pathsFromProto returns, from a populated proto, a map between the YANG schema
+// PathsFromProto returns, from a populated proto, a map between the YANG schema
 // path (as specified in the yext.schemapath extension) and the value populated in
 // the message.
-func pathsFromProto(p proto.Message) (map[*gpb.Path]interface{}, error) {
+func PathsFromProto(p proto.Message) (map[*gpb.Path]interface{}, error) {
 	pp := map[*gpb.Path]interface{}{}
 	if err := pathsFromProtoInternal(p, pp, nil); err != nil {
 		return nil, err

@@ -272,7 +272,7 @@ func TestPathsFromProtoInternal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := pathsFromProto(tt.inMsg)
+			got, err := PathsFromProto(tt.inMsg)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
