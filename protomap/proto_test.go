@@ -174,7 +174,7 @@ func TestPathsFromProtoInternal(t *testing.T) {
 		inMsg: &epb.ExampleMessage{
 			Em: []*epb.ExampleMessageKey{{}},
 		},
-		wantErrSubstring: "invalid list member",
+		wantErrSubstring: "nil list member",
 	}, {
 		desc: "list with multiple keys",
 		inMsg: &epb.ExampleMessage{
