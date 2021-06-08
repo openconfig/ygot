@@ -361,11 +361,20 @@ func resolvedPath(basePath, annotatedPath *gpb.Path) *gpb.Path {
 	return np
 }
 
+type UnmapOpt interface {
+	isUnmapOpt()
+}
+
+type ignoreExtraPaths struct{}
+
+func (*ignoreExtraPaths) isUnmapOpt()     {}
+func IgnoreExtraPaths() *ignoreExtraPaths { return &ignoreExtraPaths{} }
+
 // ProtoFromPaths takes an input proto.Message and adds the values that are specified in the map vals to
 // it, using basePath as the prefix to any paths within the vals map. The message, p, is modified in place.
 // The map, vals, is keyed by the gNMI path to the field which is annotated in the ygot generated protobuf,
 // the complete path is taken to be basePath + the key found in the map.
-func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *gpb.Path) error {
+func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *gpb.Path, opt ...UnmapOpt) error {
 	if p == nil {
 		return errors.New("nil protobuf input")
 	}
@@ -432,13 +441,24 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 		return rangeErr
 	}
 
-	for chp := range directCh {
-		if !mapped[chp] {
-			return fmt.Errorf("did not map path %s to a proto field", chp)
+	if !hasIgnoreExtraPaths(opt) {
+		for chp := range directCh {
+			if !mapped[chp] {
+				return fmt.Errorf("did not map path %s to a proto field", chp)
+			}
 		}
 	}
 
 	return nil
+}
+
+func hasIgnoreExtraPaths(opts []UnmapOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*ignoreExtraPaths); ok {
+			return true
+		}
+	}
+	return false
 }
 
 // makeWrapper generates a new message for field fd of the proto message m with the value set to val.
