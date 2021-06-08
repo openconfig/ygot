@@ -29,6 +29,7 @@ import (
 	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
+	"github.com/openconfig/gnmi/value"
 	yextpb "github.com/openconfig/ygot/proto/yext"
 	wpb "github.com/openconfig/ygot/proto/ywrapper"
 )
@@ -379,6 +380,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 		}
 	}
 
+	mapped := map[*gpb.Path]bool{}
 	var rangeErr error
 	unpopRange{m}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 		annotatedPath, err := annotatedSchemaPath(fd)
@@ -402,6 +404,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 							rangeErr = errors.New("unimplemented: child messages")
 							return false
 						}
+						mapped[chp] = true
 						m.Set(fd, protoreflect.ValueOfMessage(v))
 					}
 				}
@@ -414,6 +417,12 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 		return rangeErr
 	}
 
+	for chp := range directCh {
+		if !mapped[chp] {
+			return fmt.Errorf("did not map path %s to a proto field", chp)
+		}
+	}
+
 	return nil
 }
 
@@ -422,6 +431,16 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 // type of payload is provided for the message. The second, boolean, return argument specifies whether
 // the message provided was a known wrapper type.
 func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val interface{}) (protoreflect.Message, bool, error) {
+	var wasTypedVal bool
+	if tv, ok := val.(*gpb.TypedValue); ok {
+		pv, err := value.ToScalar(tv)
+		if err != nil {
+			return nil, false, fmt.Errorf("cannot convert TypedValue to scalar, %s", tv)
+		}
+		val = pv
+		wasTypedVal = true
+	}
+
 	newV := msg.NewField(fd)
 	switch newV.Message().Interface().(type) {
 	case *wpb.StringValue:
@@ -430,6 +449,20 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 			return nil, false, fmt.Errorf("got non-string value for string field, field: %s, value: %v", fd.FullName(), val)
 		}
 		return (&wpb.StringValue{Value: nsv}).ProtoReflect(), true, nil
+	case *wpb.UintValue:
+		var nsv uint64
+		switch {
+		case wasTypedVal:
+			nsv = val.(uint64)
+		default:
+			iv, ok := val.(int)
+			if !ok {
+				return nil, false, fmt.Errorf("got non-uint value for uint field, field: %s, value: %v", fd.FullName(), val)
+			}
+			nsv = uint64(iv)
+		}
+
+		return (&wpb.UintValue{Value: nsv}).ProtoReflect(), true, nil
 	}
 	return nil, false, nil
 }
