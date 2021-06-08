@@ -410,6 +410,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 
 		for _, ap := range annotatedPath {
 			for chp, chv := range directCh {
+				fmt.Printf("cmp %s == %s? %v\n", ap, chp, proto.Equal(ap, chp))
 				if proto.Equal(ap, chp) {
 					switch fd.Kind() {
 					case protoreflect.MessageKind:
