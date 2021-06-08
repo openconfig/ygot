@@ -26,6 +26,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -409,9 +410,10 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 		}
 
 		for _, ap := range annotatedPath {
+			trimmedAP := util.TrimGNMIPathElemPrefix(ap, basePath)
 			for chp, chv := range directCh {
-				fmt.Printf("cmp %s == %s? %v\n", ap, chp, proto.Equal(ap, chp))
-				if proto.Equal(ap, chp) {
+				fmt.Printf("cmp %s == %s? %v\n", ap, chp, proto.Equal(trimmedAP, chp))
+				if proto.Equal(trimmedAP, chp) {
 					switch fd.Kind() {
 					case protoreflect.MessageKind:
 						v, isWrap, err := makeWrapper(m, fd, chv)
