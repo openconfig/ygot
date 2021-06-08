@@ -425,6 +425,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 							return false
 						}
 						mapped[chp] = true
+						fmt.Printf("setting wrapper field %s to %s\n", fd.FullName(), v)
 						m.Set(fd, protoreflect.ValueOfMessage(v))
 					case protoreflect.EnumKind:
 						v, err := enumValue(fd, chv)
