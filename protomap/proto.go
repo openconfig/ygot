@@ -385,9 +385,6 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 	for p, v := range vals {
 		// TODO(robjs): needs fixing for compressed schemas.
 		l := 0
-		if basePath != nil {
-			l = len(basePath.Elem)
-		}
 		if len(p.Elem) == l+1 {
 			directCh[p] = v
 		}
