@@ -328,6 +328,13 @@ func TestProtoFromPathsInternal(t *testing.T) {
 			Ui: &wpb.UintValue{Value: 64},
 		},
 	}, {
+		desc:    "non uint value for uint",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/uint"): "invalid",
+		},
+		wantErrSubstring: "got non-uint value for uint field",
+	}, {
 		desc:    "string field as typed value",
 		inProto: &epb.ExampleMessage{},
 		inVals: map[*gpb.Path]interface{}{
@@ -407,6 +414,33 @@ func TestProtoFromPathsInternal(t *testing.T) {
 	}, {
 		desc:             "nil input",
 		wantErrSubstring: "nil protobuf input",
+	}, {
+		desc:    "bytes value from typed value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/bytes"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_BytesVal{BytesVal: []byte{1, 2, 3}},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			By: &wpb.BytesValue{Value: []byte{1, 2, 3}},
+		},
+	}, {
+		desc:    "bytes value from  value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/bytes"): []byte{4, 5, 6},
+		},
+		wantProto: &epb.ExampleMessage{
+			By: &wpb.BytesValue{Value: []byte{4, 5, 6}},
+		},
+	}, {
+		desc:    "non-bytes for bytes field",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/bytes"): 42,
+		},
+		wantErrSubstring: "got non-byte slice value for bytes field",
 	}}
 
 	for _, tt := range tests {
