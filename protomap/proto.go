@@ -390,7 +390,14 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 		if len(p.Elem) == l+1 {
 			directCh[p] = v
 		}
+		if len(p.Elem) == l+2 {
+			if p.Elem[len(p.Elem)-2].Name == "config" || p.Elem[len(p.Elem)-2].Name == "state" {
+				directCh[p] = v
+			}
+		}
 	}
+
+	fmt.Printf("mapping %+vn", directCh)
 
 	mapped := map[*gpb.Path]bool{}
 	var rangeErr error
