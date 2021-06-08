@@ -397,7 +397,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 		}
 	}
 
-	fmt.Printf("mapping %+vn", directCh)
+	fmt.Printf("mapping %+v\n", directCh)
 
 	mapped := map[*gpb.Path]bool{}
 	var rangeErr error
