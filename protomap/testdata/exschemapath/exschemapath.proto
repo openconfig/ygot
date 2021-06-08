@@ -34,6 +34,14 @@ message ExampleMessage {
     ExampleMessageChild ex = 7 [(yext.schemapath) = "/message"];
     repeated ExampleMessageKey em = 8 [(yext.schemapath) = "/list-name"];
     repeated ExampleMessageMultiKey multi = 9 [(yext.schemapath) = "/multi-list"];
+    ExampleEnum en = 10 [(yext.schemapath) = "/enum"];
+}
+
+enum ExampleEnum {
+    ENUM_UNSET = 0;
+    ENUM_VALONE = 1 [(yext.yang_name) = "VAL_ONE"];
+    ENUM_VALTWO = 2 [(yext.yang_name) = "VAL_TWO"];
+    ENUM_VALFORTYTWO = 42 [(yext.yang_name) = "VAL_FORTYTWO"];
 }
 
 message ExampleMessageChild {

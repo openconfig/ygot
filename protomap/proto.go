@@ -366,6 +366,9 @@ func resolvedPath(basePath, annotatedPath *gpb.Path) *gpb.Path {
 // The map, vals, is keyed by the gNMI path to the field which is annotated in the ygot generated protobuf,
 // the complete path is taken to be basePath + the key found in the map.
 func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *gpb.Path) error {
+	if p == nil {
+		return errors.New("nil protobuf input")
+	}
 	m := p.ProtoReflect()
 
 	directCh := map[*gpb.Path]interface{}{}
@@ -392,7 +395,8 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 		for _, ap := range annotatedPath {
 			for chp, chv := range directCh {
 				if proto.Equal(ap, chp) {
-					if fd.Kind() == protoreflect.MessageKind {
+					switch fd.Kind() {
+					case protoreflect.MessageKind:
 						v, isWrap, err := makeWrapper(m, fd, chv)
 						if err != nil {
 							rangeErr = err
@@ -406,6 +410,17 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 						}
 						mapped[chp] = true
 						m.Set(fd, protoreflect.ValueOfMessage(v))
+					case protoreflect.EnumKind:
+						v, err := enumValue(fd, chv)
+						if err != nil {
+							rangeErr = err
+							return false
+						}
+						mapped[chp] = true
+						m.Set(fd, v)
+					default:
+						rangeErr = fmt.Errorf("unknown field kind %s for %s", fd.Kind(), fd.FullName())
+						return false
 					}
 				}
 			}
@@ -465,4 +480,65 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 		return (&wpb.UintValue{Value: nsv}).ProtoReflect(), true, nil
 	}
 	return nil, false, nil
+}
+
+// enumValue returns the concrete implementation of the enumeration with the yang_name annotation set
+// to the string contained in val of the enumeration within the field descriptor fd. It returns an
+// error if the value cannot be found, or the input value is not valid.
+func enumValue(fd protoreflect.FieldDescriptor, val interface{}) (protoreflect.Value, error) {
+	var setVal string
+	switch inVal := val.(type) {
+	case string:
+		setVal = inVal
+	case *gpb.TypedValue:
+		tv, err := value.ToScalar(inVal)
+		if err != nil {
+			return protoreflect.ValueOf(nil), fmt.Errorf("cannot convert supplied TypedValue to scalar, %v", err)
+		}
+		s, ok := tv.(string)
+		if !ok {
+			return protoreflect.ValueOf(nil), fmt.Errorf("supplied TypedValue for enumeration must be a string, got: %T", tv)
+		}
+		setVal = s
+	default:
+		return protoreflect.ValueOf(nil), fmt.Errorf("got unknown type for enumeration, %T", inVal)
+	}
+
+	evals := map[string]protoreflect.EnumValueDescriptor{}
+	for i := 0; i < fd.Enum().Values().Len(); i++ {
+		tv := fd.Enum().Values().Get(i)
+		yn, ok, err := enumYANGName(fd.Enum().Values().Get(i))
+		if err != nil {
+			return protoreflect.ValueOf(nil), fmt.Errorf("error with enumeration value %s", fd.FullName())
+		}
+		if !ok {
+			continue
+		}
+		evals[yn] = tv
+	}
+
+	setEnumVal, ok := evals[setVal]
+	if !ok {
+		return protoreflect.ValueOf(nil), fmt.Errorf("got unknown value in enumeration %s, %s", fd.FullName(), setVal)
+	}
+
+	return protoreflect.ValueOfEnum(setEnumVal.Number()), nil
+}
+
+// enumYANGName returns the value of the yang_name annotation to a protobuf enumeration
+// value. It reads from the supplied enum value descriptor (ed), which must be an
+// enumeration descriptor. It returns the found annotation, a bool indicating whether the
+// annotation existed, and an error.
+//
+// The bool indicating whether the annotation exists is used because unset values within
+// an enumeration that do not have a real YANG value simply omit the annotation.
+func enumYANGName(ed protoreflect.EnumValueDescriptor) (string, bool, error) {
+	eo := ed.Options().(*descriptorpb.EnumValueOptions)
+	ex := proto.GetExtension(eo, yextpb.E_YangName).(string)
+	if ex == "" {
+		// this is an unset value, so mark that the caller doesn't need to handle
+		// this.
+		return "", false, nil
+	}
+	return ex, true, nil
 }
