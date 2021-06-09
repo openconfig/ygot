@@ -362,14 +362,24 @@ func resolvedPath(basePath, annotatedPath *gpb.Path) *gpb.Path {
 	return np
 }
 
+// UnmapOpt marks that a particular option can be supplied as an argument
+// to the ProtoFromPaths function.
 type UnmapOpt interface {
 	isUnmapOpt()
 }
 
+// IgnoreExtraPaths indicates that unmapping should ignore any additional
+// paths that are found in the gNMI Notifications that dot not have corresponding
+// fields in the protobuf.
+//
+// This option is typically used in conjunction with path compression where there
+// are some leaves that do not have corresponding fields.
+func IgnoreExtraPaths() *ignoreExtraPaths { return &ignoreExtraPaths{} }
+
 type ignoreExtraPaths struct{}
 
-func (*ignoreExtraPaths) isUnmapOpt()     {}
-func IgnoreExtraPaths() *ignoreExtraPaths { return &ignoreExtraPaths{} }
+// isUnmapOpt marks ignoreExtraPaths as an unmap option.
+func (*ignoreExtraPaths) isUnmapOpt() {}
 
 // ProtoFromPaths takes an input proto.Message and adds the values that are specified in the map vals to
 // it, using basePath as the prefix to any paths within the vals map. The message, p, is modified in place.
@@ -383,19 +393,19 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 
 	directCh := map[*gpb.Path]interface{}{}
 	for p, v := range vals {
-		// TODO(robjs): needs fixing for compressed schemas.
 		l := 0
 		if len(p.Elem) == l+1 {
 			directCh[p] = v
 		}
+		// TODO(robjs): it'd be good to have something here that tells us whether we are in
+		// a compressed schema. Potentially we should add something to the generated protobuf
+		// as a fileoption that would give us this indication.
 		if len(p.Elem) == l+2 {
 			if p.Elem[len(p.Elem)-2].Name == "config" || p.Elem[len(p.Elem)-2].Name == "state" {
 				directCh[p] = v
 			}
 		}
 	}
-
-	fmt.Printf("mapping %+v\n", directCh)
 
 	mapped := map[*gpb.Path]bool{}
 	var rangeErr error
@@ -409,7 +419,6 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 		for _, ap := range annotatedPath {
 			trimmedAP := util.TrimGNMIPathElemPrefix(ap, basePath)
 			for chp, chv := range directCh {
-				fmt.Printf("cmp %s == %s? %v\n", ap, chp, proto.Equal(trimmedAP, chp))
 				if proto.Equal(trimmedAP, chp) {
 					switch fd.Kind() {
 					case protoreflect.MessageKind:
@@ -425,7 +434,6 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 							return false
 						}
 						mapped[chp] = true
-						fmt.Printf("setting wrapper field %s to %s\n", fd.FullName(), v)
 						m.Set(fd, protoreflect.ValueOfMessage(v))
 					case protoreflect.EnumKind:
 						v, err := enumValue(fd, chv)
@@ -460,6 +468,8 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 	return nil
 }
 
+// hasIgnoreExtraPaths checks whether the supplied opts slice contains the
+// ignoreExtraPaths option.
 func hasIgnoreExtraPaths(opts []UnmapOpt) bool {
 	for _, o := range opts {
 		if _, ok := o.(*ignoreExtraPaths); ok {

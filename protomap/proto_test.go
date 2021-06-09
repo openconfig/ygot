@@ -296,6 +296,7 @@ func TestProtoFromPathsInternal(t *testing.T) {
 		inProto          proto.Message
 		inVals           map[*gpb.Path]interface{}
 		inBasePath       *gpb.Path
+		inOpt            []UnmapOpt
 		wantProto        proto.Message
 		wantErrSubstring string
 	}{{
@@ -441,11 +442,68 @@ func TestProtoFromPathsInternal(t *testing.T) {
 			mustPath("/bytes"): 42,
 		},
 		wantErrSubstring: "got non-byte slice value for bytes field",
+	}, {
+		desc:    "compressed schema",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/state/compress"): "hello-world",
+		},
+		wantProto: &epb.ExampleMessage{
+			Compress: &wpb.StringValue{Value: "hello-world"},
+		},
+	}, {
+		desc:    "trim prefix",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("config/description"): "interface-42",
+		},
+		inBasePath: mustPath("/interfaces/interface"),
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "interface-42"},
+		},
+	}, {
+		desc:    "invalid message with no annotation on field",
+		inProto: &epb.InvalidMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("three"): "str",
+		},
+		wantErrSubstring: "received field with invalid annotation",
+	}, {
+		desc:    "invalid message with bad field type",
+		inProto: &epb.BadMessageKeyTwo{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("one"): "42",
+		},
+		wantErrSubstring: "unknown field kind",
+	}, {
+		desc:    "extra paths, not ignored",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("config/name"):        "interface-42",
+			mustPath("config/description"): "portal-to-wonderland",
+		},
+		inBasePath: mustPath("/interfaces/interface"),
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "interface-42"},
+		},
+		wantErrSubstring: `did not map path elem`,
+	}, {
+		desc:    "extra paths, not ignored",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("config/name"):        "interface-42",
+			mustPath("config/description"): "portal-to-wonderland",
+		},
+		inBasePath: mustPath("/interfaces/interface"),
+		inOpt:      []UnmapOpt{IgnoreExtraPaths()},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "portal-to-wonderland"},
+		},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			err := ProtoFromPaths(tt.inProto, tt.inVals, tt.inBasePath)
+			err := ProtoFromPaths(tt.inProto, tt.inVals, tt.inBasePath, tt.inOpt...)
 			if err != nil {
 				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 					t.Fatalf("did not get expected error, %s", diff)
