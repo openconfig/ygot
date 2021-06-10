@@ -196,3 +196,27 @@ func FindModelData(mods []*yang.Entry) ([]*gpb.ModelData, error) {
 
 	return modelData, nil
 }
+
+// JoinPaths joins an prefix and suffix paths, returning an error if their
+// target or origin fields are both non-empty but don't match.
+func JoinPaths(prefix, suffix *gpb.Path) (*gpb.Path, error) {
+	joined := &gpb.Path{
+		Origin: prefix.GetOrigin(),
+		Target: prefix.GetTarget(),
+		// Copy the prefix elem to avoid modifying the one the caller passed.
+		Elem: append(append([]*gpb.PathElem{}, prefix.GetElem()...), suffix.GetElem()...),
+	}
+	if sufOrigin := suffix.GetOrigin(); sufOrigin != "" {
+		if preOrigin := prefix.GetOrigin(); preOrigin != "" && preOrigin != sufOrigin {
+			return nil, fmt.Errorf("prefix and suffix have different origins: %s != %s", preOrigin, sufOrigin)
+		}
+		joined.Origin = sufOrigin
+	}
+	if sufTarget := suffix.GetTarget(); sufTarget != "" {
+		if preTarget := prefix.GetTarget(); preTarget != "" && preTarget != sufTarget {
+			return nil, fmt.Errorf("prefix and suffix have different targets: %s != %s", preTarget, sufTarget)
+		}
+		joined.Target = sufTarget
+	}
+	return joined, nil
+}
