@@ -474,6 +474,12 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 		}
 
 		return (&wpb.UintValue{Value: nsv}).ProtoReflect(), true, nil
+	case *wpb.BytesValue:
+		bv, ok := val.([]byte)
+		if !ok {
+			return nil, false, fmt.Errorf("got non-byte slice value for bytes field, field: %s, value: %v", fd.FullName(), val)
+		}
+		return (&wpb.BytesValue{Value: bv}).ProtoReflect(), true, nil
 	default:
 		return nil, false, nil
 	}
