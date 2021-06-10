@@ -290,12 +290,12 @@ func TestPathsFromProtoInternal(t *testing.T) {
 	}
 }
 
-func TestProtoFromPathsInternal(t *testing.T) {
+func TestProtoFromPaths(t *testing.T) {
 	tests := []struct {
 		desc             string
 		inProto          proto.Message
 		inVals           map[*gpb.Path]interface{}
-		inBasePath       *gpb.Path
+		inPrefix         *gpb.Path
 		wantProto        proto.Message
 		wantErrSubstring string
 	}{{
@@ -311,10 +311,10 @@ func TestProtoFromPathsInternal(t *testing.T) {
 		desc:    "uint field",
 		inProto: &epb.ExampleMessage{},
 		inVals: map[*gpb.Path]interface{}{
-			mustPath("/uint"): 128,
+			mustPath("/uint"): uint(18446744073709551615),
 		},
 		wantProto: &epb.ExampleMessage{
-			Ui: &wpb.UintValue{Value: 128},
+			Ui: &wpb.UintValue{Value: 18446744073709551615},
 		},
 	}, {
 		desc:    "uint field as TypedValue",
@@ -406,12 +406,19 @@ func TestProtoFromPathsInternal(t *testing.T) {
 		wantErrSubstring: "supplied TypedValue for enumeration must be a string",
 	}, {
 		desc:             "nil input",
-		wantErrSubstring: "nil protobuf input",
+		wantErrSubstring: "nil protobuf supplied",
+	}, {
+		desc:    "field that is not directly a child",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/one/two/three"): "ignored",
+		},
+		wantProto: &epb.ExampleMessage{},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			err := ProtoFromPaths(tt.inProto, tt.inVals, tt.inBasePath)
+			err := ProtoFromPaths(tt.inProto, tt.inVals, tt.inPrefix)
 			if err != nil {
 				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 					t.Fatalf("did not get expected error, %s", diff)

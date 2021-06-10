@@ -26,10 +26,10 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 
+	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/openconfig/gnmi/value"
 	yextpb "github.com/openconfig/ygot/proto/yext"
 	wpb "github.com/openconfig/ygot/proto/ywrapper"
 )
@@ -361,29 +361,25 @@ func resolvedPath(basePath, annotatedPath *gpb.Path) *gpb.Path {
 	return np
 }
 
-// ProtoFromPaths takes an input proto.Message and adds the values that are specified in the map vals to
-// it, using basePath as the prefix to any paths within the vals map. The message, p, is modified in place.
-// The map, vals, is keyed by the gNMI path to the field which is annotated in the ygot generated protobuf,
-// the complete path is taken to be basePath + the key found in the map.
-func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *gpb.Path) error {
+// ProtoFromPaths takes an input ygot-generated protobuf and unmarshals the values that are specified in the map
+// vals into it, using prefix as the prefix to any paths within the vals map. The message, p, is modified in place.
+// The map, vals, must be keyed by the gNMI path to the field which is annotated in the ygot generated protobuf,
+// the complete path is taken to be prefix + the key found in the map.
+func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, prefix *gpb.Path) error {
 	if p == nil {
-		return errors.New("nil protobuf input")
+		return errors.New("nil protobuf supplied")
 	}
-	m := p.ProtoReflect()
 
 	directCh := map[*gpb.Path]interface{}{}
 	for p, v := range vals {
 		// TODO(robjs): needs fixing for compressed schemas.
-		l := 0
-		if basePath != nil {
-			l = len(basePath.Elem)
-		}
-		if len(p.Elem) == l+1 {
+		if len(p.GetElem()) == len(prefix.GetElem())+1 {
 			directCh[p] = v
 		}
 	}
 
 	mapped := map[*gpb.Path]bool{}
+	m := p.ProtoReflect()
 	var rangeErr error
 	unpopRange{m}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 		annotatedPath, err := annotatedSchemaPath(fd)
@@ -405,7 +401,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 						if !isWrap {
 							// TODO(robjs): recurse into the message if it wasn't a wrapper
 							// type.
-							rangeErr = errors.New("unimplemented: child messages")
+							rangeErr = fmt.Errorf("unimplemented: child messages, field %s", fd.FullName())
 							return false
 						}
 						mapped[chp] = true
@@ -441,7 +437,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 	return nil
 }
 
-// makeWrapper generates a new message for field fd of the proto message m with the value set to val.
+// makeWrapper generates a new message for field fd of the proto message msg with the value set to val.
 // The field fd must describe a field that has a message type. An error is returned if the wrong
 // type of payload is provided for the message. The second, boolean, return argument specifies whether
 // the message provided was a known wrapper type.
@@ -470,7 +466,7 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 		case wasTypedVal:
 			nsv = val.(uint64)
 		default:
-			iv, ok := val.(int)
+			iv, ok := val.(uint)
 			if !ok {
 				return nil, false, fmt.Errorf("got non-uint value for uint field, field: %s, value: %v", fd.FullName(), val)
 			}
@@ -478,8 +474,9 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 		}
 
 		return (&wpb.UintValue{Value: nsv}).ProtoReflect(), true, nil
+	default:
+		return nil, false, nil
 	}
-	return nil, false, nil
 }
 
 // enumValue returns the concrete implementation of the enumeration with the yang_name annotation set
