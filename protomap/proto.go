@@ -369,7 +369,7 @@ type UnmapOpt interface {
 }
 
 // IgnoreExtraPaths indicates that unmapping should ignore any additional
-// paths that are found in the gNMI Notifications that dot not have corresponding
+// paths that are found in the gNMI Notifications that do not have corresponding
 // fields in the protobuf.
 //
 // This option is typically used in conjunction with path compression where there
@@ -381,26 +381,80 @@ type ignoreExtraPaths struct{}
 // isUnmapOpt marks ignoreExtraPaths as an unmap option.
 func (*ignoreExtraPaths) isUnmapOpt() {}
 
-// ProtoFromPaths takes an input ygot-generated protobuf and unmarshals the values that are specified in the map
-// vals into it, using prefix as the prefix to any paths within the vals map. The message, p, is modified in place.
-// The map, vals, must be keyed by the gNMI path to the field which is annotated in the ygot generated protobuf,
-// the complete path is taken to be prefix + the key found in the map. The supplied opt control the unmarshalling behaviour.
-func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, protoPrefix *gpb.Path, opt ...UnmapOpt) error {
+// ValuePathPrefix indicates that the values in the supplied map have a prefix which
+// is equal to the supplied path. The prefix plus each path in the vals map must be
+// equal to the absolute path for the supplied values.
+func ValuePathPrefix(path *gpb.Path) *valuePathPrefix {
+	return &valuePathPrefix{p: path}
+}
+
+type valuePathPrefix struct{ p *gpb.Path }
+
+// isUnmapOpt marks valuePathPrefix as an unmap option.
+func (*valuePathPrefix) isUnmapOpt() {}
+
+// ProtobufMessagePrefix specifies the path that the protobuf message supplied to ProtoFromPaths
+// makes up. This is used in cases where the message itself is not the root - and hence unmarshalling
+// should look for paths relative to the specified path in the vals map.
+func ProtobufMessagePrefix(path *gpb.Path) *protoMsgPrefix {
+	return &protoMsgPrefix{p: path}
+}
+
+type protoMsgPrefix struct{ p *gpb.Path }
+
+// isUnmapOpt marks protoMsgPrefix as an unmap option.
+func (*protoMsgPrefix) isUnmapOpt() {}
+
+// ProtoFromPaths takes an input ygot-generated protobuf and unmarshals the values provided in vals into the map.
+// The vals map must be keyed by the gNMI path to the leaf, with the interface{} value being the value that the
+// leaf at the field should be set to.
+//
+// The protobuf p is modified in place to add the values.
+//
+// The set of UnmapOpts that are provided (opt) are used to control the behaviour of unmarshalling the specified data.
+//
+// ProtoFromPaths returns an error if the data cannot be unmarshalled.
+func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, opt ...UnmapOpt) error {
 	if p == nil {
 		return errors.New("nil protobuf supplied")
 	}
 
+	valPrefix, err := hasValuePathPrefix(opt)
+	if err != nil {
+		return fmt.Errorf("invalid value prefix supplied, %v", err)
+	}
+
+	protoPrefix, err := hasProtoMsgPrefix(opt)
+	if err != nil {
+		return fmt.Errorf("invalid protobuf message prefix supplied in options, %v", err)
+	}
+
+	schemaPath := func(p *gpb.Path) *gpb.Path {
+		np := proto.Clone(p).(*gpb.Path)
+		for _, e := range np.Elem {
+			e.Key = nil
+		}
+		return np
+	}
+
+	// directCh is a map between the absolute schema path for a particular value, and
+	// the value specified.
 	directCh := map[*gpb.Path]interface{}{}
 	for p, v := range vals {
-		if len(p.GetElem()) == 1 {
-			directCh[p] = v
+		// make the path absolute, and a schema path.
+		pp := util.TrimGNMIPathElemPrefix(&gpb.Path{
+			Elem: append(append([]*gpb.PathElem{}, schemaPath(valPrefix).Elem...), p.Elem...),
+		}, protoPrefix)
+
+		if len(pp.GetElem()) == 1 {
+			directCh[pp] = v
 		}
 		// TODO(robjs): it'd be good to have something here that tells us whether we are in
 		// a compressed schema. Potentially we should add something to the generated protobuf
 		// as a fileoption that would give us this indication.
-		if len(p.Elem) == 2 {
-			if p.Elem[len(p.Elem)-2].Name == "config" || p.Elem[len(p.Elem)-2].Name == "state" {
-				directCh[p] = v
+		if len(pp.Elem) == 2 {
+			if pp.Elem[len(pp.Elem)-2].Name == "config" || pp.Elem[len(pp.Elem)-2].Name == "state" {
+				directCh[pp] = v
 			}
 		}
 	}
@@ -476,6 +530,34 @@ func hasIgnoreExtraPaths(opts []UnmapOpt) bool {
 		}
 	}
 	return false
+}
+
+// hasProtoMsgPrefix checks whether the supplied opts slice contains the
+// protoMsgPrefix option, and validates and returns the path it contains.
+func hasProtoMsgPrefix(opts []UnmapOpt) (*gpb.Path, error) {
+	for _, o := range opts {
+		if v, ok := o.(*protoMsgPrefix); ok {
+			if v.p == nil {
+				return nil, fmt.Errorf("invalid protobuf prefix supplied, %+v", v)
+			}
+			return v.p, nil
+		}
+	}
+	return &gpb.Path{}, nil
+}
+
+// hasValuePathPrefix checks whether the supplied opts slice contains
+// the valuePathPrefix option, and validates and returns the apth it contains.
+func hasValuePathPrefix(opts []UnmapOpt) (*gpb.Path, error) {
+	for _, o := range opts {
+		if v, ok := o.(*valuePathPrefix); ok {
+			if v.p == nil {
+				return nil, fmt.Errorf("invalid protobuf prefix supplied, %+v", v)
+			}
+			return v.p, nil
+		}
+	}
+	return &gpb.Path{}, nil
 }
 
 // makeWrapper generates a new message for field fd of the proto message msg with the value set to val.

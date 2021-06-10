@@ -296,7 +296,6 @@ func TestProtoFromPaths(t *testing.T) {
 		inProto          proto.Message
 		inVals           map[*gpb.Path]interface{}
 		inOpt            []UnmapOpt
-		inProtoPrefix    *gpb.Path
 		wantProto        proto.Message
 		wantErrSubstring string
 	}{{
@@ -457,7 +456,9 @@ func TestProtoFromPaths(t *testing.T) {
 		inVals: map[*gpb.Path]interface{}{
 			mustPath("config/description"): "interface-42",
 		},
-		inProtoPrefix: mustPath("/interfaces/interface"),
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+		},
 		wantProto: &epb.Interface{
 			Description: &wpb.StringValue{Value: "interface-42"},
 		},
@@ -482,7 +483,9 @@ func TestProtoFromPaths(t *testing.T) {
 			mustPath("config/name"):        "interface-42",
 			mustPath("config/description"): "portal-to-wonderland",
 		},
-		inProtoPrefix: mustPath("/interfaces/interface"),
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+		},
 		wantProto: &epb.Interface{
 			Description: &wpb.StringValue{Value: "interface-42"},
 		},
@@ -494,8 +497,10 @@ func TestProtoFromPaths(t *testing.T) {
 			mustPath("config/name"):        "interface-42",
 			mustPath("config/description"): "portal-to-wonderland",
 		},
-		inProtoPrefix: mustPath("/interfaces/interface"),
-		inOpt:         []UnmapOpt{IgnoreExtraPaths()},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			IgnoreExtraPaths(),
+		},
 		wantProto: &epb.Interface{
 			Description: &wpb.StringValue{Value: "portal-to-wonderland"},
 		},
@@ -506,11 +511,37 @@ func TestProtoFromPaths(t *testing.T) {
 			mustPath("/one/two/three"): "ignored",
 		},
 		wantProto: &epb.ExampleMessage{},
+	}, {
+		desc:    "value prefix specified - schema path",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("description"): "interface-42",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			ValuePathPrefix(mustPath("/interfaces/interface/config")),
+		},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "interface-42"},
+		},
+	}, {
+		desc:    "value prefix specified - data tree path",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("description"): "interface-42",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			ValuePathPrefix(mustPath("/interfaces/interface[name=ethernet42]/config")),
+		},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "interface-42"},
+		},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			err := ProtoFromPaths(tt.inProto, tt.inVals, tt.inProtoPrefix, tt.inOpt...)
+			err := ProtoFromPaths(tt.inProto, tt.inVals, tt.inOpt...)
 			if err != nil {
 				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 					t.Fatalf("did not get expected error, %s", diff)
