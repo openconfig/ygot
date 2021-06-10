@@ -198,7 +198,7 @@ func FindModelData(mods []*yang.Entry) ([]*gpb.ModelData, error) {
 }
 
 // JoinPaths joins an prefix and suffix paths, returning an error if their
-// target or origin fields don't match.
+// target or origin fields are both non-empty but don't match.
 func JoinPaths(prefix, suffix *gpb.Path) (*gpb.Path, error) {
 	joined := &gpb.Path{
 		Origin: prefix.GetOrigin(),
