@@ -311,6 +311,37 @@ func TestProtoFromPaths(t *testing.T) {
 			Str: &wpb.StringValue{Value: "hello"},
 		},
 	}, {
+		desc:    "uint field",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/uint"): uint(18446744073709551615),
+		},
+		wantProto: &epb.ExampleMessage{
+			Ui: &wpb.UintValue{Value: 18446744073709551615},
+		},
+	}, {
+		desc:    "uint field as TypedValue",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/uint"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_UintVal{UintVal: 64},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			Ui: &wpb.UintValue{Value: 64},
+		},
+	}, {
+		desc:    "string field as typed value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/string"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{StringVal: "hello-world"},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			Str: &wpb.StringValue{Value: "hello-world"},
+		},
+	}, {
 		desc:    "wrong field type",
 		inProto: &epb.ExampleMessage{},
 		inVals: map[*gpb.Path]interface{}{
@@ -324,6 +355,13 @@ func TestProtoFromPaths(t *testing.T) {
 			mustPath("/message"): &gpb.Path{},
 		},
 		wantErrSubstring: "unimplemented",
+	}, {
+		desc:    "unknown field",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/unknown"): "hi!",
+		},
+		wantErrSubstring: "did not map path",
 	}, {
 		desc:    "field that is not directly a child",
 		inProto: &epb.ExampleMessage{},
