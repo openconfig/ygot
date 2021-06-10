@@ -381,26 +381,24 @@ type ignoreExtraPaths struct{}
 // isUnmapOpt marks ignoreExtraPaths as an unmap option.
 func (*ignoreExtraPaths) isUnmapOpt() {}
 
-// ProtoFromPaths takes an input proto.Message and adds the values that are specified in the map vals to
-// it, using basePath as the prefix to any paths within the vals map. The message, p, is modified in place.
-// The map, vals, is keyed by the gNMI path to the field which is annotated in the ygot generated protobuf,
-// the complete path is taken to be basePath + the key found in the map.
-func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *gpb.Path, opt ...UnmapOpt) error {
+// ProtoFromPaths takes an input ygot-generated protobuf and unmarshals the values that are specified in the map
+// vals into it, using prefix as the prefix to any paths within the vals map. The message, p, is modified in place.
+// The map, vals, must be keyed by the gNMI path to the field which is annotated in the ygot generated protobuf,
+// the complete path is taken to be prefix + the key found in the map. The supplied opt control the unmarshalling behaviour.
+func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, protoPrefix *gpb.Path, opt ...UnmapOpt) error {
 	if p == nil {
-		return errors.New("nil protobuf input")
+		return errors.New("nil protobuf supplied")
 	}
-	m := p.ProtoReflect()
 
 	directCh := map[*gpb.Path]interface{}{}
 	for p, v := range vals {
-		l := 0
-		if len(p.Elem) == l+1 {
+		if len(p.GetElem()) == 1 {
 			directCh[p] = v
 		}
 		// TODO(robjs): it'd be good to have something here that tells us whether we are in
 		// a compressed schema. Potentially we should add something to the generated protobuf
 		// as a fileoption that would give us this indication.
-		if len(p.Elem) == l+2 {
+		if len(p.Elem) == 2 {
 			if p.Elem[len(p.Elem)-2].Name == "config" || p.Elem[len(p.Elem)-2].Name == "state" {
 				directCh[p] = v
 			}
@@ -408,6 +406,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 	}
 
 	mapped := map[*gpb.Path]bool{}
+	m := p.ProtoReflect()
 	var rangeErr error
 	unpopRange{m}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 		annotatedPath, err := annotatedSchemaPath(fd)
@@ -417,7 +416,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 		}
 
 		for _, ap := range annotatedPath {
-			trimmedAP := util.TrimGNMIPathElemPrefix(ap, basePath)
+			trimmedAP := util.TrimGNMIPathElemPrefix(ap, protoPrefix)
 			for chp, chv := range directCh {
 				if proto.Equal(trimmedAP, chp) {
 					switch fd.Kind() {
@@ -430,7 +429,7 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, basePath *g
 						if !isWrap {
 							// TODO(robjs): recurse into the message if it wasn't a wrapper
 							// type.
-							rangeErr = errors.New("unimplemented: child messages")
+							rangeErr = fmt.Errorf("unimplemented: child messages, field %s", fd.FullName())
 							return false
 						}
 						mapped[chp] = true
@@ -479,7 +478,7 @@ func hasIgnoreExtraPaths(opts []UnmapOpt) bool {
 	return false
 }
 
-// makeWrapper generates a new message for field fd of the proto message m with the value set to val.
+// makeWrapper generates a new message for field fd of the proto message msg with the value set to val.
 // The field fd must describe a field that has a message type. An error is returned if the wrong
 // type of payload is provided for the message. The second, boolean, return argument specifies whether
 // the message provided was a known wrapper type.
@@ -508,7 +507,7 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 		case wasTypedVal:
 			nsv = val.(uint64)
 		default:
-			iv, ok := val.(int)
+			iv, ok := val.(uint)
 			if !ok {
 				return nil, false, fmt.Errorf("got non-uint value for uint field, field: %s, value: %v", fd.FullName(), val)
 			}
@@ -522,8 +521,9 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 			return nil, false, fmt.Errorf("got non-byte slice value for bytes field, field: %s, value: %v", fd.FullName(), val)
 		}
 		return (&wpb.BytesValue{Value: bv}).ProtoReflect(), true, nil
+	default:
+		return nil, false, nil
 	}
-	return nil, false, nil
 }
 
 // enumValue returns the concrete implementation of the enumeration with the yang_name annotation set
