@@ -290,15 +290,18 @@ func TestPathsFromProtoInternal(t *testing.T) {
 	}
 }
 
-func TestProtoFromPathsInternal(t *testing.T) {
+func TestProtoFromPaths(t *testing.T) {
 	tests := []struct {
 		desc             string
 		inProto          proto.Message
 		inVals           map[*gpb.Path]interface{}
-		inBasePath       *gpb.Path
+		inPrefix         *gpb.Path
 		wantProto        proto.Message
 		wantErrSubstring string
 	}{{
+		desc:             "nil proto",
+		wantErrSubstring: "nil protobuf",
+	}, {
 		desc:    "string field",
 		inProto: &epb.ExampleMessage{},
 		inVals: map[*gpb.Path]interface{}{
@@ -321,11 +324,18 @@ func TestProtoFromPathsInternal(t *testing.T) {
 			mustPath("/message"): &gpb.Path{},
 		},
 		wantErrSubstring: "unimplemented",
+	}, {
+		desc:    "field that is not directly a child",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/one/two/three"): "ignored",
+		},
+		wantProto: &epb.ExampleMessage{},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			err := ProtoFromPaths(tt.inProto, tt.inVals, tt.inBasePath)
+			err := ProtoFromPaths(tt.inProto, tt.inVals, tt.inPrefix)
 			if err != nil {
 				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 					t.Fatalf("did not get expected error, %s", diff)
