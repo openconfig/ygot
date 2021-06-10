@@ -299,9 +299,6 @@ func TestProtoFromPaths(t *testing.T) {
 		wantProto        proto.Message
 		wantErrSubstring string
 	}{{
-		desc:             "nil proto",
-		wantErrSubstring: "nil protobuf",
-	}, {
 		desc:    "string field",
 		inProto: &epb.ExampleMessage{},
 		inVals: map[*gpb.Path]interface{}{
@@ -362,6 +359,54 @@ func TestProtoFromPaths(t *testing.T) {
 			mustPath("/unknown"): "hi!",
 		},
 		wantErrSubstring: "did not map path",
+	}, {
+		desc:    "enumeration with valid value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): "VAL_ONE",
+		},
+		wantProto: &epb.ExampleMessage{
+			En: epb.ExampleEnum_ENUM_VALONE,
+		},
+	}, {
+		desc:    "enumeration with unknown value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): "NO-EXIST",
+		},
+		wantErrSubstring: "got unknown value in enumeration",
+	}, {
+		desc:    "enumeration with unknown type",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): false,
+		},
+		wantErrSubstring: "got unknown type for enumeration",
+	}, {
+		desc:    "enumeration with typedvalue",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{
+					StringVal: "VAL_FORTYTWO",
+				},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			En: epb.ExampleEnum_ENUM_VALFORTYTWO,
+		},
+	}, {
+		desc:    "enumeration with bad typedvalue",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_BoolVal{BoolVal: false},
+			},
+		},
+		wantErrSubstring: "supplied TypedValue for enumeration must be a string",
+	}, {
+		desc:             "nil input",
+		wantErrSubstring: "nil protobuf supplied",
 	}, {
 		desc:    "field that is not directly a child",
 		inProto: &epb.ExampleMessage{},
