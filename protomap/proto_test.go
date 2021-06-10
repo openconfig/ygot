@@ -289,3 +289,180 @@ func TestPathsFromProtoInternal(t *testing.T) {
 		})
 	}
 }
+
+func TestProtoFromPaths(t *testing.T) {
+	tests := []struct {
+		desc             string
+		inProto          proto.Message
+		inVals           map[*gpb.Path]interface{}
+		inPrefix         *gpb.Path
+		wantProto        proto.Message
+		wantErrSubstring string
+	}{{
+		desc:    "string field",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/string"): "hello",
+		},
+		wantProto: &epb.ExampleMessage{
+			Str: &wpb.StringValue{Value: "hello"},
+		},
+	}, {
+		desc:    "uint field",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/uint"): uint(18446744073709551615),
+		},
+		wantProto: &epb.ExampleMessage{
+			Ui: &wpb.UintValue{Value: 18446744073709551615},
+		},
+	}, {
+		desc:    "uint field as TypedValue",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/uint"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_UintVal{UintVal: 64},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			Ui: &wpb.UintValue{Value: 64},
+		},
+	}, {
+		desc:    "non uint value for uint",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/uint"): "invalid",
+		},
+		wantErrSubstring: "got non-uint value for uint field",
+	}, {
+		desc:    "string field as typed value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/string"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{StringVal: "hello-world"},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			Str: &wpb.StringValue{Value: "hello-world"},
+		},
+	}, {
+		desc:    "wrong field type",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/string"): 42,
+		},
+		wantErrSubstring: "got non-string value for string field",
+	}, {
+		desc:    "not a wrapper message",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/message"): &gpb.Path{},
+		},
+		wantErrSubstring: "unimplemented",
+	}, {
+		desc:    "unknown field",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/unknown"): "hi!",
+		},
+		wantErrSubstring: "did not map path",
+	}, {
+		desc:    "enumeration with valid value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): "VAL_ONE",
+		},
+		wantProto: &epb.ExampleMessage{
+			En: epb.ExampleEnum_ENUM_VALONE,
+		},
+	}, {
+		desc:    "enumeration with unknown value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): "NO-EXIST",
+		},
+		wantErrSubstring: "got unknown value in enumeration",
+	}, {
+		desc:    "enumeration with unknown type",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): false,
+		},
+		wantErrSubstring: "got unknown type for enumeration",
+	}, {
+		desc:    "enumeration with typedvalue",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{
+					StringVal: "VAL_FORTYTWO",
+				},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			En: epb.ExampleEnum_ENUM_VALFORTYTWO,
+		},
+	}, {
+		desc:    "enumeration with bad typedvalue",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_BoolVal{BoolVal: false},
+			},
+		},
+		wantErrSubstring: "supplied TypedValue for enumeration must be a string",
+	}, {
+		desc:             "nil input",
+		wantErrSubstring: "nil protobuf supplied",
+	}, {
+		desc:    "bytes value from typed value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/bytes"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_BytesVal{BytesVal: []byte{1, 2, 3}},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			By: &wpb.BytesValue{Value: []byte{1, 2, 3}},
+		},
+	}, {
+		desc:    "bytes value from  value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/bytes"): []byte{4, 5, 6},
+		},
+		wantProto: &epb.ExampleMessage{
+			By: &wpb.BytesValue{Value: []byte{4, 5, 6}},
+		},
+	}, {
+		desc:    "non-bytes for bytes field",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/bytes"): 42,
+		},
+		wantErrSubstring: "got non-byte slice value for bytes field",
+	}, {
+		desc:    "field that is not directly a child",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/one/two/three"): "ignored",
+		},
+		wantProto: &epb.ExampleMessage{},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := ProtoFromPaths(tt.inProto, tt.inVals, tt.inPrefix)
+			if err != nil {
+				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+					t.Fatalf("did not get expected error, %s", diff)
+				}
+				return
+			}
+
+			if diff := cmp.Diff(tt.inProto, tt.wantProto, protocmp.Transform()); diff != "" {
+				t.Fatalf("did not get expected results, diff(-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
