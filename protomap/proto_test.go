@@ -314,10 +314,10 @@ func TestProtoFromPaths(t *testing.T) {
 		desc:    "uint field",
 		inProto: &epb.ExampleMessage{},
 		inVals: map[*gpb.Path]interface{}{
-			mustPath("/uint"): 128,
+			mustPath("/uint"): uint(18446744073709551615),
 		},
 		wantProto: &epb.ExampleMessage{
-			Ui: &wpb.UintValue{Value: 128},
+			Ui: &wpb.UintValue{Value: 18446744073709551615},
 		},
 	}, {
 		desc:    "uint field as TypedValue",

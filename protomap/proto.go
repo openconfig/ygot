@@ -26,10 +26,10 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 
+	"github.com/openconfig/gnmi/value"
 	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/openconfig/gnmi/value"
 	yextpb "github.com/openconfig/ygot/proto/yext"
 	wpb "github.com/openconfig/ygot/proto/ywrapper"
 )
@@ -454,7 +454,7 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 		case wasTypedVal:
 			nsv = val.(uint64)
 		default:
-			iv, ok := val.(int)
+			iv, ok := val.(uint)
 			if !ok {
 				return nil, false, fmt.Errorf("got non-uint value for uint field, field: %s, value: %v", fd.FullName(), val)
 			}
