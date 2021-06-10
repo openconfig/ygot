@@ -429,6 +429,7 @@ func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val 
 			return nil, false, fmt.Errorf("got non-string value for string field, field: %s, value: %v", fd.FullName(), val)
 		}
 		return (&wpb.StringValue{Value: nsv}).ProtoReflect(), true, nil
+	default:
+		return nil, false, nil
 	}
-	return nil, false, nil
 }
