@@ -463,7 +463,7 @@ func TestProtoFromPaths(t *testing.T) {
 			Description: &wpb.StringValue{Value: "interface-42"},
 		},
 	}, {
-		desc:    "invalid message with no annotation on field",
+		desc:    "invalid message with no annotation on one of its other fields",
 		inProto: &epb.InvalidMessage{},
 		inVals: map[*gpb.Path]interface{}{
 			mustPath("three"): "str",
@@ -491,7 +491,7 @@ func TestProtoFromPaths(t *testing.T) {
 		},
 		wantErrSubstring: `did not map path elem`,
 	}, {
-		desc:    "extra paths, not ignored",
+		desc:    "extra paths, ignored",
 		inProto: &epb.Interface{},
 		inVals: map[*gpb.Path]interface{}{
 			mustPath("config/name"):        "interface-42",
