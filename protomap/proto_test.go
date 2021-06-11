@@ -537,6 +537,28 @@ func TestProtoFromPaths(t *testing.T) {
 		wantProto: &epb.Interface{
 			Description: &wpb.StringValue{Value: "interface-42"},
 		},
+	}, {
+		desc:    "bad trimmed value",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("config/description"): "interface-84",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/fish")),
+		},
+		wantErrSubstring: "does not match the supplied prefix",
+	}, {
+		desc:    "relative paths to protobuf prefix",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("config/description"): "value",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+		},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "value"},
+		},
 	}}
 
 	for _, tt := range tests {

@@ -470,6 +470,10 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, opt ...Unma
 		}
 
 		for _, ap := range annotatedPath {
+			if !util.PathMatchesPathElemPrefix(ap, protoPrefix) {
+				rangeErr = fmt.Errorf("annotation %s does not match the supplied prefix %s", ap, protoPrefix)
+				return false
+			}
 			trimmedAP := util.TrimGNMIPathElemPrefix(ap, protoPrefix)
 			for chp, chv := range directCh {
 				if proto.Equal(trimmedAP, chp) {
