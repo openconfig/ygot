@@ -418,6 +418,7 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 				matched[modPath] = true
 				origMatched = true
 				if !cmp.Equal(origVal, modVal) {
+					fmt.Printf("%v (%T) != %v (%T)\n", origVal, origVal, modVal, modVal)
 					// The contents of the value should indicate that value a has changed
 					// to value b.
 					if err := appendUpdate(n, origPath, modVal); err != nil {
