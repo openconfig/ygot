@@ -289,8 +289,9 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 	if !isFieldTypeCompatible(ft, n) {
 		return fmt.Errorf("cannot assign value %v (type %T) to struct field %s (type %v) in struct %T", fieldValue, fieldValue, fieldName, ft.Type, parentStruct)
 	}
-
+	fmt.Printf("setting %s -> %v\n", fieldName, n.Interface())
 	pv.Elem().FieldByName(fieldName).Set(n)
+	fmt.Printf("value is now %v\n", pv.Elem().FieldByName(fieldName).Interface())
 
 	return nil
 }
