@@ -23,6 +23,7 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -764,5 +765,63 @@ func TestFindModelData(t *testing.T) {
 		if diff := cmp.Diff(tt.want, got, cmp.Comparer(proto.Equal)); diff != "" {
 			t.Errorf("%s: FindModelData(%v): did not get expected result, diff(-want, +got):\n%s", tt.name, tt.in, diff)
 		}
+	}
+}
+
+func TestJoinPaths(t *testing.T) {
+	tests := []struct {
+		desc                 string
+		prefix, suffix, want *gpb.Path
+		wantErrSubstring     string
+	}{{
+		desc:   "all empty",
+		prefix: &gpb.Path{},
+		suffix: &gpb.Path{},
+		want:   &gpb.Path{},
+	}, {
+		desc:   "prefix only",
+		prefix: &gpb.Path{Origin: "o", Target: "t", Elem: []*gpb.PathElem{{Name: "p"}}},
+		suffix: &gpb.Path{},
+		want:   &gpb.Path{Origin: "o", Target: "t", Elem: []*gpb.PathElem{{Name: "p"}}},
+	}, {
+		desc:   "suffix only",
+		prefix: &gpb.Path{},
+		suffix: &gpb.Path{Origin: "o", Target: "t", Elem: []*gpb.PathElem{{Name: "s"}}},
+		want:   &gpb.Path{Origin: "o", Target: "t", Elem: []*gpb.PathElem{{Name: "s"}}},
+	}, {
+		desc:   "elements joined",
+		prefix: &gpb.Path{Elem: []*gpb.PathElem{{Name: "p"}}},
+		suffix: &gpb.Path{Elem: []*gpb.PathElem{{Name: "s"}}},
+		want:   &gpb.Path{Elem: []*gpb.PathElem{{Name: "p"}, {Name: "s"}}},
+	}, {
+		desc:   "same origin and target",
+		prefix: &gpb.Path{Origin: "o", Target: "t"},
+		suffix: &gpb.Path{Origin: "o", Target: "t"},
+		want:   &gpb.Path{Origin: "o", Target: "t"},
+	}, {
+		desc:             "mismatch origins",
+		prefix:           &gpb.Path{Origin: "o1"},
+		suffix:           &gpb.Path{Origin: "o2"},
+		wantErrSubstring: "different origins",
+	}, {
+		desc:             "mismatch targets",
+		prefix:           &gpb.Path{Target: "t1"},
+		suffix:           &gpb.Path{Target: "t2"},
+		wantErrSubstring: "different targets",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := JoinPaths(tt.prefix, tt.suffix)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("JoinPaths(%v, %v) got unexpected error diff: %s", tt.prefix, tt.suffix, diff)
+			}
+			if err != nil {
+				return
+			}
+			if diff := cmp.Diff(tt.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("JoinPaths(%v, %v) got unexpected result diff(-want, +got): %s", tt.prefix, tt.suffix, diff)
+			}
+		})
 	}
 }
