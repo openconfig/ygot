@@ -265,6 +265,7 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 	// generated code. Here we cast the value to the type in the generated code.
 	// This will also cast a []uint8 value since byte is an alias for uint8.
 	if ft.Type.Kind() == reflect.Slice && t.Kind() == reflect.Slice && ft.Type.Elem().Kind() == reflect.Uint8 && t.Elem().Kind() == reflect.Uint8 {
+		fmt.Printf("this was a binary - setting bytes to -> %v\n", v.Bytes())
 		nv := reflect.New(ft.Type).Elem()
 		nv.SetBytes(v.Bytes())
 		v = nv

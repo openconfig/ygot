@@ -378,6 +378,7 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, 
 	}
 	if ykind == yang.Ybinary {
 		// Binary is a slice field which is treated as a scalar.
+		fmt.Printf("this was a binary field\n")
 		return util.InsertIntoStruct(parent, fieldName, v)
 	}
 

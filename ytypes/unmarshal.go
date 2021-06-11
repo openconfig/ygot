@@ -85,6 +85,7 @@ func unmarshalGeneric(schema *yang.Entry, parent interface{}, value interface{},
 
 	switch {
 	case schema.IsLeaf():
+		fmt.Printf("	this is a leaf\n")
 		return unmarshalLeaf(schema, parent, value, enc)
 	case schema.IsLeafList():
 		return unmarshalLeafList(schema, parent, value, enc)
