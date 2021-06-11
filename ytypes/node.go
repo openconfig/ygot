@@ -144,7 +144,9 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				to--
 			}
 
-			if args.modifyRoot {
+			// If args.modifyRoot is true, then initialize the field before possibly searching further.
+			// However, if the field is a leaf, we don't want to modify it if shadowPath is true.
+			if args.modifyRoot && !(args.shadowPath && cschema != nil && cschema.IsLeaf()) {
 				if err := util.InitializeStructField(root, ft.Name); err != nil {
 					return nil, status.Errorf(codes.Unknown, "failed to initialize struct field %s in %T, child schema %v, path %v", ft.Name, root, cschema, path)
 				}
@@ -399,6 +401,9 @@ type GetOrCreateNodeOpt interface {
 // along the path if they are nil.
 // Function returns the value and schema of the node as well as error.
 // Note that this function may modify the supplied root even if the function fails.
+// Note that this function may create containers or list entries even if the input path is a shadow path.
+// TODO(wenbli): a traversal should remember what containers or list entries were created so that a shadow path
+//               can later undo this. This applies to SetNode as well.
 func GetOrCreateNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetOrCreateNodeOpt) (interface{}, *yang.Entry, error) {
 	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
 		modifyRoot:        true,
