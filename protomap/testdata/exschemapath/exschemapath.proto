@@ -2,10 +2,10 @@ syntax = "proto3";
 
 package exschemapath;
 
-option go_package = "github.com/openconfig/ygot/protomap/testdata/exschemapath";
+option go_package = "github.com/nokia/ygot/protomap/testdata/exschemapath";
 
-import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
-import "github.com/openconfig/ygot/proto/yext/yext.proto";
+import "github.com/nokia/ygot/proto/ywrapper/ywrapper.proto";
+import "github.com/nokia/ygot/proto/yext/yext.proto";
 
 message Root {
     System system = 1; 

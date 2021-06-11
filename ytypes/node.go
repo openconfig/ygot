@@ -17,9 +17,9 @@ package ytypes
 import (
 	"reflect"
 
+	"github.com/nokia/ygot/util"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -108,7 +108,13 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 	case schema.IsList():
 		return retrieveNodeList(schema, root, path, traversedPath, args)
 	}
-	return nil, status.Errorf(codes.InvalidArgument, "can not use a parent that is not a container or list; schema %v root %T, path %v", schema, root, path)
+	return nil, status.Errorf(
+		codes.InvalidArgument,
+		"can not use a parent that is not a container or list; schema %v root %T, path %v",
+		schema,
+		root,
+		path,
+	)
 }
 
 // retrieveNodeContainer is an internal function and operates on GoStruct. It retrieves
@@ -116,7 +122,13 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 // It recurses by calling retrieveNode. If modifyRoot is set to true, nodes along the path are initialized
 // if they are nil. If val isn't nil, then it is set on the leaf or leaflist node.
 // Note that root is modified even if function returns error status.
-func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path, traversedPath *gpb.Path, args retrieveNodeArgs) ([]*TreeNode, error) {
+func retrieveNodeContainer(
+	schema *yang.Entry,
+	root interface{},
+	path *gpb.Path,
+	traversedPath *gpb.Path,
+	args retrieveNodeArgs,
+) ([]*TreeNode, error) {
 	rv := reflect.ValueOf(root)
 	if !util.IsTypeStructPtr(rv.Type()) {
 		return nil, status.Errorf(codes.InvalidArgument, "got %T, want struct ptr root in retrieveNodeContainer", root)
@@ -146,7 +158,14 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 
 			if args.modifyRoot {
 				if err := util.InitializeStructField(root, ft.Name); err != nil {
-					return nil, status.Errorf(codes.Unknown, "failed to initialize struct field %s in %T, child schema %v, path %v", ft.Name, root, cschema, path)
+					return nil, status.Errorf(
+						codes.Unknown,
+						"failed to initialize struct field %s in %T, child schema %v, path %v",
+						ft.Name,
+						root,
+						cschema,
+						path,
+					)
 				}
 			}
 
@@ -168,7 +187,14 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				switch {
 				case util.IsYgotAnnotation(ft):
 					if err := util.UpdateField(root, ft.Name, args.val); err != nil {
-						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v, because of %v", ft.Name, root, args.val, err)
+						return nil, status.Errorf(
+							codes.Unknown,
+							"failed to update struct field %s in %T with value %v, because of %v",
+							ft.Name,
+							root,
+							args.val,
+							err,
+						)
 					}
 				case cschema.IsLeaf() || cschema.IsLeafList():
 					// With GNMIEncoding, unmarshalGeneric can only unmarshal leaf or leaf list
@@ -179,7 +205,14 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 						encoding = gNMIEncodingWithJSONTolerance
 					}
 					if err := unmarshalGeneric(cschema, root, args.val, encoding); err != nil {
-						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
+						return nil, status.Errorf(
+							codes.Unknown,
+							"failed to update struct field %s in %T with value %v; %v",
+							ft.Name,
+							root,
+							args.val,
+							err,
+						)
 					}
 				}
 			}
@@ -271,12 +304,19 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 		if !util.IsValueStruct(k) {
 			// Handle the special case that we have zero keys specified only when we are handling lists
 			// with partial keys specified.
-			if len(path.GetElem()[0].GetKey()) == 0 && args.partialKeyMatch || (args.handleWildcards && path.GetElem()[0].GetKey()[schema.Key] == "*") {
+			if len(path.GetElem()[0].GetKey()) == 0 && args.partialKeyMatch ||
+				(args.handleWildcards && path.GetElem()[0].GetKey()[schema.Key] == "*") {
 				keys, err := ygot.PathKeyFromStruct(listElemV)
 				if err != nil {
 					return nil, status.Errorf(codes.Unknown, "could not get path keys at %v: %v", traversedPath, err)
 				}
-				nodes, err := retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
+				nodes, err := retrieveNode(
+					schema,
+					listElemV.Interface(),
+					util.PopGNMIPath(path),
+					appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}),
+					args,
+				)
 				if err != nil {
 					return nil, err
 				}
@@ -361,7 +401,13 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 				rv.SetMapIndex(k, reflect.Value{})
 				return nil, nil
 			}
-			nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
+			nodes, err := retrieveNode(
+				schema,
+				listElemV.Interface(),
+				remainingPath,
+				appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}),
+				args,
+			)
 			if err != nil {
 				return nil, err
 			}
@@ -377,7 +423,13 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 		if err != nil {
 			return nil, err
 		}
-		nodes, err := retrieveNode(schema, rv.MapIndex(reflect.ValueOf(key)).Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
+		nodes, err := retrieveNode(
+			schema,
+			rv.MapIndex(reflect.ValueOf(key)).Interface(),
+			util.PopGNMIPath(path),
+			appendElem(traversedPath, path.GetElem()[0]),
+			args,
+		)
 		if err != nil {
 			return nil, err
 		}

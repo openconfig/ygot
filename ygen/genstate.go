@@ -19,10 +19,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/nokia/ygot/genutil"
+	"github.com/nokia/ygot/util"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/genutil"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // MappedType is used to store the generated language type that a leaf entity

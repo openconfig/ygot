@@ -20,8 +20,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/nokia/ygot/testutil"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/testutil"
 )
 
 func protoMsgEq(a, b *protoMsg) bool {
@@ -676,7 +676,17 @@ func TestGenProto3Msg(t *testing.T) {
 			}, tt.inParentPackage, tt.inChildMsgs, true, true)
 
 			if (errs != nil) != tt.wantErr {
-				t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
+				t.Errorf(
+					"s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v",
+					tt.name,
+					tt.inMsg,
+					tt.inMsgs,
+					tt.inCompressPaths,
+					tt.inBasePackage,
+					tt.inEnumPackage,
+					errs,
+					tt.wantErr,
+				)
 			}
 
 			if tt.wantErr {
@@ -691,19 +701,38 @@ func TestGenProto3Msg(t *testing.T) {
 			for _, got := range gotMsgs {
 				want, ok := tt.wantMsgs[got.Name]
 				if !ok {
-					t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): got unexpected message, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, got.Name, tt.wantMsgs)
+					t.Errorf(
+						"%s: genProtoMsg(%#v, %#v, *genState): got unexpected message, got: %v, want: %v",
+						tt.name,
+						tt.inMsg,
+						tt.inMsgs,
+						got.Name,
+						tt.wantMsgs,
+					)
 					continue
 				}
 				delete(notSeen, got.Name)
 
 				if !protoMsgEq(got, want) {
 					diff := pretty.Compare(got, want)
-					t.Errorf("%s: genProtoMsg(%#v, %#v, *genState): did not get expected protobuf message definition, diff(-got,+want):\n%s", tt.name, tt.inMsg, tt.inMsgs, diff)
+					t.Errorf(
+						"%s: genProtoMsg(%#v, %#v, *genState): did not get expected protobuf message definition, diff(-got,+want):\n%s",
+						tt.name,
+						tt.inMsg,
+						tt.inMsgs,
+						diff,
+					)
 				}
 			}
 
 			if len(notSeen) != 0 {
-				t.Errorf("%s: genProtoMsg(%#v, %#v, *genState); did not test all returned messages, got remaining messages: %v, want: none", tt.name, tt.inMsg, tt.inMsgs, notSeen)
+				t.Errorf(
+					"%s: genProtoMsg(%#v, %#v, *genState); did not test all returned messages, got remaining messages: %v, want: none",
+					tt.name,
+					tt.inMsg,
+					tt.inMsgs,
+					notSeen,
+				)
 			}
 		})
 	}
@@ -1436,7 +1465,16 @@ message MessageName {
 				}, true, true)
 
 				if (errs != nil) != wantErr[compress] {
-					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, wantErr[compress])
+					t.Errorf(
+						"%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v",
+						tt.name,
+						tt.inMsg,
+						tt.inMsgs,
+						s,
+						compress,
+						errs,
+						wantErr[compress],
+					)
 				}
 
 				if errs != nil || got == nil {
@@ -1444,18 +1482,43 @@ message MessageName {
 				}
 
 				if got.PackageName != want.PackageName {
-					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.PackageName, want.PackageName)
+					t.Errorf(
+						"%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v",
+						tt.name,
+						tt.inMsg,
+						tt.inMsgs,
+						s,
+						compress,
+						got.PackageName,
+						want.PackageName,
+					)
 				}
 
 				if diff := cmp.Diff(want.RequiredImports, got.RequiredImports); diff != "" {
-					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, (-want, +got,):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+					t.Errorf(
+						"%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, (-want, +got,):\n%s",
+						tt.name,
+						tt.inMsg,
+						tt.inMsgs,
+						s,
+						compress,
+						diff,
+					)
 				}
 
 				if diff := pretty.Compare(got.MessageCode, want.MessageCode); diff != "" {
 					if diffl, err := testutil.GenerateUnifiedDiff(want.MessageCode, got.MessageCode); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-want, +got):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
+					t.Errorf(
+						"%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-want, +got):\n%s",
+						tt.name,
+						tt.inMsg,
+						tt.inMsgs,
+						s,
+						compress,
+						diff,
+					)
 				}
 			}
 		})
@@ -1639,11 +1702,26 @@ func TestGenListKeyProto(t *testing.T) {
 	for _, tt := range tests {
 		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs, true, true)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: genListKeyProto(%s, %s, %#v): got unexpected error returned, got: %v, want err: %v", tt.name, tt.inListPackage, tt.inListName, tt.inArgs, err, tt.wantErr)
+			t.Errorf(
+				"%s: genListKeyProto(%s, %s, %#v): got unexpected error returned, got: %v, want err: %v",
+				tt.name,
+				tt.inListPackage,
+				tt.inListName,
+				tt.inArgs,
+				err,
+				tt.wantErr,
+			)
 		}
 
 		if diff := pretty.Compare(got, tt.wantMsg); diff != "" {
-			t.Errorf("%s: genListKeyProto(%s, %s, %#v): did not get expected return message, diff(-got,+want):\n%s", tt.name, tt.inListPackage, tt.inListName, tt.inArgs, diff)
+			t.Errorf(
+				"%s: genListKeyProto(%s, %s, %#v): did not get expected return message, diff(-got,+want):\n%s",
+				tt.name,
+				tt.inListPackage,
+				tt.inListName,
+				tt.inArgs,
+				diff,
+			)
 		}
 	}
 }
@@ -1980,7 +2058,16 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	for _, tt := range tests {
 		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, true, true)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, err, tt.wantErr)
+			t.Errorf(
+				"%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v",
+				tt.name,
+				tt.inName,
+				tt.inEntry,
+				tt.inMappedType,
+				tt.inAnnotateEnumNames,
+				err,
+				tt.wantErr,
+			)
 		}
 
 		if err != nil {
@@ -1988,15 +2075,39 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(got.oneOfFields, tt.wantFields); diff != "" {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected set of fields, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, diff)
+			t.Errorf(
+				"%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected set of fields, diff(-got,+want):\n%s",
+				tt.name,
+				tt.inName,
+				tt.inEntry,
+				tt.inMappedType,
+				tt.inAnnotateEnumNames,
+				diff,
+			)
 		}
 
 		if diff := pretty.Compare(got.enums, tt.wantEnums); diff != "" {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected set of enums, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, diff)
+			t.Errorf(
+				"%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected set of enums, diff(-got,+want):\n%s",
+				tt.name,
+				tt.inName,
+				tt.inEntry,
+				tt.inMappedType,
+				tt.inAnnotateEnumNames,
+				diff,
+			)
 		}
 
 		if diff := pretty.Compare(got.repeatedMsg, tt.wantRepeatedMsg); diff != "" {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected repeated message, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, diff)
+			t.Errorf(
+				"%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected repeated message, diff(-got,+want):\n%s",
+				tt.name,
+				tt.inName,
+				tt.inEntry,
+				tt.inMappedType,
+				tt.inAnnotateEnumNames,
+				diff,
+			)
 		}
 	}
 }
@@ -2035,7 +2146,14 @@ func TestStripPackagePrefix(t *testing.T) {
 		}
 
 		if stripped != tt.wantStripped {
-			t.Errorf("%s: stripPackagePrefix(%s, %s): did not get expected stipped status, got: %v, want: %v", tt.name, tt.inPrefix, tt.inPath, stripped, tt.wantStripped)
+			t.Errorf(
+				"%s: stripPackagePrefix(%s, %s): did not get expected stipped status, got: %v, want: %v",
+				tt.name,
+				tt.inPrefix,
+				tt.inPath,
+				stripped,
+				tt.wantStripped,
+			)
 		}
 	}
 

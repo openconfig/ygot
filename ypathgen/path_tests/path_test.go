@@ -20,9 +20,9 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
-	oc "github.com/openconfig/ygot/exampleoc"
-	"github.com/openconfig/ygot/ygot"
-	"github.com/openconfig/ygot/ypathgen"
+	oc "github.com/nokia/ygot/exampleoc"
+	"github.com/nokia/ygot/ygot"
+	"github.com/nokia/ygot/ypathgen"
 )
 
 // The device ID used throughout this test file.
@@ -103,9 +103,21 @@ func TestManualShortcuts(t *testing.T) {
 	}
 
 	// defining short helpers
-	verifyPath(t, preemptDelay("eth1", 1, "1::"), "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
-	verifyPath(t, preemptDelay("eth1", 2, "2:2:2:2::"), "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=2:2:2:2::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
-	verifyPath(t, preemptDelay("eth2", 2, "::"), "/interfaces/interface[name=eth2]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
+	verifyPath(
+		t,
+		preemptDelay("eth1", 1, "1::"),
+		"/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay",
+	)
+	verifyPath(
+		t,
+		preemptDelay("eth1", 2, "2:2:2:2::"),
+		"/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=2:2:2:2::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay",
+	)
+	verifyPath(
+		t,
+		preemptDelay("eth2", 2, "::"),
+		"/interfaces/interface[name=eth2]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay",
+	)
 
 	// re-using prefixes
 	intf1 := root.InterfaceAny()
@@ -170,19 +182,37 @@ func TestPathCreation(t *testing.T) {
 	}, {
 		name: "enumeration key",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
-			return root.NetworkInstance("DEFAULT").Mpls().SignalingProtocols().Ldp().InterfaceAttributes().Interface("eth1").AddressFamily(oc.MplsLdp_MplsLdpAfi_IPV4).AfiName()
+			return root.NetworkInstance(
+				"DEFAULT",
+			).Mpls().SignalingProtocols().Ldp().InterfaceAttributes().Interface(
+				"eth1",
+			).AddressFamily(
+				oc.MplsLdp_MplsLdpAfi_IPV4,
+			).AfiName()
 		},
 		wantPath: "/network-instances/network-instance[name=DEFAULT]/mpls/signaling-protocols/ldp/interface-attributes/interfaces/interface[interface-id=eth1]/address-families/address-family[afi-name=IPV4]/config/afi-name",
 	}, {
 		name: "union key (uint32 value)",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
-			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(oc.UnionUint32(100)).InOctets()
+			return root.NetworkInstance(
+				"RED",
+			).Mpls().SignalingProtocols().SegmentRouting().Interface(
+				"eth1",
+			).SidCounter(
+				oc.UnionUint32(100),
+			).InOctets()
 		},
 		wantPath: "/network-instances/network-instance[name=RED]/mpls/signaling-protocols/segment-routing/interfaces/interface[interface-id=eth1]/sid-counters/sid-counter[mpls-label=100]/state/in-octets",
 	}, {
 		name: "union key (enum value)",
 		makePath: func(root *oc.DevicePath) ygot.PathStruct {
-			return root.NetworkInstance("RED").Mpls().SignalingProtocols().SegmentRouting().Interface("eth1").SidCounter(oc.MplsTypes_MplsLabel_Enum_IMPLICIT_NULL).InOctets()
+			return root.NetworkInstance(
+				"RED",
+			).Mpls().SignalingProtocols().SegmentRouting().Interface(
+				"eth1",
+			).SidCounter(
+				oc.MplsTypes_MplsLabel_Enum_IMPLICIT_NULL,
+			).InOctets()
 		},
 		wantPath: "/network-instances/network-instance[name=RED]/mpls/signaling-protocols/segment-routing/interfaces/interface[interface-id=eth1]/sid-counters/sid-counter[mpls-label=IMPLICIT_NULL]/state/in-octets",
 	}, {

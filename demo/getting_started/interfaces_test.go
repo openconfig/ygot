@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/openconfig/ygot/genutil"
-	"github.com/openconfig/ygot/ygen"
+	"github.com/nokia/ygot/genutil"
+	"github.com/nokia/ygot/ygen"
 )
 
 // Simple test case that ensures that the end-to-end ygot pipeline works

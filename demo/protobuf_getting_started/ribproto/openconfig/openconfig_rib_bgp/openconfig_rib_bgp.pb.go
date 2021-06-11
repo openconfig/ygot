@@ -16,9 +16,9 @@ package openconfig_openconfig_rib_bgp
 
 import (
 	proto "github.com/golang/protobuf/proto"
-	enums "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
-	_ "github.com/openconfig/ygot/proto/yext"
-	ywrapper "github.com/openconfig/ygot/proto/ywrapper"
+	enums "github.com/nokia/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
+	_ "github.com/nokia/ygot/proto/yext"
+	ywrapper "github.com/nokia/ygot/proto/ywrapper"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

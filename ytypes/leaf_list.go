@@ -18,10 +18,10 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/nokia/ygot/util"
+	"github.com/nokia/ygot/ygot"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-7.7.
@@ -109,15 +109,29 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 	switch enc {
 	case GNMIEncoding, gNMIEncodingWithJSONTolerance:
 		if _, ok := value.(*gpb.TypedValue); !ok {
-			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect *gpb.TypedValue", schema.Name, util.ValueStr(value), value)
+			return fmt.Errorf(
+				"unmarshalLeafList for schema %s: value %v: got type %T, expect *gpb.TypedValue",
+				schema.Name,
+				util.ValueStr(value),
+				value,
+			)
 		}
 		tv := value.(*gpb.TypedValue)
 		sa, ok := tv.GetValue().(*gpb.TypedValue_LeaflistVal)
 		if !ok {
-			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect *gpb.TypedValue_LeaflistVal set in *gpb.TypedValue", schema.Name, util.ValueStr(value), tv.GetValue())
+			return fmt.Errorf(
+				"unmarshalLeafList for schema %s: value %v: got type %T, expect *gpb.TypedValue_LeaflistVal set in *gpb.TypedValue",
+				schema.Name,
+				util.ValueStr(value),
+				tv.GetValue(),
+			)
 		}
 		if len(sa.LeaflistVal.GetElement()) == 0 {
-			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got empty leaf list, expect non-empty leaf list", schema.Name, util.ValueStr(value))
+			return fmt.Errorf(
+				"unmarshalLeafList for schema %s: value %v: got empty leaf list, expect non-empty leaf list",
+				schema.Name,
+				util.ValueStr(value),
+			)
 		}
 		for _, v := range sa.LeaflistVal.GetElement() {
 			if err := unmarshalGeneric(&leafSchema, parent, v, enc); err != nil {
@@ -127,7 +141,12 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 	case JSONEncoding:
 		leafList, ok := value.([]interface{})
 		if !ok {
-			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect []interface{}", schema.Name, util.ValueStr(value), value)
+			return fmt.Errorf(
+				"unmarshalLeafList for schema %s: value %v: got type %T, expect []interface{}",
+				schema.Name,
+				util.ValueStr(value),
+				value,
+			)
 		}
 
 		for _, leaf := range leafList {

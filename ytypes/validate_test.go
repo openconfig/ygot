@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/ygot"
 )
 
 type Case1Leaf1ChoiceStruct struct {
@@ -217,7 +217,10 @@ func TestValidate(t *testing.T) {
 			val: &FakeRootStruct{
 				LeafTwo: ygot.String("two"),
 			},
-			opts:       []ygot.ValidationOption{&LeafrefOptions{IgnoreMissingData: true}, &CustomValidationOptions{FakeRootCustomValidate: customValidation}},
+			opts: []ygot.ValidationOption{
+				&LeafrefOptions{IgnoreMissingData: true},
+				&CustomValidationOptions{FakeRootCustomValidate: customValidation},
+			},
 			wantErr:    "leafThree should be kingfisher",
 			wantErrLen: 1,
 		},

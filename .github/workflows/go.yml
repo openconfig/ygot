@@ -2,7 +2,7 @@ name: Go
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
   schedule:
     - cron: "0 0 * * *"
@@ -14,13 +14,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ['1.13', '1.14', '1.15', '1.16', '1.x']
+        go: ["1.13", "1.14", "1.15", "1.16", "1.x"]
 
     steps:
       - name: Install protobuf
         uses: arduino/setup-protoc@v1
         with:
-          version: '3.x'
+          version: "3.x"
 
       - name: Set up Go
         uses: actions/setup-go@v2
@@ -43,31 +43,31 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
         with:
-          path: go/src/github.com/openconfig/ygot
+          path: go/src/github.com/nokia/ygot
 
       - name: Get dependencies
         run: |
           go get -v -t -d ./...
-        working-directory: go/src/github.com/openconfig/ygot
+        working-directory: go/src/github.com/nokia/ygot
 
       - name: Generate dependencies
         run: make generate
-        working-directory: go/src/github.com/openconfig/ygot
+        working-directory: go/src/github.com/nokia/ygot
 
       - name: Build packages
         run: go build -v ./...
-        working-directory: go/src/github.com/openconfig/ygot
+        working-directory: go/src/github.com/nokia/ygot
 
       - name: Run Tests
         run: go test -v ./...
-        working-directory: go/src/github.com/openconfig/ygot
+        working-directory: go/src/github.com/nokia/ygot
 
       - name: Run race tests
-        run:  go test -race -v ./...
-        working-directory: go/src/github.com/openconfig/ygot
+        run: go test -race -v ./...
+        working-directory: go/src/github.com/nokia/ygot
 
       - name: Check that Go integration test files compile
-        working-directory: go/src/github.com/openconfig/ygot/ygen/testdata
+        working-directory: go/src/github.com/nokia/ygot/ygen/testdata
         run: |
           function test-go-build() {
             cwd=$(pwd)
@@ -109,7 +109,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: '1.15'
+          go-version: "1.15"
         id: go
 
       - name: Install required static analysis tools
@@ -153,6 +153,6 @@ jobs:
         run: |
           checkstr=""
           for i in util ygot ygen ytypes ygot/pathtranslate testutil testcmp ypathgen; do
-            checkstr="$checkstr github.com/openconfig/ygot/$i"
+            checkstr="$checkstr github.com/nokia/ygot/$i"
           done
           staticcheck $checkstr

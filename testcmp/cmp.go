@@ -25,9 +25,9 @@ import (
 	log "github.com/golang/glog"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/ygot"
-	"github.com/openconfig/ygot/ytypes"
+	"github.com/nokia/ygot/testutil"
+	"github.com/nokia/ygot/ygot"
+	"github.com/nokia/ygot/ytypes"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 

@@ -24,8 +24,8 @@ import (
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	ocpb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig"
-	ocepb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
+	ocpb "github.com/nokia/ygot/demo/protobuf_getting_started/ribproto/openconfig"
+	ocepb "github.com/nokia/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
 )
 
 func TestProtoGenerate(t *testing.T) {

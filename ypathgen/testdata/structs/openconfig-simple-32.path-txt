@@ -11,5 +11,5 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	"github.com/openconfig/ygot/ygot"
+	"github.com/nokia/ygot/ygot"
 )

@@ -24,12 +24,12 @@ import (
 	log "github.com/golang/glog"
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/nokia/ygot/genutil"
+	"github.com/nokia/ygot/util"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/gnmi/errlist"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/genutil"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
 )
 
 const (
@@ -1277,7 +1277,14 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, gogen *goGenState, compressPaths, ignoreShadowSchemaPaths, generateJSONSchema, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, goOpts GoOpts) (GoStructCodeSnippet, []error) {
+func writeGoStruct(
+	targetStruct *Directory,
+	goStructElements map[string]*Directory,
+	gogen *goGenState,
+	compressPaths, ignoreShadowSchemaPaths, generateJSONSchema, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool,
+	enumOrgPrefixesToTrim []string,
+	goOpts GoOpts,
+) (GoStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -1390,7 +1397,14 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		case field.IsLeaf() || field.IsLeafList():
 			// This is a leaf or leaf-list, so we map it into the Go type that corresponds to the
 			// YANG type that the leaf represents.
-			mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
+			mtype, err := gogen.yangTypeToGoType(
+				resolveTypeArgs{yangType: field.Type, contextEntry: field},
+				compressPaths,
+				skipEnumDedup,
+				shortenEnumLeafNames,
+				useDefiningModuleForTypedefEnumNames,
+				enumOrgPrefixesToTrim,
+			)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -1419,7 +1433,13 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 					// If the default value is applied to a union type, we will generate
 					// non-compilable code when generating wrapper unions, so error out and inform
 					// the user instead of having the user find out that the code doesn't compile.
-					errs = append(errs, fmt.Errorf("path %q: default value not supported for wrapper union values, please generate using simplified union leaves", field.Path()))
+					errs = append(
+						errs,
+						fmt.Errorf(
+							"path %q: default value not supported for wrapper union values, please generate using simplified union leaves",
+							field.Path(),
+						),
+					)
 					continue
 				}
 			}
@@ -1950,7 +1970,13 @@ func generateGetListKey(buf *bytes.Buffer, s *Directory, nameMap map[string]*yan
 //	  type.
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
-func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *Directory, goStructElements map[string]*Directory, gogen *goGenState) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
+func yangListFieldToGoType(
+	listField *yang.Entry,
+	listFieldName string,
+	parent *Directory,
+	goStructElements map[string]*Directory,
+	gogen *goGenState,
+) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
 	// this from the set of Directory structs for which code (a Go struct) will be
 	//  generated such that additional details can be used in the code generation.

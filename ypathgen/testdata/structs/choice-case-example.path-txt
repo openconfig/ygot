@@ -11,7 +11,7 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	"github.com/openconfig/ygot/ygot"
+	"github.com/nokia/ygot/ygot"
 )
 
 // ChoiceCaseAnonymousCasePath represents the /choice-case-example/choice-case-anonymous-case YANG schema element.

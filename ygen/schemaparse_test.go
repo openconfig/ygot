@@ -21,9 +21,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/nokia/ygot/testutil"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/ygot"
 )
 
 func TestBuildJSONTree(t *testing.T) {
@@ -276,7 +276,14 @@ func TestBuildJSONTree(t *testing.T) {
 	for _, tt := range tests {
 		gotb, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot, tt.inCompressed, tt.inIncludeDescriptions)
 		if err != nil && err.Error() != tt.wantErr {
-			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inEntries, tt.inDirectoryNames, err, tt.wantErr)
+			t.Errorf(
+				"%s: buildJSONTree(%v, %v): did not get expected error, got: %v, want: %v",
+				tt.name,
+				tt.inEntries,
+				tt.inDirectoryNames,
+				err,
+				tt.wantErr,
+			)
 		}
 
 		got := string(gotb)
@@ -284,7 +291,13 @@ func TestBuildJSONTree(t *testing.T) {
 			if diffl, err := testutil.GenerateUnifiedDiff(tt.want, got); err == nil {
 				diff = diffl
 			}
-			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected JSON tree, diff(-want, +got):\n%s", tt.name, tt.inEntries, tt.inDirectoryNames, diff)
+			t.Errorf(
+				"%s: buildJSONTree(%v, %v): did not get expected JSON tree, diff(-want, +got):\n%s",
+				tt.name,
+				tt.inEntries,
+				tt.inDirectoryNames,
+				diff,
+			)
 		}
 	}
 }
@@ -488,7 +501,14 @@ func TestSchemaRoundtrip(t *testing.T) {
 	for _, tt := range tests {
 		gotByte, err := buildJSONTree(tt.inEntries, tt.inDirectoryNames, tt.inFakeRoot, tt.inCompressed, tt.inInclDescriptions)
 		if err != nil && err.Error() != tt.wantJSONErr {
-			t.Errorf("%s: buildJSONTree(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inEntries, tt.inDirectoryNames, err, tt.wantJSONErr)
+			t.Errorf(
+				"%s: buildJSONTree(%v, %v): did not get expected error, got: %v, want: %v",
+				tt.name,
+				tt.inEntries,
+				tt.inDirectoryNames,
+				err,
+				tt.wantJSONErr,
+			)
 			continue
 		}
 

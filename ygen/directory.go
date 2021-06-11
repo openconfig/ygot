@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/nokia/ygot/genutil"
+	"github.com/nokia/ygot/util"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/genutil"
-	"github.com/openconfig/ygot/util"
 )
 
 // Directory stores information needed for outputting a data node of the
@@ -152,7 +152,12 @@ func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, abso
 		}
 	}
 	if !ok {
-		return nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): field name %q does not exist in Directory %s", shadowSchemaPaths, fieldName, parent.Path)
+		return nil, fmt.Errorf(
+			"FindSchemaPath(shadowSchemaPaths:%v): field name %q does not exist in Directory %s",
+			shadowSchemaPaths,
+			fieldName,
+			parent.Path,
+		)
 	}
 	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
 
@@ -165,7 +170,12 @@ func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, abso
 	// in the parent's, we walk from index X of the field's path (where X
 	// is the number of elements in the path of the parent).
 	if len(fieldSlicePath) < len(parent.Path) {
-		return nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): field %v is not a valid child of %v", shadowSchemaPaths, fieldSlicePath, parent.Path)
+		return nil, fmt.Errorf(
+			"FindSchemaPath(shadowSchemaPaths:%v): field %v is not a valid child of %v",
+			shadowSchemaPaths,
+			fieldSlicePath,
+			parent.Path,
+		)
 	}
 	return fieldSlicePath[len(parent.Path)-1:], nil
 }

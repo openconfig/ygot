@@ -21,7 +21,7 @@ syntax = "proto3";
 
 package ywrapper;
 
-option go_package = "github.com/openconfig/ygot/proto/ywrapper";
+option go_package = "github.com/nokia/ygot/proto/ywrapper";
 
 // Wrapper messages are defined to be the most permissive type for the
 // mapped type. Protobuf FieldOptions should be examined to determine the

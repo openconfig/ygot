@@ -2,14 +2,14 @@
 // versions:
 // 	protoc-gen-go v1.22.0
 // 	protoc        v3.11.4
-// source: github.com/openconfig/ygot/protomap/testdata/exschemapath/exschemapath.proto
+// source: github.com/nokia/ygot/protomap/testdata/exschemapath/exschemapath.proto
 
 package exschemapath
 
 import (
 	proto "github.com/golang/protobuf/proto"
-	_ "github.com/openconfig/ygot/proto/yext"
-	ywrapper "github.com/openconfig/ygot/proto/ywrapper"
+	_ "github.com/nokia/ygot/proto/yext"
+	ywrapper "github.com/nokia/ygot/proto/ywrapper"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"

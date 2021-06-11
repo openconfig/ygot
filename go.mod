@@ -1,4 +1,4 @@
-module github.com/openconfig/ygot
+module github.com/nokia/ygot
 
 go 1.14
 

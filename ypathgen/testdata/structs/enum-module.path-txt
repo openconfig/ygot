@@ -11,7 +11,7 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	"github.com/openconfig/ygot/ygot"
+	"github.com/nokia/ygot/ygot"
 )
 
 // AListPath represents the /enum-module/a-lists/a-list YANG schema element.

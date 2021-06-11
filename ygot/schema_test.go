@@ -20,8 +20,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/nokia/ygot/testutil"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/testutil"
 )
 
 func TestGzipToSchema(t *testing.T) {

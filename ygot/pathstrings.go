@@ -22,7 +22,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/openconfig/ygot/util"
+	"github.com/nokia/ygot/util"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )

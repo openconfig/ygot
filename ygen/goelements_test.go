@@ -21,8 +21,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/ygot"
 )
 
 var (
@@ -1006,7 +1006,9 @@ func TestYangTypeToGoType(t *testing.T) {
 			// entry exists, as the code might make pointer comparisons.
 			if tt.ctx != nil {
 				if tt.in != nil {
-					t.Fatalf("Test error: contextEntry and yangType both specified -- please only specify one of them, as yangType will be populated by contextEntry's Type field.")
+					t.Fatalf(
+						"Test error: contextEntry and yangType both specified -- please only specify one of them, as yangType will be populated by contextEntry's Type field.",
+					)
 				}
 				tt.in = tt.ctx.Type
 			}
@@ -1389,7 +1391,17 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, true, true, true, nil)
+			enumSet, _, errs := findEnumSet(
+				enumMapFromEntries(tt.inLeaves),
+				tt.inCompressOCPaths,
+				false,
+				tt.inSkipEnumDedup,
+				true,
+				true,
+				true,
+				true,
+				nil,
+			)
 			if errs != nil {
 				t.Fatalf("findEnumSet failed: %v", errs)
 			}
@@ -1397,7 +1409,14 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 
 			gotTypes := make(map[string]*MappedType)
 			for _, leaf := range tt.inLeaves {
-				mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf}, tt.inCompressOCPaths, tt.inSkipEnumDedup, true, true, nil)
+				mtype, err := s.yangTypeToGoType(
+					resolveTypeArgs{yangType: leaf.Type, contextEntry: leaf},
+					tt.inCompressOCPaths,
+					tt.inSkipEnumDedup,
+					true,
+					true,
+					nil,
+				)
 				if err != nil {
 					t.Errorf("%s: yangTypeToGoType(%v, %v): got unexpected err: %v, want: nil", tt.name, leaf.Type, leaf, err)
 					continue
@@ -2282,7 +2301,9 @@ func TestYangDefaultValueToGo(t *testing.T) {
 			// entry exists, as the code might make pointer comparisons.
 			if tt.inCtx != nil {
 				if tt.inType != nil {
-					t.Fatalf("Test error: contextEntry and yangType both specified -- please only specify one of them, as yangType will be populated by contextEntry's Type field.")
+					t.Fatalf(
+						"Test error: contextEntry and yangType both specified -- please only specify one of them, as yangType will be populated by contextEntry's Type field.",
+					)
 				}
 				tt.inType = tt.inCtx.Type
 			}
@@ -2642,7 +2663,9 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		// entry exists, as the code might make pointer comparisons.
 		if tt.inCtx != nil {
 			if tt.inType != nil {
-				t.Fatalf("Test error: contextEntry and yangType both specified -- please only specify one of them, as yangType will be populated by contextEntry's Type field.")
+				t.Fatalf(
+					"Test error: contextEntry and yangType both specified -- please only specify one of them, as yangType will be populated by contextEntry's Type field.",
+				)
 			}
 			tt.inType = tt.inCtx.Type
 		}

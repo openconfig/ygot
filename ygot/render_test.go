@@ -24,8 +24,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/nokia/ygot/testutil"
 	"github.com/openconfig/gnmi/errdiff"
-	"github.com/openconfig/ygot/testutil"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -92,11 +92,23 @@ func TestPathElemBasics(t *testing.T) {
 		}
 
 		if got := tt.inGNMIPath.isStringSlicePath(); got != tt.wantIsStringPath {
-			t.Errorf("%s: (gnmiPath)(%#v).isStringSlicePath(): did not get expeted result, got: %v, want: %v", tt.name, tt.inGNMIPath, got, tt.wantIsStringPath)
+			t.Errorf(
+				"%s: (gnmiPath)(%#v).isStringSlicePath(): did not get expeted result, got: %v, want: %v",
+				tt.name,
+				tt.inGNMIPath,
+				got,
+				tt.wantIsStringPath,
+			)
 		}
 
 		if got := tt.inGNMIPath.isPathElemPath(); got != tt.wantIsPathElemPath {
-			t.Errorf("%s: (gnmiPath)(%#v).isPathElemPath(): did not get expected result, got: %v, want: %v", tt.name, tt.inGNMIPath, got, tt.wantIsPathElemPath)
+			t.Errorf(
+				"%s: (gnmiPath)(%#v).isPathElemPath(): did not get expected result, got: %v, want: %v",
+				tt.name,
+				tt.inGNMIPath,
+				got,
+				tt.wantIsPathElemPath,
+			)
 		}
 
 		if got := tt.inGNMIPath.Len(); got != tt.wantLen {
@@ -149,7 +161,14 @@ func TestAppendName(t *testing.T) {
 
 	for _, tt := range tests {
 		if err := tt.inPath.AppendName(tt.inName); (err != nil) != tt.wantErr {
-			t.Errorf("%s: (gnmiPath)(%#v).AppendName(%s): did not get expected error status, got: %v, want error: %v", tt.name, tt.inPath, tt.inName, err, tt.wantErr)
+			t.Errorf(
+				"%s: (gnmiPath)(%#v).AppendName(%s): did not get expected error status, got: %v, want error: %v",
+				tt.name,
+				tt.inPath,
+				tt.inName,
+				err,
+				tt.wantErr,
+			)
 		}
 
 		if tt.wantErr {
@@ -251,11 +270,27 @@ func TestGNMIPathOps(t *testing.T) {
 		np := tt.inPath.Copy()
 		err = np.SetIndex(tt.inIndex, tt.inValue)
 		if (err != nil) != tt.wantSetIndexErr {
-			t.Errorf("%s: %v.SetIndex(%d, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inPath, tt.inIndex, tt.inValue, err, tt.wantSetIndexErr)
+			t.Errorf(
+				"%s: %v.SetIndex(%d, %v): did not get expected error, got: %v, wantErr: %v",
+				tt.name,
+				tt.inPath,
+				tt.inIndex,
+				tt.inValue,
+				err,
+				tt.wantSetIndexErr,
+			)
 		}
 
 		if err == nil && !cmp.Equal(np, tt.wantPath, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)) {
-			t.Errorf("%s: %v.SetIndex(%d, %v): did not get expected path, got: %v, want: %v", tt.name, tt.inPath, tt.inIndex, tt.inValue, np, tt.wantPath)
+			t.Errorf(
+				"%s: %v.SetIndex(%d, %v): did not get expected path, got: %v, want: %v",
+				tt.name,
+				tt.inPath,
+				tt.inIndex,
+				tt.inValue,
+				np,
+				tt.wantPath,
+			)
 		}
 	}
 }
@@ -296,7 +331,13 @@ func TestGNMIPathToProto(t *testing.T) {
 		}
 
 		if !proto.Equal(got, tt.wantProto) {
-			t.Errorf("%s: %v.ToProto, did not get expected return value, got: %s, want: %s", tt.name, tt.inPath, prototext.Format(got), prototext.Format(tt.wantProto))
+			t.Errorf(
+				"%s: %v.ToProto, did not get expected return value, got: %s, want: %s",
+				tt.name,
+				tt.inPath,
+				prototext.Format(got),
+				prototext.Format(tt.wantProto),
+			)
 		}
 	}
 }
@@ -701,11 +742,24 @@ func TestAppendGNMIPathElemKey(t *testing.T) {
 	for _, tt := range tests {
 		got, err := appendgNMIPathElemKey(tt.inValue, tt.inPath)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: appendgNMIPathElemKey(%v, %v): did not get expected error status, got: %v, want error: %v", tt.name, tt.inValue, tt.inPath, err, tt.wantErr)
+			t.Errorf(
+				"%s: appendgNMIPathElemKey(%v, %v): did not get expected error status, got: %v, want error: %v",
+				tt.name,
+				tt.inValue,
+				tt.inPath,
+				err,
+				tt.wantErr,
+			)
 		}
 
 		if diff := cmp.Diff(tt.wantPath, got, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
-			t.Errorf("%s: appendgNMIPathElemKey(%v, %v): did not get expected return path, diff(-want,+got):\n%s", tt.name, tt.inValue, tt.inPath, diff)
+			t.Errorf(
+				"%s: appendgNMIPathElemKey(%v, %v): did not get expected return path, diff(-want,+got):\n%s",
+				tt.name,
+				tt.inValue,
+				tt.inPath,
+				diff,
+			)
 		}
 	}
 }
@@ -766,7 +820,7 @@ type YANGEmpty bool
 
 // renderExample is used within TestTogNMINotifications as a GoStruct.
 type renderExample struct {
-	Str                 *string                             `path:"str" shadow-path:"srt"`
+	Str                 *string                             `path:"str"                  shadow-path:"srt"`
 	IntVal              *int32                              `path:"int-val"`
 	Int64Val            *int64                              `path:"int64-val"`
 	FloatVal            *float32                            `path:"floatval"`
@@ -1519,7 +1573,13 @@ func TestTogNMINotifications(t *testing.T) {
 
 			if !testutil.NotificationSetEqual(got, tt.want) {
 				diff := cmp.Diff(got, tt.want, protocmp.Transform())
-				t.Errorf("%s: TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n", tt.name, tt.inStruct, tt.inTimestamp, diff)
+				t.Errorf(
+					"%s: TogNMINotifications(%v, %v): did not get expected Notification, diff(-got,+want):%s\n",
+					tt.name,
+					tt.inStruct,
+					tt.inTimestamp,
+					diff,
+				)
 			}
 		})
 	}
@@ -1678,16 +1738,16 @@ type structMultiKeyChild struct {
 func (*structMultiKeyChild) IsYANGGoStruct() {}
 
 type ietfRenderExample struct {
-	F1 *string                 `path:"f1" module:"f1mod"`
+	F1 *string                 `path:"f1"        module:"f1mod"`
 	F2 *string                 `path:"config/f2" module:"f2mod"`
-	F3 *ietfRenderExampleChild `path:"f3" module:"f1mod"`
+	F3 *ietfRenderExampleChild `path:"f3"        module:"f1mod"`
 }
 
 func (*ietfRenderExample) IsYANGGoStruct() {}
 
 type ietfRenderExampleChild struct {
 	F4 *string `path:"config/f4" module:"f42mod"`
-	F5 *string `path:"f5" module:"f1mod"`
+	F5 *string `path:"f5"        module:"f1mod"`
 }
 
 func (*ietfRenderExampleChild) IsYANGGoStruct() {}
@@ -1726,8 +1786,8 @@ type diffModAtRoot struct {
 func (*diffModAtRoot) IsYANGGoStruct() {}
 
 type diffModAtRootChild struct {
-	ValueOne   *string `path:"/foo/value-one" module:"m2"`
-	ValueTwo   *string `path:"/foo/value-two" module:"m3"`
+	ValueOne   *string `path:"/foo/value-one"   module:"m2"`
+	ValueTwo   *string `path:"/foo/value-two"   module:"m3"`
 	ValueThree *string `path:"/foo/value-three" module:"m1"`
 }
 
@@ -1746,10 +1806,10 @@ type diffModAtRootElemTwo struct {
 func (*diffModAtRootElemTwo) IsYANGGoStruct() {}
 
 type annotatedJSONTestStruct struct {
-	Field       *string      `path:"field" module:"bar"`
-	ΛField      []Annotation `path:"@field" ygotAnnotation:"true"`
-	ΛFieldTwo   []Annotation `path:"@emptyannotation" ygotAnnotation:"true"`
-	ΛFieldThree []Annotation `path:"@one|config/@two" ygotAnnotation:"true"`
+	Field       *string      `path:"field"            module:"bar"`
+	ΛField      []Annotation `path:"@field"                        ygotAnnotation:"true"`
+	ΛFieldTwo   []Annotation `path:"@emptyannotation"              ygotAnnotation:"true"`
+	ΛFieldThree []Annotation `path:"@one|config/@two"              ygotAnnotation:"true"`
 }
 
 func (*annotatedJSONTestStruct) IsYANGGoStruct() {}
@@ -2801,11 +2861,25 @@ func TestUnionPtrValue(t *testing.T) {
 	for _, tt := range tests {
 		got, err := unionPtrValue(tt.inValue, tt.inAppendModName)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: unionPtrValue(%v, %v): did not get expected error, got: %v, want error: %v", tt.name, tt.inValue, tt.inAppendModName, err, tt.wantErr)
+			t.Errorf(
+				"%s: unionPtrValue(%v, %v): did not get expected error, got: %v, want error: %v",
+				tt.name,
+				tt.inValue,
+				tt.inAppendModName,
+				err,
+				tt.wantErr,
+			)
 		}
 
 		if !cmp.Equal(got, tt.want) {
-			t.Errorf("%s: unionPtrValue(%v, %v): did not get expected value, got: %v, want: %v", tt.name, tt.inValue, tt.inAppendModName, got, tt.want)
+			t.Errorf(
+				"%s: unionPtrValue(%v, %v): did not get expected value, got: %v, want: %v",
+				tt.name,
+				tt.inValue,
+				tt.inAppendModName,
+				got,
+				tt.want,
+			)
 		}
 	}
 }
@@ -2877,8 +2951,17 @@ func TestLeaflistToSlice(t *testing.T) {
 		inVal:     reflect.ValueOf([]bool{true, false}),
 		wantSlice: []interface{}{true, false},
 	}, {
-		name:      "union",
-		inVal:     reflect.ValueOf([]exampleUnion{testutil.UnionString("hello"), testutil.UnionFloat64(3.14), testutil.UnionInt64(42), EnumTestVALTWO, testBinary, &unsupported}),
+		name: "union",
+		inVal: reflect.ValueOf(
+			[]exampleUnion{
+				testutil.UnionString("hello"),
+				testutil.UnionFloat64(3.14),
+				testutil.UnionInt64(42),
+				EnumTestVALTWO,
+				testBinary,
+				&unsupported,
+			},
+		),
 		wantSlice: []interface{}{"hello", float64(3.14), int64(42), "VAL_TWO", []byte(base64testString), "Foo"},
 	}, {
 		name:      "union (wrapped union)",
@@ -3119,8 +3202,15 @@ func TestEncodeTypedValue(t *testing.T) {
 		inVal: testutil.YANGEmpty(true),
 		want:  &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
 	}, {
-		name:  "slice union encoding",
-		inVal: []exampleUnion{testutil.UnionString("hello"), testutil.UnionInt64(42), testutil.UnionFloat64(3.14), testBinary, testutil.UnionBool(true), testutil.YANGEmpty(false)},
+		name: "slice union encoding",
+		inVal: []exampleUnion{
+			testutil.UnionString("hello"),
+			testutil.UnionInt64(42),
+			testutil.UnionFloat64(3.14),
+			testBinary,
+			testutil.UnionBool(true),
+			testutil.YANGEmpty(false),
+		},
 		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_LeaflistVal{
 			&gnmipb.ScalarArray{
 				Element: []*gnmipb.TypedValue{

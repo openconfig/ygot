@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // errToString returns the string representation of err and the empty string if
@@ -39,7 +39,7 @@ type ContainerStruct struct {
 	BadLeafName      *string                     `path:"bad-leaf"`
 	BadEmptyLeafName YANGEmpty                   `path:"bad-leaf-empty"`
 	BadEnumLeafName  EnumType                    `path:"bad-leaf-enum"`
-	Annotation       *string                     `path:"@annotation" ygotAnnotation:"true"`
+	Annotation       *string                     `path:"@annotation"        ygotAnnotation:"true"`
 	ChildList        map[string]*ContainerStruct `path:"child-list"`
 }
 
@@ -316,22 +316,22 @@ func TestUnmarshalContainer(t *testing.T) {
 		ConfigLeaf1Field *int32            `path:"config/leaf1-field"`
 		StateLeaf1Field  *int32            `path:"state/leaf1-field"`
 		Leaf2Field       *int32            `path:"leaf2-field"`
-		Annotation       []ygot.Annotation `path:"@" ygotAnnotation:"true"`
-		AnnotationTwo    []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
+		Annotation       []ygot.Annotation `path:"@"                  ygotAnnotation:"true"`
+		AnnotationTwo    []ygot.Annotation `path:"@one|@two"          ygotAnnotation:"true"`
 	}
 
 	type ContainerStructPreferState struct {
 		Leaf1Field    *int32            `path:"state/leaf1-field" shadow-path:"config/leaf1-field"`
 		Leaf2Field    *int32            `path:"leaf2-field"`
-		Annotation    []ygot.Annotation `path:"@" ygotAnnotation:"true"`
-		AnnotationTwo []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
+		Annotation    []ygot.Annotation `path:"@"                                                  ygotAnnotation:"true"`
+		AnnotationTwo []ygot.Annotation `path:"@one|@two"                                          ygotAnnotation:"true"`
 	}
 
 	type ContainerStructPreferStateNoShadow struct {
 		Leaf1Field    *int32            `path:"state/leaf1-field"`
 		Leaf2Field    *int32            `path:"leaf2-field"`
-		Annotation    []ygot.Annotation `path:"@" ygotAnnotation:"true"`
-		AnnotationTwo []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
+		Annotation    []ygot.Annotation `path:"@"                 ygotAnnotation:"true"`
+		AnnotationTwo []ygot.Annotation `path:"@one|@two"         ygotAnnotation:"true"`
 	}
 
 	type ParentContainerStruct struct {
@@ -367,7 +367,9 @@ func TestUnmarshalContainer(t *testing.T) {
 			schema: containerSchema,
 			parent: &ParentContainerStruct{},
 			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } } }`,
-			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
+			want: &ParentContainerStruct{
+				ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)},
+			},
 		},
 		{
 			desc:    "nil schema",
@@ -410,7 +412,9 @@ func TestUnmarshalContainer(t *testing.T) {
 			schema: containerSchema,
 			parent: &ParentContainerStructPreferState{},
 			json:   `{ "container-field": { "leaf2-field": 43, "state": { "leaf1-field": 42 } } }`,
-			want:   &ParentContainerStructPreferState{ContainerField: &ContainerStructPreferState{Leaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
+			want: &ParentContainerStructPreferState{
+				ContainerField: &ContainerStructPreferState{Leaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)},
+			},
 		},
 		{
 			desc:   "success ignoring config with prefer state code",

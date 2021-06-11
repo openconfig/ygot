@@ -1,6 +1,6 @@
 module uncompressed {
   prefix "u";
-  namespace "github.com/openconfig/ygot/integration_test/uncompressed";
+  namespace "github.com/nokia/ygot/integration_test/uncompressed";
 
   container root-container {
     container target-lists {

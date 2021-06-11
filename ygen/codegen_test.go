@@ -26,10 +26,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/nokia/ygot/genutil"
+	"github.com/nokia/ygot/testutil"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/genutil"
-	"github.com/openconfig/ygot/testutil"
 )
 
 const (
@@ -381,7 +381,13 @@ func TestFindMappableEntities(t *testing.T) {
 			}
 
 			if len(expected["structs"]) != len(structOut) {
-				t.Errorf("%s: findMappableEntities(compressEnabled: %v): did not get expected number of structs, got: %v, want: %v", tt.name, compress, entityNames(structOut), expected["structs"])
+				t.Errorf(
+					"%s: findMappableEntities(compressEnabled: %v): did not get expected number of structs, got: %v, want: %v",
+					tt.name,
+					compress,
+					entityNames(structOut),
+					expected["structs"],
+				)
 			}
 
 			for _, e := range expected["structs"] {
@@ -391,7 +397,13 @@ func TestFindMappableEntities(t *testing.T) {
 			}
 
 			if len(expected["enums"]) != len(enumOut) {
-				t.Errorf("%s: findMappableEntities(compressEnabled: %v): did not get expected number of enums, got: %v, want: %v", tt.name, compress, entityNames(enumOut), expected["enums"])
+				t.Errorf(
+					"%s: findMappableEntities(compressEnabled: %v): did not get expected number of enums, got: %v, want: %v",
+					tt.name,
+					compress,
+					entityNames(enumOut),
+					expected["enums"],
+				)
 			}
 
 			for _, e := range expected["enums"] {
@@ -985,7 +997,12 @@ func TestSimpleStructs(t *testing.T) {
 				CompressBehaviour: genutil.PreferIntendedConfig,
 			},
 		},
-		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.long-enum-names.residing-module-typedef-enum-name.formatted-txt"),
+		wantStructsCodeFile: filepath.Join(
+			TestRoot,
+			"testdata",
+			"structs",
+			"enum-module.long-enum-names.residing-module-typedef-enum-name.formatted-txt",
+		),
 	}, {
 		name:           "enumeration behaviour - resolution across submodules and grouping re-use within union, with typedef enum names being prefixed by the module of their use/residence rather than of their definition, and enumeration leaf names not shortened",
 		inFiles:        []string{filepath.Join(datapath, "", "enum-module.yang")},
@@ -995,7 +1012,12 @@ func TestSimpleStructs(t *testing.T) {
 				CompressBehaviour: genutil.PreferIntendedConfig,
 			},
 		},
-		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-module.long-enum-names.residing-module-typedef-enum-name.wrapper-unions.formatted-txt"),
+		wantStructsCodeFile: filepath.Join(
+			TestRoot,
+			"testdata",
+			"structs",
+			"enum-module.long-enum-names.residing-module-typedef-enum-name.wrapper-unions.formatted-txt",
+		),
 	}, {
 		name:           "enumeration behaviour - multiple enumerations within a union",
 		inFiles:        []string{filepath.Join(datapath, "", "enum-multi-module.yang")},
@@ -1156,7 +1178,14 @@ func TestSimpleStructs(t *testing.T) {
 					err = fmt.Errorf("%w", errs)
 				}
 				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
-					t.Fatalf("%s: cg.GenerateCode(%v, %v): Config: %+v, Did not get expected error: %s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, diff)
+					t.Fatalf(
+						"%s: cg.GenerateCode(%v, %v): Config: %+v, Did not get expected error: %s",
+						tt.name,
+						tt.inFiles,
+						tt.inIncludePaths,
+						tt.inConfig,
+						diff,
+					)
 				}
 				if err != nil {
 					return nil, "", nil, err
@@ -1209,7 +1238,15 @@ func TestSimpleStructs(t *testing.T) {
 
 				if !cmp.Equal(gotJSON, wantJSON) {
 					diff, _ := testutil.GenerateUnifiedDiff(string(wantSchema), string(gotGeneratedCode.RawJSONSchema))
-					t.Fatalf("%s: GenerateGoCode(%v, %v), Config: %+v, did not return correct JSON (file: %v), diff: \n%s", tt.name, tt.inFiles, tt.inIncludePaths, tt.inConfig, tt.wantSchemaFile, diff)
+					t.Fatalf(
+						"%s: GenerateGoCode(%v, %v), Config: %+v, did not return correct JSON (file: %v), diff: \n%s",
+						tt.name,
+						tt.inFiles,
+						tt.inIncludePaths,
+						tt.inConfig,
+						tt.wantSchemaFile,
+						diff,
+					)
 				}
 			}
 
@@ -1801,55 +1838,86 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		c := tt.inConfig
-		t.Run(fmt.Sprintf("%s:GetDirectoriesAndLeafTypes(compressBehaviour:%v,GenerateFakeRoot:%v)", tt.name, c.TransformationOptions.CompressBehaviour, c.TransformationOptions.GenerateFakeRoot), func(t *testing.T) {
-			gotDirMap, gotTypeMap, errs := c.GetDirectoriesAndLeafTypes(tt.inFiles, tt.inIncludePaths)
-			if errs != nil {
-				t.Fatal(errs)
-			}
-
-			// This checks the "Name" and "Path" attributes of the output Directories.
-			if diff := cmp.Diff(tt.wantDirMap, gotDirMap, cmpopts.IgnoreFields(Directory{}, "Entry", "Fields", "ShadowedFields", "ListAttr", "IsFakeRoot"), cmpopts.EquateEmpty()); diff != "" {
-				t.Fatalf("(-want +got):\n%s", diff)
-			}
-
-			// Verify certain fields of the "Fields" attribute -- there are too many fields to ignore to use cmp.Diff for comparison.
-			for gotDirName, gotDir := range gotDirMap {
-				// Note that any missing or extra Directories would've been caught with the previous check.
-				wantDir := tt.wantDirMap[gotDirName]
-				if len(gotDir.Fields) != len(wantDir.Fields) {
-					t.Fatalf("director %q: Did not get expected set of fields, got: %v, want: %v", gotDirName, fieldNames(gotDir), fieldNames(wantDir))
+		t.Run(
+			fmt.Sprintf(
+				"%s:GetDirectoriesAndLeafTypes(compressBehaviour:%v,GenerateFakeRoot:%v)",
+				tt.name,
+				c.TransformationOptions.CompressBehaviour,
+				c.TransformationOptions.GenerateFakeRoot,
+			),
+			func(t *testing.T) {
+				gotDirMap, gotTypeMap, errs := c.GetDirectoriesAndLeafTypes(tt.inFiles, tt.inIncludePaths)
+				if errs != nil {
+					t.Fatal(errs)
 				}
-				for fieldk, wantField := range wantDir.Fields {
-					gotField, ok := gotDir.Fields[fieldk]
-					if !ok {
-						t.Errorf("Could not find expected field %q in %q, gotDir.Fields: %v", fieldk, gotDirName, gotDir.Fields)
-						continue // Fatal error for this field only.
-					}
 
-					if gotField.Name != wantField.Name {
-						t.Errorf("Field %q of %q did not have expected name, got: %v, want: %v", fieldk, gotDirName, gotField.Name, wantField.Name)
-					}
+				// This checks the "Name" and "Path" attributes of the output Directories.
+				if diff := cmp.Diff(tt.wantDirMap, gotDirMap, cmpopts.IgnoreFields(Directory{}, "Entry", "Fields", "ShadowedFields", "ListAttr", "IsFakeRoot"), cmpopts.EquateEmpty()); diff != "" {
+					t.Fatalf("(-want +got):\n%s", diff)
+				}
 
-					if gotField.Type != nil && wantField.Type != nil && gotField.Type.Kind != wantField.Type.Kind {
-						t.Errorf("Field %q of %q did not have expected type, got: %v, want: %v", fieldk, gotDirName, gotField.Type.Kind, wantField.Type.Kind)
+				// Verify certain fields of the "Fields" attribute -- there are too many fields to ignore to use cmp.Diff for comparison.
+				for gotDirName, gotDir := range gotDirMap {
+					// Note that any missing or extra Directories would've been caught with the previous check.
+					wantDir := tt.wantDirMap[gotDirName]
+					if len(gotDir.Fields) != len(wantDir.Fields) {
+						t.Fatalf(
+							"director %q: Did not get expected set of fields, got: %v, want: %v",
+							gotDirName,
+							fieldNames(gotDir),
+							fieldNames(wantDir),
+						)
 					}
+					for fieldk, wantField := range wantDir.Fields {
+						gotField, ok := gotDir.Fields[fieldk]
+						if !ok {
+							t.Errorf("Could not find expected field %q in %q, gotDir.Fields: %v", fieldk, gotDirName, gotDir.Fields)
+							continue // Fatal error for this field only.
+						}
 
-					if tt.wantFieldPath != nil && gotField.Path() != tt.wantFieldPath[gotDirName][fieldk] {
-						t.Errorf("Field %q of %q did not have expected path, got: %v, want: %v", fieldk, gotDirName, gotField.Path(), tt.wantFieldPath[gotDirName][fieldk])
+						if gotField.Name != wantField.Name {
+							t.Errorf(
+								"Field %q of %q did not have expected name, got: %v, want: %v",
+								fieldk,
+								gotDirName,
+								gotField.Name,
+								wantField.Name,
+							)
+						}
+
+						if gotField.Type != nil && wantField.Type != nil && gotField.Type.Kind != wantField.Type.Kind {
+							t.Errorf(
+								"Field %q of %q did not have expected type, got: %v, want: %v",
+								fieldk,
+								gotDirName,
+								gotField.Type.Kind,
+								wantField.Type.Kind,
+							)
+						}
+
+						if tt.wantFieldPath != nil && gotField.Path() != tt.wantFieldPath[gotDirName][fieldk] {
+							t.Errorf(
+								"Field %q of %q did not have expected path, got: %v, want: %v",
+								fieldk,
+								gotDirName,
+								gotField.Path(),
+								tt.wantFieldPath[gotDirName][fieldk],
+							)
+						}
 					}
 				}
-			}
-			// The other attributes for wantDir are not tested, as
-			// most of the work is passed to mappedDefinitions()
-			// and buildDirectoryDefinitions(), making a good
-			// quick check here sufficient.
+				// The other attributes for wantDir are not tested, as
+				// most of the work is passed to mappedDefinitions()
+				// and buildDirectoryDefinitions(), making a good
+				// quick check here sufficient.
 
-			// This checks the "NativeType" and "IsEnumeratedValue" attributes of the output leaf types.
-			// Since this is an integration test, many lower-level detail checks are omitted.
-			if diff := cmp.Diff(tt.wantTypeMap, gotTypeMap, cmpopts.IgnoreFields(MappedType{}, "UnionTypes", "ZeroValue", "DefaultValue")); diff != "" {
-				t.Errorf("(-want +got):\n%s", diff)
-			}
-		})
+				// This checks the "NativeType" and "IsEnumeratedValue" attributes of the output leaf types.
+				// Since this is an integration test, many lower-level detail checks are omitted.
+				if diff := cmp.Diff(tt.wantTypeMap, gotTypeMap, cmpopts.IgnoreFields(MappedType{}, "UnionTypes", "ZeroValue", "DefaultValue")); diff != "" {
+					t.Errorf("(-want +got):\n%s", diff)
+				}
+			},
+		)
 	}
 }
 
@@ -1941,7 +2009,13 @@ func TestFindRootEntries(t *testing.T) {
 
 				for _, ch := range wantChildren {
 					if _, ok := rootElem.Dir[ch]; !ok {
-						t.Errorf("cg.createFakeRoot(%v), compressEnabled: %v, could not find child %v in %v", tt.inStructs, compress, ch, rootElem.Dir)
+						t.Errorf(
+							"cg.createFakeRoot(%v), compressEnabled: %v, could not find child %v in %v",
+							tt.inStructs,
+							compress,
+							ch,
+							rootElem.Dir,
+						)
 					}
 					gotChildren[ch] = false
 				}
@@ -1982,9 +2056,14 @@ func TestGenerateProto3(t *testing.T) {
 		name:    "simple protobuf test without compression",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
 		wantOutputFiles: map[string]string{
-			"openconfig.proto_test_a":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.formatted-txt"),
-			"openconfig.proto_test_a.parent":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.formatted-txt"),
-			"openconfig.proto_test_a.parent.child": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.child.formatted-txt"),
+			"openconfig.proto_test_a":        filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.formatted-txt"),
+			"openconfig.proto_test_a.parent": filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.nocompress.parent.formatted-txt"),
+			"openconfig.proto_test_a.parent.child": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-test-a.nocompress.parent.child.formatted-txt",
+			),
 		},
 	}, {
 		name:    "enumeration under unions test with compression",
@@ -2018,8 +2097,18 @@ func TestGenerateProto3(t *testing.T) {
 			},
 		},
 		wantOutputFiles: map[string]string{
-			"openconfig":       filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.inconsistent.defining-module-typedef-enum-name.formatted-txt"),
-			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "enum-union.compress.enums.inconsistent.defining-module-typedef-enum-name.formatted-txt"),
+			"openconfig": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"enum-union.compress.inconsistent.defining-module-typedef-enum-name.formatted-txt",
+			),
+			"openconfig.enums": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"enum-union.compress.enums.inconsistent.defining-module-typedef-enum-name.formatted-txt",
+			),
 		},
 	}, {
 		name:    "enumeration under unions test with compression and with consistent naming set but UseDefiningModuleForTypedefEnumNames=false (no effect)",
@@ -2077,10 +2166,15 @@ func TestGenerateProto3(t *testing.T) {
 			},
 		},
 		wantOutputFiles: map[string]string{
-			"openconfig.proto_test_c":              filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.formatted-txt"),
-			"openconfig.proto_test_c.entity":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.entity.formatted-txt"),
-			"openconfig.proto_test_c.elists":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.formatted-txt"),
-			"openconfig.proto_test_c.elists.elist": filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.elist.formatted-txt"),
+			"openconfig.proto_test_c":        filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.formatted-txt"),
+			"openconfig.proto_test_c.entity": filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.entity.formatted-txt"),
+			"openconfig.proto_test_c.elists": filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.formatted-txt"),
+			"openconfig.proto_test_c.elists.elist": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-test-c.proto-test-c.elists.elist.formatted-txt",
+			),
 		},
 	}, {
 		name:    "yang schema with identityref and enumerated typedef, compression off",
@@ -2102,14 +2196,49 @@ func TestGenerateProto3(t *testing.T) {
 			},
 		},
 		wantOutputFiles: map[string]string{
-			"openconfig.proto_test_e":                filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.formatted-txt"),
-			"openconfig.proto_test_e.test":           filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.test.formatted-txt"),
-			"openconfig.proto_test_e.foos":           filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.foos.formatted-txt"),
-			"openconfig.proto_test_e.foos.foo":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.foos.foo.formatted-txt"),
-			"openconfig.proto_test_e.bars":           filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.bars.formatted-txt"),
-			"openconfig.enums":                       filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.enums.formatted-txt"),
-			"openconfig.proto_test_e.animals":        filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.animals.formatted-txt"),
-			"openconfig.proto_test_e.animals.animal": filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.proto-test-e.animals.animal.formatted-txt"),
+			"openconfig.proto_test_e": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-test-e.uncompressed.proto-test-e.formatted-txt",
+			),
+			"openconfig.proto_test_e.test": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-test-e.uncompressed.proto-test-e.test.formatted-txt",
+			),
+			"openconfig.proto_test_e.foos": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-test-e.uncompressed.proto-test-e.foos.formatted-txt",
+			),
+			"openconfig.proto_test_e.foos.foo": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-test-e.uncompressed.proto-test-e.foos.foo.formatted-txt",
+			),
+			"openconfig.proto_test_e.bars": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-test-e.uncompressed.proto-test-e.bars.formatted-txt",
+			),
+			"openconfig.enums": filepath.Join(TestRoot, "testdata", "proto", "proto-test-e.uncompressed.enums.formatted-txt"),
+			"openconfig.proto_test_e.animals": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-test-e.uncompressed.proto-test-e.animals.formatted-txt",
+			),
+			"openconfig.proto_test_e.animals.animal": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-test-e.uncompressed.proto-test-e.animals.animal.formatted-txt",
+			),
 		},
 	}, {
 		name:    "yang schema with anydata",
@@ -2144,8 +2273,13 @@ func TestGenerateProto3(t *testing.T) {
 			},
 		},
 		wantOutputFiles: map[string]string{
-			"openconfig":                filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.compressed.openconfig.formatted-txt"),
-			"openconfig.routing_policy": filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.compressed.openconfig.routing_policy.formatted-txt"),
+			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.compressed.openconfig.formatted-txt"),
+			"openconfig.routing_policy": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-union-list-key.compressed.openconfig.routing_policy.formatted-txt",
+			),
 		},
 	}, {
 		name:    "yang schema with fakeroot, and union list key",
@@ -2159,12 +2293,42 @@ func TestGenerateProto3(t *testing.T) {
 			},
 		},
 		wantOutputFiles: map[string]string{
-			"openconfig":                                                     filepath.Join(TestRoot, "testdata", "proto", "proto-union-list_key.uncompressed.openconfig.formatted-txt"),
-			"openconfig.proto_union_list_key":                                filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.formatted-txt"),
-			"openconfig.proto_union_list_key.routing_policy":                 filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.formatted-txt"),
-			"openconfig.proto_union_list_key.routing_policy.policies":        filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.policies.formatted-txt"),
-			"openconfig.proto_union_list_key.routing_policy.policies.policy": filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.policies.policy.formatted-txt"),
-			"openconfig.proto_union_list_key.routing_policy.sets":            filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.sets.formatted-txt"),
+			"openconfig": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-union-list_key.uncompressed.openconfig.formatted-txt",
+			),
+			"openconfig.proto_union_list_key": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-union-list-key.uncompressed.openconfig.proto_union_list_key.formatted-txt",
+			),
+			"openconfig.proto_union_list_key.routing_policy": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.formatted-txt",
+			),
+			"openconfig.proto_union_list_key.routing_policy.policies": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.policies.formatted-txt",
+			),
+			"openconfig.proto_union_list_key.routing_policy.policies.policy": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.policies.policy.formatted-txt",
+			),
+			"openconfig.proto_union_list_key.routing_policy.sets": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"proto-union-list-key.uncompressed.openconfig.proto_union_list_key.routing_policy.sets.formatted-txt",
+			),
 		},
 	}, {
 		name:     "enums: yang schema with various types of enums with underscores",
@@ -2290,8 +2454,13 @@ func TestGenerateProto3(t *testing.T) {
 			},
 		},
 		wantOutputFiles: map[string]string{
-			"openconfig":                         filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.compressed.formatted-txt"),
-			"openconfig.openconfig_config_false": filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.config_false.compressed.formatted-txt"),
+			"openconfig": filepath.Join(TestRoot, "testdata", "proto", "excluded-config-false.compressed.formatted-txt"),
+			"openconfig.openconfig_config_false": filepath.Join(
+				TestRoot,
+				"testdata",
+				"proto",
+				"excluded-config-false.config_false.compressed.formatted-txt",
+			),
 		},
 	}, {
 		name: "protobuf generation with excluded read only fields - compressed",
@@ -2412,7 +2581,15 @@ func TestGenerateProto3(t *testing.T) {
 
 				gotPkg, ok := gotProto.Packages[pkg]
 				if !ok {
-					t.Fatalf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
+					t.Fatalf(
+						"%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v",
+						tt.name,
+						tt.inFiles,
+						tt.inIncludePaths,
+						pkg,
+						protoPkgs(gotProto.Packages),
+						pkg,
+					)
 				}
 
 				// Mark this package as having been seen.
@@ -2439,7 +2616,15 @@ func TestGenerateProto3(t *testing.T) {
 					if diffl, _ := testutil.GenerateUnifiedDiff(wantCode, gotCodeBuf.String()); diffl != "" {
 						diff = diffl
 					}
-					t.Errorf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-want, +got):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
+					t.Errorf(
+						"%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-want, +got):\n%s",
+						tt.name,
+						tt.inFiles,
+						tt.inIncludePaths,
+						pkg,
+						wantFile,
+						diff,
+					)
 				}
 			}
 
@@ -2457,7 +2642,15 @@ func TestGenerateProto3(t *testing.T) {
 				for _, pkg := range wantPkgs {
 					gotPkg, ok := got.Packages[pkg]
 					if !ok {
-						t.Fatalf("%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v", tt.name, tt.inFiles, tt.inIncludePaths, pkg, protoPkgs(gotProto.Packages), pkg)
+						t.Fatalf(
+							"%s: cg.GenerateProto3(%v, %v): did not find expected package %s in output, got: %#v, want key: %v",
+							tt.name,
+							tt.inFiles,
+							tt.inIncludePaths,
+							pkg,
+							protoPkgs(gotProto.Packages),
+							pkg,
+						)
 					}
 					fmt.Fprintf(&gotCodeBuf, gotPkg.Header)
 					for _, gotMsg := range gotPkg.Messages {
@@ -2602,7 +2795,16 @@ func TestCreateFakeRoot(t *testing.T) {
 	for _, tt := range tests {
 		err := createFakeRoot(tt.inStructs, tt.inRootElems, tt.inRootName, tt.inCompressPaths)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: createFakeRoot(%v, %v, %s, %v): did not get expected error, got: %s, wantErr: %v", tt.name, tt.inStructs, tt.inRootElems, tt.inRootName, tt.inCompressPaths, err, tt.wantErr)
+			t.Errorf(
+				"%s: createFakeRoot(%v, %v, %s, %v): did not get expected error, got: %s, wantErr: %v",
+				tt.name,
+				tt.inStructs,
+				tt.inRootElems,
+				tt.inRootName,
+				tt.inCompressPaths,
+				err,
+				tt.wantErr,
+			)
 			continue
 		}
 
@@ -2611,7 +2813,15 @@ func TestCreateFakeRoot(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(tt.inStructs["/"], tt.wantRoot); diff != "" {
-			t.Errorf("%s: createFakeRoot(%v, %v, %s, %v): did not get expected root struct, diff(-got,+want):\n%s", tt.name, tt.inStructs, tt.inRootElems, tt.inRootName, tt.inCompressPaths, diff)
+			t.Errorf(
+				"%s: createFakeRoot(%v, %v, %s, %v): did not get expected root struct, diff(-got,+want):\n%s",
+				tt.name,
+				tt.inStructs,
+				tt.inRootElems,
+				tt.inRootName,
+				tt.inCompressPaths,
+				diff,
+			)
 		}
 
 		if !IsFakeRoot(tt.inStructs["/"]) {

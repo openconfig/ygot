@@ -20,8 +20,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/nokia/ygot/genutil"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/genutil"
 )
 
 func TestOrderedUnionTypes(t *testing.T) {
@@ -1348,97 +1348,138 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				continue
 			}
 
-			t.Run(fmt.Sprintf("%s:buildDirectoryDefinitions(CompressBehaviour:%v,Language:%s,excludeState:%v)", tt.name, c.compressBehaviour, langName(c.lang), c.excludeState), func(t *testing.T) {
-				st, err := buildSchemaTree(tt.in)
-				if err != nil {
-					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
-				}
-				gogen := newGoGenState(st, nil)
-				protogen := newProtoGenState(st, nil)
-
-				structs := make(map[string]*yang.Entry)
-				enums := make(map[string]*yang.Entry)
-
-				var errs []error
-				for _, inc := range tt.in {
-					// Always provide a nil set of modules to findMappableEntities since this
-					// is only used to skip elements.
-					errs = append(errs, findMappableEntities(inc, structs, enums, []string{}, c.compressBehaviour.CompressEnabled(), []*yang.Entry{})...)
-				}
-				if errs != nil {
-					t.Fatalf("findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v", tt.in, structs, enums, c.compressBehaviour.CompressEnabled(), errs)
-				}
-
-				var got map[string]*Directory
-				switch c.lang {
-				case golang:
-					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false, true, true, nil)
-				case protobuf:
-					got, errs = protogen.buildDirectoryDefinitions(structs, c.compressBehaviour)
-				}
-				if errs != nil {
-					t.Fatal(errs)
-				}
-
-				// This checks the "Name" and maybe "Path" attributes of the output Directories.
-				ignoreFields := []string{"Entry", "Fields", "ShadowedFields", "IsFakeRoot"}
-				if !tt.checkPath {
-					ignoreFields = append(ignoreFields, "Path")
-				}
-				if diff := cmp.Diff(c.want, got, cmpopts.IgnoreFields(Directory{}, ignoreFields...), cmpopts.IgnoreFields(YangListAttr{}, "KeyElems"), cmpopts.EquateEmpty()); diff != "" {
-					t.Errorf("(-want +got):\n%s", diff)
-				}
-
-				// Verify certain fields of the "Fields" attribute -- there are too many fields to ignore to use cmp.Diff for comparison.
-				for gotName, gotDir := range got {
-					// Note that any missing or extra Directories would've been caught with the previous check.
-					wantDir, ok := c.want[gotName]
-					if !ok {
-						t.Errorf("got directory keyed at %q, did not expect this", gotName)
-						continue
+			t.Run(
+				fmt.Sprintf(
+					"%s:buildDirectoryDefinitions(CompressBehaviour:%v,Language:%s,excludeState:%v)",
+					tt.name,
+					c.compressBehaviour,
+					langName(c.lang),
+					c.excludeState,
+				),
+				func(t *testing.T) {
+					st, err := buildSchemaTree(tt.in)
+					if err != nil {
+						t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
 					}
-					if len(gotDir.Fields) != len(wantDir.Fields) {
-						t.Fatalf("Did not get expected set of fields for %s, got: %v, want: %v", gotName, fieldNames(gotDir), fieldNames(wantDir))
+					gogen := newGoGenState(st, nil)
+					protogen := newProtoGenState(st, nil)
+
+					structs := make(map[string]*yang.Entry)
+					enums := make(map[string]*yang.Entry)
+
+					var errs []error
+					for _, inc := range tt.in {
+						// Always provide a nil set of modules to findMappableEntities since this
+						// is only used to skip elements.
+						errs = append(
+							errs,
+							findMappableEntities(inc, structs, enums, []string{}, c.compressBehaviour.CompressEnabled(), []*yang.Entry{})...)
 					}
-					for fieldk, fieldv := range wantDir.Fields {
-						cmpfield, ok := gotDir.Fields[fieldk]
+					if errs != nil {
+						t.Fatalf(
+							"findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v",
+							tt.in,
+							structs,
+							enums,
+							c.compressBehaviour.CompressEnabled(),
+							errs,
+						)
+					}
+
+					var got map[string]*Directory
+					switch c.lang {
+					case golang:
+						got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false, true, true, nil)
+					case protobuf:
+						got, errs = protogen.buildDirectoryDefinitions(structs, c.compressBehaviour)
+					}
+					if errs != nil {
+						t.Fatal(errs)
+					}
+
+					// This checks the "Name" and maybe "Path" attributes of the output Directories.
+					ignoreFields := []string{"Entry", "Fields", "ShadowedFields", "IsFakeRoot"}
+					if !tt.checkPath {
+						ignoreFields = append(ignoreFields, "Path")
+					}
+					if diff := cmp.Diff(c.want, got, cmpopts.IgnoreFields(Directory{}, ignoreFields...), cmpopts.IgnoreFields(YangListAttr{}, "KeyElems"), cmpopts.EquateEmpty()); diff != "" {
+						t.Errorf("(-want +got):\n%s", diff)
+					}
+
+					// Verify certain fields of the "Fields" attribute -- there are too many fields to ignore to use cmp.Diff for comparison.
+					for gotName, gotDir := range got {
+						// Note that any missing or extra Directories would've been caught with the previous check.
+						wantDir, ok := c.want[gotName]
 						if !ok {
-							t.Errorf("Could not find expected field %s in %s, got: %v", fieldk, gotName, gotDir.Fields)
-							continue // Fatal error for this field only.
+							t.Errorf("got directory keyed at %q, did not expect this", gotName)
+							continue
 						}
-
-						if fieldv.Name != cmpfield.Name {
-							t.Errorf("Field %s of %s did not have expected name, got: %v, want: %v", fieldk, gotName, cmpfield.Name, fieldv.Name)
+						if len(gotDir.Fields) != len(wantDir.Fields) {
+							t.Fatalf("Did not get expected set of fields for %s, got: %v, want: %v", gotName, fieldNames(gotDir), fieldNames(wantDir))
 						}
+						for fieldk, fieldv := range wantDir.Fields {
+							cmpfield, ok := gotDir.Fields[fieldk]
+							if !ok {
+								t.Errorf("Could not find expected field %s in %s, got: %v", fieldk, gotName, gotDir.Fields)
+								continue // Fatal error for this field only.
+							}
 
-						if fieldv.Type != nil && cmpfield.Type != nil {
-							if fieldv.Type.Kind != cmpfield.Type.Kind {
-								t.Errorf("Field %s of %s did not have expected type got: %s, want: %s", fieldk, gotName, cmpfield.Type.Kind, fieldv.Type.Kind)
+							if fieldv.Name != cmpfield.Name {
+								t.Errorf("Field %s of %s did not have expected name, got: %v, want: %v", fieldk, gotName, cmpfield.Name, fieldv.Name)
+							}
+
+							if fieldv.Type != nil && cmpfield.Type != nil {
+								if fieldv.Type.Kind != cmpfield.Type.Kind {
+									t.Errorf(
+										"Field %s of %s did not have expected type got: %s, want: %s",
+										fieldk,
+										gotName,
+										cmpfield.Type.Kind,
+										fieldv.Type.Kind,
+									)
+								}
+							}
+						}
+						if len(gotDir.ShadowedFields) != len(wantDir.ShadowedFields) {
+							t.Fatalf(
+								"Did not get expected set of shadowed fields for %s, got: %v, want: %v",
+								gotName,
+								shadowedFieldNames(gotDir),
+								shadowedFieldNames(wantDir),
+							)
+						}
+						for fieldk, fieldv := range wantDir.ShadowedFields {
+							cmpfield, ok := gotDir.ShadowedFields[fieldk]
+							if !ok {
+								t.Errorf("Could not find expected shadowed field %s in %s, got: %v", fieldk, gotName, gotDir.Fields)
+								continue // Fatal error for this field only.
+							}
+
+							if fieldv.Name != cmpfield.Name {
+								t.Errorf(
+									"Shadowed field %s of %s did not have expected name, got: %v, want: %v",
+									fieldk,
+									gotName,
+									cmpfield.Name,
+									fieldv.Name,
+								)
+							}
+
+							if fieldv.Type != nil && cmpfield.Type != nil {
+								if fieldv.Type.Kind != cmpfield.Type.Kind {
+									t.Errorf(
+										"Shadowed field %s of %s did not have expected type got: %s, want: %s",
+										fieldk,
+										gotName,
+										cmpfield.Type.Kind,
+										fieldv.Type.Kind,
+									)
+								}
 							}
 						}
 					}
-					if len(gotDir.ShadowedFields) != len(wantDir.ShadowedFields) {
-						t.Fatalf("Did not get expected set of shadowed fields for %s, got: %v, want: %v", gotName, shadowedFieldNames(gotDir), shadowedFieldNames(wantDir))
-					}
-					for fieldk, fieldv := range wantDir.ShadowedFields {
-						cmpfield, ok := gotDir.ShadowedFields[fieldk]
-						if !ok {
-							t.Errorf("Could not find expected shadowed field %s in %s, got: %v", fieldk, gotName, gotDir.Fields)
-							continue // Fatal error for this field only.
-						}
-
-						if fieldv.Name != cmpfield.Name {
-							t.Errorf("Shadowed field %s of %s did not have expected name, got: %v, want: %v", fieldk, gotName, cmpfield.Name, fieldv.Name)
-						}
-
-						if fieldv.Type != nil && cmpfield.Type != nil {
-							if fieldv.Type.Kind != cmpfield.Type.Kind {
-								t.Errorf("Shadowed field %s of %s did not have expected type got: %s, want: %s", fieldk, gotName, cmpfield.Type.Kind, fieldv.Type.Kind)
-							}
-						}
-					}
-				}
-			})
+				},
+			)
 		}
 	}
 }
@@ -2180,7 +2221,14 @@ func TestBuildListKey(t *testing.T) {
 			s := newGoGenState(st, enumSet)
 
 			resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
-				return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup, true, true, nil)
+				return s.yangTypeToGoType(
+					resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf},
+					tt.inCompress,
+					tt.inSkipEnumDedup,
+					true,
+					true,
+					nil,
+				)
 			}
 			if tt.inResolveKeyNameFuncNil {
 				resolveKeyTypeName = nil

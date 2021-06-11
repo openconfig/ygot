@@ -18,12 +18,12 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/nokia/ygot/exampleoc"
+	"github.com/nokia/ygot/testutil"
+	"github.com/nokia/ygot/uexampleoc"
+	"github.com/nokia/ygot/ygot"
+	"github.com/nokia/ygot/ytypes"
 	"github.com/openconfig/gnmi/errdiff"
-	"github.com/openconfig/ygot/exampleoc"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/uexampleoc"
-	"github.com/openconfig/ygot/ygot"
-	"github.com/openconfig/ygot/ytypes"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"

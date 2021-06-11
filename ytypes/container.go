@@ -21,9 +21,9 @@ import (
 
 	log "github.com/golang/glog"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/nokia/ygot/util"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-7.5.
@@ -96,11 +96,17 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 		}
 
 	default:
-		errors = util.AppendErr(errors, fmt.Errorf("validateContainer expected struct type for %s (type %T), got %v", schema.Name, value, reflect.TypeOf(value).Kind()))
+		errors = util.AppendErr(
+			errors,
+			fmt.Errorf("validateContainer expected struct type for %s (type %T), got %v", schema.Name, value, reflect.TypeOf(value).Kind()),
+		)
 	}
 
 	if len(extraFields) > 0 {
-		errors = util.AppendErr(errors, fmt.Errorf("fields %v are not found in the container schema %s", stringMapSetToSlice(extraFields), schema.Name))
+		errors = util.AppendErr(
+			errors,
+			fmt.Errorf("fields %v are not found in the container schema %s", stringMapSetToSlice(extraFields), schema.Name),
+		)
 	}
 
 	return util.UniqueErrors(errors)
@@ -123,7 +129,13 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interfa
 		return err
 	}
 
-	util.DbgPrint("unmarshalContainer jsonTree %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(jsonTree), jsonTree, parent, schema.Name)
+	util.DbgPrint(
+		"unmarshalContainer jsonTree %v, type %T, into parent type %T, schema name %s",
+		util.ValueStrDebug(jsonTree),
+		jsonTree,
+		parent,
+		schema.Name,
+	)
 
 	// Since this is a container, the JSON data tree is a map.
 	jt, ok := jsonTree.(map[string]interface{})

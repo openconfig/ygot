@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"testing"
 
-	oc "github.com/openconfig/ygot/exampleoc"
-	"github.com/openconfig/ygot/ygot"
+	oc "github.com/nokia/ygot/exampleoc"
+	"github.com/nokia/ygot/ygot"
 )
 
 func benchmarkIntsSubints(b *testing.B, ints, subints int) {

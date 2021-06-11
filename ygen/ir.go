@@ -15,9 +15,9 @@
 package ygen
 
 import (
+	"github.com/nokia/ygot/genutil"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/genutil"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // This file describes the intermediate representation that is produced by

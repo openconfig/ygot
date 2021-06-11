@@ -20,9 +20,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/nokia/ygot/testutil"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // wantGoStructOut is used to store the expected output of a writeGoStructs
@@ -1725,7 +1725,19 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 				// Always generate the JSON schema for this test.
-				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, false, true, tt.inSkipEnumDedup, true, true, nil, tt.inGoOpts)
+				got, errs := writeGoStruct(
+					tt.inStructToMap,
+					tt.inMappableEntities,
+					s,
+					compressed,
+					false,
+					true,
+					tt.inSkipEnumDedup,
+					true,
+					true,
+					nil,
+					tt.inGoOpts,
+				)
 
 				if len(errs) != 0 && !want.wantErr {
 					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): received unexpected errors: %v",
@@ -1757,8 +1769,13 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 					if diffl, err := testutil.GenerateUnifiedDiff(want.keys, got.ListKeys); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-want, +got):\n%s",
-						tt.name, compressed, tt.inStructToMap, diff)
+					t.Errorf(
+						"%s writeGoStruct(compressPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-want, +got):\n%s",
+						tt.name,
+						compressed,
+						tt.inStructToMap,
+						diff,
+					)
 				}
 
 				if diff := pretty.Compare(want.methods, got.Methods); diff != "" {
@@ -1773,8 +1790,13 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 					if diffl, err := testutil.GenerateUnifiedDiff(want.interfaces, got.Interfaces); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s: writeGoStruct(compressPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-want, +got):\n%s",
-						tt.name, compressed, tt.inStructToMap, diff)
+					t.Errorf(
+						"%s: writeGoStruct(compressPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-want, +got):\n%s",
+						tt.name,
+						compressed,
+						tt.inStructToMap,
+						diff,
+					)
 				}
 			}
 		})
@@ -2329,7 +2351,15 @@ func TestFindMapPaths(t *testing.T) {
 		}
 
 		if diff := cmp.Diff(tt.wantPaths, got); diff != "" {
-			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, ignoreShadowSchemaPaths: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inIgnoreShadowSchemaPaths, diff)
+			t.Errorf(
+				"%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, ignoreShadowSchemaPaths: %v, (-want, +got):\n%s",
+				tt.name,
+				tt.inStruct,
+				tt.inField,
+				tt.inCompressPaths,
+				tt.inIgnoreShadowSchemaPaths,
+				diff,
+			)
 		}
 	}
 }

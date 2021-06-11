@@ -22,9 +22,9 @@ import (
 	"strconv"
 
 	log "github.com/golang/glog"
+	"github.com/nokia/ygot/util"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -418,7 +418,14 @@ with field String set to "forty-two".
 */
 
 func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, value interface{}, enc Encoding) error {
-	util.DbgPrint("unmarshalUnion value %v, type %T, into parent type %T field name %s, schema name %s", util.ValueStrDebug(value), value, parent, fieldName, schema.Name)
+	util.DbgPrint(
+		"unmarshalUnion value %v, type %T, into parent type %T field name %s, schema name %s",
+		util.ValueStrDebug(value),
+		value,
+		parent,
+		fieldName,
+		schema.Name,
+	)
 	parentV, parentT := reflect.ValueOf(parent), reflect.TypeOf(parent)
 	if !util.IsTypeStructPtr(parentT) {
 		return fmt.Errorf("%T is not a struct ptr in unmarshalUnion", parent)
@@ -513,7 +520,13 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		util.DbgPrint("could not unmarshal %v into type %s: %s", value, sk, err)
 	}
 
-	return fmt.Errorf("could not find suitable union type to unmarshal value %v type %T into parent struct type %T field %s", value, value, parent, fieldName)
+	return fmt.Errorf(
+		"could not find suitable union type to unmarshal value %v type %T into parent struct type %T field %s",
+		value,
+		value,
+		parent,
+		fieldName,
+	)
 }
 
 // setUnionFieldWithTypedValue sets the field destV with value v after converting it

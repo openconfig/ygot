@@ -30,7 +30,7 @@ import (
 	"strings"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/openconfig/ygot/util"
+	"github.com/nokia/ygot/util"
 )
 
 const (

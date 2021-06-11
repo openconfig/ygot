@@ -21,9 +21,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/nokia/ygot/ygen"
+	"github.com/nokia/ygot/ypathgen"
 	"github.com/openconfig/gnmi/errdiff"
-	"github.com/openconfig/ygot/ygen"
-	"github.com/openconfig/ygot/ypathgen"
 )
 
 func TestWriteGoCode(t *testing.T) {

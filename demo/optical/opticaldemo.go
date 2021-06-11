@@ -21,8 +21,8 @@ import (
 	"fmt"
 
 	log "github.com/golang/glog"
-	oc "github.com/openconfig/ygot/exampleoc"
-	"github.com/openconfig/ygot/ygot"
+	oc "github.com/nokia/ygot/exampleoc"
+	"github.com/nokia/ygot/ygot"
 )
 
 func main() {
@@ -58,7 +58,7 @@ type apsModuleInput struct {
 func CreateDemoOpticalInstance() (*oc.Device, error) {
 	d := &oc.Device{
 		Aps: &oc.Aps{},
-		Component:        map[string]*oc.Component{
+		Component: map[string]*oc.Component{
 			"mod-one": &oc.Component{Name: ygot.String("mod-one")},
 			"mod-two": &oc.Component{Name: ygot.String("mod-two")},
 		},

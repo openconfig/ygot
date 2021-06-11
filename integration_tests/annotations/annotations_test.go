@@ -19,15 +19,15 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	oc "github.com/nokia/ygot/exampleoc"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/gnmi/errdiff"
-	oc "github.com/openconfig/ygot/exampleoc"
-	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/nokia/ygot/integration_tests/annotations/apb"
+	"github.com/nokia/ygot/integration_tests/annotations/proto2apb"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/openconfig/ygot/integration_tests/annotations/apb"
-	"github.com/openconfig/ygot/integration_tests/annotations/proto2apb"
 )
 
 type IncludedProto3 struct {

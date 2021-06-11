@@ -22,16 +22,17 @@
 // versions:
 // 	protoc-gen-go v1.20.0-devel
 // 	protoc        v3.11.4
-// source: github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto
+// source: github.com/nokia/ygot/proto/ywrapper/ywrapper.proto
 
 package ywrapper
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -151,7 +152,7 @@ type Decimal64Value struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Digits    int64  `protobuf:"varint,1,opt,name=digits,proto3" json:"digits,omitempty"`
+	Digits    int64  `protobuf:"varint,1,opt,name=digits,proto3"    json:"digits,omitempty"`
 	Precision uint32 `protobuf:"varint,2,opt,name=precision,proto3" json:"precision,omitempty"`
 }
 
@@ -384,7 +385,9 @@ var (
 
 func file_github_com_openconfig_ygot_proto_ywrapper_ywrapper_proto_rawDescGZIP() []byte {
 	file_github_com_openconfig_ygot_proto_ywrapper_ywrapper_proto_rawDescOnce.Do(func() {
-		file_github_com_openconfig_ygot_proto_ywrapper_ywrapper_proto_rawDescData = protoimpl.X.CompressGZIP(file_github_com_openconfig_ygot_proto_ywrapper_ywrapper_proto_rawDescData)
+		file_github_com_openconfig_ygot_proto_ywrapper_ywrapper_proto_rawDescData = protoimpl.X.CompressGZIP(
+			file_github_com_openconfig_ygot_proto_ywrapper_ywrapper_proto_rawDescData,
+		)
 	})
 	return file_github_com_openconfig_ygot_proto_ywrapper_ywrapper_proto_rawDescData
 }

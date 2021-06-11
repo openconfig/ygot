@@ -22,8 +22,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/nokia/ygot/testutil"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/testutil"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -579,7 +579,14 @@ func TestIsValueTypeComaptible(t *testing.T) {
 
 	for _, tt := range tests {
 		if got := IsValueTypeCompatible(tt.inType, tt.inValue); got != tt.want {
-			t.Errorf("%s: IsValueTypeCompatible(%v, %v): did not get expected result, got: %v, want: %v", tt.name, tt.inType, tt.inValue, got, tt.want)
+			t.Errorf(
+				"%s: IsValueTypeCompatible(%v, %v): did not get expected result, got: %v, want: %v",
+				tt.name,
+				tt.inType,
+				tt.inValue,
+				got,
+				tt.want,
+			)
 		}
 	}
 }
@@ -1174,27 +1181,36 @@ func TestForEachField(t *testing.T) {
 				`Int32Field : 43, StringField : "forty three", Int32PtrField : 4343, StringPtrField : "forty three ptr", `,
 		},
 		{
-			desc:         "struct of slice of structs",
-			schema:       forEachContainerSchema,
-			parentStruct: &StructOfSliceOfStructs{BasicStructSliceField: []BasicStruct{basicStruct1}, BasicStructPtrSliceField: []*BasicStruct{&basicStruct2}},
-			in:           nil,
-			iterFunc:     printFieldsIterFunc,
-			wantOut:      `Int32Field : 42, StringField : "forty two", Int32PtrField : 4242, StringPtrField : "forty two ptr", Int32Field : 43, StringField : "forty three", Int32PtrField : 4343, StringPtrField : "forty three ptr", `,
+			desc:   "struct of slice of structs",
+			schema: forEachContainerSchema,
+			parentStruct: &StructOfSliceOfStructs{
+				BasicStructSliceField:    []BasicStruct{basicStruct1},
+				BasicStructPtrSliceField: []*BasicStruct{&basicStruct2},
+			},
+			in:       nil,
+			iterFunc: printFieldsIterFunc,
+			wantOut:  `Int32Field : 42, StringField : "forty two", Int32PtrField : 4242, StringPtrField : "forty two ptr", Int32Field : 43, StringField : "forty three", Int32PtrField : 4343, StringPtrField : "forty three ptr", `,
 		},
 		{
-			desc:         "struct of map of structs",
-			schema:       forEachContainerSchema,
-			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
-			in:           nil,
-			iterFunc:     printFieldsIterFunc,
-			wantOut:      `Int32Field : 42, StringField : "forty two", Int32PtrField : 4242, StringPtrField : "forty two ptr", Int32Field : 43, StringField : "forty three", Int32PtrField : 4343, StringPtrField : "forty three ptr", `,
+			desc:   "struct of map of structs",
+			schema: forEachContainerSchema,
+			parentStruct: &StructOfMapOfStructs{
+				BasicStructMapField:    map[string]BasicStruct{"basicStruct1": basicStruct1},
+				BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2},
+			},
+			in:       nil,
+			iterFunc: printFieldsIterFunc,
+			wantOut:  `Int32Field : 42, StringField : "forty two", Int32PtrField : 4242, StringPtrField : "forty two ptr", Int32Field : 43, StringField : "forty three", Int32PtrField : 4343, StringPtrField : "forty three ptr", `,
 		},
 		{
-			desc:         "map keys",
-			schema:       forEachContainerSchema,
-			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
-			in:           nil,
-			iterFunc:     printMapKeysIterFunc,
+			desc:   "map keys",
+			schema: forEachContainerSchema,
+			parentStruct: &StructOfMapOfStructs{
+				BasicStructMapField:    map[string]BasicStruct{"basicStruct1": basicStruct1},
+				BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2},
+			},
+			in:       nil,
+			iterFunc: printMapKeysIterFunc,
 			wantOut: `basicStruct1 (string)/BasicStructMapField : 
 {Int32Field:     42,
  StringField:    "forty two",
@@ -1285,10 +1301,13 @@ func TestForEachDataField(t *testing.T) {
 				`int32 : 43, string : "forty three", int32ptr : 4343, stringptr : "forty three ptr", `,
 		},
 		{
-			desc:         "struct of slice of structs with no schema",
-			parentStruct: &StructOfSliceOfStructs{BasicStructSliceField: []BasicStruct{basicStruct1}, BasicStructPtrSliceField: []*BasicStruct{&basicStruct2}},
-			in:           nil,
-			iterFunc:     printSchemaAnnotationFieldsIterFunc,
+			desc: "struct of slice of structs with no schema",
+			parentStruct: &StructOfSliceOfStructs{
+				BasicStructSliceField:    []BasicStruct{basicStruct1},
+				BasicStructPtrSliceField: []*BasicStruct{&basicStruct2},
+			},
+			in:       nil,
+			iterFunc: printSchemaAnnotationFieldsIterFunc,
 			wantOut: `int32 : 42, string : "forty two", int32ptr : 4242, stringptr : "forty two ptr", ` +
 				`int32 : 43, string : "forty three", int32ptr : 4343, stringptr : "forty three ptr", `,
 		},
@@ -1301,10 +1320,13 @@ func TestForEachDataField(t *testing.T) {
  "two"], `,
 		},
 		{
-			desc:         "map keys with no struct schema",
-			in:           nil,
-			parentStruct: &StructOfMapOfStructs{BasicStructMapField: map[string]BasicStruct{"basicStruct1": basicStruct1}, BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2}},
-			iterFunc:     printMapKeysSchemaAnnotationFunc,
+			desc: "map keys with no struct schema",
+			in:   nil,
+			parentStruct: &StructOfMapOfStructs{
+				BasicStructMapField:    map[string]BasicStruct{"basicStruct1": basicStruct1},
+				BasicStructPtrMapField: map[string]*BasicStruct{"basicStruct2": &basicStruct2},
+			},
+			iterFunc: printMapKeysSchemaAnnotationFunc,
 			wantOut: `basicStruct1 (string)/basic-struct : 
 {Int32Field:     42,
  StringField:    "forty two",
@@ -1359,7 +1381,12 @@ func TestUpdateFieldUsingForEachField(t *testing.T) {
 		BasicStructField *BasicStruct `path:"basic-struct"`
 	}
 
-	basicStruct1 := BasicStruct{Int32Field: int32(42), StringField: "forty two", Int32PtrField: toInt32Ptr(4242), StringPtrField: toStringPtr("forty two ptr")}
+	basicStruct1 := BasicStruct{
+		Int32Field:     int32(42),
+		StringField:    "forty two",
+		Int32PtrField:  toInt32Ptr(4242),
+		StringPtrField: toStringPtr("forty two ptr"),
+	}
 
 	// This doesn't work as a general insert because it won't create fields
 	// that are nil, they must already exist. It only works as an update.
@@ -1420,7 +1447,14 @@ func TestStructValueHasNFields(t *testing.T) {
 
 	for _, tt := range tests {
 		if got := IsStructValueWithNFields(tt.inStruct, tt.inNumber); got != tt.want {
-			t.Errorf("%s: StructValueHasNFields(%#v, %d): did not get expected return, got: %v, want: %v", tt.name, tt.inStruct, tt.inNumber, got, tt.want)
+			t.Errorf(
+				"%s: StructValueHasNFields(%#v, %d): did not get expected return, got: %v, want: %v",
+				tt.name,
+				tt.inStruct,
+				tt.inNumber,
+				got,
+				tt.want,
+			)
 		}
 	}
 }

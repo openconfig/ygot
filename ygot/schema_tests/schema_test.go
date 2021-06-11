@@ -22,14 +22,14 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/nokia/ygot/exampleoc"
+	"github.com/nokia/ygot/exampleoc/opstateoc"
+	"github.com/nokia/ygot/exampleoc/wrapperunionoc"
+	"github.com/nokia/ygot/testutil"
+	"github.com/nokia/ygot/uexampleoc"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/gnmi/value"
-	"github.com/openconfig/ygot/exampleoc"
-	"github.com/openconfig/ygot/exampleoc/opstateoc"
-	"github.com/openconfig/ygot/exampleoc/wrapperunionoc"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/uexampleoc"
-	"github.com/openconfig/ygot/ygot"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -153,7 +153,12 @@ func TestDiff(t *testing.T) {
 		inOrig: &exampleoc.NetworkInstance_Protocol_Bgp{},
 		inMod: func() *exampleoc.NetworkInstance_Protocol_Bgp {
 			d := &exampleoc.Device{}
-			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+			b := d.GetOrCreateNetworkInstance(
+				"DEFAULT",
+			).GetOrCreateProtocol(
+				exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+				"15169",
+			).GetOrCreateBgp()
 			n := b.GetOrCreateNeighbor("192.0.2.1")
 			n.PeerAs = ygot.Uint32(29636)
 			n.PeerType = exampleoc.BgpTypes_PeerType_EXTERNAL
@@ -179,7 +184,12 @@ func TestDiff(t *testing.T) {
 		inOrig: &opstateoc.NetworkInstance_Protocol_Bgp{},
 		inMod: func() *opstateoc.NetworkInstance_Protocol_Bgp {
 			d := &opstateoc.Device{}
-			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(opstateoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+			b := d.GetOrCreateNetworkInstance(
+				"DEFAULT",
+			).GetOrCreateProtocol(
+				opstateoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+				"15169",
+			).GetOrCreateBgp()
 			n := b.GetOrCreateNeighbor("192.0.2.1")
 			n.PeerAs = ygot.Uint32(29636)
 			n.PeerType = opstateoc.OpenconfigBgpTypes_PeerType_EXTERNAL

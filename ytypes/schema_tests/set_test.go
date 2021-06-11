@@ -20,12 +20,12 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/nokia/ygot/exampleoc"
+	"github.com/nokia/ygot/exampleoc/opstateoc"
+	"github.com/nokia/ygot/uexampleoc"
+	"github.com/nokia/ygot/ygot"
+	"github.com/nokia/ygot/ytypes"
 	"github.com/openconfig/gnmi/errdiff"
-	"github.com/openconfig/ygot/exampleoc"
-	"github.com/openconfig/ygot/exampleoc/opstateoc"
-	"github.com/openconfig/ygot/uexampleoc"
-	"github.com/openconfig/ygot/ygot"
-	"github.com/openconfig/ygot/ytypes"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )

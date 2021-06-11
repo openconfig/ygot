@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/openconfig/ygot/ygot"
+	"github.com/nokia/ygot/ygot"
 	"google.golang.org/protobuf/encoding/prototext"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -42,11 +42,26 @@ func TestRenderToGNMINotifications(t *testing.T) {
 	for _, tt := range tests {
 		gotProtos, err := renderToGNMINotifications(tt.inStruct, tt.inTimestamp, tt.inUsePathElem)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: renderToGNMINotifications(%v, %v, %v): did not get expected error status, got: %v, want error: %v", tt.name, tt.inStruct, tt.inTimestamp, tt.inUsePathElem, err, tt.wantErr)
+			t.Errorf(
+				"%s: renderToGNMINotifications(%v, %v, %v): did not get expected error status, got: %v, want error: %v",
+				tt.name,
+				tt.inStruct,
+				tt.inTimestamp,
+				tt.inUsePathElem,
+				err,
+				tt.wantErr,
+			)
 		}
 
 		if len(gotProtos) != 1 {
-			t.Errorf("%s: renderToGNMINotifications(%v, %v, %v): did not get expected number of returned protos, got: %d, want: 1", tt.name, tt.inStruct, tt.inTimestamp, tt.inUsePathElem, len(gotProtos))
+			t.Errorf(
+				"%s: renderToGNMINotifications(%v, %v, %v): did not get expected number of returned protos, got: %d, want: 1",
+				tt.name,
+				tt.inStruct,
+				tt.inTimestamp,
+				tt.inUsePathElem,
+				len(gotProtos),
+			)
 			continue
 		}
 
@@ -61,7 +76,15 @@ func TestRenderToGNMINotifications(t *testing.T) {
 		}
 
 		if gotProtos[0].Timestamp != want.Timestamp {
-			t.Errorf("%s: renderToGNMINotifications(%v, %v, %v): did not get expexted timestamp, got: %v, want: %v", tt.name, tt.inStruct, tt.inTimestamp, tt.inUsePathElem, gotProtos[0].Timestamp, want.Timestamp)
+			t.Errorf(
+				"%s: renderToGNMINotifications(%v, %v, %v): did not get expexted timestamp, got: %v, want: %v",
+				tt.name,
+				tt.inStruct,
+				tt.inTimestamp,
+				tt.inUsePathElem,
+				gotProtos[0].Timestamp,
+				want.Timestamp,
+			)
 		}
 
 		if !updateSetEqual(gotProtos[0].Update, want.Update) {
@@ -69,7 +92,14 @@ func TestRenderToGNMINotifications(t *testing.T) {
 			for _, update := range gotProtos[0].Update {
 				txtprotos = append(txtprotos, prototext.Format(update))
 			}
-			t.Errorf("%s: renderToGNMINotifications(%v, %v, %v): did not get expected output, got proto:\n%s", tt.name, tt.inStruct, tt.inTimestamp, tt.inUsePathElem, strings.Join(txtprotos, "\n"))
+			t.Errorf(
+				"%s: renderToGNMINotifications(%v, %v, %v): did not get expected output, got proto:\n%s",
+				tt.name,
+				tt.inStruct,
+				tt.inTimestamp,
+				tt.inUsePathElem,
+				strings.Join(txtprotos, "\n"),
+			)
 		}
 	}
 }

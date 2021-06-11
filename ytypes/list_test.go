@@ -21,11 +21,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/nokia/ygot/testutil"
+	"github.com/nokia/ygot/util"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
 )
 
 var validListSchema = &yang.Entry{
@@ -158,7 +158,7 @@ func TestValidateListNoKey(t *testing.T) {
 
 	type StringListElemStruct struct {
 		LeafName   *string `path:"leaf-name"`
-		Annotation *string `ygotAnnotation:"true"`
+		Annotation *string `                 ygotAnnotation:"true"`
 	}
 	type BadElemStruct struct {
 		UnknownName *string `path:"unknown-name"`
@@ -239,7 +239,7 @@ func TestValidateListSimpleKey(t *testing.T) {
 	type StringListElemStruct struct {
 		KeyFieldName *string `path:"keyfield-name"`
 		LeafName     *string `path:"leaf-name"`
-		Annotation   *string `ygotAnnotation:"true"`
+		Annotation   *string `                     ygotAnnotation:"true"`
 	}
 	type BadElemStruct struct {
 		LeafName *string
@@ -893,7 +893,11 @@ func (*ListElemStructMapCreation) To_TestUnion2(i interface{}) (testutil.TestUni
 	case int64:
 		return testutil.UnionInt64(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+	return nil, fmt.Errorf(
+		"cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]",
+		i,
+		i,
+	)
 }
 
 func (*ListElemStructMapCreation) ΛEnumTypeMap() map[string][]reflect.Type {
@@ -926,7 +930,11 @@ func (*ListElemStructMapCreationLeafrefKeys) To_TestUnion2(i interface{}) (testu
 	case int64:
 		return testutil.UnionInt64(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+	return nil, fmt.Errorf(
+		"cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]",
+		i,
+		i,
+	)
 }
 
 func (*ListElemStructMapCreationLeafrefKeys) ΛEnumTypeMap() map[string][]reflect.Type {
@@ -1147,13 +1155,25 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 	tests := []*test{
 		{
 			desc: "success with enum for union key",
-			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "E_VALUE_FORTY_TWO", "key5": "E_VALUE_FORTY_TWO"},
+			keys: map[string]string{
+				"key1": "int0",
+				"key2": "42",
+				"key3": "E_VALUE_FORTY_TWO",
+				"key4": "E_VALUE_FORTY_TWO",
+				"key5": "E_VALUE_FORTY_TWO",
+			},
 			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1EnumType{EnumType(42)}, UnionKeySimple: EnumType(42)},
 		},
 		{
 			desc: "success with int16 for union key",
 			keys: map[string]string{"key1": "int0", "key2": "42", "key3": "E_VALUE_FORTY_TWO", "key4": "1234", "key5": "1234"},
-			want: KeyStructMapCreation{Key1: "int0", Key2: 42, EnumKey: 42, UnionKey: &Union1Int16{int16(1234)}, UnionKeySimple: testutil.UnionInt16(1234)},
+			want: KeyStructMapCreation{
+				Key1:           "int0",
+				Key2:           42,
+				EnumKey:        42,
+				UnionKey:       &Union1Int16{int16(1234)},
+				UnionKeySimple: testutil.UnionInt16(1234),
+			},
 		},
 		{
 			desc: "success with binary for union key",
@@ -1277,7 +1297,11 @@ func (*ListUnionStructSimple) To_TestUnion2(i interface{}) (testutil.TestUnion2,
 	case int64:
 		return testutil.UnionInt64(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+	return nil, fmt.Errorf(
+		"cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]",
+		i,
+		i,
+	)
 }
 
 func (*ListUnionStructSimple) ΛEnumTypeMap() map[string][]reflect.Type {
@@ -2104,7 +2128,11 @@ func (*unionKeyTestStructChildSimple) To_TestUnion2(i interface{}) (testutil.Tes
 	case int64:
 		return testutil.UnionInt64(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+	return nil, fmt.Errorf(
+		"cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]",
+		i,
+		i,
+	)
 }
 
 func TestUnmarshalUnionKeyedList(t *testing.T) {

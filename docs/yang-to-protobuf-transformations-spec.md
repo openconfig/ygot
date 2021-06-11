@@ -57,7 +57,7 @@ maps to a protobuf message. Such messages are contained within their own package
 dependent upon the schema path to the directory. For instance,
 `/interfaces/interface/subinterfaces/subinterface/config` is contained within a
 `openconfig_interfaces.interfaces.interface.subinterfaces.subinterface package`
-package. The [ygot](github.com/openconfig/ygot) package writes these messages
+package. The [ygot](github.com/nokia/ygot) package writes these messages
 out in a hierarchical file structure.
 
 Messages are named by translating the name of the message into `CamelCase`
@@ -187,7 +187,7 @@ protobuf-compatible. In order that the original schema path of an entity can be
 determined, the schema is annotated with the original schema path.
 
 This annotation uses a protobuf `FieldOption` defined in
-[yext.proto](https://github.com/openconfig/ygot/blob/master/proto/yext/yext.proto).
+[yext.proto](https://github.com/nokia/ygot/blob/master/proto/yext/yext.proto).
 The format of the option is a string specifying the complete YANG schema tree
 path (e.g., `/interfaces/interface/config/name`). In the case that a particular
 single protobuf field maps to more than one leaf in the YANG schema (possible

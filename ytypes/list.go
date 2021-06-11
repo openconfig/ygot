@@ -20,8 +20,8 @@ import (
 	"strings"
 
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/nokia/ygot/util"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-7.8.
@@ -285,7 +285,13 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 		return err
 	}
 
-	util.DbgPrint("unmarshalList jsonList %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(jsonList), jsonList, parent, schema.Name)
+	util.DbgPrint(
+		"unmarshalList jsonList %v, type %T, into parent type %T, schema name %s",
+		util.ValueStrDebug(jsonList),
+		jsonList,
+		parent,
+		schema.Name,
+	)
 
 	// Parent must be a map, slice ptr, or struct ptr.
 	t := reflect.TypeOf(parent)
@@ -406,7 +412,13 @@ func makeValForInsert(schema *yang.Entry, parent interface{}, keys map[string]st
 				pv := util.SplitPath(leafrefPath)
 				v, ok := rootSch.Dir[util.StripModulePrefix(pv[1])]
 				if !ok {
-					return fmt.Errorf("cannot resolve leafref, %s (can't find top-level %s in %v at %s)", leafrefPath, util.StripModulePrefix(pv[1]), rootSch.Dir, rootSch.Name)
+					return fmt.Errorf(
+						"cannot resolve leafref, %s (can't find top-level %s in %v at %s)",
+						leafrefPath,
+						util.StripModulePrefix(pv[1]),
+						rootSch.Dir,
+						rootSch.Name,
+					)
 				}
 				if keySchema = v.Find(strings.Join(pv[2:], "/")); keySchema == nil {
 					return fmt.Errorf("cannot find absolute leafref %s from %v", strings.Join(pv[2:], "/"), v.Name)

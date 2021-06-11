@@ -29,11 +29,11 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/nokia/ygot/genutil"
+	"github.com/nokia/ygot/util"
+	"github.com/nokia/ygot/ygen"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/genutil"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygen"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // Static default configuration values that differ from the zero value for their types.
@@ -269,7 +269,15 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 		if cg.GenerateWildcardPaths {
 			listBuilderKeyThreshold = cg.ListBuilderKeyThreshold
 		}
-		structSnippet, es := generateDirectorySnippet(directory, directories, schemaStructPkgAccessor, cg.PathStructSuffix, listBuilderKeyThreshold, cg.GenerateWildcardPaths, cg.SimplifyWildcardPaths)
+		structSnippet, es := generateDirectorySnippet(
+			directory,
+			directories,
+			schemaStructPkgAccessor,
+			cg.PathStructSuffix,
+			listBuilderKeyThreshold,
+			cg.GenerateWildcardPaths,
+			cg.SimplifyWildcardPaths,
+		)
 		if es != nil {
 			errs = util.AppendErrs(errs, es)
 		}
@@ -546,7 +554,11 @@ func mustTemplate(name, src string) *template.Template {
 // every leaf node only, leafTypeMap's value is nil for non-leaf nodes.
 // If a directory or field doesn't exist in the leafTypeMap, then an error is returned.
 // Note: Top-level nodes, but *not* the fake root, are part of the output.
-func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[string]map[string]*ygen.MappedType, schemaStructPkgAccessor, pathStructSuffix string) (NodeDataMap, util.Errors) {
+func getNodeDataMap(
+	directories map[string]*ygen.Directory,
+	leafTypeMap map[string]map[string]*ygen.MappedType,
+	schemaStructPkgAccessor, pathStructSuffix string,
+) (NodeDataMap, util.Errors) {
 	nodeDataMap := NodeDataMap{}
 	var errs util.Errors
 	for path, dir := range directories {
@@ -564,7 +576,15 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 			}
 			mType, ok := fieldTypeMap[fieldName]
 			if !ok {
-				errs = util.AppendErr(errs, fmt.Errorf("getChildDataList: field name %q does not exist for directory %q in the map of field names to their MappedType values: %v", fieldName, path, fieldTypeMap))
+				errs = util.AppendErr(
+					errs,
+					fmt.Errorf(
+						"getChildDataList: field name %q does not exist for directory %q in the map of field names to their MappedType values: %v",
+						fieldName,
+						path,
+						fieldTypeMap,
+					),
+				)
 				continue
 			}
 
@@ -710,7 +730,13 @@ type goPathFieldData struct {
 // the fields of the struct. directory is the parsed information of a schema
 // node, and directories is a map from path to a parsed schema node for all
 // nodes in the schema.
-func generateDirectorySnippet(directory *ygen.Directory, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint, generateWildcardPaths, simplifyWildcardPaths bool) (GoPathStructCodeSnippet, util.Errors) {
+func generateDirectorySnippet(
+	directory *ygen.Directory,
+	directories map[string]*ygen.Directory,
+	schemaStructPkgAccessor, pathStructSuffix string,
+	listBuilderKeyThreshold uint,
+	generateWildcardPaths, simplifyWildcardPaths bool,
+) (GoPathStructCodeSnippet, util.Errors) {
 	var errs util.Errors
 	// structBuf is used to store the code associated with the struct defined for
 	// the target YANG entity.
@@ -784,7 +810,16 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 // field name to be used as the generated method's name and the incremental
 // type name of of the child path struct, and a map of all directories of the
 // whole schema keyed by their schema paths.
-func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint, generateWildcardPaths, simplifyWildcardPaths bool) []error {
+func generateChildConstructors(
+	methodBuf *strings.Builder,
+	directory *ygen.Directory,
+	directoryFieldName string,
+	goFieldName string,
+	directories map[string]*ygen.Directory,
+	schemaStructPkgAccessor, pathStructSuffix string,
+	listBuilderKeyThreshold uint,
+	generateWildcardPaths, simplifyWildcardPaths bool,
+) []error {
 	field, ok := directory.Fields[directoryFieldName]
 	if !ok {
 		return []error{fmt.Errorf("generateChildConstructors: field %s not found in directory %v", directoryFieldName, directory)}
@@ -830,14 +865,26 @@ func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Direc
 		// confusing for the user.
 		return generateChildConstructorsForListBuilderFormat(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, schemaStructPkgAccessor)
 	default:
-		return generateChildConstructorsForList(methodBuf, fieldDirectory.ListAttr, fieldData, isUnderFakeRoot, generateWildcardPaths, simplifyWildcardPaths, schemaStructPkgAccessor)
+		return generateChildConstructorsForList(
+			methodBuf,
+			fieldDirectory.ListAttr,
+			fieldData,
+			isUnderFakeRoot,
+			generateWildcardPaths,
+			simplifyWildcardPaths,
+			schemaStructPkgAccessor,
+		)
 	}
 }
 
 // generateChildConstructorsForLeafOrContainer writes into methodBuf the child
 // constructor snippets for the container or leaf template output information
 // contained in fieldData.
-func generateChildConstructorsForLeafOrContainer(methodBuf *strings.Builder, fieldData goPathFieldData, isUnderFakeRoot, generateWildcardPaths bool) []error {
+func generateChildConstructorsForLeafOrContainer(
+	methodBuf *strings.Builder,
+	fieldData goPathFieldData,
+	isUnderFakeRoot, generateWildcardPaths bool,
+) []error {
 	// Generate child constructor for the non-wildcard version of the parent struct.
 	var errors []error
 	if err := goPathChildConstructorTemplate.Execute(methodBuf, fieldData); err != nil {
@@ -865,7 +912,13 @@ func generateChildConstructorsForLeafOrContainer(methodBuf *strings.Builder, fie
 // the builder API format. fieldData contains the childConstructor template
 // output information for if the node were a container (which contains a subset
 // of the basic information required for the list constructor methods).
-func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAccessor string) []error {
+func generateChildConstructorsForListBuilderFormat(
+	methodBuf *strings.Builder,
+	listAttr *ygen.YangListAttr,
+	fieldData goPathFieldData,
+	isUnderFakeRoot bool,
+	schemaStructPkgAccessor string,
+) []error {
 	var errors []error
 	// List of function parameters as would appear in the method definition.
 	keyParams, err := makeKeyParams(listAttr, schemaStructPkgAccessor)
@@ -935,7 +988,13 @@ func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, l
 // childConstructor template output information for if the node were a
 // container (which contains a subset of the basic information required for
 // the list constructor methods).
-func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot, generateWildcardPaths, simplifyWildcardPaths bool, schemaStructPkgAccessor string) []error {
+func generateChildConstructorsForList(
+	methodBuf *strings.Builder,
+	listAttr *ygen.YangListAttr,
+	fieldData goPathFieldData,
+	isUnderFakeRoot, generateWildcardPaths, simplifyWildcardPaths bool,
+	schemaStructPkgAccessor string,
+) []error {
 	var errors []error
 	// List of function parameters as would appear in the method definition.
 	keyParams, err := makeKeyParams(listAttr, schemaStructPkgAccessor)
@@ -1042,7 +1101,13 @@ func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen
 // leaf. For non-leaves, their corresponding directories' "Name"s, which are the
 // same names as their corresponding ygen Go struct type names, are re-used as
 // their type names; for leaves, type names are synthesized.
-func getFieldTypeName(directory *ygen.Directory, directoryFieldName string, goFieldName string, directories map[string]*ygen.Directory, pathStructSuffix string) (string, error) {
+func getFieldTypeName(
+	directory *ygen.Directory,
+	directoryFieldName string,
+	goFieldName string,
+	directories map[string]*ygen.Directory,
+	pathStructSuffix string,
+) (string, error) {
 	field, ok := directory.Fields[directoryFieldName]
 	if !ok {
 		return "", fmt.Errorf("getFieldTypeName: field %s not found in directory %v", directoryFieldName, directory)

@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/nokia/ygot/util"
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
 )
 
 // schemaTree contains a ctree.Tree that stores a copy of the YANG schema tree

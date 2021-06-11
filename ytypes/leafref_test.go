@@ -19,10 +19,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/nokia/ygot/testutil"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // addParents adds parent pointers for a schema tree.
@@ -651,12 +651,12 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 
 	type RootExample struct {
 		Conf     *uint32 `path:"config/conf|conf" module:"openconfig-network-instance"`
-		ConfRef  *uint32 `path:"config/conf-ref" module:"openconfig-network-instance"`
+		ConfRef  *uint32 `path:"config/conf-ref"  module:"openconfig-network-instance"`
 		Conf2Ref *string `path:"config/conf2-ref" module:"openconfig-network-instance"`
 	}
 
 	type Root struct {
-		Conf2   *string                 `path:"conf2" module:"openconfig-network-instance"`
+		Conf2   *string                 `path:"conf2"            module:"openconfig-network-instance"`
 		Example map[uint32]*RootExample `path:"examples/example" module:"openconfig-network-instance"`
 	}
 
@@ -1076,7 +1076,10 @@ func TestLeafrefValidateCurrent(t *testing.T) {
 				2: {ygot.Uint32(2), ygot.Uint32(422)},
 			},
 			Ref: map[uint32]*genericList{
-				1: {ygot.Uint32(1), ygot.Uint32(422)}, // this should fail -- since we're looking for /target[key=1]/value = 422 which isn't there in the data.
+				1: {
+					ygot.Uint32(1),
+					ygot.Uint32(422),
+				}, // this should fail -- since we're looking for /target[key=1]/value = 422 which isn't there in the data.
 				2: {ygot.Uint32(2), ygot.Uint32(422)},
 			},
 		},

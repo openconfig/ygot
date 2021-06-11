@@ -20,10 +20,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/nokia/ygot/testutil"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/ygot"
 )
 
 //lint:file-ignore U1000 Ignore all unused code, it represents generated code.
@@ -290,7 +290,11 @@ func (*allKeysListStruct) To_TestUnion2(i interface{}) (testutil.TestUnion2, err
 	case int64:
 		return testutil.UnionInt64(v), nil
 	}
-	return nil, fmt.Errorf("cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]", i, i)
+	return nil, fmt.Errorf(
+		"cannot convert %v to testutil.TestUnion2, unknown union type, got: %T, want any of [EnumType, Binary, Int16, Int64]",
+		i,
+		i,
+	)
 }
 
 func (*allKeysListStruct) ΛEnumTypeMap() map[string][]reflect.Type {

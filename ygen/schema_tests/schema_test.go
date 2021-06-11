@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/openconfig/ygot/exampleoc"
-	"github.com/openconfig/ygot/ygot"
+	"github.com/nokia/ygot/exampleoc"
+	"github.com/nokia/ygot/ygot"
 )
 
 func TestSimpleListRename(t *testing.T) {
@@ -155,10 +155,16 @@ func TestGetOrCreateSimpleList(t *testing.T) {
 
 func TestGetOrCreateMultiKeyList(t *testing.T) {
 	d := &exampleoc.Device{}
-	d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_ISIS, "0").GetOrCreateIsis().GetOrCreateGlobal().MaxEcmpPaths = ygot.Uint8(42)
+	d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_ISIS, "0").GetOrCreateIsis().GetOrCreateGlobal().MaxEcmpPaths = ygot.Uint8(
+		42,
+	)
 
 	if got, want := *d.NetworkInstance["DEFAULT"].Protocol[exampleoc.NetworkInstance_Protocol_Key{Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_ISIS, Name: "0"}].Isis.Global.MaxEcmpPaths, uint8(42); got != want {
-		t.Errorf("GetOrCreateNetworkInstance('DEFAULT').GetOrCreateProtocol(ISIS, '0').GetOrCreateGlobal().MaxEcmpPaths: got incorrect return value, got: %v, want: %v", got, want)
+		t.Errorf(
+			"GetOrCreateNetworkInstance('DEFAULT').GetOrCreateProtocol(ISIS, '0').GetOrCreateGlobal().MaxEcmpPaths: got incorrect return value, got: %v, want: %v",
+			got,
+			want,
+		)
 	}
 }
 

@@ -19,7 +19,7 @@ clean
 
 go run ${SRCDIR}/proto_generator/protogenerator.go \
   -generate_fakeroot \
-  -base_import_path="github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto" \
+  -base_import_path="github.com/nokia/ygot/demo/protobuf_getting_started/ribproto" \
   -path=yang -output_dir=ribproto \
   -typedef_enum_with_defmod \
   -consistent_union_enum_names \

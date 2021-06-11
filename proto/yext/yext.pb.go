@@ -20,16 +20,17 @@
 // versions:
 // 	protoc-gen-go v1.20.0-devel
 // 	protoc        v3.11.4
-// source: github.com/openconfig/ygot/proto/yext/yext.proto
+// source: github.com/nokia/ygot/proto/yext/yext.proto
 
 package yext
 
 import (
+	reflect "reflect"
+
 	proto "github.com/golang/protobuf/proto"
 	descriptor "github.com/golang/protobuf/protoc-gen-go/descriptor"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
 )
 
 const (
@@ -50,7 +51,7 @@ var file_github_com_openconfig_ygot_proto_yext_yext_proto_extTypes = []protoimpl
 		Field:         1040,
 		Name:          "yext.schemapath",
 		Tag:           "bytes,1040,opt,name=schemapath",
-		Filename:      "github.com/openconfig/ygot/proto/yext/yext.proto",
+		Filename:      "github.com/nokia/ygot/proto/yext/yext.proto",
 	},
 	{
 		ExtendedType:  (*descriptor.EnumValueOptions)(nil),
@@ -58,7 +59,7 @@ var file_github_com_openconfig_ygot_proto_yext_yext_proto_extTypes = []protoimpl
 		Field:         1040,
 		Name:          "yext.yang_name",
 		Tag:           "bytes,1040,opt,name=yang_name",
-		Filename:      "github.com/openconfig/ygot/proto/yext/yext.proto",
+		Filename:      "github.com/nokia/ygot/proto/yext/yext.proto",
 	},
 }
 

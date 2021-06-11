@@ -19,8 +19,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	oc "github.com/openconfig/ygot/exampleoc"
-	"github.com/openconfig/ygot/ygot"
+	oc "github.com/nokia/ygot/exampleoc"
+	"github.com/nokia/ygot/ygot"
 )
 
 func BenchmarkDiff(b *testing.B) {

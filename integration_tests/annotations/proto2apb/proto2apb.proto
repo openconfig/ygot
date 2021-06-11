@@ -15,7 +15,7 @@
 syntax = "proto2";
 
 package proto2_annotation;
-option go_package = "github.com/openconfig/ygot/integration_tests/annotations/proto2apb";
+option go_package = "github.com/nokia/ygot/integration_tests/annotations/proto2apb";
 
 message Annotation {
   optional string comment = 1;

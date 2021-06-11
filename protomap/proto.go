@@ -26,11 +26,11 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 
-	"github.com/openconfig/ygot/ygot"
+	"github.com/nokia/ygot/ygot"
 
+	yextpb "github.com/nokia/ygot/proto/yext"
+	wpb "github.com/nokia/ygot/proto/ywrapper"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
-	yextpb "github.com/openconfig/ygot/proto/yext"
-	wpb "github.com/openconfig/ygot/proto/ywrapper"
 )
 
 // PathsFromProto returns, from a populated proto, a map between the YANG schema

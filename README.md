@@ -1,5 +1,5 @@
-![Go](https://github.com/openconfig/ygot/workflows/Go/badge.svg?branch=master)
-[![Coverage Status](https://coveralls.io/repos/github/openconfig/ygot/badge.svg?branch=master)](https://coveralls.io/github/openconfig/ygot?branch=master)
+![Go](https://github.com/nokia/ygot/workflows/Go/badge.svg?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/nokia/ygot/badge.svg?branch=master)](https://coveralls.io/github/nokia/ygot?branch=master)
 [![Go releases supported](https://img.shields.io/badge/Go-1.13%2B-blue)](https://golang.org/project/#release)
 
 ![#ygot](docs/img/ygot.png)
@@ -48,7 +48,7 @@ If schema transformations for OpenConfig are desired, these are enabled using th
 Putting this all together, a command line to generate OpenConfig interfaces from the contents of the `demo/getting_started/yang` directory is:
 
 ```
-go run $GOPATH/src/github.com/openconfig/ygot/generator/generator.go -path=yang -output_file=pkg/ocdemo/oc.go -package_name=ocdemo -generate_fakeroot -fakeroot_name=device -compress_paths=true -shorten_enum_leaf_names -typedef_enum_with_defmod -exclude_modules=ietf-interfaces yang/openconfig-interfaces.yang
+go run $GOPATH/src/github.com/nokia/ygot/generator/generator.go -path=yang -output_file=pkg/ocdemo/oc.go -package_name=ocdemo -generate_fakeroot -fakeroot_name=device -compress_paths=true -shorten_enum_leaf_names -typedef_enum_with_defmod -exclude_modules=ietf-interfaces yang/openconfig-interfaces.yang
 ```
 
 To allow this file to be auto-created, you can place a command which allows this code generation to be done automatically, either by creating a file within the YANG directory, or directly embedding this command within the source file that populates the structures. For an example, see the `demo/getting_started/main.go` file which includes:

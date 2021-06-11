@@ -22,9 +22,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/nokia/ygot/util"
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/value"
-	"github.com/openconfig/ygot/util"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 
@@ -537,7 +537,11 @@ func appendgNMIPathElemKey(v reflect.Value, p *gnmiPath) (*gnmiPath, error) {
 func PathKeyFromStruct(v reflect.Value) (map[string]string, error) {
 	gs, ok := v.Interface().(KeyHelperGoStruct)
 	if !ok {
-		return nil, fmt.Errorf("cannot render to gNMI PathElem for structs that do not implement KeyHelperGoStruct, got: %T (%s)", v.Type().Name(), v.Interface())
+		return nil, fmt.Errorf(
+			"cannot render to gNMI PathElem for structs that do not implement KeyHelperGoStruct, got: %T (%s)",
+			v.Type().Name(),
+			v.Interface(),
+		)
 	}
 
 	km, err := gs.ΛListKeyMap()
@@ -721,7 +725,11 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 	default:
 		if underlyingType, ok := unionSingletonUnderlyingTypes[vv.Type().Name()]; ok {
 			if !vv.Type().ConvertibleTo(underlyingType) {
-				return nil, fmt.Errorf("ygot internal implementation bug: union type %q inconvertible to underlying type %q", vv.Type().Name(), underlyingType)
+				return nil, fmt.Errorf(
+					"ygot internal implementation bug: union type %q inconvertible to underlying type %q",
+					vv.Type().Name(),
+					underlyingType,
+				)
 			}
 			vv = vv.Convert(underlyingType)
 		}
@@ -1059,7 +1067,11 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			appendModName = true
 		}
 
-		mapPaths, err := structTagToLibPaths(fType, newStringSliceGNMIPath([]string{}), args.rfc7951Config != nil && args.rfc7951Config.PreferShadowPath)
+		mapPaths, err := structTagToLibPaths(
+			fType,
+			newStringSliceGNMIPath([]string{}),
+			args.rfc7951Config != nil && args.rfc7951Config.PreferShadowPath,
+		)
 		if err != nil {
 			errs.Add(fmt.Errorf("%s: %v", fType.Name, err))
 			continue

@@ -19,4 +19,4 @@ if [ -z ${SRCDIR} ]; then
    SRCDIR=${DIR}/../..
 fi
 
-cd ${SRCDIR}/../../../../src && protoc --proto_path=. --go_out=:. github.com/openconfig/ygot/proto/yext/yext.proto
+cd ${SRCDIR}/../../../../src && protoc --proto_path=. --go_out=:. github.com/nokia/ygot/proto/yext/yext.proto

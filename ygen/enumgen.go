@@ -19,9 +19,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/nokia/ygot/genutil"
+	"github.com/nokia/ygot/util"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/genutil"
-	"github.com/openconfig/ygot/util"
 )
 
 const (
@@ -83,7 +83,11 @@ func newEnumSet() *enumSet {
 // value is calculated based on the original context, whether path compression is enabled based
 // on the compressPaths boolean, and whether the name should not include underscores, as per the
 // noUnderscores boolean.
-func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, useConsistentNamesForProtoUnionEnums bool, enumOrgPrefixesToTrim []string) ([]*yangEnum, error) {
+func (s *enumSet) enumeratedUnionEntry(
+	e *yang.Entry,
+	compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, useConsistentNamesForProtoUnionEnums bool,
+	enumOrgPrefixesToTrim []string,
+) ([]*yangEnum, error) {
 	var es []*yangEnum
 
 	for _, t := range util.EnumeratedUnionTypes(e.Type.Type) {
@@ -119,7 +123,15 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 				}
 			}
 			if util.IsYANGBaseType(enumNameSake) {
-				enumName, err = s.enumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames && appendEnumSuffixForSimpleUnionEnums, enumOrgPrefixesToTrim)
+				enumName, err = s.enumName(
+					e,
+					compressPaths,
+					noUnderscores,
+					skipEnumDedup,
+					shortenEnumLeafNames,
+					useDefiningModuleForTypedefEnumNames && appendEnumSuffixForSimpleUnionEnums,
+					enumOrgPrefixesToTrim,
+				)
 			} else {
 				enumName, err = s.typedefEnumeratedName(resolveTypeArgs{contextEntry: e, yangType: t}, noUnderscores, useDefiningModuleForTypedefEnumNames)
 			}
@@ -143,7 +155,8 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 						// type, and with consistent name generation.
 						// TODO(wenbli): Once the enum name flags are removed, this code
 						// should be deleted.
-						"skipGlobalProtoGeneration": useDefiningModuleForTypedefEnumNames && util.IsYANGBaseType(enumNameSake) && useConsistentNamesForProtoUnionEnums,
+						"skipGlobalProtoGeneration": useDefiningModuleForTypedefEnumNames && util.IsYANGBaseType(enumNameSake) &&
+							useConsistentNamesForProtoUnionEnums,
 					},
 				},
 			}
@@ -182,11 +195,18 @@ func (s *enumSet) identityrefBaseTypeFromIdentity(i *yang.Identity) (string, err
 
 // enumName retrieves the type name of the input enum *yang.Entry that will be
 // used in the generated code.
-func (s *enumSet) enumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix bool, enumOrgPrefixesToTrim []string) (string, error) {
+func (s *enumSet) enumName(
+	e *yang.Entry,
+	compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix bool,
+	enumOrgPrefixesToTrim []string,
+) (string, error) {
 	key, _ := s.enumLeafKey(e, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix, enumOrgPrefixesToTrim)
 	definedName, ok := s.uniqueEnumeratedLeafNames[key]
 	if !ok {
-		return "", fmt.Errorf("enumSet: cannot retrieve type name for enumerated leaf without a name generated (was findEnumSet called?): %v", e.Path())
+		return "", fmt.Errorf(
+			"enumSet: cannot retrieve type name for enumerated leaf without a name generated (was findEnumSet called?): %v",
+			e.Path(),
+		)
 	}
 	return definedName, nil
 }
@@ -197,7 +217,11 @@ func (s *enumSet) enumName(e *yang.Entry, compressPaths, noUnderscores, skipDedu
 // within the resolveTypeArgs struct is not a type definition which includes an
 // enumerated type, the MappedType returned is nil, otherwise it should be
 // populated.
-func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string, noUnderscores, useDefiningModuleForTypedefEnumNames bool) (*MappedType, error) {
+func (s *enumSet) enumeratedTypedefTypeName(
+	args resolveTypeArgs,
+	prefix string,
+	noUnderscores, useDefiningModuleForTypedefEnumNames bool,
+) (*MappedType, error) {
 	switch args.yangType.Kind {
 	case yang.Yenum, yang.Yidentityref:
 		// In the case of a typedef that specifies an enumeration or identityref
@@ -240,7 +264,10 @@ func (s *enumSet) typedefEnumeratedName(args resolveTypeArgs, noUnderscores, use
 	}
 	definedName, ok := s.uniqueEnumeratedTypedefNames[typedefKey]
 	if !ok {
-		return "", fmt.Errorf("enumSet: cannot retrieve type name for typedef enumeration without a name generated (was findEnumSet called?): %v", args.contextEntry.Path())
+		return "", fmt.Errorf(
+			"enumSet: cannot retrieve type name for typedef enumeration without a name generated (was findEnumSet called?): %v",
+			args.contextEntry.Path(),
+		)
 	}
 	return definedName, nil
 }
@@ -269,7 +296,8 @@ func (s *enumSet) enumeratedTypedefKey(args resolveTypeArgs, noUnderscores, useD
 	// Handle the case whereby we have been handed an enumeration that is within a
 	// union. We need to synthesise the name of the type here such that it is based on
 	// type name, plus the fact that it is an enumeration.
-	if (useDefiningModuleForTypedefEnumNames && definingType.Kind == yang.Yunion) || (!useDefiningModuleForTypedefEnumNames && args.contextEntry.Type.Kind == yang.Yunion) {
+	if (useDefiningModuleForTypedefEnumNames && definingType.Kind == yang.Yunion) ||
+		(!useDefiningModuleForTypedefEnumNames && args.contextEntry.Type.Kind == yang.Yunion) {
 		// We specifically say that this is an enumeration within the leaf.
 		if noUnderscores {
 			typeName = fmt.Sprintf("%s%s", definingType.Name, enumeratedUnionSuffix)
@@ -281,7 +309,7 @@ func (s *enumSet) enumeratedTypedefKey(args resolveTypeArgs, noUnderscores, useD
 		return "", "", fmt.Errorf("nil Node in enum type %s", args.contextEntry.Name)
 	}
 
-	// TODO(wenbli) to be deprecated: // https://github.com/openconfig/ygot/issues/404
+	// TODO(wenbli) to be deprecated: // https://github.com/nokia/ygot/issues/404
 	// This is the old, buggy behaviour that causes same-named typedefs to shadow one another.
 	enumKey := fmt.Sprintf("%s/%s", genutil.ParentModuleName(args.contextEntry.Node), typeName)
 	if useDefiningModuleForTypedefEnumNames {
@@ -298,7 +326,11 @@ func (s *enumSet) enumeratedTypedefKey(args resolveTypeArgs, noUnderscores, useD
 // enumLeafKey calculates a unique string key for the input leaf of type
 // "enumeration" only. If compressPaths is true, it also returns the compressed
 // version of the entry name for use in name generation, if needed.
-func (s *enumSet) enumLeafKey(e *yang.Entry, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix bool, enumOrgPrefixesToTrim []string) (string, string) {
+func (s *enumSet) enumLeafKey(
+	e *yang.Entry,
+	compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix bool,
+	enumOrgPrefixesToTrim []string,
+) (string, string) {
 	// uniqueIdentifier is the unique identifier used to determine whether to
 	// define a new enum type for the input enum.
 	// By default, using the entry's path ensures every enumeration
@@ -405,7 +437,11 @@ func enumIdentifier(e *yang.Entry, compressPaths bool) string {
 // into a common type.
 // The returned enumSet can be used to query for enum/identity names.
 // The returned map is the set of generated enums to be used for enum code generation.
-func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, useConsistentNamesForProtoUnionEnums bool, enumOrgPrefixesToTrim []string) (*enumSet, map[string]*yangEnum, []error) {
+func findEnumSet(
+	entries map[string]*yang.Entry,
+	compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, useConsistentNamesForProtoUnionEnums bool,
+	enumOrgPrefixesToTrim []string,
+) (*enumSet, map[string]*yangEnum, []error) {
 	validEnums := make(map[string]*yang.Entry)
 	var enumPaths []string
 	var errs []error
@@ -522,7 +558,17 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 		case e.Type.Name == "union", len(e.Type.Type) > 0 && !util.IsYANGBaseType(e.Type):
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
-			es, err := s.enumSet.enumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, useConsistentNamesForProtoUnionEnums, enumOrgPrefixesToTrim)
+			es, err := s.enumSet.enumeratedUnionEntry(
+				e,
+				compressPaths,
+				noUnderscores,
+				skipEnumDedup,
+				shortenEnumLeafNames,
+				useDefiningModuleForTypedefEnumNames,
+				appendEnumSuffixForSimpleUnionEnums,
+				useConsistentNamesForProtoUnionEnums,
+				enumOrgPrefixesToTrim,
+			)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -572,7 +618,11 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 			}
 		default:
 			// This is a type which is defined through a typedef.
-			typeName, err := s.enumSet.typedefEnumeratedName(resolveTypeArgs{contextEntry: e, yangType: e.Type}, noUnderscores, useDefiningModuleForTypedefEnumNames)
+			typeName, err := s.enumSet.typedefEnumeratedName(
+				resolveTypeArgs{contextEntry: e, yangType: e.Type},
+				noUnderscores,
+				useDefiningModuleForTypedefEnumNames,
+			)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -640,7 +690,11 @@ func (s *enumGenState) resolveEnumeratedLeafClashSets(compressPaths, noUnderscor
 // nameClashSets is a map from the clashing (default) name to the set of
 // {unique identifier: Entry} where each entry should have its own name in the
 // generated code.
-func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*yang.Entry, compressPaths, noUnderscores, shortenEnumLeafNames bool, enumOrgPrefixesToTrim []string) (map[string]string, error) {
+func (s *enumGenState) resolveNameClashSet(
+	nameClashSets map[string]map[string]*yang.Entry,
+	compressPaths, noUnderscores, shortenEnumLeafNames bool,
+	enumOrgPrefixesToTrim []string,
+) (map[string]string, error) {
 	uniqueNamesMap := map[string]string{}
 	// addCandidateUniqueNames adds the candidate map of unique names to the final unique names map.
 	// It returns whether the candidate names was successfully accepted as the resolving name set.
@@ -684,7 +738,11 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 		// previous rounds of name clash resolution.
 		for enumKey, entry := range nameClashSet {
 			if _, ok := uniqueNamesMap[enumKey]; ok {
-				return nil, fmt.Errorf("enumgen.go bug: enumKey %q has been given a second name during name generation, this should be detected and disallowed in the algorithm; one of the entries used for name generation: %+v", enumKey, nameClashSet[enumKey])
+				return nil, fmt.Errorf(
+					"enumgen.go bug: enumKey %q has been given a second name during name generation, this should be detected and disallowed in the algorithm; one of the entries used for name generation: %+v",
+					enumKey,
+					nameClashSet[enumKey],
+				)
 			}
 			clashPaths = append(clashPaths, entry.Path())
 		}
@@ -692,7 +750,11 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 		// For compressPaths=true, the enumeration leaf names are expected
 		// to not clash since they each already use the entire path.
 		if !compressPaths && len(nameClashSet) != 1 {
-			return nil, fmt.Errorf("enumgen.go: clash in enumerated name occurred despite paths being uncompressed, clash name: %q, clashing paths: %v", clashName, clashPaths)
+			return nil, fmt.Errorf(
+				"enumgen.go: clash in enumerated name occurred despite paths being uncompressed, clash name: %q, clashing paths: %v",
+				clashName,
+				clashPaths,
+			)
 		}
 
 		// If there is no clash, then we're done. This should be the vast majority of cases.
@@ -705,7 +767,12 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 			if s.definedEnums[clashName] {
 				// Unexpected conflict with existing name. This should not happen
 				// because clashNames are supposed to be unique.
-				return nil, fmt.Errorf("enumgen.go bug: default name %q has already been assigned during name generation, this should not happen in the algorithm; enumKey: %q; one of the entries used for name generation: %v", clashName, enumKey, nameClashSet[enumKey].Path())
+				return nil, fmt.Errorf(
+					"enumgen.go bug: default name %q has already been assigned during name generation, this should not happen in the algorithm; enumKey: %q; one of the entries used for name generation: %v",
+					clashName,
+					enumKey,
+					nameClashSet[enumKey].Path(),
+				)
 			}
 			uniqueNamesMap[enumKey] = clashName
 			s.definedEnums[clashName] = true
@@ -784,7 +851,11 @@ func (s *enumGenState) resolveNameClashSet(nameClashSets map[string]map[string]*
 // whether a shortened version of the enumeration names should be given for
 // enumeration leaves, and whether the defining module name (as opposed to the
 // user module's name) should be used to name enumerated typedefs.
-func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums bool, enumOrgPrefixesToTrim []string) error {
+func (s *enumGenState) resolveEnumeratedUnionEntry(
+	e *yang.Entry,
+	compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums bool,
+	enumOrgPrefixesToTrim []string,
+) error {
 	enumTypes := util.EnumeratedUnionTypes(e.Type.Type)
 	if len(enumTypes) == 0 {
 		return fmt.Errorf("enumerated type had an empty union within it, path: %v, type: %v, enumerated: %v", e.Path(), e.Type, enumTypes)
@@ -807,7 +878,15 @@ func (s *enumGenState) resolveEnumeratedUnionEntry(e *yang.Entry, compressPaths,
 				}
 			}
 			if util.IsYANGBaseType(enumNameSake) {
-				s.resolveEnumName(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames && appendEnumSuffixForSimpleUnionEnums, enumOrgPrefixesToTrim)
+				s.resolveEnumName(
+					e,
+					compressPaths,
+					noUnderscores,
+					skipEnumDedup,
+					shortenEnumLeafNames,
+					useDefiningModuleForTypedefEnumNames && appendEnumSuffixForSimpleUnionEnums,
+					enumOrgPrefixesToTrim,
+				)
 			} else {
 				if err := s.resolveTypedefEnumeratedName(resolveTypeArgs{contextEntry: e, yangType: t}, noUnderscores, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim); err != nil {
 					return err
@@ -880,10 +959,22 @@ func (s *enumGenState) resolveIdentityrefBaseTypeFromIdentity(i *yang.Identity, 
 // multiple enumerated types being produced. For other schemas, it can result in
 // somewhat difficult to understand enumerated types being produced - since the first
 // leaf that is processed will define the name of the enumeration.
-func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix bool, enumOrgPrefixesToTrim []string) {
+func (s *enumGenState) resolveEnumName(
+	e *yang.Entry,
+	compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix bool,
+	enumOrgPrefixesToTrim []string,
+) {
 	// uniqueIdentifier is the unique identifier used to determine whether to
 	// define a new enum type for the input enum.
-	uniqueIdentifier, compressName := s.enumSet.enumLeafKey(e, compressPaths, noUnderscores, skipDedup, shortenEnumLeafNames, addEnumeratedUnionSuffix, enumOrgPrefixesToTrim)
+	uniqueIdentifier, compressName := s.enumSet.enumLeafKey(
+		e,
+		compressPaths,
+		noUnderscores,
+		skipDedup,
+		shortenEnumLeafNames,
+		addEnumeratedUnionSuffix,
+		enumOrgPrefixesToTrim,
+	)
 
 	name := compressName
 	if !compressPaths {
@@ -923,7 +1014,11 @@ func (s *enumGenState) resolveEnumName(e *yang.Entry, compressPaths, noUnderscor
 // and computes the default name of the enum in the generated code.
 // If its name clashes with any other identity or enumerated name, an error
 // would be returned.
-func (s *enumGenState) resolveTypedefEnumeratedName(args resolveTypeArgs, noUnderscores, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) error {
+func (s *enumGenState) resolveTypedefEnumeratedName(
+	args resolveTypeArgs,
+	noUnderscores, useDefiningModuleForTypedefEnumNames bool,
+	enumOrgPrefixesToTrim []string,
+) error {
 	// Since there can be many leaves that refer to the same typedef, then we do not generate
 	// a name for each of them, but rather use a common name, we use the non-CamelCase lookup
 	// as this is unique, whereas post-camelisation, we may have name clashes. Since a typedef

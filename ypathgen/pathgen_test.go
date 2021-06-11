@@ -22,10 +22,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/nokia/ygot/testutil"
+	"github.com/nokia/ygot/ygen"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/ygen"
 )
 
 const (
@@ -346,7 +346,7 @@ func TestGeneratePathCode(t *testing.T) {
 		inShortenEnumLeafNames:                 true,
 		inUseDefiningModuleForTypedefEnumNames: true,
 		inGenerateWildcardPaths:                true,
-		inSchemaStructPkgPath:                  "github.com/openconfig/ygot/ypathgen/testdata/exampleoc",
+		inSchemaStructPkgPath:                  "github.com/nokia/ygot/ypathgen/testdata/exampleoc",
 		inPathStructSuffix:                     "",
 		wantStructsCodeFile:                    filepath.Join(TestRoot, "testdata/structs/openconfig-withlist-separate-package.path-txt"),
 	}, {
@@ -688,7 +688,7 @@ func TestGeneratePathCode(t *testing.T) {
 		inShortenEnumLeafNames:                 true,
 		inUseDefiningModuleForTypedefEnumNames: true,
 		inGenerateWildcardPaths:                true,
-		inSchemaStructPkgPath:                  "github.com/openconfig/ygot/ypathgen/testdata/exampleoc",
+		inSchemaStructPkgPath:                  "github.com/nokia/ygot/ypathgen/testdata/exampleoc",
 		inPathStructSuffix:                     "",
 		wantStructsCodeFile:                    filepath.Join(TestRoot, "testdata/structs/openconfig-augmented.path-txt"),
 		wantNodeDataMap: NodeDataMap{
@@ -839,20 +839,32 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 		name:                  "fileNumber is exactly the total number of structs",
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inFileNumber:          4,
-		inSchemaStructPkgPath: "github.com/openconfig/ygot/ypathgen/testdata/exampleoc",
-		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple-40.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-41.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-42.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-43.path-txt")},
+		inSchemaStructPkgPath: "github.com/nokia/ygot/ypathgen/testdata/exampleoc",
+		wantStructsCodeFiles: []string{
+			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-40.path-txt"),
+			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-41.path-txt"),
+			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-42.path-txt"),
+			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-43.path-txt"),
+		},
 	}, {
 		name:                  "fileNumber is just under the total number of structs",
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inFileNumber:          3,
 		inSchemaStructPkgPath: "",
-		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple-30.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-31.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-32.path-txt")},
+		wantStructsCodeFiles: []string{
+			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-30.path-txt"),
+			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-31.path-txt"),
+			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-32.path-txt"),
+		},
 	}, {
 		name:                  "fileNumber is half the total number of structs",
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inFileNumber:          2,
-		inSchemaStructPkgPath: "github.com/openconfig/ygot/ypathgen/testdata/exampleoc",
-		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple-0.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-1.path-txt")},
+		inSchemaStructPkgPath: "github.com/nokia/ygot/ypathgen/testdata/exampleoc",
+		wantStructsCodeFiles: []string{
+			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-0.path-txt"),
+			filepath.Join(TestRoot, "testdata/structs/openconfig-simple-1.path-txt"),
+		},
 	}, {
 		name:                  "single file",
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
@@ -909,8 +921,16 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 			}
 
 			if len(gotCode) != len(wantCode) {
-				t.Errorf("GeneratePathCode(%v, %v), Config: %v, did not return correct code via SplitFiles function (files: %v), (gotfiles: %d, wantfiles: %d), diff (-want, +got):\n%s",
-					tt.inFiles, tt.inIncludePaths, cg, tt.wantStructsCodeFiles, len(gotCode), len(wantCode), cmp.Diff(wantCode, gotCode))
+				t.Errorf(
+					"GeneratePathCode(%v, %v), Config: %v, did not return correct code via SplitFiles function (files: %v), (gotfiles: %d, wantfiles: %d), diff (-want, +got):\n%s",
+					tt.inFiles,
+					tt.inIncludePaths,
+					cg,
+					tt.wantStructsCodeFiles,
+					len(gotCode),
+					len(wantCode),
+					cmp.Diff(wantCode, gotCode),
+				)
 			} else {
 				for i := range gotCode {
 					if gotCode[i] != wantCode[i] {
@@ -2094,7 +2114,15 @@ func (n *List) UnionKey() *List_UnionKey {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, true, false)
+			got, gotErr := generateDirectorySnippet(
+				tt.inDirectory,
+				directories,
+				"oc.",
+				tt.inPathStructSuffix,
+				tt.inListBuilderKeyThreshold,
+				true,
+				false,
+			)
 			if gotErr != nil {
 				t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
 			}
@@ -2105,7 +2133,15 @@ func (n *List) UnionKey() *List_UnionKey {
 		})
 
 		t.Run(tt.name+" no wildcard", func(t *testing.T) {
-			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, false, false)
+			got, gotErr := generateDirectorySnippet(
+				tt.inDirectory,
+				directories,
+				"oc.",
+				tt.inPathStructSuffix,
+				tt.inListBuilderKeyThreshold,
+				false,
+				false,
+			)
 			if gotErr != nil {
 				t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
 			}
@@ -2682,7 +2718,12 @@ func TestMakeKeyParams(t *testing.T) {
 		},
 		wantKeyParams: []keyParam{
 			{name: "astatine", varName: "Astatine", typeName: "oc.Halogen", typeDocString: "Astatine: oc.Halogen"},
-			{name: "tennessine", varName: "Tennessine", typeName: "oc.Ununseptium", typeDocString: "Tennessine: [oc.UnionInt32, oc.UnionFloat64, *oc.UnionUnsupported]"},
+			{
+				name:          "tennessine",
+				varName:       "Tennessine",
+				typeName:      "oc.Ununseptium",
+				typeDocString: "Tennessine: [oc.UnionInt32, oc.UnionFloat64, *oc.UnionUnsupported]",
+			},
 		},
 	}, {
 		name: "Binary and Empty",

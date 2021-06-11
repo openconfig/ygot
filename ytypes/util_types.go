@@ -20,9 +20,9 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/nokia/ygot/util"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
 
 	log "github.com/golang/glog"
 )
@@ -90,7 +90,13 @@ func getLoneUnionType(schema *yang.Entry, unionT reflect.Type, ets []reflect.Typ
 			yk = schema.Type.Type[0].Kind
 			isEnum = true
 		default:
-			return yang.Ynone, false, fmt.Errorf("got %v non-enum types and %v enum types for union schema %s for type %v, expect just one type in total", sks, ets, schema.Name, unionT)
+			return yang.Ynone, false, fmt.Errorf(
+				"got %v non-enum types and %v enum types for union schema %s for type %v, expect just one type in total",
+				sks,
+				ets,
+				schema.Name,
+				unionT,
+			)
 		}
 		return yk, isEnum, nil
 	}
@@ -287,13 +293,26 @@ func stringToKeyType(schema *yang.Entry, parent interface{}, fieldName string, v
 		return stringToKeyType(schema, parent, fieldName, value)
 	}
 
-	return reflect.ValueOf(nil), fmt.Errorf("stringToKeyType: unsupported type %v for conversion from string %q, schema.Type: %v", ykind, value, schema.Type)
+	return reflect.ValueOf(
+			nil,
+		), fmt.Errorf(
+			"stringToKeyType: unsupported type %v for conversion from string %q, schema.Type: %v",
+			ykind,
+			value,
+			schema.Type,
+		)
 }
 
 // stringToUnionType converts a string value into a suitable union type
 // determined by where it is located in the YANG tree.
 func stringToUnionType(schema *yang.Entry, parent interface{}, fieldName string, value string) (reflect.Value, error) {
-	util.DbgPrint("stringToUnionType value %v, into parent type %T field name %s, schema name %s", util.ValueStrDebug(value), parent, fieldName, schema.Name)
+	util.DbgPrint(
+		"stringToUnionType value %v, into parent type %T field name %s, schema name %s",
+		util.ValueStrDebug(value),
+		parent,
+		fieldName,
+		schema.Name,
+	)
 	if !util.IsTypeStructPtr(reflect.TypeOf(parent)) {
 		return reflect.ValueOf(nil), fmt.Errorf("stringToKeyType: %T is not a struct ptr", parent)
 	}
@@ -344,7 +363,14 @@ func stringToUnionType(schema *yang.Entry, parent interface{}, fieldName string,
 		util.DbgPrint("could not unmarshal %v into type %v: %v", value, sk, err)
 	}
 
-	return reflect.ValueOf(nil), fmt.Errorf("could not find suitable union type to unmarshal value %q into parent struct type %T field %s", value, parent, fieldName)
+	return reflect.ValueOf(
+			nil,
+		), fmt.Errorf(
+			"could not find suitable union type to unmarshal value %q into parent struct type %T field %s",
+			value,
+			parent,
+			fieldName,
+		)
 }
 
 // yangBuiltinTypeToGoType returns a pointer to the Go built-in value with

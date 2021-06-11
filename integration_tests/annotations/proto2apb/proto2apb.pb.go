@@ -16,16 +16,17 @@
 // versions:
 // 	protoc-gen-go v1.22.0
 // 	protoc        v3.11.4
-// source: github.com/openconfig/ygot/integration_tests/annotations/proto2apb/proto2apb.proto
+// source: github.com/nokia/ygot/integration_tests/annotations/proto2apb/proto2apb.proto
 
 package proto2apb
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	proto "github.com/golang/protobuf/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -112,7 +113,9 @@ var (
 
 func file_github_com_openconfig_ygot_integration_tests_annotations_proto2apb_proto2apb_proto_rawDescGZIP() []byte {
 	file_github_com_openconfig_ygot_integration_tests_annotations_proto2apb_proto2apb_proto_rawDescOnce.Do(func() {
-		file_github_com_openconfig_ygot_integration_tests_annotations_proto2apb_proto2apb_proto_rawDescData = protoimpl.X.CompressGZIP(file_github_com_openconfig_ygot_integration_tests_annotations_proto2apb_proto2apb_proto_rawDescData)
+		file_github_com_openconfig_ygot_integration_tests_annotations_proto2apb_proto2apb_proto_rawDescData = protoimpl.X.CompressGZIP(
+			file_github_com_openconfig_ygot_integration_tests_annotations_proto2apb_proto2apb_proto_rawDescData,
+		)
 	})
 	return file_github_com_openconfig_ygot_integration_tests_annotations_proto2apb_proto2apb_proto_rawDescData
 }

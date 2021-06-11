@@ -11,7 +11,7 @@ Imported modules were sourced from:
 package ocpathstructs
 
 import (
-	"github.com/openconfig/ygot/ygot"
+	"github.com/nokia/ygot/ygot"
 )
 
 // DevicePath represents the /device YANG schema element.

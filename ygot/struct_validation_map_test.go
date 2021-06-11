@@ -26,9 +26,9 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/nokia/ygot/testutil"
 	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
-	"github.com/openconfig/ygot/testutil"
 )
 
 const (
@@ -292,11 +292,26 @@ func TestStructTagToLibPaths(t *testing.T) {
 	for _, tt := range tests {
 		got, err := structTagToLibPaths(tt.inField, tt.inParent, tt.inPreferShadowPath)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, err, tt.wantErr)
+			t.Errorf(
+				"%s: structTagToLibPaths(%v, %v, %v): did not get expected error status, got: %v, want err: %v",
+				tt.name,
+				tt.inField,
+				tt.inParent,
+				tt.inPreferShadowPath,
+				err,
+				tt.wantErr,
+			)
 		}
 
 		if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
-			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, diff)
+			t.Errorf(
+				"%s: structTagToLibPaths(%v, %v, %v): did not get expected set of map paths, diff(-want, +got):\n%s",
+				tt.name,
+				tt.inField,
+				tt.inParent,
+				tt.inPreferShadowPath,
+				diff,
+			)
 		}
 	}
 }
@@ -377,15 +392,36 @@ func TestEnumFieldToString(t *testing.T) {
 	for _, tt := range tests {
 		gotName, gotSet, err := enumFieldToString(tt.inField, tt.inAppendModuleName)
 		if err != nil && err.Error() != tt.wantErr {
-			t.Errorf("%s: enumFieldToString(%v, %v): did not get expected error, got: %v, want: %v", tt.name, tt.inField, tt.inAppendModuleName, err, tt.wantErr)
+			t.Errorf(
+				"%s: enumFieldToString(%v, %v): did not get expected error, got: %v, want: %v",
+				tt.name,
+				tt.inField,
+				tt.inAppendModuleName,
+				err,
+				tt.wantErr,
+			)
 		}
 
 		if gotName != tt.wantName {
-			t.Errorf("%s: enumFieldToString(%v, %v): did not get expected name, got: %v, want: %v", tt.name, tt.inField, tt.inAppendModuleName, gotName, tt.wantName)
+			t.Errorf(
+				"%s: enumFieldToString(%v, %v): did not get expected name, got: %v, want: %v",
+				tt.name,
+				tt.inField,
+				tt.inAppendModuleName,
+				gotName,
+				tt.wantName,
+			)
 		}
 
 		if gotSet != tt.wantSet {
-			t.Errorf("%s: enumFieldToString(%v, %v): did not get expected set status, got: %v, want: %v", tt.name, tt.inField, tt.inAppendModuleName, gotSet, tt.wantSet)
+			t.Errorf(
+				"%s: enumFieldToString(%v, %v): did not get expected set status, got: %v, want: %v",
+				tt.name,
+				tt.inField,
+				tt.inAppendModuleName,
+				gotSet,
+				tt.wantSet,
+			)
 		}
 	}
 }
@@ -481,11 +517,11 @@ func (*mapStructTestOne) ΛEnumTypeMap() map[string][]reflect.Type { return nil 
 // mapStructTestOne_Child is a child structure of the mapStructTestOne test
 // case.
 type mapStructTestOneChild struct {
-	FieldOne   *string  `path:"config/field-one" module:"test-one"`
-	FieldTwo   *uint32  `path:"config/field-two" module:"test-one"`
+	FieldOne   *string  `path:"config/field-one"   module:"test-one"`
+	FieldTwo   *uint32  `path:"config/field-two"   module:"test-one"`
 	FieldThree Binary   `path:"config/field-three" module:"test-one"`
-	FieldFour  []Binary `path:"config/field-four" module:"test-one"`
-	FieldFive  *uint64  `path:"config/field-five" module:"test-five"`
+	FieldFour  []Binary `path:"config/field-four"  module:"test-one"`
+	FieldFive  *uint64  `path:"config/field-five"  module:"test-five"`
 }
 
 // IsYANGGoStruct makes sure that we implement the GoStruct interface.
@@ -1174,11 +1210,11 @@ func TestMergeJSON(t *testing.T) {
 }
 
 type mergeTest struct {
-	FieldOne    *string                        `path:"field-one" module:"mod"`
-	FieldTwo    *uint8                         `path:"field-two" module:"mod"`
-	LeafList    []string                       `path:"leaf-list" module:"leaflist"`
+	FieldOne    *string                        `path:"field-one"    module:"mod"`
+	FieldTwo    *uint8                         `path:"field-two"    module:"mod"`
+	LeafList    []string                       `path:"leaf-list"    module:"leaflist"`
 	UnkeyedList []*mergeTestListChild          `path:"unkeyed-list" module:"bar"`
-	List        map[string]*mergeTestListChild `path:"list" module:"bar"`
+	List        map[string]*mergeTestListChild `path:"list"         module:"bar"`
 }
 
 func (*mergeTest) IsYANGGoStruct() {}
@@ -1310,11 +1346,26 @@ func TestMergeStructJSON(t *testing.T) {
 	for _, tt := range tests {
 		got, err := MergeStructJSON(tt.inStruct, tt.inJSON, tt.inOpts)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: MergeStructJSON(%v, %v, %v): did not get expected error status, got: %v, want: %v", tt.name, tt.inStruct, tt.inJSON, tt.inOpts, err, tt.wantErr)
+			t.Errorf(
+				"%s: MergeStructJSON(%v, %v, %v): did not get expected error status, got: %v, want: %v",
+				tt.name,
+				tt.inStruct,
+				tt.inJSON,
+				tt.inOpts,
+				err,
+				tt.wantErr,
+			)
 		}
 
 		if diff := pretty.Compare(got, tt.wantJSON); diff != "" {
-			t.Errorf("%s: MergeStrucTJSON(%v, %v, %v): did not get expected error status, diff(-got,+want):\n%s", tt.name, tt.inStruct, tt.inJSON, tt.inOpts, diff)
+			t.Errorf(
+				"%s: MergeStrucTJSON(%v, %v, %v): did not get expected error status, diff(-got,+want):\n%s",
+				tt.name,
+				tt.inStruct,
+				tt.inJSON,
+				tt.inOpts,
+				diff,
+			)
 		}
 	}
 }
@@ -2394,7 +2445,14 @@ func TestValidateMap(t *testing.T) {
 		got, err := validateMap(tt.inSrc, tt.inDst)
 		if err != nil {
 			if err.Error() != tt.wantErr {
-				t.Errorf("%s: validateMap(%v, %v): did not get expected error status, got: %v, wantErr: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
+				t.Errorf(
+					"%s: validateMap(%v, %v): did not get expected error status, got: %v, wantErr: %v",
+					tt.name,
+					tt.inSrc,
+					tt.inDst,
+					err,
+					tt.wantErr,
+				)
 			}
 			continue
 		}
@@ -2498,7 +2556,13 @@ func TestDeepCopy(t *testing.T) {
 			if v, ok := tt.in.StringMap[tt.inKey]; ok {
 				cv, cok := gotC.StringMap[tt.inKey]
 				if !cok {
-					t.Errorf("%s: DeepCopy(%#v): after copy, received map did not have correct key, want key: %v, got: %v", tt.name, tt.in, tt.inKey, gotC.StringMap)
+					t.Errorf(
+						"%s: DeepCopy(%#v): after copy, received map did not have correct key, want key: %v, got: %v",
+						tt.name,
+						tt.in,
+						tt.inKey,
+						gotC.StringMap,
+					)
 				}
 
 				if &v == &cv {
@@ -2649,7 +2713,14 @@ func TestBuildEmptyTreeMerge(t *testing.T) {
 
 		got, err := MergeStructs(tt.inStructA, tt.inStructB)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: MergeStructs(%v, %v): got unexpected error status, got: %v, wantErr: %v", tt.name, tt.inStructA, tt.inStructB, err, tt.wantErr)
+			t.Errorf(
+				"%s: MergeStructs(%v, %v): got unexpected error status, got: %v, wantErr: %v",
+				tt.name,
+				tt.inStructA,
+				tt.inStructB,
+				err,
+				tt.wantErr,
+			)
 		}
 		if diff := pretty.Compare(got, tt.want); diff != "" {
 			t.Errorf("%s: MergeStructs(%v, %v): did not get expected merge result, diff(-got,+want):\n%s", tt.name, tt.inStructA, tt.inStructB, diff)

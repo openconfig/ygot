@@ -17,9 +17,9 @@ package ytypes
 import (
 	"fmt"
 
+	"github.com/nokia/ygot/util"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // LeafrefOptions controls the behaviour of validation functions for leaf-ref

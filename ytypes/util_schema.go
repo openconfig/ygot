@@ -20,8 +20,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/nokia/ygot/util"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
 )
 
 //lint:file-ignore U1000 Ignore all unused code, it represents generated code.
@@ -103,13 +103,19 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 	// leaf-list. Check that the data tree falls within the required size
 	// bounds.
 	if size < schema.ListAttr.MinElements {
-		errors = util.AppendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, schema.ListAttr.MinElements))
+		errors = util.AppendErr(
+			errors,
+			fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, schema.ListAttr.MinElements),
+		)
 	}
 	// 0 is an invalid value for MaxElements
 	// (https://tools.ietf.org/html/rfc7950#section-7.7.6).
 	// For useability it best represents the value "unbounded".
 	if schema.ListAttr.MaxElements != 0 && size > schema.ListAttr.MaxElements {
-		errors = util.AppendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, schema.ListAttr.MaxElements))
+		errors = util.AppendErr(
+			errors,
+			fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, schema.ListAttr.MaxElements),
+		)
 	}
 	return errors
 }

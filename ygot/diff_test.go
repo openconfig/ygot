@@ -23,8 +23,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
-	"github.com/openconfig/ygot/testutil"
-	"github.com/openconfig/ygot/util"
+	"github.com/nokia/ygot/testutil"
+	"github.com/nokia/ygot/util"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 
@@ -61,7 +61,13 @@ func TestSchemaPathToGNMIPath(t *testing.T) {
 
 	for _, tt := range tests {
 		if got := schemaPathTogNMIPath(tt.in); !proto.Equal(got, tt.want) {
-			t.Errorf("%s: schemaPathTogNMIPath(%v): did not get expected path, got: %v, want: %v", tt.desc, tt.in, pretty.Sprint(got), pretty.Sprint(tt.want))
+			t.Errorf(
+				"%s: schemaPathTogNMIPath(%v): did not get expected path, got: %v, want: %v",
+				tt.desc,
+				tt.in,
+				pretty.Sprint(got),
+				pretty.Sprint(tt.want),
+			)
 		}
 	}
 }
@@ -1503,7 +1509,14 @@ func TestDiff(t *testing.T) {
 	for _, tt := range tests {
 		got, err := Diff(tt.inOrig, tt.inMod, tt.inOpts...)
 		if diff := errdiff.Substring(err, tt.wantErrSubStr); diff != "" {
-			t.Errorf("%s: Diff(%s, %s): did not get expected error status, got: %s, want: %s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), err, tt.wantErrSubStr)
+			t.Errorf(
+				"%s: Diff(%s, %s): did not get expected error status, got: %s, want: %s",
+				tt.desc,
+				pretty.Sprint(tt.inOrig),
+				pretty.Sprint(tt.inMod),
+				err,
+				tt.wantErrSubStr,
+			)
 			continue
 		}
 
@@ -1514,7 +1527,13 @@ func TestDiff(t *testing.T) {
 		// a slice.
 		if !testutil.NotificationSetEqual([]*gnmipb.Notification{tt.want}, []*gnmipb.Notification{got}) {
 			diff := cmp.Diff(got, tt.want, protocmp.Transform())
-			t.Errorf("%s: Diff(%s, %s): did not get expected Notification, diff(-got,+want):\n%s", tt.desc, pretty.Sprint(tt.inOrig), pretty.Sprint(tt.inMod), diff)
+			t.Errorf(
+				"%s: Diff(%s, %s): did not get expected Notification, diff(-got,+want):\n%s",
+				tt.desc,
+				pretty.Sprint(tt.inOrig),
+				pretty.Sprint(tt.inMod),
+				diff,
+			)
 		}
 	}
 }

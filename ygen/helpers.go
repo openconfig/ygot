@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openconfig/ygot/ygot"
+	"github.com/nokia/ygot/ygot"
 )
 
 // safeGoEnumeratedValueName takes an input string, which is the name of an

@@ -21,11 +21,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/nokia/ygot/genutil"
+	"github.com/nokia/ygot/util"
+	"github.com/nokia/ygot/ygot"
+	"github.com/nokia/ygot/ytypes"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/genutil"
-	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
-	"github.com/openconfig/ygot/ytypes"
 )
 
 const (
@@ -254,7 +254,12 @@ func (s *goGenState) goStructName(e *yang.Entry, compressOCPaths, genFakeRoot bo
 // argument specifies whether leaves of type 'enumeration' which are used more
 // than once in the schema should use a common output type in the generated Go
 // code. By default a type is shared.
-func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour, genFakeRoot, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (map[string]*Directory, []error) {
+func (s *goGenState) buildDirectoryDefinitions(
+	entries map[string]*yang.Entry,
+	compBehaviour genutil.CompressBehaviour,
+	genFakeRoot, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool,
+	enumOrgPrefixesToTrim []string,
+) (map[string]*Directory, []error) {
 	return buildDirectoryDefinitions(entries, compBehaviour,
 		// For Go, we map the name of the struct to the path elements
 		// in CamelCase separated by underscores.
@@ -262,7 +267,14 @@ func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, c
 			return s.goStructName(e, compBehaviour.CompressEnabled(), genFakeRoot)
 		},
 		func(keyleaf *yang.Entry) (*MappedType, error) {
-			return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, compBehaviour.CompressEnabled(), skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
+			return s.yangTypeToGoType(
+				resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf},
+				compBehaviour.CompressEnabled(),
+				skipEnumDedup,
+				shortenEnumLeafNames,
+				useDefiningModuleForTypedefEnumNames,
+				enumOrgPrefixesToTrim,
+			)
 		})
 }
 
@@ -277,7 +289,11 @@ func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, c
 // The skipEnumDedup argument specifies whether leaves of type enumeration that are
 // used more than once in the schema should share a common type. By default, a single
 // type for each leaf is created.
-func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*MappedType, error) {
+func (s *goGenState) yangTypeToGoType(
+	args resolveTypeArgs,
+	compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool,
+	enumOrgPrefixesToTrim []string,
+) (*MappedType, error) {
 	defVal := genutil.TypeDefaultValue(args.yangType)
 	// Handle the case of a typedef which is actually an enumeration.
 	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
@@ -372,7 +388,14 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 		if err != nil {
 			return nil, err
 		}
-		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: target.Type, contextEntry: target}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
+		mtype, err = s.yangTypeToGoType(
+			resolveTypeArgs{yangType: target.Type, contextEntry: target},
+			compressOCPaths,
+			skipEnumDedup,
+			shortenEnumLeafNames,
+			useDefiningModuleForTypedefEnumNames,
+			enumOrgPrefixesToTrim,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -425,7 +448,11 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 // but used in multiple places.
 //
 // goUnionType returns an error if mapping is not possible.
-func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*MappedType, error) {
+func (s *goGenState) goUnionType(
+	args resolveTypeArgs,
+	compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool,
+	enumOrgPrefixesToTrim []string,
+) (*MappedType, error) {
 	var errs []error
 	unionMappedTypes := make(map[int]*MappedType)
 
@@ -435,7 +462,19 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnum
 	// check, rather than iterating the slice of strings.
 	unionTypes := make(map[string]int)
 	for _, subtype := range args.yangType.Type {
-		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, unionMappedTypes, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)...)
+		errs = append(
+			errs,
+			s.goUnionSubTypes(
+				subtype,
+				args.contextEntry,
+				unionTypes,
+				unionMappedTypes,
+				compressOCPaths,
+				skipEnumDedup,
+				shortenEnumLeafNames,
+				useDefiningModuleForTypedefEnumNames,
+				enumOrgPrefixesToTrim,
+			)...)
 	}
 
 	if errs != nil {
@@ -469,13 +508,32 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnum
 // The skipEnumDedup argument specifies whether the current code generation is
 // de-duplicating enumerations where they are used in more than one place in
 // the schema.
-func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) []error {
+func (s *goGenState) goUnionSubTypes(
+	subtype *yang.YangType,
+	ctx *yang.Entry,
+	currentTypes map[string]int,
+	unionMappedTypes map[int]*MappedType,
+	compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool,
+	enumOrgPrefixesToTrim []string,
+) []error {
 	var errs []error
 	// If subtype.Type is not empty then this means that this type is defined to
 	// be a union itself.
 	if subtype.Type != nil {
 		for _, st := range subtype.Type {
-			errs = append(errs, s.goUnionSubTypes(st, ctx, currentTypes, unionMappedTypes, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)...)
+			errs = append(
+				errs,
+				s.goUnionSubTypes(
+					st,
+					ctx,
+					currentTypes,
+					unionMappedTypes,
+					compressOCPaths,
+					skipEnumDedup,
+					shortenEnumLeafNames,
+					useDefiningModuleForTypedefEnumNames,
+					enumOrgPrefixesToTrim,
+				)...)
 		}
 		return errs
 	}
@@ -503,7 +561,14 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 	default:
 		var err error
 
-		mtype, err = s.yangTypeToGoType(resolveTypeArgs{yangType: contextType, contextEntry: ctx}, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
+		mtype, err = s.yangTypeToGoType(
+			resolveTypeArgs{yangType: contextType, contextEntry: ctx},
+			compressOCPaths,
+			skipEnumDedup,
+			shortenEnumLeafNames,
+			useDefiningModuleForTypedefEnumNames,
+			enumOrgPrefixesToTrim,
+		)
 		if err != nil {
 			errs = append(errs, err)
 			return errs
@@ -543,7 +608,12 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 // The skipEnumDedup argument specifies whether leaves of type enumeration that are
 // used more than once in the schema should share a common type. By default, a single
 // type for each leaf is created.
-func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*string, yang.TypeKind, error) {
+func (s *goGenState) yangDefaultValueToGo(
+	value string,
+	args resolveTypeArgs,
+	isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool,
+	enumOrgPrefixesToTrim []string,
+) (*string, yang.TypeKind, error) {
 	// Handle the case of a typedef which is actually an enumeration.
 	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {
@@ -558,11 +628,19 @@ func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, is
 		switch args.yangType.Kind {
 		case yang.Yenum:
 			if !args.yangType.Enum.IsDefined(value) {
-				return nil, yang.Ynone, fmt.Errorf("default value conversion: typedef enum value %q not found in enum with type name %q", value, args.yangType.Name)
+				return nil, yang.Ynone, fmt.Errorf(
+					"default value conversion: typedef enum value %q not found in enum with type name %q",
+					value,
+					args.yangType.Name,
+				)
 			}
 		case yang.Yidentityref:
 			if !args.yangType.IdentityBase.IsDefined(value) {
-				return nil, yang.Ynone, fmt.Errorf("default value conversion: typedef identity value %q not found in enum with type name %q", value, args.yangType.Name)
+				return nil, yang.Ynone, fmt.Errorf(
+					"default value conversion: typedef identity value %q not found in enum with type name %q",
+					value,
+					args.yangType.Name,
+				)
 			}
 		}
 		return enumDefaultValue(mtype.NativeType, value, goEnumPrefix), args.yangType.Kind, nil
@@ -609,7 +687,12 @@ func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, is
 	case yang.Ybinary:
 		bytes, err := base64.StdEncoding.DecodeString(value)
 		if err != nil {
-			return nil, yang.Ynone, fmt.Errorf("default value conversion: error in DecodeString for \n%v\n for type name %q: %q", value, args.yangType.Name, err)
+			return nil, yang.Ynone, fmt.Errorf(
+				"default value conversion: error in DecodeString for \n%v\n for type name %q: %q",
+				value,
+				args.yangType.Name,
+				err,
+			)
 		}
 		if err := ytypes.ValidateBinaryRestrictions(args.yangType, bytes); err != nil {
 			return nil, yang.Ynone, fmt.Errorf("default value conversion: %q doesn't match binary restrictions: %v", value, err)
@@ -627,9 +710,16 @@ func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, is
 		case "true", "false":
 			return &value, ykind, nil
 		}
-		return nil, yang.Ynone, fmt.Errorf("default value conversion: cannot convert default value %q to bool, type name: %q", value, args.yangType.Name)
+		return nil, yang.Ynone, fmt.Errorf(
+			"default value conversion: cannot convert default value %q to bool, type name: %q",
+			value,
+			args.yangType.Name,
+		)
 	case yang.Yempty:
-		return nil, yang.Ynone, fmt.Errorf("default value conversion: received default value %q, but an empty type cannot have a default value", value)
+		return nil, yang.Ynone, fmt.Errorf(
+			"default value conversion: received default value %q, but an empty type cannot have a default value",
+			value,
+		)
 	case yang.Yenum:
 		// Enumeration types need to be resolved to a particular data path such
 		// that a created enumerated Go type can be used to set their value. Hand
@@ -641,7 +731,11 @@ func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, is
 			value = strings.Split(value, ":")[1]
 		}
 		if !args.yangType.Enum.IsDefined(value) {
-			return nil, yang.Ynone, fmt.Errorf("default value conversion: enum value %q not found in enum with type name %q", value, args.yangType.Name)
+			return nil, yang.Ynone, fmt.Errorf(
+				"default value conversion: enum value %q not found in enum with type name %q",
+				value,
+				args.yangType.Name,
+			)
 		}
 		n, err := s.enumSet.enumName(args.contextEntry, compressOCPaths, false, skipEnumDedup, shortenEnumLeafNames, false, enumOrgPrefixesToTrim)
 		if err != nil {
@@ -659,7 +753,11 @@ func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, is
 			value = strings.Split(value, ":")[1]
 		}
 		if !args.yangType.IdentityBase.IsDefined(value) {
-			return nil, yang.Ynone, fmt.Errorf("default value conversion: identity value %q not found in enum with type name %q", value, args.yangType.Name)
+			return nil, yang.Ynone, fmt.Errorf(
+				"default value conversion: identity value %q not found in enum with type name %q",
+				value,
+				args.yangType.Name,
+			)
 		}
 		n, err := s.enumSet.identityrefBaseTypeFromIdentity(args.yangType.IdentityBase)
 		if err != nil {
@@ -673,11 +771,29 @@ func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, is
 		if err != nil {
 			return nil, yang.Ynone, err
 		}
-		return s.yangDefaultValueToGo(value, resolveTypeArgs{yangType: target.Type, contextEntry: target}, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
+		return s.yangDefaultValueToGo(
+			value,
+			resolveTypeArgs{yangType: target.Type, contextEntry: target},
+			isSingletonUnion,
+			compressOCPaths,
+			skipEnumDedup,
+			shortenEnumLeafNames,
+			useDefiningModuleForTypedefEnumNames,
+			enumOrgPrefixesToTrim,
+		)
 	case yang.Yunion:
 		// Try to convert to each type in order, but try the enumerated types first.
 		for _, t := range util.FlattenedTypes(args.yangType.Type) {
-			snippetRef, convertedKind, err := s.yangDefaultValueToGo(value, resolveTypeArgs{yangType: t, contextEntry: args.contextEntry}, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
+			snippetRef, convertedKind, err := s.yangDefaultValueToGo(
+				value,
+				resolveTypeArgs{yangType: t, contextEntry: args.contextEntry},
+				isSingletonUnion,
+				compressOCPaths,
+				skipEnumDedup,
+				shortenEnumLeafNames,
+				useDefiningModuleForTypedefEnumNames,
+				enumOrgPrefixesToTrim,
+			)
 			if err == nil {
 				if !isSingletonUnion {
 					if simpleName, ok := simpleUnionConversionsFromKind[convertedKind]; ok {
@@ -688,11 +804,19 @@ func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, is
 				return snippetRef, convertedKind, nil
 			}
 		}
-		return nil, yang.Ynone, fmt.Errorf("default value conversion: cannot convert default value %q to any union subtype, type name %q", value, args.yangType.Name)
+		return nil, yang.Ynone, fmt.Errorf(
+			"default value conversion: cannot convert default value %q to any union subtype, type name %q",
+			value,
+			args.yangType.Name,
+		)
 	default:
 		// Default values are not supported for unsupported types, so
 		// just generate the zero value instead.
 		// TODO(wenbli): support bit type.
-		return nil, yang.Ynone, fmt.Errorf("default value conversion: cannot create default value for unsupported type %v, type name: %q", ykind, args.yangType.Name)
+		return nil, yang.Ynone, fmt.Errorf(
+			"default value conversion: cannot create default value for unsupported type %v, type name: %q",
+			ykind,
+			args.yangType.Name,
+		)
 	}
 }

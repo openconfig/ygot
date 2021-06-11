@@ -23,10 +23,10 @@ import (
 	log "github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 
-	ocpb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig"
-	ocepb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
-	ocrpb "github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto/openconfig/openconfig_rib_bgp"
-	ywpb "github.com/openconfig/ygot/proto/ywrapper"
+	ocpb "github.com/nokia/ygot/demo/protobuf_getting_started/ribproto/openconfig"
+	ocepb "github.com/nokia/ygot/demo/protobuf_getting_started/ribproto/openconfig/enums"
+	ocrpb "github.com/nokia/ygot/demo/protobuf_getting_started/ribproto/openconfig/openconfig_rib_bgp"
+	ywpb "github.com/nokia/ygot/proto/ywrapper"
 )
 
 func main() {
@@ -92,13 +92,17 @@ func buildRouteProto(pfx *ipv4Prefix) *ocpb.Device {
 								Routes: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes{
 									Route: []*ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey{{
 										Prefix: pfx.prefix,
-										Origin: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey_OriginOpenconfigpolicytypesinstallprotocoltype{ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP},
+										Origin: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_RouteKey_OriginOpenconfigpolicytypesinstallprotocoltype{
+											ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP,
+										},
 										PathId: 1,
 										Route: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route{
 											State: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_State{
-												PathId:    &ywpb.UintValue{Value: 1},
-												Prefix:    &ywpb.StringValue{Value: pfx.prefix},
-												Origin:    &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_State_OriginOpenconfigpolicytypesinstallprotocoltype{ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP},
+												PathId: &ywpb.UintValue{Value: 1},
+												Prefix: &ywpb.StringValue{Value: pfx.prefix},
+												Origin: &ocrpb.BgpRib_AfiSafis_AfiSafi_Ipv4Unicast_LocRib_Routes_Route_State_OriginOpenconfigpolicytypesinstallprotocoltype{
+													ocepb.OpenconfigPolicyTypesINSTALLPROTOCOLTYPE_OPENCONFIGPOLICYTYPESINSTALLPROTOCOLTYPE_BGP,
+												},
 												AttrIndex: &ywpb.UintValue{Value: 1},
 											},
 										},

@@ -17,8 +17,8 @@ package ytypes
 import (
 	"reflect"
 
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // Schema specifies the common types that are part of a generated ygot schema, such that

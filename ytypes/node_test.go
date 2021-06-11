@@ -21,9 +21,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/nokia/ygot/ygot"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 
@@ -35,7 +35,7 @@ type InnerContainerType1 struct {
 	Int32LeafListName []int32           `path:"int32-leaf-list"`
 	StringLeafName    *string           `path:"string-leaf-field"`
 	EnumLeafName      EnumType          `path:"enum-leaf-field"`
-	Annotation        []ygot.Annotation `path:"@annotation" ygotAnnotation:"true"`
+	Annotation        []ygot.Annotation `path:"@annotation"       ygotAnnotation:"true"`
 }
 
 func (*InnerContainerType1) IsYANGGoStruct() {}
@@ -2149,9 +2149,12 @@ func TestDeleteNode(t *testing.T) {
 	}, {
 		name:     "deleting a int32 leaf list field",
 		inSchema: simpleSchema,
-		inRoot:   &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: []int32{42, 43, 44}}}},
-		inPath:   mustPath("/outer/inner/int32-leaf-list"),
-		want:     &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: nil}}},
+		inRoot: &ListElemStruct1{
+			Key1:  ygot.String("hello"),
+			Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: []int32{42, 43, 44}}},
+		},
+		inPath: mustPath("/outer/inner/int32-leaf-list"),
+		want:   &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: nil}}},
 	}, {
 		name:     "deleting a enum field",
 		inSchema: simpleSchema,
@@ -2161,21 +2164,30 @@ func TestDeleteNode(t *testing.T) {
 	}, {
 		name:     "deleting a non-leaf",
 		inSchema: simpleSchema,
-		inRoot:   &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}}},
-		inPath:   mustPath("/outer"),
-		want:     &ListElemStruct1{Key1: ygot.String("hello")},
+		inRoot: &ListElemStruct1{
+			Key1:  ygot.String("hello"),
+			Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+		},
+		inPath: mustPath("/outer"),
+		want:   &ListElemStruct1{Key1: ygot.String("hello")},
 	}, {
 		name:     "deleting int32 leaf in inner node",
 		inSchema: simpleSchema,
-		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}}},
-		inPath:   mustPath("/outer/inner/int32-leaf-field"),
-		want:     &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{}}},
+		inRoot: &ListElemStruct1{
+			Key1:  ygot.String("world"),
+			Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+		},
+		inPath: mustPath("/outer/inner/int32-leaf-field"),
+		want:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{}}},
 	}, {
 		name:     "deleting a non-leaf in inner node",
 		inSchema: simpleSchema,
-		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}}},
-		inPath:   mustPath("/outer/inner"),
-		want:     &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{}},
+		inRoot: &ListElemStruct1{
+			Key1:  ygot.String("world"),
+			Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+		},
+		inPath: mustPath("/outer/inner"),
+		want:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{}},
 	}, {
 		name:     "deleting an annotation in top node",
 		inSchema: simpleSchema,
@@ -2185,9 +2197,19 @@ func TestDeleteNode(t *testing.T) {
 	}, {
 		name:     "deleting an annotation in inner node",
 		inSchema: simpleSchema,
-		inRoot:   &ListElemStruct1{Key1: ygot.String("42"), Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}, Outer: &OuterContainerType1{Inner: &InnerContainerType1{Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}}}},
-		inPath:   mustPath("/outer/inner/@annotation"),
-		want:     &ListElemStruct1{Key1: ygot.String("42"), Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}, Outer: &OuterContainerType1{Inner: &InnerContainerType1{}}},
+		inRoot: &ListElemStruct1{
+			Key1:       ygot.String("42"),
+			Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			Outer: &OuterContainerType1{
+				Inner: &InnerContainerType1{Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}},
+			},
+		},
+		inPath: mustPath("/outer/inner/@annotation"),
+		want: &ListElemStruct1{
+			Key1:       ygot.String("42"),
+			Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			Outer:      &OuterContainerType1{Inner: &InnerContainerType1{}},
+		},
 	}, {
 		name:     "deleting an inner node in list",
 		inSchema: containerWithStringKey,

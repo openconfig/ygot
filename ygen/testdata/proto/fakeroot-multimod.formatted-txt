@@ -8,8 +8,8 @@ syntax = "proto3";
 
 package openconfig;
 
-import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
-import "github.com/openconfig/ygot/proto/yext/yext.proto";
+import "github.com/nokia/ygot/proto/ywrapper/ywrapper.proto";
+import "github.com/nokia/ygot/proto/yext/yext.proto";
 
 message Device {
   message OneKey {

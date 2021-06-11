@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/openconfig/ygot/ygot"
+	"github.com/nokia/ygot/ygot"
 )
 
 // Binary is a type that is used for fields that have a YANG type of
