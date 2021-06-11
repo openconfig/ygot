@@ -268,12 +268,14 @@ func InsertIntoStruct(parentStruct interface{}, fieldName string, fieldValue int
 		fmt.Printf("this was a binary - setting bytes to -> %v\n", v.Bytes())
 		nv := reflect.New(ft.Type).Elem()
 		nv.SetBytes(v.Bytes())
+		fmt.Printf("value is now %v\n", nv.Bytes())
 		v = nv
 	}
 
 	n := v
 	if n.IsValid() && (ft.Type.Kind() == reflect.Ptr && t.Kind() != reflect.Ptr) {
 		n = reflect.New(t)
+		fmt.Printf("setting again to %v\n", v.Interface())
 		n.Elem().Set(v)
 	}
 
