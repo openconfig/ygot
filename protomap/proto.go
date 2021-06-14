@@ -441,10 +441,16 @@ func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, opt ...Unma
 	// the value specified.
 	directCh := map[*gpb.Path]interface{}{}
 	for p, v := range vals {
-		// make the path absolute, and a schema path.
-		pp := util.TrimGNMIPathElemPrefix(&gpb.Path{
+		absPath := &gpb.Path{
 			Elem: append(append([]*gpb.PathElem{}, schemaPath(valPrefix).Elem...), p.Elem...),
-		}, protoPrefix)
+		}
+
+		if !util.PathMatchesPathElemPrefix(absPath, protoPrefix) {
+			return fmt.Errorf("invalid path provided, absolute paths must be used, %s does not have prefix %s", absPath, protoPrefix)
+		}
+
+		// make the path absolute, and a schema path.
+		pp := util.TrimGNMIPathElemPrefix(absPath, protoPrefix)
 
 		if len(pp.GetElem()) == 1 {
 			directCh[pp] = v

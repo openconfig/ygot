@@ -454,10 +454,23 @@ func TestProtoFromPaths(t *testing.T) {
 		desc:    "trim prefix",
 		inProto: &epb.Interface{},
 		inVals: map[*gpb.Path]interface{}{
-			mustPath("config/description"): "interface-42",
+			mustPath("/interfaces/interface/config/description"): "interface-42",
 		},
 		inOpt: []UnmapOpt{
 			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+		},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "interface-42"},
+		},
+	}, {
+		desc:    "trim prefix with valPrefix",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("description"): "interface-42",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			ValuePathPrefix(mustPath("/interfaces/interface/config")),
 		},
 		wantProto: &epb.Interface{
 			Description: &wpb.StringValue{Value: "interface-42"},
@@ -485,6 +498,7 @@ func TestProtoFromPaths(t *testing.T) {
 		},
 		inOpt: []UnmapOpt{
 			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			ValuePathPrefix(mustPath("/interfaces/interface")),
 		},
 		wantProto: &epb.Interface{
 			Description: &wpb.StringValue{Value: "interface-42"},
@@ -500,6 +514,7 @@ func TestProtoFromPaths(t *testing.T) {
 		inOpt: []UnmapOpt{
 			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
 			IgnoreExtraPaths(),
+			ValuePathPrefix(mustPath("/interfaces/interface")),
 		},
 		wantProto: &epb.Interface{
 			Description: &wpb.StringValue{Value: "portal-to-wonderland"},
@@ -546,7 +561,7 @@ func TestProtoFromPaths(t *testing.T) {
 		inOpt: []UnmapOpt{
 			ProtobufMessagePrefix(mustPath("/interfaces/fish")),
 		},
-		wantErrSubstring: "does not match the supplied prefix",
+		wantErrSubstring: "invalid path provided, absolute paths must be used",
 	}, {
 		desc:    "relative paths to protobuf prefix",
 		inProto: &epb.Interface{},
@@ -555,6 +570,7 @@ func TestProtoFromPaths(t *testing.T) {
 		},
 		inOpt: []UnmapOpt{
 			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			ValuePathPrefix(mustPath("/interfaces/interface")),
 		},
 		wantProto: &epb.Interface{
 			Description: &wpb.StringValue{Value: "value"},
