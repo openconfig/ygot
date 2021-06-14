@@ -2072,14 +2072,7 @@ func TestSetNode(t *testing.T) {
 		{
 			inDesc:   "success ignore setting shadow leaf",
 			inSchema: containerWithStringKey,
-			inParent: &ContainerStruct1{
-				StructKeyList: map[string]*ListElemStruct1{
-					"forty-two": {
-						Key1:  ygot.String("forty-two"),
-						Outer: &OuterContainerType1{},
-					},
-				},
-			},
+			inParent: &ContainerStruct1{},
 			inPath:   mustPath("/state/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
 			inOpts:   []SetNodeOpt{&InitMissingElements{}},
 			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
@@ -2146,14 +2139,7 @@ func TestSetNode(t *testing.T) {
 		{
 			inDesc:   "success ignoring non-shadow leaf when reverseShadowPath=true",
 			inSchema: containerWithStringKey,
-			inParent: &ContainerStruct1{
-				StructKeyList: map[string]*ListElemStruct1{
-					"forty-two": {
-						Key1:  ygot.String("forty-two"),
-						Outer: &OuterContainerType1{},
-					},
-				},
-			},
+			inParent: &ContainerStruct1{},
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
 			inOpts:   []SetNodeOpt{&InitMissingElements{}, &ReverseShadowPaths{}},
 			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
