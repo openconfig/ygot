@@ -53,12 +53,6 @@ type retrieveNodeArgs struct {
 	// specifically to deal with uint values being streamed as positive int
 	// values.
 	tolerateJSONInconsistenciesForVal bool
-	// shadowPath is an implementation field indicating that the current
-	// path being traversed is a shadow path, and should result in a silent
-	// traversal, i.e. a normal traversal except any modifications to leaf
-	// values are skipped (non-existing GoStructs are still initialized),
-	// and any value retrieved is always nil.
-	shadowPath bool
 	// reverseShadowPath reverses the meaning of the "path" and
 	// "shadow-path" tags when both are present while processing a
 	// GoStruct.
@@ -79,12 +73,6 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 			if !(schema.IsLeaf() || schema.IsLeafList()) {
 				return nil, status.Errorf(codes.Unknown, "path %v points to a node with non-leaf schema %v", traversedPath, schema)
 			}
-		}
-		// Shadow traversal returns the node with nil schema and data.
-		if args.shadowPath {
-			return []*TreeNode{{
-				Path: traversedPath,
-			}}, nil
 		}
 		return []*TreeNode{{
 			Path:   traversedPath,
@@ -128,6 +116,8 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 	for i := 0; i < v.NumField(); i++ {
 		fv, ft := v.Field(i), v.Type().Field(i)
 
+		// TODO(low priority): ChildSchema should return the shadow
+		// schema if we're traversing a shadow path.
 		cschema, err := util.ChildSchema(schema, ft)
 		if !util.IsYgotAnnotation(ft) {
 			switch {
@@ -138,12 +128,36 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			}
 		}
 
-		checkPath := func(p []string, args retrieveNodeArgs) ([]*TreeNode, error) {
+		checkPath := func(p []string, args retrieveNodeArgs, shadowLeaf bool) ([]*TreeNode, error) {
 			to := len(p)
 			if util.IsTypeMap(ft.Type) {
 				to--
 			}
+			np := &gpb.Path{}
+			if traversedPath != nil {
+				np = proto.Clone(traversedPath).(*gpb.Path)
+			}
+			for i := range p[0:to] {
+				np.Elem = append(np.Elem, path.GetElem()[i])
+			}
 
+			// If the current node is a shadow leaf, this means the input path is a shadow path
+			// that the GoStruct recognizes, but doesn't have space for. We will therefore
+			// silently ignore this path.
+			if shadowLeaf {
+				switch {
+				case cschema == nil:
+					return nil, status.Errorf(codes.InvalidArgument, "could not find schema for path %v", np)
+				case !cschema.IsLeaf():
+					return nil, status.Errorf(codes.InvalidArgument, "shadow path traverses a non-leaf node, this is not allowed, path: %v", np)
+				default:
+					return []*TreeNode{{
+						Path: np,
+					}}, nil
+				}
+			}
+
+			// If args.modifyRoot is true, then initialize the field before possibly searching further.
 			if args.modifyRoot {
 				if err := util.InitializeStructField(root, ft.Name); err != nil {
 					return nil, status.Errorf(codes.Unknown, "failed to initialize struct field %s in %T, child schema %v, path %v", ft.Name, root, cschema, path)
@@ -154,9 +168,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			// corresponding field to its zero value. The zero value is the unset value for
 			// any node type, whether leaf or non-leaf.
 			if args.delete && len(path.Elem) == to {
-				if !args.shadowPath {
-					fv.Set(reflect.Zero(ft.Type))
-				}
+				fv.Set(reflect.Zero(ft.Type))
 				return nil, nil
 			}
 
@@ -164,7 +176,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			// may be dealing with a leaf or leaf list node. We should set the val
 			// to the corresponding field in GoStruct. If the field is an annotation,
 			// the field doesn't have a schema, so it is handled separately.
-			if !util.IsValueNil(args.val) && len(path.Elem) == to && !args.shadowPath {
+			if !util.IsValueNil(args.val) && len(path.Elem) == to {
 				switch {
 				case util.IsYgotAnnotation(ft):
 					if err := util.UpdateField(root, ft.Name, args.val); err != nil {
@@ -184,13 +196,6 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				}
 			}
 
-			np := &gpb.Path{}
-			if traversedPath != nil {
-				np = proto.Clone(traversedPath).(*gpb.Path)
-			}
-			for i := range p[0:to] {
-				np.Elem = append(np.Elem, path.GetElem()[i])
-			}
 			return retrieveNode(cschema, fv.Interface(), util.TrimGNMIPathPrefix(path, p[0:to]), np, args)
 		}
 
@@ -200,26 +205,26 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 		// Note that we first look through the non-shadow path, and if
 		// no matches are found, we then look through the shadow path
 		// to find matches. If the input path matches a shadow path,
-		// then the traversal continues, although the final operation
-		// is marked as a no-op.
+		// then we're guaranteed to have reached a leaf, since shadow
+		// paths can only occur for direct leaves under config/state.
 		//
 		// If the user has opted to reverse the "shadow-path" and
 		// "path" tags, then the order of the look-ups is reversed.
-		args := args
+		var shadowLeaf bool
 		if args.reverseShadowPath {
 			// Look through shadow paths first instead.
 			schPaths := util.ShadowSchemaPaths(ft)
 			for _, p := range schPaths {
 				if util.PathMatchesPrefix(path, p) {
-					return checkPath(p, args)
+					return checkPath(p, args, false)
 				}
 			}
 
 			if len(schPaths) != 0 {
-				// Only if there exists shadow paths do we
-				// treat the non-shadow paths as no-ops.
-				// Otherwise, there is no reversal to do.
-				args.shadowPath = true
+				// Only if there exists shadow paths is there
+				// such thing as doing a reverse look-up, i.e.
+				// reversing non-shadow paths with shadow paths.
+				shadowLeaf = true
 			}
 		}
 		schPaths, err := util.SchemaPaths(ft)
@@ -228,16 +233,14 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 		}
 		for _, p := range schPaths {
 			if util.PathMatchesPrefix(path, p) {
-				return checkPath(p, args)
+				return checkPath(p, args, shadowLeaf)
 			}
 		}
 		if !args.reverseShadowPath {
-			// Look through shadow paths last, and mark operations
-			// as no-ops.
-			args.shadowPath = true
+			// Look through shadow paths last.
 			for _, p := range util.ShadowSchemaPaths(ft) {
 				if util.PathMatchesPrefix(path, p) {
-					return checkPath(p, args)
+					return checkPath(p, args, true)
 				}
 			}
 		}
@@ -303,7 +306,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			}
 			if keyAsString == pathKey {
 				remainingPath := util.PopGNMIPath(path)
-				if args.delete && len(remainingPath.GetElem()) == 0 && !args.shadowPath {
+				if args.delete && len(remainingPath.GetElem()) == 0 {
 					rv.SetMapIndex(k, reflect.Value{})
 					return nil, nil
 				}
@@ -357,7 +360,7 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 				return nil, status.Errorf(codes.Unknown, "could not extract keys from %v: %v", traversedPath, err)
 			}
 			remainingPath := util.PopGNMIPath(path)
-			if args.delete && len(remainingPath.GetElem()) == 0 && !args.shadowPath {
+			if args.delete && len(remainingPath.GetElem()) == 0 {
 				rv.SetMapIndex(k, reflect.Value{})
 				return nil, nil
 			}
@@ -399,6 +402,10 @@ type GetOrCreateNodeOpt interface {
 // along the path if they are nil.
 // Function returns the value and schema of the node as well as error.
 // Note that this function may modify the supplied root even if the function fails.
+// Note that this function may create containers or list entries even if the input path is a shadow path.
+// TODO(wenbli): a traversal should remember what containers or list entries
+//		 were created so that a failed call or a call to a shadow path can later undo
+// 		 this. This applies to SetNode as well.
 func GetOrCreateNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetOrCreateNodeOpt) (interface{}, *yang.Entry, error) {
 	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
 		modifyRoot:        true,
