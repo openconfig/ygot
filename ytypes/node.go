@@ -116,6 +116,8 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 	for i := 0; i < v.NumField(); i++ {
 		fv, ft := v.Field(i), v.Type().Field(i)
 
+		// TODO(low priority): ChildSchema should return the shadow
+		// schema if we're traversing a shadow path.
 		cschema, err := util.ChildSchema(schema, ft)
 		if !util.IsYgotAnnotation(ft) {
 			switch {
@@ -143,9 +145,16 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			// that the GoStruct recognizes, but doesn't have space for. We will therefore
 			// silently ignore this path.
 			if shadowLeaf {
-				return []*TreeNode{{
-					Path: np,
-				}}, nil
+				switch {
+				case cschema == nil:
+					return nil, status.Errorf(codes.InvalidArgument, "could not find schema for path %v", np)
+				case !cschema.IsLeaf():
+					return nil, status.Errorf(codes.InvalidArgument, "shadow path traverses a non-leaf node, this is not allowed, path: %v", np)
+				default:
+					return []*TreeNode{{
+						Path: np,
+					}}, nil
+				}
 			}
 
 			// If args.modifyRoot is true, then initialize the field before possibly searching further.

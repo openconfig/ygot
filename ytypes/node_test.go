@@ -998,7 +998,7 @@ type grandchildContainer struct {
 type rootStruct struct {
 	Leaf      *string                          `path:"leaf"`
 	LeafList  []int32                          `path:"int32-leaf-list"`
-	Container *childContainer                  `path:"container"`
+	Container *childContainer                  `path:"container" shadow-path:"shadow-container"`
 	List      map[string]*listEntry            `path:"list"`
 	Multilist map[multiListKey]*multiListEntry `path:"multilist"`
 	ChildList map[string]*childList            `path:"state/childlist"`
@@ -1036,6 +1036,13 @@ func TestGetNode(t *testing.T) {
 		Dir:    map[string]*yang.Entry{},
 	}
 	rootSchema.Dir["container"] = childContainerSchema
+	childShadowContainerSchema := &yang.Entry{
+		Name:   "shadow-container",
+		Kind:   yang.DirectoryEntry,
+		Parent: rootSchema,
+		Dir:    map[string]*yang.Entry{},
+	}
+	rootSchema.Dir["shadow-container"] = childShadowContainerSchema
 
 	grandchildContainerSchema := &yang.Entry{
 		Name:   "grandchild",
@@ -1138,7 +1145,13 @@ func TestGetNode(t *testing.T) {
 			Type:   &yang.YangType{Kind: yang.Ystring},
 		}
 		childListContainerSchema.Dir["value"] = childListContainerValueSchema
-		childListContainerSchema.Dir["shadow-value"] = childListContainerValueSchema
+		childListContainerShadowValueSchema := &yang.Entry{
+			Name:   "shadow-value",
+			Kind:   yang.LeafEntry,
+			Parent: childListContainerSchema,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+		}
+		childListContainerSchema.Dir["shadow-value"] = childListContainerShadowValueSchema
 
 		return configStateEntry
 	}
@@ -1502,6 +1515,31 @@ func TestGetNode(t *testing.T) {
 			Path:   mustPath("/multilist[keyone=1][keytwo=3]"),
 		}},
 	}, {
+		desc:     "shadow path that traverses a non-leaf node",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			Container: &childContainer{
+				Container: &grandchildContainer{
+					Val: ygot.String("forty-two"),
+				},
+			},
+		},
+		inPath:           mustPath("/shadow-container/grandchild/val"),
+		wantErrSubstring: "shadow path traverses a non-leaf node, this is not allowed",
+	}, {
+		desc:     "shadow path that traverses a non-leaf node with reverseShadowPath=true",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			Container: &childContainer{
+				Container: &grandchildContainer{
+					Val: ygot.String("forty-two"),
+				},
+			},
+		},
+		inPath:           mustPath("/container/grandchild/val"),
+		inArgs:           []GetNodeOpt{&ReverseShadowPaths{}},
+		wantErrSubstring: "shadow path traverses a non-leaf node, this is not allowed",
+	}, {
 		desc:     "deeper list non-shadow leaf path",
 		inSchema: rootSchema,
 		inData: &rootStruct{
@@ -1601,7 +1639,7 @@ func TestGetNode(t *testing.T) {
 		inArgs: []GetNodeOpt{&ReverseShadowPaths{}},
 		wantTreeNodes: []*TreeNode{{
 			Data:   ygot.String("1"),
-			Schema: rootSchema.Dir["state"].Dir["childlist"].Dir["child-container"].Dir["shadow-value"],
+			Schema: rootSchema.Dir["state"].Dir["childlist"].Dir["child-container"].Dir["value"],
 			Path:   mustPath("/state/childlist[key=one]/child-container/shadow-value"),
 		}},
 	}, {
@@ -1632,6 +1670,8 @@ func TestGetNode(t *testing.T) {
 			}
 
 			if err := treeNodesEqual(got, tt.wantTreeNodes); err != nil {
+				fmt.Println(got[0].Schema)
+				fmt.Println(tt.wantTreeNodes[0].Schema)
 				t.Fatalf("did not get expected result, %v", err)
 			}
 		})
