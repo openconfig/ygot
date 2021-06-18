@@ -146,8 +146,8 @@ func (t *Top) NewEks(K E_Eks_K) (*Top_Eks, error){
 
 // Top_Ekm represents the /openconfig-list-enum-key/top/multi-key/ekm YANG schema element.
 type Top_Ekm struct {
-	K1	E_Ekm_K1	`path:"config/k1|k1" shadow-path:"state/k1" module:"openconfig-list-enum-key"`
-	K2	E_OpenconfigListEnumKey_FooIdentity	`path:"config/k2|k2" shadow-path:"state/k2" module:"openconfig-list-enum-key"`
+	K1	E_Ekm_K1	`path:"config/k1|k1" shadow-path:"state/k1|k1" module:"openconfig-list-enum-key"`
+	K2	E_OpenconfigListEnumKey_FooIdentity	`path:"config/k2|k2" shadow-path:"state/k2|k2" module:"openconfig-list-enum-key"`
 	K3	Top_Ekm_K3_Union	`path:"config/k3" shadow-path:"state/k3" module:"openconfig-list-enum-key"`
 }
 
@@ -198,7 +198,7 @@ func (t *Top_Ekm) To_Top_Ekm_K3_Union(i interface{}) (Top_Ekm_K3_Union, error) {
 
 // Top_Eks represents the /openconfig-list-enum-key/top/single-key/eks YANG schema element.
 type Top_Eks struct {
-	K	E_Eks_K	`path:"config/k|k" shadow-path:"state/k" module:"openconfig-list-enum-key"`
+	K	E_Eks_K	`path:"config/k|k" shadow-path:"state/k|k" module:"openconfig-list-enum-key"`
 }
 
 // IsYANGGoStruct ensures that Top_Eks implements the yang.GoStruct
