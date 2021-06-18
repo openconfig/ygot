@@ -187,9 +187,6 @@ func TestDiff(t *testing.T) {
 		}(),
 		want: &gnmipb.Notification{
 			Update: []*gnmipb.Update{{
-				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/neighbor-address"),
-				Val:  mustTypedValue("192.0.2.1"),
-			}, {
 				Path: mustPath("neighbors/neighbor[neighbor-address=192.0.2.1]/state/neighbor-address"),
 				Val:  mustTypedValue("192.0.2.1"),
 			}, {

@@ -2116,7 +2116,10 @@ func findMapPaths(parent *Directory, fieldName string, compressPaths, shadowSche
 	}
 	// Only for compressed data schema paths for list fields do we have the
 	// possibility for a direct leafref path as a second path for the field.
-	if !compressPaths || parent.ListAttr == nil || shadowSchemaPaths {
+	// Furthermore, if we don't even have a first path, then we cannot have
+	// a second path either. This can happen for shadow paths, which may
+	// not exist for some leaves.
+	if !compressPaths || parent.ListAttr == nil || childPath == nil {
 		return mapPaths, nil
 	}
 
@@ -2146,6 +2149,15 @@ func findMapPaths(parent *Directory, fieldName string, compressPaths, shadowSche
 		// resolved it the field that the leafref points to. So, we
 		// compare their absolute paths for equality.
 		if k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref && cmp.Equal(util.SchemaPathNoChoiceCase(k), fieldSlicePath) {
+			if util.IsConfig(k.Parent.Parent.Dir[k.Name]) != (util.StripModulePrefix(childPath[len(childPath)-2]) == "config") {
+				// The key node is a second path to this leaf if both are either config or state.
+				// For example, if the leafref is a config value, then it must refer to the config
+				// version of the child leaf, and vice versa for a state value, in order to pair the key
+				// with the leaf. The reason why leafref's "Path" field cannot be used
+				// is because it can be overwritten by TransformEntry(), so we instead need to
+				// rely on IsConfig to tell us whether it really refers to childPath.
+				break
+			}
 			// The path of the key element is simply the name of the leaf under the
 			// list, since the YANG specification enforces that keys are direct
 			// children of the list.

@@ -54,6 +54,7 @@ module enum-module {
 
   container a-lists {
     list a-list {
+      config false;
       key "value";
 
       leaf value {
@@ -71,6 +72,7 @@ module enum-module {
 
   container b-lists {
     list b-list {
+      config false;
       key "value";
   
       leaf value {

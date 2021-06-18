@@ -1563,16 +1563,6 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				},
 				Path: []string{"", "enum-module", "parent", "child"},
 			},
-			"/enum-module/a-lists/a-list": {
-				Name:   "AList",
-				Fields: map[string]*yang.Entry{}, // Key is only part of state and thus is excluded.
-				Path:   []string{"", "enum-module", "a-lists", "a-list"},
-			},
-			"/enum-module/b-lists/b-list": {
-				Name:   "BList",
-				Fields: map[string]*yang.Entry{},
-				Path:   []string{"", "enum-module", "b-lists", "b-list"},
-			},
 		},
 		wantTypeMap: map[string]map[string]*MappedType{
 			"/enum-module/parent": {
@@ -1586,8 +1576,6 @@ func TestGetDirectoriesAndLeafTypes(t *testing.T) {
 				"id2":         {NativeType: "E_EnumTypes_ID", IsEnumeratedValue: true},
 				"inline-enum": {NativeType: "E_Child_InlineEnum", IsEnumeratedValue: true},
 			},
-			"/enum-module/a-lists/a-list": {},
-			"/enum-module/b-lists/b-list": {},
 		},
 	}, {
 		name:           "simple openconfig test with openconfig-simple module excluded",

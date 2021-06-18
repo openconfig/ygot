@@ -969,6 +969,7 @@ func getNodesContainer(schema *yang.Entry, root interface{}, path *gpb.Path) ([]
 		if err != nil {
 			return nil, nil, err
 		}
+		ps = append(ps, ShadowSchemaPaths(ft)...)
 		for _, p := range ps {
 			if PathMatchesPrefix(path, p) {
 				// don't trim whole prefix  for keyed list since name and key

@@ -4,7 +4,6 @@
       "afi-safis": {
         "afi-safi": [
           {
-            "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
             "state": {
               "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
               "enabled": true
@@ -18,7 +17,6 @@
             }
           },
           {
-            "afi-safi-name": "openconfig-bgp-types:IPV6_UNICAST",
             "state": {
               "afi-safi-name": "openconfig-bgp-types:IPV6_UNICAST",
               "enabled": true
@@ -51,7 +49,6 @@
             "neighbor-address": "192.168.1.2",
             "peer-group": "PEER_GROUP_2"
           },
-          "neighbor-address": "192.168.1.2",
           "transport": {
             "state": {
               "local-address": "192.168.1.1"
@@ -62,7 +59,6 @@
           "afi-safis": {
             "afi-safi": [
               {
-                "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
                 "apply-policy": {
                   "state": {
                     "export-policy": [
@@ -84,8 +80,7 @@
             "description": "netlab-core1",
             "neighbor-address": "192.168.1.254",
             "peer-as": 11113
-          },
-          "neighbor-address": "192.168.1.254"
+          }
         },
         {
           "state": {
@@ -93,7 +88,6 @@
             "neighbor-address": "192.168.2.0",
             "peer-group": "PEER_GROUP_1"
           },
-          "neighbor-address": "192.168.2.0",
           "transport": {
             "state": {
               "local-address": "192.168.2.1"
@@ -106,7 +100,6 @@
             "neighbor-address": "192.168.2.2",
             "peer-group": "PEER_GROUP_1"
           },
-          "neighbor-address": "192.168.2.2",
           "transport": {
             "state": {
               "local-address": "192.168.2.3"
@@ -121,7 +114,6 @@
           "afi-safis": {
             "afi-safi": [
               {
-                "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
                 "apply-policy": {
                   "state": {
                     "export-policy": [
@@ -155,14 +147,12 @@
           "state": {
             "peer-as": 11112,
             "peer-group-name": "PEER_GROUP_1"
-          },
-          "peer-group-name": "PEER_GROUP_1"
+          }
         },
         {
           "afi-safis": {
             "afi-safi": [
               {
-                "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
                 "apply-policy": {
                   "state": {
                     "export-policy": [
@@ -196,8 +186,7 @@
           "state": {
             "peer-as": 65514,
             "peer-group-name": "PEER_GROUP_2"
-          },
-          "peer-group-name": "PEER_GROUP_2"
+          }
         }
       ]
     }
@@ -208,32 +197,27 @@
         {
           "state": {
             "name": "ENTITY_TYPE_1"
-          },
-          "name": "ENTITY_TYPE_1"
+          }
         },
         {
           "state": {
             "name": "LOOPBACK-TO-BGP"
-          },
-          "name": "LOOPBACK-TO-BGP"
+          }
         },
         {
           "state": {
             "name": "IMPORT_POLICY_1"
-          },
-          "name": "IMPORT_POLICY_1"
+          }
         },
         {
           "state": {
             "name": "PASS"
-          },
-          "name": "PASS"
+          }
         },
         {
           "state": {
             "name": "PASS-ALL"
-          },
-          "name": "PASS-ALL"
+          }
         }
       ]
     }

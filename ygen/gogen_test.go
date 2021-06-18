@@ -1982,14 +1982,14 @@ const (
 // mapped to are properly extracted from a schema element.
 func TestFindMapPaths(t *testing.T) {
 	tests := []struct {
-		name                      string
-		inStruct                  *Directory
-		inField                   string
-		inCompressPaths           bool
-		inIgnoreShadowSchemaPaths bool
-		inAbsolutePaths           bool
-		wantPaths                 [][]string
-		wantErr                   bool
+		name                string
+		inStruct            *Directory
+		inField             string
+		inCompressPaths     bool
+		inShadowSchemaPaths bool
+		inAbsolutePaths     bool
+		wantPaths           [][]string
+		wantErr             bool
 	}{{
 		name: "first-level container with path compression off",
 		inStruct: &Directory{
@@ -2048,7 +2048,8 @@ func TestFindMapPaths(t *testing.T) {
 				"field-b": {
 					Name: "field-b",
 					Parent: &yang.Entry{
-						Name: "state",
+						Name:   "state",
+						Config: yang.TSFalse,
 						Parent: &yang.Entry{
 							Name: "b-container",
 							Parent: &yang.Entry{
@@ -2085,7 +2086,8 @@ func TestFindMapPaths(t *testing.T) {
 				"field-b": {
 					Name: "field-b",
 					Parent: &yang.Entry{
-						Name: "state",
+						Name:   "state",
+						Config: yang.TSFalse,
 						Parent: &yang.Entry{
 							Name: "b-container",
 							Parent: &yang.Entry{
@@ -2096,10 +2098,10 @@ func TestFindMapPaths(t *testing.T) {
 				},
 			},
 		},
-		inField:                   "field-b",
-		inCompressPaths:           true,
-		inIgnoreShadowSchemaPaths: true,
-		wantPaths:                 [][]string{{"state", "field-b"}},
+		inField:             "field-b",
+		inCompressPaths:     true,
+		inShadowSchemaPaths: true,
+		wantPaths:           [][]string{{"state", "field-b"}},
 	}, {
 		name: "container with absolute paths on",
 		inStruct: &Directory{
@@ -2197,7 +2199,8 @@ func TestFindMapPaths(t *testing.T) {
 				"d-key": {
 					Name: "d-key",
 					Parent: &yang.Entry{
-						Name: "state",
+						Name:   "state",
+						Config: yang.TSFalse,
 						Parent: &yang.Entry{
 							Name: "d-list",
 							Kind: yang.DirectoryEntry,
@@ -2289,7 +2292,8 @@ func TestFindMapPaths(t *testing.T) {
 				"d-key": {
 					Name: "d-key",
 					Parent: &yang.Entry{
-						Name: "state",
+						Name:   "state",
+						Config: yang.TSFalse,
 						Parent: &yang.Entry{
 							Name: "d-list",
 							Kind: yang.DirectoryEntry,
@@ -2310,27 +2314,218 @@ func TestFindMapPaths(t *testing.T) {
 				},
 			},
 		},
-		inField:                   "d-key",
-		inCompressPaths:           true,
-		inIgnoreShadowSchemaPaths: true,
+		inField:             "d-key",
+		inCompressPaths:     true,
+		inShadowSchemaPaths: true,
 		wantPaths: [][]string{
 			{"state", "d-key"},
+		},
+	}, {
+		name: "list with leafref key with swapped config and state due to preferOperationalState",
+		inStruct: &Directory{
+			Name: "DList",
+			Path: []string{"", "d-module", "d-container", "d-list"},
+			ListAttr: &YangListAttr{
+				KeyElems: []*yang.Entry{
+					{
+						Name: "d-key",
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+						},
+						Parent: &yang.Entry{
+							// NOTE: KeyElems is populated with the prioritized version of the leaf,
+							// i.e. the entry from the "state" container here instead of from "config".
+							// This is done by "buildListKey()".
+							Name: "state",
+							Parent: &yang.Entry{
+								Name: "d-list",
+								Kind: yang.DirectoryEntry,
+								Dir: map[string]*yang.Entry{
+									"d-key": {
+										Name: "d-key",
+										Type: &yang.YangType{Kind: yang.Yleafref},
+									},
+								},
+								Parent: &yang.Entry{
+									Name: "d-container",
+									Parent: &yang.Entry{
+										Name: "d-module",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Fields: map[string]*yang.Entry{
+				"d-key": {
+					Name: "d-key",
+					Parent: &yang.Entry{
+						Name:   "state",
+						Config: yang.TSFalse,
+						Parent: &yang.Entry{
+							Name: "d-list",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"d-key": {
+									Name: "d-key",
+									Type: &yang.YangType{Kind: yang.Yleafref},
+								},
+							},
+							Parent: &yang.Entry{
+								Name: "d-container",
+								Parent: &yang.Entry{
+									Name: "d-module",
+								},
+							},
+						},
+					},
+				},
+			},
+			ShadowedFields: map[string]*yang.Entry{
+				"d-key": {
+					Name: "d-key",
+					Type: &yang.YangType{
+						Kind: yang.Yleafref,
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name: "d-list",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"d-key": {
+									Name: "d-key",
+									Type: &yang.YangType{Kind: yang.Yleafref},
+								},
+							},
+							Parent: &yang.Entry{
+								Name: "d-container",
+								Parent: &yang.Entry{
+									Name: "d-module",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		inField:         "d-key",
+		inCompressPaths: true,
+		wantPaths: [][]string{
+			{"state", "d-key"},
+		},
+	}, {
+		name: "list with leafref key with ignoreShadowSchemaPaths on and swapped config and state due to preferOperationalState",
+		inStruct: &Directory{
+			Name: "DList",
+			Path: []string{"", "d-module", "d-container", "d-list"},
+			ListAttr: &YangListAttr{
+				KeyElems: []*yang.Entry{
+					{
+						Name: "d-key",
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+						},
+						Parent: &yang.Entry{
+							Name: "state",
+							Parent: &yang.Entry{
+								Name: "d-list",
+								Kind: yang.DirectoryEntry,
+								Dir: map[string]*yang.Entry{
+									"d-key": {
+										Name: "d-key",
+										Type: &yang.YangType{Kind: yang.Yleafref},
+									},
+								},
+								Parent: &yang.Entry{
+									Name: "d-container",
+									Parent: &yang.Entry{
+										Name: "d-module",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Fields: map[string]*yang.Entry{
+				"d-key": {
+					Name: "d-key",
+					Parent: &yang.Entry{
+						Name:   "state",
+						Config: yang.TSFalse,
+						Parent: &yang.Entry{
+							Name: "d-list",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"d-key": {
+									Name: "d-key",
+									Type: &yang.YangType{Kind: yang.Yleafref},
+								},
+							},
+							Parent: &yang.Entry{
+								Name: "d-container",
+								Parent: &yang.Entry{
+									Name: "d-module",
+								},
+							},
+						},
+					},
+				},
+			},
+			ShadowedFields: map[string]*yang.Entry{
+				"d-key": {
+					Name: "d-key",
+					Type: &yang.YangType{
+						Kind: yang.Yleafref,
+					},
+					Parent: &yang.Entry{
+						Name: "config",
+						Parent: &yang.Entry{
+							Name: "d-list",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"d-key": {
+									Name: "d-key",
+									Type: &yang.YangType{Kind: yang.Yleafref},
+								},
+							},
+							Parent: &yang.Entry{
+								Name: "d-container",
+								Parent: &yang.Entry{
+									Name: "d-module",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		inField:             "d-key",
+		inCompressPaths:     true,
+		inShadowSchemaPaths: true,
+		wantPaths: [][]string{
+			{"config", "d-key"},
+			{"d-key"},
 		},
 	}}
 
 	for _, tt := range tests {
-		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inIgnoreShadowSchemaPaths, tt.inAbsolutePaths)
-		if err != nil {
-			if !tt.wantErr {
-				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, ignoreShadowSchemaPaths: %v, got unexpected error: %v",
-					tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inIgnoreShadowSchemaPaths, err)
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, tt.inAbsolutePaths)
+			if err != nil {
+				if !tt.wantErr {
+					t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, ignoreShadowSchemaPaths: %v, got unexpected error: %v",
+						tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, err)
+				}
+				return
 			}
-			continue
-		}
 
-		if diff := cmp.Diff(tt.wantPaths, got); diff != "" {
-			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, ignoreShadowSchemaPaths: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inIgnoreShadowSchemaPaths, diff)
-		}
+			if diff := cmp.Diff(tt.wantPaths, got); diff != "" {
+				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, ignoreShadowSchemaPaths: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, diff)
+			}
+		})
 	}
 }
 

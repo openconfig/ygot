@@ -114,7 +114,6 @@ func TestGetNodeFull(t *testing.T) {
 		inPath:   mustPath("/interfaces/interface[name=eth0]/name"),
 		wantNodes: []*ytypes.TreeNode{{
 			Path: mustPath("/interfaces/interface[name=eth0]/name"),
-			Data: ygot.String("eth0"),
 		}},
 	}, {
 		name: "bad path",
