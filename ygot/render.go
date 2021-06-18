@@ -921,6 +921,19 @@ type RFC7951JSONConfig struct {
 	// GoStruct to determine the marshalled path elements instead of the
 	// "path" tag, whenever the former is present.
 	PreferShadowPath bool
+	// RewriteModuleNames specifies that, when marshalling to JSON, any
+	// entry that is found within module A should be assumed to be in
+	// module B. This allows a user to augment modules with nodes that
+	// are then rewritten to be part of the augmented (note augmentED)
+	// module's namespace. The primary reason that a user may this
+	// functionality is to ensure that when a node is removed from an
+	// model, but it is to be re-added for backwards compatibility by
+	// augmentation, then the original output is not modified.
+	//
+	// The RewriteModuleNames map is keyed on the name of the module that
+	// is to be rewritten FROM, and the value of the map is the name of the module
+	// it is to be rewritten TO.
+	RewriteModuleNames map[string]string
 }
 
 // IsMarshal7951Arg marks the RFC7951JSONConfig struct as a valid argument to
@@ -929,9 +942,8 @@ func (*RFC7951JSONConfig) IsMarshal7951Arg() {}
 
 // ConstructIETFJSON marshals a supplied GoStruct to a map, suitable for
 // handing to json.Marshal. It complies with the convention for marshalling
-// to JSON described by RFC7951. The appendModName argument determines whether
-// the module name should be appended to entities that are defined in a different
-// module to their parent.
+// to JSON described by RFC7951. The supplied args control options corresponding
+// to the method by which JSON is marshalled.
 func ConstructIETFJSON(s GoStruct, args *RFC7951JSONConfig) (map[string]interface{}, error) {
 	return structJSON(s, "", jsonOutputConfig{
 		jType:         RFC7951,
@@ -1017,6 +1029,18 @@ type jsonOutputConfig struct {
 	rfc7951Config *RFC7951JSONConfig
 }
 
+// rewriteModName rewrites the module mod according to the specified rewrite rules.
+// The rewrite rules are a map keyed by observed module name, with values of
+// the name of the module that is to be rewritten to. It returns the rewritten
+// module name, or the original module name in the case that it does not need
+// to be rewritten.
+func rewriteModName(mod string, rules map[string]string) string {
+	if rules == nil || rules[mod] == "" {
+		return mod
+	}
+	return rules[mod]
+}
+
 // structJSON marshals a GoStruct to a map[string]interface{} which can be
 // handed to JSON marshal. parentMod specifies the module that the supplied
 // GoStruct is defined within such that RFC7951 format JSON is able to consider
@@ -1040,23 +1064,32 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 
 		// Determine whether we should append a module name to the path in RFC7951
 		// output mode.
-		var appmod string
-		pmod := parentMod
-		if chMod, ok := fType.Tag.Lookup("module"); ok {
-			// If the child module isn't the same as the parent module,
-			// then appmod stores the name of the module to prefix to paths
-			// within this context.
-			if chMod != parentMod {
-				appmod = chMod
-			}
-			// Update the parent module name to be used for subsequent
-			// children.
-			pmod = chMod
-		}
+		var (
+			appmod        string
+			appendModName bool
+		)
 
-		var appendModName bool
-		if args.jType == RFC7951 && args.rfc7951Config != nil && args.rfc7951Config.AppendModuleName && appmod != "" {
-			appendModName = true
+		pmod := parentMod
+		if args.jType == RFC7951 && args.rfc7951Config != nil && args.rfc7951Config.AppendModuleName {
+			if chMod, ok := fType.Tag.Lookup("module"); ok {
+				// If the child module isn't the same as the parent module,
+				// then appmod stores the name of the module to prefix to paths
+				// within this context.
+
+				// First we check whether we are rewriting the name of the module, so that
+				// we do the right comparison.
+				chMod = rewriteModName(chMod, args.rfc7951Config.RewriteModuleNames)
+
+				if chMod != parentMod {
+					appmod = chMod
+				}
+				// Update the parent module name to be used for subsequent
+				// children.
+				pmod = chMod
+			}
+			if appmod != "" {
+				appendModName = true
+			}
 		}
 
 		mapPaths, err := structTagToLibPaths(fType, newStringSliceGNMIPath([]string{}), args.rfc7951Config != nil && args.rfc7951Config.PreferShadowPath)
