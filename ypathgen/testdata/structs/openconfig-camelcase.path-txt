@@ -24,6 +24,16 @@ type BGPPathAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty BGP for the path "/openconfig-camelcase/bgp".
+func (n *BGPPath) PathAndStruct() (*BGPPath, *BGP) {
+	return n, &BGP{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty BGP for the path "/openconfig-camelcase/bgp".
+func (n *BGPPathAny) PathAndStruct() (*BGPPathAny, *BGP) {
+	return n, &BGP{}
+}
+
 // NeighborAny returns from BGPPath the path struct for its child "neighbor".
 func (n *BGPPath) NeighborAny() *BGP_NeighborPathAny {
 	return &BGP_NeighborPathAny{
@@ -80,6 +90,16 @@ type BGP_NeighborPathAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty BGP_Neighbor for the path "/openconfig-camelcase/bgp/neighbors/neighbor".
+func (n *BGP_NeighborPath) PathAndStruct() (*BGP_NeighborPath, *BGP_Neighbor) {
+	return n, &BGP_Neighbor{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty BGP_Neighbor for the path "/openconfig-camelcase/bgp/neighbors/neighbor".
+func (n *BGP_NeighborPathAny) PathAndStruct() (*BGP_NeighborPathAny, *BGP_Neighbor) {
+	return n, &BGP_Neighbor{}
+}
+
 // BGP_Neighbor_PeerIPPath represents the /openconfig-camelcase/bgp/neighbors/neighbor/state/peer-ip YANG schema element.
 type BGP_Neighbor_PeerIPPath struct {
 	*ygot.NodePath
@@ -120,6 +140,11 @@ type DevicePath struct {
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
 func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
+}
+
+// PathAndStruct returns the path struct and an empty Device for the path "/device".
+func (n *DevicePath) PathAndStruct() (*DevicePath, *Device) {
+	return n, &Device{}
 }
 
 // BGP returns from DevicePath the path struct for its child "bgp".

@@ -24,6 +24,11 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
+// PathAndStruct returns the path struct and an empty Device for the path "/device".
+func (n *DevicePath) PathAndStruct() (*DevicePath, *Device) {
+	return n, &Device{}
+}
+
 // Model returns from DevicePath the path struct for its child "model".
 func (n *DevicePath) Model() *ModelPath {
 	return &ModelPath{
@@ -38,6 +43,11 @@ func (n *DevicePath) Model() *ModelPath {
 // ModelPath represents the /openconfig-withlist/model YANG schema element.
 type ModelPath struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty Model for the path "/openconfig-withlist/model".
+func (n *ModelPath) PathAndStruct() (*ModelPath, *Model) {
+	return n, &Model{}
 }
 
 // MultiKey returns from ModelPath the path struct for its child "multi-key".
@@ -68,6 +78,11 @@ func (n *ModelPath) SingleKey(Key string) *Model_SingleKeyPath {
 // Model_MultiKeyPath represents the /openconfig-withlist/model/b/multi-key YANG schema element.
 type Model_MultiKeyPath struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty Model_MultiKey for the path "/openconfig-withlist/model/b/multi-key".
+func (n *Model_MultiKeyPath) PathAndStruct() (*Model_MultiKeyPath, *Model_MultiKey) {
+	return n, &Model_MultiKey{}
 }
 
 // Model_MultiKey_Key1Path represents the /openconfig-withlist/model/b/multi-key/state/key1 YANG schema element.
@@ -105,6 +120,11 @@ func (n *Model_MultiKeyPath) Key2() *Model_MultiKey_Key2Path {
 // Model_SingleKeyPath represents the /openconfig-withlist/model/a/single-key YANG schema element.
 type Model_SingleKeyPath struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty Model_SingleKey for the path "/openconfig-withlist/model/a/single-key".
+func (n *Model_SingleKeyPath) PathAndStruct() (*Model_SingleKeyPath, *Model_SingleKey) {
+	return n, &Model_SingleKey{}
 }
 
 // Model_SingleKey_KeyPath represents the /openconfig-withlist/model/a/single-key/state/key YANG schema element.

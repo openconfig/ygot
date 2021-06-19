@@ -25,6 +25,11 @@ func DeviceRoot(id string) *Device {
 	return &Device{ygot.NewDeviceRootBase(id)}
 }
 
+// PathAndStruct returns the path struct and an empty oc.Device for the path "/device".
+func (n *Device) PathAndStruct() (*Device, *oc.Device) {
+	return n, &oc.Device{}
+}
+
 // Parent returns from Device the path struct for its child "parent".
 func (n *Device) Parent() *Parent {
 	return &Parent{
@@ -55,6 +60,16 @@ type Parent struct {
 // ParentAny represents the wildcard version of the /openconfig-simple/parent YANG schema element.
 type ParentAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty oc.Parent for the path "/openconfig-simple/parent".
+func (n *Parent) PathAndStruct() (*Parent, *oc.Parent) {
+	return n, &oc.Parent{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty oc.Parent for the path "/openconfig-simple/parent".
+func (n *ParentAny) PathAndStruct() (*ParentAny, *oc.Parent) {
+	return n, &oc.Parent{}
 }
 
 // Child returns from Parent the path struct for its child "child".

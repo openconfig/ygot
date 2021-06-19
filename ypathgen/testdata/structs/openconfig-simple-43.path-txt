@@ -25,6 +25,16 @@ type RemoteContainerAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty oc.RemoteContainer for the path "/openconfig-simple/remote-container".
+func (n *RemoteContainer) PathAndStruct() (*RemoteContainer, *oc.RemoteContainer) {
+	return n, &oc.RemoteContainer{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty oc.RemoteContainer for the path "/openconfig-simple/remote-container".
+func (n *RemoteContainerAny) PathAndStruct() (*RemoteContainerAny, *oc.RemoteContainer) {
+	return n, &oc.RemoteContainer{}
+}
+
 // RemoteContainer_ALeaf represents the /openconfig-simple/remote-container/state/a-leaf YANG schema element.
 type RemoteContainer_ALeaf struct {
 	*ygot.NodePath

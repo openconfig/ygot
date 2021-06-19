@@ -24,6 +24,16 @@ type ChoiceCaseAnonymousCasePathAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty ChoiceCaseAnonymousCase for the path "/choice-case-example/choice-case-anonymous-case".
+func (n *ChoiceCaseAnonymousCasePath) PathAndStruct() (*ChoiceCaseAnonymousCasePath, *ChoiceCaseAnonymousCase) {
+	return n, &ChoiceCaseAnonymousCase{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty ChoiceCaseAnonymousCase for the path "/choice-case-example/choice-case-anonymous-case".
+func (n *ChoiceCaseAnonymousCasePathAny) PathAndStruct() (*ChoiceCaseAnonymousCasePathAny, *ChoiceCaseAnonymousCase) {
+	return n, &ChoiceCaseAnonymousCase{}
+}
+
 // ChoiceCaseAnonymousCase_APath represents the /choice-case-example/choice-case-anonymous-case/foo/a/a YANG schema element.
 type ChoiceCaseAnonymousCase_APath struct {
 	*ygot.NodePath
@@ -96,6 +106,16 @@ type ChoiceCaseWithLeafrefPath struct {
 // ChoiceCaseWithLeafrefPathAny represents the wildcard version of the /choice-case-example/choice-case-with-leafref YANG schema element.
 type ChoiceCaseWithLeafrefPathAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty ChoiceCaseWithLeafref for the path "/choice-case-example/choice-case-with-leafref".
+func (n *ChoiceCaseWithLeafrefPath) PathAndStruct() (*ChoiceCaseWithLeafrefPath, *ChoiceCaseWithLeafref) {
+	return n, &ChoiceCaseWithLeafref{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty ChoiceCaseWithLeafref for the path "/choice-case-example/choice-case-with-leafref".
+func (n *ChoiceCaseWithLeafrefPathAny) PathAndStruct() (*ChoiceCaseWithLeafrefPathAny, *ChoiceCaseWithLeafref) {
+	return n, &ChoiceCaseWithLeafref{}
 }
 
 // ChoiceCaseWithLeafref_PtrPath represents the /choice-case-example/choice-case-with-leafref/foo/bar/ptr YANG schema element.
@@ -172,6 +192,11 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
+// PathAndStruct returns the path struct and an empty Device for the path "/device".
+func (n *DevicePath) PathAndStruct() (*DevicePath, *Device) {
+	return n, &Device{}
+}
+
 // ChoiceCaseAnonymousCase returns from DevicePath the path struct for its child "choice-case-anonymous-case".
 func (n *DevicePath) ChoiceCaseAnonymousCase() *ChoiceCaseAnonymousCasePath {
 	return &ChoiceCaseAnonymousCasePath{
@@ -213,6 +238,16 @@ type SimpleChoiceCasePath struct {
 // SimpleChoiceCasePathAny represents the wildcard version of the /choice-case-example/simple-choice-case YANG schema element.
 type SimpleChoiceCasePathAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty SimpleChoiceCase for the path "/choice-case-example/simple-choice-case".
+func (n *SimpleChoiceCasePath) PathAndStruct() (*SimpleChoiceCasePath, *SimpleChoiceCase) {
+	return n, &SimpleChoiceCase{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty SimpleChoiceCase for the path "/choice-case-example/simple-choice-case".
+func (n *SimpleChoiceCasePathAny) PathAndStruct() (*SimpleChoiceCasePathAny, *SimpleChoiceCase) {
+	return n, &SimpleChoiceCase{}
 }
 
 // SimpleChoiceCase_APath represents the /choice-case-example/simple-choice-case/foo/bar/a YANG schema element.

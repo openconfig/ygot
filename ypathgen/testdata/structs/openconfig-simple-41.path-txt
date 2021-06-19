@@ -25,6 +25,16 @@ type ParentAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty oc.Parent for the path "/openconfig-simple/parent".
+func (n *Parent) PathAndStruct() (*Parent, *oc.Parent) {
+	return n, &oc.Parent{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty oc.Parent for the path "/openconfig-simple/parent".
+func (n *ParentAny) PathAndStruct() (*ParentAny, *oc.Parent) {
+	return n, &oc.Parent{}
+}
+
 // Child returns from Parent the path struct for its child "child".
 func (n *Parent) Child() *Parent_Child {
 	return &Parent_Child{

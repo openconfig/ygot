@@ -95,14 +95,13 @@ func TestCustomData(t *testing.T) {
 	}
 }
 
-// This test shows ways to reduce typing when creating similar paths.
+// This test shows ways to reduce typing when creating paths.
 func TestManualShortcuts(t *testing.T) {
+	// defining short helpers
 	root := oc.DeviceRoot(deviceId)
 	preemptDelay := func(intf string, subintf uint32, ip string) ygot.PathStruct {
 		return root.Interface(intf).Subinterface(subintf).Ipv6().Address(ip).VrrpGroup(1).PreemptDelay()
 	}
-
-	// defining short helpers
 	verifyPath(t, preemptDelay("eth1", 1, "1::"), "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
 	verifyPath(t, preemptDelay("eth1", 2, "2:2:2:2::"), "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=2:2:2:2::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
 	verifyPath(t, preemptDelay("eth2", 2, "::"), "/interfaces/interface[name=eth2]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
@@ -111,6 +110,23 @@ func TestManualShortcuts(t *testing.T) {
 	intf1 := root.InterfaceAny()
 	verifyPath(t, intf1.Subinterface(3), "/interfaces/interface[name=*]/subinterfaces/subinterface[index=3]")
 	verifyPath(t, intf1.Subinterface(4), "/interfaces/interface[name=*]/subinterfaces/subinterface[index=4]")
+
+	// PathAndStruct helper
+	root, r := oc.DeviceRoot(deviceId).PathAndStruct()
+	r.Interface = nil
+	preemptDelay = func(intf string, subintf uint32, ip string) ygot.PathStruct {
+		ps, s := root.Interface(intf).Subinterface(subintf).Ipv6().Address(ip).VrrpGroup(1).PathAndStruct()
+		s.PreemptDelay = nil
+		return ps.PreemptDelay()
+	}
+	verifyPath(t, preemptDelay("eth1", 1, "1::"), "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=1]/ipv6/addresses/address[ip=1::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
+	verifyPath(t, preemptDelay("eth1", 2, "2:2:2:2::"), "/interfaces/interface[name=eth1]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=2:2:2:2::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
+	verifyPath(t, preemptDelay("eth2", 2, "::"), "/interfaces/interface[name=eth2]/subinterfaces/subinterface[index=2]/ipv6/addresses/address[ip=::]/vrrp/vrrp-group[virtual-router-id=1]/config/preempt-delay")
+
+	intf1, intf := root.InterfaceAny().PathAndStruct()
+	verifyPath(t, intf1.Subinterface(3), "/interfaces/interface[name=*]/subinterfaces/subinterface[index=3]")
+	verifyPath(t, intf1.Subinterface(4), "/interfaces/interface[name=*]/subinterfaces/subinterface[index=4]")
+	intf.Mtu = nil
 }
 
 func TestPathCreation(t *testing.T) {

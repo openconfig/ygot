@@ -24,6 +24,16 @@ type AListPathAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty AList for the path "/enum-module/a-lists/a-list".
+func (n *AListPath) PathAndStruct() (*AListPath, *AList) {
+	return n, &AList{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty AList for the path "/enum-module/a-lists/a-list".
+func (n *AListPathAny) PathAndStruct() (*AListPathAny, *AList) {
+	return n, &AList{}
+}
+
 // AList_ValuePath represents the /enum-module/a-lists/a-list/state/value YANG schema element.
 type AList_ValuePath struct {
 	*ygot.NodePath
@@ -64,6 +74,16 @@ type BListPath struct {
 // BListPathAny represents the wildcard version of the /enum-module/b-lists/b-list YANG schema element.
 type BListPathAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty BList for the path "/enum-module/b-lists/b-list".
+func (n *BListPath) PathAndStruct() (*BListPath, *BList) {
+	return n, &BList{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty BList for the path "/enum-module/b-lists/b-list".
+func (n *BListPathAny) PathAndStruct() (*BListPathAny, *BList) {
+	return n, &BList{}
 }
 
 // BList_ValuePath represents the /enum-module/b-lists/b-list/state/value YANG schema element.
@@ -108,6 +128,16 @@ type CPathAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty C for the path "/enum-module/c".
+func (n *CPath) PathAndStruct() (*CPath, *C) {
+	return n, &C{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty C for the path "/enum-module/c".
+func (n *CPathAny) PathAndStruct() (*CPathAny, *C) {
+	return n, &C{}
+}
+
 // C_ClPath represents the /enum-module/c/cl YANG schema element.
 type C_ClPath struct {
 	*ygot.NodePath
@@ -148,6 +178,11 @@ type DevicePath struct {
 // DeviceRoot returns a new path object from which YANG paths can be constructed.
 func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
+}
+
+// PathAndStruct returns the path struct and an empty Device for the path "/device".
+func (n *DevicePath) PathAndStruct() (*DevicePath, *Device) {
+	return n, &Device{}
 }
 
 // AListAny returns from DevicePath the path struct for its child "a-list".
@@ -228,6 +263,16 @@ type ParentPathAny struct {
 	*ygot.NodePath
 }
 
+// PathAndStruct returns the path struct and an empty Parent for the path "/enum-module/parent".
+func (n *ParentPath) PathAndStruct() (*ParentPath, *Parent) {
+	return n, &Parent{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty Parent for the path "/enum-module/parent".
+func (n *ParentPathAny) PathAndStruct() (*ParentPathAny, *Parent) {
+	return n, &Parent{}
+}
+
 // Child returns from ParentPath the path struct for its child "child".
 func (n *ParentPath) Child() *Parent_ChildPath {
 	return &Parent_ChildPath{
@@ -258,6 +303,16 @@ type Parent_ChildPath struct {
 // Parent_ChildPathAny represents the wildcard version of the /enum-module/parent/child YANG schema element.
 type Parent_ChildPathAny struct {
 	*ygot.NodePath
+}
+
+// PathAndStruct returns the path struct and an empty Parent_Child for the path "/enum-module/parent/child".
+func (n *Parent_ChildPath) PathAndStruct() (*Parent_ChildPath, *Parent_Child) {
+	return n, &Parent_Child{}
+}
+
+// PathAndStruct returns the wildcard path struct and an empty Parent_Child for the path "/enum-module/parent/child".
+func (n *Parent_ChildPathAny) PathAndStruct() (*Parent_ChildPathAny, *Parent_Child) {
+	return n, &Parent_Child{}
 }
 
 // Parent_Child_EnumPath represents the /enum-module/parent/child/state/enum YANG schema element.
