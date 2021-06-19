@@ -1982,14 +1982,14 @@ const (
 // mapped to are properly extracted from a schema element.
 func TestFindMapPaths(t *testing.T) {
 	tests := []struct {
-		name                      string
-		inStruct                  *Directory
-		inField                   string
-		inCompressPaths           bool
-		inIgnoreShadowSchemaPaths bool
-		inAbsolutePaths           bool
-		wantPaths                 [][]string
-		wantErr                   bool
+		name                string
+		inStruct            *Directory
+		inField             string
+		inCompressPaths     bool
+		inShadowSchemaPaths bool
+		inAbsolutePaths     bool
+		wantPaths           [][]string
+		wantErr             bool
 	}{{
 		name: "first-level container with path compression off",
 		inStruct: &Directory{
@@ -2096,10 +2096,10 @@ func TestFindMapPaths(t *testing.T) {
 				},
 			},
 		},
-		inField:                   "field-b",
-		inCompressPaths:           true,
-		inIgnoreShadowSchemaPaths: true,
-		wantPaths:                 [][]string{{"state", "field-b"}},
+		inField:             "field-b",
+		inCompressPaths:     true,
+		inShadowSchemaPaths: true,
+		wantPaths:           [][]string{{"state", "field-b"}},
 	}, {
 		name: "container with absolute paths on",
 		inStruct: &Directory{
@@ -2225,7 +2225,7 @@ func TestFindMapPaths(t *testing.T) {
 			{"d-key"},
 		},
 	}, {
-		name: "list with leafref key with ignoreShadowSchemaPaths on",
+		name: "list with leafref key with shadowSchemaPaths=true",
 		inStruct: &Directory{
 			Name: "DList",
 			Path: []string{"", "d-module", "d-container", "d-list"},
@@ -2310,26 +2310,27 @@ func TestFindMapPaths(t *testing.T) {
 				},
 			},
 		},
-		inField:                   "d-key",
-		inCompressPaths:           true,
-		inIgnoreShadowSchemaPaths: true,
+		inField:             "d-key",
+		inCompressPaths:     true,
+		inShadowSchemaPaths: true,
 		wantPaths: [][]string{
 			{"state", "d-key"},
+			{"d-key"},
 		},
 	}}
 
 	for _, tt := range tests {
-		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inIgnoreShadowSchemaPaths, tt.inAbsolutePaths)
+		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, tt.inAbsolutePaths)
 		if err != nil {
 			if !tt.wantErr {
-				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, ignoreShadowSchemaPaths: %v, got unexpected error: %v",
-					tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inIgnoreShadowSchemaPaths, err)
+				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, shadowSchemaPaths: %v, got unexpected error: %v",
+					tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, err)
 			}
 			continue
 		}
 
 		if diff := cmp.Diff(tt.wantPaths, got); diff != "" {
-			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, ignoreShadowSchemaPaths: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inIgnoreShadowSchemaPaths, diff)
+			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, shadowSchemaPaths: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, diff)
 		}
 	}
 }

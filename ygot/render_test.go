@@ -919,7 +919,7 @@ func (*pathElemExample) IsYANGGoStruct() {}
 
 // pathElemExampleChild is an example struct that is used as a list child struct.
 type pathElemExampleChild struct {
-	Val        *string `path:"val|config/val"`
+	Val        *string `path:"val|config/val" shadow-path:"val|state/val"`
 	OtherField *uint8  `path:"other-field"`
 }
 
@@ -1671,8 +1671,8 @@ type mapKey struct {
 }
 
 type structMultiKeyChild struct {
-	F1 *string `path:"config/fOne|fOne"`
-	F2 *string `path:"config/fTwo|fTwo"`
+	F1 *string `path:"config/fOne|fOne" shadow-path:"state/fOne|fOne"`
+	F2 *string `path:"config/fTwo|fTwo" shadow-path:"state/fTwo|fTwo"`
 }
 
 func (*structMultiKeyChild) IsYANGGoStruct() {}
@@ -1798,6 +1798,7 @@ func TestConstructJSON(t *testing.T) {
 		in                       GoStruct
 		inAppendMod              bool
 		inRewriteModuleNameRules map[string]string
+		inPreferShadowPath       bool
 		wantIETF                 map[string]interface{}
 		wantInternal             map[string]interface{}
 		wantSame                 bool
@@ -1979,6 +1980,40 @@ func TestConstructJSON(t *testing.T) {
 				"one two": map[string]interface{}{
 					"fOne": "one",
 					"fTwo": "two",
+					"config": map[string]interface{}{
+						"fOne": "one",
+						"fTwo": "two",
+					},
+				},
+			},
+		},
+	}, {
+		name: "multi-keyed list with PreferShadowPath=true",
+		in: &structWithMultiKey{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inPreferShadowPath: true,
+		wantIETF: map[string]interface{}{
+			"foo": []interface{}{
+				map[string]interface{}{
+					"fOne": "one",
+					"fTwo": "two",
+					"state": map[string]interface{}{
+						"fOne": "one",
+						"fTwo": "two",
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"one two": map[string]interface{}{
+					"fOne": "one",
+					"fTwo": "two",
+					// NOTE: internal JSON generation doesn't have the
+					// preferShadowPath option, so its results are unchanged.
 					"config": map[string]interface{}{
 						"fOne": "one",
 						"fTwo": "two",
@@ -2623,6 +2658,7 @@ func TestConstructJSON(t *testing.T) {
 			gotietf, err := ConstructIETFJSON(tt.in, &RFC7951JSONConfig{
 				AppendModuleName:   tt.inAppendMod,
 				RewriteModuleNames: tt.inRewriteModuleNameRules,
+				PreferShadowPath:   tt.inPreferShadowPath,
 			})
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("ConstructIETFJSON(%v): got unexpected error: %v, want error %v", tt.in, err, tt.wantErr)
