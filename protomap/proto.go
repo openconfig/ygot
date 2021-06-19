@@ -26,6 +26,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 
+	"github.com/openconfig/gnmi/value"
+	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -33,10 +35,10 @@ import (
 	wpb "github.com/openconfig/ygot/proto/ywrapper"
 )
 
-// pathsFromProto returns, from a populated proto, a map between the YANG schema
+// PathsFromProto returns, from a populated proto, a map between the YANG schema
 // path (as specified in the yext.schemapath extension) and the value populated in
 // the message.
-func pathsFromProto(p proto.Message) (map[*gpb.Path]interface{}, error) {
+func PathsFromProto(p proto.Message) (map[*gpb.Path]interface{}, error) {
 	pp := map[*gpb.Path]interface{}{}
 	if err := pathsFromProtoInternal(p, pp, nil); err != nil {
 		return nil, err
@@ -271,11 +273,15 @@ func parseListField(fd protoreflect.FieldDescriptor, v protoreflect.Value, baseP
 	}
 
 	if fd.Kind() == protoreflect.MessageKind {
-		if t, ok := v.Message().Interface().(proto.Message); ok {
-			// The only case of having proto.Message in a list key is when the field
-			// represents the list's value portion, therefore return this value.
-			return &parsedListField{member: t}, nil
+		// Deal with the case where the list member is set to nil.
+		if !v.IsValid() {
+			return nil, fmt.Errorf("nil list member in field %s, %v", fd.FullName(), v)
 		}
+
+		// The only case of having proto.Message in a list key is when the field
+		// represents the list's value portion, therefore return this value.
+		return &parsedListField{member: v.Message().Interface()}, nil
+
 	}
 
 	mapPaths, err := annotatedSchemaPath(fd)
@@ -354,4 +360,321 @@ func resolvedPath(basePath, annotatedPath *gpb.Path) *gpb.Path {
 	np := proto.Clone(basePath).(*gpb.Path)
 	np.Elem = append(np.Elem, annotatedPath.Elem[len(basePath.Elem):]...)
 	return np
+}
+
+// UnmapOpt marks that a particular option can be supplied as an argument
+// to the ProtoFromPaths function.
+type UnmapOpt interface {
+	isUnmapOpt()
+}
+
+// IgnoreExtraPaths indicates that unmapping should ignore any additional
+// paths that are found in the gNMI Notifications that do not have corresponding
+// fields in the protobuf.
+//
+// This option is typically used in conjunction with path compression where there
+// are some leaves that do not have corresponding fields.
+func IgnoreExtraPaths() *ignoreExtraPaths { return &ignoreExtraPaths{} }
+
+type ignoreExtraPaths struct{}
+
+// isUnmapOpt marks ignoreExtraPaths as an unmap option.
+func (*ignoreExtraPaths) isUnmapOpt() {}
+
+// ValuePathPrefix indicates that the values in the supplied map have a prefix which
+// is equal to the supplied path. The prefix plus each path in the vals map must be
+// equal to the absolute path for the supplied values.
+func ValuePathPrefix(path *gpb.Path) *valuePathPrefix {
+	return &valuePathPrefix{p: path}
+}
+
+type valuePathPrefix struct{ p *gpb.Path }
+
+// isUnmapOpt marks valuePathPrefix as an unmap option.
+func (*valuePathPrefix) isUnmapOpt() {}
+
+// ProtobufMessagePrefix specifies the path that the protobuf message supplied to ProtoFromPaths
+// makes up. This is used in cases where the message itself is not the root - and hence unmarshalling
+// should look for paths relative to the specified path in the vals map.
+func ProtobufMessagePrefix(path *gpb.Path) *protoMsgPrefix {
+	return &protoMsgPrefix{p: path}
+}
+
+type protoMsgPrefix struct{ p *gpb.Path }
+
+// isUnmapOpt marks protoMsgPrefix as an unmap option.
+func (*protoMsgPrefix) isUnmapOpt() {}
+
+// ProtoFromPaths takes an input ygot-generated protobuf and unmarshals the values provided in vals into the map.
+// The vals map must be keyed by the gNMI path to the leaf, with the interface{} value being the value that the
+// leaf at the field should be set to.
+//
+// The protobuf p is modified in place to add the values.
+//
+// The set of UnmapOpts that are provided (opt) are used to control the behaviour of unmarshalling the specified data.
+//
+// ProtoFromPaths returns an error if the data cannot be unmarshalled.
+func ProtoFromPaths(p proto.Message, vals map[*gpb.Path]interface{}, opt ...UnmapOpt) error {
+	if p == nil {
+		return errors.New("nil protobuf supplied")
+	}
+
+	valPrefix, err := hasValuePathPrefix(opt)
+	if err != nil {
+		return fmt.Errorf("invalid value prefix supplied, %v", err)
+	}
+
+	protoPrefix, err := hasProtoMsgPrefix(opt)
+	if err != nil {
+		return fmt.Errorf("invalid protobuf message prefix supplied in options, %v", err)
+	}
+
+	schemaPath := func(p *gpb.Path) *gpb.Path {
+		np := proto.Clone(p).(*gpb.Path)
+		for _, e := range np.Elem {
+			e.Key = nil
+		}
+		return np
+	}
+
+	// directCh is a map between the absolute schema path for a particular value, and
+	// the value specified.
+	directCh := map[*gpb.Path]interface{}{}
+	for p, v := range vals {
+		absPath := &gpb.Path{
+			Elem: append(append([]*gpb.PathElem{}, schemaPath(valPrefix).Elem...), p.Elem...),
+		}
+
+		if !util.PathMatchesPathElemPrefix(absPath, protoPrefix) {
+			return fmt.Errorf("invalid path provided, absolute paths must be used, %s does not have prefix %s", absPath, protoPrefix)
+		}
+
+		// make the path absolute, and a schema path.
+		pp := util.TrimGNMIPathElemPrefix(absPath, protoPrefix)
+
+		if len(pp.GetElem()) == 1 {
+			directCh[pp] = v
+		}
+		// TODO(robjs): it'd be good to have something here that tells us whether we are in
+		// a compressed schema. Potentially we should add something to the generated protobuf
+		// as a fileoption that would give us this indication.
+		if len(pp.Elem) == 2 {
+			if pp.Elem[len(pp.Elem)-2].Name == "config" || pp.Elem[len(pp.Elem)-2].Name == "state" {
+				directCh[pp] = v
+			}
+		}
+	}
+
+	mapped := map[*gpb.Path]bool{}
+	m := p.ProtoReflect()
+	var rangeErr error
+	unpopRange{m}.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		annotatedPath, err := annotatedSchemaPath(fd)
+		if err != nil {
+			rangeErr = err
+			return false
+		}
+
+		for _, ap := range annotatedPath {
+			if !util.PathMatchesPathElemPrefix(ap, protoPrefix) {
+				rangeErr = fmt.Errorf("annotation %s does not match the supplied prefix %s", ap, protoPrefix)
+				return false
+			}
+			trimmedAP := util.TrimGNMIPathElemPrefix(ap, protoPrefix)
+			for chp, chv := range directCh {
+				if proto.Equal(trimmedAP, chp) {
+					switch fd.Kind() {
+					case protoreflect.MessageKind:
+						v, isWrap, err := makeWrapper(m, fd, chv)
+						if err != nil {
+							rangeErr = err
+							return false
+						}
+						if !isWrap {
+							// TODO(robjs): recurse into the message if it wasn't a wrapper
+							// type.
+							rangeErr = fmt.Errorf("unimplemented: child messages, field %s", fd.FullName())
+							return false
+						}
+						mapped[chp] = true
+						m.Set(fd, protoreflect.ValueOfMessage(v))
+					case protoreflect.EnumKind:
+						v, err := enumValue(fd, chv)
+						if err != nil {
+							rangeErr = err
+							return false
+						}
+						mapped[chp] = true
+						m.Set(fd, v)
+					default:
+						rangeErr = fmt.Errorf("unknown field kind %s for %s", fd.Kind(), fd.FullName())
+						return false
+					}
+				}
+			}
+		}
+		return true
+	})
+
+	if rangeErr != nil {
+		return rangeErr
+	}
+
+	if !hasIgnoreExtraPaths(opt) {
+		for chp := range directCh {
+			if !mapped[chp] {
+				return fmt.Errorf("did not map path %s to a proto field", chp)
+			}
+		}
+	}
+
+	return nil
+}
+
+// hasIgnoreExtraPaths checks whether the supplied opts slice contains the
+// ignoreExtraPaths option.
+func hasIgnoreExtraPaths(opts []UnmapOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*ignoreExtraPaths); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// hasProtoMsgPrefix checks whether the supplied opts slice contains the
+// protoMsgPrefix option, and validates and returns the path it contains.
+func hasProtoMsgPrefix(opts []UnmapOpt) (*gpb.Path, error) {
+	for _, o := range opts {
+		if v, ok := o.(*protoMsgPrefix); ok {
+			if v.p == nil {
+				return nil, fmt.Errorf("invalid protobuf prefix supplied, %+v", v)
+			}
+			return v.p, nil
+		}
+	}
+	return &gpb.Path{}, nil
+}
+
+// hasValuePathPrefix checks whether the supplied opts slice contains
+// the valuePathPrefix option, and validates and returns the apth it contains.
+func hasValuePathPrefix(opts []UnmapOpt) (*gpb.Path, error) {
+	for _, o := range opts {
+		if v, ok := o.(*valuePathPrefix); ok {
+			if v.p == nil {
+				return nil, fmt.Errorf("invalid protobuf prefix supplied, %+v", v)
+			}
+			return v.p, nil
+		}
+	}
+	return &gpb.Path{}, nil
+}
+
+// makeWrapper generates a new message for field fd of the proto message msg with the value set to val.
+// The field fd must describe a field that has a message type. An error is returned if the wrong
+// type of payload is provided for the message. The second, boolean, return argument specifies whether
+// the message provided was a known wrapper type.
+func makeWrapper(msg protoreflect.Message, fd protoreflect.FieldDescriptor, val interface{}) (protoreflect.Message, bool, error) {
+	var wasTypedVal bool
+	if tv, ok := val.(*gpb.TypedValue); ok {
+		pv, err := value.ToScalar(tv)
+		if err != nil {
+			return nil, false, fmt.Errorf("cannot convert TypedValue to scalar, %s", tv)
+		}
+		val = pv
+		wasTypedVal = true
+	}
+
+	newV := msg.NewField(fd)
+	switch newV.Message().Interface().(type) {
+	case *wpb.StringValue:
+		nsv, ok := val.(string)
+		if !ok {
+			return nil, false, fmt.Errorf("got non-string value for string field, field: %s, value: %v", fd.FullName(), val)
+		}
+		return (&wpb.StringValue{Value: nsv}).ProtoReflect(), true, nil
+	case *wpb.UintValue:
+		var nsv uint64
+		switch {
+		case wasTypedVal:
+			nsv = val.(uint64)
+		default:
+			iv, ok := val.(uint)
+			if !ok {
+				return nil, false, fmt.Errorf("got non-uint value for uint field, field: %s, value: %v", fd.FullName(), val)
+			}
+			nsv = uint64(iv)
+		}
+
+		return (&wpb.UintValue{Value: nsv}).ProtoReflect(), true, nil
+	case *wpb.BytesValue:
+		bv, ok := val.([]byte)
+		if !ok {
+			return nil, false, fmt.Errorf("got non-byte slice value for bytes field, field: %s, value: %v", fd.FullName(), val)
+		}
+		return (&wpb.BytesValue{Value: bv}).ProtoReflect(), true, nil
+	default:
+		return nil, false, nil
+	}
+}
+
+// enumValue returns the concrete implementation of the enumeration with the yang_name annotation set
+// to the string contained in val of the enumeration within the field descriptor fd. It returns an
+// error if the value cannot be found, or the input value is not valid.
+func enumValue(fd protoreflect.FieldDescriptor, val interface{}) (protoreflect.Value, error) {
+	var setVal string
+	switch inVal := val.(type) {
+	case string:
+		setVal = inVal
+	case *gpb.TypedValue:
+		tv, err := value.ToScalar(inVal)
+		if err != nil {
+			return protoreflect.ValueOf(nil), fmt.Errorf("cannot convert supplied TypedValue to scalar, %v", err)
+		}
+		s, ok := tv.(string)
+		if !ok {
+			return protoreflect.ValueOf(nil), fmt.Errorf("supplied TypedValue for enumeration must be a string, got: %T", tv)
+		}
+		setVal = s
+	default:
+		return protoreflect.ValueOf(nil), fmt.Errorf("got unknown type for enumeration, %T", inVal)
+	}
+
+	evals := map[string]protoreflect.EnumValueDescriptor{}
+	for i := 0; i < fd.Enum().Values().Len(); i++ {
+		tv := fd.Enum().Values().Get(i)
+		yn, ok, err := enumYANGName(fd.Enum().Values().Get(i))
+		if err != nil {
+			return protoreflect.ValueOf(nil), fmt.Errorf("error with enumeration value %s", fd.FullName())
+		}
+		if !ok {
+			continue
+		}
+		evals[yn] = tv
+	}
+
+	setEnumVal, ok := evals[setVal]
+	if !ok {
+		return protoreflect.ValueOf(nil), fmt.Errorf("got unknown value in enumeration %s, %s", fd.FullName(), setVal)
+	}
+
+	return protoreflect.ValueOfEnum(setEnumVal.Number()), nil
+}
+
+// enumYANGName returns the value of the yang_name annotation to a protobuf enumeration
+// value. It reads from the supplied enum value descriptor (ed), which must be an
+// enumeration descriptor. It returns the found annotation, a bool indicating whether the
+// annotation existed, and an error.
+//
+// The bool indicating whether the annotation exists is used because unset values within
+// an enumeration that do not have a real YANG value simply omit the annotation.
+func enumYANGName(ed protoreflect.EnumValueDescriptor) (string, bool, error) {
+	eo := ed.Options().(*descriptorpb.EnumValueOptions)
+	ex := proto.GetExtension(eo, yextpb.E_YangName).(string)
+	if ex == "" {
+		// this is an unset value, so mark that the caller doesn't need to handle
+		// this.
+		return "", false, nil
+	}
+	return ex, true, nil
 }
