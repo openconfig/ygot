@@ -2116,7 +2116,7 @@ func findMapPaths(parent *Directory, fieldName string, compressPaths, shadowSche
 	}
 	// Only for compressed data schema paths for list fields do we have the
 	// possibility for a direct leafref path as a second path for the field.
-	if !compressPaths || parent.ListAttr == nil || shadowSchemaPaths {
+	if !compressPaths || parent.ListAttr == nil {
 		return mapPaths, nil
 	}
 
