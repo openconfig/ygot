@@ -3,6 +3,7 @@
 //
 // Input schema modules:
 //  - testdata/proto/proto-test-a.yang
+//  - testdata/proto/openconfig-codegen-extensions.yang
 syntax = "proto3";
 
 package openconfig;

@@ -25,7 +25,7 @@ message Config {
 
 // State represents the /proto-test-a/parent/child/state YANG schema element.
 message State {
-  ywrapper.BoolValue boolean = 101;
+  ywrapper.BoolValue boolean = 201;
   ywrapper.IntValue integer = 486380674;
   repeated ywrapper.StringValue leaf_list = 256667601;
   ywrapper.StringValue leaf_with_dashes = 475722830;
