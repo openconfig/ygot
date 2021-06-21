@@ -503,23 +503,23 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			wantErrSubstring: "no match found in *ytypes.OuterContainerType1",
 		},
 		{
-			inDesc:   "success getting a nil non-shadow value when reverseShadowPath=true",
+			inDesc:   "success getting a nil non-shadow value when preferShadowPath=true",
 			inParent: &ContainerStruct1{},
 			inSchema: containerWithStringKey(),
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/config/int32-leaf-field"),
-			inOpts:   []GetOrCreateNodeOpt{&ReverseShadowPaths{}},
+			inOpts:   []GetOrCreateNodeOpt{&PreferShadowPath{}},
 			want:     nil,
 		},
 		{
-			inDesc:   "success getting an initialized shadow value with reverseShadowPath=true",
+			inDesc:   "success getting an initialized shadow value with preferShadowPath=true",
 			inParent: &ContainerStruct1{},
 			inSchema: containerWithStringKey(),
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
-			inOpts:   []GetOrCreateNodeOpt{&ReverseShadowPaths{}},
+			inOpts:   []GetOrCreateNodeOpt{&PreferShadowPath{}},
 			want:     ygot.Int32(0),
 		},
 		{
-			inDesc: "success getting a shadow int32 leaf with an existing key with reverseShadowPath=true",
+			inDesc: "success getting a shadow int32 leaf with an existing key with preferShadowPath=true",
 			inParent: &ContainerStruct1{
 				StructKeyList: map[string]*ListElemStruct1{
 					"forty-two": {
@@ -534,23 +534,23 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			},
 			inSchema: containerWithStringKey(),
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
-			inOpts:   []GetOrCreateNodeOpt{&ReverseShadowPaths{}},
+			inOpts:   []GetOrCreateNodeOpt{&PreferShadowPath{}},
 			want:     ygot.Int32(42),
 		},
 		{
-			inDesc:           "fail getting a shadow value whose container doesn't exist with reverseShadowPath=true",
+			inDesc:           "fail getting a shadow value whose container doesn't exist with preferShadowPath=true",
 			inParent:         &ContainerStruct1{},
 			inSchema:         containerWithStringKey(),
 			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/INVALID_CONTAINER/state/int32-leaf-field"),
-			inOpts:           []GetOrCreateNodeOpt{&ReverseShadowPaths{}},
+			inOpts:           []GetOrCreateNodeOpt{&PreferShadowPath{}},
 			wantErrSubstring: "no match found in *ytypes.OuterContainerType1",
 		},
 		{
-			inDesc:           "fail getting a value that doesn't exist with reverseShadowPath=true",
+			inDesc:           "fail getting a value that doesn't exist with preferShadowPath=true",
 			inParent:         &ContainerStruct1{},
 			inSchema:         containerWithStringKey(),
 			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/INVALID_LEAF"),
-			inOpts:           []GetOrCreateNodeOpt{&ReverseShadowPaths{}},
+			inOpts:           []GetOrCreateNodeOpt{&PreferShadowPath{}},
 			wantErrSubstring: "no match found in *ytypes.InnerContainerType1",
 		},
 		{
@@ -1303,13 +1303,13 @@ func TestGetNode(t *testing.T) {
 			Path:   mustPath("/leaf"),
 		}},
 	}, {
-		desc:     "simple get leaf with reverseShadowPath=true where shadow-path doesn't exist",
+		desc:     "simple get leaf with preferShadowPath=true where shadow-path doesn't exist",
 		inSchema: rootSchema,
 		inData: &rootStruct{
 			Leaf: ygot.String("foo"),
 		},
 		inPath: mustPath("/leaf"),
-		inArgs: []GetNodeOpt{&ReverseShadowPaths{}},
+		inArgs: []GetNodeOpt{&PreferShadowPath{}},
 		wantTreeNodes: []*TreeNode{{
 			Data:   ygot.String("foo"),
 			Schema: leafSchema,
@@ -1652,7 +1652,7 @@ func TestGetNode(t *testing.T) {
 		inPath:           mustPath("/shadow-container/grandchild/val"),
 		wantErrSubstring: "shadow path traverses a non-leaf node, this is not allowed",
 	}, {
-		desc:     "non-shadow path that traverses a non-leaf node with reverseShadowPath=true",
+		desc:     "non-shadow path that traverses a non-leaf node with preferShadowPath=true",
 		inSchema: rootSchema,
 		inData: &rootStruct{
 			Container: &childContainer{
@@ -1662,7 +1662,7 @@ func TestGetNode(t *testing.T) {
 			},
 		},
 		inPath:           mustPath("/container/grandchild/val"),
-		inArgs:           []GetNodeOpt{&ReverseShadowPaths{}},
+		inArgs:           []GetNodeOpt{&PreferShadowPath{}},
 		wantErrSubstring: "shadow path traverses a non-leaf node, this is not allowed",
 	}, {
 		desc:     "deeper list dual shadow/non-shadow leaf path",
@@ -1745,7 +1745,7 @@ func TestGetNode(t *testing.T) {
 		inPath:           mustPath("/state/childlist[key=one]/child-container/valeur"),
 		wantErrSubstring: "no match found in *ytypes.listChildContainer",
 	}, {
-		desc:     "deeper list non-shadow leaf path with reverseShadowPath=true",
+		desc:     "deeper list non-shadow leaf path with preferShadowPath=true",
 		inSchema: rootSchema,
 		inData: &rootStruct{
 			ChildList: map[string]*childList{
@@ -1760,14 +1760,14 @@ func TestGetNode(t *testing.T) {
 			},
 		},
 		inPath: mustPath("/state/childlist[key=one]/child-container/config/value"),
-		inArgs: []GetNodeOpt{&ReverseShadowPaths{}},
+		inArgs: []GetNodeOpt{&PreferShadowPath{}},
 		wantTreeNodes: []*TreeNode{{
 			Data:   nil,
 			Schema: nil,
 			Path:   mustPath("/state/childlist[key=one]/child-container/config/value"),
 		}},
 	}, {
-		desc:     "deeper list shadow leaf path with reverseShadowPath=true",
+		desc:     "deeper list shadow leaf path with preferShadowPath=true",
 		inSchema: rootSchema,
 		inData: &rootStruct{
 			ChildList: map[string]*childList{
@@ -1782,14 +1782,14 @@ func TestGetNode(t *testing.T) {
 			},
 		},
 		inPath: mustPath("/state/childlist[key=one]/child-container/state/value"),
-		inArgs: []GetNodeOpt{&ReverseShadowPaths{}},
+		inArgs: []GetNodeOpt{&PreferShadowPath{}},
 		wantTreeNodes: []*TreeNode{{
 			Data:   ygot.String("1"),
 			Schema: rootSchema.Dir["state"].Dir["childlist"].Dir["child-container"].Dir["value"],
 			Path:   mustPath("/state/childlist[key=one]/child-container/state/value"),
 		}},
 	}, {
-		desc:     "deeper list leaf path not found with reverseShadowPath=true",
+		desc:     "deeper list leaf path not found with preferShadowPath=true",
 		inSchema: rootSchema,
 		inData: &rootStruct{
 			ChildList: map[string]*childList{
@@ -1804,7 +1804,7 @@ func TestGetNode(t *testing.T) {
 			},
 		},
 		inPath:           mustPath("/state/childlist[key=one]/child-container/valeur"),
-		inArgs:           []GetNodeOpt{&ReverseShadowPaths{}},
+		inArgs:           []GetNodeOpt{&PreferShadowPath{}},
 		wantErrSubstring: "no match found in *ytypes.listChildContainer",
 	}}
 
@@ -1862,12 +1862,12 @@ func TestSetNode(t *testing.T) {
 			wantParent: &ListElemStruct1{Key1: ygot.String("hello")},
 		},
 		{
-			inDesc:     "success setting string field in top node with reverseShadowPath=true where shadow-path doesn't exist",
+			inDesc:     "success setting string field in top node with preferShadowPath=true where shadow-path doesn't exist",
 			inSchema:   simpleSchema(),
 			inParent:   &ListElemStruct1{},
 			inPath:     mustPath("/key1"),
 			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
-			inOpts:     []SetNodeOpt{&ReverseShadowPaths{}},
+			inOpts:     []SetNodeOpt{&PreferShadowPath{}},
 			wantLeaf:   ygot.String("hello"),
 			wantParent: &ListElemStruct1{Key1: ygot.String("hello")},
 		},
@@ -2206,7 +2206,7 @@ func TestSetNode(t *testing.T) {
 			},
 		},
 		{
-			inDesc:   "success setting already-set shadow leaf when reverseShadowPath=true",
+			inDesc:   "success setting already-set shadow leaf when preferShadowPath=true",
 			inSchema: containerWithStringKey(),
 			inParent: &ContainerStruct1{
 				StructKeyList: map[string]*ListElemStruct1{
@@ -2221,7 +2221,7 @@ func TestSetNode(t *testing.T) {
 				},
 			},
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
-			inOpts:   []SetNodeOpt{&ReverseShadowPaths{}},
+			inOpts:   []SetNodeOpt{&PreferShadowPath{}},
 			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 43}},
 			wantLeaf: ygot.Int32(43),
 			wantParent: &ContainerStruct1{
@@ -2238,11 +2238,11 @@ func TestSetNode(t *testing.T) {
 			},
 		},
 		{
-			inDesc:   "success ignoring non-shadow leaf when reverseShadowPath=true",
+			inDesc:   "success ignoring non-shadow leaf when preferShadowPath=true",
 			inSchema: containerWithStringKey(),
 			inParent: &ContainerStruct1{},
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/config/int32-leaf-field"),
-			inOpts:   []SetNodeOpt{&InitMissingElements{}, &ReverseShadowPaths{}},
+			inOpts:   []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
 			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
 			wantLeaf: nil,
 			wantParent: &ContainerStruct1{
@@ -2257,11 +2257,11 @@ func TestSetNode(t *testing.T) {
 			},
 		},
 		{
-			inDesc:   "success writing dual shadow/non-shadow leaf when reverseShadowPath=true",
+			inDesc:   "success writing dual shadow/non-shadow leaf when preferShadowPath=true",
 			inSchema: containerWithStringKey(),
 			inParent: &ContainerStruct1{},
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
-			inOpts:   []SetNodeOpt{&InitMissingElements{}, &ReverseShadowPaths{}},
+			inOpts:   []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
 			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
 			wantLeaf: ygot.String("hello"),
 			wantParent: &ContainerStruct1{
@@ -2278,7 +2278,7 @@ func TestSetNode(t *testing.T) {
 			},
 		},
 		{
-			inDesc:   "fail setting leaf that doesn't exist when reverseShadowPath=true",
+			inDesc:   "fail setting leaf that doesn't exist when preferShadowPath=true",
 			inSchema: containerWithStringKey(),
 			inParent: &ContainerStruct1{
 				StructKeyList: map[string]*ListElemStruct1{
@@ -2288,7 +2288,7 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
-			inOpts:           []SetNodeOpt{&InitMissingElements{}, &ReverseShadowPaths{}},
+			inOpts:           []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
 			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/INVALID-LEAF"),
 			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
 			wantErrSubstring: "no match found in *ytypes.InnerContainerType1",
@@ -2309,8 +2309,8 @@ func TestSetNode(t *testing.T) {
 			}
 
 			var getNodeOpts []GetNodeOpt
-			if hasSetNodeReverseShadowPaths(tt.inOpts) {
-				getNodeOpts = append(getNodeOpts, &ReverseShadowPaths{})
+			if hasSetNodePreferShadowPath(tt.inOpts) {
+				getNodeOpts = append(getNodeOpts, &PreferShadowPath{})
 			}
 			treeNode, err := GetNode(tt.inSchema, tt.inParent, tt.inPath, getNodeOpts...)
 			if err != nil {
@@ -2349,11 +2349,11 @@ func TestDeleteNode(t *testing.T) {
 		inPath:   mustPath("/key1"),
 		want:     &ListElemStruct1{Key1: (*string)(nil)},
 	}, {
-		name:     "deleting a string leaf with reverseShadowPath=true where shadow-path doesn't exist",
+		name:     "deleting a string leaf with preferShadowPath=true where shadow-path doesn't exist",
 		inSchema: simpleSchema(),
 		inRoot:   &ListElemStruct1{Key1: ygot.String("hello")},
 		inPath:   mustPath("/key1"),
-		inOpts:   []DelNodeOpt{&ReverseShadowPaths{}},
+		inOpts:   []DelNodeOpt{&PreferShadowPath{}},
 		want:     &ListElemStruct1{Key1: (*string)(nil)},
 	}, {
 		name:     "deleting a int32 leaf list field",
@@ -2574,7 +2574,7 @@ func TestDeleteNode(t *testing.T) {
 			},
 		},
 	}, {
-		name:     "success deleting a list entry with reverseShadowPath=true",
+		name:     "success deleting a list entry with preferShadowPath=true",
 		inSchema: containerWithStringKey(),
 		inRoot: &ContainerStruct1{
 			StructKeyList: map[string]*ListElemStruct1{
@@ -2588,7 +2588,7 @@ func TestDeleteNode(t *testing.T) {
 			},
 		},
 		inPath: mustPath("/config/simple-key-list[key1=forty-two]"),
-		inOpts: []DelNodeOpt{&ReverseShadowPaths{}},
+		inOpts: []DelNodeOpt{&PreferShadowPath{}},
 		want: &ContainerStruct1{
 			StructKeyList: map[string]*ListElemStruct1{
 				"forty-one": {
@@ -2597,7 +2597,7 @@ func TestDeleteNode(t *testing.T) {
 			},
 		},
 	}, {
-		name:     "failure deleting a non-existing list inner node with reverseShadowPath=true",
+		name:     "failure deleting a non-existing list inner node with preferShadowPath=true",
 		inSchema: containerWithStringKey(),
 		inRoot: &ContainerStruct1{
 			StructKeyList: map[string]*ListElemStruct1{
@@ -2611,7 +2611,7 @@ func TestDeleteNode(t *testing.T) {
 			},
 		},
 		inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/INVALID"),
-		inOpts:           []DelNodeOpt{&ReverseShadowPaths{}},
+		inOpts:           []DelNodeOpt{&PreferShadowPath{}},
 		wantErrSubstring: "no match found in *ytypes.OuterContainerType1",
 	}}
 
