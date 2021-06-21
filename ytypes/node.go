@@ -53,10 +53,10 @@ type retrieveNodeArgs struct {
 	// specifically to deal with uint values being streamed as positive int
 	// values.
 	tolerateJSONInconsistenciesForVal bool
-	// reverseShadowPath reverses the meaning of the "path" and
-	// "shadow-path" tags when both are present while processing a
-	// GoStruct.
-	reverseShadowPath bool
+	// preferShadowPath uses the name of the "shadow-path" tag of a
+	// GoStruct to determine the path elements instead of the
+	// "path" tag, whenever the former is present.
+	preferShadowPath bool
 }
 
 // retrieveNode is an internal function that retrieves the node specified by
@@ -208,10 +208,10 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 		// then we're guaranteed to have reached a leaf, since shadow
 		// paths can only occur for direct leaves under config/state.
 		//
-		// If the user has opted to reverse the "shadow-path" and
-		// "path" tags, then the order of the look-ups is reversed.
+		// If the user has opted to prefer the "shadow-path" tag instead
+		// of the "path" tag, then we look-up the "shadow-path" first.
 		var shadowLeaf bool
-		if args.reverseShadowPath {
+		if args.preferShadowPath {
 			// Look through shadow paths first instead.
 			schPaths := util.ShadowSchemaPaths(ft)
 			for _, p := range schPaths {
@@ -221,9 +221,8 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			}
 
 			if len(schPaths) != 0 {
-				// Only if there exists shadow paths is there
-				// such thing as doing a reverse look-up, i.e.
-				// reversing non-shadow paths with shadow paths.
+				// If there were shadow paths, then we treat the
+				// "path" tag values as "shadow-path" values.
 				shadowLeaf = true
 			}
 		}
@@ -236,7 +235,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 				return checkPath(p, args, shadowLeaf)
 			}
 		}
-		if !args.reverseShadowPath {
+		if !args.preferShadowPath {
 			// Look through shadow paths last.
 			for _, p := range util.ShadowSchemaPaths(ft) {
 				if util.PathMatchesPrefix(path, p) {
@@ -408,8 +407,8 @@ type GetOrCreateNodeOpt interface {
 // 		 this. This applies to SetNode as well.
 func GetOrCreateNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetOrCreateNodeOpt) (interface{}, *yang.Entry, error) {
 	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
-		modifyRoot:        true,
-		reverseShadowPath: hasGetOrCreateNodeReverseShadowPaths(opts),
+		modifyRoot:       true,
+		preferShadowPath: hasGetOrCreateNodePreferShadowPath(opts),
 	})
 	if err != nil {
 		return nil, nil, err
@@ -435,10 +434,10 @@ type TreeNode struct {
 func GetNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetNodeOpt) ([]*TreeNode, error) {
 	return retrieveNode(schema, root, path, nil, retrieveNodeArgs{
 		// We never want to modify the input root, so we specify modifyRoot.
-		modifyRoot:        false,
-		partialKeyMatch:   hasPartialKeyMatch(opts),
-		handleWildcards:   hasHandleWildcards(opts),
-		reverseShadowPath: hasGetNodeReverseShadowPaths(opts),
+		modifyRoot:       false,
+		partialKeyMatch:  hasPartialKeyMatch(opts),
+		handleWildcards:  hasHandleWildcards(opts),
+		preferShadowPath: hasGetNodePreferShadowPath(opts),
 	})
 }
 
@@ -505,7 +504,7 @@ func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface
 		modifyRoot:                        hasInitMissingElements(opts),
 		val:                               val,
 		tolerateJSONInconsistenciesForVal: hasTolerateJSONInconsistencies(opts),
-		reverseShadowPath:                 hasSetNodeReverseShadowPaths(opts),
+		preferShadowPath:                  hasSetNodePreferShadowPath(opts),
 	})
 
 	if err != nil {
@@ -568,70 +567,70 @@ type DelNodeOpt interface {
 	IsDelNodeOpt()
 }
 
-// ReverseShadowPaths signals to reverse the meaning of the "path" and
-// "shadow-path" tags when both are present while processing a GoStruct. This
+// PreferShadowPath signals to prefer using the "shadow-path" tags instead of
+// the "path" tags when both are present while processing a GoStruct. This
 // means paths matching "shadow-path" will be unmarshalled, while paths
 // matching "path" will be silently ignored.
-type ReverseShadowPaths struct{}
+type PreferShadowPath struct{}
 
 // IsGetOrCreateNodeOpt implements the GetOrCreateNodeOpt interface.
-func (*ReverseShadowPaths) IsGetOrCreateNodeOpt() {}
+func (*PreferShadowPath) IsGetOrCreateNodeOpt() {}
 
 // IsGetNodeOpt implements the GetNodeOpt interface.
-func (*ReverseShadowPaths) IsGetNodeOpt() {}
+func (*PreferShadowPath) IsGetNodeOpt() {}
 
 // IsSetNodeOpt implements the SetNodeOpt interface.
-func (*ReverseShadowPaths) IsSetNodeOpt() {}
+func (*PreferShadowPath) IsSetNodeOpt() {}
 
 // IsDelNodeOpt implements the DelNodeOpt interface.
-func (*ReverseShadowPaths) IsDelNodeOpt() {}
+func (*PreferShadowPath) IsDelNodeOpt() {}
 
-// hasGetOrCreateNodeReverseShadowPaths determines whether there is an instance
-// of ReverseShadowPaths within the supplied GetOrCreateNodeOpt slice. It is
-// used to determine whether to reverse the meaning of the "path" and
-// "shadow-path" tags when both are present while processing a GoStruct.
-func hasGetOrCreateNodeReverseShadowPaths(opts []GetOrCreateNodeOpt) bool {
+// hasGetOrCreateNodePreferShadowPath determines whether there is an instance
+// of PreferShadowPath within the supplied GetOrCreateNodeOpt slice. It is
+// used to determine whether to use the "shadow-path" tags instead of the
+// "path" tag when both are present while processing a GoStruct.
+func hasGetOrCreateNodePreferShadowPath(opts []GetOrCreateNodeOpt) bool {
 	for _, o := range opts {
-		if _, ok := o.(*ReverseShadowPaths); ok {
+		if _, ok := o.(*PreferShadowPath); ok {
 			return true
 		}
 	}
 	return false
 }
 
-// hasGetNodeReverseShadowPaths determines whether there is an instance of
-// ReverseShadowPaths within the supplied GetNodeOpt slice. It is used to
-// determine whether to reverse the meaning of the "path" and "shadow-path"
-// tags when both are present while processing a GoStruct.
-func hasGetNodeReverseShadowPaths(opts []GetNodeOpt) bool {
+// hasGetNodePreferShadowPath determines whether there is an instance of
+// PreferShadowPath within the supplied GetOrCreateNodeOpt slice. It is used to
+// determine whether to use the "shadow-path" tags instead of the "path" tag
+// when both are present while processing a GoStruct.
+func hasGetNodePreferShadowPath(opts []GetNodeOpt) bool {
 	for _, o := range opts {
-		if _, ok := o.(*ReverseShadowPaths); ok {
+		if _, ok := o.(*PreferShadowPath); ok {
 			return true
 		}
 	}
 	return false
 }
 
-// hasSetNodeReverseShadowPaths determines whether there is an instance of
-// ReverseShadowPaths within the supplied SetNodeOpt slice. It is used to
-// determine whether to reverse the meaning of the "path" and "shadow-path"
-// tags when both are present while processing a GoStruct.
-func hasSetNodeReverseShadowPaths(opts []SetNodeOpt) bool {
+// hasSetNodePreferShadowPath determines whether there is an instance of
+// PreferShadowPath within the supplied GetOrCreateNodeOpt slice. It is used to
+// determine whether to use the "shadow-path" tags instead of the "path" tag
+// when both are present while processing a GoStruct.
+func hasSetNodePreferShadowPath(opts []SetNodeOpt) bool {
 	for _, o := range opts {
-		if _, ok := o.(*ReverseShadowPaths); ok {
+		if _, ok := o.(*PreferShadowPath); ok {
 			return true
 		}
 	}
 	return false
 }
 
-// hasDelNodeReverseShadowPaths determines whether there is an instance of
-// ReverseShadowPaths within the supplied DelNodeOpt slice. It is used to
-// determine whether to reverse the meaning of the "path" and "shadow-path"
-// tags when both are present while processing a GoStruct.
-func hasDelNodeReverseShadowPaths(opts []DelNodeOpt) bool {
+// hasDelNodePreferShadowPath determines whether there is an instance of
+// PreferShadowPath within the supplied GetOrCreateNodeOpt slice. It is used to
+// determine whether to use the "shadow-path" tags instead of the "path" tag
+// when both are present while processing a GoStruct.
+func hasDelNodePreferShadowPath(opts []DelNodeOpt) bool {
 	for _, o := range opts {
-		if _, ok := o.(*ReverseShadowPaths); ok {
+		if _, ok := o.(*PreferShadowPath); ok {
 			return true
 		}
 	}
@@ -644,8 +643,8 @@ func hasDelNodeReverseShadowPaths(opts []DelNodeOpt) bool {
 // in the path is nil (implying the node is already deleted), then the call is a no-op.
 func DeleteNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...DelNodeOpt) error {
 	_, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
-		delete:            true,
-		reverseShadowPath: hasDelNodeReverseShadowPaths(opts),
+		delete:           true,
+		preferShadowPath: hasDelNodePreferShadowPath(opts),
 	})
 
 	return err
