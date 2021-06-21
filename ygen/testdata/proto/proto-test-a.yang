@@ -6,6 +6,8 @@ module proto-test-a {
     "Test YANG simple scheam for protobuf
     translation.";
 
+  import openconfig-codegen-extensions { prefix occodegenext; }
+
   grouping child-cfg {
     leaf string { type string; }
     leaf integer { type int64; }
@@ -38,7 +40,9 @@ module proto-test-a {
       container state {
         config false;
         uses child-cfg;
-        uses child-state;
+        uses child-state {
+          occodegenext:field-number-offset 100;
+        }
       }
     }
   }

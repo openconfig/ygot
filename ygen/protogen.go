@@ -93,6 +93,13 @@ const (
 	protoMatchingListNameKeySuffix = "key"
 )
 
+// Names from https://github.com/openconfig/public/blob/master/release/models/extensions/openconfig-codegen-extensions.yang
+const (
+	codegenExtModuleName = "openconfig-codegen-extensions"
+	fieldNumExtName      = "field-number"
+	offsetExtName        = "field-number-offset"
+)
+
 // protoMsgField describes a field of a protobuf message.
 // Note, throughout this package private structs that have public fields are used
 // in text/template which cannot refer to unexported fields.
@@ -1048,40 +1055,44 @@ func safeProtoIdentifierName(name string) string {
 }
 
 // protoTagForEntry returns a protobuf tag value for the entry e.
+// If the entry has user-specified field numberings, then use that instead:
+// https://github.com/openconfig/ygot/blob/master/docs/yang-to-protobuf-transformations-spec.md#field-numbering
 func protoTagForEntry(e *yang.Entry) (uint32, error) {
-	var offset uint32
-	for _, ext := range e.Exts {
-		if ext.Keyword == "occodegenext:field-number-offset" {
-			off, err := strconv.ParseUint(ext.Argument, 10, 32)
-			if err != nil {
-				return 0, fmt.Errorf("could not parse %s %s: %s", ext.Keyword, ext.Argument, err)
-			}
-			offset = uint32(off)
-			if offset == 0 {
-				return 0, fmt.Errorf("%s cannot be 0", ext.Keyword)
-			}
-			break
-		}
+	var fieldNum uint32
+	exts, err := yang.MatchingEntryExtensions(e, codegenExtModuleName, fieldNumExtName)
+	if err != nil {
+		return 0, err
 	}
-	for _, ext := range e.Exts {
-		if ext.Keyword == "occodegenext:field-number" {
-			fn, err := strconv.ParseUint(ext.Argument, 10, 32)
-			if err != nil {
-				return 0, fmt.Errorf("could not parse %s %s: %s", ext.Keyword, ext.Argument, err)
-			}
-			if fn == 0 {
-				return 0, fmt.Errorf("%s cannot be 0", ext.Keyword)
-			}
-			annotatedFieldNumber := uint32(fn) + offset
-			if annotatedFieldNumber > 1000 || annotatedFieldNumber < 1 {
-				return 0, fmt.Errorf("%s field number %d not in annotation reserved range of 1-1000",
-					e.Name, annotatedFieldNumber)
-			}
-			return annotatedFieldNumber, nil
+	switch len(exts) {
+	case 0:
+		return fieldTag(e.Path())
+	case 1:
+		num, err := strconv.ParseUint(exts[0].Argument, 10, 32)
+		if err != nil || num == 0 {
+			return 0, fmt.Errorf("could not parse %s:%s %q as a non-zero integer: %s", codegenExtModuleName, fieldNumExtName, exts[0].Argument, err)
 		}
+		fieldNum = uint32(num)
+	default:
+		return 0, fmt.Errorf("more than one %s:%s defined", codegenExtModuleName, fieldNumExtName)
 	}
 
-	return fieldTag(e.Path())
+	exts, err = yang.MatchingEntryExtensions(e, codegenExtModuleName, offsetExtName)
+	if err != nil {
+		return 0, err
+	}
+	for _, ext := range exts {
+		num, err := strconv.ParseUint(ext.Argument, 10, 32)
+		if err != nil {
+			return 0, fmt.Errorf("could not parse %s:%s %q as an uint: %s", codegenExtModuleName, offsetExtName, ext.Argument, err)
+		}
+		// Allow for multiple offsets to accumulate.
+		fieldNum += uint32(num)
+	}
+
+	if fieldNum > 1000 || fieldNum < 1 {
+		return 0, fmt.Errorf("%s: %d not in reserved range of 1-1000 for %s:%s", e.Path(), fieldNum, codegenExtModuleName, offsetExtName)
+	}
+	return fieldNum, nil
 }
 
 // fieldTag takes an input string and calculates a FNV hash for the value. If the

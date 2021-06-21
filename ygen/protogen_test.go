@@ -20,6 +20,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
 )
@@ -63,7 +64,7 @@ func TestGenProto3Msg(t *testing.T) {
 		inParentPackage        string
 		inChildMsgs            []*generatedProto3Message
 		wantMsgs               map[string]*protoMsg
-		wantErr                bool
+		wantErrSubstring       string
 	}{{
 		name: "simple message with only scalar fields",
 		inMsg: &Directory{
@@ -539,7 +540,7 @@ func TestGenProto3Msg(t *testing.T) {
 				},
 			},
 		},
-		wantErr: true,
+		wantErrSubstring: "could not resolve",
 	}, {
 		name: "message with an unimplemented mapping",
 		inMsg: &Directory{
@@ -565,7 +566,7 @@ func TestGenProto3Msg(t *testing.T) {
 			},
 			Path: []string{"", "messasge-with-invalid-contents", "unimplemented"},
 		},
-		wantErr: true,
+		wantErrSubstring: "unimplemented type",
 	}, {
 		name: "message with any anydata field",
 		inMsg: &Directory{
@@ -673,6 +674,26 @@ func TestGenProto3Msg(t *testing.T) {
 							Argument: "100",
 						},
 					},
+					Node: &yang.Leaf{
+						Name: "field-one",
+						Parent: &yang.Container{
+							Name: "message-name",
+							Parent: &yang.Module{
+								Name: "module",
+								Prefix: &yang.Value{
+									Name: "foo",
+								},
+								Import: []*yang.Import{{
+									Prefix: &yang.Value{
+										Name: "occodegenext",
+									},
+									Module: &yang.Module{
+										Name: codegenExtModuleName,
+									},
+								}},
+							},
+						},
+					},
 				},
 				"field-two": {
 					Name: "field-two",
@@ -681,6 +702,26 @@ func TestGenProto3Msg(t *testing.T) {
 						{
 							Keyword:  "occodegenext:field-number",
 							Argument: "1",
+						},
+					},
+					Node: &yang.Leaf{
+						Name: "field-two",
+						Parent: &yang.Container{
+							Name: "message-name",
+							Parent: &yang.Module{
+								Name: "module",
+								Prefix: &yang.Value{
+									Name: "foo",
+								},
+								Import: []*yang.Import{{
+									Prefix: &yang.Value{
+										Name: "occodegenext",
+									},
+									Module: &yang.Module{
+										Name: codegenExtModuleName,
+									},
+								}},
+							},
 						},
 					},
 				},
@@ -695,6 +736,64 @@ func TestGenProto3Msg(t *testing.T) {
 						{
 							Keyword:  "occodegenext:field-number-offset",
 							Argument: "100",
+						},
+					},
+					Node: &yang.Leaf{
+						Name: "field-three",
+						Parent: &yang.Container{
+							Name: "message-name",
+							Parent: &yang.Module{
+								Name: "module",
+								Prefix: &yang.Value{
+									Name: "foo",
+								},
+								Import: []*yang.Import{{
+									Prefix: &yang.Value{
+										Name: "occodegenext",
+									},
+									Module: &yang.Module{
+										Name: codegenExtModuleName,
+									},
+								}},
+							},
+						},
+					},
+				},
+				"field-four": {
+					Name: "field-four",
+					Type: &yang.YangType{Kind: yang.Yint8},
+					Exts: []*yang.Statement{
+						{
+							Keyword:  "occodegenext:field-number",
+							Argument: "1",
+						},
+						{
+							Keyword:  "occodegenext:field-number-offset",
+							Argument: "100",
+						},
+						{
+							Keyword:  "occodegenext:field-number-offset",
+							Argument: "200",
+						},
+					},
+					Node: &yang.Leaf{
+						Name: "field-four",
+						Parent: &yang.Container{
+							Name: "message-name",
+							Parent: &yang.Module{
+								Name: "module",
+								Prefix: &yang.Value{
+									Name: "foo",
+								},
+								Import: []*yang.Import{{
+									Prefix: &yang.Value{
+										Name: "occodegenext",
+									},
+									Module: &yang.Module{
+										Name: codegenExtModuleName,
+									},
+								}},
+							},
 						},
 					},
 				},
@@ -718,6 +817,10 @@ func TestGenProto3Msg(t *testing.T) {
 				}, {
 					Tag:  101,
 					Name: "field_three",
+					Type: "ywrapper.IntValue",
+				}, {
+					Tag:  301,
+					Name: "field_four",
 					Type: "ywrapper.IntValue",
 				}},
 			},
@@ -745,11 +848,79 @@ func TestGenProto3Msg(t *testing.T) {
 							Argument: "1000",
 						},
 					},
+					Node: &yang.Leaf{
+						Name: "field-one",
+						Parent: &yang.Container{
+							Name: "message-name",
+							Parent: &yang.Module{
+								Name: "module",
+								Prefix: &yang.Value{
+									Name: "foo",
+								},
+								Import: []*yang.Import{{
+									Prefix: &yang.Value{
+										Name: "occodegenext",
+									},
+									Module: &yang.Module{
+										Name: codegenExtModuleName,
+									},
+								}},
+							},
+						},
+					},
 				},
 			},
 			Path: []string{"", "root", "message-name"},
 		},
-		wantErr: true,
+		wantErrSubstring: "not in reserved range",
+	}, {
+		name: "message with duplicate field numbers",
+		inMsg: &Directory{
+			Name: "MessageName",
+			Entry: &yang.Entry{
+				Name: "message-name",
+				Dir:  map[string]*yang.Entry{},
+				Kind: yang.DirectoryEntry,
+			},
+			Fields: map[string]*yang.Entry{
+				"field-one": {
+					Name: "field-one",
+					Type: &yang.YangType{Kind: yang.Ystring},
+					Exts: []*yang.Statement{
+						{
+							Keyword:  "occodegenext:field-number",
+							Argument: "1",
+						},
+						{
+							Keyword:  "occodegenext:field-number",
+							Argument: "1000",
+						},
+					},
+					Node: &yang.Leaf{
+						Name: "field-one",
+						Parent: &yang.Container{
+							Name: "message-name",
+							Parent: &yang.Module{
+								Name: "module",
+								Prefix: &yang.Value{
+									Name: "foo",
+								},
+								Import: []*yang.Import{{
+									Prefix: &yang.Value{
+										Name: "occodegenext",
+									},
+									Module: &yang.Module{
+										Name: codegenExtModuleName,
+									},
+								}},
+							},
+						},
+					},
+				},
+			},
+			Path: []string{"", "root", "message-name"},
+		},
+		wantErrSubstring: "more than one",
 	}}
 
 	for _, tt := range tests {
@@ -771,11 +942,20 @@ func TestGenProto3Msg(t *testing.T) {
 				annotateSchemaPaths: tt.inAnnotateSchemaPaths,
 			}, tt.inParentPackage, tt.inChildMsgs, true, true)
 
-			if (errs != nil) != tt.wantErr {
-				t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
+			var err error
+			switch len(errs) {
+			case 1:
+				err = errs[0]
+				fallthrough
+			case 0:
+				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+					t.Fatalf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error: %s", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, diff)
+				}
+			default:
+				t.Fatalf("got more than 1 error: %v", errs)
 			}
 
-			if tt.wantErr {
+			if tt.wantErrSubstring != "" {
 				return
 			}
 
