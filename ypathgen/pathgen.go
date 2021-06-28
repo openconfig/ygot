@@ -256,6 +256,12 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 		schemaStructPkgAccessor = schemaStructPkgAlias + "."
 	}
 
+	// Get NodeDataMap for the schema.
+	nodeDataMap, es := getNodeDataMap(directories, leafTypeMap, schemaStructPkgAccessor, cg.PathStructSuffix)
+	if es != nil {
+		errs = util.AppendErrs(errs, es)
+	}
+
 	// Generate struct code.
 	var structSnippets []GoPathStructCodeSnippet
 	for _, directoryName := range orderedDirNames {
@@ -263,6 +269,21 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 		if !ok {
 			return nil, nil, util.AppendErr(errs,
 				util.NewErrs(fmt.Errorf("GeneratePathCode: Implementation bug -- node %s not found in dirNameMap", directoryName)))
+		}
+
+		if ygen.IsFakeRoot(directory.Entry) {
+			// Since we always generate the fake root, we add the
+			// fake root GoStruct to the data map as well.
+			nodeDataMap[directory.Name+cg.PathStructSuffix] = &NodeData{
+				GoTypeName:            "*" + schemaStructPkgAccessor + yang.CamelCase(cg.FakeRootName),
+				LocalGoTypeName:       "*" + yang.CamelCase(cg.FakeRootName),
+				GoFieldName:           "",
+				SubsumingGoStructName: yang.CamelCase(cg.FakeRootName),
+				IsLeaf:                false,
+				IsScalarField:         false,
+				YANGTypeName:          "",
+				YANGPath:              "/",
+			}
 		}
 
 		var listBuilderKeyThreshold uint
@@ -276,12 +297,6 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 		structSnippets = append(structSnippets, structSnippet)
 	}
 	genCode.Structs = structSnippets
-
-	// Get NodeDataMap for the schema.
-	nodeDataMap, es := getNodeDataMap(directories, leafTypeMap, schemaStructPkgAccessor, cg.PathStructSuffix)
-	if es != nil {
-		errs = util.AppendErrs(errs, es)
-	}
 
 	if len(errs) == 0 {
 		errs = nil

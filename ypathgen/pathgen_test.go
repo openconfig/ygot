@@ -81,6 +81,12 @@ func TestGeneratePathCode(t *testing.T) {
 		inPathStructSuffix:       "Path",
 		checkYANGPath:            true,
 		wantNodeDataMap: NodeDataMap{
+			"DevicePath": {
+				GoTypeName:            "*Device",
+				LocalGoTypeName:       "*Device",
+				SubsumingGoStructName: "Device",
+				YANGPath:              "/",
+			},
 			"ParentPath": {
 				GoTypeName:            "*Parent",
 				LocalGoTypeName:       "*Parent",
@@ -168,6 +174,12 @@ func TestGeneratePathCode(t *testing.T) {
 		inSchemaStructPkgPath:                  "",
 		inPathStructSuffix:                     "Path",
 		wantNodeDataMap: NodeDataMap{
+			"DevicePath": {
+				GoTypeName:            "*Device",
+				LocalGoTypeName:       "*Device",
+				SubsumingGoStructName: "Device",
+				YANGPath:              "/",
+			},
 			"ParentPath": {
 				GoTypeName:            "*Parent",
 				LocalGoTypeName:       "*Parent",
@@ -248,6 +260,12 @@ func TestGeneratePathCode(t *testing.T) {
 		inSchemaStructPkgPath:                  "",
 		inPathStructSuffix:                     "Path",
 		wantNodeDataMap: NodeDataMap{
+			"DevicePath": {
+				GoTypeName:            "*Device",
+				LocalGoTypeName:       "*Device",
+				SubsumingGoStructName: "Device",
+				YANGPath:              "/",
+			},
 			"ParentPath": {
 				GoTypeName:            "*Parent",
 				LocalGoTypeName:       "*Parent",
@@ -371,6 +389,12 @@ func TestGeneratePathCode(t *testing.T) {
 		inPathStructSuffix:                     "Path",
 		wantStructsCodeFile:                    filepath.Join(TestRoot, "testdata/structs/openconfig-unione.path-txt"),
 		wantNodeDataMap: NodeDataMap{
+			"DevicePath": {
+				GoTypeName:            "*Device",
+				LocalGoTypeName:       "*Device",
+				SubsumingGoStructName: "Device",
+				YANGPath:              "/",
+			},
 			"DupEnumPath": {
 				GoTypeName:            "*DupEnum",
 				LocalGoTypeName:       "*DupEnum",
@@ -467,6 +491,12 @@ func TestGeneratePathCode(t *testing.T) {
 		inPathStructSuffix:       "Path",
 		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-unione.path-txt"),
 		wantNodeDataMap: NodeDataMap{
+			"DevicePath": {
+				GoTypeName:            "*Device",
+				LocalGoTypeName:       "*Device",
+				SubsumingGoStructName: "Device",
+				YANGPath:              "/",
+			},
 			"DupEnumPath": {
 				GoTypeName:            "*DupEnum",
 				LocalGoTypeName:       "*DupEnum",
@@ -565,6 +595,12 @@ func TestGeneratePathCode(t *testing.T) {
 		inPathStructSuffix:                     "Path",
 		wantStructsCodeFile:                    filepath.Join(TestRoot, "testdata/structs/enum-module.path-txt"),
 		wantNodeDataMap: NodeDataMap{
+			"DevicePath": {
+				GoTypeName:            "*Device",
+				LocalGoTypeName:       "*Device",
+				SubsumingGoStructName: "Device",
+				YANGPath:              "/",
+			},
 			"AListPath": {
 				GoTypeName:            "*AList",
 				LocalGoTypeName:       "*AList",
@@ -692,6 +728,12 @@ func TestGeneratePathCode(t *testing.T) {
 		inPathStructSuffix:                     "",
 		wantStructsCodeFile:                    filepath.Join(TestRoot, "testdata/structs/openconfig-augmented.path-txt"),
 		wantNodeDataMap: NodeDataMap{
+			"Device": {
+				GoTypeName:            "*oc.Device",
+				LocalGoTypeName:       "*Device",
+				SubsumingGoStructName: "Device",
+				YANGPath:              "/",
+			},
 			"Native": {
 				GoTypeName:            "*oc.Native",
 				LocalGoTypeName:       "*Native",
