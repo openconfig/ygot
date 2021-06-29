@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"path"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -1237,11 +1236,6 @@ func TestSimpleStructs(t *testing.T) {
 			wantCode := string(wantCodeBytes)
 
 			if gotCode != wantCode {
-				// FIXME(wenbli): debug codegen or pathgen
-				if err := ioutil.WriteFile(fmt.Sprintf("/usr/local/google/home/wenbli/tmp/%s", path.Base(tt.wantStructsCodeFile)), []byte(gotCode), 0644); err != nil {
-					panic(err)
-				}
-
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.
