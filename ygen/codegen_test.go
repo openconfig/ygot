@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -546,6 +547,21 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-withlist-opstate.formatted-txt"),
+	}, {
+		name:    "OpenConfig schema test - multi-keyed list key struct name conflict and associated method (rename, new)",
+		inFiles: []string{filepath.Join(datapath, "openconfig-multikey-list-name-conflict.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+			GoOptions: GoOpts{
+				GenerateRenameMethod: true,
+				GenerateSimpleUnions: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-multikey-list-name-conflict.formatted-txt"),
 	}, {
 		name:    "simple openconfig test, with a list that has an enumeration key",
 		inFiles: []string{filepath.Join(datapath, "openconfig-list-enum-key.yang")},
@@ -1221,6 +1237,11 @@ func TestSimpleStructs(t *testing.T) {
 			wantCode := string(wantCodeBytes)
 
 			if gotCode != wantCode {
+				// FIXME(wenbli): debug codegen or pathgen
+				if err := ioutil.WriteFile(fmt.Sprintf("/usr/local/google/home/wenbli/tmp/%s", path.Base(tt.wantStructsCodeFile)), []byte(gotCode), 0644); err != nil {
+					panic(err)
+				}
+
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.

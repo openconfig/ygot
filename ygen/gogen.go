@@ -2008,6 +2008,13 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 		// generatedGoMultiKeyListStruct struct, which is then expanded by a template to the struct
 		// definition.
 		listKeyStructName = fmt.Sprintf("%s_%s_Key", parent.Name, listFieldName)
+		if gogen.definedGlobals[listKeyStructName] {
+			listKeyStructName = fmt.Sprintf("%s_%s_key", parent.Name, listFieldName)
+			if gogen.definedGlobals[listKeyStructName] {
+				return "", nil, nil, fmt.Errorf("unexpected generated list key name conflict for %s", listField.Path())
+			}
+			gogen.definedGlobals[listKeyStructName] = true
+		}
 		multiListKey = &generatedGoMultiKeyListStruct{
 			KeyStructName: listKeyStructName,
 			ParentPath:    util.SlicePathToString(parent.Path),
