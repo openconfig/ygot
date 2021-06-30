@@ -2009,7 +2009,7 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 		// definition.
 		listKeyStructName = fmt.Sprintf("%s_%s_Key", parent.Name, listFieldName)
 		if gogen.definedGlobals[listKeyStructName] {
-			listKeyStructName = fmt.Sprintf("%s_%s_key", parent.Name, listFieldName)
+			listKeyStructName = fmt.Sprintf("%s_%s_YANGListKey", parent.Name, listFieldName)
 			if gogen.definedGlobals[listKeyStructName] {
 				return "", nil, nil, fmt.Errorf("unexpected generated list key name conflict for %s", listField.Path())
 			}
