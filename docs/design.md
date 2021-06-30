@@ -285,6 +285,8 @@ type C_Bar struct {
 
 Such that the `Foo` field is a map, keyed on the type of the key leaf (`fookey`). For lists with multiple keys, a specific key `struct` is generated (`C_Bar_Key` in the above example), with fields that correspond to the key fields of the YANG list.
 
+If there is already a Go structure named `C_Bar_Key` due to the [camel case rules](#output-go-structures-and-their-fields), then the back-up name of `C_Bar_YANGListKey` will be used instead.
+
 Each YANG list that exists within a container has a helper-method generated for it. For a list named `foo`, the parent container (`C`) has a `NewFoo(fookey string)` method generated, taking a key value as an argument, and returning a new member of the map within the `foo` list.
 
 ##### Note on using binary as a list key type
