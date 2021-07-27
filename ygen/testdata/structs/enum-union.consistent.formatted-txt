@@ -94,12 +94,14 @@ type Outer_Inner struct {
 func (*Outer_Inner) IsYANGGoStruct() {}
 
 // GetLeaf1 retrieves the value of the leaf Leaf1 from the Outer_Inner
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Leaf1 is set, it can safely use t.GetLeaf1()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Leaf1 == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Leaf1 is set, it can
+// safely use t.GetLeaf1() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Leaf1 == nil' before retrieving the leaf's value.
 func (t *Outer_Inner) GetLeaf1() Outer_Inner_Leaf1_Union {
 	if t == nil || t.Leaf1 ==  nil {
 		return nil
@@ -108,12 +110,14 @@ func (t *Outer_Inner) GetLeaf1() Outer_Inner_Leaf1_Union {
 }
 
 // GetLeaf2 retrieves the value of the leaf Leaf2 from the Outer_Inner
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Leaf2 is set, it can safely use t.GetLeaf2()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Leaf2 == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Leaf2 is set, it can
+// safely use t.GetLeaf2() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Leaf2 == nil' before retrieving the leaf's value.
 func (t *Outer_Inner) GetLeaf2() Outer_Inner_Leaf2_Union {
 	if t == nil || t.Leaf2 ==  nil {
 		return nil
@@ -122,12 +126,14 @@ func (t *Outer_Inner) GetLeaf2() Outer_Inner_Leaf2_Union {
 }
 
 // GetLeaf3 retrieves the value of the leaf Leaf3 from the Outer_Inner
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Leaf3 is set, it can safely use t.GetLeaf3()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Leaf3 == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Leaf3 is set, it can
+// safely use t.GetLeaf3() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Leaf3 == nil' before retrieving the leaf's value.
 func (t *Outer_Inner) GetLeaf3() Outer_Inner_Leaf3_Union {
 	if t == nil || t.Leaf3 ==  nil {
 		return nil
@@ -136,12 +142,14 @@ func (t *Outer_Inner) GetLeaf3() Outer_Inner_Leaf3_Union {
 }
 
 // GetLeaf4 retrieves the value of the leaf Leaf4 from the Outer_Inner
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Leaf4 is set, it can safely use t.GetLeaf4()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Leaf4 == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Leaf4 is set, it can
+// safely use t.GetLeaf4() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Leaf4 == nil' before retrieving the leaf's value.
 func (t *Outer_Inner) GetLeaf4() Outer_Inner_Leaf4_Union {
 	if t == nil || t.Leaf4 ==  nil {
 		return nil

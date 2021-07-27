@@ -42,12 +42,14 @@ type AList struct {
 func (*AList) IsYANGGoStruct() {}
 
 // GetValue retrieves the value of the leaf Value from the AList
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Value is set, it can safely use t.GetValue()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Value == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Value is set, it can
+// safely use t.GetValue() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Value == nil' before retrieving the leaf's value.
 func (t *AList) GetValue() AList_Value_Union {
 	if t == nil || t.Value ==  nil {
 		return nil
@@ -114,12 +116,14 @@ type BList struct {
 func (*BList) IsYANGGoStruct() {}
 
 // GetValue retrieves the value of the leaf Value from the BList
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Value is set, it can safely use t.GetValue()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Value == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Value is set, it can
+// safely use t.GetValue() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Value == nil' before retrieving the leaf's value.
 func (t *BList) GetValue() BList_Value_Union {
 	if t == nil || t.Value ==  nil {
 		return nil
@@ -186,12 +190,14 @@ type C struct {
 func (*C) IsYANGGoStruct() {}
 
 // GetCl retrieves the value of the leaf Cl from the C
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Cl is set, it can safely use t.GetCl()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Cl == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Cl is set, it can
+// safely use t.GetCl() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Cl == nil' before retrieving the leaf's value.
 func (t *C) GetCl() E_EnumModule_Cl {
 	if t == nil || t.Cl ==  0 {
 		return 0
@@ -223,12 +229,14 @@ type Parent_Child struct {
 func (*Parent_Child) IsYANGGoStruct() {}
 
 // GetEnum retrieves the value of the leaf Enum from the Parent_Child
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Enum is set, it can safely use t.GetEnum()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Enum == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Enum is set, it can
+// safely use t.GetEnum() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Enum == nil' before retrieving the leaf's value.
 func (t *Parent_Child) GetEnum() E_EnumTypes_TdEnum {
 	if t == nil || t.Enum ==  0 {
 		return EnumTypes_TdEnum_ALPHA
@@ -237,12 +245,14 @@ func (t *Parent_Child) GetEnum() E_EnumTypes_TdEnum {
 }
 
 // GetId retrieves the value of the leaf Id from the Parent_Child
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Id is set, it can safely use t.GetId()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Id == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Id is set, it can
+// safely use t.GetId() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Id == nil' before retrieving the leaf's value.
 func (t *Parent_Child) GetId() E_EnumTypes_ID {
 	if t == nil || t.Id ==  0 {
 		return 0
@@ -251,12 +261,14 @@ func (t *Parent_Child) GetId() E_EnumTypes_ID {
 }
 
 // GetId2 retrieves the value of the leaf Id2 from the Parent_Child
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Id2 is set, it can safely use t.GetId2()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Id2 == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Id2 is set, it can
+// safely use t.GetId2() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Id2 == nil' before retrieving the leaf's value.
 func (t *Parent_Child) GetId2() E_EnumTypes_ID {
 	if t == nil || t.Id2 ==  0 {
 		return EnumTypes_ID_SO_LONG_AND_THANKS_FOR_ALL_THE_FISH
@@ -265,12 +277,14 @@ func (t *Parent_Child) GetId2() E_EnumTypes_ID {
 }
 
 // GetInlineEnum retrieves the value of the leaf InlineEnum from the Parent_Child
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if InlineEnum is set, it can safely use t.GetInlineEnum()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.InlineEnum == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if InlineEnum is set, it can
+// safely use t.GetInlineEnum() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.InlineEnum == nil' before retrieving the leaf's value.
 func (t *Parent_Child) GetInlineEnum() E_Child_InlineEnum {
 	if t == nil || t.InlineEnum ==  0 {
 		return Child_InlineEnum_THYMINE

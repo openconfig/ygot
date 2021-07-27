@@ -754,12 +754,14 @@ func (t *{{ .Receiver }}) GetOrCreate{{ .ListName }}(
 	// particular leaf, generates a getter method.
 	goLeafGetterTemplate = mustMakeTemplate("getLeaf", `
 // Get{{ .Name }} retrieves the value of the leaf {{ .Name }} from the {{ .Receiver }}
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if {{ .Name }} is set, it can safely use t.Get{{ .Name }}()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.{{ .Name }} == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if {{ .Name }} is set, it can
+// safely use t.Get{{ .Name }}() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.{{ .Name }} == nil' before retrieving the leaf's value.
 func (t *{{ .Receiver }}) Get{{ .Name }}() {{ .Type }} {
 	if t == nil || t.{{ .Name }} == {{ if .IsPtr -}} nil {{- else }} {{ .Zero }} {{- end }} {
 		{{- if .Default }}
