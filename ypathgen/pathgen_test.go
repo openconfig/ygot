@@ -26,6 +26,7 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygen"
+	"github.com/openconfig/ygot/ygot"
 )
 
 const (
@@ -94,6 +95,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGPath:              "/openconfig-simple/parent",
 			},
 			"Parent_ChildPath": {
@@ -103,6 +105,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGPath:              "/openconfig-simple/parent/child",
 			},
 			"Parent_Child_FourPath": {
@@ -112,6 +115,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "binary",
 				YANGPath:              "/openconfig-simple/parent/child/state/four",
 			},
@@ -122,6 +126,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 				YANGTypeName:          "string",
 				YANGPath:              "/openconfig-simple/parent/child/state/one",
 			},
@@ -132,6 +137,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumeration",
 				YANGPath:              "/openconfig-simple/parent/child/state/three",
 			},
@@ -142,6 +148,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 				YANGTypeName:          "string",
 				YANGPath:              "/openconfig-simple/parent/child/state/two",
 			},
@@ -152,6 +159,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGPath:              "/openconfig-simple/remote-container",
 			},
 			"RemoteContainer_ALeafPath": {
@@ -161,6 +169,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 				YANGTypeName:          "string",
 				YANGPath:              "/openconfig-simple/remote-container/state/a-leaf",
 			}},
@@ -187,6 +196,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Parent_ChildPath": {
 				GoTypeName:            "*Parent_Child",
@@ -195,6 +205,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Parent_Child_FourPath": {
 				GoTypeName:            "Binary",
@@ -203,6 +214,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "binary",
 			},
 			"Parent_Child_OnePath": {
@@ -212,6 +224,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 				YANGTypeName:          "string",
 			},
 			"Parent_Child_ThreePath": {
@@ -221,6 +234,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumeration",
 			},
 			"Parent_Child_TwoPath": {
@@ -230,6 +244,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 				YANGTypeName:          "string",
 			},
 			"RemoteContainerPath": {
@@ -239,6 +254,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"RemoteContainer_ALeafPath": {
 				GoTypeName:            "string",
@@ -247,6 +263,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 				YANGTypeName:          "string",
 			}},
 	}, {
@@ -273,6 +290,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Parent_ChildPath": {
 				GoTypeName:            "*Parent_Child",
@@ -281,6 +299,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Parent_Child_FourPath": {
 				GoTypeName:            "Binary",
@@ -289,6 +308,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "binary",
 			},
 			"Parent_Child_OnePath": {
@@ -298,6 +318,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 				YANGTypeName:          "string",
 			},
 			"Parent_Child_ThreePath": {
@@ -307,6 +328,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumeration",
 			},
 			"RemoteContainerPath": {
@@ -316,6 +338,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"RemoteContainer_ALeafPath": {
 				GoTypeName:            "string",
@@ -324,6 +347,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "RemoteContainer",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 				YANGTypeName:          "string",
 			}},
 	}, {
@@ -402,6 +426,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"DupEnum_APath": {
 				GoTypeName:            "E_DupEnum_A",
@@ -410,6 +435,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumeration",
 			},
 			"DupEnum_BPath": {
@@ -419,6 +445,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumeration",
 			},
 			"PlatformPath": {
@@ -428,6 +455,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Platform_ComponentPath": {
 				GoTypeName:            "*Platform_Component",
@@ -436,6 +464,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Platform_Component_E1Path": {
 				GoTypeName:            "Platform_Component_E1_Union",
@@ -444,6 +473,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumtypedef",
 			},
 			"Platform_Component_EnumeratedPath": {
@@ -453,6 +483,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumerated-union-type",
 			},
 			"Platform_Component_PowerPath": {
@@ -462,6 +493,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "union",
 			},
 			"Platform_Component_R1Path": {
@@ -471,6 +503,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "leafref",
 			},
 			"Platform_Component_TypePath": {
@@ -480,6 +513,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "union",
 			}},
 	}, {
@@ -504,6 +538,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"DupEnum_APath": {
 				GoTypeName:            "E_OpenconfigUnione_DupEnum_A",
@@ -512,6 +547,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumeration",
 			},
 			"DupEnum_BPath": {
@@ -521,6 +557,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "DupEnum",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumeration",
 			},
 			"PlatformPath": {
@@ -530,6 +567,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Platform_ComponentPath": {
 				GoTypeName:            "*Platform_Component",
@@ -538,6 +576,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Platform_Component_E1Path": {
 				GoTypeName:            "Platform_Component_E1_Union",
@@ -546,6 +585,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumtypedef",
 			},
 			"Platform_Component_EnumeratedPath": {
@@ -555,6 +595,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumerated-union-type",
 			},
 			"Platform_Component_PowerPath": {
@@ -564,6 +605,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "union",
 			},
 			"Platform_Component_R1Path": {
@@ -573,6 +615,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "leafref",
 			},
 			"Platform_Component_TypePath": {
@@ -582,6 +625,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Platform_Component",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "union",
 			}},
 	}, {
@@ -608,6 +652,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "AList",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"AList_ValuePath": {
 				GoTypeName:            "AList_Value_Union",
@@ -616,6 +661,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "AList",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "td",
 			},
 			"BListPath": {
@@ -625,6 +671,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "BList",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"BList_ValuePath": {
 				GoTypeName:            "BList_Value_Union",
@@ -633,6 +680,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "BList",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "td",
 			},
 			"CPath": {
@@ -642,6 +690,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "C",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"C_ClPath": {
 				GoTypeName:            "E_EnumModule_Cl",
@@ -650,6 +699,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "C",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "enumeration",
 			},
 			"ParentPath": {
@@ -659,6 +709,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Parent_ChildPath": {
 				GoTypeName:            "*Parent_Child",
@@ -667,6 +718,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Parent_Child_IdPath": {
 				GoTypeName:            "E_EnumTypes_ID",
@@ -675,6 +727,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "identityref",
 			},
 			"Parent_Child_Id2Path": {
@@ -684,6 +737,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            true,
 				YANGTypeName:          "identityref",
 			},
 			"Parent_Child_EnumPath": {
@@ -693,6 +747,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            true,
 				YANGTypeName:          "td-enum",
 			},
 			"Parent_Child_InlineEnumPath": {
@@ -702,6 +757,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Parent_Child",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            true,
 				YANGTypeName:          "enumeration",
 			}},
 	}, {
@@ -741,6 +797,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Native",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Native_A": {
 				GoTypeName:            "string",
@@ -749,6 +806,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Native",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 				YANGTypeName:          "string",
 			},
 			"Target": {
@@ -758,6 +816,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Target",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Target_Foo": {
 				GoTypeName:            "*oc.Target_Foo",
@@ -766,6 +825,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Target_Foo",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Target_Foo_A": {
 				GoTypeName:            "string",
@@ -774,6 +834,7 @@ func TestGeneratePathCode(t *testing.T) {
 				SubsumingGoStructName: "Target_Foo",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 				YANGTypeName:          "string",
 			}},
 	}, {
@@ -991,14 +1052,20 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 				// Name is given here to test setting the YANGTypeName field.
 				Type: &yang.YangType{Name: "ieeefloat32", Kind: yang.Ybinary},
 			},
+			"leaf-with-default": {
+				Name: "leaf-with-default",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{Name: "string", Kind: yang.Ystring, Default: "foo"},
+			},
 			"container": {
 				Name: "container",
 				Kind: yang.DirectoryEntry,
 				Dir: map[string]*yang.Entry{
 					"leaf": {
-						Name: "leaf",
-						Kind: yang.LeafEntry,
-						Type: &yang.YangType{Name: "int32", Kind: yang.Yint32},
+						Name:    "leaf",
+						Kind:    yang.LeafEntry,
+						Type:    &yang.YangType{Name: "int32", Kind: yang.Yint32},
+						Default: "bar",
 					},
 				},
 			},
@@ -1127,6 +1194,7 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 			Name: "Root",
 			Fields: map[string]*yang.Entry{
 				"leaf":                  schema.Dir["leaf"],
+				"leaf-with-default":     schema.Dir["leaf-with-default"],
 				"container":             schema.Dir["container"],
 				"container-with-config": schema.Dir["container-with-config"],
 				"list":                  schema.Dir["list-container"].Dir["list"],
@@ -1190,6 +1258,7 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 	leafTypeMap := map[string]map[string]*ygen.MappedType{
 		"/root": {
 			"leaf":                  {NativeType: "Binary"},
+			"leaf-with-default":     {NativeType: "string", DefaultValue: ygot.String("foo")},
 			"container":             nil,
 			"container-with-config": nil,
 			"list":                  nil,
@@ -1421,6 +1490,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "Container",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            true,
 				YANGTypeName:          "int32",
 			},
 		},
@@ -1439,6 +1509,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "Container",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Container_Leaf_Path": {
 				GoTypeName:            "struct.Binary",
@@ -1447,6 +1518,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "Container",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 		},
 		wantSorted: []string{"Container_Leaf_Path", "Container_Path"},
@@ -1491,6 +1563,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "Container",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"ContainerWithConfigPath": {
 				GoTypeName:            "*ContainerWithConfig",
@@ -1499,6 +1572,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "ContainerWithConfig",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"ContainerWithConfig_LeafPath": {
 				GoTypeName:            "Binary",
@@ -1507,6 +1581,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "ContainerWithConfig",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"ContainerWithConfig_LeaflistPath": {
 				GoTypeName:            "[]uint32",
@@ -1515,6 +1590,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "ContainerWithConfig",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"ContainerWithConfig_Leaflist2Path": {
 				GoTypeName:            "[]Binary",
@@ -1523,6 +1599,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "ContainerWithConfig",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"Container_LeafPath": {
 				GoTypeName:            "int32",
@@ -1531,6 +1608,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "Container",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            true,
 				YANGTypeName:          "int32",
 			},
 			"LeafPath": {
@@ -1540,7 +1618,18 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "Root",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "ieeefloat32",
+			},
+			"LeafWithDefaultPath": {
+				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
+				GoFieldName:           "LeafWithDefault",
+				SubsumingGoStructName: "Root",
+				IsLeaf:                true,
+				IsScalarField:         true,
+				HasDefault:            true,
+				YANGTypeName:          "string",
 			},
 			"ListPath": {
 				GoTypeName:            "*List",
@@ -1549,6 +1638,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "List",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"ListWithStatePath": {
 				GoTypeName:            "*ListWithState",
@@ -1557,6 +1647,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "ListWithState",
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"ListWithState_KeyPath": {
 				GoTypeName:            "float64",
@@ -1565,6 +1656,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "ListWithState",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 			},
 			"List_Key1Path": {
 				GoTypeName:            "string",
@@ -1573,6 +1665,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "List",
 				IsLeaf:                true,
 				IsScalarField:         true,
+				HasDefault:            false,
 			},
 			"List_Key2Path": {
 				GoTypeName:            "Binary",
@@ -1581,6 +1674,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "List",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 			},
 			"List_UnionKeyPath": {
 				GoTypeName:            "RootModule_List_UnionKey_Union",
@@ -1589,6 +1683,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				SubsumingGoStructName: "List",
 				IsLeaf:                true,
 				IsScalarField:         false,
+				HasDefault:            false,
 			}},
 		wantSorted: []string{
 			"ContainerPath",
@@ -1598,6 +1693,7 @@ func TestGetNodeDataMap(t *testing.T) {
 			"ContainerWithConfig_LeaflistPath",
 			"Container_LeafPath",
 			"LeafPath",
+			"LeafWithDefaultPath",
 			"ListPath",
 			"ListWithStatePath",
 			"ListWithState_KeyPath",
@@ -1836,6 +1932,16 @@ type LeafPath struct {
 type LeafPathAny struct {
 	*ygot.NodePath
 }
+
+// LeafWithDefaultPath represents the /root-module/leaf-with-default YANG schema element.
+type LeafWithDefaultPath struct {
+	*ygot.NodePath
+}
+
+// LeafWithDefaultPathAny represents the wildcard version of the /root-module/leaf-with-default YANG schema element.
+type LeafWithDefaultPathAny struct {
+	*ygot.NodePath
+}
 `,
 			ChildConstructors: `
 // Container returns from RootPath the path struct for its child "container".
@@ -1865,6 +1971,17 @@ func (n *RootPath) Leaf() *LeafPath {
 	return &LeafPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"leaf"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// LeafWithDefault returns from RootPath the path struct for its child "leaf-with-default".
+func (n *RootPath) LeafWithDefault() *LeafWithDefaultPath {
+	return &LeafWithDefaultPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"leaf-with-default"},
 			map[string]interface{}{},
 			n,
 		),
@@ -1912,6 +2029,11 @@ func DeviceRoot(id string) *RootPath {
 type LeafPath struct {
 	*ygot.NodePath
 }
+
+// LeafWithDefaultPath represents the /root-module/leaf-with-default YANG schema element.
+type LeafWithDefaultPath struct {
+	*ygot.NodePath
+}
 `,
 			ChildConstructors: `
 // Container returns from RootPath the path struct for its child "container".
@@ -1941,6 +2063,17 @@ func (n *RootPath) Leaf() *LeafPath {
 	return &LeafPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"leaf"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// LeafWithDefault returns from RootPath the path struct for its child "leaf-with-default".
+func (n *RootPath) LeafWithDefault() *LeafWithDefaultPath {
+	return &LeafWithDefaultPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"leaf-with-default"},
 			map[string]interface{}{},
 			n,
 		),
