@@ -281,6 +281,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 				SubsumingGoStructName: yang.CamelCase(cg.FakeRootName),
 				IsLeaf:                false,
 				IsScalarField:         false,
+				HasDefault:            false,
 				YANGTypeName:          "",
 				YANGPath:              "/",
 			}
@@ -421,6 +422,10 @@ type NodeData struct {
 	// IsScalarField indicates a leaf that is stored as a pointer in its
 	// parent struct.
 	IsScalarField bool
+	// HasDefault indicates whether this node has a default value
+	// associated with it. This is only relevant to leaf or leaf-list
+	// nodes.
+	HasDefault bool
 	// YANGTypeName is the type of the leaf given in the YANG file (without
 	// the module prefix, if any, per goyang behaviour). If the node is not
 	// a leaf this will be empty. Note that the current purpose for this is
@@ -621,6 +626,7 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 				SubsumingGoStructName: subsumingGoStructName,
 				IsLeaf:                isLeaf,
 				IsScalarField:         ygen.IsScalarField(field, mType),
+				HasDefault:            isLeaf && (field.Default != "" || mType.DefaultValue != nil),
 				YANGTypeName:          yangTypeName,
 				YANGPath:              field.Path(),
 			}
