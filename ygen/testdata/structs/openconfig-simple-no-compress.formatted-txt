@@ -103,12 +103,14 @@ type OpenconfigSimple_Parent_Child_Config struct {
 func (*OpenconfigSimple_Parent_Child_Config) IsYANGGoStruct() {}
 
 // GetFour retrieves the value of the leaf Four from the OpenconfigSimple_Parent_Child_Config
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Four is set, it can safely use t.GetFour()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Four == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Four is set, it can
+// safely use t.GetFour() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Four == nil' before retrieving the leaf's value.
 func (t *OpenconfigSimple_Parent_Child_Config) GetFour() Binary {
 	if t == nil || t.Four ==  nil {
 		return nil
@@ -117,12 +119,14 @@ func (t *OpenconfigSimple_Parent_Child_Config) GetFour() Binary {
 }
 
 // GetOne retrieves the value of the leaf One from the OpenconfigSimple_Parent_Child_Config
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if One is set, it can safely use t.GetOne()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.One == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if One is set, it can
+// safely use t.GetOne() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.One == nil' before retrieving the leaf's value.
 func (t *OpenconfigSimple_Parent_Child_Config) GetOne() string {
 	if t == nil || t.One == nil {
 		return ""
@@ -131,12 +135,14 @@ func (t *OpenconfigSimple_Parent_Child_Config) GetOne() string {
 }
 
 // GetThree retrieves the value of the leaf Three from the OpenconfigSimple_Parent_Child_Config
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Three is set, it can safely use t.GetThree()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Three == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Three is set, it can
+// safely use t.GetThree() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Three == nil' before retrieving the leaf's value.
 func (t *OpenconfigSimple_Parent_Child_Config) GetThree() E_OpenconfigSimple_Parent_Child_Config_Three {
 	if t == nil || t.Three ==  0 {
 		return 0
@@ -158,12 +164,14 @@ type OpenconfigSimple_Parent_Child_State struct {
 func (*OpenconfigSimple_Parent_Child_State) IsYANGGoStruct() {}
 
 // GetFour retrieves the value of the leaf Four from the OpenconfigSimple_Parent_Child_State
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Four is set, it can safely use t.GetFour()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Four == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Four is set, it can
+// safely use t.GetFour() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Four == nil' before retrieving the leaf's value.
 func (t *OpenconfigSimple_Parent_Child_State) GetFour() Binary {
 	if t == nil || t.Four ==  nil {
 		return nil
@@ -172,12 +180,14 @@ func (t *OpenconfigSimple_Parent_Child_State) GetFour() Binary {
 }
 
 // GetOne retrieves the value of the leaf One from the OpenconfigSimple_Parent_Child_State
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if One is set, it can safely use t.GetOne()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.One == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if One is set, it can
+// safely use t.GetOne() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.One == nil' before retrieving the leaf's value.
 func (t *OpenconfigSimple_Parent_Child_State) GetOne() string {
 	if t == nil || t.One == nil {
 		return ""
@@ -186,12 +196,14 @@ func (t *OpenconfigSimple_Parent_Child_State) GetOne() string {
 }
 
 // GetThree retrieves the value of the leaf Three from the OpenconfigSimple_Parent_Child_State
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Three is set, it can safely use t.GetThree()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Three == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Three is set, it can
+// safely use t.GetThree() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Three == nil' before retrieving the leaf's value.
 func (t *OpenconfigSimple_Parent_Child_State) GetThree() E_OpenconfigSimple_Parent_Child_Config_Three {
 	if t == nil || t.Three ==  0 {
 		return 0
@@ -200,12 +212,14 @@ func (t *OpenconfigSimple_Parent_Child_State) GetThree() E_OpenconfigSimple_Pare
 }
 
 // GetTwo retrieves the value of the leaf Two from the OpenconfigSimple_Parent_Child_State
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Two is set, it can safely use t.GetTwo()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Two == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Two is set, it can
+// safely use t.GetTwo() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Two == nil' before retrieving the leaf's value.
 func (t *OpenconfigSimple_Parent_Child_State) GetTwo() string {
 	if t == nil || t.Two == nil {
 		return ""
@@ -235,12 +249,14 @@ type OpenconfigSimple_RemoteContainer_Config struct {
 func (*OpenconfigSimple_RemoteContainer_Config) IsYANGGoStruct() {}
 
 // GetALeaf retrieves the value of the leaf ALeaf from the OpenconfigSimple_RemoteContainer_Config
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if ALeaf is set, it can safely use t.GetALeaf()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.ALeaf == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if ALeaf is set, it can
+// safely use t.GetALeaf() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.ALeaf == nil' before retrieving the leaf's value.
 func (t *OpenconfigSimple_RemoteContainer_Config) GetALeaf() string {
 	if t == nil || t.ALeaf == nil {
 		return ""
@@ -259,12 +275,14 @@ type OpenconfigSimple_RemoteContainer_State struct {
 func (*OpenconfigSimple_RemoteContainer_State) IsYANGGoStruct() {}
 
 // GetALeaf retrieves the value of the leaf ALeaf from the OpenconfigSimple_RemoteContainer_State
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if ALeaf is set, it can safely use t.GetALeaf()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.ALeaf == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if ALeaf is set, it can
+// safely use t.GetALeaf() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.ALeaf == nil' before retrieving the leaf's value.
 func (t *OpenconfigSimple_RemoteContainer_State) GetALeaf() string {
 	if t == nil || t.ALeaf == nil {
 		return ""

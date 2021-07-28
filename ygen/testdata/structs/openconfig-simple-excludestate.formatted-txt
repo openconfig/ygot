@@ -92,12 +92,14 @@ type Parent_Child struct {
 func (*Parent_Child) IsYANGGoStruct() {}
 
 // GetFour retrieves the value of the leaf Four from the Parent_Child
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Four is set, it can safely use t.GetFour()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Four == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Four is set, it can
+// safely use t.GetFour() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Four == nil' before retrieving the leaf's value.
 func (t *Parent_Child) GetFour() Binary {
 	if t == nil || t.Four ==  nil {
 		return nil
@@ -106,12 +108,14 @@ func (t *Parent_Child) GetFour() Binary {
 }
 
 // GetOne retrieves the value of the leaf One from the Parent_Child
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if One is set, it can safely use t.GetOne()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.One == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if One is set, it can
+// safely use t.GetOne() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.One == nil' before retrieving the leaf's value.
 func (t *Parent_Child) GetOne() string {
 	if t == nil || t.One == nil {
 		return ""
@@ -120,12 +124,14 @@ func (t *Parent_Child) GetOne() string {
 }
 
 // GetThree retrieves the value of the leaf Three from the Parent_Child
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Three is set, it can safely use t.GetThree()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Three == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Three is set, it can
+// safely use t.GetThree() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Three == nil' before retrieving the leaf's value.
 func (t *Parent_Child) GetThree() E_Child_Three {
 	if t == nil || t.Three ==  0 {
 		return 0
@@ -144,12 +150,14 @@ type RemoteContainer struct {
 func (*RemoteContainer) IsYANGGoStruct() {}
 
 // GetALeaf retrieves the value of the leaf ALeaf from the RemoteContainer
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if ALeaf is set, it can safely use t.GetALeaf()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.ALeaf == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if ALeaf is set, it can
+// safely use t.GetALeaf() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.ALeaf == nil' before retrieving the leaf's value.
 func (t *RemoteContainer) GetALeaf() string {
 	if t == nil || t.ALeaf == nil {
 		return ""
