@@ -353,6 +353,25 @@ type DiffOpt interface {
 	IsDiffOpt()
 }
 
+// IgnoreAdditions is a DiffOpt that indicates newly-added fields should be
+// ignored. The returned Notification will only contain the updates and
+// deletions from original to modified.
+type IgnoreAdditions struct{}
+
+func (*IgnoreAdditions) IsDiffOpt() {}
+
+// hasIgnoreAdditions returns the first IgnoreAdditions from an opts slice, or
+// nil if there isn't one.
+func hasIgnoreAdditions(opts []DiffOpt) *IgnoreAdditions {
+	for _, o := range opts {
+		switch v := o.(type) {
+		case *IgnoreAdditions:
+			return v
+		}
+	}
+	return nil
+}
+
 // DiffPathOpt is a DiffOpt that allows control of the path behaviour of the
 // Diff function.
 type DiffPathOpt struct {
@@ -432,7 +451,9 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 			n.Delete = append(n.Delete, origPath.gNMIPaths...)
 		}
 	}
-
+	if hasIgnoreAdditions(opts) != nil {
+		return n, nil
+	}
 	// Check that all paths that are in the modified struct have been examined, if
 	// not they are updates.
 	for modPath, modVal := range modLeaves {

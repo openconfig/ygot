@@ -839,6 +839,34 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc: "one path each modified, deleted, and added with IgnoreNewPaths set",
+		inOrig: &renderExample{
+			IntVal:   Int32(5),
+			FloatVal: Float32(1.5),
+			Int64Val: Int64(100),
+		},
+		inMod: &renderExample{
+			IntVal:   Int32(10),
+			Str:      String("cabernet-sauvignon"),
+			Int64Val: Int64(100),
+		},
+		inOpts: []DiffOpt{&IgnoreAdditions{}},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "floatval",
+				}},
+			}},
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "int-val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{10}},
+			}},
+		},
+	}, {
 		desc:   "extra empty child struct in modified -- no difference",
 		inOrig: &renderExample{},
 		inMod: &renderExample{
