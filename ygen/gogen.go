@@ -1428,6 +1428,10 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 
 			fType := mtype.NativeType
 			schemapath := util.SchemaTreePathNoModule(field)
+			if _, ok := enumTypeMap[schemapath]; ok {
+				errs = append(errs, fmt.Errorf("unexpected error: field %q has identical schemapath with another schema: %q", field.Path(), schemapath))
+				continue
+			}
 			zeroValue := mtype.ZeroValue
 			// Only if this union has more than one subtype do we generate the union;
 			// otherwise, we use that subtype directly.
@@ -1477,6 +1481,10 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 				// Sort the names of the types into deterministic order.
 				sort.Strings(intf.TypeNames)
 				sort.Strings(genTypes)
+				// Sort the enumerated types into schema order.
+				sort.Slice(enumTypeMap[schemapath], func(i, j int) bool {
+					return mtype.UnionTypes[enumTypeMap[schemapath][i]] < mtype.UnionTypes[enumTypeMap[schemapath][j]]
+				})
 				// Populate the union type conversion snippets.
 				for _, t := range intf.TypeNames {
 					if cs, ok := unionConversionSnippets[t]; ok {
