@@ -22,7 +22,6 @@ import (
 	"text/template"
 
 	log "github.com/golang/glog"
-	"github.com/google/go-cmp/cmp"
 
 	"github.com/openconfig/gnmi/errlist"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -2112,72 +2111,6 @@ func writeGoEnum(inputEnum *yangEnum) (goEnumCodeSnippet, error) {
 		valToString: origValues,
 		name:        inputEnum.name,
 	}, err
-}
-
-// findMapPaths takes an input field name for a parent Directory and calculates the set of schemapaths that it represents.
-// If absolutePaths is set, the paths are absolute otherwise they are relative to the parent. If
-// the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
-// path is also returned. If shadowSchemaPaths is set, then the path of the
-// field deprioritized via compression is returned instead of the prioritized paths.
-// The first returned path is the path of the direct child, with the shadow
-// child's path afterwards, and the key leafref, if any, last.
-// TODO(wenbli): This is used by both Go and proto generation, it should be moved to genstate.go or genutil.
-func findMapPaths(parent *Directory, fieldName string, compressPaths, shadowSchemaPaths, absolutePaths bool) ([][]string, error) {
-	childPath, err := findSchemaPath(parent, fieldName, shadowSchemaPaths, absolutePaths)
-	if err != nil {
-		return nil, err
-	}
-	var mapPaths [][]string
-	if childPath != nil {
-		mapPaths = append(mapPaths, childPath)
-	}
-	// Only for compressed data schema paths for list fields do we have the
-	// possibility for a direct leafref path as a second path for the field.
-	if !compressPaths || parent.ListAttr == nil {
-		return mapPaths, nil
-	}
-
-	field, ok := parent.Fields[fieldName]
-	if !ok {
-		return nil, fmt.Errorf("field name %s does not exist in Directory %s", fieldName, parent.Path)
-	}
-	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
-
-	// Handle specific issue of compressed path schemas, where a key of the
-	// parent list is a leafref to this leaf.
-	for _, k := range parent.ListAttr.KeyElems {
-		// If the key element has the same path as this element, and the
-		// corresponding element that is within the parent's container is of
-		// type leafref, then within an OpenConfig schema this means that
-		// the key leaf was a pointer to this leaf. To this end, we set
-		// isKey to true so that the struct field can be mapped to the
-		// leafref leaf within the schema as well as the target of the
-		// leafref.
-		if k.Parent == nil || k.Parent.Parent == nil || k.Parent.Parent.Dir[k.Name] == nil || k.Parent.Parent.Dir[k.Name].Type == nil {
-			return nil, fmt.Errorf("invalid compressed schema, could not find the key %s or the grandparent of %s", k.Name, k.Path())
-		}
-
-		// If a key of the list is a leafref that points to the field,
-		// then add this as an alternative path.
-		// Note: if k is a leafref, buildListKey() would have already
-		// resolved it the field that the leafref points to. So, we
-		// compare their absolute paths for equality.
-		if k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref && cmp.Equal(util.SchemaPathNoChoiceCase(k), fieldSlicePath) {
-			// The path of the key element is simply the name of the leaf under the
-			// list, since the YANG specification enforces that keys are direct
-			// children of the list.
-			keyPath := []string{fieldSlicePath[len(fieldSlicePath)-1]}
-			if absolutePaths {
-				// If absolute paths are required, then the 'config' or 'state' container needs to be omitted from
-				// the complete path for the secondary mapping.
-				keyPath = append([]string{""}, fieldSlicePath[1:len(fieldSlicePath)-2]...)
-				keyPath = append(keyPath, fieldSlicePath[len(fieldSlicePath)-1])
-			}
-			mapPaths = append(mapPaths, keyPath)
-			break
-		}
-	}
-	return mapPaths, nil
 }
 
 // generateEnumMap outputs a map from the enumMapTemplate. It takes an input of
