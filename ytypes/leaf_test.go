@@ -561,14 +561,14 @@ func TestValidateLeafUnion(t *testing.T) {
 			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
 		},
 		{
+			desc:   "success single-valued union: another valid string",
+			schema: unionContainerSchemaNoWrappingStruct,
+			val:    &UnionContainerCompressed{UnionField: ygot.String("bbb")},
+		},
+		{
 			desc:   "success single-valued union leaf: string",
 			schema: unionContainerSchemaNoWrappingStruct.Dir["union1"],
 			val:    UnionContainerCompressed{UnionField: ygot.String("aaa")}.UnionField,
-		},
-		{
-			desc:   "success single-valued union: int16",
-			schema: unionContainerSchemaNoWrappingStruct,
-			val:    &UnionContainerCompressed{UnionField: ygot.String("bbb")},
 		},
 		{
 			desc:    "single-valued union: no schemas match",
@@ -1081,11 +1081,6 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		want    LeafContainerStruct
 		wantErr string
 	}{
-		{
-			desc: "nil success",
-			json: `{}`,
-			want: LeafContainerStruct{},
-		},
 		{
 			desc: "nil success",
 			json: `{}`,
