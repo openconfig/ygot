@@ -209,14 +209,12 @@ func IsSimpleEnumerationType(t *yang.YangType) bool {
 
 // IsIdentityrefLeaf returns true if the supplied yang.Entry represents an
 // identityref.
-// TODO(wenbli): add unit test
 func IsIdentityrefLeaf(e *yang.Entry) bool {
 	return e.Type.IdentityBase != nil
 }
 
 // IsYANGBaseType determines whether the supplied YangType is a built-in type
 // in YANG, or a derived type (i.e., typedef).
-// TODO(wenbli): add unit test
 func IsYANGBaseType(t *yang.YangType) bool {
 	_, ok := yang.TypeKindFromName[t.Name]
 	return ok
