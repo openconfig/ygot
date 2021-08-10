@@ -493,6 +493,11 @@ func TestValidateLeafUnion(t *testing.T) {
 			val:    &UnionContainer{UnionField: testutil.UnionString("aaa")},
 		},
 		{
+			desc:   "success string leaf",
+			schema: unionContainerSchema.Dir["union1"],
+			val:    UnionContainer{UnionField: testutil.UnionString("aaa")}.UnionField,
+		},
+		{
 			desc:   "success int16",
 			schema: unionContainerSchema,
 			val:    &UnionContainer{UnionField: testutil.UnionInt16(42)},
@@ -556,14 +561,14 @@ func TestValidateLeafUnion(t *testing.T) {
 			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
 		},
 		{
+			desc:   "success single-valued union leaf: string",
+			schema: unionContainerSchemaNoWrappingStruct.Dir["union1"],
+			val:    UnionContainerCompressed{UnionField: ygot.String("aaa")}.UnionField,
+		},
+		{
 			desc:   "success single-valued union: int16",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("bbb")},
-		},
-		{
-			desc:   "success single-valued union: string",
-			schema: unionContainerSchemaNoWrappingStruct,
-			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
 		},
 		{
 			desc:    "single-valued union: no schemas match",
@@ -1076,6 +1081,11 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		want    LeafContainerStruct
 		wantErr string
 	}{
+		{
+			desc: "nil success",
+			json: `{}`,
+			want: LeafContainerStruct{},
+		},
 		{
 			desc: "nil success",
 			json: `{}`,
@@ -1649,6 +1659,9 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		t.Errorf("bad parent type: Unmarshal got error: %v, want error: %v", got, want)
 	}
 	if err := unmarshalLeaf(nil, nil, nil, JSONEncoding); err != nil {
+		t.Errorf("nil value: got error: %v, want error: nil", err)
+	}
+	if err := unmarshalLeaf(containerSchema, nil, nil, JSONEncoding); err != nil {
 		t.Errorf("nil value: got error: %v, want error: nil", err)
 	}
 	if err := unmarshalLeaf(nil, nil, map[string]interface{}{}, JSONEncoding); err == nil {
