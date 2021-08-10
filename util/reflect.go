@@ -456,7 +456,6 @@ func DeepEqualDerefPtrs(a, b interface{}) bool {
 // path tag and the schema path is found in the schema tree. It returns an error
 // if the struct tag is invalid, or nil if tag is valid but the schema is not
 // found in the tree at the specified path.
-// TODO(wenbli): need unit test
 func ChildSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error) {
 	pathTag, _ := f.Tag.Lookup("path")
 	DbgSchema("childSchema for schema %s, field %s, tag %s\n", schema.Name, f.Name, pathTag)
