@@ -128,7 +128,7 @@ func TestValidateLeafRefData(t *testing.T) {
 						Kind: yang.LeafEntry,
 						Type: &yang.YangType{
 							Kind: yang.Yleafref,
-							Path: "../../int32",
+							Path: `../../int32`,
 						},
 					},
 					"enum-ref-to-leaf": {
@@ -161,7 +161,23 @@ func TestValidateLeafRefData(t *testing.T) {
 						Kind: yang.LeafEntry,
 						Type: &yang.YangType{
 							Kind: yang.Yleafref,
-							Path: "../../list[key = current()/../../key]/int32",
+							Path: `../../list[key = current()/../../key]/int32`,
+						},
+					},
+					"int32-ref-concrete-to-list": {
+						Name: "int32-ref-concrete-to-list",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: `../../list[key = "42"]/int32`,
+						},
+					},
+					"int32-ref-abs-to-list": {
+						Name: "int32-ref-abs-to-list",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: `/list[key = "42"]/int32`,
 						},
 					},
 					"enum-ref-to-list": {
@@ -222,6 +238,8 @@ func TestValidateLeafRefData(t *testing.T) {
 		LeafRefToLeafList      *int32             `path:"int32-ref-to-leaf-list"`
 		LeafListRefToLeafList  []*int32           `path:"leaf-list-ref-to-leaf-list"`
 		LeafRefToList          *int32             `path:"int32-ref-to-list"`
+		LeafRefConcreteToList  *int32             `path:"int32-ref-concrete-to-list"`
+		LeafRefAbsToList       *int32             `path:"int32-ref-abs-to-list"`
 		LeafRefToListEnumKeyed *int32             `path:"int32-ref-to-list-enum-keyed"`
 		Key                    *int32             `path:"key"`
 		Container3             *Container3        `path:"container3"`
@@ -372,6 +390,52 @@ func TestValidateLeafRefData(t *testing.T) {
 				Container2: &Container2{LeafRefToList: Int32(43)},
 			},
 			wantErr: `pointed-to value with path ../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
+		},
+		{
+			desc: "concrete keyed list match",
+			in: &Container{
+				List: map[int32]*ListElement{
+					1:  {Int32(1), Int32(42)},
+					42: {Int32(42), Int32(43)},
+				},
+				Key:        Int32(1),
+				Container2: &Container2{LeafRefConcreteToList: Int32(43)},
+			},
+		},
+		{
+			desc: "concrete keyed list unequal",
+			in: &Container{
+				List: map[int32]*ListElement{
+					1:  {Int32(1), Int32(42)},
+					42: {Int32(42), Int32(43)},
+				},
+				Key:        Int32(1),
+				Container2: &Container2{LeafRefConcreteToList: Int32(42)},
+			},
+			wantErr: `field name LeafRefConcreteToList value 42 (int32 ptr) schema path /int32-ref-concrete-to-list has leafref path ../../list[key = "42"]/int32 not equal to any target nodes`,
+		},
+		{
+			desc: "absolute keyed list match",
+			in: &Container{
+				List: map[int32]*ListElement{
+					1:  {Int32(1), Int32(42)},
+					42: {Int32(42), Int32(43)},
+				},
+				Key:        Int32(1),
+				Container2: &Container2{LeafRefAbsToList: Int32(43)},
+			},
+		},
+		{
+			desc: "absolute keyed list unequal",
+			in: &Container{
+				List: map[int32]*ListElement{
+					1:  {Int32(1), Int32(42)},
+					42: {Int32(42), Int32(43)},
+				},
+				Key:        Int32(1),
+				Container2: &Container2{LeafRefAbsToList: Int32(42)},
+			},
+			wantErr: `field name LeafRefAbsToList value 42 (int32 ptr) schema path /int32-ref-abs-to-list has leafref path /list[key = "42"]/int32 not equal to any target nodes`,
 		},
 		{
 			// The idea for this test is that since "current()/../../key" depends on context,
@@ -829,6 +893,13 @@ func TestExtractKeyValue(t *testing.T) {
 		wantValue  string
 	}{
 		{
+			desc:       "empty",
+			in:         ``,
+			wantPrefix: "",
+			wantKey:    "",
+			wantValue:  ``,
+		},
+		{
 			desc:       "literal",
 			in:         `b[key = "value"]`,
 			wantPrefix: "b",
@@ -857,10 +928,16 @@ func TestExtractKeyValue(t *testing.T) {
 			wantValue:  "current()/../a/b/c",
 		},
 		{
-			desc:       "path",
+			desc:       "invalid key: need quotes",
 			in:         "b[key = ../a/b/c]",
 			wantPrefix: "b",
 			wantErr:    `bad kv string key = ../a/b/c: value must be in quotes or begin with current()/`,
+		},
+		{
+			desc:       "invalid key value",
+			in:         `b[key = "foo" = "bar"]`,
+			wantPrefix: "b",
+			wantErr:    `bad kv string [key   "foo"   "bar"]`,
 		},
 		{
 			desc:       "escapes",
