@@ -493,6 +493,11 @@ func TestValidateLeafUnion(t *testing.T) {
 			val:    &UnionContainer{UnionField: testutil.UnionString("aaa")},
 		},
 		{
+			desc:   "success string leaf",
+			schema: unionContainerSchema.Dir["union1"],
+			val:    UnionContainer{UnionField: testutil.UnionString("aaa")}.UnionField,
+		},
+		{
 			desc:   "success int16",
 			schema: unionContainerSchema,
 			val:    &UnionContainer{UnionField: testutil.UnionInt16(42)},
@@ -556,14 +561,14 @@ func TestValidateLeafUnion(t *testing.T) {
 			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
 		},
 		{
-			desc:   "success single-valued union: int16",
+			desc:   "success single-valued union: another valid string",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("bbb")},
 		},
 		{
-			desc:   "success single-valued union: string",
-			schema: unionContainerSchemaNoWrappingStruct,
-			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
+			desc:   "success single-valued union leaf: string",
+			schema: unionContainerSchemaNoWrappingStruct.Dir["union1"],
+			val:    UnionContainerCompressed{UnionField: ygot.String("aaa")}.UnionField,
 		},
 		{
 			desc:    "single-valued union: no schemas match",
@@ -1337,9 +1342,19 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			wantErr: `got float64 type for field decimal-leaf, expect string`,
 		},
 		{
+			desc:    "decimal bad type",
+			json:    `{"decimal-leaf" : "forty-two"}`,
+			wantErr: `error parsing forty-two for schema decimal-leaf: strconv.ParseFloat: parsing "forty-two": invalid syntax`,
+		},
+		{
 			desc: "empty valid type",
 			json: `{"empty-leaf": [null]}`,
 			want: LeafContainerStruct{EmptyLeaf: true},
+		},
+		{
+			desc:    "empty bad type",
+			json:    `{"empty-leaf": ["fish"]}`,
+			wantErr: "error parsing [fish] for schema empty-leaf: empty leaves must be [null]",
 		},
 		{
 			desc:    "empty bad type",
@@ -1649,6 +1664,9 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		t.Errorf("bad parent type: Unmarshal got error: %v, want error: %v", got, want)
 	}
 	if err := unmarshalLeaf(nil, nil, nil, JSONEncoding); err != nil {
+		t.Errorf("nil value: got error: %v, want error: nil", err)
+	}
+	if err := unmarshalLeaf(containerSchema, nil, nil, JSONEncoding); err != nil {
 		t.Errorf("nil value: got error: %v, want error: nil", err)
 	}
 	if err := unmarshalLeaf(nil, nil, map[string]interface{}{}, JSONEncoding); err == nil {
