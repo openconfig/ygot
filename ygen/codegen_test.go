@@ -1024,6 +1024,7 @@ func TestSimpleStructs(t *testing.T) {
 				ShortenEnumLeafNames:                 true,
 				UseDefiningModuleForTypedefEnumNames: true,
 			},
+			GenerateJSONSchema: true,
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "enum-multi-module.formatted-txt"),
 	}, {
