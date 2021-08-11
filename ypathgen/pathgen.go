@@ -836,7 +836,7 @@ func generateChildConstructors(methodBuf *strings.Builder, directory *ygen.Direc
 	switch {
 	case !field.IsList():
 		return generateChildConstructorsForLeafOrContainer(methodBuf, fieldData, isUnderFakeRoot, generateWildcardPaths)
-	case fieldDirectory.ListAttr == nil:
+	case fieldDirectory.ListAttr == nil || len(fieldDirectory.ListAttr.Keys) == 0:
 		// TODO(wenbli): keyless lists as a path are not supported by gNMI, but this
 		// library is currently intended for gNMI, so need to decide on a long-term solution.
 
