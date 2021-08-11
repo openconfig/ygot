@@ -2326,6 +2326,24 @@ func TestGenerateChildConstructor(t *testing.T) {
 							},
 						},
 					},
+					"keyless-list-container": {
+						Name: "keyless-list-container",
+						Kind: yang.DirectoryEntry,
+						Dir: map[string]*yang.Entry{
+							"keyless-list": {
+								Name:     "keyless-list",
+								Kind:     yang.DirectoryEntry,
+								ListAttr: &yang.ListAttr{},
+								Dir: map[string]*yang.Entry{
+									"val": {
+										Name: "val",
+										Kind: yang.LeafEntry,
+										Type: &yang.YangType{Kind: yang.Ystring},
+									},
+								},
+							},
+						},
+					},
 					"inner-container": {
 						Name: "inner-container",
 						Kind: yang.DirectoryEntry,
@@ -2363,6 +2381,7 @@ func TestGenerateChildConstructor(t *testing.T) {
 			Name: "Container",
 			Fields: map[string]*yang.Entry{
 				"list":            deepSchema.Dir["container"].Dir["list-container"].Dir["list"],
+				"keyless-list":    deepSchema.Dir["container"].Dir["keyless-list-container"].Dir["keyless-list"],
 				"inner-container": deepSchema.Dir["container"].Dir["inner-container"],
 			},
 			Path:  []string{"", "root-module", "container"},
@@ -2381,6 +2400,15 @@ func TestGenerateChildConstructor(t *testing.T) {
 			},
 			Path:  []string{"", "root-module", "container", "list-container", "list"},
 			Entry: deepSchema.Dir["container"].Dir["list-container"],
+		},
+		"/root-module/container/keyless-list-container/keyless-list": {
+			Name:     "Container_KeylessList",
+			ListAttr: nil, // keyless list.
+			Fields: map[string]*yang.Entry{
+				"key": deepSchema.Dir["container"].Dir["keyless-list-container"].Dir["keyless-list"].Dir["key"],
+			},
+			Path:  []string{"", "root-module", "container", "keyless-list-container", "keyless-list"},
+			Entry: deepSchema.Dir["container"].Dir["keyless-list-container"],
 		},
 		"/root-module/container/inner-container": {
 			Name: "Container_InnerContainer",
@@ -2619,6 +2647,15 @@ func (n *Container_ListPathAny) WithKey(Key string) *Container_ListPathAny {
 	return n
 }
 `,
+	}, {
+		name:                    "keyless list is skipped",
+		inDirectory:             deepSchemaDirectories["/root-module/container"],
+		inDirectories:           deepSchemaDirectories,
+		inFieldName:             "keyless-list",
+		inUniqueFieldName:       "List",
+		inPathStructSuffix:      "Path",
+		inGenerateWildcardPaths: true,
+		want:                    ``,
 	}, {
 		name:                    "inner container",
 		inDirectory:             deepSchemaDirectories["/root-module/container"],
