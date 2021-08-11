@@ -1342,9 +1342,19 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			wantErr: `got float64 type for field decimal-leaf, expect string`,
 		},
 		{
+			desc:    "decimal bad type",
+			json:    `{"decimal-leaf" : "forty-two"}`,
+			wantErr: `error parsing forty-two for schema decimal-leaf: strconv.ParseFloat: parsing "forty-two": invalid syntax`,
+		},
+		{
 			desc: "empty valid type",
 			json: `{"empty-leaf": [null]}`,
 			want: LeafContainerStruct{EmptyLeaf: true},
+		},
+		{
+			desc:    "empty bad type",
+			json:    `{"empty-leaf": ["fish"]}`,
+			wantErr: "error parsing [fish] for schema empty-leaf: empty leaves must be [null]",
 		},
 		{
 			desc:    "empty bad type",
