@@ -256,7 +256,7 @@ func TestFixSchemaTreePath(t *testing.T) {
 		inPath:    "/system/config/hostname",
 		wantParts: []string{"system", "config", "hostname"},
 	}, {
-		name:    "simple relative path that does not need to be adjusted",
+		name:    "invalid relative path",
 		inPath:  "system/config/hostname",
 		wantErr: true,
 	}, {
