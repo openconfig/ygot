@@ -171,7 +171,7 @@ func removeXPATHNamespaces(path []string) ([]string, error) {
 	return fixedParts, nil
 }
 
-// fixSchemaTreePath takes an input path represented as a YANG schema path - i.e.,
+// fixSchemaTreePath takes an input path from a YANG "path" statement - e.g.,
 // /a/b/c/d and sanitises it for use in lookups within the schema tree. This
 // includes:
 //	- removing namespace prefixes from nodes.
@@ -188,7 +188,7 @@ func fixSchemaTreePath(path string, caller *yang.Entry) ([]string, error) {
 		if parts[0] == "" {
 			return parts[1:], nil
 		}
-		return parts, nil
+		return nil, fmt.Errorf("path statement has to begin with either '../' or '/': %s", path)
 	}
 
 	if caller == nil {

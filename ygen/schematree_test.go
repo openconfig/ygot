@@ -256,9 +256,9 @@ func TestFixSchemaTreePath(t *testing.T) {
 		inPath:    "/system/config/hostname",
 		wantParts: []string{"system", "config", "hostname"},
 	}, {
-		name:      "simple relative path that does not need to be adjusted",
-		inPath:    "system/config/hostname",
-		wantParts: []string{"system", "config", "hostname"},
+		name:    "simple relative path that does not need to be adjusted",
+		inPath:  "system/config/hostname",
+		wantErr: true,
 	}, {
 		name:      "path with keys in that should be removed",
 		inPath:    "/interfaces/interface[name=current()/../config/name]/config/admin-status",
