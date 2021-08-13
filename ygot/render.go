@@ -1041,6 +1041,53 @@ func rewriteModName(mod string, rules map[string]string) string {
 	return rules[mod]
 }
 
+// appmodsJSON determines what module names to append to the path in RFC7951
+// output mode given the field to marshal and the parent's module name, along
+// with the JSON output config. If nil is returned, then there are modules to
+// be appended. If an element is the empty string, it indicates that no module
+// name should be appended due to residing in the same module as the parent
+// module. If there are modules to be appended, it also returns the module to
+// which the field belongs. It will also return an error if it encounters one.
+func appmodsJSON(fType reflect.StructField, parentMod string, args jsonOutputConfig) ([][]string, string, error) {
+	var appmods [][]string
+	var chMod string
+
+	mapModules, err := structTagToLibModules(fType, args.rfc7951Config.PreferShadowPath)
+	if err != nil {
+		return nil, "", fmt.Errorf("%s: %v", fType.Name, err)
+	}
+	if len(mapModules) == 0 {
+		return nil, "", nil
+	}
+
+	for _, modulePath := range mapModules {
+		var appmod []string
+		prevMod := parentMod
+		for i := 0; i != modulePath.Len(); i++ {
+			mod, err := modulePath.StringElemAt(i)
+			if err != nil {
+				return nil, "", err
+			}
+			// First we check whether we are rewriting the name of the module, so that
+			// we do the right comparison.
+			mod = rewriteModName(mod, args.rfc7951Config.RewriteModuleNames)
+			if mod == prevMod {
+				// The empty string indicates to not append a module name.
+				mod = ""
+			} else {
+				prevMod = mod
+			}
+			appmod = append(appmod, mod)
+		}
+		if chMod != "" && prevMod != chMod {
+			return nil, "", fmt.Errorf("%s: child modules between all paths are not equal: %v", fType.Name, mapModules)
+		}
+		appmods = append(appmods, appmod)
+		chMod = prevMod
+	}
+	return appmods, chMod, nil
+}
+
 // structJSON marshals a GoStruct to a map[string]interface{} which can be
 // handed to JSON marshal. parentMod specifies the module that the supplied
 // GoStruct is defined within such that RFC7951 format JSON is able to consider
@@ -1058,60 +1105,18 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 	// json.Marshal(Text)?
 	jsonout := map[string]interface{}{}
 
-FieldLoop:
 	for i := 0; i < sval.NumField(); i++ {
 		field := sval.Field(i)
 		fType := stype.Field(i)
 
-		// Determine whether we should append a module name to the path in RFC7951
-		// output mode.
-		var (
-			appmods       [][]string
-			appendModName bool
-		)
-
-		pmod := parentMod
+		// Module names to append to the path in RFC7951 output mode.
+		var appmods [][]string
+		var chMod string
 		if args.jType == RFC7951 && args.rfc7951Config != nil && args.rfc7951Config.AppendModuleName {
-			// FIXME(wenbli): Put this in a function.
-			mapModules, err := structTagToLibModules(fType, args.rfc7951Config.PreferShadowPath)
-			if err != nil {
-				errs.Add(fmt.Errorf("%s: %v", fType.Name, err))
+			var err error
+			if appmods, chMod, err = appmodsJSON(fType, parentMod, args); err != nil {
+				errs.Add(err)
 				continue
-			}
-			if len(mapModules) > 0 {
-				appendModName = true
-				var chMod string
-				for _, modulePath := range mapModules {
-					var appmod []string
-					prevMod := pmod
-					for i := 0; i != modulePath.Len(); i++ {
-						mod, err := modulePath.StringElemAt(i)
-						if err != nil {
-							errs.Add(err)
-							continue FieldLoop
-						}
-						// First we check whether we are rewriting the name of the module, so that
-						// we do the right comparison.
-						mod = rewriteModName(mod, args.rfc7951Config.RewriteModuleNames)
-						if mod == prevMod {
-							// The empty string indicates to subsequent logic to not
-							// apply a module name.
-							mod = ""
-						} else {
-							prevMod = mod
-						}
-						appmod = append(appmod, mod)
-					}
-					if chMod != "" && prevMod != chMod {
-						errs.Add(fmt.Errorf("%s: child modules between all paths are not equal: %v", fType.Name, mapModules))
-						continue FieldLoop
-					}
-					appmods = append(appmods, appmod)
-					chMod = prevMod
-				}
-				// Update the parent module name to be used for subsequent
-				// children.
-				pmod = chMod
 			}
 		}
 
@@ -1121,13 +1126,14 @@ FieldLoop:
 			continue
 		}
 
-		// FIXME(wenbli): Add comment on this.
+		// s is the fake root if its path tag is empty. In this case,
+		// we want to forward the parent module to the child nodes.
 		isFakeRoot := len(mapPaths) == 1 && mapPaths[0].Len() == 0
 		if isFakeRoot {
-			pmod = parentMod
+			chMod = parentMod
 		}
 
-		value, err := jsonValue(field, pmod, args)
+		value, err := jsonValue(field, chMod, args)
 		if err != nil {
 			errs.Add(err)
 			continue
@@ -1148,47 +1154,48 @@ FieldLoop:
 				}
 			} else {
 				errs.Add(fmt.Errorf("empty path specified for non-root entity"))
+			}
+			continue
+		}
+
+		if appmods != nil && len(mapPaths) != len(appmods) {
+			errs.Add(fmt.Errorf("%s: number of paths and modules in struct tag not the same: (paths: %v, modules: %v)", fType.Name, len(mapPaths), len(appmods)))
+			continue
+		}
+
+		for i, p := range mapPaths {
+			if appmods != nil && p.Len() != len(appmods[i]) {
+				errs.Add(fmt.Errorf("number of paths and modules elements not the same: (paths: %v, modules: %v)", p, appmods[i]))
 				continue
 			}
-		} else {
-			if appendModName && len(mapPaths) != len(appmods) {
-				errs.Add(fmt.Errorf("%s: number of paths and modules in struct tag not the same: (paths: %v, modules: %v)", fType.Name, len(mapPaths), len(appmods)))
-				continue
-			}
-			for i, p := range mapPaths {
-				if appendModName && p.Len() != len(appmods[i]) {
-					errs.Add(fmt.Errorf("number of paths and modules elements not the same: (paths: %v, modules: %v)", p, appmods[i]))
-					continue
-				}
 
-				parent := jsonout
-				j := 0
-				for ; j != p.Len()-1; j++ {
-					k, err := p.StringElemAt(j)
-					if err != nil {
-						errs.Add(err)
-						continue
-					}
-
-					if appendModName && appmods[i][j] != "" {
-						k = fmt.Sprintf("%s:%s", appmods[i][j], k)
-					}
-
-					if _, ok := parent[k]; !ok {
-						parent[k] = map[string]interface{}{}
-					}
-					parent = parent[k].(map[string]interface{})
-				}
-				k, err := p.LastStringElem()
+			parent := jsonout
+			j := 0
+			for ; j != p.Len()-1; j++ {
+				k, err := p.StringElemAt(j)
 				if err != nil {
 					errs.Add(err)
 					continue
 				}
-				if appendModName && appmods[i][j] != "" {
+
+				if appmods != nil && appmods[i][j] != "" {
 					k = fmt.Sprintf("%s:%s", appmods[i][j], k)
 				}
-				parent[k] = value
+
+				if _, ok := parent[k]; !ok {
+					parent[k] = map[string]interface{}{}
+				}
+				parent = parent[k].(map[string]interface{})
 			}
+			k, err := p.LastStringElem()
+			if err != nil {
+				errs.Add(err)
+				continue
+			}
+			if appmods != nil && appmods[i][j] != "" {
+				k = fmt.Sprintf("%s:%s", appmods[i][j], k)
+			}
+			parent[k] = value
 		}
 	}
 

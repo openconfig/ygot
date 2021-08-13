@@ -158,7 +158,7 @@ func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, abso
 	}
 	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
 	var fieldSliceModules []string
-	for _, e := range SchemaListNoChoiceCase(field) {
+	for _, e := range util.SchemaEntryPathNoChoiceCase(field) {
 		im, err := e.InstantiatingModule()
 		if err != nil {
 			return nil, nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): cannot find instantiating module for field %q in Directory %s", shadowSchemaPaths, fieldName, parent.Path)
@@ -178,31 +178,6 @@ func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, abso
 		return nil, nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): field %v is not a valid child of %v", shadowSchemaPaths, fieldSlicePath, parent.Path)
 	}
 	return fieldSlicePath[len(parent.Path)-1:], fieldSliceModules[len(parent.Path)-1:], nil
-}
-
-// FIXME(wenbli): Move this to util package.
-// SchemaListNoChoiceCase takes an input yang.Entry and walks up the tree to find
-// its path, expressed as a slice of Entrys, which is returned.
-func SchemaListNoChoiceCase(elem *yang.Entry) []*yang.Entry {
-	var pp []*yang.Entry
-	if elem == nil {
-		return pp
-	}
-	e := elem
-	for ; e.Parent != nil; e = e.Parent {
-		if !util.IsChoiceOrCase(e) {
-			pp = append(pp, e)
-		}
-	}
-	pp = append(pp, e)
-
-	// Reverse the slice that was specified to us as it was appended to
-	// from the leaf to the root.
-	for i := len(pp)/2 - 1; i >= 0; i-- {
-		o := len(pp) - 1 - i
-		pp[i], pp[o] = pp[o], pp[i]
-	}
-	return pp
 }
 
 // findMapPaths takes an input field name for a parent Directory and calculates the set of schemapaths that it represents.
@@ -236,7 +211,7 @@ func findMapPaths(parent *Directory, fieldName string, compressPaths, shadowSche
 	}
 	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
 	var fieldSliceModules []string
-	for _, e := range SchemaListNoChoiceCase(field) {
+	for _, e := range util.SchemaEntryPathNoChoiceCase(field) {
 		im, err := e.InstantiatingModule()
 		if err != nil {
 			return nil, nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): cannot find instantiating module for field %q in Directory %s", shadowSchemaPaths, fieldName, parent.Path)
