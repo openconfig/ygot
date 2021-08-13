@@ -104,16 +104,26 @@ func SchemaTreePathNoModule(e *yang.Entry) string {
 // its path, expressed as a slice of strings, which is returned.
 func SchemaPathNoChoiceCase(elem *yang.Entry) []string {
 	var pp []string
+	for _, e := range SchemaEntryPathNoChoiceCase(elem) {
+		pp = append(pp, e.Name)
+	}
+	return pp
+}
+
+// SchemaEntryPathNoChoiceCase takes an input yang.Entry and walks up the tree to find
+// its path, expressed as a slice of Entrys, which is returned.
+func SchemaEntryPathNoChoiceCase(elem *yang.Entry) []*yang.Entry {
+	var pp []*yang.Entry
 	if elem == nil {
 		return pp
 	}
 	e := elem
 	for ; e.Parent != nil; e = e.Parent {
 		if !IsChoiceOrCase(e) {
-			pp = append(pp, e.Name)
+			pp = append(pp, e)
 		}
 	}
-	pp = append(pp, e.Name)
+	pp = append(pp, e)
 
 	// Reverse the slice that was specified to us as it was appended to
 	// from the leaf to the root.

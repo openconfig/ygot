@@ -359,6 +359,50 @@ func TestSchemaPathNoChoiceCase(t *testing.T) {
 	}
 }
 
+func TestSchemaEntryPathNoChoiceCase(t *testing.T) {
+	containerWithChoiceSchema := getContainerWithChoiceSchema()
+
+	tests := []struct {
+		desc  string
+		entry *yang.Entry
+		want  []*yang.Entry
+	}{
+		{
+			desc:  "nil entry",
+			entry: nil,
+			want:  nil,
+		},
+		{
+			desc:  "choice entry",
+			entry: containerWithChoiceSchema.Dir["choice1"],
+			want:  []*yang.Entry{containerWithChoiceSchema},
+		},
+		{
+			desc:  "case entry",
+			entry: containerWithChoiceSchema.Dir["choice1"].Dir["case1"],
+			want:  []*yang.Entry{containerWithChoiceSchema},
+		},
+		{
+			desc:  "case1-leaf1",
+			entry: containerWithChoiceSchema.Dir["choice1"].Dir["case1"].Dir["case1-leaf1"],
+			want:  []*yang.Entry{containerWithChoiceSchema, containerWithChoiceSchema.Dir["choice1"].Dir["case1"].Dir["case1-leaf1"]},
+		},
+		{
+			desc:  "case21-leaf",
+			entry: containerWithChoiceSchema.Dir["choice1"].Dir["case2"].Dir["case2_choice1"].Dir["case21"].Dir["case21-leaf"],
+			want:  []*yang.Entry{containerWithChoiceSchema, containerWithChoiceSchema.Dir["choice1"].Dir["case2"].Dir["case2_choice1"].Dir["case21"].Dir["case21-leaf"]},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got, want := SchemaEntryPathNoChoiceCase(tt.entry), tt.want; !reflect.DeepEqual(got, want) {
+				t.Errorf("got:\n%v\nwant:\n%v\n", got, want)
+			}
+		})
+	}
+}
+
 func TestRemoveXPATHPredicates(t *testing.T) {
 	tests := []struct {
 		desc    string
