@@ -1679,14 +1679,16 @@ func (*structMultiKeyChild) IsYANGGoStruct() {}
 
 type ietfRenderExample struct {
 	F1 *string                 `path:"f1" module:"f1mod"`
-	F2 *string                 `path:"config/f2" module:"f2mod"`
+	F2 *string                 `path:"config/f2" module:"f2mod/f2mod"`
 	F3 *ietfRenderExampleChild `path:"f3" module:"f1mod"`
+	F6 *string                 `path:"config/f6" module:"f1mod/f2mod"`
+	F7 *string                 `path:"config/f7" module:"f2mod/f3mod"`
 }
 
 func (*ietfRenderExample) IsYANGGoStruct() {}
 
 type ietfRenderExampleChild struct {
-	F4 *string `path:"config/f4" module:"f42mod"`
+	F4 *string `path:"config/f4" module:"f42mod/f42mod"`
 	F5 *string `path:"f5" module:"f1mod"`
 }
 
@@ -1726,15 +1728,15 @@ type diffModAtRoot struct {
 func (*diffModAtRoot) IsYANGGoStruct() {}
 
 type diffModAtRootChild struct {
-	ValueOne   *string `path:"/foo/value-one" module:"m2"`
-	ValueTwo   *string `path:"/foo/value-two" module:"m3"`
-	ValueThree *string `path:"/foo/value-three" module:"m1"`
+	ValueOne   *string `path:"/foo/value-one" module:"/m1/m2"`
+	ValueTwo   *string `path:"/foo/value-two" module:"/m1/m3"`
+	ValueThree *string `path:"/foo/value-three" module:"/m1/m1"`
 }
 
 func (*diffModAtRootChild) IsYANGGoStruct() {}
 
 type diffModAtRootElem struct {
-	C *diffModAtRootElemTwo `path:"/baz/c" module:"m1"`
+	C *diffModAtRootElemTwo `path:"/baz/c" module:"/m1/m1"`
 }
 
 func (*diffModAtRootElem) IsYANGGoStruct() {}
@@ -2461,12 +2463,18 @@ func TestConstructJSON(t *testing.T) {
 				F4: String("baz"),
 				F5: String("hat"),
 			},
+			F6: String("mat"),
+			F7: String("bat"),
 		},
 		inAppendMod: true,
 		wantIETF: map[string]interface{}{
 			"f1mod:f1": "foo",
+			"f1mod:config": map[string]interface{}{
+				"f2mod:f6": "mat",
+			},
 			"f2mod:config": map[string]interface{}{
-				"f2": "bar",
+				"f2":       "bar",
+				"f3mod:f7": "bat",
 			},
 			"f1mod:f3": map[string]interface{}{
 				"f42mod:config": map[string]interface{}{
@@ -2479,6 +2487,8 @@ func TestConstructJSON(t *testing.T) {
 			"f1": "foo",
 			"config": map[string]interface{}{
 				"f2": "bar",
+				"f6": "mat",
+				"f7": "bat",
 			},
 			"f3": map[string]interface{}{
 				"config": map[string]interface{}{

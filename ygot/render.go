@@ -1058,6 +1058,7 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 	// json.Marshal(Text)?
 	jsonout := map[string]interface{}{}
 
+FieldLoop:
 	for i := 0; i < sval.NumField(); i++ {
 		field := sval.Field(i)
 		fType := stype.Field(i)
@@ -1065,30 +1066,52 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 		// Determine whether we should append a module name to the path in RFC7951
 		// output mode.
 		var (
-			appmod        string
+			appmods       [][]string
 			appendModName bool
 		)
 
 		pmod := parentMod
 		if args.jType == RFC7951 && args.rfc7951Config != nil && args.rfc7951Config.AppendModuleName {
-			if chMod, ok := fType.Tag.Lookup("module"); ok {
-				// If the child module isn't the same as the parent module,
-				// then appmod stores the name of the module to prefix to paths
-				// within this context.
-
-				// First we check whether we are rewriting the name of the module, so that
-				// we do the right comparison.
-				chMod = rewriteModName(chMod, args.rfc7951Config.RewriteModuleNames)
-
-				if chMod != parentMod {
-					appmod = chMod
+			// FIXME(wenbli): Put this in a function.
+			mapModules, err := structTagToLibModules(fType, args.rfc7951Config.PreferShadowPath)
+			if err != nil {
+				errs.Add(fmt.Errorf("%s: %v", fType.Name, err))
+				continue
+			}
+			if len(mapModules) > 0 {
+				appendModName = true
+				var chMod string
+				for _, modulePath := range mapModules {
+					var appmod []string
+					prevMod := pmod
+					for i := 0; i != modulePath.Len(); i++ {
+						mod, err := modulePath.StringElemAt(i)
+						if err != nil {
+							errs.Add(err)
+							continue FieldLoop
+						}
+						// First we check whether we are rewriting the name of the module, so that
+						// we do the right comparison.
+						mod = rewriteModName(mod, args.rfc7951Config.RewriteModuleNames)
+						if mod == prevMod {
+							// The empty string indicates to subsequent logic to not
+							// apply a module name.
+							mod = ""
+						} else {
+							prevMod = mod
+						}
+						appmod = append(appmod, mod)
+					}
+					if chMod != "" && prevMod != chMod {
+						errs.Add(fmt.Errorf("%s: child modules between all paths are not equal: %v", fType.Name, mapModules))
+						continue FieldLoop
+					}
+					appmods = append(appmods, appmod)
+					chMod = prevMod
 				}
 				// Update the parent module name to be used for subsequent
 				// children.
 				pmod = chMod
-			}
-			if appmod != "" {
-				appendModName = true
 			}
 		}
 
@@ -1096,6 +1119,12 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 		if err != nil {
 			errs.Add(fmt.Errorf("%s: %v", fType.Name, err))
 			continue
+		}
+
+		// FIXME(wenbli): Add comment on this.
+		isFakeRoot := len(mapPaths) == 1 && mapPaths[0].Len() == 0
+		if isFakeRoot {
+			pmod = parentMod
 		}
 
 		value, err := jsonValue(field, pmod, args)
@@ -1112,60 +1141,39 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			continue
 		}
 
-		for _, p := range mapPaths {
-			v, ok := value.(map[string]interface{})
-			switch p.Len() {
-			case 0:
-				if ok {
-					for mk, mv := range v {
-						k := mk
-						if appendModName {
-							// Append the module name for the 0th element if
-							// specified to do so. This is the module name of
-							// the root.
-							k = fmt.Sprintf("%s:%s", appmod, mk)
-						}
-						jsonout[k] = mv
-					}
-				} else {
-					errs.Add(fmt.Errorf("empty path specified for non-root entity"))
+		if isFakeRoot {
+			if v, ok := value.(map[string]interface{}); ok {
+				for mk, mv := range v {
+					jsonout[mk] = mv
+				}
+			} else {
+				errs.Add(fmt.Errorf("empty path specified for non-root entity"))
+				continue
+			}
+		} else {
+			if appendModName && len(mapPaths) != len(appmods) {
+				errs.Add(fmt.Errorf("%s: number of paths and modules in struct tag not the same: (paths: %v, modules: %v)", fType.Name, len(mapPaths), len(appmods)))
+				continue
+			}
+			for i, p := range mapPaths {
+				if appendModName && p.Len() != len(appmods[i]) {
+					errs.Add(fmt.Errorf("number of paths and modules elements not the same: (paths: %v, modules: %v)", p, appmods[i]))
 					continue
 				}
-			case 1:
-				pelem, err := p.StringElemAt(0)
-				if err != nil {
-					errs.Add(err)
-					continue
-				}
-				if appendModName {
-					pelem = fmt.Sprintf("%s:%s", appmod, pelem)
-				}
-				jsonout[pelem] = value
-			default:
-				var nilParent bool
+
 				parent := jsonout
-				for i := 0; i < p.Len()-1; i++ {
-					k, err := p.StringElemAt(i)
+				j := 0
+				for ; j != p.Len()-1; j++ {
+					k, err := p.StringElemAt(j)
 					if err != nil {
 						errs.Add(err)
 						continue
 					}
 
-					switch {
-					case (i == 0 && appendModName && !p.isAbsolute):
-						// If the path is not absolute, then path compression has
-						// occurred - and therefore the elements must be in the
-						// same module. In this case, we append the module name
-						// to the first element in the list.
-						fallthrough
-					case i == 0 && appendModName && parentMod == "":
-						// For the first element, regardless of whether the path
-						// was absolute or not, we always must append the module
-						// name if there was no parent module, since this is an
-						// entity at the root.
-						k = fmt.Sprintf("%s:%s", appmod, k)
-						nilParent = true
+					if appendModName && appmods[i][j] != "" {
+						k = fmt.Sprintf("%s:%s", appmods[i][j], k)
 					}
+
 					if _, ok := parent[k]; !ok {
 						parent[k] = map[string]interface{}{}
 					}
@@ -1176,20 +1184,10 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 					errs.Add(err)
 					continue
 				}
-				if p.isAbsolute && appendModName && !nilParent {
-					// If the path was not absolute, then we need to prepend the
-					// module name since the last entity in the path was in a
-					// different module to its parent. We do not need to check the
-					// values of the module names, since in the case that the
-					// module is the same appendModName is false.
-					//
-					// In the case that the parent was nil, then we must not
-					// append the name here, since we must be within the same
-					// module.
-					k = fmt.Sprintf("%s:%s", appmod, k)
+				if appendModName && appmods[i][j] != "" {
+					k = fmt.Sprintf("%s:%s", appmods[i][j], k)
 				}
 				parent[k] = value
-
 			}
 		}
 	}

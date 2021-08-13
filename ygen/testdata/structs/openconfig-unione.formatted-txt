@@ -71,8 +71,8 @@ type UnionUnsupported struct {
 
 // DupEnum represents the /openconfig-unione/dup-enum YANG schema element.
 type DupEnum struct {
-	A	E_DupEnum_A	`path:"state/A" module:"openconfig-unione"`
-	B	E_DupEnum_B	`path:"state/B" module:"openconfig-unione"`
+	A	E_DupEnum_A	`path:"state/A" module:"openconfig-unione/openconfig-unione"`
+	B	E_DupEnum_B	`path:"state/B" module:"openconfig-unione/openconfig-unione"`
 }
 
 // IsYANGGoStruct ensures that DupEnum implements the yang.GoStruct
@@ -92,11 +92,11 @@ func (*Platform) IsYANGGoStruct() {}
 
 // Platform_Component represents the /openconfig-unione/platform/component YANG schema element.
 type Platform_Component struct {
-	E1	Platform_Component_E1_Union	`path:"state/e1" module:"openconfig-unione"`
-	Enumerated	Platform_Component_Enumerated_Union	`path:"state/enumerated" module:"openconfig-unione"`
-	Power	Platform_Component_Power_Union	`path:"state/power" module:"openconfig-unione"`
-	R1	Platform_Component_E1_Union	`path:"state/r1" module:"openconfig-unione"`
-	Type	Platform_Component_Type_Union	`path:"state/type" module:"openconfig-unione"`
+	E1	Platform_Component_E1_Union	`path:"state/e1" module:"openconfig-unione/openconfig-unione"`
+	Enumerated	Platform_Component_Enumerated_Union	`path:"state/enumerated" module:"openconfig-unione/openconfig-unione"`
+	Power	Platform_Component_Power_Union	`path:"state/power" module:"openconfig-unione/openconfig-unione"`
+	R1	Platform_Component_E1_Union	`path:"state/r1" module:"openconfig-unione/openconfig-unione"`
+	Type	Platform_Component_Type_Union	`path:"state/type" module:"openconfig-unione/openconfig-unione"`
 }
 
 // IsYANGGoStruct ensures that Platform_Component implements the yang.GoStruct

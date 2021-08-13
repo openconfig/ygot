@@ -397,8 +397,8 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, 
 for example, with structs schema:
 
 type Bgp_Neighbor_RouteReflector struct {
-	RouteReflectorClient    *bool                                                     `path:"config/route-reflector-client" module:"openconfig-bgp"`
-	RouteReflectorClusterId Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union `path:"config/route-reflector-cluster-id" module:"openconfig-bgp"`
+	RouteReflectorClient    *bool                                                     `path:"config/route-reflector-client" module:"openconfig-bgp/openconfig-bgp"`
+	RouteReflectorClusterId Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union `path:"config/route-reflector-cluster-id" module:"openconfig-bgp/openconfig-bgp"`
 }
 type Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union interface {
 	Is_Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union()

@@ -151,8 +151,8 @@ func (t *Parent) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes 
 
 // Parent_Child represents the /enum-multi-module/parent/child YANG schema element.
 type Parent_Child struct {
-	InlineMultiValue	Parent_Child_InlineMultiValue_Union	`path:"state/inline-multi-value" module:"enum-multi-module"`
-	MultiValue	Parent_Child_MultiValue_Union	`path:"state/multi-value" module:"enum-multi-module"`
+	InlineMultiValue	Parent_Child_InlineMultiValue_Union	`path:"state/inline-multi-value" module:"enum-multi-module/enum-multi-module"`
+	MultiValue	Parent_Child_MultiValue_Union	`path:"state/multi-value" module:"enum-multi-module/enum-multi-module"`
 }
 
 // IsYANGGoStruct ensures that Parent_Child implements the yang.GoStruct

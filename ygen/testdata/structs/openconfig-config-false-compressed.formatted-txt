@@ -71,7 +71,7 @@ type UnionUnsupported struct {
 
 // A represents the /openconfig-config-false/a YANG schema element.
 type A struct {
-	A	*string	`path:"config/a" module:"openconfig-config-false"`
+	A	*string	`path:"config/a" module:"openconfig-config-false/openconfig-config-false"`
 }
 
 // IsYANGGoStruct ensures that A implements the yang.GoStruct

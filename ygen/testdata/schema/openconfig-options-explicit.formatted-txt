@@ -173,10 +173,10 @@ func (t *Parent) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes 
 
 // Parent_Child represents the /openconfig-simple/parent/child YANG schema element.
 type Parent_Child struct {
-	Four	Binary	`path:"config/four" module:"openconfig-simple"`
-	One	*string	`path:"config/one" module:"openconfig-simple"`
-	Three	E_Child_Three	`path:"config/three" module:"openconfig-simple"`
-	Two	*string	`path:"state/two" module:"openconfig-simple"`
+	Four	Binary	`path:"config/four" module:"openconfig-simple/openconfig-simple"`
+	One	*string	`path:"config/one" module:"openconfig-simple/openconfig-simple"`
+	Three	E_Child_Three	`path:"config/three" module:"openconfig-simple/openconfig-simple"`
+	Two	*string	`path:"state/two" module:"openconfig-simple/openconfig-simple"`
 }
 
 // IsYANGGoStruct ensures that Parent_Child implements the yang.GoStruct
@@ -198,7 +198,7 @@ func (t *Parent_Child) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnum
 
 // RemoteContainer represents the /openconfig-simple/remote-container YANG schema element.
 type RemoteContainer struct {
-	ALeaf	*string	`path:"config/a-leaf" module:"openconfig-simple"`
+	ALeaf	*string	`path:"config/a-leaf" module:"openconfig-simple/openconfig-simple"`
 }
 
 // IsYANGGoStruct ensures that RemoteContainer implements the yang.GoStruct

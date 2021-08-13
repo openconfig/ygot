@@ -481,11 +481,11 @@ func (*mapStructTestOne) ΛEnumTypeMap() map[string][]reflect.Type { return nil 
 // mapStructTestOne_Child is a child structure of the mapStructTestOne test
 // case.
 type mapStructTestOneChild struct {
-	FieldOne   *string  `path:"config/field-one" module:"test-one"`
-	FieldTwo   *uint32  `path:"config/field-two" module:"test-one"`
-	FieldThree Binary   `path:"config/field-three" module:"test-one"`
-	FieldFour  []Binary `path:"config/field-four" module:"test-one"`
-	FieldFive  *uint64  `path:"config/field-five" module:"test-five"`
+	FieldOne   *string  `path:"config/field-one" module:"test-one/test-one"`
+	FieldTwo   *uint32  `path:"config/field-two" module:"test-one/test-one"`
+	FieldThree Binary   `path:"config/field-three" module:"test-one/test-one"`
+	FieldFour  []Binary `path:"config/field-four" module:"test-one/test-one"`
+	FieldFive  *uint64  `path:"config/field-five" module:"test-five/test-five"`
 }
 
 // IsYANGGoStruct makes sure that we implement the GoStruct interface.

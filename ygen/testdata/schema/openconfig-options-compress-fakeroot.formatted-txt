@@ -128,7 +128,7 @@ func Unmarshal(data []byte, destStruct ygot.GoStruct, opts ...ytypes.UnmarshalOp
 
 // Bgp represents the /openconfig-options/bgp YANG schema element.
 type Bgp struct {
-	Neighbor	map[string]*Bgp_Neighbor	`path:"neighbors/neighbor" module:"openconfig-options"`
+	Neighbor	map[string]*Bgp_Neighbor	`path:"neighbors/neighbor" module:"openconfig-options/openconfig-options"`
 }
 
 // IsYANGGoStruct ensures that Bgp implements the yang.GoStruct
@@ -177,10 +177,10 @@ func (t *Bgp) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
 // Bgp_Neighbor represents the /openconfig-options/bgp/neighbors/neighbor YANG schema element.
 type Bgp_Neighbor struct {
-	EnabledAddressFamily	[]Bgp_Neighbor_EnabledAddressFamily_Union	`path:"state/enabled-address-family" module:"openconfig-options"`
-	HoldTime	*uint32	`path:"config/hold-time" module:"openconfig-options"`
-	PeerAddress	*string	`path:"config/peer-address|peer-address" module:"openconfig-options"`
-	SessionState	E_Neighbor_SessionState	`path:"state/session-state" module:"openconfig-options"`
+	EnabledAddressFamily	[]Bgp_Neighbor_EnabledAddressFamily_Union	`path:"state/enabled-address-family" module:"openconfig-options/openconfig-options"`
+	HoldTime	*uint32	`path:"config/hold-time" module:"openconfig-options/openconfig-options"`
+	PeerAddress	*string	`path:"config/peer-address|peer-address" module:"openconfig-options/openconfig-options|openconfig-options"`
+	SessionState	E_Neighbor_SessionState	`path:"state/session-state" module:"openconfig-options/openconfig-options"`
 }
 
 // IsYANGGoStruct ensures that Bgp_Neighbor implements the yang.GoStruct

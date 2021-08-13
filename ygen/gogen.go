@@ -21,8 +21,6 @@ import (
 	"strings"
 	"text/template"
 
-	log "github.com/golang/glog"
-
 	"github.com/openconfig/gnmi/errlist"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
@@ -1574,15 +1572,19 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		// Find the schema paths that the field corresponds to, such that these can
 		// be used as annotations (tags) within the generated struct. Go paths are
 		// always relative.
-		schemaMapPaths, err := findMapPaths(targetStruct, fName, compressPaths, false, false)
+		schemaMapPaths, schemaModulePaths, err := findMapPaths(targetStruct, fName, compressPaths, false, false)
 		if err != nil {
 			errs = append(errs, err)
 			continue
 		}
 		addSchemaPathsToBuffers(schemaMapPaths, true)
 
+		// Append a tag indicating the module that instantiates this field.
+		tagBuf.WriteString(` module:"`)
+		addSchemaPathsToBuffers(schemaModulePaths, false)
+
 		if ignoreShadowSchemaPaths {
-			shadowSchemaMapPaths, err := findMapPaths(targetStruct, fName, compressPaths, true, false)
+			shadowSchemaMapPaths, shadowSchemaModulePaths, err := findMapPaths(targetStruct, fName, compressPaths, true, false)
 			if err != nil {
 				errs = append(errs, err)
 				continue
@@ -1591,19 +1593,14 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 				tagBuf.WriteString(` shadow-path:"`)
 				addSchemaPathsToBuffers(shadowSchemaMapPaths, false)
 			}
+			if len(shadowSchemaModulePaths) > 0 {
+				// Append a tag indicating the module that instantiates this field.
+				tagBuf.WriteString(` shadow-module:"`)
+				addSchemaPathsToBuffers(shadowSchemaModulePaths, false)
+			}
 		}
 
 		metadataTagBuf.WriteString(` ygotAnnotation:"true"`)
-
-		// Append a tag indicating the module that instantiates this field.
-		im, err := field.InstantiatingModule()
-		if err != nil {
-			// This is a non-fatal error, since it can only occur in testing. All YANG modules
-			// must have a specified namespace.
-			log.Infof("field %s has a nil module, error discarded", field.Path())
-		} else {
-			tagBuf.WriteString(fmt.Sprintf(` module:"%s"`, im))
-		}
 
 		fieldDef.Tags = tagBuf.String()
 
