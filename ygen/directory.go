@@ -164,7 +164,7 @@ func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, abso
 	for _, e := range util.SchemaEntryPathNoChoiceCase(field) {
 		im, err := e.InstantiatingModule()
 		if err != nil {
-			return nil, nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): cannot find instantiating module for field %q in Directory %s", shadowSchemaPaths, fieldName, parent.Path)
+			return nil, nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): cannot find instantiating module for field %q in Directory %s: err", shadowSchemaPaths, fieldName, parent.Path, err)
 		}
 		fieldSliceModules = append(fieldSliceModules, im)
 	}
@@ -219,7 +219,7 @@ func findMapPaths(parent *Directory, fieldName string, compressPaths, shadowSche
 	for _, e := range util.SchemaEntryPathNoChoiceCase(field) {
 		im, err := e.InstantiatingModule()
 		if err != nil {
-			return nil, nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): cannot find instantiating module for field %q in Directory %s", shadowSchemaPaths, fieldName, parent.Path)
+			return nil, nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): cannot find instantiating module for field %q in Directory %s: %v", shadowSchemaPaths, fieldName, parent.Path, err)
 		}
 		fieldSliceModules = append(fieldSliceModules, im)
 	}
