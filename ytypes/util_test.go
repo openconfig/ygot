@@ -577,12 +577,26 @@ func TestStringToKeyType(t *testing.T) {
 		in:          "E_VALUE_FORTY_TWO",
 		want:        EnumType(42),
 	}, {
+		name:             "enum",
+		inSchema:         listSchema.Dir["enumKey"],
+		inParent:         allKeysListStruct{},
+		inFieldName:      "EnumKey",
+		in:               "E_VALUE_FORTY_TWO",
+		wantErrSubstring: "is not a struct ptr",
+	}, {
 		name:        "union/enum",
 		inSchema:    listSchema.Dir["unionKeySimple"],
 		inParent:    &allKeysListStruct{},
 		inFieldName: "UnionKeySimple",
 		in:          "E_VALUE_FORTY_TWO",
 		want:        EnumType(42),
+	}, {
+		name:             "union/enum",
+		inSchema:         listSchema.Dir["unionKeySimple"],
+		inParent:         &allKeysListStruct{},
+		inFieldName:      "UnionKeySimple",
+		in:               "E_VALUE_FORTY_TWO_NEMATODES",
+		wantErrSubstring: `could not find suitable union type to unmarshal value "E_VALUE_FORTY_TWO_NEMATODES"`,
 	}, {
 		name:        "union/binary",
 		inSchema:    listSchema.Dir["unionKeySimple"],
