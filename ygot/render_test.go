@@ -1689,6 +1689,12 @@ type structWithMultiKeyInvalidModuleTag4 struct {
 
 func (*structWithMultiKeyInvalidModuleTag4) IsYANGGoStruct() {}
 
+type structWithMultiKeyInvalidModuleTag5 struct {
+	Map map[mapKey]*structMultiKeyChild `path:"foo/bar" module:"rootmod/rootmod2|rootmod"`
+}
+
+func (*structWithMultiKeyInvalidModuleTag5) IsYANGGoStruct() {}
+
 type mapKey struct {
 	F1 string `path:"fOne"`
 	F2 string `path:"fTwo"`
@@ -2112,6 +2118,15 @@ func TestConstructJSON(t *testing.T) {
 	}, {
 		name: "empty modules tag",
 		in: &structWithMultiKeyInvalidModuleTag4{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inAppendMod: true,
+		wantErr:     true,
+	}, {
+		name: "module paths with inconsistent child modules",
+		in: &structWithMultiKeyInvalidModuleTag5{
 			Map: map[mapKey]*structMultiKeyChild{
 				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
 			},
