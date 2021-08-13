@@ -1660,10 +1660,34 @@ type invalidGoStructMap struct {
 func (*invalidGoStructMap) IsYANGGoStruct() {}
 
 type structWithMultiKey struct {
-	Map map[mapKey]*structMultiKeyChild `path:"foo"`
+	Map map[mapKey]*structMultiKeyChild `path:"foo" module:"rootmod"`
 }
 
 func (*structWithMultiKey) IsYANGGoStruct() {}
+
+type structWithMultiKeyInvalidModuleTag struct {
+	Map map[mapKey]*structMultiKeyChild `path:"foo/bar" module:"rootmod"`
+}
+
+func (*structWithMultiKeyInvalidModuleTag) IsYANGGoStruct() {}
+
+type structWithMultiKeyInvalidModuleTag2 struct {
+	Map map[mapKey]*structMultiKeyChild `path:"foo" module:"rootmod/rootmod"`
+}
+
+func (*structWithMultiKeyInvalidModuleTag2) IsYANGGoStruct() {}
+
+type structWithMultiKeyInvalidModuleTag3 struct {
+	Map map[mapKey]*structMultiKeyChild `path:"foo/bar" module:"rootmod/rootmod|rootmod"`
+}
+
+func (*structWithMultiKeyInvalidModuleTag3) IsYANGGoStruct() {}
+
+type structWithMultiKeyInvalidModuleTag4 struct {
+	Map map[mapKey]*structMultiKeyChild `path:"foo/bar" module:""`
+}
+
+func (*structWithMultiKeyInvalidModuleTag4) IsYANGGoStruct() {}
 
 type mapKey struct {
 	F1 string `path:"fOne"`
@@ -1671,8 +1695,8 @@ type mapKey struct {
 }
 
 type structMultiKeyChild struct {
-	F1 *string `path:"config/fOne|fOne" shadow-path:"state/fOne|fOne"`
-	F2 *string `path:"config/fTwo|fTwo" shadow-path:"state/fTwo|fTwo"`
+	F1 *string `path:"config/fOne|fOne" module:"fmod/f1mod|f1mod" shadow-path:"state/fOne|fOne" shadow-module:"fmod/f1mod|f1mod"`
+	F2 *string `path:"config/fTwo|fTwo" module:"fmod/f2mod|f2mod" shadow-path:"state/fTwo|fTwo" shadow-module:"fmod/f2mod-shadow|f2mod-shadow"`
 }
 
 func (*structMultiKeyChild) IsYANGGoStruct() {}
@@ -2023,6 +2047,77 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name: "multi-keyed list with PreferShadowPath=true and appendModules=true",
+		in: &structWithMultiKey{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inPreferShadowPath: true,
+		inAppendMod:        true,
+		wantIETF: map[string]interface{}{
+			"rootmod:foo": []interface{}{
+				map[string]interface{}{
+					"f1mod:fOne":        "one",
+					"f2mod-shadow:fTwo": "two",
+					"fmod:state": map[string]interface{}{
+						"f1mod:fOne":        "one",
+						"f2mod-shadow:fTwo": "two",
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"one two": map[string]interface{}{
+					"fOne": "one",
+					"fTwo": "two",
+					// NOTE: internal JSON generation doesn't have the
+					// preferShadowPath option, so its results are unchanged.
+					"config": map[string]interface{}{
+						"fOne": "one",
+						"fTwo": "two",
+					},
+				},
+			},
+		},
+	}, {
+		name: "not enough module elements",
+		in: &structWithMultiKeyInvalidModuleTag{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inAppendMod: true,
+		wantErr:     true,
+	}, {
+		name: "too many module elements",
+		in: &structWithMultiKeyInvalidModuleTag2{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inAppendMod: true,
+		wantErr:     true,
+	}, {
+		name: "too many module paths",
+		in: &structWithMultiKeyInvalidModuleTag3{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inAppendMod: true,
+		wantErr:     true,
+	}, {
+		name: "empty modules tag",
+		in: &structWithMultiKeyInvalidModuleTag4{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inAppendMod: true,
+		wantErr:     true,
 	}, {
 		name: "multi-element render",
 		in: &renderExample{
