@@ -83,8 +83,12 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath, preferShad
 }
 
 // structTagToLibModules takes an input struct field as a reflect.Type, and
-// determines the set of validation library modules that it maps to. Returns
-// the module names as a slice of gnmiPaths, or an error.
+// extracts the set of module names in the module or shadow-module struct tag
+// of the field. Returns the module names as a slice of gnmiPaths, or an error.
+// If the field were generated correctly, then these module names should have
+// a 1:1 correspondence to the path names in the path tag, and denotes the
+// module to which each path element belongs (using YANG's XML namespace
+// rules).
 func structTagToLibModules(f reflect.StructField, preferShadowPath bool) ([]*gnmiPath, error) {
 	var moduleAnnotation string
 	var ok bool

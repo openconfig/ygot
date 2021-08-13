@@ -142,9 +142,12 @@ func FindSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]
 }
 
 // findSchemaPath finds the relative or absolute schema path of a given field
-// of a Directory, or the shadowed field path (field duplicated and
-// deprioritized via compression) of a Directory. The Field is specified as a
-// name in order to guarantee its existence before processing.
+// of a Directory, or the shadowed field path (i.e. field duplicated and
+// deprioritized via compression) of a Directory. The first returned slice
+// contains the names of the path elements, and the second contains the
+// corresponding module names for each path element's resident namespace. The
+// Field is specified as a name in order to guarantee its existence before
+// processing.
 // NOTE: If shadowSchemaPaths is true, no error is returned if fieldName is not found.
 func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, absolutePaths bool) ([]string, []string, error) {
 	field, ok := parent.Fields[fieldName]
@@ -180,8 +183,10 @@ func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, abso
 	return fieldSlicePath[len(parent.Path)-1:], fieldSliceModules[len(parent.Path)-1:], nil
 }
 
-// findMapPaths takes an input field name for a parent Directory and calculates the set of schemapaths that it represents.
-// If absolutePaths is set, the paths are absolute otherwise they are relative to the parent. If
+// findMapPaths takes an input field name for a parent Directory and calculates
+// the set of schema paths it represents, as well as the corresponding module
+// names for each schema path element's resident namespace.
+// If absolutePaths is set, the paths are absolute; otherwise, they are relative to the parent. If
 // the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
 // path is also returned. If shadowSchemaPaths is set, then the path of the
 // field deprioritized via compression is returned instead of the prioritized paths.
