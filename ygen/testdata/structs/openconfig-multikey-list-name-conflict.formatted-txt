@@ -71,7 +71,7 @@ type UnionUnsupported struct {
 
 // Model represents the /openconfig-multikey-list-name-conflict/model YANG schema element.
 type Model struct {
-	MultiKey	map[Model_MultiKey_YANGListKey]*Model_MultiKey	`path:"a/multi-key" module:"openconfig-multikey-list-name-conflict"`
+	MultiKey	map[Model_MultiKey_YANGListKey]*Model_MultiKey	`path:"a/multi-key" module:"openconfig-multikey-list-name-conflict/openconfig-multikey-list-name-conflict"`
 }
 
 // IsYANGGoStruct ensures that Model implements the yang.GoStruct
@@ -138,9 +138,9 @@ func (t *Model) RenameMultiKey(oldK, newK Model_MultiKey_YANGListKey) error {
 
 // Model_MultiKey represents the /openconfig-multikey-list-name-conflict/model/a/multi-key YANG schema element.
 type Model_MultiKey struct {
-	Key	*Model_MultiKey_Key	`path:"state/key" module:"openconfig-multikey-list-name-conflict"`
-	Key1	*uint32	`path:"config/key1|key1" module:"openconfig-multikey-list-name-conflict"`
-	Key2	*uint64	`path:"config/key2|key2" module:"openconfig-multikey-list-name-conflict"`
+	Key	*Model_MultiKey_Key	`path:"state/key" module:"openconfig-multikey-list-name-conflict/openconfig-multikey-list-name-conflict"`
+	Key1	*uint32	`path:"config/key1|key1" module:"openconfig-multikey-list-name-conflict/openconfig-multikey-list-name-conflict|openconfig-multikey-list-name-conflict"`
+	Key2	*uint64	`path:"config/key2|key2" module:"openconfig-multikey-list-name-conflict/openconfig-multikey-list-name-conflict|openconfig-multikey-list-name-conflict"`
 }
 
 // IsYANGGoStruct ensures that Model_MultiKey implements the yang.GoStruct

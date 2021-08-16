@@ -68,6 +68,16 @@ type Native_AAny struct {
 	*ygot.NodePath
 }
 
+// Native_B represents the /openconfig-simple-target/native/state/b YANG schema element.
+type Native_B struct {
+	*ygot.NodePath
+}
+
+// Native_BAny represents the wildcard version of the /openconfig-simple-target/native/state/b YANG schema element.
+type Native_BAny struct {
+	*ygot.NodePath
+}
+
 // A returns from Native the path struct for its child "a".
 func (n *Native) A() *Native_A {
 	return &Native_A{
@@ -84,6 +94,28 @@ func (n *NativeAny) A() *Native_AAny {
 	return &Native_AAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "a"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// B returns from Native the path struct for its child "b".
+func (n *Native) B() *Native_B {
+	return &Native_B{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "b"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// B returns from NativeAny the path struct for its child "b".
+func (n *NativeAny) B() *Native_BAny {
+	return &Native_BAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "b"},
 			map[string]interface{}{},
 			n,
 		),

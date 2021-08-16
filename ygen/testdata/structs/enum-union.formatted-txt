@@ -82,10 +82,10 @@ func (*Outer) IsYANGGoStruct() {}
 
 // Outer_Inner represents the /enum-union/outer/inner YANG schema element.
 type Outer_Inner struct {
-	Leaf1	Outer_Inner_Leaf1_Union	`path:"config/leaf1" module:"enum-union"`
-	Leaf2	Outer_Inner_Leaf2_Union	`path:"config/leaf2" module:"enum-union"`
-	Leaf3	Outer_Inner_Leaf3_Union	`path:"config/leaf3" module:"enum-union"`
-	Leaf4	Outer_Inner_Leaf4_Union	`path:"config/leaf4" module:"enum-union"`
+	Leaf1	Outer_Inner_Leaf1_Union	`path:"config/leaf1" module:"enum-union/enum-union"`
+	Leaf2	Outer_Inner_Leaf2_Union	`path:"config/leaf2" module:"enum-union/enum-union"`
+	Leaf3	Outer_Inner_Leaf3_Union	`path:"config/leaf3" module:"enum-union/enum-union"`
+	Leaf4	Outer_Inner_Leaf4_Union	`path:"config/leaf4" module:"enum-union/enum-union"`
 }
 
 // IsYANGGoStruct ensures that Outer_Inner implements the yang.GoStruct

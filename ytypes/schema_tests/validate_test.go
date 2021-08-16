@@ -766,9 +766,9 @@ func TestUnmarshal(t *testing.T) {
    leafrefs are validated in a real schema.
    It uses the following struct as the input:
    type Mpls_Global_Interface struct {
-        InterfaceId  *string                             `path:"config/interface-id|interface-id" module:"openconfig-mpls"`
+        InterfaceId  *string                             `path:"config/interface-id|interface-id" module:"openconfig-mpls/openconfig-mpls"`
         InterfaceRef *Mpls_Global_Interface_InterfaceRef `path:"interface-ref" module:"openconfig-mpls"`
-        MplsEnabled  *bool                               `path:"config/mpls-enabled" module:"openconfig-mpls"`
+        MplsEnabled  *bool                               `path:"config/mpls-enabled" module:"openconfig-mpls/openconfig-mpls"`
    }
    where the InterfaceRef container references an interface/subinterface
    in the /interfaces/interface list.

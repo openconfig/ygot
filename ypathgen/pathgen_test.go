@@ -809,6 +809,16 @@ func TestGeneratePathCode(t *testing.T) {
 				HasDefault:            false,
 				YANGTypeName:          "string",
 			},
+			"Native_B": {
+				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
+				GoFieldName:           "B",
+				SubsumingGoStructName: "Native",
+				IsLeaf:                true,
+				IsScalarField:         true,
+				HasDefault:            false,
+				YANGTypeName:          "string",
+			},
 			"Target": {
 				GoTypeName:            "*oc.Target",
 				LocalGoTypeName:       "*Target",
@@ -1042,9 +1052,24 @@ func addParents(e *yang.Entry) {
 // corresponding Directory map with relevant fields filled out that would be
 // returned from ygen.GetDirectories().
 func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map[string]*ygen.MappedType) {
+	modules := yang.NewModules()
+	modules.Modules["root-module"] = &yang.Module{
+		Name: "root-module",
+		Namespace: &yang.Value{
+			Name: "u:root-module",
+		},
+	}
+
 	schema := &yang.Entry{
 		Name: "root-module",
 		Kind: yang.DirectoryEntry,
+		Node: &yang.Module{
+			Name: "root-module",
+			Namespace: &yang.Value{
+				Name: "u:root-module",
+			},
+			Modules: modules,
+		},
 		Dir: map[string]*yang.Entry{
 			"leaf": {
 				Name: "leaf",
@@ -2295,9 +2320,24 @@ func (n *List) UnionKey() *List_UnionKey {
 func TestGenerateChildConstructor(t *testing.T) {
 	_, directories, _ := getSchemaAndDirs()
 
+	modules := yang.NewModules()
+	modules.Modules["root-module"] = &yang.Module{
+		Name: "root-module",
+		Namespace: &yang.Value{
+			Name: "u:root-module",
+		},
+	}
+
 	deepSchema := &yang.Entry{
 		Name: "root-module",
 		Kind: yang.DirectoryEntry,
+		Node: &yang.Module{
+			Name: "root-module",
+			Namespace: &yang.Value{
+				Name: "u:root-module",
+			},
+			Modules: modules,
+		},
 		Dir: map[string]*yang.Entry{
 			"container": {
 				Name: "container",

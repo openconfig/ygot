@@ -33,7 +33,7 @@ type YANGEmpty bool
 
 // AList represents the /enum-module/a-lists/a-list YANG schema element.
 type AList struct {
-	Value	AList_Value_Union	`path:"state/value|value" module:"enum-module"`
+	Value	AList_Value_Union	`path:"state/value|value" module:"enum-module/enum-module|enum-module"`
 }
 
 // IsYANGGoStruct ensures that AList implements the yang.GoStruct
@@ -107,7 +107,7 @@ func (t *AList) To_AList_Value_Union(i interface{}) (AList_Value_Union, error) {
 
 // BList represents the /enum-module/b-lists/b-list YANG schema element.
 type BList struct {
-	Value	BList_Value_Union	`path:"state/value|value" module:"enum-module"`
+	Value	BList_Value_Union	`path:"state/value|value" module:"enum-module/enum-module|enum-module"`
 }
 
 // IsYANGGoStruct ensures that BList implements the yang.GoStruct
@@ -217,10 +217,10 @@ func (*Parent) IsYANGGoStruct() {}
 
 // Parent_Child represents the /enum-module/parent/child YANG schema element.
 type Parent_Child struct {
-	Enum	E_EnumTypes_TdEnum	`path:"state/enum" module:"enum-module"`
-	Id	E_EnumTypes_ID	`path:"config/id" module:"enum-module"`
-	Id2	E_EnumTypes_ID	`path:"config/id2" module:"enum-module"`
-	InlineEnum	E_Child_InlineEnum	`path:"config/inline-enum" module:"enum-module"`
+	Enum	E_EnumTypes_TdEnum	`path:"state/enum" module:"enum-module/enum-module"`
+	Id	E_EnumTypes_ID	`path:"config/id" module:"enum-module/enum-module"`
+	Id2	E_EnumTypes_ID	`path:"config/id2" module:"enum-module/enum-module"`
+	InlineEnum	E_Child_InlineEnum	`path:"config/inline-enum" module:"enum-module/enum-module"`
 }
 
 // IsYANGGoStruct ensures that Parent_Child implements the yang.GoStruct

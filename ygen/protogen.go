@@ -1352,7 +1352,7 @@ func protoPackageToFilePath(pkg string) []string {
 // field option definitions required to annotate it with its schema path(s).
 func protoSchemaPathAnnotation(msg *Directory, fieldName string, compressPaths bool) (*protoOption, error) {
 	// protobuf paths are always absolute.
-	smapp, err := findMapPaths(msg, fieldName, compressPaths, false, true)
+	smapp, _, err := findMapPaths(msg, fieldName, compressPaths, false, true)
 	if err != nil {
 		return nil, err
 	}
