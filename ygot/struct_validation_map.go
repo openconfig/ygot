@@ -383,6 +383,10 @@ type EmitJSONConfig struct {
 	// Indent is the string used for indentation within the JSON output. The
 	// default value is three spaces.
 	Indent string
+	// EscapeHTML determines whether certain characters will be escaped
+	// in the marshalled JSON for safety in HTML embedding. See
+	// https://pkg.go.dev/encoding/json#Encoder.SetEscapeHTML.
+	EscapeHTML bool
 	// SkipValidation specifies whether the GoStruct supplied to EmitJSON should
 	// be validated before emitting its content. Validation is skipped when it
 	// is set to true.
@@ -418,17 +422,26 @@ func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
 		return "", err
 	}
 
+	sb := &strings.Builder{}
+	enc := json.NewEncoder(sb)
 	indent := indentString
-	if opts != nil && opts.Indent != "" {
-		indent = opts.Indent
-	}
+	enc.SetEscapeHTML(false)
+	if opts != nil {
+		enc.SetEscapeHTML(opts.EscapeHTML)
 
-	j, err := json.MarshalIndent(v, "", indent)
-	if err != nil {
+		if opts.Indent != "" {
+			indent = opts.Indent
+		}
+	}
+	enc.SetIndent("", indent)
+
+	if err := enc.Encode(v); err != nil {
 		return "", fmt.Errorf("JSON marshalling error: %v", err)
 	}
 
-	return string(j), nil
+	// Exclude the last newline character:
+	// https://pkg.go.dev/encoding/json#Encoder.Encode
+	return sb.String()[:sb.Len()-1], nil
 }
 
 // makeJSON renders the GoStruct s to map[string]interface{} according to the
