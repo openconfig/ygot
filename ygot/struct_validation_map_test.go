@@ -631,11 +631,23 @@ func TestEmitJSON(t *testing.T) {
 		name: "simple schema JSON output",
 		inStruct: &mapStructTestOne{
 			Child: &mapStructTestOneChild{
-				FieldOne: String("hello"),
+				FieldOne: String("abc -> def"),
 				FieldTwo: Uint32(42),
 			},
 		},
 		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_1.json-txt"),
+	}, {
+		name: "simple schema JSON output with safe HTML",
+		inStruct: &mapStructTestOne{
+			Child: &mapStructTestOneChild{
+				FieldOne: String("abc -> def"),
+				FieldTwo: Uint32(42),
+			},
+		},
+		inConfig: &EmitJSONConfig{
+			EscapeHTML: true,
+		},
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_1_html_safe.json-txt"),
 	}, {
 		name: "schema with a list JSON output",
 		inStruct: &mapStructTestFour{
