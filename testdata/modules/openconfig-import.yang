@@ -1,0 +1,7 @@
+module openconfig-import {
+  prefix "oci";
+  namespace "urn:oci";
+  import openconfig-simple { prefix "ocs"; }
+
+  leaf test { type string; }
+}

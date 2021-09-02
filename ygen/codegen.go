@@ -70,6 +70,8 @@ type GeneratorConfig struct {
 	// IncludeDescriptions specifies that YANG entry descriptions are added
 	// to the JSON schema. Is false by default, to reduce the size of generated schema
 	IncludeDescriptions bool
+	// ExcludeSearchPathModules configures whether to generate code for yang modules in the searched paths.
+	ExcludeSearchPathModules bool
 }
 
 // DirectoryGenConfig contains the configuration necessary to generate a set of
@@ -86,6 +88,8 @@ type DirectoryGenConfig struct {
 	// GoOptions stores a struct which stores Go code generation specific
 	// options for the code generaton.
 	GoOptions GoOpts
+	// ExcludeSearchPathModules configures whether to generate code for yang modules in the searched paths.
+	ExcludeSearchPathModules bool
 }
 
 // ParseOpts contains parsing configuration for a given schema.
@@ -534,7 +538,12 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 		return nil, nil, util.Errors{fmt.Errorf("GetDirectoriesAndLeafTypes currently does not have unit tests for when compression is disabled; if support needed, add unit tests and remove this error")}
 	}
 
-	cg := &GeneratorConfig{ParseOptions: dcg.ParseOptions, TransformationOptions: dcg.TransformationOptions, GoOptions: dcg.GoOptions}
+	cg := &GeneratorConfig{
+		ParseOptions:             dcg.ParseOptions,
+		TransformationOptions:    dcg.TransformationOptions,
+		GoOptions:                dcg.GoOptions,
+		ExcludeSearchPathModules: dcg.ExcludeSearchPathModules,
+	}
 	// Extract the entities to be mapped into structs and enumerations in the output
 	// Go code. Extract the schematree from the modules provided such that it can be
 	// used to reference entities within the tree.
@@ -804,7 +813,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 // and returns a processed set of yang.Entry pointers which correspond to the
 // generated code for the modules. If errors are returned during the Goyang
 // processing of the modules, these errors are returned.
-func processModules(yangFiles, includePaths []string, options yang.Options) ([]*yang.Entry, util.Errors) {
+func processModules(yangFiles, includePaths []string, options yang.Options) ([]*yang.Entry, []*yang.Module, util.Errors) {
 	// Append the includePaths to the Goyang path variable, this ensures
 	// that where a YANG module uses an 'include' statement to reference
 	// another module, then Goyang can find this module to process.
@@ -826,11 +835,11 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 	}
 
 	if errs != nil {
-		return nil, errs
+		return nil, nil, errs
 	}
 
 	if errs := moduleSet.Process(); errs != nil {
-		return nil, errs
+		return nil, nil, errs
 	}
 
 	// Deduplicate the modules that are to be processed.
@@ -846,10 +855,12 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 	// Process the ASTs that have been generated for the modules using the Goyang ToEntry
 	// routines.
 	entries := []*yang.Entry{}
+	modules := []*yang.Module{}
 	for _, modName := range modNames {
 		entries = append(entries, yang.ToEntry(mods[modName]))
+		modules = append(modules, mods[modName])
 	}
-	return entries, nil
+	return entries, modules, nil
 }
 
 // mappedYANGDefinitions stores the entities extracted from a YANG schema that are to be mapped to
@@ -885,9 +896,23 @@ type mappedYANGDefinitions struct {
 // It returns a mappedYANGDefinitions struct populated with the directory, enum
 // entries in the input schemas as well as the calculated schema tree.
 func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (*mappedYANGDefinitions, util.Errors) {
-	modules, errs := processModules(yangFiles, includePaths, cfg.ParseOptions.YANGParseOptions)
+	moduleEntries, modules, errs := processModules(yangFiles, includePaths, cfg.ParseOptions.YANGParseOptions)
 	if errs != nil {
 		return nil, errs
+	}
+
+	// Exclude any modules that do not appear in the yangFiles list.
+	if cfg.ExcludeSearchPathModules {
+		inFiles := map[string]bool{}
+		for _, f := range yangFiles {
+			inFiles[f] = true
+		}
+		for _, v := range modules {
+			moduleSrc := strings.Split(v.Source.Location(), ":")[0]
+			if !inFiles[moduleSrc] {
+				cfg.ParseOptions.ExcludeModules = append(cfg.ParseOptions.ExcludeModules, v.Name)
+			}
+		}
 	}
 
 	// Build a map of excluded modules to simplify lookup.
@@ -901,11 +926,11 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 	dirs := map[string]*yang.Entry{}
 	enums := map[string]*yang.Entry{}
 	var rootElems, treeElems []*yang.Entry
-	for _, module := range modules {
+	for _, module := range moduleEntries {
 		// Need to transform the AST based on compression behaviour.
 		genutil.TransformEntry(module, cfg.TransformationOptions.CompressBehaviour)
 
-		errs = append(errs, findMappableEntities(module, dirs, enums, cfg.ParseOptions.ExcludeModules, cfg.TransformationOptions.CompressBehaviour.CompressEnabled(), modules)...)
+		errs = append(errs, findMappableEntities(module, dirs, enums, cfg.ParseOptions.ExcludeModules, cfg.TransformationOptions.CompressBehaviour.CompressEnabled(), moduleEntries)...)
 		if module == nil {
 			errs = append(errs, errors.New("found a nil module in the returned module set"))
 			continue
@@ -941,13 +966,13 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 	// For all non-excluded modules, we store these to be
 	// used as the schema tree.
 	ms := []*yang.Entry{}
-	for _, m := range modules {
+	for _, m := range moduleEntries {
 		if _, ok := excluded[m.Name]; !ok {
 			ms = append(ms, m)
 		}
 	}
 
-	modelData, err := util.FindModelData(modules)
+	modelData, err := util.FindModelData(moduleEntries)
 	if err != nil {
 		return nil, util.NewErrs(fmt.Errorf("cannot extract model data, %v", err))
 	}

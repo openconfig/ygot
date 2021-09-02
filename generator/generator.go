@@ -94,11 +94,12 @@ var (
 	includeModelData     = flag.Bool("include_model_data", false, "If set to true, a slice of gNMI ModelData messages are included in the generated Go code containing the details of the input schemas from which the code was generated.")
 
 	// Flags used for PathStruct generation only.
-	schemaStructPath        = flag.String("schema_struct_path", "", "The Go import path for the schema structs package. This should be specified if and only if schema structs are not being generated at the same time as path structs.")
-	generateWildcardPaths   = flag.Bool("generate_wildcard_paths", true, "Whether to generate methods for constructing wildcard paths.")
-	simplifyWildcardPaths   = flag.Bool("simplify_wildcard_paths", false, "Whether to omit the keys in the generated paths if all keys for a list node are wildcards.")
-	listBuilderKeyThreshold = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the path structs' builder API is used for key population. 0 means infinity. This flag is only meaningful when wildcard paths are generated.")
-	pathStructSuffix        = flag.String("path_struct_suffix", "Path", "The suffix string appended to each generated path struct in order to differentiate their names from their corresponding schema struct names.")
+	schemaStructPath         = flag.String("schema_struct_path", "", "The Go import path for the schema structs package. This should be specified if and only if schema structs are not being generated at the same time as path structs.")
+	generateWildcardPaths    = flag.Bool("generate_wildcard_paths", true, "Whether to generate methods for constructing wildcard paths.")
+	simplifyWildcardPaths    = flag.Bool("simplify_wildcard_paths", false, "Whether to omit the keys in the generated paths if all keys for a list node are wildcards.")
+	listBuilderKeyThreshold  = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the path structs' builder API is used for key population. 0 means infinity. This flag is only meaningful when wildcard paths are generated.")
+	pathStructSuffix         = flag.String("path_struct_suffix", "Path", "The suffix string appended to each generated path struct in order to differentiate their names from their corresponding schema struct names.")
+	excludeSearchPathModules = flag.Bool("exclude_search_path_modules", false, "Whether to generate path structs for modules that exists in searched paths.")
 )
 
 // writeGoCodeSingleFile takes a ygen.GeneratedGoCode struct and writes the Go code
@@ -273,6 +274,9 @@ func main() {
 		if !*generateGoStructs && *schemaStructPath == "" {
 			log.Exitf("Error: need to provide schema_struct_path for import by path structs file(s) when schema structs are not being generated at the same time.")
 		}
+		if *excludeSearchPathModules && *generateGoStructs {
+			log.Exit("Error: when generating only the path structs for direct modules, schema structs must already exist.")
+		}
 	}
 
 	// Determine the set of paths that should be searched for included
@@ -421,10 +425,11 @@ func main() {
 		YANGParseOptions: yang.Options{
 			IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
 		},
-		GeneratingBinary:        genutil.CallerName(),
-		ListBuilderKeyThreshold: *listBuilderKeyThreshold,
-		GenerateWildcardPaths:   *generateWildcardPaths,
-		SimplifyWildcardPaths:   *simplifyWildcardPaths,
+		GeneratingBinary:         genutil.CallerName(),
+		ListBuilderKeyThreshold:  *listBuilderKeyThreshold,
+		GenerateWildcardPaths:    *generateWildcardPaths,
+		SimplifyWildcardPaths:    *simplifyWildcardPaths,
+		ExcludeSearchPathModules: *excludeSearchPathModules,
 	}
 
 	pathCode, _, errs := pcg.GeneratePathCode(generateModules, includePaths)

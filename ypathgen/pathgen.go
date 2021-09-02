@@ -173,6 +173,8 @@ type GenConfig struct {
 	// If any key is not a wildcard, then this flag doesn't apply, since
 	// all key values must now be specified in the path.
 	SimplifyWildcardPaths bool
+	// ExcludeSearchPathModules configures whether to generate code for yang modules in the searched paths.
+	ExcludeSearchPathModules bool
 }
 
 // GoImports contains package import options.
@@ -233,6 +235,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 		GoOptions: ygen.GoOpts{
 			AppendEnumSuffixForSimpleUnionEnums: cg.AppendEnumSuffixForSimpleUnionEnums,
 		},
+		ExcludeSearchPathModules: cg.ExcludeSearchPathModules,
 	}
 	directories, leafTypeMap, errs := dcg.GetDirectoriesAndLeafTypes(yangFiles, includePaths)
 	if errs != nil {
