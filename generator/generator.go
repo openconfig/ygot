@@ -325,7 +325,7 @@ func main() {
 				YANGParseOptions: yang.Options{
 					IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
 				},
-				ExcludeSearchPathModules: *inputModulesOnly,
+				InputModulesOnly: *inputModulesOnly,
 			},
 			TransformationOptions: ygen.TransformationOpts{
 				CompressBehaviour:                    compressBehaviour,

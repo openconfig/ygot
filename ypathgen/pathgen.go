@@ -220,10 +220,10 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 
 	dcg := &ygen.DirectoryGenConfig{
 		ParseOptions: ygen.ParseOpts{
-			YANGParseOptions:         cg.YANGParseOptions,
-			ExcludeModules:           cg.ExcludeModules,
-			SkipEnumDeduplication:    cg.SkipEnumDeduplication,
-			ExcludeSearchPathModules: cg.ExcludeSearchPathModules,
+			YANGParseOptions:      cg.YANGParseOptions,
+			ExcludeModules:        cg.ExcludeModules,
+			SkipEnumDeduplication: cg.SkipEnumDeduplication,
+			InputModulesOnly:      cg.ExcludeSearchPathModules,
 		},
 		TransformationOptions: ygen.TransformationOpts{
 			CompressBehaviour:                    compressBehaviour,

@@ -59,11 +59,11 @@ func TestGeneratePathCode(t *testing.T) {
 		// inUseDefiningModuleForTypedefEnumNames uses the defining module name to prefix typedef enumerated types instead of the module where the typedef enumerated value is used.
 		inUseDefiningModuleForTypedefEnumNames bool
 		// inGenerateWildcardPaths determines whether wildcard paths are generated.
-		inGenerateWildcardPaths    bool
-		inSchemaStructPkgPath      string
-		inPathStructSuffix         string
-		inSimplifyWildcardPaths    bool
-		inExcludeSearchPathModules bool
+		inGenerateWildcardPaths bool
+		inSchemaStructPkgPath   string
+		inPathStructSuffix      string
+		inSimplifyWildcardPaths bool
+		inInputModulesOnly      bool
 		// checkYANGPath says whether to check for the YANG path in the NodeDataMap.
 		checkYANGPath bool
 		// wantStructsCodeFile is the path of the generated Go code that the output of the test should be compared to.
@@ -869,17 +869,17 @@ func TestGeneratePathCode(t *testing.T) {
 		inPathStructSuffix:                     "Path",
 		wantStructsCodeFile:                    filepath.Join(TestRoot, "testdata/structs/openconfig-camelcase.path-txt"),
 	}, {
-		name:                       "openconfig import exclude test",
-		inFiles:                    []string{filepath.Join(datapath, "openconfig-import.yang")},
-		inIncludePaths:             []string{datapath},
-		wantStructsCodeFile:        filepath.Join(TestRoot, "testdata/structs/openconfig-import.path-txt"),
-		inPreferOperationalState:   true,
-		inShortenEnumLeafNames:     true,
-		inGenerateWildcardPaths:    true,
-		inExcludeSearchPathModules: true,
-		inSchemaStructPkgPath:      "",
-		inPathStructSuffix:         "Path",
-		checkYANGPath:              true,
+		name:                     "openconfig import with InputModulesOnly true",
+		inFiles:                  []string{filepath.Join(datapath, "openconfig-import.yang")},
+		inIncludePaths:           []string{datapath},
+		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-import-only-input.path-txt"),
+		inPreferOperationalState: true,
+		inShortenEnumLeafNames:   true,
+		inGenerateWildcardPaths:  true,
+		inInputModulesOnly:       true,
+		inSchemaStructPkgPath:    "",
+		inPathStructSuffix:       "Path",
+		checkYANGPath:            true,
 		wantNodeDataMap: NodeDataMap{
 			"ChildPath": {
 				GoTypeName:            "*Child",
@@ -905,6 +905,67 @@ func TestGeneratePathCode(t *testing.T) {
 				YANGPath:              "/",
 			},
 		},
+	}, {
+		name:                     "openconfig import with InputModulesOnly false",
+		inFiles:                  []string{filepath.Join(datapath, "openconfig-import.yang")},
+		inIncludePaths:           []string{datapath},
+		wantStructsCodeFile:      filepath.Join(TestRoot, "testdata/structs/openconfig-import.path-txt"),
+		inPreferOperationalState: true,
+		inShortenEnumLeafNames:   true,
+		inGenerateWildcardPaths:  true,
+		inInputModulesOnly:       false,
+		inSchemaStructPkgPath:    "",
+		inPathStructSuffix:       "Path",
+		checkYANGPath:            true,
+		wantNodeDataMap: NodeDataMap{
+			"ChildPath": {
+				GoTypeName:            "*Child",
+				LocalGoTypeName:       "*Child",
+				GoFieldName:           "Child",
+				SubsumingGoStructName: "Child",
+				YANGPath:              "/openconfig-import/child",
+			},
+			"Child_TestPath": {
+				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
+				GoFieldName:           "Test",
+				SubsumingGoStructName: "Child",
+				IsLeaf:                true,
+				IsScalarField:         true,
+				YANGTypeName:          "string",
+				YANGPath:              "/openconfig-import/child/test",
+			},
+			"DevicePath": {
+				GoTypeName:            "*Device",
+				LocalGoTypeName:       "*Device",
+				SubsumingGoStructName: "Device",
+				YANGPath:              "/",
+			},
+			"NativePath": {
+				GoTypeName:            "*Native",
+				LocalGoTypeName:       "*Native",
+				GoFieldName:           "Native",
+				SubsumingGoStructName: "Native",
+				YANGPath:              "/openconfig-simple-target/native",
+			},
+			"Native_APath": {
+				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
+				GoFieldName:           "A",
+				SubsumingGoStructName: "Native",
+				IsLeaf:                true,
+				IsScalarField:         true,
+				YANGTypeName:          "string",
+				YANGPath:              "/openconfig-simple-target/native/state/a",
+			},
+			"TargetPath": {
+				GoTypeName:            "*Target",
+				LocalGoTypeName:       "*Target",
+				GoFieldName:           "Target",
+				SubsumingGoStructName: "Target",
+				YANGPath:              "/openconfig-simple-target/target",
+			},
+		},
 	}}
 
 	for _, tt := range tests {
@@ -923,7 +984,7 @@ func TestGeneratePathCode(t *testing.T) {
 				cg.UseDefiningModuleForTypedefEnumNames = tt.inUseDefiningModuleForTypedefEnumNames
 				cg.GenerateWildcardPaths = tt.inGenerateWildcardPaths
 				cg.SimplifyWildcardPaths = tt.inSimplifyWildcardPaths
-				cg.ExcludeSearchPathModules = tt.inExcludeSearchPathModules
+				cg.ExcludeSearchPathModules = tt.inInputModulesOnly
 
 				gotCode, gotNodeDataMap, err := cg.GeneratePathCode(tt.inFiles, tt.inIncludePaths)
 				if err != nil && !tt.wantErr {

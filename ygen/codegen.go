@@ -127,8 +127,8 @@ type ParseOpts struct {
 	// When it is disabled, two different enumerations (ModuleName_(State|Config)_Enabled)
 	// will be output in the generated code.
 	SkipEnumDeduplication bool
-	// ExcludeSearchPathModules configures whether to generate code for yang modules in the searched paths.
-	ExcludeSearchPathModules bool
+	// InputModulesOnly configures whether to generate code only for yang modules that are explicitly imported.
+	InputModulesOnly bool
 }
 
 // TransformationOpts specifies transformations to the generated code with
@@ -903,7 +903,7 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 	}
 
 	// Exclude any modules that do not appear in the yangFiles list.
-	if cfg.ParseOptions.ExcludeSearchPathModules {
+	if cfg.ParseOptions.InputModulesOnly {
 		inFiles := map[string]bool{}
 		for _, f := range yangFiles {
 			inFiles[f] = true

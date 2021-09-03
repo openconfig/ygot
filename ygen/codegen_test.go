@@ -1153,11 +1153,20 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantErrSubstring: "has a union key containing a binary",
 	}, {
-		name:    "simple openconfig test - without only include modules",
+		name:    "openconfig test - with import and InputModulesOnly true",
 		inFiles: []string{filepath.Join(datapath, "openconfig-import.yang")},
 		inConfig: GeneratorConfig{
 			ParseOptions: ParseOpts{
-				ExcludeSearchPathModules: true,
+				InputModulesOnly: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-import-only-input.formatted-txt"),
+	}, {
+		name:    "openconfig test - with import and InputModulesOnly false",
+		inFiles: []string{filepath.Join(datapath, "openconfig-import.yang")},
+		inConfig: GeneratorConfig{
+			ParseOptions: ParseOpts{
+				InputModulesOnly: false,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-import.formatted-txt"),
