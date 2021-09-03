@@ -1363,7 +1363,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				for _, inc := range tt.in {
 					// Always provide a nil set of modules to findMappableEntities since this
 					// is only used to skip elements.
-					errs = append(errs, findMappableEntities(inc, structs, enums, []string{}, c.compressBehaviour.CompressEnabled(), []*yang.Entry{})...)
+					errs = append(errs, findMappableEntities(inc, structs, enums, map[string]bool{}, c.compressBehaviour.CompressEnabled(), []*yang.Entry{})...)
 				}
 				if errs != nil {
 					t.Fatalf("findMappableEntities(%v, %v, %v, nil, %v, nil): got unexpected error, want: nil, got: %v", tt.in, structs, enums, c.compressBehaviour.CompressEnabled(), errs)

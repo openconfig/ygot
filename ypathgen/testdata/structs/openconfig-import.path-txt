@@ -15,6 +15,48 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+// ChildPath represents the /openconfig-import/child YANG schema element.
+type ChildPath struct {
+	*ygot.NodePath
+}
+
+// ChildPathAny represents the wildcard version of the /openconfig-import/child YANG schema element.
+type ChildPathAny struct {
+	*ygot.NodePath
+}
+
+// Child_TestPath represents the /openconfig-import/child/test YANG schema element.
+type Child_TestPath struct {
+	*ygot.NodePath
+}
+
+// Child_TestPathAny represents the wildcard version of the /openconfig-import/child/test YANG schema element.
+type Child_TestPathAny struct {
+	*ygot.NodePath
+}
+
+// Test returns from ChildPath the path struct for its child "test".
+func (n *ChildPath) Test() *Child_TestPath {
+	return &Child_TestPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"test"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Test returns from ChildPathAny the path struct for its child "test".
+func (n *ChildPathAny) Test() *Child_TestPathAny {
+	return &Child_TestPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"test"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
 // DevicePath represents the /device YANG schema element.
 type DevicePath struct {
 	*ygot.DeviceRootBase
@@ -25,21 +67,11 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// TestPath represents the /openconfig-import/test YANG schema element.
-type TestPath struct {
-	*ygot.NodePath
-}
-
-// TestPathAny represents the wildcard version of the /openconfig-import/test YANG schema element.
-type TestPathAny struct {
-	*ygot.NodePath
-}
-
-// Test returns from DevicePath the path struct for its child "test".
-func (n *DevicePath) Test() *TestPath {
-	return &TestPath{
+// Child returns from DevicePath the path struct for its child "child".
+func (n *DevicePath) Child() *ChildPath {
+	return &ChildPath{
 		NodePath: ygot.NewNodePath(
-			[]string{"test"},
+			[]string{"child"},
 			map[string]interface{}{},
 			n,
 		),

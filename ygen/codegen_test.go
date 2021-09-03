@@ -48,10 +48,10 @@ const datapath = "../testdata/modules"
 // into Go code from a YANG schema.
 func TestFindMappableEntities(t *testing.T) {
 	tests := []struct {
-		name          string        // name is an identifier for the test.
-		in            *yang.Entry   // in is the yang.Entry corresponding to the YANG root element.
-		inSkipModules []string      // inSkipModules is a slice of strings indicating modules to be skipped.
-		inModules     []*yang.Entry // inModules is the set of modules that the code generation is for.
+		name          string          // name is an identifier for the test.
+		in            *yang.Entry     // in is the yang.Entry corresponding to the YANG root element.
+		inSkipModules map[string]bool // inSkipModules is a slice of strings indicating modules to be skipped.
+		inModules     []*yang.Entry   // inModules is the set of modules that the code generation is for.
 		// wantCompressed is a map keyed by the string "structs" or "enums" which contains a slice
 		// of the YANG identifiers for the corresponding mappable entities that should be
 		// found. wantCompressed is the set that are expected when compression is enabled.
@@ -162,7 +162,9 @@ func TestFindMappableEntities(t *testing.T) {
 				},
 			},
 		},
-		inSkipModules: []string{"module"},
+		inSkipModules: map[string]bool{
+			"module": true,
+		},
 		inModules: []*yang.Entry{{
 			Name: "module",
 			Node: &yang.Module{
@@ -1150,6 +1152,15 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantErrSubstring: "has a union key containing a binary",
+	}, {
+		name:    "simple openconfig test - without only include modules",
+		inFiles: []string{filepath.Join(datapath, "openconfig-import.yang")},
+		inConfig: GeneratorConfig{
+			ParseOptions: ParseOpts{
+				ExcludeSearchPathModules: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-import.formatted-txt"),
 	}}
 
 	for _, tt := range tests {
@@ -1235,7 +1246,6 @@ func TestSimpleStructs(t *testing.T) {
 			}
 
 			wantCode := string(wantCodeBytes)
-
 			if gotCode != wantCode {
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug

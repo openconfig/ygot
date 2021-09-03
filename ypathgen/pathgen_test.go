@@ -881,21 +881,28 @@ func TestGeneratePathCode(t *testing.T) {
 		inPathStructSuffix:         "Path",
 		checkYANGPath:              true,
 		wantNodeDataMap: NodeDataMap{
+			"ChildPath": {
+				GoTypeName:            "*Child",
+				LocalGoTypeName:       "*Child",
+				GoFieldName:           "Child",
+				SubsumingGoStructName: "Child",
+				YANGPath:              "/openconfig-import/child",
+			},
+			"Child_TestPath": {
+				GoTypeName:            "string",
+				LocalGoTypeName:       "string",
+				GoFieldName:           "Test",
+				SubsumingGoStructName: "Child",
+				IsLeaf:                true,
+				IsScalarField:         true,
+				YANGTypeName:          "string",
+				YANGPath:              "/openconfig-import/child/test",
+			},
 			"DevicePath": {
 				GoTypeName:            "*Device",
 				LocalGoTypeName:       "*Device",
 				SubsumingGoStructName: "Device",
 				YANGPath:              "/",
-			},
-			"TestPath": {
-				GoTypeName:            "string",
-				LocalGoTypeName:       "string",
-				GoFieldName:           "Test",
-				SubsumingGoStructName: "Device",
-				IsLeaf:                true,
-				IsScalarField:         true,
-				YANGTypeName:          "string",
-				YANGPath:              "/openconfig-import/test",
 			},
 		},
 	}}

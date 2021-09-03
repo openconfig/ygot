@@ -220,9 +220,10 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 
 	dcg := &ygen.DirectoryGenConfig{
 		ParseOptions: ygen.ParseOpts{
-			YANGParseOptions:      cg.YANGParseOptions,
-			ExcludeModules:        cg.ExcludeModules,
-			SkipEnumDeduplication: cg.SkipEnumDeduplication,
+			YANGParseOptions:         cg.YANGParseOptions,
+			ExcludeModules:           cg.ExcludeModules,
+			SkipEnumDeduplication:    cg.SkipEnumDeduplication,
+			ExcludeSearchPathModules: cg.ExcludeSearchPathModules,
 		},
 		TransformationOptions: ygen.TransformationOpts{
 			CompressBehaviour:                    compressBehaviour,
@@ -235,7 +236,6 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 		GoOptions: ygen.GoOpts{
 			AppendEnumSuffixForSimpleUnionEnums: cg.AppendEnumSuffixForSimpleUnionEnums,
 		},
-		ExcludeSearchPathModules: cg.ExcludeSearchPathModules,
 	}
 	directories, leafTypeMap, errs := dcg.GetDirectoriesAndLeafTypes(yangFiles, includePaths)
 	if errs != nil {

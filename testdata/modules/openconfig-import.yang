@@ -3,5 +3,7 @@ module openconfig-import {
   namespace "urn:oci";
   import openconfig-simple { prefix "ocs"; }
 
-  leaf test { type string; }
+  container child {
+    leaf test { type string; }
+  }
 }

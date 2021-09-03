@@ -70,8 +70,6 @@ type GeneratorConfig struct {
 	// IncludeDescriptions specifies that YANG entry descriptions are added
 	// to the JSON schema. Is false by default, to reduce the size of generated schema
 	IncludeDescriptions bool
-	// ExcludeSearchPathModules configures whether to generate code for yang modules in the searched paths.
-	ExcludeSearchPathModules bool
 }
 
 // DirectoryGenConfig contains the configuration necessary to generate a set of
@@ -88,8 +86,6 @@ type DirectoryGenConfig struct {
 	// GoOptions stores a struct which stores Go code generation specific
 	// options for the code generaton.
 	GoOptions GoOpts
-	// ExcludeSearchPathModules configures whether to generate code for yang modules in the searched paths.
-	ExcludeSearchPathModules bool
 }
 
 // ParseOpts contains parsing configuration for a given schema.
@@ -131,6 +127,8 @@ type ParseOpts struct {
 	// When it is disabled, two different enumerations (ModuleName_(State|Config)_Enabled)
 	// will be output in the generated code.
 	SkipEnumDeduplication bool
+	// ExcludeSearchPathModules configures whether to generate code for yang modules in the searched paths.
+	ExcludeSearchPathModules bool
 }
 
 // TransformationOpts specifies transformations to the generated code with
@@ -539,10 +537,9 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 	}
 
 	cg := &GeneratorConfig{
-		ParseOptions:             dcg.ParseOptions,
-		TransformationOptions:    dcg.TransformationOptions,
-		GoOptions:                dcg.GoOptions,
-		ExcludeSearchPathModules: dcg.ExcludeSearchPathModules,
+		ParseOptions:          dcg.ParseOptions,
+		TransformationOptions: dcg.TransformationOptions,
+		GoOptions:             dcg.GoOptions,
 	}
 	// Extract the entities to be mapped into structs and enumerations in the output
 	// Go code. Extract the schematree from the modules provided such that it can be
@@ -899,8 +896,14 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 		return nil, errs
 	}
 
+	// Build a map of excluded modules to simplify lookup.
+	excluded := map[string]bool{}
+	for _, e := range cfg.ParseOptions.ExcludeModules {
+		excluded[e] = true
+	}
+
 	// Exclude any modules that do not appear in the yangFiles list.
-	if cfg.ExcludeSearchPathModules {
+	if cfg.ParseOptions.ExcludeSearchPathModules {
 		inFiles := map[string]bool{}
 		for _, f := range yangFiles {
 			inFiles[f] = true
@@ -912,15 +915,9 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 				return nil, append(errs, fmt.Errorf("module %q source file was empty", module.Name))
 			}
 			if !inFiles[moduleSrcFile] {
-				cfg.ParseOptions.ExcludeModules = append(cfg.ParseOptions.ExcludeModules, module.Name)
+				excluded[module.Name] = true
 			}
 		}
-	}
-
-	// Build a map of excluded modules to simplify lookup.
-	excluded := map[string]bool{}
-	for _, e := range cfg.ParseOptions.ExcludeModules {
-		excluded[e] = true
 	}
 
 	// Extract the entities that are eligible to have code generated for
@@ -932,7 +929,7 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 		// Need to transform the AST based on compression behaviour.
 		genutil.TransformEntry(module, cfg.TransformationOptions.CompressBehaviour)
 
-		errs = append(errs, findMappableEntities(module, dirs, enums, cfg.ParseOptions.ExcludeModules, cfg.TransformationOptions.CompressBehaviour.CompressEnabled(), moduleEntries)...)
+		errs = append(errs, findMappableEntities(module, dirs, enums, excluded, cfg.TransformationOptions.CompressBehaviour.CompressEnabled(), moduleEntries)...)
 		if module == nil {
 			errs = append(errs, errors.New("found a nil module in the returned module set"))
 			continue
@@ -1032,14 +1029,12 @@ func mappableLeaf(e *yang.Entry) *yang.Entry {
 // mapped with path compression enabled. The set of modules that the current code generation
 // is processing is specified by the modules slice. This function returns slice of errors
 // encountered during processing.
-func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules []string, compressPaths bool, modules []*yang.Entry) util.Errors {
+func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[string]*yang.Entry, excludeModules map[string]bool, compressPaths bool, modules []*yang.Entry) util.Errors {
 	// Skip entities who are defined within a module that we have been instructed
 	// not to generate code for.
-	for _, s := range excludeModules {
-		for _, m := range modules {
-			if m.Name == s && m.Namespace().Name == e.Namespace().Name {
-				return nil
-			}
+	for _, m := range modules {
+		if ex := excludeModules[m.Name]; ex && m.Namespace().Name == e.Namespace().Name {
+			return nil
 		}
 	}
 
