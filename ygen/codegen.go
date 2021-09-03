@@ -906,11 +906,11 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 			inFiles[f] = true
 		}
 		for _, module := range moduleEntries {
+			// TODO(wenbli): implement a better of getting source file for module.
 			moduleSrcFile := strings.Split(module.Node.Statement().Location(), ":")[0]
 			if moduleSrcFile == "" {
 				return nil, append(errs, fmt.Errorf("module %q source file was empty", module.Name))
 			}
-
 			if !inFiles[moduleSrcFile] {
 				cfg.ParseOptions.ExcludeModules = append(cfg.ParseOptions.ExcludeModules, module.Name)
 			}
