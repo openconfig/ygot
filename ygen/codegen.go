@@ -813,7 +813,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 // and returns a processed set of yang.Entry pointers which correspond to the
 // generated code for the modules. If errors are returned during the Goyang
 // processing of the modules, these errors are returned.
-func processModules(yangFiles, includePaths []string, options yang.Options) ([]*yang.Entry, []*yang.Module, util.Errors) {
+func processModules(yangFiles, includePaths []string, options yang.Options) ([]*yang.Entry, util.Errors) {
 	// Append the includePaths to the Goyang path variable, this ensures
 	// that where a YANG module uses an 'include' statement to reference
 	// another module, then Goyang can find this module to process.
@@ -835,11 +835,11 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 	}
 
 	if errs != nil {
-		return nil, nil, errs
+		return nil, errs
 	}
 
 	if errs := moduleSet.Process(); errs != nil {
-		return nil, nil, errs
+		return nil, errs
 	}
 
 	// Deduplicate the modules that are to be processed.
@@ -855,12 +855,10 @@ func processModules(yangFiles, includePaths []string, options yang.Options) ([]*
 	// Process the ASTs that have been generated for the modules using the Goyang ToEntry
 	// routines.
 	entries := []*yang.Entry{}
-	modules := []*yang.Module{}
 	for _, modName := range modNames {
 		entries = append(entries, yang.ToEntry(mods[modName]))
-		modules = append(modules, mods[modName])
 	}
-	return entries, modules, nil
+	return entries, nil
 }
 
 // mappedYANGDefinitions stores the entities extracted from a YANG schema that are to be mapped to
@@ -896,7 +894,7 @@ type mappedYANGDefinitions struct {
 // It returns a mappedYANGDefinitions struct populated with the directory, enum
 // entries in the input schemas as well as the calculated schema tree.
 func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (*mappedYANGDefinitions, util.Errors) {
-	moduleEntries, modules, errs := processModules(yangFiles, includePaths, cfg.ParseOptions.YANGParseOptions)
+	moduleEntries, errs := processModules(yangFiles, includePaths, cfg.ParseOptions.YANGParseOptions)
 	if errs != nil {
 		return nil, errs
 	}
@@ -907,10 +905,14 @@ func mappedDefinitions(yangFiles, includePaths []string, cfg *GeneratorConfig) (
 		for _, f := range yangFiles {
 			inFiles[f] = true
 		}
-		for _, v := range modules {
-			moduleSrc := strings.Split(v.Source.Location(), ":")[0]
-			if !inFiles[moduleSrc] {
-				cfg.ParseOptions.ExcludeModules = append(cfg.ParseOptions.ExcludeModules, v.Name)
+		for _, module := range moduleEntries {
+			moduleSrcFile := strings.Split(module.Node.Statement().Location(), ":")[0]
+			if moduleSrcFile == "" {
+				return nil, append(errs, fmt.Errorf("module %q source file was empty", module.Name))
+			}
+
+			if !inFiles[moduleSrcFile] {
+				cfg.ParseOptions.ExcludeModules = append(cfg.ParseOptions.ExcludeModules, module.Name)
 			}
 		}
 	}
