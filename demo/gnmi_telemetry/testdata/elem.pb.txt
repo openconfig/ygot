@@ -23,7 +23,7 @@ update: <
     element: "next-hop-groups"
     element: "next-hop-group"
     element: "42"
-    element: "config"
+    element: "state"
     element: "id"
   >
   val: <
@@ -67,7 +67,7 @@ update: <
     element: "next-hops"
     element: "next-hop"
     element: "0"
-    element: "config"
+    element: "state"
     element: "index"
   >
   val: <
@@ -150,7 +150,7 @@ update: <
     element: "ipv4-unicast"
     element: "ipv4-entry"
     element: "192.0.2.1/32"
-    element: "config"
+    element: "state"
     element: "prefix"
   >
   val: <
@@ -166,7 +166,7 @@ update: <
     element: "next-hops"
     element: "next-hop"
     element: "42"
-    element: "config"
+    element: "state"
     element: "index"
   >
   val: <
@@ -193,7 +193,7 @@ update: <
     element: "next-hop-groups"
     element: "next-hop-group"
     element: "0"
-    element: "config"
+    element: "state"
     element: "id"
   >
   val: <
@@ -296,7 +296,7 @@ update: <
     element: "next-hops"
     element: "next-hop"
     element: "42"
-    element: "config"
+    element: "state"
     element: "index"
   >
   val: <
@@ -315,7 +315,7 @@ update: <
     element: "next-hops"
     element: "next-hop"
     element: "0"
-    element: "config"
+    element: "state"
     element: "index"
   >
   val: <
@@ -346,7 +346,7 @@ update: <
     element: "mpls"
     element: "label-entry"
     element: "128"
-    element: "config"
+    element: "state"
     element: "label"
   >
   val: <

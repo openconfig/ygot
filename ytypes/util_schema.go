@@ -17,11 +17,14 @@ package ytypes
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 )
+
+//lint:file-ignore U1000 Ignore all unused code, it represents generated code.
 
 // validateLengthSchema validates whether the given schema has a valid length
 // specification.
@@ -30,7 +33,7 @@ func validateLengthSchema(schema *yang.Entry) error {
 		return nil
 	}
 	for _, r := range schema.Type.Length {
-		// This is a limited sanity check. It's assumed that a full check is
+		// This is a limited check. It's assumed that a full check is
 		// done in the goyang parser.
 		minLen, maxLen := r.Min, r.Max
 		if minLen.Kind != yang.MinNumber && minLen.Kind != yang.Positive {
@@ -86,13 +89,11 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 		return util.NewErrs(fmt.Errorf("schema %s ListAttr is nil", schema.Name))
 	}
 
-	var size int
-	if value == nil {
-		size = 0
-	} else {
+	var size uint64
+	if value != nil {
 		switch reflect.TypeOf(value).Kind() {
 		case reflect.Slice, reflect.Map:
-			size = reflect.ValueOf(value).Len()
+			size = uint64(reflect.ValueOf(value).Len())
 		default:
 			return util.NewErrs(fmt.Errorf("value %v type %T must be map or slice type for schema %s", value, value, schema.Name))
 		}
@@ -101,124 +102,21 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 	// If min/max element attr is present in the schema, this must be a list or
 	// leaf-list. Check that the data tree falls within the required size
 	// bounds.
-	if v := schema.ListAttr.MinElements; v != nil {
-		if minN, err := yang.ParseNumber(v.Name); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if min, err := minN.Int(); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if min < 0 {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s has negative min required elements", schema.Name))
-		} else if int64(size) < min {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, min))
-		}
+	if size < schema.ListAttr.MinElements {
+		errors = util.AppendErr(errors, fmt.Errorf("list %s contains fewer than min required elements: %d < %d", schema.Name, size, schema.ListAttr.MinElements))
 	}
-	if v := schema.ListAttr.MaxElements; v != nil {
-		if maxN, err := yang.ParseNumber(v.Name); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if max, err := maxN.Int(); err != nil {
-			errors = util.AppendErr(errors, err)
-		} else if max < 0 {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s has negative max required elements", schema.Name))
-		} else if int64(size) > max {
-			errors = util.AppendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, max))
-		}
+	// 0 is an invalid value for MaxElements
+	// (https://tools.ietf.org/html/rfc7950#section-7.7.6).
+	// For useability it best represents the value "unbounded".
+	if schema.ListAttr.MaxElements != 0 && size > schema.ListAttr.MaxElements {
+		errors = util.AppendErr(errors, fmt.Errorf("list %s contains more than max allowed elements: %d > %d", schema.Name, size, schema.ListAttr.MaxElements))
 	}
-
 	return errors
 }
 
-// isValueScalar reports whether v is a scalar (non-composite) type.
-func isValueScalar(v reflect.Value) bool {
-	return !util.IsValueStruct(v) && !util.IsValueStructPtr(v) && !util.IsValueMap(v) && !util.IsValueSlice(v)
-}
-
-// childSchema returns the schema for the struct field f, if f contains a valid
-// path tag and the schema path is found in the schema tree. It returns an error
-// if the struct tag is invalid, or nil if tag is valid but the schema is not
-// found in the tree at the specified path.
-func childSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error) {
-	pathTag, _ := f.Tag.Lookup("path")
-	util.DbgSchema("childSchema for schema %s, field %s, tag %s\n", schema.Name, f.Name, pathTag)
-	p, err := pathToSchema(f)
-	if err != nil {
-		return nil, err
-	}
-
-	// Containers have the container schema name as the first element in the
-	// path tag for each field e.g. System { Dns ... path: "system/dns"
-	// Strip this off since the supplied schema already refers to the struct
-	// schema element.
-	if schema.IsContainer() && len(p) > 1 && p[0] == schema.Name {
-		p = p[1:]
-	}
-	util.DbgSchema("pathToSchema yields %v\n", p)
-	// For empty path, return the parent schema.
-	childSchema := schema
-	foundSchema := true
-	// Traverse the returned schema path to get the child schema.
-	util.DbgSchema("traversing schema Dirs...")
-	for ; len(p) > 0; p = p[1:] {
-		util.DbgSchema("/%s", p[0])
-		ns, ok := childSchema.Dir[util.StripModulePrefix(p[0])]
-		if !ok {
-			foundSchema = false
-			break
-		}
-		childSchema = ns
-	}
-	if foundSchema {
-		util.DbgSchema(" - found\n")
-		return childSchema, nil
-	}
-	util.DbgSchema(" - not found\n")
-
-	// Path is not null and was not found in the schema. It could be inside a
-	// choice/case schema element which is not represented in the path tags.
-	// e.g. choice1/case1/leaf1 could have abbreviated tag `path: "leaf1"`.
-	// In this case, try to match against any named elements within any choice/
-	// case subtrees. These are guaranteed to be unique within the current
-	// level namespace so a path tag name match will be unique if one is found.
-	if len(p) != 1 {
-		// Nodes within choice/case have a path tag with only the last schema
-		// path element i.e. choice1/case1/leaf1 path in the schema will have
-		// struct tag `path:"leaf1"`. This implies that only paths with length
-		// 1 are eligible for this matching.
-		return nil, nil
-	}
-	entries := util.FindFirstNonChoiceOrCase(schema)
-
-	util.DbgSchema("checking for %s against non choice/case entries: %v\n", p[0], stringMapKeys(entries))
-	for name, entry := range entries {
-		util.DbgSchema("%s ? ", name)
-
-		if util.StripModulePrefix(name) == p[0] {
-			util.DbgSchema(" - match\n")
-			return entry, nil
-		}
-	}
-
-	util.DbgSchema(" - no matches\n")
-	return nil, nil
-}
-
-// schemaTreeRoot returns the root of the schema tree, given any node in that
-// tree. It returns nil if schema is nil.
-func schemaTreeRoot(schema *yang.Entry) *yang.Entry {
-	if schema == nil {
-		return nil
-	}
-
-	root := schema
-	for root.Parent != nil {
-		root = root.Parent
-	}
-
-	return root
-}
-
 // absoluteSchemaDataPath returns the absolute path of the schema, excluding
-// any choice or case entries.
-// TODO(mostrowski): why are these excluded?
+// any choice or case entries. Choice and case are excluded since they exist
+// neither within the data or schema tree.
 func absoluteSchemaDataPath(schema *yang.Entry) string {
 	out := []string{schema.Name}
 	for s := schema.Parent; s != nil; s = s.Parent {
@@ -230,34 +128,16 @@ func absoluteSchemaDataPath(schema *yang.Entry) string {
 	return "/" + strings.Join(out, "/")
 }
 
-// pathToSchema returns a path to the schema for the struct field f.
-// Paths are embedded in the "path" struct tag and can be either simple:
-//   e.g. "path:a"
-// or composite e.g.
-//   e.g. "path:config/a|a"
-// which is found in OpenConfig leaf-ref cases where the key of a list is a
-// leafref. In the latter case, this function returns {"config", "a"}, and the
-// schema *yang.Entry for the field is given by schema.Dir["config"].Dir["a"].
-func pathToSchema(f reflect.StructField) ([]string, error) {
+// pathTagFromField extracts the "path" tag from the struct field f,
+// if no tag is found an error is returned. If the tag consts of more
+// than one path, they are returned exactly as they are specified in
+// the input struct - i.e., separated by "|".
+func pathTagFromField(f reflect.StructField) (string, error) {
 	pathAnnotation, ok := f.Tag.Lookup("path")
 	if !ok {
-		return nil, fmt.Errorf("field %s did not specify a path", f.Name)
+		return "", fmt.Errorf("field %s did not specify a path", f.Name)
 	}
-
-	paths := strings.Split(pathAnnotation, "|")
-	if len(paths) == 1 {
-		pathAnnotation = strings.TrimPrefix(pathAnnotation, "/")
-		return strings.Split(pathAnnotation, "/"), nil
-	}
-	for _, pv := range paths {
-		pv = strings.TrimPrefix(pv, "/")
-		pe := strings.Split(pv, "/")
-		if len(pe) > 1 {
-			return pe, nil
-		}
-	}
-
-	return nil, fmt.Errorf("field %s had path tag %s with |, but no elements of form a/b", f.Name, pathAnnotation)
+	return pathAnnotation, nil
 }
 
 // directDescendantSchema returns the direct descendant schema for the struct
@@ -267,9 +147,9 @@ func pathToSchema(f reflect.StructField) ([]string, error) {
 //   e.g. "path:config/a|a"
 // Function checks for presence of first schema without '/' and returns it.
 func directDescendantSchema(f reflect.StructField) (string, error) {
-	pathAnnotation, ok := f.Tag.Lookup("path")
-	if !ok {
-		return "", fmt.Errorf("field %s did not specify a path", f.Name)
+	pathAnnotation, err := pathTagFromField(f)
+	if err != nil {
+		return "", err
 	}
 	paths := strings.Split(pathAnnotation, "|")
 
@@ -291,6 +171,16 @@ func dataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][
 	}
 	n, err := removeNonDataPathElements(parentSchema, schema, out)
 	util.DbgPrint("have paths %v, removing non-data from %s -> %v", out, schema.Name, n)
+	return n, err
+}
+
+// shadowDataTreePaths returns all the shadow data tree paths corresponding to schemaPaths.
+// Any intermediate nodes not found in the data tree (i.e. choice/case) are
+// removed from the paths.
+func shadowDataTreePaths(parentSchema, schema *yang.Entry, f reflect.StructField) ([][]string, error) {
+	out := util.ShadowSchemaPaths(f)
+	n, err := removeNonDataPathElements(parentSchema, schema, out)
+	util.DbgPrint("have shadow paths %v, removing non-data from %s -> %v", out, schema.Name, n)
 	return n, err
 }
 
@@ -325,66 +215,70 @@ func removeNonDataPathElements(parentSchema, schema *yang.Entry, paths [][]strin
 	return out, nil
 }
 
-// checkDataTreeAgainstPaths checks each of dataPaths against the first level
-// of the data tree. It returns an error with the first element in the data tree first
-// level that is not found in dataPaths.
-// This function is used to verify that the jsonTree does not contain any elements
-// in the first level that do not have data paths found in the schema.
+// checkDataTreeAgainstPaths checks that all paths that are defined in jsonTree match at least one of
+// the paths that are supplied in dataPaths. A match exists when a path prefix of a jsonTree element is
+// equal to one or more of the given dataPaths. Since each dataPath is checked as a valid prefix, the
+// maximum depth of the check is limited to the length of the dataPaths specified. For example, if the jsonTree
+// contains an element which has the path /foo/bar/baz, and dataPaths specifies /foo, then only /foo is checked
+// to be a valid path, no assertions are made about the validity of 'bar' as a child of 'foo'.
+//
+// checkDataTreePaths returns an error if there are fields that are in the JSON that are not specified in the dataPaths.
 func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]string) error {
-	// Go over all first level JSON tree map keys to make sure they all point
-	// to valid schema paths.
-	pm := map[string]bool{}
-	for _, sp := range dataPaths {
-		pm[util.StripModulePrefix(sp[0])] = true
-	}
-	util.DbgSchema("check dataPaths %v against dataTree %v\n", pm, jsonTree)
-	for jf := range jsonTree {
-		if !pm[util.StripModulePrefix(jf)] {
-			return fmt.Errorf("JSON contains unexpected field %s", jf)
+	// Primarily, we build a trie that consists of all the valid paths that we were provided
+	// in the dataPaths tree.
+	tree := map[string]interface{}{}
+	for _, ch := range dataPaths {
+		parent := tree
+		for i := 0; i < len(ch)-1; i++ {
+			chn := util.StripModulePrefix(ch[i])
+			if parent[chn] == nil {
+				parent[chn] = map[string]interface{}{}
+			}
+			parent = parent[chn].(map[string]interface{})
 		}
+		parent[util.StripModulePrefix(ch[len(ch)-1])] = true
 	}
 
+	var missingKeys []string
+	var unexpectedLeafNodes []string
+	// We have to define the function up-front so that we can recursively call the
+	// anonymous function.
+	var checkTree func(map[string]interface{}, map[string]interface{})
+	checkTree = func(jsonTree map[string]interface{}, keyTree map[string]interface{}) {
+		for key := range jsonTree {
+			shortKey := util.StripModulePrefix(key)
+			if _, ok := keyTree[shortKey]; !ok {
+				missingKeys = append(missingKeys, shortKey)
+			}
+			if ct, ok := keyTree[shortKey].(map[string]interface{}); ok {
+				// If this is a non-leaf node for keyTree, then
+				// it should also be a non-leaf node for jsonTree.
+				// The converse is not true, since keyTree is
+				// just a partial path.
+				if jt, ok := jsonTree[key].(map[string]interface{}); ok {
+					checkTree(jt, ct)
+				} else {
+					unexpectedLeafNodes = append(unexpectedLeafNodes, shortKey)
+				}
+			}
+		}
+	}
+	checkTree(jsonTree, tree)
+	switch len(missingKeys) {
+	case 0:
+	case 1:
+		// Retain backwards compatibility with previous implementation that reported
+		// only the first error key.
+		return fmt.Errorf("JSON contains unexpected field %s", missingKeys[0])
+	default:
+		sort.Strings(missingKeys)
+		return fmt.Errorf("JSON contains unexpected field %v", missingKeys)
+	}
+
+	if len(unexpectedLeafNodes) != 0 {
+		return fmt.Errorf("JSON contains unexpected leaf field(s) %v at non-leaf node", unexpectedLeafNodes)
+	}
 	return nil
-}
-
-// removeRootPrefix removes the root prefix from root schema entities e.g.
-// Bgp_Global has path "/bgp/global" == {"", "bgp", "global"}
-//   -> {"global"}
-func removeRootPrefix(path []string) []string {
-	if len(path) < 2 || path[0] != "" {
-		// not a root path
-		return path
-	}
-	return path[2:]
-}
-
-// resolveLeafRef returns a ptr to the schema pointed to by the provided leaf-ref
-// schema. It returns schema itself if schema is not a leaf-ref.
-func resolveLeafRef(schema *yang.Entry) (*yang.Entry, error) {
-	if schema == nil {
-		return nil, nil
-	}
-	// TODO(mostrowski): this should only be possible in fakeroot. Add an
-	// explicit check for that once data is available in the schema.
-	if schema.Type == nil {
-		return schema, nil
-	}
-
-	orig := schema
-	s := schema
-	for ykind := s.Type.Kind; ykind == yang.Yleafref; {
-		ns, err := findLeafRefSchema(s, s.Type.Path)
-		if err != nil {
-			return schema, err
-		}
-		s = ns
-		ykind = s.Type.Kind
-	}
-
-	if s != orig {
-		util.DbgPrint("follow schema leaf-ref from %s to %s, type %v", orig.Name, s.Name, s.Type.Kind)
-	}
-	return s, nil
 }
 
 // schemaToStructFieldName returns the string name of the field, which must be
@@ -411,7 +305,7 @@ func schemaToStructFieldName(schema *yang.Entry, parent interface{}) (string, *y
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		fieldName := f.Name
-		p, err := pathToSchema(f)
+		p, err := util.RelativeSchemaPath(f)
 		if err != nil {
 			return "", nil, err
 		}
@@ -459,13 +353,4 @@ func hasRelativePath(schema *yang.Entry, path []string) bool {
 	}
 
 	return len(p) == 0
-}
-
-// derefIfStructPtr returns the dereferenced reflect.Value of value if it is a
-// ptr, or value if it is not.
-func derefIfStructPtr(value reflect.Value) reflect.Value {
-	if util.IsValueStructPtr(value) {
-		return value.Elem()
-	}
-	return value
 }

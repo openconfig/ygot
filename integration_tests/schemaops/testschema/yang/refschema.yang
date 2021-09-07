@@ -1,0 +1,18 @@
+module refschema {
+  prefix "rs";
+  namespace "urn:rs";
+
+  import testschema { prefix "ts"; }
+
+  container ref {
+    list reference {
+      key "name";
+
+      leaf name { 
+        type leafref {
+          path "/ts:target/ts:entity/ts:name";
+        }
+      }
+    } 
+  }
+}

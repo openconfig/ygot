@@ -15,13 +15,11 @@
 package ytypes
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"math/big"
 	"reflect"
 	"strconv"
-	"strings"
 
 	log "github.com/golang/glog"
 	"github.com/openconfig/goyang/pkg/yang"
@@ -49,30 +47,33 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 
 	util.DbgPrint("validateLeaf with value %s (%T), schema name %s (%s)", util.ValueStrDebug(value), value, inSchema.Name, inSchema.Type.Kind)
 
-	schema, err := resolveLeafRef(inSchema)
+	schema, err := util.ResolveIfLeafRef(inSchema)
 	if err != nil {
 		return util.NewErrs(err)
 	}
 
-	var rv interface{}
+	rv := value
 	ykind := schema.Type.Kind
 	rkind := reflect.ValueOf(value).Kind()
 	switch rkind {
 	case reflect.Ptr:
 		rv = reflect.ValueOf(value).Elem().Interface()
 	case reflect.Slice:
-		if ykind != yang.Ybinary {
+		if ykind != yang.Ybinary && ykind != yang.Yunion {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect []byte for binary value %v for schema %s, have type %v", value, schema.Name, ykind))
 		}
 	case reflect.Int64:
-		if ykind != yang.Yenum && ykind != yang.Yidentityref {
+		if ykind != yang.Yenum && ykind != yang.Yidentityref && ykind != yang.Yunion {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect Int64 for enum type for schema %s, have type %v", schema.Name, ykind))
 		}
 	case reflect.Bool:
 		if ykind != yang.Yempty {
 			return util.NewErrs(fmt.Errorf("bad leaf type: expect Bool for empty type for schema %s, have type %v", schema.Name, ykind))
 		}
-		rv = value
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Float64, reflect.String:
+		if ykind != yang.Yunion {
+			return util.NewErrs(fmt.Errorf("bad leaf type: expect %v for union type for schema %s, have type %v", rkind, schema.Name, ykind))
+		}
 	default:
 		return util.NewErrs(fmt.Errorf("bad leaf value type %v, expect Ptr or Int64 for schema %s", rkind, schema.Name))
 	}
@@ -93,12 +94,12 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
 	case yang.Ydecimal64:
 		return util.NewErrs(validateDecimal(schema, rv))
 	case yang.Yenum, yang.Yidentityref:
-		if rkind != reflect.Int64 && !isValueInterfacePtrToEnum(reflect.ValueOf(value)) {
-			return util.NewErrs(fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rkind, schema.Name, ykind))
+		if rvkind := reflect.TypeOf(rv).Kind(); rvkind != reflect.Int64 {
+			return util.NewErrs(fmt.Errorf("bad leaf value type %v, expect Int64 for schema %s, type %v", rvkind, schema.Name, ykind))
 		}
 		return nil
 	case yang.Yunion:
-		return validateUnion(schema, value)
+		return validateUnion(schema, rv)
 	}
 	if isIntegerType(ykind) {
 		return util.NewErrs(validateInt(schema, rv))
@@ -122,12 +123,12 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
    {
            Name:             "ipv4-address",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
    },
    {
            Name:             "ipv6-address",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
            Type:             [],
    }]
  }
@@ -155,7 +156,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
    {
            Name:             "port-string",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
    },
    {
            Name:             "port-integer",
@@ -218,17 +219,16 @@ func validateUnion(schema *yang.Entry, value interface{}) util.Errors {
 	}
 
 	util.DbgPrint("validateUnion %s", schema.Name)
-	// Must be a ptr - either a struct ptr or Go value ptr like *string.
-	// Enum types are also represented as a struct for union where the field
-	// has the enum type.
-	if reflect.TypeOf(value).Kind() != reflect.Ptr {
-		return util.NewErrs(fmt.Errorf("wrong value type for union %s: got: %T, expect ptr", schema.Name, value))
+	v := reflect.ValueOf(value)
+	if v.Kind() == reflect.Ptr {
+		// The union could be a ptr - either a struct ptr or Go value ptr like *string.
+		v = v.Elem()
 	}
 
-	v := reflect.ValueOf(value).Elem()
-
-	// Unions of enum types are passed as ptr to interface to struct ptr.
-	// Normalize to a union struct.
+	// All wrapper unions and unsupported types for simplified unions are passed as ptr to interface to struct ptr.
+	// Normalize these to a union struct.
+	// v here is already a struct, as multi-type unions are represented as
+	// interfaces within their parents' structs, *not* ptrs to interfaces.
 	if util.IsValueInterface(v) {
 		v = v.Elem()
 		if util.IsValuePtr(v) {
@@ -310,99 +310,8 @@ func findMatchingSchemasInUnion(ytype *yang.YangType, value interface{}) []*yang
 	return matches
 }
 
-// stripPrefix removes the prefix from a YANG path element. For example, removing
-// foo from "foo:bar". Such qualified paths are used in YANG modules where remote
-// paths are referenced.
-func stripPrefix(name string) (string, error) {
-	ps := strings.Split(name, ":")
-	switch len(ps) {
-	case 1:
-		return name, nil
-	case 2:
-		return ps[1], nil
-	}
-	return "", fmt.Errorf("path element did not form a valid name (name, prefix:name): %v", name)
-}
-
-// removeXPATHPredicates removes predicates from an XPath string. e.g.,
-// removeXPATHPredicates(/foo/bar[name="foo"]/config/baz -> /foo/bar/config/baz.
-func removeXPATHPredicates(s string) (string, error) {
-	var b bytes.Buffer
-	for i := 0; i < len(s); {
-		ss := s[i:]
-		si, ei := strings.Index(ss, "["), strings.Index(ss, "]")
-		switch {
-		case si == -1 && ei == -1:
-			// This substring didn't contain a [] pair, therefore write it
-			// to the buffer.
-			b.WriteString(ss)
-			// Move to the last character of the substring.
-			i += len(ss)
-		case si == -1 || ei == -1:
-			// This substring contained a mismatched pair of []s.
-			return "", fmt.Errorf("Mismatched brackets within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
-		case si > ei:
-			// This substring contained a ] before a [.
-			return "", fmt.Errorf("Incorrect ordering of [] within substring %s of %s, [ pos: %d, ] pos: %d", ss, s, si, ei)
-		default:
-			// This substring contained a matched set of []s.
-			b.WriteString(ss[0:si])
-			i += ei + 1
-		}
-	}
-
-	return b.String(), nil
-}
-
-// findLeafRefSchema returns a schema Entry at the path pathStr relative to
-// schema if it exists, or an error otherwise.
-// pathStr has either:
-//  - the relative form "../a/b/../b/c", where ".." indicates the parent of the
-//    node, or
-//  - the absolute form "/a/b/c", which indicates the absolute path from the
-//    root of the schema tree.
-func findLeafRefSchema(schema *yang.Entry, pathStr string) (*yang.Entry, error) {
-	if pathStr == "" {
-		return nil, fmt.Errorf("leafref schema %s has empty path", schema.Name)
-	}
-
-	refSchema := schema
-	pathStr, err := removeXPATHPredicates(pathStr)
-	if err != nil {
-		return nil, err
-	}
-	path := strings.Split(pathStr, "/")
-
-	// For absolute path, reset to root of the schema tree.
-	if pathStr[0] == '/' {
-		refSchema = schemaTreeRoot(schema)
-		path = path[1:]
-	}
-
-	for i := 0; i < len(path); i++ {
-		pe, err := stripPrefix(path[i])
-		if err != nil {
-			return nil, fmt.Errorf("leafref schema %s path %s: %v", schema.Name, pathStr, err)
-		}
-
-		if pe == ".." {
-			if refSchema.Parent == nil {
-				return nil, fmt.Errorf("parent of %s is nil for leafref schema %s with path %s", refSchema.Name, schema.Name, pathStr)
-			}
-			refSchema = refSchema.Parent
-			continue
-		}
-		if refSchema.Dir[pe] == nil {
-			return nil, fmt.Errorf("schema node %s is nil for leafref schema %s with path %s", pe, schema.Name, pathStr)
-		}
-		refSchema = refSchema.Dir[pe]
-	}
-
-	return refSchema, nil
-}
-
-// validateLeafSchema validates the given leaf type schema. This is a sanity
-// check validation rather than a comprehensive validation against the RFC.
+// validateLeafSchema validates the given leaf type schema. This is a quick
+// check rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.
 func validateLeafSchema(schema *yang.Entry) error {
@@ -418,16 +327,21 @@ func validateLeafSchema(schema *yang.Entry) error {
 	return nil
 }
 
-// YANGEmpty is a derived type which is used to represent the YANG
-// empty type.
+// YANGEmpty is a derived type which is used to represent the YANG empty type.
 type YANGEmpty bool
+
+// Binary is a derived type which is used to represent the YANG binary type.
+type Binary []byte
 
 // unmarshalLeaf unmarshals a scalar value (determined by json.Unmarshal) into
 // the parent containing the leaf.
 //   schema points to the schema for the leaf type.
 func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, enc Encoding) error {
 	if util.IsValueNil(value) {
-		return nil
+		if enc == JSONEncoding {
+			return nil
+		}
+		return fmt.Errorf("unmarshalLeaf: invalid nil value to unmarshal")
 	}
 
 	var err error
@@ -442,7 +356,7 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, 
 		return err
 	}
 
-	schema, err := resolveLeafRef(inSchema)
+	schema, err := util.ResolveIfLeafRef(inSchema)
 	if err != nil {
 		return err
 	}
@@ -483,8 +397,8 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, 
 for example, with structs schema:
 
 type Bgp_Neighbor_RouteReflector struct {
-	RouteReflectorClient    *bool                                                     `path:"config/route-reflector-client" module:"openconfig-bgp"`
-	RouteReflectorClusterId Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union `path:"config/route-reflector-cluster-id" module:"openconfig-bgp"`
+	RouteReflectorClient    *bool                                                     `path:"config/route-reflector-client" module:"openconfig-bgp/openconfig-bgp"`
+	RouteReflectorClusterId Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union `path:"config/route-reflector-cluster-id" module:"openconfig-bgp/openconfig-bgp"`
 }
 type Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union interface {
 	Is_Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union()
@@ -519,36 +433,29 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	dft, _ := parentT.Elem().FieldByName(fieldName)
 	destUnionFieldElemT := dft.Type
 
-	// Possible enum types, as []reflect.Type
-	ets, err := schemaToEnumTypes(schema, parentT)
+	ets, sks, err := enumAndNonEnumTypesForUnion(schema, parentT)
 	if err != nil {
 		return err
 	}
-	// Possible YANG scalar types, as []yang.TypeKind. This discards any
-	// yang.Type restrictions, since these are expected to be checked during
-	// verification after unmarshal.
-	sks, err := getUnionKindsNotEnums(schema)
-	if err != nil {
-		return err
-	}
-
-	util.DbgPrint("possible union types are enums %v or scalars %v", ets, sks)
 
 	// Special case. If all possible union types map to a single go type, the
 	// GoStruct field is that type rather than a union Interface type.
-	if !util.IsTypeInterface(destUnionFieldElemT) && !util.IsTypeSliceOfInterface(destUnionFieldElemT) {
-		// Is not an interface, we must have exactly one type in the union.
-		if len(sks) != 1 {
-			return fmt.Errorf("got %v types for union schema %s for type %T, expect just one type", sks, fieldName, parent)
-		}
-		yk := sks[0]
-		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(yk), fieldName, value, enc)
+	loneType, isEnum, err := getLoneUnionType(schema, destUnionFieldElemT, ets, sks)
+	if err != nil {
+		return err
+	}
+	if loneType != yang.Ynone {
+		goValue, err := unmarshalScalar(parent, yangKindToLeafEntry(loneType), fieldName, value, enc)
 		if err != nil {
-			return fmt.Errorf("could not unmarshal %v into type %s", value, yk)
+			return fmt.Errorf("could not unmarshal %v into type %s", value, loneType)
 		}
 
 		if !util.IsTypeSlice(destUnionFieldElemT) {
-			destUnionFieldV.Set(reflect.ValueOf(ygot.ToPtr(goValue)))
+			if isEnum {
+				destUnionFieldV.Set(reflect.ValueOf(goValue))
+			} else {
+				destUnionFieldV.Set(reflect.ValueOf(ygot.ToPtr(goValue)))
+			}
 			return nil
 		}
 
@@ -562,7 +469,6 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		}
 		destUnionFieldV.Set(reflect.Append(sl, reflect.ValueOf(goValue)))
 		return nil
-
 	}
 
 	// For each possible union type, try to unmarshal the value. If it can be
@@ -576,7 +482,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	var valueStr string
 	var ok bool
 	switch enc {
-	case GNMIEncoding:
+	case GNMIEncoding, gNMIEncodingWithJSONTolerance:
 		var sv *gpb.TypedValue_StringVal
 		if sv, ok = value.(*gpb.TypedValue).GetValue().(*gpb.TypedValue_StringVal); ok {
 			valueStr = sv.StringVal
@@ -588,16 +494,12 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	}
 
 	if ok {
-		for _, et := range ets {
-			util.DbgPrint("try to unmarshal into enum type %s", et)
-			ev, err := castToEnumValue(et, valueStr)
-			if err != nil {
-				return err
-			}
-			if ev != nil {
-				return setFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, ev)
-			}
-			util.DbgPrint("could not unmarshal %v into enum type: %s", value, err)
+		ev, err := castToOneEnumValue(ets, valueStr)
+		if err != nil {
+			return err
+		}
+		if ev != nil {
+			return setUnionFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, ev)
 		}
 	}
 
@@ -606,7 +508,7 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 		sch := yangKindToLeafEntry(sk)
 		gv, err := unmarshalScalar(parent, sch, fieldName, value, enc)
 		if err == nil {
-			return setFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, gv)
+			return setUnionFieldWithTypedValue(parentT, destUnionFieldV, destUnionFieldElemT, gv)
 		}
 		util.DbgPrint("could not unmarshal %v into type %s: %s", value, sk, err)
 	}
@@ -614,32 +516,14 @@ func unmarshalUnion(schema *yang.Entry, parent interface{}, fieldName string, va
 	return fmt.Errorf("could not find suitable union type to unmarshal value %v type %T into parent struct type %T field %s", value, value, parent, fieldName)
 }
 
-// setFieldWithTypedValue sets the field destV that has type ft and the given
-// parent type with v, which must be a compatible enum type.
-func setFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT reflect.Type, v interface{}) error {
-	util.DbgPrint("setFieldWithTypedValue value %v into type %s", util.ValueStrDebug(v), destElemT)
-	if destElemT.Kind() == reflect.Slice {
-		// leaf-list case
-		destElemT = destElemT.Elem()
+// setUnionFieldWithTypedValue sets the field destV with value v after converting it
+// to destElemT using the union conversion function of the given parent type.
+func setUnionFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT reflect.Type, v interface{}) error {
+	util.DbgPrint("setUnionFieldWithTypedValue value %v into type %s", util.ValueStrDebug(v), destElemT)
+	eiv, err := getUnionVal(parentT, destElemT, v)
+	if err != nil {
+		return err
 	}
-	mn := "To_" + destElemT.Name()
-	mapMethod := reflect.New(parentT).Elem().MethodByName(mn)
-	if !mapMethod.IsValid() {
-		return fmt.Errorf("%s does not have a %s function", destElemT.Name(), mn)
-	}
-	ec := mapMethod.Call([]reflect.Value{reflect.ValueOf(v)})
-	if len(ec) != 2 {
-		return fmt.Errorf("%s %s function returns %d params", destElemT.Name(), mn, len(ec))
-	}
-	ei := ec[0].Interface()
-	ee := ec[1].Interface()
-	if ee != nil {
-		return fmt.Errorf("unmarshaled %v type %T does not have a union type: %v", v, v, ee)
-	}
-
-	util.DbgPrint("unmarshaling %v into type %s", v, reflect.TypeOf(ei))
-
-	eiv := reflect.ValueOf(ei)
 	if destV.Type().Kind() == reflect.Slice {
 		destV.Set(reflect.Append(destV, eiv))
 	} else {
@@ -649,8 +533,36 @@ func setFieldWithTypedValue(parentT reflect.Type, destV reflect.Value, destElemT
 	return nil
 }
 
+// getUnionVal converts the input value v to the target union type using the
+// union conversion function of the parent type.
+func getUnionVal(parentT reflect.Type, destElemT reflect.Type, v interface{}) (reflect.Value, error) {
+	util.DbgPrint("getUnionVal value %v into type %s", util.ValueStrDebug(v), destElemT)
+	if destElemT.Kind() == reflect.Slice {
+		// leaf-list case
+		destElemT = destElemT.Elem()
+	}
+	mn := "To_" + destElemT.Name()
+	mapMethod := reflect.New(parentT).Elem().MethodByName(mn)
+	if !mapMethod.IsValid() {
+		return reflect.ValueOf(nil), fmt.Errorf("%s does not have a %s function", destElemT.Name(), mn)
+	}
+	ec := mapMethod.Call([]reflect.Value{reflect.ValueOf(v)})
+	if len(ec) != 2 {
+		return reflect.ValueOf(nil), fmt.Errorf("%s %s function returns %d params", destElemT.Name(), mn, len(ec))
+	}
+	ei := ec[0].Interface()
+	ee := ec[1].Interface()
+	if ee != nil {
+		return reflect.ValueOf(nil), fmt.Errorf("unmarshaled %v type %T does not have a union type: %v", v, v, ee)
+	}
+
+	util.DbgPrint("unmarshaling %v into type %s", v, reflect.TypeOf(ei))
+
+	return reflect.ValueOf(ei), nil
+}
+
 // getUnionKindsNotEnums returns all the YANG kinds under the given schema node,
-// dereferencing any refs.
+// dereferencing any refs. Duplicate types are deduped.
 func getUnionKindsNotEnums(schema *yang.Entry) ([]yang.TypeKind, error) {
 	var uks []yang.TypeKind
 	m := make(map[yang.TypeKind]interface{})
@@ -659,10 +571,10 @@ func getUnionKindsNotEnums(schema *yang.Entry) ([]yang.TypeKind, error) {
 		return nil, err
 	}
 	for _, yt := range uts {
-		m[yt.Kind] = nil
-	}
-	for k := range m {
-		uks = append(uks, k)
+		if _, ok := m[yt.Kind]; !ok {
+			m[yt.Kind] = nil
+			uks = append(uks, yt.Kind)
+		}
 	}
 	return uks, nil
 }
@@ -676,7 +588,7 @@ func getUnionTypesNotEnums(schema *yang.Entry, yt *yang.YangType) ([]*yang.YangT
 		// Enum types handled separately.
 		return nil, nil
 	case yang.Yleafref:
-		ns, err := findLeafRefSchema(schema, yt.Path)
+		ns, err := util.FindLeafRefSchema(schema, yt.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -731,7 +643,10 @@ func schemaToEnumTypes(schema *yang.Entry, t reflect.Type) ([]reflect.Type, erro
 //     Required if the unmarshaled type is an enum.
 func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, value interface{}, enc Encoding) (interface{}, error) {
 	if util.IsValueNil(value) {
-		return nil, nil
+		if enc == JSONEncoding {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("unmarshalScalar: invalid nil value to unmarshal")
 	}
 
 	if err := validateLeafSchema(schema); err != nil {
@@ -743,12 +658,12 @@ func unmarshalScalar(parent interface{}, schema *yang.Entry, fieldName string, v
 	switch enc {
 	case JSONEncoding:
 		return sanitizeJSON(parent, schema, fieldName, value)
-	case GNMIEncoding:
+	case GNMIEncoding, gNMIEncodingWithJSONTolerance:
 		tv, ok := value.(*gpb.TypedValue)
 		if !ok {
 			return nil, fmt.Errorf("got %T type, want gNMI TypedValue as value type", value)
 		}
-		return sanitizeGNMI(parent, schema, fieldName, tv)
+		return sanitizeGNMI(parent, schema, fieldName, tv, enc == gNMIEncodingWithJSONTolerance)
 	}
 
 	return nil, fmt.Errorf("unknown encoding mode; %v", enc)
@@ -841,15 +756,18 @@ func sanitizeJSON(parent interface{}, schema *yang.Entry, fieldName string, valu
 	return nil, fmt.Errorf("unmarshalScalar: unsupported type %v in schema node %s", ykind, schema.Name)
 }
 
-// sanitizeGNMI decodes the GNMI TypedValue encoded value into the type of
-// corresponding field in GoStruct. Parent is the parent struct containing the
+// sanitizeGNMI decodes the GNMI TypedValue encoded value into a field of the
+// corresponding type in GoStruct. Parent is the parent struct containing the
 // field being unmarshaled. schema is *yang.Entry corresponding to the field.
-// fieldName is the name of the field being written in GoStruct. value is the
-// JSON encoded value.
-func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *gpb.TypedValue) (interface{}, error) {
+// fieldName is the name of the field being written in GoStruct. tv is the
+// JSON encoded value. jsonTolerance means to allow some otherwise nonmatching
+// types to match due to inconsistencies after json translation; for now, this
+// just involves accepting positive ints as uints.
+func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *gpb.TypedValue, jsonTolerance bool) (interface{}, error) {
 	ykind := schema.Type.Kind
 
-	if !gNMIToYANGTypeMatches(ykind, tv) {
+	var ok bool
+	if ok = gNMIToYANGTypeMatches(ykind, tv, jsonTolerance); !ok {
 		return nil, fmt.Errorf("failed to unmarshal %v into %v", tv.GetValue(), yang.TypeKindToName[ykind])
 	}
 
@@ -877,10 +795,17 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 		}
 		return rv.Interface(), nil
 	case yang.Ybinary:
-		return tv.GetBytesVal(), nil
+		bytes := tv.GetBytesVal()
+		if bytes == nil {
+			return nil, fmt.Errorf("received BytesVal is nil -- this is invalid")
+		}
+		return bytes, nil
 	case yang.Ydecimal64:
 		switch v := tv.GetValue().(type) {
 		case *gpb.TypedValue_DecimalVal:
+			if v.DecimalVal == nil {
+				return nil, fmt.Errorf("received DecimalVal is nil -- this is invalid")
+			}
 			prec := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(v.DecimalVal.Precision)), nil)
 			// Second return value indicates whether returned float64 value exactly
 			// represents the division. We don't want to fail unmarshalling as float64
@@ -896,10 +821,14 @@ func sanitizeGNMI(parent interface{}, schema *yang.Entry, fieldName string, tv *
 }
 
 // gNMIToYANGTypeMatches checks whether the provided yang.TypeKind can be set
-// by using the provided gNMI TypedValue. gNMI TypedValue oneof fields can
+// by using the provided gNMI TypedValue, and returns the TypedValue that
+// should be used to get the underlying value. gNMI TypedValue oneof fields can
 // carry more than one sizes of the same type per gNMI specification:
 // https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-specification.md#223-node-values
-func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue) bool {
+// jsonTolerance means to allow some otherwise nonmatching types to match due
+// to inconsistencies after json translation; for now, this just involves
+// accepting positive ints as uints.
+func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue, jsonTolerance bool) bool {
 	var ok bool
 	switch ykind {
 	case yang.Ybool, yang.Yempty:
@@ -910,6 +839,12 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue) bool {
 		_, ok = tv.GetValue().(*gpb.TypedValue_IntVal)
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
 		_, ok = tv.GetValue().(*gpb.TypedValue_UintVal)
+		if !ok && jsonTolerance {
+			// Allow positive ints to be treated as uints.
+			if v, intOk := tv.GetValue().(*gpb.TypedValue_IntVal); intOk && v.IntVal >= 0 {
+				ok, tv.Value = true, &gpb.TypedValue_UintVal{UintVal: uint64(v.IntVal)}
+			}
+		}
 	case yang.Ybinary:
 		_, ok = tv.GetValue().(*gpb.TypedValue_BytesVal)
 	case yang.Ydecimal64:
@@ -919,18 +854,4 @@ func gNMIToYANGTypeMatches(ykind yang.TypeKind, tv *gpb.TypedValue) bool {
 		}
 	}
 	return ok
-}
-
-// isValueInterfacePtrToEnum reports whether v is an interface ptr to enum type.
-func isValueInterfacePtrToEnum(v reflect.Value) bool {
-	if v.Kind() != reflect.Ptr {
-		return false
-	}
-	v = v.Elem()
-	if v.Kind() != reflect.Interface {
-		return false
-	}
-	v = v.Elem()
-
-	return v.Kind() == reflect.Int64
 }

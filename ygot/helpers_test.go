@@ -15,8 +15,9 @@
 package ygot
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestToPtr(t *testing.T) {
@@ -38,8 +39,30 @@ func TestToPtr(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		if got := ToPtr(tt.in); !reflect.DeepEqual(got, tt.want) {
-			t.Errorf("%s: ToPtr(%v): did not get expected ptr, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		got := ToPtr(tt.in)
+		if diff := cmp.Diff(tt.want, got); diff != "" {
+			t.Errorf("%s: ToPtr(%v): did not get expected ptr, (-want, +got):\n%s", tt.name, tt.in, diff)
 		}
+	}
+}
+
+func TestBinaryToFloat32(t *testing.T) {
+	tests := []struct {
+		name string
+		in   Binary
+		want float32
+	}{{
+		name: "basic",
+		// 01010000100101010000001011111001
+		in:   Binary{80, 149, 2, 249},
+		want: 2e+10,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := BinaryToFloat32(tt.in); got != tt.want {
+				t.Errorf("BinaryToFloat32(%v): got %v, want %v", tt.in, got, tt.want)
+			}
+		})
 	}
 }

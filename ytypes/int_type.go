@@ -38,7 +38,43 @@ var (
 		yang.Yuint32: yang.Uint32Range,
 		yang.Yuint64: yang.Uint64Range,
 	}
+
+	// typeKindFromKind maps the primitive type kinds of Go to the
+	// enumerated TypeKind used in goyang.
+	typeKindFromKind = map[reflect.Kind]yang.TypeKind{
+		reflect.Int8:    yang.Yint8,
+		reflect.Int16:   yang.Yint16,
+		reflect.Int32:   yang.Yint32,
+		reflect.Int64:   yang.Yint64,
+		reflect.Uint8:   yang.Yuint8,
+		reflect.Uint16:  yang.Yuint16,
+		reflect.Uint32:  yang.Yuint32,
+		reflect.Uint64:  yang.Yuint64,
+		reflect.Bool:    yang.Ybool,
+		reflect.Float64: yang.Ydecimal64,
+		reflect.String:  yang.Ystring,
+	}
 )
+
+// ValidateIntRestrictions checks that the given signed int matches the
+// schema's range restrictions (if any). It returns an error if the validation
+// fails.
+func ValidateIntRestrictions(schemaType *yang.YangType, intVal int64) error {
+	if !isInRanges(schemaType.Range, yang.FromInt(intVal)) {
+		return fmt.Errorf("signed integer value %v is outside specified ranges", intVal)
+	}
+	return nil
+}
+
+// ValidateUintRestrictions checks that the given unsigned int matches the
+// schema's range restrictions (if any). It returns an error if the validation
+// fails.
+func ValidateUintRestrictions(schemaType *yang.YangType, uintVal uint64) error {
+	if !isInRanges(schemaType.Range, yang.FromUint(uintVal)) {
+		return fmt.Errorf("unsigned integer value %v is outside specified ranges", uintVal)
+	}
+	return nil
+}
 
 // validateInt validates value, which must be a Go integer type, against the
 // given schema.
@@ -51,21 +87,20 @@ func validateInt(schema *yang.Entry, value interface{}) error {
 	util.DbgPrint("validateInt type %s with value %v", util.YangTypeToDebugString(schema.Type), value)
 
 	kind := schema.Type.Kind
-	ranges := schema.Type.Range
 
 	// Check that type of value is the type expected from the schema.
-	if yang.TypeKindFromName[reflect.TypeOf(value).Name()] != kind {
+	if typeKindFromKind[reflect.TypeOf(value).Kind()] != kind {
 		return fmt.Errorf("non %v type %T with value %v for schema %s", kind, value, value, schema.Name)
 	}
 
 	// Check that the value satisfies any range restrictions.
 	if isSigned(kind) {
-		if !isInRanges(ranges, yang.FromInt(reflect.ValueOf(value).Int())) {
-			return fmt.Errorf("integer value %v is outside specified ranges for schema %s", value, schema.Name)
+		if err := ValidateIntRestrictions(schema.Type, reflect.ValueOf(value).Int()); err != nil {
+			return fmt.Errorf("schema %q: %v", schema.Name, err)
 		}
 	} else {
-		if !isInRanges(ranges, yang.FromUint(reflect.ValueOf(value).Uint())) {
-			return fmt.Errorf("unsigned integer value %v is outside specified ranges for schema %s", value, schema.Name)
+		if err := ValidateUintRestrictions(schema.Type, reflect.ValueOf(value).Uint()); err != nil {
+			return fmt.Errorf("schema %q: %v", schema.Name, err)
 		}
 	}
 
@@ -111,8 +146,8 @@ func validateIntSlice(schema *yang.Entry, value interface{}) error {
 	return nil
 }
 
-// validateIntSchema validates the given integer type schema. This is a sanity
-// check validation rather than a comprehensive validation against the RFC.
+// validateIntSchema validates the given integer type schema. This is a quick
+// check rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.
 func validateIntSchema(schema *yang.Entry) error {

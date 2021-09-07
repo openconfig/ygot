@@ -54,8 +54,10 @@ func PathToSchemaPath(path *gnmipb.Path) (string, error) {
 		return "", fmt.Errorf("received nil path in PathToSchemaPath")
 	}
 
+	//lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 	if path.Element != nil {
 		var sp []string
+		//lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 		for _, e := range path.Element {
 			elem, _, err := extractKV(e)
 			if err != nil {
@@ -89,7 +91,9 @@ func PathToStrings(path *gnmipb.Path) ([]string, error) {
 		return nil, fmt.Errorf("received nil path in PathToStrings")
 	}
 
+	//lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 	if path.Element != nil {
+		//lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 		return elementsToString(path.Element)
 	}
 
@@ -173,6 +177,7 @@ func StringToPath(path string, pathTypes ...PathType) (*gnmipb.Path, error) {
 				errs = util.AppendErr(errs, fmt.Errorf("error building string slice path: %v", err))
 				continue
 			}
+			//lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 			pmsg.Element = gp.Element
 		}
 	}
@@ -191,7 +196,7 @@ func StringToPath(path string, pathTypes ...PathType) (*gnmipb.Path, error) {
 // contents is left unchanged. This implements the legacy string slice path that are
 // used in gNMI pre-0.4.0. The specification for these paths is at https://goo.gl/uD6g6z.
 func StringToStringSlicePath(path string) (*gnmipb.Path, error) {
-	parts := pathStringToElements(path)
+	parts := util.PathStringToElements(path)
 	gpath := new(gnmipb.Path)
 	for _, p := range parts {
 		// Run through extractKV to ensure that the path is valid.
@@ -203,6 +208,7 @@ func StringToStringSlicePath(path string) (*gnmipb.Path, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error formatting path %q: %v", path, err)
 		}
+		//lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 		gpath.Element = append(gpath.Element, fpath)
 	}
 
@@ -212,7 +218,7 @@ func StringToStringSlicePath(path string) (*gnmipb.Path, error) {
 // StringToStructuredPath takes a string representing a path, and converts it to
 // a gnmi.Path, using the PathElem element message that is defined in gNMI 0.4.0.
 func StringToStructuredPath(path string) (*gnmipb.Path, error) {
-	parts := pathStringToElements(path)
+	parts := util.PathStringToElements(path)
 
 	gpath := &gnmipb.Path{}
 	for _, p := range parts {
@@ -226,47 +232,6 @@ func StringToStructuredPath(path string) (*gnmipb.Path, error) {
 		})
 	}
 	return gpath, nil
-}
-
-// pathStringToElements splits the string s, which represents a gNMI string
-// path into its constituent elements. It does not parse keys, which are left
-// unchanged within the path - but removes escape characters from element
-// names. The path returned omits any leading empty elements when splitting
-// on the / character.
-func pathStringToElements(s string) []string {
-	var parts []string
-	var buf bytes.Buffer
-
-	var inKey, inEscape bool
-
-	for _, ch := range s {
-		switch {
-		case ch == '[' && !inEscape:
-			inKey = true
-		case ch == ']' && !inEscape:
-			inKey = false
-		case ch == '\\' && !inEscape && !inKey:
-			inEscape = true
-			continue
-		case ch == '/' && !inEscape && !inKey:
-			parts = append(parts, buf.String())
-			buf.Reset()
-			continue
-		}
-
-		buf.WriteRune(ch)
-		inEscape = false
-	}
-
-	if buf.Len() != 0 {
-		parts = append(parts, buf.String())
-	}
-
-	if len(parts) > 0 && parts[0] == "" {
-		parts = parts[1:]
-	}
-
-	return parts
 }
 
 // extractKV extracts key value predicates from the input string in. It returns

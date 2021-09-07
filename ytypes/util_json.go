@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 )
@@ -36,7 +37,7 @@ func getJSONTreeValForField(parentSchema, schema *yang.Entry, f reflect.StructFi
 	var outPath []string
 	for _, p := range ps {
 		if jr, ok := getJSONTreeValForPath(tree, p); ok {
-			if out != nil && !reflect.DeepEqual(out, jr) {
+			if out != nil && !cmp.Equal(out, jr) {
 				return nil, fmt.Errorf("values at paths %v and %v are different: %v != %v", outPath, p, out, jr)
 			}
 			out = jr
@@ -48,7 +49,7 @@ func getJSONTreeValForField(parentSchema, schema *yang.Entry, f reflect.StructFi
 }
 
 // getJSONTreeValForPath returns a JSON subtree from tree at the given path from
-// the root. If returns (nil, false) if no subtree is found at the given path.
+// the root. It returns (nil, false) if no subtree is found at the given path.
 func getJSONTreeValForPath(tree interface{}, path []string) (interface{}, bool) {
 	if len(path) == 0 {
 		return tree, true

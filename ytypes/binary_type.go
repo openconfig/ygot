@@ -16,12 +16,25 @@ package ytypes
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygot"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.8.
+
+// ValidateBinaryRestrictions checks that the given binary string matches the
+// schema's length restrictions (if any). It returns an error if the validation
+// fails.
+func ValidateBinaryRestrictions(schemaType *yang.YangType, binaryVal []byte) error {
+	allowedRanges := schemaType.Length
+	if !lengthOk(allowedRanges, uint64(len(binaryVal))) {
+		return fmt.Errorf("length %d is outside range %v", len(binaryVal), allowedRanges)
+	}
+	return nil
+}
 
 // validateBinary validates value, which must be a Go string type, against the
 // given schema.
@@ -35,17 +48,16 @@ func validateBinary(schema *yang.Entry, value interface{}) error {
 	}
 
 	// Check that type of value is the type expected from the schema.
-	binaryVal, ok := value.([]byte)
-	if !ok {
+	if !isBinaryType(reflect.TypeOf(value)) {
 		return fmt.Errorf("non binary type %T with value %v for schema %s", value, value, schema.Name)
 	}
 
 	// Check that the length is within the allowed range.
-	allowedRanges := schema.Type.Length
-	if !lengthOk(allowedRanges, uint64(len(binaryVal))) {
-		return fmt.Errorf("length %d is outside range %v for schema %s", len(binaryVal), allowedRanges, schema.Name)
-	}
+	binaryVal := reflect.ValueOf(value).Bytes()
 
+	if err := ValidateBinaryRestrictions(schema.Type, binaryVal); err != nil {
+		return fmt.Errorf("schema %q: %v", schema.Name, err)
+	}
 	return nil
 }
 
@@ -58,27 +70,29 @@ func validateBinarySlice(schema *yang.Entry, value interface{}) error {
 	}
 
 	// Check that type of value is the type expected from the schema.
-	slice, ok := value.([][]byte)
-	if !ok {
-		return fmt.Errorf("non []string type %T with value: %v for schema %s", value, value, schema.Name)
+	if !isBinarySliceType(reflect.TypeOf(value)) {
+		return fmt.Errorf("non []Binary type %T with value: %v for schema %s", value, value, schema.Name)
 	}
 
 	// Each slice element must be valid and unique.
-	tbl := make(map[string]bool, len(slice))
-	for i, val := range slice {
-		if err := validateBinary(schema, val); err != nil {
+	v := reflect.ValueOf(value)
+	tbl := make(map[string]bool, v.Len())
+	for i := 0; i < v.Len(); i++ {
+		val := v.Index(i)
+		if err := validateBinary(schema, val.Interface()); err != nil {
 			return fmt.Errorf("invalid element at index %d: %v", i, err)
 		}
-		if tbl[string(val)] {
-			return fmt.Errorf("duplicate binary type: %v for schema %s", val, schema.Name)
+		binaryVal := val.Bytes()
+		if tbl[string(binaryVal)] {
+			return fmt.Errorf("duplicate binary type: %v for schema %s", binaryVal, schema.Name)
 		}
-		tbl[string(val)] = true
+		tbl[string(binaryVal)] = true
 	}
 	return nil
 }
 
-// validateBinarySchema validates the given binary type schema. This is a sanity
-// check validation rather than a comprehensive validation against the RFC.
+// validateBinarySchema validates the given binary type schema. This is a quick
+// check rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.
 func validateBinarySchema(schema *yang.Entry) error {
@@ -92,4 +106,14 @@ func validateBinarySchema(schema *yang.Entry) error {
 		return fmt.Errorf("binary schema %s has wrong type %v", schema.Name, schema.Type.Kind)
 	}
 	return validateLengthSchema(schema)
+}
+
+// isBinaryType reports whether input t is a Binary type derived from []byte.
+func isBinaryType(t reflect.Type) bool {
+	return t != nil && t.Name() == ygot.BinaryTypeName && t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8
+}
+
+// isBinarySliceType reports whether input t is a []Binary type
+func isBinarySliceType(t reflect.Type) bool {
+	return t != nil && t.Kind() == reflect.Slice && isBinaryType(t.Elem())
 }

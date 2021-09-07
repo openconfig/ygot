@@ -1,0 +1,114 @@
+syntax = "proto3";
+
+package exschemapath;
+
+option go_package = "github.com/openconfig/ygot/protomap/testdata/exschemapath";
+
+import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
+import "github.com/openconfig/ygot/proto/yext/yext.proto";
+
+message Root {
+    System system = 1; 
+    message InterfaceKey {
+        string name = 1 [(yext.schemapath) = "/interfaces/interface/config/name|/interfaces/interface/name"];
+        Interface interface = 2;
+    }
+    repeated InterfaceKey interface = 422482938 [(yext.schemapath) = "/interfaces/interface"];
+}
+
+message Interface {
+    ywrapper.StringValue description = 1 [(yext.schemapath) = "/interfaces/interface/config/description"];
+}
+
+message System {
+    ywrapper.StringValue hostname = 1 [(yext.schemapath) = "/system/config/hostname"];
+}
+
+message ExampleMessage {
+    ywrapper.BoolValue bo = 1 [(yext.schemapath) = "/bool"];
+    ywrapper.BytesValue by = 2 [(yext.schemapath) = "/bytes"];
+    ywrapper.Decimal64Value de = 3 [(yext.schemapath) = "/decimal"];
+    ywrapper.IntValue in = 4 [(yext.schemapath) = "/int"];
+    ywrapper.StringValue str = 5 [(yext.schemapath) = "/string"];
+    ywrapper.UintValue ui = 6 [(yext.schemapath) = "/uint"];
+    ExampleMessageChild ex = 7 [(yext.schemapath) = "/message"];
+    repeated ExampleMessageKey em = 8 [(yext.schemapath) = "/list-name"];
+    repeated ExampleMessageMultiKey multi = 9 [(yext.schemapath) = "/multi-list"];
+    ExampleEnum en = 10 [(yext.schemapath) = "/enum"];
+    ywrapper.StringValue compress =  11 [(yext.schemapath) = "/state/compress"];
+}
+
+enum ExampleEnum {
+    ENUM_UNSET = 0;
+    ENUM_VALONE = 1 [(yext.yang_name) = "VAL_ONE"];
+    ENUM_VALTWO = 2 [(yext.yang_name) = "VAL_TWO"];
+    ENUM_VALFORTYTWO = 42 [(yext.yang_name) = "VAL_FORTYTWO"];
+}
+
+message ExampleMessageChild {
+    ywrapper.StringValue str = 1 [(yext.schemapath) = "/message/str"];
+}
+
+message ExampleMessageKey {
+    string single_key = 1 [(yext.schemapath) = "/list-name/single-key|/list-name/config/single-key"];
+    ExampleMessageListMember member = 2;
+}
+
+message ExampleMessageListMember {
+    ywrapper.StringValue str = 1 [(yext.schemapath) = "/list-name/another-field"];
+    repeated NestedListKey child_list = 2 [(yext.schemapath) = "/list-name/child-list"];
+}
+
+message NestedListKey {
+    string key_one = 1 [(yext.schemapath) = "/list-name/child-list/key-one"];
+    NestedListMember field = 2;
+}
+
+message NestedListMember {
+    ywrapper.StringValue str = 1 [(yext.schemapath) = "/list-name/child-list/str"];
+}
+
+message ExampleMessageMultiKey {
+    uint32 index = 1 [(yext.schemapath) = "/multi-list/index|/multi-list/config/index"];
+    string name = 2 [(yext.schemapath) = "/multi-list/name|/multi-list/config/name"];
+    MultiKeyListMember member = 3;
+}
+
+message MultiKeyListMember {
+    ywrapper.StringValue child = 1 [(yext.schemapath) = "/multi-list/config/child"];
+}
+
+message InvalidMessage {
+    map<string, string> map_field = 1 [(yext.schemapath) = "/an/invalid/field"];
+    string no_annotation = 2;
+    repeated ExampleMessageKey km = 3 [(yext.schemapath) = "/one|/two"];
+    repeated string ke = 4 [(yext.schemapath) = "/three"];
+    repeated BadMessageKey bk = 5 [(yext.schemapath) = "/four"];
+    repeated BadMessageMember bm = 6 [(yext.schemapath) = "/five"];
+    ywrapper.StringValue invalid_annotated_path = 7 [(yext.schemapath) = "/one[two]"];
+    repeated BadMessageKeyTwo bk_two = 8 [(yext.schemapath) = "/six"];
+    InvalidMessage multiple_annotations_for_container = 9 [(yext.schemapath) = "/six|/seven"];
+    repeated BadKeyPathMessage bkpm = 10 [(yext.schemapath) = "/eight"];
+    repeated InvalidKeyPathKey ikpk = 11 [(yext.schemapath) = "/nine"];
+}
+
+message BadMessageKeyTwo {
+    string key = 1 [(yext.schemapath) = "/one|/one/two"];
+}
+
+message BadMessageKey {
+    float bad_key_type = 1 [(yext.schemapath) = "/four/key"];
+}
+
+message BadMessageMember {
+    string key = 1 [(yext.schemapath) = "/ok-key"];
+    repeated string bad_type = 2 [(yext.schemapath) = "/bad-key"];
+}
+
+message BadKeyPathMessage {
+    string key = 1 [(yext.schemapath) = "/"];
+}
+
+message InvalidKeyPathKey {
+    string key = 1 [(yext.schemapath) = "/one[two]"];
+}

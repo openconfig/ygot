@@ -1,0 +1,94 @@
+module enum-module {
+  prefix "e";
+  namespace "urn:e";
+
+  include enum-submodule;
+
+  import enum-types { prefix "t"; }
+
+  description
+    "This module tests for enumerations that are defined in
+     a submodule to ensure their DefiningModule is set correctly.";
+
+  identity SO_LONG_AND_THANKS_FOR_ALL_THE_FISH { base t:ID; }
+
+  container parent {
+    container child {
+      container config {
+        uses child-config;
+      }
+      container state {
+        config false;
+        uses child-config;
+        leaf enum {
+          type t:td-enum;
+        }
+      }
+    }
+  }
+
+  grouping child-config {
+    leaf id {
+      type identityref {
+        base t:ID;
+      }
+    }
+
+    leaf id2 {
+      type identityref {
+        base t:ID;
+      }
+      default SO_LONG_AND_THANKS_FOR_ALL_THE_FISH;
+    }
+
+    leaf inline-enum {
+      type enumeration {
+        enum ADENINE;
+        enum THYMINE;
+        enum CYTOSINE;
+        enum GUANINE;
+      }
+      default THYMINE;
+    }
+  }
+
+  container a-lists {
+    list a-list {
+      key "value";
+
+      leaf value {
+        type leafref {
+          path "../state/value";
+        }
+      }
+
+      container state {
+        config false;
+        uses common-value;
+      }
+    }
+  }
+
+  container b-lists {
+    list b-list {
+      key "value";
+  
+      leaf value {
+        type leafref {
+          path "../state/value";
+        }
+      }
+
+      container state {
+        config false;
+        uses common-value;
+      }
+    }
+  }
+
+  grouping common-value {
+    leaf value {
+      type t:td;
+    }
+  }
+}

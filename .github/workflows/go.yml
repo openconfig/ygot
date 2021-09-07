@@ -1,0 +1,158 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.13', '1.14', '1.15', '1.16', '1.x']
+
+    steps:
+      - name: Install protobuf
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.x'
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+        id: go
+
+      - name: Install protoc-gen-go
+        run: |
+          go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+
+      - name: Install goimports
+        run: |
+          go get -u golang.org/x/tools/cmd/goimports
+
+      - name: Install Staticcheck
+        run: |
+          go get -u honnef.co/go/tools/cmd/staticcheck
+
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          path: go/src/github.com/openconfig/ygot
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+        working-directory: go/src/github.com/openconfig/ygot
+
+      - name: Generate dependencies
+        run: make generate
+        working-directory: go/src/github.com/openconfig/ygot
+
+      - name: Build packages
+        run: go build -v ./...
+        working-directory: go/src/github.com/openconfig/ygot
+
+      - name: Run Tests
+        run: go test -v ./...
+        working-directory: go/src/github.com/openconfig/ygot
+
+      - name: Run race tests
+        run:  go test -race -v ./...
+        working-directory: go/src/github.com/openconfig/ygot
+
+      - name: Check that Go integration test files compile
+        working-directory: go/src/github.com/openconfig/ygot/ygen/testdata
+        run: |
+          function test-go-build() {
+            cwd=$(pwd)
+            tmpdir=$(mktemp -d -p $cwd)
+            name=$(basename $1)
+            cp "$1" "$tmpdir"/"${name}.go"
+            cd $tmpdir
+            goimports -w *.go
+            go build
+            cd $cwd
+            rm -r $tmpdir
+          }
+
+          expectFail=(
+          )
+          for f in structs/*.formatted-txt; do
+            if [[ ${expectFail[@]} =~ $(basename $f) ]]; then
+              continue
+            fi
+            test-go-build $f
+          done
+
+          expectFail=(
+            # fake ygot and ytype paths specified in generation options.
+            "openconfig-options-explicit.formatted-txt.go"
+          )
+          for f in schema/*.formatted-txt; do
+            if [[ ${expectFail[@]} =~ $(basename $f) ]]; then
+              continue
+            fi
+            test-go-build $f
+          done
+
+  static_analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+        id: go
+
+      - name: Install required static analysis tools
+        run: |
+          go get -u github.com/go-playground/overalls
+          go get -u github.com/mattn/goveralls
+          go get -u honnef.co/go/tools/cmd/staticcheck
+
+      - name: Check out ygot code
+        uses: actions/checkout@v2
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+
+      - name: Run coverage
+        run: |
+          overalls -project ${GITHUB_WORKSPACE} -covermode=count -ignore=".git,vendor,integration_tests,ygot/schema_tests,ygen/schema_tests,ypathgen/path_tests,demo,experimental/ygotutils,generator,ytypes/schema_tests,ypathgen/generator"
+
+      - name: Submit coverage
+        uses: shogo82148/actions-goveralls@v1
+        with:
+          path-to-profile: overalls.coverprofile
+
+      - name: Go vet
+        run: |
+          for i in util ygen ytypes ygot/pathtranslate ypathgen; do
+            go vet ./$i
+          done
+          for j in ygot testcmp testutil; do
+            go vet -composites=false ./$j
+          done
+
+      - name: Gofmt
+        run: |
+          for i in util ygot ygen ytypes ygot/pathtranslate testutil testcmp ypathgen; do
+            diff -u <(echo -n) <(gofmt -d -s ./$i)
+          done
+
+      - name: Staticcheck
+        run: |
+          checkstr=""
+          for i in util ygot ygen ytypes ygot/pathtranslate testutil testcmp ypathgen; do
+            checkstr="$checkstr github.com/openconfig/ygot/$i"
+          done
+          staticcheck $checkstr

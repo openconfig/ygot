@@ -33,9 +33,10 @@ particularly:
   entire list, rather than solely the keys when a particular leaf path is
   queried.
 
-To improve human usability, the `ygen` library provides a `CompressOCPaths`
-option (specified in the `YANGCodeGenerator` struct's `Config` field). When `CompressOCPaths` is
-set to `true`, the following schema transformations are made:
+To improve human usability, the `ygen` library provides a `CompressBehaviour`
+option (specified in the `YANGCodeGenerator` struct's `Config` field). When
+`CompressBehaviour` is set to one of the compressed options, the following
+schema transformations are made:
 
 * The `config` and `state` containers are "compressed" out of the schema.
 * The surrounding `container` entities are removed from `list` nodes.
@@ -50,13 +51,14 @@ that are shorter, and more human-usable:
 * `/interfaces/interface/subinterfaces/subinterface/state/oper-status` becomes
   `/interface/subinterface/oper-status`.
 
-With `CompressOCPaths` set to `true`, the modified forms of the paths are used
-whenever the path of an entity is required (e.g., in YANG name generation).
+With `CompressBehaviour` set to a compressed value, the modified forms of the
+paths are used whenever the path of an entity is required (e.g., in YANG name
+generation).
 
 The logic to extract which entities are valid to have code
 generation performed for them (skipping `config`/`state` containers, and
 surrounding containers for lists) is found in
-`go_elements.go`:`findAllChildren`.
+`FindAllChildren` in `genutil` package.
 
 ## YANG Entities Mapped to Go Entities
 
@@ -72,7 +74,7 @@ of enumerated values are:
   `enumeration`, as their sole type, or within an `enumeration`.
 
 Each entity is named in the output Go code according to its path in the schema.
-The path may be modified using the `CompressOCPaths` as described above.
+The path may be modified using the `CompressBehaviour` as described above.
 
 ### Output Go structures and their fields
 
@@ -115,37 +117,90 @@ All structs that are produced by the `ygen` library implement the `ygot.GoStruct
 
 For each enumerated entity (described above), an enumerated type in Go is
 generated, in a similar fashion to the `proto` library. Naming is according to
-the type of the enumerated leaf in YANG.
+the type of the enumerated leaf in YANG. Each name element is in camelcase, and
+when Go is generated, they are delimited by underscores in the same style as
+struct names.
 
 * `leaf` nodes with a type of `enumeration` are mapped to an enumeration named
   according to the path of the `leaf`. The path specified is
-  `ModuleName_LeafParentName_LeafName` such that a path of
-  `/interfaces/interface/state/enumerated-value` defined within the
-  `openconfig-interfaces` module is represented by an enumerated type named
-  `OpenconfigInterfaces_State_EnumeratedValue` (assuming path compression is
-  disabled), or `OpenconfigInterfaces_Interface_EnumeratedValue` when it is
-  enabled.
-  * This mapping is handled by `yang_helpers.go`:`resolveEnumName`.
+  `ModuleName_<PathElement1>_<PathElement2>_..._<PathElementN>_LeafName` (index
+  starting from 1), or for compressed paths, `LeafGrandParentName_LeafName`,
+  such that a path of `/interfaces/interface/state/enumerated-value` defined
+  within the `openconfig-interfaces` module is represented by an enumerated type
+  named `OpenconfigInterfaces_Interfaces_Interface_State_EnumeratedValue`
+  (assuming path compression is disabled), or `Interface_EnumeratedValue` when
+  it is enabled. Here, `ModuleName` refers to the defining module of the
+  `enumeration` type.
+  * This mapping is handled by `enumgen.go`:`resolveEnumName`.
 * Defined `identity` statements are generated only when they are referenced by a
   `leaf` in the schema (i.e., an `identityref`). They are named according to the
   module that they are defined in, and the `identity` name - i.e., `identity
   foo` in module `bar-module` is named `BarModule_Foo`. The naming of such
-  identities is not modified when `CompressOCPaths` is enabled.
-  * This mapping is handled by `yang_helpers.go`:`resolveIdentityRefBaseType`.
+  identities is not modified when compression is enabled.
+  * This mapping is handled by `enumgen.go`:`resolveIdentityRefBaseType`.
 * Non-builtin types created via a `typedef` statement that contain an
   enumeration are identified according to the module that they are defined in,
   and the `typedef` name - i.e., `typedef bar { type enumeration { ... }}` in
   module `baz` is represented by an enumerated type named `Bar_Baz`.
-  * This mapping is handled by `yang_helpers.go`:`resolveTypedefEnumeratedName`.
+  * This mapping is handled by `enumgen.go`:`resolveTypedefEnumeratedName`.
+* Where an `enumeration` is defined within a `typedef` that contains a `union`,
+  the enumerated language type that is generated is named according to the name 
+  of the `typedef` with `_Enum` appended to the name.
+  * This mapping is handled by `enumgen.go`:`resolveEnumeratedUnionEntry`.
+
+  For example:
+```
+module bar {
+  ...
+  typedef baz {
+     type union {
+        type enumeration { ... }
+        type string;
+     }
+  }
+}
+```
+
+  would result in a type named `Bar_Baz_Enum` being generated in the output
+  code.
 
 Only a single enumeration is generated for a `typedef` or `identity` -
 regardless of the number of times that is referenced throughout the code. This
 ensures that the user of the library does not have to be aware of the
 enumeration's context when referencing the Go enumerated type. Since `typedef`
 and `identity` nodes do not have a path within the YANG schematree, the library
-uses the synthesised name `module-name/statement-name` as a pseudo-path to
-reference each `typedef` and `identity` such that the name it is mapped to in Go
-code can be re-used throughout code generation.
+uses the synthesised name `defined-module-name/statement-name` as a pseudo-path
+to reference each `typedef` and `identity` such that the name it is mapped to
+in Go code can be re-used throughout code generation.
+
+There are occasions where an `enumeration` leaf is used in multiple places due
+to re-use of a grouping. In such cases, the leaf whose path is lexicographically
+earlier will by default determine the name of the enumeration in the generated
+code. While this may work well for some YANG schemas, it essentially requires
+knowledge of the other parts of the schema and may not suit others. The
+`-skip_enum_deduplication` flag within `generator.go` overrides this behaviour
+and generates different enumerations in the generated code as if there was no
+re-use of these `enumeration` leaves (unless their generated names were to be
+the same anyways).
+
+A conflict in enumerated type names may occur due to the way they are defined,
+and for most enumerated types, such a collision will cause an error to be
+returned when attempting to generate code. Since compressed enumeration leaves
+have a high probability of name collision, it has a conflict resolution
+mechanism that works in the following manner when multiple distinct enumerations
+whose default names in the format `LeafGrandParentName_LeafName` collide:
+* If prepending the module name disambiguates all conflicting enumerations, then
+  `ModuleName_LeafGrandParentName_LeafName` is the name format for all
+  conflicting enumeration leaves.
+* If the module name fails to disambiguate, then equidistant non-module ancestor
+  names relative to each enumeration, starting from
+  `LeafGreatGrandParentName_LeafGrandParentName_LeafName` as the format for all
+  enumerations, is checked one by one for disambiguation until success. If an
+  equidistant ancestor does not exist for a single enumeration, disambiguation
+  is still possible, provided the ancestor exists for all others in the conflict
+  set. If more than one enumeration runs out of ancestors to try for
+  disambiguation, however, an error is returned stating that the names cannot be
+  resolved.
 
 #### Handling Name Collisions
 
@@ -190,13 +245,13 @@ YANG Lists are output as `map` fields within the Go structures, with a key type 
 container c {
 	list foo {
 		key "fookey";
-	
+
 		leaf fookey { type string; }
 	}
-	
+
 	list bar {
 		key "barkey1 barkey2";
-		
+
 		leaf barkey1 { type string; }
 		leaf barkey2 { type string; }
 		leaf barmember { type string; }
@@ -225,12 +280,20 @@ type C_Bar struct {
 	Barkey1	*string	`path:"barkey1"`
 	Barkey2	*string	`path:"barkey2"`
 	Barmember	*string	`path:"barmmember"`
-} 
+}
 ```
 
 Such that the `Foo` field is a map, keyed on the type of the key leaf (`fookey`). For lists with multiple keys, a specific key `struct` is generated (`C_Bar_Key` in the above example), with fields that correspond to the key fields of the YANG list.
 
+If there is already a Go structure named `C_Bar_Key` due to the [camel case rules](#output-go-structures-and-their-fields), then the back-up name of `C_Bar_YANGListKey` will be used instead.
+
 Each YANG list that exists within a container has a helper-method generated for it. For a list named `foo`, the parent container (`C`) has a `NewFoo(fookey string)` method generated, taking a key value as an argument, and returning a new member of the map within the `foo` list.
+
+##### Note on using binary as a list key type
+Because `Binary`'s underlying `[]byte` type is not hashable, YANG models
+containing lists with `binary` as a key value, or a `union` type containing a
+`binary` type is not supported. An error is returned by the Go code generation
+process for such cases, this is a known limitation.
 
 ### YANG Union Leaves
 
@@ -243,15 +306,53 @@ container foo {
 	container bar {
 		leaf union-leaf {
 			type union {
-				type string;
 				type int8;
+				type enumeration {
+					enum ONE;
+					enum TWO;
+				}
 			}
 		}
 	}
 }
 ```
 
-the `bar` container is mapped to:
+The `bar` container can be translated to Go code according to one of the
+following strategies:
+
+#### Simplified Union Leaves (Recommended)
+In this representation, generated defined types are used to represent all concrete union types.
+```go
+type Binary []byte
+type YANGEmpty bool
+type Int8 int8
+type Int16 int16
+// ... etc.
+type String string
+type Bool bool
+```
+
+```go
+type Bar struct {
+	UnionLeaf		Foo_Bar_UnionLeaf_Union		`path:"union-leaf"`
+}
+
+type Foo_Bar_UnionLeaf_Union interface {
+	// Union type can be one of [Int8, E_Foo_Bar_UnionLeaf]
+	Documentation_for_Foo_Bar_UnionLeaf_Union()
+}
+
+func (Int8) Documentation_for_Foo_Bar_UnionLeaf_Union() {}
+
+func (E_Foo_Bar_UnionLeaf) Documentation_for_Foo_Bar_UnionLeaf_Union() {}
+```
+
+The `UnionLeaf` field can be set to any defined type (including enumeration
+typedefs) that implements the `Foo_Bar_UnionLeaf_Union` interface. These
+typedefs are re-used for different union types; so, it's possible to assign an
+`Int8` value to any union which has `int8` in its definition.
+
+#### Wrapper Union Leaves
 
 ```go
 type Bar struct {
@@ -262,18 +363,21 @@ type Foo_Bar_UnionLeaf_Union interface {
 	Is_Foo_Bar_UnionLeaf_Union()
 }
 
-type Foo_Bar_UnionLeaf_Union_String struct {
-	String string
-}
-
-func (Foo_Bar_UnionLeaf_Union_String) Is_Foo_Bar_UnionLeaf_Union() {}
-
 type Foo_Bar_UnionLeaf_Union_Int8 struct {
 	Int8 int8
 }
 
 func (Foo_Bar_UnionLeaf_Union_Int8) Is_Foo_Bar_UnionLeaf_Union() {}
+
+type Foo_Bar_UnionLeaf_Union_E_Foo_Bar_UnionLeaf struct {
+	E_Foo_Bar_UnionLeaf E_Foo_Bar_UnionLeaf
+}
+
+func (Foo_Bar_UnionLeaf_Union_E_Foo_Bar_UnionLeaf) Is_Foo_Bar_UnionLeaf_Union() {}
 ```
 
-The `UnionLeaf` field can be set to any of the structs that implement the `Foo_Bar_UnionLeaf_Union` interface. Since these structs are single-field entities, a struct initialiser that does not specify the field name can be used (e.g., `Foo_Bar_UnionLeaf_Union_String{"baz"}`), similarly to the generate Go code for a Protobuf `oneof`.
-
+The `UnionLeaf` field can be set to any of the structs that implement the
+`Foo_Bar_UnionLeaf_Union` interface. Since these structs are single-field
+entities, a struct initialiser that does not specify the field name can be used
+(e.g., `Foo_Bar_UnionLeaf_Union_Int8{42}`), similarly to the generate Go code
+for a Protobuf `oneof`.

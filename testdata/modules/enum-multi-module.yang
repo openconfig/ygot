@@ -1,0 +1,44 @@
+module enum-multi-module {
+  prefix "em";
+  namespace "urn:em";
+
+  import enum-types { prefix "t"; }
+
+  description
+    "This module tests for enumerations that are defined in
+     a submodule to ensure their DefiningModule is set correctly.";
+
+  container parent {
+    container child {
+      container state {
+        config false;
+        uses common-value;
+      }
+    }
+  }
+
+  grouping common-value {
+    leaf multi-value {
+      type t:td-multi;
+    }
+    leaf inline-multi-value {
+      type union {
+        type uint32;
+        type t:td;
+        type enumeration {
+          enum ONE;
+          enum TWO;
+          enum THREE;
+        }
+        type t:td2;
+        type t:td-enum;
+        // The second enumeration is ignored.
+        type enumeration {
+          enum FOUR;
+          enum FIVE;
+          enum SIX;
+        }
+      }
+    }
+  }
+}

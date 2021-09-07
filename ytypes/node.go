@@ -17,12 +17,12 @@ package ytypes
 import (
 	"reflect"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -32,6 +32,8 @@ import (
 type retrieveNodeArgs struct {
 	// If delete is set to true, retrieve node deletes the node at the
 	// to supplied path.
+	// NOTE: all other arguments, i.e. wildcards, partial key match, modifyRoot,
+	// etc. are currently incompatible with delete.
 	delete bool
 	// If set to true, retrieveNode handles wildcards. e.g. key=*
 	handleWildcards bool
@@ -46,6 +48,15 @@ type retrieveNodeArgs struct {
 	// If val is set to a non-nil value, leaf/leaflist node corresponding
 	// to the given path is updated with this value.
 	val interface{}
+	// tolerateJSONInconsistenciesForVal means to tolerate inconsistencies
+	// for val as if it were converted from JSON. As of right now, this is
+	// specifically to deal with uint values being streamed as positive int
+	// values.
+	tolerateJSONInconsistenciesForVal bool
+	// preferShadowPath uses the name of the "shadow-path" tag of a
+	// GoStruct to determine the path elements instead of the
+	// "path" tag, whenever the former is present.
+	preferShadowPath bool
 }
 
 // retrieveNode is an internal function that retrieves the node specified by
@@ -69,6 +80,10 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 			Data:   root,
 		}}, nil
 	case util.IsValueNil(root):
+		if args.delete {
+			// No-op in case of a delete on a field whose value is not populated.
+			return nil, nil
+		}
 		return nil, status.Errorf(codes.NotFound, "could not find children %v at path %v", path, traversedPath)
 	case schema == nil:
 		return nil, status.Errorf(codes.InvalidArgument, "schema is nil for type %T, path %v", root, path)
@@ -101,7 +116,9 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 	for i := 0; i < v.NumField(); i++ {
 		fv, ft := v.Field(i), v.Type().Field(i)
 
-		cschema, err := childSchema(schema, ft)
+		// TODO(low priority): ChildSchema should return the shadow
+		// schema if we're traversing a shadow path.
+		cschema, err := util.ChildSchema(schema, ft)
 		if !util.IsYgotAnnotation(ft) {
 			switch {
 			case err != nil:
@@ -111,30 +128,54 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 			}
 		}
 
-		schPaths, err := util.SchemaPaths(ft)
-		if err != nil {
-			return nil, status.Errorf(codes.Unknown, "failed to get schema paths for %T, field %s: %s", root, ft.Name, err)
-		}
-
-		for _, p := range schPaths {
-			if !util.PathMatchesPrefix(path, p) {
-				continue
-			}
+		checkPath := func(p []string, args retrieveNodeArgs, shadowLeaf bool) ([]*TreeNode, error) {
 			to := len(p)
 			if util.IsTypeMap(ft.Type) {
 				to--
 			}
+			np := &gpb.Path{}
+			if traversedPath != nil {
+				np = proto.Clone(traversedPath).(*gpb.Path)
+			}
+			for i := range p[0:to] {
+				np.Elem = append(np.Elem, path.GetElem()[i])
+			}
 
+			// If the current node is a shadow leaf, this means the input path is a shadow path
+			// that the GoStruct recognizes, but doesn't have space for. We will therefore
+			// silently ignore this path.
+			if shadowLeaf {
+				switch {
+				case cschema == nil:
+					return nil, status.Errorf(codes.InvalidArgument, "could not find schema for path %v", np)
+				case !cschema.IsLeaf():
+					return nil, status.Errorf(codes.InvalidArgument, "shadow path traverses a non-leaf node, this is not allowed, path: %v", np)
+				default:
+					return []*TreeNode{{
+						Path: np,
+					}}, nil
+				}
+			}
+
+			// If args.modifyRoot is true, then initialize the field before possibly searching further.
 			if args.modifyRoot {
 				if err := util.InitializeStructField(root, ft.Name); err != nil {
 					return nil, status.Errorf(codes.Unknown, "failed to initialize struct field %s in %T, child schema %v, path %v", ft.Name, root, cschema, path)
 				}
 			}
 
+			// If delete is specified, and the path is exhausted, then we set the
+			// corresponding field to its zero value. The zero value is the unset value for
+			// any node type, whether leaf or non-leaf.
+			if args.delete && len(path.Elem) == to {
+				fv.Set(reflect.Zero(ft.Type))
+				return nil, nil
+			}
+
 			// If val in args is set to a non-nil value and the path is exhausted, we
 			// may be dealing with a leaf or leaf list node. We should set the val
 			// to the corresponding field in GoStruct. If the field is an annotation,
-			// the field doesn't have a schema, so it is handled seperately.
+			// the field doesn't have a schema, so it is handled separately.
 			if !util.IsValueNil(args.val) && len(path.Elem) == to {
 				switch {
 				case util.IsYgotAnnotation(ft):
@@ -145,20 +186,62 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 					// With GNMIEncoding, unmarshalGeneric can only unmarshal leaf or leaf list
 					// nodes. Schema provided must be the schema of the leaf or leaf list node.
 					// root must be the reference of container leaf/leaf list belongs to.
-					if err := unmarshalGeneric(cschema, root, args.val, GNMIEncoding); err != nil {
+					encoding := GNMIEncoding
+					if args.tolerateJSONInconsistenciesForVal {
+						encoding = gNMIEncodingWithJSONTolerance
+					}
+					if err := unmarshalGeneric(cschema, root, args.val, encoding); err != nil {
 						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
 					}
 				}
 			}
 
-			np := &gpb.Path{}
-			if traversedPath != nil {
-				np = proto.Clone(traversedPath).(*gpb.Path)
-			}
-			for i := range p[0:to] {
-				np.Elem = append(np.Elem, path.GetElem()[i])
-			}
 			return retrieveNode(cschema, fv.Interface(), util.TrimGNMIPathPrefix(path, p[0:to]), np, args)
+		}
+
+		// Continue traversal on the first-encountered annotated
+		// GoStruct path that forms a prefix of the input path.
+		//
+		// Note that we first look through the non-shadow path, and if
+		// no matches are found, we then look through the shadow path
+		// to find matches. If the input path matches a shadow path,
+		// then we're guaranteed to have reached a leaf, since shadow
+		// paths can only occur for direct leaves under config/state.
+		//
+		// If the user has opted to prefer the "shadow-path" tag instead
+		// of the "path" tag, then we look-up the "shadow-path" first.
+		var shadowLeaf bool
+		if args.preferShadowPath {
+			// Look through shadow paths first instead.
+			schPaths := util.ShadowSchemaPaths(ft)
+			for _, p := range schPaths {
+				if util.PathMatchesPrefix(path, p) {
+					return checkPath(p, args, false)
+				}
+			}
+
+			if len(schPaths) != 0 {
+				// If there were shadow paths, then we treat the
+				// "path" tag values as "shadow-path" values.
+				shadowLeaf = true
+			}
+		}
+		schPaths, err := util.SchemaPaths(ft)
+		if err != nil {
+			return nil, status.Errorf(codes.Unknown, "failed to get schema paths for %T, field %s: %s", root, ft.Name, err)
+		}
+		for _, p := range schPaths {
+			if util.PathMatchesPrefix(path, p) {
+				return checkPath(p, args, shadowLeaf)
+			}
+		}
+		if !args.preferShadowPath {
+			// Look through shadow paths last.
+			for _, p := range util.ShadowSchemaPaths(ft) {
+				if util.PathMatchesPrefix(path, p) {
+					return checkPath(p, args, true)
+				}
+			}
 		}
 	}
 
@@ -221,7 +304,12 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 				return nil, status.Errorf(codes.InvalidArgument, "failed to convert %v to a string, path %v: %v", kv, path, err)
 			}
 			if keyAsString == pathKey {
-				return retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, path.GetElem()[0]), args)
+				remainingPath := util.PopGNMIPath(path)
+				if args.delete && len(remainingPath.GetElem()) == 0 {
+					rv.SetMapIndex(k, reflect.Value{})
+					return nil, nil
+				}
+				return retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, path.GetElem()[0]), args)
 			}
 			continue
 		}
@@ -270,7 +358,12 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 			if err != nil {
 				return nil, status.Errorf(codes.Unknown, "could not extract keys from %v: %v", traversedPath, err)
 			}
-			nodes, err := retrieveNode(schema, listElemV.Interface(), util.PopGNMIPath(path), appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
+			remainingPath := util.PopGNMIPath(path)
+			if args.delete && len(remainingPath.GetElem()) == 0 {
+				rv.SetMapIndex(k, reflect.Value{})
+				return nil, nil
+			}
+			nodes, err := retrieveNode(schema, listElemV.Interface(), remainingPath, appendElem(traversedPath, &gpb.PathElem{Name: path.GetElem()[0].Name, Key: keys}), args)
 			if err != nil {
 				return nil, err
 			}
@@ -296,14 +389,27 @@ func retrieveNodeList(schema *yang.Entry, root interface{}, path, traversedPath 
 	return matches, nil
 }
 
+// GetOrCreateNodeOpt defines an interface that can be used to supply arguments to functions using GetOrCreateNode.
+type GetOrCreateNodeOpt interface {
+	// IsGetOrCreateNodeOpt is a marker method that is used to identify an instance of GetOrCreateNodeOpt.
+	IsGetOrCreateNodeOpt()
+}
+
 // GetOrCreateNode function retrieves the node specified by the supplied path from the root which must have the
 // schema supplied. It strictly matches keys in the path, in other words doesn't treat partial match as match.
 // However, if there is no match, a new entry in the map is created. GetOrCreateNode also initializes the nodes
 // along the path if they are nil.
 // Function returns the value and schema of the node as well as error.
 // Note that this function may modify the supplied root even if the function fails.
-func GetOrCreateNode(schema *yang.Entry, root interface{}, path *gpb.Path) (interface{}, *yang.Entry, error) {
-	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{modifyRoot: true})
+// Note that this function may create containers or list entries even if the input path is a shadow path.
+// TODO(wenbli): a traversal should remember what containers or list entries
+//		 were created so that a failed call or a call to a shadow path can later undo
+// 		 this. This applies to SetNode as well.
+func GetOrCreateNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetOrCreateNodeOpt) (interface{}, *yang.Entry, error) {
+	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
+		modifyRoot:       true,
+		preferShadowPath: hasGetOrCreateNodePreferShadowPath(opts),
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -328,9 +434,10 @@ type TreeNode struct {
 func GetNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetNodeOpt) ([]*TreeNode, error) {
 	return retrieveNode(schema, root, path, nil, retrieveNodeArgs{
 		// We never want to modify the input root, so we specify modifyRoot.
-		modifyRoot:      false,
-		partialKeyMatch: hasPartialKeyMatch(opts),
-		handleWildcards: hasHandleWildcards(opts),
+		modifyRoot:       false,
+		partialKeyMatch:  hasPartialKeyMatch(opts),
+		handleWildcards:  hasHandleWildcards(opts),
+		preferShadowPath: hasGetNodePreferShadowPath(opts),
 	})
 }
 
@@ -390,10 +497,14 @@ func appendElem(p *gpb.Path, e *gpb.PathElem) *gpb.Path {
 // SetNode sets the value of the node specified by the supplied path from the specified root,
 // whose schema must also be supplied. It takes a set of options which can be used to specify set
 // behaviours, such as whether or not to ensure that the node's ancestors are initialized.
+// Note that SetNode does not do a full validation -- e.g., it does not do the string
+// regex restriction validation done by ytypes.Validate().
 func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface{}, opts ...SetNodeOpt) error {
 	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
-		modifyRoot: hasInitMissingElements(opts),
-		val:        val,
+		modifyRoot:                        hasInitMissingElements(opts),
+		val:                               val,
+		tolerateJSONInconsistenciesForVal: hasTolerateJSONInconsistencies(opts),
+		preferShadowPath:                  hasSetNodePreferShadowPath(opts),
 	})
 
 	if err != nil {
@@ -429,4 +540,112 @@ func hasInitMissingElements(opts []SetNodeOpt) bool {
 		}
 	}
 	return false
+}
+
+// TolerateJSONInconsistencies signals SetNode to tolerate inconsistencies for
+// val as if it were converted from JSON. As of right now, this is specifically
+// to deal with uint values being streamed as positive int values.
+type TolerateJSONInconsistencies struct{}
+
+// IsSetNodeOpt implements the SetNodeOpt interface.
+func (*TolerateJSONInconsistencies) IsSetNodeOpt() {}
+
+// hasTolerateJSONInconsistencies determines whether there is an instance of
+// TolerateJSONInconsistencies within the supplied SetNodeOpt slice.
+func hasTolerateJSONInconsistencies(opts []SetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*TolerateJSONInconsistencies); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// DelNodeOpt defines an interface that can be used to supply arguments to functions using DeleteNode.
+type DelNodeOpt interface {
+	// IsDelNodeOpt is a marker method that is used to identify an instance of DelNodeOpt.
+	IsDelNodeOpt()
+}
+
+// PreferShadowPath signals to prefer using the "shadow-path" tags instead of
+// the "path" tags when both are present while processing a GoStruct. This
+// means paths matching "shadow-path" will be unmarshalled, while paths
+// matching "path" will be silently ignored.
+type PreferShadowPath struct{}
+
+// IsGetOrCreateNodeOpt implements the GetOrCreateNodeOpt interface.
+func (*PreferShadowPath) IsGetOrCreateNodeOpt() {}
+
+// IsGetNodeOpt implements the GetNodeOpt interface.
+func (*PreferShadowPath) IsGetNodeOpt() {}
+
+// IsSetNodeOpt implements the SetNodeOpt interface.
+func (*PreferShadowPath) IsSetNodeOpt() {}
+
+// IsDelNodeOpt implements the DelNodeOpt interface.
+func (*PreferShadowPath) IsDelNodeOpt() {}
+
+// hasGetOrCreateNodePreferShadowPath determines whether there is an instance
+// of PreferShadowPath within the supplied GetOrCreateNodeOpt slice. It is
+// used to determine whether to use the "shadow-path" tags instead of the
+// "path" tag when both are present while processing a GoStruct.
+func hasGetOrCreateNodePreferShadowPath(opts []GetOrCreateNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*PreferShadowPath); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// hasGetNodePreferShadowPath determines whether there is an instance of
+// PreferShadowPath within the supplied GetOrCreateNodeOpt slice. It is used to
+// determine whether to use the "shadow-path" tags instead of the "path" tag
+// when both are present while processing a GoStruct.
+func hasGetNodePreferShadowPath(opts []GetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*PreferShadowPath); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// hasSetNodePreferShadowPath determines whether there is an instance of
+// PreferShadowPath within the supplied GetOrCreateNodeOpt slice. It is used to
+// determine whether to use the "shadow-path" tags instead of the "path" tag
+// when both are present while processing a GoStruct.
+func hasSetNodePreferShadowPath(opts []SetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*PreferShadowPath); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// hasDelNodePreferShadowPath determines whether there is an instance of
+// PreferShadowPath within the supplied GetOrCreateNodeOpt slice. It is used to
+// determine whether to use the "shadow-path" tags instead of the "path" tag
+// when both are present while processing a GoStruct.
+func hasDelNodePreferShadowPath(opts []DelNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*PreferShadowPath); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// DeleteNode zeroes the value of the node specified by the supplied path from
+// the specified root, whose schema must also be supplied. If the node
+// specified by that path is already its zero value, or an intermediate node
+// in the path is nil (implying the node is already deleted), then the call is a no-op.
+func DeleteNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...DelNodeOpt) error {
+	_, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
+		delete:           true,
+		preferShadowPath: hasDelNodePreferShadowPath(opts),
+	})
+
+	return err
 }

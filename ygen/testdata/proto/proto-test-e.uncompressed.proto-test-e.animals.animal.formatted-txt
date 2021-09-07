@@ -12,30 +12,30 @@ import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
 // Config represents the /proto-test-e/animals/animal/config YANG schema element.
 message Config {
-  enum Species {
-    SPECIES_UNSET = 0;
-    SPECIES_TAXIDEA_TAXUS = 1;
-    SPECIES_CERVUS_CANADENSIS = 2;
-    SPECIES_OVIS_CANADENSIS = 3;
+  enum SpeciesEnum {
+    SPECIESENUM_UNSET = 0;
+    SPECIESENUM_TAXIDEA_TAXUS = 1;
+    SPECIESENUM_CERVUS_CANADENSIS = 2;
+    SPECIESENUM_OVIS_CANADENSIS = 3;
   }
   ywrapper.StringValue name = 249571319;
   oneof species {
-    Species species_species = 250459527;
+    SpeciesEnum species_speciesenum = 102559808;
     string species_string = 236397324;
   }
 }
 
 // State represents the /proto-test-e/animals/animal/state YANG schema element.
 message State {
-  enum Species {
-    SPECIES_UNSET = 0;
-    SPECIES_TAXIDEA_TAXUS = 1;
-    SPECIES_CERVUS_CANADENSIS = 2;
-    SPECIES_OVIS_CANADENSIS = 3;
+  enum SpeciesEnum {
+    SPECIESENUM_UNSET = 0;
+    SPECIESENUM_TAXIDEA_TAXUS = 1;
+    SPECIESENUM_CERVUS_CANADENSIS = 2;
+    SPECIESENUM_OVIS_CANADENSIS = 3;
   }
   ywrapper.StringValue name = 140365706;
   oneof species {
-    Species species_species = 512760152;
+    SpeciesEnum species_speciesenum = 166020199;
     string species_string = 480834449;
   }
 }

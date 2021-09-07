@@ -1,3 +1,17 @@
+// Copyright 2020 Google Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package ytypes
 
 import (
@@ -6,19 +20,20 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 type InnerContainerType1 struct {
-	Int32LeafName     *int32            `path:"int32-leaf-field"`
+	Int32LeafName     *int32            `path:"config/int32-leaf-field|int32-leaf-field" shadow-path:"state/int32-leaf-field|int32-leaf-field"`
 	Int32LeafListName []int32           `path:"int32-leaf-list"`
-	StringLeafName    *string           `path:"string-leaf-field"`
+	StringLeafName    *string           `path:"string-leaf-field" shadow-path:"state/string-leaf-field|string-leaf-field"`
 	EnumLeafName      EnumType          `path:"enum-leaf-field"`
 	Annotation        []ygot.Annotation `path:"@annotation" ygotAnnotation:"true"`
 }
@@ -77,58 +92,126 @@ type ContainerEnumKey struct {
 	StructKeyList map[EnumType]*ListElemEnumKey `path:"config/simple-key-list"`
 }
 
-var containerWithStringKey = &yang.Entry{
-	Name: "container",
+type ListElemBoolKey struct {
+	Key1          *bool  `path:"key1"`
+	Int32LeafName *int32 `path:"int32-leaf-field"`
+}
+
+type ContainerBoolKey struct {
+	StructKeyList map[bool]*ListElemBoolKey `path:"config/simple-key-list"`
+}
+
+type ListElemStruct4 struct {
+	Key1 *uint32 `path:"key1"`
+}
+
+var listElemStruct4Schema = &yang.Entry{
+	Name: "list-elem-struct4",
 	Kind: yang.DirectoryEntry,
 	Dir: map[string]*yang.Entry{
-		"config": {
-			Name: "config",
-			Kind: yang.DirectoryEntry,
-			Dir: map[string]*yang.Entry{
-				"simple-key-list": {
-					Name:     "simple-key-list",
-					Kind:     yang.DirectoryEntry,
-					ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
-					Key:      "key1",
-					Config:   yang.TSTrue,
-					Dir: map[string]*yang.Entry{
-						"key1": {
-							Name: "key1",
-							Kind: yang.LeafEntry,
-							Type: &yang.YangType{Kind: yang.Ystring},
-						},
-						"outer": {
-							Name: "outer",
-							Kind: yang.DirectoryEntry,
-							Dir: map[string]*yang.Entry{
-								"config": {
-									Name: "config",
-									Kind: yang.DirectoryEntry,
-									Dir: map[string]*yang.Entry{
-										"inner": {
-											Name: "inner",
-											Kind: yang.DirectoryEntry,
-											Dir: map[string]*yang.Entry{
-												"int32-leaf-field": {
-													Name: "leaf-field",
-													Kind: yang.LeafEntry,
-													Type: &yang.YangType{Kind: yang.Yint32},
-												},
-												"int32-leaf-list": {
-													Name:     "int32-leaf-list",
-													Kind:     yang.LeafEntry,
-													ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
-													Type:     &yang.YangType{Kind: yang.Yint32},
-												},
-												"string-leaf-field": {
-													Name: "leaf-field",
-													Kind: yang.LeafEntry,
-													Type: &yang.YangType{Kind: yang.Ystring},
-												},
-												"enum-leaf-field": {
-													Name: "leaf-field",
-													Kind: yang.LeafEntry,
-													Type: &yang.YangType{Kind: yang.Yenum},
+		"key1": {
+			Name: "key1",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{Kind: yang.Yuint32},
+		},
+	},
+}
+
+type SuperContainer struct {
+	ContainerStruct1 *ContainerStruct1 `path:"container"`
+}
+
+func (*SuperContainer) IsYANGGoStruct() {}
+
+var superContainerSchema = &yang.Entry{
+	Name: "super-container",
+	Kind: yang.DirectoryEntry,
+	Dir: map[string]*yang.Entry{
+		"container": containerWithStringKey(),
+	},
+}
+
+func containerWithStringKey() *yang.Entry {
+	containerWithStringKey := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"config": {
+				Name: "config",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"simple-key-list": {
+						Name:     "simple-key-list",
+						Kind:     yang.DirectoryEntry,
+						ListAttr: yang.NewDefaultListAttr(),
+						Key:      "key1",
+						Config:   yang.TSTrue,
+						Dir: map[string]*yang.Entry{
+							"key1": {
+								Name: "key1",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Ystring},
+							},
+							"outer": {
+								Name: "outer",
+								Kind: yang.DirectoryEntry,
+								Dir: map[string]*yang.Entry{
+									"config": {
+										Name: "config",
+										Kind: yang.DirectoryEntry,
+										Dir: map[string]*yang.Entry{
+											"inner": {
+												Name: "inner",
+												Kind: yang.DirectoryEntry,
+												Dir: map[string]*yang.Entry{
+													"int32-leaf-field": {
+														Name: "int32-leaf-field",
+														Kind: yang.LeafEntry,
+														Type: &yang.YangType{Kind: yang.Yint32},
+													},
+													"config": {
+														Name: "config",
+														Kind: yang.DirectoryEntry,
+														Dir: map[string]*yang.Entry{
+															"int32-leaf-field": {
+																Name: "int32-leaf-field",
+																Kind: yang.LeafEntry,
+																Type: &yang.YangType{Kind: yang.Yint32},
+															},
+														},
+													},
+													"state": {
+														Name: "state",
+														Kind: yang.DirectoryEntry,
+														Dir: map[string]*yang.Entry{
+															"int32-leaf-field": {
+																Name: "int32-leaf-field",
+																Kind: yang.LeafEntry,
+																Type: &yang.YangType{Kind: yang.Yint32},
+															},
+															"string-leaf-field": {
+																Name: "string-leaf-field",
+																Kind: yang.LeafEntry,
+																Type: &yang.YangType{Kind: yang.Ystring},
+															},
+														},
+													},
+													"int32-leaf-list": {
+														Name:     "int32-leaf-list",
+														Kind:     yang.LeafEntry,
+														ListAttr: yang.NewDefaultListAttr(),
+														Type:     &yang.YangType{Kind: yang.Yint32},
+													},
+													"string-leaf-field": {
+														Name: "string-leaf-field",
+														Kind: yang.LeafEntry,
+														Type: &yang.YangType{Kind: yang.Ystring},
+													},
+													"enum-leaf-field": {
+														Name: "enum-leaf-field",
+														Kind: yang.LeafEntry,
+														Type: &yang.YangType{Kind: yang.Yenum},
+													},
 												},
 											},
 										},
@@ -140,7 +223,9 @@ var containerWithStringKey = &yang.Entry{
 				},
 			},
 		},
-	},
+	}
+	addParents(containerWithStringKey)
+	return containerWithStringKey
 }
 
 func TestGetOrCreateNodeSimpleKey(t *testing.T) {
@@ -155,7 +240,7 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					"simple-key-list": {
 						Name:     "simple-key-list",
 						Kind:     yang.DirectoryEntry,
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 						Key:      "key1",
 						Config:   yang.TSTrue,
 						Dir: map[string]*yang.Entry{
@@ -180,6 +265,28 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 														Name: "leaf-field",
 														Kind: yang.LeafEntry,
 														Type: &yang.YangType{Kind: yang.Yint32},
+													},
+													"config": {
+														Name: "config",
+														Kind: yang.DirectoryEntry,
+														Dir: map[string]*yang.Entry{
+															"int32-leaf-field": {
+																Name: "int32-leaf-field",
+																Kind: yang.LeafEntry,
+																Type: &yang.YangType{Kind: yang.Yint32},
+															},
+														},
+													},
+													"state": {
+														Name: "state",
+														Kind: yang.DirectoryEntry,
+														Dir: map[string]*yang.Entry{
+															"int32-leaf-field": {
+																Name: "int32-leaf-field",
+																Kind: yang.LeafEntry,
+																Type: &yang.YangType{Kind: yang.Yint32},
+															},
+														},
 													},
 													"string-leaf-field": {
 														Name: "leaf-field",
@@ -215,7 +322,7 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					"simple-key-list": {
 						Name:     "simple-key-list",
 						Kind:     yang.DirectoryEntry,
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 						Key:      "key1",
 						Config:   yang.TSTrue,
 						Dir: map[string]*yang.Entry{
@@ -231,11 +338,39 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 		},
 	}
 
+	containerWithBoolKey := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"config": {
+				Name: "config",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"simple-key-list": {
+						Name:     "simple-key-list",
+						Kind:     yang.DirectoryEntry,
+						ListAttr: yang.NewDefaultListAttr(),
+						Key:      "key1",
+						Config:   yang.TSTrue,
+						Dir: map[string]*yang.Entry{
+							"key1": {
+								Name: "key1",
+								Kind: yang.LeafEntry,
+								Type: &yang.YangType{Kind: yang.Ybool},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	tests := []struct {
 		inDesc           string
 		inParent         interface{}
 		inSchema         *yang.Entry
 		inPath           *gpb.Path
+		inOpts           []GetOrCreateNodeOpt
 		want             interface{}
 		wantErrSubstring string
 	}{
@@ -253,14 +388,14 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					},
 				},
 			},
-			inSchema: containerWithStringKey,
+			inSchema: containerWithStringKey(),
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/int32-leaf-field"),
 			want:     ygot.Int32(42),
 		},
 		{
 			inDesc:   "success get int32 leaf with a new key",
 			inParent: &ContainerStruct1{},
-			inSchema: containerWithStringKey,
+			inSchema: containerWithStringKey(),
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/int32-leaf-field"),
 			want:     ygot.Int32(0),
 		},
@@ -278,14 +413,14 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					},
 				},
 			},
-			inSchema: containerWithStringKey,
+			inSchema: containerWithStringKey(),
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
 			want:     ygot.String("forty_two"),
 		},
 		{
 			inDesc:   "success get string leaf with a new key",
 			inParent: &ContainerStruct1{},
-			inSchema: containerWithStringKey,
+			inSchema: containerWithStringKey(),
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
 			want:     ygot.String(""),
 		},
@@ -303,29 +438,119 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 					},
 				},
 			},
-			inSchema: containerWithStringKey,
+			inSchema: containerWithStringKey(),
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/enum-leaf-field"),
 			want:     EnumType(43),
 		},
 		{
 			inDesc:   "success get enum leaf with a new key",
 			inParent: &ContainerStruct1{},
-			inSchema: containerWithStringKey,
+			inSchema: containerWithStringKey(),
 			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/enum-leaf-field"),
 			want:     EnumType(0),
 		},
 		{
 			inDesc:           "fail get enum leaf incorrect container schema",
 			inParent:         &ContainerStruct1{},
-			inSchema:         containerWithStringKey,
+			inSchema:         containerWithStringKey(),
 			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/INVAID_CONTAINER/inner/enum-leaf-field"),
 			wantErrSubstring: "no match found in *ytypes.ListElemStruct1",
 		},
 		{
 			inDesc:           "fail get enum leaf incorrect leaf schema",
 			inParent:         &ContainerStruct1{},
-			inSchema:         containerWithStringKey,
+			inSchema:         containerWithStringKey(),
 			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/INVALID_LEAF"),
+			wantErrSubstring: "no match found in *ytypes.InnerContainerType1",
+		},
+		{
+			inDesc:   "success getting a nil shadow value",
+			inParent: &ContainerStruct1{},
+			inSchema: containerWithStringKey(),
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
+			want:     nil,
+		},
+		{
+			inDesc:   "success getting an initialized non-shadow value",
+			inParent: &ContainerStruct1{},
+			inSchema: containerWithStringKey(),
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/config/int32-leaf-field"),
+			want:     ygot.Int32(0),
+		},
+		{
+			inDesc: "success getting nil shadow int32 leaf with an existing key",
+			inParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+			inSchema: containerWithStringKey(),
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
+			want:     nil,
+		},
+		{
+			inDesc:           "fail getting a shadow value whose container doesn't exist",
+			inParent:         &ContainerStruct1{},
+			inSchema:         containerWithStringKey(),
+			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/INVALID_CONTAINER/state/int32-leaf-field"),
+			wantErrSubstring: "no match found in *ytypes.OuterContainerType1",
+		},
+		{
+			inDesc:   "success getting a nil non-shadow value when preferShadowPath=true",
+			inParent: &ContainerStruct1{},
+			inSchema: containerWithStringKey(),
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/config/int32-leaf-field"),
+			inOpts:   []GetOrCreateNodeOpt{&PreferShadowPath{}},
+			want:     nil,
+		},
+		{
+			inDesc:   "success getting an initialized shadow value with preferShadowPath=true",
+			inParent: &ContainerStruct1{},
+			inSchema: containerWithStringKey(),
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
+			inOpts:   []GetOrCreateNodeOpt{&PreferShadowPath{}},
+			want:     ygot.Int32(0),
+		},
+		{
+			inDesc: "success getting a shadow int32 leaf with an existing key with preferShadowPath=true",
+			inParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+			inSchema: containerWithStringKey(),
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
+			inOpts:   []GetOrCreateNodeOpt{&PreferShadowPath{}},
+			want:     ygot.Int32(42),
+		},
+		{
+			inDesc:           "fail getting a shadow value whose container doesn't exist with preferShadowPath=true",
+			inParent:         &ContainerStruct1{},
+			inSchema:         containerWithStringKey(),
+			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/INVALID_CONTAINER/state/int32-leaf-field"),
+			inOpts:           []GetOrCreateNodeOpt{&PreferShadowPath{}},
+			wantErrSubstring: "no match found in *ytypes.OuterContainerType1",
+		},
+		{
+			inDesc:           "fail getting a value that doesn't exist with preferShadowPath=true",
+			inParent:         &ContainerStruct1{},
+			inSchema:         containerWithStringKey(),
+			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/INVALID_LEAF"),
+			inOpts:           []GetOrCreateNodeOpt{&PreferShadowPath{}},
 			wantErrSubstring: "no match found in *ytypes.InnerContainerType1",
 		},
 		{
@@ -383,7 +608,7 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			inSchema:         containerWithEnumKey,
 			inParent:         &ContainerEnumKey{},
 			inPath:           mustPath("/config/simple-key-list[key1=42]"),
-			wantErrSubstring: "no enum matching with 42",
+			wantErrSubstring: "42 is not a valid value for enum field",
 		},
 		{
 			inDesc:   "success finding enum key",
@@ -403,19 +628,26 @@ func TestGetOrCreateNodeSimpleKey(t *testing.T) {
 			inPath: mustPath("/config/simple-key-list[key1=E_VALUE_FORTY_TWO]"),
 			want:   &ListElemEnumKey{Key1: 42, Int32LeafName: ygot.Int32(99)},
 		},
+		{
+			inDesc:   "success finding bool key",
+			inSchema: containerWithBoolKey,
+			inParent: &ContainerBoolKey{},
+			inPath:   mustPath("/config/simple-key-list[key1=true]"),
+			want:     &ListElemBoolKey{Key1: ygot.Bool(true)},
+		},
 	}
 
 	for i, tt := range tests {
 		t.Run(tt.inDesc, func(t *testing.T) {
-			got, _, err := GetOrCreateNode(tt.inSchema, tt.inParent, tt.inPath)
+			got, _, err := GetOrCreateNode(tt.inSchema, tt.inParent, tt.inPath, tt.inOpts...)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("#%d: %s\ngot %v\nwant %v", i, tt.inDesc, err, tt.wantErrSubstring)
 			}
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s:\n(-want, +got):\n%s", tt.inDesc, diff)
 			}
 		})
 	}
@@ -449,66 +681,86 @@ type ContainerStruct3 struct {
 
 func (*ContainerStruct3) IsYANGGoStruct() {}
 
-func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
-	containerWithLeafListSchema := &yang.Entry{
-		Name: "container",
-		Kind: yang.DirectoryEntry,
-		Dir: map[string]*yang.Entry{
-			"struct-key-list": {
-				Name:     "struct-key-list",
-				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
-				Key:      "key1 key2 key3",
-				Config:   yang.TSTrue,
-				Dir: map[string]*yang.Entry{
-					"key1": {
-						Name: "key1",
-						Kind: yang.LeafEntry,
-						Type: &yang.YangType{Kind: yang.Ystring},
-					},
-					"key2": {
-						Name: "key2",
-						Kind: yang.LeafEntry,
-						Type: &yang.YangType{Kind: yang.Yint32},
-					},
-					"key3": {
-						Name: "key3",
-						Kind: yang.LeafEntry,
-						Type: &yang.YangType{Kind: yang.Yenum},
-					},
-					"outer": {
-						Name: "outer",
-						Kind: yang.DirectoryEntry,
-						Dir: map[string]*yang.Entry{
-							"config": {
-								Name: "config",
-								Kind: yang.DirectoryEntry,
-								Dir: map[string]*yang.Entry{
-									"inner": {
-										Name: "inner",
-										Kind: yang.DirectoryEntry,
-										Dir: map[string]*yang.Entry{
-											"int32-leaf-field": {
-												Name: "leaf-field",
-												Kind: yang.LeafEntry,
-												Type: &yang.YangType{Kind: yang.Yint32},
+var containerWithMultiKeyedList *yang.Entry = &yang.Entry{
+	Name: "container",
+	Kind: yang.DirectoryEntry,
+	Dir: map[string]*yang.Entry{
+		"struct-key-list": {
+			Name:     "struct-key-list",
+			Kind:     yang.DirectoryEntry,
+			ListAttr: yang.NewDefaultListAttr(),
+			Key:      "key1 key2 key3",
+			Config:   yang.TSTrue,
+			Dir: map[string]*yang.Entry{
+				"key1": {
+					Name: "key1",
+					Kind: yang.LeafEntry,
+					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+				"key2": {
+					Name: "key2",
+					Kind: yang.LeafEntry,
+					Type: &yang.YangType{Kind: yang.Yint32},
+				},
+				"key3": {
+					Name: "key3",
+					Kind: yang.LeafEntry,
+					Type: &yang.YangType{Kind: yang.Yenum},
+				},
+				"outer": {
+					Name: "outer",
+					Kind: yang.DirectoryEntry,
+					Dir: map[string]*yang.Entry{
+						"config": {
+							Name: "config",
+							Kind: yang.DirectoryEntry,
+							Dir: map[string]*yang.Entry{
+								"inner": {
+									Name: "inner",
+									Kind: yang.DirectoryEntry,
+									Dir: map[string]*yang.Entry{
+										"int32-leaf-field": {
+											Name: "leaf-field",
+											Kind: yang.LeafEntry,
+											Type: &yang.YangType{Kind: yang.Yint32},
+										},
+										"config": {
+											Name: "config",
+											Kind: yang.DirectoryEntry,
+											Dir: map[string]*yang.Entry{
+												"int32-leaf-field": {
+													Name: "int32-leaf-field",
+													Kind: yang.LeafEntry,
+													Type: &yang.YangType{Kind: yang.Yint32},
+												},
 											},
-											"int32-leaf-list": {
-												Name:     "int32-leaf-list",
-												Kind:     yang.LeafEntry,
-												ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
-												Type:     &yang.YangType{Kind: yang.Yint32},
+										},
+										"state": {
+											Name: "state",
+											Kind: yang.DirectoryEntry,
+											Dir: map[string]*yang.Entry{
+												"int32-leaf-field": {
+													Name: "int32-leaf-field",
+													Kind: yang.LeafEntry,
+													Type: &yang.YangType{Kind: yang.Yint32},
+												},
 											},
-											"string-leaf-field": {
-												Name: "leaf-field",
-												Kind: yang.LeafEntry,
-												Type: &yang.YangType{Kind: yang.Ystring},
-											},
-											"enum-leaf-field": {
-												Name: "leaf-field",
-												Kind: yang.LeafEntry,
-												Type: &yang.YangType{Kind: yang.Yenum},
-											},
+										},
+										"int32-leaf-list": {
+											Name:     "int32-leaf-list",
+											Kind:     yang.LeafEntry,
+											ListAttr: yang.NewDefaultListAttr(),
+											Type:     &yang.YangType{Kind: yang.Yint32},
+										},
+										"string-leaf-field": {
+											Name: "leaf-field",
+											Kind: yang.LeafEntry,
+											Type: &yang.YangType{Kind: yang.Ystring},
+										},
+										"enum-leaf-field": {
+											Name: "leaf-field",
+											Kind: yang.LeafEntry,
+											Type: &yang.YangType{Kind: yang.Yenum},
 										},
 									},
 								},
@@ -518,8 +770,10 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 				},
 			},
 		},
-	}
+	},
+}
 
+func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 	tests := []struct {
 		inDesc           string
 		inParent         interface{}
@@ -530,7 +784,7 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 	}{
 		{
 			inDesc:   "success get int32 leaf from a struct keyed list",
-			inSchema: containerWithLeafListSchema,
+			inSchema: containerWithMultiKeyedList,
 			inParent: &ContainerStruct3{
 				StructKeyList: map[KeyStruct]*ListElemStruct3{
 					{"forty-two", 42, 42}: {
@@ -546,7 +800,7 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 		},
 		{
 			inDesc:   "success get InnerContainerType1 from a struct keyed list",
-			inSchema: containerWithLeafListSchema,
+			inSchema: containerWithMultiKeyedList,
 			inParent: &ContainerStruct3{
 				StructKeyList: map[KeyStruct]*ListElemStruct3{
 					{"forty-two", 42, EnumType(42)}: {
@@ -562,24 +816,24 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 		},
 		{
 			inDesc:   "success get string leaf from a struct keyed list with a new key",
-			inSchema: containerWithLeafListSchema,
+			inSchema: containerWithMultiKeyedList,
 			inParent: &ContainerStruct3{},
 			inPath:   mustPath("/struct-key-list[key1=forty-two][key2=42][key3=E_VALUE_FORTY_TWO]/outer/inner/string-leaf-field"),
 			want:     ygot.String(""),
 		},
 		{
 			inDesc:           "fail get string leaf from a struct keyed list due to invalid key",
-			inSchema:         containerWithLeafListSchema,
+			inSchema:         containerWithMultiKeyedList,
 			inParent:         &ContainerStruct3{},
 			inPath:           mustPath("/struct-key-list[key1=forty-two][key2=42][key3=INVALID_ENUM]/outer/inner/string-leaf-field"),
-			wantErrSubstring: "no enum matching with INVALID_ENUM: <nil>",
+			wantErrSubstring: "INVALID_ENUM is not a valid value for enum field",
 		},
 		{
 			inDesc:           "fail get due to partial key for struct keyed list",
-			inSchema:         containerWithLeafListSchema,
+			inSchema:         containerWithMultiKeyedList,
 			inParent:         &ContainerStruct3{},
 			inPath:           mustPath("/struct-key-list[key1=forty-two][key2=42]/outer"),
-			wantErrSubstring: "missing key3 key in map",
+			wantErrSubstring: `missing "key3" key in map`,
 		},
 	}
 
@@ -592,54 +846,78 @@ func TestGetOrCreateNodeStructKeyedList(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s:\n(-want, +got):\n%s", tt.inDesc, diff)
 			}
 		})
 	}
 }
 
-var simpleSchema = &yang.Entry{
-	Name: "list-elem-struct1",
-	Kind: yang.DirectoryEntry,
-	Dir: map[string]*yang.Entry{
-		"key1": {
-			Name: "key1",
-			Kind: yang.LeafEntry,
-			Type: &yang.YangType{Kind: yang.Ystring},
-		},
-		"outer": {
-			Name: "outer",
-			Kind: yang.DirectoryEntry,
-			Dir: map[string]*yang.Entry{
-				"config": {
-					Name: "config",
-					Kind: yang.DirectoryEntry,
-					Dir: map[string]*yang.Entry{
-						"inner": {
-							Name: "inner",
-							Kind: yang.DirectoryEntry,
-							Dir: map[string]*yang.Entry{
-								"int32-leaf-field": {
-									Name: "int32-leaf-field",
-									Kind: yang.LeafEntry,
-									Type: &yang.YangType{Kind: yang.Yint32},
-								},
-								"int32-leaf-list": {
-									Name:     "int32-leaf-list",
-									Kind:     yang.LeafEntry,
-									ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
-									Type:     &yang.YangType{Kind: yang.Yint32},
-								},
-								"string-leaf-field": {
-									Name: "string-leaf-field",
-									Kind: yang.LeafEntry,
-									Type: &yang.YangType{Kind: yang.Ystring},
-								},
-								"enum-leaf-field": {
-									Name: "enum-leaf-field",
-									Kind: yang.LeafEntry,
-									Type: &yang.YangType{Kind: yang.Yenum},
+func simpleSchema() *yang.Entry {
+	simpleSchema := &yang.Entry{
+		Name: "list-elem-struct1",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"key1": {
+				Name: "key1",
+				Kind: yang.LeafEntry,
+				Type: &yang.YangType{Kind: yang.Ystring},
+			},
+			"outer": {
+				Name: "outer",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"config": {
+						Name: "config",
+						Kind: yang.DirectoryEntry,
+						Dir: map[string]*yang.Entry{
+							"inner": {
+								Name: "inner",
+								Kind: yang.DirectoryEntry,
+								Dir: map[string]*yang.Entry{
+									"int32-leaf-field": {
+										Name: "int32-leaf-field",
+										Kind: yang.LeafEntry,
+										Type: &yang.YangType{Kind: yang.Yint32},
+									},
+									"config": {
+										Name: "config",
+										Kind: yang.DirectoryEntry,
+										Dir: map[string]*yang.Entry{
+											"int32-leaf-field": {
+												Name: "int32-leaf-field",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{Kind: yang.Yint32},
+											},
+										},
+									},
+									"state": {
+										Name: "state",
+										Kind: yang.DirectoryEntry,
+										Dir: map[string]*yang.Entry{
+											"int32-leaf-field": {
+												Name: "int32-leaf-field",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{Kind: yang.Yint32},
+											},
+										},
+									},
+									"int32-leaf-list": {
+										Name:     "int32-leaf-list",
+										Kind:     yang.LeafEntry,
+										ListAttr: yang.NewDefaultListAttr(),
+										Type:     &yang.YangType{Kind: yang.Yint32},
+									},
+									"string-leaf-field": {
+										Name: "string-leaf-field",
+										Kind: yang.LeafEntry,
+										Type: &yang.YangType{Kind: yang.Ystring},
+									},
+									"enum-leaf-field": {
+										Name: "enum-leaf-field",
+										Kind: yang.LeafEntry,
+										Type: &yang.YangType{Kind: yang.Yenum},
+									},
 								},
 							},
 						},
@@ -647,7 +925,9 @@ var simpleSchema = &yang.Entry{
 				},
 			},
 		},
-	},
+	}
+	addParents(simpleSchema)
+	return simpleSchema
 }
 
 func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
@@ -661,42 +941,42 @@ func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 	}{
 		{
 			inDesc:   "success retrieving container with direct descendant schema",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/outer/inner"),
 			want:     &InnerContainerType1{},
 		},
 		{
 			inDesc:   "success retrieving container with indirect descendant schema",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/outer/config/inner"),
 			want:     &InnerContainerType1{},
 		},
 		{
 			inDesc:   "success retrieving int32 leaf with direct descendant schema",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/outer/inner/int32-leaf-field"),
 			want:     ygot.Int32(0),
 		},
 		{
 			inDesc:   "success retrieving int32 leaf with indirect descendant schema",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/outer/config/inner/int32-leaf-field"),
 			want:     ygot.Int32(0),
 		},
 		{
 			inDesc:   "success retrieving enum leaf with direct descendant schema",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/outer/inner/enum-leaf-field"),
 			want:     EnumType(0),
 		},
 		{
 			inDesc:   "success retrieving enum leaf from existing container",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{
 				Outer: &OuterContainerType1{
 					Inner: &InnerContainerType1{
@@ -709,7 +989,7 @@ func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 		},
 		{
 			inDesc:   "success retrieving container from existing container",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{
 				Outer: &OuterContainerType1{
 					Inner: &InnerContainerType1{
@@ -732,8 +1012,8 @@ func TestGetOrCreateNodeWithSimpleSchema(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s:\ngot: %v\nwant: %v", tt.inDesc, pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s:\n(-want, +got):\n%s", tt.inDesc, diff)
 			}
 		})
 	}
@@ -755,7 +1035,8 @@ func treeNodesEqual(got, want []*TreeNode) error {
 	for _, w := range want {
 		match := false
 		for _, g := range got {
-			if reflect.DeepEqual(g.Data, w.Data) && reflect.DeepEqual(g.Schema, w.Schema) && proto.Equal(g.Path, w.Path) {
+			// Use reflect.DeepEqual on schema comparison to avoid stack overflow (maybe due to circular references).
+			if cmp.Equal(g.Data, w.Data) && reflect.DeepEqual(g.Schema, w.Schema) && proto.Equal(g.Path, w.Path) {
 				match = true
 				break
 			}
@@ -763,9 +1044,9 @@ func treeNodesEqual(got, want []*TreeNode) error {
 		if !match {
 			paths := []string{}
 			for _, g := range got {
-				paths = append(paths, fmt.Sprintf("< %s | %#v >", proto.CompactTextString(g.Path), g))
+				paths = append(paths, fmt.Sprintf("< %s | %#v >", prototext.MarshalOptions{Multiline: false}.Format(g.Path), g))
 			}
-			return fmt.Errorf("no match for %#v (path: %s) in %v", w, proto.CompactTextString(w.Path), paths)
+			return fmt.Errorf("no match for %#v (path: %s) in %v", w, prototext.MarshalOptions{Multiline: false}.Format(w.Path), paths)
 		}
 	}
 	return nil
@@ -798,7 +1079,7 @@ type multiListKey struct {
 }
 
 type listChildContainer struct {
-	Value *string `path:"value"`
+	Value *string `path:"value|config/value" shadow-path:"value|state/value"`
 }
 
 type childList struct {
@@ -817,10 +1098,10 @@ type grandchildContainer struct {
 type rootStruct struct {
 	Leaf      *string                          `path:"leaf"`
 	LeafList  []int32                          `path:"int32-leaf-list"`
-	Container *childContainer                  `path:"container"`
+	Container *childContainer                  `path:"container" shadow-path:"shadow-container"`
 	List      map[string]*listEntry            `path:"list"`
 	Multilist map[multiListKey]*multiListEntry `path:"multilist"`
-	ChildList map[string]*childList            `path:"childlist"`
+	ChildList map[string]*childList            `path:"state/childlist"`
 }
 
 func TestGetNode(t *testing.T) {
@@ -843,7 +1124,7 @@ func TestGetNode(t *testing.T) {
 	leafListSchema := &yang.Entry{
 		Name:     "int32-leaf-list",
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Type:     &yang.YangType{Kind: yang.Yint32},
 	}
 	rootSchema.Dir["int32-leaf-list"] = leafListSchema
@@ -855,6 +1136,13 @@ func TestGetNode(t *testing.T) {
 		Dir:    map[string]*yang.Entry{},
 	}
 	rootSchema.Dir["container"] = childContainerSchema
+	childShadowContainerSchema := &yang.Entry{
+		Name:   "shadow-container",
+		Kind:   yang.DirectoryEntry,
+		Parent: rootSchema,
+		Dir:    map[string]*yang.Entry{},
+	}
+	rootSchema.Dir["shadow-container"] = childShadowContainerSchema
 
 	grandchildContainerSchema := &yang.Entry{
 		Name:   "grandchild",
@@ -916,39 +1204,83 @@ func TestGetNode(t *testing.T) {
 	}
 	multiKeyListSchema.Dir["keytwo"] = keyTwoListSchema
 
-	childListSchema := &yang.Entry{
-		Name:     "childlist",
-		Kind:     yang.DirectoryEntry,
-		Parent:   rootSchema,
-		Key:      "key",
-		ListAttr: &yang.ListAttr{},
-		Dir:      map[string]*yang.Entry{},
-	}
-	rootSchema.Dir["childlist"] = childListSchema
+	newChildListSchema := func(configStateName string) *yang.Entry {
+		configStateEntry := &yang.Entry{
+			Name:   configStateName,
+			Kind:   yang.DirectoryEntry,
+			Parent: rootSchema,
+			Dir:    map[string]*yang.Entry{},
+		}
 
-	childListKeySchema := &yang.Entry{
-		Name:   "key",
-		Kind:   yang.DirectoryEntry,
-		Parent: childListSchema,
-		Type:   &yang.YangType{Kind: yang.Ystring},
-	}
-	childListSchema.Dir["key"] = childListKeySchema
+		childListSchema := &yang.Entry{
+			Name:     "childlist",
+			Kind:     yang.DirectoryEntry,
+			Parent:   configStateEntry,
+			Key:      "key",
+			ListAttr: &yang.ListAttr{},
+			Dir:      map[string]*yang.Entry{},
+		}
+		configStateEntry.Dir["childlist"] = childListSchema
 
-	childListContainerSchema := &yang.Entry{
-		Name:   "child-container",
-		Kind:   yang.DirectoryEntry,
-		Parent: childListSchema,
-		Dir:    map[string]*yang.Entry{},
-	}
-	childListSchema.Dir["child-container"] = childListContainerSchema
+		childListKeySchema := &yang.Entry{
+			Name:   "key",
+			Kind:   yang.DirectoryEntry,
+			Parent: childListSchema,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+		}
+		childListSchema.Dir["key"] = childListKeySchema
 
-	childListContainerValueSchema := &yang.Entry{
-		Name:   "value",
-		Kind:   yang.LeafEntry,
-		Parent: childListContainerSchema,
-		Type:   &yang.YangType{Kind: yang.Ystring},
+		childListContainerSchema := &yang.Entry{
+			Name:   "child-container",
+			Kind:   yang.DirectoryEntry,
+			Parent: childListSchema,
+			Dir:    map[string]*yang.Entry{},
+		}
+		childListSchema.Dir["child-container"] = childListContainerSchema
+
+		childListContainerValueSchema := &yang.Entry{
+			Name:   "value",
+			Kind:   yang.LeafEntry,
+			Parent: childListContainerSchema,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+		}
+		childListContainerSchema.Dir["value"] = childListContainerValueSchema
+
+		configSchema := &yang.Entry{
+			Name:   "config",
+			Kind:   yang.DirectoryEntry,
+			Parent: childListSchema,
+			Dir:    map[string]*yang.Entry{},
+		}
+		childListContainerSchema.Dir["config"] = configSchema
+
+		stateSchema := &yang.Entry{
+			Name:   "state",
+			Kind:   yang.DirectoryEntry,
+			Parent: childListSchema,
+			Dir:    map[string]*yang.Entry{},
+		}
+		childListContainerSchema.Dir["state"] = stateSchema
+
+		configValueSchema := &yang.Entry{
+			Name:   "value",
+			Kind:   yang.LeafEntry,
+			Parent: childListContainerSchema,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+		}
+		configSchema.Dir["config"] = configValueSchema
+
+		stateValueSchema := &yang.Entry{
+			Name:   "value",
+			Kind:   yang.LeafEntry,
+			Parent: childListContainerSchema,
+			Type:   &yang.YangType{Kind: yang.Ystring},
+		}
+		stateSchema.Dir["state"] = stateValueSchema
+
+		return configStateEntry
 	}
-	childListContainerSchema.Dir["value"] = childListContainerValueSchema
+	rootSchema.Dir["state"] = newChildListSchema("state")
 
 	tests := []struct {
 		desc             string
@@ -965,6 +1297,19 @@ func TestGetNode(t *testing.T) {
 			Leaf: ygot.String("foo"),
 		},
 		inPath: mustPath("/leaf"),
+		wantTreeNodes: []*TreeNode{{
+			Data:   ygot.String("foo"),
+			Schema: leafSchema,
+			Path:   mustPath("/leaf"),
+		}},
+	}, {
+		desc:     "simple get leaf with preferShadowPath=true where shadow-path doesn't exist",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			Leaf: ygot.String("foo"),
+		},
+		inPath: mustPath("/leaf"),
+		inArgs: []GetNodeOpt{&PreferShadowPath{}},
 		wantTreeNodes: []*TreeNode{{
 			Data:   ygot.String("foo"),
 			Schema: leafSchema,
@@ -1294,6 +1639,173 @@ func TestGetNode(t *testing.T) {
 			Schema: multiKeyListSchema,
 			Path:   mustPath("/multilist[keyone=1][keytwo=3]"),
 		}},
+	}, {
+		desc:     "shadow path that traverses a non-leaf node",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			Container: &childContainer{
+				Container: &grandchildContainer{
+					Val: ygot.String("forty-two"),
+				},
+			},
+		},
+		inPath:           mustPath("/shadow-container/grandchild/val"),
+		wantErrSubstring: "shadow path traverses a non-leaf node, this is not allowed",
+	}, {
+		desc:     "non-shadow path that traverses a non-leaf node with preferShadowPath=true",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			Container: &childContainer{
+				Container: &grandchildContainer{
+					Val: ygot.String("forty-two"),
+				},
+			},
+		},
+		inPath:           mustPath("/container/grandchild/val"),
+		inArgs:           []GetNodeOpt{&PreferShadowPath{}},
+		wantErrSubstring: "shadow path traverses a non-leaf node, this is not allowed",
+	}, {
+		desc:     "deeper list dual shadow/non-shadow leaf path",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			ChildList: map[string]*childList{
+				"one": {
+					Key:            ygot.String("one"),
+					ChildContainer: &listChildContainer{Value: ygot.String("1")},
+				},
+				"two": {
+					Key:            ygot.String("two"),
+					ChildContainer: &listChildContainer{Value: ygot.String("2")},
+				},
+			},
+		},
+		inPath: mustPath("/state/childlist[key=one]/child-container/value"),
+		wantTreeNodes: []*TreeNode{{
+			Data:   ygot.String("1"),
+			Schema: rootSchema.Dir["state"].Dir["childlist"].Dir["child-container"].Dir["value"],
+			Path:   mustPath("/state/childlist[key=one]/child-container/value"),
+		}},
+	}, {
+		desc:     "deeper list non-shadow leaf path",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			ChildList: map[string]*childList{
+				"one": {
+					Key:            ygot.String("one"),
+					ChildContainer: &listChildContainer{Value: ygot.String("1")},
+				},
+				"two": {
+					Key:            ygot.String("two"),
+					ChildContainer: &listChildContainer{Value: ygot.String("2")},
+				},
+			},
+		},
+		inPath: mustPath("/state/childlist[key=one]/child-container/value"),
+		wantTreeNodes: []*TreeNode{{
+			Data:   ygot.String("1"),
+			Schema: rootSchema.Dir["state"].Dir["childlist"].Dir["child-container"].Dir["value"],
+			Path:   mustPath("/state/childlist[key=one]/child-container/value"),
+		}},
+	}, {
+		desc:     "deeper list shadow leaf path",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			ChildList: map[string]*childList{
+				"one": {
+					Key:            ygot.String("one"),
+					ChildContainer: &listChildContainer{Value: ygot.String("1")},
+				},
+				"two": {
+					Key:            ygot.String("two"),
+					ChildContainer: &listChildContainer{Value: ygot.String("2")},
+				},
+			},
+		},
+		inPath: mustPath("/state/childlist[key=one]/child-container/state/value"),
+		wantTreeNodes: []*TreeNode{{
+			Data:   nil,
+			Schema: nil,
+			Path:   mustPath("/state/childlist[key=one]/child-container/state/value"),
+		}},
+	}, {
+		desc:     "deeper list leaf path not found",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			ChildList: map[string]*childList{
+				"one": {
+					Key:            ygot.String("one"),
+					ChildContainer: &listChildContainer{Value: ygot.String("1")},
+				},
+				"two": {
+					Key:            ygot.String("two"),
+					ChildContainer: &listChildContainer{Value: ygot.String("2")},
+				},
+			},
+		},
+		inPath:           mustPath("/state/childlist[key=one]/child-container/valeur"),
+		wantErrSubstring: "no match found in *ytypes.listChildContainer",
+	}, {
+		desc:     "deeper list non-shadow leaf path with preferShadowPath=true",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			ChildList: map[string]*childList{
+				"one": {
+					Key:            ygot.String("one"),
+					ChildContainer: &listChildContainer{Value: ygot.String("1")},
+				},
+				"two": {
+					Key:            ygot.String("two"),
+					ChildContainer: &listChildContainer{Value: ygot.String("2")},
+				},
+			},
+		},
+		inPath: mustPath("/state/childlist[key=one]/child-container/config/value"),
+		inArgs: []GetNodeOpt{&PreferShadowPath{}},
+		wantTreeNodes: []*TreeNode{{
+			Data:   nil,
+			Schema: nil,
+			Path:   mustPath("/state/childlist[key=one]/child-container/config/value"),
+		}},
+	}, {
+		desc:     "deeper list shadow leaf path with preferShadowPath=true",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			ChildList: map[string]*childList{
+				"one": {
+					Key:            ygot.String("one"),
+					ChildContainer: &listChildContainer{Value: ygot.String("1")},
+				},
+				"two": {
+					Key:            ygot.String("two"),
+					ChildContainer: &listChildContainer{Value: ygot.String("2")},
+				},
+			},
+		},
+		inPath: mustPath("/state/childlist[key=one]/child-container/state/value"),
+		inArgs: []GetNodeOpt{&PreferShadowPath{}},
+		wantTreeNodes: []*TreeNode{{
+			Data:   ygot.String("1"),
+			Schema: rootSchema.Dir["state"].Dir["childlist"].Dir["child-container"].Dir["value"],
+			Path:   mustPath("/state/childlist[key=one]/child-container/state/value"),
+		}},
+	}, {
+		desc:     "deeper list leaf path not found with preferShadowPath=true",
+		inSchema: rootSchema,
+		inData: &rootStruct{
+			ChildList: map[string]*childList{
+				"one": {
+					Key:            ygot.String("one"),
+					ChildContainer: &listChildContainer{Value: ygot.String("1")},
+				},
+				"two": {
+					Key:            ygot.String("two"),
+					ChildContainer: &listChildContainer{Value: ygot.String("2")},
+				},
+			},
+		},
+		inPath:           mustPath("/state/childlist[key=one]/child-container/valeur"),
+		inArgs:           []GetNodeOpt{&PreferShadowPath{}},
+		wantErrSubstring: "no match found in *ytypes.listChildContainer",
 	}}
 
 	for _, tt := range tests {
@@ -1304,6 +1816,8 @@ func TestGetNode(t *testing.T) {
 			}
 
 			if err := treeNodesEqual(got, tt.wantTreeNodes); err != nil {
+				fmt.Println(got[0].Schema)
+				fmt.Println(tt.wantTreeNodes[0].Schema)
 				t.Fatalf("did not get expected result, %v", err)
 			}
 		})
@@ -1335,53 +1849,119 @@ func TestSetNode(t *testing.T) {
 		inVal            interface{}
 		inOpts           []SetNodeOpt
 		wantErrSubstring string
-		want             interface{}
+		wantLeaf         interface{}
+		wantParent       interface{}
 	}{
 		{
-			inDesc:   "success setting string field in top node",
-			inSchema: simpleSchema,
-			inParent: &ListElemStruct1{},
-			inPath:   mustPath("/key1"),
-			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
-			want:     ygot.String("hello"),
+			inDesc:     "success setting string field in top node",
+			inSchema:   simpleSchema(),
+			inParent:   &ListElemStruct1{},
+			inPath:     mustPath("/key1"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+			wantLeaf:   ygot.String("hello"),
+			wantParent: &ListElemStruct1{Key1: ygot.String("hello")},
+		},
+		{
+			inDesc:     "success setting string field in top node with preferShadowPath=true where shadow-path doesn't exist",
+			inSchema:   simpleSchema(),
+			inParent:   &ListElemStruct1{},
+			inPath:     mustPath("/key1"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+			inOpts:     []SetNodeOpt{&PreferShadowPath{}},
+			wantLeaf:   ygot.String("hello"),
+			wantParent: &ListElemStruct1{Key1: ygot.String("hello")},
+		},
+		{
+			inDesc:           "failure setting uint field in top node with int value",
+			inSchema:         listElemStruct4Schema,
+			inParent:         &ListElemStruct4{},
+			inPath:           mustPath("/key1"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			wantErrSubstring: "failed to unmarshal",
+		},
+		{
+			inDesc:     "success setting uint field in uint node with positive int value with JSON tolerance is set",
+			inSchema:   listElemStruct4Schema,
+			inParent:   &ListElemStruct4{},
+			inPath:     mustPath("/key1"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			inOpts:     []SetNodeOpt{&TolerateJSONInconsistencies{}},
+			wantLeaf:   ygot.Uint32(42),
+			wantParent: &ListElemStruct4{Key1: ygot.Uint32(42)},
+		},
+		{
+			inDesc:     "success setting uint field in uint node with 0 int value with JSON tolerance is set",
+			inSchema:   listElemStruct4Schema,
+			inParent:   &ListElemStruct4{},
+			inPath:     mustPath("/key1"),
+			inVal:      &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 0}},
+			inOpts:     []SetNodeOpt{&TolerateJSONInconsistencies{}},
+			wantLeaf:   ygot.Uint32(0),
+			wantParent: &ListElemStruct4{Key1: ygot.Uint32(0)},
+		},
+		{
+			inDesc:           "failure setting uint field in uint node with negative int value with JSON tolerance is set",
+			inSchema:         listElemStruct4Schema,
+			inParent:         &ListElemStruct4{},
+			inPath:           mustPath("/key1"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: -42}},
+			inOpts:           []SetNodeOpt{&TolerateJSONInconsistencies{}},
+			wantErrSubstring: "failed to unmarshal",
 		},
 		{
 			inDesc:           "fail setting value for node with non-leaf schema",
-			inSchema:         simpleSchema,
+			inSchema:         simpleSchema(),
 			inParent:         &ListElemStruct1{},
 			inPath:           mustPath("/outer"),
 			inVal:            &gpb.TypedValue{},
-			wantErrSubstring: `path elem:<name:"outer" >  points to a node with non-leaf schema`,
+			wantErrSubstring: `path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "outer"}}}).String() + ` points to a node with non-leaf schema`,
 		},
 		{
 			inDesc:   "success setting annotation in top node",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/@annotation"),
 			inVal:    &ExampleAnnotation{ConfigSource: "devicedemo"},
-			want:     []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			wantLeaf: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			wantParent: &ListElemStruct1{
+				Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			},
 		},
 		{
 			inDesc:   "success setting annotation in inner node",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/outer/inner/@annotation"),
 			inVal:    &ExampleAnnotation{ConfigSource: "devicedemo"},
 			inOpts:   []SetNodeOpt{&InitMissingElements{}},
-			want:     []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			wantLeaf: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			wantParent: &ListElemStruct1{
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+					},
+				},
+			},
 		},
 		{
 			inDesc:   "success setting int32 field in inner node",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/outer/inner/int32-leaf-field"),
 			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
 			inOpts:   []SetNodeOpt{&InitMissingElements{}},
-			want:     ygot.Int32(42),
+			wantLeaf: ygot.Int32(42),
+			wantParent: &ListElemStruct1{
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafName: ygot.Int32(42),
+					},
+				},
+			},
 		},
 		{
 			inDesc:   "success setting int32 leaf list field",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{},
 			inPath:   mustPath("/outer/inner/int32-leaf-list"),
 			inVal: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
@@ -1389,12 +1969,20 @@ func TestSetNode(t *testing.T) {
 					Element: []*gpb.TypedValue{
 						{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
 					}},
-			}}, inOpts: []SetNodeOpt{&InitMissingElements{}},
-			want: []int32{42},
+			}},
+			inOpts:   []SetNodeOpt{&InitMissingElements{}},
+			wantLeaf: []int32{42},
+			wantParent: &ListElemStruct1{
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafListName: []int32{42},
+					},
+				},
+			},
 		},
 		{
 			inDesc:   "success setting int32 leaf list field for an existing leaf list",
-			inSchema: simpleSchema,
+			inSchema: simpleSchema(),
 			inParent: &ListElemStruct1{
 				Outer: &OuterContainerType1{
 					Inner: &InnerContainerType1{
@@ -1409,12 +1997,19 @@ func TestSetNode(t *testing.T) {
 						{Value: &gpb.TypedValue_IntVal{IntVal: 43}},
 					}},
 			}},
-			inOpts: []SetNodeOpt{&InitMissingElements{}},
-			want:   []int32{42, 43},
+			inOpts:   []SetNodeOpt{&InitMissingElements{}},
+			wantLeaf: []int32{42, 43},
+			wantParent: &ListElemStruct1{
+				Outer: &OuterContainerType1{
+					Inner: &InnerContainerType1{
+						Int32LeafListName: []int32{42, 43},
+					},
+				},
+			},
 		},
 		{
 			inDesc:   "success setting annotation in list element",
-			inSchema: containerWithStringKey,
+			inSchema: containerWithStringKey(),
 			inParent: &ContainerStruct1{
 				StructKeyList: map[string]*ListElemStruct1{
 					"forty-two": {
@@ -1423,13 +2018,22 @@ func TestSetNode(t *testing.T) {
 					},
 				},
 			},
-			inPath: mustPath("/config/simple-key-list[key1=forty-two]/@annotation"),
-			inVal:  &ExampleAnnotation{ConfigSource: "devicedemo"},
-			want:   []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/@annotation"),
+			inVal:    &ExampleAnnotation{ConfigSource: "devicedemo"},
+			wantLeaf: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:       ygot.String("forty-two"),
+						Outer:      &OuterContainerType1{},
+						Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+					},
+				},
+			},
 		},
 		{
 			inDesc:   "failed to set annotation in invalid list element",
-			inSchema: containerWithStringKey,
+			inSchema: containerWithStringKey(),
 			inParent: &ContainerStruct1{
 				StructKeyList: map[string]*ListElemStruct1{},
 			},
@@ -1439,7 +2043,7 @@ func TestSetNode(t *testing.T) {
 		},
 		{
 			inDesc:           "failed to set annotation in uninitialized node without InitMissingElements in SetNodeOpt",
-			inSchema:         simpleSchema,
+			inSchema:         simpleSchema(),
 			inParent:         &ListElemStruct1{},
 			inPath:           mustPath("/outer/inner/@annotation"),
 			inVal:            &ExampleAnnotation{ConfigSource: "devicedemo"},
@@ -1447,7 +2051,7 @@ func TestSetNode(t *testing.T) {
 		},
 		{
 			inDesc:           "failed to set value on invalid node",
-			inSchema:         simpleSchema,
+			inSchema:         simpleSchema(),
 			inParent:         &ListElemStruct1{},
 			inPath:           mustPath("/invalidkey"),
 			inVal:            ygot.String("hello"),
@@ -1455,13 +2059,242 @@ func TestSetNode(t *testing.T) {
 		},
 		{
 			inDesc:           "failed to set value with invalid type",
-			inSchema:         simpleSchema,
+			inSchema:         simpleSchema(),
 			inParent:         &ListElemStruct1{},
 			inPath:           mustPath("/@annotation"),
 			inVal:            struct{ field string }{"hello"},
 			wantErrSubstring: "failed to update struct field Annotation",
 		},
+		{
+			inDesc:   "success setting already-set dual non-shadow and shadow leaf",
+			inSchema: containerWithStringKey(),
+			inParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/int32-leaf-field"),
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 43}},
+			wantLeaf: ygot.Int32(43),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(43),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:   "success setting already-set non-shadow leaf",
+			inSchema: containerWithStringKey(),
+			inParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/config/int32-leaf-field"),
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 43}},
+			wantLeaf: ygot.Int32(43),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(43),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:   "success ignoring already-set shadow leaf",
+			inSchema: containerWithStringKey(),
+			inParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 43}},
+			wantLeaf: nil,
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:   "success setting non-shadow leaf",
+			inSchema: containerWithStringKey(),
+			inParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:  ygot.String("forty-two"),
+						Outer: &OuterContainerType1{},
+					},
+				},
+			},
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
+			inOpts:   []SetNodeOpt{&InitMissingElements{}},
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+			wantLeaf: ygot.String("hello"),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								StringLeafName: ygot.String("hello"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:   "success ignore setting shadow leaf",
+			inSchema: containerWithStringKey(),
+			inParent: &ContainerStruct1{},
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/string-leaf-field"),
+			inOpts:   []SetNodeOpt{&InitMissingElements{}},
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+			wantLeaf: nil,
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:   "success setting already-set shadow leaf when preferShadowPath=true",
+			inSchema: containerWithStringKey(),
+			inParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(42),
+							},
+						},
+					},
+				},
+			},
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/state/int32-leaf-field"),
+			inOpts:   []SetNodeOpt{&PreferShadowPath{}},
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 43}},
+			wantLeaf: ygot.Int32(43),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								Int32LeafName: ygot.Int32(43),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:   "success ignoring non-shadow leaf when preferShadowPath=true",
+			inSchema: containerWithStringKey(),
+			inParent: &ContainerStruct1{},
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/config/int32-leaf-field"),
+			inOpts:   []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			wantLeaf: nil,
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:   "success writing dual shadow/non-shadow leaf when preferShadowPath=true",
+			inSchema: containerWithStringKey(),
+			inParent: &ContainerStruct1{},
+			inPath:   mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/string-leaf-field"),
+			inOpts:   []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
+			inVal:    &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+			wantLeaf: ygot.String("hello"),
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							Inner: &InnerContainerType1{
+								StringLeafName: ygot.String("hello"),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			inDesc:   "fail setting leaf that doesn't exist when preferShadowPath=true",
+			inSchema: containerWithStringKey(),
+			inParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1:  ygot.String("forty-two"),
+						Outer: &OuterContainerType1{},
+					},
+				},
+			},
+			inOpts:           []SetNodeOpt{&InitMissingElements{}, &PreferShadowPath{}},
+			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/INVALID-LEAF"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
+			wantErrSubstring: "no match found in *ytypes.InnerContainerType1",
+		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.inDesc, func(t *testing.T) {
 			err := SetNode(tt.inSchema, tt.inParent, tt.inPath, tt.inVal, tt.inOpts...)
@@ -1471,16 +2304,329 @@ func TestSetNode(t *testing.T) {
 			if err != nil {
 				return
 			}
-			treeNode, err := GetNode(tt.inSchema, tt.inParent, tt.inPath)
+			if diff := cmp.Diff(tt.wantParent, tt.inParent); diff != "" {
+				t.Errorf("(-wantParent, +got):\n%s", diff)
+			}
+
+			var getNodeOpts []GetNodeOpt
+			if hasSetNodePreferShadowPath(tt.inOpts) {
+				getNodeOpts = append(getNodeOpts, &PreferShadowPath{})
+			}
+			treeNode, err := GetNode(tt.inSchema, tt.inParent, tt.inPath, getNodeOpts...)
 			if err != nil {
 				t.Fatalf("unexpected error returned from GetNode: %v", err)
 			}
-			if len(treeNode) != 1 {
+			switch {
+			case len(treeNode) == 1:
+				// Expected case for most tests.
+				break
+			case len(treeNode) == 0 && tt.wantLeaf == nil:
+				return
+			default:
 				t.Fatalf("did not get exactly one tree node: %v", treeNode)
 			}
 			got := treeNode[0].Data
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("got: %v\nwant: %v", pretty.Sprint(got), pretty.Sprint(tt.want))
+			if diff := cmp.Diff(tt.wantLeaf, got); diff != "" {
+				t.Errorf("(-wantLeaf, +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestDeleteNode(t *testing.T) {
+	tests := []struct {
+		name             string
+		inSchema         *yang.Entry
+		inRoot           interface{}
+		inPath           *gpb.Path
+		inOpts           []DelNodeOpt
+		want             interface{}
+		wantErrSubstring string
+	}{{
+		name:     "deleting a string leaf",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("hello")},
+		inPath:   mustPath("/key1"),
+		want:     &ListElemStruct1{Key1: (*string)(nil)},
+	}, {
+		name:     "deleting a string leaf with preferShadowPath=true where shadow-path doesn't exist",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("hello")},
+		inPath:   mustPath("/key1"),
+		inOpts:   []DelNodeOpt{&PreferShadowPath{}},
+		want:     &ListElemStruct1{Key1: (*string)(nil)},
+	}, {
+		name:     "deleting a int32 leaf list field",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: []int32{42, 43, 44}}}},
+		inPath:   mustPath("/outer/inner/int32-leaf-list"),
+		want:     &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafListName: nil}}},
+	}, {
+		name:     "deleting a enum field",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Outer: &OuterContainerType1{Inner: &InnerContainerType1{EnumLeafName: EnumType(42)}}},
+		inPath:   mustPath("/outer/inner/enum-leaf-field"),
+		want:     &ListElemStruct1{Outer: &OuterContainerType1{Inner: &InnerContainerType1{}}},
+	}, {
+		name:     "deleting a non-leaf",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("hello"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}}},
+		inPath:   mustPath("/outer"),
+		want:     &ListElemStruct1{Key1: ygot.String("hello")},
+	}, {
+		name:     "deleting int32 leaf in inner node",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}}},
+		inPath:   mustPath("/outer/inner/int32-leaf-field"),
+		want:     &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{}}},
+	}, {
+		name:     "deleting a non-leaf in inner node",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}}},
+		inPath:   mustPath("/outer/inner"),
+		want:     &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{}},
+	}, {
+		name:     "deleting an annotation in top node",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}},
+		inPath:   mustPath("/@annotation"),
+		want:     &ListElemStruct1{},
+	}, {
+		name:     "deleting an annotation in inner node",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("42"), Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}, Outer: &OuterContainerType1{Inner: &InnerContainerType1{Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}}}},
+		inPath:   mustPath("/outer/inner/@annotation"),
+		want:     &ListElemStruct1{Key1: ygot.String("42"), Annotation: []ygot.Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}}, Outer: &OuterContainerType1{Inner: &InnerContainerType1{}}},
+	}, {
+		name:     "deleting an inner node in list",
+		inSchema: containerWithStringKey(),
+		inRoot: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Key1: ygot.String("forty-one"),
+				},
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=forty-two]/outer/inner"),
+		want: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Key1: ygot.String("forty-one"),
+				},
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{},
+				},
+			},
+		},
+	}, {
+		name:     "deleting a list entry",
+		inSchema: containerWithStringKey(),
+		inRoot: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Key1: ygot.String("forty-one"),
+				},
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=forty-two]"),
+		want: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Key1: ygot.String("forty-one"),
+				},
+			},
+		},
+	}, {
+		name:     "deleting an inner node from a multi-keyed list",
+		inSchema: containerWithMultiKeyedList,
+		inRoot: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty-two", 42, 42}: {
+					Key1:    ygot.String("forty-two"),
+					Key2:    ygot.Int32(42),
+					EnumKey: EnumType(42),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(1234)}},
+				},
+			},
+		},
+		inPath: mustPath("/struct-key-list[key1=forty-two][key2=42][key3=E_VALUE_FORTY_TWO]/outer/inner/int32-leaf-field"),
+		want: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty-two", 42, 42}: {
+					Key1:    ygot.String("forty-two"),
+					Key2:    ygot.Int32(42),
+					EnumKey: EnumType(42),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: (*int32)(nil)}},
+				},
+			},
+		},
+	}, {
+		name:     "deleting a list entry from a multi-keyed list",
+		inSchema: containerWithMultiKeyedList,
+		inRoot: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(4321)}},
+				},
+				{"forty-two", 42, 42}: {
+					Key1:    ygot.String("forty-two"),
+					Key2:    ygot.Int32(42),
+					EnumKey: EnumType(42),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(1234)}},
+				},
+			},
+		},
+		inPath: mustPath("/struct-key-list[key1=forty-two][key2=42][key3=E_VALUE_FORTY_TWO]"),
+		want: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty", 40, 40}: {
+					Key1:    ygot.String("forty"),
+					Key2:    ygot.Int32(40),
+					EnumKey: EnumType(40),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(4321)}},
+				},
+			},
+		},
+	}, {
+		name:     "deleting a leaf whose parent node is nil",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{}},
+		inPath:   mustPath("/outer/inner/int32-leaf-field"),
+		want:     &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{}},
+	}, {
+		name:     "deleting a non-leaf whose parent node is nil",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("world")},
+		inPath:   mustPath("/outer/inner"),
+		want:     &ListElemStruct1{Key1: ygot.String("world")},
+	}, {
+		name:     "deleting an inner node from a list entry whose list is nil",
+		inSchema: superContainerSchema,
+		inRoot:   &SuperContainer{},
+		inPath:   mustPath("/container/config/simple-key-list[key1=forty-two]/outer/inner"),
+		want:     &SuperContainer{},
+	}, {
+		name:             "fail to set value on node whose field doesn't exist in the struct definition",
+		inSchema:         containerWithStringKey(),
+		inRoot:           &ContainerStruct1{},
+		inPath:           mustPath("/invalidkey"),
+		wantErrSubstring: "no match found in *ytypes.ContainerStruct1",
+	}, {
+		name:             "fail to set value on list whose field doesn't exist in the struct definition",
+		inSchema:         simpleSchema(),
+		inRoot:           &ListElemStruct1{},
+		inPath:           mustPath("/invalid-list[key1=whatkey]"),
+		wantErrSubstring: "no match found in *ytypes.ListElemStruct1",
+	}, {
+		name:     "deleting a list entry that doesn't exist",
+		inSchema: containerWithStringKey(),
+		inRoot: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=forty-one]"),
+		want: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+	}, {
+		name:     "deleting a list entry from a multi-keyed list that doesn't exist",
+		inSchema: containerWithMultiKeyedList,
+		inRoot: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty-two", 42, 42}: {
+					Key1:    ygot.String("forty-two"),
+					Key2:    ygot.Int32(42),
+					EnumKey: EnumType(42),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(1234)}},
+				},
+			},
+		},
+		inPath: mustPath("/struct-key-list[key1=forty-two][key2=41][key3=E_VALUE_FORTY_TWO]"),
+		want: &ContainerStruct3{
+			StructKeyList: map[KeyStruct]*ListElemStruct3{
+				{"forty-two", 42, 42}: {
+					Key1:    ygot.String("forty-two"),
+					Key2:    ygot.Int32(42),
+					EnumKey: EnumType(42),
+					Outer:   &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(1234)}},
+				},
+			},
+		},
+	}, {
+		name:     "success deleting a list entry with preferShadowPath=true",
+		inSchema: containerWithStringKey(),
+		inRoot: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Key1: ygot.String("forty-one"),
+				},
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+		inPath: mustPath("/config/simple-key-list[key1=forty-two]"),
+		inOpts: []DelNodeOpt{&PreferShadowPath{}},
+		want: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Key1: ygot.String("forty-one"),
+				},
+			},
+		},
+	}, {
+		name:     "failure deleting a non-existing list inner node with preferShadowPath=true",
+		inSchema: containerWithStringKey(),
+		inRoot: &ContainerStruct1{
+			StructKeyList: map[string]*ListElemStruct1{
+				"forty-one": {
+					Key1: ygot.String("forty-one"),
+				},
+				"forty-two": {
+					Key1:  ygot.String("forty-two"),
+					Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}},
+				},
+			},
+		},
+		inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/INVALID"),
+		inOpts:           []DelNodeOpt{&PreferShadowPath{}},
+		wantErrSubstring: "no match found in *ytypes.OuterContainerType1",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := DeleteNode(tt.inSchema, tt.inRoot, tt.inPath, tt.inOpts...)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Fatalf("got error %v\nwant error substr: %s", err, tt.wantErrSubstring)
+			}
+			if err != nil {
+				return
+			}
+
+			if diff := cmp.Diff(tt.want, tt.inRoot); diff != "" {
+				t.Errorf("TestDeleteNode (-want, +got):\n%s", diff)
 			}
 		})
 	}
@@ -1534,10 +2680,6 @@ func TestRetrieveContainerListError(t *testing.T) {
 				Type: &yang.YangType{Kind: yang.Ystring},
 			},
 		},
-	}
-
-	type Root struct {
-		Ok *string `path:"ok"`
 	}
 
 	type NoTagRoot struct {

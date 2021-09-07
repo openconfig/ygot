@@ -15,6 +15,7 @@
 package ytypes
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -136,13 +137,25 @@ func TestValidateBinary(t *testing.T) {
 			desc:       "success",
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
-			val:        []byte("a09Z+/"),
+			val:        Binary("a09Z+/"),
+		},
+		{
+			desc:       "success - nil binary",
+			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
+			schemaName: "range-2-to-10",
+			val:        Binary(nil),
+		},
+		{
+			desc:       "success - nil",
+			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
+			schemaName: "range-2-to-10",
+			val:        nil,
 		},
 		{
 			desc:       "bad schema",
 			length:     yang.YRange{Min: yang.FromInt(20), Max: yang.FromInt(10)},
 			schemaName: "bad-range",
-			val:        []byte("aaa"),
+			val:        Binary("aaa"),
 			wantErr:    true,
 		},
 		{
@@ -153,23 +166,41 @@ func TestValidateBinary(t *testing.T) {
 			wantErr:    true,
 		},
 		{
+			desc:       "non binary type - base []byte",
+			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
+			schemaName: "range-2-to-10",
+			val:        []byte("a09Z+/"),
+			wantErr:    true,
+		},
+		{
 			desc:       "too short",
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
-			val:        []byte("a"),
+			val:        Binary("a"),
 			wantErr:    true,
 		},
 		{
 			desc:       "too long",
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(4)},
 			schemaName: "range-2-to-4",
-			val:        []byte("aaaaaaaa"),
+			val:        Binary("aaaaaaaa"),
 			wantErr:    true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
+			if isBinaryType(reflect.TypeOf(tt.val)) {
+				binaryVal := reflect.ValueOf(tt.val).Bytes()
+				if binaryVal != nil {
+					err := ValidateBinaryRestrictions(yrangeToBinarySchema(tt.schemaName, tt.length).Type, binaryVal)
+					if got, want := (err != nil), tt.wantErr; got != want {
+						t.Fatalf("%s: b.ValidateBinaryRestrictions (%v) got error: %v, want error? %v", tt.desc, tt.val, err, tt.wantErr)
+					}
+					testErrLog(t, tt.desc, err)
+				}
+			}
+
 			err := validateBinary(yrangeToBinarySchema(tt.schemaName, tt.length), tt.val)
 			if got, want := (err != nil), tt.wantErr; got != want {
 				t.Errorf("%s: b.validateBinary(%v) got error: %v, want error? %v", tt.desc, tt.val, err, tt.wantErr)
@@ -191,13 +222,13 @@ func TestValidateBinarySlice(t *testing.T) {
 			desc:       "success",
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
-			val:        [][]byte{[]byte("a09Z+/"), []byte("ab++")},
+			val:        []Binary{Binary("a09Z+/"), Binary("ab++")},
 		},
 		{
 			desc:       "bad schema",
 			length:     yang.YRange{Min: yang.FromInt(20), Max: yang.FromInt(10)},
 			schemaName: "bad-range",
-			val:        [][]byte{[]byte("a09Z+/"), []byte("ab++")},
+			val:        []Binary{Binary("a09Z+/"), Binary("ab++")},
 			wantErr:    true,
 		},
 		{
@@ -211,14 +242,14 @@ func TestValidateBinarySlice(t *testing.T) {
 			desc:       "one element too short",
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
-			val:        [][]byte{[]byte("a09Z+/"), []byte("a")},
+			val:        []Binary{Binary("a09Z+/"), Binary("a")},
 			wantErr:    true,
 		},
 		{
 			desc:       "duplicate element",
 			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)},
 			schemaName: "range-2-to-10",
-			val:        [][]byte{[]byte("a09Z+/"), []byte("ab++"), []byte("ab++")},
+			val:        []Binary{Binary("a09Z+/"), Binary("ab++"), Binary("ab++")},
 			wantErr:    true,
 		},
 	}

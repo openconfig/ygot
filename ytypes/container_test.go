@@ -34,11 +34,13 @@ func errToString(err error) string {
 }
 
 type ContainerStruct struct {
-	Leaf1Name   *string                     `path:"config/leaf1|leaf1"`
-	Leaf2Name   *string                     `path:"leaf2"`
-	BadLeafName *string                     `path:"bad-leaf"`
-	Annotation  *string                     `path:"@annotation" ygotAnnotation:"true"`
-	ChildList   map[string]*ContainerStruct `path:"child-list"`
+	Leaf1Name        *string                     `path:"config/leaf1|leaf1"`
+	Leaf2Name        *string                     `path:"leaf2"`
+	BadLeafName      *string                     `path:"bad-leaf"`
+	BadEmptyLeafName YANGEmpty                   `path:"bad-leaf-empty"`
+	BadEnumLeafName  EnumType                    `path:"bad-leaf-enum"`
+	Annotation       *string                     `path:"@annotation" ygotAnnotation:"true"`
+	ChildList        map[string]*ContainerStruct `path:"child-list"`
 }
 
 func (c *ContainerStruct) IsYANGGoStruct() {}
@@ -129,7 +131,7 @@ func TestValidateContainer(t *testing.T) {
 				Name:     "child-list",
 				Kind:     yang.DirectoryEntry,
 				Key:      "leaf2",
-				ListAttr: &yang.ListAttr{},
+				ListAttr: yang.NewDefaultListAttr(),
 				Dir: map[string]*yang.Entry{
 					"config": {
 						Dir: map[string]*yang.Entry{
@@ -149,6 +151,16 @@ func TestValidateContainer(t *testing.T) {
 						Kind: yang.LeafEntry,
 						Name: "bad-leaf",
 						Type: &yang.YangType{Kind: yang.Ystring, Pattern: []string{"^a.*"}},
+					},
+					"bad-leaf-empty": {
+						Kind: yang.LeafEntry,
+						Name: "bad-leaf-empty",
+						Type: &yang.YangType{Kind: yang.Yempty},
+					},
+					"bad-leaf-enum": {
+						Kind: yang.LeafEntry,
+						Name: "bad-leaf-enum",
+						Type: &yang.YangType{Kind: yang.Yenum},
 					},
 					// Placeholder due to re-using the ContainerStruct type.
 					"child-list": {Name: "child-list"},
@@ -184,6 +196,22 @@ func TestValidateContainer(t *testing.T) {
 			wantErr: `fields [BadLeafName] are not found in the container schema container-schema`,
 		},
 		{
+			desc:   "bad field - #189 - empty",
+			schema: containerSchema,
+			val: &ContainerStruct{
+				BadEmptyLeafName: YANGEmpty(true),
+			},
+			wantErr: `fields [BadEmptyLeafName] are not found in the container schema container-schema`,
+		},
+		{
+			desc:   "bad field - #189 - enum",
+			schema: containerSchema,
+			val: &ContainerStruct{
+				BadEnumLeafName: EnumType(42),
+			},
+			wantErr: `fields [BadEnumLeafName] are not found in the container schema container-schema`,
+		},
+		{
 			desc:    "bad value type",
 			schema:  containerSchema,
 			val:     int(1),
@@ -217,7 +245,7 @@ func TestValidateContainer(t *testing.T) {
 				},
 			},
 			// Should just get one error back with the error, not two.
-			wantErr: `/child-list: "fish" does not match regular expression pattern "^a.*$" for schema bad-leaf`,
+			wantErr: `/child-list: schema "bad-leaf": "fish" does not match regular expression pattern "^a.*$"`,
 		},
 	}
 
@@ -285,18 +313,43 @@ func TestUnmarshalContainer(t *testing.T) {
 	populateParentField(nil, containerSchema)
 
 	type ContainerStruct struct {
-		ConfigLeaf1Field *int32 `path:"config/leaf1-field"`
-		StateLeaf1Field  *int32 `path:"state/leaf1-field"`
-		Leaf2Field       *int32 `path:"leaf2-field"`
+		ConfigLeaf1Field *int32            `path:"config/leaf1-field"`
+		StateLeaf1Field  *int32            `path:"state/leaf1-field"`
+		Leaf2Field       *int32            `path:"leaf2-field"`
+		Annotation       []ygot.Annotation `path:"@" ygotAnnotation:"true"`
+		AnnotationTwo    []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
+	}
+
+	type ContainerStructPreferState struct {
+		Leaf1Field    *int32            `path:"state/leaf1-field" shadow-path:"config/leaf1-field"`
+		Leaf2Field    *int32            `path:"leaf2-field"`
+		Annotation    []ygot.Annotation `path:"@" ygotAnnotation:"true"`
+		AnnotationTwo []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
+	}
+
+	type ContainerStructPreferStateNoShadow struct {
+		Leaf1Field    *int32            `path:"state/leaf1-field"`
+		Leaf2Field    *int32            `path:"leaf2-field"`
+		Annotation    []ygot.Annotation `path:"@" ygotAnnotation:"true"`
+		AnnotationTwo []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
 	}
 
 	type ParentContainerStruct struct {
 		ContainerField *ContainerStruct `path:"container-field"`
 	}
 
+	type ParentContainerStructPreferState struct {
+		ContainerField *ContainerStructPreferState `path:"container-field"`
+	}
+
+	type ParentContainerStructPreferStateNoShadow struct {
+		ContainerField *ContainerStructPreferStateNoShadow `path:"container-field"`
+	}
+
 	tests := []struct {
 		desc    string
 		schema  *yang.Entry
+		parent  interface{}
 		json    string
 		opts    []UnmarshalOpt
 		want    interface{}
@@ -305,60 +358,106 @@ func TestUnmarshalContainer(t *testing.T) {
 		{
 			desc:   "success nil value",
 			schema: containerSchema,
+			parent: &ParentContainerStruct{},
 			json:   ``,
 			want:   &ParentContainerStruct{},
 		},
 		{
 			desc:   "success",
 			schema: containerSchema,
+			parent: &ParentContainerStruct{},
+			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } } }`,
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
+		},
+		{
+			desc:   "success overwriting existing fields",
+			schema: containerSchema,
+			parent: &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(1), StateLeaf1Field: ygot.Int32(2)}},
 			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } } }`,
 			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
 		},
 		{
 			desc:    "nil schema",
 			schema:  nil,
+			parent:  &ParentContainerStruct{},
 			json:    `{}`,
 			wantErr: `nil schema for parent type *ytypes.ParentContainerStruct, value map[] (map[string]interface {})`,
 		},
 		{
 			desc:    "bad field name",
 			schema:  containerSchema,
+			parent:  &ParentContainerStruct{},
 			json:    `{ "container-field": { "bad-field": 42 } }`,
 			wantErr: `parent container container-field (type *ytypes.ContainerStruct): JSON contains unexpected field bad-field`,
 		},
 		{
 			desc:    "bad field type",
 			schema:  containerSchema,
+			parent:  &ParentContainerStruct{},
 			json:    `{ "container-field": { "leaf2-field":  "forty-two"} }`,
 			wantErr: `got string type for field leaf2-field, expect float64`,
 		},
 		{
+			desc:   "unsupportedannotation field without ignore",
+			schema: containerSchema,
+			parent: &ParentContainerStruct{},
+			json:   `{"container-field": { "@": [ { "hello": "true" } ] } }`,
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{}},
+		},
+		{
 			desc:   "unknown field name with ignore",
 			schema: containerSchema,
+			parent: &ParentContainerStruct{},
 			json:   `{"container-field": {"aug-field": 43 } }`,
 			opts:   []UnmarshalOpt{&IgnoreExtraFields{}},
 			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{}},
+		},
+		{
+			desc:   "success with prefer state code",
+			schema: containerSchema,
+			parent: &ParentContainerStructPreferState{},
+			json:   `{ "container-field": { "leaf2-field": 43, "state": { "leaf1-field": 42 } } }`,
+			want:   &ParentContainerStructPreferState{ContainerField: &ContainerStructPreferState{Leaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
+		},
+		{
+			desc:   "success ignoring config with prefer state code",
+			schema: containerSchema,
+			parent: &ParentContainerStructPreferState{},
+			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 42 } } }`,
+			want:   &ParentContainerStructPreferState{ContainerField: &ContainerStructPreferState{Leaf2Field: ygot.Int32(43)}},
+		},
+		{
+			desc:    "fail ignoring config without shadow-path",
+			schema:  containerSchema,
+			parent:  &ParentContainerStructPreferStateNoShadow{},
+			json:    `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 42 } } }`,
+			wantErr: `parent container container-field (type *ytypes.ContainerStructPreferStateNoShadow): JSON contains unexpected field config`,
+		},
+		{
+			desc:    "fail ignoring invalid shadow leaf",
+			schema:  containerSchema,
+			parent:  &ParentContainerStructPreferState{},
+			json:    `{ "container-field": { "leaf2-field": 43, "config": { "non-existent-field": 42 } } }`,
+			wantErr: `parent container container-field (type *ytypes.ContainerStructPreferState): JSON contains unexpected field non-existent-field`,
 		},
 	}
 
 	var jsonTree interface{}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			var parent ParentContainerStruct
-
 			if tt.json != "" {
 				if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
 					t.Fatal(fmt.Sprintf("json unmarshal (%s) : %s", tt.desc, err))
 				}
 			}
 
-			err := Unmarshal(tt.schema, &parent, jsonTree, tt.opts...)
+			err := Unmarshal(tt.schema, tt.parent, jsonTree, tt.opts...)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: got error: %v, want error: %v", tt.desc, got, want)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				if got, want := &parent, tt.want; !areEqual(got, want) {
+				if got, want := tt.parent, tt.want; !areEqual(got, want) {
 					t.Errorf("%s: got:\n%v\nwant:\n%v\n", tt.desc, pretty.Sprint(got), pretty.Sprint(want))
 				}
 			}

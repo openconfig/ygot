@@ -70,7 +70,7 @@ func CreateAFTInstance() (*oc.Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	ni.Type = oc.OpenconfigNetworkInstanceTypes_NETWORK_INSTANCE_TYPE_DEFAULT_INSTANCE
+	ni.Type = oc.NetworkInstanceTypes_NETWORK_INSTANCE_TYPE_DEFAULT_INSTANCE
 
 	// Initialise the containers within the network instance model.
 	ygot.BuildEmptyTree(ni)
@@ -92,7 +92,7 @@ func CreateAFTInstance() (*oc.Device, error) {
 	// types for the interface that implements the union within NewLabelEntry.
 	// Since these types have a single fied, then we can use the anonymous
 	// initialiser.
-	if _, err := ni.Afts.NewLabelEntry(&oc.NetworkInstance_Afts_LabelEntry_Label_Union_Uint32{128}); err != nil {
+	if _, err := ni.Afts.NewLabelEntry(oc.UnionUint32(128)); err != nil {
 		return nil, err
 	}
 
@@ -102,17 +102,13 @@ func CreateAFTInstance() (*oc.Device, error) {
 	}
 	nh.IpAddress = ygot.String("192.0.2.1")
 
-	// Each union has a method that is named To_X where the X is the union type, associated
-	// with the struct that the union is within. This attempts to return the right type
-	// based on the input interface.
-	expNull, err := nh.To_NetworkInstance_Afts_NextHop_PushedMplsLabelStack_Union(oc.OpenconfigAft_NextHop_PushedMplsLabelStack_IPV4_EXPLICIT_NULL)
-	if err != nil {
-		return nil, fmt.Errorf("error converting explicit null to union, got: %v", err)
-	}
+	// Each union is satisfied by a subset of union typedefs that are
+	// subtypes of the union. For enumerations and identities, the values
+	// themselves satisfy the union interface since it's not a primitive type.
 	nh.PushedMplsLabelStack = []oc.NetworkInstance_Afts_NextHop_PushedMplsLabelStack_Union{
-		&oc.NetworkInstance_Afts_NextHop_PushedMplsLabelStack_Union_Uint32{42},
-		&oc.NetworkInstance_Afts_NextHop_PushedMplsLabelStack_Union_Uint32{84},
-		expNull,
+		oc.UnionUint32(42),
+		oc.UnionUint32(84),
+		oc.MplsTypes_MplsLabel_Enum_IPV4_EXPLICIT_NULL,
 	}
 
 	return d, nil

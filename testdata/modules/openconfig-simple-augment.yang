@@ -1,0 +1,23 @@
+module openconfig-simple-augment {
+  prefix "a";
+  namespace "urn:a";
+
+  import openconfig-simple-target { prefix "t"; }
+
+  augment "/t:target" {
+    container foo {
+      container config {
+        leaf a { type string; }
+      }
+      container state {
+        config false;
+        leaf a { type string; }
+      }
+    }
+  }
+
+  augment "/t:native/state" {
+    leaf b { type string; }
+  }
+}
+

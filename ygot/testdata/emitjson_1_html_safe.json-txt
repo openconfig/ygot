@@ -1,0 +1,8 @@
+{
+   "child": {
+      "config": {
+         "field-one": "abc -\u003e def",
+         "field-two": 42
+      }
+   }
+}

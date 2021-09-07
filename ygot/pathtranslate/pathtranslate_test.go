@@ -15,11 +15,12 @@
 package pathtranslate
 
 import (
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"google.golang.org/protobuf/proto"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -98,8 +99,8 @@ func TestInstantiationOfTranslator(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(r.rules, tt.wantRules) {
-				t.Errorf("got %v, want %v", r.rules, tt.wantRules)
+			if diff := cmp.Diff(tt.wantRules, r.rules); diff != "" {
+				t.Errorf("(-want, +got):\n%s", diff)
 			}
 		})
 	}
@@ -219,7 +220,7 @@ func TestPathElem(t *testing.T) {
 			},
 		},
 		{
-			inDesc:           "fail path due to insuffucient keys to fill the key struct",
+			inDesc:           "fail path due to insufficient keys to fill the key struct",
 			inPath:           []string{"a", "b", "simpleKeyedLists", "simpleKeyedList", "key1", "structKeyedLists", "structKeyedList", "key1", "key2"},
 			wantErrSubstring: "got 2, want 3 keys for /a/b/simpleKeyedLists/simpleKeyedList/structKeyedLists/structKeyedList",
 		},
@@ -238,7 +239,7 @@ func TestPathElem(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if !reflect.DeepEqual(gotPath, tt.wantPath) {
+			if !cmp.Equal(gotPath, tt.wantPath, cmp.Comparer(proto.Equal)) {
 				t.Errorf("got %v, want %v", gotPath, tt.wantPath)
 			}
 		})

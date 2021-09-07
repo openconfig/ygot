@@ -21,15 +21,22 @@ import (
 
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/util"
 )
+
+// schemaTree contains a ctree.Tree that stores a copy of the YANG schema tree
+// containing only leaf entries, such that schema paths can be referenced.
+type schemaTree struct {
+	ctree.Tree
+}
 
 // buildSchemaTree maps a set of yang.Entry pointers into a ctree structure.
 // Only leaf or leaflist values are mapped, since these are the only entities
 // that can be referenced by XPATH expressions within a YANG schema.
 // It returns an error if there is duplication within the set of entries. The
 // paths that are used within the schema are represented as a slice of strings.
-func buildSchemaTree(entries []*yang.Entry) (*ctree.Tree, error) {
-	t := &ctree.Tree{}
+func buildSchemaTree(entries []*yang.Entry) (*schemaTree, error) {
+	t := &schemaTree{}
 	for _, e := range entries {
 		pp := strings.Split(e.Path(), "/")
 		// We only want to find entities that are at the root of the
@@ -55,10 +62,41 @@ func buildSchemaTree(entries []*yang.Entry) (*ctree.Tree, error) {
 	return t, nil
 }
 
+// resolveLeafrefTarget takes an input path and context entry and
+// determines the type of the leaf that is referred to by the path, such that
+// it can be mapped to a native language type. It returns the yang.YangType that
+// is associated with the target, and the target yang.Entry, such that the
+// caller can map this to the relevant language type.
+func (t *schemaTree) resolveLeafrefTarget(path string, contextEntry *yang.Entry) (*yang.Entry, error) {
+	if t == nil {
+		// This should not be possible if the calling code generation is
+		// well structured and builds the schematree during parsing of YANG
+		// files.
+		return nil, fmt.Errorf("could not map leafref path: %v, from contextEntry: %v", path, contextEntry)
+	}
+
+	fixedPath, err := fixSchemaTreePath(path, contextEntry)
+	if err != nil {
+		return nil, err
+	}
+
+	e := t.GetLeafValue(fixedPath)
+	if e == nil {
+		return nil, fmt.Errorf("could not resolve leafref path: %v from %v, tree: %v", fixedPath, contextEntry, t)
+	}
+
+	target, ok := e.(*yang.Entry)
+	if !ok {
+		return nil, fmt.Errorf("invalid element returned from schema tree, must be a yang.Entry for path %v from %v", path, contextEntry)
+	}
+
+	return target, nil
+}
+
 // schemaTreeChildrenAdd adds the children of the supplied yang.Entry to the
 // supplied ctree.Tree recursively.
-func schemaTreeChildrenAdd(t *ctree.Tree, e *yang.Entry) error {
-	for _, ch := range children(e) {
+func schemaTreeChildrenAdd(t *schemaTree, e *yang.Entry) error {
+	for _, ch := range util.Children(e) {
 		chPath := strings.Split(ch.Path(), "/")
 		// chPath is of the form []string{"", "module", "entity", "child"}
 		if !ch.IsDir() {
@@ -133,7 +171,7 @@ func removeXPATHNamespaces(path []string) ([]string, error) {
 	return fixedParts, nil
 }
 
-// fixSchemaTreePath takes an input path represented as a YANG schema path - i.e.,
+// fixSchemaTreePath takes an input path from a YANG "path" statement - e.g.,
 // /a/b/c/d and sanitises it for use in lookups within the schema tree. This
 // includes:
 //	- removing namespace prefixes from nodes.
@@ -150,14 +188,14 @@ func fixSchemaTreePath(path string, caller *yang.Entry) ([]string, error) {
 		if parts[0] == "" {
 			return parts[1:], nil
 		}
-		return parts, nil
+		return nil, fmt.Errorf("path statement has to begin with either '../' or '/': %s", path)
 	}
 
 	if caller == nil {
 		return nil, fmt.Errorf("calling node must be specified when mapping relative path: %v", parts)
 	}
 
-	cpathparts := strings.Split(schemaTreePath(caller), "/")
+	cpathparts := strings.Split(util.SchemaTreePath(caller), "/")
 	if len(cpathparts) < 2 {
 		// This caller was a module, which is not a valid context for an XPATH
 		return nil, fmt.Errorf("invalid calling node with path %v, was a module: %v", caller.Path(), path)
@@ -181,12 +219,4 @@ func fixSchemaTreePath(path string, caller *yang.Entry) ([]string, error) {
 	parts = append(callerPath, remainingPath...)
 
 	return parts, nil
-}
-
-// schemaTreePath returns the schema tree path of the supplied yang.Entry
-// skipping any nodes that are themselves not in the path (e.g., choice
-// and case). The path is returned as a string prefixed with the module
-// name (similarly to the behaviour of (*yang.Entry).Path()).
-func schemaTreePath(e *yang.Entry) string {
-	return fmt.Sprintf("/%s", slicePathToString(traverseElementSchemaPath(e)))
 }

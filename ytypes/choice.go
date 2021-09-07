@@ -61,9 +61,9 @@ func validateChoice(schema *yang.Entry, structValue ygot.GoStruct) (selected []s
 func IsCaseSelected(schema *yang.Entry, value interface{}) (selected []string, errors []error) {
 	v := reflect.ValueOf(value).Elem()
 	for i := 0; i < v.NumField(); i++ {
-		if !v.Field(i).IsNil() {
+		if !util.IsValueNilOrDefault(v.Field(i).Interface()) {
 			fieldType := v.Type().Field(i)
-			cs, err := childSchema(schema, fieldType)
+			cs, err := util.ChildSchema(schema, fieldType)
 			if err != nil {
 				errors = util.AppendErr(errors, err)
 				continue

@@ -46,7 +46,7 @@ func NewPathTranslator(schemaTree []*yang.Entry) (*PathTranslator, error) {
 		if _, ok := r.rules[fullPath]; ok {
 			return nil, fmt.Errorf("got %v path multiple times", fullPath)
 		}
-		r.rules[fullPath] = strings.Split(v.Key, " ")
+		r.rules[fullPath] = strings.Fields(v.Key)
 	}
 	return r, nil
 }
@@ -93,7 +93,7 @@ func (r *PathTranslator) PathElem(p []string) ([]*gnmipb.PathElem, error) {
 
 		keyNames, ok := r.rules[pathSoFar]
 		// If pathSoFar isn't in rule list, this can be an arbitrary element or
-		// part of the path that constitues the full path of keyed list.
+		// part of the path that constitutes the full path of keyed list.
 		// Note that this isn't a check to decide whether arbitrary element is
 		// schema compliant.
 		if !ok {

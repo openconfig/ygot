@@ -107,6 +107,9 @@
                                                         "Kind": 18,
                                                         "Pattern": [
                                                             "[0-9\\.]+"
+                                                        ],
+                                                        "POSIXPattern": [
+                                                            "^[0-9\\.]+$"
                                                         ]
                                                     },
                                                     {
@@ -114,6 +117,9 @@
                                                         "Kind": 18,
                                                         "Pattern": [
                                                             "[0-9A-F:]+"
+                                                        ],
+                                                        "POSIXPattern": [
+                                                            "^[0-9A-F:]+$"
                                                         ]
                                                     }
                                                 ]
@@ -204,8 +210,8 @@
                                                 ]
                                             },
                                             "ListAttr": {
-                                                "MinElements": null,
-                                                "MaxElements": null,
+                                                "MinElements": 0,
+                                                "MaxElements": 18446744073709551615,
                                                 "OrderedBy": null
                                             }
                                         },
@@ -261,6 +267,9 @@
                                                         "Kind": 18,
                                                         "Pattern": [
                                                             "[0-9\\.]+"
+                                                        ],
+                                                        "POSIXPattern": [
+                                                            "^[0-9\\.]+$"
                                                         ]
                                                     },
                                                     {
@@ -268,6 +277,9 @@
                                                         "Kind": 18,
                                                         "Pattern": [
                                                             "[0-9A-F:]+"
+                                                        ],
+                                                        "POSIXPattern": [
+                                                            "^[0-9A-F:]+$"
                                                         ]
                                                     }
                                                 ]
@@ -299,8 +311,8 @@
                             },
                             "Key": "peer-address",
                             "ListAttr": {
-                                "MinElements": null,
-                                "MaxElements": null,
+                                "MinElements": 0,
+                                "MaxElements": 18446744073709551615,
                                 "OrderedBy": null
                             },
                             "Annotation": {

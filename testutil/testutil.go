@@ -22,10 +22,11 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/value"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -58,6 +59,9 @@ func hasIgnoreTimestamp(opts []ComparerOpt) bool {
 // compare a specific field of a gNMI message. It is a map, keyed by
 // a reflect.Type of the message field, with a value of a cmp.Option
 // produced by cmp.Comparer().
+// NOTE: Proto comparison is done through protocmp -- this means any custom
+// comparison of a proto field can only be done by supplying a protocmp-created
+// cmp.Option.
 type CustomComparer map[reflect.Type]cmp.Option
 
 // IsComparerOpt marks CustomComparer as a ComparerOpt.
@@ -68,7 +72,13 @@ func (CustomComparer) IsComparerOpt() {}
 // with those in any CustomComparer that is found within the opts slice.
 func comparers(opts []ComparerOpt) []cmp.Option {
 	cmps := map[reflect.Type]cmp.Option{
-		reflect.TypeOf(&gnmipb.TypedValue_JsonIetfVal{}): cmp.Comparer(JSONIETFComparer),
+		reflect.TypeOf(&gnmipb.TypedValue{}): protocmp.FilterMessage(&gnmipb.TypedValue{},
+			cmp.Comparer(func(a, b protocmp.Message) bool {
+				if _, ok := a["json_ietf_val"]; ok {
+					return JSONIETFComparer(a["json_ietf_val"].([]byte), b["json_ietf_val"].([]byte))
+				}
+				return cmp.Equal(a, b)
+			})),
 	}
 
 	for _, o := range opts {
@@ -131,7 +141,7 @@ func SubscribeResponseSetEqual(a, b []*gnmipb.SubscribeResponse) bool {
 func NotificationSetEqual(a, b []*gnmipb.Notification, opts ...ComparerOpt) bool {
 	ignoreTS := hasIgnoreTimestamp(opts)
 	cmps := comparers(opts)
-	cmps = append(cmps, []cmp.Option{cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty()}...)
+	cmps = append(cmps, []cmp.Option{cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty(), protocmp.Transform()}...)
 
 	for _, an := range a {
 		var matched bool
@@ -142,7 +152,7 @@ func NotificationSetEqual(a, b []*gnmipb.Notification, opts ...ComparerOpt) bool
 				update: cmp.Equal(an.GetUpdate(), bn.GetUpdate(),
 					cmps...,
 				),
-				delete: cmp.Equal(an.GetDelete(), bn.GetDelete(), cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty()),
+				delete: cmp.Equal(an.GetDelete(), bn.GetDelete(), cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty(), protocmp.Transform()),
 			}
 
 			if !ignoreTS {
@@ -164,17 +174,17 @@ func NotificationSetEqual(a, b []*gnmipb.Notification, opts ...ComparerOpt) bool
 // JSONIETFComparer compares the two provided JSON IETF TypedValues to
 // determine whether their contents are the same. If either value is
 // invalid JSON, the function returns false.
-func JSONIETFComparer(a, b *gnmipb.TypedValue_JsonIetfVal) bool {
+func JSONIETFComparer(a, b []byte) bool {
 	aj, bj := map[string]interface{}{}, map[string]interface{}{}
-	if err := json.Unmarshal(a.JsonIetfVal, &aj); err != nil {
+	if err := json.Unmarshal(a, &aj); err != nil {
 		return false
 	}
 
-	if err := json.Unmarshal(b.JsonIetfVal, &bj); err != nil {
+	if err := json.Unmarshal(b, &bj); err != nil {
 		return false
 	}
 
-	return reflect.DeepEqual(aj, bj)
+	return cmp.Equal(aj, bj)
 }
 
 // notificationMatch tracks whether a gNMI notification pair has matched.
@@ -194,7 +204,7 @@ func (n *notificationMatch) matched() bool {
 // UpdateSetEqual compares the contents of a and b and returns true if they are
 // equal. Order of the slices is ignored.
 func UpdateSetEqual(a, b []*gnmipb.Update) bool {
-	return cmp.Equal(a, b, cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty())
+	return cmp.Equal(a, b, cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty(), protocmp.Transform())
 }
 
 // updateSet is an alias for a slice of gNMI Update messages.
@@ -245,7 +255,7 @@ func NotificationLess(a, b *gnmipb.Notification) bool {
 		return PathLess(a.Prefix, b.Prefix)
 	}
 
-	if !cmp.Equal(a.Update, b.Update, cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty()) {
+	if !cmp.Equal(a.Update, b.Update, cmpopts.SortSlices(UpdateLess), cmpopts.EquateEmpty(), protocmp.Transform()) {
 		if len(a.Update) < len(b.Update) {
 			return true
 		}
@@ -267,7 +277,7 @@ func NotificationLess(a, b *gnmipb.Notification) bool {
 		}
 	}
 
-	if !cmp.Equal(a.Delete, b.Delete, cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty()) {
+	if !cmp.Equal(a.Delete, b.Delete, cmpopts.SortSlices(PathLess), cmpopts.EquateEmpty(), protocmp.Transform()) {
 		if len(a.Delete) < len(b.Delete) {
 			return true
 		}
@@ -374,11 +384,18 @@ func PathLess(a, b *gnmipb.Path) bool {
 
 	// Handle comparison of paths that are based on the "element" rather than
 	// "elem".
+	// TODO(robjs): Remove handling of element fields when they are fully
+	// deprecated in gNMI.
+	//
+	//lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 	for len(a.Element) != len(b.Element) {
+		//lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 		return len(a.Element) > len(b.Element)
 	}
 
+	//lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 	for i := 0; i < len(a.Element); i++ {
+		//lint:ignore SA1019 Specifically handling deprecated gNMI Element fields.
 		if ae, be := a.Element[i], b.Element[i]; ae != be {
 			return ae < be
 		}

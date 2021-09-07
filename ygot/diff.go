@@ -20,9 +20,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/ygot/util"
+	"google.golang.org/protobuf/proto"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -44,9 +45,7 @@ func schemaPathTogNMIPath(path []string) *gnmipb.Path {
 // the v0.4.0 Elem field.
 func joingNMIPaths(parent *gnmipb.Path, child *gnmipb.Path) *gnmipb.Path {
 	p := proto.Clone(parent).(*gnmipb.Path)
-	for _, e := range child.Elem {
-		p.Elem = append(p.Elem, e)
-	}
+	p.Elem = append(p.Elem, child.Elem...)
 	return p
 }
 
@@ -67,7 +66,7 @@ func (p *pathSpec) Equal(o *pathSpec) bool {
 	for _, path := range p.gNMIPaths {
 		var found bool
 		for _, otherPath := range o.gNMIPaths {
-			if reflect.DeepEqual(path, otherPath) {
+			if proto.Equal(path, otherPath) {
 				found = true
 				break
 			}
@@ -215,7 +214,7 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 	processedPaths := map[string]bool{}
 
 	findSetIterFunc := func(ni *util.NodeInfo, in, out interface{}) (errs util.Errors) {
-		if reflect.DeepEqual(ni.StructField, reflect.StructField{}) {
+		if cmp.Equal(ni.StructField, reflect.StructField{}) {
 			return
 		}
 
@@ -257,14 +256,15 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 		}
 		sort.Strings(keys)
 		key := strings.Join(keys, "/")
-		if _, ok := processedPaths[key]; ok == true {
+		if _, ok := processedPaths[key]; ok {
 			return
 		}
 		processedPaths[key] = true
 
 		ni.Annotation = []interface{}{vp}
 
-		if util.IsNilOrInvalidValue(ni.FieldValue) || util.IsValueStructPtr(ni.FieldValue) || util.IsValueMap(ni.FieldValue) {
+		// Ignore non-data, or default data values.
+		if util.IsNilOrInvalidValue(ni.FieldValue) || util.IsValueNilOrDefault(ni.FieldValue.Interface()) || util.IsValueStructPtr(ni.FieldValue) || util.IsValueMap(ni.FieldValue) {
 			return
 		}
 
@@ -273,7 +273,13 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 		// If this is an enumerated value in the output structs, then check whether
 		// it is set. Only include values that are set to a non-zero value.
 		if _, isEnum := ival.(GoEnum); isEnum {
-			if ni.FieldValue.Int() == 0 {
+			val := ni.FieldValue
+			// If the value is a simple union enum, then extract
+			// the underlying enum value from the interface.
+			if val.Kind() == reflect.Interface {
+				val = val.Elem()
+			}
+			if val.Int() == 0 {
 				return
 			}
 		}
@@ -297,9 +303,9 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 // first is returned.
 func hasDiffPathOpt(opts []DiffOpt) *DiffPathOpt {
 	for _, o := range opts {
-		switch o.(type) {
+		switch v := o.(type) {
 		case *DiffPathOpt:
-			return o.(*DiffPathOpt)
+			return v
 		}
 	}
 	return nil
@@ -345,6 +351,25 @@ func appendUpdate(n *gnmipb.Notification, path *pathSpec, val interface{}) error
 type DiffOpt interface {
 	// IsDiffOpt is a marker method for each DiffOpt.
 	IsDiffOpt()
+}
+
+// IgnoreAdditions is a DiffOpt that indicates newly-added fields should be
+// ignored. The returned Notification will only contain the updates and
+// deletions from original to modified.
+type IgnoreAdditions struct{}
+
+func (*IgnoreAdditions) IsDiffOpt() {}
+
+// hasIgnoreAdditions returns the first IgnoreAdditions from an opts slice, or
+// nil if there isn't one.
+func hasIgnoreAdditions(opts []DiffOpt) *IgnoreAdditions {
+	for _, o := range opts {
+		switch v := o.(type) {
+		case *IgnoreAdditions:
+			return v
+		}
+	}
+	return nil
 }
 
 // DiffPathOpt is a DiffOpt that allows control of the path behaviour of the
@@ -411,7 +436,7 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 				// is equal.
 				matched[modPath] = true
 				origMatched = true
-				if !reflect.DeepEqual(origVal, modVal) {
+				if !cmp.Equal(origVal, modVal) {
 					// The contents of the value should indicate that value a has changed
 					// to value b.
 					if err := appendUpdate(n, origPath, modVal); err != nil {
@@ -423,12 +448,12 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 		if !origMatched {
 			// This leaf was set in the original struct, but not in the modified
 			// struct, therefore it has been deleted.
-			for _, p := range origPath.gNMIPaths {
-				n.Delete = append(n.Delete, p)
-			}
+			n.Delete = append(n.Delete, origPath.gNMIPaths...)
 		}
 	}
-
+	if hasIgnoreAdditions(opts) != nil {
+		return n, nil
+	}
 	// Check that all paths that are in the modified struct have been examined, if
 	// not they are updates.
 	for modPath, modVal := range modLeaves {

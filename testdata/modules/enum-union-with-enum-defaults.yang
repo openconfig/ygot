@@ -1,0 +1,122 @@
+module enum-union {
+  prefix "eu";
+  namespace "urn:eu";
+
+  description
+    "This module tests different types of enumerations within unions to make
+    sure they're named correctly.";
+
+  typedef weekend-days {
+    type enumeration {
+      enum SATURDAY;
+      enum SUNDAY;
+    }
+  }
+
+  typedef cyclone-scales {
+    type union {
+      type uint8;
+      type enumeration {
+        enum NORMAL;
+        enum SUPER;
+      }
+    }
+    default SUPER;
+  }
+
+  typedef weekday {
+    type uint8 {
+      range 1..5;
+    }
+    default 5;
+  }
+
+  typedef singleton-union-binary {
+    type union {
+      type binary {
+        length 1..5;
+      }
+    }
+    default "cba=";
+  }
+
+  typedef singleton-union-string {
+    type union {
+      type string {
+        length 1..5;
+      }
+    }
+    default "cba=";
+  }
+
+  typedef days-of-week {
+    type union {
+      type weekday;
+      type weekend-days;
+    }
+  }
+
+  grouping union-enums {
+    leaf leaf1 {
+      type union {
+        type uint64;
+        type enumeration {
+          enum ONE;
+          enum TWO;
+          enum THREE;
+        }
+      }
+      default TWO;
+    }
+
+    leaf leaf2 {
+      type union {
+        type uint64;
+        type weekend-days;
+      }
+      default SUNDAY;
+    }
+
+    leaf leaf3 {
+      type cyclone-scales;
+    }
+
+    leaf leaf4 {
+      type days-of-week;
+      default 3;
+    }
+
+    leaf leaf5 {
+      type union {
+        type enumeration {
+          enum UN;
+          enum DEUX;
+          enum TROIS;
+        }
+      }
+      default DEUX;
+    }
+  }
+
+  container outer {
+    container inner {
+      container config {
+        uses union-enums;
+
+        leaf singleton-union-binary {
+          type singleton-union-binary;
+          default "abc=";
+        }
+
+        leaf singleton-union-string {
+          type singleton-union-string;
+          default "abc=";
+        }
+      }
+      container state {
+        config false;
+        uses union-enums;
+      }
+    }
+  }
+}

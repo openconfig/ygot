@@ -93,7 +93,7 @@ func validateList(schema *yang.Entry, value interface{}) util.Errors {
 //    3. For each such key field, the field value in the element equals the
 //       value of the map key of the containing map in the data tree.
 func checkKeys(schema *yang.Entry, structElems reflect.Value, keyValue reflect.Value) util.Errors {
-	keys := strings.Split(schema.Key, " ")
+	keys := strings.Fields(schema.Key)
 	if len(keys) == 1 {
 		return checkBasicKeyValue(structElems, schema.Key, keyValue)
 	}
@@ -187,7 +187,7 @@ func validateStructElems(schema *yang.Entry, value interface{}) util.Errors {
 		fieldName := ft.Name
 		fieldValue := structElems.Field(i).Interface()
 
-		cschema, err := childSchema(schema, structTypes.Field(i))
+		cschema, err := util.ChildSchema(schema, structTypes.Field(i))
 		if err != nil {
 			errors = util.AppendErr(errors, err)
 			continue
@@ -202,8 +202,8 @@ func validateStructElems(schema *yang.Entry, value interface{}) util.Errors {
 	return errors
 }
 
-// validateListSchema validates the given list type schema. This is a sanity
-// check validation rather than a comprehensive validation against the RFC.
+// validateListSchema validates the given list type schema. This is a quick
+// check rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.
 func validateListSchema(schema *yang.Entry) error {
@@ -217,15 +217,13 @@ func validateListSchema(schema *yang.Entry) error {
 		if len(schema.Key) == 0 {
 			return fmt.Errorf("list %s with config set must have a key", schema.Name)
 		}
-		keys := strings.Split(schema.Key, " ")
+		keys := strings.Fields(schema.Key)
 		keysMissing := make(map[string]bool)
 		for _, v := range keys {
 			keysMissing[v] = true
 		}
 		for _, v := range schema.Dir {
-			if _, ok := keysMissing[v.Name]; ok {
-				delete(keysMissing, v.Name)
-			}
+			delete(keysMissing, v.Name)
 		}
 		if len(keysMissing) != 0 {
 			return fmt.Errorf("list %s has keys %v missing from required list of %v", schema.Name, keysMissing, keys)
@@ -241,7 +239,7 @@ func validateListSchema(schema *yang.Entry) error {
 // key field name.
 func schemaNameToFieldName(structElems reflect.Value, schemaKeyFieldName string) (string, error) {
 	for i := 0; i < structElems.NumField(); i++ {
-		ps, err := pathToSchema(structElems.Type().Field(i))
+		ps, err := util.RelativeSchemaPath(structElems.Type().Field(i))
 		if err != nil {
 			return "", err
 		}
@@ -336,7 +334,8 @@ func unmarshalList(schema *yang.Entry, parent interface{}, jsonList interface{},
 
 		switch {
 		case util.IsTypeMap(t):
-			newKey, err := makeKeyForInsert(schema, parent, newVal)
+			var newKey reflect.Value
+			newKey, err = makeKeyForInsert(schema, parent, newVal)
 			if err != nil {
 				return err
 			}
@@ -382,20 +381,49 @@ func makeValForInsert(schema *yang.Entry, parent interface{}, keys map[string]st
 
 	// Create an instance of map value type. Element is dereferenced as it is a pointer.
 	val := reflect.New(elmT.Elem())
-	// Helper to update the field corresponding to schema key.
-	setKey := func(schemaKey string, fieldVal string) error {
-		fn, err := schemaNameToFieldName(val.Elem(), schemaKey)
+	// Helper to update the field corresponding to the schema list's key.
+	setKey := func(keySchemaName string) error {
+		keyVal, ok := keys[keySchemaName]
+		if !ok {
+			return fmt.Errorf("missing %q key in %v", keySchemaName, keys)
+		}
+		keySchema, ok := schema.Dir[keySchemaName]
+		if !ok {
+			return fmt.Errorf("missing %q key in schema directory %v", keySchemaName, schema.Dir)
+		}
+		if keySchema.Type.Kind == yang.Yleafref {
+			leafrefPath := keySchema.Type.Path
+			switch {
+			case leafrefPath[0] == '/':
+				// If this is an absolute path, we need to implement this search without Find, since
+				// we do not have the complete goyang yang.Entry schema tree available to us. We know
+				// that we can use Find at any node other than the root, therefore we do the first
+				// resolution from the root ourselves, and then use Find to complete the rest of the
+				// path, which ensures that this is safe.
+				rootSch := keySchema
+				for ; rootSch.Parent != nil; rootSch = rootSch.Parent {
+				}
+				pv := util.SplitPath(leafrefPath)
+				v, ok := rootSch.Dir[util.StripModulePrefix(pv[1])]
+				if !ok {
+					return fmt.Errorf("cannot resolve leafref, %s (can't find top-level %s in %v at %s)", leafrefPath, util.StripModulePrefix(pv[1]), rootSch.Dir, rootSch.Name)
+				}
+				if keySchema = v.Find(strings.Join(pv[2:], "/")); keySchema == nil {
+					return fmt.Errorf("cannot find absolute leafref %s from %v", strings.Join(pv[2:], "/"), v.Name)
+				}
+			default:
+				if keySchema = keySchema.Find(leafrefPath); keySchema == nil {
+					return fmt.Errorf("cannot find leafref %q in schema directory %v", leafrefPath, schema.Dir)
+				}
+			}
+		}
+
+		fn, err := schemaNameToFieldName(val.Elem(), keySchemaName)
 		if err != nil {
 			return err
 		}
 
-		fv := val.Elem().FieldByName(fn)
-		ft := fv.Type()
-		if util.IsValuePtr(fv) {
-			ft = ft.Elem()
-		}
-
-		nv, err := StringToType(ft, fieldVal)
+		nv, err := stringToKeyType(keySchema, val.Interface(), fn, keyVal)
 		if err != nil {
 			return err
 		}
@@ -408,21 +436,15 @@ func makeValForInsert(schema *yang.Entry, parent interface{}, keys map[string]st
 			if err != nil {
 				return reflect.ValueOf(nil), err
 			}
-			schVal, ok := keys[schKey]
-			if !ok {
-				return reflect.ValueOf(nil), fmt.Errorf("missing %v key in %v", schKey, keys)
-			}
-			if err := setKey(schKey, schVal); err != nil {
+
+			if err := setKey(schKey); err != nil {
 				return reflect.ValueOf(nil), err
 			}
 		}
 		return val, nil
 	}
-	v, ok := keys[schema.Key]
-	if !ok {
-		return reflect.ValueOf(nil), fmt.Errorf("missing %v key in %v", schema.Key, keys)
-	}
-	if err := setKey(schema.Key, v); err != nil {
+
+	if err := setKey(schema.Key); err != nil {
 		return reflect.ValueOf(nil), err
 	}
 	return val, nil
@@ -454,7 +476,7 @@ func makeKeyForInsert(schema *yang.Entry, parentMap interface{}, newVal reflect.
 			}
 			util.DbgPrint("Setting value of %v (%T) in key struct (%T)", nv.Interface(), nv.Interface(), newKey.Interface())
 			newKeyField := newKey.FieldByName(kfn)
-			if !util.ValuesAreSameType(newKeyField, nv) {
+			if !nv.Type().AssignableTo(newKeyField.Type()) {
 				return reflect.ValueOf(nil), fmt.Errorf("multi-key %v is not assignable to %v", nv.Type(), newKeyField.Type())
 			}
 			newKeyField.Set(nv)
@@ -537,7 +559,7 @@ func unmarshalContainerWithListSchema(schema *yang.Entry, parent interface{}, va
 func getKeyValue(structVal reflect.Value, key string) (interface{}, error) {
 	for i := 0; i < structVal.NumField(); i++ {
 		f := structVal.Type().Field(i)
-		p, err := pathToSchema(f)
+		p, err := util.RelativeSchemaPath(f)
 		if err != nil {
 			return nil, err
 		}

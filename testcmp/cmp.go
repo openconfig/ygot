@@ -28,6 +28,8 @@ import (
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ytypes"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -43,13 +45,18 @@ func UpdateComparer(schemaFunc func() (*ytypes.Schema, error)) (testutil.CustomC
 	}
 
 	return testutil.CustomComparer{
-		reflect.TypeOf(&gnmipb.Update{}): cmp.Comparer(func(a, b *gnmipb.Update) bool {
-			_, equal, err := GNMIUpdateComparer(a, b, schema)
-			if err != nil {
-				log.Errorf("cannot compare updates for Notifications, got err: %v", err)
-			}
-			return equal
-		}),
+		reflect.TypeOf(&gnmipb.Update{}): protocmp.FilterMessage(&gnmipb.Update{},
+			cmp.Comparer(func(ma, mb protocmp.Message) bool {
+				a := new(gnmipb.Update)
+				proto.Merge(a, ma)
+				b := new(gnmipb.Update)
+				proto.Merge(b, mb)
+				_, equal, err := GNMIUpdateComparer(a, b, schema)
+				if err != nil {
+					log.Errorf("cannot compare updates for Notifications, got err: %v", err)
+				}
+				return equal
+			})),
 	}, nil
 }
 
@@ -82,7 +89,7 @@ func GNMIUpdateComparer(a, b *gnmipb.Update, jsonSpec *ytypes.Schema) (*gnmipb.N
 	if !aOK || !bOK {
 		// One or both of the updates doesn't contain a JSON IETF typed value
 		// so revert to using cmp.Equal to test their equality.
-		return nil, cmp.Equal(a, b, cmpopts.EquateEmpty()), nil
+		return nil, cmp.Equal(a, b, cmpopts.EquateEmpty(), protocmp.Transform()), nil
 	}
 
 	// Create a new root, since GetOrCreateNode can modify the root even during

@@ -22,7 +22,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/openconfig/gnmi/errdiff"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -35,6 +37,11 @@ const (
 	TestRoot string = ""
 )
 
+var (
+	testBinary1 = testutil.Binary("abc")
+	testBinary2 = testutil.Binary("def")
+)
+
 // errToString returns an error as a string.
 func errToString(err error) string {
 	if err == nil {
@@ -45,11 +52,12 @@ func errToString(err error) string {
 
 func TestStructTagToLibPaths(t *testing.T) {
 	tests := []struct {
-		name     string
-		inField  reflect.StructField
-		inParent *gnmiPath
-		want     []*gnmiPath
-		wantErr  bool
+		name               string
+		inField            reflect.StructField
+		inParent           *gnmiPath
+		inPreferShadowPath bool
+		want               []*gnmiPath
+		wantErr            bool
 	}{{
 		name: "invalid input path",
 		inField: reflect.StructField{
@@ -72,6 +80,43 @@ func TestStructTagToLibPaths(t *testing.T) {
 		},
 		want: []*gnmiPath{{
 			stringSlicePath: []string{"foo"},
+		}},
+	}, {
+		name: "multi-element single tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo", "bar"},
+		}},
+	}, {
+		name: "multi-element single tag with shadow-path example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo", "bar"},
+		}},
+	}, {
+		name: "multi-element single tag with preferred shadow-path example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		inPreferShadowPath: true,
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"far", "boo"},
 		}},
 	}, {
 		name: "empty tag example",
@@ -126,6 +171,19 @@ func TestStructTagToLibPaths(t *testing.T) {
 			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}},
 		}},
 	}, {
+		name: "simple pathelem single tag with shadow-path preferred but not found example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inPreferShadowPath: true,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}},
+		}},
+	}, {
 		name: "empty tag pathelem example",
 		inField: reflect.StructField{
 			Name: "field",
@@ -136,6 +194,43 @@ func TestStructTagToLibPaths(t *testing.T) {
 		},
 		want: []*gnmiPath{{
 			pathElemPath: []*gnmipb.PathElem{},
+		}},
+	}, {
+		name: "multi-element single tag pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}},
+		}},
+	}, {
+		name: "multi-element single tag with shadow-path pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}},
+		}},
+	}, {
+		name: "multi-element single tag with preferred shadow-path pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inPreferShadowPath: true,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "far"}, {Name: "boo"}},
 		}},
 	}, {
 		name: "multiple pathelem path",
@@ -165,16 +260,43 @@ func TestStructTagToLibPaths(t *testing.T) {
 		}, {
 			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "foo"}, {Name: "baz"}},
 		}},
+	}, {
+		name: "populated pathelem parent path with shadow-path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "baz"}},
+		}, {
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "foo"}, {Name: "baz"}},
+		}},
+	}, {
+		name: "populated pathelem parent path with preferred shadow-path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz" shadow-path:"far/boo"`,
+		},
+		inPreferShadowPath: true,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "far"}, {Name: "boo"}},
+		}},
 	}}
 
 	for _, tt := range tests {
-		got, err := structTagToLibPaths(tt.inField, tt.inParent)
+		got, err := structTagToLibPaths(tt.inField, tt.inParent, tt.inPreferShadowPath)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, err, tt.wantErr)
+			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, err, tt.wantErr)
 		}
 
-		if diff := pretty.Compare(got, tt.want); diff != "" {
-			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-got,+want):\n%s", tt.name, tt.inField, tt.inParent, diff)
+		if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
+			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, diff)
 		}
 	}
 }
@@ -198,6 +320,10 @@ func (enumTest) ΛMap() map[string]map[int64]EnumDefinition {
 	}
 }
 
+func (e enumTest) String() string {
+	return EnumLogString(e, int64(e), "enumTest")
+}
+
 type badEnumTest int64
 
 func (badEnumTest) IsYANGGoEnum() {}
@@ -211,12 +337,13 @@ func (badEnumTest) ΛMap() map[string]map[int64]EnumDefinition {
 	return nil
 }
 
+func (e badEnumTest) String() string {
+	return ""
+}
+
 func TestEnumFieldToString(t *testing.T) {
-	var i interface{}
-	i = EONE
-	if _, ok := i.(GoEnum); !ok {
-		t.Fatalf("TestEnumFieldToString: %T is not a valid GoEnum", i)
-	}
+	// EONE must be a valid GoEnum.
+	var _ GoEnum = EONE
 
 	tests := []struct {
 		name               string
@@ -295,6 +422,48 @@ func TestEnumName(t *testing.T) {
 	}
 }
 
+func TestEnumLogString(t *testing.T) {
+	tests := []struct {
+		desc           string
+		inEnum         GoEnum
+		inVal          int64
+		inEnumTypeName string
+		want           string
+	}{{
+		desc:           "one",
+		inEnum:         EONE,
+		inVal:          int64(EONE),
+		inEnumTypeName: "enumTest",
+		want:           "VAL_ONE",
+	}, {
+		desc:           "two",
+		inEnum:         ETWO,
+		inVal:          int64(ETWO),
+		inEnumTypeName: "enumTest",
+		want:           "VAL_TWO",
+	}, {
+		desc:           "unset",
+		inEnum:         EUNSET,
+		inVal:          int64(EUNSET),
+		inEnumTypeName: "enumTest",
+		want:           "out-of-range enumTest enum value: 0",
+	}, {
+		desc:           "way out of range",
+		inEnum:         EONE,
+		inVal:          42,
+		inEnumTypeName: "enumTest",
+		want:           "out-of-range enumTest enum value: 42",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := EnumLogString(tt.inEnum, tt.inVal, tt.inEnumTypeName); got != tt.want {
+				t.Errorf("EnumLogString: got %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
 // mapStructTestOne is the base struct used for the simple-schema test.
 type mapStructTestOne struct {
 	Child *mapStructTestOneChild `path:"child" module:"test-one"`
@@ -312,11 +481,11 @@ func (*mapStructTestOne) ΛEnumTypeMap() map[string][]reflect.Type { return nil 
 // mapStructTestOne_Child is a child structure of the mapStructTestOne test
 // case.
 type mapStructTestOneChild struct {
-	FieldOne   *string  `path:"config/field-one" module:"test-one"`
-	FieldTwo   *uint32  `path:"config/field-two" module:"test-one"`
-	FieldThree Binary   `path:"config/field-three" module:"test-one"`
-	FieldFour  []Binary `path:"config/field-four" module:"test-one"`
-	FieldFive  *uint64  `path:"config/field-five" module:"test-five"`
+	FieldOne   *string  `path:"config/field-one" module:"test-one/test-one"`
+	FieldTwo   *uint32  `path:"config/field-two" module:"test-one/test-one"`
+	FieldThree Binary   `path:"config/field-three" module:"test-one/test-one"`
+	FieldFour  []Binary `path:"config/field-four" module:"test-one/test-one"`
+	FieldFive  *uint64  `path:"config/field-five" module:"test-five/test-five"`
 }
 
 // IsYANGGoStruct makes sure that we implement the GoStruct interface.
@@ -417,6 +586,10 @@ func (ECTest) ΛMap() map[string]map[int64]EnumDefinition {
 	}
 }
 
+func (e ECTest) String() string {
+	return EnumLogString(e, int64(e), "ECTest")
+}
+
 // mapStructInvalid is a valid GoStruct whose Validate() method always returns
 // an error.
 type mapStructInvalid struct {
@@ -458,11 +631,23 @@ func TestEmitJSON(t *testing.T) {
 		name: "simple schema JSON output",
 		inStruct: &mapStructTestOne{
 			Child: &mapStructTestOneChild{
-				FieldOne: String("hello"),
+				FieldOne: String("abc -> def"),
 				FieldTwo: Uint32(42),
 			},
 		},
 		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_1.json-txt"),
+	}, {
+		name: "simple schema JSON output with safe HTML",
+		inStruct: &mapStructTestOne{
+			Child: &mapStructTestOneChild{
+				FieldOne: String("abc -> def"),
+				FieldTwo: Uint32(42),
+			},
+		},
+		inConfig: &EmitJSONConfig{
+			EscapeHTML: true,
+		},
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_1_html_safe.json-txt"),
 	}, {
 		name: "schema with a list JSON output",
 		inStruct: &mapStructTestFour{
@@ -553,10 +738,10 @@ func TestEmitJSON(t *testing.T) {
 		}
 
 		if diff := pretty.Compare(got, string(wantJSON)); diff != "" {
-			if diffl, err := testutil.GenerateUnifiedDiff(got, string(wantJSON)); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(string(wantJSON), got); err == nil {
 				diff = diffl
 			}
-			t.Errorf("%s: EmitJSON(%v, nil): got invalid JSON, diff(-got,+want):\n%s", tt.name, tt.inStruct, diff)
+			t.Errorf("%s: EmitJSON(%v, nil): got invalid JSON, diff(-want, +got):\n%s", tt.name, tt.inStruct, diff)
 		}
 	}
 }
@@ -1150,8 +1335,24 @@ func TestMergeStructJSON(t *testing.T) {
 type enumType int64
 
 const (
-	EnumTypeValue enumType = 1
+	EnumTypeValue    enumType = 1
+	EnumTypeValueTwo enumType = 2
 )
+
+func (enumType) IsYANGGoEnum() {}
+
+func (e enumType) String() string {
+	return EnumLogString(e, int64(e), "enumType")
+}
+
+func (enumType) ΛMap() map[string]map[int64]EnumDefinition {
+	return map[string]map[int64]EnumDefinition{
+		"enumType": {
+			1: EnumDefinition{Name: "Value", DefiningModule: "valone-mod"},
+			2: EnumDefinition{Name: "Value_Two", DefiningModule: "valtwo-mod"},
+		},
+	}
+}
 
 type copyUnion interface {
 	IsUnion()
@@ -1162,6 +1363,14 @@ type copyUnionS struct {
 }
 
 func (*copyUnionS) IsUnion() {}
+
+type copyUnionI struct {
+	I int64
+}
+
+func (*copyUnionI) IsUnion() {}
+
+func (enumType) IsUnion() {}
 
 type copyMapKey struct {
 	A string
@@ -1222,6 +1431,7 @@ func TestCopyStruct(t *testing.T) {
 		name    string
 		inSrc   GoStruct
 		inDst   GoStruct
+		inOpts  []MergeOpt
 		wantDst GoStruct
 		wantErr bool
 	}{{
@@ -1229,6 +1439,19 @@ func TestCopyStruct(t *testing.T) {
 		inSrc:   &copyTest{StringField: String("anchor-steam")},
 		inDst:   &copyTest{},
 		wantDst: &copyTest{StringField: String("anchor-steam")},
+	}, {
+		name:    "error simple string pointer different value",
+		inSrc:   &copyTest{StringField: String("anchor-steam")},
+		inDst:   &copyTest{StringField: String("bira")},
+		wantErr: true,
+	}, {
+		name:  "overwrite simple string pointer different value",
+		inSrc: &copyTest{StringField: String("bira")},
+		inDst: &copyTest{StringField: String("anchor-steam")},
+		inOpts: []MergeOpt{
+			&MergeOverwriteExistingFields{},
+		},
+		wantDst: &copyTest{StringField: String("bira")},
 	}, {
 		name: "uint and string pointer",
 		inSrc: &copyTest{
@@ -1284,13 +1507,54 @@ func TestCopyStruct(t *testing.T) {
 			EnumValue: EnumTypeValue,
 		},
 	}, {
-		name: "union field",
+		name: "union field (wrapper union)",
 		inSrc: &copyTest{
 			UnionField: &copyUnionS{"new-belgium-fat-tire"},
 		},
 		inDst: &copyTest{},
 		wantDst: &copyTest{
 			UnionField: &copyUnionS{"new-belgium-fat-tire"},
+		},
+	}, {
+		name: "union field: string",
+		inSrc: &copyTest{
+			UnionField: testutil.UnionString("new-belgium-fat-tire"),
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			UnionField: testutil.UnionString("new-belgium-fat-tire"),
+		},
+	}, {
+		name: "union field: int64",
+		inSrc: &copyTest{
+			UnionField: testutil.UnionInt64(42),
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			UnionField: testutil.UnionInt64(42),
+		},
+	}, {
+		name:    "union field: empty",
+		inSrc:   &copyTest{},
+		inDst:   &copyTest{},
+		wantDst: &copyTest{},
+	}, {
+		name: "union field: enum",
+		inSrc: &copyTest{
+			UnionField: EnumTypeValue,
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			UnionField: EnumTypeValue,
+		},
+	}, {
+		name: "union field: binary",
+		inSrc: &copyTest{
+			UnionField: testBinary1,
+		},
+		inDst: &copyTest{},
+		wantDst: &copyTest{
+			UnionField: testBinary1,
 		},
 	}, {
 		name: "string slice",
@@ -1346,7 +1610,7 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 	}, {
-		name: "unimplemented, string map with overlapping members",
+		name: "overwrite, string map with overlapping members",
 		inSrc: &copyTest{
 			StringMap: map[string]*copyTest{
 				"wild-beer-co": {StringField: String("wild-goose-chase")},
@@ -1357,7 +1621,27 @@ func TestCopyStruct(t *testing.T) {
 				"wild-beer-co": {StringField: String("wildebeest")},
 			},
 		},
-		wantErr: true, // Maps with matching keys are currently not merged.
+		inOpts: []MergeOpt{
+			&MergeOverwriteExistingFields{},
+		},
+		wantDst: &copyTest{
+			StringMap: map[string]*copyTest{
+				"wild-beer-co": {StringField: String("wild-goose-chase")},
+			},
+		},
+	}, {
+		name: "error, string map with overlapping members",
+		inSrc: &copyTest{
+			StringMap: map[string]*copyTest{
+				"wild-beer-co": {StringField: String("wild-goose-chase")},
+			},
+		},
+		inDst: &copyTest{
+			StringMap: map[string]*copyTest{
+				"wild-beer-co": {StringField: String("wildebeest")},
+			},
+		},
+		wantErr: true,
 	}, {
 		name: "struct map",
 		inSrc: &copyTest{
@@ -1421,7 +1705,7 @@ func TestCopyStruct(t *testing.T) {
 		name: "struct map with overlapping fields within the same key",
 		inSrc: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
-				{"new-belgium"}: {StringField: String("voodoo-ranger")},
+				{"new-belgium"}: {StringField: String("mysterious-ranger")},
 			},
 		},
 		inDst: &copyTest{
@@ -1430,6 +1714,26 @@ func TestCopyStruct(t *testing.T) {
 			},
 		},
 		wantErr: true,
+	}, {
+		name: "struct map with overlapping fields within the same key",
+		inSrc: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"new-belgium"}: {StringField: String("mysterious-ranger")},
+			},
+		},
+		inDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"new-belgium"}: {StringField: String("fat-tire")},
+			},
+		},
+		inOpts: []MergeOpt{
+			&MergeOverwriteExistingFields{},
+		},
+		wantDst: &copyTest{
+			StructMap: map[copyMapKey]*copyTest{
+				{"new-belgium"}: {StringField: String("mysterious-ranger")},
+			},
+		},
 	}, {
 		name: "struct slice",
 		inSrc: &copyTest{
@@ -1514,8 +1818,18 @@ func TestCopyStruct(t *testing.T) {
 		name:    "error, slice fields not unique",
 		inSrc:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
 		inDst:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
-		wantErr: true,
-	}}
+		wantDst: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
+	},
+		{
+			name:  "overwrite, slice fields not unique",
+			inSrc: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
+			inDst: &copyTest{StringSlice: []string{"kingfisher"}},
+			inOpts: []MergeOpt{
+				&MergeOverwriteExistingFields{},
+			},
+			wantDst: &copyTest{StringSlice: []string{"kingfisher", "mikkeler-draft-bear"}},
+		},
+	}
 
 	for _, tt := range tests {
 		dst, src := reflect.ValueOf(tt.inDst).Elem(), reflect.ValueOf(tt.inSrc).Elem()
@@ -1524,9 +1838,9 @@ func TestCopyStruct(t *testing.T) {
 			wantDst = reflect.ValueOf(tt.wantDst).Elem()
 		}
 
-		err := copyStruct(dst, src)
+		err := copyStruct(dst, src, tt.inOpts...)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: copyStruct(%v, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
+			t.Fatalf("%s: copyStruct(%v, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
 		}
 
 		if err != nil {
@@ -1543,6 +1857,8 @@ type validatedMergeTest struct {
 	String      *string
 	StringTwo   *string
 	Uint32Field *uint32
+	EnumValue   enumType
+	UnionField  copyUnion
 }
 
 func (*validatedMergeTest) Validate(...ValidationOption) error      { return nil }
@@ -1594,101 +1910,452 @@ func (e *ExampleAnnotation) UnmarshalJSON([]byte) error {
 	return fmt.Errorf("unimplemented")
 }
 
+// mergeStructTests are shared test cases for both MergeStructs and
+// MergeStructInto. Used to capture the common cases between the two functions.
+var mergeStructTests = []struct {
+	name    string
+	inA     ValidatedGoStruct
+	inB     ValidatedGoStruct
+	inOpts  []MergeOpt
+	want    ValidatedGoStruct
+	wantErr string
+}{{
+	name: "simple struct merge, a empty",
+	inA:  &validatedMergeTest{},
+	inB:  &validatedMergeTest{String: String("odell-90-shilling")},
+	want: &validatedMergeTest{String: String("odell-90-shilling")},
+}, {
+	name: "simple struct merge, a populated",
+	inA:  &validatedMergeTest{String: String("left-hand-milk-stout-nitro"), Uint32Field: Uint32(42)},
+	inB:  &validatedMergeTest{StringTwo: String("new-belgium-lips-of-faith-la-folie")},
+	want: &validatedMergeTest{
+		String:      String("left-hand-milk-stout-nitro"),
+		StringTwo:   String("new-belgium-lips-of-faith-la-folie"),
+		Uint32Field: Uint32(42),
+	},
+}, {
+	name: "enum merge: set in a, and not b",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	inB: &validatedMergeTest{},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
+	name: "enum merge: set in b and not a",
+	inA:  &validatedMergeTest{},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
+	name: "enum merge: set to same value in both",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
+	name: "enum merge: set to different values in both",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValueTwo,
+	},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	wantErr: "destination and source values were set when merging enum field",
+}, {
+	name: "overwrite enum merge: set to different values in both",
+	inA: &validatedMergeTest{
+		EnumValue: EnumTypeValueTwo,
+	},
+	inB: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		EnumValue: EnumTypeValue,
+	},
+}, {
+	name:    "error, differing types",
+	inA:     &validatedMergeTest{String: String("great-divide-yeti")},
+	inB:     &validatedMergeTestTwo{String: String("north-coast-old-rasputin")},
+	wantErr: "cannot merge structs that are not of matching types, *ygot.validatedMergeTest != *ygot.validatedMergeTestTwo",
+}, {
+	name:    "error, bad data in B",
+	inA:     &validatedMergeTestTwo{String: String("weird-beard-sorachi-faceplant")},
+	inB:     &validatedMergeTestTwo{I: "fourpure-southern-latitude"},
+	wantErr: "invalid interface type received: string",
+}, {
+	name:    "error, field set in both structs",
+	inA:     &validatedMergeTest{String: String("karbach-hopadillo")},
+	inB:     &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
+	wantErr: "destination value was set, but was not equal to source value when merging ptr field",
+}, {
+	name: "overwrite, field set in both structs",
+	inA:  &validatedMergeTest{String: String("karbach-hopadillo")},
+	inB:  &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		String: String("blackwater-draw-brewing-co-border-town"),
+	},
+}, {
+	name: "allow leaf overwrite if equal",
+	inA:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
+	inB:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
+	want: &validatedMergeTest{String: String("new-belgium-sour-saison")},
+}, {
+	name:    "error - merge leaf overwrite but not equal",
+	inA:     &validatedMergeTest{String: String("schneider-weisse-hopfenweisse")},
+	inB:     &validatedMergeTest{String: String("deschutes-jubelale")},
+	wantErr: "destination value was set, but was not equal to source value when merging ptr field",
+}, {
+	name: "merge fields with slice of structs",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("citrus-dream")}},
+	},
+	want: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+}, {
+	name: "merge fields with duplicate slices of annotations",
+	inA: &validatedMergeTestWithAnnotationSlice{
+		SliceField: []Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+	},
+	inB: &validatedMergeTestWithAnnotationSlice{
+		SliceField: []Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
+	},
+	want: &validatedMergeTestWithAnnotationSlice{
+		SliceField: []Annotation{
+			&ExampleAnnotation{ConfigSource: "devicedemo"},
+			&ExampleAnnotation{ConfigSource: "devicedemo"},
+		},
+	},
+}, {
+	name: "error - merge fields with slice with duplicate strings",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	wantErr: "source and destination lists must be unique",
+}, {
+	name: "error - merge fields with slice with duplicate strings, with dst and src reversed",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	wantErr: "source and destination lists must be unique",
+}, {
+	name: "merge fields with identical slices",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	want: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+}, {
+	name: "merge fields with identical slices with length 2",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	want: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+}, {
+	name: "merge union: string values not equal",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("glutenberg-ipa"),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionString("mikkeler-pale-peter-and-mary"),
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "overwrite merge union: string values not equal",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("glutenberg-ipa"),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionString("mikkeler-pale-peter-and-mary"),
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionString("mikkeler-pale-peter-and-mary"),
+	},
+}, {
+	name: "merge union: string values equal",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("ipswich-ale-celia-saison"),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionString("ipswich-ale-celia-saison"),
+	},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionString("ipswich-ale-celia-saison"),
+	},
+}, {
+	name: "merge union: string value set in src and not dst",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("estrella-damn-daura"),
+	},
+	inB: &validatedMergeTest{},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionString("estrella-damn-daura"),
+	},
+}, {
+	name: "merge union: string value set in dst and not src",
+	inA:  &validatedMergeTest{},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionString("two-brothers-prairie-path-golden-ale"),
+	},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionString("two-brothers-prairie-path-golden-ale"),
+	},
+}, {
+	name: "merge union: values not equal, and different types",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("greens-amber"),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "overwrite merge: values not equal, and different types",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionString("greens-amber"),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+}, {
+	name: "merge union: enum values not equal",
+	inA: &validatedMergeTest{
+		UnionField: EnumTypeValue,
+	},
+	inB: &validatedMergeTest{
+		UnionField: EnumTypeValueTwo,
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "merge union: binary values not equal",
+	inA: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	inB: &validatedMergeTest{
+		UnionField: testBinary2,
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "overwrite merge union: binary values not equal",
+	inA: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	inB: &validatedMergeTest{
+		UnionField: testBinary2,
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		UnionField: testBinary2,
+	},
+}, {
+	name: "merge union: int values equal",
+	inA: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+	inB: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+	want: &validatedMergeTest{
+		UnionField: testutil.UnionInt64(42),
+	},
+}, {
+	name: "merge union: binary values equal",
+	inA: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	inB: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	want: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+}, {
+	name: "merge union: binary value set in src and not dst",
+	inA: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	inB: &validatedMergeTest{},
+	want: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+}, {
+	name: "merge union: binary value set in dst and not src",
+	inA:  &validatedMergeTest{},
+	inB: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+	want: &validatedMergeTest{
+		UnionField: testBinary1,
+	},
+}, {
+	name: "merge union (wrapper union): values not equal",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"glutenberg-ipa"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionS{"mikkeler-pale-peter-and-mary"},
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "overwrite merge union (wrapper union): values not equal",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"glutenberg-ipa"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionS{"mikkeler-pale-peter-and-mary"},
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		UnionField: &copyUnionS{"mikkeler-pale-peter-and-mary"},
+	},
+}, {
+	name: "merge union (wrapper union): values equal",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
+	},
+	want: &validatedMergeTest{
+		UnionField: &copyUnionS{"ipswich-ale-celia-saison"},
+	},
+}, {
+	name: "merge union (wrapper union): set in src and not dst",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"estrella-damn-daura"},
+	},
+	inB: &validatedMergeTest{},
+	want: &validatedMergeTest{
+		UnionField: &copyUnionS{"estrella-damn-daura"},
+	},
+}, {
+	name: "merge union (wrapper union): set in dst and not src",
+	inA:  &validatedMergeTest{},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionS{"two-brothers-prairie-path-golden-ale"},
+	},
+	want: &validatedMergeTest{
+		UnionField: &copyUnionS{"two-brothers-prairie-path-golden-ale"},
+	},
+}, {
+	name: "merge union (wrapper union): values not equal, and different types",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"greens-amber"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionI{42},
+	},
+	wantErr: "interface field was set in both src and dst and was not equal",
+}, {
+	name: "overwrite merge union (wrapper union): values not equal, and different types",
+	inA: &validatedMergeTest{
+		UnionField: &copyUnionS{"greens-amber"},
+	},
+	inB: &validatedMergeTest{
+		UnionField: &copyUnionI{42},
+	},
+	inOpts: []MergeOpt{
+		&MergeOverwriteExistingFields{},
+	},
+	want: &validatedMergeTest{
+		UnionField: &copyUnionI{42},
+	},
+}}
+
 func TestMergeStructs(t *testing.T) {
-	tests := []struct {
+	// Tests that only apply to the extra copy steps performed in MergeStructs as
+	// it does not mutate any inputs.
+	tests := append(mergeStructTests, struct {
 		name    string
 		inA     ValidatedGoStruct
 		inB     ValidatedGoStruct
+		inOpts  []MergeOpt
 		want    ValidatedGoStruct
 		wantErr string
-	}{{
-		name: "simple struct merge, a empty",
-		inA:  &validatedMergeTest{},
-		inB:  &validatedMergeTest{String: String("odell-90-shilling")},
-		want: &validatedMergeTest{String: String("odell-90-shilling")},
-	}, {
-		name: "simple struct merge, a populated",
-		inA:  &validatedMergeTest{String: String("left-hand-milk-stout-nitro"), Uint32Field: Uint32(42)},
-		inB:  &validatedMergeTest{StringTwo: String("new-belgium-lips-of-faith-la-folie")},
-		want: &validatedMergeTest{
-			String:      String("left-hand-milk-stout-nitro"),
-			StringTwo:   String("new-belgium-lips-of-faith-la-folie"),
-			Uint32Field: Uint32(42),
-		},
-	}, {
-		name:    "error, differing types",
-		inA:     &validatedMergeTest{String: String("great-divide-yeti")},
-		inB:     &validatedMergeTestTwo{String: String("north-coast-old-rasputin")},
-		wantErr: "cannot merge structs that are not of matching types, *ygot.validatedMergeTest != *ygot.validatedMergeTestTwo",
-	}, {
+	}{
 		name:    "error, bad data in A",
 		inA:     &validatedMergeTestTwo{I: "belleville-thames-surfer"},
 		inB:     &validatedMergeTestTwo{String: String("fourpure-beartooth")},
 		wantErr: "cannot DeepCopy struct: invalid interface type received: string",
-	}, {
-		name:    "error, bad data in B",
-		inA:     &validatedMergeTestTwo{String: String("weird-beard-sorachi-faceplant")},
-		inB:     &validatedMergeTestTwo{I: "fourpure-southern-latitude"},
-		wantErr: "error merging b to new struct: invalid interface type received: string",
-	}, {
-		name:    "error, field set in both structs",
-		inA:     &validatedMergeTest{String: String("karbach-hopadillo")},
-		inB:     &validatedMergeTest{String: String("blackwater-draw-brewing-co-border-town")},
-		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field, src: blackwater-draw-brewing-co-border-town, dst: karbach-hopadillo",
-	}, {
-		name: "allow leaf overwrite if equal",
-		inA:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
-		inB:  &validatedMergeTest{String: String("new-belgium-sour-saison")},
-		want: &validatedMergeTest{String: String("new-belgium-sour-saison")},
-	}, {
-		name:    "error - merge leaf overwrite but not equal",
-		inA:     &validatedMergeTest{String: String("schneider-weisse-hopfenweisse")},
-		inB:     &validatedMergeTest{String: String("deschutes-jubelale")},
-		wantErr: "error merging b to new struct: destination value was set, but was not equal to source value when merging ptr field, src: deschutes-jubelale, dst: schneider-weisse-hopfenweisse",
-	}, {
-		name: "merge fields with slice of structs",
-		inA: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
-		},
-		inB: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("citrus-dream")}},
-		},
-		want: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
-		},
-	}, {
-		name: "merge fields with duplicate slices of annotations",
-		inA: &validatedMergeTestWithAnnotationSlice{
-			SliceField: []Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
-		},
-		inB: &validatedMergeTestWithAnnotationSlice{
-			SliceField: []Annotation{&ExampleAnnotation{ConfigSource: "devicedemo"}},
-		},
-		want: &validatedMergeTestWithAnnotationSlice{
-			SliceField: []Annotation{
-				&ExampleAnnotation{ConfigSource: "devicedemo"},
-				&ExampleAnnotation{ConfigSource: "devicedemo"},
-			},
-		},
-	}, {
-		name: "error - merge fields with slice with duplicate strings",
-		inA: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
-		},
-		inB: &validatedMergeTestWithSlice{
-			SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
-		},
-		wantErr: "error merging b to new struct: source and destination lists must be unique",
-	}}
+	})
 
 	for _, tt := range tests {
-		got, err := MergeStructs(tt.inA, tt.inB)
+		got, err := MergeStructs(tt.inA, tt.inB, tt.inOpts...)
 		if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
 			t.Errorf("%s: MergeStructs(%v, %v): did not get expected error status, %s", tt.name, tt.inA, tt.inB, diff)
 		}
 
 		if diff := pretty.Compare(got, tt.want); diff != "" {
 			t.Errorf("%s: MergeStructs(%v, %v): did not get expected returned struct, diff(-got,+want):\n%s", tt.name, tt.inA, tt.inB, diff)
+		}
+	}
+}
+
+func TestMergeStructInto(t *testing.T) {
+	for _, tt := range mergeStructTests {
+		// Make a copy of inA here since it will get mutated.
+		got, err := DeepCopy(tt.inA)
+		if err != nil {
+			t.Errorf("%s: DeepCopy(%v): unexpected error with testdata, %v", tt.name, tt.inA, err)
+			continue
+		}
+		err = MergeStructInto(got.(ValidatedGoStruct), tt.inB, tt.inOpts...)
+		if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
+			t.Errorf("%s: MergeStructInto(%v, %v): did not get expected error status, %s", tt.name, tt.inA, tt.inB, diff)
+		}
+		if err != nil {
+			continue
+		}
+
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: MergeStructInto(%v, %v): did not mutate inA struct correctly, diff(-got,+want):\n%s", tt.name, tt.inA, tt.inB, diff)
 		}
 	}
 }
@@ -1786,10 +2453,10 @@ func TestCopyErrorCases(t *testing.T) {
 
 func TestDeepCopy(t *testing.T) {
 	tests := []struct {
-		name    string
-		in      *copyTest
-		inKey   string
-		wantErr bool
+		name             string
+		in               *copyTest
+		inKey            string
+		wantErrSubstring string
 	}{{
 		name: "simple copy",
 		in:   &copyTest{StringField: String("zaphod")},
@@ -1806,13 +2473,21 @@ func TestDeepCopy(t *testing.T) {
 		in: &copyTest{
 			StringSlice: []string{"one"},
 		},
+	}, {
+		name:             "nil inputs",
+		wantErrSubstring: "got nil value",
 	}}
 
 	for _, tt := range tests {
 		got, err := DeepCopy(tt.in)
-		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: DeepCopy(%#v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.in, err, tt.wantErr)
+
+		if err != nil {
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("%s: DeepCopy(%#v): did not get expected error, %s", tt.name, tt.in, diff)
+			}
+			continue
 		}
+
 		if diff := pretty.Compare(got, tt.in); diff != "" {
 			t.Errorf("%s: DeepCopy(%#v): did not get identical copy, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 		}

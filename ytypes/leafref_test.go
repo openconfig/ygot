@@ -15,14 +15,23 @@
 package ytypes
 
 import (
-	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
 )
+
+// addParents adds parent pointers for a schema tree.
+func addParents(e *yang.Entry) {
+	for _, c := range e.Dir {
+		c.Parent = e
+		addParents(c)
+	}
+}
 
 func TestValidateLeafRefData(t *testing.T) {
 	containerWithLeafListSchema := &yang.Entry{
@@ -33,18 +42,36 @@ func TestValidateLeafRefData(t *testing.T) {
 				Name:     "leaf-list",
 				Kind:     yang.LeafEntry,
 				Type:     &yang.YangType{Kind: yang.Yint32},
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 			},
 			"list": {
 				Name:     "list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Dir: map[string]*yang.Entry{
 					"key": {
 						Name: "key",
 						Kind: yang.LeafEntry,
 						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+					"int32": {
+						Name: "int32",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+			},
+			"list-enum-keyed": {
+				Name:     "list-enum-keyed",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: yang.NewDefaultListAttr(),
+				Key:      "key",
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Name: "key",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yenum},
 					},
 					"int32": {
 						Name: "int32",
@@ -66,7 +93,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			"enum": {
 				Name: "enum",
 				Kind: yang.LeafEntry,
-				Type: &yang.YangType{Kind: yang.Yint64},
+				Type: &yang.YangType{Kind: yang.Yenum},
 			},
 			"union": {
 				Name: "union",
@@ -76,9 +103,10 @@ func TestValidateLeafRefData(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "string",
-							Kind:    yang.Ystring,
-							Pattern: []string{"a+"},
+							Name:         "string",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"a+"},
+							POSIXPattern: []string{"^a+$"},
 						},
 						{
 							Name: "int16",
@@ -126,7 +154,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "../../../leaf-list",
 						},
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 					},
 					"int32-ref-to-list": {
 						Name: "int32-ref-to-list",
@@ -134,6 +162,14 @@ func TestValidateLeafRefData(t *testing.T) {
 						Type: &yang.YangType{
 							Kind: yang.Yleafref,
 							Path: "../../list[key = current()/../../key]/int32",
+						},
+					},
+					"enum-ref-to-list": {
+						Name: "int32-ref-to-list-enum-keyed",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{
+							Kind: yang.Yleafref,
+							Path: "../../list-enum-keyed[key = current()/../../enum]/int32",
 						},
 					},
 					"key": {
@@ -162,7 +198,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "../../int32",
 						},
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 					},
 					"leaf-ref-to-union": {
 						Name: "leaf-ref-to-union",
@@ -181,28 +217,34 @@ func TestValidateLeafRefData(t *testing.T) {
 		LeafRefToList *int32 `path:"int32-ref-to-list"`
 	}
 	type Container2 struct {
-		LeafRefToInt32         *int32      `path:"int32-ref-to-leaf"`
-		LeafRefToEnum          int64       `path:"enum-ref-to-leaf"`
-		LeafRefToLeafList      *int32      `path:"int32-ref-to-leaf-list"`
-		LeafListRefToLeafList  []*int32    `path:"leaf-list-ref-to-leaf-list"`
-		LeafRefToList          *int32      `path:"int32-ref-to-list"`
-		Key                    *int32      `path:"key"`
-		Container3             *Container3 `path:"container3"`
-		LeafListLeafRefToInt32 []*int32    `path:"leaf-list-with-leafref"`
-		LeafRefToUnion         Union1      `path:"leaf-ref-to-union"`
+		LeafRefToInt32         *int32             `path:"int32-ref-to-leaf"`
+		LeafRefToEnum          EnumType           `path:"enum-ref-to-leaf"`
+		LeafRefToLeafList      *int32             `path:"int32-ref-to-leaf-list"`
+		LeafListRefToLeafList  []*int32           `path:"leaf-list-ref-to-leaf-list"`
+		LeafRefToList          *int32             `path:"int32-ref-to-list"`
+		LeafRefToListEnumKeyed *int32             `path:"int32-ref-to-list-enum-keyed"`
+		Key                    *int32             `path:"key"`
+		Container3             *Container3        `path:"container3"`
+		LeafListLeafRefToInt32 []*int32           `path:"leaf-list-with-leafref"`
+		LeafRefToUnion         testutil.TestUnion `path:"leaf-ref-to-union"`
 	}
 	type ListElement struct {
 		Key   *int32 `path:"key"`
 		Int32 *int32 `path:"int32"`
 	}
+	type ListElementEnumKeyed struct {
+		Key   EnumType `path:"key"`
+		Int32 *int32   `path:"int32"`
+	}
 	type Container struct {
-		LeafList   []*int32               `path:"leaf-list"`
-		List       map[int32]*ListElement `path:"list"`
-		Int32      *int32                 `path:"int32"`
-		Key        *int32                 `path:"key"`
-		Int64      int64                  `path:"enum"`
-		Container2 *Container2            `path:"container2"`
-		Union      Union1                 `path:"union"`
+		LeafList      []*int32                           `path:"leaf-list"`
+		List          map[int32]*ListElement             `path:"list"`
+		ListEnumKeyed map[EnumType]*ListElementEnumKeyed `path:"list-enum-keyed"`
+		Int32         *int32                             `path:"int32"`
+		Key           *int32                             `path:"key"`
+		Enum          EnumType                           `path:"enum"`
+		Container2    *Container2                        `path:"container2"`
+		Union         testutil.TestUnion                 `path:"union"`
 	}
 
 	tests := []struct {
@@ -254,17 +296,17 @@ func TestValidateLeafRefData(t *testing.T) {
 		{
 			desc: "enum",
 			in: &Container{
-				Int64:      42,
-				Container2: &Container2{LeafRefToEnum: 42},
+				Enum:       EnumType(42),
+				Container2: &Container2{LeafRefToEnum: EnumType(42)},
 			},
 		},
 		{
 			desc: "enum unequal",
 			in: &Container{
-				Int64:      42,
-				Container2: &Container2{LeafRefToEnum: 43},
+				Enum:       42,
+				Container2: &Container2{LeafRefToEnum: EnumType(43)},
 			},
-			wantErr: `field name LeafRefToEnum value 43 (int64) schema path /enum-ref-to-leaf has leafref path ../../enum not equal to any target nodes`,
+			wantErr: `field name LeafRefToEnum value out-of-range EnumType enum value: 43 (int64) schema path /enum-ref-to-leaf has leafref path ../../enum not equal to any target nodes`,
 		},
 		{
 			desc: "leaf-list int32",
@@ -375,7 +417,92 @@ func TestValidateLeafRefData(t *testing.T) {
 			wantErr: `pointed-to value with path ../../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
 		},
 		{
+			desc: "enum keyed list match",
+			in: &Container{
+				ListEnumKeyed: map[EnumType]*ListElementEnumKeyed{
+					EnumType(42): {Int32: Int32(1), Key: EnumType(42)},
+					EnumType(43): {Int32: Int32(2), Key: EnumType(43)},
+				},
+				Enum:       EnumType(42),
+				Container2: &Container2{LeafRefToListEnumKeyed: Int32(1)},
+			},
+		},
+		{
+			desc: "enum keyed list unequal",
+			in: &Container{
+				ListEnumKeyed: map[EnumType]*ListElementEnumKeyed{
+					EnumType(42): {Int32: Int32(1), Key: EnumType(42)},
+					EnumType(43): {Int32: Int32(2), Key: EnumType(43)},
+				},
+				Enum:       EnumType(42),
+				Container2: &Container2{LeafRefToListEnumKeyed: Int32(2)},
+			},
+			wantErr: `field name LeafRefToListEnumKeyed value 2 (int32 ptr) schema path /int32-ref-to-list-enum-keyed has leafref path ../../list-enum-keyed[key = current()/../../enum]/int32 not equal to any target nodes`,
+		},
+		{
+			desc: "enum keyed list bad key value",
+			in: &Container{
+				ListEnumKeyed: map[EnumType]*ListElementEnumKeyed{
+					EnumType(43): {Int32: Int32(2), Key: EnumType(43)},
+				},
+				Enum:       EnumType(42),
+				Container2: &Container2{LeafRefToListEnumKeyed: Int32(1)},
+			},
+			wantErr: `pointed-to value with path ../../list-enum-keyed[key = current()/../../enum]/int32 from field LeafRefToListEnumKeyed value 1 (int32 ptr) schema /int32-ref-to-list-enum-keyed is empty set`,
+		},
+		{
+			// By swapping which of the upper/lower nodes is pointing to a bad value,
+			// we make the testing more robust to implementation details, which may
+			// allow one of these to pass.
+			// e.g. it caches the results for "current()/../../key", but visits
+			// the nodes in a certain order to make one of the tests pass.
+			desc: "different level keyed list, bad value on lower node",
+			in: &Container{
+				List: map[int32]*ListElement{
+					1: {Int32(1), Int32(42)},
+					2: {Int32(2), Int32(43)},
+				},
+				Key: Int32(2),
+				Container2: &Container2{
+					Key:           Int32(3),
+					LeafRefToList: Int32(43),
+					Container3: &Container3{
+						LeafRefToList: Int32(43),
+					},
+				},
+			},
+			wantErr: `pointed-to value with path ../../../list[key = current()/../../key]/int32 from field LeafRefToList value 43 (int32 ptr) schema /int32-ref-to-list is empty set`,
+		},
+		{
 			desc: "union leafref - string",
+			in: &Container{
+				Union: testutil.UnionString("val"),
+				Container2: &Container2{
+					LeafRefToUnion: testutil.UnionString("val"),
+				},
+			},
+		},
+		{
+			desc: "union leafref - integer",
+			in: &Container{
+				Union: testutil.UnionInt16(42),
+				Container2: &Container2{
+					LeafRefToUnion: testutil.UnionInt16(42),
+				},
+			},
+		},
+		{
+			desc: "union leafref - failure",
+			in: &Container{
+				Union: testutil.UnionInt16(42),
+				Container2: &Container2{
+					LeafRefToUnion: testutil.UnionInt16(4444),
+				},
+			},
+			wantErr: "field name LeafRefToUnion value 4444 (int16) schema path /leaf-ref-to-union has leafref path ../../union not equal to any target nodes",
+		},
+		{
+			desc: "union (wrapped union) leafref - string",
 			in: &Container{
 				Union: &Union1String{"val"},
 				Container2: &Container2{
@@ -384,7 +511,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			},
 		},
 		{
-			desc: "union leafref - integer",
+			desc: "union (wrapped union) leafref - integer",
 			in: &Container{
 				Union: &Union1Int16{42},
 				Container2: &Container2{
@@ -393,7 +520,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			},
 		},
 		{
-			desc: "union leafref - failure",
+			desc: "union (wrapped union) leafref - failure",
 			in: &Container{
 				Union: &Union1Int16{42},
 				Container2: &Container2{
@@ -415,44 +542,198 @@ func TestValidateLeafRefData(t *testing.T) {
 	}
 }
 
-func TestSplitPath(t *testing.T) {
+func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
+	// YANG Schema (details mostly matches):
+	// container root {
+	//   container examples {
+	//     list example {
+	//
+	//       key "conf";
+	//       description
+	//         "top-level list for the example data";
+	//
+	//       leaf conf {
+	//         type leafref {
+	//           path "../config/conf";
+	//         }
+	//       }
+	//
+	//       container config {
+	//         leaf conf {
+	//           type uint32;
+	//         }
+	//         leaf conf-ref {
+	//           type leafref {
+	//             path "../conf";
+	//           }
+	//         }
+	//         leaf conf2-ref {
+	//           type leafref {
+	//             path "../../../../conf2";
+	//           }
+	//         }
+	//       }
+	//     }
+	//   }
+	//   leaf conf2 {
+	//     type string;
+	//   }
+	// }
+	containerWithListSchema := &yang.Entry{
+		Kind: yang.LeafEntry,
+		Dir: map[string]*yang.Entry{
+			"root": {
+				Name: "root",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"examples": {
+						Name: "examples",
+						Kind: yang.DirectoryEntry,
+						Dir: map[string]*yang.Entry{
+							"example": {
+								Name:     "example",
+								Kind:     yang.DirectoryEntry,
+								ListAttr: &yang.ListAttr{},
+								Dir: map[string]*yang.Entry{
+									"conf": {
+										Name: "conf",
+										Kind: yang.LeafEntry,
+										Type: &yang.YangType{
+											Kind: yang.Yleafref,
+											Path: "../config/conf",
+										},
+									},
+									"config": {
+										Name: "config",
+										Kind: yang.DirectoryEntry,
+										Dir: map[string]*yang.Entry{
+											"conf": {
+												Name: "conf",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{Kind: yang.Yint32},
+											},
+											"conf-ref": {
+												Name: "conf-ref",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{
+													Kind: yang.Yleafref,
+													Path: "../conf",
+												},
+											},
+											"conf2-ref": {
+												Name: "conf2-ref",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{
+													Kind: yang.Yleafref,
+													Path: "../../../../conf2",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					"conf2": {
+						Name: "conf2",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
+		},
+		Annotation: map[string]interface{}{"isCompressedSchema": true, "isFakeRoot": true},
+	}
+	// Set the parent pointers
+	addParents(containerWithListSchema)
+
+	rootSchema := containerWithListSchema.Dir["root"]
+
+	type RootExample struct {
+		Conf     *uint32 `path:"config/conf|conf"`
+		ConfRef  *uint32 `path:"config/conf-ref"`
+		Conf2Ref *string `path:"config/conf2-ref"`
+	}
+
+	type Root struct {
+		Conf2   *string                 `path:"conf2"`
+		Example map[uint32]*RootExample `path:"examples/example"`
+	}
+
 	tests := []struct {
-		desc string
-		in   string
-		want []string
+		desc    string
+		in      interface{}
+		opts    *LeafrefOptions
+		wantErr string
 	}{
 		{
-			desc: "simple",
-			in:   "a/b/c",
-			want: []string{"a", "b", "c"},
+			desc: "nil",
+			in:   nil,
 		},
 		{
-			desc: "blank",
-			in:   "a//b",
-			want: []string{"a", "", "b"},
+			desc: "list key leafref (conf)",
+			in: &Root{
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42)}},
+			},
 		},
 		{
-			desc: "lead trail slash",
-			in:   "/a/b/c/",
-			want: []string{"", "a", "b", "c", ""},
+			desc: "ref to leaf outside of list (conf2)",
+			in: &Root{
+				Conf2:   String("hitchhiker"),
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), Conf2Ref: String("hitchhiker")}},
+			},
 		},
 		{
-			desc: "escape slash",
-			in:   `a/\/b/c`,
-			want: []string{"a", `\/b`, "c"},
+			desc: "ref to leaf outside of list (conf2) unequal",
+			in: &Root{
+				Conf2:   String("hitchhiker"),
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), Conf2Ref: String("haichhicker")}},
+			},
+			wantErr: `field name Conf2Ref value haichhicker (string ptr) schema path //root/examples/example/config/conf2-ref has leafref path ../../../../conf2 not equal to any target nodes`,
 		},
 		{
-			desc: "internal key slashes",
-			in:   `a/b[key1 = ../x/y key2 = "z"]/c`,
-			want: []string{"a", `b[key1 = ../x/y key2 = "z"]`, "c"},
+			desc: "ref to leaf outside of list (conf2) points to nil",
+			in: &Root{
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), Conf2Ref: String("hitchhiker")}},
+			},
+			wantErr: `pointed-to value with path ../../../../conf2 from field Conf2Ref value hitchhiker (string ptr) schema //root/examples/example/config/conf2-ref is empty set`,
+		},
+		{
+			desc: "ref to leaf outside of list (conf2) points to nil with ignore missing data true",
+			in: &Root{
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), Conf2Ref: String("hitchhiker")}},
+			},
+			opts: &LeafrefOptions{IgnoreMissingData: true},
+		},
+		{
+			desc: "nil points to conf2",
+			in: &Root{
+				Conf2:   String("hitchhiker"),
+				Example: map[uint32]*RootExample{},
+			},
+		},
+		{
+			desc: "conf-ref",
+			in: &Root{
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), ConfRef: Uint32(42)}},
+			},
+		},
+		{
+			desc: "conf-ref unequal to conf",
+			in: &Root{
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), ConfRef: Uint32(43)}},
+			},
+			wantErr: `field name ConfRef value 43 (uint32 ptr) schema path //root/examples/example/config/conf-ref has leafref path ../conf not equal to any target nodes`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := splitPath(tt.in), tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %v, want: %v", tt.desc, got, want)
+			errs := ValidateLeafRefData(rootSchema, tt.in, tt.opts)
+			if got, want := errs.String(), tt.wantErr; got != want {
+				t.Errorf("%s: got error: %s, want error: %s", tt.desc, got, want)
 			}
+			testErrLog(t, tt.desc, errs)
 		})
 	}
 }
@@ -487,8 +768,9 @@ func TestSplitUnescaped(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := splitUnescaped(tt.in, '/'), tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %v, want: %v", tt.desc, got, want)
+			got, want := splitUnescaped(tt.in, '/'), tt.want
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s: (-want, +got):\n%s", tt.desc, diff)
 			}
 		})
 	}
@@ -529,8 +811,9 @@ func TestSplitUnquoted(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got, want := splitUnquoted(tt.in, tt.splitStr), tt.want; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s: got: %v, want: %v", tt.desc, got, want)
+			got, want := splitUnquoted(tt.in, tt.splitStr), tt.want
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s: (-want, +got):\n%s", tt.desc, diff)
 			}
 		})
 	}
@@ -600,11 +883,13 @@ func TestExtractKeyValue(t *testing.T) {
 			if got, want := prefix, tt.wantPrefix; got != want {
 				t.Errorf("%s prefix: got: %s, want: %s", tt.desc, got, want)
 			}
-			if got, want := k, tt.wantKey; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s key: got: %v, want: %v", tt.desc, got, want)
+			got, want := k, tt.wantKey
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s key: (-want, +got):\n%s", tt.desc, diff)
 			}
-			if got, want := v, tt.wantValue; !reflect.DeepEqual(got, want) {
-				t.Errorf("%s value: got: %v, want: %v", tt.desc, got, want)
+			got, want = v, tt.wantValue
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("%s value: (-want, +got):\n%s", tt.desc, diff)
 			}
 		})
 	}
@@ -684,7 +969,9 @@ func TestPathMatchesPrefix(t *testing.T) {
 	}
 }
 
-func Int32(i int32) *int32 { return &i }
+func Int32(i int32) *int32    { return &i }
+func Uint32(i uint32) *uint32 { return &i }
+func String(s string) *string { return &s }
 
 type genericList struct {
 	Key *uint32 `path:"key"`

@@ -26,7 +26,7 @@ import (
 // pkg/ocdemo package, which generates the corresponding code for OpenConfig
 // interfaces.
 //
-//go:generate go run ../../generator/generator.go -path=yang -output_file=pkg/ocdemo/oc.go -package_name=ocdemo -generate_fakeroot -fakeroot_name=device -compress_paths=true  -exclude_modules=ietf-interfaces yang/openconfig-interfaces.yang yang/openconfig-if-ip.yang
+//go:generate go run ../../generator/generator.go -path=yang -output_file=pkg/ocdemo/oc.go -package_name=ocdemo -generate_fakeroot -fakeroot_name=device -compress_paths=true -shorten_enum_leaf_names -typedef_enum_with_defmod -exclude_modules=ietf-interfaces yang/openconfig-interfaces.yang yang/openconfig-if-ip.yang
 
 func main() {
 	// Create a new device which is named according to the fake root specified above. To generate
@@ -58,7 +58,7 @@ func main() {
 	i, err := d.NewInterface("eth0")
 
 	// We can now work directly with the returned interface to specify some values.
-	i.AdminStatus = oc.OpenconfigInterfaces_Interface_AdminStatus_UP
+	i.AdminStatus = oc.Interface_AdminStatus_UP
 	i.Mtu = ygot.Uint16(1500)
 	i.Description = ygot.String("An Interface")
 

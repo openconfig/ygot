@@ -17,7 +17,9 @@ package ytypes
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
+	log "github.com/golang/glog"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
@@ -61,7 +63,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 				continue
 			}
 
-			cschema, err := childSchema(schema, structTypes.Field(i))
+			cschema, err := util.ChildSchema(schema, structTypes.Field(i))
 			switch {
 			case err != nil:
 				errors = util.AppendErr(errors, fmt.Errorf("%s: %v", fieldName, err))
@@ -71,7 +73,7 @@ func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 				if errs := Validate(cschema, fieldValue); errs != nil {
 					errors = util.AppendErrs(errors, util.PrefixErrors(errs, cschema.Path()))
 				}
-			case !structElems.Field(i).IsNil():
+			case !util.IsValueNilOrDefault(structElems.Field(i).Interface()):
 				// Either an element in choice schema subtree, or bad field.
 				// If the former, it will be found in the choice check below.
 				extraFields[fieldName] = nil
@@ -146,6 +148,7 @@ func unmarshalContainer(schema *yang.Entry, parent interface{}, jsonTree interfa
 func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string]interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	destv := reflect.ValueOf(parent).Elem()
 	var allSchemaPaths [][]string
+
 	// Range over the parent struct fields. For each field, check if the data
 	// is present in the JSON tree and if so unmarshal it into the field.
 	for i := 0; i < destv.NumField(); i++ {
@@ -155,20 +158,30 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		// Skip annotation fields since they do not have a schema.
 		// TODO(robjs): Implement unmarshalling annotations.
 		if util.IsYgotAnnotation(ft) {
+			log.Infof("ignoring annotation field %s during unmarshalling, unsupported", ft.Name)
+			// We need to find the paths that we should have unmarshalled here to avoid
+			// throwing errors to users whilst there is a TODO above.
+			paths, err := pathTagFromField(ft)
+			if err != nil {
+				return fmt.Errorf("cannot find JSON field names for annotation field %s, %v", ft.Name, err)
+			}
+
+			for _, s := range strings.Split(paths, "|") {
+				pp := strings.Split(s, "/")
+				allSchemaPaths = append(allSchemaPaths, []string{pp[len(pp)-1]})
+			}
 			continue
 		}
 
-		cschema, err := childSchema(schema, ft)
+		cschema, err := util.ChildSchema(schema, ft)
 		if err != nil {
 			return err
 		}
+
 		if cschema == nil {
 			return fmt.Errorf("unmarshalContainer could not find schema for type %T, field name %s", parent, ft.Name)
 		}
-		jsonValue, err := getJSONTreeValForField(schema, cschema, ft, jsonTree)
-		if err != nil {
-			return err
-		}
+
 		// Store the data tree path of the current field. These will be used
 		// at the end to ensure that there are no excess elements in the JSON
 		// tree not covered by any data path.
@@ -176,8 +189,26 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		if err != nil {
 			return err
 		}
-
 		allSchemaPaths = append(allSchemaPaths, sp...)
+
+		// If there are shadow schema paths, also add them to the allowlist
+		// avoid an unmarshalling error.
+		// NOTE: This is more permissive than ideal in that it doesn't
+		// catch other types of non-compliance errors, i.e. if the JSON
+		// shadow node is a container (should not occur under
+		// OpenConfig YANG rules), or if the JSON cannot be
+		// unmarshalled due to type mismatch.
+		ssp, err := shadowDataTreePaths(schema, cschema, ft)
+		if err != nil {
+			return err
+		}
+		allSchemaPaths = append(allSchemaPaths, ssp...)
+
+		jsonValue, err := getJSONTreeValForField(schema, cschema, ft, jsonTree)
+		if err != nil {
+			return err
+		}
+
 		if jsonValue == nil {
 			util.DbgPrint("field %s paths %v not present in tree", ft.Name, sp)
 			continue
@@ -222,9 +253,9 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 }
 
 // validateContainerSchema validates the given container type schema. This is a
-// sanity check validation rather than a comprehensive validation against the
-// RFC. It is assumed that such a validation is done when the schema is parsed
-// from source YANG.
+// quick check rather than a comprehensive validation against the RFC. It is
+// assumed that such a validation is done when the schema is parsed from source
+// YANG.
 func validateContainerSchema(schema *yang.Entry) error {
 	if schema == nil {
 		return fmt.Errorf("container schema is nil")

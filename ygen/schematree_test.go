@@ -15,9 +15,9 @@
 package ygen
 
 import (
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 )
@@ -134,6 +134,116 @@ func TestBuildSchemaTree(t *testing.T) {
 	}
 }
 
+func TestResolveLeafrefTargetType(t *testing.T) {
+	tests := []struct {
+		name           string
+		inPath         string
+		inContextEntry *yang.Entry
+		inEntries      []*yang.Entry
+		want           *yang.Entry
+		wantErr        bool
+	}{{
+		name:   "simple test with leafref with absolute leafref",
+		inPath: "/parent/child/a",
+		inContextEntry: &yang.Entry{
+			Name: "b",
+			Type: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "/parent/child/a",
+			},
+			Parent: &yang.Entry{
+				Name: "child",
+				Parent: &yang.Entry{
+					Name:   "parent",
+					Parent: &yang.Entry{Name: "module"},
+				},
+			},
+		},
+		inEntries: []*yang.Entry{
+			{
+				Name: "parent",
+				Dir: map[string]*yang.Entry{
+					"child": {
+						Name: "child",
+						Dir: map[string]*yang.Entry{
+							"a": {
+								Name: "a",
+								Type: &yang.YangType{
+									Kind: yang.Ystring,
+								},
+								Parent: &yang.Entry{
+									Name: "child",
+									Parent: &yang.Entry{
+										Name:   "parent",
+										Parent: &yang.Entry{Name: "module"},
+									},
+								},
+							},
+							"b": {
+								Name: "b",
+								Type: &yang.YangType{
+									Kind: yang.Yleafref,
+									Path: "/parent/child/a",
+								},
+								Parent: &yang.Entry{
+									Name: "child",
+									Parent: &yang.Entry{
+										Name:   "parent",
+										Parent: &yang.Entry{Name: "module"},
+									},
+								},
+							},
+						},
+						Parent: &yang.Entry{
+							Name:   "parent",
+							Parent: &yang.Entry{Name: "module"},
+						},
+					},
+				},
+				Parent: &yang.Entry{Name: "module"},
+			},
+		},
+		want: &yang.Entry{
+			Name: "a",
+			Type: &yang.YangType{
+				Kind: yang.Ystring,
+			},
+			Parent: &yang.Entry{
+				Name: "child",
+				Parent: &yang.Entry{
+					Name:   "parent",
+					Parent: &yang.Entry{Name: "module"},
+				},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		// Since we are outside of the build of a module, need to initialise
+		// the schematree.
+		st, err := buildSchemaTree(tt.inEntries)
+		if err != nil {
+			t.Errorf("%s: buildSchemaTree(%v): got unexpected error: %v", tt.name, tt.inEntries, err)
+		}
+		got, err := st.resolveLeafrefTarget(tt.inPath, tt.inContextEntry)
+		if err != nil {
+			if !tt.wantErr {
+				t.Errorf("%s: resolveLeafrefTargetPath(%v, %v): got unexpected error: %v", tt.name, tt.inPath, tt.inContextEntry, err)
+			}
+			continue
+		}
+
+		if tt.wantErr {
+			t.Errorf("%s: resolveLeafrefTargetPath(%v, %v): did not get expected error", tt.name, tt.inPath, tt.inContextEntry)
+			continue
+		}
+
+		if diff := pretty.Compare(got, tt.want); diff != "" {
+			t.Errorf("%s: resolveLeafrefTargetPath(%v, %v): did not get expected entry, diff(-got,+want):\n%s", tt.name, tt.inPath, tt.inContextEntry, diff)
+		}
+	}
+}
+
 func TestFixSchemaTreePath(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -142,9 +252,13 @@ func TestFixSchemaTreePath(t *testing.T) {
 		wantParts []string
 		wantErr   bool
 	}{{
-		name:      "simple path that does not need to be adjusted",
+		name:      "simple absolute path that does not need to be adjusted",
 		inPath:    "/system/config/hostname",
 		wantParts: []string{"system", "config", "hostname"},
+	}, {
+		name:    "invalid relative path",
+		inPath:  "system/config/hostname",
+		wantErr: true,
 	}, {
 		name:      "path with keys in that should be removed",
 		inPath:    "/interfaces/interface[name=current()/../config/name]/config/admin-status",
@@ -219,71 +333,8 @@ func TestFixSchemaTreePath(t *testing.T) {
 			continue
 		}
 
-		if !reflect.DeepEqual(got, tt.wantParts) {
-			t.Errorf("%s: fixedSchemaTreePath(%v, %v): did not get expected parts, got: %v, want: %v", tt.name, tt.inPath, tt.inContext, got, tt.wantParts)
-		}
-	}
-}
-
-func TestSchemaTreePath(t *testing.T) {
-	tests := []struct {
-		name string
-		in   *yang.Entry
-		want string
-	}{{
-		name: "simple entry test",
-		in: &yang.Entry{
-			Name: "leaf",
-			Parent: &yang.Entry{
-				Name: "container",
-				Parent: &yang.Entry{
-					Name: "module",
-				},
-			},
-		},
-		want: "/module/container/leaf",
-	}, {
-		name: "entry with a choice node",
-		in: &yang.Entry{
-			Name: "leaf",
-			Parent: &yang.Entry{
-				Name: "choice",
-				Kind: yang.ChoiceEntry,
-				Parent: &yang.Entry{
-					Name: "container",
-					Parent: &yang.Entry{
-						Name: "module",
-					},
-				},
-			},
-		},
-		want: "/module/container/leaf",
-	}, {
-		name: "entry with choice and case",
-		in: &yang.Entry{
-			Name: "leaf",
-			Parent: &yang.Entry{
-				Name: "case",
-				Kind: yang.CaseEntry,
-				Parent: &yang.Entry{
-					Name: "choice",
-					Kind: yang.ChoiceEntry,
-					Parent: &yang.Entry{
-						Name: "container",
-						Parent: &yang.Entry{
-							Name: "module",
-						},
-					},
-				},
-			},
-		},
-		want: "/module/container/leaf",
-	}}
-
-	for _, tt := range tests {
-		got := schemaTreePath(tt.in)
-		if got != tt.want {
-			t.Errorf("%s: schemaTreePath(%v): did not get expected path, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		if diff := cmp.Diff(tt.wantParts, got); diff != "" {
+			t.Errorf("%s: fixedSchemaTreePath(%v, %v): did not get expected parts, (-want, +got):\n%s", tt.name, tt.inPath, tt.inContext, diff)
 		}
 	}
 }

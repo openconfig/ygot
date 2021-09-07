@@ -16,10 +16,12 @@ cp ../demo/getting_started/yang/{ietf,iana}* deps
 go run ../generator/generator.go -path=public,deps -output_file=oc.go \
   -package_name=uexampleoc -generate_fakeroot -fakeroot_name=device \
   -exclude_modules=ietf-interfaces \
+  -typedef_enum_with_defmod \
   -generate_rename \
   -generate_append \
   -generate_getters \
   -generate_leaf_getters \
+  -generate_simple_unions \
   -annotations \
   public/release/models/system/openconfig-system.yang \
   public/release/models/platform/openconfig-platform.yang \
