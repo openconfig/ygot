@@ -173,8 +173,8 @@ type GenConfig struct {
 	// If any key is not a wildcard, then this flag doesn't apply, since
 	// all key values must now be specified in the path.
 	SimplifyWildcardPaths bool
-	// ExcludeSearchPathModules configures whether to generate code for yang modules in the searched paths.
-	ExcludeSearchPathModules bool
+	// InputModulesOnly configures whether to generate code for yang modules in the searched paths.
+	InputModulesOnly bool
 }
 
 // GoImports contains package import options.
@@ -223,7 +223,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (*Genera
 			YANGParseOptions:      cg.YANGParseOptions,
 			ExcludeModules:        cg.ExcludeModules,
 			SkipEnumDeduplication: cg.SkipEnumDeduplication,
-			InputModulesOnly:      cg.ExcludeSearchPathModules,
+			InputModulesOnly:      cg.InputModulesOnly,
 		},
 		TransformationOptions: ygen.TransformationOpts{
 			CompressBehaviour:                    compressBehaviour,

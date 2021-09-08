@@ -984,7 +984,7 @@ func TestGeneratePathCode(t *testing.T) {
 				cg.UseDefiningModuleForTypedefEnumNames = tt.inUseDefiningModuleForTypedefEnumNames
 				cg.GenerateWildcardPaths = tt.inGenerateWildcardPaths
 				cg.SimplifyWildcardPaths = tt.inSimplifyWildcardPaths
-				cg.ExcludeSearchPathModules = tt.inInputModulesOnly
+				cg.InputModulesOnly = tt.inInputModulesOnly
 
 				gotCode, gotNodeDataMap, err := cg.GeneratePathCode(tt.inFiles, tt.inIncludePaths)
 				if err != nil && !tt.wantErr {

@@ -426,11 +426,11 @@ func main() {
 		YANGParseOptions: yang.Options{
 			IgnoreSubmoduleCircularDependencies: *ignoreCircDeps,
 		},
-		GeneratingBinary:         genutil.CallerName(),
-		ListBuilderKeyThreshold:  *listBuilderKeyThreshold,
-		GenerateWildcardPaths:    *generateWildcardPaths,
-		SimplifyWildcardPaths:    *simplifyWildcardPaths,
-		ExcludeSearchPathModules: *inputModulesOnly,
+		GeneratingBinary:        genutil.CallerName(),
+		ListBuilderKeyThreshold: *listBuilderKeyThreshold,
+		GenerateWildcardPaths:   *generateWildcardPaths,
+		SimplifyWildcardPaths:   *simplifyWildcardPaths,
+		InputModulesOnly:        *inputModulesOnly,
 	}
 
 	pathCode, _, errs := pcg.GeneratePathCode(generateModules, includePaths)
