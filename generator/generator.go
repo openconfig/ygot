@@ -444,11 +444,14 @@ func main() {
 	switch {
 	case *splitByModule:
 		for packageName, code := range pathCode {
-			os.MkdirAll(filepath.Join(*outputDir, packageName), 0755)
+			err := os.MkdirAll(filepath.Join(*outputDir, packageName), 0755)
+			if err != nil {
+				log.Exitf("failed to create directory for package %q: %v", packageName, err)
+			}
 			path := filepath.Join(*outputDir, packageName, fmt.Sprintf("%s.go", packageName))
 			outfh := genutil.OpenFile(path)
 			defer genutil.SyncFile(outfh)
-			err := writeGoPathCodeSingleFile(outfh, code)
+			err = writeGoPathCodeSingleFile(outfh, code)
 			if err != nil {
 				log.Exitf("Error while writing path struct file: %v", err)
 			}

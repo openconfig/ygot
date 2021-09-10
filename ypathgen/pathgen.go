@@ -64,7 +64,7 @@ const (
 	// with the child constructor method for the keys.
 	BuilderKeyPrefix = "With"
 	// defaultFakeRootPkgName is the default name for the package that contains
-	// the root structure (if spliting by module is enabled).
+	// the fake root struct (if spliting by module is enabled).
 	defaultFakeRootPkgName = "device"
 )
 
@@ -179,7 +179,7 @@ type GenConfig struct {
 	SimplifyWildcardPaths bool
 	// SplitByModule controls whether to generate a go package for each yang module.
 	SplitByModule bool
-	// FakeRootPackageName is the package of package that contains the fakeroot,
+	// FakeRootPackageName is the name of package that contains the fakeroot, only
 	// used when spliting generated code by yang module.
 	FakeRootPackageName string
 	// TrimOCPackage controls whether to trim openconfig- from generated go package names.
@@ -206,10 +206,9 @@ type GoImports struct {
 // specifies the set of paths that are to be searched for associated models (e.g.,
 // modules that are included by the specified set of modules, or submodules of those
 // modules). It extracts the set of modules that are to be generated, and returns
-// a map of GeneratedPathCode struct, whose key is the package name and
-// value is a struct containing all the generated code of that package needed
-// support the path-creation API. The important components of the generated
-// code are listed below:
+// a map of package names to GeneratedPathCode structs. Each struct contains
+// all the generated code of that package needed support the path-creation API.
+// The important components of the generated code are listed below:
 //	1. Struct definitions for each container, list, or leaf schema node,
 //	as well as the fakeroot.
 //	2. Next-level methods for the fakeroot and each non-leaf schema node,
@@ -315,6 +314,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 		}
 		structSnippets = append(structSnippets, structSnippet...)
 	}
+
 	packages := map[string]*GeneratedPathCode{}
 	for _, snippet := range structSnippets {
 		if _, ok := packages[snippet.Package]; !ok {
@@ -326,13 +326,11 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 		for _, d := range snippet.Deps {
 			packages[snippet.Package].Deps[d] = true
 		}
-
 	}
 	for name, p := range packages {
 		err := writeHeader(yangFiles, includePaths, name, cg, p)
 		util.AppendErr(errs, err)
 	}
-
 	genCode.Structs = structSnippets
 
 	if len(errs) == 0 {
@@ -341,9 +339,12 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 	return packages, nodeDataMap, errs
 }
 
-// packageNameReplacePattern matches all character allowed in yang modules, but not go packages.
+// packageNameReplacePattern matches all characters allowed in yang modules, but not go packages.
 var packageNameReplacePattern = regexp.MustCompile("[._-]")
 
+// GoPackageName returns the go package to use when generating code for the input Directory.
+// If splitByModule is false, the pkgName is always returned. Otherwise,
+// a transformed version of the module that the directory belongs to is returned.
 func GoPackageName(dir *ygen.Directory, splitByModule, trimOCPkg bool, pkgName, fakeRootPkgName string) string {
 	if !splitByModule {
 		return pkgName
@@ -377,7 +378,7 @@ func GoPackageName(dir *ygen.Directory, splitByModule, trimOCPkg bool, pkgName, 
 type GeneratedPathCode struct {
 	Structs      []GoPathStructCodeSnippet // Structs is the generated set of structs representing containers or lists in the input YANG models.
 	CommonHeader string                    // CommonHeader is the header that should be used for all output Go files.
-	Deps         map[string]bool           // Deps is the list of packages that this package depends on
+	Deps         map[string]bool           // Deps is the list of packages that this package depends on.
 }
 
 // String method for GeneratedPathCode, which can be used to write all the
@@ -443,7 +444,7 @@ type GoPathStructCodeSnippet struct {
 	// ChildConstructors contains the method code snippets with the input struct as a
 	// receiver, that is used to get the child path struct.
 	ChildConstructors string
-	// Package is the name of the package that is snippet belongs to.
+	// Package is the name of the package that this snippet belongs to.
 	Package string
 	// Deps are any packages that this snippet depends on.
 	Deps []string
@@ -796,7 +797,7 @@ type goPathFieldData struct {
 // (container, list, leaf, or fakeroot), all of which have a corresponding
 // struct onto which to attach the necessary methods for path generation.
 // When generating code for the fakeroot, several structs may be returned,
-// one for snippet and one for list builder APIs in other packages. Otherwise,
+// one for snippet and one for list builder APIs in another package. Otherwise,
 // the returned slice will only have a single struct containing the all the code.
 // The code comprises of the type definition for the struct, and all accessors to
 // the fields of the struct. directory is the parsed information of a schema
@@ -849,7 +850,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 				if parentPackge != childPackage {
 					deps[childPackage] = true
 					childPkgAccessor = childPackage + "."
-					// The fake root could be generating a list builder API for one of its children which is another package.
+					// The fake root could be generating a list builder API for one of its children which is in another package.
 					// Write any list builders into the map, keyed by the child package name.
 					if _, ok := builders[childPackage]; !ok {
 						builders[childPackage] = &strings.Builder{}
