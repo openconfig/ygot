@@ -232,13 +232,18 @@ func FindLeafRefSchema(schema *yang.Entry, pathStr string) (*yang.Entry, error) 
 			if refSchema.Parent == nil {
 				return nil, fmt.Errorf("parent of %s is nil for leafref schema %s with path %s", refSchema.Name, schema.Name, pathStr)
 			}
-			refSchema = refSchema.Parent
+			for refSchema = refSchema.Parent; IsChoiceOrCase(refSchema); refSchema = refSchema.Parent {
+			}
 			continue
 		}
-		if refSchema.Dir[pe] == nil {
+		entries, err := findFirstNonChoiceOrCaseEntry(refSchema)
+		if err != nil {
+			return nil, err
+		}
+		if entries[pe] == nil {
 			return nil, fmt.Errorf("schema node %s is nil for leafref schema %s with path %s", pe, schema.Name, pathStr)
 		}
-		refSchema = refSchema.Dir[pe]
+		refSchema = entries[pe]
 	}
 
 	return refSchema, nil

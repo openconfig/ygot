@@ -470,6 +470,137 @@ func TestRemoveXPATHPredicates(t *testing.T) {
 }
 
 func TestFindLeafRefSchema(t *testing.T) {
+	choiceContainer := &yang.Entry{
+		Name:   "container",
+		Kind:   yang.DirectoryEntry,
+		Parent: &yang.Entry{Name: "module"},
+		Dir: map[string]*yang.Entry{
+			"choice-node": {
+				Name:   "choice-node",
+				Kind:   yang.ChoiceEntry,
+				Parent: &yang.Entry{Name: "container"},
+				Dir: map[string]*yang.Entry{
+					"case-one": {
+						Name: "case-one",
+						Kind: yang.CaseEntry,
+						Parent: &yang.Entry{
+							Name: "choice-node",
+							Kind: yang.ChoiceEntry,
+							Parent: &yang.Entry{
+								Name: "container",
+								Parent: &yang.Entry{
+									Name: "module",
+								},
+							},
+						},
+						Dir: map[string]*yang.Entry{
+							"second-container": {
+								Name: "second-container",
+								Kind: yang.DirectoryEntry,
+								Parent: &yang.Entry{
+									Name: "case-one",
+									Kind: yang.CaseEntry,
+									Parent: &yang.Entry{
+										Name: "choice-node",
+										Kind: yang.ChoiceEntry,
+										Parent: &yang.Entry{
+											Name: "container",
+											Parent: &yang.Entry{
+												Name: "module",
+											},
+										},
+									},
+								},
+								Dir: map[string]*yang.Entry{
+									"config": {
+										Name: "config",
+										Kind: yang.DirectoryEntry,
+										Parent: &yang.Entry{
+											Name: "second-container",
+											Parent: &yang.Entry{
+												Name: "case-one",
+												Kind: yang.CaseEntry,
+												Parent: &yang.Entry{
+													Name: "choice-node",
+													Kind: yang.ChoiceEntry,
+													Parent: &yang.Entry{
+														Name: "container",
+														Parent: &yang.Entry{
+															Name: "module",
+														},
+													},
+												},
+											},
+										},
+										Dir: map[string]*yang.Entry{"leaf-one": {Name: "leaf-one", Type: &yang.YangType{Kind: yang.Ystring}}},
+									},
+								},
+							},
+						},
+					},
+					"case-two": {
+						Name: "case-two",
+						Kind: yang.CaseEntry,
+						Parent: &yang.Entry{
+							Name: "choice-node",
+							Kind: yang.ChoiceEntry,
+							Parent: &yang.Entry{
+								Name: "container",
+								Parent: &yang.Entry{
+									Name: "module",
+								},
+							},
+						},
+						Dir: map[string]*yang.Entry{
+							"third-container": {
+								Name: "third-container",
+								Kind: yang.DirectoryEntry,
+								Parent: &yang.Entry{
+									Name: "case-two",
+									Kind: yang.CaseEntry,
+									Parent: &yang.Entry{
+										Name: "choice-node",
+										Kind: yang.ChoiceEntry,
+										Parent: &yang.Entry{
+											Name: "container",
+											Parent: &yang.Entry{
+												Name: "module",
+											},
+										},
+									},
+								},
+								Dir: map[string]*yang.Entry{
+									"config": {
+										Name: "config",
+										Kind: yang.DirectoryEntry,
+										Parent: &yang.Entry{
+											Name: "third-container",
+											Parent: &yang.Entry{
+												Name: "case-two",
+												Kind: yang.CaseEntry,
+												Parent: &yang.Entry{
+													Name: "choice-node",
+													Kind: yang.ChoiceEntry,
+													Parent: &yang.Entry{
+														Name: "container",
+														Parent: &yang.Entry{
+															Name: "module",
+														},
+													},
+												},
+											},
+										},
+										Dir: map[string]*yang.Entry{"leaf-two": {Name: "leaf-two", Type: &yang.YangType{Kind: yang.Yleafref}}},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
 	tests := []struct {
 		desc      string
 		inSchema  *yang.Entry
@@ -498,6 +629,54 @@ func TestFindLeafRefSchema(t *testing.T) {
 		inPathStr: "../foo",
 		wantEntry: &yang.Entry{
 			Name: "foo",
+			Type: &yang.YangType{Kind: yang.Ystring},
+		},
+	}, {
+		desc: "forward reference with choice and case statements that should be skipped",
+		inSchema: &yang.Entry{
+			Name: "module",
+			Dir: map[string]*yang.Entry{
+				"container": choiceContainer,
+			},
+		},
+		inPathStr: "/container/third-container/config/leaf-two",
+		wantEntry: &yang.Entry{
+			Name: "leaf-two",
+			Type: &yang.YangType{Kind: yang.Yleafref},
+		},
+	}, {
+		desc: "backwards and forwards reference within choice and case",
+		inSchema: &yang.Entry{
+			Name: "leaf-two",
+			Type: &yang.YangType{
+				Kind: yang.Yleafref,
+				Path: "../../../second-container/config/leaf-one",
+			},
+			Parent: &yang.Entry{
+				Name: "config",
+				Parent: &yang.Entry{
+					Name: "third-container",
+					Parent: &yang.Entry{
+						Name: "case-two",
+						Kind: yang.CaseEntry,
+						Parent: &yang.Entry{
+							Name: "choice-node",
+							Kind: yang.ChoiceEntry,
+							Parent: &yang.Entry{
+								Name: "container",
+								Parent: &yang.Entry{
+									Name: "module",
+								},
+								Dir: choiceContainer.Dir,
+							},
+						},
+					},
+				},
+			},
+		},
+		inPathStr: "../../../second-container/config/leaf-one",
+		wantEntry: &yang.Entry{
+			Name: "leaf-one",
 			Type: &yang.YangType{Kind: yang.Ystring},
 		},
 	}, {

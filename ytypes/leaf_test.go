@@ -644,6 +644,7 @@ func TestValidateLeafRef(t *testing.T) {
 	}
 	validContainerSchema.Dir = map[string]*yang.Entry{
 		"config": {
+			Name:   "config",
 			Parent: validContainerSchema,
 			Dir: map[string]*yang.Entry{
 				"leaf-type": {
@@ -1690,6 +1691,7 @@ func TestUnmarshalLeafRef(t *testing.T) {
 	}
 	containerSchema.Dir = map[string]*yang.Entry{
 		"config": {
+			Name:   "config",
 			Parent: containerSchema,
 			Dir: map[string]*yang.Entry{
 				"leaf-type": {
