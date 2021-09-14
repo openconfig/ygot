@@ -64,7 +64,7 @@ const (
 	// with the child constructor method for the keys.
 	BuilderKeyPrefix = "With"
 	// defaultFakeRootPkgName is the default name for the package that contains
-	// the fake root struct (if spliting by module is enabled).
+	// the fake root struct (if splitting by module is enabled).
 	defaultFakeRootPkgName = "device"
 )
 
@@ -180,7 +180,7 @@ type GenConfig struct {
 	// SplitByModule controls whether to generate a go package for each yang module.
 	SplitByModule bool
 	// FakeRootPackageName is the name of package that contains the fakeroot, only
-	// used when spliting generated code by yang module.
+	// used when splitting generated code by yang module.
 	FakeRootPackageName string
 	// TrimOCPackage controls whether to trim openconfig- from generated go package names.
 	TrimOCPackage bool
@@ -315,6 +315,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 		structSnippets = append(structSnippets, structSnippet...)
 	}
 
+	// Group snippets by package and compute their deps.
 	packages := map[string]*GeneratedPathCode{}
 	for _, snippet := range structSnippets {
 		if _, ok := packages[snippet.Package]; !ok {
@@ -342,10 +343,10 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 // packageNameReplacePattern matches all characters allowed in yang modules, but not go packages.
 var packageNameReplacePattern = regexp.MustCompile("[._-]")
 
-// GoPackageName returns the go package to use when generating code for the input Directory.
+// goPackageName returns the go package to use when generating code for the input Directory.
 // If splitByModule is false, the pkgName is always returned. Otherwise,
 // a transformed version of the module that the directory belongs to is returned.
-func GoPackageName(dir *ygen.Directory, splitByModule, trimOCPkg bool, pkgName, fakeRootPkgName string) string {
+func goPackageName(dir *ygen.Directory, splitByModule, trimOCPkg bool, pkgName, fakeRootPkgName string) string {
 	if !splitByModule {
 		return pkgName
 	}
@@ -825,7 +826,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 
 	goFieldNameMap := ygen.GoFieldNameMap(directory)
 	deps := map[string]bool{}
-	builders := map[string]*strings.Builder{}
+	listBuilderAPIBufs := map[string]*strings.Builder{}
 
 	// Generate child constructor snippets for all fields of the node.
 	// Alphabetically order fields to produce deterministic output.
@@ -836,7 +837,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 			continue
 		}
 		goFieldName := goFieldNameMap[fieldName]
-		childPkgAccessor := ""
+		var childPkgAccessor string
 
 		// The most common case is that list builder API is written to same package as the rest of the child methods.
 		buildBuf := &methodBuf
@@ -845,17 +846,17 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		// If it is, add that package as a dependency and set the accessor.
 		if ygen.IsFakeRoot(directory.Entry) {
 			if fieldDirectory := directories[field.Path()]; fieldDirectory != nil {
-				parentPackge := GoPackageName(directory, splitByModule, trimOCPkg, pkgName, fakeRootPkgName)
-				childPackage := GoPackageName(fieldDirectory, splitByModule, trimOCPkg, pkgName, fakeRootPkgName)
+				parentPackge := goPackageName(directory, splitByModule, trimOCPkg, pkgName, fakeRootPkgName)
+				childPackage := goPackageName(fieldDirectory, splitByModule, trimOCPkg, pkgName, fakeRootPkgName)
 				if parentPackge != childPackage {
 					deps[childPackage] = true
 					childPkgAccessor = childPackage + "."
 					// The fake root could be generating a list builder API for one of its children which is in another package.
 					// Write any list builders into the map, keyed by the child package name.
-					if _, ok := builders[childPackage]; !ok {
-						builders[childPackage] = &strings.Builder{}
+					if _, ok := listBuilderAPIBufs[childPackage]; !ok {
+						listBuilderAPIBufs[childPackage] = &strings.Builder{}
 					}
-					buildBuf = builders[childPackage]
+					buildBuf = listBuilderAPIBufs[childPackage]
 				}
 			}
 		}
@@ -894,14 +895,14 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		PathStructName:    structData.TypeName,
 		StructBase:        structBuf.String(),
 		ChildConstructors: methodBuf.String(),
-		Package:           GoPackageName(directory, splitByModule, trimOCPkg, pkgName, fakeRootPkgName),
+		Package:           goPackageName(directory, splitByModule, trimOCPkg, pkgName, fakeRootPkgName),
 	}
 	for dep := range deps {
 		snippet.Deps = append(snippet.Deps, dep)
 	}
 	snippets := []GoPathStructCodeSnippet{snippet}
 
-	for pkg, build := range builders {
+	for pkg, build := range listBuilderAPIBufs {
 		if code := build.String(); code != "" {
 			snippets = append(snippets, GoPathStructCodeSnippet{
 				PathStructName:    structData.TypeName,
@@ -916,7 +917,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 
 // generateChildConstructors generates and writes to methodBuf the Go methods
 // that returns an instantiation of the child node's path struct object.
-// When this is called on the fakeroot, the list Builer API methods need to be
+// When this is called on the fakeroot, the list Builder API methods need to be
 // in another package than the rest of the methods. In all other cases, methodBuf and
 // builderBuf can point to the same buffer.
 // The func takes as input the buffers to store the method, a directory, the field name
@@ -1005,7 +1006,7 @@ func generateChildConstructorsForLeafOrContainer(methodBuf *strings.Builder, fie
 // generateChildConstructorsForListBuilderFormat writes into methodBuf the
 // child constructor method snippets for the list represented by listAttr using
 // the builder API format. The builder API helpers are written into the builderBuf,
-// this allows the helpers to written to package the child belongs to, not the parent.
+// this allows the helpers to be written to package the child belongs to, not the parent.
 // fieldData contains the childConstructor template
 // output information for if the node were a container (which contains a subset
 // of the basic information required for the list constructor methods).

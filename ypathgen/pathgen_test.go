@@ -1071,6 +1071,14 @@ func TestGeneratePathCodeSplitModules(t *testing.T) {
 			"openconfigwithlist": "testdata/modules/oc-list/list.txt",
 			"device":             "testdata/modules/oc-list/device.txt",
 		},
+	}, {
+		name:    "oc import",
+		inFiles: []string{filepath.Join(datapath, "openconfig-import.yang")},
+		wantStructsCodeFiles: map[string]string{
+			"openconfigimport":       "testdata/modules/oc-import/import.txt",
+			"openconfigsimpletarget": "testdata/modules/oc-import/simpletarget.txt",
+			"device":                 "testdata/modules/oc-import/device.txt",
+		},
 	}}
 
 	for _, tt := range tests {
@@ -1084,7 +1092,6 @@ func TestGeneratePathCodeSplitModules(t *testing.T) {
 				cg.PreferOperationalState = true
 				cg.GenerateWildcardPaths = true
 				cg.SplitByModule = true
-				cg.InputModulesOnly = true
 				cg.BaseImportPath = "example.com"
 				cg.TrimOCPackage = tt.inTrimOCPath
 				cg.ListBuilderKeyThreshold = tt.inListBuilderKeyThreshold
@@ -3139,7 +3146,7 @@ func TestGenerateChildConstructor(t *testing.T) {
 		inSimplifyWildcardPaths   bool
 		inChildAccessor           string
 		wantMethod                string
-		wantBuilder               string
+		wantListBuilderAPI        string
 	}{{
 		name:                    "container method",
 		inDirectory:             directories["/root"],
@@ -3349,7 +3356,7 @@ func (n *ContainerPathAny) ListAny() *Container_ListPathAny {
 	}
 }
 `,
-		wantBuilder: `
+		wantListBuilderAPI: `
 // WithKey sets Container_ListPathAny's key "key" to the specified value.
 // Key: string
 func (n *Container_ListPathAny) WithKey(Key string) *Container_ListPathAny {
@@ -3480,7 +3487,7 @@ func (n *RootPath) ListAny() *ListPathAny {
 	}
 }
 `,
-		wantBuilder: `
+		wantListBuilderAPI: `
 // WithKey1 sets ListPathAny's key "key1" to the specified value.
 // Key1: string
 func (n *ListPathAny) WithKey1(Key1 string) *ListPathAny {
@@ -3516,7 +3523,7 @@ func (n *ListPathAny) WithUnionKey(UnionKey oc.RootModule_List_UnionKey_Union) *
 				diff, _ := testutil.GenerateUnifiedDiff(want, got)
 				t.Errorf("func generateChildConstructors methodBuf returned incorrect code, diff:\n%s", diff)
 			}
-			if got, want := builderBuf.String(), tt.wantBuilder; got != want {
+			if got, want := builderBuf.String(), tt.wantListBuilderAPI; got != want {
 				diff, _ := testutil.GenerateUnifiedDiff(want, got)
 				t.Errorf("func generateChildConstructors builderBuf returned incorrect code, diff:\n%s", diff)
 			}

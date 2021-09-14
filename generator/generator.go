@@ -102,7 +102,7 @@ var (
 	splitByModule           = flag.Bool("split_pathstructs_by_module", false, "Whether to split path struct generation by module.")
 	fakeRootPackageName     = flag.String("pathstruct_fakeroot_package_name", "", "Name for the fake root package, when spilting generation by module.")
 	trimOCPackage           = flag.Bool("trim_path_package_oc_prefix", false, "Whether to trim openconfig- from generated package names.")
-	baseImportPath          = flag.String("base_import_path", "", "Base import path used to concatenate with module package relative paths for path struct imports.")
+	baseImportPath          = flag.String("base_import_path", "", "Base import path used to concatenate with module package relative paths for path struct imports when split_pathstructs_by_module=true.")
 )
 
 // writeGoCodeSingleFile takes a ygen.GeneratedGoCode struct and writes the Go code
@@ -277,6 +277,9 @@ func main() {
 		if !*generateGoStructs && *schemaStructPath == "" {
 			log.Exitf("Error: need to provide schema_struct_path for import by path structs file(s) when schema structs are not being generated at the same time.")
 		}
+		if *splitByModule && *baseImportPath == "" {
+			log.Exitf("Error: when splitting path structs by module, base_import_path needs to be set.")
+		}
 	}
 
 	// Determine the set of paths that should be searched for included
@@ -448,8 +451,7 @@ func main() {
 			if err != nil {
 				log.Exitf("failed to create directory for package %q: %v", packageName, err)
 			}
-			path := filepath.Join(*outputDir, packageName, fmt.Sprintf("%s.go", packageName))
-			outfh := genutil.OpenFile(path)
+			outfh := genutil.OpenFile(filepath.Join(*outputDir, packageName, fmt.Sprintf("%s.go", packageName)))
 			defer genutil.SyncFile(outfh)
 			err = writeGoPathCodeSingleFile(outfh, code)
 			if err != nil {
