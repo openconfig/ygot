@@ -731,9 +731,11 @@ func writeHeader(yangFiles, includePaths []string, packageName string, cg *GenCo
 		PathStructInterfaceName: ygot.PathStructInterfaceName,
 		FakeRootTypeName:        yang.CamelCase(cg.FakeRootName),
 	}
+	// Create an ordered list of imports to include in the header.
 	for dep := range genCode.Deps {
 		s.ExtraImports = append(s.ExtraImports, fmt.Sprintf("%s/%s", cg.BaseImportPath, dep))
 	}
+	sort.Slice(s.ExtraImports, func(i, j int) bool { return s.ExtraImports[i] < s.ExtraImports[j] })
 
 	var common strings.Builder
 	if err := goPathCommonHeaderTemplate.Execute(&common, s); err != nil {
