@@ -8,7 +8,6 @@ syntax = "proto3";
 package openconfig.proto_test_e.bars;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
-import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
 // LluUnion represents the /proto-test-e/bars/bar/llu union field llu YANG schema element.
 message LluUnion {
