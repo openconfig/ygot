@@ -155,17 +155,17 @@ func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveP
 
 	switch args.yangType.Kind {
 	case yang.Yint8, yang.Yint16, yang.Yint32, yang.Yint64:
-		return &MappedType{NativeType: "ywrapper.IntValue"}, nil
+		return &MappedType{NativeType: ywrapperAccessor + "IntValue"}, nil
 	case yang.Yuint8, yang.Yuint16, yang.Yuint32, yang.Yuint64:
-		return &MappedType{NativeType: "ywrapper.UintValue"}, nil
+		return &MappedType{NativeType: ywrapperAccessor + "UintValue"}, nil
 	case yang.Ybinary:
-		return &MappedType{NativeType: "ywrapper.BytesValue"}, nil
+		return &MappedType{NativeType: ywrapperAccessor + "BytesValue"}, nil
 	case yang.Ybool, yang.Yempty:
-		return &MappedType{NativeType: "ywrapper.BoolValue"}, nil
+		return &MappedType{NativeType: ywrapperAccessor + "BoolValue"}, nil
 	case yang.Ystring:
-		return &MappedType{NativeType: "ywrapper.StringValue"}, nil
+		return &MappedType{NativeType: ywrapperAccessor + "StringValue"}, nil
 	case yang.Ydecimal64:
-		return &MappedType{NativeType: "ywrapper.Decimal64Value"}, nil
+		return &MappedType{NativeType: ywrapperAccessor + "Decimal64Value"}, nil
 	case yang.Yleafref:
 		// We look up the leafref in the schema tree to be able to
 		// determine what type to map to.
@@ -231,7 +231,7 @@ func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs re
 	case yang.Ydecimal64:
 		// Decimal64 continues to be a message even when we are mapping scalars
 		// as there is not an equivalent Protobuf type.
-		return &MappedType{NativeType: "ywrapper.Decimal64Value"}, nil
+		return &MappedType{NativeType: ywrapperAccessor + "Decimal64Value"}, nil
 	case yang.Yleafref:
 		target, err := s.schematree.resolveLeafrefTarget(args.yangType.Path, args.contextEntry)
 		if err != nil {
