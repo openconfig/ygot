@@ -436,7 +436,6 @@ func main() {
 		FakeRootPackageName:     *fakeRootPackageName,
 		SplitByModule:           *splitByModule,
 		BaseImportPath:          *baseImportPath,
-		InputModulesOnly:        *inputModulesOnly,
 	}
 
 	pathCode, _, errs := pcg.GeneratePathCode(generateModules, includePaths)
