@@ -12,7 +12,7 @@ package device
 
 import (
 	"github.com/openconfig/ygot/ygot"
-	"example.com/openconfigwithlist"
+	"example.com/openconfigwithlist_path"
 )
 
 // DevicePath represents the /device YANG schema element.
@@ -26,8 +26,8 @@ func DeviceRoot(id string) *DevicePath {
 }
 
 // Model returns from DevicePath the path struct for its child "model".
-func (n *DevicePath) Model() *openconfigwithlist.ModelPath {
-	return &openconfigwithlist.ModelPath{
+func (n *DevicePath) Model() *openconfigwithlist_path.ModelPath {
+	return &openconfigwithlist_path.ModelPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"model"},
 			map[string]interface{}{},

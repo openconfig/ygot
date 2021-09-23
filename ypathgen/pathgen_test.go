@@ -1052,32 +1052,32 @@ func TestGeneratePathCodeSplitModules(t *testing.T) {
 		name:    "oc simple",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		wantStructsCodeFiles: map[string]string{
-			"openconfigsimple": "testdata/modules/oc-simple/simple.txt",
-			"device":           "testdata/modules/oc-simple/device.txt",
+			"openconfigsimple_path": "testdata/modules/oc-simple/simple.txt",
+			"device":                "testdata/modules/oc-simple/device.txt",
 		},
 	}, {
 		name:         "oc simple and trim",
 		inFiles:      []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inTrimOCPath: true,
 		wantStructsCodeFiles: map[string]string{
-			"simple": "testdata/modules/oc-simple-trim/simple.txt",
-			"device": "testdata/modules/oc-simple-trim/device.txt",
+			"simple_path": "testdata/modules/oc-simple-trim/simple.txt",
+			"device":      "testdata/modules/oc-simple-trim/device.txt",
 		},
 	}, {
 		name:                      "oc list builder API",
 		inFiles:                   []string{filepath.Join(datapath, "openconfig-withlist.yang")},
 		inListBuilderKeyThreshold: 1,
 		wantStructsCodeFiles: map[string]string{
-			"openconfigwithlist": "testdata/modules/oc-list/list.txt",
-			"device":             "testdata/modules/oc-list/device.txt",
+			"openconfigwithlist_path": "testdata/modules/oc-list/list.txt",
+			"device":                  "testdata/modules/oc-list/device.txt",
 		},
 	}, {
 		name:    "oc import",
 		inFiles: []string{filepath.Join(datapath, "openconfig-import.yang")},
 		wantStructsCodeFiles: map[string]string{
-			"openconfigimport":       "testdata/modules/oc-import/import.txt",
-			"openconfigsimpletarget": "testdata/modules/oc-import/simpletarget.txt",
-			"device":                 "testdata/modules/oc-import/device.txt",
+			"openconfigimport_path":       "testdata/modules/oc-import/import.txt",
+			"openconfigsimpletarget_path": "testdata/modules/oc-import/simpletarget.txt",
+			"device":                      "testdata/modules/oc-import/device.txt",
 		},
 	}}
 

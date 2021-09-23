@@ -186,8 +186,6 @@ type GenConfig struct {
 	TrimOCPackage bool
 	// BaseImportPath is used to create to full import path of the generated go packages.
 	BaseImportPath string
-	// InputModulesOnly configures whether to generate code for yang modules in the searched paths.
-	InputModulesOnly bool
 }
 
 // GoImports contains package import options.
@@ -346,6 +344,8 @@ var packageNameReplacePattern = regexp.MustCompile("[._-]")
 // goPackageName returns the go package to use when generating code for the input Directory.
 // If splitByModule is false, the pkgName is always returned. Otherwise,
 // a transformed version of the module that the directory belongs to is returned.
+// If trimOCPkg is true, "openconfig-" is remove from the package name.
+// fakeRootPkgName is the name of the package that contains just the fake root path struct.
 func goPackageName(dir *ygen.Directory, splitByModule, trimOCPkg bool, pkgName, fakeRootPkgName string) string {
 	if !splitByModule {
 		return pkgName
@@ -359,7 +359,7 @@ func goPackageName(dir *ygen.Directory, splitByModule, trimOCPkg bool, pkgName, 
 	}
 
 	name = packageNameReplacePattern.ReplaceAllString(name, "")
-	return strings.ToLower(name)
+	return strings.ToLower(name) + "_path"
 }
 
 // GeneratedPathCode contains generated code snippets that can be processed by the calling
@@ -800,7 +800,9 @@ type goPathFieldData struct {
 // (container, list, leaf, or fakeroot), all of which have a corresponding
 // struct onto which to attach the necessary methods for path generation.
 // When generating code for the fakeroot, several structs may be returned,
-// one for snippet and one for list builder APIs in another package. Otherwise,
+// one package containing the fake root struct and one package for each of the
+// fake root's child lists that uses the builder API methods,
+// since they must be defined in their respective child packages. Otherwise,
 // the returned slice will only have a single struct containing the all the code.
 // The code comprises of the type definition for the struct, and all accessors to
 // the fields of the struct. directory is the parsed information of a schema
@@ -919,9 +921,9 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 
 // generateChildConstructors generates and writes to methodBuf the Go methods
 // that returns an instantiation of the child node's path struct object.
-// When this is called on the fakeroot, the list Builder API methods need to be
-// in another package than the rest of the methods. In all other cases, methodBuf and
-// builderBuf can point to the same buffer.
+// When this is called on the fakeroot, the list builder API's methods
+// need to be in the child package as opposed to the fakeroot's package.
+// In all other cases, methodBuf and builderBuf can point to the same buffer.
 // The func takes as input the buffers to store the method, a directory, the field name
 // of the directory identifying the child yang.Entry, a directory-level unique
 // field name to be used as the generated method's name and the incremental
