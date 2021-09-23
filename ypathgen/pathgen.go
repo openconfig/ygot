@@ -313,7 +313,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 		structSnippets = append(structSnippets, structSnippet...)
 	}
 
-	// Group snippets by package and compute their deps.
+	// Aggregate snippets by package and compute their deps.
 	packages := map[string]*GeneratedPathCode{}
 	for _, snippet := range structSnippets {
 		if _, ok := packages[snippet.Package]; !ok {
@@ -1010,8 +1010,8 @@ func generateChildConstructorsForLeafOrContainer(methodBuf *strings.Builder, fie
 // generateChildConstructorsForListBuilderFormat writes into methodBuf the
 // child constructor method snippets for the list represented by listAttr using
 // the builder API format. The builder API helpers are written into the builderBuf,
-// this allows the helpers to be written to package the child belongs to, not the parent.
-// fieldData contains the childConstructor template
+// this allows the helpers to be written to package the child belongs to, not the parent
+// if the child belongs in its own package. fieldData contains the childConstructor template
 // output information for if the node were a container (which contains a subset
 // of the basic information required for the list constructor methods).
 func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, builderBuf *strings.Builder, listAttr *ygen.YangListAttr, fieldData goPathFieldData, isUnderFakeRoot bool, schemaStructPkgAccessor string) []error {
