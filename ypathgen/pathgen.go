@@ -179,9 +179,6 @@ type GenConfig struct {
 	SimplifyWildcardPaths bool
 	// SplitByModule controls whether to generate a go package for each yang module.
 	SplitByModule bool
-	// FakeRootPackageName is the name of package that contains the fakeroot, only
-	// used when splitting generated code by yang module.
-	FakeRootPackageName string
 	// TrimOCPackage controls whether to trim openconfig- from generated go package names.
 	TrimOCPackage bool
 	// BaseImportPath is used to create to full import path of the generated go packages.
@@ -301,12 +298,8 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 		if cg.GenerateWildcardPaths {
 			listBuilderKeyThreshold = cg.ListBuilderKeyThreshold
 		}
-		fakeRootPkgName := defaultFakeRootPkgName
-		if cg.FakeRootPackageName != "" {
-			fakeRootPkgName = cg.FakeRootPackageName
-		}
 
-		structSnippet, es := generateDirectorySnippet(directory, directories, schemaStructPkgAccessor, cg.PathStructSuffix, listBuilderKeyThreshold, cg.GenerateWildcardPaths, cg.SimplifyWildcardPaths, cg.SplitByModule, cg.TrimOCPackage, cg.PackageName, fakeRootPkgName)
+		structSnippet, es := generateDirectorySnippet(directory, directories, schemaStructPkgAccessor, cg.PathStructSuffix, listBuilderKeyThreshold, cg.GenerateWildcardPaths, cg.SimplifyWildcardPaths, cg.SplitByModule, cg.TrimOCPackage, cg.PackageName)
 		if es != nil {
 			errs = util.AppendErrs(errs, es)
 		}
@@ -346,12 +339,9 @@ var packageNameReplacePattern = regexp.MustCompile("[._-]")
 // a transformed version of the module that the directory belongs to is returned.
 // If trimOCPkg is true, "openconfig-" is remove from the package name.
 // fakeRootPkgName is the name of the package that contains just the fake root path struct.
-func goPackageName(dir *ygen.Directory, splitByModule, trimOCPkg bool, pkgName, fakeRootPkgName string) string {
-	if !splitByModule {
+func goPackageName(dir *ygen.Directory, splitByModule, trimOCPkg bool, pkgName string) string {
+	if !splitByModule || ygen.IsFakeRoot(dir.Entry) {
 		return pkgName
-	}
-	if ygen.IsFakeRoot(dir.Entry) {
-		return fakeRootPkgName
 	}
 	name := util.SchemaTreeRoot(dir.Entry).Name
 	if trimOCPkg {
@@ -809,7 +799,7 @@ type goPathFieldData struct {
 // node, and directories is a map from path to a parsed schema node for all
 // nodes in the schema.
 func generateDirectorySnippet(directory *ygen.Directory, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint,
-	generateWildcardPaths, simplifyWildcardPaths, splitByModule, trimOCPkg bool, pkgName, fakeRootPkgName string) ([]GoPathStructCodeSnippet, util.Errors) {
+	generateWildcardPaths, simplifyWildcardPaths, splitByModule, trimOCPkg bool, pkgName string) ([]GoPathStructCodeSnippet, util.Errors) {
 
 	var errs util.Errors
 	// structBuf is used to store the code associated with the struct defined for
@@ -850,8 +840,8 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		// If it is, add that package as a dependency and set the accessor.
 		if ygen.IsFakeRoot(directory.Entry) {
 			if fieldDirectory := directories[field.Path()]; fieldDirectory != nil {
-				parentPackge := goPackageName(directory, splitByModule, trimOCPkg, pkgName, fakeRootPkgName)
-				childPackage := goPackageName(fieldDirectory, splitByModule, trimOCPkg, pkgName, fakeRootPkgName)
+				parentPackge := goPackageName(directory, splitByModule, trimOCPkg, pkgName)
+				childPackage := goPackageName(fieldDirectory, splitByModule, trimOCPkg, pkgName)
 				if parentPackge != childPackage {
 					deps[childPackage] = true
 					childPkgAccessor = childPackage + "."
@@ -899,7 +889,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		PathStructName:    structData.TypeName,
 		StructBase:        structBuf.String(),
 		ChildConstructors: methodBuf.String(),
-		Package:           goPackageName(directory, splitByModule, trimOCPkg, pkgName, fakeRootPkgName),
+		Package:           goPackageName(directory, splitByModule, trimOCPkg, pkgName),
 	}
 	for dep := range deps {
 		snippet.Deps = append(snippet.Deps, dep)

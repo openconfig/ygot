@@ -1093,6 +1093,7 @@ func TestGeneratePathCodeSplitModules(t *testing.T) {
 				// the unit tests are called by external test entities.
 				cg.GeneratingBinary = "pathgen-tests"
 				cg.FakeRootName = "device"
+				cg.PackageName = "device"
 				cg.PreferOperationalState = true
 				cg.GenerateWildcardPaths = true
 				cg.SplitByModule = true
@@ -1868,6 +1869,7 @@ func TestGenerateDirectorySnippet(t *testing.T) {
 		inDirectory: directories["/root-module/container-with-config"],
 		want: []GoPathStructCodeSnippet{{
 			PathStructName: "ContainerWithConfig",
+			Package:        "device",
 			StructBase: `
 // ContainerWithConfig represents the /root-module/container-with-config YANG schema element.
 type ContainerWithConfig struct {
@@ -1979,6 +1981,7 @@ func (n *ContainerWithConfigAny) Leaflist2() *ContainerWithConfig_Leaflist2Any {
 		}},
 		wantNoWildcard: []GoPathStructCodeSnippet{{
 			PathStructName: "ContainerWithConfig",
+			Package:        "device",
 			StructBase: `
 // ContainerWithConfig represents the /root-module/container-with-config YANG schema element.
 type ContainerWithConfig struct {
@@ -2041,6 +2044,7 @@ func (n *ContainerWithConfig) Leaflist2() *ContainerWithConfig_Leaflist2 {
 		inPathStructSuffix: "Path",
 		want: []GoPathStructCodeSnippet{{
 			PathStructName: "RootPath",
+			Package:        "device",
 			StructBase: `
 // RootPath represents the /root YANG schema element.
 type RootPath struct {
@@ -2143,6 +2147,7 @@ func (n *RootPath) ListWithState(Key float64) *ListWithStatePath {
 		}},
 		wantNoWildcard: []GoPathStructCodeSnippet{{
 			PathStructName: "RootPath",
+			Package:        "device",
 			StructBase: `
 // RootPath represents the /root YANG schema element.
 type RootPath struct {
@@ -2227,6 +2232,7 @@ func (n *RootPath) ListWithState(Key float64) *ListWithStatePath {
 		inDirectory: directories["/root-module/list-container/list"],
 		want: []GoPathStructCodeSnippet{{
 			PathStructName: "List",
+			Package:        "device",
 			StructBase: `
 // List represents the /root-module/list-container/list YANG schema element.
 type List struct {
@@ -2338,6 +2344,7 @@ func (n *ListAny) UnionKey() *List_UnionKeyAny {
 		}},
 		wantNoWildcard: []GoPathStructCodeSnippet{{
 			PathStructName: "List",
+			Package:        "device",
 			StructBase: `
 // List represents the /root-module/list-container/list YANG schema element.
 type List struct {
@@ -2970,7 +2977,7 @@ func (n *ListWithStatePathAny) WithKey(Key float64) *ListWithStatePathAny {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, true, false, tt.inSplitByModule, false, "", "device")
+			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, true, false, tt.inSplitByModule, false, "device")
 			if gotErr != nil {
 				t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
 			}
@@ -2981,7 +2988,7 @@ func (n *ListWithStatePathAny) WithKey(Key float64) *ListWithStatePathAny {
 		})
 
 		t.Run(tt.name+" no wildcard", func(t *testing.T) {
-			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, false, false, tt.inSplitByModule, false, "", "device")
+			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, false, false, tt.inSplitByModule, false, "device")
 			t.Log(got)
 			if gotErr != nil {
 				t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)

@@ -55,15 +55,15 @@ var (
 	generatePathStructs     = flag.Bool("generate_path_structs", false, "If true, then Go code for YANG path construction (path structs) will be generated.")
 	ocStructsOutputFile     = flag.String("output_file", "", "The file that the generated Go code for manipulating YANG data (schema/Go structs) should be written to. Specify \"-\" for stdout.")
 	structsFileN            = flag.Int("structs_split_files_count", 0, "The number of files to split the generated schema structs into when output_file is specified.")
-	ocPathStructsOutputFile = flag.String("path_structs_output_file", "", "The file that the generated Go code for YANG path construction (path structs) will be generated. Specify \"-\" for stdout.")
+	ocPathStructsOutputFile = flag.String("path_structs_output_file", "", "The file that the generated Go code for YANG path construction (path structs) will be generated. If split_pathstructs_by_module=true, this file contains the fake root path struct. Specify \"-\" for stdout.")
 	pathStructsFileN        = flag.Int("path_structs_split_files_count", 0, "The number of files to split the generated path structs into when output_file is specified for generating path structs")
-	outputDir               = flag.String("output_dir", "", "The directory that the generated Go code should be written to. This is common between schema structs and path structs.")
+	outputDir               = flag.String("output_dir", "", "The directory that the generated Go code should be written to. This is common between schema structs and path structs. For path struct generation, if split_pathstructs_by_module=true, this directory is the base of the generated module packages.")
 	compressPaths           = flag.Bool("compress_paths", false, "If set to true, the schema's paths are compressed, according to OpenConfig YANG module conventions. Path structs generation currently only supports compressed paths.")
 
 	// Common flags used for GoStruct and PathStruct generation.
 	yangPaths                            = flag.String("path", "", "Comma separated list of paths to be recursively searched for included modules or submodules within the defined YANG modules.")
 	excludeModules                       = flag.String("exclude_modules", "", "Comma separated set of module names that should be excluded from code generation this can be used to ensure overlapping namespaces can be ignored.")
-	packageName                          = flag.String("package_name", "ocstructs", "The name of the Go package that should be generated.")
+	packageName                          = flag.String("package_name", "ocstructs", "The name of the Go package that should be generated. For path struct generation, if split_pathstructs_by_module=true, this is the name of fake root package.")
 	ignoreCircDeps                       = flag.Bool("ignore_circdeps", false, "If set to true, circular dependencies between submodules are ignored.")
 	fakeRootName                         = flag.String("fakeroot_name", "", "The name of the fake root entity.")
 	excludeState                         = flag.Bool("exclude_state", false, "If set to true, state (config false) fields in the YANG schema are not included in the generated Go code.")
@@ -100,7 +100,6 @@ var (
 	listBuilderKeyThreshold = flag.Uint("list_builder_key_threshold", 0, "The threshold equal or over which the path structs' builder API is used for key population. 0 means infinity. This flag is only meaningful when wildcard paths are generated.")
 	pathStructSuffix        = flag.String("path_struct_suffix", "Path", "The suffix string appended to each generated path struct in order to differentiate their names from their corresponding schema struct names.")
 	splitByModule           = flag.Bool("split_pathstructs_by_module", false, "Whether to split path struct generation by module.")
-	fakeRootPackageName     = flag.String("pathstruct_fakeroot_package_name", "", "Name for the fake root package, when split_pathstructs_by_module=true.")
 	trimOCPackage           = flag.Bool("trim_path_package_oc_prefix", false, "Whether to trim openconfig- from generated package names, when split_pathstructs_by_module=true.")
 	baseImportPath          = flag.String("base_import_path", "", "Base import path used to concatenate with module package relative paths for path struct imports when split_pathstructs_by_module=true.")
 )
@@ -401,11 +400,14 @@ func main() {
 
 	generatePathStructsSingleFile := *ocPathStructsOutputFile != ""
 	generatePathStructsMultipleFiles := *outputDir != ""
-	if generatePathStructsSingleFile && generatePathStructsMultipleFiles {
-		log.Exitf("Error: cannot specify both path_structs_output_file (%s) and output_dir (%s)", *ocPathStructsOutputFile, *outputDir)
-	}
 	if !generatePathStructsSingleFile && !generatePathStructsMultipleFiles {
 		log.Exitf("Error: path struct generation requires a specified output file or directory.")
+	}
+	if !*splitByModule && generatePathStructsSingleFile && generatePathStructsMultipleFiles {
+		log.Exitf("Error: cannot specify both path_structs_output_file (%s) and output_dir (%s)", *ocPathStructsOutputFile, *outputDir)
+	}
+	if *splitByModule && (!generatePathStructsSingleFile || !generatePathStructsMultipleFiles) {
+		log.Exitf("Error: when splitting path structs by module, both output_dir and path_structs_output_file need to be set.")
 	}
 
 	// Perform the code generation.
@@ -433,7 +435,6 @@ func main() {
 		GenerateWildcardPaths:   *generateWildcardPaths,
 		SimplifyWildcardPaths:   *simplifyWildcardPaths,
 		TrimOCPackage:           *trimOCPackage,
-		FakeRootPackageName:     *fakeRootPackageName,
 		SplitByModule:           *splitByModule,
 		BaseImportPath:          *baseImportPath,
 	}
