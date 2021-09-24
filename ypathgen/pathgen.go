@@ -63,9 +63,6 @@ const (
 	// NOTE: This cannot be "", as the builder method name would conflict
 	// with the child constructor method for the keys.
 	BuilderKeyPrefix = "With"
-	// defaultFakeRootPkgName is the default name for the package that contains
-	// the fake root struct (if splitting by module is enabled).
-	defaultFakeRootPkgName = "device"
 )
 
 // NewDefaultConfig creates a GenConfig with default configuration.

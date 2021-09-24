@@ -1862,11 +1862,13 @@ func TestGenerateDirectorySnippet(t *testing.T) {
 		inListBuilderKeyThreshold uint
 		inPathStructSuffix        string
 		inSplitByModule           bool
+		inPackageName             string
 		want                      []GoPathStructCodeSnippet
 		wantNoWildcard            []GoPathStructCodeSnippet
 	}{{
-		name:        "container-with-config",
-		inDirectory: directories["/root-module/container-with-config"],
+		name:          "container-with-config",
+		inDirectory:   directories["/root-module/container-with-config"],
+		inPackageName: "device",
 		want: []GoPathStructCodeSnippet{{
 			PathStructName: "ContainerWithConfig",
 			Package:        "device",
@@ -2042,9 +2044,10 @@ func (n *ContainerWithConfig) Leaflist2() *ContainerWithConfig_Leaflist2 {
 		name:               "fakeroot",
 		inDirectory:        directories["/root"],
 		inPathStructSuffix: "Path",
+		inPackageName:      "ocpathstructs",
 		want: []GoPathStructCodeSnippet{{
 			PathStructName: "RootPath",
-			Package:        "device",
+			Package:        "ocpathstructs",
 			StructBase: `
 // RootPath represents the /root YANG schema element.
 type RootPath struct {
@@ -2147,7 +2150,7 @@ func (n *RootPath) ListWithState(Key float64) *ListWithStatePath {
 		}},
 		wantNoWildcard: []GoPathStructCodeSnippet{{
 			PathStructName: "RootPath",
-			Package:        "device",
+			Package:        "ocpathstructs",
 			StructBase: `
 // RootPath represents the /root YANG schema element.
 type RootPath struct {
@@ -2228,8 +2231,9 @@ func (n *RootPath) ListWithState(Key float64) *ListWithStatePath {
 `,
 		}},
 	}, {
-		name:        "list",
-		inDirectory: directories["/root-module/list-container/list"],
+		name:          "list",
+		inDirectory:   directories["/root-module/list-container/list"],
+		inPackageName: "device",
 		want: []GoPathStructCodeSnippet{{
 			PathStructName: "List",
 			Package:        "device",
@@ -2406,6 +2410,7 @@ func (n *List) UnionKey() *List_UnionKey {
 		inDirectory:        directories["/root"],
 		inPathStructSuffix: "Path",
 		inSplitByModule:    true,
+		inPackageName:      "device",
 		want: []GoPathStructCodeSnippet{{
 			PathStructName: "RootPath",
 			Package:        "device",
@@ -2712,6 +2717,7 @@ func (n *RootPath) ListWithState(Key float64) *rootmodule_path.ListWithStatePath
 		inDirectory:               directories["/root"],
 		inPathStructSuffix:        "Path",
 		inSplitByModule:           true,
+		inPackageName:             "device",
 		inListBuilderKeyThreshold: 1,
 		want: []GoPathStructCodeSnippet{{
 			Package:        "device",
@@ -2977,7 +2983,7 @@ func (n *ListWithStatePathAny) WithKey(Key float64) *ListWithStatePathAny {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, true, false, tt.inSplitByModule, false, "device")
+			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, true, false, tt.inSplitByModule, false, tt.inPackageName)
 			if gotErr != nil {
 				t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
 			}
@@ -2988,7 +2994,7 @@ func (n *ListWithStatePathAny) WithKey(Key float64) *ListWithStatePathAny {
 		})
 
 		t.Run(tt.name+" no wildcard", func(t *testing.T) {
-			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, false, false, tt.inSplitByModule, false, "device")
+			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, false, false, tt.inSplitByModule, false, tt.inPackageName)
 			t.Log(got)
 			if gotErr != nil {
 				t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
