@@ -447,6 +447,8 @@ func main() {
 	switch {
 	case *splitByModule:
 		for packageName, code := range pathCode {
+			// The fake root package is written to ocPathStructsOutputFile.
+			// All other packages are written to outdir/<package>.
 			path := *ocPathStructsOutputFile
 			if packageName != pcg.PackageName {
 				if err := os.MkdirAll(filepath.Join(*outputDir, packageName), 0755); err != nil {
