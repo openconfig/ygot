@@ -901,7 +901,6 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 				ChildConstructors: code,
 			})
 		}
-
 	}
 	return snippets, errs
 }
