@@ -454,7 +454,7 @@ func main() {
 				if err := os.MkdirAll(filepath.Join(*outputDir, packageName), 0755); err != nil {
 					log.Exitf("failed to create directory for package %q: %v", packageName, err)
 				}
-				filepath.Join(*outputDir, packageName, fmt.Sprintf("%s.go", packageName))
+				path = filepath.Join(*outputDir, packageName, fmt.Sprintf("%s.go", packageName))
 			}
 			outfh := genutil.OpenFile(path)
 			defer genutil.SyncFile(outfh)
