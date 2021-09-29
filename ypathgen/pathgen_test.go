@@ -87,7 +87,7 @@ func TestGeneratePathCode(t *testing.T) {
 				LocalGoTypeName:       "*Device",
 				SubsumingGoStructName: "Device",
 				YANGPath:              "/",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"ParentPath": {
 				GoTypeName:            "*Parent",
@@ -98,7 +98,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGPath:              "/openconfig-simple/parent",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_ChildPath": {
 				GoTypeName:            "*Parent_Child",
@@ -109,7 +109,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGPath:              "/openconfig-simple/parent/child",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_FourPath": {
 				GoTypeName:            "Binary",
@@ -121,7 +121,7 @@ func TestGeneratePathCode(t *testing.T) {
 				HasDefault:            false,
 				YANGTypeName:          "binary",
 				YANGPath:              "/openconfig-simple/parent/child/state/four",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_OnePath": {
 				GoTypeName:            "string",
@@ -133,7 +133,7 @@ func TestGeneratePathCode(t *testing.T) {
 				HasDefault:            false,
 				YANGTypeName:          "string",
 				YANGPath:              "/openconfig-simple/parent/child/state/one",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_ThreePath": {
 				GoTypeName:            "E_Child_Three",
@@ -145,7 +145,7 @@ func TestGeneratePathCode(t *testing.T) {
 				HasDefault:            false,
 				YANGTypeName:          "enumeration",
 				YANGPath:              "/openconfig-simple/parent/child/state/three",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_TwoPath": {
 				GoTypeName:            "string",
@@ -157,7 +157,7 @@ func TestGeneratePathCode(t *testing.T) {
 				HasDefault:            false,
 				YANGTypeName:          "string",
 				YANGPath:              "/openconfig-simple/parent/child/state/two",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"RemoteContainerPath": {
 				GoTypeName:            "*RemoteContainer",
@@ -168,7 +168,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGPath:              "/openconfig-simple/remote-container",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"RemoteContainer_ALeafPath": {
 				GoTypeName:            "string",
@@ -180,7 +180,7 @@ func TestGeneratePathCode(t *testing.T) {
 				HasDefault:            false,
 				YANGTypeName:          "string",
 				YANGPath:              "/openconfig-simple/remote-container/state/a-leaf",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			}},
 	}, {
 		name:                                   "simple openconfig test with preferOperationalState=false",
@@ -197,7 +197,7 @@ func TestGeneratePathCode(t *testing.T) {
 				LocalGoTypeName:       "*Device",
 				SubsumingGoStructName: "Device",
 				YANGPath:              "/",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"ParentPath": {
 				GoTypeName:            "*Parent",
@@ -207,7 +207,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_ChildPath": {
 				GoTypeName:            "*Parent_Child",
@@ -217,7 +217,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_FourPath": {
 				GoTypeName:            "Binary",
@@ -228,7 +228,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "binary",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_OnePath": {
 				GoTypeName:            "string",
@@ -239,7 +239,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         true,
 				HasDefault:            false,
 				YANGTypeName:          "string",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_ThreePath": {
 				GoTypeName:            "E_Child_Three",
@@ -250,7 +250,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "enumeration",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_TwoPath": {
 				GoTypeName:            "string",
@@ -261,7 +261,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         true,
 				HasDefault:            false,
 				YANGTypeName:          "string",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"RemoteContainerPath": {
 				GoTypeName:            "*RemoteContainer",
@@ -271,7 +271,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"RemoteContainer_ALeafPath": {
 				GoTypeName:            "string",
@@ -282,7 +282,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         true,
 				HasDefault:            false,
 				YANGTypeName:          "string",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			}},
 	}, {
 		name:                                   "simple openconfig test with excludeState=true",
@@ -300,7 +300,7 @@ func TestGeneratePathCode(t *testing.T) {
 				LocalGoTypeName:       "*Device",
 				SubsumingGoStructName: "Device",
 				YANGPath:              "/",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"ParentPath": {
 				GoTypeName:            "*Parent",
@@ -310,7 +310,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_ChildPath": {
 				GoTypeName:            "*Parent_Child",
@@ -320,7 +320,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_FourPath": {
 				GoTypeName:            "Binary",
@@ -331,7 +331,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "binary",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_OnePath": {
 				GoTypeName:            "string",
@@ -342,7 +342,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         true,
 				HasDefault:            false,
 				YANGTypeName:          "string",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_ThreePath": {
 				GoTypeName:            "E_Child_Three",
@@ -353,7 +353,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "enumeration",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"RemoteContainerPath": {
 				GoTypeName:            "*RemoteContainer",
@@ -363,7 +363,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"RemoteContainer_ALeafPath": {
 				GoTypeName:            "string",
@@ -374,7 +374,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         true,
 				HasDefault:            false,
 				YANGTypeName:          "string",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			}},
 	}, {
 		name:                                   "simple openconfig test with list",
@@ -444,7 +444,7 @@ func TestGeneratePathCode(t *testing.T) {
 				LocalGoTypeName:       "*Device",
 				SubsumingGoStructName: "Device",
 				YANGPath:              "/",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"DupEnumPath": {
 				GoTypeName:            "*DupEnum",
@@ -454,7 +454,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"DupEnum_APath": {
 				GoTypeName:            "E_DupEnum_A",
@@ -465,7 +465,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "enumeration",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"DupEnum_BPath": {
 				GoTypeName:            "E_DupEnum_B",
@@ -476,7 +476,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "enumeration",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"PlatformPath": {
 				GoTypeName:            "*Platform",
@@ -486,7 +486,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_ComponentPath": {
 				GoTypeName:            "*Platform_Component",
@@ -496,7 +496,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_Component_E1Path": {
 				GoTypeName:            "Platform_Component_E1_Union",
@@ -507,7 +507,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "enumtypedef",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_Component_EnumeratedPath": {
 				GoTypeName:            "Platform_Component_Enumerated_Union",
@@ -518,7 +518,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "enumerated-union-type",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_Component_PowerPath": {
 				GoTypeName:            "Platform_Component_Power_Union",
@@ -529,7 +529,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "union",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_Component_R1Path": {
 				GoTypeName:            "Platform_Component_E1_Union",
@@ -540,7 +540,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "leafref",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_Component_TypePath": {
 				GoTypeName:            "Platform_Component_Type_Union",
@@ -551,7 +551,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "union",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			}},
 	}, {
 		name:                     "simple openconfig test with union & typedef & identity & enum, with enum names not shortened",
@@ -567,7 +567,7 @@ func TestGeneratePathCode(t *testing.T) {
 				LocalGoTypeName:       "*Device",
 				SubsumingGoStructName: "Device",
 				YANGPath:              "/",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"DupEnumPath": {
 				GoTypeName:            "*DupEnum",
@@ -577,7 +577,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"DupEnum_APath": {
 				GoTypeName:            "E_OpenconfigUnione_DupEnum_A",
@@ -588,7 +588,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "enumeration",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"DupEnum_BPath": {
 				GoTypeName:            "E_OpenconfigUnione_DupEnum_B",
@@ -599,7 +599,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "enumeration",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"PlatformPath": {
 				GoTypeName:            "*Platform",
@@ -609,7 +609,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_ComponentPath": {
 				GoTypeName:            "*Platform_Component",
@@ -619,7 +619,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_Component_E1Path": {
 				GoTypeName:            "Platform_Component_E1_Union",
@@ -630,7 +630,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "enumtypedef",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_Component_EnumeratedPath": {
 				GoTypeName:            "Platform_Component_Enumerated_Union",
@@ -641,7 +641,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "enumerated-union-type",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_Component_PowerPath": {
 				GoTypeName:            "Platform_Component_Power_Union",
@@ -652,7 +652,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "union",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_Component_R1Path": {
 				GoTypeName:            "Platform_Component_E1_Union",
@@ -663,7 +663,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "leafref",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Platform_Component_TypePath": {
 				GoTypeName:            "Platform_Component_Type_Union",
@@ -674,7 +674,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "union",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			}},
 	}, {
 		name:                                   "simple openconfig test with submodule and union list key",
@@ -692,7 +692,7 @@ func TestGeneratePathCode(t *testing.T) {
 				LocalGoTypeName:       "*Device",
 				SubsumingGoStructName: "Device",
 				YANGPath:              "/",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"AListPath": {
 				GoTypeName:            "*AList",
@@ -702,7 +702,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"AList_ValuePath": {
 				GoTypeName:            "AList_Value_Union",
@@ -713,7 +713,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "td",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"BListPath": {
 				GoTypeName:            "*BList",
@@ -723,7 +723,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"BList_ValuePath": {
 				GoTypeName:            "BList_Value_Union",
@@ -734,7 +734,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "td",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"CPath": {
 				GoTypeName:            "*C",
@@ -744,7 +744,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"C_ClPath": {
 				GoTypeName:            "E_EnumModule_Cl",
@@ -755,7 +755,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "enumeration",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"ParentPath": {
 				GoTypeName:            "*Parent",
@@ -765,7 +765,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_ChildPath": {
 				GoTypeName:            "*Parent_Child",
@@ -775,7 +775,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_IdPath": {
 				GoTypeName:            "E_EnumTypes_ID",
@@ -786,7 +786,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "identityref",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_Id2Path": {
 				GoTypeName:            "E_EnumTypes_ID",
@@ -797,7 +797,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            true,
 				YANGTypeName:          "identityref",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_EnumPath": {
 				GoTypeName:            "E_EnumTypes_TdEnum",
@@ -808,7 +808,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            true,
 				YANGTypeName:          "td-enum",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Parent_Child_InlineEnumPath": {
 				GoTypeName:            "E_Child_InlineEnum",
@@ -819,7 +819,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            true,
 				YANGTypeName:          "enumeration",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			}},
 	}, {
 		name:                                   "simple openconfig test with choice and cases",
@@ -850,7 +850,7 @@ func TestGeneratePathCode(t *testing.T) {
 				LocalGoTypeName:       "*Device",
 				SubsumingGoStructName: "Device",
 				YANGPath:              "/",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Native": {
 				GoTypeName:            "*oc.Native",
@@ -860,7 +860,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Native_A": {
 				GoTypeName:            "string",
@@ -871,7 +871,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         true,
 				HasDefault:            false,
 				YANGTypeName:          "string",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Native_B": {
 				GoTypeName:            "string",
@@ -882,7 +882,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         true,
 				HasDefault:            false,
 				YANGTypeName:          "string",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Target": {
 				GoTypeName:            "*oc.Target",
@@ -892,7 +892,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Target_Foo": {
 				GoTypeName:            "*oc.Target_Foo",
@@ -902,7 +902,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			},
 			"Target_Foo_A": {
 				GoTypeName:            "string",
@@ -913,7 +913,7 @@ func TestGeneratePathCode(t *testing.T) {
 				IsScalarField:         true,
 				HasDefault:            false,
 				YANGTypeName:          "string",
-				GoPackage:             "ocpathstructs",
+				GoPathPackageName:     "ocpathstructs",
 			}},
 	}, {
 		name:                                   "simple openconfig test with camelcase-name extension",
@@ -1765,7 +1765,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "device",
+				GoPathPackageName:     "device",
 			},
 			"ContainerWithConfigPath": {
 				GoTypeName:            "*ContainerWithConfig",
@@ -1775,7 +1775,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "device",
+				GoPathPackageName:     "device",
 			},
 			"ContainerWithConfig_LeafPath": {
 				GoTypeName:            "Binary",
@@ -1785,7 +1785,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "rootmodule_path",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"ContainerWithConfig_LeaflistPath": {
 				GoTypeName:            "[]uint32",
@@ -1795,7 +1795,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "rootmodule_path",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"ContainerWithConfig_Leaflist2Path": {
 				GoTypeName:            "[]Binary",
@@ -1805,7 +1805,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "rootmodule_path",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"Container_LeafPath": {
 				GoTypeName:            "int32",
@@ -1816,7 +1816,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsScalarField:         true,
 				HasDefault:            true,
 				YANGTypeName:          "int32",
-				GoPackage:             "rootmodule_path",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"LeafPath": {
 				GoTypeName:            "Binary",
@@ -1827,7 +1827,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "ieeefloat32",
-				GoPackage:             "device",
+				GoPathPackageName:     "device",
 			},
 			"LeafWithDefaultPath": {
 				GoTypeName:            "string",
@@ -1838,7 +1838,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsScalarField:         true,
 				HasDefault:            true,
 				YANGTypeName:          "string",
-				GoPackage:             "device",
+				GoPathPackageName:     "device",
 			},
 			"ListPath": {
 				GoTypeName:            "*List",
@@ -1848,7 +1848,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "device",
+				GoPathPackageName:     "device",
 			},
 			"ListWithStatePath": {
 				GoTypeName:            "*ListWithState",
@@ -1858,7 +1858,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "device",
+				GoPathPackageName:     "device",
 			},
 			"ListWithState_KeyPath": {
 				GoTypeName:            "float64",
@@ -1868,7 +1868,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         true,
 				HasDefault:            false,
-				GoPackage:             "rootmodule_path",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"List_Key1Path": {
 				GoTypeName:            "string",
@@ -1878,7 +1878,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         true,
 				HasDefault:            false,
-				GoPackage:             "rootmodule_path",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"List_Key2Path": {
 				GoTypeName:            "Binary",
@@ -1888,7 +1888,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "rootmodule_path",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"List_UnionKeyPath": {
 				GoTypeName:            "RootModule_List_UnionKey_Union",
@@ -1898,7 +1898,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPackage:             "rootmodule_path",
+				GoPathPackageName:     "rootmodule_path",
 			}},
 		wantSorted: []string{
 			"ContainerPath",
