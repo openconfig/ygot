@@ -94,7 +94,7 @@ func (d *DeviceRootBase) PutCustomData(key string, val interface{}) {
 // ResolvePath is a helper which returns the resolved *gpb.Path of a PathStruct
 // node as well as the root node's customData.
 func ResolvePath(n PathStruct) (*gpb.Path, map[string]interface{}, []error) {
-	var p []*gpb.PathElem
+	p := []*gpb.PathElem{}
 	var errs []error
 	for ; n.parent() != nil; n = n.parent() {
 		rel, es := n.relPath()
