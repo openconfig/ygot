@@ -261,7 +261,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 	}
 
 	// Get NodeDataMap for the schema.
-	nodeDataMap, es := getNodeDataMap(directories, leafTypeMap, schemaStructPkgAccessor, cg.PathStructSuffix)
+	nodeDataMap, es := getNodeDataMap(directories, leafTypeMap, schemaStructPkgAccessor, cg.PathStructSuffix, cg.PackageName, cg.SplitByModule, cg.TrimOCPackage)
 	if es != nil {
 		errs = util.AppendErrs(errs, es)
 	}
@@ -288,6 +288,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 				HasDefault:            false,
 				YANGTypeName:          "",
 				YANGPath:              "/",
+				GoPathPackageName:     goPackageName(directory, cg.SplitByModule, cg.TrimOCPackage, cg.PackageName),
 			}
 		}
 
@@ -485,6 +486,8 @@ type NodeData struct {
 	YANGTypeName string
 	// YANGPath is the schema path of the YANG node.
 	YANGPath string
+	// GoPathPackageName is the Go package name containing the generated PathStruct for the schema node.
+	GoPathPackageName string
 }
 
 // GetOrderedNodeDataNames returns the alphabetically-sorted slice of keys
@@ -616,9 +619,11 @@ func mustTemplate(name, src string) *template.Template {
 // schema field names of that directory entry (i.e. the same keys as the
 // "Fields" map of the Directory entry). Since ygen provides a *MappedType for
 // every leaf node only, leafTypeMap's value is nil for non-leaf nodes.
+// packageName, splitByModule, and trimOCPackage are used to determine
+// the generated Go package name for the generated PathStructs.
 // If a directory or field doesn't exist in the leafTypeMap, then an error is returned.
 // Note: Top-level nodes, but *not* the fake root, are part of the output.
-func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[string]map[string]*ygen.MappedType, schemaStructPkgAccessor, pathStructSuffix string) (NodeDataMap, util.Errors) {
+func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[string]map[string]*ygen.MappedType, schemaStructPkgAccessor, pathStructSuffix, packageName string, splitByModule, trimOCPackage bool) (NodeDataMap, util.Errors) {
 	nodeDataMap := NodeDataMap{}
 	var errs util.Errors
 	for path, dir := range directories {
@@ -681,6 +686,7 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 				HasDefault:            isLeaf && (field.Default != "" || mType.DefaultValue != nil),
 				YANGTypeName:          yangTypeName,
 				YANGPath:              field.Path(),
+				GoPathPackageName:     goPackageName(dir, splitByModule, trimOCPackage, packageName),
 			}
 		}
 	}
