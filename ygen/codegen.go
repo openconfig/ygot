@@ -341,10 +341,12 @@ type GeneratedProto3 struct {
 
 // Proto3Package stores the code for a generated protobuf3 package.
 type Proto3Package struct {
-	FilePath []string // FilePath is the path to the file that this package should be written to.
-	Header   string   // Header is the header text to be used in the package.
-	Messages []string // Messages is a slice of strings containing the set of messages that are within the generated package.
-	Enums    []string // Enums is a slice of string containing the generated set of enumerations within the package.
+	FilePath           []string // FilePath is the path to the file that this package should be written to.
+	Header             string   // Header is the header text to be used in the package.
+	Messages           []string // Messages is a slice of strings containing the set of messages that are within the generated package.
+	Enums              []string // Enums is a slice of string containing the generated set of enumerations within the package.
+	UsesYwrapperImport bool     // UsesYwrapperImport indicates whether the ywrapper proto package is used within the generated package.
+	UsesYextImport     bool     // UsesYextImport indicates whether the yext proto package is used within the generated package.
 }
 
 const (
@@ -712,8 +714,9 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		sort.Strings(protoEnums)
 		fp := []string{basePackageName, enumPackageName, fmt.Sprintf("%s.proto", enumPackageName)}
 		genProto.Packages[fmt.Sprintf("%s.%s", basePackageName, enumPackageName)] = Proto3Package{
-			FilePath: fp,
-			Enums:    protoEnums,
+			FilePath:       fp,
+			Enums:          protoEnums,
+			UsesYextImport: cg.Config.ProtoOptions.AnnotateEnumNames,
 		}
 	}
 
@@ -765,6 +768,12 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			tp = genProto.Packages[genMsg.PackageName]
 		}
 		tp.Messages = append(tp.Messages, genMsg.MessageCode)
+		if genMsg.UsesYwrapperImport {
+			tp.UsesYwrapperImport = true
+		}
+		if genMsg.UsesYextImport {
+			tp.UsesYextImport = true
+		}
 		genProto.Packages[genMsg.PackageName] = tp
 	}
 
@@ -772,6 +781,14 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		var gpn string
 		if cg.Config.ProtoOptions.GoPackageBase != "" {
 			gpn = fmt.Sprintf("%s/%s", cg.Config.ProtoOptions.GoPackageBase, strings.ReplaceAll(n, ".", "/"))
+		}
+		ywrapperPath := ywrapperPath
+		if !pkg.UsesYwrapperImport {
+			ywrapperPath = ""
+		}
+		yextPath := yextPath
+		if !pkg.UsesYextImport {
+			yextPath = ""
 		}
 		h, err := writeProto3Header(proto3Header{
 			PackageName:            n,

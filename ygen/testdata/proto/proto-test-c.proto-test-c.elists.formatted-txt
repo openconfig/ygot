@@ -7,8 +7,6 @@ syntax = "proto3";
 
 package openconfig.proto_test_c.elists;
 
-import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
-import "github.com/openconfig/ygot/proto/yext/yext.proto";
 import "openconfig/proto_test_c/elists/elist/elist.proto";
 
 option go_package = "github.com/foo/baz/openconfig/proto_test_c/elists";
