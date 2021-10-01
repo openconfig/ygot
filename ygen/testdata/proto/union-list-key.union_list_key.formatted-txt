@@ -41,6 +41,7 @@ message Z {
     oneof ac {
       openconfig.enums.UnionListKeyEuEnum ac_unionlistkeyeuenum = 145862492;
       string ac_string = 248557068;
+      ywrapper.Decimal64Value ac_decimal64value = 402670801;
     }
   }
   message ZaKey {

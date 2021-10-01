@@ -7,8 +7,6 @@ syntax = "proto3";
 
 package openconfig.proto_anydata_test;
 
-import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
-import "github.com/openconfig/ygot/proto/yext/yext.proto";
 import "google/protobuf/any.proto";
 import "openconfig/proto_anydata_test/e/e.proto";
 
