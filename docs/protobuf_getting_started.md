@@ -142,7 +142,7 @@ This example walks through the generation of Protobuf files for the `openconfig-
 `ygot` has some external dependencies for the full Protobuf generation toolchain. Starting from a new Go environment, the following dependencies are required.
 
 * A copy of the `protoc` compiler (available from [github.com/google/protobuf](https://github.com/google/protobuf)) is required to build generated code for protobuf. `protoc` should be installed and available on the current environment's `PATH`.
-* If generating Go code, as per this example, the `proto-gen-go` plugin is required. This can be installed using `go get -u github.com/golang/protobuf/protoc-gen-go`.
+* If generating Go code, as per this example, the `protoc-gen-go` plugin is required. This can be installed using `go install google.golang.org/protobuf/cmd/protoc-gen-go@latest`. See https://developers.google.com/protocol-buffers/docs/reference/go-generated for more information.
 * A copy of the `ygot` `proto_generator` binary is required. Most simply, this can be installed through:
   * Retrieving ygot: `go get -u github.com/openconfig/ygot`
   * Installing ygot dependencies: `cd $GOPATH/src/github.com/openconfig/ygot && go get -t -d ./...`
@@ -153,6 +153,7 @@ After these dependencies are met, the following command generates the example pr
 go run $GOPATH/src/github.com/openconfig/ygot/proto_generator/protogenerator.go \
   -generate_fakeroot \
   -base_import_path="github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto" \
+  -go_package_base="github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto" \
   -path=yang -output_dir=ribproto \
   -package_name=openconfig -enum_package_name=enums \
   yang/rib/openconfig-rib-bgp.yang
@@ -162,6 +163,7 @@ In this command:
 
  * `-generate_fakeroot` creates a root level container `message` which contains all elements at the root. By default, this message is called `Device`. It can be renamed using the `fakeroot_name` command-line flag.
  * `-base_import_path` (as described above) specifies the import path that should be used in the generated protobufs. The path used in this example specifies the entire path from `$GOPATH/src`, since this will be the include path supplied to `protoc`.
+ * `-go_package_name` specifies the base name for the Go packages that are to be generated - this value is included in the `go_package` option of the generated protobufs, and has generated packages' names appended to it.
  * `-path` specifies the search path(s) that should be used to find dependencies of the input YANG modules. Multiple directories can be separated with a comma.
  * `-output_dir` specifies the directory into which the output files for the schema should be written.
  * `-package_name` (as described above) specifies the name of the top-level package that should be created for the output schema.
@@ -185,9 +187,9 @@ cd $GOPATH/src/github.com/openconfig/ygot/proto/ywrapper && go generate
 Finally, to generate the code for the the protobufs, generated we can simply loop:
 
 ```
-proto_imports=".:${GOPATH}/src/github.com/google/protobuf/src:${GOPATH}/src"
+proto_imports=".:${GOPATH}/src"
 find $GOPATH/src/github.com/openconfig/ygot/demo/protobuf_getting_started/ribproto -name "*.proto" | while read l; do
-  protoc -I=$proto_imports --go_out=. $l
+  protoc -I=$proto_imports --go_out=. --go_opt=paths=source_relative $l
 done
 ```
 

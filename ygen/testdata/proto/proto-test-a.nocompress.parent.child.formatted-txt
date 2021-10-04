@@ -8,7 +8,6 @@ syntax = "proto3";
 package openconfig.proto_test_a.parent.child;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
-import "github.com/openconfig/ygot/proto/yext/yext.proto";
 
 // Config represents the /proto-test-a/parent/child/config YANG schema element.
 message Config {

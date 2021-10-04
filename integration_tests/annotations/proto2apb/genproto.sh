@@ -14,9 +14,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-if [ -z ${SRCDIR} ]; then
-   DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-   SRCDIR=${DIR}/../..
-fi
-
-cd ${SRCDIR}/../../../../src && protoc --proto_path=. --go_out=:. github.com/openconfig/ygot/integration_tests/annotations/proto2apb/proto2apb.proto
+protoc --go_out=. --go_opt=paths=source_relative proto2apb.proto

@@ -7,8 +7,6 @@ syntax = "proto3";
 
 package openconfig.proto_test_e.animals;
 
-import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
-import "github.com/openconfig/ygot/proto/yext/yext.proto";
 import "openconfig/proto_test_e/animals/animal/animal.proto";
 
 // Animal represents the /proto-test-e/animals/animal YANG schema element.
