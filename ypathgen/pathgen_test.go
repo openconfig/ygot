@@ -1664,6 +1664,7 @@ func TestGetNodeDataMap(t *testing.T) {
 		name                      string
 		inDirectories             map[string]*ygen.Directory
 		inLeafTypeMap             map[string]map[string]*ygen.MappedType
+		inFakeRootName            string
 		inSchemaStructPkgAccessor string
 		inPathStructSuffix        string
 		inPackageName             string
@@ -1679,6 +1680,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				"leaf": leafTypeMap["/root-module/container"]["leaf"],
 			},
 		},
+		inFakeRootName:            "device",
 		inSchemaStructPkgAccessor: "struct.",
 		inPathStructSuffix:        "Path",
 		wantNodeDataMap: NodeDataMap{
@@ -1698,6 +1700,7 @@ func TestGetNodeDataMap(t *testing.T) {
 		name:                      "non-leaf and non-scalar leaf",
 		inDirectories:             directoryWithBinaryLeaf,
 		inLeafTypeMap:             leafTypeMap2,
+		inFakeRootName:            "device",
 		inSchemaStructPkgAccessor: "struct.",
 		inPathStructSuffix:        "_Path",
 		wantNodeDataMap: NodeDataMap{
@@ -1719,8 +1722,17 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 			},
+			"Root_Path": {
+				GoTypeName:            "*struct.Device",
+				LocalGoTypeName:       "*Device",
+				GoFieldName:           "",
+				SubsumingGoStructName: "Device",
+				IsLeaf:                false,
+				IsScalarField:         false,
+				HasDefault:            false,
+			},
 		},
-		wantSorted: []string{"Container_Leaf_Path", "Container_Path"},
+		wantSorted: []string{"Container_Leaf_Path", "Container_Path", "Root_Path"},
 	}, {
 		name:          "non-existent path",
 		inDirectories: map[string]*ygen.Directory{"/root-module/container": directories["/root-module/container"]},
@@ -1732,6 +1744,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				"leaf": {NativeType: "Binary"},
 			},
 		},
+		inFakeRootName:            "device",
 		inSchemaStructPkgAccessor: "oc.",
 		inPathStructSuffix:        "Path",
 		wantErrSubstrings:         []string{`path "/root-module/container" does not exist`},
@@ -1746,6 +1759,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				"laugh": leafTypeMap["/root-module/container"]["leaf"],
 			},
 		},
+		inFakeRootName:            "device",
 		inSchemaStructPkgAccessor: "oc.",
 		inPathStructSuffix:        "Path",
 		wantErrSubstrings:         []string{`field name "leaf" does not exist`},
@@ -1753,6 +1767,7 @@ func TestGetNodeDataMap(t *testing.T) {
 		name:               "big test with everything",
 		inDirectories:      directories,
 		inLeafTypeMap:      leafTypeMap,
+		inFakeRootName:     "root",
 		inPathStructSuffix: "Path",
 		inSplitByModule:    true,
 		inPackageName:      "device",
@@ -1765,7 +1780,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPathPackageName:     "device",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"ContainerWithConfigPath": {
 				GoTypeName:            "*ContainerWithConfig",
@@ -1775,7 +1790,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPathPackageName:     "device",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"ContainerWithConfig_LeafPath": {
 				GoTypeName:            "Binary",
@@ -1827,7 +1842,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				YANGTypeName:          "ieeefloat32",
-				GoPathPackageName:     "device",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"LeafWithDefaultPath": {
 				GoTypeName:            "string",
@@ -1838,7 +1853,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsScalarField:         true,
 				HasDefault:            true,
 				YANGTypeName:          "string",
-				GoPathPackageName:     "device",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"ListPath": {
 				GoTypeName:            "*List",
@@ -1848,7 +1863,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPathPackageName:     "device",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"ListWithStatePath": {
 				GoTypeName:            "*ListWithState",
@@ -1858,7 +1873,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-				GoPathPackageName:     "device",
+				GoPathPackageName:     "rootmodule_path",
 			},
 			"ListWithState_KeyPath": {
 				GoTypeName:            "float64",
@@ -1899,6 +1914,16 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				GoPathPackageName:     "rootmodule_path",
+			},
+			"RootPath": {
+				GoTypeName:            "*Root",
+				LocalGoTypeName:       "*Root",
+				GoFieldName:           "",
+				SubsumingGoStructName: "Root",
+				IsLeaf:                false,
+				IsScalarField:         false,
+				HasDefault:            false,
+				GoPathPackageName:     "device",
 			}},
 		wantSorted: []string{
 			"ContainerPath",
@@ -1915,12 +1940,13 @@ func TestGetNodeDataMap(t *testing.T) {
 			"List_Key1Path",
 			"List_Key2Path",
 			"List_UnionKeyPath",
+			"RootPath",
 		},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErrs := getNodeDataMap(tt.inDirectories, tt.inLeafTypeMap, tt.inSchemaStructPkgAccessor, tt.inPathStructSuffix, tt.inPackageName, tt.inSplitByModule, false)
+			got, gotErrs := getNodeDataMap(tt.inDirectories, tt.inLeafTypeMap, tt.inFakeRootName, tt.inSchemaStructPkgAccessor, tt.inPathStructSuffix, tt.inPackageName, tt.inSplitByModule, false)
 			// TODO(wenbli): Enhance gNMI's errdiff with checking a slice of substrings and use here.
 			var gotErrStrs []string
 			for _, err := range gotErrs {
