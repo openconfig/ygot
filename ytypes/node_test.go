@@ -2332,7 +2332,6 @@ func TestSetNode(t *testing.T) {
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("got %v\nwant %v", err, tt.wantErrSubstring)
 			}
-			// Test that the parent object isn't changed inappropriately.
 			if diff := cmp.Diff(tt.wantParent, tt.inParent); diff != "" {
 				t.Errorf("(-wantParent, +got):\n%s", diff)
 			}
