@@ -45,6 +45,9 @@ type retrieveNodeArgs struct {
 	// If modifyRoot is set to true, retrieveNode traverses the GoStruct
 	// and initialies nodes or inserting keys into maps if they do not exist.
 	modifyRoot bool
+	// initializeLeafs, if true, means that retrieveNode also initializes
+	// leafs when traversing the GoStruct.
+	initializeLeafs bool
 	// If val is set to a non-nil value, leaf/leaflist node corresponding
 	// to the given path is updated with this value.
 	val interface{}
@@ -159,7 +162,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 
 			// If args.modifyRoot is true, then initialize the field before possibly searching further.
 			if args.modifyRoot {
-				if err := util.InitializeStructField(root, ft.Name); err != nil {
+				if err := util.InitializeStructField(root, ft.Name, args.initializeLeafs); err != nil {
 					return nil, status.Errorf(codes.Unknown, "failed to initialize struct field %s in %T, child schema %v, path %v", ft.Name, root, cschema, path)
 				}
 			}
@@ -408,6 +411,7 @@ type GetOrCreateNodeOpt interface {
 func GetOrCreateNode(schema *yang.Entry, root interface{}, path *gpb.Path, opts ...GetOrCreateNodeOpt) (interface{}, *yang.Entry, error) {
 	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
 		modifyRoot:       true,
+		initializeLeafs:  true,
 		preferShadowPath: hasGetOrCreateNodePreferShadowPath(opts),
 	})
 	if err != nil {
