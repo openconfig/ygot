@@ -12,7 +12,7 @@ package device
 
 import (
 	"github.com/openconfig/ygot/ygot"
-	"example.com/simple_path"
+	"example.com/simplepath"
 )
 
 // DevicePath represents the /device YANG schema element.
@@ -26,8 +26,8 @@ func DeviceRoot(id string) *DevicePath {
 }
 
 // Parent returns from DevicePath the path struct for its child "parent".
-func (n *DevicePath) Parent() *simple_path.ParentPath {
-	return &simple_path.ParentPath{
+func (n *DevicePath) Parent() *simplepath.ParentPath {
+	return &simplepath.ParentPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"parent"},
 			map[string]interface{}{},
@@ -37,8 +37,8 @@ func (n *DevicePath) Parent() *simple_path.ParentPath {
 }
 
 // RemoteContainer returns from DevicePath the path struct for its child "remote-container".
-func (n *DevicePath) RemoteContainer() *simple_path.RemoteContainerPath {
-	return &simple_path.RemoteContainerPath{
+func (n *DevicePath) RemoteContainer() *simplepath.RemoteContainerPath {
+	return &simplepath.RemoteContainerPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"remote-container"},
 			map[string]interface{}{},

@@ -47,6 +47,8 @@ const (
 	// defaultPathStructSuffix is the default suffix for generated
 	// PathStructs to distinguish them from the generated GoStructs
 	defaultPathStructSuffix = "Path"
+	// defaultPackageSuffix is the default suffix for generated packages.
+	defaultPackageSuffix = "path"
 	// schemaStructPkgAlias is the package alias of the schema struct
 	// package when the path struct package is to be generated in a
 	// separate package.
@@ -71,7 +73,8 @@ const (
 // GoStructs package.
 func NewDefaultConfig(schemaStructPkgPath string) *GenConfig {
 	return &GenConfig{
-		PackageName: defaultPathPackageName,
+		PackageName:   defaultPathPackageName,
+		PackageSuffix: defaultPackageSuffix,
 		GoImports: GoImports{
 			SchemaStructPkgPath: schemaStructPkgPath,
 			YgotImportPath:      genutil.GoDefaultYgotImportPath,
@@ -180,6 +183,8 @@ type GenConfig struct {
 	TrimOCPackage bool
 	// BaseImportPath is used to create to full import path of the generated go packages.
 	BaseImportPath string
+	// PackageString is the string to apppend to the generated Go package names.
+	PackageSuffix string
 }
 
 // GoImports contains package import options.
@@ -261,7 +266,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 	}
 
 	// Get NodeDataMap for the schema.
-	nodeDataMap, es := getNodeDataMap(directories, leafTypeMap, cg.FakeRootName, schemaStructPkgAccessor, cg.PathStructSuffix, cg.PackageName, cg.SplitByModule, cg.TrimOCPackage)
+	nodeDataMap, es := getNodeDataMap(directories, leafTypeMap, cg.FakeRootName, schemaStructPkgAccessor, cg.PathStructSuffix, cg.PackageName, cg.PackageSuffix, cg.SplitByModule, cg.TrimOCPackage)
 	if es != nil {
 		errs = util.AppendErrs(errs, es)
 	}
@@ -280,7 +285,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 			listBuilderKeyThreshold = cg.ListBuilderKeyThreshold
 		}
 
-		structSnippet, es := generateDirectorySnippet(directory, directories, schemaStructPkgAccessor, cg.PathStructSuffix, listBuilderKeyThreshold, cg.GenerateWildcardPaths, cg.SimplifyWildcardPaths, cg.SplitByModule, cg.TrimOCPackage, cg.PackageName)
+		structSnippet, es := generateDirectorySnippet(directory, directories, schemaStructPkgAccessor, cg.PathStructSuffix, listBuilderKeyThreshold, cg.GenerateWildcardPaths, cg.SimplifyWildcardPaths, cg.SplitByModule, cg.TrimOCPackage, cg.PackageName, cg.PackageSuffix)
 		if es != nil {
 			errs = util.AppendErrs(errs, es)
 		}
@@ -320,7 +325,7 @@ var packageNameReplacePattern = regexp.MustCompile("[._-]")
 // a transformed version of the module that the directory belongs to is returned.
 // If trimOCPkg is true, "openconfig-" is remove from the package name.
 // fakeRootPkgName is the name of the package that contains just the fake root path struct.
-func goPackageName(entry *yang.Entry, splitByModule, trimOCPkg bool, pkgName string) string {
+func goPackageName(entry *yang.Entry, splitByModule, trimOCPkg bool, pkgName, pkgSuffix string) string {
 	if !splitByModule || ygen.IsFakeRoot(entry) {
 		return pkgName
 	}
@@ -330,7 +335,7 @@ func goPackageName(entry *yang.Entry, splitByModule, trimOCPkg bool, pkgName str
 	}
 
 	name = packageNameReplacePattern.ReplaceAllString(name, "")
-	return strings.ToLower(name) + "_path"
+	return strings.ToLower(name) + pkgSuffix
 }
 
 // GeneratedPathCode contains generated code snippets that can be processed by the calling
@@ -605,7 +610,7 @@ func mustTemplate(name, src string) *template.Template {
 // packageName, splitByModule, and trimOCPackage are used to determine
 // the generated Go package name for the generated PathStructs.
 // If a directory or field doesn't exist in the leafTypeMap, then an error is returned.
-func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[string]map[string]*ygen.MappedType, fakeRootName, schemaStructPkgAccessor, pathStructSuffix, packageName string, splitByModule, trimOCPackage bool) (NodeDataMap, util.Errors) {
+func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[string]map[string]*ygen.MappedType, fakeRootName, schemaStructPkgAccessor, pathStructSuffix, packageName, packageSuffix string, splitByModule, trimOCPackage bool) (NodeDataMap, util.Errors) {
 	nodeDataMap := NodeDataMap{}
 	var errs util.Errors
 	for path, dir := range directories {
@@ -622,7 +627,7 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 				HasDefault:            false,
 				YANGTypeName:          "",
 				YANGPath:              "/",
-				GoPathPackageName:     goPackageName(dir.Entry, splitByModule, trimOCPackage, packageName),
+				GoPathPackageName:     goPackageName(dir.Entry, splitByModule, trimOCPackage, packageName, packageSuffix),
 			}
 		}
 
@@ -685,7 +690,7 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 				HasDefault:            isLeaf && (field.Default != "" || mType.DefaultValue != nil),
 				YANGTypeName:          yangTypeName,
 				YANGPath:              field.Path(),
-				GoPathPackageName:     goPackageName(field, splitByModule, trimOCPackage, packageName),
+				GoPathPackageName:     goPackageName(field, splitByModule, trimOCPackage, packageName, packageSuffix),
 			}
 		}
 	}
@@ -801,7 +806,7 @@ type goPathFieldData struct {
 // node, and directories is a map from path to a parsed schema node for all
 // nodes in the schema.
 func generateDirectorySnippet(directory *ygen.Directory, directories map[string]*ygen.Directory, schemaStructPkgAccessor, pathStructSuffix string, listBuilderKeyThreshold uint,
-	generateWildcardPaths, simplifyWildcardPaths, splitByModule, trimOCPkg bool, pkgName string) ([]GoPathStructCodeSnippet, util.Errors) {
+	generateWildcardPaths, simplifyWildcardPaths, splitByModule, trimOCPkg bool, pkgName, pkgSuffix string) ([]GoPathStructCodeSnippet, util.Errors) {
 
 	var errs util.Errors
 	// structBuf is used to store the code associated with the struct defined for
@@ -842,8 +847,8 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		// If it is, add that package as a dependency and set the accessor.
 		if ygen.IsFakeRoot(directory.Entry) {
 			if fieldDirectory := directories[field.Path()]; fieldDirectory != nil {
-				parentPackge := goPackageName(directory.Entry, splitByModule, trimOCPkg, pkgName)
-				childPackage := goPackageName(field, splitByModule, trimOCPkg, pkgName)
+				parentPackge := goPackageName(directory.Entry, splitByModule, trimOCPkg, pkgName, pkgSuffix)
+				childPackage := goPackageName(field, splitByModule, trimOCPkg, pkgName, pkgSuffix)
 				if parentPackge != childPackage {
 					deps[childPackage] = true
 					childPkgAccessor = childPackage + "."
@@ -891,7 +896,7 @@ func generateDirectorySnippet(directory *ygen.Directory, directories map[string]
 		PathStructName:    structData.TypeName,
 		StructBase:        structBuf.String(),
 		ChildConstructors: methodBuf.String(),
-		Package:           goPackageName(directory.Entry, splitByModule, trimOCPkg, pkgName),
+		Package:           goPackageName(directory.Entry, splitByModule, trimOCPkg, pkgName, pkgSuffix),
 	}
 	for dep := range deps {
 		snippet.Deps = append(snippet.Deps, dep)
