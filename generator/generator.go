@@ -102,6 +102,7 @@ var (
 	splitByModule           = flag.Bool("split_pathstructs_by_module", false, "Whether to split path struct generation by module.")
 	trimOCPackage           = flag.Bool("trim_path_package_oc_prefix", false, "Whether to trim openconfig- from generated package names, when split_pathstructs_by_module=true.")
 	baseImportPath          = flag.String("base_import_path", "", "Base import path used to concatenate with module package relative paths for path struct imports when split_pathstructs_by_module=true.")
+	packageSuffix           = flag.String("path_struct_package_suffix", "path", "Suffix to append to generated Go package names, when split_pathstructs_by_module=true.")
 )
 
 // writeGoCodeSingleFile takes a ygen.GeneratedGoCode struct and writes the Go code
@@ -437,6 +438,7 @@ func main() {
 		TrimOCPackage:           *trimOCPackage,
 		SplitByModule:           *splitByModule,
 		BaseImportPath:          *baseImportPath,
+		PackageSuffix:           *packageSuffix,
 	}
 
 	pathCode, _, errs := pcg.GeneratePathCode(generateModules, includePaths)
