@@ -1,5 +1,5 @@
 /*
-Package ocpathstructs is a generated package which contains definitions
+Package ocstructs is a generated package which contains definitions
 of structs which generate gNMI paths for a YANG schema. The generated paths are
 based on a compressed form of the schema.
 
@@ -8,7 +8,7 @@ using the following YANG input files:
 	- ../testdata/modules/openconfig-simple.yang
 Imported modules were sourced from:
 */
-package ocpathstructs
+package ocstructs
 
 import (
 	"github.com/openconfig/ygot/ygot"
