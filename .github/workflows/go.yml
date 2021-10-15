@@ -104,6 +104,9 @@ jobs:
           done
 
           skipped=(
+            # GoStructs in a separate package, harder to set-up.
+            "openconfig-augmented.path-txt"
+            "openconfig-withlist-separate-package.path-txt"
           )
           for f in ypathgen/testdata/structs/*.path-txt; do
             if [[ ${skipped[@]} =~ $(basename $f) ]]; then

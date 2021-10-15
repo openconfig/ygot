@@ -1022,19 +1022,19 @@ func TestGeneratePathCodeSplitFiles(t *testing.T) {
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inFileNumber:          4,
 		inSchemaStructPkgPath: "github.com/openconfig/ygot/ypathgen/testdata/exampleoc",
-		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple-40.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-41.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-42.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-43.path-txt")},
+		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-40.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-41.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-42.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-43.path-txt")},
 	}, {
 		name:                  "fileNumber is just under the total number of structs",
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inFileNumber:          3,
 		inSchemaStructPkgPath: "",
-		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple-30.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-31.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-32.path-txt")},
+		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-30.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-31.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-32.path-txt")},
 	}, {
 		name:                  "fileNumber is half the total number of structs",
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inFileNumber:          2,
 		inSchemaStructPkgPath: "github.com/openconfig/ygot/ypathgen/testdata/exampleoc",
-		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/structs/openconfig-simple-0.path-txt"), filepath.Join(TestRoot, "testdata/structs/openconfig-simple-1.path-txt")},
+		wantStructsCodeFiles:  []string{filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-0.path-txt"), filepath.Join(TestRoot, "testdata/splitstructs/openconfig-simple-1.path-txt")},
 	}, {
 		name:                  "single file",
 		inFiles:               []string{filepath.Join(datapath, "openconfig-simple.yang")},
