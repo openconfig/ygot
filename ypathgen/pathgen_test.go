@@ -1482,130 +1482,6 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 	return schema, directories, leafTypeMap
 }
 
-// wantListMethodsNonWildcard is the expected non-wildcard child constructor
-// method for the test list node.
-const wantListMethodsNonWildcard = `
-// List returns from RootPath the path struct for its child "list".
-// Key1: string
-// Key2: oc.Binary
-// UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPath {
-	return &ListPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": Key1, "key2": Key2, "union-key": UnionKey},
-			n,
-		),
-	}
-}
-`
-
-const wantListMethodsWildcardCommon = `
-// ListAnyKey2AnyUnionKey returns from RootPath the path struct for its child "list".
-// Key1: string
-func (n *RootPath) ListAnyKey2AnyUnionKey(Key1 string) *ListPathAny {
-	return &ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": Key1, "key2": "*", "union-key": "*"},
-			n,
-		),
-	}
-}
-
-// ListAnyKey1AnyUnionKey returns from RootPath the path struct for its child "list".
-// Key2: oc.Binary
-func (n *RootPath) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListPathAny {
-	return &ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": "*", "key2": Key2, "union-key": "*"},
-			n,
-		),
-	}
-}
-
-// ListAnyUnionKey returns from RootPath the path struct for its child "list".
-// Key1: string
-// Key2: oc.Binary
-func (n *RootPath) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListPathAny {
-	return &ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": Key1, "key2": Key2, "union-key": "*"},
-			n,
-		),
-	}
-}
-
-// ListAnyKey1AnyKey2 returns from RootPath the path struct for its child "list".
-// UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
-	return &ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": "*", "key2": "*", "union-key": UnionKey},
-			n,
-		),
-	}
-}
-
-// ListAnyKey2 returns from RootPath the path struct for its child "list".
-// Key1: string
-// UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
-	return &ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": Key1, "key2": "*", "union-key": UnionKey},
-			n,
-		),
-	}
-}
-
-// ListAnyKey1 returns from RootPath the path struct for its child "list".
-// Key2: oc.Binary
-// UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
-	return &ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": "*", "key2": Key2, "union-key": UnionKey},
-			n,
-		),
-	}
-}
-`
-
-// wantListMethods is the expected child constructor methods for the test list node.
-const wantListMethods = `
-// ListAny returns from RootPath the path struct for its child "list".
-func (n *RootPath) ListAny() *ListPathAny {
-	return &ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": "*", "key2": "*", "union-key": "*"},
-			n,
-		),
-	}
-}
-` + wantListMethodsWildcardCommon + wantListMethodsNonWildcard
-
-// wantListMethodsSimplified is the expected child constructor methods for
-// the test list node when SimplifyWildcardPaths=true.
-const wantListMethodsSimplified = `
-// ListAny returns from RootPath the path struct for its child "list".
-func (n *RootPath) ListAny() *ListPathAny {
-	return &ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-` + wantListMethodsWildcardCommon + wantListMethodsNonWildcard
-
 func TestGetNodeDataMap(t *testing.T) {
 	_, directories, leafTypeMap := getSchemaAndDirs()
 
@@ -1967,6 +1843,286 @@ func TestGetNodeDataMap(t *testing.T) {
 	}
 }
 
+const (
+	// wantListMethodsNonWildcard is the expected non-wildcard child constructor
+	// method for the test list node.
+	wantListMethodsNonWildcard = `
+// List returns from RootPath the path struct for its child "list".
+// Key1: string
+// Key2: oc.Binary
+// UnionKey: [oc.UnionString, oc.Binary]
+func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPath {
+	return &ListPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key1": Key1, "key2": Key2, "union-key": UnionKey},
+			n,
+		),
+	}
+}
+`
+
+	wantListMethodsWildcardCommon = `
+// ListAnyKey2AnyUnionKey returns from RootPath the path struct for its child "list".
+// Key1: string
+func (n *RootPath) ListAnyKey2AnyUnionKey(Key1 string) *ListPathAny {
+	return &ListPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key1": Key1, "key2": "*", "union-key": "*"},
+			n,
+		),
+	}
+}
+
+// ListAnyKey1AnyUnionKey returns from RootPath the path struct for its child "list".
+// Key2: oc.Binary
+func (n *RootPath) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListPathAny {
+	return &ListPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key1": "*", "key2": Key2, "union-key": "*"},
+			n,
+		),
+	}
+}
+
+// ListAnyUnionKey returns from RootPath the path struct for its child "list".
+// Key1: string
+// Key2: oc.Binary
+func (n *RootPath) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListPathAny {
+	return &ListPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key1": Key1, "key2": Key2, "union-key": "*"},
+			n,
+		),
+	}
+}
+
+// ListAnyKey1AnyKey2 returns from RootPath the path struct for its child "list".
+// UnionKey: [oc.UnionString, oc.Binary]
+func (n *RootPath) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
+	return &ListPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key1": "*", "key2": "*", "union-key": UnionKey},
+			n,
+		),
+	}
+}
+
+// ListAnyKey2 returns from RootPath the path struct for its child "list".
+// Key1: string
+// UnionKey: [oc.UnionString, oc.Binary]
+func (n *RootPath) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
+	return &ListPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key1": Key1, "key2": "*", "union-key": UnionKey},
+			n,
+		),
+	}
+}
+
+// ListAnyKey1 returns from RootPath the path struct for its child "list".
+// Key2: oc.Binary
+// UnionKey: [oc.UnionString, oc.Binary]
+func (n *RootPath) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
+	return &ListPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key1": "*", "key2": Key2, "union-key": UnionKey},
+			n,
+		),
+	}
+}
+`
+
+	// wantListMethods is the expected child constructor methods for the test list node.
+	wantListMethods = `
+// ListAny returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAny() *ListPathAny {
+	return &ListPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{"key1": "*", "key2": "*", "union-key": "*"},
+			n,
+		),
+	}
+}
+` + wantListMethodsWildcardCommon + wantListMethodsNonWildcard
+
+	// wantListMethodsSimplified is the expected child constructor methods for
+	// the test list node when SimplifyWildcardPaths=true.
+	wantListMethodsSimplified = `
+// ListAny returns from RootPath the path struct for its child "list".
+func (n *RootPath) ListAny() *ListPathAny {
+	return &ListPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"list-container", "list"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+` + wantListMethodsWildcardCommon + wantListMethodsNonWildcard
+
+	// wantNonListMethods is the expected child constructor methods for
+	// non-list methods from the root.
+	wantNonListMethods = `
+// Container returns from RootPath the path struct for its child "container".
+func (n *RootPath) Container() *ContainerPath {
+	return &ContainerPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"container"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// ContainerWithConfig returns from RootPath the path struct for its child "container-with-config".
+func (n *RootPath) ContainerWithConfig() *ContainerWithConfigPath {
+	return &ContainerWithConfigPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"container-with-config"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Leaf returns from RootPath the path struct for its child "leaf".
+func (n *RootPath) Leaf() *LeafPath {
+	return &LeafPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"leaf"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// LeafWithDefault returns from RootPath the path struct for its child "leaf-with-default".
+func (n *RootPath) LeafWithDefault() *LeafWithDefaultPath {
+	return &LeafWithDefaultPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"leaf-with-default"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+`
+
+	// wantNonListMethodsSplitModule is the expected child constructor
+	// methods for non-list methods from the root with split modules.
+	wantNonListMethodsSplitModule = `
+// Container returns from RootPath the path struct for its child "container".
+func (n *RootPath) Container() *rootmodulepath.ContainerPath {
+	return &rootmodulepath.ContainerPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"container"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// ContainerWithConfig returns from RootPath the path struct for its child "container-with-config".
+func (n *RootPath) ContainerWithConfig() *rootmodulepath.ContainerWithConfigPath {
+	return &rootmodulepath.ContainerWithConfigPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"container-with-config"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Leaf returns from RootPath the path struct for its child "leaf".
+func (n *RootPath) Leaf() *LeafPath {
+	return &LeafPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"leaf"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// LeafWithDefault returns from RootPath the path struct for its child "leaf-with-default".
+func (n *RootPath) LeafWithDefault() *LeafWithDefaultPath {
+	return &LeafWithDefaultPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"leaf-with-default"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+`
+
+	// wantStructBaseFakeRootNWC is the expected structs for the root device
+	// when wildcards are disabled.
+	wantFakeRootStructsNWC = `
+// RootPath represents the /root YANG schema element.
+type RootPath struct {
+	*ygot.DeviceRootBase
+}
+
+// DeviceRoot returns a new path object from which YANG paths can be constructed.
+func DeviceRoot(id string) *RootPath {
+	return &RootPath{ygot.NewDeviceRootBase(id)}
+}
+
+// LeafPath represents the /root-module/leaf YANG schema element.
+type LeafPath struct {
+	*ygot.NodePath
+}
+
+// LeafWithDefaultPath represents the /root-module/leaf-with-default YANG schema element.
+type LeafWithDefaultPath struct {
+	*ygot.NodePath
+}
+`
+
+	// wantFakeRootStructsWC is the expected structs for the root device
+	// when wildcards are enabled.
+	wantFakeRootStructsWC = `
+// RootPath represents the /root YANG schema element.
+type RootPath struct {
+	*ygot.DeviceRootBase
+}
+
+// DeviceRoot returns a new path object from which YANG paths can be constructed.
+func DeviceRoot(id string) *RootPath {
+	return &RootPath{ygot.NewDeviceRootBase(id)}
+}
+
+// LeafPath represents the /root-module/leaf YANG schema element.
+type LeafPath struct {
+	*ygot.NodePath
+}
+
+// LeafPathAny represents the wildcard version of the /root-module/leaf YANG schema element.
+type LeafPathAny struct {
+	*ygot.NodePath
+}
+
+// LeafWithDefaultPath represents the /root-module/leaf-with-default YANG schema element.
+type LeafWithDefaultPath struct {
+	*ygot.NodePath
+}
+
+// LeafWithDefaultPathAny represents the wildcard version of the /root-module/leaf-with-default YANG schema element.
+type LeafWithDefaultPathAny struct {
+	*ygot.NodePath
+}
+`
+)
+
 func TestGenerateDirectorySnippet(t *testing.T) {
 	_, directories, _ := getSchemaAndDirs()
 
@@ -1978,8 +2134,10 @@ func TestGenerateDirectorySnippet(t *testing.T) {
 		inSplitByModule           bool
 		inPackageName             string
 		inPackageSuffix           string
-		want                      []GoPathStructCodeSnippet
-		wantNoWildcard            []GoPathStructCodeSnippet
+		// want may be omitted to skip testing.
+		want []GoPathStructCodeSnippet
+		// wantNoWildcard may be omitted to skip testing.
+		wantNoWildcard []GoPathStructCodeSnippet
 	}{{
 		name:            "container-with-config",
 		inDirectory:     directories["/root-module/container-with-config"],
@@ -2165,82 +2323,8 @@ func (n *ContainerWithConfig) Leaflist2() *ContainerWithConfig_Leaflist2 {
 		want: []GoPathStructCodeSnippet{{
 			PathStructName: "RootPath",
 			Package:        "ocpathstructs",
-			StructBase: `
-// RootPath represents the /root YANG schema element.
-type RootPath struct {
-	*ygot.DeviceRootBase
-}
-
-// DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *RootPath {
-	return &RootPath{ygot.NewDeviceRootBase(id)}
-}
-
-// LeafPath represents the /root-module/leaf YANG schema element.
-type LeafPath struct {
-	*ygot.NodePath
-}
-
-// LeafPathAny represents the wildcard version of the /root-module/leaf YANG schema element.
-type LeafPathAny struct {
-	*ygot.NodePath
-}
-
-// LeafWithDefaultPath represents the /root-module/leaf-with-default YANG schema element.
-type LeafWithDefaultPath struct {
-	*ygot.NodePath
-}
-
-// LeafWithDefaultPathAny represents the wildcard version of the /root-module/leaf-with-default YANG schema element.
-type LeafWithDefaultPathAny struct {
-	*ygot.NodePath
-}
-`,
-			ChildConstructors: `
-// Container returns from RootPath the path struct for its child "container".
-func (n *RootPath) Container() *ContainerPath {
-	return &ContainerPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// ContainerWithConfig returns from RootPath the path struct for its child "container-with-config".
-func (n *RootPath) ContainerWithConfig() *ContainerWithConfigPath {
-	return &ContainerWithConfigPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container-with-config"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// Leaf returns from RootPath the path struct for its child "leaf".
-func (n *RootPath) Leaf() *LeafPath {
-	return &LeafPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// LeafWithDefault returns from RootPath the path struct for its child "leaf-with-default".
-func (n *RootPath) LeafWithDefault() *LeafWithDefaultPath {
-	return &LeafWithDefaultPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf-with-default"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-` + wantListMethods + `
+			StructBase:     wantFakeRootStructsWC,
+			ChildConstructors: wantNonListMethods + wantListMethods + `
 // ListWithStateAny returns from RootPath the path struct for its child "list-with-state".
 func (n *RootPath) ListWithStateAny() *ListWithStatePathAny {
 	return &ListWithStatePathAny{
@@ -2268,72 +2352,8 @@ func (n *RootPath) ListWithState(Key float64) *ListWithStatePath {
 		wantNoWildcard: []GoPathStructCodeSnippet{{
 			PathStructName: "RootPath",
 			Package:        "ocpathstructs",
-			StructBase: `
-// RootPath represents the /root YANG schema element.
-type RootPath struct {
-	*ygot.DeviceRootBase
-}
-
-// DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *RootPath {
-	return &RootPath{ygot.NewDeviceRootBase(id)}
-}
-
-// LeafPath represents the /root-module/leaf YANG schema element.
-type LeafPath struct {
-	*ygot.NodePath
-}
-
-// LeafWithDefaultPath represents the /root-module/leaf-with-default YANG schema element.
-type LeafWithDefaultPath struct {
-	*ygot.NodePath
-}
-`,
-			ChildConstructors: `
-// Container returns from RootPath the path struct for its child "container".
-func (n *RootPath) Container() *ContainerPath {
-	return &ContainerPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// ContainerWithConfig returns from RootPath the path struct for its child "container-with-config".
-func (n *RootPath) ContainerWithConfig() *ContainerWithConfigPath {
-	return &ContainerWithConfigPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container-with-config"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// Leaf returns from RootPath the path struct for its child "leaf".
-func (n *RootPath) Leaf() *LeafPath {
-	return &LeafPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// LeafWithDefault returns from RootPath the path struct for its child "leaf-with-default".
-func (n *RootPath) LeafWithDefault() *LeafWithDefaultPath {
-	return &LeafWithDefaultPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf-with-default"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-` + wantListMethodsNonWildcard + `
+			StructBase:     wantFakeRootStructsNWC,
+			ChildConstructors: wantNonListMethods + wantListMethodsNonWildcard + `
 // ListWithState returns from RootPath the path struct for its child "list-with-state".
 // Key: float64
 func (n *RootPath) ListWithState(Key float64) *ListWithStatePath {
@@ -2530,280 +2550,12 @@ func (n *List) UnionKey() *List_UnionKey {
 		inSplitByModule:    true,
 		inPackageName:      "device",
 		inPackageSuffix:    "path",
-		want: []GoPathStructCodeSnippet{{
-			PathStructName: "RootPath",
-			Package:        "device",
-			Deps:           []string{"rootmodulepath"},
-			StructBase: `
-// RootPath represents the /root YANG schema element.
-type RootPath struct {
-	*ygot.DeviceRootBase
-}
-
-// DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *RootPath {
-	return &RootPath{ygot.NewDeviceRootBase(id)}
-}
-
-// LeafPath represents the /root-module/leaf YANG schema element.
-type LeafPath struct {
-	*ygot.NodePath
-}
-
-// LeafPathAny represents the wildcard version of the /root-module/leaf YANG schema element.
-type LeafPathAny struct {
-	*ygot.NodePath
-}
-
-// LeafWithDefaultPath represents the /root-module/leaf-with-default YANG schema element.
-type LeafWithDefaultPath struct {
-	*ygot.NodePath
-}
-
-// LeafWithDefaultPathAny represents the wildcard version of the /root-module/leaf-with-default YANG schema element.
-type LeafWithDefaultPathAny struct {
-	*ygot.NodePath
-}
-`,
-			ChildConstructors: `
-// Container returns from RootPath the path struct for its child "container".
-func (n *RootPath) Container() *rootmodulepath.ContainerPath {
-	return &rootmodulepath.ContainerPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// ContainerWithConfig returns from RootPath the path struct for its child "container-with-config".
-func (n *RootPath) ContainerWithConfig() *rootmodulepath.ContainerWithConfigPath {
-	return &rootmodulepath.ContainerWithConfigPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container-with-config"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// Leaf returns from RootPath the path struct for its child "leaf".
-func (n *RootPath) Leaf() *LeafPath {
-	return &LeafPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// LeafWithDefault returns from RootPath the path struct for its child "leaf-with-default".
-func (n *RootPath) LeafWithDefault() *LeafWithDefaultPath {
-	return &LeafWithDefaultPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf-with-default"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// ListAny returns from RootPath the path struct for its child "list".
-func (n *RootPath) ListAny() *rootmodulepath.ListPathAny {
-	return &rootmodulepath.ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": "*", "key2": "*", "union-key": "*"},
-			n,
-		),
-	}
-}
-
-// ListAnyKey2AnyUnionKey returns from RootPath the path struct for its child "list".
-// Key1: string
-func (n *RootPath) ListAnyKey2AnyUnionKey(Key1 string) *rootmodulepath.ListPathAny {
-	return &rootmodulepath.ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": Key1, "key2": "*", "union-key": "*"},
-			n,
-		),
-	}
-}
-
-// ListAnyKey1AnyUnionKey returns from RootPath the path struct for its child "list".
-// Key2: oc.Binary
-func (n *RootPath) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *rootmodulepath.ListPathAny {
-	return &rootmodulepath.ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": "*", "key2": Key2, "union-key": "*"},
-			n,
-		),
-	}
-}
-
-// ListAnyUnionKey returns from RootPath the path struct for its child "list".
-// Key1: string
-// Key2: oc.Binary
-func (n *RootPath) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *rootmodulepath.ListPathAny {
-	return &rootmodulepath.ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": Key1, "key2": Key2, "union-key": "*"},
-			n,
-		),
-	}
-}
-
-// ListAnyKey1AnyKey2 returns from RootPath the path struct for its child "list".
-// UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *rootmodulepath.ListPathAny {
-	return &rootmodulepath.ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": "*", "key2": "*", "union-key": UnionKey},
-			n,
-		),
-	}
-}
-
-// ListAnyKey2 returns from RootPath the path struct for its child "list".
-// Key1: string
-// UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Union) *rootmodulepath.ListPathAny {
-	return &rootmodulepath.ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": Key1, "key2": "*", "union-key": UnionKey},
-			n,
-		),
-	}
-}
-
-// ListAnyKey1 returns from RootPath the path struct for its child "list".
-// Key2: oc.Binary
-// UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *rootmodulepath.ListPathAny {
-	return &rootmodulepath.ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": "*", "key2": Key2, "union-key": UnionKey},
-			n,
-		),
-	}
-}
-
-// List returns from RootPath the path struct for its child "list".
-// Key1: string
-// Key2: oc.Binary
-// UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *rootmodulepath.ListPath {
-	return &rootmodulepath.ListPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": Key1, "key2": Key2, "union-key": UnionKey},
-			n,
-		),
-	}
-}
-
-// ListWithStateAny returns from RootPath the path struct for its child "list-with-state".
-func (n *RootPath) ListWithStateAny() *rootmodulepath.ListWithStatePathAny {
-	return &rootmodulepath.ListWithStatePathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container-with-state", "list-with-state"},
-			map[string]interface{}{"key": "*"},
-			n,
-		),
-	}
-}
-
-// ListWithState returns from RootPath the path struct for its child "list-with-state".
-// Key: float64
-func (n *RootPath) ListWithState(Key float64) *rootmodulepath.ListWithStatePath {
-	return &rootmodulepath.ListWithStatePath{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container-with-state", "list-with-state"},
-			map[string]interface{}{"key": Key},
-			n,
-		),
-	}
-}
-`,
-		}},
 		wantNoWildcard: []GoPathStructCodeSnippet{{
 			PathStructName: "RootPath",
 			Package:        "device",
 			Deps:           []string{"rootmodulepath"},
-			StructBase: `
-// RootPath represents the /root YANG schema element.
-type RootPath struct {
-	*ygot.DeviceRootBase
-}
-
-// DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *RootPath {
-	return &RootPath{ygot.NewDeviceRootBase(id)}
-}
-
-// LeafPath represents the /root-module/leaf YANG schema element.
-type LeafPath struct {
-	*ygot.NodePath
-}
-
-// LeafWithDefaultPath represents the /root-module/leaf-with-default YANG schema element.
-type LeafWithDefaultPath struct {
-	*ygot.NodePath
-}
-`,
-			ChildConstructors: `
-// Container returns from RootPath the path struct for its child "container".
-func (n *RootPath) Container() *rootmodulepath.ContainerPath {
-	return &rootmodulepath.ContainerPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// ContainerWithConfig returns from RootPath the path struct for its child "container-with-config".
-func (n *RootPath) ContainerWithConfig() *rootmodulepath.ContainerWithConfigPath {
-	return &rootmodulepath.ContainerWithConfigPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container-with-config"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// Leaf returns from RootPath the path struct for its child "leaf".
-func (n *RootPath) Leaf() *LeafPath {
-	return &LeafPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// LeafWithDefault returns from RootPath the path struct for its child "leaf-with-default".
-func (n *RootPath) LeafWithDefault() *LeafWithDefaultPath {
-	return &LeafWithDefaultPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf-with-default"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
+			StructBase:     wantFakeRootStructsNWC,
+			ChildConstructors: wantNonListMethodsSplitModule + `
 // List returns from RootPath the path struct for its child "list".
 // Key1: string
 // Key2: oc.Binary
@@ -2843,207 +2595,8 @@ func (n *RootPath) ListWithState(Key float64) *rootmodulepath.ListWithStatePath 
 			Package:        "device",
 			PathStructName: "RootPath",
 			Deps:           []string{"rootmodulepath"},
-			StructBase: `
-// RootPath represents the /root YANG schema element.
-type RootPath struct {
-	*ygot.DeviceRootBase
-}
-
-// DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *RootPath {
-	return &RootPath{ygot.NewDeviceRootBase(id)}
-}
-
-// LeafPath represents the /root-module/leaf YANG schema element.
-type LeafPath struct {
-	*ygot.NodePath
-}
-
-// LeafPathAny represents the wildcard version of the /root-module/leaf YANG schema element.
-type LeafPathAny struct {
-	*ygot.NodePath
-}
-
-// LeafWithDefaultPath represents the /root-module/leaf-with-default YANG schema element.
-type LeafWithDefaultPath struct {
-	*ygot.NodePath
-}
-
-// LeafWithDefaultPathAny represents the wildcard version of the /root-module/leaf-with-default YANG schema element.
-type LeafWithDefaultPathAny struct {
-	*ygot.NodePath
-}
-`,
-			ChildConstructors: `
-// Container returns from RootPath the path struct for its child "container".
-func (n *RootPath) Container() *rootmodulepath.ContainerPath {
-	return &rootmodulepath.ContainerPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// ContainerWithConfig returns from RootPath the path struct for its child "container-with-config".
-func (n *RootPath) ContainerWithConfig() *rootmodulepath.ContainerWithConfigPath {
-	return &rootmodulepath.ContainerWithConfigPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container-with-config"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// Leaf returns from RootPath the path struct for its child "leaf".
-func (n *RootPath) Leaf() *LeafPath {
-	return &LeafPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// LeafWithDefault returns from RootPath the path struct for its child "leaf-with-default".
-func (n *RootPath) LeafWithDefault() *LeafWithDefaultPath {
-	return &LeafWithDefaultPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf-with-default"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// ListAny returns from RootPath the path struct for its child "list".
-func (n *RootPath) ListAny() *rootmodulepath.ListPathAny {
-	return &rootmodulepath.ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key1": "*", "key2": "*", "union-key": "*"},
-			n,
-		),
-	}
-}
-
-// ListWithStateAny returns from RootPath the path struct for its child "list-with-state".
-func (n *RootPath) ListWithStateAny() *rootmodulepath.ListWithStatePathAny {
-	return &rootmodulepath.ListWithStatePathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container-with-state", "list-with-state"},
-			map[string]interface{}{"key": "*"},
-			n,
-		),
-	}
-}
-`,
-		}, {
-			PathStructName: "RootPath",
-			Package:        "rootmodulepath",
-			ChildConstructors: `
-// WithKey1 sets ListPathAny's key "key1" to the specified value.
-// Key1: string
-func (n *ListPathAny) WithKey1(Key1 string) *ListPathAny {
-	ygot.ModifyKey(n.NodePath, "key1", Key1)
-	return n
-}
-
-// WithKey2 sets ListPathAny's key "key2" to the specified value.
-// Key2: oc.Binary
-func (n *ListPathAny) WithKey2(Key2 oc.Binary) *ListPathAny {
-	ygot.ModifyKey(n.NodePath, "key2", Key2)
-	return n
-}
-
-// WithUnionKey sets ListPathAny's key "union-key" to the specified value.
-// UnionKey: [oc.UnionString, oc.Binary]
-func (n *ListPathAny) WithUnionKey(UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
-	ygot.ModifyKey(n.NodePath, "union-key", UnionKey)
-	return n
-}
-
-// WithKey sets ListWithStatePathAny's key "key" to the specified value.
-// Key: float64
-func (n *ListWithStatePathAny) WithKey(Key float64) *ListWithStatePathAny {
-	ygot.ModifyKey(n.NodePath, "key", Key)
-	return n
-}
-`,
-		}},
-		wantNoWildcard: []GoPathStructCodeSnippet{{
-			PathStructName: "RootPath",
-			Package:        "device",
-			Deps:           []string{"rootmodulepath"},
-			StructBase: `
-// RootPath represents the /root YANG schema element.
-type RootPath struct {
-	*ygot.DeviceRootBase
-}
-
-// DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *RootPath {
-	return &RootPath{ygot.NewDeviceRootBase(id)}
-}
-
-// LeafPath represents the /root-module/leaf YANG schema element.
-type LeafPath struct {
-	*ygot.NodePath
-}
-
-// LeafWithDefaultPath represents the /root-module/leaf-with-default YANG schema element.
-type LeafWithDefaultPath struct {
-	*ygot.NodePath
-}
-`,
-			ChildConstructors: `
-// Container returns from RootPath the path struct for its child "container".
-func (n *RootPath) Container() *rootmodulepath.ContainerPath {
-	return &rootmodulepath.ContainerPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// ContainerWithConfig returns from RootPath the path struct for its child "container-with-config".
-func (n *RootPath) ContainerWithConfig() *rootmodulepath.ContainerWithConfigPath {
-	return &rootmodulepath.ContainerWithConfigPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"container-with-config"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// Leaf returns from RootPath the path struct for its child "leaf".
-func (n *RootPath) Leaf() *LeafPath {
-	return &LeafPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// LeafWithDefault returns from RootPath the path struct for its child "leaf-with-default".
-func (n *RootPath) LeafWithDefault() *LeafWithDefaultPath {
-	return &LeafWithDefaultPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"leaf-with-default"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
+			StructBase:     wantFakeRootStructsWC,
+			ChildConstructors: wantNonListMethodsSplitModule + `
 // ListAny returns from RootPath the path struct for its child "list".
 func (n *RootPath) ListAny() *rootmodulepath.ListPathAny {
 	return &rootmodulepath.ListPathAny{
@@ -3102,28 +2655,32 @@ func (n *ListWithStatePathAny) WithKey(Key float64) *ListWithStatePathAny {
 	}}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, true, false, tt.inSplitByModule, false, tt.inPackageName, tt.inPackageSuffix)
-			if gotErr != nil {
-				t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
-			}
+		if tt.want != nil {
+			t.Run(tt.name, func(t *testing.T) {
+				got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, true, false, tt.inSplitByModule, false, tt.inPackageName, tt.inPackageSuffix)
+				if gotErr != nil {
+					t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
+				}
 
-			if diff := cmp.Diff(tt.want, got); diff != "" {
-				t.Errorf("func generateDirectorySnippet mismatch (-want, +got):\n%s", diff)
-			}
-		})
+				if diff := cmp.Diff(tt.want, got); diff != "" {
+					t.Errorf("func generateDirectorySnippet mismatch (-want, +got):\n%s", diff)
+				}
+			})
+		}
 
-		t.Run(tt.name+" no wildcard", func(t *testing.T) {
-			got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, false, false, tt.inSplitByModule, false, tt.inPackageName, tt.inPackageSuffix)
-			t.Log(got)
-			if gotErr != nil {
-				t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
-			}
+		if tt.wantNoWildcard != nil {
+			t.Run(tt.name+" no wildcard", func(t *testing.T) {
+				got, gotErr := generateDirectorySnippet(tt.inDirectory, directories, "oc.", tt.inPathStructSuffix, tt.inListBuilderKeyThreshold, false, false, tt.inSplitByModule, false, tt.inPackageName, tt.inPackageSuffix)
+				t.Log(got)
+				if gotErr != nil {
+					t.Fatalf("func generateDirectorySnippet, unexpected error: %v", gotErr)
+				}
 
-			if diff := cmp.Diff(tt.wantNoWildcard, got); diff != "" {
-				t.Errorf("func generateDirectorySnippet mismatch (-want, +got):\n%s", diff)
-			}
-		})
+				if diff := cmp.Diff(tt.wantNoWildcard, got); diff != "" {
+					t.Errorf("func generateDirectorySnippet mismatch (-want, +got):\n%s", diff)
+				}
+			})
+		}
 	}
 }
 
