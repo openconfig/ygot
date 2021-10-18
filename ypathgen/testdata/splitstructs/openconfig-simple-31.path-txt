@@ -1,5 +1,5 @@
 /*
-Package ocpathstructs is a generated package which contains definitions
+Package ocstructs is a generated package which contains definitions
 of structs which generate gNMI paths for a YANG schema. The generated paths are
 based on a compressed form of the schema.
 
@@ -8,75 +8,11 @@ using the following YANG input files:
 	- ../testdata/modules/openconfig-simple.yang
 Imported modules were sourced from:
 */
-package ocpathstructs
+package ocstructs
 
 import (
 	"github.com/openconfig/ygot/ygot"
 )
-
-// DevicePath represents the /device YANG schema element.
-type DevicePath struct {
-	*ygot.DeviceRootBase
-}
-
-// DeviceRoot returns a new path object from which YANG paths can be constructed.
-func DeviceRoot(id string) *DevicePath {
-	return &DevicePath{ygot.NewDeviceRootBase(id)}
-}
-
-// Parent returns from DevicePath the path struct for its child "parent".
-func (n *DevicePath) Parent() *ParentPath {
-	return &ParentPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"parent"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// RemoteContainer returns from DevicePath the path struct for its child "remote-container".
-func (n *DevicePath) RemoteContainer() *RemoteContainerPath {
-	return &RemoteContainerPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"remote-container"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// ParentPath represents the /openconfig-simple/parent YANG schema element.
-type ParentPath struct {
-	*ygot.NodePath
-}
-
-// ParentPathAny represents the wildcard version of the /openconfig-simple/parent YANG schema element.
-type ParentPathAny struct {
-	*ygot.NodePath
-}
-
-// Child returns from ParentPath the path struct for its child "child".
-func (n *ParentPath) Child() *Parent_ChildPath {
-	return &Parent_ChildPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"child"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-// Child returns from ParentPathAny the path struct for its child "child".
-func (n *ParentPathAny) Child() *Parent_ChildPathAny {
-	return &Parent_ChildPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"child"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
 
 // Parent_ChildPath represents the /openconfig-simple/parent/child YANG schema element.
 type Parent_ChildPath struct {
@@ -88,33 +24,43 @@ type Parent_ChildPathAny struct {
 	*ygot.NodePath
 }
 
-// Parent_Child_FourPath represents the /openconfig-simple/parent/child/config/four YANG schema element.
+// Parent_Child_FourPath represents the /openconfig-simple/parent/child/state/four YANG schema element.
 type Parent_Child_FourPath struct {
 	*ygot.NodePath
 }
 
-// Parent_Child_FourPathAny represents the wildcard version of the /openconfig-simple/parent/child/config/four YANG schema element.
+// Parent_Child_FourPathAny represents the wildcard version of the /openconfig-simple/parent/child/state/four YANG schema element.
 type Parent_Child_FourPathAny struct {
 	*ygot.NodePath
 }
 
-// Parent_Child_OnePath represents the /openconfig-simple/parent/child/config/one YANG schema element.
+// Parent_Child_OnePath represents the /openconfig-simple/parent/child/state/one YANG schema element.
 type Parent_Child_OnePath struct {
 	*ygot.NodePath
 }
 
-// Parent_Child_OnePathAny represents the wildcard version of the /openconfig-simple/parent/child/config/one YANG schema element.
+// Parent_Child_OnePathAny represents the wildcard version of the /openconfig-simple/parent/child/state/one YANG schema element.
 type Parent_Child_OnePathAny struct {
 	*ygot.NodePath
 }
 
-// Parent_Child_ThreePath represents the /openconfig-simple/parent/child/config/three YANG schema element.
+// Parent_Child_ThreePath represents the /openconfig-simple/parent/child/state/three YANG schema element.
 type Parent_Child_ThreePath struct {
 	*ygot.NodePath
 }
 
-// Parent_Child_ThreePathAny represents the wildcard version of the /openconfig-simple/parent/child/config/three YANG schema element.
+// Parent_Child_ThreePathAny represents the wildcard version of the /openconfig-simple/parent/child/state/three YANG schema element.
 type Parent_Child_ThreePathAny struct {
+	*ygot.NodePath
+}
+
+// Parent_Child_TwoPath represents the /openconfig-simple/parent/child/state/two YANG schema element.
+type Parent_Child_TwoPath struct {
+	*ygot.NodePath
+}
+
+// Parent_Child_TwoPathAny represents the wildcard version of the /openconfig-simple/parent/child/state/two YANG schema element.
+type Parent_Child_TwoPathAny struct {
 	*ygot.NodePath
 }
 
@@ -122,7 +68,7 @@ type Parent_Child_ThreePathAny struct {
 func (n *Parent_ChildPath) Four() *Parent_Child_FourPath {
 	return &Parent_Child_FourPath{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "four"},
+			[]string{"state", "four"},
 			map[string]interface{}{},
 			n,
 		),
@@ -133,7 +79,7 @@ func (n *Parent_ChildPath) Four() *Parent_Child_FourPath {
 func (n *Parent_ChildPathAny) Four() *Parent_Child_FourPathAny {
 	return &Parent_Child_FourPathAny{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "four"},
+			[]string{"state", "four"},
 			map[string]interface{}{},
 			n,
 		),
@@ -144,7 +90,7 @@ func (n *Parent_ChildPathAny) Four() *Parent_Child_FourPathAny {
 func (n *Parent_ChildPath) One() *Parent_Child_OnePath {
 	return &Parent_Child_OnePath{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "one"},
+			[]string{"state", "one"},
 			map[string]interface{}{},
 			n,
 		),
@@ -155,7 +101,7 @@ func (n *Parent_ChildPath) One() *Parent_Child_OnePath {
 func (n *Parent_ChildPathAny) One() *Parent_Child_OnePathAny {
 	return &Parent_Child_OnePathAny{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "one"},
+			[]string{"state", "one"},
 			map[string]interface{}{},
 			n,
 		),
@@ -166,7 +112,7 @@ func (n *Parent_ChildPathAny) One() *Parent_Child_OnePathAny {
 func (n *Parent_ChildPath) Three() *Parent_Child_ThreePath {
 	return &Parent_Child_ThreePath{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "three"},
+			[]string{"state", "three"},
 			map[string]interface{}{},
 			n,
 		),
@@ -177,7 +123,29 @@ func (n *Parent_ChildPath) Three() *Parent_Child_ThreePath {
 func (n *Parent_ChildPathAny) Three() *Parent_Child_ThreePathAny {
 	return &Parent_Child_ThreePathAny{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "three"},
+			[]string{"state", "three"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Two returns from Parent_ChildPath the path struct for its child "two".
+func (n *Parent_ChildPath) Two() *Parent_Child_TwoPath {
+	return &Parent_Child_TwoPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "two"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Two returns from Parent_ChildPathAny the path struct for its child "two".
+func (n *Parent_ChildPathAny) Two() *Parent_Child_TwoPathAny {
+	return &Parent_Child_TwoPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"state", "two"},
 			map[string]interface{}{},
 			n,
 		),
@@ -194,12 +162,12 @@ type RemoteContainerPathAny struct {
 	*ygot.NodePath
 }
 
-// RemoteContainer_ALeafPath represents the /openconfig-simple/remote-container/config/a-leaf YANG schema element.
+// RemoteContainer_ALeafPath represents the /openconfig-simple/remote-container/state/a-leaf YANG schema element.
 type RemoteContainer_ALeafPath struct {
 	*ygot.NodePath
 }
 
-// RemoteContainer_ALeafPathAny represents the wildcard version of the /openconfig-simple/remote-container/config/a-leaf YANG schema element.
+// RemoteContainer_ALeafPathAny represents the wildcard version of the /openconfig-simple/remote-container/state/a-leaf YANG schema element.
 type RemoteContainer_ALeafPathAny struct {
 	*ygot.NodePath
 }
@@ -208,7 +176,7 @@ type RemoteContainer_ALeafPathAny struct {
 func (n *RemoteContainerPath) ALeaf() *RemoteContainer_ALeafPath {
 	return &RemoteContainer_ALeafPath{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "a-leaf"},
+			[]string{"state", "a-leaf"},
 			map[string]interface{}{},
 			n,
 		),
@@ -219,7 +187,7 @@ func (n *RemoteContainerPath) ALeaf() *RemoteContainer_ALeafPath {
 func (n *RemoteContainerPathAny) ALeaf() *RemoteContainer_ALeafPathAny {
 	return &RemoteContainer_ALeafPathAny{
 		NodePath: ygot.NewNodePath(
-			[]string{"config", "a-leaf"},
+			[]string{"state", "a-leaf"},
 			map[string]interface{}{},
 			n,
 		),
