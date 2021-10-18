@@ -1969,7 +1969,7 @@ func (n *RootPath) ListAny() *ListPathAny {
 ` + wantListMethodsWildcardCommon + wantListMethodsNonWildcard
 
 	// wantNonListMethods is the expected child constructor methods for
-	// non-list methods from the root.
+	// non-list elements from the root.
 	wantNonListMethods = `
 // Container returns from RootPath the path struct for its child "container".
 func (n *RootPath) Container() *ContainerPath {
@@ -2017,7 +2017,7 @@ func (n *RootPath) LeafWithDefault() *LeafWithDefaultPath {
 `
 
 	// wantNonListMethodsSplitModule is the expected child constructor
-	// methods for non-list methods from the root with split modules.
+	// methods for non-list elements from the root with split modules.
 	wantNonListMethodsSplitModule = `
 // Container returns from RootPath the path struct for its child "container".
 func (n *RootPath) Container() *rootmodulepath.ContainerPath {
