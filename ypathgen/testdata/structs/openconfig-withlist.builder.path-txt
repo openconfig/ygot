@@ -1,5 +1,5 @@
 /*
-Package ocpathstructs is a generated package which contains definitions
+Package ocstructs is a generated package which contains definitions
 of structs which generate gNMI paths for a YANG schema. The generated paths are
 based on a compressed form of the schema.
 
@@ -8,7 +8,7 @@ using the following YANG input files:
 	- ../testdata/modules/openconfig-withlist.yang
 Imported modules were sourced from:
 */
-package ocpathstructs
+package ocstructs
 
 import (
 	"github.com/openconfig/ygot/ygot"
@@ -50,7 +50,7 @@ func (n *ModelPath) MultiKeyAny() *Model_MultiKeyPathAny {
 	return &Model_MultiKeyPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"b", "multi-key"},
-			map[string]interface{}{},
+			map[string]interface{}{"key1": "*", "key2": "*"},
 			n,
 		),
 	}
@@ -61,84 +61,24 @@ func (n *ModelPathAny) MultiKeyAny() *Model_MultiKeyPathAny {
 	return &Model_MultiKeyPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"b", "multi-key"},
-			map[string]interface{}{},
+			map[string]interface{}{"key1": "*", "key2": "*"},
 			n,
 		),
 	}
 }
 
-// MultiKeyAnyKey2 returns from ModelPath the path struct for its child "multi-key".
+// WithKey1 sets Model_MultiKeyPathAny's key "key1" to the specified value.
 // Key1: uint32
-func (n *ModelPath) MultiKeyAnyKey2(Key1 uint32) *Model_MultiKeyPathAny {
-	return &Model_MultiKeyPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"b", "multi-key"},
-			map[string]interface{}{"key1": Key1, "key2": "*"},
-			n,
-		),
-	}
+func (n *Model_MultiKeyPathAny) WithKey1(Key1 uint32) *Model_MultiKeyPathAny {
+	ygot.ModifyKey(n.NodePath, "key1", Key1)
+	return n
 }
 
-// MultiKeyAnyKey2 returns from ModelPathAny the path struct for its child "multi-key".
-// Key1: uint32
-func (n *ModelPathAny) MultiKeyAnyKey2(Key1 uint32) *Model_MultiKeyPathAny {
-	return &Model_MultiKeyPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"b", "multi-key"},
-			map[string]interface{}{"key1": Key1, "key2": "*"},
-			n,
-		),
-	}
-}
-
-// MultiKeyAnyKey1 returns from ModelPath the path struct for its child "multi-key".
+// WithKey2 sets Model_MultiKeyPathAny's key "key2" to the specified value.
 // Key2: uint64
-func (n *ModelPath) MultiKeyAnyKey1(Key2 uint64) *Model_MultiKeyPathAny {
-	return &Model_MultiKeyPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"b", "multi-key"},
-			map[string]interface{}{"key1": "*", "key2": Key2},
-			n,
-		),
-	}
-}
-
-// MultiKeyAnyKey1 returns from ModelPathAny the path struct for its child "multi-key".
-// Key2: uint64
-func (n *ModelPathAny) MultiKeyAnyKey1(Key2 uint64) *Model_MultiKeyPathAny {
-	return &Model_MultiKeyPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"b", "multi-key"},
-			map[string]interface{}{"key1": "*", "key2": Key2},
-			n,
-		),
-	}
-}
-
-// MultiKey returns from ModelPath the path struct for its child "multi-key".
-// Key1: uint32
-// Key2: uint64
-func (n *ModelPath) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKeyPath {
-	return &Model_MultiKeyPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"b", "multi-key"},
-			map[string]interface{}{"key1": Key1, "key2": Key2},
-			n,
-		),
-	}
-}
-
-// MultiKey returns from ModelPathAny the path struct for its child "multi-key".
-// Key1: uint32
-// Key2: uint64
-func (n *ModelPathAny) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKeyPathAny {
-	return &Model_MultiKeyPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"b", "multi-key"},
-			map[string]interface{}{"key1": Key1, "key2": Key2},
-			n,
-		),
-	}
+func (n *Model_MultiKeyPathAny) WithKey2(Key2 uint64) *Model_MultiKeyPathAny {
+	ygot.ModifyKey(n.NodePath, "key2", Key2)
+	return n
 }
 
 // SingleKeyAny returns from ModelPath the path struct for its child "single-key".
@@ -146,7 +86,7 @@ func (n *ModelPath) SingleKeyAny() *Model_SingleKeyPathAny {
 	return &Model_SingleKeyPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"a", "single-key"},
-			map[string]interface{}{},
+			map[string]interface{}{"key": "*"},
 			n,
 		),
 	}
@@ -157,7 +97,7 @@ func (n *ModelPathAny) SingleKeyAny() *Model_SingleKeyPathAny {
 	return &Model_SingleKeyPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"a", "single-key"},
-			map[string]interface{}{},
+			map[string]interface{}{"key": "*"},
 			n,
 		),
 	}
