@@ -43,8 +43,23 @@ func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 }
 
 // PathElemsEqual replaces the proto.Equal() check for PathElems.
+// Note: Use PathElemsEquivalent for wildcards.
+// If a.Key["foo"] == "*" and a.Key["foo"] == "bar" func returns false.
 // This significantly improves comparison speed.
 func PathElemsEqual(a, b *gpb.PathElem) bool {
+	return pathCompare(a, b, func(a, b string) bool { return (a != b) })
+}
+
+// PathElemsEqualWildcard checks if two PathElem are the same allowing for wildcard keys.
+// If a.Key["foo"] == "*" and a.Key["foo"] == "bar" func returns true.
+// This significantly improves comparison speed.
+func PathElemsEqualWildcard(a, b *gpb.PathElem) bool {
+	return pathCompare(a, b, func(a, b string) bool { return (a != "*" && b != "*" && a != b) })
+}
+
+// pathCompare checks if two PathElem are the same.
+// Use compareKeys to choose whether to allow equivalence for wildcard keys
+func pathCompare(a, b *gpb.PathElem, compareKeys func(a, b string) bool) bool {
 	// This check allows avoiding to deal with any null PathElems later on.
 	if a == nil || b == nil {
 		return a == nil && b == nil
@@ -58,7 +73,7 @@ func PathElemsEqual(a, b *gpb.PathElem) bool {
 	}
 
 	for k, v := range a.Key {
-		if vo, ok := b.Key[k]; !ok || vo != v {
+		if vo, ok := b.Key[k]; !ok || compareKeys(v, vo) {
 			return false
 		}
 	}
@@ -80,12 +95,30 @@ func PathElemSlicesEqual(a, b []*gpb.PathElem) bool {
 
 // PathMatchesPathElemPrefix checks whether prefix is a prefix of path. Both paths
 // must use the gNMI >=0.4.0 PathElem path format.
+// Note: Paths must match exactly, that is if path has a wildcard key,
+// then the same key must also be a wildcard in the prefix.
 func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
 	if len(path.GetElem()) < len(prefix.GetElem()) || path.Origin != prefix.Origin {
 		return false
 	}
 	for i, v := range prefix.Elem {
 		if !PathElemsEqual(v, path.GetElem()[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// PathMatchesWildcardPathElemPrefix checks whether prefix is a prefix of path.
+// Note: Path comparison is relaxed, if path has a wildcard key,
+// then the same key can be any value in the prefix.
+// Both paths must use the gNMI >=0.4.0 PathElem path format.
+func PathMatchesWildcardPathElemPrefix(path, prefix *gpb.Path) bool {
+	if len(path.GetElem()) < len(prefix.GetElem()) || path.Origin != prefix.Origin {
+		return false
+	}
+	for i, v := range prefix.Elem {
+		if !PathElemsEqualWildcard(v, path.GetElem()[i]) {
 			return false
 		}
 	}
