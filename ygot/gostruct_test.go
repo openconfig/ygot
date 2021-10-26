@@ -15,12 +15,13 @@ func addParents(e *yang.Entry) {
 	}
 }
 
-// revertConfig reverts all entries' Config fields to TSUnset.
-func revertConfig(e *yang.Entry) {
+// revertConfigAndAnnotation reverts all entries' Config fields to TSUnset and Annotations to empty.
+func revertConfigAndAnnotation(e *yang.Entry) {
 	e.Config = yang.TSUnset
 	for _, s := range e.Dir {
 		s.Config = yang.TSUnset
-		revertConfig(s)
+		s.Annotation = nil
+		revertConfigAndAnnotation(s)
 	}
 }
 
@@ -615,6 +616,69 @@ func TestPruneReadOnly(t *testing.T) {
 			},
 		},
 	}, {
+		desc: "random values are read-only, but some are compressed",
+		setupSchema: func() {
+			schema.Dir["string"].Config = yang.TSFalse
+			schema.Dir["string"].Annotation = map[string]interface{}{"foo-bar-baz": struct{}{}}
+			schema.Dir["child"].Dir["enum"].Config = yang.TSFalse
+			schema.Dir["child"].Dir["enum"].Annotation = map[string]interface{}{GoCompressedLeafAnnotation: struct{}{}}
+			schema.Dir["child"].Dir["grand-child"].Dir["string"].Config = yang.TSFalse
+			schema.Dir["child"].Dir["grand-child"].Dir["slice"].Config = yang.TSFalse
+			schema.Dir["child"].Dir["grand-child"].Dir["slice"].Annotation = map[string]interface{}{GoCompressedLeafAnnotation: struct{}{}}
+			schema.Dir["maps"].Dir["map"].Dir["string"].Config = yang.TSFalse
+			schema.Dir["maps"].Dir["map"].Dir["string"].Annotation = map[string]interface{}{GoCompressedLeafAnnotation: struct{}{}}
+			schema.Dir["maps"].Dir["map"].Dir["grand-child"].Dir["great-grand-child"].Config = yang.TSFalse
+		},
+		inStruct: &emptyBranchTestOne{
+			String: String("hello"), // read-only
+			Struct: &emptyBranchTestOneChild{
+				String:     String("hello"),
+				Enumerated: 42, // read-only but compressed
+				Struct: &emptyBranchTestOneGrandchild{
+					String: String("hello"),        // read-only
+					Slice:  []string{"one", "two"}, // read-only but compressed
+					Struct: &emptyBranchTestOneGreatGrandchild{
+						String: String("hello"),
+					},
+				},
+			},
+			StructMap: map[string]*emptyBranchTestOneChild{
+				"foo": &emptyBranchTestOneChild{
+					String:     String("hello"), // read-only but compressed
+					Enumerated: 42,
+					Struct: &emptyBranchTestOneGrandchild{
+						String: String("hello"),
+						Slice:  []string{"one", "two"},
+						Struct: &emptyBranchTestOneGreatGrandchild{ // read-only
+							String: String("hello"),
+						},
+					},
+				},
+			},
+		},
+		want: &emptyBranchTestOne{
+			Struct: &emptyBranchTestOneChild{
+				String:     String("hello"),
+				Enumerated: 42, // read-only but compressed
+				Struct: &emptyBranchTestOneGrandchild{
+					Slice: []string{"one", "two"}, // read-only but compressed
+					Struct: &emptyBranchTestOneGreatGrandchild{
+						String: String("hello"),
+					},
+				},
+			},
+			StructMap: map[string]*emptyBranchTestOneChild{
+				"foo": &emptyBranchTestOneChild{
+					String:     String("hello"), // read-only but compressed
+					Enumerated: 42,
+					Struct: &emptyBranchTestOneGrandchild{
+						String: String("hello"),
+						Slice:  []string{"one", "two"},
+					},
+				},
+			},
+		},
+	}, {
 		desc: "bad input with non-read-only inside read-only: the inner config values are ignored",
 		setupSchema: func() {
 			schema.Dir["child"].Config = yang.TSTrue
@@ -647,7 +711,7 @@ func TestPruneReadOnly(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			revertConfig(schema)
+			revertConfigAndAnnotation(schema)
 			tt.setupSchema()
 			err := PruneReadOnly(schema, tt.inStruct)
 			if (err != nil) != tt.wantErr {

@@ -161,6 +161,45 @@ func TestPruneReadOnly(t *testing.T) {
 	}
 }
 
+func TestPruneReadOnlyOpState(t *testing.T) {
+	configAndState := func() *opstateoc.Device {
+		d := &opstateoc.Device{}
+		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(opstateoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+		n := b.GetOrCreateNeighbor("192.0.2.1")
+		n.PeerAs = ygot.Uint32(29636)
+		n.PeerType = opstateoc.OpenconfigBgpTypes_PeerType_EXTERNAL
+		n.SessionState = opstateoc.OpenconfigBgp_Neighbor_SessionState_ESTABLISHED
+
+		i := d.GetOrCreateInterface("eth0")
+		i.Description = ygot.String("foo")
+		i.Mtu = ygot.Uint16(1500)
+		i.OperStatus = opstateoc.Interface_OperStatus_UP
+		i.Logical = ygot.Bool(false)
+		return d
+	}
+
+	configOnly := func() *opstateoc.Device {
+		d := &opstateoc.Device{}
+		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(opstateoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+		n := b.GetOrCreateNeighbor("192.0.2.1")
+		n.PeerAs = ygot.Uint32(29636)
+		n.PeerType = opstateoc.OpenconfigBgpTypes_PeerType_EXTERNAL
+
+		i := d.GetOrCreateInterface("eth0")
+		i.Description = ygot.String("foo")
+		i.Mtu = ygot.Uint16(1500)
+		return d
+	}
+
+	got, want := configAndState(), configOnly()
+	if err := ygot.PruneReadOnly(opstateoc.SchemaTree["Device"], got); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
+	}
+}
+
 // mustPath returns a string as a gNMI path, causing a panic if the string
 // is invalid.
 func mustPath(s string) *gnmipb.Path {
