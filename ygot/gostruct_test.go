@@ -174,7 +174,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String:     String("hello"),
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
@@ -205,7 +205,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String:     String("hello"),
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
@@ -232,7 +232,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String:     String("hello"),
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
@@ -262,7 +262,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String:     String("hello"),
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
@@ -324,7 +324,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String: String("hello"),
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
@@ -345,7 +345,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String: String("hello"),
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
@@ -372,7 +372,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String: String("hello"),
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
@@ -390,7 +390,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String: String("hello"),
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
@@ -413,7 +413,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
 						Slice:  []string{"one", "two"},
@@ -429,7 +429,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
 						Slice:  []string{"one", "two"},
@@ -451,7 +451,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
 						Slice:  []string{"one", "two"},
@@ -466,7 +466,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
 					},
@@ -493,7 +493,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{ // read-only
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String:     String("hello"),
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
@@ -532,7 +532,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{ // read-only
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String:     String("hello"),
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
@@ -583,7 +583,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String:     String("hello"), // read-only
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
@@ -606,7 +606,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
@@ -643,7 +643,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String:     String("hello"), // read-only but compressed
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
@@ -668,7 +668,7 @@ func TestPruneReadOnly(t *testing.T) {
 				},
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
-				"foo": &emptyBranchTestOneChild{
+				"foo": {
 					String:     String("hello"), // read-only but compressed
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
