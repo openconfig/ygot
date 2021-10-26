@@ -200,6 +200,40 @@ func TestPruneReadOnlyOpState(t *testing.T) {
 	}
 }
 
+func TestPruneUncompressed(t *testing.T) {
+	configAndState := func() *uexampleoc.Device {
+		d := &uexampleoc.Device{}
+
+		i := d.GetOrCreateInterfaces().GetOrCreateInterface("eth0")
+		c := i.GetOrCreateConfig()
+		c.Description = ygot.String("foo")
+		c.Mtu = ygot.Uint16(1500)
+		s := i.GetOrCreateState()
+		s.Mtu = ygot.Uint16(1500)
+		s.OperStatus = uexampleoc.OpenconfigInterfaces_Interfaces_Interface_State_OperStatus_UP
+		s.Logical = ygot.Bool(false)
+		return d
+	}
+
+	configOnly := func() *uexampleoc.Device {
+		d := &uexampleoc.Device{}
+
+		i := d.GetOrCreateInterfaces().GetOrCreateInterface("eth0")
+		c := i.GetOrCreateConfig()
+		c.Description = ygot.String("foo")
+		c.Mtu = ygot.Uint16(1500)
+		return d
+	}
+
+	got, want := configAndState(), configOnly()
+	if err := ygot.PruneReadOnly(uexampleoc.SchemaTree["Device"], got); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
+	}
+}
+
 // mustPath returns a string as a gNMI path, causing a panic if the string
 // is invalid.
 func mustPath(s string) *gnmipb.Path {
