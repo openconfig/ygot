@@ -47,19 +47,6 @@ func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 // If a.Key["foo"] == "*" and a.Key["foo"] == "bar" func returns false.
 // This significantly improves comparison speed.
 func PathElemsEqual(a, b *gpb.PathElem) bool {
-	return pathCompare(a, b, func(a, b string) bool { return (a != b) })
-}
-
-// PathElemsEqualWildcard checks if two PathElem are the same allowing for wildcard keys.
-// If a.Key["foo"] == "*" and a.Key["foo"] == "bar" func returns true.
-// This significantly improves comparison speed.
-func PathElemsEqualWildcard(a, b *gpb.PathElem) bool {
-	return pathCompare(a, b, func(a, b string) bool { return (a != "*" && b != "*" && a != b) })
-}
-
-// pathCompare checks if two PathElem are the same.
-// Use compareKeys to choose whether to allow equivalence for wildcard keys
-func pathCompare(a, b *gpb.PathElem, compareKeys func(a, b string) bool) bool {
 	// This check allows avoiding to deal with any null PathElems later on.
 	if a == nil || b == nil {
 		return a == nil && b == nil
@@ -68,12 +55,42 @@ func pathCompare(a, b *gpb.PathElem, compareKeys func(a, b string) bool) bool {
 	if a.Name != b.Name {
 		return false
 	}
+
 	if len(a.Key) != len(b.Key) {
 		return false
 	}
 
 	for k, v := range a.Key {
-		if vo, ok := b.Key[k]; !ok || compareKeys(v, vo) {
+		if vo, ok := b.Key[k]; !ok || v != vo {
+			return false
+		}
+	}
+	return true
+}
+
+// PathElemsEqualWildcard checks if two PathElem are the same allowing for wildcard keys.
+// If a.Key["foo"] == "*" and a.Key["foo"] == "bar" func returns true.
+// TODO: Multilevel wildcards ("...") not supported.
+// This significantly improves comparison speed.
+func PathElemsEqualWildcard(a, b *gpb.PathElem) bool {
+	// This check allows avoiding to deal with any null PathElems later on.
+	if a == nil || b == nil {
+		return a == nil && b == nil
+	}
+
+	if a.Name != "*" && b.Name != "*" && a.Name != b.Name {
+		return false
+	}
+	// Wildcard for lists can be specified by setting no keys.
+	if len(a.Key) == 0 || len(b.Key) == 0 {
+		return true
+	}
+	if len(a.Key) != len(b.Key) {
+		return false
+	}
+
+	for k, v := range a.Key {
+		if vo, ok := b.Key[k]; !ok || (v != "*" && vo != "*" && v != vo) {
 			return false
 		}
 	}
@@ -110,8 +127,9 @@ func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
 }
 
 // PathMatchesWildcardPathElemPrefix checks whether prefix is a prefix of path.
-// Note: Path comparison is relaxed, if path has a wildcard key,
-// then the same key can be any value in the prefix.
+// Note: Path comparison is relaxed, If either path or prefix has a wildcard value for a key,
+// then any key value in the corresponding path element matches.
+// TODO: Multilevel wildcards ("...") not supported.
 // Both paths must use the gNMI >=0.4.0 PathElem path format.
 func PathMatchesWildcardPathElemPrefix(path, prefix *gpb.Path) bool {
 	if len(path.GetElem()) < len(prefix.GetElem()) || path.Origin != prefix.Origin {

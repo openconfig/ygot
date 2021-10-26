@@ -370,6 +370,26 @@ func TestPathElemsEqualWildcard(t *testing.T) {
 		},
 		want: true,
 	}, {
+		desc: "equal names and left no keys",
+		lhs: &gpb.PathElem{
+			Name: "one",
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		want: true,
+	}, {
+		desc: "equal names and right no keys",
+		lhs: &gpb.PathElem{
+			Name: "one",
+			Key:  map[string]string{"two": "three", "four": "five"},
+		},
+		rhs: &gpb.PathElem{
+			Name: "one",
+		},
+		want: true,
+	}, {
 		desc: "names don't match",
 		lhs: &gpb.PathElem{
 			Name: "one",
@@ -677,6 +697,22 @@ func TestPathMatchesWildcardPathElemPrefix(t *testing.T) {
 			Elem: []*gpb.PathElem{{
 				Name: "one",
 				Key:  map[string]string{"two": "*"},
+			}, {
+				Name: "four",
+			}},
+		},
+		inPrefix: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid prefix with no keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
 			}, {
 				Name: "four",
 			}},
