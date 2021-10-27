@@ -70,6 +70,7 @@ func PathElemsEqual(a, b *gpb.PathElem) bool {
 
 // PathElemsEqualWildcard checks if two PathElem are the same allowing for wildcard keys.
 // If a.Key["foo"] == "*" and a.Key["foo"] == "bar" func returns true.
+// If a has no keys, it is to equal to b regardless of what keys b has and vice versa.
 // TODO: Multilevel wildcards ("...") not supported.
 // This significantly improves comparison speed.
 func PathElemsEqualWildcard(a, b *gpb.PathElem) bool {
