@@ -34,7 +34,11 @@ type AList_ValuePathAny struct {
 	*ygot.NodePath
 }
 
-// Value returns from AListPath the path struct for its child "value".
+// Value (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/value"
+// Path from root: "/enum-module/a-lists/a-list/state/value"
 func (n *AListPath) Value() *AList_ValuePath {
 	return &AList_ValuePath{
 		NodePath: ygot.NewNodePath(
@@ -45,7 +49,11 @@ func (n *AListPath) Value() *AList_ValuePath {
 	}
 }
 
-// Value returns from AListPathAny the path struct for its child "value".
+// Value (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/value"
+// Path from root: "/enum-module/a-lists/a-list/state/value"
 func (n *AListPathAny) Value() *AList_ValuePathAny {
 	return &AList_ValuePathAny{
 		NodePath: ygot.NewNodePath(
@@ -76,7 +84,11 @@ type BList_ValuePathAny struct {
 	*ygot.NodePath
 }
 
-// Value returns from BListPath the path struct for its child "value".
+// Value (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/value"
+// Path from root: "/enum-module/b-lists/b-list/state/value"
 func (n *BListPath) Value() *BList_ValuePath {
 	return &BList_ValuePath{
 		NodePath: ygot.NewNodePath(
@@ -87,7 +99,11 @@ func (n *BListPath) Value() *BList_ValuePath {
 	}
 }
 
-// Value returns from BListPathAny the path struct for its child "value".
+// Value (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/value"
+// Path from root: "/enum-module/b-lists/b-list/state/value"
 func (n *BListPathAny) Value() *BList_ValuePathAny {
 	return &BList_ValuePathAny{
 		NodePath: ygot.NewNodePath(
@@ -118,7 +134,11 @@ type C_ClPathAny struct {
 	*ygot.NodePath
 }
 
-// Cl returns from CPath the path struct for its child "cl".
+// Cl (leaf): 
+// ----------------------------------------
+// Defining module: "enum-submodule"
+// Path from parent: "cl"
+// Path from root: "/enum-module/c/cl"
 func (n *CPath) Cl() *C_ClPath {
 	return &C_ClPath{
 		NodePath: ygot.NewNodePath(
@@ -129,7 +149,11 @@ func (n *CPath) Cl() *C_ClPath {
 	}
 }
 
-// Cl returns from CPathAny the path struct for its child "cl".
+// Cl (leaf): 
+// ----------------------------------------
+// Defining module: "enum-submodule"
+// Path from parent: "cl"
+// Path from root: "/enum-module/c/cl"
 func (n *CPathAny) Cl() *C_ClPathAny {
 	return &C_ClPathAny{
 		NodePath: ygot.NewNodePath(
@@ -150,7 +174,12 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// AListAny returns from DevicePath the path struct for its child "a-list".
+// AListAny (list): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "a-lists/a-list"
+// Path from root: "/enum-module/a-lists/a-list"
+// Value (wildcarded): [UnionUint32, E_EnumTypes_Td_Enum]
 func (n *DevicePath) AListAny() *AListPathAny {
 	return &AListPathAny{
 		NodePath: ygot.NewNodePath(
@@ -161,7 +190,11 @@ func (n *DevicePath) AListAny() *AListPathAny {
 	}
 }
 
-// AList returns from DevicePath the path struct for its child "a-list".
+// AList (list): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "a-lists/a-list"
+// Path from root: "/enum-module/a-lists/a-list"
 // Value: [UnionUint32, E_EnumTypes_Td_Enum]
 func (n *DevicePath) AList(Value AList_Value_Union) *AListPath {
 	return &AListPath{
@@ -173,7 +206,12 @@ func (n *DevicePath) AList(Value AList_Value_Union) *AListPath {
 	}
 }
 
-// BListAny returns from DevicePath the path struct for its child "b-list".
+// BListAny (list): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "b-lists/b-list"
+// Path from root: "/enum-module/b-lists/b-list"
+// Value (wildcarded): [UnionUint32, E_EnumTypes_Td_Enum]
 func (n *DevicePath) BListAny() *BListPathAny {
 	return &BListPathAny{
 		NodePath: ygot.NewNodePath(
@@ -184,7 +222,11 @@ func (n *DevicePath) BListAny() *BListPathAny {
 	}
 }
 
-// BList returns from DevicePath the path struct for its child "b-list".
+// BList (list): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "b-lists/b-list"
+// Path from root: "/enum-module/b-lists/b-list"
 // Value: [UnionUint32, E_EnumTypes_Td_Enum]
 func (n *DevicePath) BList(Value BList_Value_Union) *BListPath {
 	return &BListPath{
@@ -196,7 +238,11 @@ func (n *DevicePath) BList(Value BList_Value_Union) *BListPath {
 	}
 }
 
-// C returns from DevicePath the path struct for its child "c".
+// C (container): 
+// ----------------------------------------
+// Defining module: "enum-submodule"
+// Path from parent: "c"
+// Path from root: "/enum-module/c"
 func (n *DevicePath) C() *CPath {
 	return &CPath{
 		NodePath: ygot.NewNodePath(
@@ -207,7 +253,11 @@ func (n *DevicePath) C() *CPath {
 	}
 }
 
-// Parent returns from DevicePath the path struct for its child "parent".
+// Parent (container): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "parent"
+// Path from root: "/enum-module/parent"
 func (n *DevicePath) Parent() *ParentPath {
 	return &ParentPath{
 		NodePath: ygot.NewNodePath(
@@ -228,7 +278,11 @@ type ParentPathAny struct {
 	*ygot.NodePath
 }
 
-// Child returns from ParentPath the path struct for its child "child".
+// Child (container): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "child"
+// Path from root: "/enum-module/parent/child"
 func (n *ParentPath) Child() *Parent_ChildPath {
 	return &Parent_ChildPath{
 		NodePath: ygot.NewNodePath(
@@ -239,7 +293,11 @@ func (n *ParentPath) Child() *Parent_ChildPath {
 	}
 }
 
-// Child returns from ParentPathAny the path struct for its child "child".
+// Child (container): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "child"
+// Path from root: "/enum-module/parent/child"
 func (n *ParentPathAny) Child() *Parent_ChildPathAny {
 	return &Parent_ChildPathAny{
 		NodePath: ygot.NewNodePath(
@@ -300,7 +358,11 @@ type Parent_Child_InlineEnumPathAny struct {
 	*ygot.NodePath
 }
 
-// Enum returns from Parent_ChildPath the path struct for its child "enum".
+// Enum (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/enum"
+// Path from root: "/enum-module/parent/child/state/enum"
 func (n *Parent_ChildPath) Enum() *Parent_Child_EnumPath {
 	return &Parent_Child_EnumPath{
 		NodePath: ygot.NewNodePath(
@@ -311,7 +373,11 @@ func (n *Parent_ChildPath) Enum() *Parent_Child_EnumPath {
 	}
 }
 
-// Enum returns from Parent_ChildPathAny the path struct for its child "enum".
+// Enum (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/enum"
+// Path from root: "/enum-module/parent/child/state/enum"
 func (n *Parent_ChildPathAny) Enum() *Parent_Child_EnumPathAny {
 	return &Parent_Child_EnumPathAny{
 		NodePath: ygot.NewNodePath(
@@ -322,7 +388,11 @@ func (n *Parent_ChildPathAny) Enum() *Parent_Child_EnumPathAny {
 	}
 }
 
-// Id returns from Parent_ChildPath the path struct for its child "id".
+// Id (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/id"
+// Path from root: "/enum-module/parent/child/state/id"
 func (n *Parent_ChildPath) Id() *Parent_Child_IdPath {
 	return &Parent_Child_IdPath{
 		NodePath: ygot.NewNodePath(
@@ -333,7 +403,11 @@ func (n *Parent_ChildPath) Id() *Parent_Child_IdPath {
 	}
 }
 
-// Id returns from Parent_ChildPathAny the path struct for its child "id".
+// Id (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/id"
+// Path from root: "/enum-module/parent/child/state/id"
 func (n *Parent_ChildPathAny) Id() *Parent_Child_IdPathAny {
 	return &Parent_Child_IdPathAny{
 		NodePath: ygot.NewNodePath(
@@ -344,7 +418,11 @@ func (n *Parent_ChildPathAny) Id() *Parent_Child_IdPathAny {
 	}
 }
 
-// Id2 returns from Parent_ChildPath the path struct for its child "id2".
+// Id2 (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/id2"
+// Path from root: "/enum-module/parent/child/state/id2"
 func (n *Parent_ChildPath) Id2() *Parent_Child_Id2Path {
 	return &Parent_Child_Id2Path{
 		NodePath: ygot.NewNodePath(
@@ -355,7 +433,11 @@ func (n *Parent_ChildPath) Id2() *Parent_Child_Id2Path {
 	}
 }
 
-// Id2 returns from Parent_ChildPathAny the path struct for its child "id2".
+// Id2 (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/id2"
+// Path from root: "/enum-module/parent/child/state/id2"
 func (n *Parent_ChildPathAny) Id2() *Parent_Child_Id2PathAny {
 	return &Parent_Child_Id2PathAny{
 		NodePath: ygot.NewNodePath(
@@ -366,7 +448,11 @@ func (n *Parent_ChildPathAny) Id2() *Parent_Child_Id2PathAny {
 	}
 }
 
-// InlineEnum returns from Parent_ChildPath the path struct for its child "inline-enum".
+// InlineEnum (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/inline-enum"
+// Path from root: "/enum-module/parent/child/state/inline-enum"
 func (n *Parent_ChildPath) InlineEnum() *Parent_Child_InlineEnumPath {
 	return &Parent_Child_InlineEnumPath{
 		NodePath: ygot.NewNodePath(
@@ -377,7 +463,11 @@ func (n *Parent_ChildPath) InlineEnum() *Parent_Child_InlineEnumPath {
 	}
 }
 
-// InlineEnum returns from Parent_ChildPathAny the path struct for its child "inline-enum".
+// InlineEnum (leaf): 
+// ----------------------------------------
+// Defining module: "enum-module"
+// Path from parent: "state/inline-enum"
+// Path from root: "/enum-module/parent/child/state/inline-enum"
 func (n *Parent_ChildPathAny) InlineEnum() *Parent_Child_InlineEnumPathAny {
 	return &Parent_Child_InlineEnumPathAny{
 		NodePath: ygot.NewNodePath(

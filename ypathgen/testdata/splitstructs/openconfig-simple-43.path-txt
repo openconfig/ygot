@@ -35,7 +35,11 @@ type RemoteContainer_ALeafAny struct {
 	*ygot.NodePath
 }
 
-// ALeaf returns from RemoteContainer the path struct for its child "a-leaf".
+// ALeaf (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-remote"
+// Path from parent: "state/a-leaf"
+// Path from root: "/openconfig-simple/remote-container/state/a-leaf"
 func (n *RemoteContainer) ALeaf() *RemoteContainer_ALeaf {
 	return &RemoteContainer_ALeaf{
 		NodePath: ygot.NewNodePath(
@@ -46,7 +50,11 @@ func (n *RemoteContainer) ALeaf() *RemoteContainer_ALeaf {
 	}
 }
 
-// ALeaf returns from RemoteContainerAny the path struct for its child "a-leaf".
+// ALeaf (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-remote"
+// Path from parent: "state/a-leaf"
+// Path from root: "/openconfig-simple/remote-container/state/a-leaf"
 func (n *RemoteContainerAny) ALeaf() *RemoteContainer_ALeafAny {
 	return &RemoteContainer_ALeafAny{
 		NodePath: ygot.NewNodePath(

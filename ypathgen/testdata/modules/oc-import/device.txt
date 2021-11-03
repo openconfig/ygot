@@ -26,7 +26,11 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// Child returns from DevicePath the path struct for its child "child".
+// Child (container): 
+// ----------------------------------------
+// Defining module: "openconfig-import"
+// Path from parent: "child"
+// Path from root: "/openconfig-import/child"
 func (n *DevicePath) Child() *openconfigimportpath.ChildPath {
 	return &openconfigimportpath.ChildPath{
 		NodePath: ygot.NewNodePath(
@@ -37,7 +41,11 @@ func (n *DevicePath) Child() *openconfigimportpath.ChildPath {
 	}
 }
 
-// Native returns from DevicePath the path struct for its child "native".
+// Native (container): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-target"
+// Path from parent: "native"
+// Path from root: "/openconfig-simple-target/native"
 func (n *DevicePath) Native() *openconfigsimpletargetpath.NativePath {
 	return &openconfigsimpletargetpath.NativePath{
 		NodePath: ygot.NewNodePath(
@@ -48,7 +56,11 @@ func (n *DevicePath) Native() *openconfigsimpletargetpath.NativePath {
 	}
 }
 
-// Target returns from DevicePath the path struct for its child "target".
+// Target (container): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-target"
+// Path from parent: "target"
+// Path from root: "/openconfig-simple-target/target"
 func (n *DevicePath) Target() *openconfigsimpletargetpath.TargetPath {
 	return &openconfigsimpletargetpath.TargetPath{
 		NodePath: ygot.NewNodePath(

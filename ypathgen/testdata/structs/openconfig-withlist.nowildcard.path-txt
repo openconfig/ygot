@@ -24,7 +24,11 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// Model returns from DevicePath the path struct for its child "model".
+// Model (container): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Path from parent: "model"
+// Path from root: "/openconfig-withlist/model"
 func (n *DevicePath) Model() *ModelPath {
 	return &ModelPath{
 		NodePath: ygot.NewNodePath(
@@ -40,7 +44,11 @@ type ModelPath struct {
 	*ygot.NodePath
 }
 
-// MultiKey returns from ModelPath the path struct for its child "multi-key".
+// MultiKey (list): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Path from parent: "b/multi-key"
+// Path from root: "/openconfig-withlist/model/b/multi-key"
 // Key1: uint32
 // Key2: uint64
 func (n *ModelPath) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKeyPath {
@@ -53,7 +61,11 @@ func (n *ModelPath) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKeyPath {
 	}
 }
 
-// SingleKey returns from ModelPath the path struct for its child "single-key".
+// SingleKey (list): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Path from parent: "a/single-key"
+// Path from root: "/openconfig-withlist/model/a/single-key"
 // Key: string
 func (n *ModelPath) SingleKey(Key string) *Model_SingleKeyPath {
 	return &Model_SingleKeyPath{
@@ -80,7 +92,11 @@ type Model_MultiKey_Key2Path struct {
 	*ygot.NodePath
 }
 
-// Key1 returns from Model_MultiKeyPath the path struct for its child "key1".
+// Key1 (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Path from parent: "state/key1"
+// Path from root: "/openconfig-withlist/model/b/multi-key/state/key1"
 func (n *Model_MultiKeyPath) Key1() *Model_MultiKey_Key1Path {
 	return &Model_MultiKey_Key1Path{
 		NodePath: ygot.NewNodePath(
@@ -91,7 +107,11 @@ func (n *Model_MultiKeyPath) Key1() *Model_MultiKey_Key1Path {
 	}
 }
 
-// Key2 returns from Model_MultiKeyPath the path struct for its child "key2".
+// Key2 (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Path from parent: "state/key2"
+// Path from root: "/openconfig-withlist/model/b/multi-key/state/key2"
 func (n *Model_MultiKeyPath) Key2() *Model_MultiKey_Key2Path {
 	return &Model_MultiKey_Key2Path{
 		NodePath: ygot.NewNodePath(
@@ -112,7 +132,11 @@ type Model_SingleKey_KeyPath struct {
 	*ygot.NodePath
 }
 
-// Key returns from Model_SingleKeyPath the path struct for its child "key".
+// Key (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Path from parent: "state/key"
+// Path from root: "/openconfig-withlist/model/a/single-key/state/key"
 func (n *Model_SingleKeyPath) Key() *Model_SingleKey_KeyPath {
 	return &Model_SingleKey_KeyPath{
 		NodePath: ygot.NewNodePath(

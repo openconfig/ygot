@@ -25,7 +25,12 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// Parent returns from DevicePath the path struct for its child "parent".
+// Parent (container): I am a parent container
+// that has 4 children.
+// ----------------------------------------
+// Defining module: "openconfig-simple"
+// Path from parent: "parent"
+// Path from root: "/openconfig-simple/parent"
 func (n *DevicePath) Parent() *openconfigsimplepath.ParentPath {
 	return &openconfigsimplepath.ParentPath{
 		NodePath: ygot.NewNodePath(
@@ -36,7 +41,11 @@ func (n *DevicePath) Parent() *openconfigsimplepath.ParentPath {
 	}
 }
 
-// RemoteContainer returns from DevicePath the path struct for its child "remote-container".
+// RemoteContainer (container): 
+// ----------------------------------------
+// Defining module: "openconfig-remote"
+// Path from parent: "remote-container"
+// Path from root: "/openconfig-simple/remote-container"
 func (n *DevicePath) RemoteContainer() *openconfigsimplepath.RemoteContainerPath {
 	return &openconfigsimplepath.RemoteContainerPath{
 		NodePath: ygot.NewNodePath(

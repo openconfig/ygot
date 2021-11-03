@@ -568,7 +568,11 @@ type {{ .TypeName }}{{ .WildcardSuffix }} struct {
 	// for a generated struct by returning an instantiation of the child's
 	// path struct object.
 	goPathChildConstructorTemplate = mustTemplate("childConstructor", `
-// {{ .MethodName }} returns from {{ .Struct.TypeName }} the path struct for its child "{{ .SchemaName }}".
+// {{ .MethodName }} ({{ .YANGNodeType }}): {{ .YANGDescription }}
+// ----------------------------------------
+// Defining module: "{{ .DefiningModuleName }}"
+// Path from parent: "{{ .RelPath }}"
+// Path from root: "{{ .AbsPath }}"
 {{- range $paramDocStr := .KeyParamDocStrs }}
 // {{ $paramDocStr }}
 {{- end }}
@@ -782,15 +786,20 @@ func getStructData(directory *ygen.Directory, pathStructSuffix string, generateW
 // goPathFieldData stores template information needed to generate a struct
 // field's child constructor method.
 type goPathFieldData struct {
-	MethodName       string           // MethodName is the name of the method that can be called to get to this field.
-	SchemaName       string           // SchemaName is the field's original name in the schema.
-	TypeName         string           // TypeName is the type name of the returned struct.
-	RelPathList      string           // RelPathList is the list of strings that form the relative path from its containing struct.
-	Struct           goPathStructData // Struct stores template information for the field's containing struct.
-	KeyParamListStr  string           // KeyParamListStr is the parameter list of the field's accessor method.
-	KeyEntriesStr    string           // KeyEntriesStr is an ordered list of comma-separated ("schemaName": unique camel-case name) for a list's keys.
-	KeyParamDocStrs  []string         // KeyParamDocStrs is an ordered slice of docstrings documenting the types of each list key parameter.
-	ChildPkgAccessor string           // ChildPkgAccessor is used if the child path struct exists in another package.
+	MethodName         string           // MethodName is the name of the method that can be called to get to this field.
+	SchemaName         string           // SchemaName is the field's original name in the schema.
+	TypeName           string           // TypeName is the type name of the returned struct.
+	YANGNodeType       string           // YANGNodeType is the type of YANG node for the node (e.g. "list", "container", "leaf").
+	YANGDescription    string           // YANGDescription is the description for the node from its YANG definition.
+	DefiningModuleName string           // DefiningModuleName is the defining module for the node.
+	AbsPath            string           // AbsPath is the full path from root (not including keys).
+	RelPath            string           // RelPath is the relative path from its containing struct.
+	RelPathList        string           // RelPathList is the list of strings that form the relative path from its containing struct.
+	Struct             goPathStructData // Struct stores template information for the field's containing struct.
+	KeyParamListStr    string           // KeyParamListStr is the parameter list of the field's accessor method.
+	KeyEntriesStr      string           // KeyEntriesStr is an ordered list of comma-separated ("schemaName": unique camel-case name) for a list's keys.
+	KeyParamDocStrs    []string         // KeyParamDocStrs is an ordered slice of docstrings documenting the types of each list key parameter.
+	ChildPkgAccessor   string           // ChildPkgAccessor is used if the child path struct exists in another package.
 }
 
 // generateDirectorySnippet generates all Go code associated with a schema node
@@ -940,13 +949,29 @@ func generateChildConstructors(methodBuf *strings.Builder, builderBuf *strings.B
 	if err != nil {
 		return []error{err}
 	}
+	// Be nil-tolerant for these two attributes. In real deployments (i.e.
+	// not tests), these should be populated. Since these are just use for
+	// documentation, it is not critical that they are populated.
+	var YANGNodeType string
+	var definingModuleName string
+	if field.Node != nil {
+		YANGNodeType = field.Node.Kind()
+		if definingModule := yang.RootNode(field.Node); definingModule != nil {
+			definingModuleName = definingModule.Name
+		}
+	}
 	fieldData := goPathFieldData{
-		MethodName:       goFieldName,
-		TypeName:         fieldTypeName,
-		SchemaName:       field.Name,
-		Struct:           structData,
-		RelPathList:      `"` + strings.Join(relPath, `", "`) + `"`,
-		ChildPkgAccessor: childPkgAccessor,
+		MethodName:         goFieldName,
+		TypeName:           fieldTypeName,
+		SchemaName:         field.Name,
+		YANGNodeType:       YANGNodeType,
+		YANGDescription:    strings.ReplaceAll(field.Description, "\n", "\n// "),
+		DefiningModuleName: definingModuleName,
+		AbsPath:            field.Path(),
+		Struct:             structData,
+		RelPath:            strings.Join(relPath, `/`),
+		RelPathList:        `"` + strings.Join(relPath, `", "`) + `"`,
+		ChildPkgAccessor:   childPkgAccessor,
 	}
 
 	isUnderFakeRoot := ygen.IsFakeRoot(directory.Entry)
@@ -1066,7 +1091,7 @@ func generateChildConstructorsForListBuilderFormat(methodBuf *strings.Builder, b
 				KeySchemaName:  keyParams[i].name,
 				KeyParamName:   keyParams[i].varName,
 				KeyParamType:   keyParams[i].typeName,
-				KeyParamDocStr: keyParams[i].typeDocString,
+				KeyParamDocStr: keyParams[i].varName + ": " + keyParams[i].typeDocString,
 			}); err != nil {
 			errors = append(errors, err)
 		}
@@ -1112,19 +1137,23 @@ func generateChildConstructorsForList(methodBuf *strings.Builder, listAttr *ygen
 		for _, paramIndex := range combo {
 			// Add unselected parameters as a wildcard.
 			for ; i != paramIndex; i++ {
-				keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": "*"`, keyParams[i].name))
-				anySuffixes = append(anySuffixes, WildcardSuffix+keyParams[i].varName)
+				param := keyParams[i]
+				paramDocStrs = append(paramDocStrs, param.varName+" (wildcarded): "+param.typeDocString)
+				keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": "*"`, param.name))
+				anySuffixes = append(anySuffixes, WildcardSuffix+param.varName)
 			}
 			// Add selected parameters to the parameter list.
 			param := keyParams[paramIndex]
+			paramDocStrs = append(paramDocStrs, param.varName+": "+param.typeDocString)
 			paramListStrs = append(paramListStrs, fmt.Sprintf("%s %s", param.varName, param.typeName))
-			paramDocStrs = append(paramDocStrs, param.typeDocString)
 			keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": %s`, param.name, param.varName))
 			i++
 		}
 		for ; i != keyN; i++ { // Handle edge case
-			keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": "*"`, keyParams[i].name))
-			anySuffixes = append(anySuffixes, WildcardSuffix+keyParams[i].varName)
+			param := keyParams[i]
+			paramDocStrs = append(paramDocStrs, param.varName+" (wildcarded): "+param.typeDocString)
+			keyEntryStrs = append(keyEntryStrs, fmt.Sprintf(`"%s": "*"`, param.name))
+			anySuffixes = append(anySuffixes, WildcardSuffix+param.varName)
 		}
 		// Create the string for the method parameter list, docstrings, and ygot.NodePath's key list.
 		fieldData.KeyParamListStr = strings.Join(paramListStrs, ", ")
@@ -1228,8 +1257,8 @@ type keyParam struct {
 // 	},
 // 	KeyElems: []*yang.Entry{{Name: "fluorine"}, {Name: "iodine-liquid"}},
 // }
-// param out: [{"fluroine", "Fluorine", "string"}, {"iodine-liquid", "IodineLiquid", "oc.A_Union"}]
-// docstring out: ["Fluorine: string", "IodineLiquid: [oc.Binary, oc.UnionUint64]"]
+// {name, varName, typeName} out: [{"fluroine", "Fluorine", "string"}, {"iodine-liquid", "IodineLiquid", "oc.A_Union"}]
+// docstring out: ["string", "[oc.Binary, oc.UnionUint64]"]
 func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAccessor string) ([]keyParam, error) {
 	if len(listAttr.KeyElems) == 0 {
 		return nil, fmt.Errorf("makeKeyParams: invalid list - has no key; cannot process param list string")
@@ -1286,7 +1315,7 @@ func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAccessor string) 
 			name:          keyElem.Name,
 			varName:       varName,
 			typeName:      typeName,
-			typeDocString: varName + ": " + typeDocString,
+			typeDocString: typeDocString,
 		})
 	}
 	return keyParams, nil

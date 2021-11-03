@@ -24,7 +24,11 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// Foo returns from DevicePath the path struct for its child "foo".
+// Foo (container): 
+// ----------------------------------------
+// Defining module: "openconfig-enumcamelcase"
+// Path from parent: "foo"
+// Path from root: "/openconfig-enumcamelcase/foo"
 func (n *DevicePath) Foo() *FooPath {
 	return &FooPath{
 		NodePath: ygot.NewNodePath(
@@ -65,7 +69,11 @@ type Foo_BazPathAny struct {
 	*ygot.NodePath
 }
 
-// Bar returns from FooPath the path struct for its child "bar".
+// Bar (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-enumcamelcase"
+// Path from parent: "bar"
+// Path from root: "/openconfig-enumcamelcase/foo/bar"
 func (n *FooPath) Bar() *Foo_BarPath {
 	return &Foo_BarPath{
 		NodePath: ygot.NewNodePath(
@@ -76,7 +84,11 @@ func (n *FooPath) Bar() *Foo_BarPath {
 	}
 }
 
-// Bar returns from FooPathAny the path struct for its child "bar".
+// Bar (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-enumcamelcase"
+// Path from parent: "bar"
+// Path from root: "/openconfig-enumcamelcase/foo/bar"
 func (n *FooPathAny) Bar() *Foo_BarPathAny {
 	return &Foo_BarPathAny{
 		NodePath: ygot.NewNodePath(
@@ -87,7 +99,11 @@ func (n *FooPathAny) Bar() *Foo_BarPathAny {
 	}
 }
 
-// Baz returns from FooPath the path struct for its child "baz".
+// Baz (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-enumcamelcase"
+// Path from parent: "baz"
+// Path from root: "/openconfig-enumcamelcase/foo/baz"
 func (n *FooPath) Baz() *Foo_BazPath {
 	return &Foo_BazPath{
 		NodePath: ygot.NewNodePath(
@@ -98,7 +114,11 @@ func (n *FooPath) Baz() *Foo_BazPath {
 	}
 }
 
-// Baz returns from FooPathAny the path struct for its child "baz".
+// Baz (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-enumcamelcase"
+// Path from parent: "baz"
+// Path from root: "/openconfig-enumcamelcase/foo/baz"
 func (n *FooPathAny) Baz() *Foo_BazPathAny {
 	return &Foo_BazPathAny{
 		NodePath: ygot.NewNodePath(
