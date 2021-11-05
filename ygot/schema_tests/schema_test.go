@@ -122,7 +122,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 	}
 }
 
-func TestPruneReadOnly(t *testing.T) {
+func TestPruneConfigFalse(t *testing.T) {
 	configAndState := func() *exampleoc.Device {
 		d := &exampleoc.Device{}
 		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
@@ -153,7 +153,7 @@ func TestPruneReadOnly(t *testing.T) {
 	}
 
 	got, want := configAndState(), configOnly()
-	if err := ygot.PruneReadOnly(exampleoc.SchemaTree["Device"], got); err != nil {
+	if err := ygot.PruneConfigFalse(exampleoc.SchemaTree["Device"], got); err != nil {
 		t.Fatal(err)
 	}
 	if diff := cmp.Diff(got, want); diff != "" {
@@ -161,7 +161,7 @@ func TestPruneReadOnly(t *testing.T) {
 	}
 }
 
-func TestPruneReadOnlyOpState(t *testing.T) {
+func TestPruneConfigFalseOpState(t *testing.T) {
 	configAndState := func() *opstateoc.Device {
 		d := &opstateoc.Device{}
 		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(opstateoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
@@ -192,7 +192,7 @@ func TestPruneReadOnlyOpState(t *testing.T) {
 	}
 
 	got, want := configAndState(), configOnly()
-	if err := ygot.PruneReadOnly(opstateoc.SchemaTree["Device"], got); err != nil {
+	if err := ygot.PruneConfigFalse(opstateoc.SchemaTree["Device"], got); err != nil {
 		t.Fatal(err)
 	}
 	if diff := cmp.Diff(got, want); diff != "" {
@@ -226,7 +226,7 @@ func TestPruneUncompressed(t *testing.T) {
 	}
 
 	got, want := configAndState(), configOnly()
-	if err := ygot.PruneReadOnly(uexampleoc.SchemaTree["Device"], got); err != nil {
+	if err := ygot.PruneConfigFalse(uexampleoc.SchemaTree["Device"], got); err != nil {
 		t.Fatal(err)
 	}
 	if diff := cmp.Diff(got, want); diff != "" {
