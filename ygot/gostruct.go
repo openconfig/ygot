@@ -15,24 +15,25 @@ const (
 	GoCompressedLeafAnnotation = "ygot-oc-compressed-leaf"
 )
 
-// PruneReadOnly removes branches or leaf nodes that contain "config false" data in-place.
+// PruneConfigFalse removes branches or leaf nodes that contain "config false"
+// data in-place.
 //
-// Note that the input GoStruct MUST NOT be read-only, since only anchored
-// pointers can be written to; otherwise an error will be returned.
+// Note that the input GoStruct MUST NOT itself be "config false", since only
+// anchored pointers can be written to; otherwise an error will be returned.
 //
 // The behaviour of this function is the same between GoStructs generated using
 // prefer_operational_state=true or prefer_operational_state=false.
 //
 // Where a read-only branch is encountered, the entire branch is pruned. Since
 // there should not be non-read-only leaves underneath a read-only branch, they
-// are treated as read-only by PruneReadOnly
+// are treated as read-only by PruneConfigFalse
 // (https://datatracker.ietf.org/doc/html/rfc7950#section-7.21.1).
-func PruneReadOnly(schema *yang.Entry, s GoStruct) error {
+func PruneConfigFalse(schema *yang.Entry, s GoStruct) error {
 	pruneReadOnlyIterFunc := func(ni *util.NodeInfo, in, out interface{}) util.Errors {
 		if ni == nil || util.IsNilOrInvalidValue(ni.FieldValue) || ni.FieldValue.IsZero() {
 			return nil
 		}
-		if !ni.Schema.ReadOnly() {
+		if util.IsConfig(ni.Schema) {
 			return nil
 		}
 		if ni.Schema.Annotation[GoCompressedLeafAnnotation] != nil {

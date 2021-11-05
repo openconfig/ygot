@@ -25,7 +25,7 @@ func revertConfigAndAnnotation(e *yang.Entry) {
 	}
 }
 
-func TestPruneReadOnly(t *testing.T) {
+func TestPruneConfigFalse(t *testing.T) {
 	schema := &yang.Entry{
 		Name: "empty-branch-test-one",
 		Kind: yang.DirectoryEntry,
@@ -713,7 +713,7 @@ func TestPruneReadOnly(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			revertConfigAndAnnotation(schema)
 			tt.setupSchema()
-			err := PruneReadOnly(schema, tt.inStruct)
+			err := PruneConfigFalse(schema, tt.inStruct)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Got error %v, wantErr: %v", err, tt.wantErr)
 			}
