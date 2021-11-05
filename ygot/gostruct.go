@@ -1,7 +1,6 @@
 package ygot
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -39,8 +38,11 @@ func PruneConfigFalse(schema *yang.Entry, s GoStruct) error {
 		if ni.Schema.Annotation[GoCompressedLeafAnnotation] != nil {
 			return nil
 		}
+		// The top-level GoStruct cannot be written to since it is
+		// unaddressable, so the best we can do is to skip writing to
+		// it, and prune its children.
 		if ni.Parent == nil {
-			return util.NewErrs(fmt.Errorf("read-only node doesn't have a parent node: %s", ni.Schema.Path()))
+			return nil
 		}
 		ni.FieldValue.Set(reflect.Zero(ni.FieldValue.Type()))
 		return nil

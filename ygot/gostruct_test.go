@@ -187,7 +187,7 @@ func TestPruneConfigFalse(t *testing.T) {
 				},
 			},
 		},
-		wantErr: true,
+		want: &emptyBranchTestOne{},
 	}, {
 		desc:        "completely populated struct that is entirely config",
 		setupSchema: allConfig,
