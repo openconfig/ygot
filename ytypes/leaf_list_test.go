@@ -514,7 +514,7 @@ func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 
 			if tt.json != "" {
 				if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-					t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+					t.Fatalf("%s : %s", tt.desc, err)
 				}
 			}
 
