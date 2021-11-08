@@ -14,18 +14,32 @@ const (
 	GoCompressedLeafAnnotation = "ygot-oc-compressed-leaf"
 )
 
-// PruneConfigFalse removes branches or leaf nodes that contain "config false"
-// data in-place.
+// PruneConfigFalse in-place removes branches or leaf nodes that represent
+// derived state for compressed GoStructs, and branches or leaf nodes that
+// contain "config false" data for uncompressed GoStructs.
 //
-// Note that the input GoStruct MUST NOT itself be "config false", since only
-// anchored pointers can be written to; otherwise an error will be returned.
+// Derived state is the subset of all operational state, or equivalently,
+// "config false" nodes in the YANG definition, where the data is generated as
+// part of the system's own interactions, rather than to reflect under what
+// configuration the system is operating, the latter also known as applied
+// configuration. These nodes are identifiable in YANG as the subset of "config
+// false" nodes that do not have a sibling "config true" node in OpenConfig
+// YANG models.
 //
-// The behaviour of this function is the same between GoStructs generated using
-// prefer_operational_state=true or prefer_operational_state=false.
+// The distinction between compressed and uncompressed GoStructs is due to the
+// intrinsic non-existence of either intended configuration or applied
+// configuration in the GoStruct, making pruning derived state the more useful
+// operation for compressed GoStructs.
 //
-// Where a read-only branch is encountered, the entire branch is pruned. Since
-// there should not be non-read-only leaves underneath a read-only branch, they
-// are treated as read-only by PruneConfigFalse
+// The behaviour of this function is the same between compressed GoStructs
+// generated using PreferIntendedConfig or PreferOperationalState, since
+// compression behaviour doesn't affect derived state data.
+//
+// If the input GoStruct is itself to be entirely pruned, then instead, all of
+// its fields will be removed.
+//
+// This function assumes that there should not be "config true" leaves
+// underneath a "config false" branch, per RFC7950
 // (https://datatracker.ietf.org/doc/html/rfc7950#section-7.21.1).
 func PruneConfigFalse(schema *yang.Entry, s GoStruct) error {
 	pruneReadOnlyIterFunc := func(ni *util.NodeInfo, in, out interface{}) util.Errors {

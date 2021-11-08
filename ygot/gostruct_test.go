@@ -151,12 +151,12 @@ func TestPruneConfigFalse(t *testing.T) {
 		want        GoStruct
 		wantErr     bool
 	}{{
-		desc:        "struct with no children ",
+		desc:        "struct with no children",
 		setupSchema: allConfig,
 		inStruct:    &emptyBranchTestOne{},
 		want:        &emptyBranchTestOne{},
 	}, {
-		desc: "error due to top element being read-only",
+		desc: "top element is config false: delete all its fields",
 		setupSchema: func() {
 			schema.Config = yang.TSFalse
 		},
@@ -189,7 +189,7 @@ func TestPruneConfigFalse(t *testing.T) {
 		},
 		want: &emptyBranchTestOne{},
 	}, {
-		desc:        "completely populated struct that is entirely config",
+		desc:        "completely populated struct that is entirely config true",
 		setupSchema: allConfig,
 		inStruct: &emptyBranchTestOne{
 			String: String("hello"),
@@ -246,7 +246,7 @@ func TestPruneConfigFalse(t *testing.T) {
 			},
 		},
 	}, {
-		desc:        "completely populated struct that is entirely read-only",
+		desc:        "completely populated struct that is entirely config false",
 		setupSchema: allState,
 		inStruct: &emptyBranchTestOne{
 			String: String("hello"),
@@ -474,7 +474,7 @@ func TestPruneConfigFalse(t *testing.T) {
 			},
 		},
 	}, {
-		desc: "middle-level container and list are read-only",
+		desc: "middle-level container and list are config false",
 		setupSchema: func() {
 			schema.Dir["child"].Dir["grand-child"].Config = yang.TSFalse
 			schema.Dir["maps"].Dir["map"].Config = yang.TSFalse
@@ -484,7 +484,7 @@ func TestPruneConfigFalse(t *testing.T) {
 			Struct: &emptyBranchTestOneChild{
 				String:     String("hello"),
 				Enumerated: 42,
-				Struct: &emptyBranchTestOneGrandchild{ // read-only
+				Struct: &emptyBranchTestOneGrandchild{ // config false
 					String: String("hello"),
 					Slice:  []string{"one", "two"},
 					Struct: &emptyBranchTestOneGreatGrandchild{
@@ -492,7 +492,7 @@ func TestPruneConfigFalse(t *testing.T) {
 					},
 				},
 			},
-			StructMap: map[string]*emptyBranchTestOneChild{ // read-only
+			StructMap: map[string]*emptyBranchTestOneChild{ // config false
 				"foo": {
 					String:     String("hello"),
 					Enumerated: 42,
@@ -514,7 +514,7 @@ func TestPruneConfigFalse(t *testing.T) {
 			},
 		},
 	}, {
-		desc: "list container is read-only",
+		desc: "list container is config false",
 		setupSchema: func() {
 			schema.Dir["maps"].Config = yang.TSFalse
 		},
@@ -531,7 +531,7 @@ func TestPruneConfigFalse(t *testing.T) {
 					},
 				},
 			},
-			StructMap: map[string]*emptyBranchTestOneChild{ // read-only
+			StructMap: map[string]*emptyBranchTestOneChild{ // config false
 				"foo": {
 					String:     String("hello"),
 					Enumerated: 42,
@@ -560,7 +560,7 @@ func TestPruneConfigFalse(t *testing.T) {
 			},
 		},
 	}, {
-		desc: "random values are read-only",
+		desc: "random values are config false",
 		setupSchema: func() {
 			schema.Dir["string"].Config = yang.TSFalse
 			schema.Dir["child"].Dir["enum"].Config = yang.TSFalse
@@ -570,13 +570,13 @@ func TestPruneConfigFalse(t *testing.T) {
 			schema.Dir["maps"].Dir["map"].Dir["grand-child"].Dir["great-grand-child"].Config = yang.TSFalse
 		},
 		inStruct: &emptyBranchTestOne{
-			String: String("hello"), // read-only
+			String: String("hello"), // config false
 			Struct: &emptyBranchTestOneChild{
 				String:     String("hello"),
-				Enumerated: 42, // read-only
+				Enumerated: 42, // config false
 				Struct: &emptyBranchTestOneGrandchild{
-					String: String("hello"),        // read-only
-					Slice:  []string{"one", "two"}, // read-only
+					String: String("hello"),        // config false
+					Slice:  []string{"one", "two"}, // config false
 					Struct: &emptyBranchTestOneGreatGrandchild{
 						String: String("hello"),
 					},
@@ -584,12 +584,12 @@ func TestPruneConfigFalse(t *testing.T) {
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
 				"foo": {
-					String:     String("hello"), // read-only
+					String:     String("hello"), // config false
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
 						Slice:  []string{"one", "two"},
-						Struct: &emptyBranchTestOneGreatGrandchild{ // read-only
+						Struct: &emptyBranchTestOneGreatGrandchild{ // config false
 							String: String("hello"),
 						},
 					},
@@ -616,7 +616,7 @@ func TestPruneConfigFalse(t *testing.T) {
 			},
 		},
 	}, {
-		desc: "random values are read-only, but some are compressed",
+		desc: "random values are config false, but some are compressed",
 		setupSchema: func() {
 			schema.Dir["string"].Config = yang.TSFalse
 			schema.Dir["string"].Annotation = map[string]interface{}{"foo-bar-baz": struct{}{}}
@@ -630,13 +630,13 @@ func TestPruneConfigFalse(t *testing.T) {
 			schema.Dir["maps"].Dir["map"].Dir["grand-child"].Dir["great-grand-child"].Config = yang.TSFalse
 		},
 		inStruct: &emptyBranchTestOne{
-			String: String("hello"), // read-only
+			String: String("hello"), // config false
 			Struct: &emptyBranchTestOneChild{
 				String:     String("hello"),
-				Enumerated: 42, // read-only but compressed
+				Enumerated: 42, // config false but compressed
 				Struct: &emptyBranchTestOneGrandchild{
-					String: String("hello"),        // read-only
-					Slice:  []string{"one", "two"}, // read-only but compressed
+					String: String("hello"),        // config false
+					Slice:  []string{"one", "two"}, // config false but compressed
 					Struct: &emptyBranchTestOneGreatGrandchild{
 						String: String("hello"),
 					},
@@ -644,12 +644,12 @@ func TestPruneConfigFalse(t *testing.T) {
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
 				"foo": {
-					String:     String("hello"), // read-only but compressed
+					String:     String("hello"), // config false but compressed
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
 						Slice:  []string{"one", "two"},
-						Struct: &emptyBranchTestOneGreatGrandchild{ // read-only
+						Struct: &emptyBranchTestOneGreatGrandchild{ // config false
 							String: String("hello"),
 						},
 					},
@@ -659,9 +659,9 @@ func TestPruneConfigFalse(t *testing.T) {
 		want: &emptyBranchTestOne{
 			Struct: &emptyBranchTestOneChild{
 				String:     String("hello"),
-				Enumerated: 42, // read-only but compressed
+				Enumerated: 42, // config false but compressed
 				Struct: &emptyBranchTestOneGrandchild{
-					Slice: []string{"one", "two"}, // read-only but compressed
+					Slice: []string{"one", "two"}, // config false but compressed
 					Struct: &emptyBranchTestOneGreatGrandchild{
 						String: String("hello"),
 					},
@@ -669,7 +669,7 @@ func TestPruneConfigFalse(t *testing.T) {
 			},
 			StructMap: map[string]*emptyBranchTestOneChild{
 				"foo": {
-					String:     String("hello"), // read-only but compressed
+					String:     String("hello"), // config false but compressed
 					Enumerated: 42,
 					Struct: &emptyBranchTestOneGrandchild{
 						String: String("hello"),
@@ -679,7 +679,7 @@ func TestPruneConfigFalse(t *testing.T) {
 			},
 		},
 	}, {
-		desc: "bad input with non-read-only inside read-only: the inner config values are ignored",
+		desc: "bad input with config true inside config false: the inner config values are ignored",
 		setupSchema: func() {
 			schema.Dir["child"].Config = yang.TSTrue
 			schema.Dir["child"].Dir["grand-child"].Config = yang.TSFalse
@@ -691,10 +691,10 @@ func TestPruneConfigFalse(t *testing.T) {
 			Struct: &emptyBranchTestOneChild{
 				String:     String("hello"),
 				Enumerated: 42,
-				Struct: &emptyBranchTestOneGrandchild{ // read-only
-					String: String("hello"), // non-read-only
+				Struct: &emptyBranchTestOneGrandchild{ // config false
+					String: String("hello"), // config true
 					Slice:  []string{"one", "two"},
-					Struct: &emptyBranchTestOneGreatGrandchild{ // non-read-only
+					Struct: &emptyBranchTestOneGreatGrandchild{ // config true
 						String: String("hello"),
 					},
 				},
