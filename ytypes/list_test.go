@@ -501,7 +501,7 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 
 			if tt.json != "" {
 				if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-					t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+					t.Fatalf("%s : %s", tt.desc, err)
 				}
 			}
 
@@ -657,7 +657,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(tt.schema, tt.parent, jsonTree, tt.opts...)
@@ -755,7 +755,7 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 			var parent ContainerStruct
 
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
@@ -824,7 +824,7 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 			var parent ListElemStruct
 
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(listSchema, &parent, jsonTree)

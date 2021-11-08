@@ -16,7 +16,6 @@ package ytypes
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
@@ -447,7 +446,7 @@ func TestUnmarshalContainer(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			if tt.json != "" {
 				if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-					t.Fatal(fmt.Sprintf("json unmarshal (%s) : %s", tt.desc, err))
+					t.Fatalf("json unmarshal (%s) : %s", tt.desc, err)
 				}
 			}
 
