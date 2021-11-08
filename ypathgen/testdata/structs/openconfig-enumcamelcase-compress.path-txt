@@ -27,8 +27,9 @@ func DeviceRoot(id string) *DevicePath {
 // Foo (container): 
 // ----------------------------------------
 // Defining module: "openconfig-enumcamelcase"
+// Instantiating module: "openconfig-enumcamelcase"
 // Path from parent: "foo"
-// Path from root: "/openconfig-enumcamelcase/foo"
+// Path from root: "/foo"
 func (n *DevicePath) Foo() *FooPath {
 	return &FooPath{
 		NodePath: ygot.NewNodePath(
@@ -72,8 +73,9 @@ type Foo_BazPathAny struct {
 // Bar (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-enumcamelcase"
+// Instantiating module: "openconfig-enumcamelcase"
 // Path from parent: "bar"
-// Path from root: "/openconfig-enumcamelcase/foo/bar"
+// Path from root: "/foo/bar"
 func (n *FooPath) Bar() *Foo_BarPath {
 	return &Foo_BarPath{
 		NodePath: ygot.NewNodePath(
@@ -87,8 +89,9 @@ func (n *FooPath) Bar() *Foo_BarPath {
 // Bar (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-enumcamelcase"
+// Instantiating module: "openconfig-enumcamelcase"
 // Path from parent: "bar"
-// Path from root: "/openconfig-enumcamelcase/foo/bar"
+// Path from root: "/foo/bar"
 func (n *FooPathAny) Bar() *Foo_BarPathAny {
 	return &Foo_BarPathAny{
 		NodePath: ygot.NewNodePath(
@@ -102,8 +105,9 @@ func (n *FooPathAny) Bar() *Foo_BarPathAny {
 // Baz (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-enumcamelcase"
+// Instantiating module: "openconfig-enumcamelcase"
 // Path from parent: "baz"
-// Path from root: "/openconfig-enumcamelcase/foo/baz"
+// Path from root: "/foo/baz"
 func (n *FooPath) Baz() *Foo_BazPath {
 	return &Foo_BazPath{
 		NodePath: ygot.NewNodePath(
@@ -117,8 +121,9 @@ func (n *FooPath) Baz() *Foo_BazPath {
 // Baz (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-enumcamelcase"
+// Instantiating module: "openconfig-enumcamelcase"
 // Path from parent: "baz"
-// Path from root: "/openconfig-enumcamelcase/foo/baz"
+// Path from root: "/foo/baz"
 func (n *FooPathAny) Baz() *Foo_BazPathAny {
 	return &Foo_BazPathAny{
 		NodePath: ygot.NewNodePath(

@@ -28,8 +28,9 @@ func DeviceRoot(id string) *DevicePath {
 // Model (container): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "model"
-// Path from root: "/openconfig-withlist/model"
+// Path from root: "/model"
 func (n *DevicePath) Model() *openconfigwithlistpath.ModelPath {
 	return &openconfigwithlistpath.ModelPath{
 		NodePath: ygot.NewNodePath(

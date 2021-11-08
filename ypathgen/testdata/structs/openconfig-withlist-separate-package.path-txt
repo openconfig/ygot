@@ -28,8 +28,9 @@ func DeviceRoot(id string) *Device {
 // Model (container): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "model"
-// Path from root: "/openconfig-withlist/model"
+// Path from root: "/model"
 func (n *Device) Model() *Model {
 	return &Model{
 		NodePath: ygot.NewNodePath(
@@ -53,8 +54,9 @@ type ModelAny struct {
 // MultiKeyAny (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "b/multi-key"
-// Path from root: "/openconfig-withlist/model/b/multi-key"
+// Path from root: "/model/b/multi-key"
 // Key1 (wildcarded): uint32
 // Key2 (wildcarded): uint64
 func (n *Model) MultiKeyAny() *Model_MultiKeyAny {
@@ -70,8 +72,9 @@ func (n *Model) MultiKeyAny() *Model_MultiKeyAny {
 // MultiKeyAny (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "b/multi-key"
-// Path from root: "/openconfig-withlist/model/b/multi-key"
+// Path from root: "/model/b/multi-key"
 // Key1 (wildcarded): uint32
 // Key2 (wildcarded): uint64
 func (n *ModelAny) MultiKeyAny() *Model_MultiKeyAny {
@@ -87,8 +90,9 @@ func (n *ModelAny) MultiKeyAny() *Model_MultiKeyAny {
 // MultiKeyAnyKey2 (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "b/multi-key"
-// Path from root: "/openconfig-withlist/model/b/multi-key"
+// Path from root: "/model/b/multi-key"
 // Key1: uint32
 // Key2 (wildcarded): uint64
 func (n *Model) MultiKeyAnyKey2(Key1 uint32) *Model_MultiKeyAny {
@@ -104,8 +108,9 @@ func (n *Model) MultiKeyAnyKey2(Key1 uint32) *Model_MultiKeyAny {
 // MultiKeyAnyKey2 (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "b/multi-key"
-// Path from root: "/openconfig-withlist/model/b/multi-key"
+// Path from root: "/model/b/multi-key"
 // Key1: uint32
 // Key2 (wildcarded): uint64
 func (n *ModelAny) MultiKeyAnyKey2(Key1 uint32) *Model_MultiKeyAny {
@@ -121,8 +126,9 @@ func (n *ModelAny) MultiKeyAnyKey2(Key1 uint32) *Model_MultiKeyAny {
 // MultiKeyAnyKey1 (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "b/multi-key"
-// Path from root: "/openconfig-withlist/model/b/multi-key"
+// Path from root: "/model/b/multi-key"
 // Key1 (wildcarded): uint32
 // Key2: uint64
 func (n *Model) MultiKeyAnyKey1(Key2 uint64) *Model_MultiKeyAny {
@@ -138,8 +144,9 @@ func (n *Model) MultiKeyAnyKey1(Key2 uint64) *Model_MultiKeyAny {
 // MultiKeyAnyKey1 (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "b/multi-key"
-// Path from root: "/openconfig-withlist/model/b/multi-key"
+// Path from root: "/model/b/multi-key"
 // Key1 (wildcarded): uint32
 // Key2: uint64
 func (n *ModelAny) MultiKeyAnyKey1(Key2 uint64) *Model_MultiKeyAny {
@@ -155,8 +162,9 @@ func (n *ModelAny) MultiKeyAnyKey1(Key2 uint64) *Model_MultiKeyAny {
 // MultiKey (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "b/multi-key"
-// Path from root: "/openconfig-withlist/model/b/multi-key"
+// Path from root: "/model/b/multi-key"
 // Key1: uint32
 // Key2: uint64
 func (n *Model) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKey {
@@ -172,8 +180,9 @@ func (n *Model) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKey {
 // MultiKey (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "b/multi-key"
-// Path from root: "/openconfig-withlist/model/b/multi-key"
+// Path from root: "/model/b/multi-key"
 // Key1: uint32
 // Key2: uint64
 func (n *ModelAny) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKeyAny {
@@ -189,8 +198,9 @@ func (n *ModelAny) MultiKey(Key1 uint32, Key2 uint64) *Model_MultiKeyAny {
 // SingleKeyAny (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "a/single-key"
-// Path from root: "/openconfig-withlist/model/a/single-key"
+// Path from root: "/model/a/single-key"
 // Key (wildcarded): string
 func (n *Model) SingleKeyAny() *Model_SingleKeyAny {
 	return &Model_SingleKeyAny{
@@ -205,8 +215,9 @@ func (n *Model) SingleKeyAny() *Model_SingleKeyAny {
 // SingleKeyAny (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "a/single-key"
-// Path from root: "/openconfig-withlist/model/a/single-key"
+// Path from root: "/model/a/single-key"
 // Key (wildcarded): string
 func (n *ModelAny) SingleKeyAny() *Model_SingleKeyAny {
 	return &Model_SingleKeyAny{
@@ -221,8 +232,9 @@ func (n *ModelAny) SingleKeyAny() *Model_SingleKeyAny {
 // SingleKey (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "a/single-key"
-// Path from root: "/openconfig-withlist/model/a/single-key"
+// Path from root: "/model/a/single-key"
 // Key: string
 func (n *Model) SingleKey(Key string) *Model_SingleKey {
 	return &Model_SingleKey{
@@ -237,8 +249,9 @@ func (n *Model) SingleKey(Key string) *Model_SingleKey {
 // SingleKey (list): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "a/single-key"
-// Path from root: "/openconfig-withlist/model/a/single-key"
+// Path from root: "/model/a/single-key"
 // Key: string
 func (n *ModelAny) SingleKey(Key string) *Model_SingleKeyAny {
 	return &Model_SingleKeyAny{
@@ -283,8 +296,9 @@ type Model_MultiKey_Key2Any struct {
 // Key1 (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "state/key1"
-// Path from root: "/openconfig-withlist/model/b/multi-key/state/key1"
+// Path from root: "/model/b/multi-key/state/key1"
 func (n *Model_MultiKey) Key1() *Model_MultiKey_Key1 {
 	return &Model_MultiKey_Key1{
 		NodePath: ygot.NewNodePath(
@@ -298,8 +312,9 @@ func (n *Model_MultiKey) Key1() *Model_MultiKey_Key1 {
 // Key1 (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "state/key1"
-// Path from root: "/openconfig-withlist/model/b/multi-key/state/key1"
+// Path from root: "/model/b/multi-key/state/key1"
 func (n *Model_MultiKeyAny) Key1() *Model_MultiKey_Key1Any {
 	return &Model_MultiKey_Key1Any{
 		NodePath: ygot.NewNodePath(
@@ -313,8 +328,9 @@ func (n *Model_MultiKeyAny) Key1() *Model_MultiKey_Key1Any {
 // Key2 (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "state/key2"
-// Path from root: "/openconfig-withlist/model/b/multi-key/state/key2"
+// Path from root: "/model/b/multi-key/state/key2"
 func (n *Model_MultiKey) Key2() *Model_MultiKey_Key2 {
 	return &Model_MultiKey_Key2{
 		NodePath: ygot.NewNodePath(
@@ -328,8 +344,9 @@ func (n *Model_MultiKey) Key2() *Model_MultiKey_Key2 {
 // Key2 (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "state/key2"
-// Path from root: "/openconfig-withlist/model/b/multi-key/state/key2"
+// Path from root: "/model/b/multi-key/state/key2"
 func (n *Model_MultiKeyAny) Key2() *Model_MultiKey_Key2Any {
 	return &Model_MultiKey_Key2Any{
 		NodePath: ygot.NewNodePath(
@@ -363,8 +380,9 @@ type Model_SingleKey_KeyAny struct {
 // Key (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "state/key"
-// Path from root: "/openconfig-withlist/model/a/single-key/state/key"
+// Path from root: "/model/a/single-key/state/key"
 func (n *Model_SingleKey) Key() *Model_SingleKey_Key {
 	return &Model_SingleKey_Key{
 		NodePath: ygot.NewNodePath(
@@ -378,8 +396,9 @@ func (n *Model_SingleKey) Key() *Model_SingleKey_Key {
 // Key (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
 // Path from parent: "state/key"
-// Path from root: "/openconfig-withlist/model/a/single-key/state/key"
+// Path from root: "/model/a/single-key/state/key"
 func (n *Model_SingleKeyAny) Key() *Model_SingleKey_KeyAny {
 	return &Model_SingleKey_KeyAny{
 		NodePath: ygot.NewNodePath(

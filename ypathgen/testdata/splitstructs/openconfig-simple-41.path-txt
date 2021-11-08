@@ -28,8 +28,9 @@ type ParentAny struct {
 // Child (container): 
 // ----------------------------------------
 // Defining module: "openconfig-simple"
+// Instantiating module: "openconfig-simple"
 // Path from parent: "child"
-// Path from root: "/openconfig-simple/parent/child"
+// Path from root: "/parent/child"
 func (n *Parent) Child() *Parent_Child {
 	return &Parent_Child{
 		NodePath: ygot.NewNodePath(
@@ -43,8 +44,9 @@ func (n *Parent) Child() *Parent_Child {
 // Child (container): 
 // ----------------------------------------
 // Defining module: "openconfig-simple"
+// Instantiating module: "openconfig-simple"
 // Path from parent: "child"
-// Path from root: "/openconfig-simple/parent/child"
+// Path from root: "/parent/child"
 func (n *ParentAny) Child() *Parent_ChildAny {
 	return &Parent_ChildAny{
 		NodePath: ygot.NewNodePath(

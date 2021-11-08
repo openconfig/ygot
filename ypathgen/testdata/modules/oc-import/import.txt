@@ -37,8 +37,9 @@ type Child_TestPathAny struct {
 // Test (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-import"
+// Instantiating module: "openconfig-import"
 // Path from parent: "test"
-// Path from root: "/openconfig-import/child/test"
+// Path from root: "/child/test"
 func (n *ChildPath) Test() *Child_TestPath {
 	return &Child_TestPath{
 		NodePath: ygot.NewNodePath(
@@ -52,8 +53,9 @@ func (n *ChildPath) Test() *Child_TestPath {
 // Test (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-import"
+// Instantiating module: "openconfig-import"
 // Path from parent: "test"
-// Path from root: "/openconfig-import/child/test"
+// Path from root: "/child/test"
 func (n *ChildPathAny) Test() *Child_TestPathAny {
 	return &Child_TestPathAny{
 		NodePath: ygot.NewNodePath(

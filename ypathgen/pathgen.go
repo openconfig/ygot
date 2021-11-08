@@ -571,6 +571,7 @@ type {{ .TypeName }}{{ .WildcardSuffix }} struct {
 // {{ .MethodName }} ({{ .YANGNodeType }}): {{ .YANGDescription }}
 // ----------------------------------------
 // Defining module: "{{ .DefiningModuleName }}"
+// Instantiating module: "{{ .InstantiatingModuleName }}"
 // Path from parent: "{{ .RelPath }}"
 // Path from root: "{{ .AbsPath }}"
 {{- range $paramDocStr := .KeyParamDocStrs }}
@@ -786,20 +787,21 @@ func getStructData(directory *ygen.Directory, pathStructSuffix string, generateW
 // goPathFieldData stores template information needed to generate a struct
 // field's child constructor method.
 type goPathFieldData struct {
-	MethodName         string           // MethodName is the name of the method that can be called to get to this field.
-	SchemaName         string           // SchemaName is the field's original name in the schema.
-	TypeName           string           // TypeName is the type name of the returned struct.
-	YANGNodeType       string           // YANGNodeType is the type of YANG node for the node (e.g. "list", "container", "leaf").
-	YANGDescription    string           // YANGDescription is the description for the node from its YANG definition.
-	DefiningModuleName string           // DefiningModuleName is the defining module for the node.
-	AbsPath            string           // AbsPath is the full path from root (not including keys).
-	RelPath            string           // RelPath is the relative path from its containing struct.
-	RelPathList        string           // RelPathList is the list of strings that form the relative path from its containing struct.
-	Struct             goPathStructData // Struct stores template information for the field's containing struct.
-	KeyParamListStr    string           // KeyParamListStr is the parameter list of the field's accessor method.
-	KeyEntriesStr      string           // KeyEntriesStr is an ordered list of comma-separated ("schemaName": unique camel-case name) for a list's keys.
-	KeyParamDocStrs    []string         // KeyParamDocStrs is an ordered slice of docstrings documenting the types of each list key parameter.
-	ChildPkgAccessor   string           // ChildPkgAccessor is used if the child path struct exists in another package.
+	MethodName              string           // MethodName is the name of the method that can be called to get to this field.
+	SchemaName              string           // SchemaName is the field's original name in the schema.
+	TypeName                string           // TypeName is the type name of the returned struct.
+	YANGNodeType            string           // YANGNodeType is the type of YANG node for the node (e.g. "list", "container", "leaf").
+	YANGDescription         string           // YANGDescription is the description for the node from its YANG definition.
+	DefiningModuleName      string           // DefiningModuleName is the defining module for the node.
+	InstantiatingModuleName string           // InstantiatingModuleName is the module that instantiated the node.
+	AbsPath                 string           // AbsPath is the full path from root (not including keys).
+	RelPath                 string           // RelPath is the relative path from its containing struct.
+	RelPathList             string           // RelPathList is the list of strings that form the relative path from its containing struct.
+	Struct                  goPathStructData // Struct stores template information for the field's containing struct.
+	KeyParamListStr         string           // KeyParamListStr is the parameter list of the field's accessor method.
+	KeyEntriesStr           string           // KeyEntriesStr is an ordered list of comma-separated ("schemaName": unique camel-case name) for a list's keys.
+	KeyParamDocStrs         []string         // KeyParamDocStrs is an ordered slice of docstrings documenting the types of each list key parameter.
+	ChildPkgAccessor        string           // ChildPkgAccessor is used if the child path struct exists in another package.
 }
 
 // generateDirectorySnippet generates all Go code associated with a schema node
@@ -961,17 +963,18 @@ func generateChildConstructors(methodBuf *strings.Builder, builderBuf *strings.B
 		}
 	}
 	fieldData := goPathFieldData{
-		MethodName:         goFieldName,
-		TypeName:           fieldTypeName,
-		SchemaName:         field.Name,
-		YANGNodeType:       YANGNodeType,
-		YANGDescription:    strings.ReplaceAll(field.Description, "\n", "\n// "),
-		DefiningModuleName: definingModuleName,
-		AbsPath:            field.Path(),
-		Struct:             structData,
-		RelPath:            strings.Join(relPath, `/`),
-		RelPathList:        `"` + strings.Join(relPath, `", "`) + `"`,
-		ChildPkgAccessor:   childPkgAccessor,
+		MethodName:              goFieldName,
+		TypeName:                fieldTypeName,
+		SchemaName:              field.Name,
+		YANGNodeType:            YANGNodeType,
+		YANGDescription:         strings.ReplaceAll(field.Description, "\n", "\n// "),
+		DefiningModuleName:      definingModuleName,
+		InstantiatingModuleName: util.SchemaTreeRoot(field).Name,
+		AbsPath:                 util.SchemaTreePathNoModule(field),
+		Struct:                  structData,
+		RelPath:                 strings.Join(relPath, `/`),
+		RelPathList:             `"` + strings.Join(relPath, `", "`) + `"`,
+		ChildPkgAccessor:        childPkgAccessor,
 	}
 
 	isUnderFakeRoot := ygen.IsFakeRoot(directory.Entry)

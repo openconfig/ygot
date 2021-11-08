@@ -29,8 +29,9 @@ func DeviceRoot(id string) *DevicePath {
 // that has 4 children.
 // ----------------------------------------
 // Defining module: "openconfig-simple"
+// Instantiating module: "openconfig-simple"
 // Path from parent: "parent"
-// Path from root: "/openconfig-simple/parent"
+// Path from root: "/parent"
 func (n *DevicePath) Parent() *simplepath.ParentPath {
 	return &simplepath.ParentPath{
 		NodePath: ygot.NewNodePath(
@@ -44,8 +45,9 @@ func (n *DevicePath) Parent() *simplepath.ParentPath {
 // RemoteContainer (container): 
 // ----------------------------------------
 // Defining module: "openconfig-remote"
+// Instantiating module: "openconfig-simple"
 // Path from parent: "remote-container"
-// Path from root: "/openconfig-simple/remote-container"
+// Path from root: "/remote-container"
 func (n *DevicePath) RemoteContainer() *simplepath.RemoteContainerPath {
 	return &simplepath.RemoteContainerPath{
 		NodePath: ygot.NewNodePath(

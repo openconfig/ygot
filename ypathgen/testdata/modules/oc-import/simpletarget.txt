@@ -37,8 +37,9 @@ type Native_APathAny struct {
 // A (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-simple-target"
+// Instantiating module: "openconfig-simple-target"
 // Path from parent: "state/a"
-// Path from root: "/openconfig-simple-target/native/state/a"
+// Path from root: "/native/state/a"
 func (n *NativePath) A() *Native_APath {
 	return &Native_APath{
 		NodePath: ygot.NewNodePath(
@@ -52,8 +53,9 @@ func (n *NativePath) A() *Native_APath {
 // A (leaf): 
 // ----------------------------------------
 // Defining module: "openconfig-simple-target"
+// Instantiating module: "openconfig-simple-target"
 // Path from parent: "state/a"
-// Path from root: "/openconfig-simple-target/native/state/a"
+// Path from root: "/native/state/a"
 func (n *NativePathAny) A() *Native_APathAny {
 	return &Native_APathAny{
 		NodePath: ygot.NewNodePath(

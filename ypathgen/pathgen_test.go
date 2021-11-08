@@ -1894,8 +1894,9 @@ const (
 // List (): 
 // ----------------------------------------
 // Defining module: ""
+// Instantiating module: "root-module"
 // Path from parent: "list-container/list"
-// Path from root: "/root-module/list-container/list"
+// Path from root: "/list-container/list"
 // Key1: string
 // Key2: oc.Binary
 // UnionKey: [oc.UnionString, oc.Binary]
@@ -1914,8 +1915,9 @@ func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List
 // ListAnyKey2AnyUnionKey (): 
 // ----------------------------------------
 // Defining module: ""
+// Instantiating module: "root-module"
 // Path from parent: "list-container/list"
-// Path from root: "/root-module/list-container/list"
+// Path from root: "/list-container/list"
 // Key1: string
 // Key2 (wildcarded): oc.Binary
 // UnionKey (wildcarded): [oc.UnionString, oc.Binary]
@@ -1932,8 +1934,9 @@ func (n *RootPath) ListAnyKey2AnyUnionKey(Key1 string) *ListPathAny {
 // ListAnyKey1AnyUnionKey (): 
 // ----------------------------------------
 // Defining module: ""
+// Instantiating module: "root-module"
 // Path from parent: "list-container/list"
-// Path from root: "/root-module/list-container/list"
+// Path from root: "/list-container/list"
 // Key1 (wildcarded): string
 // Key2: oc.Binary
 // UnionKey (wildcarded): [oc.UnionString, oc.Binary]
@@ -1950,8 +1953,9 @@ func (n *RootPath) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListPathAny {
 // ListAnyUnionKey (): 
 // ----------------------------------------
 // Defining module: ""
+// Instantiating module: "root-module"
 // Path from parent: "list-container/list"
-// Path from root: "/root-module/list-container/list"
+// Path from root: "/list-container/list"
 // Key1: string
 // Key2: oc.Binary
 // UnionKey (wildcarded): [oc.UnionString, oc.Binary]
@@ -1968,8 +1972,9 @@ func (n *RootPath) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListPathAny {
 // ListAnyKey1AnyKey2 (): 
 // ----------------------------------------
 // Defining module: ""
+// Instantiating module: "root-module"
 // Path from parent: "list-container/list"
-// Path from root: "/root-module/list-container/list"
+// Path from root: "/list-container/list"
 // Key1 (wildcarded): string
 // Key2 (wildcarded): oc.Binary
 // UnionKey: [oc.UnionString, oc.Binary]
@@ -1986,8 +1991,9 @@ func (n *RootPath) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union
 // ListAnyKey2 (): 
 // ----------------------------------------
 // Defining module: ""
+// Instantiating module: "root-module"
 // Path from parent: "list-container/list"
-// Path from root: "/root-module/list-container/list"
+// Path from root: "/list-container/list"
 // Key1: string
 // Key2 (wildcarded): oc.Binary
 // UnionKey: [oc.UnionString, oc.Binary]
@@ -2004,8 +2010,9 @@ func (n *RootPath) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey
 // ListAnyKey1 (): 
 // ----------------------------------------
 // Defining module: ""
+// Instantiating module: "root-module"
 // Path from parent: "list-container/list"
-// Path from root: "/root-module/list-container/list"
+// Path from root: "/list-container/list"
 // Key1 (wildcarded): string
 // Key2: oc.Binary
 // UnionKey: [oc.UnionString, oc.Binary]
@@ -2025,8 +2032,9 @@ func (n *RootPath) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_Union
 // ListAny (): 
 // ----------------------------------------
 // Defining module: ""
+// Instantiating module: "root-module"
 // Path from parent: "list-container/list"
-// Path from root: "/root-module/list-container/list"
+// Path from root: "/list-container/list"
 // Key1 (wildcarded): string
 // Key2 (wildcarded): oc.Binary
 // UnionKey (wildcarded): [oc.UnionString, oc.Binary]
@@ -2047,8 +2055,9 @@ func (n *RootPath) ListAny() *ListPathAny {
 // ListAny (): 
 // ----------------------------------------
 // Defining module: ""
+// Instantiating module: "root-module"
 // Path from parent: "list-container/list"
-// Path from root: "/root-module/list-container/list"
+// Path from root: "/list-container/list"
 // Key1 (wildcarded): string
 // Key2 (wildcarded): oc.Binary
 // UnionKey (wildcarded): [oc.UnionString, oc.Binary]
