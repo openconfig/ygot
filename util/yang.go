@@ -303,18 +303,7 @@ func fixYangRegexp(pattern string) string {
 // the state. If the element at the top of the tree does not have config set, then config
 // is true. See https://tools.ietf.org/html/rfc6020#section-7.19.1.
 func IsConfig(e *yang.Entry) bool {
-	for ; e.Parent != nil; e = e.Parent {
-		switch e.Config {
-		case yang.TSTrue:
-			return true
-		case yang.TSFalse:
-			return false
-		}
-	}
-
-	// Reached the last element in the tree without explicit configuration
-	// being set.
-	return e.Config != yang.TSFalse
+	return !e.ReadOnly()
 }
 
 // isPathChild takes an input slice of strings representing a path and determines
