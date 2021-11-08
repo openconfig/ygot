@@ -68,36 +68,6 @@ func PathElemsEqual(a, b *gpb.PathElem) bool {
 	return true
 }
 
-// PathElemsEqualWildcard checks if two PathElem are the same allowing for wildcard keys.
-// If a.Key["foo"] == "*" and a.Key["foo"] == "bar" func returns true.
-// If a has no keys, it is to equal to b regardless of what keys b has and vice versa.
-// TODO: Multilevel wildcards ("...") not supported.
-// This significantly improves comparison speed.
-func PathElemsEqualWildcard(a, b *gpb.PathElem) bool {
-	// This check allows avoiding to deal with any null PathElems later on.
-	if a == nil || b == nil {
-		return a == nil && b == nil
-	}
-
-	if a.Name != "*" && b.Name != "*" && a.Name != b.Name {
-		return false
-	}
-	// Wildcard for lists can be specified by setting no keys.
-	if len(a.Key) == 0 || len(b.Key) == 0 {
-		return true
-	}
-	if len(a.Key) != len(b.Key) {
-		return false
-	}
-
-	for k, v := range a.Key {
-		if vo, ok := b.Key[k]; !ok || (v != "*" && vo != "*" && v != vo) {
-			return false
-		}
-	}
-	return true
-}
-
 // PathElemSlicesEqual compares whether two PathElem slices are equal.
 func PathElemSlicesEqual(a, b []*gpb.PathElem) bool {
 	if len(a) != len(b) {
@@ -127,18 +97,26 @@ func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
 	return true
 }
 
-// PathMatchesWildcardPathElemPrefix checks whether prefix is a prefix of path.
-// Note: Path comparison is relaxed, If either path or prefix has a wildcard value for a key,
-// then any key value in the corresponding path element matches.
+// PathMatchesQuery returns whether query is prefix of path.
+// Only the query may contain wildcard name or keys.
 // TODO: Multilevel wildcards ("...") not supported.
 // Both paths must use the gNMI >=0.4.0 PathElem path format.
-func PathMatchesWildcardPathElemPrefix(path, prefix *gpb.Path) bool {
-	if len(path.GetElem()) < len(prefix.GetElem()) || path.Origin != prefix.Origin {
+func PathMatchesQuery(path, query *gpb.Path) bool {
+	if len(path.GetElem()) < len(query.GetElem()) || path.Origin != query.Origin {
 		return false
 	}
-	for i, v := range prefix.Elem {
-		if !PathElemsEqualWildcard(v, path.GetElem()[i]) {
+	for i, queryElem := range query.Elem {
+		pathElem := path.Elem[i]
+		if queryElem == nil || pathElem == nil {
 			return false
+		}
+		if queryElem.Name != "*" && queryElem.Name != pathElem.Name {
+			return false
+		}
+		for qk, qv := range queryElem.Key {
+			if pv, ok := pathElem.Key[qk]; !ok || (qv != "*" && qv != pv) {
+				return false
+			}
 		}
 	}
 	return true

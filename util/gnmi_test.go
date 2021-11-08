@@ -332,151 +332,6 @@ func TestPathElemsEqual(t *testing.T) {
 	}
 }
 
-func TestPathElemsEqualWildcard(t *testing.T) {
-	tests := []struct {
-		desc string
-		lhs  *gpb.PathElem
-		rhs  *gpb.PathElem
-		want bool
-	}{{
-		desc: "equal names with no keys",
-		lhs: &gpb.PathElem{
-			Name: "one",
-		},
-		rhs: &gpb.PathElem{
-			Name: "one",
-		},
-		want: true,
-	}, {
-		desc: "wildcard lfh name with no keys",
-		lhs: &gpb.PathElem{
-			Name: "*",
-		},
-		rhs: &gpb.PathElem{
-			Name: "one",
-		},
-		want: true,
-	}, {
-		desc: "wildcard rhs name with no keys",
-		lhs: &gpb.PathElem{
-			Name: "one",
-		},
-		rhs: &gpb.PathElem{
-			Name: "*",
-		},
-		want: true,
-	}, {
-		desc: "equal names and keys",
-		lhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "five"},
-		},
-		rhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "five"},
-		},
-		want: true,
-	}, {
-		desc: "equal names and wildcard keys",
-		lhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "*", "four": "five"},
-		},
-		rhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "*"},
-		},
-		want: true,
-	}, {
-		desc: "equal names and left no keys",
-		lhs: &gpb.PathElem{
-			Name: "one",
-		},
-		rhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "five"},
-		},
-		want: true,
-	}, {
-		desc: "equal names and right no keys",
-		lhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "five"},
-		},
-		rhs: &gpb.PathElem{
-			Name: "one",
-		},
-		want: true,
-	}, {
-		desc: "names don't match",
-		lhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "five"},
-		},
-		rhs: &gpb.PathElem{
-			Name: "two",
-			Key:  map[string]string{"two": "three", "four": "five"},
-		},
-	}, {
-		desc: "keys don't match",
-		lhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "five"},
-		},
-		rhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "six"},
-		},
-	}, {
-		desc: "keys don't have same length",
-		lhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three"},
-		},
-		rhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "five"},
-		},
-	}, {
-		desc: "keys don't have same length the other way",
-		lhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "five"},
-		},
-		rhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three"},
-		},
-	}, {
-		desc: "lhs PathElem is nil",
-		lhs:  nil,
-		rhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "five"},
-		},
-	}, {
-		desc: "rhs PathElem is nil",
-		lhs: &gpb.PathElem{
-			Name: "one",
-			Key:  map[string]string{"two": "three", "four": "five"},
-		},
-		rhs: nil,
-	}, {
-		desc: "both PathElems are nil",
-		lhs:  nil,
-		rhs:  nil,
-		want: true,
-	}}
-
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			if got := PathElemsEqualWildcard(tt.lhs, tt.rhs); got != tt.want {
-				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestPathElemSlicesEqual(t *testing.T) {
 	tests := []struct {
 		desc     string
@@ -671,14 +526,14 @@ func TestPathMatchesPathElemPrefix(t *testing.T) {
 	}
 }
 
-func TestPathMatchesWildcardPathElemPrefix(t *testing.T) {
+func TestPathMatchesQuery(t *testing.T) {
 	tests := []struct {
-		desc     string
-		inPath   *gpb.Path
-		inPrefix *gpb.Path
-		want     bool
+		desc    string
+		inPath  *gpb.Path
+		inQuery *gpb.Path
+		want    bool
 	}{{
-		desc: "valid prefix with no keys",
+		desc: "valid query with no keys",
 		inPath: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "one",
@@ -686,14 +541,31 @@ func TestPathMatchesWildcardPathElemPrefix(t *testing.T) {
 				Name: "two",
 			}},
 		},
-		inPrefix: &gpb.Path{
+		inQuery: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "one",
 			}},
 		},
 		want: true,
 	}, {
-		desc: "valid prefix with keys",
+		desc: "valid query with wildcard name",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "*",
+			}, {
+				Name: "two",
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid query with exact key match",
 		inPath: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "one",
@@ -702,7 +574,7 @@ func TestPathMatchesWildcardPathElemPrefix(t *testing.T) {
 				Name: "four",
 			}},
 		},
-		inPrefix: &gpb.Path{
+		inQuery: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "one",
 				Key:  map[string]string{"two": "three"},
@@ -710,40 +582,7 @@ func TestPathMatchesWildcardPathElemPrefix(t *testing.T) {
 		},
 		want: true,
 	}, {
-		desc: "valid path with wildcard keys",
-		inPath: &gpb.Path{
-			Elem: []*gpb.PathElem{{
-				Name: "one",
-				Key:  map[string]string{"two": "*"},
-			}, {
-				Name: "four",
-			}},
-		},
-		inPrefix: &gpb.Path{
-			Elem: []*gpb.PathElem{{
-				Name: "one",
-				Key:  map[string]string{"two": "three"},
-			}},
-		},
-		want: true,
-	}, {
-		desc: "valid path with no keys and prefix with keys",
-		inPath: &gpb.Path{
-			Elem: []*gpb.PathElem{{
-				Name: "one",
-			}, {
-				Name: "four",
-			}},
-		},
-		inPrefix: &gpb.Path{
-			Elem: []*gpb.PathElem{{
-				Name: "one",
-				Key:  map[string]string{"two": "three"},
-			}},
-		},
-		want: true,
-	}, {
-		desc: "valid prefix with wildcard keys",
+		desc: "valid query with wildcard keys",
 		inPath: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "one",
@@ -752,7 +591,7 @@ func TestPathMatchesWildcardPathElemPrefix(t *testing.T) {
 				Name: "four",
 			}},
 		},
-		inPrefix: &gpb.Path{
+		inQuery: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "one",
 				Key:  map[string]string{"two": "*"},
@@ -760,7 +599,7 @@ func TestPathMatchesWildcardPathElemPrefix(t *testing.T) {
 		},
 		want: true,
 	}, {
-		desc: "valid prefix with no keys and prefix with keys",
+		desc: "valid query with no keys and path with keys",
 		inPath: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "one",
@@ -769,14 +608,48 @@ func TestPathMatchesWildcardPathElemPrefix(t *testing.T) {
 				Name: "four",
 			}},
 		},
-		inPrefix: &gpb.Path{
+		inQuery: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "one",
 			}},
 		},
 		want: true,
 	}, {
-		desc: "not a prefix",
+		desc: "valid query with both missing and wildcard keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key: map[string]string{
+					"two":  "three",
+					"four": "five",
+				},
+			}, {
+				Name: "four",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"four": "*"},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "invalid nil elements",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{
+				nil,
+				{
+					Name: "twelve",
+				}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+			}},
+		},
+	}, {
+		desc: "invalid names not equal",
 		inPath: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "fourteen",
@@ -784,13 +657,13 @@ func TestPathMatchesWildcardPathElemPrefix(t *testing.T) {
 				Name: "twelve",
 			}},
 		},
-		inPrefix: &gpb.Path{
+		inQuery: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "three",
 			}},
 		},
 	}, {
-		desc: "not a prefix due to origin",
+		desc: "invalid origin",
 		inPath: &gpb.Path{
 			Origin: "openconfig",
 			Elem: []*gpb.PathElem{{
@@ -799,14 +672,14 @@ func TestPathMatchesWildcardPathElemPrefix(t *testing.T) {
 				Name: "two",
 			}},
 		},
-		inPrefix: &gpb.Path{
+		inQuery: &gpb.Path{
 			Origin: "google",
 			Elem: []*gpb.PathElem{{
 				Name: "one",
 			}},
 		},
 	}, {
-		desc: "not a prefix due to keys",
+		desc: "invalid keys",
 		inPath: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "three",
@@ -815,17 +688,16 @@ func TestPathMatchesWildcardPathElemPrefix(t *testing.T) {
 				Name: "six",
 			}},
 		},
-		inPrefix: &gpb.Path{
+		inQuery: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "three",
 				Key:  map[string]string{"seven": "eight"},
 			}},
 		},
 	}}
-
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			if got := PathMatchesWildcardPathElemPrefix(tt.inPath, tt.inPrefix); got != tt.want {
+			if got := PathMatchesQuery(tt.inPath, tt.inQuery); got != tt.want {
 				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
 			}
 		})
