@@ -30,16 +30,16 @@ import (
 const (
 	// GoDefaultYgotImportPath is the default import path used for the ygot library
 	// in the generated code.
-	GoDefaultYgotImportPath string = "github.com/openconfig/ygot/ygot"
+	GoDefaultYgotImportPath = "github.com/openconfig/ygot/ygot"
 	// GoDefaultYtypesImportPath is the default import path used for the ytypes library
 	// in the generated code.
-	GoDefaultYtypesImportPath string = "github.com/openconfig/ygot/ytypes"
+	GoDefaultYtypesImportPath = "github.com/openconfig/ygot/ytypes"
 	// GoDefaultGoyangImportPath is the default path for the goyang/pkg/yang library that
 	// is used in the generated code.
-	GoDefaultGoyangImportPath string = "github.com/openconfig/goyang/pkg/yang"
+	GoDefaultGoyangImportPath = "github.com/openconfig/goyang/pkg/yang"
 	// GoDefaultGNMIImportPath is the default import path that is used for the gNMI generated
 	// Go protobuf code in the generated output.
-	GoDefaultGNMIImportPath string = "github.com/openconfig/gnmi/proto/gnmi"
+	GoDefaultGNMIImportPath = "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // WriteIfNotEmpty writes the string s to b if it has a non-zero length.
@@ -374,6 +374,10 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 						// prioritized container, we must put the entry in the shadow list.
 						if prioNames[n.Name] {
 							childrenList = shadowChildren
+							if directChildren[n.Name].Annotation == nil {
+								directChildren[n.Name].Annotation = map[string]interface{}{}
+							}
+							directChildren[n.Name].Annotation[ygot.GoCompressedLeafAnnotation] = struct{}{}
 						}
 						errs = addNewChild(childrenList, n.Name, n, errs)
 					}

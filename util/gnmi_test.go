@@ -526,6 +526,200 @@ func TestPathMatchesPathElemPrefix(t *testing.T) {
 	}
 }
 
+func TestPathMatchesQuery(t *testing.T) {
+	tests := []struct {
+		desc    string
+		inPath  *gpb.Path
+		inQuery *gpb.Path
+		want    bool
+	}{{
+		desc: "valid query with no keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid query with wildcard name",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "*",
+			}, {
+				Name: "two",
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid query with exact key match",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}, {
+				Name: "four",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid query with wildcard keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}, {
+				Name: "four",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "*"},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid query with no keys and path with keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}, {
+				Name: "four",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid query with both missing and wildcard keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key: map[string]string{
+					"two":  "three",
+					"four": "five",
+				},
+			}, {
+				Name: "four",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"four": "*"},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "invalid nil elements",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{
+				nil,
+				{
+					Name: "twelve",
+				}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+			}},
+		},
+	}, {
+		desc: "invalid names not equal",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "fourteen",
+			}, {
+				Name: "twelve",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+			}},
+		},
+	}, {
+		desc: "invalid origin",
+		inPath: &gpb.Path{
+			Origin: "openconfig",
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Origin: "google",
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}},
+		},
+	}, {
+		desc: "invalid keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"four": "five"},
+			}, {
+				Name: "six",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"seven": "eight"},
+			}},
+		},
+	}, {
+		desc: "invalid missing wildcard keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"four": "five"},
+			}, {
+				Name: "six",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"seven": "*"},
+			}},
+		},
+	}}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := PathMatchesQuery(tt.inPath, tt.inQuery); got != tt.want {
+				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestTrimGNMIPathElemPrefix(t *testing.T) {
 	tests := []struct {
 		desc     string
