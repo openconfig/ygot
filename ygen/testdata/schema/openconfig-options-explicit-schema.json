@@ -57,6 +57,9 @@
                                     "Type": {
                                         "Name": "binary",
                                         "Kind": 9
+                                    },
+                                    "Annotation": {
+                                        "ygot-oc-compressed-leaf": {}
                                     }
                                 },
                                 "one": {
@@ -74,6 +77,9 @@
                                     "Type": {
                                         "Name": "string",
                                         "Kind": 18
+                                    },
+                                    "Annotation": {
+                                        "ygot-oc-compressed-leaf": {}
                                     }
                                 },
                                 "three": {
@@ -92,7 +98,11 @@
                                         "Name": "enumeration",
                                         "Kind": 14,
                                         "Enum": {}
+                                    },
+                                    "Annotation": {
+                                        "ygot-oc-compressed-leaf": {}
                                     }
+
                                 }
                             },
                             "Annotation": {
@@ -239,6 +249,9 @@
                             "Type": {
                                 "Name": "string",
                                 "Kind": 18
+                            },
+                            "Annotation": {
+                                "ygot-oc-compressed-leaf": {}
                             }
                         }
                     },

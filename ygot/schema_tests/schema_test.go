@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/gnmi/value"
@@ -118,6 +119,118 @@ func TestBuildEmptyDevice(t *testing.T) {
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("did not get expected device struct, diff(-got,+want):\n%s", diff)
+	}
+}
+
+func TestPruneConfigFalse(t *testing.T) {
+	configAndState := func() *exampleoc.Device {
+		d := &exampleoc.Device{}
+		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+		n := b.GetOrCreateNeighbor("192.0.2.1")
+		n.PeerAs = ygot.Uint32(29636)
+		n.PeerType = exampleoc.BgpTypes_PeerType_EXTERNAL
+		n.SessionState = exampleoc.Bgp_Neighbor_SessionState_ESTABLISHED
+
+		i := d.GetOrCreateInterface("eth0")
+		i.Description = ygot.String("foo")
+		i.Mtu = ygot.Uint16(1500)
+		i.OperStatus = exampleoc.Interface_OperStatus_UP
+		i.Logical = ygot.Bool(false)
+		return d
+	}
+
+	configOnly := func() *exampleoc.Device {
+		d := &exampleoc.Device{}
+		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+		n := b.GetOrCreateNeighbor("192.0.2.1")
+		n.PeerAs = ygot.Uint32(29636)
+		n.PeerType = exampleoc.BgpTypes_PeerType_EXTERNAL
+
+		i := d.GetOrCreateInterface("eth0")
+		i.Description = ygot.String("foo")
+		i.Mtu = ygot.Uint16(1500)
+		return d
+	}
+
+	got, want := configAndState(), configOnly()
+	if err := ygot.PruneConfigFalse(exampleoc.SchemaTree["Device"], got); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
+	}
+}
+
+func TestPruneConfigFalseOpState(t *testing.T) {
+	configAndState := func() *opstateoc.Device {
+		d := &opstateoc.Device{}
+		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(opstateoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+		n := b.GetOrCreateNeighbor("192.0.2.1")
+		n.PeerAs = ygot.Uint32(29636)
+		n.PeerType = opstateoc.OpenconfigBgpTypes_PeerType_EXTERNAL
+		n.SessionState = opstateoc.OpenconfigBgp_Neighbor_SessionState_ESTABLISHED
+
+		i := d.GetOrCreateInterface("eth0")
+		i.Description = ygot.String("foo")
+		i.Mtu = ygot.Uint16(1500)
+		i.OperStatus = opstateoc.Interface_OperStatus_UP
+		i.Logical = ygot.Bool(false)
+		return d
+	}
+
+	configOnly := func() *opstateoc.Device {
+		d := &opstateoc.Device{}
+		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(opstateoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+		n := b.GetOrCreateNeighbor("192.0.2.1")
+		n.PeerAs = ygot.Uint32(29636)
+		n.PeerType = opstateoc.OpenconfigBgpTypes_PeerType_EXTERNAL
+
+		i := d.GetOrCreateInterface("eth0")
+		i.Description = ygot.String("foo")
+		i.Mtu = ygot.Uint16(1500)
+		return d
+	}
+
+	got, want := configAndState(), configOnly()
+	if err := ygot.PruneConfigFalse(opstateoc.SchemaTree["Device"], got); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
+	}
+}
+
+func TestPruneUncompressed(t *testing.T) {
+	configAndState := func() *uexampleoc.Device {
+		d := &uexampleoc.Device{}
+
+		i := d.GetOrCreateInterfaces().GetOrCreateInterface("eth0")
+		c := i.GetOrCreateConfig()
+		c.Description = ygot.String("foo")
+		c.Mtu = ygot.Uint16(1500)
+		s := i.GetOrCreateState()
+		s.Mtu = ygot.Uint16(1500)
+		s.OperStatus = uexampleoc.OpenconfigInterfaces_Interfaces_Interface_State_OperStatus_UP
+		s.Logical = ygot.Bool(false)
+		return d
+	}
+
+	configOnly := func() *uexampleoc.Device {
+		d := &uexampleoc.Device{}
+
+		i := d.GetOrCreateInterfaces().GetOrCreateInterface("eth0")
+		c := i.GetOrCreateConfig()
+		c.Description = ygot.String("foo")
+		c.Mtu = ygot.Uint16(1500)
+		return d
+	}
+
+	got, want := configAndState(), configOnly()
+	if err := ygot.PruneConfigFalse(uexampleoc.SchemaTree["Device"], got); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
 	}
 }
 
