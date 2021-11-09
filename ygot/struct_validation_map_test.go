@@ -814,31 +814,31 @@ func TestBuildEmptyTree(t *testing.T) {
 }
 
 type emptyBranchTestOne struct {
-	String    *string
-	Struct    *emptyBranchTestOneChild
-	StructMap map[string]*emptyBranchTestOneChild
+	String    *string                             `path:"string"`
+	Struct    *emptyBranchTestOneChild            `path:"child"`
+	StructMap map[string]*emptyBranchTestOneChild `path:"maps/map"`
 }
 
 func (*emptyBranchTestOne) IsYANGGoStruct() {}
 
 type emptyBranchTestOneChild struct {
-	String     *string
-	Enumerated int64
-	Struct     *emptyBranchTestOneGrandchild
+	String     *string                       `path:"string"`
+	Enumerated int64                         `path:"enum"`
+	Struct     *emptyBranchTestOneGrandchild `path:"grand-child"`
 }
 
 func (*emptyBranchTestOneChild) IsYANGGoStruct() {}
 
 type emptyBranchTestOneGrandchild struct {
-	String *string
-	Slice  []string
-	Struct *emptyBranchTestOneGreatGrandchild
+	String *string                            `path:"string"`
+	Slice  []string                           `path:"slice"`
+	Struct *emptyBranchTestOneGreatGrandchild `path:"great-grand-child"`
 }
 
 func (*emptyBranchTestOneGrandchild) IsYANGGoStruct() {}
 
 type emptyBranchTestOneGreatGrandchild struct {
-	String *string
+	String *string `path:"string"`
 }
 
 func (*emptyBranchTestOneGreatGrandchild) IsYANGGoStruct() {}
