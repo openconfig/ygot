@@ -694,6 +694,22 @@ func TestPathMatchesQuery(t *testing.T) {
 				Key:  map[string]string{"seven": "eight"},
 			}},
 		},
+	}, {
+		desc: "invalid missing wildcard keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"four": "five"},
+			}, {
+				Name: "six",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"seven": "*"},
+			}},
+		},
 	}}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {

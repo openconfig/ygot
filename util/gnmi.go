@@ -43,8 +43,7 @@ func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 }
 
 // PathElemsEqual replaces the proto.Equal() check for PathElems.
-// Note: Use PathElemsEquivalent for wildcards.
-// If a.Key["foo"] == "*" and a.Key["foo"] == "bar" func returns false.
+// If a.Key["foo"] == "*" and b.Key["foo"] == "bar" func returns false.
 // This significantly improves comparison speed.
 func PathElemsEqual(a, b *gpb.PathElem) bool {
 	// This check allows avoiding to deal with any null PathElems later on.
@@ -85,6 +84,7 @@ func PathElemSlicesEqual(a, b []*gpb.PathElem) bool {
 // must use the gNMI >=0.4.0 PathElem path format.
 // Note: Paths must match exactly, that is if path has a wildcard key,
 // then the same key must also be a wildcard in the prefix.
+// See PathMatchesQuery for comparing paths with wildcards.
 func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
 	if len(path.GetElem()) < len(prefix.GetElem()) || path.Origin != prefix.Origin {
 		return false
@@ -100,6 +100,7 @@ func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
 // PathMatchesQuery returns whether query is prefix of path.
 // Only the query may contain wildcard name or keys.
 // TODO: Multilevel wildcards ("...") not supported.
+// If either path and query contain nil elements func returns false.
 // Both paths must use the gNMI >=0.4.0 PathElem path format.
 func PathMatchesQuery(path, query *gpb.Path) bool {
 	if len(path.GetElem()) < len(query.GetElem()) || path.Origin != query.Origin {
