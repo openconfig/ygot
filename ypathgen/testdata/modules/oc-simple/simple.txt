@@ -1,5 +1,5 @@
 /*
-Package ocpathstructs is a generated package which contains definitions
+Package openconfigsimplepath is a generated package which contains definitions
 of structs which generate gNMI paths for a YANG schema. The generated paths are
 based on a compressed form of the schema.
 
@@ -8,11 +8,43 @@ using the following YANG input files:
 	- ../testdata/modules/openconfig-simple.yang
 Imported modules were sourced from:
 */
-package ocpathstructs
+package openconfigsimplepath
 
 import (
 	"github.com/openconfig/ygot/ygot"
 )
+
+// ParentPath represents the /openconfig-simple/parent YANG schema element.
+type ParentPath struct {
+	*ygot.NodePath
+}
+
+// ParentPathAny represents the wildcard version of the /openconfig-simple/parent YANG schema element.
+type ParentPathAny struct {
+	*ygot.NodePath
+}
+
+// Child returns from ParentPath the path struct for its child "child".
+func (n *ParentPath) Child() *Parent_ChildPath {
+	return &Parent_ChildPath{
+		NodePath: ygot.NewNodePath(
+			[]string{"child"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
+
+// Child returns from ParentPathAny the path struct for its child "child".
+func (n *ParentPathAny) Child() *Parent_ChildPathAny {
+	return &Parent_ChildPathAny{
+		NodePath: ygot.NewNodePath(
+			[]string{"child"},
+			map[string]interface{}{},
+			n,
+		),
+	}
+}
 
 // Parent_ChildPath represents the /openconfig-simple/parent/child YANG schema element.
 type Parent_ChildPath struct {

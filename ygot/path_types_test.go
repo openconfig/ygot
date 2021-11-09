@@ -101,6 +101,10 @@ func TestResolvePath(t *testing.T) {
 				t.Errorf("ResolvePath returned diff (-want, +got):\n%s", diff)
 			}
 
+			if gotPath.Elem == nil {
+				t.Errorf("gotPath.PathElem is nil, but should not be")
+			}
+
 			if diff := cmp.Diff(wantCustomData, gotCustomData); diff != "" {
 				t.Errorf("ResolvePath: customData is not same as expected (-want, +got)\n%s", diff)
 			}

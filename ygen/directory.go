@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
@@ -136,28 +137,40 @@ func GetOrderedDirectories(directory map[string]*Directory) ([]string, map[strin
 // of a Directory. The Field is specified as a name in order to guarantee its
 // existence before processing.
 func FindSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]string, error) {
-	return findSchemaPath(parent, fieldName, false, absolutePaths)
+	schemaPaths, _, err := findSchemaPath(parent, fieldName, false, absolutePaths)
+	return schemaPaths, err
 }
 
 // findSchemaPath finds the relative or absolute schema path of a given field
-// of a Directory, or the shadowed field path (field duplicated and
-// deprioritized via compression) of a Directory. The Field is specified as a
-// name in order to guarantee its existence before processing.
+// of a Directory, or the shadowed field path (i.e. field duplicated and
+// deprioritized via compression) of a Directory. The first returned slice
+// contains the names of the path elements, and the second contains the
+// corresponding module names for each path element's resident namespace. The
+// Field is specified as a name in order to guarantee its existence before
+// processing.
 // NOTE: If shadowSchemaPaths is true, no error is returned if fieldName is not found.
-func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, absolutePaths bool) ([]string, error) {
+func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, absolutePaths bool) ([]string, []string, error) {
 	field, ok := parent.Fields[fieldName]
 	if shadowSchemaPaths {
 		if field, ok = parent.ShadowedFields[fieldName]; !ok {
-			return nil, nil
+			return nil, nil, nil
 		}
 	}
 	if !ok {
-		return nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): field name %q does not exist in Directory %s", shadowSchemaPaths, fieldName, parent.Path)
+		return nil, nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): field name %q does not exist in Directory %s", shadowSchemaPaths, fieldName, parent.Path)
 	}
 	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
+	var fieldSliceModules []string
+	for _, e := range util.SchemaEntryPathNoChoiceCase(field) {
+		im, err := e.InstantiatingModule()
+		if err != nil {
+			return nil, nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): cannot find instantiating module for field %q in Directory %s: %v", shadowSchemaPaths, fieldName, parent.Path, err)
+		}
+		fieldSliceModules = append(fieldSliceModules, im)
+	}
 
 	if absolutePaths {
-		return append([]string{""}, fieldSlicePath[1:]...), nil
+		return append([]string{""}, fieldSlicePath[1:]...), append([]string{""}, fieldSliceModules[1:]...), nil
 	}
 	// Return the elements that are not common between the two paths.
 	// Since the field is necessarily a child of the parent, then to
@@ -165,7 +178,89 @@ func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, abso
 	// in the parent's, we walk from index X of the field's path (where X
 	// is the number of elements in the path of the parent).
 	if len(fieldSlicePath) < len(parent.Path) {
-		return nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): field %v is not a valid child of %v", shadowSchemaPaths, fieldSlicePath, parent.Path)
+		return nil, nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): field %v is not a valid child of %v", shadowSchemaPaths, fieldSlicePath, parent.Path)
 	}
-	return fieldSlicePath[len(parent.Path)-1:], nil
+	return fieldSlicePath[len(parent.Path)-1:], fieldSliceModules[len(parent.Path)-1:], nil
+}
+
+// findMapPaths takes an input field name for a parent Directory and calculates
+// the set of schema paths it represents, as well as the corresponding module
+// names for each schema path element's resident namespace.
+// If absolutePaths is set, the paths are absolute; otherwise, they are relative to the parent. If
+// the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
+// path is also returned. If shadowSchemaPaths is set, then the path of the
+// field deprioritized via compression is returned instead of the prioritized paths.
+// The first returned path is the path of the direct child, with the shadow
+// child's path afterwards, and the key leafref, if any, last.
+func findMapPaths(parent *Directory, fieldName string, compressPaths, shadowSchemaPaths, absolutePaths bool) ([][]string, [][]string, error) {
+	childPath, childModulePath, err := findSchemaPath(parent, fieldName, shadowSchemaPaths, absolutePaths)
+	if err != nil {
+		return nil, nil, err
+	}
+	var mapPaths, mapModulePaths [][]string
+	if childPath != nil {
+		mapPaths = append(mapPaths, childPath)
+	}
+	if childModulePath != nil {
+		mapModulePaths = append(mapModulePaths, childModulePath)
+	}
+	// Only for compressed data schema paths for list fields do we have the
+	// possibility for a direct leafref path as a second path for the field.
+	if !compressPaths || parent.ListAttr == nil {
+		return mapPaths, mapModulePaths, nil
+	}
+
+	field, ok := parent.Fields[fieldName]
+	if !ok {
+		return nil, nil, fmt.Errorf("field name %s does not exist in Directory %s", fieldName, parent.Path)
+	}
+	fieldSlicePath := util.SchemaPathNoChoiceCase(field)
+	var fieldSliceModules []string
+	for _, e := range util.SchemaEntryPathNoChoiceCase(field) {
+		im, err := e.InstantiatingModule()
+		if err != nil {
+			return nil, nil, fmt.Errorf("FindSchemaPath(shadowSchemaPaths:%v): cannot find instantiating module for field %q in Directory %s: %v", shadowSchemaPaths, fieldName, parent.Path, err)
+		}
+		fieldSliceModules = append(fieldSliceModules, im)
+	}
+
+	// Handle specific issue of compressed path schemas, where a key of the
+	// parent list is a leafref to this leaf.
+	for _, k := range parent.ListAttr.KeyElems {
+		// If the key element has the same path as this element, and the
+		// corresponding element that is within the parent's container is of
+		// type leafref, then within an OpenConfig schema this means that
+		// the key leaf was a pointer to this leaf. To this end, we set
+		// isKey to true so that the struct field can be mapped to the
+		// leafref leaf within the schema as well as the target of the
+		// leafref.
+		if k.Parent == nil || k.Parent.Parent == nil || k.Parent.Parent.Dir[k.Name] == nil || k.Parent.Parent.Dir[k.Name].Type == nil {
+			return nil, nil, fmt.Errorf("invalid compressed schema, could not find the key %s or the grandparent of %s", k.Name, k.Path())
+		}
+
+		// If a key of the list is a leafref that points to the field,
+		// then add this as an alternative path.
+		// Note: if k is a leafref, buildListKey() would have already
+		// resolved it the field that the leafref points to. So, we
+		// compare their absolute paths for equality.
+		if k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref && cmp.Equal(util.SchemaPathNoChoiceCase(k), fieldSlicePath) {
+			// The path of the key element is simply the name of the leaf under the
+			// list, since the YANG specification enforces that keys are direct
+			// children of the list.
+			keyPath := []string{fieldSlicePath[len(fieldSlicePath)-1]}
+			keyModulePath := []string{fieldSliceModules[len(fieldSliceModules)-1]}
+			if absolutePaths {
+				// If absolute paths are required, then the 'config' or 'state' container needs to be omitted from
+				// the complete path for the secondary mapping.
+				keyPath = append([]string{""}, fieldSlicePath[1:len(fieldSlicePath)-2]...)
+				keyPath = append(keyPath, fieldSlicePath[len(fieldSlicePath)-1])
+				keyModulePath = append([]string{""}, fieldSliceModules[1:len(fieldSliceModules)-2]...)
+				keyModulePath = append(keyModulePath, fieldSliceModules[len(fieldSliceModules)-1])
+			}
+			mapPaths = append(mapPaths, keyPath)
+			mapModulePaths = append(mapModulePaths, keyModulePath)
+			break
+		}
+	}
+	return mapPaths, mapModulePaths, nil
 }

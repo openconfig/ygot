@@ -650,14 +650,14 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 	rootSchema := containerWithListSchema.Dir["root"]
 
 	type RootExample struct {
-		Conf     *uint32 `path:"config/conf|conf" module:"openconfig-network-instance"`
-		ConfRef  *uint32 `path:"config/conf-ref" module:"openconfig-network-instance"`
-		Conf2Ref *string `path:"config/conf2-ref" module:"openconfig-network-instance"`
+		Conf     *uint32 `path:"config/conf|conf"`
+		ConfRef  *uint32 `path:"config/conf-ref"`
+		Conf2Ref *string `path:"config/conf2-ref"`
 	}
 
 	type Root struct {
-		Conf2   *string                 `path:"conf2" module:"openconfig-network-instance"`
-		Example map[uint32]*RootExample `path:"examples/example" module:"openconfig-network-instance"`
+		Conf2   *string                 `path:"conf2"`
+		Example map[uint32]*RootExample `path:"examples/example"`
 	}
 
 	tests := []struct {

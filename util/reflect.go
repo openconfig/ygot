@@ -379,7 +379,7 @@ func InsertIntoMapStructField(parentStruct interface{}, fieldName string, key, f
 // If the field is a slice, no need to initialize as appending a new element
 // will do the same thing. Note that if the field is initialized already, this
 // function doesn't re-initialize it.
-func InitializeStructField(parent interface{}, fieldName string) error {
+func InitializeStructField(parent interface{}, fieldName string, initializeLeafs bool) error {
 	if parent == nil {
 		return errors.New("parent is nil")
 	}
@@ -398,7 +398,9 @@ func InitializeStructField(parent interface{}, fieldName string) error {
 	}
 	switch {
 	case IsValuePtr(fV) && fV.IsNil():
-		fV.Set(reflect.New(fV.Type().Elem()))
+		if v := reflect.New(fV.Type().Elem()); initializeLeafs || !IsValueScalar(v) {
+			fV.Set(v)
+		}
 	case IsValueMap(fV) && fV.IsNil():
 		fV.Set(reflect.MakeMap(fV.Type()))
 	}
@@ -456,7 +458,6 @@ func DeepEqualDerefPtrs(a, b interface{}) bool {
 // path tag and the schema path is found in the schema tree. It returns an error
 // if the struct tag is invalid, or nil if tag is valid but the schema is not
 // found in the tree at the specified path.
-// TODO(wenbli): need unit test
 func ChildSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error) {
 	pathTag, _ := f.Tag.Lookup("path")
 	DbgSchema("childSchema for schema %s, field %s, tag %s\n", schema.Name, f.Name, pathTag)

@@ -16,7 +16,6 @@ package ytypes
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
@@ -370,6 +369,13 @@ func TestUnmarshalContainer(t *testing.T) {
 			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
 		},
 		{
+			desc:   "success overwriting existing fields",
+			schema: containerSchema,
+			parent: &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(1), StateLeaf1Field: ygot.Int32(2)}},
+			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } } }`,
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
+		},
+		{
 			desc:    "nil schema",
 			schema:  nil,
 			parent:  &ParentContainerStruct{},
@@ -440,7 +446,7 @@ func TestUnmarshalContainer(t *testing.T) {
 		t.Run(tt.desc, func(t *testing.T) {
 			if tt.json != "" {
 				if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-					t.Fatal(fmt.Sprintf("json unmarshal (%s) : %s", tt.desc, err))
+					t.Fatalf("json unmarshal (%s) : %s", tt.desc, err)
 				}
 			}
 

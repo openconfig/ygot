@@ -38,6 +38,20 @@ type wantGoStructOut struct {
 // TestGoCodeStructGeneration tests the code generation from a known schema generates
 // the correct structures, key types and methods for a YANG container.
 func TestGoCodeStructGeneration(t *testing.T) {
+	modules := yang.NewModules()
+	modules.Modules["exmod"] = &yang.Module{
+		Name: "exmod",
+		Namespace: &yang.Value{
+			Name: "u:exmod",
+		},
+	}
+	modules.Modules["m1"] = &yang.Module{
+		Name: "m1",
+		Namespace: &yang.Value{
+			Name: "u:m1",
+		},
+	}
+
 	tests := []struct {
 		name          string
 		inStructToMap *Directory
@@ -67,6 +81,10 @@ func TestGoCodeStructGeneration(t *testing.T) {
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
@@ -74,6 +92,10 @@ func TestGoCodeStructGeneration(t *testing.T) {
 						Name: "f1",
 						Parent: &yang.Module{
 							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
 						},
 					},
 				},
@@ -87,6 +109,10 @@ func TestGoCodeStructGeneration(t *testing.T) {
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
@@ -94,6 +120,10 @@ func TestGoCodeStructGeneration(t *testing.T) {
 						Name: "f2",
 						Parent: &yang.Module{
 							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
 						},
 					},
 				},
@@ -104,8 +134,8 @@ func TestGoCodeStructGeneration(t *testing.T) {
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	F1	*int8	` + "`" + `path:"f1"` + "`" + `
-	F2	[]string	` + "`" + `path:"f2"` + "`" + `
+	F1	*int8	` + "`" + `path:"f1" module:"exmod"` + "`" + `
+	F2	[]string	` + "`" + `path:"f2" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -131,8 +161,8 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	F1	*int8	` + "`" + `path:"f1"` + "`" + `
-	F2	[]string	` + "`" + `path:"f2"` + "`" + `
+	F1	*int8	` + "`" + `path:"f1" module:"exmod"` + "`" + `
+	F2	[]string	` + "`" + `path:"f2" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -167,10 +197,22 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 							Name: "module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
-					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+					Node: &yang.Leaf{
+						Parent: &yang.Module{
+							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
+						},
+					},
 					Type: &yang.YangType{
 						Kind: yang.Yunion,
 						Type: []*yang.YangType{
@@ -187,7 +229,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // InputStruct represents the /module/input-struct YANG schema element.
 type InputStruct struct {
-	U1	InputStruct_U1_Union	` + "`" + `path:"u1"` + "`" + `
+	U1	InputStruct_U1_Union	` + "`" + `path:"u1" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -254,7 +296,7 @@ func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Uni
 			structs: `
 // InputStruct represents the /module/input-struct YANG schema element.
 type InputStruct struct {
-	U1	Module_InputStruct_U1_Union	` + "`" + `path:"u1"` + "`" + `
+	U1	Module_InputStruct_U1_Union	` + "`" + `path:"u1" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -332,10 +374,22 @@ func (t *InputStruct) To_Module_InputStruct_U1_Union(i interface{}) (Module_Inpu
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
-					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+					Node: &yang.Leaf{
+						Parent: &yang.Module{
+							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
+						},
+					},
 				},
 			},
 			Path: []string{"", "root-module", "input-struct"},
@@ -345,7 +399,7 @@ func (t *InputStruct) To_Module_InputStruct_U1_Union(i interface{}) (Module_Inpu
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
 type InputStruct struct {
-	C1	*InputStruct_C1	` + "`" + `path:"c1"` + "`" + `
+	C1	*InputStruct_C1	` + "`" + `path:"c1" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -371,7 +425,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
 type InputStruct struct {
-	C1	*InputStruct_C1	` + "`" + `path:"c1"` + "`" + `
+	C1	*InputStruct_C1	` + "`" + `path:"c1" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -408,10 +462,22 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
-					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+					Node: &yang.Leaf{
+						Parent: &yang.Module{
+							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
+						},
+					},
 				},
 			},
 			Path: []string{"", "root-module", "a-struct"},
@@ -434,10 +500,22 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
-					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+					Node: &yang.Leaf{
+						Parent: &yang.Module{
+							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
+						},
+					},
 				},
 			},
 			Path: []string{"", "root-module", "b-struct"},
@@ -460,10 +538,22 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
-					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+					Node: &yang.Leaf{
+						Parent: &yang.Module{
+							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
+						},
+					},
 				},
 			},
 			Path: []string{"", "root-module", "q-struct"},
@@ -480,7 +570,7 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 			structs: `
 // QStruct represents the /root-module/q-struct YANG schema element.
 type QStruct struct {
-	AList	[]*QStruct_AList	` + "`" + `path:"a-list"` + "`" + `
+	AList	[]*QStruct_AList	` + "`" + `path:"a-list" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that QStruct implements the yang.GoStruct
@@ -506,7 +596,7 @@ func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // QStruct represents the /root-module/q-struct YANG schema element.
 type QStruct struct {
-	AList	[]*QStruct_AList	` + "`" + `path:"a-list"` + "`" + `
+	AList	[]*QStruct_AList	` + "`" + `path:"a-list" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that QStruct implements the yang.GoStruct
@@ -543,6 +633,10 @@ func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
@@ -553,7 +647,15 @@ func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 							Type: &yang.YangType{Kind: yang.Ystring},
 						},
 					},
-					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+					Node: &yang.Leaf{
+						Parent: &yang.Module{
+							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
+						},
+					},
 				},
 			},
 			Path: []string{"", "root-module", "tstruct"},
@@ -584,7 +686,7 @@ func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"listWithKey"` + "`" + `
+	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -656,7 +758,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"listWithKey"` + "`" + `
+	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -739,6 +841,10 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
@@ -749,7 +855,15 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 							Type: &yang.YangType{Kind: yang.Ystring},
 						},
 					},
-					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+					Node: &yang.Leaf{
+						Parent: &yang.Module{
+							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
+						},
+					},
 				},
 			},
 			Path: []string{"", "root-module", "tstruct"},
@@ -811,6 +925,10 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
@@ -818,14 +936,38 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 					Dir: map[string]*yang.Entry{
 						"keyLeafOne": {
 							Name: "keyLeafOne",
-							Node: &yang.Leaf{Parent: &yang.Module{Name: "exmodch"}},
+							Node: &yang.Leaf{
+								Parent: &yang.Module{
+									Name: "exmod",
+									Namespace: &yang.Value{
+										Name: "u:exmod",
+									},
+									Modules: modules,
+								},
+							},
 						},
 						"keyLeafTwo": {
 							Name: "keyLeafTwo",
-							Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+							Node: &yang.Leaf{
+								Parent: &yang.Module{
+									Name: "exmod",
+									Namespace: &yang.Value{
+										Name: "u:exmod",
+									},
+									Modules: modules,
+								},
+							},
 						},
 					},
-					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+					Node: &yang.Leaf{
+						Parent: &yang.Module{
+							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
+						},
+					},
 				},
 			},
 			Path: []string{"", "root-module", "tstruct"},
@@ -852,7 +994,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"listWithKey"` + "`" + `
+	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -936,7 +1078,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"listWithKey"` + "`" + `
+	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -1030,6 +1172,10 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
@@ -1037,6 +1183,10 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 						Name: "f1",
 						Parent: &yang.Module{
 							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
 						},
 					},
 				},
@@ -1052,7 +1202,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
 	ΩMetadata	[]ygot.Annotation	` + "`" + `path:"@" ygotAnnotation:"true"` + "`" + `
-	F1	*int8	` + "`" + `path:"f1"` + "`" + `
+	F1	*int8	` + "`" + `path:"f1" module:"exmod"` + "`" + `
 	ΩF1	[]ygot.Annotation	` + "`" + `path:"@f1" ygotAnnotation:"true"` + "`" + `
 }
 
@@ -1080,7 +1230,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
 	ΩMetadata	[]ygot.Annotation	` + "`" + `path:"@" ygotAnnotation:"true"` + "`" + `
-	F1	*int8	` + "`" + `path:"f1"` + "`" + `
+	F1	*int8	` + "`" + `path:"f1" module:"exmod"` + "`" + `
 	ΩF1	[]ygot.Annotation	` + "`" + `path:"@f1" ygotAnnotation:"true"` + "`" + `
 }
 
@@ -1118,6 +1268,10 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
@@ -1125,14 +1279,38 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 					Dir: map[string]*yang.Entry{
 						"keyLeafOne": {
 							Name: "keyLeafOne",
-							Node: &yang.Leaf{Parent: &yang.Module{Name: "exmodch"}},
+							Node: &yang.Leaf{
+								Parent: &yang.Module{
+									Name: "exmod",
+									Namespace: &yang.Value{
+										Name: "u:exmod",
+									},
+									Modules: modules,
+								},
+							},
 						},
 						"keyLeafTwo": {
 							Name: "keyLeafTwo",
-							Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+							Node: &yang.Leaf{
+								Parent: &yang.Module{
+									Name: "exmod",
+									Namespace: &yang.Value{
+										Name: "u:exmod",
+									},
+									Modules: modules,
+								},
+							},
 						},
 					},
-					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+					Node: &yang.Leaf{
+						Parent: &yang.Module{
+							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
+						},
+					},
 				},
 			},
 			Path: []string{"", "root-module", "tstruct"},
@@ -1161,7 +1339,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"listWithKey"` + "`" + `
+	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -1324,6 +1502,10 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
@@ -1334,7 +1516,15 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 							Type: &yang.YangType{Kind: yang.Ystring},
 						},
 					},
-					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+					Node: &yang.Leaf{
+						Parent: &yang.Module{
+							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
+						},
+					},
 				},
 			},
 			Path: []string{"", "root-module", "tstruct"},
@@ -1367,7 +1557,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"listWithKey"` + "`" + `
+	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -1503,10 +1693,22 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 							Name: "root-module",
 							Node: &yang.Module{
 								Name: "exmod",
+								Namespace: &yang.Value{
+									Name: "u:exmod",
+								},
+								Modules: modules,
 							},
 						},
 					},
-					Node: &yang.Leaf{Parent: &yang.Module{Name: "exmod"}},
+					Node: &yang.Leaf{
+						Parent: &yang.Module{
+							Name: "exmod",
+							Namespace: &yang.Value{
+								Name: "u:exmod",
+							},
+							Modules: modules,
+						},
+					},
 				},
 			},
 			Path: []string{"", "root-module", "input-struct"},
@@ -1519,7 +1721,7 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
 type InputStruct struct {
-	C1	*InputStruct_C1	` + "`" + `path:"c1"` + "`" + `
+	C1	*InputStruct_C1	` + "`" + `path:"c1" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
@@ -1579,28 +1781,50 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 						Parent: &yang.Entry{
 							Name: "foo",
 							Kind: yang.DirectoryEntry,
+							Parent: &yang.Entry{
+								Name: "m1",
+								Node: &yang.Module{
+									Name: "m1",
+									Namespace: &yang.Value{
+										Name: "u:m1",
+									},
+									Modules: modules,
+								},
+							},
 							Node: &yang.Container{
-								Name:   "foo",
-								Parent: &yang.Module{Name: "m1"},
+								Name: "foo",
+								Parent: &yang.Module{
+									Name: "m1",
+									Namespace: &yang.Value{
+										Name: "u:m1",
+									},
+									Modules: modules,
+								},
 							},
 						},
 					},
 					Node: &yang.Leaf{
-						Name:   "leaf",
-						Parent: &yang.Module{Name: "m1"},
+						Name: "leaf",
+						Parent: &yang.Module{
+							Name: "m1",
+							Namespace: &yang.Value{
+								Name: "u:m1",
+							},
+							Modules: modules,
+						},
 					},
 				},
 			},
-			Path: []string{"foo", "bar"},
+			Path: []string{"m1", "foo", "bar"},
 		},
 		inGoOpts: GoOpts{
 			GenerateLeafGetters: true,
 		},
 		wantCompressed: wantGoStructOut{
 			structs: `
-// Container represents the foo/bar YANG schema element.
+// Container represents the m1/foo/bar YANG schema element.
 type Container struct {
-	Leaf	*string	` + "`" + `path:"bar/leaf"` + "`" + `
+	Leaf	*string	` + "`" + `path:"bar/leaf" module:"m1/m1"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Container implements the yang.GoStruct
@@ -1610,12 +1834,14 @@ func (*Container) IsYANGGoStruct() {}
 `,
 			methods: `
 // GetLeaf retrieves the value of the leaf Leaf from the Container
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Leaf is set, it can safely use t.GetLeaf()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Leaf == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Leaf is set, it can
+// safely use t.GetLeaf() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Leaf == nil' before retrieving the leaf's value.
 func (t *Container) GetLeaf() string {
 	if t == nil || t.Leaf == nil {
 		return ""
@@ -1655,28 +1881,50 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 						Parent: &yang.Entry{
 							Name: "foo",
 							Kind: yang.DirectoryEntry,
+							Parent: &yang.Entry{
+								Name: "m1",
+								Node: &yang.Module{
+									Name: "m1",
+									Namespace: &yang.Value{
+										Name: "u:m1",
+									},
+									Modules: modules,
+								},
+							},
 							Node: &yang.Container{
-								Name:   "foo",
-								Parent: &yang.Module{Name: "m1"},
+								Name: "foo",
+								Parent: &yang.Module{
+									Name: "m1",
+									Namespace: &yang.Value{
+										Name: "u:m1",
+									},
+									Modules: modules,
+								},
 							},
 						},
 					},
 					Node: &yang.Leaf{
-						Name:   "leaf",
-						Parent: &yang.Module{Name: "m1"},
+						Name: "leaf",
+						Parent: &yang.Module{
+							Name: "m1",
+							Namespace: &yang.Value{
+								Name: "u:m1",
+							},
+							Modules: modules,
+						},
 					},
 				},
 			},
-			Path: []string{"foo", "bar"},
+			Path: []string{"m1", "foo", "bar"},
 		},
 		inGoOpts: GoOpts{
 			GenerateLeafGetters: true,
 		},
 		wantCompressed: wantGoStructOut{
 			structs: `
-// Container represents the foo/bar YANG schema element.
+// Container represents the m1/foo/bar YANG schema element.
 type Container struct {
-	Leaf	*string	` + "`" + `path:"bar/leaf"` + "`" + `
+	Leaf	*string	` + "`" + `path:"bar/leaf" module:"m1/m1"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Container implements the yang.GoStruct
@@ -1686,12 +1934,14 @@ func (*Container) IsYANGGoStruct() {}
 `,
 			methods: `
 // GetLeaf retrieves the value of the leaf Leaf from the Container
-// struct. Caution should be exercised whilst using this method since it will return
-// the Go zero value if the field is explicitly unset. If the caller explicitly does
-// not care if Leaf is set, it can safely use t.GetLeaf()
-// to retrieve the value. In the case that the caller has different actions based on
-// whether the leaf is set or unset, it should use 'if t.Leaf == nil'
-// before retrieving the leaf's value.
+// struct. If the field is unset but has a default value in the YANG schema,
+// then the default value will be returned.
+// Caution should be exercised whilst using this method since when without a
+// default value, it will return the Go zero value if the field is explicitly
+// unset. If the caller explicitly does not care if Leaf is set, it can
+// safely use t.GetLeaf() to retrieve the value. In the case that the
+// caller has different actions based on whether the leaf is set or unset, it
+// should use 'if t.Leaf == nil' before retrieving the leaf's value.
 func (t *Container) GetLeaf() string {
 	if t == nil || t.Leaf == nil {
 		return "DEFAULT VALUE"
@@ -1812,11 +2062,22 @@ func TestGoCodeEnumGeneration(t *testing.T) {
 			entry: &yang.Entry{
 				Type: &yang.YangType{
 					IdentityBase: &yang.Identity{
-						Values: []*yang.Identity{
-							{Name: "VALUE_A", Parent: &yang.Module{Name: "mod"}},
-							{Name: "VALUE_C", Parent: &yang.Module{Name: "mod2"}},
-							{Name: "VALUE_B", Parent: &yang.Module{Name: "mod3"}},
-						},
+						Values: []*yang.Identity{{
+							Name: "VALUE_A",
+							Parent: &yang.Module{
+								Name: "mod",
+							},
+						}, {
+							Name: "VALUE_C",
+							Parent: &yang.Module{
+								Name: "mod2",
+							},
+						}, {
+							Name: "VALUE_B",
+							Parent: &yang.Module{
+								Name: "mod3",
+							},
+						}},
 					},
 				},
 			},
@@ -1974,363 +2235,6 @@ const (
 			}
 			t.Errorf("%s: writeGoEnum(%v): got incorrect output, diff(-want, +got):\n%s",
 				tt.name, tt.in, diff)
-		}
-	}
-}
-
-// TestFindMapPaths ensures that the schema paths that an entity should be
-// mapped to are properly extracted from a schema element.
-func TestFindMapPaths(t *testing.T) {
-	tests := []struct {
-		name                string
-		inStruct            *Directory
-		inField             string
-		inCompressPaths     bool
-		inShadowSchemaPaths bool
-		inAbsolutePaths     bool
-		wantPaths           [][]string
-		wantErr             bool
-	}{{
-		name: "first-level container with path compression off",
-		inStruct: &Directory{
-			Name: "AContainer",
-			Path: []string{"", "a-module", "a-container"},
-			Fields: map[string]*yang.Entry{
-				"field-a": {
-					Name: "field-a",
-					Parent: &yang.Entry{
-						Name: "a-container",
-						Parent: &yang.Entry{
-							Name: "a-module",
-						},
-					},
-				},
-			},
-		},
-		inField:   "field-a",
-		wantPaths: [][]string{{"field-a"}},
-	}, {
-		name: "invalid parent path - shorter than directory path",
-		inStruct: &Directory{
-			Name: "AContainer",
-			Path: []string{"", "a-module", "a-container"},
-			Fields: map[string]*yang.Entry{
-				"field-q": {
-					Name: "field-q",
-					Parent: &yang.Entry{
-						Name: "q-container",
-					},
-				},
-			},
-		},
-		inField: "field-q",
-		wantErr: true,
-	}, {
-		name: "first-level container with path compression on",
-		inStruct: &Directory{
-			Name: "BContainer",
-			Path: []string{"", "a-module", "b-container"},
-			Fields: map[string]*yang.Entry{
-				"field-b": {
-					Name: "field-b",
-					Parent: &yang.Entry{
-						Name: "config",
-						Parent: &yang.Entry{
-							Name: "b-container",
-							Parent: &yang.Entry{
-								Name: "a-module",
-							},
-						},
-					},
-				},
-			},
-			ShadowedFields: map[string]*yang.Entry{
-				"field-b": {
-					Name: "field-b",
-					Parent: &yang.Entry{
-						Name: "state",
-						Parent: &yang.Entry{
-							Name: "b-container",
-							Parent: &yang.Entry{
-								Name: "a-module",
-							},
-						},
-					},
-				},
-			},
-		},
-		inField:         "field-b",
-		inCompressPaths: true,
-		wantPaths:       [][]string{{"config", "field-b"}},
-	}, {
-		name: "first-level container with path compression on and ignoreShadowSchemaPaths on",
-		inStruct: &Directory{
-			Name: "BContainer",
-			Path: []string{"", "a-module", "b-container"},
-			Fields: map[string]*yang.Entry{
-				"field-b": {
-					Name: "field-b",
-					Parent: &yang.Entry{
-						Name: "config",
-						Parent: &yang.Entry{
-							Name: "b-container",
-							Parent: &yang.Entry{
-								Name: "a-module",
-							},
-						},
-					},
-				},
-			},
-			ShadowedFields: map[string]*yang.Entry{
-				"field-b": {
-					Name: "field-b",
-					Parent: &yang.Entry{
-						Name: "state",
-						Parent: &yang.Entry{
-							Name: "b-container",
-							Parent: &yang.Entry{
-								Name: "a-module",
-							},
-						},
-					},
-				},
-			},
-		},
-		inField:             "field-b",
-		inCompressPaths:     true,
-		inShadowSchemaPaths: true,
-		wantPaths:           [][]string{{"state", "field-b"}},
-	}, {
-		name: "container with absolute paths on",
-		inStruct: &Directory{
-			Name: "BContainer",
-			Path: []string{"", "a-module", "b-container", "c-container"},
-			Fields: map[string]*yang.Entry{
-				"field-d": {
-					Name: "field-d",
-					Parent: &yang.Entry{
-						Name: "c-container",
-						Parent: &yang.Entry{
-							Name: "b-container",
-							Parent: &yang.Entry{
-								Name: "a-module",
-							},
-						},
-					},
-				},
-			},
-		},
-		inField:         "field-d",
-		inAbsolutePaths: true,
-		wantPaths:       [][]string{{"", "b-container", "c-container", "field-d"}},
-	}, {
-		name: "top-level module - not valid to map",
-		inStruct: &Directory{
-			Name:   "CContainer",
-			Path:   []string{"", "c-container"}, // Does not have a valid module.
-			Fields: map[string]*yang.Entry{"top": {}},
-		},
-		inField: "top",
-		wantErr: true,
-	}, {
-		name: "list with leafref key",
-		inStruct: &Directory{
-			Name: "DList",
-			Path: []string{"", "d-module", "d-container", "d-list"},
-			ListAttr: &YangListAttr{
-				KeyElems: []*yang.Entry{
-					{
-						Name: "d-key",
-						Type: &yang.YangType{
-							Kind: yang.Yleafref,
-						},
-						Parent: &yang.Entry{
-							Name: "config",
-							Parent: &yang.Entry{
-								Name: "d-list",
-								Kind: yang.DirectoryEntry,
-								Dir: map[string]*yang.Entry{
-									"d-key": {
-										Name: "d-key",
-										Type: &yang.YangType{Kind: yang.Yleafref},
-									},
-								},
-								Parent: &yang.Entry{
-									Name: "d-container",
-									Parent: &yang.Entry{
-										Name: "d-module",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			Fields: map[string]*yang.Entry{
-				"d-key": {
-					Name: "d-key",
-					Type: &yang.YangType{
-						Kind: yang.Yleafref,
-					},
-					Parent: &yang.Entry{
-						Name: "config",
-						Parent: &yang.Entry{
-							Name: "d-list",
-							Kind: yang.DirectoryEntry,
-							Dir: map[string]*yang.Entry{
-								"d-key": {
-									Name: "d-key",
-									Type: &yang.YangType{Kind: yang.Yleafref},
-								},
-							},
-							Parent: &yang.Entry{
-								Name: "d-container",
-								Parent: &yang.Entry{
-									Name: "d-module",
-								},
-							},
-						},
-					},
-				},
-			},
-			ShadowedFields: map[string]*yang.Entry{
-				"d-key": {
-					Name: "d-key",
-					Parent: &yang.Entry{
-						Name: "state",
-						Parent: &yang.Entry{
-							Name: "d-list",
-							Kind: yang.DirectoryEntry,
-							Dir: map[string]*yang.Entry{
-								"d-key": {
-									Name: "d-key",
-									Type: &yang.YangType{Kind: yang.Yleafref},
-								},
-							},
-							Parent: &yang.Entry{
-								Name: "d-container",
-								Parent: &yang.Entry{
-									Name: "d-module",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		inField:         "d-key",
-		inCompressPaths: true,
-		wantPaths: [][]string{
-			{"config", "d-key"},
-			{"d-key"},
-		},
-	}, {
-		name: "list with leafref key with shadowSchemaPaths=true",
-		inStruct: &Directory{
-			Name: "DList",
-			Path: []string{"", "d-module", "d-container", "d-list"},
-			ListAttr: &YangListAttr{
-				KeyElems: []*yang.Entry{
-					{
-						Name: "d-key",
-						Type: &yang.YangType{
-							Kind: yang.Yleafref,
-						},
-						Parent: &yang.Entry{
-							Name: "config",
-							Parent: &yang.Entry{
-								Name: "d-list",
-								Kind: yang.DirectoryEntry,
-								Dir: map[string]*yang.Entry{
-									"d-key": {
-										Name: "d-key",
-										Type: &yang.YangType{Kind: yang.Yleafref},
-									},
-								},
-								Parent: &yang.Entry{
-									Name: "d-container",
-									Parent: &yang.Entry{
-										Name: "d-module",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			Fields: map[string]*yang.Entry{
-				"d-key": {
-					Name: "d-key",
-					Type: &yang.YangType{
-						Kind: yang.Yleafref,
-					},
-					Parent: &yang.Entry{
-						Name: "config",
-						Parent: &yang.Entry{
-							Name: "d-list",
-							Kind: yang.DirectoryEntry,
-							Dir: map[string]*yang.Entry{
-								"d-key": {
-									Name: "d-key",
-									Type: &yang.YangType{Kind: yang.Yleafref},
-								},
-							},
-							Parent: &yang.Entry{
-								Name: "d-container",
-								Parent: &yang.Entry{
-									Name: "d-module",
-								},
-							},
-						},
-					},
-				},
-			},
-			ShadowedFields: map[string]*yang.Entry{
-				"d-key": {
-					Name: "d-key",
-					Parent: &yang.Entry{
-						Name: "state",
-						Parent: &yang.Entry{
-							Name: "d-list",
-							Kind: yang.DirectoryEntry,
-							Dir: map[string]*yang.Entry{
-								"d-key": {
-									Name: "d-key",
-									Type: &yang.YangType{Kind: yang.Yleafref},
-								},
-							},
-							Parent: &yang.Entry{
-								Name: "d-container",
-								Parent: &yang.Entry{
-									Name: "d-module",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		inField:             "d-key",
-		inCompressPaths:     true,
-		inShadowSchemaPaths: true,
-		wantPaths: [][]string{
-			{"state", "d-key"},
-			{"d-key"},
-		},
-	}}
-
-	for _, tt := range tests {
-		got, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, tt.inAbsolutePaths)
-		if err != nil {
-			if !tt.wantErr {
-				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, shadowSchemaPaths: %v, got unexpected error: %v",
-					tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, err)
-			}
-			continue
-		}
-
-		if diff := cmp.Diff(tt.wantPaths, got); diff != "" {
-			t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, shadowSchemaPaths: %v, (-want, +got):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, diff)
 		}
 	}
 }

@@ -71,8 +71,8 @@ type UnionUnsupported struct {
 
 // Model represents the /openconfig-withlist/model YANG schema element.
 type Model struct {
-	MultiKey	map[Model_MultiKey_Key]*Model_MultiKey	`path:"b/multi-key" module:"openconfig-withlist"`
-	SingleKey	map[string]*Model_SingleKey	`path:"a/single-key" module:"openconfig-withlist"`
+	MultiKey	map[Model_MultiKey_Key]*Model_MultiKey	`path:"b/multi-key" module:"openconfig-withlist/openconfig-withlist"`
+	SingleKey	map[string]*Model_SingleKey	`path:"a/single-key" module:"openconfig-withlist/openconfig-withlist"`
 }
 
 // IsYANGGoStruct ensures that Model implements the yang.GoStruct
@@ -185,8 +185,8 @@ func (t *Model) RenameSingleKey(oldK, newK string) error {
 
 // Model_MultiKey represents the /openconfig-withlist/model/b/multi-key YANG schema element.
 type Model_MultiKey struct {
-	Key1	*uint32	`path:"state/key1|key1" module:"openconfig-withlist"`
-	Key2	*uint64	`path:"state/key2|key2" module:"openconfig-withlist"`
+	Key1	*uint32	`path:"state/key1|key1" module:"openconfig-withlist/openconfig-withlist|openconfig-withlist"`
+	Key2	*uint64	`path:"state/key2|key2" module:"openconfig-withlist/openconfig-withlist|openconfig-withlist"`
 }
 
 // IsYANGGoStruct ensures that Model_MultiKey implements the yang.GoStruct
@@ -212,7 +212,7 @@ func (t *Model_MultiKey) ΛListKeyMap() (map[string]interface{}, error) {
 
 // Model_SingleKey represents the /openconfig-withlist/model/a/single-key YANG schema element.
 type Model_SingleKey struct {
-	Key	*string	`path:"state/key|key" module:"openconfig-withlist"`
+	Key	*string	`path:"state/key|key" module:"openconfig-withlist/openconfig-withlist|openconfig-withlist"`
 }
 
 // IsYANGGoStruct ensures that Model_SingleKey implements the yang.GoStruct

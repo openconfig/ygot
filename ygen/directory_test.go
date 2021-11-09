@@ -255,21 +255,86 @@ func TestGetOrderedDirectories(t *testing.T) {
 	}
 }
 
+func compileModules(t *testing.T, inModules map[string]string) *yang.Modules {
+	t.Helper()
+	ms := yang.NewModules()
+	for n, m := range inModules {
+		if err := ms.Parse(m, n); err != nil {
+			t.Fatalf("error parsing module %q: %v", n, err)
+		}
+	}
+	if errs := ms.Process(); errs != nil {
+		t.Fatalf("modules processing failed: %v", errs)
+	}
+	return ms
+
+}
+
+// findEntry gets the entry for the module given the path.
+func findEntry(t *testing.T, ms *yang.Modules, moduleName, path string) *yang.Entry {
+	t.Helper()
+	module, errs := ms.GetModule(moduleName)
+	if errs != nil {
+		t.Fatalf("error getting module %q: %v", moduleName, errs)
+	}
+	if path == "" {
+		return module
+	}
+	entry := module.Find(path)
+	if entry == nil {
+		t.Fatalf("error getting entry %q in module %q", path, moduleName)
+	}
+	return entry
+}
+
 func TestFindSchemaPath(t *testing.T) {
+	ms := compileModules(t, map[string]string{
+		"module": `
+			module module {
+				prefix "m";
+				namespace "urn:m";
+
+				container foo {
+					container bar {
+						leaf baz {
+							type string;
+						}
+					}
+				}
+			}
+		`,
+		"d-module": `
+			module d-module {
+				prefix "n";
+				namespace "urn:n";
+
+				container d-container {
+					list d-list {
+						key d-key;
+
+						leaf d-key {
+							type leafref {
+								path "../config/d-key";
+							}
+						}
+
+						container config {
+							leaf d-key {
+								type string;
+							}
+						}
+					}
+				}
+			}
+		`,
+	})
+
+	baz := findEntry(t, ms, "module", "foo/bar/baz")
 	simpleDir := &Directory{
 		Name: "Foo",
 		Path: []string{"", "module", "foo"},
 		Fields: map[string]*yang.Entry{
-			"baz": {
-				Name: "baz",
-				Parent: &yang.Entry{
-					Name: "bar",
-					Parent: &yang.Entry{
-						Name:   "foo",
-						Parent: &yang.Entry{Name: "module"},
-					},
-				},
-			},
+			"baz": baz,
 		},
 	}
 
@@ -277,31 +342,7 @@ func TestFindSchemaPath(t *testing.T) {
 		Name: "DList",
 		Path: []string{"", "d-module", "d-container", "d-list"},
 		Fields: map[string]*yang.Entry{
-			"d-key": {
-				Name: "d-key",
-				Type: &yang.YangType{
-					Kind: yang.Yleafref,
-				},
-				Parent: &yang.Entry{
-					Name: "config",
-					Parent: &yang.Entry{
-						Name: "d-list",
-						Kind: yang.DirectoryEntry,
-						Dir: map[string]*yang.Entry{
-							"d-key": {
-								Name: "d-key",
-								Type: &yang.YangType{Kind: yang.Yleafref},
-							},
-						},
-						Parent: &yang.Entry{
-							Name: "d-container",
-							Parent: &yang.Entry{
-								Name: "d-module",
-							},
-						},
-					},
-				},
-			},
+			"d-key": findEntry(t, ms, "d-module", "d-container/d-list/config/d-key"),
 		},
 	}
 
@@ -310,7 +351,8 @@ func TestFindSchemaPath(t *testing.T) {
 		inDirectory           *Directory
 		inFieldName           string
 		inAbsolutePaths       bool
-		want                  []string
+		wantPath              []string
+		wantModules           []string
 		wantErrSubstr         string
 		wantErrSubstrShadowed string
 	}{{
@@ -318,19 +360,19 @@ func TestFindSchemaPath(t *testing.T) {
 		inDirectory:     simpleDir,
 		inFieldName:     "baz",
 		inAbsolutePaths: false,
-		want:            []string{"bar", "baz"},
+		wantPath:        []string{"bar", "baz"},
 	}, {
 		name:            "simple absolute path",
 		inDirectory:     simpleDir,
 		inFieldName:     "baz",
 		inAbsolutePaths: true,
-		want:            []string{"", "foo", "bar", "baz"},
+		wantPath:        []string{"", "foo", "bar", "baz"},
 	}, {
 		name:            "field does not exist",
 		inDirectory:     simpleDir,
 		inFieldName:     "baazar",
 		inAbsolutePaths: false,
-		want:            nil,
+		wantPath:        nil,
 		wantErrSubstr:   "field name \"baazar\" does not exist in Directory",
 		// wantErrSubstrShadowed is missing here: when shadowSchemaPaths is set, no error is returned when the field can't be found.
 	}, {
@@ -339,16 +381,7 @@ func TestFindSchemaPath(t *testing.T) {
 			Name: "Foo",
 			Path: []string{"", "module", "foo", "too", "long"},
 			Fields: map[string]*yang.Entry{
-				"baz": {
-					Name: "baz",
-					Parent: &yang.Entry{
-						Name: "bar",
-						Parent: &yang.Entry{
-							Name:   "foo",
-							Parent: &yang.Entry{Name: "module"},
-						},
-					},
-				},
+				"baz": baz,
 			},
 		},
 		inFieldName:           "baz",
@@ -360,23 +393,23 @@ func TestFindSchemaPath(t *testing.T) {
 		inDirectory:     listDir,
 		inFieldName:     "d-key",
 		inAbsolutePaths: false,
-		want:            []string{"config", "d-key"},
+		wantPath:        []string{"config", "d-key"},
 	}, {
 		name:            "list key absolute path",
 		inDirectory:     listDir,
 		inFieldName:     "d-key",
 		inAbsolutePaths: true,
-		want:            []string{"", "d-container", "d-list", "config", "d-key"},
+		wantPath:        []string{"", "d-container", "d-list", "config", "d-key"},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := FindSchemaPath(tt.inDirectory, tt.inFieldName, tt.inAbsolutePaths)
+			gotPath, err := FindSchemaPath(tt.inDirectory, tt.inFieldName, tt.inAbsolutePaths)
 			if diff := errdiff.Check(err, tt.wantErrSubstr); diff != "" {
 				t.Fatalf("FindSchemaPath, %v", diff)
 			}
-			if !cmp.Equal(got, tt.want) {
-				t.Fatalf("want: %s\ngot: %s", tt.want, got)
+			if diff := cmp.Diff(gotPath, tt.wantPath); diff != "" {
+				t.Fatalf("(-gotPath, want):\n%s", diff)
 			}
 		})
 	}
@@ -389,12 +422,292 @@ func TestFindSchemaPath(t *testing.T) {
 		}
 
 		t.Run(tt.name+" (ShadowedFields)", func(t *testing.T) {
-			got, err := findSchemaPath(tt.inDirectory, tt.inFieldName, true, tt.inAbsolutePaths)
+			gotPath, _, err := findSchemaPath(tt.inDirectory, tt.inFieldName, true, tt.inAbsolutePaths)
 			if diff := errdiff.Check(err, tt.wantErrSubstrShadowed); diff != "" {
 				t.Fatalf("FindShadowedSchemaPath, %v", diff)
 			}
-			if !cmp.Equal(got, tt.want) {
-				t.Fatalf("want: %s\ngot: %s", tt.want, got)
+			if diff := cmp.Diff(gotPath, tt.wantPath); diff != "" {
+				t.Fatalf("(-gotPath, want):\n%s", diff)
+			}
+		})
+	}
+}
+
+// TestFindMapPaths ensures that the schema paths that an entity should be
+// mapped to are properly extracted from a schema element.
+func TestFindMapPaths(t *testing.T) {
+	ms := compileModules(t, map[string]string{
+		"a-module": `
+			module a-module {
+				prefix "m";
+				namespace "urn:m";
+
+				container a-container {
+					leaf field-a {
+						type string;
+					}
+				}
+
+				container b-container {
+					container config {
+						leaf field-b {
+							type string;
+						}
+					}
+					container state {
+						leaf field-b {
+							type string;
+						}
+					}
+
+					container c-container {
+						leaf field-d {
+							type string;
+						}
+					}
+				}
+			}
+		`,
+		"d-module": `
+			module d-module {
+				prefix "n";
+				namespace "urn:n";
+
+				import a-module { prefix "a"; }
+
+				augment "/a:b-container/config" {
+					leaf field-c { type string; }
+				}
+
+				augment "/a:b-container/state" {
+					leaf field-c { type string; }
+				}
+
+				container d-container {
+					list d-list {
+						key d-key;
+
+						leaf d-key {
+							type leafref {
+								path "../config/d-key";
+							}
+						}
+
+						container config {
+							leaf d-key {
+								type string;
+							}
+						}
+
+						container state {
+							leaf d-key {
+								type string;
+							}
+						}
+					}
+				}
+			}
+		`,
+	})
+
+	tests := []struct {
+		name                string
+		inStruct            *Directory
+		inField             string
+		inCompressPaths     bool
+		inShadowSchemaPaths bool
+		inAbsolutePaths     bool
+		wantPaths           [][]string
+		wantModules         [][]string
+		wantErr             bool
+	}{{
+		name: "first-level container with path compression off",
+		inStruct: &Directory{
+			Name: "AContainer",
+			Path: []string{"", "a-module", "a-container"},
+			Fields: map[string]*yang.Entry{
+				"field-a": findEntry(t, ms, "a-module", "a-container/field-a"),
+			},
+		},
+		inField:     "field-a",
+		wantPaths:   [][]string{{"field-a"}},
+		wantModules: [][]string{{"a-module"}},
+	}, {
+		name: "invalid parent path - shorter than directory path",
+		inStruct: &Directory{
+			Name: "AContainer",
+			Path: []string{"", "a-module", "a-container"},
+			Fields: map[string]*yang.Entry{
+				"field-a": findEntry(t, ms, "a-module", "a-container"),
+			},
+		},
+		inField: "field-a",
+		wantErr: true,
+	}, {
+		name: "first-level container with path compression on",
+		inStruct: &Directory{
+			Name: "BContainer",
+			Path: []string{"", "a-module", "b-container"},
+			Fields: map[string]*yang.Entry{
+				"field-b": findEntry(t, ms, "a-module", "b-container/config/field-b"),
+			},
+			ShadowedFields: map[string]*yang.Entry{
+				"field-b": findEntry(t, ms, "a-module", "b-container/state/field-b"),
+			},
+		},
+		inField:         "field-b",
+		inCompressPaths: true,
+		wantPaths:       [][]string{{"config", "field-b"}},
+		wantModules:     [][]string{{"a-module", "a-module"}},
+	}, {
+		name: "first-level container with path compression on and ignoreShadowSchemaPaths on",
+		inStruct: &Directory{
+			Name: "BContainer",
+			Path: []string{"", "a-module", "b-container"},
+			Fields: map[string]*yang.Entry{
+				"field-b": findEntry(t, ms, "a-module", "b-container/config/field-b"),
+			},
+			ShadowedFields: map[string]*yang.Entry{
+				"field-b": findEntry(t, ms, "a-module", "b-container/state/field-b"),
+			},
+		},
+		inField:             "field-b",
+		inCompressPaths:     true,
+		inShadowSchemaPaths: true,
+		wantPaths:           [][]string{{"state", "field-b"}},
+		wantModules:         [][]string{{"a-module", "a-module"}},
+	}, {
+		name: "augmented first-level container with path compression on",
+		inStruct: &Directory{
+			Name: "BContainer",
+			Path: []string{"", "a-module", "b-container"},
+			Fields: map[string]*yang.Entry{
+				"field-c": findEntry(t, ms, "a-module", "b-container/config/field-c"),
+			},
+			ShadowedFields: map[string]*yang.Entry{
+				"field-c": findEntry(t, ms, "a-module", "b-container/state/field-c"),
+			},
+		},
+		inField:         "field-c",
+		inCompressPaths: true,
+		wantPaths:       [][]string{{"config", "field-c"}},
+		wantModules:     [][]string{{"a-module", "d-module"}},
+	}, {
+		name: "augmented first-level container with inShadowSchemaPaths=true",
+		inStruct: &Directory{
+			Name: "BContainer",
+			Path: []string{"", "a-module", "b-container"},
+			Fields: map[string]*yang.Entry{
+				"field-c": findEntry(t, ms, "a-module", "b-container/config/field-c"),
+			},
+			ShadowedFields: map[string]*yang.Entry{
+				"field-c": findEntry(t, ms, "a-module", "b-container/state/field-c"),
+			},
+		},
+		inField:             "field-c",
+		inCompressPaths:     true,
+		inShadowSchemaPaths: true,
+		wantPaths:           [][]string{{"state", "field-c"}},
+		wantModules:         [][]string{{"a-module", "d-module"}},
+	}, {
+		name: "container with absolute paths on",
+		inStruct: &Directory{
+			Name: "BContainer",
+			Path: []string{"", "a-module", "b-container", "c-container"},
+			Fields: map[string]*yang.Entry{
+				"field-d": findEntry(t, ms, "a-module", "b-container/c-container/field-d"),
+			},
+		},
+		inField:         "field-d",
+		inAbsolutePaths: true,
+		wantPaths:       [][]string{{"", "b-container", "c-container", "field-d"}},
+		wantModules:     [][]string{{"", "a-module", "a-module", "a-module"}},
+	}, {
+		name: "top-level module",
+		inStruct: &Directory{
+			Name: "CContainer",
+			Path: []string{""},
+			Fields: map[string]*yang.Entry{
+				"top": findEntry(t, ms, "a-module", ""),
+			},
+		},
+		inField:     "top",
+		wantPaths:   [][]string{{"a-module"}},
+		wantModules: [][]string{{"a-module"}},
+	}, {
+		name: "list with leafref key",
+		inStruct: &Directory{
+			Name: "DList",
+			Path: []string{"", "d-module", "d-container", "d-list"},
+			ListAttr: &YangListAttr{
+				KeyElems: []*yang.Entry{
+					findEntry(t, ms, "d-module", "d-container/d-list/config/d-key"),
+				},
+			},
+			Fields: map[string]*yang.Entry{
+				"d-key": findEntry(t, ms, "d-module", "d-container/d-list/config/d-key"),
+			},
+			ShadowedFields: map[string]*yang.Entry{
+				"d-key": findEntry(t, ms, "d-module", "d-container/d-list/state/d-key"),
+			},
+		},
+		inField:         "d-key",
+		inCompressPaths: true,
+		wantPaths: [][]string{
+			{"config", "d-key"},
+			{"d-key"},
+		},
+		wantModules: [][]string{
+			{"d-module", "d-module"},
+			{"d-module"},
+		},
+	}, {
+		name: "list with leafref key with shadowSchemaPaths=true",
+		inStruct: &Directory{
+			Name: "DList",
+			Path: []string{"", "d-module", "d-container", "d-list"},
+			ListAttr: &YangListAttr{
+				KeyElems: []*yang.Entry{
+					findEntry(t, ms, "d-module", "d-container/d-list/config/d-key"),
+				},
+			},
+			Fields: map[string]*yang.Entry{
+				"d-key": findEntry(t, ms, "d-module", "d-container/d-list/config/d-key"),
+			},
+			ShadowedFields: map[string]*yang.Entry{
+				"d-key": findEntry(t, ms, "d-module", "d-container/d-list/state/d-key"),
+			},
+		},
+		inField:             "d-key",
+		inCompressPaths:     true,
+		inShadowSchemaPaths: true,
+		wantPaths: [][]string{
+			{"state", "d-key"},
+			{"d-key"},
+		},
+		wantModules: [][]string{
+			{"d-module", "d-module"},
+			{"d-module"},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotPaths, gotModules, err := findMapPaths(tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, tt.inAbsolutePaths)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, shadowSchemaPaths: %v, wantErr: %v, gotPaths error: %v",
+					tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, tt.wantErr, err)
+			}
+			if tt.wantErr {
+				return
+			}
+
+			if diff := cmp.Diff(tt.wantPaths, gotPaths); diff != "" {
+				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, shadowSchemaPaths: %v, (-want, +gotPaths):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, diff)
+			}
+
+			if diff := cmp.Diff(tt.wantModules, gotModules); diff != "" {
+				t.Errorf("%s: YANGCodeGenerator.findMapPaths(%v, %v): compress: %v, shadowSchemaPaths: %v, (-want, +gotModules):\n%s", tt.name, tt.inStruct, tt.inField, tt.inCompressPaths, tt.inShadowSchemaPaths, diff)
 			}
 		})
 	}

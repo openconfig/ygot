@@ -1878,6 +1878,17 @@ func TestSetNode(t *testing.T) {
 			inPath:           mustPath("/key1"),
 			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
 			wantErrSubstring: "failed to unmarshal",
+			wantParent:       &ListElemStruct4{},
+		},
+		{
+			inDesc:           "failure setting uint field in top node with int value with InitMissingElements",
+			inSchema:         listElemStruct4Schema,
+			inParent:         &ListElemStruct4{},
+			inPath:           mustPath("/key1"),
+			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+			inOpts:           []SetNodeOpt{&InitMissingElements{}},
+			wantErrSubstring: "failed to unmarshal",
+			wantParent:       &ListElemStruct4{},
 		},
 		{
 			inDesc:     "success setting uint field in uint node with positive int value with JSON tolerance is set",
@@ -1907,6 +1918,7 @@ func TestSetNode(t *testing.T) {
 			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: -42}},
 			inOpts:           []SetNodeOpt{&TolerateJSONInconsistencies{}},
 			wantErrSubstring: "failed to unmarshal",
+			wantParent:       &ListElemStruct4{},
 		},
 		{
 			inDesc:           "fail setting value for node with non-leaf schema",
@@ -1915,6 +1927,7 @@ func TestSetNode(t *testing.T) {
 			inPath:           mustPath("/outer"),
 			inVal:            &gpb.TypedValue{},
 			wantErrSubstring: `path ` + (&gpb.Path{Elem: []*gpb.PathElem{{Name: "outer"}}}).String() + ` points to a node with non-leaf schema`,
+			wantParent:       &ListElemStruct1{},
 		},
 		{
 			inDesc:   "success setting annotation in top node",
@@ -2040,6 +2053,9 @@ func TestSetNode(t *testing.T) {
 			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/@annotation"),
 			inVal:            &ExampleAnnotation{ConfigSource: "devicedemo"},
 			wantErrSubstring: "unable to find any nodes for the given path",
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{},
+			},
 		},
 		{
 			inDesc:           "failed to set annotation in uninitialized node without InitMissingElements in SetNodeOpt",
@@ -2048,6 +2064,7 @@ func TestSetNode(t *testing.T) {
 			inPath:           mustPath("/outer/inner/@annotation"),
 			inVal:            &ExampleAnnotation{ConfigSource: "devicedemo"},
 			wantErrSubstring: "could not find children",
+			wantParent:       &ListElemStruct1{},
 		},
 		{
 			inDesc:           "failed to set value on invalid node",
@@ -2056,6 +2073,7 @@ func TestSetNode(t *testing.T) {
 			inPath:           mustPath("/invalidkey"),
 			inVal:            ygot.String("hello"),
 			wantErrSubstring: "no match found in *ytypes.ListElemStruct1",
+			wantParent:       &ListElemStruct1{},
 		},
 		{
 			inDesc:           "failed to set value with invalid type",
@@ -2064,6 +2082,7 @@ func TestSetNode(t *testing.T) {
 			inPath:           mustPath("/@annotation"),
 			inVal:            struct{ field string }{"hello"},
 			wantErrSubstring: "failed to update struct field Annotation",
+			wantParent:       &ListElemStruct1{},
 		},
 		{
 			inDesc:   "success setting already-set dual non-shadow and shadow leaf",
@@ -2292,6 +2311,18 @@ func TestSetNode(t *testing.T) {
 			inPath:           mustPath("/config/simple-key-list[key1=forty-two]/outer/inner/INVALID-LEAF"),
 			inVal:            &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{StringVal: "hello"}},
 			wantErrSubstring: "no match found in *ytypes.InnerContainerType1",
+			wantParent: &ContainerStruct1{
+				StructKeyList: map[string]*ListElemStruct1{
+					"forty-two": {
+						Key1: ygot.String("forty-two"),
+						Outer: &OuterContainerType1{
+							// TODO(wenovus): https://github.com/openconfig/ygot/issues/544
+							// This should be deleted.
+							Inner: &InnerContainerType1{},
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -2301,11 +2332,11 @@ func TestSetNode(t *testing.T) {
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("got %v\nwant %v", err, tt.wantErrSubstring)
 			}
-			if err != nil {
-				return
-			}
 			if diff := cmp.Diff(tt.wantParent, tt.inParent); diff != "" {
 				t.Errorf("(-wantParent, +got):\n%s", diff)
+			}
+			if err != nil {
+				return
 			}
 
 			var getNodeOpts []GetNodeOpt

@@ -83,7 +83,8 @@ func (*Device) IsYANGGoStruct() {}
 
 // Native represents the /openconfig-simple-target/native YANG schema element.
 type Native struct {
-	A	*string	`path:"config/a" module:"openconfig-simple-target"`
+	A	*string	`path:"config/a" module:"openconfig-simple-target/openconfig-simple-target"`
+	B	*string	`path:"state/b" module:"openconfig-simple-target/openconfig-simple-augment"`
 }
 
 // IsYANGGoStruct ensures that Native implements the yang.GoStruct
@@ -103,7 +104,7 @@ func (*Target) IsYANGGoStruct() {}
 
 // Target_Foo represents the /openconfig-simple-target/target/foo YANG schema element.
 type Target_Foo struct {
-	A	*string	`path:"config/a" module:"openconfig-simple-augment"`
+	A	*string	`path:"config/a" module:"openconfig-simple-augment/openconfig-simple-augment"`
 }
 
 // IsYANGGoStruct ensures that Target_Foo implements the yang.GoStruct

@@ -51,6 +51,14 @@ func protoMsgEq(a, b *protoMsg) bool {
 }
 
 func TestGenProto3Msg(t *testing.T) {
+	modules := yang.NewModules()
+	modules.Modules["mod"] = &yang.Module{
+		Name: "mod",
+		Namespace: &yang.Value{
+			Name: "u:mod",
+		},
+	}
+
 	tests := []struct {
 		name                   string
 		inMsg                  *Directory
@@ -619,6 +627,14 @@ func TestGenProto3Msg(t *testing.T) {
 					Name: "two",
 					Parent: &yang.Entry{
 						Name: "one",
+						// Add this to keep InstantiatingModules happy.
+						Node: &yang.Module{
+							Name: "mod",
+							Namespace: &yang.Value{
+								Name: "u:mod",
+							},
+							Modules: modules,
+						},
 					},
 				},
 			},
@@ -631,6 +647,13 @@ func TestGenProto3Msg(t *testing.T) {
 						Name: "two",
 						Parent: &yang.Entry{
 							Name: "one",
+							Node: &yang.Module{
+								Name: "mod",
+								Namespace: &yang.Value{
+									Name: "u:mod",
+								},
+								Modules: modules,
+							},
 						},
 					},
 				},

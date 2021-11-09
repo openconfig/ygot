@@ -481,11 +481,11 @@ func (*mapStructTestOne) ΛEnumTypeMap() map[string][]reflect.Type { return nil 
 // mapStructTestOne_Child is a child structure of the mapStructTestOne test
 // case.
 type mapStructTestOneChild struct {
-	FieldOne   *string  `path:"config/field-one" module:"test-one"`
-	FieldTwo   *uint32  `path:"config/field-two" module:"test-one"`
-	FieldThree Binary   `path:"config/field-three" module:"test-one"`
-	FieldFour  []Binary `path:"config/field-four" module:"test-one"`
-	FieldFive  *uint64  `path:"config/field-five" module:"test-five"`
+	FieldOne   *string  `path:"config/field-one" module:"test-one/test-one"`
+	FieldTwo   *uint32  `path:"config/field-two" module:"test-one/test-one"`
+	FieldThree Binary   `path:"config/field-three" module:"test-one/test-one"`
+	FieldFour  []Binary `path:"config/field-four" module:"test-one/test-one"`
+	FieldFive  *uint64  `path:"config/field-five" module:"test-five/test-five"`
 }
 
 // IsYANGGoStruct makes sure that we implement the GoStruct interface.
@@ -631,11 +631,23 @@ func TestEmitJSON(t *testing.T) {
 		name: "simple schema JSON output",
 		inStruct: &mapStructTestOne{
 			Child: &mapStructTestOneChild{
-				FieldOne: String("hello"),
+				FieldOne: String("abc -> def"),
 				FieldTwo: Uint32(42),
 			},
 		},
 		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_1.json-txt"),
+	}, {
+		name: "simple schema JSON output with safe HTML",
+		inStruct: &mapStructTestOne{
+			Child: &mapStructTestOneChild{
+				FieldOne: String("abc -> def"),
+				FieldTwo: Uint32(42),
+			},
+		},
+		inConfig: &EmitJSONConfig{
+			EscapeHTML: true,
+		},
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_1_html_safe.json-txt"),
 	}, {
 		name: "schema with a list JSON output",
 		inStruct: &mapStructTestFour{
@@ -802,31 +814,31 @@ func TestBuildEmptyTree(t *testing.T) {
 }
 
 type emptyBranchTestOne struct {
-	String    *string
-	Struct    *emptyBranchTestOneChild
-	StructMap map[string]*emptyBranchTestOneChild
+	String    *string                             `path:"string"`
+	Struct    *emptyBranchTestOneChild            `path:"child"`
+	StructMap map[string]*emptyBranchTestOneChild `path:"maps/map"`
 }
 
 func (*emptyBranchTestOne) IsYANGGoStruct() {}
 
 type emptyBranchTestOneChild struct {
-	String     *string
-	Enumerated int64
-	Struct     *emptyBranchTestOneGrandchild
+	String     *string                       `path:"string"`
+	Enumerated int64                         `path:"enum"`
+	Struct     *emptyBranchTestOneGrandchild `path:"grand-child"`
 }
 
 func (*emptyBranchTestOneChild) IsYANGGoStruct() {}
 
 type emptyBranchTestOneGrandchild struct {
-	String *string
-	Slice  []string
-	Struct *emptyBranchTestOneGreatGrandchild
+	String *string                            `path:"string"`
+	Slice  []string                           `path:"slice"`
+	Struct *emptyBranchTestOneGreatGrandchild `path:"great-grand-child"`
 }
 
 func (*emptyBranchTestOneGrandchild) IsYANGGoStruct() {}
 
 type emptyBranchTestOneGreatGrandchild struct {
-	String *string
+	String *string `path:"string"`
 }
 
 func (*emptyBranchTestOneGreatGrandchild) IsYANGGoStruct() {}

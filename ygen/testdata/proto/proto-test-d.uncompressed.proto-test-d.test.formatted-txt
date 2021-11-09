@@ -8,7 +8,6 @@ syntax = "proto3";
 package openconfig.proto_test_d.test;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
-import "github.com/openconfig/ygot/proto/yext/yext.proto";
 import "openconfig/enums/enums.proto";
 
 // Config represents the /proto-test-d/test/config YANG schema element.

@@ -114,11 +114,6 @@ func validateListAttr(schema *yang.Entry, value interface{}) util.Errors {
 	return errors
 }
 
-// isValueScalar reports whether v is a scalar (non-composite) type.
-func isValueScalar(v reflect.Value) bool {
-	return !util.IsValueStruct(v) && !util.IsValueStructPtr(v) && !util.IsValueMap(v) && !util.IsValueSlice(v)
-}
-
 // absoluteSchemaDataPath returns the absolute path of the schema, excluding
 // any choice or case entries. Choice and case are excluded since they exist
 // neither within the data or schema tree.
@@ -286,17 +281,6 @@ func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]st
 	return nil
 }
 
-// removeRootPrefix removes the root prefix from root schema entities e.g.
-// Bgp_Global has path "/bgp/global" == {"", "bgp", "global"}
-//   -> {"global"}
-func removeRootPrefix(path []string) []string {
-	if len(path) < 2 || path[0] != "" {
-		// not a root path
-		return path
-	}
-	return path[2:]
-}
-
 // schemaToStructFieldName returns the string name of the field, which must be
 // contained in parent (a struct ptr), given the schema for the field.
 // It returns empty string and nil error if the field does not exist in the
@@ -369,13 +353,4 @@ func hasRelativePath(schema *yang.Entry, path []string) bool {
 	}
 
 	return len(p) == 0
-}
-
-// derefIfStructPtr returns the dereferenced reflect.Value of value if it is a
-// ptr, or value if it is not.
-func derefIfStructPtr(value reflect.Value) reflect.Value {
-	if util.IsValueStructPtr(value) {
-		return value.Elem()
-	}
-	return value
 }

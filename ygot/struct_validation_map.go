@@ -82,6 +82,48 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath, preferShad
 	return mapPaths, nil
 }
 
+// structTagToLibModules takes an input struct field as a reflect.Type, and
+// extracts the set of module names in the module or shadow-module struct tag
+// of the field. Returns the module names as a slice of gnmiPaths, or an error.
+// If the field were generated correctly, then these module names should have
+// a 1:1 correspondence to the path names in the path tag, and denotes the
+// module to which each path element belongs (using YANG's XML namespace
+// rules).
+func structTagToLibModules(f reflect.StructField, preferShadowPath bool) ([]*gnmiPath, error) {
+	var moduleAnnotation string
+	var ok bool
+	if preferShadowPath {
+		moduleAnnotation, ok = f.Tag.Lookup("shadow-module")
+	}
+	if !ok {
+		if moduleAnnotation, ok = f.Tag.Lookup("module"); !ok {
+			return nil, nil
+		}
+	}
+
+	var mapModules []*gnmiPath
+	for _, m := range strings.Split(moduleAnnotation, "|") {
+		eModule := newStringSliceGNMIPath(nil)
+		for _, mm := range strings.Split(m, "/") {
+			// Handle empty module tags.
+			if mm == "" {
+				continue
+			}
+			eModule.AppendName(mm)
+		}
+
+		switch {
+		case len(m) == 0:
+			return nil, fmt.Errorf("module tag must not have an empty path: %s", moduleAnnotation)
+		case m[0] == '/':
+			eModule.isAbsolute = true
+		}
+
+		mapModules = append(mapModules, eModule)
+	}
+	return mapModules, nil
+}
+
 // EnumName returns the string name of an input GoEnum e. If the enumeration is
 // unset, the name returned is an empty string, otherwise it is the name defined
 // within the YANG schema. Non-zero out-of-range values and unrecognized enums
@@ -341,6 +383,10 @@ type EmitJSONConfig struct {
 	// Indent is the string used for indentation within the JSON output. The
 	// default value is three spaces.
 	Indent string
+	// EscapeHTML determines whether certain characters will be escaped
+	// in the marshalled JSON for safety in HTML embedding. See
+	// https://pkg.go.dev/encoding/json#Encoder.SetEscapeHTML.
+	EscapeHTML bool
 	// SkipValidation specifies whether the GoStruct supplied to EmitJSON should
 	// be validated before emitting its content. Validation is skipped when it
 	// is set to true.
@@ -376,17 +422,26 @@ func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
 		return "", err
 	}
 
+	sb := &strings.Builder{}
+	enc := json.NewEncoder(sb)
 	indent := indentString
-	if opts != nil && opts.Indent != "" {
-		indent = opts.Indent
-	}
+	enc.SetEscapeHTML(false)
+	if opts != nil {
+		enc.SetEscapeHTML(opts.EscapeHTML)
 
-	j, err := json.MarshalIndent(v, "", indent)
-	if err != nil {
+		if opts.Indent != "" {
+			indent = opts.Indent
+		}
+	}
+	enc.SetIndent("", indent)
+
+	if err := enc.Encode(v); err != nil {
 		return "", fmt.Errorf("JSON marshalling error: %v", err)
 	}
 
-	return string(j), nil
+	// Exclude the last newline character:
+	// https://pkg.go.dev/encoding/json#Encoder.Encode
+	return sb.String()[:sb.Len()-1], nil
 }
 
 // makeJSON renders the GoStruct s to map[string]interface{} according to the

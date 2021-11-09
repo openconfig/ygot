@@ -30,13 +30,9 @@ module enum-multi-module {
           enum TWO;
           enum THREE;
         }
-        // TODO(wenbli): td2's enum, td-enum, and the second enumeration are not being
-        // generated because goyang fails to add them to the AST.
-        // https://github.com/openconfig/goyang/issues/131
         type t:td2;
-        // TODO(wenbli): oddly, td-enum is added to the AST if a default value
-        // is specified for its typedef.
         type t:td-enum;
+        // The second enumeration is ignored.
         type enumeration {
           enum FOUR;
           enum FIVE;

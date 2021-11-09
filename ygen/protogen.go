@@ -46,6 +46,9 @@ const (
 	// DefaultYextPath defines the default import path for the yext.proto file, excluding
 	// the filename.
 	DefaultYextPath = "github.com/openconfig/ygot/proto/yext"
+	// ywrapperAccessor is the package accessor to the ywrapper.proto
+	// file's definitions.
+	ywrapperAccessor = "ywrapper."
 )
 
 const (
@@ -187,10 +190,15 @@ var (
 syntax = "proto3";
 
 package {{ .PackageName }};
-
+{{- if or .YwrapperPath .YextPath .Imports }}
+{{ end -}}
+{{ if .YwrapperPath }}
 import "{{ .YwrapperPath }}/ywrapper.proto";
+{{- end -}}
+{{ if .YextPath }}
 import "{{ .YextPath }}/yext.proto";
-{{- range $importedProto := .Imports }}
+{{- end -}}
+{{ range $importedProto := .Imports }}
 import "{{ $importedProto }}";
 {{- end -}}
 
@@ -234,7 +242,7 @@ message {{ .Name }} {
     {{- range $i, $opt := $field.Options -}}
       {{- $opt.Name }} = {{ $opt.Value -}}
       {{- if ne (inc $i) $noOptions -}}, {{- end }}
-   {{- end -}}
+    {{- end -}}
   ]
   {{- end -}}
   ;
@@ -280,9 +288,11 @@ func writeProto3Header(in proto3Header) (string, error) {
 
 // generatedProto3Message contains the code for a proto3 message.
 type generatedProto3Message struct {
-	PackageName     string   // PackageName is the name of the package that the proto3 message is within.
-	MessageCode     string   // MessageCode contains the proto3 definition of the message.
-	RequiredImports []string // RequiredImports contains the imports that are required by the generated message.
+	PackageName        string   // PackageName is the name of the package that the proto3 message is within.
+	MessageCode        string   // MessageCode contains the proto3 definition of the message.
+	RequiredImports    []string // RequiredImports contains the imports that are required by the generated message.
+	UsesYwrapperImport bool     // UsesYwrapperImport indicates whether the ywrapper proto package is used by the generated message.
+	UsesYextImport     bool     // UsesYextImport indicates whether the yext proto package is used by the generated message.
 }
 
 // protoMsgConfig defines the set of configuration options required to generate a Protobuf message.
@@ -367,7 +377,7 @@ func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *
 		return nil, append(gerrs, errs...)
 	}
 
-	gmsg, errs := genProto3MsgCode(pkg, msgDefs, false)
+	gmsg, errs := genProto3MsgCode(cfg, pkg, msgDefs, false)
 	if errs != nil {
 		return nil, append(gerrs, errs...)
 	}
@@ -388,6 +398,13 @@ func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *
 		for _, ch := range childMsgs {
 			for _, i := range ch.RequiredImports {
 				allImports[i] = true
+			}
+			// Inherit yext and ywrapper imports.
+			if ch.UsesYextImport {
+				gmsg.UsesYextImport = true
+			}
+			if ch.UsesYwrapperImport {
+				gmsg.UsesYwrapperImport = true
 			}
 		}
 		for _, i := range gmsg.RequiredImports {
@@ -469,17 +486,18 @@ func writeProto3MsgSingleMsg(msg *Directory, msgs map[string]*Directory, protoge
 		return nil, errs
 	}
 
-	return genProto3MsgCode(pkg, msgDefs, true)
+	return genProto3MsgCode(cfg, pkg, msgDefs, true)
 }
 
 // genProto3MsgCode takes an input package name, and set of protobuf message
 // definitions, and outputs the generated code for the messages. If the
 // pathComment argument is setFunc, each message is output with a comment
 // indicating its path in the YANG schema, otherwise it is included.
-func genProto3MsgCode(pkg string, msgDefs []*protoMsg, pathComment bool) (*generatedProto3Message, util.Errors) {
+func genProto3MsgCode(cfg *protoMsgConfig, pkg string, msgDefs []*protoMsg, pathComment bool) (*generatedProto3Message, util.Errors) {
 	var b bytes.Buffer
 	var errs util.Errors
 	imports := map[string]interface{}{}
+	var usesYwrapperImport, usesYextImport bool
 	for i, msgDef := range msgDefs {
 		// Sort the child messages into a determinstic order. We cannot use the
 		// package name as a key as it may be the same for multiple packages, therefore
@@ -502,6 +520,29 @@ func genProto3MsgCode(pkg string, msgDefs []*protoMsg, pathComment bool) (*gener
 		msgDef.ChildMsgs = nm
 		msgDef.PathComment = pathComment
 
+		// If one of the fields uses a definition from the ywrapper or
+		// yext packages, then make sure to mark it for import.
+		for _, field := range msgDef.Fields {
+			if strings.HasPrefix(field.Type, ywrapperAccessor) {
+				usesYwrapperImport = true
+			}
+			for _, f := range field.OneOfFields {
+				if strings.HasPrefix(f.Type, ywrapperAccessor) {
+					usesYwrapperImport = true
+				}
+			}
+			for _, o := range field.Options {
+				if o.Name == protoSchemaAnnotationOption {
+					usesYextImport = true
+				}
+			}
+		}
+		// If there is any annotated enums, then make sure to mark the
+		// yext package for import.
+		if cfg.annotateEnumNames && len(msgDef.Enums) > 0 {
+			usesYextImport = true
+		}
+
 		if err := protoMessageTemplate.Execute(&b, msgDef); err != nil {
 			return nil, []error{err}
 		}
@@ -516,9 +557,11 @@ func genProto3MsgCode(pkg string, msgDefs []*protoMsg, pathComment bool) (*gener
 	}
 
 	return &generatedProto3Message{
-		PackageName:     pkg,
-		MessageCode:     b.String(),
-		RequiredImports: stringKeys(imports),
+		PackageName:        pkg,
+		MessageCode:        b.String(),
+		RequiredImports:    stringKeys(imports),
+		UsesYwrapperImport: usesYwrapperImport,
+		UsesYextImport:     usesYextImport,
 	}, nil
 }
 
@@ -669,7 +712,7 @@ func addProtoListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDef
 			// If nested messages are being output, we must ensure that the
 			// generated key message is output within the parent message - hence
 			// it is generated directly here and appended to the child messages.
-			kc, cerrs := genProto3MsgCode(args.parentPkg, []*protoMsg{keyMsg}, false)
+			kc, cerrs := genProto3MsgCode(args.cfg, args.parentPkg, []*protoMsg{keyMsg}, false)
 			if cerrs != nil {
 				return nil, nil, cerrs
 			}
@@ -750,7 +793,7 @@ func addProtoLeafOrLeafListField(fieldDef *protoMsgField, msgDef *protoMsg, args
 
 	if d.repeatedMsg != nil {
 		if args.cfg.nestedMessages {
-			gm, errs := genProto3MsgCode(args.parentPkg, []*protoMsg{d.repeatedMsg}, false)
+			gm, errs := genProto3MsgCode(args.cfg, args.parentPkg, []*protoMsg{d.repeatedMsg}, false)
 			if err != nil {
 				return nil, nil, errs
 			}
@@ -1396,7 +1439,7 @@ func protoPackageToFilePath(pkg string) []string {
 // field option definitions required to annotate it with its schema path(s).
 func protoSchemaPathAnnotation(msg *Directory, fieldName string, compressPaths bool) (*protoOption, error) {
 	// protobuf paths are always absolute.
-	smapp, err := findMapPaths(msg, fieldName, compressPaths, false, true)
+	smapp, _, err := findMapPaths(msg, fieldName, compressPaths, false, true)
 	if err != nil {
 		return nil, err
 	}
