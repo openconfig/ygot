@@ -12,8 +12,8 @@ package device
 
 import (
 	"github.com/openconfig/ygot/ygot"
-	"example.com/openconfigimport_path"
-	"example.com/openconfigsimpletarget_path"
+	"example.com/openconfigimportpath"
+	"example.com/openconfigsimpletargetpath"
 )
 
 // DevicePath represents the /device YANG schema element.
@@ -27,8 +27,8 @@ func DeviceRoot(id string) *DevicePath {
 }
 
 // Child returns from DevicePath the path struct for its child "child".
-func (n *DevicePath) Child() *openconfigimport_path.ChildPath {
-	return &openconfigimport_path.ChildPath{
+func (n *DevicePath) Child() *openconfigimportpath.ChildPath {
+	return &openconfigimportpath.ChildPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"child"},
 			map[string]interface{}{},
@@ -38,8 +38,8 @@ func (n *DevicePath) Child() *openconfigimport_path.ChildPath {
 }
 
 // Native returns from DevicePath the path struct for its child "native".
-func (n *DevicePath) Native() *openconfigsimpletarget_path.NativePath {
-	return &openconfigsimpletarget_path.NativePath{
+func (n *DevicePath) Native() *openconfigsimpletargetpath.NativePath {
+	return &openconfigsimpletargetpath.NativePath{
 		NodePath: ygot.NewNodePath(
 			[]string{"native"},
 			map[string]interface{}{},
@@ -49,8 +49,8 @@ func (n *DevicePath) Native() *openconfigsimpletarget_path.NativePath {
 }
 
 // Target returns from DevicePath the path struct for its child "target".
-func (n *DevicePath) Target() *openconfigsimpletarget_path.TargetPath {
-	return &openconfigsimpletarget_path.TargetPath{
+func (n *DevicePath) Target() *openconfigsimpletargetpath.TargetPath {
+	return &openconfigsimpletargetpath.TargetPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"target"},
 			map[string]interface{}{},

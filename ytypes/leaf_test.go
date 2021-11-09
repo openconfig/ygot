@@ -1629,7 +1629,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			var parent LeafContainerStruct
 
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(containerSchema, &parent, jsonTree)
@@ -1740,7 +1740,7 @@ func TestUnmarshalLeafRef(t *testing.T) {
 			var parent ContainerStruct
 
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(containerSchema, &parent, jsonTree)

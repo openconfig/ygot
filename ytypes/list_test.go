@@ -501,7 +501,7 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 
 			if tt.json != "" {
 				if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-					t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+					t.Fatalf("%s : %s", tt.desc, err)
 				}
 			}
 
@@ -657,7 +657,7 @@ func TestUnmarshalKeyedList(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(tt.schema, tt.parent, jsonTree, tt.opts...)
@@ -755,7 +755,7 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 			var parent ContainerStruct
 
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
@@ -824,7 +824,7 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 			var parent ListElemStruct
 
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(listSchema, &parent, jsonTree)
@@ -1217,9 +1217,9 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 
 	for _, tt := range tests {
 		parent := &ContainerStruct{}
-		util.InitializeStructField(parent, "StructKeyList")
+		util.InitializeStructField(parent, "StructKeyList", false)
 		testFunc(t, tt, "StructKeyList", containerWithMapKeySchema.Dir["struct-key-list"], parent.StructKeyList)
-		util.InitializeStructField(parent, "StructKeyListLeafrefKeys")
+		util.InitializeStructField(parent, "StructKeyListLeafrefKeys", false)
 		testFunc(t, tt, "StructKeyListLeafrefKeys", containerWithMapKeySchema.Dir["struct-key-list-leafref-keys"], parent.StructKeyListLeafrefKeys)
 	}
 }
@@ -1862,7 +1862,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			util.InitializeStructField(tt.container, "KeyList")
+			util.InitializeStructField(tt.container, "KeyList", false)
 			v, e := makeValForInsert(tt.inSchema, tt.container.KeyList, tt.keys)
 			if diff := errdiff.Substring(e, tt.errSubstring); diff != "" {
 				t.Fatalf("got %v, want error %v", e, tt.errSubstring)

@@ -84,6 +84,9 @@
                                                         }
                                                     }
                                                 ]
+                                            },
+                                            "Annotation": {
+                                                "ygot-oc-compressed-leaf": {}
                                             }
                                         },
                                         "peer-address": {
@@ -123,6 +126,9 @@
                                                         ]
                                                     }
                                                 ]
+                                            },
+                                            "Annotation": {
+                                                "ygot-oc-compressed-leaf": {}
                                             }
                                         }
                                     },
