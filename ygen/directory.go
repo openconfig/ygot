@@ -20,9 +20,9 @@ package ygen
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
@@ -243,7 +243,7 @@ func findMapPaths(parent *Directory, fieldName string, compressPaths, shadowSche
 		// Note: if k is a leafref, buildListKey() would have already
 		// resolved it the field that the leafref points to. So, we
 		// compare their absolute paths for equality.
-		if k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref && cmp.Equal(util.SchemaPathNoChoiceCase(k), fieldSlicePath) {
+		if k.Parent.Parent.Dir[k.Name].Type.Kind == yang.Yleafref && reflect.DeepEqual(util.SchemaPathNoChoiceCase(k), fieldSlicePath) {
 			// The path of the key element is simply the name of the leaf under the
 			// list, since the YANG specification enforces that keys are direct
 			// children of the list.
