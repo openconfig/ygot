@@ -213,6 +213,10 @@ type GoOpts struct {
 	// whether a field has been explicitly set to the zero value (i.e., an integer
 	// field is set to 0), or whether the field was actually unset.
 	GenerateLeafGetters bool
+	// GeneratePopulateDefault specifies whether a PopulateDefaults method
+	// should be generated for every GoStruct that recursively populates
+	// default values within the subtree.
+	GeneratePopulateDefault bool
 	// GNMIProtoPath specifies the path to the generated gNMI protobuf, which
 	// is used to store the catalogue entries for generated modules.
 	GNMIProtoPath string

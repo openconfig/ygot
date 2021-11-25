@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -432,8 +433,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
-				GenerateSimpleUnions: true,
-				GenerateLeafGetters:  true,
+				GenerateSimpleUnions:    true,
+				GenerateLeafGetters:     true,
+				GeneratePopulateDefault: true,
 			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
@@ -464,8 +466,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
-				GenerateSimpleUnions: true,
-				GenerateLeafGetters:  true,
+				GenerateSimpleUnions:    true,
+				GenerateLeafGetters:     true,
+				GeneratePopulateDefault: true,
 			},
 			TransformationOptions: TransformationOpts{
 				ShortenEnumLeafNames:                 true,
@@ -904,6 +907,7 @@ func TestSimpleStructs(t *testing.T) {
 			GoOptions: GoOpts{
 				GenerateSimpleUnions:                true,
 				GenerateLeafGetters:                 true,
+				GeneratePopulateDefault:             true,
 				AppendEnumSuffixForSimpleUnionEnums: true,
 			},
 			TransformationOptions: TransformationOpts{
@@ -920,6 +924,7 @@ func TestSimpleStructs(t *testing.T) {
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
 				GenerateLeafGetters:                 true,
+				GeneratePopulateDefault:             true,
 				AppendEnumSuffixForSimpleUnionEnums: true,
 			},
 			TransformationOptions: TransformationOpts{
@@ -1038,8 +1043,9 @@ func TestSimpleStructs(t *testing.T) {
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 			},
 			GoOptions: GoOpts{
-				GenerateLeafGetters:  true,
-				GenerateSimpleUnions: true,
+				GenerateLeafGetters:     true,
+				GeneratePopulateDefault: true,
+				GenerateSimpleUnions:    true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.leaf-getters.formatted-txt"),
@@ -1237,6 +1243,10 @@ func TestSimpleStructs(t *testing.T) {
 			wantCode := string(wantCodeBytes)
 
 			if gotCode != wantCode {
+				// FIXME(wenbli): debug codegen or pathgen
+				if err := ioutil.WriteFile(fmt.Sprintf("/usr/local/google/home/wenbli/tmp/%s", path.Base(tt.wantStructsCodeFile)), []byte(gotCode), 0644); err != nil {
+					panic(err)
+				}
 				// Use difflib to generate a unified diff between the
 				// two code snippets such that this is simpler to debug
 				// in the test output.

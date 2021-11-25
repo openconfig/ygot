@@ -1549,9 +1549,10 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 			"/root-module/tstruct/listWithKey": "ListWithKey",
 		},
 		inGoOpts: GoOpts{
-			GenerateAppendMethod: true,
-			GenerateGetters:      true,
-			GenerateDeleteMethod: true,
+			GenerateAppendMethod:    true,
+			GenerateGetters:         true,
+			GenerateDeleteMethod:    true,
+			GeneratePopulateDefault: true,
 		},
 		wantCompressed: wantGoStructOut{
 			structs: `
@@ -1664,6 +1665,19 @@ func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
 	return nil
 }
 
+// PopulateDefaults recursively populates unset leaf fields in the Tstruct
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Tstruct) PopulateDefaults() {
+	if (t == nil) {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	for _, e := range t.ListWithKey {
+		e.PopulateDefaults()
+	}
+}
+
 // Validate validates s against the YANG schema corresponding to its type.
 func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
@@ -1715,7 +1729,8 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		},
 		inUniqueDirectoryNames: map[string]string{"/root-module/input-struct/c1": "InputStruct_C1"},
 		inGoOpts: GoOpts{
-			GenerateGetters: true,
+			GenerateGetters:         true,
+			GeneratePopulateDefault: true,
 		},
 		wantCompressed: wantGoStructOut{
 			structs: `
@@ -1748,6 +1763,17 @@ func (t *InputStruct) GetC1() *InputStruct_C1 {
 		return t.C1
 	}
 	return nil
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the InputStruct
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *InputStruct) PopulateDefaults() {
+	if (t == nil) {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	t.C1.PopulateDefaults()
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -1818,7 +1844,8 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 			Path: []string{"m1", "foo", "bar"},
 		},
 		inGoOpts: GoOpts{
-			GenerateLeafGetters: true,
+			GenerateLeafGetters:     true,
+			GeneratePopulateDefault: true,
 		},
 		wantCompressed: wantGoStructOut{
 			structs: `
@@ -1847,6 +1874,16 @@ func (t *Container) GetLeaf() string {
 		return ""
 	}
 	return *t.Leaf
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the Container
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Container) PopulateDefaults() {
+	if (t == nil) {
+		return
+	}
+	ygot.BuildEmptyTree(t)
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
@@ -1918,7 +1955,8 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 			Path: []string{"m1", "foo", "bar"},
 		},
 		inGoOpts: GoOpts{
-			GenerateLeafGetters: true,
+			GenerateLeafGetters:     true,
+			GeneratePopulateDefault: true,
 		},
 		wantCompressed: wantGoStructOut{
 			structs: `
@@ -1947,6 +1985,20 @@ func (t *Container) GetLeaf() string {
 		return "DEFAULT VALUE"
 	}
 	return *t.Leaf
+}
+
+// PopulateDefaults recursively populates unset leaf fields in the Container
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *Container) PopulateDefaults() {
+	if (t == nil) {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+	if t.Leaf == nil {
+		var v string = "DEFAULT VALUE"
+		t.Leaf = &v
+	}
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
