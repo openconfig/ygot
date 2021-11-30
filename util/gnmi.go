@@ -103,7 +103,11 @@ func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
 // If either path and query contain nil elements func returns false.
 // Both paths must use the gNMI >=0.4.0 PathElem path format.
 func PathMatchesQuery(path, query *gpb.Path) bool {
-	if len(path.GetElem()) < len(query.GetElem()) || path.Origin != query.Origin {
+	if len(path.GetElem()) < len(query.GetElem()) {
+		return false
+	}
+	// Unset Origin fields can match "openconfig".
+	if path.Origin != query.Origin && !(path.Origin == "" && query.Origin == "openconfig" || path.Origin == "openconfig" && query.Origin == "") {
 		return false
 	}
 	for i, queryElem := range query.Elem {
