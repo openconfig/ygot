@@ -106,7 +106,7 @@ func PathMatchesQuery(path, query *gpb.Path) bool {
 	if len(path.GetElem()) < len(query.GetElem()) {
 		return false
 	}
-	// Unset Origin fields can match "openconfig".
+	// Unset Origin fields can match "openconfig", see https://github.com/openconfig/reference/blob/master/rpc/gnmi/mixed-schema.md#special-values-of-origin.
 	if path.Origin != query.Origin && !(path.Origin == "" && query.Origin == "openconfig" || path.Origin == "openconfig" && query.Origin == "") {
 		return false
 	}
