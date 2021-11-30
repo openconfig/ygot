@@ -20,7 +20,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/ygot/util"
 	"google.golang.org/protobuf/proto"
@@ -214,7 +213,7 @@ func findSetLeaves(s GoStruct, opts ...DiffOpt) (map[*pathSpec]interface{}, erro
 	processedPaths := map[string]bool{}
 
 	findSetIterFunc := func(ni *util.NodeInfo, in, out interface{}) (errs util.Errors) {
-		if cmp.Equal(ni.StructField, reflect.StructField{}) {
+		if reflect.DeepEqual(ni.StructField, reflect.StructField{}) {
 			return
 		}
 
@@ -436,7 +435,7 @@ func Diff(original, modified GoStruct, opts ...DiffOpt) (*gnmipb.Notification, e
 				// is equal.
 				matched[modPath] = true
 				origMatched = true
-				if !cmp.Equal(origVal, modVal) {
+				if !reflect.DeepEqual(origVal, modVal) {
 					// The contents of the value should indicate that value a has changed
 					// to value b.
 					if err := appendUpdate(n, origPath, modVal); err != nil {

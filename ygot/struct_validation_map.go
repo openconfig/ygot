@@ -261,7 +261,7 @@ func pruneBranchesInternal(t reflect.Type, v reflect.Value) bool {
 				// Ensure that if the field value was actually nil, we skip over this
 				// field since its already nil.
 				continue
-			case cmp.Equal(zVal.Interface(), fVal.Elem().Interface()):
+			case reflect.DeepEqual(zVal.Interface(), fVal.Elem().Interface()):
 				// In the case that the zero value's interface is the same as the
 				// dereferenced field value's nil value, then we set it to the zero value
 				// of the field type. The fType contains a pointer to the struct, so
@@ -321,7 +321,7 @@ func pruneBranchesInternal(t reflect.Type, v reflect.Value) bool {
 				v = v.Elem()
 				t = t.Elem()
 			}
-			if v.IsValid() && !cmp.Equal(reflect.Zero(t).Interface(), v.Interface()) {
+			if v.IsValid() && !reflect.DeepEqual(reflect.Zero(t).Interface(), v.Interface()) {
 				allChildrenPruned = false
 			}
 		}
@@ -870,7 +870,7 @@ func copySliceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 	}
 
 	if _, ok := srcField.Interface().([]Annotation); !ok {
-		if cmp.Equal(srcField.Interface(), dstField.Interface()) {
+		if reflect.DeepEqual(srcField.Interface(), dstField.Interface()) {
 			return nil
 		}
 
@@ -918,7 +918,7 @@ func uniqueSlices(a, b reflect.Value) (bool, error) {
 
 	for i := 0; i < a.Len(); i++ {
 		for j := 0; j < b.Len(); j++ {
-			if cmp.Equal(a.Index(i).Interface(), b.Index(j).Interface()) {
+			if reflect.DeepEqual(a.Index(i).Interface(), b.Index(j).Interface()) {
 				return false, nil
 			}
 		}
