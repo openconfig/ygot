@@ -25,7 +25,12 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// Model returns from DevicePath the path struct for its child "model".
+// Model (container): 
+// ----------------------------------------
+// Defining module: "openconfig-withlist"
+// Instantiating module: "openconfig-withlist"
+// Path from parent: "model"
+// Path from root: "/model"
 func (n *DevicePath) Model() *openconfigwithlistpath.ModelPath {
 	return &openconfigwithlistpath.ModelPath{
 		NodePath: ygot.NewNodePath(
