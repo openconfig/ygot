@@ -20,6 +20,9 @@ module openconfig-simple {
   }
 
   container parent {
+    description
+      "I am a parent container
+       that has 4 children.";
     container child {
       container config {
         uses parent-config;

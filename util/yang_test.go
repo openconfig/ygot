@@ -1626,9 +1626,10 @@ func TestDefiningType(t *testing.T) {
 // or case elements from a YANG structure.
 func TestFindFirstNonChoiceOrCase(t *testing.T) {
 	tests := []struct {
-		name     string
-		inEntry  *yang.Entry
-		wantKeys []string
+		name        string
+		inEntry     *yang.Entry
+		wantPaths   []string
+		wantEntries []string
 	}{{
 		name: "choice with single case",
 		inEntry: &yang.Entry{
@@ -1651,7 +1652,8 @@ func TestFindFirstNonChoiceOrCase(t *testing.T) {
 				},
 			},
 		},
-		wantKeys: []string{"/parent/child-one", "/parent/child-two"},
+		wantPaths:   []string{"/parent/child-one", "/parent/child-two"},
+		wantEntries: []string{"child-one", "child-two"},
 	}, {
 		name: "choice with multiple cases",
 		inEntry: &yang.Entry{
@@ -1680,32 +1682,49 @@ func TestFindFirstNonChoiceOrCase(t *testing.T) {
 				},
 			},
 		},
-		wantKeys: []string{"/parent/child-one", "/parent/child-two"},
+		wantPaths:   []string{"/parent/child-one", "/parent/child-two"},
+		wantEntries: []string{"child-one", "child-two"},
 	}}
 
 	for _, tt := range tests {
-		exp := make(map[string]bool)
-		for _, k := range tt.wantKeys {
-			exp[k] = false
-		}
+		t.Run(tt.name, func(t *testing.T) {
+			check := func(testName string, found map[string]*yang.Entry, exp map[string]bool) {
+				// Check whether the expected paths were found.
+				for k := range found {
+					if _, ok := found[k]; ok {
+						exp[k] = true
+					} else {
+						t.Errorf("%s() %s: could not find expected node %s", testName, tt.name, k)
+					}
+				}
 
-		found := FindFirstNonChoiceOrCase(tt.inEntry)
-
-		// Check whether the expected paths were found.
-		for k := range found {
-			if _, ok := found[k]; ok {
-				exp[k] = true
-			} else {
-				t.Errorf("%s: could not find expected node %s", tt.name, k)
+				// Check that all expected paths were found.
+				for k, v := range exp {
+					if v == false {
+						t.Errorf("%s() %s: did not find expected node %s", testName, tt.name, k)
+					}
+				}
 			}
-		}
 
-		// Check that all expected paths were found.
-		for k, v := range exp {
-			if v == false {
-				t.Errorf("%s: did not find expected node %s", tt.name, k)
+			exp := make(map[string]bool)
+			for _, k := range tt.wantPaths {
+				exp[k] = false
 			}
-		}
+
+			found := FindFirstNonChoiceOrCase(tt.inEntry)
+			check("FindFirstNonChoiceOrCase", found, exp)
+
+			exp = make(map[string]bool)
+			for _, k := range tt.wantEntries {
+				exp[k] = false
+			}
+
+			found, err := findFirstNonChoiceOrCaseEntry(tt.inEntry)
+			if err != nil {
+				t.Fatal(err)
+			}
+			check("findFirstNonChoiceOrCaseEntry", found, exp)
+		})
 	}
 }
 
