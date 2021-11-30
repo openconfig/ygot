@@ -24,7 +24,13 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// Parent returns from DevicePath the path struct for its child "parent".
+// Parent (container): I am a parent container
+// that has 4 children.
+// ----------------------------------------
+// Defining module: "openconfig-simple"
+// Instantiating module: "openconfig-simple"
+// Path from parent: "parent"
+// Path from root: "/parent"
 func (n *DevicePath) Parent() *ParentPath {
 	return &ParentPath{
 		NodePath: ygot.NewNodePath(
@@ -35,7 +41,12 @@ func (n *DevicePath) Parent() *ParentPath {
 	}
 }
 
-// RemoteContainer returns from DevicePath the path struct for its child "remote-container".
+// RemoteContainer (container): 
+// ----------------------------------------
+// Defining module: "openconfig-remote"
+// Instantiating module: "openconfig-simple"
+// Path from parent: "remote-container"
+// Path from root: "/remote-container"
 func (n *DevicePath) RemoteContainer() *RemoteContainerPath {
 	return &RemoteContainerPath{
 		NodePath: ygot.NewNodePath(
@@ -56,7 +67,12 @@ type ParentPathAny struct {
 	*ygot.NodePath
 }
 
-// Child returns from ParentPath the path struct for its child "child".
+// Child (container): 
+// ----------------------------------------
+// Defining module: "openconfig-simple"
+// Instantiating module: "openconfig-simple"
+// Path from parent: "child"
+// Path from root: "/parent/child"
 func (n *ParentPath) Child() *Parent_ChildPath {
 	return &Parent_ChildPath{
 		NodePath: ygot.NewNodePath(
@@ -67,7 +83,12 @@ func (n *ParentPath) Child() *Parent_ChildPath {
 	}
 }
 
-// Child returns from ParentPathAny the path struct for its child "child".
+// Child (container): 
+// ----------------------------------------
+// Defining module: "openconfig-simple"
+// Instantiating module: "openconfig-simple"
+// Path from parent: "child"
+// Path from root: "/parent/child"
 func (n *ParentPathAny) Child() *Parent_ChildPathAny {
 	return &Parent_ChildPathAny{
 		NodePath: ygot.NewNodePath(

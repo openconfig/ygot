@@ -26,7 +26,12 @@ func DeviceRoot(id string) *Device {
 	return &Device{ygot.NewDeviceRootBase(id)}
 }
 
-// Native returns from Device the path struct for its child "native".
+// Native (container): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-target"
+// Instantiating module: "openconfig-simple-target"
+// Path from parent: "native"
+// Path from root: "/native"
 func (n *Device) Native() *Native {
 	return &Native{
 		NodePath: ygot.NewNodePath(
@@ -37,7 +42,12 @@ func (n *Device) Native() *Native {
 	}
 }
 
-// Target returns from Device the path struct for its child "target".
+// Target (container): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-target"
+// Instantiating module: "openconfig-simple-target"
+// Path from parent: "target"
+// Path from root: "/target"
 func (n *Device) Target() *Target {
 	return &Target{
 		NodePath: ygot.NewNodePath(
@@ -78,7 +88,12 @@ type Native_BAny struct {
 	*ygot.NodePath
 }
 
-// A returns from Native the path struct for its child "a".
+// A (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-target"
+// Instantiating module: "openconfig-simple-target"
+// Path from parent: "state/a"
+// Path from root: "/native/state/a"
 func (n *Native) A() *Native_A {
 	return &Native_A{
 		NodePath: ygot.NewNodePath(
@@ -89,7 +104,12 @@ func (n *Native) A() *Native_A {
 	}
 }
 
-// A returns from NativeAny the path struct for its child "a".
+// A (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-target"
+// Instantiating module: "openconfig-simple-target"
+// Path from parent: "state/a"
+// Path from root: "/native/state/a"
 func (n *NativeAny) A() *Native_AAny {
 	return &Native_AAny{
 		NodePath: ygot.NewNodePath(
@@ -100,7 +120,12 @@ func (n *NativeAny) A() *Native_AAny {
 	}
 }
 
-// B returns from Native the path struct for its child "b".
+// B (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-augment"
+// Instantiating module: "openconfig-simple-target"
+// Path from parent: "state/b"
+// Path from root: "/native/state/b"
 func (n *Native) B() *Native_B {
 	return &Native_B{
 		NodePath: ygot.NewNodePath(
@@ -111,7 +136,12 @@ func (n *Native) B() *Native_B {
 	}
 }
 
-// B returns from NativeAny the path struct for its child "b".
+// B (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-augment"
+// Instantiating module: "openconfig-simple-target"
+// Path from parent: "state/b"
+// Path from root: "/native/state/b"
 func (n *NativeAny) B() *Native_BAny {
 	return &Native_BAny{
 		NodePath: ygot.NewNodePath(
@@ -132,7 +162,12 @@ type TargetAny struct {
 	*ygot.NodePath
 }
 
-// Foo returns from Target the path struct for its child "foo".
+// Foo (container): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-augment"
+// Instantiating module: "openconfig-simple-target"
+// Path from parent: "foo"
+// Path from root: "/target/foo"
 func (n *Target) Foo() *Target_Foo {
 	return &Target_Foo{
 		NodePath: ygot.NewNodePath(
@@ -143,7 +178,12 @@ func (n *Target) Foo() *Target_Foo {
 	}
 }
 
-// Foo returns from TargetAny the path struct for its child "foo".
+// Foo (container): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-augment"
+// Instantiating module: "openconfig-simple-target"
+// Path from parent: "foo"
+// Path from root: "/target/foo"
 func (n *TargetAny) Foo() *Target_FooAny {
 	return &Target_FooAny{
 		NodePath: ygot.NewNodePath(
@@ -174,7 +214,12 @@ type Target_Foo_AAny struct {
 	*ygot.NodePath
 }
 
-// A returns from Target_Foo the path struct for its child "a".
+// A (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-augment"
+// Instantiating module: "openconfig-simple-target"
+// Path from parent: "state/a"
+// Path from root: "/target/foo/state/a"
 func (n *Target_Foo) A() *Target_Foo_A {
 	return &Target_Foo_A{
 		NodePath: ygot.NewNodePath(
@@ -185,7 +230,12 @@ func (n *Target_Foo) A() *Target_Foo_A {
 	}
 }
 
-// A returns from Target_FooAny the path struct for its child "a".
+// A (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-simple-augment"
+// Instantiating module: "openconfig-simple-target"
+// Path from parent: "state/a"
+// Path from root: "/target/foo/state/a"
 func (n *Target_FooAny) A() *Target_Foo_AAny {
 	return &Target_Foo_AAny{
 		NodePath: ygot.NewNodePath(
