@@ -548,6 +548,24 @@ func TestPathMatchesQuery(t *testing.T) {
 		},
 		want: true,
 	}, {
+		desc: "valid query with implied openconfig origin path",
+		inPath: &gpb.Path{
+			Origin: "",
+		},
+		inQuery: &gpb.Path{
+			Origin: "openconfig",
+		},
+		want: true,
+	}, {
+		desc: "valid query with implied openconfig origin query",
+		inPath: &gpb.Path{
+			Origin: "openconfig",
+		},
+		inQuery: &gpb.Path{
+			Origin: "",
+		},
+		want: true,
+	}, {
 		desc: "valid query with wildcard name",
 		inPath: &gpb.Path{
 			Elem: []*gpb.PathElem{{
@@ -646,6 +664,21 @@ func TestPathMatchesQuery(t *testing.T) {
 		inQuery: &gpb.Path{
 			Elem: []*gpb.PathElem{{
 				Name: "three",
+			}},
+		},
+	}, {
+		desc: "invalid longer query",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{
+				{
+					Name: "twelve",
+				}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
 			}},
 		},
 	}, {
