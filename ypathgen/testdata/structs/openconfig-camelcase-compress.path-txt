@@ -24,7 +24,13 @@ type BGPPathAny struct {
 	*ygot.NodePath
 }
 
-// NeighborAny returns from BGPPath the path struct for its child "neighbor".
+// NeighborAny (list): 
+// ----------------------------------------
+// Defining module: "openconfig-camelcase"
+// Instantiating module: "openconfig-camelcase"
+// Path from parent: "neighbors/neighbor"
+// Path from root: "/bgp/neighbors/neighbor"
+// PeerIP (wildcarded): string
 func (n *BGPPath) NeighborAny() *BGP_NeighborPathAny {
 	return &BGP_NeighborPathAny{
 		NodePath: ygot.NewNodePath(
@@ -35,7 +41,13 @@ func (n *BGPPath) NeighborAny() *BGP_NeighborPathAny {
 	}
 }
 
-// NeighborAny returns from BGPPathAny the path struct for its child "neighbor".
+// NeighborAny (list): 
+// ----------------------------------------
+// Defining module: "openconfig-camelcase"
+// Instantiating module: "openconfig-camelcase"
+// Path from parent: "neighbors/neighbor"
+// Path from root: "/bgp/neighbors/neighbor"
+// PeerIP (wildcarded): string
 func (n *BGPPathAny) NeighborAny() *BGP_NeighborPathAny {
 	return &BGP_NeighborPathAny{
 		NodePath: ygot.NewNodePath(
@@ -46,7 +58,12 @@ func (n *BGPPathAny) NeighborAny() *BGP_NeighborPathAny {
 	}
 }
 
-// Neighbor returns from BGPPath the path struct for its child "neighbor".
+// Neighbor (list): 
+// ----------------------------------------
+// Defining module: "openconfig-camelcase"
+// Instantiating module: "openconfig-camelcase"
+// Path from parent: "neighbors/neighbor"
+// Path from root: "/bgp/neighbors/neighbor"
 // PeerIP: string
 func (n *BGPPath) Neighbor(PeerIP string) *BGP_NeighborPath {
 	return &BGP_NeighborPath{
@@ -58,7 +75,12 @@ func (n *BGPPath) Neighbor(PeerIP string) *BGP_NeighborPath {
 	}
 }
 
-// Neighbor returns from BGPPathAny the path struct for its child "neighbor".
+// Neighbor (list): 
+// ----------------------------------------
+// Defining module: "openconfig-camelcase"
+// Instantiating module: "openconfig-camelcase"
+// Path from parent: "neighbors/neighbor"
+// Path from root: "/bgp/neighbors/neighbor"
 // PeerIP: string
 func (n *BGPPathAny) Neighbor(PeerIP string) *BGP_NeighborPathAny {
 	return &BGP_NeighborPathAny{
@@ -90,7 +112,12 @@ type BGP_Neighbor_PeerIPPathAny struct {
 	*ygot.NodePath
 }
 
-// PeerIP returns from BGP_NeighborPath the path struct for its child "peer-ip".
+// PeerIP (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-camelcase"
+// Instantiating module: "openconfig-camelcase"
+// Path from parent: "state/peer-ip"
+// Path from root: "/bgp/neighbors/neighbor/state/peer-ip"
 func (n *BGP_NeighborPath) PeerIP() *BGP_Neighbor_PeerIPPath {
 	return &BGP_Neighbor_PeerIPPath{
 		NodePath: ygot.NewNodePath(
@@ -101,7 +128,12 @@ func (n *BGP_NeighborPath) PeerIP() *BGP_Neighbor_PeerIPPath {
 	}
 }
 
-// PeerIP returns from BGP_NeighborPathAny the path struct for its child "peer-ip".
+// PeerIP (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-camelcase"
+// Instantiating module: "openconfig-camelcase"
+// Path from parent: "state/peer-ip"
+// Path from root: "/bgp/neighbors/neighbor/state/peer-ip"
 func (n *BGP_NeighborPathAny) PeerIP() *BGP_Neighbor_PeerIPPathAny {
 	return &BGP_Neighbor_PeerIPPathAny{
 		NodePath: ygot.NewNodePath(
@@ -122,7 +154,12 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// BGP returns from DevicePath the path struct for its child "bgp".
+// BGP (container): 
+// ----------------------------------------
+// Defining module: "openconfig-camelcase"
+// Instantiating module: "openconfig-camelcase"
+// Path from parent: "bgp"
+// Path from root: "/bgp"
 func (n *DevicePath) BGP() *BGPPath {
 	return &BGPPath{
 		NodePath: ygot.NewNodePath(

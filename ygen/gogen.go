@@ -310,8 +310,8 @@ type generatedDefaultMethod struct {
 	ChildContainerNames []string
 	// ChildContainerNames are the names of the list fields of the GoStruct.
 	ChildListNames []string
-	// Leaf represent the leaf fields of the GoStruct.
-	Leafs []*generatedLeafGetter
+	// Leaves represent the leaf fields of the GoStruct.
+	Leaves []*generatedLeafGetter
 }
 
 var (
@@ -797,7 +797,7 @@ func (t *{{ .Receiver }}) PopulateDefaults() {
 	}
 	ygot.BuildEmptyTree(t)
 
-	{{- range $Leaf := .Leafs }}
+	{{- range $Leaf := .Leaves }}
 	{{- if $Leaf.Default }}
 	if t.{{ $Leaf.Name }} == {{ if $Leaf.IsPtr -}} nil {{- else }} {{ $Leaf.Zero }} {{- end }} {
 		{{- if $Leaf.IsPtr }}
@@ -1350,8 +1350,9 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 	// to generated for the struct.
 	var associatedLeafGetters []*generatedLeafGetter
 
-	var associatedDefaultMethod generatedDefaultMethod
-	associatedDefaultMethod.Receiver = targetStruct.Name
+	associatedDefaultMethod := generatedDefaultMethod{
+		Receiver: targetStruct.Name,
+	}
 
 	// The Go names of the struct's fields.
 	goFieldNameMap := GoFieldNameMap(targetStruct)
@@ -1736,7 +1737,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		}
 	}
 	if goOpts.GeneratePopulateDefault {
-		associatedDefaultMethod.Leafs = associatedLeafGetters
+		associatedDefaultMethod.Leaves = associatedLeafGetters
 		if err := goDefaultMethodTemplate.Execute(&methodBuf, associatedDefaultMethod); err != nil {
 			errs = append(errs, err)
 		}
