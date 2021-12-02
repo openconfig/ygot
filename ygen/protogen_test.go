@@ -1825,6 +1825,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 		name                string
 		inName              string
 		inEntry             *yang.Entry
+		inPath              string
 		inMappedType        *MappedType
 		inAnnotateEnumNames bool
 		wantFields          []*protoMsgField
@@ -1855,6 +1856,35 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			Type: "sint64",
 		}, {
 			Tag:  173535000,
+			Name: "FieldName_string",
+			Type: "string",
+		}},
+		wantEnums: map[string]*protoMsgEnum{},
+	}, {
+		name:   "simple string union with a non-empty path argument",
+		inName: "FieldName",
+		inEntry: &yang.Entry{
+			Name: "field-name",
+			Type: &yang.YangType{
+				Type: []*yang.YangType{
+					{Kind: yang.Ystring},
+					{Kind: yang.Yint8},
+				},
+			},
+		},
+		inMappedType: &MappedType{
+			UnionTypes: map[string]int{
+				"string": 0,
+				"sint64": 0,
+			},
+		},
+		inPath: "a/b/c/d",
+		wantFields: []*protoMsgField{{
+			Tag:  352411621,
+			Name: "FieldName_sint64",
+			Type: "sint64",
+		}, {
+			Tag:  156680110,
 			Name: "FieldName_string",
 			Type: "string",
 		}},
@@ -2001,7 +2031,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, true, true)
+		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inPath, tt.inMappedType, tt.inAnnotateEnumNames, true, true)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, err, tt.wantErr)
 		}

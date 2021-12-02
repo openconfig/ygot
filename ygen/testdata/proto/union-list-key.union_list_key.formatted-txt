@@ -24,8 +24,8 @@ message A {
   }
   message BKey {
     oneof c {
-      openconfig.enums.UnionListKeyID c_unionlistkeyid = 399198747;
-      string c_string = 172308081;
+      openconfig.enums.UnionListKeyID c_unionlistkeyid = 330890081;
+      string c_string = 18197531;
     }
     B b = 2;
   }
@@ -46,8 +46,8 @@ message Z {
   }
   message ZaKey {
     oneof zb {
-      openconfig.enums.UnionListKeyEuEnum zb_unionlistkeyeuenum = 221033643;
-      string zb_string = 508594323;
+      openconfig.enums.UnionListKeyEuEnum zb_unionlistkeyeuenum = 198124480;
+      string zb_string = 62579792;
     }
     Za za = 2;
   }

@@ -1,0 +1,40 @@
+module proto-test-g {
+  prefix "proto-g";
+  namespace "urn:proto-g";
+
+  grouping grp {
+    leaf one {
+      type union {
+        type string;
+        type int32;
+      }
+    }
+  }
+
+  container elists {
+    list elist {
+      key "one two";
+
+      leaf one {
+        type leafref {
+          path "../config/one";
+        }
+      }
+
+      leaf two {
+        type leafref {
+          path "../config/one";
+        }
+      }
+
+      container config {
+        uses grp;
+      }
+
+      container state {
+        config false;
+        uses grp;
+      }
+    }
+  }
+}

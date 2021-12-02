@@ -1038,7 +1038,7 @@ func protoLeafDefinition(leafName string, args *protoDefinitionArgs, useDefining
 	case util.IsEnumeratedType(args.field.Type):
 		d.globalEnum = true
 	case protoType.UnionTypes != nil:
-		u, err := unionFieldToOneOf(leafName, args.field, protoType, args.cfg.annotateEnumNames, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
+		u, err := unionFieldToOneOf(leafName, args.field, "", protoType, args.cfg.annotateEnumNames, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 		if err != nil {
 			return nil, err
 		}
@@ -1209,7 +1209,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 			km.Enums[tn] = enum
 		case unionEntry != nil:
 			fd.IsOneOf = true
-			u, err := unionFieldToOneOf(fd.Name, unionEntry, scalarType, args.cfg.annotateEnumNames, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
+			u, err := unionFieldToOneOf(fd.Name, unionEntry, kf.Path(), scalarType, args.cfg.annotateEnumNames, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 			if err != nil {
 				return nil, fmt.Errorf("error generating type for union list key %s in list %s", k, args.field.Path())
 			}
@@ -1312,11 +1312,12 @@ type protoUnionField struct {
 	hadGlobalEnums bool                     // hadGlobalEnums determines whether there was a global scope enum (typedef, identityref) in the message.
 }
 
-// unionFieldToOneOf takes an input name, a yang.Entry containing a field definition and a MappedType
+// unionFieldToOneOf takes an input name, a yang.Entry containing a field definition, an optional path
+// argument to disambiguate between leafrefs that point to the same union type, and a MappedType
 // containing the proto type that the entry has been mapped to, and returns a definition of a union
 // field within the protobuf message. If the annotateEnumNames boolean is set, then any enumerated types
 // within the union have their original names within the YANG schema appended.
-func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *MappedType, annotateEnumNames, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums bool) (*protoUnionField, error) {
+func unionFieldToOneOf(fieldName string, e *yang.Entry, path string, mtype *MappedType, annotateEnumNames, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums bool) (*protoUnionField, error) {
 	enums, err := enumInProtoUnionField(fieldName, resolveTypeArgs{yangType: e.Type, contextEntry: e}, annotateEnumNames, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 	if err != nil {
 		return nil, err
@@ -1327,6 +1328,10 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *MappedType, annot
 		typeNames = append(typeNames, tn)
 	}
 	sort.Strings(typeNames)
+
+	if path == "" {
+		path = e.Path()
+	}
 
 	var importGlobalEnums bool
 	var oofs []*protoMsgField
@@ -1344,7 +1349,7 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, mtype *MappedType, annot
 		// such that we have unique inputs for each option. We make the name lower-case
 		// as it is conventional that protobuf field names are lowercase separated by
 		// underscores.
-		ft, err := fieldTag(fmt.Sprintf("%s_%s", e.Path(), strings.ToLower(tn)))
+		ft, err := fieldTag(fmt.Sprintf("%s_%s", path, strings.ToLower(tn)))
 		if err != nil {
 			return nil, fmt.Errorf("could not calculate tag number for %s, type %s in oneof", e.Path(), tn)
 		}
