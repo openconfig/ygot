@@ -462,13 +462,14 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 // key and value. The format of the path returned depends on the input format
 // of the parentPath.
 func mapValuePath(key, value reflect.Value, parentPath *gnmiPath) (*gnmiPath, error) {
-	childPath := &gnmiPath{}
+	var childPath *gnmiPath
 
 	if parentPath == nil {
 		return nil, fmt.Errorf("nil map paths supplied to mapValuePath for %v %v", key.Interface(), value.Interface())
 	}
 
 	if parentPath.isStringSlicePath() {
+		childPath = &gnmiPath{}
 		keyval, err := KeyValueAsString(key.Interface())
 		if err != nil {
 			return nil, fmt.Errorf("can't append path element key: %v", err)
@@ -480,10 +481,8 @@ func mapValuePath(key, value reflect.Value, parentPath *gnmiPath) (*gnmiPath, er
 		return childPath, nil
 	}
 
-	for _, e := range parentPath.pathElemPath {
-		n := proto.Clone(e).(*gnmipb.PathElem)
-		childPath.pathElemPath = append(childPath.pathElemPath, n)
-	}
+	// Only the pointer values are copied for performance.
+	childPath = parentPath.Copy()
 
 	return appendgNMIPathElemKey(value, childPath)
 }

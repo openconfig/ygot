@@ -490,3 +490,38 @@ func TestNotificationOutput(t *testing.T) {
 		})
 	}
 }
+
+func getBenchmarkDevice() *exampleoc.Device {
+	intfs := []string{"eth0", "eth1", "eth2", "eth3"}
+	d := &exampleoc.Device{}
+	for _, intf := range intfs {
+		d.GetOrCreateInterface(intf)
+		is := d.GetOrCreateLldp().GetOrCreateInterface(intf).GetOrCreateNeighbor("neighbor")
+		is.LastUpdate = ygot.Int64(42)
+	}
+	return d
+}
+
+func BenchmarkNotificationOutput(b *testing.B) {
+	d := getBenchmarkDevice()
+	b.ResetTimer()
+	for i := 0; i != b.N; i++ {
+		if _, err := ygot.TogNMINotifications(d, 0, ygot.GNMINotificationsConfig{
+			UsePathElem: true,
+		}); err != nil {
+			b.Fatalf("cannot marshal input to gNMI Notifications, %v", err)
+		}
+	}
+}
+
+func BenchmarkNotificationOutputElement(b *testing.B) {
+	d := getBenchmarkDevice()
+	b.ResetTimer()
+	for i := 0; i != b.N; i++ {
+		if _, err := ygot.TogNMINotifications(d, 0, ygot.GNMINotificationsConfig{
+			UsePathElem: false,
+		}); err != nil {
+			b.Fatalf("cannot marshal input to gNMI Notifications, %v", err)
+		}
+	}
+}
