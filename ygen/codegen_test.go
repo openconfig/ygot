@@ -432,8 +432,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
-				GenerateSimpleUnions: true,
-				GenerateLeafGetters:  true,
+				GenerateSimpleUnions:    true,
+				GenerateLeafGetters:     true,
+				GeneratePopulateDefault: true,
 			},
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
@@ -464,8 +465,9 @@ func TestSimpleStructs(t *testing.T) {
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
-				GenerateSimpleUnions: true,
-				GenerateLeafGetters:  true,
+				GenerateSimpleUnions:    true,
+				GenerateLeafGetters:     true,
+				GeneratePopulateDefault: true,
 			},
 			TransformationOptions: TransformationOpts{
 				ShortenEnumLeafNames:                 true,
@@ -904,6 +906,7 @@ func TestSimpleStructs(t *testing.T) {
 			GoOptions: GoOpts{
 				GenerateSimpleUnions:                true,
 				GenerateLeafGetters:                 true,
+				GeneratePopulateDefault:             true,
 				AppendEnumSuffixForSimpleUnionEnums: true,
 			},
 			TransformationOptions: TransformationOpts{
@@ -920,6 +923,7 @@ func TestSimpleStructs(t *testing.T) {
 		inConfig: GeneratorConfig{
 			GoOptions: GoOpts{
 				GenerateLeafGetters:                 true,
+				GeneratePopulateDefault:             true,
 				AppendEnumSuffixForSimpleUnionEnums: true,
 			},
 			TransformationOptions: TransformationOpts{
@@ -1038,8 +1042,9 @@ func TestSimpleStructs(t *testing.T) {
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
 			},
 			GoOptions: GoOpts{
-				GenerateLeafGetters:  true,
-				GenerateSimpleUnions: true,
+				GenerateLeafGetters:     true,
+				GeneratePopulateDefault: true,
+				GenerateSimpleUnions:    true,
 			},
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata", "structs", "openconfig-list-enum-key.leaf-getters.formatted-txt"),

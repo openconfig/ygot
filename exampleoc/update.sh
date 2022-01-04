@@ -25,6 +25,7 @@ go run ../generator/generator.go -path=public,deps -output_file=oc.go \
   -generate_append \
   -generate_getters \
   -generate_leaf_getters \
+  -generate_populate_defaults \
   -generate_simple_unions \
   -annotations \
   -list_builder_key_threshold=3 \

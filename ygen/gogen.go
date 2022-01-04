@@ -300,6 +300,20 @@ type generatedLeafGetter struct {
 	Receiver string
 }
 
+// generatedDefaultMethod is used to represent parameters required to generate
+// a PopulateDefaults method for a GoStruct that recursively populates default
+// values within the subtree.
+type generatedDefaultMethod struct {
+	// Receiver is the name of the receiver for the default method.
+	Receiver string
+	// ChildContainerNames are the names of the container fields of the GoStruct.
+	ChildContainerNames []string
+	// ChildContainerNames are the names of the list fields of the GoStruct.
+	ChildListNames []string
+	// Leaves represent the leaf fields of the GoStruct.
+	Leaves []*generatedLeafGetter
+}
+
 var (
 	// goCommonHeaderTemplate is populated and output at the top of the generated code package
 	goCommonHeaderTemplate = mustMakeTemplate("commonHeader", `
@@ -768,6 +782,41 @@ func (t *{{ .Receiver }}) Get{{ .Name }}() {{ .Type }} {
 		{{- end }}
 	}
 	return {{ if .IsPtr -}} * {{- end -}} t.{{ .Name }}
+}
+`)
+
+	// goDefaultMethodTemplate is a template for generating a PopulateDefaults method
+	// for a GoStruct that recursively populates default values within the subtree.
+	goDefaultMethodTemplate = mustMakeTemplate("populateDefaults", `
+// PopulateDefaults recursively populates unset leaf fields in the {{ .Receiver }}
+// with default values as specified in the YANG schema, instantiating any nil
+// container fields.
+func (t *{{ .Receiver }}) PopulateDefaults() {
+	if (t == nil) {
+		return
+	}
+	ygot.BuildEmptyTree(t)
+
+	{{- range $Leaf := .Leaves }}
+	{{- if $Leaf.Default }}
+	if t.{{ $Leaf.Name }} == {{ if $Leaf.IsPtr -}} nil {{- else }} {{ $Leaf.Zero }} {{- end }} {
+		{{- if $Leaf.IsPtr }}
+		var v {{ $Leaf.Type }} = {{ $Leaf.Default }}
+		t.{{ $Leaf.Name }} = &v
+		{{- else }}
+		t.{{ $Leaf.Name }} = {{ $Leaf.Default }}
+		{{- end }}
+	}
+	{{- end }}
+	{{- end }}
+	{{- range $containerName := .ChildContainerNames }}
+	t.{{ $containerName }}.PopulateDefaults()
+	{{- end }}
+	{{- range $listName := .ChildListNames }}
+	for _, e := range t.{{ $listName }} {
+		e.PopulateDefaults()
+	}
+	{{- end }}
 }
 `)
 
@@ -1298,9 +1347,12 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 	var associatedListMethods []*generatedGoListMethod
 
 	// associatedLeafGetters is a slice of structs which define the set of leaf getters
-	// to generated for the struct. It is only populated if the GenerateLeafGetters option
-	// is set to true.
+	// to generated for the struct.
 	var associatedLeafGetters []*generatedLeafGetter
+
+	associatedDefaultMethod := generatedDefaultMethod{
+		Receiver: targetStruct.Name,
+	}
 
 	// The Go names of the struct's fields.
 	goFieldNameMap := GoFieldNameMap(targetStruct)
@@ -1360,6 +1412,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 				Type:       fieldType,
 				IsYANGList: true,
 			}
+			associatedDefaultMethod.ChildListNames = append(associatedDefaultMethod.ChildListNames, fieldName)
 
 			if listMethods != nil {
 				associatedListMethods = append(associatedListMethods, listMethods)
@@ -1386,6 +1439,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 				Type:            fmt.Sprintf("*%s", structName),
 				IsYANGContainer: true,
 			}
+			associatedDefaultMethod.ChildContainerNames = append(associatedDefaultMethod.ChildContainerNames, fieldName)
 		case field.IsLeaf() || field.IsLeafList():
 			// This is a leaf or leaf-list, so we map it into the Go type that corresponds to the
 			// YANG type that the leaf represents.
@@ -1517,19 +1571,17 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 				enumTypeMap[schemapath] = append(enumTypeMap[schemapath], mtype.NativeType)
 			}
 
-			if goOpts.GenerateLeafGetters {
-				// If we are generating leaf getters, then append the relevant information
-				// to the associatedLeafGetters slice to be generated along with other
-				// associated methods.
-				associatedLeafGetters = append(associatedLeafGetters, &generatedLeafGetter{
-					Name:     fieldName,
-					Type:     fType,
-					Zero:     zeroValue,
-					IsPtr:    scalarField,
-					Receiver: targetStruct.Name,
-					Default:  defaultValue,
-				})
-			}
+			// If we are generating leaf getters, then append the relevant information
+			// to the associatedLeafGetters slice to be generated along with other
+			// associated methods.
+			associatedLeafGetters = append(associatedLeafGetters, &generatedLeafGetter{
+				Name:     fieldName,
+				Type:     fType,
+				Zero:     zeroValue,
+				IsPtr:    scalarField,
+				Receiver: targetStruct.Name,
+				Default:  defaultValue,
+			})
 
 			fieldDef = &goStructField{
 				Name:          fieldName,
@@ -1681,6 +1733,12 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 
 	if goOpts.GenerateLeafGetters {
 		if err := generateLeafGetters(&methodBuf, associatedLeafGetters); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	if goOpts.GeneratePopulateDefault {
+		associatedDefaultMethod.Leaves = associatedLeafGetters
+		if err := goDefaultMethodTemplate.Execute(&methodBuf, associatedDefaultMethod); err != nil {
 			errs = append(errs, err)
 		}
 	}

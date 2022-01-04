@@ -18,6 +18,7 @@ package schematest
 
 import (
 	"io/ioutil"
+	"reflect"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -119,6 +120,41 @@ func TestBuildEmptyDevice(t *testing.T) {
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("did not get expected device struct, diff(-got,+want):\n%s", diff)
+	}
+}
+
+func TestPopulateDefaults(t *testing.T) {
+	// 1. recursively populate
+	// 2. populates lists
+	// 3. doesn't overwrite set fields.
+	setAndPopulate := func() *exampleoc.Device {
+		d := &exampleoc.Device{}
+		i := d.GetOrCreateInterface("eth0")
+		vrrpGroup := i.GetOrCreateSubinterface(1).GetOrCreateIpv4().GetOrCreateAddress("1.1.1.1").GetOrCreateVrrpGroup(1)
+		vrrpGroup.AdvertisementInterval = ygot.Uint16(84)
+		i.PopulateDefaults()
+		return d
+	}
+
+	populateAndSet := func() *exampleoc.Device {
+		d := &exampleoc.Device{}
+		i := d.GetOrCreateInterface("eth0")
+		vrrpGroup := i.GetOrCreateSubinterface(1).GetOrCreateIpv4().GetOrCreateAddress("1.1.1.1").GetOrCreateVrrpGroup(1)
+		i.PopulateDefaults()
+		setVal := ygot.Uint16(84)
+		if reflect.DeepEqual(vrrpGroup.AdvertisementInterval, setVal) {
+			t.Fatalf("expected default value to be populated that's different than the test val %v", *setVal)
+		}
+		vrrpGroup.AdvertisementInterval = setVal
+		return d
+	}
+
+	got, want := setAndPopulate(), populateAndSet()
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
+	}
+	if got, want := len(got.Interface), 1; got != want {
+		t.Errorf("got %v interfaces populated in struct, expected %v.", got, want)
 	}
 }
 
