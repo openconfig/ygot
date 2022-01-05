@@ -554,9 +554,8 @@ func hasInitMissingElements(opts []SetNodeOpt) bool {
 	return false
 }
 
-// UseJSONEncoding signals SetNode to tolerate inconsistencies for
-// val as if it were converted from JSON. As of right now, this is specifically
-// to deal with uint values being streamed as positive int values.
+// UseJSONEncoding signals SetNode that the input value is in JSON encoding
+// instead of gNMI's typed encoding.
 type UseJSONEncoding struct{}
 
 // IsSetNodeOpt implements the SetNodeOpt interface.
@@ -575,7 +574,8 @@ func hasUseJSONEncoding(opts []SetNodeOpt) bool {
 
 // TolerateJSONInconsistencies signals SetNode to tolerate inconsistencies for
 // val as if it were converted from JSON. As of right now, this is specifically
-// to deal with uint values being streamed as positive int values.
+// to deal with uint values being streamed as positive int values. If
+// useJSONEncoding is true, then this option is not applicable.
 type TolerateJSONInconsistencies struct{}
 
 // IsSetNodeOpt implements the SetNodeOpt interface.
