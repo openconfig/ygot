@@ -51,10 +51,14 @@ type retrieveNodeArgs struct {
 	// If val is set to a non-nil value, leaf/leaflist node corresponding
 	// to the given path is updated with this value.
 	val interface{}
+	// useJSONEncoding indicates that the input value is in JSON encoding
+	// instead of gNMI's typed encoding.
+	useJSONEncoding bool
 	// tolerateJSONInconsistenciesForVal means to tolerate inconsistencies
 	// for val as if it were converted from JSON. As of right now, this is
 	// specifically to deal with uint values being streamed as positive int
-	// values.
+	// values. If useJSONEncoding is true, then this option is not
+	// applicable.
 	tolerateJSONInconsistenciesForVal bool
 	// preferShadowPath uses the name of the "shadow-path" tag of a
 	// GoStruct to determine the path elements instead of the
@@ -190,7 +194,10 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 					// nodes. Schema provided must be the schema of the leaf or leaf list node.
 					// root must be the reference of container leaf/leaf list belongs to.
 					encoding := GNMIEncoding
-					if args.tolerateJSONInconsistenciesForVal {
+					switch {
+					case args.useJSONEncoding:
+						encoding = JSONEncoding
+					case args.tolerateJSONInconsistenciesForVal:
 						encoding = gNMIEncodingWithJSONTolerance
 					}
 					if err := unmarshalGeneric(cschema, root, args.val, encoding); err != nil {
@@ -507,6 +514,7 @@ func SetNode(schema *yang.Entry, root interface{}, path *gpb.Path, val interface
 	nodes, err := retrieveNode(schema, root, path, nil, retrieveNodeArgs{
 		modifyRoot:                        hasInitMissingElements(opts),
 		val:                               val,
+		useJSONEncoding:                   hasUseJSONEncoding(opts),
 		tolerateJSONInconsistenciesForVal: hasTolerateJSONInconsistencies(opts),
 		preferShadowPath:                  hasSetNodePreferShadowPath(opts),
 	})
@@ -540,6 +548,25 @@ func (*InitMissingElements) IsSetNodeOpt() {}
 func hasInitMissingElements(opts []SetNodeOpt) bool {
 	for _, o := range opts {
 		if _, ok := o.(*InitMissingElements); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// UseJSONEncoding signals SetNode to tolerate inconsistencies for
+// val as if it were converted from JSON. As of right now, this is specifically
+// to deal with uint values being streamed as positive int values.
+type UseJSONEncoding struct{}
+
+// IsSetNodeOpt implements the SetNodeOpt interface.
+func (*UseJSONEncoding) IsSetNodeOpt() {}
+
+// hasUseJSONEncoding determines whether there is an instance of
+// UseJSONEncoding within the supplied SetNodeOpt slice.
+func hasUseJSONEncoding(opts []SetNodeOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*UseJSONEncoding); ok {
 			return true
 		}
 	}
