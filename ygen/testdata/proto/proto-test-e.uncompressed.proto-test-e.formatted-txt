@@ -21,8 +21,8 @@ message AnimalKey {
     SPECIESENUM_OVIS_CANADENSIS = 3;
   }
   oneof species {
-    SpeciesEnum species_speciesenum = 97881385;
-    string species_string = 155124263;
+    SpeciesEnum species_speciesenum = 102559808;
+    string species_string = 236397324;
   }
   animals.Animal animal = 2;
 }
