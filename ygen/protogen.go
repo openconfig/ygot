@@ -1215,6 +1215,12 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 			fd.IsOneOf = true
 			path := unionEntry.Path()
 			if unionEntries[unionEntry] {
+				// It is possible for two keys to point to the same resolved unionEntry.
+				// In this case, the path we use to generate the proto tag numbers needs
+				// to be different to avoid a collision, and here we use the path of the
+				// (leafref) key field. The reason the first instance uses the resolved
+				// unionEntry is for backwards compatibility
+				// (https://github.com/openconfig/ygot/pull/610#discussion_r781510037).
 				path = kf.Path()
 			}
 			unionEntries[unionEntry] = true
