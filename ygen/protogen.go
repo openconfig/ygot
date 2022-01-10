@@ -1038,7 +1038,7 @@ func protoLeafDefinition(leafName string, args *protoDefinitionArgs, useDefining
 	case util.IsEnumeratedType(args.field.Type):
 		d.globalEnum = true
 	case protoType.UnionTypes != nil:
-		u, err := unionFieldToOneOf(leafName, args.field, "", protoType, args.cfg.annotateEnumNames, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
+		u, err := unionFieldToOneOf(leafName, args.field, args.field.Path(), protoType, args.cfg.annotateEnumNames, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 		if err != nil {
 			return nil, err
 		}
@@ -1128,6 +1128,10 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 
 	definedFieldNames := map[string]bool{}
 	ctag := uint32(1)
+	// unionEntries keeps track of union keys such that if two keys point
+	// to the same union entry, such a conflict when creating field tags
+	// for them can be detected to avoid a tag collision.
+	unionEntries := map[*yang.Entry]bool{}
 	for _, k := range strings.Fields(args.field.Key) {
 		kf, ok := args.directory.Fields[k]
 		if !ok {
@@ -1209,7 +1213,12 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 			km.Enums[tn] = enum
 		case unionEntry != nil:
 			fd.IsOneOf = true
-			u, err := unionFieldToOneOf(fd.Name, unionEntry, kf.Path(), scalarType, args.cfg.annotateEnumNames, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
+			path := unionEntry.Path()
+			if unionEntries[unionEntry] {
+				path = kf.Path()
+			}
+			unionEntries[unionEntry] = true
+			u, err := unionFieldToOneOf(fd.Name, unionEntry, path, scalarType, args.cfg.annotateEnumNames, useDefiningModuleForTypedefEnumNames, useConsistentNamesForProtoUnionEnums)
 			if err != nil {
 				return nil, fmt.Errorf("error generating type for union list key %s in list %s", k, args.field.Path())
 			}
@@ -1312,8 +1321,8 @@ type protoUnionField struct {
 	hadGlobalEnums bool                     // hadGlobalEnums determines whether there was a global scope enum (typedef, identityref) in the message.
 }
 
-// unionFieldToOneOf takes an input name, a yang.Entry containing a field definition, an optional path
-// argument to disambiguate between leafrefs that point to the same union type, and a MappedType
+// unionFieldToOneOf takes an input name, a yang.Entry containing a field
+// definition, a path argument used to compute the field tag numbers, and a MappedType
 // containing the proto type that the entry has been mapped to, and returns a definition of a union
 // field within the protobuf message. If the annotateEnumNames boolean is set, then any enumerated types
 // within the union have their original names within the YANG schema appended.
@@ -1328,10 +1337,6 @@ func unionFieldToOneOf(fieldName string, e *yang.Entry, path string, mtype *Mapp
 		typeNames = append(typeNames, tn)
 	}
 	sort.Strings(typeNames)
-
-	if path == "" {
-		path = e.Path()
-	}
 
 	var importGlobalEnums bool
 	var oofs []*protoMsgField

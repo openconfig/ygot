@@ -1822,9 +1822,10 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                string
-		inName              string
-		inEntry             *yang.Entry
+		name    string
+		inName  string
+		inEntry *yang.Entry
+		// inPath is populated with in.Entry.Path() if not set.
 		inPath              string
 		inMappedType        *MappedType
 		inAnnotateEnumNames bool
@@ -2031,6 +2032,9 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
+		if tt.inPath == "" {
+			tt.inPath = tt.inEntry.Path()
+		}
 		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inPath, tt.inMappedType, tt.inAnnotateEnumNames, true, true)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, err, tt.wantErr)
