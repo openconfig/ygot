@@ -2153,6 +2153,18 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_test_f.a.c": filepath.Join(TestRoot, "testdata", "proto", "proto_test_f.uncompressed.proto_test_f.a.c.formatted-txt"),
 		},
 	}, {
+		name:    "yang schema with leafrefs that point to the same path",
+		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-g.yang")},
+		inConfig: GeneratorConfig{
+			ProtoOptions: ProtoOpts{
+				GoPackageBase:  "github.com/foo/baz",
+				NestedMessages: true,
+			},
+		},
+		wantOutputFiles: map[string]string{
+			"openconfig.proto_test_g": filepath.Join(TestRoot, "testdata", "proto", "proto-test-g.proto-test-g.formatted-txt"),
+		},
+	}, {
 		name:    "yang schema with fake root, path compression and union list key",
 		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-union-list-key.yang")},
 		inConfig: GeneratorConfig{
