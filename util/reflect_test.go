@@ -905,8 +905,12 @@ func TestInitializeStructField(t *testing.T) {
 	type testStruct struct {
 		// Following two fields exist to exercise
 		// initializing pointer fields
-		IPtr *int
-		SPtr *string
+		IPtr      *int
+		SPtr      *string
+		StructPtr *struct {
+			IPtr *int
+			SPtr *string
+		}
 		// Following field exists to exercise
 		// initializing composite fields
 		MPtr map[string]int
@@ -918,29 +922,39 @@ func TestInitializeStructField(t *testing.T) {
 	}
 
 	tests := []struct {
-		i    interface{}
-		f    string
-		skip bool
+		f          string
+		skip       bool
+		isLeafType bool
 	}{
-		{i: &testStruct{}, f: "IPtr"},
-		{i: &testStruct{}, f: "SPtr"},
-		{i: &testStruct{}, f: "MPtr"},
-		{i: &testStruct{}, f: "SlPtr", skip: true},
-		{i: &testStruct{}, f: "I", skip: true},
+		{f: "IPtr", isLeafType: true},
+		{f: "SPtr", isLeafType: true},
+		{f: "StructPtr"},
+		{f: "MPtr"},
+		{f: "SlPtr", skip: true},
+		{f: "I", skip: true},
 	}
 
-	for _, tt := range tests {
-		v := reflect.ValueOf(tt.i)
-		if IsValuePtr(v) {
-			v = v.Elem()
-		}
-		fv := v.FieldByName(tt.f)
-		err := InitializeStructField(tt.i, tt.f)
-		if err != nil {
-			t.Errorf("got %v, want no error", err)
-		}
-		if !tt.skip && fv.IsNil() {
-			t.Errorf("got nil, want initialized field value: %q", tt.f)
+	for _, initLeaf := range []bool{false, true} {
+		for _, tt := range tests {
+			i := &testStruct{}
+			v := reflect.ValueOf(i)
+			if IsValuePtr(v) {
+				v = v.Elem()
+			}
+			fv := v.FieldByName(tt.f)
+			err := InitializeStructField(i, tt.f, initLeaf)
+			if err != nil {
+				t.Errorf("got %v, want no error", err)
+			}
+			skip := tt.skip || (!initLeaf && tt.isLeafType)
+			switch {
+			case !skip && fv.IsNil():
+				t.Errorf("got nil, want initialized field value: %q", tt.f)
+			case skip && !IsValuePtr(fv) && !fv.IsZero():
+				t.Errorf("got initialized non-pointer field value %q, want zero value", tt.f)
+			case skip && IsValuePtr(fv) && !fv.IsNil():
+				t.Errorf("got initialized field value %q, want nil", tt.f)
+			}
 		}
 	}
 }
@@ -950,9 +964,9 @@ func TestInitializeStructFieldForSameField(t *testing.T) {
 		MPtr map[string]string
 	}
 	tt := &testStruct{}
-	InitializeStructField(tt, "MPtr")
+	InitializeStructField(tt, "MPtr", false)
 	tt.MPtr["forty"] = "two"
-	InitializeStructField(tt, "MPtr")
+	InitializeStructField(tt, "MPtr", false)
 	v, ok := tt.MPtr["forty"]
 	if !ok || v != "two" {
 		t.Errorf("unable to find (forty, two) pair in the map")
@@ -1492,7 +1506,7 @@ type ContainerStruct3 struct {
 // IsYANGGoStruct implements the GoStruct interface method.
 func (*ContainerStruct3) IsYANGGoStruct() {}
 
-func TestGetNodesSimpleKeyedList(t *testing.T) {
+func multipathSchema() (*yang.Entry, *yang.Entry) {
 	containerWithLeafListSchema := &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,
@@ -1504,7 +1518,7 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 					"simple-key-list": {
 						Name:     "simple-key-list",
 						Kind:     yang.DirectoryEntry,
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 						Key:      "key1",
 						Config:   yang.TSTrue,
 						Dir: map[string]*yang.Entry{
@@ -1595,7 +1609,7 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			"simple-key-list": {
 				Name:     "simple-key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "enum-key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1613,6 +1627,113 @@ func TestGetNodesSimpleKeyedList(t *testing.T) {
 			},
 		},
 	}
+	return containerWithLeafListSchema, containerWithEnumSchema
+}
+
+func TestChildSchema(t *testing.T) {
+	containerWithLeafListSchema, containerWithEnumSchema := multipathSchema()
+
+	simpleKeyListField3, ok := reflect.TypeOf(ContainerStruct3{}).FieldByName("StructKeyList")
+	if !ok {
+		t.Fatalf("Cannot find field StructKeyList in ContainerStruct3")
+	}
+
+	simpleKeyListField1, ok := reflect.TypeOf(ContainerStruct1{}).FieldByName("StructKeyList")
+	if !ok {
+		t.Fatalf("Cannot find field StructKeyList in ContainerStruct1")
+	}
+
+	innerField, ok := reflect.TypeOf(OuterContainerType1{}).FieldByName("Inner")
+	if !ok {
+		t.Fatalf("Cannot find field Inner in OuterContainerType1")
+	}
+
+	enumKeyField, ok := reflect.TypeOf(ListElemStruct3{}).FieldByName("EnumKey")
+	if !ok {
+		t.Fatalf("Cannot find field EnumKey in ListElemStruct3")
+	}
+
+	containerWithChoiceSchema := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"simple-key-list": {
+				Name:     "simple-key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: yang.NewDefaultListAttr(),
+				Key:      "enum-key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"choice": {
+						Name: "choice",
+						Kind: yang.ChoiceEntry,
+						Dir: map[string]*yang.Entry{
+							"case": {
+								Name: "case",
+								Kind: yang.CaseEntry,
+								Dir: map[string]*yang.Entry{
+									"enum-key": {
+										Name: "enum-key",
+										Kind: yang.LeafEntry,
+										Type: &yang.YangType{Kind: yang.Yenum},
+									},
+									"value": {
+										Name: "value",
+										Kind: yang.LeafEntry,
+										Type: &yang.YangType{Kind: yang.Ystring},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		desc      string
+		inSchema  *yang.Entry
+		inField   reflect.StructField
+		wantEntry *yang.Entry
+		wantErr   bool
+	}{{
+		desc:      "basic",
+		inSchema:  containerWithEnumSchema,
+		inField:   simpleKeyListField3,
+		wantEntry: containerWithEnumSchema.Dir["simple-key-list"],
+	}, {
+		desc:      "longpath",
+		inSchema:  containerWithLeafListSchema,
+		inField:   simpleKeyListField1,
+		wantEntry: containerWithLeafListSchema.Dir["config"].Dir["simple-key-list"],
+	}, {
+		desc:      "multipath",
+		inSchema:  containerWithLeafListSchema.Dir["config"].Dir["simple-key-list"].Dir["outer"],
+		inField:   innerField,
+		wantEntry: containerWithLeafListSchema.Dir["config"].Dir["simple-key-list"].Dir["outer"].Dir["config"].Dir["inner"],
+	}, {
+		desc:      "choice path",
+		inSchema:  containerWithChoiceSchema.Dir["simple-key-list"],
+		inField:   enumKeyField,
+		wantEntry: containerWithChoiceSchema.Dir["simple-key-list"].Dir["choice"].Dir["case"].Dir["enum-key"],
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			gotEntry, gotErr := ChildSchema(tt.inSchema, tt.inField)
+			if (gotErr != nil) != tt.wantErr {
+				t.Fatalf("gotErr: %v, wantErr: %v", gotErr, tt.wantErr)
+			}
+			if gotEntry != tt.wantEntry {
+				t.Fatalf("gotEntry: %v, wantEntry: %v", gotEntry.Path(), tt.wantEntry.Path())
+			}
+		})
+	}
+}
+
+func TestGetNodesSimpleKeyedList(t *testing.T) {
+	containerWithLeafListSchema, containerWithEnumSchema := multipathSchema()
 
 	c1 := &ContainerStruct1{
 		StructKeyList: map[string]*ListElemStruct1{
@@ -1930,7 +2051,7 @@ func TestGetNodesStructKeyedList(t *testing.T) {
 			"struct-key-list": {
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key1 key2",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{

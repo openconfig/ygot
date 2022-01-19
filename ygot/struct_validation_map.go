@@ -42,17 +42,23 @@ const (
 	indentString string = "   "
 )
 
-// structTagsToLibPaths takes an input struct field as a reflect.Type, and determines
+// structTagToLibPaths takes an input struct field as a reflect.Type, and determines
 // the set of validation library paths that it maps to. Returns the paths as a slice of
 // empty interface slices, or an error.
-func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath) ([]*gnmiPath, error) {
+func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath, preferShadowPath bool) ([]*gnmiPath, error) {
 	if !parentPath.isValid() {
 		return nil, fmt.Errorf("invalid path format in parentPath (%v, %v)", parentPath.stringSlicePath == nil, parentPath.pathElemPath == nil)
 	}
 
-	pathAnnotation, ok := f.Tag.Lookup("path")
+	var pathAnnotation string
+	var ok bool
+	if preferShadowPath {
+		pathAnnotation, ok = f.Tag.Lookup("shadow-path")
+	}
 	if !ok {
-		return nil, fmt.Errorf("field did not specify a path")
+		if pathAnnotation, ok = f.Tag.Lookup("path"); !ok {
+			return nil, fmt.Errorf("field did not specify a path")
+		}
 	}
 
 	var mapPaths []*gnmiPath
@@ -77,6 +83,48 @@ func structTagToLibPaths(f reflect.StructField, parentPath *gnmiPath) ([]*gnmiPa
 		mapPaths = append(mapPaths, ePath)
 	}
 	return mapPaths, nil
+}
+
+// structTagToLibModules takes an input struct field as a reflect.Type, and
+// extracts the set of module names in the module or shadow-module struct tag
+// of the field. Returns the module names as a slice of gnmiPaths, or an error.
+// If the field were generated correctly, then these module names should have
+// a 1:1 correspondence to the path names in the path tag, and denotes the
+// module to which each path element belongs (using YANG's XML namespace
+// rules).
+func structTagToLibModules(f reflect.StructField, preferShadowPath bool) ([]*gnmiPath, error) {
+	var moduleAnnotation string
+	var ok bool
+	if preferShadowPath {
+		moduleAnnotation, ok = f.Tag.Lookup("shadow-module")
+	}
+	if !ok {
+		if moduleAnnotation, ok = f.Tag.Lookup("module"); !ok {
+			return nil, nil
+		}
+	}
+
+	var mapModules []*gnmiPath
+	for _, m := range strings.Split(moduleAnnotation, "|") {
+		eModule := newStringSliceGNMIPath(nil)
+		for _, mm := range strings.Split(m, "/") {
+			// Handle empty module tags.
+			if mm == "" {
+				continue
+			}
+			eModule.AppendName(mm)
+		}
+
+		switch {
+		case len(m) == 0:
+			return nil, fmt.Errorf("module tag must not have an empty path: %s", moduleAnnotation)
+		case m[0] == '/':
+			eModule.isAbsolute = true
+		}
+
+		mapModules = append(mapModules, eModule)
+	}
+	return mapModules, nil
 }
 
 // EnumName returns the string name of an input GoEnum e. If the enumeration is
@@ -219,7 +267,7 @@ func pruneBranchesInternal(t reflect.Type, v reflect.Value) bool {
 				// Ensure that if the field value was actually nil, we skip over this
 				// field since its already nil.
 				continue
-			case cmp.Equal(zVal.Interface(), fVal.Elem().Interface()):
+			case reflect.DeepEqual(zVal.Interface(), fVal.Elem().Interface()):
 				// In the case that the zero value's interface is the same as the
 				// dereferenced field value's nil value, then we set it to the zero value
 				// of the field type. The fType contains a pointer to the struct, so
@@ -279,7 +327,7 @@ func pruneBranchesInternal(t reflect.Type, v reflect.Value) bool {
 				v = v.Elem()
 				t = t.Elem()
 			}
-			if v.IsValid() && !cmp.Equal(reflect.Zero(t).Interface(), v.Interface()) {
+			if v.IsValid() && !reflect.DeepEqual(reflect.Zero(t).Interface(), v.Interface()) {
 				allChildrenPruned = false
 			}
 		}
@@ -341,6 +389,10 @@ type EmitJSONConfig struct {
 	// Indent is the string used for indentation within the JSON output. The
 	// default value is three spaces.
 	Indent string
+	// EscapeHTML determines whether certain characters will be escaped
+	// in the marshalled JSON for safety in HTML embedding. See
+	// https://pkg.go.dev/encoding/json#Encoder.SetEscapeHTML.
+	EscapeHTML bool
 	// SkipValidation specifies whether the GoStruct supplied to EmitJSON should
 	// be validated before emitting its content. Validation is skipped when it
 	// is set to true.
@@ -376,17 +428,26 @@ func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
 		return "", err
 	}
 
+	sb := &strings.Builder{}
+	enc := json.NewEncoder(sb)
 	indent := indentString
-	if opts != nil && opts.Indent != "" {
-		indent = opts.Indent
-	}
+	enc.SetEscapeHTML(false)
+	if opts != nil {
+		enc.SetEscapeHTML(opts.EscapeHTML)
 
-	j, err := json.MarshalIndent(v, "", indent)
-	if err != nil {
+		if opts.Indent != "" {
+			indent = opts.Indent
+		}
+	}
+	enc.SetIndent("", indent)
+
+	if err := enc.Encode(v); err != nil {
 		return "", fmt.Errorf("JSON marshalling error: %v", err)
 	}
 
-	return string(j), nil
+	// Exclude the last newline character:
+	// https://pkg.go.dev/encoding/json#Encoder.Encode
+	return sb.String()[:sb.Len()-1], nil
 }
 
 // makeJSON renders the GoStruct s to map[string]interface{} according to the
@@ -503,8 +564,10 @@ func (*MergeOverwriteExistingFields) IsMergeOpt() {}
 // returning a new ValidatedGoStruct. If the input structs a and b are of
 // different types, an error is returned.
 //
-// Where two structs contain maps or slices that are populated in both a and b
-// their contents are merged. If a leaf is populated in both a and b, an error
+// Where two structs contain maps or slices that are populated in both a and b,
+// merge is skipped if their contents are equal, and their contents are merged
+// if unequal; however, an error is returned for slices if their elements are
+// overlapping but not equal. If a leaf is populated in both a and b, an error
 // is returned if the value of the leaf is not equal.
 func MergeStructs(a, b ValidatedGoStruct, opts ...MergeOpt) (ValidatedGoStruct, error) {
 	if reflect.TypeOf(a) != reflect.TypeOf(b) {
@@ -745,39 +808,26 @@ func copyMapField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 		return err
 	}
 
-	srcKeys := srcField.MapKeys()
-	dstKeys := dstField.MapKeys()
-
-	nm := reflect.MakeMapWithSize(reflect.MapOf(m.key, m.value), srcField.Len())
-
-	mapsToMap := []struct {
-		keys  []reflect.Value
-		field reflect.Value
-	}{
-		{srcKeys, srcField},
-		{dstKeys, dstField},
+	if dstField.Len() == 0 {
+		dstField.Set(reflect.MakeMapWithSize(reflect.MapOf(m.key, m.value), srcField.Len()))
 	}
-	existingKeys := map[interface{}]reflect.Value{}
 
-	for _, m := range mapsToMap {
-		for _, k := range m.keys {
-			// If the key already exists, then determine the existing item to merge
-			// into.
-			v := m.field.MapIndex(k)
-			var d reflect.Value
-			var ok bool
-			if d, ok = existingKeys[k.Interface()]; !ok {
-				d = reflect.New(v.Elem().Type())
-				existingKeys[k.Interface()] = v
-			}
+	dstKeys := map[interface{}]bool{}
+	for _, k := range dstField.MapKeys() {
+		dstKeys[k.Interface()] = true
+	}
 
-			if err := copyStruct(d.Elem(), v.Elem(), opts...); err != nil {
-				return err
-			}
-			nm.SetMapIndex(k, d)
+	for _, k := range srcField.MapKeys() {
+		v := srcField.MapIndex(k)
+		d := reflect.New(v.Elem().Type())
+		if _, ok := dstKeys[k.Interface()]; ok {
+			d = dstField.MapIndex(k)
 		}
+		if err := copyStruct(d.Elem(), v.Elem(), opts...); err != nil {
+			return err
+		}
+		dstField.SetMapIndex(k, d)
 	}
-	dstField.Set(nm)
 	return nil
 }
 
@@ -826,6 +876,10 @@ func copySliceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 	}
 
 	if _, ok := srcField.Interface().([]Annotation); !ok {
+		if reflect.DeepEqual(srcField.Interface(), dstField.Interface()) {
+			return nil
+		}
+
 		unique, err := uniqueSlices(dstField, srcField)
 		if err != nil {
 			return fmt.Errorf("error checking src and dst for uniqueness, got: %v", err)
@@ -838,30 +892,21 @@ func copySliceField(dstField, srcField reflect.Value, opts ...MergeOpt) error {
 	}
 
 	if !util.IsTypeStructPtr(srcField.Type().Elem()) {
-		ns := reflect.MakeSlice(reflect.SliceOf(srcField.Type().Elem()), 0, 0)
-		for _, field := range []reflect.Value{dstField, srcField} {
-			for i := 0; i < field.Len(); i++ {
-				v := field.Index(i)
-				ns = reflect.Append(ns, v)
-			}
+		for i := 0; i < srcField.Len(); i++ {
+			v := srcField.Index(i)
+			dstField.Set(reflect.Append(dstField, v))
 		}
-		dstField.Set(ns)
 		return nil
 	}
 
-	ns := reflect.MakeSlice(reflect.SliceOf(srcField.Type().Elem()), 0, 0)
-	for _, field := range []reflect.Value{dstField, srcField} {
-		for i := 0; i < field.Len(); i++ {
-			v := field.Index(i)
-			d := reflect.New(v.Type().Elem())
-			if err := copyStruct(d.Elem(), v.Elem(), opts...); err != nil {
-				return err
-			}
-			ns = reflect.Append(ns, d)
+	for i := 0; i < srcField.Len(); i++ {
+		v := srcField.Index(i)
+		d := reflect.New(v.Type().Elem())
+		if err := copyStruct(d.Elem(), v.Elem(), opts...); err != nil {
+			return err
 		}
+		dstField.Set(reflect.Append(dstField, v))
 	}
-
-	dstField.Set(ns)
 	return nil
 }
 
@@ -879,7 +924,7 @@ func uniqueSlices(a, b reflect.Value) (bool, error) {
 
 	for i := 0; i < a.Len(); i++ {
 		for j := 0; j < b.Len(); j++ {
-			if cmp.Equal(a.Index(i).Interface(), b.Index(j).Interface()) {
+			if reflect.DeepEqual(a.Index(i).Interface(), b.Index(j).Interface()) {
 				return false, nil
 			}
 		}

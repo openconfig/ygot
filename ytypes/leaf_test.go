@@ -367,9 +367,10 @@ func TestValidateLeafUnion(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "string",
-							Kind:    yang.Ystring,
-							Pattern: []string{"a+"},
+							Name:         "string",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"a+"},
+							POSIXPattern: []string{"^a+$"},
 						},
 						{
 							Name: "int16",
@@ -423,14 +424,16 @@ func TestValidateLeafUnion(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "string",
-							Kind:    yang.Ystring,
-							Pattern: []string{"a+"},
+							Name:         "string",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"a+"},
+							POSIXPattern: []string{"^a+$"},
 						},
 						{
-							Name:    "string2",
-							Kind:    yang.Ystring,
-							Pattern: []string{"b+"},
+							Name:         "string2",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"b+"},
+							POSIXPattern: []string{"^b+$"},
 						},
 					},
 				},
@@ -449,23 +452,26 @@ func TestValidateLeafUnion(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "string",
-							Kind:    yang.Ystring,
-							Pattern: []string{"a+"},
+							Name:         "string",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"a+"},
+							POSIXPattern: []string{"^a+$"},
 						},
 						{
-							Name:    "string2",
-							Kind:    yang.Ystring,
-							Pattern: []string{"b+"},
+							Name:         "string2",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"b+"},
+							POSIXPattern: []string{"^b+$"},
 						},
 						{
 							Name: "bad-leaf",
 							Kind: yang.Yunion,
 							Type: []*yang.YangType{
 								{
-									Name:    "bad-leaf",
-									Kind:    yang.Ystring,
-									Pattern: []string{"c+"},
+									Name:         "bad-leaf",
+									Kind:         yang.Ystring,
+									Pattern:      []string{"c+"},
+									POSIXPattern: []string{"^c+$"},
 								},
 							},
 						},
@@ -485,6 +491,11 @@ func TestValidateLeafUnion(t *testing.T) {
 			desc:   "success string",
 			schema: unionContainerSchema,
 			val:    &UnionContainer{UnionField: testutil.UnionString("aaa")},
+		},
+		{
+			desc:   "success string leaf",
+			schema: unionContainerSchema.Dir["union1"],
+			val:    UnionContainer{UnionField: testutil.UnionString("aaa")}.UnionField,
 		},
 		{
 			desc:   "success int16",
@@ -550,14 +561,14 @@ func TestValidateLeafUnion(t *testing.T) {
 			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
 		},
 		{
-			desc:   "success single-valued union: int16",
+			desc:   "success single-valued union: another valid string",
 			schema: unionContainerSchemaNoWrappingStruct,
 			val:    &UnionContainerCompressed{UnionField: ygot.String("bbb")},
 		},
 		{
-			desc:   "success single-valued union: string",
-			schema: unionContainerSchemaNoWrappingStruct,
-			val:    &UnionContainerCompressed{UnionField: ygot.String("aaa")},
+			desc:   "success single-valued union leaf: string",
+			schema: unionContainerSchemaNoWrappingStruct.Dir["union1"],
+			val:    UnionContainerCompressed{UnionField: ygot.String("aaa")}.UnionField,
 		},
 		{
 			desc:    "single-valued union: no schemas match",
@@ -633,12 +644,17 @@ func TestValidateLeafRef(t *testing.T) {
 	}
 	validContainerSchema.Dir = map[string]*yang.Entry{
 		"config": {
+			Name:   "config",
 			Parent: validContainerSchema,
 			Dir: map[string]*yang.Entry{
 				"leaf-type": {
 					Kind: yang.LeafEntry,
 					Name: "leaf-type",
-					Type: &yang.YangType{Kind: yang.Ystring, Pattern: []string{"a+"}},
+					Type: &yang.YangType{
+						Kind:         yang.Ystring,
+						Pattern:      []string{"a+"},
+						POSIXPattern: []string{"^a+$"},
+					},
 				},
 			},
 		},
@@ -694,7 +710,11 @@ func TestValidateLeafRef(t *testing.T) {
 				"leaf-type": {
 					Kind: yang.LeafEntry,
 					Name: "leaf-type",
-					Type: &yang.YangType{Kind: yang.Ystring, Pattern: []string{"a+"}},
+					Type: &yang.YangType{
+						Kind:         yang.Ystring,
+						Pattern:      []string{"a+"},
+						POSIXPattern: []string{"^a+$"},
+					},
 				},
 			},
 		},
@@ -719,7 +739,11 @@ func TestValidateLeafRef(t *testing.T) {
 				"leaf-type": {
 					Kind: yang.LeafEntry,
 					Name: "leaf-type",
-					Type: &yang.YangType{Kind: yang.Ystring, Pattern: []string{"a+"}},
+					Type: &yang.YangType{
+						Kind:         yang.Ystring,
+						Pattern:      []string{"a+"},
+						POSIXPattern: []string{"^a+$"},
+					},
 				},
 			},
 		},
@@ -791,8 +815,9 @@ func TestValidateLeafRef(t *testing.T) {
 						"key": {
 							Name: "key",
 							Type: &yang.YangType{
-								Kind:    yang.Ystring,
-								Pattern: []string{"b.*"},
+								Kind:         yang.Ystring,
+								Pattern:      []string{"b.*"},
+								POSIXPattern: []string{"^b.*$"},
 							},
 						},
 					},
@@ -808,8 +833,9 @@ func TestValidateLeafRef(t *testing.T) {
 				"leaf2": {
 					Name: "leaf2",
 					Type: &yang.YangType{
-						Kind:    yang.Ystring,
-						Pattern: []string{"b.*"},
+						Kind:         yang.Ystring,
+						Pattern:      []string{"b.*"},
+						POSIXPattern: []string{"^b.*$"},
 					},
 				},
 			},
@@ -837,8 +863,9 @@ func TestValidateLeafRef(t *testing.T) {
 				"key": {
 					Name: "key",
 					Type: &yang.YangType{
-						Kind:    yang.Ystring,
-						Pattern: []string{"b.*"},
+						Kind:         yang.Ystring,
+						Pattern:      []string{"b.*"},
+						POSIXPattern: []string{"^b.*$"},
 					},
 				},
 			},
@@ -938,6 +965,7 @@ func TestValidateLeafRef(t *testing.T) {
 
 type LeafContainerStruct struct {
 	Int8Leaf             *int8                 `path:"int8-leaf"`
+	Int8LeafConfig       *int8                 `path:"config/inner-int8-leaf" shadow-path:"state/inner-int8-leaf"`
 	Int8LeafList         []int8                `path:"int8-leaflist"`
 	Uint8Leaf            *uint8                `path:"uint8-leaf"`
 	Int16Leaf            *int16                `path:"int16-leaf"`
@@ -1063,6 +1091,21 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			desc: "int8 success",
 			json: `{"int8-leaf" : -42}`,
 			want: LeafContainerStruct{Int8Leaf: ygot.Int8(-42)},
+		},
+		{
+			desc: "config int8 success",
+			json: `{"config" : { "inner-int8-leaf" : -42} }`,
+			want: LeafContainerStruct{Int8LeafConfig: ygot.Int8(-42)},
+		},
+		{
+			desc: "state int8 success ignoring",
+			json: `{"state" : { "inner-int8-leaf" : -42} }`,
+			want: LeafContainerStruct{},
+		},
+		{
+			desc:    "non-existent state fail ignoring",
+			json:    `{"state" : { "non-existent-leaf" : -42} }`,
+			wantErr: `parent container container-schema (type *ytypes.LeafContainerStruct): JSON contains unexpected field non-existent-leaf`,
 		},
 		{
 			desc: "uint8 success",
@@ -1300,9 +1343,19 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			wantErr: `got float64 type for field decimal-leaf, expect string`,
 		},
 		{
+			desc:    "decimal bad type",
+			json:    `{"decimal-leaf" : "forty-two"}`,
+			wantErr: `error parsing forty-two for schema decimal-leaf: strconv.ParseFloat: parsing "forty-two": invalid syntax`,
+		},
+		{
 			desc: "empty valid type",
 			json: `{"empty-leaf": [null]}`,
 			want: LeafContainerStruct{EmptyLeaf: true},
+		},
+		{
+			desc:    "empty bad type",
+			json:    `{"empty-leaf": ["fish"]}`,
+			wantErr: "error parsing [fish] for schema empty-leaf: empty leaves must be [null]",
 		},
 		{
 			desc:    "empty bad type",
@@ -1310,6 +1363,27 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			wantErr: "got string type for field empty-leaf, expect slice",
 		},
 	}
+
+	configInt8Schema := typeToLeafSchema("inner-int8-leaf", yang.Yint8)
+	stateInt8Schema := typeToLeafSchema("inner-int8-leaf", yang.Yint8)
+
+	configSchema := &yang.Entry{
+		Name: "config",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"inner-int8-leaf": configInt8Schema,
+		},
+	}
+	configInt8Schema.Parent = configSchema
+
+	stateSchema := &yang.Entry{
+		Name: "state",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"inner-int8-leaf": stateInt8Schema,
+		},
+	}
+	stateInt8Schema.Parent = stateSchema
 
 	containerSchema := &yang.Entry{
 		Name: "container-schema",
@@ -1319,12 +1393,17 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 				Name: "leaf",
 				Kind: yang.LeafEntry,
 				Type: &yang.YangType{
-					Kind:    yang.Ystring,
-					Pattern: []string{"b+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b+"},
+					POSIXPattern: []string{"^b+$"},
 				},
 			},
+			"config": configSchema,
+			"state":  stateSchema,
 		},
 	}
+	configSchema.Parent = containerSchema
+	stateSchema.Parent = containerSchema
 
 	unionSchemaSimple := &yang.Entry{
 		Name: "union-leaf-simple",
@@ -1390,8 +1469,9 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
 					Kind: yang.Yuint32,
@@ -1418,8 +1498,9 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
 					Kind: yang.Yuint32,
@@ -1443,12 +1524,14 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 				{
 					// Note that Validate is not called as part of Unmarshal,
 					// therefore any string pattern will actually match.
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"b+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b+"},
+					POSIXPattern: []string{"^b+$"},
 				},
 			},
 		},
@@ -1464,12 +1547,14 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 				{
 					// Note that Validate is not called as part of Unmarshal,
 					// therefore any string pattern will actually match.
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"b+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b+"},
+					POSIXPattern: []string{"^b+$"},
 				},
 			},
 		},
@@ -1479,7 +1564,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 		Name:     "int8-leaflist",
 		Kind:     yang.LeafEntry,
 		Type:     &yang.YangType{Kind: yang.Yint8},
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 	}
 
 	unionSingleEnumSchema := &yang.Entry{
@@ -1544,7 +1629,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			var parent LeafContainerStruct
 
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(containerSchema, &parent, jsonTree)
@@ -1582,6 +1667,9 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 	if err := unmarshalLeaf(nil, nil, nil, JSONEncoding); err != nil {
 		t.Errorf("nil value: got error: %v, want error: nil", err)
 	}
+	if err := unmarshalLeaf(containerSchema, nil, nil, JSONEncoding); err != nil {
+		t.Errorf("nil value: got error: %v, want error: nil", err)
+	}
 	if err := unmarshalLeaf(nil, nil, map[string]interface{}{}, JSONEncoding); err == nil {
 		t.Errorf("nil schema: got error: nil, want nil schema error")
 	}
@@ -1603,6 +1691,7 @@ func TestUnmarshalLeafRef(t *testing.T) {
 	}
 	containerSchema.Dir = map[string]*yang.Entry{
 		"config": {
+			Name:   "config",
 			Parent: containerSchema,
 			Dir: map[string]*yang.Entry{
 				"leaf-type": {
@@ -1651,7 +1740,7 @@ func TestUnmarshalLeafRef(t *testing.T) {
 			var parent ContainerStruct
 
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(containerSchema, &parent, jsonTree)
@@ -1678,8 +1767,9 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 				Name: "leaf",
 				Kind: yang.LeafEntry,
 				Type: &yang.YangType{
-					Kind:    yang.Ystring,
-					Pattern: []string{"b+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b+"},
+					POSIXPattern: []string{"^b+$"},
 				},
 			},
 		},
@@ -1722,8 +1812,9 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 			Kind: yang.Yunion,
 			Type: []*yang.YangType{
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
 					Kind: yang.Yuint32,
@@ -1793,12 +1884,14 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 				{
 					// Note that Validate is not called as part of Unmarshal,
 					// therefore any string pattern will actually match.
-					Kind:    yang.Ystring,
-					Pattern: []string{"a+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"a+"},
+					POSIXPattern: []string{"^a+$"},
 				},
 				{
-					Kind:    yang.Ystring,
-					Pattern: []string{"b+"},
+					Kind:         yang.Ystring,
+					Pattern:      []string{"b+"},
+					POSIXPattern: []string{"^b+$"},
 				},
 			},
 		},
@@ -1809,7 +1902,7 @@ func TestUnmarshalLeafGNMIEncoding(t *testing.T) {
 		Name:     "int8-leaflist",
 		Kind:     yang.LeafEntry,
 		Type:     &yang.YangType{Kind: yang.Yint8},
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 	}
 
 	tests := []struct {

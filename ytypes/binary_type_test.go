@@ -15,6 +15,7 @@
 package ytypes
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -189,6 +190,17 @@ func TestValidateBinary(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
+			if isBinaryType(reflect.TypeOf(tt.val)) {
+				binaryVal := reflect.ValueOf(tt.val).Bytes()
+				if binaryVal != nil {
+					err := ValidateBinaryRestrictions(yrangeToBinarySchema(tt.schemaName, tt.length).Type, binaryVal)
+					if got, want := (err != nil), tt.wantErr; got != want {
+						t.Fatalf("%s: b.ValidateBinaryRestrictions (%v) got error: %v, want error? %v", tt.desc, tt.val, err, tt.wantErr)
+					}
+					testErrLog(t, tt.desc, err)
+				}
+			}
+
 			err := validateBinary(yrangeToBinarySchema(tt.schemaName, tt.length), tt.val)
 			if got, want := (err != nil), tt.wantErr; got != want {
 				t.Errorf("%s: b.validateBinary(%v) got error: %v, want error? %v", tt.desc, tt.val, err, tt.wantErr)

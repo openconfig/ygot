@@ -8,7 +8,6 @@ syntax = "proto3";
 
 package openconfig.proto_enums;
 
-import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 import "openconfig/enums/enums.proto";
 
@@ -18,15 +17,11 @@ message A {
     A_UNSET = 0;
     A_C_VAL_D_VAL = 1 [(yext.yang_name) = "C_VAL/D_VAL"];
   }
-  enum D {
-    D_UNSET = 0;
-    D_B_VAL = 1 [(yext.yang_name) = "B_VAL"];
-  }
   A a = 314438335;
   openconfig.enums.ProtoEnumsBASEIDENTITY b = 314438332;
   openconfig.enums.ProtoEnumsEnumTypedef c = 314438333;
   oneof d {
-    D d_d = 436785703;
+    openconfig.enums.ProtoEnumsEnumUnionTypedefEnum d_protoenumsenumuniontypedefenum = 90474227;
     string d_string = 483106466;
   }
   oneof e {

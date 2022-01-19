@@ -31,7 +31,7 @@ import (
 var validListSchema = &yang.Entry{
 	Name:     "valid-list-schema",
 	Kind:     yang.DirectoryEntry,
-	ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+	ListAttr: yang.NewDefaultListAttr(),
 	Key:      "key_field_name",
 	Config:   yang.TSTrue,
 	Dir: map[string]*yang.Entry{
@@ -78,7 +78,7 @@ func TestValidateListSchema(t *testing.T) {
 			schema: &yang.Entry{
 				Name:     "missing-key-field-schema",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
 					"key_field_name": {
@@ -95,7 +95,7 @@ func TestValidateListSchema(t *testing.T) {
 			schema: &yang.Entry{
 				Name:     "missing-key-leaf-schema",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key_field_name",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -146,7 +146,7 @@ func TestValidateListNoKey(t *testing.T) {
 	listSchema := &yang.Entry{
 		Name:     "list-schema",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Dir: map[string]*yang.Entry{
 			"leaf-name": {
 				Kind: yang.LeafEntry,
@@ -219,7 +219,7 @@ func TestValidateListSimpleKey(t *testing.T) {
 	listSchema := &yang.Entry{
 		Name:     "list-schema",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: &yang.ListAttr{},
 		Key:      "keyfield-name",
 		Config:   yang.TSTrue,
 		Dir: map[string]*yang.Entry{
@@ -294,7 +294,7 @@ func TestValidateListStructKey(t *testing.T) {
 	listSchemaStructKey := &yang.Entry{
 		Name:     "list-schema-struct-key",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Key:      "Key1 Key2",
 		Config:   yang.TSTrue,
 		Dir: map[string]*yang.Entry{
@@ -428,7 +428,7 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 			"struct-list": {
 				Name:     "struct-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Dir: map[string]*yang.Entry{
 					"leaf-field": {
 						Kind: yang.LeafEntry,
@@ -501,7 +501,7 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 
 			if tt.json != "" {
 				if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-					t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+					t.Fatalf("%s : %s", tt.desc, err)
 				}
 			}
 
@@ -521,31 +521,58 @@ func TestUnmarshalUnkeyedList(t *testing.T) {
 }
 
 func TestUnmarshalKeyedList(t *testing.T) {
+	keyListSchema := func() *yang.Entry {
+		return &yang.Entry{
+			Name:     "key-list",
+			Kind:     yang.DirectoryEntry,
+			ListAttr: yang.NewDefaultListAttr(),
+			Key:      "key",
+			Config:   yang.TSTrue,
+			Dir: map[string]*yang.Entry{
+				"key": {
+					Kind: yang.LeafEntry,
+					Name: "key",
+					Type: &yang.YangType{Kind: yang.Ystring},
+				},
+				"leaf-field": {
+					Kind: yang.LeafEntry,
+					Name: "leaf-field",
+					Type: &yang.YangType{Kind: yang.Yint32},
+				},
+			},
+		}
+	}
+
 	containerWithLeafListSchema := &yang.Entry{
 		Name: "container",
 		Kind: yang.DirectoryEntry,
 		Dir: map[string]*yang.Entry{
-			"key-list": {
-				Name:     "key-list",
-				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
-				Key:      "key",
-				Config:   yang.TSTrue,
+			"key-list": keyListSchema(),
+		},
+	}
+	addParents(containerWithLeafListSchema)
+
+	containerWithPreferConfigSchema := &yang.Entry{
+		Name: "container",
+		Kind: yang.DirectoryEntry,
+		Dir: map[string]*yang.Entry{
+			"config": {
+				Name: "config",
+				Kind: yang.DirectoryEntry,
 				Dir: map[string]*yang.Entry{
-					"key": {
-						Kind: yang.LeafEntry,
-						Name: "key",
-						Type: &yang.YangType{Kind: yang.Ystring},
-					},
-					"leaf-field": {
-						Kind: yang.LeafEntry,
-						Name: "leaf-field",
-						Type: &yang.YangType{Kind: yang.Yint32},
-					},
+					"key-list": keyListSchema(),
+				},
+			},
+			"state": {
+				Name: "state",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"key-list": keyListSchema(),
 				},
 			},
 		},
 	}
+	addParents(containerWithPreferConfigSchema)
 
 	type ListElemStruct struct {
 		Key       *string `path:"key"`
@@ -555,17 +582,25 @@ func TestUnmarshalKeyedList(t *testing.T) {
 		KeyList map[string]*ListElemStruct `path:"key-list"`
 	}
 
+	type ContainerStructPreferConfig struct {
+		KeyList map[string]*ListElemStruct `path:"config/key-list" shadow-path:"state/key-list"`
+	}
+
 	tests := []struct {
 		desc    string
 		json    string
-		want    ContainerStruct
+		schema  *yang.Entry
+		parent  interface{}
+		want    interface{}
 		opts    []UnmarshalOpt
 		wantErr string
 	}{
 		{
-			desc: "success",
-			json: `{ "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] }`,
-			want: ContainerStruct{
+			desc:   "success",
+			json:   `{ "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] }`,
+			schema: containerWithLeafListSchema,
+			parent: &ContainerStruct{},
+			want: &ContainerStruct{
 				KeyList: map[string]*ListElemStruct{
 					"forty-two": {
 						Key:       ygot.String("forty-two"),
@@ -575,15 +610,40 @@ func TestUnmarshalKeyedList(t *testing.T) {
 			},
 		},
 		{
+			desc:   "success with config path",
+			json:   `{ "config": { "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] } }`,
+			schema: containerWithPreferConfigSchema,
+			parent: &ContainerStructPreferConfig{},
+			want: &ContainerStructPreferConfig{
+				KeyList: map[string]*ListElemStruct{
+					"forty-two": {
+						Key:       ygot.String("forty-two"),
+						LeafField: ygot.Int32(42),
+					},
+				},
+			},
+		},
+		{
+			desc:   "success ignoring shadowed state path",
+			json:   `{ "state": { "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] } }`,
+			schema: containerWithPreferConfigSchema,
+			parent: &ContainerStructPreferConfig{},
+			want:   &ContainerStructPreferConfig{},
+		},
+		{
 			desc:    "bad field",
 			json:    `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
+			schema:  containerWithLeafListSchema,
+			parent:  &ContainerStruct{},
 			wantErr: `parent container key-list (type *ytypes.ListElemStruct): JSON contains unexpected field bad-field`,
 		},
 		{
-			desc: "ignore unknown field",
-			json: `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
-			opts: []UnmarshalOpt{&IgnoreExtraFields{}},
-			want: ContainerStruct{
+			desc:   "ignore unknown field",
+			json:   `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
+			opts:   []UnmarshalOpt{&IgnoreExtraFields{}},
+			schema: containerWithLeafListSchema,
+			parent: &ContainerStruct{},
+			want: &ContainerStruct{
 				KeyList: map[string]*ListElemStruct{
 					"forty-two": {
 						Key: ygot.String("forty-two"),
@@ -596,19 +656,17 @@ func TestUnmarshalKeyedList(t *testing.T) {
 	var jsonTree interface{}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			var parent ContainerStruct
-
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
-			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree, tt.opts...)
+			err := Unmarshal(tt.schema, tt.parent, jsonTree, tt.opts...)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				got, want := parent, tt.want
+				got, want := tt.parent, tt.want
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("%s: Unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
@@ -625,7 +683,7 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 			"struct-key-list": {
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key1 key2 key3",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -697,7 +755,7 @@ func TestUnmarshalStructKeyedList(t *testing.T) {
 			var parent ContainerStruct
 
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
@@ -719,7 +777,7 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 	listSchema := &yang.Entry{
 		Name:     "struct-list",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Dir: map[string]*yang.Entry{
 			"leaf-field": {
 				Kind: yang.LeafEntry,
@@ -766,7 +824,7 @@ func TestUnmarshalSingleListElement(t *testing.T) {
 			var parent ListElemStruct
 
 			if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
-				t.Fatal(fmt.Sprintf("%s : %s", tt.desc, err))
+				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
 			err := Unmarshal(listSchema, &parent, jsonTree)
@@ -886,7 +944,7 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 			"struct-key-list": {
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key1 key2 key3 key4",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -957,7 +1015,7 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 			"struct-key-list-leafref-keys": {
 				Name:     "struct-key-list-leafref-keys",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key1 key2 key3 key4",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1159,9 +1217,9 @@ func TestStructMapKeyValueCreation(t *testing.T) {
 
 	for _, tt := range tests {
 		parent := &ContainerStruct{}
-		util.InitializeStructField(parent, "StructKeyList")
+		util.InitializeStructField(parent, "StructKeyList", false)
 		testFunc(t, tt, "StructKeyList", containerWithMapKeySchema.Dir["struct-key-list"], parent.StructKeyList)
-		util.InitializeStructField(parent, "StructKeyListLeafrefKeys")
+		util.InitializeStructField(parent, "StructKeyListLeafrefKeys", false)
 		testFunc(t, tt, "StructKeyListLeafrefKeys", containerWithMapKeySchema.Dir["struct-key-list-leafref-keys"], parent.StructKeyListLeafrefKeys)
 	}
 }
@@ -1243,7 +1301,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1263,7 +1321,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1283,7 +1341,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1303,7 +1361,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1323,7 +1381,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1348,7 +1406,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1373,7 +1431,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1421,7 +1479,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1466,7 +1524,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1511,7 +1569,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1556,7 +1614,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1593,7 +1651,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1640,7 +1698,7 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "missing-key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1654,10 +1712,157 @@ func TestSimpleMapKeyValueCreation(t *testing.T) {
 			container:    &simpleStruct{KeyList: map[uint32]*ListUintStruct{}},
 			errSubstring: "does not contain a field with tag missing-key",
 		},
+		{
+			desc: "absolute leafref used as key of list",
+			keys: map[string]string{"key": "string-value"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: yang.NewDefaultListAttr(),
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yleafref, Path: "/cs:foo/cs:bar"},
+						Parent: &yang.Entry{
+							Name: "key",
+							Parent: &yang.Entry{
+								Name: "list-parent",
+								Parent: &yang.Entry{
+									Name: "root",
+									// This is the root.
+									Dir: map[string]*yang.Entry{
+										"foo": {
+											Dir: map[string]*yang.Entry{
+												"bar": {
+													Type: &yang.YangType{
+														Kind: yang.Ystring,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			container: &simpleStruct{KeyList: map[string]*ListStringStruct{}},
+			want:      "string-value",
+		},
+		{
+			desc: "absolute leafref used as key of list - but can't find second-level node",
+			keys: map[string]string{"key": "string-value"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: yang.NewDefaultListAttr(),
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yleafref, Path: "/cs:foo/cs:baz"},
+						Parent: &yang.Entry{
+							Name: "key",
+							Parent: &yang.Entry{
+								Name: "list-parent",
+								Parent: &yang.Entry{
+									Name: "root",
+									// This is the root.
+									Dir: map[string]*yang.Entry{
+										"foo": {
+											Dir: map[string]*yang.Entry{
+												"bar": {
+													Type: &yang.YangType{
+														Kind: yang.Ystring,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[string]*ListStringStruct{}},
+			errSubstring: "cannot find absolute leafref cs:baz",
+		},
+		{
+			desc: "absolute leafref used as key of list - but can't find top-level node",
+			keys: map[string]string{"key": "string-value"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: yang.NewDefaultListAttr(),
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yleafref, Path: "/cs:foo/cs:baz"},
+						Parent: &yang.Entry{
+							Name: "key",
+							Parent: &yang.Entry{
+								Name: "list-parent",
+								Parent: &yang.Entry{
+									Name: "root",
+									// This is the root.
+									Dir: map[string]*yang.Entry{
+										// "foo" is not specified here.
+										"bat": {
+											Dir: map[string]*yang.Entry{
+												"bar": {
+													Type: &yang.YangType{
+														Kind: yang.Ystring,
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[string]*ListStringStruct{}},
+			errSubstring: "can't find top-level foo",
+		},
+		{
+			desc: "relative leafref used as key of list - but can't find referenced node",
+			keys: map[string]string{"key": "string-value"},
+			inSchema: &yang.Entry{
+				Name:     "key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: yang.NewDefaultListAttr(),
+				Key:      "key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"key": {
+						Kind: yang.LeafEntry,
+						Name: "key",
+						Type: &yang.YangType{Kind: yang.Yleafref, Path: "../baz"},
+						Parent: &yang.Entry{
+							Name: "key",
+						},
+					},
+				},
+			},
+			container:    &simpleStruct{KeyList: map[string]*ListStringStruct{}},
+			errSubstring: `cannot find leafref "../baz"`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			util.InitializeStructField(tt.container, "KeyList")
+			util.InitializeStructField(tt.container, "KeyList", false)
 			v, e := makeValForInsert(tt.inSchema, tt.container.KeyList, tt.keys)
 			if diff := errdiff.Substring(e, tt.errSubstring); diff != "" {
 				t.Fatalf("got %v, want error %v", e, tt.errSubstring)
@@ -1705,7 +1910,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1725,7 +1930,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Config:   yang.TSTrue,
 				Dir:      map[string]*yang.Entry{},
 			},
@@ -1736,7 +1941,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1755,7 +1960,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "missing-key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1774,7 +1979,7 @@ func TestInsertAndGetKey(t *testing.T) {
 			inSchema: &yang.Entry{
 				Name:     "key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1790,11 +1995,11 @@ func TestInsertAndGetKey(t *testing.T) {
 			wantErrSubstring: "uint32 is not assignable to string",
 		},
 		{
-			inDesc: "fail creating key due to not maching key type - struct key",
+			inDesc: "fail creating key due to not matching key type - struct key",
 			inSchema: &yang.Entry{
 				Name:     "struct-key-list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key1 key2 key3",
 				Config:   yang.TSTrue,
 				Dir: map[string]*yang.Entry{
@@ -1924,9 +2129,10 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 									Kind: yang.Yenum,
 								},
 								{
-									Name:    "string",
-									Kind:    yang.Ystring,
-									Pattern: []string{"a+"},
+									Name:         "string",
+									Kind:         yang.Ystring,
+									Pattern:      []string{"a+"},
+									POSIXPattern: []string{"^a+$"},
 								},
 								{
 									Name: "int16",

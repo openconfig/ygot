@@ -151,6 +151,7 @@ type basicStruct struct {
 	StringValue *string                     `path:"string-value"`
 	StructValue *basicStructTwo             `path:"struct-value"`
 	MapValue    map[string]*basicListMember `path:"map-list"`
+	EmptyValue  YANGEmpty                   `path:"empty-value"`
 }
 
 func (*basicStruct) IsYANGGoStruct() {}
@@ -429,6 +430,16 @@ func TestFindSetLeaves(t *testing.T) {
 		desc:     "struct with fields missing path annotation",
 		inStruct: &errorStruct{Value: String("foo")},
 		wantErr:  "error from ForEachDataField iteration: field Value did not specify a path",
+	}, {
+		desc:     "struct with empty value",
+		inStruct: &basicStruct{EmptyValue: YANGEmpty(true)},
+		want: map[*pathSpec]interface{}{
+			{
+				gNMIPaths: []*gnmipb.Path{{
+					Elem: []*gnmipb.PathElem{{Name: "empty-value"}},
+				}},
+			}: YANGEmpty(true),
+		},
 	}, {
 		desc: "multi-level string values",
 		inStruct: &basicStruct{
@@ -828,6 +839,34 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc: "one path each modified, deleted, and added with IgnoreNewPaths set",
+		inOrig: &renderExample{
+			IntVal:   Int32(5),
+			FloatVal: Float32(1.5),
+			Int64Val: Int64(100),
+		},
+		inMod: &renderExample{
+			IntVal:   Int32(10),
+			Str:      String("cabernet-sauvignon"),
+			Int64Val: Int64(100),
+		},
+		inOpts: []DiffOpt{&IgnoreAdditions{}},
+		want: &gnmipb.Notification{
+			Delete: []*gnmipb.Path{{
+				Elem: []*gnmipb.PathElem{{
+					Name: "floatval",
+				}},
+			}},
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "int-val",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{10}},
+			}},
+		},
+	}, {
 		desc:   "extra empty child struct in modified -- no difference",
 		inOrig: &renderExample{},
 		inMod: &renderExample{
@@ -911,6 +950,7 @@ func TestDiff(t *testing.T) {
 				testutil.UnionString("hello"),
 				testutil.UnionInt64(42),
 				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
 				testBinary,
 				testutil.UnionBool(true),
 				testutil.YANGEmpty(false),
@@ -991,6 +1031,7 @@ func TestDiff(t *testing.T) {
 							{Value: &gnmipb.TypedValue_StringVal{"hello"}},
 							{Value: &gnmipb.TypedValue_IntVal{42}},
 							{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+							{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
 							{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
 							{Value: &gnmipb.TypedValue_BoolVal{true}},
 							{Value: &gnmipb.TypedValue_BoolVal{false}}},
@@ -1013,6 +1054,102 @@ func TestDiff(t *testing.T) {
 			}},
 		},
 	}, {
+		desc:   "union addition: enum",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: EnumTestVALONE,
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_StringVal{"VAL_ONE"}},
+			}},
+		},
+	}, {
+		desc:   "union addition: int64",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.UnionInt64(1),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_IntVal{1}},
+			}},
+		},
+	}, {
+		desc:   "union addition: float64",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.UnionFloat64(3.14),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_FloatVal{3.14}},
+			}},
+		},
+	}, {
+		desc:   "union addition: bool",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.UnionBool(true),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
+			}},
+		},
+	}, {
+		desc:   "union addition: empty",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testutil.YANGEmpty(true),
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BoolVal{true}},
+			}},
+		},
+	}, {
+		desc:   "union addition: binary",
+		inOrig: &renderExample{},
+		inMod: &renderExample{
+			UnionValSimple: testBinary,
+		},
+		want: &gnmipb.Notification{
+			Update: []*gnmipb.Update{{
+				Path: &gnmipb.Path{
+					Elem: []*gnmipb.PathElem{{
+						Name: "union-val-simple",
+					}},
+				},
+				Val: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_BytesVal{[]byte(base64testString)}},
+			}},
+		},
+	}, {
 		desc: "multiple element set in both - no diff",
 		inOrig: &renderExample{
 			IntVal:    Int32(42),
@@ -1028,6 +1165,7 @@ func TestDiff(t *testing.T) {
 				testutil.UnionString("hello"),
 				testutil.UnionInt64(42),
 				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
 				testBinary,
 				testutil.UnionBool(true),
 				testutil.YANGEmpty(false),
@@ -1049,6 +1187,7 @@ func TestDiff(t *testing.T) {
 				testutil.UnionString("hello"),
 				testutil.UnionInt64(42),
 				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
 				testBinary,
 				testutil.UnionBool(true),
 				testutil.YANGEmpty(false),
@@ -1073,6 +1212,7 @@ func TestDiff(t *testing.T) {
 				testutil.UnionString("hello"),
 				testutil.UnionInt64(42),
 				testutil.UnionFloat64(3.14),
+				EnumTestVALONE,
 				testBinary,
 				testutil.UnionBool(true),
 				testutil.YANGEmpty(false),
@@ -1094,6 +1234,7 @@ func TestDiff(t *testing.T) {
 				testutil.UnionString("world"),
 				testutil.UnionInt64(84),
 				testutil.UnionFloat64(6.28),
+				EnumTestVALTWO,
 				testBinary1,
 				testutil.UnionBool(false),
 				testutil.YANGEmpty(true),
@@ -1174,6 +1315,7 @@ func TestDiff(t *testing.T) {
 							{Value: &gnmipb.TypedValue_StringVal{"world"}},
 							{Value: &gnmipb.TypedValue_IntVal{84}},
 							{Value: &gnmipb.TypedValue_FloatVal{6.28}},
+							{Value: &gnmipb.TypedValue_StringVal{"VAL_TWO"}},
 							{Value: &gnmipb.TypedValue_BytesVal{[]byte("abc")}},
 							{Value: &gnmipb.TypedValue_BoolVal{false}},
 							{Value: &gnmipb.TypedValue_BoolVal{true}}},

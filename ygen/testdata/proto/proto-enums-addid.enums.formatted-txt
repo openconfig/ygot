@@ -8,14 +8,7 @@ syntax = "proto3";
 
 package openconfig.enums;
 
-import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
-
-// ProtoEnumsAD represents an enumerated type generated for the YANG enumerated type enum-union-typedef.
-enum ProtoEnumsAD {
-  PROTOENUMS_A_D_UNSET = 0;
-  PROTOENUMS_A_D_B_VAL = 1 [(yext.yang_name) = "B_VAL"];
-}
 
 // ProtoEnumsBASEIDENTITY represents an enumerated type generated for the YANG identity BASE_IDENTITY.
 enum ProtoEnumsBASEIDENTITY {
@@ -28,4 +21,10 @@ enum ProtoEnumsBASEIDENTITY {
 enum ProtoEnumsEnumTypedef {
   PROTOENUMSENUMTYPEDEF_UNSET = 0;
   PROTOENUMSENUMTYPEDEF_A_VAL = 1 [(yext.yang_name) = "A_VAL"];
+}
+
+// ProtoEnumsEnumUnionTypedefEnum represents an enumerated type generated for the YANG enumerated type enum-union-typedef.
+enum ProtoEnumsEnumUnionTypedefEnum {
+  PROTOENUMSENUMUNIONTYPEDEFENUM_UNSET = 0;
+  PROTOENUMSENUMUNIONTYPEDEFENUM_B_VAL = 1 [(yext.yang_name) = "B_VAL"];
 }

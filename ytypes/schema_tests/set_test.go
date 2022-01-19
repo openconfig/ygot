@@ -230,6 +230,73 @@ func TestSet(t *testing.T) {
 			Data: ygot.String("XCVR-1-2"),
 		},
 	}, {
+		desc:     "set config (shadowed schema) list key - operational state (compressed) schema - schema ignores shadow-path",
+		inSchema: mustSchema(opstateoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "components",
+			}, {
+				Name: "component",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "optical-channel",
+			}, {
+				Name: "config",
+			}, {
+				Name: "line-port",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+		},
+		inOpts: []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantNode: &ytypes.TreeNode{
+			Path: &gpb.Path{
+				Elem: []*gpb.PathElem{{
+					Name: "components",
+				}, {
+					Name: "component",
+					Key: map[string]string{
+						"name": "OCH-1-2",
+					},
+				}, {
+					Name: "optical-channel",
+				}, {
+					Name: "config",
+				}, {
+					Name: "line-port",
+				}},
+			},
+			// No error, but leaf is not set when shadow-path is provided.
+			Data: nil,
+		},
+	}, {
+		desc:     "set state (shadowed schema) key list - compressed schema - schema doesn't contain shadow-path",
+		inSchema: mustSchema(exampleoc.Schema),
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "components",
+			}, {
+				Name: "component",
+				Key: map[string]string{
+					"name": "OCH-1-2",
+				},
+			}, {
+				Name: "optical-channel",
+			}, {
+				Name: "state",
+			}, {
+				Name: "line-port",
+			}},
+		},
+		inValue: &gpb.TypedValue{
+			Value: &gpb.TypedValue_StringVal{"XCVR-1-2"},
+		},
+		inOpts:           []ytypes.SetNodeOpt{&ytypes.InitMissingElements{}},
+		wantErrSubstring: "no match found",
+	}, {
 		desc:     "bad path",
 		inSchema: mustSchema(uexampleoc.Schema),
 		inPath: &gpb.Path{

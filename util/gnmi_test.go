@@ -23,6 +23,7 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -331,6 +332,105 @@ func TestPathElemsEqual(t *testing.T) {
 	}
 }
 
+func TestPathElemSlicesEqual(t *testing.T) {
+	tests := []struct {
+		desc     string
+		inElemsA []*gpb.PathElem
+		inElemsB []*gpb.PathElem
+		want     bool
+	}{{
+		desc: "equal elems with no keys",
+		inElemsA: []*gpb.PathElem{{
+			Name: "one",
+		}, {
+			Name: "two",
+		}},
+		inElemsB: []*gpb.PathElem{{
+			Name: "one",
+		}, {
+			Name: "two",
+		}},
+		want: true,
+	}, {
+		desc: "equal elems with keys",
+		inElemsA: []*gpb.PathElem{{
+			Name: "one",
+			Key:  map[string]string{"two": "three"},
+		}, {
+			Name: "four",
+		}},
+		inElemsB: []*gpb.PathElem{{
+			Name: "one",
+			Key:  map[string]string{"two": "three"},
+		}, {
+			Name: "four",
+		}},
+		want: true,
+	}, {
+		desc: "unequal elems",
+		inElemsA: []*gpb.PathElem{{
+			Name: "fourteen",
+		}, {
+			Name: "twelve",
+		}},
+		inElemsB: []*gpb.PathElem{{
+			Name: "three",
+		}},
+		want: false,
+	}, {
+		desc: "unequal elems with keys",
+		inElemsA: []*gpb.PathElem{{
+			Name: "one",
+			Key:  map[string]string{"two": "three"},
+		}, {
+			Name: "four",
+			Key:  map[string]string{"five": "six"},
+		}},
+		inElemsB: []*gpb.PathElem{{
+			Name: "one",
+			Key:  map[string]string{"two": "three"},
+		}, {
+			Name: "eight",
+			Key:  map[string]string{"five": "six"},
+		}},
+		want: false,
+	}, {
+		desc: "unequal elem length",
+		inElemsA: []*gpb.PathElem{{
+			Name: "one",
+		}, {
+			Name: "two",
+		}},
+		inElemsB: []*gpb.PathElem{{
+			Name: "one",
+		}},
+		want: false,
+	}, {
+		desc: "unequal elems due to keys",
+		inElemsA: []*gpb.PathElem{{
+			Name: "three",
+			Key:  map[string]string{"four": "five"},
+		}, {
+			Name: "six",
+		}},
+		inElemsB: []*gpb.PathElem{{
+			Name: "three",
+			Key:  map[string]string{"seven": "eight"},
+		}, {
+			Name: "six",
+		}},
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := PathElemSlicesEqual(tt.inElemsA, tt.inElemsB); got != tt.want {
+				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPathMatchesPathElemPrefix(t *testing.T) {
 	tests := []struct {
 		desc     string
@@ -420,6 +520,233 @@ func TestPathMatchesPathElemPrefix(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			if got := PathMatchesPathElemPrefix(tt.inPath, tt.inPrefix); got != tt.want {
+				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPathMatchesQuery(t *testing.T) {
+	tests := []struct {
+		desc    string
+		inPath  *gpb.Path
+		inQuery *gpb.Path
+		want    bool
+	}{{
+		desc: "valid query with no keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid query with implied openconfig origin path",
+		inPath: &gpb.Path{
+			Origin: "",
+		},
+		inQuery: &gpb.Path{
+			Origin: "openconfig",
+		},
+		want: true,
+	}, {
+		desc: "valid query with implied openconfig origin query",
+		inPath: &gpb.Path{
+			Origin: "openconfig",
+		},
+		inQuery: &gpb.Path{
+			Origin: "",
+		},
+		want: true,
+	}, {
+		desc: "valid query with wildcard name",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "*",
+			}, {
+				Name: "two",
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid query with exact key match",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}, {
+				Name: "four",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid query with wildcard keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}, {
+				Name: "four",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "*"},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid query with no keys and path with keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"two": "three"},
+			}, {
+				Name: "four",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}},
+		},
+		want: true,
+	}, {
+		desc: "valid query with both missing and wildcard keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key: map[string]string{
+					"two":  "three",
+					"four": "five",
+				},
+			}, {
+				Name: "four",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+				Key:  map[string]string{"four": "*"},
+			}},
+		},
+		want: true,
+	}, {
+		desc: "invalid nil elements",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{
+				nil,
+				{
+					Name: "twelve",
+				}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+			}},
+		},
+	}, {
+		desc: "invalid longer query",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{
+				{
+					Name: "twelve",
+				}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+	}, {
+		desc: "invalid names not equal",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "fourteen",
+			}, {
+				Name: "twelve",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+			}},
+		},
+	}, {
+		desc: "invalid origin",
+		inPath: &gpb.Path{
+			Origin: "openconfig",
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}, {
+				Name: "two",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Origin: "google",
+			Elem: []*gpb.PathElem{{
+				Name: "one",
+			}},
+		},
+	}, {
+		desc: "invalid keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"four": "five"},
+			}, {
+				Name: "six",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"seven": "eight"},
+			}},
+		},
+	}, {
+		desc: "invalid missing wildcard keys",
+		inPath: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"four": "five"},
+			}, {
+				Name: "six",
+			}},
+		},
+		inQuery: &gpb.Path{
+			Elem: []*gpb.PathElem{{
+				Name: "three",
+				Key:  map[string]string{"seven": "*"},
+			}},
+		},
+	}}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if got := PathMatchesQuery(tt.inPath, tt.inQuery); got != tt.want {
 				t.Fatalf("did not get expected result, got: %v, want: %v", got, tt.want)
 			}
 		})
@@ -665,5 +992,63 @@ func TestFindModelData(t *testing.T) {
 		if diff := cmp.Diff(tt.want, got, cmp.Comparer(proto.Equal)); diff != "" {
 			t.Errorf("%s: FindModelData(%v): did not get expected result, diff(-want, +got):\n%s", tt.name, tt.in, diff)
 		}
+	}
+}
+
+func TestJoinPaths(t *testing.T) {
+	tests := []struct {
+		desc                 string
+		prefix, suffix, want *gpb.Path
+		wantErrSubstring     string
+	}{{
+		desc:   "all empty",
+		prefix: &gpb.Path{},
+		suffix: &gpb.Path{},
+		want:   &gpb.Path{},
+	}, {
+		desc:   "prefix only",
+		prefix: &gpb.Path{Origin: "o", Target: "t", Elem: []*gpb.PathElem{{Name: "p"}}},
+		suffix: &gpb.Path{},
+		want:   &gpb.Path{Origin: "o", Target: "t", Elem: []*gpb.PathElem{{Name: "p"}}},
+	}, {
+		desc:   "suffix only",
+		prefix: &gpb.Path{},
+		suffix: &gpb.Path{Origin: "o", Target: "t", Elem: []*gpb.PathElem{{Name: "s"}}},
+		want:   &gpb.Path{Origin: "o", Target: "t", Elem: []*gpb.PathElem{{Name: "s"}}},
+	}, {
+		desc:   "elements joined",
+		prefix: &gpb.Path{Elem: []*gpb.PathElem{{Name: "p"}}},
+		suffix: &gpb.Path{Elem: []*gpb.PathElem{{Name: "s"}}},
+		want:   &gpb.Path{Elem: []*gpb.PathElem{{Name: "p"}, {Name: "s"}}},
+	}, {
+		desc:   "same origin and target",
+		prefix: &gpb.Path{Origin: "o", Target: "t"},
+		suffix: &gpb.Path{Origin: "o", Target: "t"},
+		want:   &gpb.Path{Origin: "o", Target: "t"},
+	}, {
+		desc:             "mismatch origins",
+		prefix:           &gpb.Path{Origin: "o1"},
+		suffix:           &gpb.Path{Origin: "o2"},
+		wantErrSubstring: "different origins",
+	}, {
+		desc:             "mismatch targets",
+		prefix:           &gpb.Path{Target: "t1"},
+		suffix:           &gpb.Path{Target: "t2"},
+		wantErrSubstring: "different targets",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got, err := JoinPaths(tt.prefix, tt.suffix)
+			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+				t.Errorf("JoinPaths(%v, %v) got unexpected error diff: %s", tt.prefix, tt.suffix, diff)
+			}
+			if err != nil {
+				return
+			}
+			if diff := cmp.Diff(tt.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("JoinPaths(%v, %v) got unexpected result diff(-want, +got): %s", tt.prefix, tt.suffix, diff)
+			}
+		})
 	}
 }

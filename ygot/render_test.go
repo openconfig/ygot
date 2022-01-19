@@ -766,7 +766,7 @@ type YANGEmpty bool
 
 // renderExample is used within TestTogNMINotifications as a GoStruct.
 type renderExample struct {
-	Str                 *string                             `path:"str"`
+	Str                 *string                             `path:"str" shadow-path:"srt"`
 	IntVal              *int32                              `path:"int-val"`
 	Int64Val            *int64                              `path:"int64-val"`
 	FloatVal            *float32                            `path:"floatval"`
@@ -838,8 +838,9 @@ func (*renderExampleUnionEnum) IsRenderUnionExample() {}
 
 // renderExampleChild is a child of the renderExample struct.
 type renderExampleChild struct {
-	Val  *uint64  `path:"val"`
-	Enum EnumTest `path:"enum"`
+	Val   *uint64   `path:"val"`
+	Enum  EnumTest  `path:"enum"`
+	Empty YANGEmpty `path:"empty"`
 }
 
 // IsYANGGoStruct implements the GoStruct interface.
@@ -918,7 +919,7 @@ func (*pathElemExample) IsYANGGoStruct() {}
 
 // pathElemExampleChild is an example struct that is used as a list child struct.
 type pathElemExampleChild struct {
-	Val        *string `path:"val|config/val"`
+	Val        *string `path:"val|config/val" shadow-path:"val|state/val"`
 	OtherField *uint8  `path:"other-field"`
 }
 
@@ -1659,10 +1660,40 @@ type invalidGoStructMap struct {
 func (*invalidGoStructMap) IsYANGGoStruct() {}
 
 type structWithMultiKey struct {
-	Map map[mapKey]*structMultiKeyChild `path:"foo"`
+	Map map[mapKey]*structMultiKeyChild `path:"foo" module:"rootmod"`
 }
 
 func (*structWithMultiKey) IsYANGGoStruct() {}
+
+type structWithMultiKeyInvalidModuleTag struct {
+	Map map[mapKey]*structMultiKeyChild `path:"foo/bar" module:"rootmod"`
+}
+
+func (*structWithMultiKeyInvalidModuleTag) IsYANGGoStruct() {}
+
+type structWithMultiKeyInvalidModuleTag2 struct {
+	Map map[mapKey]*structMultiKeyChild `path:"foo" module:"rootmod/rootmod"`
+}
+
+func (*structWithMultiKeyInvalidModuleTag2) IsYANGGoStruct() {}
+
+type structWithMultiKeyInvalidModuleTag3 struct {
+	Map map[mapKey]*structMultiKeyChild `path:"foo/bar" module:"rootmod/rootmod|rootmod"`
+}
+
+func (*structWithMultiKeyInvalidModuleTag3) IsYANGGoStruct() {}
+
+type structWithMultiKeyInvalidModuleTag4 struct {
+	Map map[mapKey]*structMultiKeyChild `path:"foo/bar" module:""`
+}
+
+func (*structWithMultiKeyInvalidModuleTag4) IsYANGGoStruct() {}
+
+type structWithMultiKeyInvalidModuleTag5 struct {
+	Map map[mapKey]*structMultiKeyChild `path:"foo/bar" module:"rootmod/rootmod2|rootmod"`
+}
+
+func (*structWithMultiKeyInvalidModuleTag5) IsYANGGoStruct() {}
 
 type mapKey struct {
 	F1 string `path:"fOne"`
@@ -1670,22 +1701,24 @@ type mapKey struct {
 }
 
 type structMultiKeyChild struct {
-	F1 *string `path:"config/fOne|fOne"`
-	F2 *string `path:"config/fTwo|fTwo"`
+	F1 *string `path:"config/fOne|fOne" module:"fmod/f1mod|f1mod" shadow-path:"state/fOne|fOne" shadow-module:"fmod/f1mod|f1mod"`
+	F2 *string `path:"config/fTwo|fTwo" module:"fmod/f2mod|f2mod" shadow-path:"state/fTwo|fTwo" shadow-module:"fmod/f2mod-shadow|f2mod-shadow"`
 }
 
 func (*structMultiKeyChild) IsYANGGoStruct() {}
 
 type ietfRenderExample struct {
 	F1 *string                 `path:"f1" module:"f1mod"`
-	F2 *string                 `path:"config/f2" module:"f2mod"`
+	F2 *string                 `path:"config/f2" module:"f2mod/f2mod"`
 	F3 *ietfRenderExampleChild `path:"f3" module:"f1mod"`
+	F6 *string                 `path:"config/f6" module:"f1mod/f2mod"`
+	F7 *string                 `path:"config/f7" module:"f2mod/f3mod"`
 }
 
 func (*ietfRenderExample) IsYANGGoStruct() {}
 
 type ietfRenderExampleChild struct {
-	F4 *string `path:"config/f4" module:"f42mod"`
+	F4 *string `path:"config/f4" module:"f42mod/f42mod"`
 	F5 *string `path:"f5" module:"f1mod"`
 }
 
@@ -1725,15 +1758,15 @@ type diffModAtRoot struct {
 func (*diffModAtRoot) IsYANGGoStruct() {}
 
 type diffModAtRootChild struct {
-	ValueOne   *string `path:"/foo/value-one" module:"m2"`
-	ValueTwo   *string `path:"/foo/value-two" module:"m3"`
-	ValueThree *string `path:"/foo/value-three" module:"m1"`
+	ValueOne   *string `path:"/foo/value-one" module:"/m1/m2"`
+	ValueTwo   *string `path:"/foo/value-two" module:"/m1/m3"`
+	ValueThree *string `path:"/foo/value-three" module:"/m1/m1"`
 }
 
 func (*diffModAtRootChild) IsYANGGoStruct() {}
 
 type diffModAtRootElem struct {
-	C *diffModAtRootElemTwo `path:"/baz/c" module:"m1"`
+	C *diffModAtRootElemTwo `path:"/baz/c" module:"/m1/m1"`
 }
 
 func (*diffModAtRootElem) IsYANGGoStruct() {}
@@ -1793,14 +1826,16 @@ func (t *unmarshalableJSON) UnmarshalJSON(d []byte) error {
 
 func TestConstructJSON(t *testing.T) {
 	tests := []struct {
-		name         string
-		in           GoStruct
-		inAppendMod  bool
-		wantIETF     map[string]interface{}
-		wantInternal map[string]interface{}
-		wantSame     bool
-		wantErr      bool
-		wantJSONErr  bool
+		name                     string
+		in                       GoStruct
+		inAppendMod              bool
+		inRewriteModuleNameRules map[string]string
+		inPreferShadowPath       bool
+		wantIETF                 map[string]interface{}
+		wantInternal             map[string]interface{}
+		wantSame                 bool
+		wantErr                  bool
+		wantJSONErr              bool
 	}{{
 		name: "invalidGoStruct",
 		in: &invalidGoStructChild{
@@ -1873,6 +1908,67 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 	}, {
+		name: "rewrite module name for an element with children",
+		in: &diffModAtRoot{
+			Child: &diffModAtRootChild{
+				ValueOne:   String("one"),
+				ValueTwo:   String("two"),
+				ValueThree: String("three"),
+			},
+			Elem: &diffModAtRootElem{
+				C: &diffModAtRootElemTwo{
+					Name: String("baz"),
+				},
+			},
+		},
+		inAppendMod: true,
+		inRewriteModuleNameRules: map[string]string{
+			// rewrite m1 to m2
+			"m1": "m2",
+		},
+		wantIETF: map[string]interface{}{
+			"m2:foo": map[string]interface{}{
+				"value-one":    "one",
+				"m3:value-two": "two",
+				"value-three":  "three",
+			},
+			"m2:baz": map[string]interface{}{
+				"c": map[string]interface{}{
+					"name": "baz",
+				},
+			},
+		},
+	}, {
+		name: "rewrite leaf node module",
+		in: &diffModAtRoot{
+			Child: &diffModAtRootChild{
+				ValueOne:   String("one"),
+				ValueTwo:   String("two"),
+				ValueThree: String("three"),
+			},
+			Elem: &diffModAtRootElem{
+				C: &diffModAtRootElemTwo{
+					Name: String("baz"),
+				},
+			},
+		},
+		inAppendMod: true,
+		inRewriteModuleNameRules: map[string]string{
+			"m3": "fish",
+		},
+		wantIETF: map[string]interface{}{
+			"m1:foo": map[string]interface{}{
+				"m2:value-one":   "one",
+				"fish:value-two": "two",
+				"value-three":    "three",
+			},
+			"m1:baz": map[string]interface{}{
+				"c": map[string]interface{}{
+					"name": "baz",
+				},
+			},
+		},
+	}, {
 		name: "simple render",
 		in: &renderExample{
 			Str: String("hello"),
@@ -1923,6 +2019,120 @@ func TestConstructJSON(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name: "multi-keyed list with PreferShadowPath=true",
+		in: &structWithMultiKey{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inPreferShadowPath: true,
+		wantIETF: map[string]interface{}{
+			"foo": []interface{}{
+				map[string]interface{}{
+					"fOne": "one",
+					"fTwo": "two",
+					"state": map[string]interface{}{
+						"fOne": "one",
+						"fTwo": "two",
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"one two": map[string]interface{}{
+					"fOne": "one",
+					"fTwo": "two",
+					// NOTE: internal JSON generation doesn't have the
+					// preferShadowPath option, so its results are unchanged.
+					"config": map[string]interface{}{
+						"fOne": "one",
+						"fTwo": "two",
+					},
+				},
+			},
+		},
+	}, {
+		name: "multi-keyed list with PreferShadowPath=true and appendModules=true",
+		in: &structWithMultiKey{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inPreferShadowPath: true,
+		inAppendMod:        true,
+		wantIETF: map[string]interface{}{
+			"rootmod:foo": []interface{}{
+				map[string]interface{}{
+					"f1mod:fOne":        "one",
+					"f2mod-shadow:fTwo": "two",
+					"fmod:state": map[string]interface{}{
+						"f1mod:fOne":        "one",
+						"f2mod-shadow:fTwo": "two",
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"foo": map[string]interface{}{
+				"one two": map[string]interface{}{
+					"fOne": "one",
+					"fTwo": "two",
+					// NOTE: internal JSON generation doesn't have the
+					// preferShadowPath option, so its results are unchanged.
+					"config": map[string]interface{}{
+						"fOne": "one",
+						"fTwo": "two",
+					},
+				},
+			},
+		},
+	}, {
+		name: "not enough module elements",
+		in: &structWithMultiKeyInvalidModuleTag{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inAppendMod: true,
+		wantErr:     true,
+	}, {
+		name: "too many module elements",
+		in: &structWithMultiKeyInvalidModuleTag2{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inAppendMod: true,
+		wantErr:     true,
+	}, {
+		name: "too many module paths",
+		in: &structWithMultiKeyInvalidModuleTag3{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inAppendMod: true,
+		wantErr:     true,
+	}, {
+		name: "empty modules tag",
+		in: &structWithMultiKeyInvalidModuleTag4{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inAppendMod: true,
+		wantErr:     true,
+	}, {
+		name: "module paths with inconsistent child modules",
+		in: &structWithMultiKeyInvalidModuleTag5{
+			Map: map[mapKey]*structMultiKeyChild{
+				{F1: "one", F2: "two"}: {F1: String("one"), F2: String("two")},
+			},
+		},
+		inAppendMod: true,
+		wantErr:     true,
 	}, {
 		name: "multi-element render",
 		in: &renderExample{
@@ -1986,6 +2196,22 @@ func TestConstructJSON(t *testing.T) {
 				Val: Uint64(42),
 			},
 			List: map[uint32]*renderExampleList{},
+		},
+		wantIETF: map[string]interface{}{
+			"ch": map[string]interface{}{"val": "42"},
+			/// RFC7951 Section 5.4 defines a YANG list as an JSON array. Per RFC 8259 Section 5 an empty array should be [] rather than 'null'.
+			"list": []interface{}{},
+		},
+		wantInternal: map[string]interface{}{
+			"ch": map[string]interface{}{"val": 42},
+		},
+	}, {
+		name: "empty map nil",
+		in: &renderExample{
+			Ch: &renderExampleChild{
+				Val: Uint64(42),
+			},
+			List: nil,
 		},
 		wantIETF: map[string]interface{}{
 			"ch": map[string]interface{}{"val": "42"},
@@ -2347,12 +2573,18 @@ func TestConstructJSON(t *testing.T) {
 				F4: String("baz"),
 				F5: String("hat"),
 			},
+			F6: String("mat"),
+			F7: String("bat"),
 		},
 		inAppendMod: true,
 		wantIETF: map[string]interface{}{
 			"f1mod:f1": "foo",
+			"f1mod:config": map[string]interface{}{
+				"f2mod:f6": "mat",
+			},
 			"f2mod:config": map[string]interface{}{
-				"f2": "bar",
+				"f2":       "bar",
+				"f3mod:f7": "bat",
 			},
 			"f1mod:f3": map[string]interface{}{
 				"f42mod:config": map[string]interface{}{
@@ -2365,6 +2597,8 @@ func TestConstructJSON(t *testing.T) {
 			"f1": "foo",
 			"config": map[string]interface{}{
 				"f2": "bar",
+				"f6": "mat",
+				"f7": "bat",
 			},
 			"f3": map[string]interface{}{
 				"config": map[string]interface{}{
@@ -2542,7 +2776,9 @@ func TestConstructJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name+" ConstructIETFJSON", func(t *testing.T) {
 			gotietf, err := ConstructIETFJSON(tt.in, &RFC7951JSONConfig{
-				AppendModuleName: tt.inAppendMod,
+				AppendModuleName:   tt.inAppendMod,
+				RewriteModuleNames: tt.inRewriteModuleNameRules,
+				PreferShadowPath:   tt.inPreferShadowPath,
 			})
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("ConstructIETFJSON(%v): got unexpected error: %v, want error %v", tt.in, err, tt.wantErr)
@@ -2564,31 +2800,33 @@ func TestConstructJSON(t *testing.T) {
 			}
 		})
 
-		t.Run(tt.name+" ConstructInternalJSON", func(t *testing.T) {
-			gotjson, err := ConstructInternalJSON(tt.in)
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("ConstructJSON(%v): got unexpected error: %v", tt.in, err)
-			}
-			if err != nil {
-				return
-			}
+		if tt.wantSame || tt.wantInternal != nil {
+			t.Run(tt.name+" ConstructInternalJSON", func(t *testing.T) {
+				gotjson, err := ConstructInternalJSON(tt.in)
+				if (err != nil) != tt.wantErr {
+					t.Fatalf("ConstructJSON(%v): got unexpected error: %v", tt.in, err)
+				}
+				if err != nil {
+					return
+				}
 
-			_, err = json.Marshal(gotjson)
-			if (err != nil) != tt.wantJSONErr {
-				t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotjson, err, tt.wantJSONErr)
-			}
-			if err != nil {
-				return
-			}
+				_, err = json.Marshal(gotjson)
+				if (err != nil) != tt.wantJSONErr {
+					t.Fatalf("json.Marshal(%v): got unexpected error: %v, want error: %v", gotjson, err, tt.wantJSONErr)
+				}
+				if err != nil {
+					return
+				}
 
-			wantInternal := tt.wantInternal
-			if tt.wantSame == true {
-				wantInternal = tt.wantIETF
-			}
-			if diff := pretty.Compare(gotjson, wantInternal); diff != "" {
-				t.Errorf("ConstructJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.in, diff)
-			}
-		})
+				wantInternal := tt.wantInternal
+				if tt.wantSame == true {
+					wantInternal = tt.wantIETF
+				}
+				if diff := pretty.Compare(gotjson, wantInternal); diff != "" {
+					t.Errorf("ConstructJSON(%v): did not get expected output, diff(-got,+want):\n%v", tt.in, diff)
+				}
+			})
+		}
 	}
 }
 
@@ -3326,12 +3564,31 @@ func TestMarshal7951(t *testing.T) {
 		},
 		want: `{"str":"test-string"}`,
 	}, {
+		desc: "simple GoStruct with PreferShadowPath",
+		in: &renderExample{
+			Str: String("test-string"),
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{PreferShadowPath: true},
+		},
+		want: `{"srt":"test-string"}`,
+	}, {
 		desc: "map of GoStructs",
 		in: map[string]*renderExample{
 			"one": {Str: String("one")},
 			"two": {Str: String("two")},
 		},
 		want: `[{"str":"one"},{"str":"two"}]`,
+	}, {
+		desc: "map of GoStructs with PreferShadowPath",
+		in: map[string]*renderExample{
+			"one": {Str: String("one")},
+			"two": {Str: String("two")},
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{PreferShadowPath: true},
+		},
+		want: `[{"srt":"one"},{"srt":"two"}]`,
 	}, {
 		desc: "map of invalid type",
 		in: map[string]string{
@@ -3369,7 +3626,8 @@ func TestMarshal7951(t *testing.T) {
 	}, {
 		desc: "empty map",
 		in:   map[string]*renderExample{},
-		want: `null`,
+		// null as empty array is not valid, RFC7951 section 5.4 specify that the array must be an array, and JSON empty arrays are not null value
+		want: `[]`,
 	}, {
 		desc: "nil string pointer",
 		in:   (*string)(nil),

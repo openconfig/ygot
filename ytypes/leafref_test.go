@@ -42,12 +42,12 @@ func TestValidateLeafRefData(t *testing.T) {
 				Name:     "leaf-list",
 				Kind:     yang.LeafEntry,
 				Type:     &yang.YangType{Kind: yang.Yint32},
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 			},
 			"list": {
 				Name:     "list",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Dir: map[string]*yang.Entry{
 					"key": {
@@ -65,7 +65,7 @@ func TestValidateLeafRefData(t *testing.T) {
 			"list-enum-keyed": {
 				Name:     "list-enum-keyed",
 				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+				ListAttr: yang.NewDefaultListAttr(),
 				Key:      "key",
 				Dir: map[string]*yang.Entry{
 					"key": {
@@ -103,9 +103,10 @@ func TestValidateLeafRefData(t *testing.T) {
 					Kind: yang.Yunion,
 					Type: []*yang.YangType{
 						{
-							Name:    "string",
-							Kind:    yang.Ystring,
-							Pattern: []string{"a+"},
+							Name:         "string",
+							Kind:         yang.Ystring,
+							Pattern:      []string{"a+"},
+							POSIXPattern: []string{"^a+$"},
 						},
 						{
 							Name: "int16",
@@ -153,7 +154,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "../../../leaf-list",
 						},
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 					},
 					"int32-ref-to-list": {
 						Name: "int32-ref-to-list",
@@ -197,7 +198,7 @@ func TestValidateLeafRefData(t *testing.T) {
 							Kind: yang.Yleafref,
 							Path: "../../int32",
 						},
-						ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+						ListAttr: yang.NewDefaultListAttr(),
 					},
 					"leaf-ref-to-union": {
 						Name: "leaf-ref-to-union",
@@ -649,14 +650,14 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 	rootSchema := containerWithListSchema.Dir["root"]
 
 	type RootExample struct {
-		Conf     *uint32 `path:"config/conf|conf" module:"openconfig-network-instance"`
-		ConfRef  *uint32 `path:"config/conf-ref" module:"openconfig-network-instance"`
-		Conf2Ref *string `path:"config/conf2-ref" module:"openconfig-network-instance"`
+		Conf     *uint32 `path:"config/conf|conf"`
+		ConfRef  *uint32 `path:"config/conf-ref"`
+		Conf2Ref *string `path:"config/conf2-ref"`
 	}
 
 	type Root struct {
-		Conf2   *string                 `path:"conf2" module:"openconfig-network-instance"`
-		Example map[uint32]*RootExample `path:"examples/example" module:"openconfig-network-instance"`
+		Conf2   *string                 `path:"conf2"`
+		Example map[uint32]*RootExample `path:"examples/example"`
 	}
 
 	tests := []struct {

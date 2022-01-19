@@ -71,7 +71,7 @@ type UnionUnsupported struct {
 
 // Device represents the /device YANG schema element.
 type Device struct {
-	Interface	map[string]*Interface	`path:"interfaces/interface" module:"openconfig-fakeroot"`
+	Interface	map[string]*Interface	`path:"interfaces/interface" module:"openconfig-fakeroot/openconfig-fakeroot"`
 	System	*System	`path:"system" module:"openconfig-fakeroot"`
 }
 
@@ -109,7 +109,7 @@ func (t *Device) NewInterface(Name string) (*Interface, error){
 
 // Interface represents the /openconfig-fakeroot/interfaces/interface YANG schema element.
 type Interface struct {
-	Name	*string	`path:"config/name|name" module:"openconfig-fakeroot"`
+	Name	*string	`path:"config/name|name" module:"openconfig-fakeroot/openconfig-fakeroot|openconfig-fakeroot"`
 }
 
 // IsYANGGoStruct ensures that Interface implements the yang.GoStruct
@@ -130,8 +130,8 @@ func (t *Interface) ΛListKeyMap() (map[string]interface{}, error) {
 
 // System represents the /openconfig-fakeroot/system YANG schema element.
 type System struct {
-	Hostname	*string	`path:"config/hostname" module:"openconfig-fakeroot"`
-	NtpServer	map[uint32]*System_NtpServer	`path:"ntp-servers/ntp-server" module:"openconfig-fakeroot"`
+	Hostname	*string	`path:"config/hostname" module:"openconfig-fakeroot/openconfig-fakeroot"`
+	NtpServer	map[uint32]*System_NtpServer	`path:"ntp-servers/ntp-server" module:"openconfig-fakeroot/openconfig-fakeroot"`
 }
 
 // IsYANGGoStruct ensures that System implements the yang.GoStruct
@@ -168,7 +168,7 @@ func (t *System) NewNtpServer(Name uint32) (*System_NtpServer, error){
 
 // System_NtpServer represents the /openconfig-fakeroot/system/ntp-servers/ntp-server YANG schema element.
 type System_NtpServer struct {
-	Name	*uint32	`path:"config/name|name" module:"openconfig-fakeroot"`
+	Name	*uint32	`path:"config/name|name" module:"openconfig-fakeroot/openconfig-fakeroot|openconfig-fakeroot"`
 }
 
 // IsYANGGoStruct ensures that System_NtpServer implements the yang.GoStruct

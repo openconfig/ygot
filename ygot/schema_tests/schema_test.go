@@ -18,9 +18,11 @@ package schematest
 
 import (
 	"io/ioutil"
+	"reflect"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/gnmi/value"
@@ -69,7 +71,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 	}
 	ygot.BuildEmptyTree(ni)
 
-	p, err := ni.NewProtocol(exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169")
+	p, err := ni.NewProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169")
 	if err != nil {
 		t.Fatalf("got unexpected error: %v", err)
 	}
@@ -81,7 +83,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 		t.Fatalf("got unexpected error: %v", err)
 	}
 	n.PeerAs = ygot.Uint32(42)
-	n.SendCommunity = exampleoc.OpenconfigBgpTypes_CommunityType_STANDARD
+	n.SendCommunity = exampleoc.BgpTypes_CommunityType_STANDARD
 
 	p.Bgp.Global.As = ygot.Uint32(42)
 
@@ -93,10 +95,10 @@ func TestBuildEmptyDevice(t *testing.T) {
 				Name: ygot.String("DEFAULT"),
 				Protocol: map[exampleoc.NetworkInstance_Protocol_Key]*exampleoc.NetworkInstance_Protocol{
 					{
-						Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 						Name:       "15169",
 					}: {
-						Identifier: exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						Identifier: exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
 						Name:       ygot.String("15169"),
 						Bgp: &exampleoc.NetworkInstance_Protocol_Bgp{
 							Global: &exampleoc.NetworkInstance_Protocol_Bgp_Global{
@@ -106,7 +108,7 @@ func TestBuildEmptyDevice(t *testing.T) {
 								"192.0.2.1": {
 									NeighborAddress: ygot.String("192.0.2.1"),
 									PeerAs:          ygot.Uint32(42),
-									SendCommunity:   exampleoc.OpenconfigBgpTypes_CommunityType_STANDARD,
+									SendCommunity:   exampleoc.BgpTypes_CommunityType_STANDARD,
 								},
 							},
 						},
@@ -118,6 +120,153 @@ func TestBuildEmptyDevice(t *testing.T) {
 
 	if diff := pretty.Compare(got, want); diff != "" {
 		t.Errorf("did not get expected device struct, diff(-got,+want):\n%s", diff)
+	}
+}
+
+func TestPopulateDefaults(t *testing.T) {
+	// 1. recursively populate
+	// 2. populates lists
+	// 3. doesn't overwrite set fields.
+	setAndPopulate := func() *exampleoc.Device {
+		d := &exampleoc.Device{}
+		i := d.GetOrCreateInterface("eth0")
+		vrrpGroup := i.GetOrCreateSubinterface(1).GetOrCreateIpv4().GetOrCreateAddress("1.1.1.1").GetOrCreateVrrpGroup(1)
+		vrrpGroup.AdvertisementInterval = ygot.Uint16(84)
+		i.PopulateDefaults()
+		return d
+	}
+
+	populateAndSet := func() *exampleoc.Device {
+		d := &exampleoc.Device{}
+		i := d.GetOrCreateInterface("eth0")
+		vrrpGroup := i.GetOrCreateSubinterface(1).GetOrCreateIpv4().GetOrCreateAddress("1.1.1.1").GetOrCreateVrrpGroup(1)
+		i.PopulateDefaults()
+		setVal := ygot.Uint16(84)
+		if reflect.DeepEqual(vrrpGroup.AdvertisementInterval, setVal) {
+			t.Fatalf("expected default value to be populated that's different than the test val %v", *setVal)
+		}
+		vrrpGroup.AdvertisementInterval = setVal
+		return d
+	}
+
+	got, want := setAndPopulate(), populateAndSet()
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
+	}
+	if got, want := len(got.Interface), 1; got != want {
+		t.Errorf("got %v interfaces populated in struct, expected %v.", got, want)
+	}
+}
+
+func TestPruneConfigFalse(t *testing.T) {
+	configAndState := func() *exampleoc.Device {
+		d := &exampleoc.Device{}
+		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+		n := b.GetOrCreateNeighbor("192.0.2.1")
+		n.PeerAs = ygot.Uint32(29636)
+		n.PeerType = exampleoc.BgpTypes_PeerType_EXTERNAL
+		n.SessionState = exampleoc.Bgp_Neighbor_SessionState_ESTABLISHED
+
+		i := d.GetOrCreateInterface("eth0")
+		i.Description = ygot.String("foo")
+		i.Mtu = ygot.Uint16(1500)
+		i.OperStatus = exampleoc.Interface_OperStatus_UP
+		i.Logical = ygot.Bool(false)
+		return d
+	}
+
+	configOnly := func() *exampleoc.Device {
+		d := &exampleoc.Device{}
+		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+		n := b.GetOrCreateNeighbor("192.0.2.1")
+		n.PeerAs = ygot.Uint32(29636)
+		n.PeerType = exampleoc.BgpTypes_PeerType_EXTERNAL
+
+		i := d.GetOrCreateInterface("eth0")
+		i.Description = ygot.String("foo")
+		i.Mtu = ygot.Uint16(1500)
+		return d
+	}
+
+	got, want := configAndState(), configOnly()
+	if err := ygot.PruneConfigFalse(exampleoc.SchemaTree["Device"], got); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
+	}
+}
+
+func TestPruneConfigFalseOpState(t *testing.T) {
+	configAndState := func() *opstateoc.Device {
+		d := &opstateoc.Device{}
+		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(opstateoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+		n := b.GetOrCreateNeighbor("192.0.2.1")
+		n.PeerAs = ygot.Uint32(29636)
+		n.PeerType = opstateoc.OpenconfigBgpTypes_PeerType_EXTERNAL
+		n.SessionState = opstateoc.OpenconfigBgp_Neighbor_SessionState_ESTABLISHED
+
+		i := d.GetOrCreateInterface("eth0")
+		i.Description = ygot.String("foo")
+		i.Mtu = ygot.Uint16(1500)
+		i.OperStatus = opstateoc.Interface_OperStatus_UP
+		i.Logical = ygot.Bool(false)
+		return d
+	}
+
+	configOnly := func() *opstateoc.Device {
+		d := &opstateoc.Device{}
+		b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(opstateoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+		n := b.GetOrCreateNeighbor("192.0.2.1")
+		n.PeerAs = ygot.Uint32(29636)
+		n.PeerType = opstateoc.OpenconfigBgpTypes_PeerType_EXTERNAL
+
+		i := d.GetOrCreateInterface("eth0")
+		i.Description = ygot.String("foo")
+		i.Mtu = ygot.Uint16(1500)
+		return d
+	}
+
+	got, want := configAndState(), configOnly()
+	if err := ygot.PruneConfigFalse(opstateoc.SchemaTree["Device"], got); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
+	}
+}
+
+func TestPruneUncompressed(t *testing.T) {
+	configAndState := func() *uexampleoc.Device {
+		d := &uexampleoc.Device{}
+
+		i := d.GetOrCreateInterfaces().GetOrCreateInterface("eth0")
+		c := i.GetOrCreateConfig()
+		c.Description = ygot.String("foo")
+		c.Mtu = ygot.Uint16(1500)
+		s := i.GetOrCreateState()
+		s.Mtu = ygot.Uint16(1500)
+		s.OperStatus = uexampleoc.OpenconfigInterfaces_Interfaces_Interface_State_OperStatus_UP
+		s.Logical = ygot.Bool(false)
+		return d
+	}
+
+	configOnly := func() *uexampleoc.Device {
+		d := &uexampleoc.Device{}
+
+		i := d.GetOrCreateInterfaces().GetOrCreateInterface("eth0")
+		c := i.GetOrCreateConfig()
+		c.Description = ygot.String("foo")
+		c.Mtu = ygot.Uint16(1500)
+		return d
+	}
+
+	got, want := configAndState(), configOnly()
+	if err := ygot.PruneConfigFalse(uexampleoc.SchemaTree["Device"], got); err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(got, want); diff != "" {
+		t.Errorf("(-got, +want):\n%s", diff)
 	}
 }
 
@@ -153,10 +302,10 @@ func TestDiff(t *testing.T) {
 		inOrig: &exampleoc.NetworkInstance_Protocol_Bgp{},
 		inMod: func() *exampleoc.NetworkInstance_Protocol_Bgp {
 			d := &exampleoc.Device{}
-			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
+			b := d.GetOrCreateNetworkInstance("DEFAULT").GetOrCreateProtocol(exampleoc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, "15169").GetOrCreateBgp()
 			n := b.GetOrCreateNeighbor("192.0.2.1")
 			n.PeerAs = ygot.Uint32(29636)
-			n.PeerType = exampleoc.OpenconfigBgpTypes_PeerType_EXTERNAL
+			n.PeerType = exampleoc.BgpTypes_PeerType_EXTERNAL
 			return b
 		}(),
 		want: &gnmipb.Notification{
@@ -206,9 +355,9 @@ func TestDiff(t *testing.T) {
 		inMod: func() *exampleoc.Device {
 			d := &exampleoc.Device{}
 			e := d.GetOrCreateStp().GetOrCreateGlobal()
-			e.EnabledProtocol = []exampleoc.E_OpenconfigSpanningTreeTypes_STP_PROTOCOL{
-				exampleoc.OpenconfigSpanningTreeTypes_STP_PROTOCOL_MSTP,
-				exampleoc.OpenconfigSpanningTreeTypes_STP_PROTOCOL_RSTP,
+			e.EnabledProtocol = []exampleoc.E_SpanningTreeTypes_STP_PROTOCOL{
+				exampleoc.SpanningTreeTypes_STP_PROTOCOL_MSTP,
+				exampleoc.SpanningTreeTypes_STP_PROTOCOL_RSTP,
 			}
 			return d
 		}(),
@@ -249,9 +398,9 @@ func TestJSONOutput(t *testing.T) {
 		in: func() *exampleoc.Device {
 			d := &exampleoc.Device{}
 			acl := d.GetOrCreateAcl()
-			set := acl.GetOrCreateAclSet("set", exampleoc.OpenconfigAcl_ACL_TYPE_ACL_IPV6)
+			set := acl.GetOrCreateAclSet("set", exampleoc.Acl_ACL_TYPE_ACL_IPV6)
 			entry := set.GetOrCreateAclEntry(100)
-			entry.GetOrCreateIpv6().Protocol = exampleoc.OpenconfigPacketMatchTypes_IP_PROTOCOL_UNSET
+			entry.GetOrCreateIpv6().Protocol = exampleoc.PacketMatchTypes_IP_PROTOCOL_UNSET
 			return d
 		}(),
 		wantFile: "testdata/unsetenum.json",
@@ -260,10 +409,10 @@ func TestJSONOutput(t *testing.T) {
 		in: func() *wrapperunionoc.Device {
 			d := &wrapperunionoc.Device{}
 			acl := d.GetOrCreateAcl()
-			set := acl.GetOrCreateAclSet("set", wrapperunionoc.OpenconfigAcl_ACL_TYPE_ACL_IPV6)
+			set := acl.GetOrCreateAclSet("set", wrapperunionoc.Acl_ACL_TYPE_ACL_IPV6)
 			entry := set.GetOrCreateAclEntry(100)
-			entry.GetOrCreateIpv6().Protocol = &wrapperunionoc.Acl_AclSet_AclEntry_Ipv6_Protocol_Union_E_OpenconfigPacketMatchTypes_IP_PROTOCOL{
-				wrapperunionoc.OpenconfigPacketMatchTypes_IP_PROTOCOL_UNSET,
+			entry.GetOrCreateIpv6().Protocol = &wrapperunionoc.Acl_AclSet_AclEntry_Ipv6_Protocol_Union_E_PacketMatchTypes_IP_PROTOCOL{
+				wrapperunionoc.PacketMatchTypes_IP_PROTOCOL_UNSET,
 			}
 			return d
 		}(),
@@ -375,5 +524,40 @@ func TestNotificationOutput(t *testing.T) {
 				t.Fatalf("did not get unexpected Notifications, diff(-want,+got):\n%s", diff)
 			}
 		})
+	}
+}
+
+func getBenchmarkDevice() *exampleoc.Device {
+	intfs := []string{"eth0", "eth1", "eth2", "eth3"}
+	d := &exampleoc.Device{}
+	for _, intf := range intfs {
+		d.GetOrCreateInterface(intf)
+		is := d.GetOrCreateLldp().GetOrCreateInterface(intf).GetOrCreateNeighbor("neighbor")
+		is.LastUpdate = ygot.Int64(42)
+	}
+	return d
+}
+
+func BenchmarkNotificationOutput(b *testing.B) {
+	d := getBenchmarkDevice()
+	b.ResetTimer()
+	for i := 0; i != b.N; i++ {
+		if _, err := ygot.TogNMINotifications(d, 0, ygot.GNMINotificationsConfig{
+			UsePathElem: true,
+		}); err != nil {
+			b.Fatalf("cannot marshal input to gNMI Notifications, %v", err)
+		}
+	}
+}
+
+func BenchmarkNotificationOutputElement(b *testing.B) {
+	d := getBenchmarkDevice()
+	b.ResetTimer()
+	for i := 0; i != b.N; i++ {
+		if _, err := ygot.TogNMINotifications(d, 0, ygot.GNMINotificationsConfig{
+			UsePathElem: false,
+		}); err != nil {
+			b.Fatalf("cannot marshal input to gNMI Notifications, %v", err)
+		}
 	}
 }

@@ -125,7 +125,7 @@ func newPathElemGNMIPath(e []*gnmipb.PathElem) *gnmiPath {
 	return &gnmiPath{pathElemPath: e}
 }
 
-// isValid determines whether a gnmiPath is valid by determing whether the
+// isValid determines whether a gnmiPath is valid by determining whether the
 // elementPath and structuredPath are both set or both unset.
 func (g *gnmiPath) isValid() bool {
 	return (g.stringSlicePath == nil) != (g.pathElemPath == nil)
@@ -382,7 +382,7 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 			}
 		}
 
-		mapPaths, err := structTagToLibPaths(ftype, parent)
+		mapPaths, err := structTagToLibPaths(ftype, parent, false)
 		if err != nil {
 			errs.Add(fmt.Errorf("%v->%s: %v", parent, ftype.Name, err))
 			continue
@@ -462,13 +462,14 @@ func findUpdatedLeaves(leaves map[*path]interface{}, s GoStruct, parent *gnmiPat
 // key and value. The format of the path returned depends on the input format
 // of the parentPath.
 func mapValuePath(key, value reflect.Value, parentPath *gnmiPath) (*gnmiPath, error) {
-	childPath := &gnmiPath{}
+	var childPath *gnmiPath
 
 	if parentPath == nil {
 		return nil, fmt.Errorf("nil map paths supplied to mapValuePath for %v %v", key.Interface(), value.Interface())
 	}
 
 	if parentPath.isStringSlicePath() {
+		childPath = &gnmiPath{}
 		keyval, err := KeyValueAsString(key.Interface())
 		if err != nil {
 			return nil, fmt.Errorf("can't append path element key: %v", err)
@@ -480,10 +481,8 @@ func mapValuePath(key, value reflect.Value, parentPath *gnmiPath) (*gnmiPath, er
 		return childPath, nil
 	}
 
-	for _, e := range parentPath.pathElemPath {
-		n := proto.Clone(e).(*gnmipb.PathElem)
-		childPath.pathElemPath = append(childPath.pathElemPath, n)
-	}
+	// Only the pointer values are copied for performance.
+	childPath = parentPath.Copy()
 
 	return appendgNMIPathElemKey(value, childPath)
 }
@@ -917,6 +916,23 @@ type RFC7951JSONConfig struct {
 	// elements that are defined within a different YANG module than their
 	// parent.
 	AppendModuleName bool
+	// PreferShadowPath uses the name of the "shadow-path" tag of a
+	// GoStruct to determine the marshalled path elements instead of the
+	// "path" tag, whenever the former is present.
+	PreferShadowPath bool
+	// RewriteModuleNames specifies that, when marshalling to JSON, any
+	// entry that is found within module A should be assumed to be in
+	// module B. This allows a user to augment modules with nodes that
+	// are then rewritten to be part of the augmented (note augmentED)
+	// module's namespace. The primary reason that a user may this
+	// functionality is to ensure that when a node is removed from an
+	// model, but it is to be re-added for backwards compatibility by
+	// augmentation, then the original output is not modified.
+	//
+	// The RewriteModuleNames map is keyed on the name of the module that
+	// is to be rewritten FROM, and the value of the map is the name of the module
+	// it is to be rewritten TO.
+	RewriteModuleNames map[string]string
 }
 
 // IsMarshal7951Arg marks the RFC7951JSONConfig struct as a valid argument to
@@ -925,9 +941,8 @@ func (*RFC7951JSONConfig) IsMarshal7951Arg() {}
 
 // ConstructIETFJSON marshals a supplied GoStruct to a map, suitable for
 // handing to json.Marshal. It complies with the convention for marshalling
-// to JSON described by RFC7951. The appendModName argument determines whether
-// the module name should be appended to entities that are defined in a different
-// module to their parent.
+// to JSON described by RFC7951. The supplied args control options corresponding
+// to the method by which JSON is marshalled.
 func ConstructIETFJSON(s GoStruct, args *RFC7951JSONConfig) (map[string]interface{}, error) {
 	return structJSON(s, "", jsonOutputConfig{
 		jType:         RFC7951,
@@ -977,7 +992,6 @@ func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 		case JSONIndent:
 			indent = string(v)
 		}
-
 	}
 	j, err := jsonValue(reflect.ValueOf(d), "", jsonOutputConfig{
 		jType:         RFC7951,
@@ -1014,6 +1028,65 @@ type jsonOutputConfig struct {
 	rfc7951Config *RFC7951JSONConfig
 }
 
+// rewriteModName rewrites the module mod according to the specified rewrite rules.
+// The rewrite rules are a map keyed by observed module name, with values of
+// the name of the module that is to be rewritten to. It returns the rewritten
+// module name, or the original module name in the case that it does not need
+// to be rewritten.
+func rewriteModName(mod string, rules map[string]string) string {
+	if rules == nil || rules[mod] == "" {
+		return mod
+	}
+	return rules[mod]
+}
+
+// appmodsJSON determines what module names to append to the path in RFC7951
+// output mode given the field to marshal and the parent's module name, along
+// with the JSON output config. If nil is returned, then there are modules to
+// be appended. If an element is the empty string, it indicates that no module
+// name should be appended due to residing in the same module as the parent
+// module. If there are modules to be appended, it also returns the module to
+// which the field belongs. It will also return an error if it encounters one.
+func appmodsJSON(fType reflect.StructField, parentMod string, args jsonOutputConfig) ([][]string, string, error) {
+	var appmods [][]string
+	var chMod string
+
+	mapModules, err := structTagToLibModules(fType, args.rfc7951Config.PreferShadowPath)
+	if err != nil {
+		return nil, "", fmt.Errorf("%s: %v", fType.Name, err)
+	}
+	if len(mapModules) == 0 {
+		return nil, "", nil
+	}
+
+	for _, modulePath := range mapModules {
+		var appmod []string
+		prevMod := parentMod
+		for i := 0; i != modulePath.Len(); i++ {
+			mod, err := modulePath.StringElemAt(i)
+			if err != nil {
+				return nil, "", err
+			}
+			// First we check whether we are rewriting the name of the module, so that
+			// we do the right comparison.
+			mod = rewriteModName(mod, args.rfc7951Config.RewriteModuleNames)
+			if mod == prevMod {
+				// The empty string indicates to not append a module name.
+				mod = ""
+			} else {
+				prevMod = mod
+			}
+			appmod = append(appmod, mod)
+		}
+		if chMod != "" && prevMod != chMod {
+			return nil, "", fmt.Errorf("%s: child modules between all paths are not equal: %v", fType.Name, mapModules)
+		}
+		appmods = append(appmods, appmod)
+		chMod = prevMod
+	}
+	return appmods, chMod, nil
+}
+
 // structJSON marshals a GoStruct to a map[string]interface{} which can be
 // handed to JSON marshal. parentMod specifies the module that the supplied
 // GoStruct is defined within such that RFC7951 format JSON is able to consider
@@ -1035,34 +1108,31 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 		field := sval.Field(i)
 		fType := stype.Field(i)
 
-		// Determine whether we should append a module name to the path in RFC7951
-		// output mode.
-		var appmod string
-		pmod := parentMod
-		if chMod, ok := fType.Tag.Lookup("module"); ok {
-			// If the child module isn't the same as the parent module,
-			// then appmod stores the name of the module to prefix to paths
-			// within this context.
-			if chMod != parentMod {
-				appmod = chMod
+		// Module names to append to the path in RFC7951 output mode.
+		var appmods [][]string
+		var chMod string
+		if args.jType == RFC7951 && args.rfc7951Config != nil && args.rfc7951Config.AppendModuleName {
+			var err error
+			if appmods, chMod, err = appmodsJSON(fType, parentMod, args); err != nil {
+				errs.Add(err)
+				continue
 			}
-			// Update the parent module name to be used for subsequent
-			// children.
-			pmod = chMod
 		}
 
-		var appendModName bool
-		if args.jType == RFC7951 && args.rfc7951Config != nil && args.rfc7951Config.AppendModuleName && appmod != "" {
-			appendModName = true
-		}
-
-		mapPaths, err := structTagToLibPaths(fType, newStringSliceGNMIPath([]string{}))
+		mapPaths, err := structTagToLibPaths(fType, newStringSliceGNMIPath([]string{}), args.rfc7951Config != nil && args.rfc7951Config.PreferShadowPath)
 		if err != nil {
 			errs.Add(fmt.Errorf("%s: %v", fType.Name, err))
 			continue
 		}
 
-		value, err := jsonValue(field, pmod, args)
+		// s is the fake root if its path tag is empty. In this case,
+		// we want to forward the parent module to the child nodes.
+		isFakeRoot := len(mapPaths) == 1 && mapPaths[0].Len() == 0
+		if isFakeRoot {
+			chMod = parentMod
+		}
+
+		value, err := jsonValue(field, chMod, args)
 		if err != nil {
 			errs.Add(err)
 			continue
@@ -1076,85 +1146,55 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			continue
 		}
 
-		for _, p := range mapPaths {
-			v, ok := value.(map[string]interface{})
-			switch p.Len() {
-			case 0:
-				if ok {
-					for mk, mv := range v {
-						k := mk
-						if appendModName {
-							// Append the module name for the 0th element if
-							// specified to do so. This is the module name of
-							// the root.
-							k = fmt.Sprintf("%s:%s", appmod, mk)
-						}
-						jsonout[k] = mv
-					}
-				} else {
-					errs.Add(fmt.Errorf("empty path specified for non-root entity"))
-					continue
+		if isFakeRoot {
+			if v, ok := value.(map[string]interface{}); ok {
+				for mk, mv := range v {
+					jsonout[mk] = mv
 				}
-			case 1:
-				pelem, err := p.StringElemAt(0)
-				if err != nil {
-					errs.Add(err)
-					continue
-				}
-				if appendModName {
-					pelem = fmt.Sprintf("%s:%s", appmod, pelem)
-				}
-				jsonout[pelem] = value
-			default:
-				var nilParent bool
-				parent := jsonout
-				for i := 0; i < p.Len()-1; i++ {
-					k, err := p.StringElemAt(i)
-					if err != nil {
-						errs.Add(err)
-						continue
-					}
-
-					switch {
-					case (i == 0 && appendModName && !p.isAbsolute):
-						// If the path is not absolute, then path compression has
-						// occurred - and therefore the elements must be in the
-						// same module. In this case, we append the module name
-						// to the first element in the list.
-						fallthrough
-					case i == 0 && appendModName && parentMod == "":
-						// For the first element, regardless of whether the path
-						// was absolute or not, we always must append the module
-						// name if there was no parent module, since this is an
-						// entity at the root.
-						k = fmt.Sprintf("%s:%s", appmod, k)
-						nilParent = true
-					}
-					if _, ok := parent[k]; !ok {
-						parent[k] = map[string]interface{}{}
-					}
-					parent = parent[k].(map[string]interface{})
-				}
-				k, err := p.LastStringElem()
-				if err != nil {
-					errs.Add(err)
-					continue
-				}
-				if p.isAbsolute && appendModName && !nilParent {
-					// If the path was not absolute, then we need to prepend the
-					// module name since the last entity in the path was in a
-					// different module to its parent. We do not need to check the
-					// values of the module names, since in the case that the
-					// module is the same appendModName is false.
-					//
-					// In the case that the parent was nil, then we must not
-					// append the name here, since we must be within the same
-					// module.
-					k = fmt.Sprintf("%s:%s", appmod, k)
-				}
-				parent[k] = value
-
+			} else {
+				errs.Add(fmt.Errorf("empty path specified for non-root entity"))
 			}
+			continue
+		}
+
+		if appmods != nil && len(mapPaths) != len(appmods) {
+			errs.Add(fmt.Errorf("%s: number of paths and modules in struct tag not the same: (paths: %v, modules: %v)", fType.Name, len(mapPaths), len(appmods)))
+			continue
+		}
+
+		for i, p := range mapPaths {
+			if appmods != nil && p.Len() != len(appmods[i]) {
+				errs.Add(fmt.Errorf("number of paths and modules elements not the same: (paths: %v, modules: %v)", p, appmods[i]))
+				continue
+			}
+
+			parent := jsonout
+			j := 0
+			for ; j != p.Len()-1; j++ {
+				k, err := p.StringElemAt(j)
+				if err != nil {
+					errs.Add(err)
+					continue
+				}
+
+				if appmods != nil && appmods[i][j] != "" {
+					k = fmt.Sprintf("%s:%s", appmods[i][j], k)
+				}
+
+				if _, ok := parent[k]; !ok {
+					parent[k] = map[string]interface{}{}
+				}
+				parent = parent[k].(map[string]interface{})
+			}
+			k, err := p.LastStringElem()
+			if err != nil {
+				errs.Add(err)
+				continue
+			}
+			if appmods != nil && appmods[i][j] != "" {
+				k = fmt.Sprintf("%s:%s", appmods[i][j], k)
+			}
+			parent[k] = value
 		}
 	}
 
@@ -1258,6 +1298,10 @@ func mapJSON(field reflect.Value, parentMod string, args jsonOutputConfig) (inte
 	sort.Strings(mapKeys)
 
 	if len(mapKeys) == 0 {
+		// empty list should be encoded as empty list
+		if args.jType == RFC7951 {
+			return []interface{}{}, nil
+		}
 		return nil, nil
 	}
 

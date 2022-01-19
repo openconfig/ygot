@@ -1,5 +1,5 @@
 /*
-Package ocpathstructs is a generated package which contains definitions
+Package ocstructs is a generated package which contains definitions
 of structs which generate gNMI paths for a YANG schema. The generated paths are
 based on a compressed form of the schema.
 
@@ -8,7 +8,7 @@ using the following YANG input files:
 	- ../testdata/modules/choice-case-example.yang
 Imported modules were sourced from:
 */
-package ocpathstructs
+package ocstructs
 
 import (
 	"github.com/openconfig/ygot/ygot"
@@ -44,7 +44,12 @@ type ChoiceCaseAnonymousCase_BPathAny struct {
 	*ygot.NodePath
 }
 
-// A returns from ChoiceCaseAnonymousCasePath the path struct for its child "a".
+// A (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "a"
+// Path from root: "/choice-case-anonymous-case/a"
 func (n *ChoiceCaseAnonymousCasePath) A() *ChoiceCaseAnonymousCase_APath {
 	return &ChoiceCaseAnonymousCase_APath{
 		NodePath: ygot.NewNodePath(
@@ -55,7 +60,12 @@ func (n *ChoiceCaseAnonymousCasePath) A() *ChoiceCaseAnonymousCase_APath {
 	}
 }
 
-// A returns from ChoiceCaseAnonymousCasePathAny the path struct for its child "a".
+// A (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "a"
+// Path from root: "/choice-case-anonymous-case/a"
 func (n *ChoiceCaseAnonymousCasePathAny) A() *ChoiceCaseAnonymousCase_APathAny {
 	return &ChoiceCaseAnonymousCase_APathAny{
 		NodePath: ygot.NewNodePath(
@@ -66,7 +76,12 @@ func (n *ChoiceCaseAnonymousCasePathAny) A() *ChoiceCaseAnonymousCase_APathAny {
 	}
 }
 
-// B returns from ChoiceCaseAnonymousCasePath the path struct for its child "b".
+// B (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "b"
+// Path from root: "/choice-case-anonymous-case/b"
 func (n *ChoiceCaseAnonymousCasePath) B() *ChoiceCaseAnonymousCase_BPath {
 	return &ChoiceCaseAnonymousCase_BPath{
 		NodePath: ygot.NewNodePath(
@@ -77,7 +92,12 @@ func (n *ChoiceCaseAnonymousCasePath) B() *ChoiceCaseAnonymousCase_BPath {
 	}
 }
 
-// B returns from ChoiceCaseAnonymousCasePathAny the path struct for its child "b".
+// B (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "b"
+// Path from root: "/choice-case-anonymous-case/b"
 func (n *ChoiceCaseAnonymousCasePathAny) B() *ChoiceCaseAnonymousCase_BPathAny {
 	return &ChoiceCaseAnonymousCase_BPathAny{
 		NodePath: ygot.NewNodePath(
@@ -118,7 +138,12 @@ type ChoiceCaseWithLeafref_ReferencedPathAny struct {
 	*ygot.NodePath
 }
 
-// Ptr returns from ChoiceCaseWithLeafrefPath the path struct for its child "ptr".
+// Ptr (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "ptr"
+// Path from root: "/choice-case-with-leafref/ptr"
 func (n *ChoiceCaseWithLeafrefPath) Ptr() *ChoiceCaseWithLeafref_PtrPath {
 	return &ChoiceCaseWithLeafref_PtrPath{
 		NodePath: ygot.NewNodePath(
@@ -129,7 +154,12 @@ func (n *ChoiceCaseWithLeafrefPath) Ptr() *ChoiceCaseWithLeafref_PtrPath {
 	}
 }
 
-// Ptr returns from ChoiceCaseWithLeafrefPathAny the path struct for its child "ptr".
+// Ptr (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "ptr"
+// Path from root: "/choice-case-with-leafref/ptr"
 func (n *ChoiceCaseWithLeafrefPathAny) Ptr() *ChoiceCaseWithLeafref_PtrPathAny {
 	return &ChoiceCaseWithLeafref_PtrPathAny{
 		NodePath: ygot.NewNodePath(
@@ -140,7 +170,12 @@ func (n *ChoiceCaseWithLeafrefPathAny) Ptr() *ChoiceCaseWithLeafref_PtrPathAny {
 	}
 }
 
-// Referenced returns from ChoiceCaseWithLeafrefPath the path struct for its child "referenced".
+// Referenced (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "referenced"
+// Path from root: "/choice-case-with-leafref/referenced"
 func (n *ChoiceCaseWithLeafrefPath) Referenced() *ChoiceCaseWithLeafref_ReferencedPath {
 	return &ChoiceCaseWithLeafref_ReferencedPath{
 		NodePath: ygot.NewNodePath(
@@ -151,7 +186,12 @@ func (n *ChoiceCaseWithLeafrefPath) Referenced() *ChoiceCaseWithLeafref_Referenc
 	}
 }
 
-// Referenced returns from ChoiceCaseWithLeafrefPathAny the path struct for its child "referenced".
+// Referenced (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "referenced"
+// Path from root: "/choice-case-with-leafref/referenced"
 func (n *ChoiceCaseWithLeafrefPathAny) Referenced() *ChoiceCaseWithLeafref_ReferencedPathAny {
 	return &ChoiceCaseWithLeafref_ReferencedPathAny{
 		NodePath: ygot.NewNodePath(
@@ -172,7 +212,12 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// ChoiceCaseAnonymousCase returns from DevicePath the path struct for its child "choice-case-anonymous-case".
+// ChoiceCaseAnonymousCase (container): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "choice-case-anonymous-case"
+// Path from root: "/choice-case-anonymous-case"
 func (n *DevicePath) ChoiceCaseAnonymousCase() *ChoiceCaseAnonymousCasePath {
 	return &ChoiceCaseAnonymousCasePath{
 		NodePath: ygot.NewNodePath(
@@ -183,7 +228,12 @@ func (n *DevicePath) ChoiceCaseAnonymousCase() *ChoiceCaseAnonymousCasePath {
 	}
 }
 
-// ChoiceCaseWithLeafref returns from DevicePath the path struct for its child "choice-case-with-leafref".
+// ChoiceCaseWithLeafref (container): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "choice-case-with-leafref"
+// Path from root: "/choice-case-with-leafref"
 func (n *DevicePath) ChoiceCaseWithLeafref() *ChoiceCaseWithLeafrefPath {
 	return &ChoiceCaseWithLeafrefPath{
 		NodePath: ygot.NewNodePath(
@@ -194,7 +244,12 @@ func (n *DevicePath) ChoiceCaseWithLeafref() *ChoiceCaseWithLeafrefPath {
 	}
 }
 
-// SimpleChoiceCase returns from DevicePath the path struct for its child "simple-choice-case".
+// SimpleChoiceCase (container): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "simple-choice-case"
+// Path from root: "/simple-choice-case"
 func (n *DevicePath) SimpleChoiceCase() *SimpleChoiceCasePath {
 	return &SimpleChoiceCasePath{
 		NodePath: ygot.NewNodePath(
@@ -235,7 +290,12 @@ type SimpleChoiceCase_BPathAny struct {
 	*ygot.NodePath
 }
 
-// A returns from SimpleChoiceCasePath the path struct for its child "a".
+// A (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "a"
+// Path from root: "/simple-choice-case/a"
 func (n *SimpleChoiceCasePath) A() *SimpleChoiceCase_APath {
 	return &SimpleChoiceCase_APath{
 		NodePath: ygot.NewNodePath(
@@ -246,7 +306,12 @@ func (n *SimpleChoiceCasePath) A() *SimpleChoiceCase_APath {
 	}
 }
 
-// A returns from SimpleChoiceCasePathAny the path struct for its child "a".
+// A (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "a"
+// Path from root: "/simple-choice-case/a"
 func (n *SimpleChoiceCasePathAny) A() *SimpleChoiceCase_APathAny {
 	return &SimpleChoiceCase_APathAny{
 		NodePath: ygot.NewNodePath(
@@ -257,7 +322,12 @@ func (n *SimpleChoiceCasePathAny) A() *SimpleChoiceCase_APathAny {
 	}
 }
 
-// B returns from SimpleChoiceCasePath the path struct for its child "b".
+// B (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "b"
+// Path from root: "/simple-choice-case/b"
 func (n *SimpleChoiceCasePath) B() *SimpleChoiceCase_BPath {
 	return &SimpleChoiceCase_BPath{
 		NodePath: ygot.NewNodePath(
@@ -268,7 +338,12 @@ func (n *SimpleChoiceCasePath) B() *SimpleChoiceCase_BPath {
 	}
 }
 
-// B returns from SimpleChoiceCasePathAny the path struct for its child "b".
+// B (leaf): 
+// ----------------------------------------
+// Defining module: "choice-case-example"
+// Instantiating module: "choice-case-example"
+// Path from parent: "b"
+// Path from root: "/simple-choice-case/b"
 func (n *SimpleChoiceCasePathAny) B() *SimpleChoiceCase_BPathAny {
 	return &SimpleChoiceCase_BPathAny{
 		NodePath: ygot.NewNodePath(

@@ -1,5 +1,5 @@
 /*
-Package ocpathstructs is a generated package which contains definitions
+Package ocstructs is a generated package which contains definitions
 of structs which generate gNMI paths for a YANG schema. The generated paths are
 based on a compressed form of the schema.
 
@@ -8,7 +8,7 @@ using the following YANG input files:
 	- ../testdata/modules/openconfig-unione.yang
 Imported modules were sourced from:
 */
-package ocpathstructs
+package ocstructs
 
 import (
 	"github.com/openconfig/ygot/ygot"
@@ -24,7 +24,12 @@ func DeviceRoot(id string) *DevicePath {
 	return &DevicePath{ygot.NewDeviceRootBase(id)}
 }
 
-// DupEnum returns from DevicePath the path struct for its child "dup-enum".
+// DupEnum (container): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "dup-enum"
+// Path from root: "/dup-enum"
 func (n *DevicePath) DupEnum() *DupEnumPath {
 	return &DupEnumPath{
 		NodePath: ygot.NewNodePath(
@@ -35,7 +40,12 @@ func (n *DevicePath) DupEnum() *DupEnumPath {
 	}
 }
 
-// Platform returns from DevicePath the path struct for its child "platform".
+// Platform (container): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "platform"
+// Path from root: "/platform"
 func (n *DevicePath) Platform() *PlatformPath {
 	return &PlatformPath{
 		NodePath: ygot.NewNodePath(
@@ -76,7 +86,12 @@ type DupEnum_BPathAny struct {
 	*ygot.NodePath
 }
 
-// A returns from DupEnumPath the path struct for its child "A".
+// A (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/A"
+// Path from root: "/dup-enum/state/A"
 func (n *DupEnumPath) A() *DupEnum_APath {
 	return &DupEnum_APath{
 		NodePath: ygot.NewNodePath(
@@ -87,7 +102,12 @@ func (n *DupEnumPath) A() *DupEnum_APath {
 	}
 }
 
-// A returns from DupEnumPathAny the path struct for its child "A".
+// A (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/A"
+// Path from root: "/dup-enum/state/A"
 func (n *DupEnumPathAny) A() *DupEnum_APathAny {
 	return &DupEnum_APathAny{
 		NodePath: ygot.NewNodePath(
@@ -98,7 +118,12 @@ func (n *DupEnumPathAny) A() *DupEnum_APathAny {
 	}
 }
 
-// B returns from DupEnumPath the path struct for its child "B".
+// B (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/B"
+// Path from root: "/dup-enum/state/B"
 func (n *DupEnumPath) B() *DupEnum_BPath {
 	return &DupEnum_BPath{
 		NodePath: ygot.NewNodePath(
@@ -109,7 +134,12 @@ func (n *DupEnumPath) B() *DupEnum_BPath {
 	}
 }
 
-// B returns from DupEnumPathAny the path struct for its child "B".
+// B (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/B"
+// Path from root: "/dup-enum/state/B"
 func (n *DupEnumPathAny) B() *DupEnum_BPathAny {
 	return &DupEnum_BPathAny{
 		NodePath: ygot.NewNodePath(
@@ -130,7 +160,12 @@ type PlatformPathAny struct {
 	*ygot.NodePath
 }
 
-// Component returns from PlatformPath the path struct for its child "component".
+// Component (container): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "component"
+// Path from root: "/platform/component"
 func (n *PlatformPath) Component() *Platform_ComponentPath {
 	return &Platform_ComponentPath{
 		NodePath: ygot.NewNodePath(
@@ -141,7 +176,12 @@ func (n *PlatformPath) Component() *Platform_ComponentPath {
 	}
 }
 
-// Component returns from PlatformPathAny the path struct for its child "component".
+// Component (container): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "component"
+// Path from root: "/platform/component"
 func (n *PlatformPathAny) Component() *Platform_ComponentPathAny {
 	return &Platform_ComponentPathAny{
 		NodePath: ygot.NewNodePath(
@@ -212,7 +252,12 @@ type Platform_Component_TypePathAny struct {
 	*ygot.NodePath
 }
 
-// E1 returns from Platform_ComponentPath the path struct for its child "e1".
+// E1 (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/e1"
+// Path from root: "/platform/component/state/e1"
 func (n *Platform_ComponentPath) E1() *Platform_Component_E1Path {
 	return &Platform_Component_E1Path{
 		NodePath: ygot.NewNodePath(
@@ -223,7 +268,12 @@ func (n *Platform_ComponentPath) E1() *Platform_Component_E1Path {
 	}
 }
 
-// E1 returns from Platform_ComponentPathAny the path struct for its child "e1".
+// E1 (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/e1"
+// Path from root: "/platform/component/state/e1"
 func (n *Platform_ComponentPathAny) E1() *Platform_Component_E1PathAny {
 	return &Platform_Component_E1PathAny{
 		NodePath: ygot.NewNodePath(
@@ -234,7 +284,12 @@ func (n *Platform_ComponentPathAny) E1() *Platform_Component_E1PathAny {
 	}
 }
 
-// Enumerated returns from Platform_ComponentPath the path struct for its child "enumerated".
+// Enumerated (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/enumerated"
+// Path from root: "/platform/component/state/enumerated"
 func (n *Platform_ComponentPath) Enumerated() *Platform_Component_EnumeratedPath {
 	return &Platform_Component_EnumeratedPath{
 		NodePath: ygot.NewNodePath(
@@ -245,7 +300,12 @@ func (n *Platform_ComponentPath) Enumerated() *Platform_Component_EnumeratedPath
 	}
 }
 
-// Enumerated returns from Platform_ComponentPathAny the path struct for its child "enumerated".
+// Enumerated (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/enumerated"
+// Path from root: "/platform/component/state/enumerated"
 func (n *Platform_ComponentPathAny) Enumerated() *Platform_Component_EnumeratedPathAny {
 	return &Platform_Component_EnumeratedPathAny{
 		NodePath: ygot.NewNodePath(
@@ -256,7 +316,12 @@ func (n *Platform_ComponentPathAny) Enumerated() *Platform_Component_EnumeratedP
 	}
 }
 
-// Power returns from Platform_ComponentPath the path struct for its child "power".
+// Power (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/power"
+// Path from root: "/platform/component/state/power"
 func (n *Platform_ComponentPath) Power() *Platform_Component_PowerPath {
 	return &Platform_Component_PowerPath{
 		NodePath: ygot.NewNodePath(
@@ -267,7 +332,12 @@ func (n *Platform_ComponentPath) Power() *Platform_Component_PowerPath {
 	}
 }
 
-// Power returns from Platform_ComponentPathAny the path struct for its child "power".
+// Power (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/power"
+// Path from root: "/platform/component/state/power"
 func (n *Platform_ComponentPathAny) Power() *Platform_Component_PowerPathAny {
 	return &Platform_Component_PowerPathAny{
 		NodePath: ygot.NewNodePath(
@@ -278,7 +348,12 @@ func (n *Platform_ComponentPathAny) Power() *Platform_Component_PowerPathAny {
 	}
 }
 
-// R1 returns from Platform_ComponentPath the path struct for its child "r1".
+// R1 (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/r1"
+// Path from root: "/platform/component/state/r1"
 func (n *Platform_ComponentPath) R1() *Platform_Component_R1Path {
 	return &Platform_Component_R1Path{
 		NodePath: ygot.NewNodePath(
@@ -289,7 +364,12 @@ func (n *Platform_ComponentPath) R1() *Platform_Component_R1Path {
 	}
 }
 
-// R1 returns from Platform_ComponentPathAny the path struct for its child "r1".
+// R1 (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/r1"
+// Path from root: "/platform/component/state/r1"
 func (n *Platform_ComponentPathAny) R1() *Platform_Component_R1PathAny {
 	return &Platform_Component_R1PathAny{
 		NodePath: ygot.NewNodePath(
@@ -300,7 +380,12 @@ func (n *Platform_ComponentPathAny) R1() *Platform_Component_R1PathAny {
 	}
 }
 
-// Type returns from Platform_ComponentPath the path struct for its child "type".
+// Type (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/type"
+// Path from root: "/platform/component/state/type"
 func (n *Platform_ComponentPath) Type() *Platform_Component_TypePath {
 	return &Platform_Component_TypePath{
 		NodePath: ygot.NewNodePath(
@@ -311,7 +396,12 @@ func (n *Platform_ComponentPath) Type() *Platform_Component_TypePath {
 	}
 }
 
-// Type returns from Platform_ComponentPathAny the path struct for its child "type".
+// Type (leaf): 
+// ----------------------------------------
+// Defining module: "openconfig-unione"
+// Instantiating module: "openconfig-unione"
+// Path from parent: "state/type"
+// Path from root: "/platform/component/state/type"
 func (n *Platform_ComponentPathAny) Type() *Platform_Component_TypePathAny {
 	return &Platform_Component_TypePathAny{
 		NodePath: ygot.NewNodePath(

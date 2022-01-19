@@ -70,7 +70,7 @@ func CreateAFTInstance() (*oc.Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	ni.Type = oc.OpenconfigNetworkInstanceTypes_NETWORK_INSTANCE_TYPE_DEFAULT_INSTANCE
+	ni.Type = oc.NetworkInstanceTypes_NETWORK_INSTANCE_TYPE_DEFAULT_INSTANCE
 
 	// Initialise the containers within the network instance model.
 	ygot.BuildEmptyTree(ni)
@@ -108,7 +108,7 @@ func CreateAFTInstance() (*oc.Device, error) {
 	nh.PushedMplsLabelStack = []oc.NetworkInstance_Afts_NextHop_PushedMplsLabelStack_Union{
 		oc.UnionUint32(42),
 		oc.UnionUint32(84),
-		oc.OpenconfigMplsTypes_MplsLabel_Enum_IPV4_EXPLICIT_NULL,
+		oc.MplsTypes_MplsLabel_Enum_IPV4_EXPLICIT_NULL,
 	}
 
 	return d, nil

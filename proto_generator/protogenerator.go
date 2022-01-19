@@ -52,6 +52,8 @@ var (
 	preferOperationalState               = flag.Bool("prefer_operational_state", false, "If set to true, state (config false) fields in the YANG schema are preferred over intended config leaves in the generated messages with compressed schema paths. This flag is only valid for compress_paths=true and exclude_state=false.")
 	skipEnumDedup                        = flag.Bool("skip_enum_deduplication", false, "If set to true, all leaves of type enumeration will have a unique enum output for them, rather than sharing a common type (default behaviour).")
 	useDefiningModuleForTypedefEnumNames = flag.Bool("typedef_enum_with_defmod", false, "If set to true, all typedefs of type enumeration or identity will be prefixed with the name of its module of definition instead of its residing module.")
+	useConsistentNamesForProtoUnionEnums = flag.Bool("consistent_union_enum_names", false, "If set to true, uses more consistent names for enumerations defined within a union. This flag is only active when typedef_enum_with_defmod is also set.")
+	goPackageBase                        = flag.String("go_package_base", "", "Base name for the Go packages that are to be generated - this value is included in the go_package option of the generated protobufs - and has generated packages' names appended to it.")
 )
 
 // main parses command-line flags to determine the set of YANG modules for
@@ -117,13 +119,15 @@ func main() {
 		PackageName: *packageName,
 		Caller:      *callerName,
 		ProtoOptions: ygen.ProtoOpts{
-			BaseImportPath:      *baseImportPath,
-			YwrapperPath:        *ywrapperPath,
-			YextPath:            *yextPath,
-			AnnotateSchemaPaths: *annotateSchemaPaths,
-			AnnotateEnumNames:   *annotateEnumNames,
-			NestedMessages:      !*packageHierarchy,
-			EnumPackageName:     *enumPackageName,
+			BaseImportPath:                       *baseImportPath,
+			YwrapperPath:                         *ywrapperPath,
+			YextPath:                             *yextPath,
+			AnnotateSchemaPaths:                  *annotateSchemaPaths,
+			AnnotateEnumNames:                    *annotateEnumNames,
+			NestedMessages:                       !*packageHierarchy,
+			EnumPackageName:                      *enumPackageName,
+			UseConsistentNamesForProtoUnionEnums: *useConsistentNamesForProtoUnionEnums,
+			GoPackageBase:                        *goPackageBase,
 		},
 	})
 

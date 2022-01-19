@@ -67,6 +67,9 @@ type GeneratorConfig struct {
 	GoOptions GoOpts
 	// ProtoOptions stores a struct which contains Protobuf specific options.
 	ProtoOptions ProtoOpts
+	// IncludeDescriptions specifies that YANG entry descriptions are added
+	// to the JSON schema. Is false by default, to reduce the size of generated schema
+	IncludeDescriptions bool
 }
 
 // DirectoryGenConfig contains the configuration necessary to generate a set of
@@ -80,6 +83,9 @@ type DirectoryGenConfig struct {
 	// may be transformed from a simple 1:1 mapping with respect to the
 	// given YANG schema.
 	TransformationOptions TransformationOpts
+	// GoOptions stores a struct which stores Go code generation specific
+	// options for the code generaton.
+	GoOptions GoOpts
 }
 
 // ParseOpts contains parsing configuration for a given schema.
@@ -130,6 +136,10 @@ type TransformationOpts struct {
 	// entry should determined. Specifically, whether compression is
 	// enabled, and whether state fields in the schema should be excluded.
 	CompressBehaviour genutil.CompressBehaviour
+	// IgnoreShadowSchemaPaths indicates whether when OpenConfig path
+	// compression is enabled, that the shadowed paths are to be ignored
+	// while while unmarshalling.
+	IgnoreShadowSchemaPaths bool
 	// GenerateFakeRoot specifies whether an entity that represents the
 	// root of the YANG schema tree should be generated in the generated
 	// code.
@@ -145,6 +155,9 @@ type TransformationOpts struct {
 	// ShortenEnumLeafNames removes the module name from the name of
 	// enumeration leaves.
 	ShortenEnumLeafNames bool
+	// EnumOrgPrefixesToTrim trims the organization name from the module
+	// part of the name of enumeration leaves if there is a match.
+	EnumOrgPrefixesToTrim []string
 	// UseDefiningModuleForTypedefEnumNames uses the defining module name
 	// to prefix typedef enumerated types instead of the module where the
 	// typedef enumerated value is used.
@@ -200,12 +213,26 @@ type GoOpts struct {
 	// whether a field has been explicitly set to the zero value (i.e., an integer
 	// field is set to 0), or whether the field was actually unset.
 	GenerateLeafGetters bool
+	// GeneratePopulateDefault specifies whether a PopulateDefaults method
+	// should be generated for every GoStruct that recursively populates
+	// default values within the subtree.
+	GeneratePopulateDefault bool
 	// GNMIProtoPath specifies the path to the generated gNMI protobuf, which
 	// is used to store the catalogue entries for generated modules.
 	GNMIProtoPath string
 	// IncludeModelData specifies whether gNMI ModelData messages should be generated
 	// in the output code.
 	IncludeModelData bool
+	// AppendEnumSuffixForSimpleUnionEnums appends an "Enum" suffix to the
+	// enumeration name for simple (i.e. non-typedef) leaves which are
+	// unions with an enumeration inside. This makes all inlined
+	// enumerations within unions, whether typedef or not, have this
+	// suffix, achieving consistency. Since this flag is planned to be a
+	// v1 compatibility flag along with
+	// UseDefiningModuleForTypedefEnumNames, and will be removed in v1, it
+	// only applies when useDefiningModuleForTypedefEnumNames is also set
+	// to true.
+	AppendEnumSuffixForSimpleUnionEnums bool
 }
 
 // ProtoOpts stores Protobuf specific options for the code generation library.
@@ -241,6 +268,15 @@ type ProtoOpts struct {
 	// output for the protobuf schema. If false, a separate package
 	// is generated per package.
 	NestedMessages bool
+	// UseConsistentNamesForProtoUnionEnums, when set, avoids using the schema
+	// path as the name of enumerations under unions in generated proto
+	// code, and also appends a suffix to non-typedef union enums.
+	UseConsistentNamesForProtoUnionEnums bool
+	// GoPackageBase specifies the base of the names that are used in
+	// the go_package file option for generated protobufs. Additional
+	// package identifiers are appended to the go_package - such that
+	// the format <base>/<path>/<to>/<package> is used.
+	GoPackageBase string
 }
 
 // NewYANGCodeGenerator returns a new instance of the YANGCodeGenerator
@@ -309,10 +345,12 @@ type GeneratedProto3 struct {
 
 // Proto3Package stores the code for a generated protobuf3 package.
 type Proto3Package struct {
-	FilePath []string // FilePath is the path to the file that this package should be written to.
-	Header   string   // Header is the header text to be used in the package.
-	Messages []string // Messages is a slice of strings containing the set of messages that are within the generated package.
-	Enums    []string // Enums is a slice of string containing the generated set of enumerations within the package.
+	FilePath           []string // FilePath is the path to the file that this package should be written to.
+	Header             string   // Header is the header text to be used in the package.
+	Messages           []string // Messages is a slice of strings containing the set of messages that are within the generated package.
+	Enums              []string // Enums is a slice of string containing the generated set of enumerations within the package.
+	UsesYwrapperImport bool     // UsesYwrapperImport indicates whether the ywrapper proto package is used within the generated package.
+	UsesYextImport     bool     // UsesYextImport indicates whether the yext proto package is used within the generated package.
 }
 
 const (
@@ -383,7 +421,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		return nil, errs
 	}
 
-	enumSet, goEnums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
+	enumSet, goEnums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.GoOptions.AppendEnumSuffixForSimpleUnionEnums, false, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, errs
 	}
@@ -391,7 +429,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Store the returned schematree and enumSet within the state for this code generation.
 	gogen := newGoGenState(mdef.schematree, enumSet)
 
-	directoryMap, errs := gogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
+	directoryMap, errs := gogen.buildDirectoryDefinitions(mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour, cg.Config.TransformationOptions.GenerateFakeRoot, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, errs
 	}
@@ -427,7 +465,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 			continue
 		}
 		structOut, errs := writeGoStruct(dirNameMap[directoryName], directoryMap, gogen,
-			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.GoOptions)
+			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.TransformationOptions.IgnoreShadowSchemaPaths, cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim, cg.Config.GoOptions)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
@@ -451,19 +489,20 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var enumTypeMapCode string
 	if cg.Config.GenerateJSONSchema {
 		var err error
-		rawSchema, err = buildJSONTree(mdef.modules, gogen.uniqueDirectoryNames, mdef.directoryEntries["/"], cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled())
+		rawSchema, err = buildJSONTree(mdef.modules, gogen.uniqueDirectoryNames, mdef.directoryEntries["/"],
+			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.IncludeDescriptions)
 		if err != nil {
-			util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
+			codegenErr = util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}
 
 		if rawSchema != nil {
 			if jsonSchema, err = writeGoSchema(rawSchema, cg.Config.GoOptions.SchemaVarName); err != nil {
-				util.AppendErr(codegenErr, err)
+				codegenErr = util.AppendErr(codegenErr, err)
 			}
 		}
 
 		if enumTypeMapCode, err = generateEnumTypeMap(enumTypeMap); err != nil {
-			util.AppendErr(codegenErr, err)
+			codegenErr = util.AppendErr(codegenErr, err)
 		}
 	}
 
@@ -501,7 +540,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 		return nil, nil, util.Errors{fmt.Errorf("GetDirectoriesAndLeafTypes currently does not have unit tests for when compression is disabled; if support needed, add unit tests and remove this error")}
 	}
 
-	cg := &GeneratorConfig{ParseOptions: dcg.ParseOptions, TransformationOptions: dcg.TransformationOptions}
+	cg := &GeneratorConfig{ParseOptions: dcg.ParseOptions, TransformationOptions: dcg.TransformationOptions, GoOptions: dcg.GoOptions}
 	// Extract the entities to be mapped into structs and enumerations in the output
 	// Go code. Extract the schematree from the modules provided such that it can be
 	// used to reference entities within the tree.
@@ -512,14 +551,14 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 
 	dirsToProcess := map[string]*yang.Entry(mdef.directoryEntries)
 
-	enumSet, _, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
+	enumSet, _, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.GoOptions.AppendEnumSuffixForSimpleUnionEnums, false, cg.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, nil, errs
 	}
 	// Store the returned schematree and enumSet within the state for this code generation.
 	gogen := newGoGenState(mdef.schematree, enumSet)
 
-	directoryMap, errs := gogen.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
+	directoryMap, errs := gogen.buildDirectoryDefinitions(dirsToProcess, cg.TransformationOptions.CompressBehaviour, cg.TransformationOptions.GenerateFakeRoot, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, nil, errs
 	}
@@ -540,7 +579,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 		for _, fieldName := range GetOrderedFieldNames(dir) {
 			field := dir.Fields[fieldName]
 			if isLeaf := field.IsLeaf() || field.IsLeafList(); isLeaf {
-				mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, dcg.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
+				mtype, err := gogen.yangTypeToGoType(resolveTypeArgs{yangType: field.Type, contextEntry: field}, dcg.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, cg.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.TransformationOptions.EnumOrgPrefixesToTrim)
 				if err != nil {
 					errs = util.AppendErr(errs, err)
 					continue
@@ -584,7 +623,7 @@ func generateEnumCode(goEnums map[string]*yangEnum) ([]string, string, util.Erro
 	for _, enumName := range orderedEnumNames {
 		enumOut, err := writeGoEnum(enumNameMap[enumName])
 		if err != nil {
-			util.AppendErr(errs, err)
+			errs = util.AppendErr(errs, err)
 			continue
 		}
 		enumSnippets = append(enumSnippets, enumOut.constDef)
@@ -596,7 +635,7 @@ func generateEnumCode(goEnums map[string]*yangEnum) ([]string, string, util.Erro
 	// string values.
 	enumMap, err := generateEnumMap(enumValueMap)
 	if err != nil {
-		util.AppendErr(errs, err)
+		errs = util.AppendErr(errs, err)
 	}
 	if len(errs) == 0 {
 		errs = nil
@@ -614,7 +653,10 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	if errs != nil {
 		return nil, errs
 	}
-	enumSet, penums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
+	// If UseConsistentNamesForProtoUnionEnums=true, then also set
+	// appendEnumSuffixForSimpleUnionEnums=true for consistent union enum
+	// names.
+	enumSet, penums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums, cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
 		return nil, errs
 	}
@@ -676,8 +718,9 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		sort.Strings(protoEnums)
 		fp := []string{basePackageName, enumPackageName, fmt.Sprintf("%s.proto", enumPackageName)}
 		genProto.Packages[fmt.Sprintf("%s.%s", basePackageName, enumPackageName)] = Proto3Package{
-			FilePath: fp,
-			Enums:    protoEnums,
+			FilePath:       fp,
+			Enums:          protoEnums,
+			UsesYextImport: cg.Config.ProtoOptions.AnnotateEnumNames,
 		}
 	}
 
@@ -692,7 +735,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			annotateSchemaPaths: cg.Config.ProtoOptions.AnnotateSchemaPaths,
 			annotateEnumNames:   cg.Config.ProtoOptions.AnnotateEnumNames,
 			nestedMessages:      cg.Config.ProtoOptions.NestedMessages,
-		}, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames)
+		}, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums)
 
 		if errs != nil {
 			yerr = util.AppendErrs(yerr, errs)
@@ -729,10 +772,28 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			tp = genProto.Packages[genMsg.PackageName]
 		}
 		tp.Messages = append(tp.Messages, genMsg.MessageCode)
+		if genMsg.UsesYwrapperImport {
+			tp.UsesYwrapperImport = true
+		}
+		if genMsg.UsesYextImport {
+			tp.UsesYextImport = true
+		}
 		genProto.Packages[genMsg.PackageName] = tp
 	}
 
 	for n, pkg := range genProto.Packages {
+		var gpn string
+		if cg.Config.ProtoOptions.GoPackageBase != "" {
+			gpn = fmt.Sprintf("%s/%s", cg.Config.ProtoOptions.GoPackageBase, strings.ReplaceAll(n, ".", "/"))
+		}
+		ywrapperPath := ywrapperPath
+		if !pkg.UsesYwrapperImport {
+			ywrapperPath = ""
+		}
+		yextPath := yextPath
+		if !pkg.UsesYextImport {
+			yextPath = ""
+		}
 		h, err := writeProto3Header(proto3Header{
 			PackageName:            n,
 			Imports:                stringKeys(pkgImports[n]),
@@ -742,9 +803,10 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			CallerName:             cg.Config.Caller,
 			YwrapperPath:           ywrapperPath,
 			YextPath:               yextPath,
+			GoPackageName:          gpn,
 		})
 		if err != nil {
-			yerr = util.AppendErrs(yerr, errs)
+			yerr = util.AppendErrs(yerr, []error{err})
 			continue
 		}
 		pkg.Header = h
@@ -1023,7 +1085,7 @@ func findMappableEntities(e *yang.Entry, dirs map[string]*yang.Entry, enums map[
 		case ch.Kind == yang.AnyDataEntry:
 			continue
 		default:
-			errs = util.AppendErr(errs, fmt.Errorf("unknown type of entry %v in findMappableEntities for %s", e.Kind, e.Path()))
+			errs = util.AppendErr(errs, fmt.Errorf("unknown type of entry %v in findMappableEntities for %s", ch.Kind, ch.Path()))
 		}
 	}
 	return errs

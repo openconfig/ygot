@@ -1,2 +1,4 @@
 vendor/*
+*.vscode*
 .vscode/*
+tags

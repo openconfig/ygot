@@ -58,13 +58,30 @@ func ParentModuleName(node yang.Node) string {
 // supplied as the node argument. If the discovered root node of the node is found
 // to be a submodule, the name of the parent module is returned. If the root has
 // a camel case extension, this is returned rather than the actual module name.
-func ParentModulePrettyName(node yang.Node) string {
+// If organization prefixes (e.g. "openconfig", "ietf") are given, they are
+// trimmed from the module name if a match is found.
+func ParentModulePrettyName(node yang.Node, orgPrefixesToTrim ...string) string {
 	definingMod := definingModule(node)
 	if name, ok := CamelCaseNameExt(definingMod.Exts()); ok {
 		return name
 	}
 
-	return yang.CamelCase(definingMod.NName())
+	return yang.CamelCase(TrimOrgPrefix(definingMod.NName(), orgPrefixesToTrim...))
+}
+
+// TrimOrgPrefix checks each input organization prefix (e.g. "openconfig", "ietf")
+// (https://tools.ietf.org/html/rfc8407#section-4.1), and if matching the input
+// module name, trims it and returns it. If none is matching, the original
+// module name is returned.
+// E.g. If "openconfig" is provided as a prefix to trim, then
+// "openconfig-interfaces" becomes simply "interfaces".
+func TrimOrgPrefix(modName string, orgPrefixesToTrim ...string) string {
+	for _, pfx := range orgPrefixesToTrim {
+		if trimmedModName := strings.TrimPrefix(modName, pfx+"-"); trimmedModName != modName {
+			return trimmedModName
+		}
+	}
+	return modName
 }
 
 // MakeNameUnique makes the name specified as an argument unique based on the names

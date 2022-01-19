@@ -7,26 +7,18 @@ syntax = "proto3";
 
 package openconfig.enums;
 
-import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
+
+// UnionListKeyEuEnum represents an enumerated type generated for the YANG enumerated type eu.
+enum UnionListKeyEuEnum {
+  UNIONLISTKEYEUENUM_UNSET = 0;
+  UNIONLISTKEYEUENUM_A = 1 [(yext.yang_name) = "A"];
+  UNIONLISTKEYEUENUM_B = 2 [(yext.yang_name) = "B"];
+}
 
 // UnionListKeyID represents an enumerated type generated for the YANG identity ID.
 enum UnionListKeyID {
   UNIONLISTKEYID_UNSET = 0;
   UNIONLISTKEYID_BAR = 31272497 [(yext.yang_name) = "BAR"];
   UNIONLISTKEYID_FOO = 266747526 [(yext.yang_name) = "FOO"];
-}
-
-// UnionListKeyZZaAb represents an enumerated type generated for the YANG enumerated type eu.
-enum UnionListKeyZZaAb {
-  UNIONLISTKEY_Z_ZA_AB_UNSET = 0;
-  UNIONLISTKEY_Z_ZA_AB_A = 1 [(yext.yang_name) = "A"];
-  UNIONLISTKEY_Z_ZA_AB_B = 2 [(yext.yang_name) = "B"];
-}
-
-// UnionListKeyZZaAc represents an enumerated type generated for the YANG enumerated type eval.
-enum UnionListKeyZZaAc {
-  UNIONLISTKEY_Z_ZA_AC_UNSET = 0;
-  UNIONLISTKEY_Z_ZA_AC_A = 1 [(yext.yang_name) = "A"];
-  UNIONLISTKEY_Z_ZA_AC_B = 2 [(yext.yang_name) = "B"];
 }

@@ -105,11 +105,12 @@ func TestCamelCase(t *testing.T) {
 
 func TestDefiningModule(t *testing.T) {
 	tests := []struct {
-		name           string
-		inNode         yang.Node
-		wantNode       yang.Node
-		wantName       string
-		wantPrettyName string
+		name                string
+		inNode              yang.Node
+		inOrgPrefixesToTrim []string
+		wantNode            yang.Node
+		wantName            string
+		wantPrettyName      string
 	}{{
 		name: "direct child of module",
 		inNode: &yang.Container{
@@ -165,6 +166,48 @@ func TestDefiningModule(t *testing.T) {
 		},
 		wantName:       "root",
 		wantPrettyName: "FooBar",
+	}, {
+		name: "direct child of module, with trimming",
+		inNode: &yang.Container{
+			Name: "child",
+			Parent: &yang.Module{
+				Name: "apple-parent",
+			},
+		},
+		inOrgPrefixesToTrim: []string{"apple", "banana"},
+		wantNode: &yang.Module{
+			Name: "apple-parent",
+		},
+		wantName:       "apple-parent",
+		wantPrettyName: "Parent",
+	}, {
+		name: "direct child of module, with trimming using a different name",
+		inNode: &yang.Container{
+			Name: "child",
+			Parent: &yang.Module{
+				Name: "banana-parent",
+			},
+		},
+		inOrgPrefixesToTrim: []string{"apple", "banana"},
+		wantNode: &yang.Module{
+			Name: "banana-parent",
+		},
+		wantName:       "banana-parent",
+		wantPrettyName: "Parent",
+	}, {
+		name: "direct child of module, with trimming but without match",
+		inNode: &yang.Container{
+			Name: "child",
+			Parent: &yang.Module{
+				Name: "cherry-parent",
+			},
+		},
+		inOrgPrefixesToTrim: []string{"apple", "banana"},
+		wantNode: &yang.Module{
+			Name: "cherry-parent",
+		},
+		wantName:       "cherry-parent",
+		wantPrettyName: "CherryParent",
 	}}
 
 	for _, tt := range tests {
@@ -180,8 +223,50 @@ func TestDefiningModule(t *testing.T) {
 			if got := ParentModuleName(tt.inNode); !cmp.Equal(got, tt.wantName) {
 				t.Errorf("did not get expected parent name, got: %s, want: %s", got, tt.wantName)
 			}
-			if got := ParentModulePrettyName(tt.inNode); !cmp.Equal(got, tt.wantPrettyName) {
+			if got := ParentModulePrettyName(tt.inNode, tt.inOrgPrefixesToTrim...); !cmp.Equal(got, tt.wantPrettyName) {
 				t.Errorf("did not get expected parent pretty name, got: %s, want: %s", got, tt.wantPrettyName)
+			}
+		})
+	}
+}
+
+func TestTrimOrgPrefix(t *testing.T) {
+	tests := []struct {
+		desc                string
+		inModName           string
+		inOrgPrefixesToTrim []string
+		want                string
+	}{{
+		desc:                "basic",
+		inModName:           "openconfig-interfaces",
+		inOrgPrefixesToTrim: []string{"openconfig"},
+		want:                "interfaces",
+	}, {
+		desc:                "no prefixes",
+		inModName:           "openconfig-interfaces",
+		inOrgPrefixesToTrim: nil,
+		want:                "openconfig-interfaces",
+	}, {
+		desc:                "second prefix",
+		inModName:           "openconfig2-interfaces",
+		inOrgPrefixesToTrim: []string{"openconfig", "openconfig2"},
+		want:                "interfaces",
+	}, {
+		desc:                "no match",
+		inModName:           "openconfig-interfaces",
+		inOrgPrefixesToTrim: []string{"openconfig1", "openconfig2"},
+		want:                "openconfig-interfaces",
+	}, {
+		desc:                "two matches, but only the first one should apply",
+		inModName:           "openconfig-openconfig2-interfaces",
+		inOrgPrefixesToTrim: []string{"openconfig", "openconfig2"},
+		want:                "openconfig2-interfaces",
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			if diff := cmp.Diff(TrimOrgPrefix(tt.inModName, tt.inOrgPrefixesToTrim...), tt.want); diff != "" {
+				t.Errorf("(-got, +want):\n%s", diff)
 			}
 		})
 	}

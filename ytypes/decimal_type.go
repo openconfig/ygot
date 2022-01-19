@@ -22,6 +22,16 @@ import (
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-9.3.
 
+// ValidateDecimalRestrictions checks that the given decimal matches the
+// schema's range restrictions (if any). It returns an error if the validation
+// fails.
+func ValidateDecimalRestrictions(schemaType *yang.YangType, floatVal float64) error {
+	if !isInRanges(schemaType.Range, yang.FromFloat(floatVal)) {
+		return fmt.Errorf("decimal value %v is outside specified ranges", floatVal)
+	}
+	return nil
+}
+
 // validateDecimal validates value, which must be a Go float64 type, against the
 // given schema.
 func validateDecimal(schema *yang.Entry, value interface{}) error {
@@ -36,8 +46,8 @@ func validateDecimal(schema *yang.Entry, value interface{}) error {
 		return fmt.Errorf("non float64 type %T with value %v for schema %s", value, value, schema.Name)
 	}
 
-	if !isInRanges(schema.Type.Range, yang.FromFloat(f)) {
-		return fmt.Errorf("decimal value %v is outside specified ranges for schema %s", value, schema.Name)
+	if err := ValidateDecimalRestrictions(schema.Type, f); err != nil {
+		return fmt.Errorf("schema %q: %v", schema.Name, err)
 	}
 
 	return nil
@@ -72,9 +82,9 @@ func validateDecimalSlice(schema *yang.Entry, value interface{}) error {
 }
 
 // validateDecimalSchema validates the given decimal type schema. This is a
-// sanity check validation rather than a comprehensive validation against the
-// RFC. It is assumed that such a validation is done when the schema is parsed
-// from source YANG.
+// quick check rather than a comprehensive validation against the RFC. It is
+// assumed that such a validation is done when the schema is parsed from source
+// YANG.
 func validateDecimalSchema(schema *yang.Entry) error {
 	if schema == nil {
 		return fmt.Errorf("decimal schema is nil")

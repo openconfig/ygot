@@ -15,5 +15,9 @@ module openconfig-simple-augment {
       }
     }
   }
+
+  augment "/t:native/state" {
+    leaf b { type string; }
+  }
 }
 

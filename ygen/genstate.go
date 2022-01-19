@@ -16,6 +16,7 @@ package ygen
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -66,6 +67,44 @@ func IsYgenDefinedGoType(t *MappedType) bool {
 	return t.IsEnumeratedValue || len(t.UnionTypes) >= 2 || t.NativeType == ygot.BinaryTypeName || t.NativeType == ygot.EmptyTypeName
 }
 
+// unionType is an internal type used to sort the UnionTypes map field of
+// MappedType. It satisfies sort.Interface.
+type unionType struct {
+	name  string
+	index int
+}
+
+type unionTypeList []unionType
+
+func (u unionTypeList) Len() int {
+	return len(u)
+}
+
+func (u unionTypeList) Swap(i, j int) {
+	u[i], u[j] = u[j], u[i]
+}
+
+func (u unionTypeList) Less(i, j int) bool {
+	return u[i].index < u[j].index
+}
+
+// OrderedUnionTypes returns a slice of union type names of the given
+// MappedType in YANG order. If the type is not a union (i.e. UnionTypes is
+// empty), then a nil slice is returned.
+func (t *MappedType) OrderedUnionTypes() []string {
+	var unionTypes unionTypeList
+	for name, index := range t.UnionTypes {
+		unionTypes = append(unionTypes, unionType{name: name, index: index})
+	}
+	sort.Sort(unionTypes)
+
+	var orderedUnionTypes []string
+	for _, unionType := range unionTypes {
+		orderedUnionTypes = append(orderedUnionTypes, unionType.name)
+	}
+	return orderedUnionTypes
+}
+
 // buildDirectoryDefinitions extracts the yang.Entry instances from a map of
 // entries that need struct or message definitions built for them. It resolves
 // each non-leaf yang.Entry to a Directory which contains the elements that are
@@ -102,7 +141,7 @@ func buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour gen
 
 			// Find the elements that should be rooted on this particular entity.
 			var fieldErr []error
-			elem.Fields, fieldErr = genutil.FindAllChildren(e, compBehaviour)
+			elem.Fields, elem.ShadowedFields, fieldErr = genutil.FindAllChildren(e, compBehaviour)
 			if fieldErr != nil {
 				errs = append(errs, fieldErr...)
 				continue

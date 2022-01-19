@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	log "github.com/golang/glog"
-	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 	"github.com/openconfig/ygot/ygot"
@@ -319,7 +318,7 @@ func matchesNodes(ni *util.NodeInfo, matchNodes []interface{}) (bool, error) {
 				// This is an interface value, which is represented as a struct pointer.
 				ovv := ov.Elem().FieldByIndex([]int{0})
 				svv := ni.FieldValue.Elem().Elem().FieldByIndex([]int{0})
-				if cmp.Equal(ovv.Interface(), svv.Interface()) {
+				if reflect.DeepEqual(ovv.Interface(), svv.Interface()) {
 					return true, nil
 				}
 			}

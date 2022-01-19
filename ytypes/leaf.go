@@ -123,12 +123,12 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
    {
            Name:             "ipv4-address",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
    },
    {
            Name:             "ipv6-address",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
            Type:             [],
    }]
  }
@@ -156,7 +156,7 @@ func validateLeaf(inSchema *yang.Entry, value interface{}) util.Errors {
    {
            Name:             "port-string",
            Kind:             yang.Ystring,
-           Pattern:          [...pattern...],
+           POSIXPattern:          [...pattern...],
    },
    {
            Name:             "port-integer",
@@ -310,8 +310,8 @@ func findMatchingSchemasInUnion(ytype *yang.YangType, value interface{}) []*yang
 	return matches
 }
 
-// validateLeafSchema validates the given leaf type schema. This is a sanity
-// check validation rather than a comprehensive validation against the RFC.
+// validateLeafSchema validates the given leaf type schema. This is a quick
+// check rather than a comprehensive validation against the RFC.
 // It is assumed that such a validation is done when the schema is parsed from
 // source YANG.
 func validateLeafSchema(schema *yang.Entry) error {
@@ -397,8 +397,8 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, 
 for example, with structs schema:
 
 type Bgp_Neighbor_RouteReflector struct {
-	RouteReflectorClient    *bool                                                     `path:"config/route-reflector-client" module:"openconfig-bgp"`
-	RouteReflectorClusterId Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union `path:"config/route-reflector-cluster-id" module:"openconfig-bgp"`
+	RouteReflectorClient    *bool                                                     `path:"config/route-reflector-client" module:"openconfig-bgp/openconfig-bgp"`
+	RouteReflectorClusterId Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union `path:"config/route-reflector-cluster-id" module:"openconfig-bgp/openconfig-bgp"`
 }
 type Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union interface {
 	Is_Bgp_Neighbor_RouteReflector_RouteReflectorClusterId_Union()

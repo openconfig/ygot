@@ -43,22 +43,37 @@ func PathMatchesPrefix(path *gpb.Path, prefix []string) bool {
 }
 
 // PathElemsEqual replaces the proto.Equal() check for PathElems.
+// If a.Key["foo"] == "*" and b.Key["foo"] == "bar" func returns false.
 // This significantly improves comparison speed.
-func PathElemsEqual(this, other *gpb.PathElem) bool {
+func PathElemsEqual(a, b *gpb.PathElem) bool {
 	// This check allows avoiding to deal with any null PathElems later on.
-	if this == nil || other == nil {
-		return this == nil && other == nil
+	if a == nil || b == nil {
+		return a == nil && b == nil
 	}
 
-	if this.Name != other.Name {
-		return false
-	}
-	if len(this.Key) != len(other.Key) {
+	if a.Name != b.Name {
 		return false
 	}
 
-	for k, v := range this.Key {
-		if vo, ok := other.Key[k]; !ok || vo != v {
+	if len(a.Key) != len(b.Key) {
+		return false
+	}
+
+	for k, v := range a.Key {
+		if vo, ok := b.Key[k]; !ok || v != vo {
+			return false
+		}
+	}
+	return true
+}
+
+// PathElemSlicesEqual compares whether two PathElem slices are equal.
+func PathElemSlicesEqual(a, b []*gpb.PathElem) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !PathElemsEqual(a[i], b[i]) {
 			return false
 		}
 	}
@@ -67,6 +82,9 @@ func PathElemsEqual(this, other *gpb.PathElem) bool {
 
 // PathMatchesPathElemPrefix checks whether prefix is a prefix of path. Both paths
 // must use the gNMI >=0.4.0 PathElem path format.
+// Note: Paths must match exactly, that is if path has a wildcard key,
+// then the same key must also be a wildcard in the prefix.
+// See PathMatchesQuery for comparing paths with wildcards.
 func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
 	if len(path.GetElem()) < len(prefix.GetElem()) || path.Origin != prefix.Origin {
 		return false
@@ -74,6 +92,36 @@ func PathMatchesPathElemPrefix(path, prefix *gpb.Path) bool {
 	for i, v := range prefix.Elem {
 		if !PathElemsEqual(v, path.GetElem()[i]) {
 			return false
+		}
+	}
+	return true
+}
+
+// PathMatchesQuery returns whether query is prefix of path.
+// Only the query may contain wildcard name or keys.
+// TODO: Multilevel wildcards ("...") not supported.
+// If either path and query contain nil elements func returns false.
+// Both paths must use the gNMI >=0.4.0 PathElem path format.
+func PathMatchesQuery(path, query *gpb.Path) bool {
+	if len(path.GetElem()) < len(query.GetElem()) {
+		return false
+	}
+	// Unset Origin fields can match "openconfig", see https://github.com/openconfig/reference/blob/master/rpc/gnmi/mixed-schema.md#special-values-of-origin.
+	if path.Origin != query.Origin && !(path.Origin == "" && query.Origin == "openconfig" || path.Origin == "openconfig" && query.Origin == "") {
+		return false
+	}
+	for i, queryElem := range query.Elem {
+		pathElem := path.Elem[i]
+		if queryElem == nil || pathElem == nil {
+			return false
+		}
+		if queryElem.Name != "*" && queryElem.Name != pathElem.Name {
+			return false
+		}
+		for qk, qv := range queryElem.Key {
+			if pv, ok := pathElem.Key[qk]; !ok || (qv != "*" && qv != pv) {
+				return false
+			}
 		}
 	}
 	return true
@@ -182,4 +230,28 @@ func FindModelData(mods []*yang.Entry) ([]*gpb.ModelData, error) {
 	sort.Sort(modelData)
 
 	return modelData, nil
+}
+
+// JoinPaths joins an prefix and suffix paths, returning an error if their
+// target or origin fields are both non-empty but don't match.
+func JoinPaths(prefix, suffix *gpb.Path) (*gpb.Path, error) {
+	joined := &gpb.Path{
+		Origin: prefix.GetOrigin(),
+		Target: prefix.GetTarget(),
+		// Copy the prefix elem to avoid modifying the one the caller passed.
+		Elem: append(append([]*gpb.PathElem{}, prefix.GetElem()...), suffix.GetElem()...),
+	}
+	if sufOrigin := suffix.GetOrigin(); sufOrigin != "" {
+		if preOrigin := prefix.GetOrigin(); preOrigin != "" && preOrigin != sufOrigin {
+			return nil, fmt.Errorf("prefix and suffix have different origins: %s != %s", preOrigin, sufOrigin)
+		}
+		joined.Origin = sufOrigin
+	}
+	if sufTarget := suffix.GetTarget(); sufTarget != "" {
+		if preTarget := prefix.GetTarget(); preTarget != "" && preTarget != sufTarget {
+			return nil, fmt.Errorf("prefix and suffix have different targets: %s != %s", preTarget, sufTarget)
+		}
+		joined.Target = sufTarget
+	}
+	return joined, nil
 }

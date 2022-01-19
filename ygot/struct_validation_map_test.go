@@ -52,11 +52,12 @@ func errToString(err error) string {
 
 func TestStructTagToLibPaths(t *testing.T) {
 	tests := []struct {
-		name     string
-		inField  reflect.StructField
-		inParent *gnmiPath
-		want     []*gnmiPath
-		wantErr  bool
+		name               string
+		inField            reflect.StructField
+		inParent           *gnmiPath
+		inPreferShadowPath bool
+		want               []*gnmiPath
+		wantErr            bool
 	}{{
 		name: "invalid input path",
 		inField: reflect.StructField{
@@ -79,6 +80,43 @@ func TestStructTagToLibPaths(t *testing.T) {
 		},
 		want: []*gnmiPath{{
 			stringSlicePath: []string{"foo"},
+		}},
+	}, {
+		name: "multi-element single tag example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo", "bar"},
+		}},
+	}, {
+		name: "multi-element single tag with shadow-path example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"foo", "bar"},
+		}},
+	}, {
+		name: "multi-element single tag with preferred shadow-path example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			stringSlicePath: []string{},
+		},
+		inPreferShadowPath: true,
+		want: []*gnmiPath{{
+			stringSlicePath: []string{"far", "boo"},
 		}},
 	}, {
 		name: "empty tag example",
@@ -133,6 +171,19 @@ func TestStructTagToLibPaths(t *testing.T) {
 			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}},
 		}},
 	}, {
+		name: "simple pathelem single tag with shadow-path preferred but not found example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo"`,
+		},
+		inPreferShadowPath: true,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}},
+		}},
+	}, {
 		name: "empty tag pathelem example",
 		inField: reflect.StructField{
 			Name: "field",
@@ -143,6 +194,43 @@ func TestStructTagToLibPaths(t *testing.T) {
 		},
 		want: []*gnmiPath{{
 			pathElemPath: []*gnmipb.PathElem{},
+		}},
+	}, {
+		name: "multi-element single tag pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}},
+		}},
+	}, {
+		name: "multi-element single tag with shadow-path pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "foo"}, {Name: "bar"}},
+		}},
+	}, {
+		name: "multi-element single tag with preferred shadow-path pathelem example",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"foo/bar" shadow-path:"far/boo"`,
+		},
+		inPreferShadowPath: true,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "far"}, {Name: "boo"}},
 		}},
 	}, {
 		name: "multiple pathelem path",
@@ -172,16 +260,43 @@ func TestStructTagToLibPaths(t *testing.T) {
 		}, {
 			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "foo"}, {Name: "baz"}},
 		}},
+	}, {
+		name: "populated pathelem parent path with shadow-path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz" shadow-path:"far/boo"`,
+		},
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "baz"}},
+		}, {
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "foo"}, {Name: "baz"}},
+		}},
+	}, {
+		name: "populated pathelem parent path with preferred shadow-path",
+		inField: reflect.StructField{
+			Name: "field",
+			Tag:  `path:"baz|foo/baz" shadow-path:"far/boo"`,
+		},
+		inPreferShadowPath: true,
+		inParent: &gnmiPath{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}},
+		},
+		want: []*gnmiPath{{
+			pathElemPath: []*gnmipb.PathElem{{Name: "existing"}, {Name: "far"}, {Name: "boo"}},
+		}},
 	}}
 
 	for _, tt := range tests {
-		got, err := structTagToLibPaths(tt.inField, tt.inParent)
+		got, err := structTagToLibPaths(tt.inField, tt.inParent, tt.inPreferShadowPath)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, err, tt.wantErr)
+			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected error status, got: %v, want err: %v", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, err, tt.wantErr)
 		}
 
 		if diff := cmp.Diff(tt.want, got, cmp.AllowUnexported(gnmiPath{}), cmp.Comparer(proto.Equal)); diff != "" {
-			t.Errorf("%s: structTagToLibPaths(%v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, diff)
+			t.Errorf("%s: structTagToLibPaths(%v, %v, %v): did not get expected set of map paths, diff(-want, +got):\n%s", tt.name, tt.inField, tt.inParent, tt.inPreferShadowPath, diff)
 		}
 	}
 }
@@ -366,11 +481,11 @@ func (*mapStructTestOne) ΛEnumTypeMap() map[string][]reflect.Type { return nil 
 // mapStructTestOne_Child is a child structure of the mapStructTestOne test
 // case.
 type mapStructTestOneChild struct {
-	FieldOne   *string  `path:"config/field-one" module:"test-one"`
-	FieldTwo   *uint32  `path:"config/field-two" module:"test-one"`
-	FieldThree Binary   `path:"config/field-three" module:"test-one"`
-	FieldFour  []Binary `path:"config/field-four" module:"test-one"`
-	FieldFive  *uint64  `path:"config/field-five" module:"test-five"`
+	FieldOne   *string  `path:"config/field-one" module:"test-one/test-one"`
+	FieldTwo   *uint32  `path:"config/field-two" module:"test-one/test-one"`
+	FieldThree Binary   `path:"config/field-three" module:"test-one/test-one"`
+	FieldFour  []Binary `path:"config/field-four" module:"test-one/test-one"`
+	FieldFive  *uint64  `path:"config/field-five" module:"test-five/test-five"`
 }
 
 // IsYANGGoStruct makes sure that we implement the GoStruct interface.
@@ -516,11 +631,23 @@ func TestEmitJSON(t *testing.T) {
 		name: "simple schema JSON output",
 		inStruct: &mapStructTestOne{
 			Child: &mapStructTestOneChild{
-				FieldOne: String("hello"),
+				FieldOne: String("abc -> def"),
 				FieldTwo: Uint32(42),
 			},
 		},
 		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_1.json-txt"),
+	}, {
+		name: "simple schema JSON output with safe HTML",
+		inStruct: &mapStructTestOne{
+			Child: &mapStructTestOneChild{
+				FieldOne: String("abc -> def"),
+				FieldTwo: Uint32(42),
+			},
+		},
+		inConfig: &EmitJSONConfig{
+			EscapeHTML: true,
+		},
+		wantJSONPath: filepath.Join(TestRoot, "testdata/emitjson_1_html_safe.json-txt"),
 	}, {
 		name: "schema with a list JSON output",
 		inStruct: &mapStructTestFour{
@@ -687,31 +814,31 @@ func TestBuildEmptyTree(t *testing.T) {
 }
 
 type emptyBranchTestOne struct {
-	String    *string
-	Struct    *emptyBranchTestOneChild
-	StructMap map[string]*emptyBranchTestOneChild
+	String    *string                             `path:"string"`
+	Struct    *emptyBranchTestOneChild            `path:"child"`
+	StructMap map[string]*emptyBranchTestOneChild `path:"maps/map"`
 }
 
 func (*emptyBranchTestOne) IsYANGGoStruct() {}
 
 type emptyBranchTestOneChild struct {
-	String     *string
-	Enumerated int64
-	Struct     *emptyBranchTestOneGrandchild
+	String     *string                       `path:"string"`
+	Enumerated int64                         `path:"enum"`
+	Struct     *emptyBranchTestOneGrandchild `path:"grand-child"`
 }
 
 func (*emptyBranchTestOneChild) IsYANGGoStruct() {}
 
 type emptyBranchTestOneGrandchild struct {
-	String *string
-	Slice  []string
-	Struct *emptyBranchTestOneGreatGrandchild
+	String *string                            `path:"string"`
+	Slice  []string                           `path:"slice"`
+	Struct *emptyBranchTestOneGreatGrandchild `path:"great-grand-child"`
 }
 
 func (*emptyBranchTestOneGrandchild) IsYANGGoStruct() {}
 
 type emptyBranchTestOneGreatGrandchild struct {
-	String *string
+	String *string `path:"string"`
 }
 
 func (*emptyBranchTestOneGreatGrandchild) IsYANGGoStruct() {}
@@ -1499,7 +1626,7 @@ func TestCopyStruct(t *testing.T) {
 		},
 		wantDst: &copyTest{
 			StringMap: map[string]*copyTest{
-				"wild-beer-co": {StringField: String("wildebeest")},
+				"wild-beer-co": {StringField: String("wild-goose-chase")},
 			},
 		},
 	}, {
@@ -1578,7 +1705,7 @@ func TestCopyStruct(t *testing.T) {
 		name: "struct map with overlapping fields within the same key",
 		inSrc: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
-				{"new-belgium"}: {StringField: String("voodoo-ranger")},
+				{"new-belgium"}: {StringField: String("mysterious-ranger")},
 			},
 		},
 		inDst: &copyTest{
@@ -1591,7 +1718,7 @@ func TestCopyStruct(t *testing.T) {
 		name: "struct map with overlapping fields within the same key",
 		inSrc: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
-				{"new-belgium"}: {StringField: String("voodoo-ranger")},
+				{"new-belgium"}: {StringField: String("mysterious-ranger")},
 			},
 		},
 		inDst: &copyTest{
@@ -1604,7 +1731,7 @@ func TestCopyStruct(t *testing.T) {
 		},
 		wantDst: &copyTest{
 			StructMap: map[copyMapKey]*copyTest{
-				{"new-belgium"}: {StringField: String("fat-tire")},
+				{"new-belgium"}: {StringField: String("mysterious-ranger")},
 			},
 		},
 	}, {
@@ -1691,7 +1818,7 @@ func TestCopyStruct(t *testing.T) {
 		name:    "error, slice fields not unique",
 		inSrc:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
 		inDst:   &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
-		wantErr: true,
+		wantDst: &copyTest{StringSlice: []string{"mikkeler-draft-bear"}},
 	},
 		{
 			name:  "overwrite, slice fields not unique",
@@ -1713,7 +1840,7 @@ func TestCopyStruct(t *testing.T) {
 
 		err := copyStruct(dst, src, tt.inOpts...)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: copyStruct(%v, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
+			t.Fatalf("%s: copyStruct(%v, %v): did not get expected error, got: %v, wantErr: %v", tt.name, tt.inSrc, tt.inDst, err, tt.wantErr)
 		}
 
 		if err != nil {
@@ -1924,9 +2051,40 @@ var mergeStructTests = []struct {
 		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
 	},
 	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	wantErr: "source and destination lists must be unique",
+}, {
+	name: "error - merge fields with slice with duplicate strings, with dst and src reversed",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	inB: &validatedMergeTestWithSlice{
 		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
 	},
 	wantErr: "source and destination lists must be unique",
+}, {
+	name: "merge fields with identical slices",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+	want: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}},
+	},
+}, {
+	name: "merge fields with identical slices with length 2",
+	inA: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	inB: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
+	want: &validatedMergeTestWithSlice{
+		SliceField: []*validatedMergeTestSliceField{{String("chinook-single-hop")}, {String("citrus-dream")}},
+	},
 }, {
 	name: "merge union: string values not equal",
 	inA: &validatedMergeTest{

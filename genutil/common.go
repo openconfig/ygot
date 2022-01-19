@@ -30,16 +30,16 @@ import (
 const (
 	// GoDefaultYgotImportPath is the default import path used for the ygot library
 	// in the generated code.
-	GoDefaultYgotImportPath string = "github.com/openconfig/ygot/ygot"
+	GoDefaultYgotImportPath = "github.com/openconfig/ygot/ygot"
 	// GoDefaultYtypesImportPath is the default import path used for the ytypes library
 	// in the generated code.
-	GoDefaultYtypesImportPath string = "github.com/openconfig/ygot/ytypes"
+	GoDefaultYtypesImportPath = "github.com/openconfig/ygot/ytypes"
 	// GoDefaultGoyangImportPath is the default path for the goyang/pkg/yang library that
 	// is used in the generated code.
-	GoDefaultGoyangImportPath string = "github.com/openconfig/goyang/pkg/yang"
+	GoDefaultGoyangImportPath = "github.com/openconfig/goyang/pkg/yang"
 	// GoDefaultGNMIImportPath is the default import path that is used for the gNMI generated
 	// Go protobuf code in the generated output.
-	GoDefaultGNMIImportPath string = "github.com/openconfig/gnmi/proto/gnmi"
+	GoDefaultGNMIImportPath = "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // WriteIfNotEmpty writes the string s to b if it has a non-zero length.
@@ -129,6 +129,23 @@ const (
 )
 
 // CompressEnabled is a helper to query whether compression is on.
+func (c CompressBehaviour) String() string {
+	switch c {
+	case Uncompressed:
+		return "Uncompressed"
+	case UncompressedExcludeDerivedState:
+		return "UncompressedExcludeDerivedState"
+	case PreferIntendedConfig:
+		return "PreferIntendedConfig"
+	case PreferOperationalState:
+		return "PreferOperationalState"
+	case ExcludeDerivedState:
+		return "ExcludeDerivedState"
+	}
+	return fmt.Sprintf("%d", c)
+}
+
+// CompressEnabled is a helper to query whether compression is on.
 func (c CompressBehaviour) CompressEnabled() bool {
 	switch c {
 	case Uncompressed, UncompressedExcludeDerivedState:
@@ -169,7 +186,12 @@ func TranslateToCompressBehaviour(compressPaths, excludeState, preferOperational
 // FindAllChildren finds the data tree elements that are children of a YANG entry e, which
 // should have code generated for them. In general, this means data tree elements that are
 // directly connected to a particular data tree element; however, when compression of the
-// schema is enabled then recursion is required.
+// schema is enabled then recursion is required. The second return value is
+// only populated when compression is enabled, and it contains the fields that
+// have been removed due to being a duplicate field (e.g., `config/foo` is a
+// duplicate of `state/foo` when `PreferOperationalState` is used), and are
+// thus "shadow" fields of their corresponding direct fields within the first
+// return value.
 //
 // For example, if we have a YANG tree:
 //    /interface (list)
@@ -258,13 +280,12 @@ func TranslateToCompressBehaviour(compressPaths, excludeState, preferOperational
 // any read-only (config false) node is excluded from the returned set of children.
 // The 'config' status is inherited from a entry's parent if required, as per
 // the rules in RFC6020.
-func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string]*yang.Entry, []error) {
-	excludeState := compBehaviour == ExcludeDerivedState || compBehaviour == UncompressedExcludeDerivedState
+func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string]*yang.Entry, map[string]*yang.Entry, []error) {
 	// If we are asked to exclude 'config false' leaves, and this node is
 	// config false itself, then we can return an empty set of children since
 	// config false is inherited from the parent by all children.
-	if excludeState && !util.IsConfig(e) {
-		return nil, nil
+	if compBehaviour.StateExcluded() && !util.IsConfig(e) {
+		return nil, nil, nil
 	}
 
 	var prioData, deprioData string
@@ -272,7 +293,8 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 	case Uncompressed, UncompressedExcludeDerivedState:
 		// If compression is not required, then we do not need to recurse into as many
 		// nodes, so return simply the first level direct children (other than choice or case).
-		return findAllChildrenWithoutCompression(e, excludeState)
+		directChildren, errs := findAllChildrenWithoutCompression(e, compBehaviour.StateExcluded())
+		return directChildren, nil, errs
 	case PreferIntendedConfig, ExcludeDerivedState:
 		prioData, deprioData = "config", "state"
 	case PreferOperationalState:
@@ -310,19 +332,23 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 	// be direct children of the entity representing e.
 	var errs []error
 	// prioNames is the set of names under the prioritized data container
-	// that are added as children. This is a whitelist for any duplicate
+	// that are added as children. This is a list of any allowed shadowed
 	// names in the deprioritized data container.
 	prioNames := map[string]bool{}
 	// directChildren is used to store the nodes that will be mapped to be direct
 	// children of the struct that represents the entry e being processed. It is
 	// keyed by the name of the child YANG node ((yang.Entry).Name).
 	directChildren := make(map[string]*yang.Entry)
+	// shadowChildren store duplicate fields as determined by the specified
+	// compression behaviour. Each of these fields has a corresponding
+	// directChildren entry of the same name.
+	shadowChildren := make(map[string]*yang.Entry)
 	for _, currChild := range orderedChildNames {
 		switch {
 		// If config false values are being excluded, and this child is config
 		// false, then simply skip it from being considered. This check is performed
 		// first to avoid comparisons on this node which are irrelevant.
-		case excludeState && !util.IsConfig(e.Dir[currChild]):
+		case compBehaviour.StateExcluded() && !util.IsConfig(e.Dir[currChild]):
 			continue
 			// Implement rule 1 from the function documentation - skip over config and state
 			// containers.
@@ -336,21 +362,28 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 				// expect that there are some duplicates here for applied configuration leaves
 				// (those that appear both in the "config" and "state" container).
 				if e.Dir[currChild].Name == deprioData {
-					// Compress out (do not map) choice/case nodes that are in the
-					// config or state container. This is again specifically for the
-					// OpenConfig routing policy model.
-					// Further, if the name is a duplicate to one that's already in the
-					// prioritized container, we must drop the entry, and ignore any error
-					// that is returned, as we allow those duplicates.
+					ch := map[string]*yang.Entry{"": configStateChild}
 					if util.IsChoiceOrCase(configStateChild) {
-						// Duplicates could occur in a choice/case as well.
-						errs = addNonChoiceChildrenDuplist(directChildren, configStateChild, prioNames, errs)
-					} else if !prioNames[configStateChild.Name] {
-						errs = addNewChild(directChildren, configStateChild.Name, configStateChild, errs)
+						// Compress out (do not map) choice/case nodes that are in the
+						// config or state container.
+						ch = util.FindFirstNonChoiceOrCase(configStateChild)
+					}
+					for _, n := range ch {
+						childrenList := directChildren
+						// If the name is duplicate to one that's already in the
+						// prioritized container, we must put the entry in the shadow list.
+						if prioNames[n.Name] {
+							childrenList = shadowChildren
+							if directChildren[n.Name].Annotation == nil {
+								directChildren[n.Name].Annotation = map[string]interface{}{}
+							}
+							directChildren[n.Name].Annotation[ygot.GoCompressedLeafAnnotation] = struct{}{}
+						}
+						errs = addNewChild(childrenList, n.Name, n, errs)
 					}
 				} else {
 					// Handle the specific case of having a choice underneath a config
-					// or state container as this occurs in the routing policy model.
+					// or state container.
 					if util.IsChoiceOrCase(configStateChild) {
 						errs = addNonChoiceChildren(directChildren, configStateChild, errs)
 					} else {
@@ -358,7 +391,7 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 					}
 				}
 				// If this is the prioritized data container, add the names to the
-				// whitelist. When processing nodes under the deprioritized data container,
+				// allow list. When processing nodes under the deprioritized data container,
 				// we will tolerate duplication of any names in this set, but not any other
 				// names.
 				if e.Dir[currChild].Name == prioData {
@@ -387,7 +420,7 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 			// Implement rule 2 - remove surrounding containers for lists and consider
 			// the list under the surrounding container a direct child.
 			case len(eGrandChildren) == 1 && eGrandChildren[0].IsList():
-				if !util.IsConfig(eGrandChildren[0]) && excludeState {
+				if !util.IsConfig(eGrandChildren[0]) && compBehaviour.StateExcluded() {
 					// If the list child is read-only, then it is not a valid child.
 					continue
 				}
@@ -410,7 +443,7 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 			}
 		}
 	}
-	return directChildren, errs
+	return directChildren, shadowChildren, errs
 }
 
 // addNonChoiceChildren recurses into a yang.entry e and finds the first
@@ -421,24 +454,6 @@ func FindAllChildren(e *yang.Entry, compBehaviour CompressBehaviour) (map[string
 func addNonChoiceChildren(m map[string]*yang.Entry, e *yang.Entry, errs []error) []error {
 	nch := util.FindFirstNonChoiceOrCase(e)
 	for _, n := range nch {
-		errs = addNewChild(m, n.Name, n, errs)
-	}
-	return errs
-}
-
-// addNonChoiceChildrenDupWhitelist recurses into a yang.entry e and finds the first
-// nodes that are neither choice nor case nodes. It appends these to the map of
-// yang.Entry nodes specified by m. If errors are encountered when adding an
-// element, an error is appended to the errs slice, which is returned by the
-// function. duplist is a whitelist where duplicate names that hit this list
-// are not counted as errors, and simply skipped.
-func addNonChoiceChildrenDuplist(m map[string]*yang.Entry, e *yang.Entry, duplist map[string]bool, errs []error) []error {
-	nch := util.FindFirstNonChoiceOrCase(e)
-	for _, n := range nch {
-		// Duplicates in the duplist are expected.
-		if duplist[n.Name] {
-			continue
-		}
 		errs = addNewChild(m, n.Name, n, errs)
 	}
 	return errs
@@ -491,7 +506,7 @@ func TransformEntry(e *yang.Entry, compressBehaviour CompressBehaviour) util.Err
 	for _, ch := range util.Children(e) {
 		switch {
 		case ch.IsLeaf(), ch.IsLeafList():
-			util.AppendErr(errs, pointLeafrefToState(ch))
+			errs = util.AppendErr(errs, pointLeafrefToState(ch))
 		case ch.IsContainer(), ch.IsList(), util.IsChoiceOrCase(ch):
 			// Recurse down the tree.
 			errs = util.AppendErrs(errs, TransformEntry(ch, compressBehaviour))

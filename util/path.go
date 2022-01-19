@@ -38,6 +38,22 @@ func SchemaPaths(f reflect.StructField) ([][]string, error) {
 	return out, nil
 }
 
+// ShadowSchemaPaths returns all the paths in the shadow-path tag. If the tag
+// doesn't exist, a nil slice is returned.
+func ShadowSchemaPaths(f reflect.StructField) [][]string {
+	var out [][]string
+	pathTag, ok := f.Tag.Lookup("shadow-path")
+	if !ok || pathTag == "" {
+		return nil
+	}
+
+	ps := strings.Split(pathTag, "|")
+	for _, p := range ps {
+		out = append(out, stripModulePrefixes(strings.Split(p, "/")))
+	}
+	return out
+}
+
 // RelativeSchemaPath returns a path to the schema for the struct field f.
 // Paths are embedded in the "path" struct tag and can be either simple:
 //   e.g. "path:a"
@@ -88,16 +104,26 @@ func SchemaTreePathNoModule(e *yang.Entry) string {
 // its path, expressed as a slice of strings, which is returned.
 func SchemaPathNoChoiceCase(elem *yang.Entry) []string {
 	var pp []string
+	for _, e := range SchemaEntryPathNoChoiceCase(elem) {
+		pp = append(pp, e.Name)
+	}
+	return pp
+}
+
+// SchemaEntryPathNoChoiceCase takes an input yang.Entry and walks up the tree to find
+// its path, expressed as a slice of Entrys, which is returned.
+func SchemaEntryPathNoChoiceCase(elem *yang.Entry) []*yang.Entry {
+	var pp []*yang.Entry
 	if elem == nil {
 		return pp
 	}
 	e := elem
 	for ; e.Parent != nil; e = e.Parent {
 		if !IsChoiceOrCase(e) {
-			pp = append(pp, e.Name)
+			pp = append(pp, e)
 		}
 	}
-	pp = append(pp, e.Name)
+	pp = append(pp, e)
 
 	// Reverse the slice that was specified to us as it was appended to
 	// from the leaf to the root.
@@ -206,13 +232,18 @@ func FindLeafRefSchema(schema *yang.Entry, pathStr string) (*yang.Entry, error) 
 			if refSchema.Parent == nil {
 				return nil, fmt.Errorf("parent of %s is nil for leafref schema %s with path %s", refSchema.Name, schema.Name, pathStr)
 			}
-			refSchema = refSchema.Parent
+			for refSchema = refSchema.Parent; IsChoiceOrCase(refSchema); refSchema = refSchema.Parent {
+			}
 			continue
 		}
-		if refSchema.Dir[pe] == nil {
+		entries, err := findFirstNonChoiceOrCaseEntry(refSchema)
+		if err != nil {
+			return nil, err
+		}
+		if entries[pe] == nil {
 			return nil, fmt.Errorf("schema node %s is nil for leafref schema %s with path %s", pe, schema.Name, pathStr)
 		}
-		refSchema = refSchema.Dir[pe]
+		refSchema = entries[pe]
 	}
 
 	return refSchema, nil

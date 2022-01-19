@@ -83,7 +83,7 @@ func TestValidate(t *testing.T) {
 
 	leafListSchema := &yang.Entry{
 		Kind:     yang.LeafEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Type:     &yang.YangType{Kind: yang.Ystring},
 		Name:     "leaf-list-schema",
 	}
@@ -91,7 +91,7 @@ func TestValidate(t *testing.T) {
 	listSchema := &yang.Entry{
 		Name:     "list-schema",
 		Kind:     yang.DirectoryEntry,
-		ListAttr: &yang.ListAttr{MinElements: &yang.Value{Name: "0"}},
+		ListAttr: yang.NewDefaultListAttr(),
 		Dir: map[string]*yang.Entry{
 			"leaf-name": {
 				Kind: yang.LeafEntry,
@@ -238,7 +238,7 @@ func TestValidate(t *testing.T) {
 				LeafTwo:   ygot.String("two"),
 				LeafThree: ygot.String("fish"),
 			},
-			wantErr:    `pointed-to value with path ../leaf-one from field LeafTwo value two (string ptr) schema /device/leaf-two is empty set, /leaf-three: "fish" does not match regular expression pattern "^a.*$" for schema leaf-three`, // Check that there is an error
+			wantErr:    `pointed-to value with path ../leaf-one from field LeafTwo value two (string ptr) schema /device/leaf-two is empty set, /leaf-three: schema "leaf-three": "fish" does not match regular expression pattern "^a.*$"`, // Check that there is an error
 			wantErrLen: 2,
 		},
 		{

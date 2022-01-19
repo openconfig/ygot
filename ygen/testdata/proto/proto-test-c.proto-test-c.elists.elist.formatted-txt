@@ -8,7 +8,8 @@ syntax = "proto3";
 package openconfig.proto_test_c.elists.elist;
 
 import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
-import "github.com/openconfig/ygot/proto/yext/yext.proto";
+
+option go_package = "github.com/foo/baz/openconfig/proto_test_c/elists/elist";
 
 // Config represents the /proto-test-c/elists/elist/config YANG schema element.
 message Config {

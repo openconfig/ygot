@@ -15,9 +15,11 @@ mkdir deps
 cp ../../demo/getting_started/yang/{ietf,iana}* deps
 go run ../../generator/generator.go -path=public,deps -output_file=oc.go \
   -package_name=opstateoc -generate_fakeroot -fakeroot_name=device -compress_paths=true \
+  -ignore_shadow_schema_paths \
   -prefer_operational_state \
   -shorten_enum_leaf_names \
   -typedef_enum_with_defmod \
+  -enum_suffix_for_simple_union_enums \
   -exclude_modules=ietf-interfaces \
   -generate_rename \
   -generate_append \
@@ -33,7 +35,6 @@ go run ../../generator/generator.go -path=public,deps -output_file=oc.go \
   public/release/models/policy/openconfig-routing-policy.yang \
   public/release/models/lacp/openconfig-lacp.yang \
   public/release/models/system/openconfig-system.yang \
-  public/release/models/lldp/openconfig-lldp.yang \
   public/release/models/stp/openconfig-spanning-tree.yang \
   public/release/models/interfaces/openconfig-interfaces.yang \
   public/release/models/interfaces/openconfig-if-ip.yang \

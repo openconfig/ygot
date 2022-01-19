@@ -71,7 +71,7 @@ type UnionUnsupported struct {
 
 // BGP represents the /openconfig-camelcase/bgp YANG schema element.
 type BGP struct {
-	Neighbor	map[string]*BGP_Neighbor	`path:"neighbors/neighbor" module:"openconfig-camelcase"`
+	Neighbor	map[string]*BGP_Neighbor	`path:"neighbors/neighbor" module:"openconfig-camelcase/openconfig-camelcase"`
 }
 
 // IsYANGGoStruct ensures that BGP implements the yang.GoStruct
@@ -108,7 +108,7 @@ func (t *BGP) NewNeighbor(PeerIP string) (*BGP_Neighbor, error){
 
 // BGP_Neighbor represents the /openconfig-camelcase/bgp/neighbors/neighbor YANG schema element.
 type BGP_Neighbor struct {
-	PeerIP	*string	`path:"config/peer-ip|peer-ip" module:"openconfig-camelcase"`
+	PeerIP	*string	`path:"config/peer-ip|peer-ip" module:"openconfig-camelcase/openconfig-camelcase|openconfig-camelcase"`
 }
 
 // IsYANGGoStruct ensures that BGP_Neighbor implements the yang.GoStruct

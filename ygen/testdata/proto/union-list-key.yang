@@ -26,6 +26,7 @@ module union-list-key {
     type union {
       type eu;
       type string;
+      type decimal64 { fraction-digits 18; }
     }
   }
 

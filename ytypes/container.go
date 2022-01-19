@@ -191,6 +191,19 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		}
 		allSchemaPaths = append(allSchemaPaths, sp...)
 
+		// If there are shadow schema paths, also add them to the allowlist
+		// avoid an unmarshalling error.
+		// NOTE: This is more permissive than ideal in that it doesn't
+		// catch other types of non-compliance errors, i.e. if the JSON
+		// shadow node is a container (should not occur under
+		// OpenConfig YANG rules), or if the JSON cannot be
+		// unmarshalled due to type mismatch.
+		ssp, err := shadowDataTreePaths(schema, cschema, ft)
+		if err != nil {
+			return err
+		}
+		allSchemaPaths = append(allSchemaPaths, ssp...)
+
 		jsonValue, err := getJSONTreeValForField(schema, cschema, ft, jsonTree)
 		if err != nil {
 			return err
@@ -240,9 +253,9 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 }
 
 // validateContainerSchema validates the given container type schema. This is a
-// sanity check validation rather than a comprehensive validation against the
-// RFC. It is assumed that such a validation is done when the schema is parsed
-// from source YANG.
+// quick check rather than a comprehensive validation against the RFC. It is
+// assumed that such a validation is done when the schema is parsed from source
+// YANG.
 func validateContainerSchema(schema *yang.Entry) error {
 	if schema == nil {
 		return fmt.Errorf("container schema is nil")

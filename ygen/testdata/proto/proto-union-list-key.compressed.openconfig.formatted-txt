@@ -7,7 +7,6 @@ syntax = "proto3";
 
 package openconfig;
 
-import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 import "github.com/openconfig/ygot/proto/yext/yext.proto";
 import "openconfig/routing_policy/routing_policy.proto";
 

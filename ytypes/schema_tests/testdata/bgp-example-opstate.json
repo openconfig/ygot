@@ -10,11 +10,6 @@
               "enabled": true
             },
             "use-multiple-paths": {
-              "ebgp": {
-                "state": {
-                  "maximum-paths": 32
-                }
-              },
               "ibgp": {
                 "state": {
                   "maximum-paths": 32

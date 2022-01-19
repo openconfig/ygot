@@ -4,7 +4,8 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master ]
+  schedule:
+    - cron: "0 0 * * *"
 
 jobs:
   build:
@@ -13,11 +14,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        go: ['1.13', '1.14', '1.15']
+        go: ['1.13', '1.14', '1.15', '1.16', '1.x']
 
     steps:
       - name: Install protobuf
-        uses: arduino/setup-protoc@v1.1.0
+        uses: arduino/setup-protoc@v1
         with:
           version: '3.x'
 
@@ -64,6 +65,58 @@ jobs:
       - name: Run race tests
         run:  go test -race -v ./...
         working-directory: go/src/github.com/openconfig/ygot
+
+      - name: Check that Go integration test files compile
+        working-directory: go/src/github.com/openconfig/ygot
+        run: |
+          function test-go-build() {
+            cwd=$(pwd)
+            tmpdir=$(mktemp -d -p $cwd)
+            for f in "$@"; do
+                name=$(basename $f)
+                cp "$f" "$tmpdir"/"${name}.go"
+            done
+            cd $tmpdir
+            goimports -w *.go
+            go build
+            cd $cwd
+            rm -r $tmpdir
+          }
+
+          skipped=(
+            # fake ygot and ytype paths specified in generation options.
+            "openconfig-options-explicit.formatted-txt.go"
+          )
+          for f in ygen/testdata/schema/*.formatted-txt; do
+            if [[ ${skipped[@]} =~ $(basename $f) ]]; then
+              continue
+            fi
+            test-go-build $f
+          done
+
+          skipped=(
+          )
+          for f in ygen/testdata/structs/*.formatted-txt; do
+            if [[ ${skipped[@]} =~ $(basename $f) ]]; then
+              continue
+            fi
+            test-go-build $f
+          done
+
+          skipped=(
+            # GoStructs in a separate package, harder to set-up.
+            "openconfig-augmented.path-txt"
+            "openconfig-withlist-separate-package.path-txt"
+          )
+          for f in ypathgen/testdata/structs/*.path-txt; do
+            if [[ ${skipped[@]} =~ $(basename $f) ]]; then
+              continue
+            fi
+            filename=$(basename $f)
+            f_prefix="${filename%%.*}"
+            ygen_file="ygen/testdata/structs/${f_prefix}.formatted-txt"
+            test-go-build $f $ygen_file
+          done
 
   static_analysis:
     name: Static Analysis

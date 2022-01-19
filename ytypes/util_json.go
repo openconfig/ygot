@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
 )
@@ -37,7 +36,7 @@ func getJSONTreeValForField(parentSchema, schema *yang.Entry, f reflect.StructFi
 	var outPath []string
 	for _, p := range ps {
 		if jr, ok := getJSONTreeValForPath(tree, p); ok {
-			if out != nil && !cmp.Equal(out, jr) {
+			if out != nil && !reflect.DeepEqual(out, jr) {
 				return nil, fmt.Errorf("values at paths %v and %v are different: %v != %v", outPath, p, out, jr)
 			}
 			out = jr

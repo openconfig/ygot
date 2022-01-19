@@ -170,6 +170,12 @@ func TestPathsFromProtoInternal(t *testing.T) {
 			mustPath("/list-name[single-key=k2]/another-field"):     "val-two",
 		},
 	}, {
+		desc: "list with single key, no value specified",
+		inMsg: &epb.ExampleMessage{
+			Em: []*epb.ExampleMessageKey{{}},
+		},
+		wantErrSubstring: "nil list member",
+	}, {
 		desc: "list with multiple keys",
 		inMsg: &epb.ExampleMessage{
 			Multi: []*epb.ExampleMessageMultiKey{{
@@ -272,12 +278,316 @@ func TestPathsFromProtoInternal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			got, err := pathsFromProto(tt.inMsg)
+			got, err := PathsFromProto(tt.inMsg)
 			if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
 				t.Fatalf("did not get expected error, %s", diff)
 			}
 
 			if diff := cmp.Diff(got, tt.wantPaths, protocmp.Transform(), cmpopts.EquateEmpty(), cmpopts.SortMaps(testutil.PathLess)); diff != "" {
+				t.Fatalf("did not get expected results, diff(-got,+want):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestProtoFromPaths(t *testing.T) {
+	tests := []struct {
+		desc             string
+		inProto          proto.Message
+		inVals           map[*gpb.Path]interface{}
+		inOpt            []UnmapOpt
+		wantProto        proto.Message
+		wantErrSubstring string
+	}{{
+		desc:    "string field",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/string"): "hello",
+		},
+		wantProto: &epb.ExampleMessage{
+			Str: &wpb.StringValue{Value: "hello"},
+		},
+	}, {
+		desc:    "uint field",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/uint"): uint(18446744073709551615),
+		},
+		wantProto: &epb.ExampleMessage{
+			Ui: &wpb.UintValue{Value: 18446744073709551615},
+		},
+	}, {
+		desc:    "uint field as TypedValue",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/uint"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_UintVal{UintVal: 64},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			Ui: &wpb.UintValue{Value: 64},
+		},
+	}, {
+		desc:    "non uint value for uint",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/uint"): "invalid",
+		},
+		wantErrSubstring: "got non-uint value for uint field",
+	}, {
+		desc:    "string field as typed value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/string"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{StringVal: "hello-world"},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			Str: &wpb.StringValue{Value: "hello-world"},
+		},
+	}, {
+		desc:    "wrong field type",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/string"): 42,
+		},
+		wantErrSubstring: "got non-string value for string field",
+	}, {
+		desc:    "not a wrapper message",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/message"): &gpb.Path{},
+		},
+		wantErrSubstring: "unimplemented",
+	}, {
+		desc:    "unknown field",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/unknown"): "hi!",
+		},
+		wantErrSubstring: "did not map path",
+	}, {
+		desc:    "enumeration with valid value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): "VAL_ONE",
+		},
+		wantProto: &epb.ExampleMessage{
+			En: epb.ExampleEnum_ENUM_VALONE,
+		},
+	}, {
+		desc:    "enumeration with unknown value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): "NO-EXIST",
+		},
+		wantErrSubstring: "got unknown value in enumeration",
+	}, {
+		desc:    "enumeration with unknown type",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): false,
+		},
+		wantErrSubstring: "got unknown type for enumeration",
+	}, {
+		desc:    "enumeration with typedvalue",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_StringVal{
+					StringVal: "VAL_FORTYTWO",
+				},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			En: epb.ExampleEnum_ENUM_VALFORTYTWO,
+		},
+	}, {
+		desc:    "enumeration with bad typedvalue",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/enum"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_BoolVal{BoolVal: false},
+			},
+		},
+		wantErrSubstring: "supplied TypedValue for enumeration must be a string",
+	}, {
+		desc:             "nil input",
+		wantErrSubstring: "nil protobuf supplied",
+	}, {
+		desc:    "bytes value from typed value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/bytes"): &gpb.TypedValue{
+				Value: &gpb.TypedValue_BytesVal{BytesVal: []byte{1, 2, 3}},
+			},
+		},
+		wantProto: &epb.ExampleMessage{
+			By: &wpb.BytesValue{Value: []byte{1, 2, 3}},
+		},
+	}, {
+		desc:    "bytes value from  value",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/bytes"): []byte{4, 5, 6},
+		},
+		wantProto: &epb.ExampleMessage{
+			By: &wpb.BytesValue{Value: []byte{4, 5, 6}},
+		},
+	}, {
+		desc:    "non-bytes for bytes field",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/bytes"): 42,
+		},
+		wantErrSubstring: "got non-byte slice value for bytes field",
+	}, {
+		desc:    "compressed schema",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/state/compress"): "hello-world",
+		},
+		wantProto: &epb.ExampleMessage{
+			Compress: &wpb.StringValue{Value: "hello-world"},
+		},
+	}, {
+		desc:    "trim prefix",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/interfaces/interface/config/description"): "interface-42",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+		},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "interface-42"},
+		},
+	}, {
+		desc:    "trim prefix with valPrefix",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("description"): "interface-42",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			ValuePathPrefix(mustPath("/interfaces/interface/config")),
+		},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "interface-42"},
+		},
+	}, {
+		desc:    "invalid message with no annotation on one of its other fields",
+		inProto: &epb.InvalidMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("three"): "str",
+		},
+		wantErrSubstring: "received field with invalid annotation",
+	}, {
+		desc:    "invalid message with bad field type",
+		inProto: &epb.BadMessageKeyTwo{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("one"): "42",
+		},
+		wantErrSubstring: "unknown field kind",
+	}, {
+		desc:    "extra paths, not ignored",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("config/name"):        "interface-42",
+			mustPath("config/description"): "portal-to-wonderland",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			ValuePathPrefix(mustPath("/interfaces/interface")),
+		},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "interface-42"},
+		},
+		wantErrSubstring: `did not map path elem`,
+	}, {
+		desc:    "extra paths, ignored",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("config/name"):        "interface-42",
+			mustPath("config/description"): "portal-to-wonderland",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			IgnoreExtraPaths(),
+			ValuePathPrefix(mustPath("/interfaces/interface")),
+		},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "portal-to-wonderland"},
+		},
+	}, {
+		desc:    "field that is not directly a child",
+		inProto: &epb.ExampleMessage{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("/one/two/three"): "ignored",
+		},
+		wantProto: &epb.ExampleMessage{},
+	}, {
+		desc:    "value prefix specified - schema path",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("description"): "interface-42",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			ValuePathPrefix(mustPath("/interfaces/interface/config")),
+		},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "interface-42"},
+		},
+	}, {
+		desc:    "value prefix specified - data tree path",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("description"): "interface-42",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			ValuePathPrefix(mustPath("/interfaces/interface[name=ethernet42]/config")),
+		},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "interface-42"},
+		},
+	}, {
+		desc:    "bad trimmed value",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("config/description"): "interface-84",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/fish")),
+		},
+		wantErrSubstring: "invalid path provided, absolute paths must be used",
+	}, {
+		desc:    "relative paths to protobuf prefix",
+		inProto: &epb.Interface{},
+		inVals: map[*gpb.Path]interface{}{
+			mustPath("config/description"): "value",
+		},
+		inOpt: []UnmapOpt{
+			ProtobufMessagePrefix(mustPath("/interfaces/interface")),
+			ValuePathPrefix(mustPath("/interfaces/interface")),
+		},
+		wantProto: &epb.Interface{
+			Description: &wpb.StringValue{Value: "value"},
+		},
+	}}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := ProtoFromPaths(tt.inProto, tt.inVals, tt.inOpt...)
+			if err != nil {
+				if diff := errdiff.Substring(err, tt.wantErrSubstring); diff != "" {
+					t.Fatalf("did not get expected error, %s", diff)
+				}
+				return
+			}
+
+			if diff := cmp.Diff(tt.inProto, tt.wantProto, protocmp.Transform()); diff != "" {
 				t.Fatalf("did not get expected results, diff(-got,+want):\n%s", diff)
 			}
 		})

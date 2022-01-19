@@ -16,6 +16,7 @@
 package util
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strings"
@@ -208,17 +209,92 @@ func IsSimpleEnumerationType(t *yang.YangType) bool {
 
 // IsIdentityrefLeaf returns true if the supplied yang.Entry represents an
 // identityref.
-// TODO(wenbli): add unit test
 func IsIdentityrefLeaf(e *yang.Entry) bool {
 	return e.Type.IdentityBase != nil
 }
 
 // IsYANGBaseType determines whether the supplied YangType is a built-in type
 // in YANG, or a derived type (i.e., typedef).
-// TODO(wenbli): add unit test
 func IsYANGBaseType(t *yang.YangType) bool {
 	_, ok := yang.TypeKindFromName[t.Name]
 	return ok
+}
+
+// SanitizedPattern returns the values of the posix-pattern extension
+// statements for the YangType. If it's empty, then it returns the values from
+// the pattern statements with anchors attached (if missing).
+// It also returns whether the patterns are POSIX.
+func SanitizedPattern(t *yang.YangType) ([]string, bool) {
+	if len(t.POSIXPattern) != 0 {
+		return t.POSIXPattern, true
+	}
+	var pat []string
+	for _, p := range t.Pattern {
+		// fixYangRegexp adds ^(...)$ around the pattern - the result is
+		// equivalent to a full match of whole string.
+		pat = append(pat, fixYangRegexp(p))
+	}
+	return pat, false
+}
+
+// fixYangRegexp takes a pattern regular expression from a YANG module and
+// returns it into a format which can be used by the Go regular expression
+// library. YANG uses a W3C standard that is defined to be implicitly anchored
+// at the head or tail of the expression. See
+// https://www.w3.org/TR/2004/REC-xmlschema-2-20041028/#regexs for details.
+func fixYangRegexp(pattern string) string {
+	var buf bytes.Buffer
+	var inEscape bool
+	var prevChar rune
+	addParens := false
+
+	for i, ch := range pattern {
+		if i == 0 && ch != '^' {
+			buf.WriteRune('^')
+			// Add parens around entire expression to prevent logical
+			// subexpressions associating with leading/trailing ^ / $.
+			buf.WriteRune('(')
+			addParens = true
+		}
+
+		switch ch {
+		case '$':
+			// Dollar signs need to be escaped unless they are at
+			// the end of the pattern, or are already escaped.
+			if !inEscape && i != len(pattern)-1 {
+				buf.WriteRune('\\')
+			}
+		case '^':
+			// Carets need to be escaped unless they are already
+			// escaped, indicating set negation ([^.*]) or at the
+			// start of the string.
+			if !inEscape && prevChar != '[' && i != 0 {
+				buf.WriteRune('\\')
+			}
+		}
+
+		// If the previous character was an escape character, then we
+		// leave the escape, otherwise check whether this is an escape
+		// char and if so, then enter escape.
+		inEscape = !inEscape && ch == '\\'
+
+		if i == len(pattern)-1 && addParens && ch == '$' {
+			buf.WriteRune(')')
+		}
+
+		buf.WriteRune(ch)
+
+		if i == len(pattern)-1 && ch != '$' {
+			if addParens {
+				buf.WriteRune(')')
+			}
+			buf.WriteRune('$')
+		}
+
+		prevChar = ch
+	}
+
+	return buf.String()
 }
 
 // IsConfig takes a yang.Entry and traverses up the tree to find the config
@@ -227,18 +303,7 @@ func IsYANGBaseType(t *yang.YangType) bool {
 // the state. If the element at the top of the tree does not have config set, then config
 // is true. See https://tools.ietf.org/html/rfc6020#section-7.19.1.
 func IsConfig(e *yang.Entry) bool {
-	for ; e.Parent != nil; e = e.Parent {
-		switch e.Config {
-		case yang.TSTrue:
-			return true
-		case yang.TSFalse:
-			return false
-		}
-	}
-
-	// Reached the last element in the tree without explicit configuration
-	// being set.
-	return e.Config != yang.TSFalse
+	return !e.ReadOnly()
 }
 
 // isPathChild takes an input slice of strings representing a path and determines
@@ -337,6 +402,44 @@ func findFirstNonChoiceOrCaseInternal(e *yang.Entry) map[string]*yang.Entry {
 		}
 	}
 	return m
+}
+
+// findFirstNonChoiceOrCaseEntry recursively traverses the schema tree and returns a
+// map with the set of the first nodes in every path that are neither case nor
+// choice nodes. The keys in the map are the identifiers of the non-choice or case
+// elements, since the identifiers of all these child nodes MUST be unique
+// within all cases in a choice. If there are duplicate elements, then an error
+// is returned.
+// https://datatracker.ietf.org/doc/html/rfc7950#section-7.9.2
+func findFirstNonChoiceOrCaseEntry(e *yang.Entry) (map[string]*yang.Entry, error) {
+	m := make(map[string]*yang.Entry)
+	for _, ch := range e.Dir {
+		m2, err := findFirstNonChoiceOrCaseEntryInternal(ch)
+		if err != nil {
+			return nil, nil
+		}
+		addToEntryMap(m, m2)
+	}
+	return m, nil
+}
+
+// findFirstNonChoiceOrCaseEntryInternal is an internal part of
+// findFirstNonChoiceOrCaseEntry.
+func findFirstNonChoiceOrCaseEntryInternal(e *yang.Entry) (map[string]*yang.Entry, error) {
+	m := make(map[string]*yang.Entry)
+	switch {
+	case !IsChoiceOrCase(e):
+		m[e.Name] = e
+	case e.IsDir():
+		for _, ch := range e.Dir {
+			m2, err := findFirstNonChoiceOrCaseEntryInternal(ch)
+			if err != nil {
+				return nil, nil
+			}
+			addToEntryMap(m, m2)
+		}
+	}
+	return m, nil
 }
 
 // addToEntryMap merges from into to, overwriting overlapping key-value pairs.
