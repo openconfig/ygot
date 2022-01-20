@@ -482,11 +482,25 @@ func TestValidateNetworkInstance(t *testing.T) {
 
 func TestValidateBGP(t *testing.T) {
 	d := &oc.Device{
-		Bgp: &oc.Bgp{
-			Global: &oc.Bgp_Global{
-				As: ygot.Uint32(15169),
-				Confederation: &oc.Bgp_Global_Confederation{
-					MemberAs: []uint32{65497, 65498},
+		NetworkInstance: map[string]*oc.NetworkInstance{
+			"DEFAULT": {
+				Name: ygot.String("DEFAULT"),
+				Protocol: map[oc.NetworkInstance_Protocol_Key]*oc.NetworkInstance_Protocol{
+					{
+						Name:       "BGP",
+						Identifier: oc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+					}: {
+						Name:       ygot.String("BGP"),
+						Identifier: oc.PolicyTypes_INSTALL_PROTOCOL_TYPE_BGP,
+						Bgp: &oc.NetworkInstance_Protocol_Bgp{
+							Global: &oc.NetworkInstance_Protocol_Bgp_Global{
+								As: ygot.Uint32(15169),
+								Confederation: &oc.NetworkInstance_Protocol_Bgp_Global_Confederation{
+									MemberAs: []uint32{65497, 65498},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
