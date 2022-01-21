@@ -1,11 +1,11 @@
 {
-   "openconfig-bgp:global": {
+   "openconfig-network-instance:global": {
       "config": {
          "as": 15169,
          "router-id": "192.0.2.42"
       }
    },
-   "openconfig-bgp:neighbors": {
+   "openconfig-network-instance:neighbors": {
       "neighbor": [
          {
             "config": {

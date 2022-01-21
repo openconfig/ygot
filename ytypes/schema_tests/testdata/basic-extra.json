@@ -1,11 +1,9 @@
 {
  "another-mod:aug": "value",
- "openconfig-bgp:bgp": {
-   "global": {
-     "config": {
-       "as": 12345,
-       "router-id": "10.10.10.10"
-     }
-   }
- }    
+ "openconfig-system:system": {
+  "config": {
+    "hostname": "box.location",
+    "domain-name": "some.isp"
+  }
+ }
 }

@@ -30,6 +30,7 @@ func main() {
 	if err != nil {
 		log.Exitf("Error in OpenConfig BGP demo: %v", err)
 	}
+
 	json, err := EmitBGPJSON(bgp)
 	if err != nil {
 		log.Exitf("Error outputting JSON: %v", err)
@@ -44,16 +45,17 @@ func main() {
 }
 
 // CreateDemoBGPInstance creates a demo OpenConfig BGP instance using the legacy
-// BGP path at /bgp. It is specifically created as a separate function in order
+// BGP path at /network-instances/network-instance/protocols/protocol/bgp.
+// It is specifically created as a separate function in order
 // to be used as a regression test for the chain of Go struct
 // generation from the OpenConfig YANG schema. Returns the GoStruct that is constructed
 // rather than the JSON so that different rendering methods can be used.
-func CreateDemoBGPInstance() (*oc.Bgp, error) {
+func CreateDemoBGPInstance() (*oc.NetworkInstance_Protocol_Bgp, error) {
 	// Initialise the OpenConfig BGP model at /bgp (pre-network instance). The
 	// struct is named according to the path of the entity ignoring any "stuttering"
 	// or "config" and "state" within the path.
-	bgp := &oc.Bgp{
-		Global: &oc.Bgp_Global{
+	bgp := &oc.NetworkInstance_Protocol_Bgp{
+		Global: &oc.NetworkInstance_Protocol_Bgp_Global{
 			As:       ygot.Uint32(15169),
 			RouterId: ygot.String("192.0.2.42"),
 		},
@@ -79,28 +81,28 @@ func CreateDemoBGPInstance() (*oc.Bgp, error) {
 
 	// Elements of the schema that themselves are containers have a struct
 	// generated for them which can be set directly.
-	nPeer.Timers = &oc.Bgp_Neighbor_Timers{
+	nPeer.Timers = &oc.NetworkInstance_Protocol_Bgp_Neighbor_Timers{
 		HoldTime:          ygot.Float64(90.0),
 		KeepaliveInterval: ygot.Float64(30.0),
 	}
 
 	// An entry in a list can be directly defined as a map entry, with the multi-key
 	// level struct specified directly.
-	bgp.Neighbor["192.0.2.1"] = &oc.Bgp_Neighbor{
+	bgp.Neighbor["192.0.2.1"] = &oc.NetworkInstance_Protocol_Bgp_Neighbor{
 		PeerAs:          ygot.Uint32(2856),
 		NeighborAddress: ygot.String("192.0.2.1"),
 		Description:     ygot.String("BT UK"),
-		Timers: &oc.Bgp_Neighbor_Timers{
+		Timers: &oc.NetworkInstance_Protocol_Bgp_Neighbor_Timers{
 			HoldTime:          ygot.Float64(30.0),
 			KeepaliveInterval: ygot.Float64(10.0),
 		},
-		Transport: &oc.Bgp_Neighbor_Transport{
+		Transport: &oc.NetworkInstance_Protocol_Bgp_Neighbor_Transport{
 			PassiveMode: ygot.Bool(true),
 		},
 	}
 
 	// Set the peer as a route reflector client using the String union helper typedef.
-	bgp.Neighbor["192.0.2.1"].RouteReflector = &oc.Bgp_Neighbor_RouteReflector{
+	bgp.Neighbor["192.0.2.1"].RouteReflector = &oc.NetworkInstance_Protocol_Bgp_Neighbor_RouteReflector{
 		RouteReflectorClusterId: oc.UnionString("10.0.1.2"),
 	}
 
@@ -108,7 +110,7 @@ func CreateDemoBGPInstance() (*oc.Bgp, error) {
 }
 
 // EmitBGPJSON outputs JSON using the ygot.EmitJSON function.
-func EmitBGPJSON(bgp *oc.Bgp) (string, error) {
+func EmitBGPJSON(bgp *oc.NetworkInstance_Protocol_Bgp) (string, error) {
 	// Outputting JSON is simply a case of calling the output library's EmitJSON
 	// function.
 	json, err := ygot.EmitJSON(bgp, nil)
@@ -119,7 +121,7 @@ func EmitBGPJSON(bgp *oc.Bgp) (string, error) {
 }
 
 // EmitRFC7951JSON outputs RFC7951-compliant JSON using the ygot.EmitJSON function.
-func EmitRFC7951JSON(bgp *oc.Bgp) (string, error) {
+func EmitRFC7951JSON(bgp *oc.NetworkInstance_Protocol_Bgp) (string, error) {
 	json, err := ygot.EmitJSON(bgp, &ygot.EmitJSONConfig{
 		Format: ygot.RFC7951,
 		RFC7951Config: &ygot.RFC7951JSONConfig{
