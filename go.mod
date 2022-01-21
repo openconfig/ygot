@@ -11,7 +11,6 @@ require (
 	github.com/openconfig/goyang v0.2.9
 	github.com/openconfig/gribi v0.1.1-0.20210423184541-ce37eb4ba92f
 	github.com/pmezard/go-difflib v1.0.0
-	google.golang.org/genproto v0.0.0-20201214200347-8c77b98c765d
 	google.golang.org/grpc v1.37.0
 	google.golang.org/protobuf v1.26.0
 )

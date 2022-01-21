@@ -31,13 +31,10 @@ import (
 	"github.com/openconfig/ygot/ytypes"
 
 	"github.com/openconfig/gnmi/errdiff"
-	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	oc "github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/exampleoc/opstateoc"
 	woc "github.com/openconfig/ygot/exampleoc/wrapperunionoc"
 	uoc "github.com/openconfig/ygot/uexampleoc"
-	scpb "google.golang.org/genproto/googleapis/rpc/code"
-	spb "google.golang.org/genproto/googleapis/rpc/status"
 )
 
 // To debug a schema node subtree, any of the following can be used:
@@ -821,21 +818,6 @@ func TestLeafrefCurrent(t *testing.T) {
 	if err := dev.Validate(&ytypes.LeafrefOptions{IgnoreMissingData: true}); err != nil {
 		t.Fatalf("TestLeafrefCurrent: did not get nil error when disabling leafref data validation, got: %v, want: nil", err)
 	}
-}
-
-func toGNMIPath(path []string) *gpb.Path {
-	out := &gpb.Path{}
-	for _, p := range path {
-		out.Elem = append(out.GetElem(), &gpb.PathElem{Name: p})
-	}
-	return out
-}
-
-// statusOK indicates an OK Status.
-var statusOK = spb.Status{Code: int32(scpb.Code_OK)}
-
-func isOK(status spb.Status) bool {
-	return status.GetCode() == int32(scpb.Code_OK)
 }
 
 func diffJSON(a, b []byte) (string, error) {
