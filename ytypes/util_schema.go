@@ -36,11 +36,11 @@ func validateLengthSchema(schema *yang.Entry) error {
 		// This is a limited check. It's assumed that a full check is
 		// done in the goyang parser.
 		minLen, maxLen := r.Min, r.Max
-		if minLen.Kind != yang.MinNumber && minLen.Kind != yang.Positive {
-			return fmt.Errorf("length Min must be Positive or MinNumber: %v for schema %s", minLen, schema.Name)
+		if minLen.Negative {
+			return fmt.Errorf("length Min must be positive: %v for schema %s", minLen, schema.Name)
 		}
-		if maxLen.Kind != yang.MaxNumber && maxLen.Kind != yang.Positive {
-			return fmt.Errorf("length Max must be Positive or MaxNumber: %v for schema %s", minLen, schema.Name)
+		if maxLen.Negative {
+			return fmt.Errorf("length Max must be positive: %v for schema %s", minLen, schema.Name)
 		}
 		if maxLen.Less(minLen) {
 			return fmt.Errorf("schema has bad length min[%v] > max[%v] for schema %s", minLen, maxLen, schema.Name)

@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
 )
 
 const (
@@ -250,7 +249,7 @@ func TestValidateDecimalValue(t *testing.T) {
 		{
 			desc: "ranges [-inf,-], [0,+]",
 			ranges: yang.YangRange{
-				yang.YRange{Min: util.YangMinNumber, Max: yang.FromFloat(-5.1)},
+				yang.YRange{Min: yang.FromFloat(yang.MinDecimal64), Max: yang.FromFloat(-5.1)},
 				yang.YRange{Min: yang.FromFloat(0), Max: yang.FromFloat(10.1)},
 			},
 			inValues:  []float64{tooLargeNegativeFloat, largestNegativeValidFloat, -100, -7, -5.1, 0, tooSmallFloat, 5, 10},
@@ -260,7 +259,7 @@ func TestValidateDecimalValue(t *testing.T) {
 			desc: "ranges [-,-], [0,+inf]",
 			ranges: yang.YangRange{
 				yang.YRange{Min: yang.FromFloat(-10.1), Max: yang.FromFloat(-5.1)},
-				yang.YRange{Min: yang.FromFloat(0), Max: util.YangMaxNumber},
+				yang.YRange{Min: yang.FromFloat(0), Max: yang.FromFloat(yang.MaxDecimal64)},
 			},
 			inValues:  []float64{-10.1, -10.05, -7, -5.100001, -5.1, 0, tooSmallFloat, 5, 100, largestValidFloat, tooLargeFloat},
 			outValues: []float64{tooLargeNegativeFloat, largestNegativeValidFloat, -10.15, -5.0009, -0.0001},

@@ -19,7 +19,6 @@ import (
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
 )
 
 var (
@@ -73,16 +72,15 @@ func TestValidateIntSchema(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			desc: "bad range Min",
+			desc: "bad range: negative window",
 			schema: &yang.Entry{
 				Name: "bad-range-schema",
 				Type: &yang.YangType{
 					Kind: yang.Yint8,
 					Range: yang.YangRange{
 						yang.YRange{
-							Min: yang.Number{
-								Kind: yang.MaxNumber,
-							},
+							Min: yang.FromInt(5),
+							Max: yang.FromInt(0),
 						},
 					},
 				},
@@ -90,16 +88,15 @@ func TestValidateIntSchema(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			desc: "bad range Max",
+			desc: "bad range: negative number in unsigned integer",
 			schema: &yang.Entry{
 				Name: "bad-range-schema",
 				Type: &yang.YangType{
-					Kind: yang.Yint8,
+					Kind: yang.Yuint8,
 					Range: yang.YangRange{
 						yang.YRange{
-							Max: yang.Number{
-								Kind: yang.MinNumber,
-							},
+							Min: yang.FromInt(-5),
+							Max: yang.FromInt(0),
 						},
 					},
 				},
@@ -178,14 +175,14 @@ func TestIntRangeOverflow(t *testing.T) {
 		{
 			desc: "bad min",
 			ranges: func(yt yang.TypeKind) yang.YangRange {
-				return yang.YangRange{yang.YRange{Min: yang.FromInt(tooSmall[yt]), Max: util.YangMaxNumber}}
+				return yang.YangRange{yang.YRange{Min: yang.FromInt(tooSmall[yt]), Max: yang.FromInt(127)}}
 			},
 			wantErr: true,
 		},
 		{
 			desc: "bad max",
 			ranges: func(yt yang.TypeKind) yang.YangRange {
-				return yang.YangRange{yang.YRange{Min: util.YangMinNumber, Max: yang.FromInt(tooLarge[yt])}}
+				return yang.YangRange{yang.YRange{Min: yang.FromInt(0), Max: yang.FromInt(tooLarge[yt])}}
 			},
 			wantErr: true,
 		},
@@ -305,7 +302,7 @@ func TestValidateInt(t *testing.T) {
 		{
 			desc: "ranges [-inf,-], [0,+]",
 			ranges: yang.YangRange{
-				yang.YRange{Min: util.YangMinNumber, Max: yang.FromInt(-5)},
+				yang.YRange{Min: yang.FromInt(-128), Max: yang.FromInt(-5)},
 				yang.YRange{Min: yang.FromInt(0), Max: yang.FromInt(10)},
 			},
 			inValues:  []int64{-100, -7, -5, 0, 5, 10},
@@ -315,7 +312,7 @@ func TestValidateInt(t *testing.T) {
 			desc: "ranges [-,-], [0,+inf]",
 			ranges: yang.YangRange{
 				yang.YRange{Min: yang.FromInt(-10), Max: yang.FromInt(-5)},
-				yang.YRange{Min: yang.FromInt(0), Max: util.YangMaxNumber},
+				yang.YRange{Min: yang.FromInt(0), Max: yang.FromInt(127)},
 			},
 			inValues:  []int64{-10, -7, -5, 0, 5, 100},
 			outValues: []int64{-11, -4, -1},

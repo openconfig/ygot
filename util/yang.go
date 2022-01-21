@@ -24,13 +24,6 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 )
 
-var (
-	// YangMaxNumber represents the maximum value for any integer type.
-	YangMaxNumber = yang.Number{Kind: yang.MaxNumber}
-	// YangMinNumber represents the minimum value for any integer type.
-	YangMinNumber = yang.Number{Kind: yang.MinNumber}
-)
-
 // CompressedSchemaAnnotation stores the name of the annotation indicating
 // whether a set of structs were built with -compress_path. It is appended
 // to the yang.Entry struct of the root entity of the structs within the

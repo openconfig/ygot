@@ -185,17 +185,17 @@ func TestYangTypeToDebugString(t *testing.T) {
 			Kind:         yang.Ystring,
 			Pattern:      []string{"abc"},
 			POSIXPattern: []string{"^abc$"},
-			Range:        yang.YangRange{yang.YRange{Min: YangMinNumber, Max: YangMaxNumber}},
+			Range:        yang.Uint64Range,
 		},
-		wantStr: `(TypeKind: string, Sanitized pattern (POSIX: true): ^abc$, Range: min..max)`,
+		wantStr: `(TypeKind: string, Sanitized pattern (POSIX: true): ^abc$, Range: 0..18446744073709551615)`,
 	}, {
 		desc: "non-POSIX",
 		inType: &yang.YangType{
 			Kind:    yang.Ystring,
 			Pattern: []string{"abc"},
-			Range:   yang.YangRange{yang.YRange{Min: YangMinNumber, Max: YangMaxNumber}},
+			Range:   yang.Uint64Range,
 		},
-		wantStr: `(TypeKind: string, Sanitized pattern (POSIX: false): ^(abc)$, Range: min..max)`,
+		wantStr: `(TypeKind: string, Sanitized pattern (POSIX: false): ^(abc)$, Range: 0..18446744073709551615)`,
 	}}
 
 	for _, tt := range tests {

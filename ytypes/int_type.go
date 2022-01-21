@@ -166,12 +166,10 @@ func validateIntSchema(schema *yang.Entry) error {
 
 	// Ensure ranges have valid value types.
 	for _, r := range ranges {
-		switch {
-		case r.Min.Kind != yang.MinNumber && r.Min.Kind != yang.Positive && r.Min.Kind != yang.Negative:
-			return fmt.Errorf("range %v min must be Positive, Negative or MinNumber for schema %s", r, schema.Name)
-		case r.Max.Kind != yang.MaxNumber && r.Max.Kind != yang.Positive && r.Max.Kind != yang.Negative:
-			return fmt.Errorf("range %v max must be Positive, Negative or MaxNumber for schema %s", r, schema.Name)
-		case !isSigned(kind) && (r.Min.Kind == yang.Negative || r.Max.Kind == yang.Negative):
+		if r.Max.Less(r.Min) {
+			return fmt.Errorf("int range cannot be a negative window %#v for schema %s", r, schema.Path())
+		}
+		if !isSigned(kind) && (r.Min.Negative || r.Max.Negative) {
 			return fmt.Errorf("unsigned int cannot have negative range boundaries %v for schema %s", r, schema.Name)
 		}
 	}
@@ -198,10 +196,6 @@ func validateIntSchema(schema *yang.Entry) error {
 // legalValue reports whether val is within the range allowed for the given
 // integer kind. kind must be an integer type.
 func legalValue(schema *yang.Entry, val yang.Number) bool {
-	if val.Kind == yang.MinNumber || val.Kind == yang.MaxNumber {
-		return true
-	}
-
 	yr := yang.YangRange{yang.YRange{Min: val, Max: val}}
 	switch schema.Type.Kind {
 	case yang.Yint8:
