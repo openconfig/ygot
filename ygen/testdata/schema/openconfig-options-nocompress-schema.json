@@ -73,14 +73,14 @@
                                                 "Range": [
                                                     {
                                                         "Min": {
-                                                            "Kind": 0,
                                                             "Value": 0,
-                                                            "FractionDigits": 0
+                                                            "FractionDigits": 0,
+                                                            "Negative": false
                                                         },
                                                         "Max": {
-                                                            "Kind": 0,
                                                             "Value": 4294967295,
-                                                            "FractionDigits": 0
+                                                            "FractionDigits": 0,
+                                                            "Negative": false
                                                         }
                                                     }
                                                 ]
@@ -196,14 +196,14 @@
                                                         "Range": [
                                                             {
                                                                 "Min": {
-                                                                    "Kind": 0,
                                                                     "Value": 0,
-                                                                    "FractionDigits": 0
+                                                                    "FractionDigits": 0,
+                                                                    "Negative": false
                                                                 },
                                                                 "Max": {
-                                                                    "Kind": 0,
                                                                     "Value": 4294967295,
-                                                                    "FractionDigits": 0
+                                                                    "FractionDigits": 0,
+                                                                    "Negative": false
                                                                 }
                                                             }
                                                         ]
@@ -234,14 +234,14 @@
                                                 "Range": [
                                                     {
                                                         "Min": {
-                                                            "Kind": 0,
                                                             "Value": 0,
-                                                            "FractionDigits": 0
+                                                            "FractionDigits": 0,
+                                                            "Negative": false
                                                         },
                                                         "Max": {
-                                                            "Kind": 0,
                                                             "Value": 4294967295,
-                                                            "FractionDigits": 0
+                                                            "FractionDigits": 0,
+                                                            "Negative": false
                                                         }
                                                     }
                                                 ]

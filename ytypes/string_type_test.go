@@ -18,7 +18,6 @@ import (
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/util"
 )
 
 var validStringSchema = yrangeAndPatternToStringSchema("valid-string-schema", yang.YRange{Min: yang.FromInt(2), Max: yang.FromInt(10)}, nil, nil)
@@ -65,6 +64,10 @@ func TestValidateStringSchema(t *testing.T) {
 	}
 }
 
+const (
+	maxUint64 uint64 = 18446744073709551615
+)
+
 func TestValidateStringSchemaRanges(t *testing.T) {
 	tests := []struct {
 		desc       string
@@ -80,19 +83,19 @@ func TestValidateStringSchemaRanges(t *testing.T) {
 		},
 		{
 			desc:       "unset min success",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: yang.FromInt(10)},
+			length:     yang.YRange{Min: yang.FromInt(0), Max: yang.FromInt(10)},
 			schemaName: "range-10-or-less",
 			POSIXRe:    []string{`^ab.$`, `^.*bc$`},
 		},
 		{
 			desc:       "unset max success",
-			length:     yang.YRange{Min: yang.FromInt(2), Max: util.YangMaxNumber},
+			length:     yang.YRange{Min: yang.FromInt(2), Max: yang.FromUint(maxUint64)},
 			schemaName: "range-2-or-more",
 			POSIXRe:    []string{`^ab.$`, `^.*bc$`},
 		},
 		{
 			desc:       "unset min and max success",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			POSIXRe:    []string{`^ab.$`, `^.*bc$`},
 		},
@@ -104,13 +107,13 @@ func TestValidateStringSchemaRanges(t *testing.T) {
 		},
 		{
 			desc:       "negative min length",
-			length:     yang.YRange{Min: yang.FromInt(-1), Max: util.YangMaxNumber},
+			length:     yang.YRange{Min: yang.FromInt(-1), Max: yang.FromUint(maxUint64)},
 			schemaName: "bad-range-negative-min",
 			wantErr:    true,
 		},
 		{
 			desc:       "negative max length",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: yang.FromInt(-1)},
+			length:     yang.YRange{Min: yang.FromInt(0), Max: yang.FromInt(-1)},
 			schemaName: "bad-range-negative-max",
 			wantErr:    true,
 		},
@@ -216,7 +219,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "non string type",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			val:        int64(123),
 			wantErr:    true,
@@ -230,14 +233,14 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "short string",
-			length:     yang.YRange{Min: yang.FromInt(20), Max: util.YangMaxNumber},
+			length:     yang.YRange{Min: yang.FromInt(20), Max: yang.FromUint(maxUint64)},
 			schemaName: "range-20-or-more",
 			val:        "short_value",
 			wantErr:    true,
 		},
 		{
 			desc:       "regular expression matching with no anchors OK",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			re:         []string{`[ab]{2}([cd])?`},
 			POSIXRe:    []string{`^[ab]{2}([cd])?$`},
@@ -245,7 +248,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "regular expression matching with no anchors failure",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			re:         []string{`[ab]{2}([cd])?`},
 			POSIXRe:    []string{`^[ab]{2}([cd])?$`},
@@ -254,7 +257,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "unanchored regular expression does not match",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			re:         []string{`[0-9]+`},
 			POSIXRe:    []string{`^[0-9]+$`},
@@ -263,7 +266,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "regular expression matching with anchors",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			re:         []string{`^[ab]{2}([cd])?$`},
 			POSIXRe:    []string{`^[ab]{2}([cd])?$`},
@@ -271,7 +274,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "regular expression matching with embedded $",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			re:         []string{`$[0-9]+`},
 			POSIXRe:    []string{`^\$[0-9]+$`},
@@ -279,7 +282,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "regular expression matching with embedded ^",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			re:         []string{`[a-z]+^`},
 			POSIXRe:    []string{`^[a-z]+\^$`},
@@ -287,7 +290,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "regular expression matching with escape chars",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			re:         []string{`[0-9]+\.[0-9]+`},
 			POSIXRe:    []string{`^[0-9]+\.[0-9]+$`},
@@ -295,7 +298,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "regular expression with escaped escapes",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			re:         []string{`foo\\^bar`},
 			POSIXRe:    []string{`^foo\\\^bar$`},
@@ -303,7 +306,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "regular expression with set negation, valid",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			re:         []string{`[^:][0-9a-fA-F]+`},
 			POSIXRe:    []string{`^[^:][0-9a-fA-F]+$`},
@@ -312,7 +315,7 @@ func TestValidateString(t *testing.T) {
 		},
 		{
 			desc:       "regular expression with set negation, invalid",
-			length:     yang.YRange{Min: util.YangMinNumber, Max: util.YangMaxNumber},
+			length:     yang.Uint64Range[0],
 			schemaName: "range-any",
 			re:         []string{`[^:][0-9a-fA-F]+`},
 			POSIXRe:    []string{`^[^:][0-9a-fA-F]+$`},

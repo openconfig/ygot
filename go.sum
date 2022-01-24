@@ -44,8 +44,8 @@ github.com/openconfig/gnmi v0.0.0-20200508230933-d19cebf5e7be h1:VEK8utxoyZu/hkp
 github.com/openconfig/gnmi v0.0.0-20200508230933-d19cebf5e7be/go.mod h1:M/EcuapNQgvzxo1DDXHK4tx3QpYM/uG4l591v33jG2A=
 github.com/openconfig/goyang v0.0.0-20200115183954-d0a48929f0ea/go.mod h1:dhXaV0JgHJzdrHi2l+w0fZrwArtXL7jEFoiqLEdmkvU=
 github.com/openconfig/goyang v0.2.2/go.mod h1:vX61x01Q46AzbZUzG617vWqh/cB+aisc+RrNkXRd3W8=
-github.com/openconfig/goyang v0.2.9 h1:Z95LskKYk6nBYOxHtmJCu3YEKlr3pJLWG1tYAaNh3yU=
-github.com/openconfig/goyang v0.2.9/go.mod h1:vX61x01Q46AzbZUzG617vWqh/cB+aisc+RrNkXRd3W8=
+github.com/openconfig/goyang v0.4.0 h1:e6oGwpXXirSzQa0tmvwgp4L8jc3RvfzqroJFyC5uZXE=
+github.com/openconfig/goyang v0.4.0/go.mod h1:vX61x01Q46AzbZUzG617vWqh/cB+aisc+RrNkXRd3W8=
 github.com/openconfig/gribi v0.1.1-0.20210423184541-ce37eb4ba92f h1:8vRtC+y0xh9BYPrEGf/jG/paYXiDUJ6P8iYt5rCVols=
 github.com/openconfig/gribi v0.1.1-0.20210423184541-ce37eb4ba92f/go.mod h1:OoH46A2kV42cIXGyviYmAlGmn6cHjGduyC2+I9d/iVs=
 github.com/openconfig/ygot v0.6.0/go.mod h1:o30svNf7O0xK+R35tlx95odkDmZWS9JyWWQSmIhqwAs=
