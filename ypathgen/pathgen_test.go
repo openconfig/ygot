@@ -1263,7 +1263,7 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 						Name:    "leaf",
 						Kind:    yang.LeafEntry,
 						Type:    &yang.YangType{Name: "int32", Kind: yang.Yint32},
-						Default: "bar",
+						Default: []string{"bar"},
 					},
 				},
 			},

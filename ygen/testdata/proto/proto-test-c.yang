@@ -1,6 +1,15 @@
 module proto-test-c {
+  yang-version 1.1;
   prefix "proto-c";
   namespace "urn:proto-c";
+
+  typedef enum-with-default {
+    type enumeration {
+      enum A;
+      enum B;
+    }
+    default "B";
+  }
 
   grouping entity-cfg {
     leaf enumerated-leaf {
@@ -16,6 +25,27 @@ module proto-test-c {
         enum B;
       }
       default "A";
+    }
+
+    leaf-list enumerated-with-default-list-single-default-at-type {
+      type enum-with-default;
+    }
+
+    leaf-list enumerated-with-default-list-single-default {
+      type enumeration {
+        enum A;
+        enum B;
+      }
+      default "B";
+    }
+
+    leaf-list enumerated-with-default-list-multiple-default {
+      type enumeration {
+        enum A;
+        enum B;
+      }
+      default "A";
+      default "B";
     }
   }
 

@@ -504,6 +504,22 @@ func TestSimpleStructs(t *testing.T) {
 		},
 		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-simple-no-compress.trimmed-enum.formatted-txt"),
 	}, {
+		name:    "OpenConfig leaf-list defaults test, with compression",
+		inFiles: []string{filepath.Join(datapath, "openconfig-leaflist-default.yang")},
+		inConfig: GeneratorConfig{
+			GoOptions: GoOpts{
+				GenerateSimpleUnions:    true,
+				GenerateLeafGetters:     true,
+				GeneratePopulateDefault: true,
+			},
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.PreferIntendedConfig,
+				ShortenEnumLeafNames:                 true,
+				UseDefiningModuleForTypedefEnumNames: true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/openconfig-leaflist-default.formatted-txt"),
+	}, {
 		name:    "OpenConfig schema test - with annotations",
 		inFiles: []string{filepath.Join(datapath, "openconfig-simple.yang")},
 		inConfig: GeneratorConfig{
@@ -2102,6 +2118,7 @@ func TestGenerateProto3(t *testing.T) {
 			"openconfig.proto_test_c.entity":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.entity.formatted-txt"),
 			"openconfig.proto_test_c.elists":       filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.formatted-txt"),
 			"openconfig.proto_test_c.elists.elist": filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.proto-test-c.elists.elist.formatted-txt"),
+			"openconfig.enums":                     filepath.Join(TestRoot, "testdata", "proto", "proto-test-c.enums.formatted-txt"),
 		},
 	}, {
 		name:    "yang schema with identityref and enumerated typedef, compression off",

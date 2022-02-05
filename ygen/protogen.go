@@ -910,16 +910,25 @@ func genProtoEnum(field *yang.Entry, annotateEnumNames bool) (*protoMsgEnum, err
 	names := field.Type.Enum.NameMap()
 	eval[0] = protoEnumValue{ProtoLabel: protoEnumZeroName}
 
-	if d := field.DefaultValue(); d != "" {
-		if _, ok := names[d]; !ok {
-			return nil, fmt.Errorf("enumeration %s specified a default - %s - that was not a valid value", field.Path(), d)
-		}
+	var defaultValue string
+	// Not having an UNSET only makes sense for non-leaf-lists because
+	// doing this doesn't populate repeated fields.
+	// Typedef enum definitions are never leaf-lists even though they can
+	// be used within a leaf-list.
+	if field.ListAttr == nil || !util.IsYANGBaseType(field.Type) {
+		var ok bool
+		defaultValue, ok = field.SingleDefaultValue()
+		if ok {
+			if _, ok := names[defaultValue]; !ok {
+				return nil, fmt.Errorf("enumeration %s specified a default - %s - that was not a valid value", field.Path(), defaultValue)
+			}
 
-		eval[0] = toProtoEnumValue(safeProtoIdentifierName(d), d, annotateEnumNames)
+			eval[0] = toProtoEnumValue(safeProtoIdentifierName(defaultValue), defaultValue, annotateEnumNames)
+		}
 	}
 
 	for n := range names {
-		if n == field.DefaultValue() {
+		if n == defaultValue {
 			// Can't happen if there was not a default, since "" is not
 			// a valid enumeration name in YANG.
 			continue

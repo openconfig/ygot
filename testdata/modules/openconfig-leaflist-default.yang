@@ -1,0 +1,51 @@
+module openconfig-leaflist-default {
+  yang-version "1.1";
+  prefix "ocs";
+  namespace "urn:ocs";
+  description
+    "A simple OpenConfig test module with leaflists.";
+
+  typedef string-with-default {
+    type string;
+  }
+
+  grouping parent-config {
+    leaf-list one { type string; }
+    leaf-list three {
+      type enumeration {
+        enum ONE;
+        enum TWO;
+      }
+      default ONE;
+      default TWO;
+    }
+    leaf-list four {
+      type binary;
+      default "abc0";
+    }
+  }
+
+  container parent {
+    description
+      "I am a parent container
+       that has 4 children.";
+    container child {
+      container config {
+        uses parent-config;
+      }
+      container state {
+        config false;
+        uses parent-config;
+        leaf-list two {
+          type string-with-default;
+          default "foo";
+          default "foo";
+          default "bar";
+          default "bar";
+          default "baz";
+          default "baz";
+        }
+      }
+    }
+  }
+}

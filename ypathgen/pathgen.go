@@ -692,7 +692,7 @@ func getNodeDataMap(directories map[string]*ygen.Directory, leafTypeMap map[stri
 				SubsumingGoStructName: subsumingGoStructName,
 				IsLeaf:                isLeaf,
 				IsScalarField:         ygen.IsScalarField(field, mType),
-				HasDefault:            isLeaf && (field.Default != "" || mType.DefaultValue != nil),
+				HasDefault:            isLeaf && (len(field.DefaultValues()) > 0 || mType.DefaultValue != nil),
 				YANGTypeName:          yangTypeName,
 				YANGPath:              field.Path(),
 				GoPathPackageName:     goPackageName(field, splitByModule, trimOCPackage, packageName, packageSuffix),

@@ -17,8 +17,6 @@ package ygen
 import (
 	"fmt"
 	"strings"
-
-	"github.com/openconfig/ygot/ygot"
 )
 
 // safeGoEnumeratedValueName takes an input string, which is the name of an
@@ -78,7 +76,7 @@ func stringKeys(m map[string]interface{}) []string {
 // (allowing removal of the enumeration type prefix if required). The default
 // value in the form <sanitised_baseName>_<sanitised_defVal> is returned as
 // a pointer.
-func enumDefaultValue(baseName, defVal, prefix string) *string {
+func enumDefaultValue(baseName, defVal, prefix string) string {
 	if strings.Contains(defVal, ":") {
 		defVal = strings.Split(defVal, ":")[1]
 	}
@@ -87,7 +85,7 @@ func enumDefaultValue(baseName, defVal, prefix string) *string {
 		baseName = strings.TrimPrefix(baseName, prefix)
 	}
 
-	return ygot.String(fmt.Sprintf("%s_%s", baseName, defVal))
+	return fmt.Sprintf("%s_%s", baseName, defVal)
 }
 
 // resolveRootName resolves the name of the fakeroot by taking configuration
