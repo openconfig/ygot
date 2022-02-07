@@ -15,4 +15,4 @@ require (
 	google.golang.org/protobuf v1.26.0
 )
 
-replace github.com/openconfig/goyang => github.com/openconfig/goyang v0.4.1-0.20220121161528-334d9d679eda
+replace github.com/openconfig/goyang => github.com/openconfig/goyang v0.4.1-0.20220121162048-032583e1d882
