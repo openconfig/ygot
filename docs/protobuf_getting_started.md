@@ -163,11 +163,11 @@ In this command:
 
  * `-generate_fakeroot` creates a root level container `message` which contains all elements at the root. By default, this message is called `Device`. It can be renamed using the `fakeroot_name` command-line flag.
  * `-base_import_path` (as described above) specifies the import path that should be used in the generated protobufs. The path used in this example specifies the entire path from `$GOPATH/src`, since this will be the include path supplied to `protoc`.
- * `-go_package_name` specifies the base name for the Go packages that are to be generated - this value is included in the `go_package` option of the generated protobufs, and has generated packages' names appended to it.
+ * `-go_package_base` specifies the base name for the Go packages that are to be generated - this value is included in the `go_package` option of the generated protobufs, and has generated packages' names appended to it.
  * `-path` specifies the search path(s) that should be used to find dependencies of the input YANG modules. Multiple directories can be separated with a comma.
  * `-output_dir` specifies the directory into which the output files for the schema should be written.
  * `-package_name` (as described above) specifies the name of the top-level package that should be created for the output schema.
- * `-enum_package` specifies the name that should be used for the package which stores global enumerated values. Such values are generated for:
+ * `-enum_package_name` specifies the name that should be used for the package which stores global enumerated values. Such values are generated for:
  	* `identity` statements in the YANG schema.
  	* `typedef` statements which contain an `enumeration`.
  * Finally, the `yang/rib/openconfig-rib-bgp.yang` argument specifies the YANG schema for which the protobufs should be generated.
