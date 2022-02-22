@@ -1908,7 +1908,7 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 				"leaf": {
 					Name:    "leaf",
 					Kind:    yang.LeafEntry,
-					Default: "DEFAULT VALUE",
+					Default: []string{"DEFAULT VALUE"},
 					Type: &yang.YangType{
 						Kind: yang.Ystring,
 					},
@@ -2369,26 +2369,33 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	}
 }
 
-func TestGoLeafDefault(t *testing.T) {
+func TestGoLeafDefaults(t *testing.T) {
 	tests := []struct {
 		name   string
 		inLeaf *yang.Entry
 		inType *MappedType
-		want   *string
+		want   []string
 	}{{
 		name: "quoted default in leaf",
 		inLeaf: &yang.Entry{
-			Default: "a-default-value",
+			Default: []string{"a-default-value"},
 		},
 		inType: &MappedType{NativeType: "string"},
-		want:   ygot.String(`"a-default-value"`),
+		want:   []string{`"a-default-value"`},
 	}, {
 		name: "unquoted default in leaf",
 		inLeaf: &yang.Entry{
-			Default: "42",
+			Default: []string{"42"},
 		},
 		inType: &MappedType{NativeType: "int32"},
-		want:   ygot.String("42"),
+		want:   []string{"42"},
+	}, {
+		name: "two quoted defaults in leaf",
+		inLeaf: &yang.Entry{
+			Default: []string{"a-default-value", "second"},
+		},
+		inType: &MappedType{NativeType: "string"},
+		want:   []string{`"a-default-value"`, `"second"`},
 	}, {
 		name:   "no default",
 		inLeaf: &yang.Entry{},
@@ -2397,20 +2404,20 @@ func TestGoLeafDefault(t *testing.T) {
 		name:   "default in type",
 		inLeaf: &yang.Entry{},
 		inType: &MappedType{NativeType: "int32", DefaultValue: ygot.String("0")},
-		want:   ygot.String("0"),
+		want:   []string{"0"},
 	}, {
 		name:   "enumerated default in leaf",
-		inLeaf: &yang.Entry{Default: "FORTY_TWO"},
+		inLeaf: &yang.Entry{Default: []string{"FORTY_TWO"}},
 		inType: &MappedType{
 			NativeType:        fmt.Sprintf("%sEnumType", goEnumPrefix),
 			IsEnumeratedValue: true,
 		},
-		want: ygot.String("EnumType_FORTY_TWO"),
+		want: []string{"EnumType_FORTY_TWO"},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := goLeafDefault(tt.inLeaf, tt.inType)
+			got := goLeafDefaults(tt.inLeaf, tt.inType)
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Fatalf("did not get expected default, (-want, +got):\n%s", diff)
 			}
