@@ -8,7 +8,7 @@ require (
 	github.com/google/go-cmp v0.5.5
 	github.com/kylelemons/godebug v1.1.0
 	github.com/openconfig/gnmi v0.0.0-20200508230933-d19cebf5e7be
-	github.com/openconfig/goyang v0.4.0
+	github.com/openconfig/goyang v1.0.0
 	github.com/openconfig/gribi v0.1.1-0.20210423184541-ce37eb4ba92f
 	github.com/pmezard/go-difflib v1.0.0
 	google.golang.org/grpc v1.37.0
