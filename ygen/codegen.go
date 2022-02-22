@@ -826,20 +826,18 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 // generated code for the modules. If errors are returned during the Goyang
 // processing of the modules, these errors are returned.
 func processModules(yangFiles, includePaths []string, options yang.Options) ([]*yang.Entry, util.Errors) {
+	// Initialise the set of YANG modules within the Goyang parsing package.
+	moduleSet := yang.NewModules()
+	// Propagate the options for the YANG library through to the parsing
+	// code - this allows the calling binary to specify characteristics
+	// of the YANG in a manner that we are transparent to.
+	moduleSet.ParseOptions = options
 	// Append the includePaths to the Goyang path variable, this ensures
 	// that where a YANG module uses an 'include' statement to reference
 	// another module, then Goyang can find this module to process.
 	for _, path := range includePaths {
-		yang.AddPath(path)
+		moduleSet.AddPath(path)
 	}
-
-	// Propagate the options for the YANG library through to the parsing
-	// code - this allows the calling binary to specify characteristics
-	// of the YANG in a manner that we are transparent to.
-	yang.ParseOptions = options
-
-	// Initialise the set of YANG modules within the Goyang parsing package.
-	moduleSet := yang.NewModules()
 
 	var errs util.Errors
 	for _, name := range yangFiles {
