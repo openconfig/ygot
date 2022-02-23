@@ -14,5 +14,3 @@ require (
 	google.golang.org/grpc v1.37.0
 	google.golang.org/protobuf v1.26.0
 )
-
-replace github.com/openconfig/goyang => github.com/openconfig/goyang v0.4.1-0.20220121162048-032583e1d882
