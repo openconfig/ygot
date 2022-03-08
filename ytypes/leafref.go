@@ -189,6 +189,12 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 			if root.Parent == nil {
 				return nil, fmt.Errorf("no parent for leafref path at %v, with remaining path %s", ni.Schema.Path(), path)
 			}
+			if !util.IsCompressedSchema(root.Schema) && root.Parent.Schema.IsLeafList() {
+				// Workaround Leaflist, not sure if this is breaking anything?
+				root = root.Parent
+				pathQueryRoot = pathQueryRoot.Parent
+				continue
+			}
 			if !util.IsCompressedSchema(root.Schema) && root.Parent.Schema.IsList() && util.IsValueMap(root.Parent.FieldValue) {
 				// If we are in an uncompressed schema, then we have one more level of the data tree than
 				// the YANG expects, since our data tree layout is:
