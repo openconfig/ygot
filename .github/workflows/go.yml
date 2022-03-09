@@ -38,7 +38,7 @@ jobs:
 
       - name: Install Staticcheck
         run: |
-          go get -u honnef.co/go/tools/cmd/staticcheck
+          go get -u honnef.co/go/tools/cmd/staticcheck@latest
 
       - name: Check out code
         uses: actions/checkout@v2
@@ -133,7 +133,7 @@ jobs:
         run: |
           go get -u github.com/go-playground/overalls
           go get -u github.com/mattn/goveralls
-          go get -u honnef.co/go/tools/cmd/staticcheck
+          go get -u honnef.co/go/tools/cmd/staticcheck@latest
 
       - name: Check out ygot code
         uses: actions/checkout@v2
