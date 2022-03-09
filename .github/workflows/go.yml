@@ -30,15 +30,15 @@ jobs:
 
       - name: Install protoc-gen-go
         run: |
-          GO111MODULE=on go install -u google.golang.org/protobuf/cmd/protoc-gen-go
+          GO111MODULE=on go install google.golang.org/protobuf/cmd/protoc-gen-go
 
       - name: Install goimports
         run: |
-          GO111MODULE=on go install -u golang.org/x/tools/cmd/goimports
+          GO111MODULE=on go install golang.org/x/tools/cmd/goimports
 
       - name: Install Staticcheck
         run: |
-          GO111MODULE=on go install -u honnef.co/go/tools/cmd/staticcheck
+          GO111MODULE=on go install honnef.co/go/tools/cmd/staticcheck
 
       - name: Check out code
         uses: actions/checkout@v2
@@ -131,9 +131,9 @@ jobs:
 
       - name: Install required static analysis tools
         run: |
-          GO111MODULE=on go install -u github.com/go-playground/overalls
-          GO111MODULE=on go install -u github.com/mattn/goveralls
-          GO111MODULE=on go install -u honnef.co/go/tools/cmd/staticcheck@latest
+          GO111MODULE=on go install github.com/go-playground/overalls
+          GO111MODULE=on go install github.com/mattn/goveralls
+          GO111MODULE=on go install honnef.co/go/tools/cmd/staticcheck@latest
 
       - name: Check out ygot code
         uses: actions/checkout@v2
