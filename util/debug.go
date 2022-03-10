@@ -28,11 +28,11 @@ var (
 	// traversal. Since this setting causes global variables to be manipulated
 	// controlling the output of the library, it MUST NOT be used in a setting
 	// whereby thread-safety is required.
-	debugLibrary = true
+	debugLibrary = false
 	// debugSchema controls the debugging output from the library from schema
 	// matching code. Generates lots of output, so this should be used
 	// selectively per test case.
-	debugSchema = true
+	debugSchema = false
 	// maxCharsPerLine is the maximum number of characters per line from
 	// DbgPrint and DbgSchema. Additional characters are truncated.
 	maxCharsPerLine = 1000
