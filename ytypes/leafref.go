@@ -189,23 +189,13 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 			if root.Parent == nil {
 				return nil, fmt.Errorf("no parent for leafref path at %v, with remaining path %s", ni.Schema.Path(), path)
 			}
-			if !util.IsCompressedSchema(root.Schema) && root.Parent.Schema.IsList() && util.IsValueMap(root.Parent.FieldValue) {
-				// If we are in an uncompressed schema, then we have one more level of the data tree than
-				// the YANG expects, since our data tree layout is:
-				// struct (parent container)
-				//  --> map (the list)
-				//  --> struct (the list member)
-				//
-				// In YANG, .. from the list member struct gets us to the parent container, but for us
-				// we have only reached the map. This means that we end up over-consuming the ".."s. To
-				// avoid this issue, if we are in an uncompressed schema, and in a list, and we find
-				// that we're looking at the map, we consume another level of the data tree. This gets
-				// us to the parent container with ".." as would be expected.
-				//
-				// This is NOT required for the compressed schema, because in this case, we have removed
-				// a level of the data tree. So the parent container in the above example will have been
-				// removed. This is enforced by ygen. In this case, we do want to consume the extra level
-				// of ..s in the list case, such that we do not end up under-consuming them.
+			if (root.Parent.Schema.IsList() && util.IsValueMap(root.Parent.FieldValue)) || (root.Parent.Schema.IsLeafList() && util.IsValueSlice(root.Parent.FieldValue)) {
+				// YANG lists and YANG leaf-lists are represented as Go maps and slices respectively.
+				// Despite these being a single level in the YANG hierarchy, util.ForEachField actually
+				// traverses these elements in two levels: first at the map/slice level, and then at the
+				// element level. Since it does this by creating a "fake", or extra NodeInfo for each
+				// element, we need to skip this level of NodeInfo and instead directly use the NodeInfo
+				// of the parent (i.e. the map or slice) to avoid processing this extra NodeInfo.
 				root = root.Parent
 				pathQueryRoot = pathQueryRoot.Parent
 				continue
