@@ -30,15 +30,15 @@ jobs:
 
       - name: Install protoc-gen-go
         run: |
-          go install google.golang.org/protobuf/cmd/protoc-gen-go
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 
       - name: Install goimports
         run: |
-          go install golang.org/x/tools/cmd/goimports
+          go install golang.org/x/tools/cmd/goimports@latest
 
       - name: Install Staticcheck
         run: |
-          go install honnef.co/go/tools/cmd/staticcheck
+          go install honnef.co/go/tools/cmd/staticcheck@latest
 
       - name: Check out code
         uses: actions/checkout@v2
@@ -131,8 +131,8 @@ jobs:
 
       - name: Install required static analysis tools
         run: |
-          go install github.com/go-playground/overalls
-          go install github.com/mattn/goveralls
+          go install github.com/go-playground/overalls@latest
+          go install github.com/mattn/goveralls@latest
           go install honnef.co/go/tools/cmd/staticcheck@latest
 
       - name: Check out ygot code
