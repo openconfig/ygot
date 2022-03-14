@@ -28,17 +28,19 @@ jobs:
           go-version: ${{ matrix.go }}
         id: go
 
-      - name: Install protoc-gen-go
+      - if: ${{ matrix.go == '1.13' || matrix.go == '1.14' || matrix.go == '1.15' }}
+        name: Install protoc-gen-go, goimports, Staticcheck
         run: |
-          go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+          GO111MODULE=on go get google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          GO111MODULE=on go get golang.org/x/tools/cmd/goimports@latest
+          GO111MODULE=on go get honnef.co/go/tools/cmd/staticcheck@latest
 
-      - name: Install goimports
+      - if: ${{ !(matrix.go == '1.13' || matrix.go == '1.14' || matrix.go == '1.15') }}
+        name: Install protoc-gen-go, goimports, Staticcheck
         run: |
-          go get -u golang.org/x/tools/cmd/goimports
-
-      - name: Install Staticcheck
-        run: |
-          go install honnef.co/go/tools/cmd/staticcheck
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install golang.org/x/tools/cmd/goimports@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
 
       - name: Check out code
         uses: actions/checkout@v2
@@ -126,14 +128,14 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v2
         with:
-          go-version: '1.15'
+          go-version: '1.x'
         id: go
 
       - name: Install required static analysis tools
         run: |
-          go install github.com/go-playground/overalls
-          go install github.com/mattn/goveralls
-          go install honnef.co/go/tools/cmd/staticcheck
+          go install github.com/go-playground/overalls@latest
+          go install github.com/mattn/goveralls@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
 
       - name: Check out ygot code
         uses: actions/checkout@v2
