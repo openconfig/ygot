@@ -31,11 +31,12 @@ jobs:
       - if: ${{ matrix.go == '1.13' || matrix.go == '1.14' || matrix.go == '1.15' }}
         name: Install protoc-gen-go, goimports, Staticcheck
         run: |
-          GO111MODULE=on go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-          GO111MODULE=on go install golang.org/x/tools/cmd/goimports@latest
-          GO111MODULE=on go install honnef.co/go/tools/cmd/staticcheck@latest
+          GO111MODULE=on go get google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          GO111MODULE=on go get golang.org/x/tools/cmd/goimports@latest
+          GO111MODULE=on go get honnef.co/go/tools/cmd/staticcheck@latest
 
-      - if: ${{ matrix.go != '1.13' && matrix.go != '1.14' && matrix.go == '1.15' }}
+      - if: ${{ !(matrix.go == '1.13' || matrix.go == '1.14' || matrix.go == '1.15') }}
+        name: Install protoc-gen-go, goimports, Staticcheck
         run: |
           GO111MODULE=on go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
           GO111MODULE=on go install golang.org/x/tools/cmd/goimports@latest
