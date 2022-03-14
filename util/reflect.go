@@ -681,12 +681,6 @@ func forEachFieldInternal(ni *NodeInfo, in, out interface{}, iterFunction FieldI
 					continue
 				}
 				nn.PathFromParent = p
-				// In the case of a map/slice, the path is of the form
-				// "container/element" in the compressed schema, so trim off
-				// any extra path elements in this case.
-				if IsTypeSlice(sf.Type) || IsTypeMap(sf.Type) {
-					nn.PathFromParent = p[0:1]
-				}
 				switch in.(type) {
 				case *PathQueryNodeMemo: // Memoization of path queries requested.
 					errs = AppendErrs(errs, forEachFieldInternal(nn, newPathQueryMemo(), out, iterFunction))
