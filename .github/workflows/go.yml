@@ -28,16 +28,17 @@ jobs:
           go-version: ${{ matrix.go }}
         id: go
 
-      - name: Install protoc-gen-go
+      - if: ${{ matrix.go == '1.13' || matrix.go == '1.14' || matrix.go == '1.15' }}
+        name: Install protoc-gen-go, goimports, Staticcheck
         run: |
           GO111MODULE=on go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-
-      - name: Install goimports
-        run: |
           GO111MODULE=on go install golang.org/x/tools/cmd/goimports@latest
+          GO111MODULE=on go install honnef.co/go/tools/cmd/staticcheck@latest
 
-      - name: Install Staticcheck
+      - if: ${{ matrix.go != '1.13' && matrix.go != '1.14' && matrix.go == '1.15' }}
         run: |
+          GO111MODULE=on go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          GO111MODULE=on go install golang.org/x/tools/cmd/goimports@latest
           GO111MODULE=on go install honnef.co/go/tools/cmd/staticcheck@latest
 
       - name: Check out code
