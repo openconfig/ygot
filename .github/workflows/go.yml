@@ -38,7 +38,7 @@ jobs:
 
       - name: Install Staticcheck
         run: |
-          go intall honnef.co/go/tools/cmd/staticcheck
+          go install honnef.co/go/tools/cmd/staticcheck
 
       - name: Check out code
         uses: actions/checkout@v2
@@ -131,9 +131,9 @@ jobs:
 
       - name: Install required static analysis tools
         run: |
-          go intall github.com/go-playground/overalls
-          go intall github.com/mattn/goveralls
-          go intall honnef.co/go/tools/cmd/staticcheck
+          go install github.com/go-playground/overalls
+          go install github.com/mattn/goveralls
+          go install honnef.co/go/tools/cmd/staticcheck
 
       - name: Check out ygot code
         uses: actions/checkout@v2
