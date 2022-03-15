@@ -196,6 +196,9 @@ func dataNodesAtPath(ni *util.NodeInfo, path *gpb.Path, pathQueryNode *util.Path
 				// element level. Since it does this by creating a "fake", or extra NodeInfo for each
 				// element, we need to skip this level of NodeInfo and instead directly use the NodeInfo
 				// of the parent (i.e. the map or slice) to avoid processing this extra NodeInfo.
+				//
+				// Note here that since lists and leaf-lists are represented the same way in compressed
+				// vs. uncompressed code, this logic is the same regardless of compression.
 				root = root.Parent
 				pathQueryRoot = pathQueryRoot.Parent
 				continue
