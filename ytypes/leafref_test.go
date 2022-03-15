@@ -152,7 +152,7 @@ func TestValidateLeafRefData(t *testing.T) {
 						Kind: yang.LeafEntry,
 						Type: &yang.YangType{
 							Kind: yang.Yleafref,
-							Path: "../../../leaf-list",
+							Path: "../../leaf-list",
 						},
 						ListAttr: yang.NewDefaultListAttr(),
 					},
@@ -336,7 +336,7 @@ func TestValidateLeafRefData(t *testing.T) {
 				LeafList:   []*int32{Int32(40), Int32(41), Int32(42)},
 				Container2: &Container2{LeafListRefToLeafList: []*int32{Int32(41), Int32(42), Int32(43)}},
 			},
-			wantErr: `field name LeafListRefToLeafList value 43 (int32 ptr) schema path /leaf-list-ref-to-leaf-list has leafref path ../../../leaf-list not equal to any target nodes`,
+			wantErr: `field name LeafListRefToLeafList value 43 (int32 ptr) schema path /leaf-list-ref-to-leaf-list has leafref path ../../leaf-list not equal to any target nodes`,
 		},
 		{
 			desc: "keyed list match",
@@ -567,7 +567,17 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 	//             path "../conf";
 	//           }
 	//         }
+	//         leaf-list conf-ref-list {
+	//           type leafref {
+	//             path "../conf";
+	//           }
+	//         }
 	//         leaf conf2-ref {
+	//           type leafref {
+	//             path "../../../../conf2";
+	//           }
+	//         }
+	//         leaf-list conf2-ref-list {
 	//           type leafref {
 	//             path "../../../../conf2";
 	//           }
@@ -620,6 +630,15 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 													Path: "../conf",
 												},
 											},
+											"conf-ref-list": {
+												Name: "conf-ref-list",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{
+													Kind: yang.Yleafref,
+													Path: "../conf",
+												},
+												ListAttr: yang.NewDefaultListAttr(),
+											},
 											"conf2-ref": {
 												Name: "conf2-ref",
 												Kind: yang.LeafEntry,
@@ -627,6 +646,15 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 													Kind: yang.Yleafref,
 													Path: "../../../../conf2",
 												},
+											},
+											"conf2-ref-list": {
+												Name: "conf2-ref-list",
+												Kind: yang.LeafEntry,
+												Type: &yang.YangType{
+													Kind: yang.Yleafref,
+													Path: "../../../../conf2",
+												},
+												ListAttr: yang.NewDefaultListAttr(),
 											},
 										},
 									},
@@ -650,9 +678,11 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 	rootSchema := containerWithListSchema.Dir["root"]
 
 	type RootExample struct {
-		Conf     *uint32 `path:"config/conf|conf"`
-		ConfRef  *uint32 `path:"config/conf-ref"`
-		Conf2Ref *string `path:"config/conf2-ref"`
+		Conf         *uint32   `path:"config/conf|conf"`
+		ConfRef      *uint32   `path:"config/conf-ref"`
+		ConfRefList  []*uint32 `path:"config/conf-ref-list"`
+		Conf2Ref     *string   `path:"config/conf2-ref"`
+		Conf2RefList []*string `path:"config/conf2-ref-list"`
 	}
 
 	type Root struct {
@@ -713,9 +743,29 @@ func TestValidateLeafRefDataCompressedSchemaListOnly(t *testing.T) {
 			},
 		},
 		{
+			desc: "ref to leaf outside of list (conf2-list)",
+			in: &Root{
+				Conf2:   String("hitchhiker"),
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), Conf2RefList: []*string{String("hitchhiker")}}},
+			},
+		},
+		{
+			desc: "empty ref to leaf outside of list (conf2-list)",
+			in: &Root{
+				Conf2:   String("hitchhiker"),
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), Conf2RefList: []*string{}}},
+			},
+		},
+		{
 			desc: "conf-ref",
 			in: &Root{
 				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), ConfRef: Uint32(42)}},
+			},
+		},
+		{
+			desc: "conf-ref-list",
+			in: &Root{
+				Example: map[uint32]*RootExample{42: {Conf: Uint32(42), ConfRefList: []*uint32{Uint32(42)}}},
 			},
 		},
 		{
