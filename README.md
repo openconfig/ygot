@@ -1,6 +1,7 @@
 ![Go](https://github.com/openconfig/ygot/workflows/Go/badge.svg?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/openconfig/ygot/badge.svg?branch=master)](https://coveralls.io/github/openconfig/ygot?branch=master)
 [![Go releases supported](https://img.shields.io/badge/Go-1.13%2B-blue)](https://golang.org/project/#release)
+[![Go Reference](https://pkg.go.dev/badge/github.com/openconfig/ygot.svg)](https://pkg.go.dev/github.com/openconfig/ygot)
 
 ![#ygot](docs/img/ygot.png)
 
