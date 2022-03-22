@@ -1417,7 +1417,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 // YANG default value to the corresponding representation in Go.
 func TestYangDefaultValueToGo(t *testing.T) {
 	testEnumType := yang.NewEnumType()
-	enumValues := []string{"RED", "BLUE"}
+	enumValues := []string{"RED", "BLUE", "RED-BLUE"}
 	for _, v := range enumValues {
 		testEnumType.SetNext(v)
 		if !testEnumType.IsDefined(v) {
@@ -1689,6 +1689,34 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		wantErr:  true,
 		wantKind: yang.Ynone,
 	}, {
+		name: "derived identityref, with inValue to be sanitised",
+		inCtx: &yang.Entry{
+			Name: "derived-identityref",
+			Type: &yang.YangType{
+				Name: "derived-identityref",
+				Kind: yang.Yidentityref,
+				IdentityBase: &yang.Identity{
+					Name:   "base-identity",
+					Parent: &yang.Module{Name: "base-module"},
+					Values: []*yang.Identity{
+						{Name: "FOO-BAR"},
+						{Name: "DERIVED-VALUE"},
+					},
+				},
+				Base: &yang.Type{
+					Name:   "base-identity",
+					Parent: &yang.Module{Name: "base-module"},
+				},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Leaf{
+				Parent: &yang.Module{Name: "base-module"},
+			},
+		},
+		inValue:  "DERIVED-VALUE",
+		want:     "BaseModule_DerivedIdentityref_DERIVED_VALUE",
+		wantKind: yang.Yidentityref,
+	}, {
 		name: "identityref in union with restricted string, with prefix",
 		inCtx: &yang.Entry{
 			Name: "union-leaf",
@@ -1840,6 +1868,23 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		wantErr:  true,
 		wantKind: yang.Ynone,
 	}, {
+		name: "enumeration, with inValue to be sanitised",
+		inCtx: &yang.Entry{
+			Name: "enumeration-leaf",
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Kind: yang.Yenum,
+				Enum: testEnumType,
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Identity{
+				Parent: &yang.Module{Name: "base-module"},
+			},
+		},
+		inValue:  "RED-BLUE",
+		want:     "BaseModule_EnumerationLeaf_RED_BLUE",
+		wantKind: yang.Yenum,
+	}, {
 		name: "enumeration in union with string as the second union type",
 		inCtx: &yang.Entry{
 			Name: "union-leaf",
@@ -1863,6 +1908,31 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		},
 		inValue:  "BLUE",
 		want:     "BaseModule_UnionLeaf_Enum_BLUE",
+		wantKind: yang.Yenum,
+	}, {
+		name: "enumeration in union with string as the second union type, with inValue to be sanitised",
+		inCtx: &yang.Entry{
+			Name: "union-leaf",
+			Kind: yang.LeafEntry,
+			Type: &yang.YangType{
+				Name: "union",
+				Kind: yang.Yunion,
+				Type: []*yang.YangType{{
+					Name: "enumeration",
+					Kind: yang.Yenum,
+					Enum: testEnumType,
+				}, {
+					Kind: yang.Ystring,
+				}},
+			},
+			Parent: &yang.Entry{Name: "base-module"},
+			Node: &yang.Enum{
+				Name:   "enum",
+				Parent: &yang.Module{Name: "base-module"},
+			},
+		},
+		inValue:  "RED-BLUE",
+		want:     "BaseModule_UnionLeaf_Enum_RED_BLUE",
 		wantKind: yang.Yenum,
 	}, {
 		name: "enumeration in union with string as the first union type, input matches string restrictions",
@@ -2170,6 +2240,25 @@ func TestYangDefaultValueToGo(t *testing.T) {
 		inCompressPath: true,
 		inValue:        "RED",
 		want:           "Container_Eleaf_RED",
+		wantKind:       yang.Yenum,
+	}, {
+		name: "enumeration with compress paths and inValue to be sanitised",
+		inCtx: &yang.Entry{
+			Name: "eleaf",
+			Type: &yang.YangType{
+				Name: "enumeration",
+				Kind: yang.Yenum,
+				Enum: testEnumType,
+			},
+			Parent: &yang.Entry{
+				Name: "config", Parent: &yang.Entry{Name: "container"}},
+			Node: &yang.Enum{
+				Parent: &yang.Module{Name: "base-module"},
+			},
+		},
+		inCompressPath: true,
+		inValue:        "RED-BLUE",
+		want:           "Container_Eleaf_RED_BLUE",
 		wantKind:       yang.Yenum,
 	}, {
 		name: "leafref",

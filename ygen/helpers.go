@@ -85,6 +85,8 @@ func enumDefaultValue(baseName, defVal, prefix string) string {
 		baseName = strings.TrimPrefix(baseName, prefix)
 	}
 
+	defVal = safeGoEnumeratedValueName(defVal)
+
 	return fmt.Sprintf("%s_%s", baseName, defVal)
 }
 
