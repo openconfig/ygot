@@ -749,7 +749,7 @@ func marshalStruct(s GoStruct, enc gnmipb.Encoding) (*gnmipb.TypedValue, error) 
 			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonVal{[]byte(s)}}
 		}
 	case gnmipb.Encoding_JSON_IETF:
-		// We always append the module name when marshalling within a Notification.
+		// We always prepend the module name when marshalling within a Notification.
 		j, err = ConstructIETFJSON(s, &RFC7951JSONConfig{AppendModuleName: true})
 		encfn = func(s string) *gnmipb.TypedValue {
 			return &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(s)}}
@@ -985,7 +985,7 @@ func (JSONIndent) IsMarshal7951Arg() {}
 // field of a generated struct rather than the entire struct - allowing specific fields
 // to be rendered. The supplied arguments control the JSON marshalling behaviour - both
 // base JSON Marshal (e.g., indentation), as well as RFC7951 specific options such as
-// YANG module names being appended.
+// YANG module names being prepended.
 // The rendered JSON is returned as a byte slice - in common with json.Marshal.
 func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 	var (
@@ -1047,18 +1047,18 @@ func rewriteModName(mod string, rules map[string]string) string {
 	return rules[mod]
 }
 
-// appmodsJSON determines what module names to append to a path element in
+// prependmodsJSON determines what module names to prepend to a path element in
 // RFC7951 output mode given the field to marshal and the parent's module name,
 // along with the JSON output config. The output type is a slice of slices due
 // to each path step possibly being multiple elements, and due to this field
 // representing possibly multiple paths in the YANG tree due to path
-// compression. If nil is returned, then there are no modules to be appended.
+// compression. If nil is returned, then there are no modules to be prepended.
 // If an element is the empty string, it indicates that no module name should
-// be appended due to residing in the same module as the parent module. If
-// there are modules to be appended, it also returns the module to which the
+// be prepended due to residing in the same module as the parent module. If
+// there are modules to be prepended, it also returns the module to which the
 // field belongs. It will also return an error if it encounters one.
-func appmodsJSON(fType reflect.StructField, parentMod string, args jsonOutputConfig) ([][]string, string, error) {
-	var appmods [][]string
+func prependmodsJSON(fType reflect.StructField, parentMod string, args jsonOutputConfig) ([][]string, string, error) {
+	var prependmods [][]string
 	var chMod string
 
 	mapModules, err := structTagToLibModules(fType, args.rfc7951Config.PreferShadowPath)
@@ -1070,7 +1070,7 @@ func appmodsJSON(fType reflect.StructField, parentMod string, args jsonOutputCon
 	}
 
 	for _, modulePath := range mapModules {
-		var appmod []string
+		var prependmod []string
 		prevMod := parentMod
 		for i := 0; i != modulePath.Len(); i++ {
 			mod, err := modulePath.StringElemAt(i)
@@ -1081,27 +1081,27 @@ func appmodsJSON(fType reflect.StructField, parentMod string, args jsonOutputCon
 			// we do the right comparison.
 			mod = rewriteModName(mod, args.rfc7951Config.RewriteModuleNames)
 			if mod == prevMod {
-				// The empty string indicates to not append a module name.
+				// The empty string indicates to not prepend a module name.
 				mod = ""
 			} else {
 				prevMod = mod
 			}
-			appmod = append(appmod, mod)
+			prependmod = append(prependmod, mod)
 		}
 		if chMod != "" && prevMod != chMod {
 			return nil, "", fmt.Errorf("%s: child modules between all paths are not equal: %v", fType.Name, mapModules)
 		}
-		appmods = append(appmods, appmod)
+		prependmods = append(prependmods, prependmod)
 		chMod = prevMod
 	}
-	return appmods, chMod, nil
+	return prependmods, chMod, nil
 }
 
 // structJSON marshals a GoStruct to a map[string]interface{} which can be
 // handed to JSON marshal. parentMod specifies the module that the supplied
 // GoStruct is defined within such that RFC7951 format JSON is able to consider
-// whether to append the name of the module to an element. The format of JSON to
-// be produced and whether such module names are appended is controlled through the
+// whether to prepend the name of the module to an element. The format of JSON to
+// be produced and whether such module names are prepended is controlled through the
 // supplied jsonOutputConfig. Returns an error if the GoStruct cannot be rendered
 // to JSON.
 func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string]interface{}, error) {
@@ -1118,12 +1118,12 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 		field := sval.Field(i)
 		fType := stype.Field(i)
 
-		// Module names to append to the path in RFC7951 output mode.
-		var appmods [][]string
+		// Module names to prepend to the path in RFC7951 output mode.
+		var prependmods [][]string
 		var chMod string
 		if args.jType == RFC7951 && args.rfc7951Config != nil && args.rfc7951Config.AppendModuleName {
 			var err error
-			if appmods, chMod, err = appmodsJSON(fType, parentMod, args); err != nil {
+			if prependmods, chMod, err = prependmodsJSON(fType, parentMod, args); err != nil {
 				errs.Add(err)
 				continue
 			}
@@ -1167,14 +1167,14 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			continue
 		}
 
-		if appmods != nil && len(mapPaths) != len(appmods) {
-			errs.Add(fmt.Errorf("%s: number of paths and modules in struct tag not the same: (paths: %v, modules: %v)", fType.Name, len(mapPaths), len(appmods)))
+		if prependmods != nil && len(mapPaths) != len(prependmods) {
+			errs.Add(fmt.Errorf("%s: number of paths and modules in struct tag not the same: (paths: %v, modules: %v)", fType.Name, len(mapPaths), len(prependmods)))
 			continue
 		}
 
 		for i, p := range mapPaths {
-			if appmods != nil && p.Len() != len(appmods[i]) {
-				errs.Add(fmt.Errorf("number of paths and modules elements not the same: (paths: %v, modules: %v)", p, appmods[i]))
+			if prependmods != nil && p.Len() != len(prependmods[i]) {
+				errs.Add(fmt.Errorf("number of paths and modules elements not the same: (paths: %v, modules: %v)", p, prependmods[i]))
 				continue
 			}
 
@@ -1187,8 +1187,8 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 					continue
 				}
 
-				if appmods != nil && appmods[i][j] != "" {
-					k = fmt.Sprintf("%s:%s", appmods[i][j], k)
+				if prependmods != nil && prependmods[i][j] != "" {
+					k = fmt.Sprintf("%s:%s", prependmods[i][j], k)
 				}
 
 				if _, ok := parent[k]; !ok {
@@ -1201,8 +1201,8 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 				errs.Add(err)
 				continue
 			}
-			if appmods != nil && appmods[i][j] != "" {
-				k = fmt.Sprintf("%s:%s", appmods[i][j], k)
+			if prependmods != nil && prependmods[i][j] != "" {
+				k = fmt.Sprintf("%s:%s", prependmods[i][j], k)
 			}
 			parent[k] = value
 		}
@@ -1487,7 +1487,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 // outputs the JSON that corresponds to it in the requested JSON format. In a
 // GoStruct, a slice may be a binary field, leaf-list or an unkeyed list. The
 // parentMod is used to track the name of the parent module in the case that
-// module names should be appended.
+// module names should be prepended.
 func jsonSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (interface{}, error) {
 	if field.Type().Name() == BinaryTypeName {
 		// Handle the case that that we have a Binary ([]byte) value,
