@@ -136,10 +136,10 @@ func EnumName(e GoEnum) (string, error) {
 // enumFieldToString takes an input reflect.Value, which is type asserted to
 // be a GoEnum, and resolves the string name corresponding to the value within
 // the YANG schema. Returns the string name of the enum, a bool indicating
-// whether the value was set, or an error. The appendModuleName specifies whether
+// whether the value was set, or an error. The prependModuleNameIref specifies whether
 // the defining module name should be appended to the enumerated value's name in
 // the form "module:name", as per the encoding rules in RFC7951.
-func enumFieldToString(field reflect.Value, appendModuleName bool) (string, bool, error) {
+func enumFieldToString(field reflect.Value, prependModuleNameIref bool) (string, bool, error) {
 	// Generated structs can only have fields that are not pointers when they are enumerated
 	// values, since these values have an UNSET value that allows us to determine when they
 	// are not explicitly set by the user.
@@ -174,7 +174,7 @@ func enumFieldToString(field reflect.Value, appendModuleName bool) (string, bool
 	}
 
 	n := def.Name
-	if appendModuleName && def.DefiningModule != "" {
+	if prependModuleNameIref && def.DefiningModule != "" {
 		n = fmt.Sprintf("%s:%s", def.DefiningModule, def.Name)
 	}
 	return n, true, nil
