@@ -916,7 +916,7 @@ type RFC7951JSONConfig struct {
 	// elements that are defined within a different YANG module than their
 	// parent.
 	AppendModuleName bool
-	// AppendModuleNameIdentityref determines whether the module name is
+	// PrependModuleNameIdentityref determines whether the module name is
 	// prepended to identityref values. AppendModuleName (should be named
 	// PrependModuleName) subsumes and overrides this flag.
 	// Note: using this flag instead of AppendModuleName is not
