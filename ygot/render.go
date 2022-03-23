@@ -1514,7 +1514,8 @@ func jsonSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 		return vals, nil
 	}
 
-	sl, err := leaflistToSlice(field, args.rfc7951Config != nil && (args.rfc7951Config.AppendModuleName || args.rfc7951Config.PrependModuleNameIdentityref))
+	prependModuleNameIref := args.rfc7951Config != nil && (args.rfc7951Config.AppendModuleName || args.rfc7951Config.PrependModuleNameIdentityref)
+	sl, err := leaflistToSlice(field, prependModuleNameIref)
 	if err != nil {
 		return nil, fmt.Errorf("could not map slice (leaf-list or unkeyed list): %v", err)
 	}
