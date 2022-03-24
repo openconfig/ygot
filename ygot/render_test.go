@@ -1707,12 +1707,23 @@ type structMultiKeyChild struct {
 
 func (*structMultiKeyChild) IsYANGGoStruct() {}
 
+// ietfRenderExampleEnumList is a list entry that is keyed on an enum
+// in ietfRenderExample.
+type ietfRenderExampleEnumList struct {
+	Key EnumTest `path:"config/key|key" module:"f1mod/f1mod|f1mod"`
+}
+
+// IsYANGGoStruct implements the GoStruct interface.
+func (*ietfRenderExampleEnumList) IsYANGGoStruct() {}
+
 type ietfRenderExample struct {
-	F1 *string                 `path:"f1" module:"f1mod"`
-	F2 *string                 `path:"config/f2" module:"f2mod/f2mod"`
-	F3 *ietfRenderExampleChild `path:"f3" module:"f1mod"`
-	F6 *string                 `path:"config/f6" module:"f1mod/f2mod"`
-	F7 *string                 `path:"config/f7" module:"f2mod/f3mod"`
+	F1        *string                                 `path:"f1" module:"f1mod"`
+	F2        *string                                 `path:"config/f2" module:"f2mod/f2mod"`
+	F3        *ietfRenderExampleChild                 `path:"f3" module:"f1mod"`
+	F6        *string                                 `path:"config/f6" module:"f1mod/f2mod"`
+	F7        *string                                 `path:"config/f7" module:"f2mod/f3mod"`
+	MixedList []interface{}                           `path:"mixed-list" module:"f1mod"`
+	EnumList  map[EnumTest]*ietfRenderExampleEnumList `path:"enum-list" module:"f1mod"`
 }
 
 func (*ietfRenderExample) IsYANGGoStruct() {}
@@ -1829,6 +1840,7 @@ func TestConstructJSON(t *testing.T) {
 		name                     string
 		in                       GoStruct
 		inAppendMod              bool
+		inPrependModIref         bool
 		inRewriteModuleNameRules map[string]string
 		inPreferShadowPath       bool
 		wantIETF                 map[string]interface{}
@@ -2247,6 +2259,74 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 		inAppendMod: true,
+		wantIETF: map[string]interface{}{
+			"ch": map[string]interface{}{"val": "42"},
+			"enum-list": []interface{}{
+				map[string]interface{}{
+					"config": map[string]interface{}{
+						"key": "foo:VAL_ONE",
+					},
+					"key": "foo:VAL_ONE",
+				},
+			},
+			"list": []interface{}{
+				map[string]interface{}{
+					"state": map[string]interface{}{
+						"val": "forty two",
+					},
+					"val": "forty two",
+				},
+				map[string]interface{}{
+					"state": map[string]interface{}{
+						"val": "eighty four",
+					},
+					"val": "eighty four",
+				},
+			},
+			"mixed-list": []interface{}{"foo:VAL_ONE", "test", uint32(42)},
+		},
+		wantInternal: map[string]interface{}{
+			"ch": map[string]interface{}{"val": 42},
+			"enum-list": map[string]interface{}{
+				"VAL_ONE": map[string]interface{}{
+					"config": map[string]interface{}{
+						"key": "VAL_ONE",
+					},
+					"key": "VAL_ONE",
+				},
+			},
+			"list": map[string]interface{}{
+				"42": map[string]interface{}{
+					"state": map[string]interface{}{
+						"val": "forty two",
+					},
+					"val": "forty two",
+				},
+				"84": map[string]interface{}{
+					"state": map[string]interface{}{
+						"val": "eighty four",
+					},
+					"val": "eighty four",
+				},
+			},
+			"mixed-list": []interface{}{"VAL_ONE", "test", uint32(42)},
+		},
+	}, {
+		name: "json test with complex children with PrependModuleNameIdentityref=true",
+		in: &renderExample{
+			Ch: &renderExampleChild{
+				Val: Uint64(42),
+			},
+			MixedList: []interface{}{EnumTestVALONE, "test", 42},
+			List: map[uint32]*renderExampleList{
+				42: {Val: String("forty two")},
+				84: {Val: String("eighty four")},
+			},
+			EnumList: map[EnumTest]*renderExampleEnumList{
+				EnumTestVALONE: {Key: EnumTestVALONE},
+			},
+		},
+		inPrependModIref: true,
 		wantIETF: map[string]interface{}{
 			"ch": map[string]interface{}{"val": "42"},
 			"enum-list": []interface{}{
@@ -2776,9 +2856,10 @@ func TestConstructJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name+" ConstructIETFJSON", func(t *testing.T) {
 			gotietf, err := ConstructIETFJSON(tt.in, &RFC7951JSONConfig{
-				AppendModuleName:   tt.inAppendMod,
-				RewriteModuleNames: tt.inRewriteModuleNameRules,
-				PreferShadowPath:   tt.inPreferShadowPath,
+				AppendModuleName:             tt.inAppendMod,
+				PrependModuleNameIdentityref: tt.inPrependModIref,
+				RewriteModuleNames:           tt.inRewriteModuleNameRules,
+				PreferShadowPath:             tt.inPreferShadowPath,
 			})
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("ConstructIETFJSON(%v): got unexpected error: %v, want error %v", tt.in, err, tt.wantErr)
@@ -3656,6 +3737,87 @@ func TestMarshal7951(t *testing.T) {
 			&RFC7951JSONConfig{AppendModuleName: true},
 		},
 		want: `{"f1mod:f1":"hello"}`,
+	}, {
+		desc: "complex children",
+		in: &ietfRenderExample{
+			MixedList: []interface{}{EnumTestVALONE, "test", 42},
+			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
+				EnumTestVALONE: {Key: EnumTestVALONE},
+			},
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{AppendModuleName: true},
+			JSONIndent("  "),
+		},
+		want: `{
+  "f1mod:enum-list": [
+    {
+      "config": {
+        "key": "foo:VAL_ONE"
+      },
+      "key": "foo:VAL_ONE"
+    }
+  ],
+  "f1mod:mixed-list": [
+    "foo:VAL_ONE",
+    "test",
+    42
+  ]
+}`,
+	}, {
+		desc: "complex children with PrependModuleNameIdentityref=true",
+		in: &ietfRenderExample{
+			MixedList: []interface{}{EnumTestVALONE, "test", 42},
+			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
+				EnumTestVALONE: {Key: EnumTestVALONE},
+			},
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{PrependModuleNameIdentityref: true},
+			JSONIndent("  "),
+		},
+		want: `{
+  "enum-list": [
+    {
+      "config": {
+        "key": "foo:VAL_ONE"
+      },
+      "key": "foo:VAL_ONE"
+    }
+  ],
+  "mixed-list": [
+    "foo:VAL_ONE",
+    "test",
+    42
+  ]
+}`,
+	}, {
+		desc: "complex children with AppendModuleName=true and PrependModuleNameIdentityref=true",
+		in: &ietfRenderExample{
+			MixedList: []interface{}{EnumTestVALONE, "test", 42},
+			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
+				EnumTestVALONE: {Key: EnumTestVALONE},
+			},
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{AppendModuleName: true, PrependModuleNameIdentityref: true},
+			JSONIndent("  "),
+		},
+		want: `{
+  "f1mod:enum-list": [
+    {
+      "config": {
+        "key": "foo:VAL_ONE"
+      },
+      "key": "foo:VAL_ONE"
+    }
+  ],
+  "f1mod:mixed-list": [
+    "foo:VAL_ONE",
+    "test",
+    42
+  ]
+}`,
 	}}
 
 	for _, tt := range tests {

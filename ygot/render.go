@@ -772,9 +772,9 @@ func marshalStruct(s GoStruct, enc gnmipb.Encoding) (*gnmipb.TypedValue, error) 
 
 // leaflistToSlice takes a reflect.Value that represents a leaf list in the YANG schema
 // (GoStruct) and outputs a slice of interface{} that corresponds to its contents that
-// should be used within a Notification. If appendModuleName is set to true, then
+// should be used within a Notification. If prependModuleNameIref is set to true, then
 // identity names are prepended with the name of the module that defines them.
-func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, error) {
+func leaflistToSlice(val reflect.Value, prependModuleNameIref bool) ([]interface{}, error) {
 	sval := []interface{}{}
 	for i := 0; i < val.Len(); i++ {
 		e := val.Index(i)
@@ -806,7 +806,7 @@ func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, e
 			sval = append(sval, e.Int())
 		case reflect.Int64:
 			if _, ok := e.Interface().(GoEnum); ok {
-				name, _, err := enumFieldToString(e, appendModuleName)
+				name, _, err := enumFieldToString(e, prependModuleNameIref)
 				if err != nil {
 					return nil, err
 				}
@@ -826,11 +826,11 @@ func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, e
 			ev := e.Elem()
 			switch {
 			case ev.Kind() == reflect.Ptr:
-				uval, err := unwrapUnionInterfaceValue(e, appendModuleName)
+				uval, err := unwrapUnionInterfaceValue(e, prependModuleNameIref)
 				if err != nil {
 					return nil, err
 				}
-				if sval, err = appendTypedValue(sval, reflect.ValueOf(uval), appendModuleName); err != nil {
+				if sval, err = appendTypedValue(sval, reflect.ValueOf(uval), prependModuleNameIref); err != nil {
 					return nil, err
 				}
 			case ev.Kind() == reflect.Slice:
@@ -842,7 +842,7 @@ func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, e
 				if underlyingType, ok := unionSingletonUnderlyingTypes[ev.Type().Name()]; ok && ev.Type().ConvertibleTo(underlyingType) {
 					ev = ev.Convert(underlyingType)
 				}
-				if sval, err = appendTypedValue(sval, ev, appendModuleName); err != nil {
+				if sval, err = appendTypedValue(sval, ev, prependModuleNameIref); err != nil {
 					return nil, err
 				}
 			}
@@ -861,10 +861,10 @@ func leaflistToSlice(val reflect.Value, appendModuleName bool) ([]interface{}, e
 }
 
 // appendTypedValue takes an input reflect.Value and typecasts it to
-// be appended the supplied slice of empty interfaces. If appendModuleName
+// be appended the supplied slice of empty interfaces. If prependModuleNameIref
 // is set to true, the module name is prepended to the string value of
 // any identity encountered when appending.
-func appendTypedValue(l []interface{}, v reflect.Value, appendModuleName bool) ([]interface{}, error) {
+func appendTypedValue(l []interface{}, v reflect.Value, prependModuleNameIref bool) ([]interface{}, error) {
 	ival := v.Interface()
 	switch reflect.TypeOf(ival).Kind() {
 	case reflect.String:
@@ -879,7 +879,7 @@ func appendTypedValue(l []interface{}, v reflect.Value, appendModuleName bool) (
 		return append(l, ival.(int)), nil
 	case reflect.Int64:
 		if _, ok := ival.(GoEnum); ok {
-			name, _, err := enumFieldToString(v, appendModuleName)
+			name, _, err := enumFieldToString(v, prependModuleNameIref)
 			if err != nil {
 				return nil, err
 			}
@@ -912,10 +912,17 @@ func appendTypedValue(l []interface{}, v reflect.Value, appendModuleName bool) (
 // RFC7951JSONConfig is used to control the behaviour of how
 // RFC7951 JSON is output by the ygot library.
 type RFC7951JSONConfig struct {
-	// AppendModuleName determines whether the module name is appended to
+	// AppendModuleName determines whether the module name is prepended to
 	// elements that are defined within a different YANG module than their
 	// parent.
 	AppendModuleName bool
+	// PrependModuleNameIdentityref determines whether the module name is
+	// prepended to identityref values. AppendModuleName (should be named
+	// PrependModuleName) subsumes and overrides this flag.
+	// Note: using this flag instead of AppendModuleName is not
+	// RFC7951-compliant and should be avoided for any standard
+	// implementation.
+	PrependModuleNameIdentityref bool
 	// PreferShadowPath uses the name of the "shadow-path" tag of a
 	// GoStruct to determine the marshalled path elements instead of the
 	// "path" tag, whenever the former is present.
@@ -1040,13 +1047,16 @@ func rewriteModName(mod string, rules map[string]string) string {
 	return rules[mod]
 }
 
-// appmodsJSON determines what module names to append to the path in RFC7951
-// output mode given the field to marshal and the parent's module name, along
-// with the JSON output config. If nil is returned, then there are modules to
-// be appended. If an element is the empty string, it indicates that no module
-// name should be appended due to residing in the same module as the parent
-// module. If there are modules to be appended, it also returns the module to
-// which the field belongs. It will also return an error if it encounters one.
+// appmodsJSON determines what module names to append to a path element in
+// RFC7951 output mode given the field to marshal and the parent's module name,
+// along with the JSON output config. The output type is a slice of slices due
+// to each path step possibly being multiple elements, and due to this field
+// representing possibly multiple paths in the YANG tree due to path
+// compression. If nil is returned, then there are no modules to be appended.
+// If an element is the empty string, it indicates that no module name should
+// be appended due to residing in the same module as the parent module. If
+// there are modules to be appended, it also returns the module to which the
+// field belongs. It will also return an error if it encounters one.
 func appmodsJSON(fType reflect.StructField, parentMod string, args jsonOutputConfig) ([][]string, string, error) {
 	var appmods [][]string
 	var chMod string
@@ -1219,14 +1229,14 @@ func writeIETFScalarJSON(i interface{}) interface{} {
 // keyValue takes an input reflect.Value and returns its representation when used
 // in a key for a YANG list. If the value is an enumerated type then its string
 // representation is returned, otherwise the value is returned as an interface{}.
-// If appendModuleName is set to true keys that are identity values in the YANG
+// If prependModuleNameIref is set to true keys that are identity values in the YANG
 // schema are prepended with the module that defines them.
-func keyValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
+func keyValue(v reflect.Value, prependModuleNameIref bool) (interface{}, error) {
 	if _, isEnum := v.Interface().(GoEnum); !isEnum {
 		return v.Interface(), nil
 	}
 
-	name, valueSet, err := enumFieldToString(v, appendModuleName)
+	name, valueSet, err := enumFieldToString(v, prependModuleNameIref)
 	if err != nil {
 		return nil, err
 	}
@@ -1366,10 +1376,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 		}
 	}
 
-	appmod := false
-	if args.rfc7951Config != nil {
-		appmod = args.rfc7951Config.AppendModuleName
-	}
+	prependModuleNameIref := args.rfc7951Config != nil && (args.rfc7951Config.AppendModuleName || args.rfc7951Config.PrependModuleNameIdentityref)
 
 	switch field.Kind() {
 	case reflect.Map:
@@ -1417,7 +1424,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 	case reflect.Int64:
 		// Enumerated values are represented as int64 in the generated Go structures.
 		// For output, we map the enumerated value to the string name of the enum.
-		v, set, err := enumFieldToString(field, appmod)
+		v, set, err := enumFieldToString(field, prependModuleNameIref)
 		if err != nil {
 			return nil, err
 		}
@@ -1434,7 +1441,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 		var err error
 		switch {
 		case util.IsValueInterfaceToStructPtr(field):
-			if value, err = unwrapUnionInterfaceValue(field, appmod); err != nil {
+			if value, err = unwrapUnionInterfaceValue(field, prependModuleNameIref); err != nil {
 				return nil, err
 			}
 			if value != nil && reflect.TypeOf(value).Name() == BinaryTypeName {
@@ -1449,7 +1456,7 @@ func jsonValue(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 			}
 			return value, nil
 		default:
-			if value, err = resolveUnionVal(field.Elem().Interface(), appmod); err != nil {
+			if value, err = resolveUnionVal(field.Elem().Interface(), prependModuleNameIref); err != nil {
 				return nil, err
 			}
 		}
@@ -1507,11 +1514,8 @@ func jsonSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 		return vals, nil
 	}
 
-	appmod := false
-	if args.rfc7951Config != nil {
-		appmod = args.rfc7951Config.AppendModuleName
-	}
-	sl, err := leaflistToSlice(field, appmod)
+	prependModuleNameIref := args.rfc7951Config != nil && (args.rfc7951Config.AppendModuleName || args.rfc7951Config.PrependModuleNameIdentityref)
+	sl, err := leaflistToSlice(field, prependModuleNameIref)
 	if err != nil {
 		return nil, fmt.Errorf("could not map slice (leaf-list or unkeyed list): %v", err)
 	}
@@ -1595,7 +1599,7 @@ func jsonAnnotationSlice(v reflect.Value) (interface{}, error) {
 //
 // This function extracts field index 0 of the struct within the interface and returns
 // the value.
-func unwrapUnionInterfaceValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
+func unwrapUnionInterfaceValue(v reflect.Value, prependModuleNameIref bool) (interface{}, error) {
 	var s reflect.Value
 	switch {
 	case util.IsValueInterfaceToStructPtr(v):
@@ -1610,13 +1614,13 @@ func unwrapUnionInterfaceValue(v reflect.Value, appendModuleName bool) (interfac
 		return nil, fmt.Errorf("received a union type which did not have one field, had: %v", s.NumField())
 	}
 
-	return resolveUnionVal(s.Field(0).Interface(), appendModuleName)
+	return resolveUnionVal(s.Field(0).Interface(), prependModuleNameIref)
 }
 
 // unionPtrValue returns the value of a union when it is stored as a pointer. The
 // type of the union field is as per the description in unwrapUnionInterfaceValue. Union
 // pointer values are used when a list is keyed by a union.
-func unionPtrValue(v reflect.Value, appendModuleName bool) (interface{}, error) {
+func unionPtrValue(v reflect.Value, prependModuleNameIref bool) (interface{}, error) {
 	if !util.IsValueStructPtr(v) {
 		return nil, fmt.Errorf("received a union pointer that didn't contain a struct, got: %v", v.Kind())
 	}
@@ -1625,14 +1629,14 @@ func unionPtrValue(v reflect.Value, appendModuleName bool) (interface{}, error) 
 		return nil, fmt.Errorf("received a union pointer struct that didn't have one field, got: %v", v.Elem().NumField())
 	}
 
-	return resolveUnionVal(v.Elem().Field(0).Interface(), appendModuleName)
+	return resolveUnionVal(v.Elem().Field(0).Interface(), prependModuleNameIref)
 }
 
 // resolveUnionVal returns the value of a field in a union, resolving it to its
 // the relevant type where required.
-func resolveUnionVal(v interface{}, appendModuleName bool) (interface{}, error) {
+func resolveUnionVal(v interface{}, prependModuleNameIref bool) (interface{}, error) {
 	if _, isEnum := v.(GoEnum); isEnum {
-		val, set, err := enumFieldToString(reflect.ValueOf(v), appendModuleName)
+		val, set, err := enumFieldToString(reflect.ValueOf(v), prependModuleNameIref)
 		if err != nil {
 			return nil, err
 		}
