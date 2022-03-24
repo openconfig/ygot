@@ -17,10 +17,12 @@ go run ../generator/generator.go -path=public,deps -output_file=oc.go \
   -package_name=uexampleoc -generate_fakeroot -fakeroot_name=device \
   -exclude_modules=ietf-interfaces \
   -typedef_enum_with_defmod \
+  -enum_suffix_for_simple_union_enums \
   -generate_rename \
   -generate_append \
   -generate_getters \
   -generate_leaf_getters \
+  -generate_populate_defaults \
   -generate_simple_unions \
   -annotations \
   public/release/models/system/openconfig-system.yang \

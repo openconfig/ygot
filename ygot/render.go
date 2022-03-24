@@ -916,7 +916,7 @@ type RFC7951JSONConfig struct {
 	// elements that are defined within a different YANG module than their
 	// parent.
 	AppendModuleName bool
-	// AppendModuleNameIdentityref determines whether the module name is
+	// PrependModuleNameIdentityref determines whether the module name is
 	// prepended to identityref values. AppendModuleName (should be named
 	// PrependModuleName) subsumes and overrides this flag.
 	// Note: using this flag instead of AppendModuleName is not
@@ -1514,7 +1514,8 @@ func jsonSlice(field reflect.Value, parentMod string, args jsonOutputConfig) (in
 		return vals, nil
 	}
 
-	sl, err := leaflistToSlice(field, args.rfc7951Config != nil && (args.rfc7951Config.AppendModuleName || args.rfc7951Config.PrependModuleNameIdentityref))
+	prependModuleNameIref := args.rfc7951Config != nil && (args.rfc7951Config.AppendModuleName || args.rfc7951Config.PrependModuleNameIdentityref)
+	sl, err := leaflistToSlice(field, prependModuleNameIref)
 	if err != nil {
 		return nil, fmt.Errorf("could not map slice (leaf-list or unkeyed list): %v", err)
 	}
