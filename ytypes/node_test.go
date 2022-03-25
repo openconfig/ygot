@@ -2011,11 +2011,11 @@ func TestSetNode(t *testing.T) {
 					}},
 			}},
 			inOpts:   []SetNodeOpt{&InitMissingElements{}},
-			wantLeaf: []int32{42, 43},
+			wantLeaf: []int32{43},
 			wantParent: &ListElemStruct1{
 				Outer: &OuterContainerType1{
 					Inner: &InnerContainerType1{
-						Int32LeafListName: []int32{42, 43},
+						Int32LeafListName: []int32{43},
 					},
 				},
 			},

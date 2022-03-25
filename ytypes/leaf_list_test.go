@@ -271,6 +271,7 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 		desc    string
 		sch     *yang.Entry
 		val     interface{}
+		in      LeafListContainer
 		want    LeafListContainer
 		wantErr string
 	}{
@@ -291,6 +292,21 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 					},
 				},
 			}},
+			want: LeafListContainer{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
+		},
+		{
+			desc: "int32 success with existing values",
+			sch:  int32LeafListSchema,
+			val: &gpb.TypedValue{Value: &gpb.TypedValue_LeaflistVal{
+				LeaflistVal: &gpb.ScalarArray{
+					Element: []*gpb.TypedValue{
+						{Value: &gpb.TypedValue_IntVal{IntVal: -42}},
+						{Value: &gpb.TypedValue_IntVal{IntVal: 0}},
+						{Value: &gpb.TypedValue_IntVal{IntVal: 42}},
+					},
+				},
+			}},
+			in:   LeafListContainer{Int32LeafList: []*int32{ygot.Int32(-41), ygot.Int32(41)}},
 			want: LeafListContainer{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
 		},
 		{
@@ -434,15 +450,14 @@ func TestUnmarshalLeafListGNMIEncoding(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			var parent LeafListContainer
-			err := unmarshalGeneric(tt.sch, &parent, tt.val, GNMIEncoding)
+			err := unmarshalGeneric(tt.sch, &tt.in, tt.val, GNMIEncoding)
 			if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
-				t.Errorf("unmarshalGeneric(%v, %v, %v): diff(-got,+want):\n%s", tt.sch, parent, tt.val, diff)
+				t.Errorf("unmarshalGeneric(%v, %v, %v): diff(-got,+want):\n%s", tt.sch, tt.in, tt.val, diff)
 			}
 			if err != nil {
 				return
 			}
-			got, want := parent, tt.want
+			got, want := tt.in, tt.want
 			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("unmarshalGeneric (-want, +got):\n%s", diff)
 			}
@@ -477,6 +492,7 @@ func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 	tests := []struct {
 		desc    string
 		json    string
+		in      ContainerStruct
 		want    ContainerStruct
 		wantErr string
 	}{
@@ -488,6 +504,12 @@ func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 		{
 			desc: "int32 success",
 			json: `{ "int32-leaf-list" : [-42, 0, 42] }`,
+			want: ContainerStruct{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
+		},
+		{
+			desc: "int32 success with existing values",
+			json: `{ "int32-leaf-list" : [-42, 0, 42] }`,
+			in:   ContainerStruct{Int32LeafList: []*int32{ygot.Int32(-41), ygot.Int32(41)}},
 			want: ContainerStruct{Int32LeafList: []*int32{ygot.Int32(-42), ygot.Int32(0), ygot.Int32(42)}},
 		},
 		{
@@ -510,21 +532,19 @@ func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 	var jsonTree interface{}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			var parent ContainerStruct
-
 			if tt.json != "" {
 				if err := json.Unmarshal([]byte(tt.json), &jsonTree); err != nil {
 					t.Fatalf("%s : %s", tt.desc, err)
 				}
 			}
 
-			err := Unmarshal(containerWithLeafListSchema, &parent, jsonTree)
+			err := Unmarshal(containerWithLeafListSchema, &tt.in, jsonTree)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				got, want := parent, tt.want
+				got, want := tt.in, tt.want
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("%s: unmarshal (-want, +got):\n%s", tt.desc, diff)
 				}
@@ -555,7 +575,9 @@ func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 
 	// bad value type
 	wantErr = `unmarshalLeafList for schema valid-leaf-list-schema: value 42 (int): got type int, expect []interface{}`
-	if got, want := errToString(unmarshalLeafList(validLeafListSchema, &struct{}{}, int(42), JSONEncoding)), wantErr; got != want {
+	if got, want := errToString(unmarshalLeafList(validLeafListSchema, &struct {
+		Field []int32 `path:"valid-leaf-list-schema"`
+	}{}, int(42), JSONEncoding)), wantErr; got != want {
 		t.Errorf("nil schema: Unmarshal got error: %v, want error: %v", got, want)
 	}
 }
