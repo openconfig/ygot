@@ -124,7 +124,7 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 		if len(sa.LeaflistVal.GetElement()) == 0 {
 			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got empty leaf list, expect non-empty leaf list", schema.Name, util.ValueStr(value))
 		}
-		// A new leaf-list update specifies the entire leaf-list
+		// A new leaf-list update specifies the entire leaf-list, so we should clear its contents if it is non-nil.
 		clearSliceField(parent, fieldName)
 		for _, v := range sa.LeaflistVal.GetElement() {
 			if err := unmarshalGeneric(&leafSchema, parent, v, enc); err != nil {
@@ -137,7 +137,7 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 			return fmt.Errorf("unmarshalLeafList for schema %s: value %v: got type %T, expect []interface{}", schema.Name, util.ValueStr(value), value)
 		}
 
-		// A new leaf-list update specifies the entire leaf-list
+		// A new leaf-list update specifies the entire leaf-list, so we should clear its contents if it is non-nil.
 		clearSliceField(parent, fieldName)
 		for _, leaf := range leafList {
 			if err := unmarshalGeneric(&leafSchema, parent, leaf, enc); err != nil {
