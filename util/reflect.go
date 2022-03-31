@@ -1038,11 +1038,12 @@ func getNodesList(schema *yang.Entry, root interface{}, path *gpb.Path) ([]inter
 					if !fv.IsValid() {
 						return nil, nil, fmt.Errorf("element struct type %s does not contain key field %s", k.Type(), kfn)
 					}
-					nv := fv
-					if fv.Type().Kind() == reflect.Ptr {
-						// Ptr values are deferenced in key struct.
-						nv = nv.Elem()
-					}
+					// FIXME(wenbli): This block was here but is not doing anything. We need to ensure that no functionality would be missing by removing it.
+					//nv := fv
+					//if fv.Type().Kind() == reflect.Ptr {
+					//	// Ptr values are deferenced in key struct.
+					//	nv = nv.Elem()
+					//}
 					kf, ok := listElementType.FieldByName(kfn)
 					if !ok {
 						return nil, nil, fmt.Errorf("element struct type %s does not contain key field %s", k.Type(), kfn)
