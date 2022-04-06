@@ -82,7 +82,8 @@ type DirectoryGenConfig struct {
 	// given YANG schema.
 	TransformationOptions TransformationOpts
 
-	EnumPrefix string
+	EnumPrefix        string
+	TypedefEnumPrefix string
 }
 
 // ParseOpts contains parsing configuration for a given schema.
@@ -255,6 +256,8 @@ func NewYANGCodeGenerator(c *GeneratorConfig) *YANGCodeGenerator {
 type yangEnum struct {
 	name  string      // name is the name of the enumeration or identity.
 	entry *yang.Entry // entry is the yang.Entry corresponding to the enumerated value.
+	// Kind indicates whether the type is an enumeration, or an identityref.
+	Kind EnumeratedValueType
 }
 
 // GeneratedGoCode contains generated code snippets that can be processed by the calling
@@ -341,10 +344,11 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		ParseOptions:          cg.Config.ParseOptions,
 		TransformationOptions: cg.Config.TransformationOptions,
 		EnumPrefix:            goEnumPrefix,
+		TypedefEnumPrefix:     goEnumPrefix,
 	}
 
 	lm := newGoGenState(nil, nil)
-	defns, errs := d.GetDefinitions(yangFiles, includePaths, lm)
+	defns, errs := d.GetDefinitions(yangFiles, includePaths, lm, false, false, false)
 	if len(errs) != 0 {
 		return nil, errs
 	}
@@ -474,7 +478,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		structSnippets = append(structSnippets, structOut)
 	}*/
 
-	ptNames, ptTypes, err := getOrderedDirDetails(lm, defns.Directories, d.TransformationOptions.CompressBehaviour, false)
+	dirPaths, ptTypes, err := getOrderedDirDetails(lm, defns.Directories, d.TransformationOptions.CompressBehaviour, false, false)
 	if err != nil {
 		return nil, append(codegenErr, err)
 	}
@@ -482,8 +486,8 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	// Range through the directories to find the enumerated and union types that we
 	// need. We have to do this without writing the code out, since we require some
 	// knowledge of these types to do code generation along with the values.
-	for _, directoryName := range ptNames {
-		thisDir := ptTypes[directoryName]
+	for _, directoryPath := range dirPaths {
+		thisDir := ptTypes[directoryPath]
 
 		fns := []string{}
 		for n := range thisDir.Fields {
@@ -504,7 +508,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 				usedEnumeratedTypes[f.LangType.NativeType] = true
 				enumTypeMap[schemaPath] = []string{f.LangType.NativeType}
 			case len(f.LangType.UnionTypes) > 1:
-				if v := definedUnionTypes[directoryName][f.LangType.NativeType]; v != nil {
+				if v := definedUnionTypes[directoryPath][f.LangType.NativeType]; v != nil {
 					continue
 				}
 
@@ -535,35 +539,35 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 				}
 
 				sort.Strings(unionIntf.TypeNames)
-				if definedUnionTypes[directoryName] == nil {
-					definedUnionTypes[directoryName] = map[string]*goUnionInterface{}
+				if definedUnionTypes[directoryPath] == nil {
+					definedUnionTypes[directoryPath] = map[string]*goUnionInterface{}
 				}
-				definedUnionTypes[directoryName][f.LangType.NativeType] = unionIntf
+				definedUnionTypes[directoryPath][f.LangType.NativeType] = unionIntf
 			}
 		}
 	}
 
-	for _, directoryName := range ptNames {
-		structOut, errs := writeGoStruct(ptTypes[directoryName], defns, cg.Config.GoOptions, cg.Config.GenerateJSONSchema)
+	for _, directoryPath := range dirPaths {
+		structOut, errs := writeGoStruct(ptTypes[directoryPath], defns, cg.Config.GoOptions, cg.Config.GenerateJSONSchema)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
 		}
 		var b bytes.Buffer
 		tn := []string{}
-		for k := range definedUnionTypes[directoryName] {
+		for k := range definedUnionTypes[directoryPath] {
 			tn = append(tn, k)
 		}
 		sort.Strings(tn)
 		for _, n := range tn {
 			if !generatedUnions[n] {
-				if err := generateUnionCode(&b, definedUnionTypes[directoryName][n]); err != nil {
+				if err := generateUnionCode(&b, definedUnionTypes[directoryPath][n]); err != nil {
 					codegenErr = util.AppendErr(codegenErr, err)
 					continue
 				}
 				generatedUnions[n] = true
 			}
-			if err := generateUnionHelper(&b, definedUnionTypes[directoryName][n]); err != nil {
+			if err := generateUnionHelper(&b, definedUnionTypes[directoryPath][n]); err != nil {
 				codegenErr = util.AppendErr(codegenErr, err)
 				continue
 			}
@@ -733,6 +737,7 @@ type goEnumeratedType struct {
 }
 
 type Definitions struct {
+	compressBehaviour genutil.CompressBehaviour
 	// transformationOpts stores details of the schema transformations that were
 	// made when generating the IR, such that calling code can retrieve these
 	// elements without needing to be aware of the transformations.
@@ -790,6 +795,17 @@ func (d *Definitions) RootName() string {
 	return rd.Name
 }
 
+// ChildDirectories returns the child directories of the input directory.
+func (d *Definitions) ChildDirectories(dir *ParsedDirectory) []*ParsedDirectory {
+	var children []*ParsedDirectory
+	for _, n := range d.ParsedTree {
+		if util.IsDirectEntryChild(dir.entry, n.entry, d.compressBehaviour.CompressEnabled()) {
+			children = append(children, n)
+		}
+	}
+	return children
+}
+
 // GetDirectoriesAndLeafTypes parses YANG files and returns two path-keyed
 // maps. The first contains Directory entries that is the intermediate
 // representation used by ygen for subsequent code generation, and the second
@@ -804,7 +820,7 @@ func (d *Definitions) RootName() string {
 // those modules). Any errors encountered during code generation are returned.
 func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePaths []string) (map[string]*Directory, map[string]map[string]*MappedType, util.Errors) {
 	langMapper := newGoGenState(nil, nil)
-	g, errs := dcg.GetDefinitions(yangFiles, includePaths, langMapper)
+	g, errs := dcg.GetDefinitions(yangFiles, includePaths, langMapper, false, false, false)
 	return g.Directories, g.LeafTypes, errs
 }
 
@@ -821,8 +837,20 @@ type LangMapper interface {
 	KeyLeafType(*yang.Entry, genutil.CompressBehaviour) (*MappedType, error)
 	// LeafType maps an input yang.Entry which must represent a leaf to the
 	// type that should be used when the leaf is used in the context of a
-	// field within a directory within the output IR.
+	// field within a directory within the output IR. The globally-unique
+	// name of the directory is also a required parameter.
 	LeafType(*yang.Entry, genutil.CompressBehaviour) (*MappedType, error)
+	// PackageName maps an input yang.Entry, which must correspond to a
+	// directory type (container or list), to the package name to which it
+	// belongs. The bool parameter specifies whether the generated
+	// directories will be nested or not since some languages allow nested
+	// structs.
+	PackageName(*yang.Entry, genutil.CompressBehaviour, bool) (string, error)
+
+	// ResolveLeafref resolves a leafref to its target entry. If the input
+	// entry is not a leafref, then the same entry is returned. If the
+	// input entry is nil, it should also return nil.
+	ResolveLeafref(*yang.Entry) (*yang.Entry, error)
 
 	// SetEnumSet is used to supply a set of enumerated values to the
 	// mapper such that leaves that have enumerated types can be looked up.
@@ -835,18 +863,24 @@ type LangMapper interface {
 }
 
 type ParsedDirectory struct {
-	Name       string
-	Fields     map[string]*NodeDetails
-	Path       []string
-	ListAttr   *YangListAttr
-	IsFakeRoot bool
+	Name         string
+	Type         NodeType
+	Fields       map[string]*NodeDetails
+	entry        *yang.Entry // Entry is the yang.Entry that corresponds to the schema element being converted to a struct.
+	Path         []string
+	ListKeys     map[string]*MappedType
+	ListKeyNames map[string]string
+	IsFakeRoot   bool
+	PackageName  string
 }
 
 type YANGNodeDetails struct {
-	Name    string
-	Default string
-	Module  string
-	Path    []string
+	Name            string
+	Default         string
+	Module          string
+	Path            []string
+	PathStr         string
+	ResolvedPathStr string
 }
 
 type NodeDetails struct {
@@ -869,21 +903,45 @@ const (
 	ListNode
 	LeafNode
 	LeafListNode
+	AnyDataNode
 )
 
 func parseDir(d *Directory) *ParsedDirectory {
-	return &ParsedDirectory{
+	pd := &ParsedDirectory{
 		Name:       d.Name,
+		entry:      d.Entry,
 		Path:       d.Path,
-		ListAttr:   d.ListAttr,
 		IsFakeRoot: d.IsFakeRoot,
 	}
+	if d.ListAttr != nil {
+		pd.ListKeys = d.ListAttr.Keys
+		pd.ListKeyNames = d.ListAttr.ListKeyNames
+	}
+	return pd
 }
 
-func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, langMapper LangMapper) (*Definitions, util.Errors) {
-	if dcg.EnumPrefix == "" {
-		dcg.EnumPrefix = goEnumPrefix
+func (pd *ParsedDirectory) OrderedListKeyNames() []string {
+	keyNames := []string{}
+	for name := range pd.ListKeys {
+		keyNames = append(keyNames, name)
 	}
+	sort.Strings(keyNames)
+	return keyNames
+}
+
+func (pd *ParsedDirectory) OrderedFieldNames() []string {
+	fieldNames := []string{}
+	for name := range pd.Fields {
+		fieldNames = append(fieldNames, name)
+	}
+	sort.Strings(fieldNames)
+	return fieldNames
+}
+
+func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, langMapper LangMapper, absolutePaths, noUnderscores, nestedStructs bool) (*Definitions, util.Errors) {
+	//if dcg.EnumPrefix == "" {
+	//	dcg.EnumPrefix = goEnumPrefix
+	//}
 	cg := &GeneratorConfig{ParseOptions: dcg.ParseOptions, TransformationOptions: dcg.TransformationOptions}
 	// Extract the entities to be mapped into structs and enumerations in the output
 	// Go code. Extract the schematree from the modules provided such that it can be
@@ -895,7 +953,7 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 
 	dirsToProcess := map[string]*yang.Entry(mdef.directoryEntries)
 
-	enumSet, genEnums, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), false, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, dcg.EnumPrefix)
+	enumSet, genEnums, errs := findEnumSet(mdef.enumEntries, cg.TransformationOptions.CompressBehaviour.CompressEnabled(), noUnderscores, cg.ParseOptions.SkipEnumDeduplication, cg.TransformationOptions.ShortenEnumLeafNames, dcg.EnumPrefix, dcg.TypedefEnumPrefix)
 	if errs != nil {
 		return nil, errs
 	}
@@ -906,12 +964,6 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 	directoryMap, errs := buildDirectoryDefinitions(langMapper, dirsToProcess, cg.TransformationOptions.CompressBehaviour)
 	if errs != nil {
 		return nil, errs
-	}
-
-	// Alphabetically order directories to produce deterministic output.
-	orderedDirNames, dirNameMap, err := GetOrderedDirectories(directoryMap)
-	if err != nil {
-		return nil, util.AppendErr(errs, err)
 	}
 
 	// TODO(robjs): refactor this out.
@@ -929,9 +981,10 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 		return nil
 	}
 
+	// Alphabetically order directories to produce deterministic output.
 	// TODO(robjs): can be refactored out once downstream changes have been made.
-	for _, directoryName := range orderedDirNames {
-		dir := dirNameMap[directoryName]
+	for _, dirPath := range GetOrderedPathDirectories(directoryMap) {
+		dir := directoryMap[dirPath]
 		path := dir.Entry.Path()
 
 		leafTypeMap[path] = make(map[string]*MappedType, len(dir.Fields))
@@ -958,29 +1011,33 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 	}
 
 	// TODO(robjs): take absolutePaths as an argument.
-	_, dirDets, err := getOrderedDirDetails(langMapper, directoryMap, dcg.TransformationOptions.CompressBehaviour, false)
+	_, dirDets, err := getOrderedDirDetails(langMapper, directoryMap, dcg.TransformationOptions.CompressBehaviour, absolutePaths, nestedStructs)
 	if err != nil {
 		return nil, util.AppendErr(errs, err)
 	}
 
 	enumDefinitionMap := make(map[string]*EnumeratedYANGType, len(genEnums))
 	for _, enum := range genEnums {
+		var enumPrefix string
 		et := &EnumeratedYANGType{
-			Name:     enum.name,
-			TypeName: enum.entry.Type.Name,
+			Name:             enum.name,
+			TypeName:         enum.entry.Type.Name,
+			TypeDefaultValue: enum.entry.Type.Default,
+			Kind:             enum.Kind,
 		}
 		switch {
-		case util.IsIdentityrefLeaf(enum.entry):
-			et.Kind = IdentityType
+		case et.Kind == IdentityType:
 			et.identityBase = enum.entry.Type.IdentityBase
-		case util.IsSimpleEnumerationType(enum.entry.Type):
-			et.Kind = SimpleEnumerationType
+			//enumPrefix = dcg.TypedefEnumPrefix
+		case et.Kind == SimpleEnumerationType:
 			et.enumType = enum.entry.Type.Enum
-		case enum.entry.Type.Kind == yang.Yunion:
-			et.Kind = UnionEnumerationType
-		case util.IsEnumerationLeaf(enum.entry):
-			et.Kind = DerivedEnumerationType
+			//enumPrefix = dcg.EnumPrefix
+		case et.Kind == UnionEnumerationType:
 			et.enumType = enum.entry.Type.Enum
+			//enumPrefix = dcg.EnumPrefix
+		case et.Kind == DerivedEnumerationType:
+			et.enumType = enum.entry.Type.Enum
+			//enumPrefix = dcg.TypedefEnumPrefix
 		case len(enum.entry.Type.Type) != 0:
 			errs = append(errs, fmt.Errorf("unimplemented: support for multiple enumerations within a union for %v", enum.name))
 		default:
@@ -995,7 +1052,12 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 			et.ValuePrefix = s
 		}
 
-		enumDefinitionMap[enum.name] = et
+		nativeType := enumPrefix + enum.name
+		if enum, ok := enumDefinitionMap[nativeType]; ok {
+			//log.Errorf("Enumeration already created: %v", enum)
+			panic("Enumeration already created: " + enum.Name)
+		}
+		enumDefinitionMap[nativeType] = et
 	}
 
 	if errs != nil {
@@ -1003,6 +1065,7 @@ func (dcg *DirectoryGenConfig) GetDefinitions(yangFiles, includePaths []string, 
 	}
 
 	return &Definitions{
+		compressBehaviour:  cg.TransformationOptions.CompressBehaviour,
 		transformationOpts: dcg.TransformationOptions,
 		parsedModules:      mdef.modules,
 
@@ -1027,6 +1090,10 @@ type EnumeratedYANGType struct {
 	ValuePrefix []string
 	// TypeName stores the original YANG type name for the enumeration.
 	TypeName string
+	// TypeDefaultValue stores the default value of the enum type's default
+	// statement (note: this is different from the default statement of the
+	// leaf type).
+	TypeDefaultValue string
 
 	// identityBase is populated if the enumerated type was an Identity.
 	identityBase *yang.Identity
@@ -1076,48 +1143,69 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		yextPath = DefaultYextPath
 	}
 
-	mdef, errs := mappedDefinitions(yangFiles, includePaths, &cg.Config)
-	if errs != nil {
-		return nil, errs
-	}
-	enumSet, penums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, fmt.Sprintf("%s.%s.", basePackageName, enumPackageName))
-	if errs != nil {
-		return nil, errs
-	}
-	protogen := newProtoGenState(mdef.schematree, enumSet)
+	/*
+		mdef, errs := mappedDefinitions(yangFiles, includePaths, &cg.Config)
+		if errs != nil {
+			return nil, errs
+		}
+		enumSet, penums, errs := findEnumSet(mdef.enumEntries, cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), true, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, fmt.Sprintf("%s.%s.", basePackageName, enumPackageName))
+		if errs != nil {
+			return nil, errs
+		}
+		protogen := newProtoGenState(mdef.schematree, enumSet)
 
-	protoEnums, errs := writeProtoEnums(penums, cg.Config.ProtoOptions.AnnotateEnumNames)
-	if errs != nil {
+		protoEnums, errs := writeProtoEnums(penums, cg.Config.ProtoOptions.AnnotateEnumNames)
+		if errs != nil {
+			return nil, errs
+		}
+
+		protoMsgs, errs := buildDirectoryDefinitions(protogen, mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour)
+		if errs != nil {
+			return nil, errs
+		}
+	*/
+
+	d := &DirectoryGenConfig{
+		ParseOptions:          cg.Config.ParseOptions,
+		TransformationOptions: cg.Config.TransformationOptions,
+		TypedefEnumPrefix:     basePackageName + "." + enumPackageName + ".",
+	}
+
+	lm := newProtoGenState(nil, nil, resolveProtoTypeArgs{
+		// FIXME(wenbli): This needs to be packaged into another type
+		// since the parameters will vary depending on the langMapper
+		// method.
+		basePackageName: basePackageName,
+		enumPackageName: enumPackageName,
+		// When there is a union within a list key that has a single type within it
+		// e.g.,:
+		// list foo {
+		//   key "bar";
+		//   leaf bar {
+		//     type union {
+		//       type string { pattern "a.*" }
+		//			 type string { pattern "b.*" }
+		//     }
+		//   }
+		// }
+		// Then we want to use the scalar type rather than the wrapper type in
+		// this message since all keys must be set. We therefore signal this in
+		// the call to the type resolution.
+		scalarTypeInSingleTypeUnion: true,
+	})
+	defns, errs := d.GetDefinitions(yangFiles, includePaths, lm, true, true, true)
+	if len(errs) != 0 {
 		return nil, errs
 	}
 
-	protoMsgs, errs := buildDirectoryDefinitions(protogen, mdef.directoryEntries, cg.Config.TransformationOptions.CompressBehaviour)
-	if errs != nil {
-		return nil, errs
+	protoEnums, err := writeProtoEnumsNew(defns.Enums, cg.Config.ProtoOptions.AnnotateEnumNames)
+	if err != nil {
+		return nil, util.NewErrs(err)
 	}
 
 	genProto := &GeneratedProto3{
 		Packages: map[string]Proto3Package{},
 	}
-
-	// yerr stores errors encountered during code generation.
-	var yerr util.Errors
-
-	// pkgImports lists the imports that are required for the package that is being
-	// written out.
-	pkgImports := map[string]map[string]interface{}{}
-
-	// Ensure that the slice of messages returned is in a deterministic order by
-	// sorting the message paths. We use the path rather than the name as the
-	// proto message name may not be unique.
-	msgPaths := []string{}
-	msgMap := map[string]*Directory{}
-	for _, m := range protoMsgs {
-		k := strings.Join(m.Path, "/")
-		msgPaths = append(msgPaths, k)
-		msgMap[k] = m
-	}
-	sort.Strings(msgPaths)
 
 	// Only create the enums package if there are enums that are within the schema.
 	if len(protoEnums) > 0 {
@@ -1130,10 +1218,34 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		}
 	}
 
+	// yerr stores errors encountered during code generation.
+	var yerr util.Errors
+
+	// pkgImports lists the imports that are required for the package that is being
+	// written out.
+	pkgImports := map[string]map[string]interface{}{}
+
+	_, protoMsgs, err := getOrderedDirDetails(lm, defns.Directories, d.TransformationOptions.CompressBehaviour, true, cg.Config.ProtoOptions.NestedMessages)
+	if err != nil {
+		return nil, util.NewErrs(err)
+	}
+
+	// Ensure that the slice of messages returned is in a deterministic order by
+	// sorting the message paths. We use the path rather than the name as the
+	// proto message name may not be unique.
+	msgPaths := []string{}
+	msgMap := map[string]*ParsedDirectory{}
+	for _, m := range protoMsgs {
+		k := strings.Join(m.Path, "/")
+		msgPaths = append(msgPaths, k)
+		msgMap[k] = m
+	}
+	sort.Strings(msgPaths)
+
 	for _, n := range msgPaths {
 		m := msgMap[n]
 
-		genMsg, errs := writeProto3Msg(m, protoMsgs, protogen, &protoMsgConfig{
+		genMsg, errs := writeProto3Msg(m, protoMsgs, defns.Enums, defns, &protoMsgConfig{
 			compressPaths:       cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(),
 			basePackageName:     basePackageName,
 			enumPackageName:     enumPackageName,

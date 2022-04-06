@@ -1749,7 +1749,7 @@ func generateGetListKey(buf *bytes.Buffer, s *ParsedDirectory, nameMap map[strin
 	//if !s.isList() {
 	//	return nil
 	//}
-	if s.ListAttr == nil {
+	if s.ListKeys == nil {
 		return nil
 	}
 
@@ -1757,18 +1757,18 @@ func generateGetListKey(buf *bytes.Buffer, s *ParsedDirectory, nameMap map[strin
 		Receiver: s.Name,
 	}
 
-	/*kn := []string{}
-	for k := range s.ListAttr.Keys {
+	kn := []string{}
+	for k := range s.ListKeys {
 		kn = append(kn, k)
 	}
 	sort.Strings(kn)
 
 	for _, k := range kn {
 		h.Keys = append(h.Keys, nameMap[k])
-	}*/
-	for _, k := range s.ListAttr.OrderedKeyNames {
-		h.Keys = append(h.Keys, nameMap[k])
 	}
+	//for _, k := range s.ListAttr.OrderedKeyNames {
+	//	h.Keys = append(h.Keys, nameMap[k])
+	//}
 
 	return goTemplates["keyHelper"].Execute(buf, h)
 }
@@ -1804,7 +1804,7 @@ func yangListFieldToGoType(listField *NodeDetails, parent *ParsedDirectory, dire
 	// for it, and hence we skip the element.
 	listName := listElem.Name
 
-	if listElem.ListAttr == nil || len(listElem.ListAttr.Keys) == 0 {
+	if len(listElem.ListKeys) == 0 {
 		// Keyless list therefore represent this as a slice of pointers to
 		// the struct that represents the list element itself.
 		return fmt.Sprintf("[]*%s", listName), nil, nil, nil
@@ -1832,7 +1832,8 @@ func yangListFieldToGoType(listField *NodeDetails, parent *ParsedDirectory, dire
 	// Key name elements are ordered per Section 7.8.2 of RFC6020. Rely on this
 	// fact for determisitic ordering in output code and rendering.
 
-	for _, keName := range listElem.ListAttr.OrderedKeyNames {
+	usedKeyElemNames := make(map[string]bool)
+	for _, keName := range listElem.OrderedListKeyNames() {
 		keyType, ok := listElem.Fields[keName]
 		if !ok {
 			return "", nil, nil, fmt.Errorf("did not find type for key %s", keName)
@@ -1843,7 +1844,7 @@ func yangListFieldToGoType(listField *NodeDetails, parent *ParsedDirectory, dire
 		}
 
 		keyField := goStructField{
-			Name: keName,
+			Name: genutil.MakeNameUnique(listElem.ListKeyNames[keName], usedKeyElemNames),
 			Type: keyType.LangType.NativeType,
 			Tags: mapPathString(shortestPath(keyType.MapPaths), ""),
 		}
@@ -1852,12 +1853,12 @@ func yangListFieldToGoType(listField *NodeDetails, parent *ParsedDirectory, dire
 	}
 
 	switch {
-	case len(listElem.ListAttr.Keys) == 1:
+	case len(listElem.ListKeys) == 1:
 		// This is a single keyed list, so we can represent it as a map with
 		// a simple Go type as the key. Note that a leaf-list can never be
 		// a key, so we do not need to handle the case whereby we would have to
 		// have a slice which keys the list.
-		listType = fmt.Sprintf("map[%s]*%s", listElem.Fields[listElem.ListAttr.OrderedKeyNames[0]].LangType.NativeType, listName)
+		listType = fmt.Sprintf("map[%s]*%s", listElem.Fields[listElem.OrderedListKeyNames()[0]].LangType.NativeType, listName)
 	default:
 		// This is a list with multiple keys, so we need to generate a new structure
 		// that represents the list key itself - this struct is described in a

@@ -1249,7 +1249,11 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				case golang:
 					lm = newGoGenState(st, nil)
 				case protobuf:
-					lm = newProtoGenState(st, nil)
+					lm = newProtoGenState(st, nil, resolveProtoTypeArgs{
+						basePackageName:             "basePackage",
+						enumPackageName:             "enumPackage",
+						scalarTypeInSingleTypeUnion: true,
+					})
 				}
 				got, errs := buildDirectoryDefinitions(lm, structs, c.compressBehaviour)
 				if errs != nil {
@@ -2026,7 +2030,7 @@ func TestBuildListKey(t *testing.T) {
 			}
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.in, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress.CompressEnabled(), false, tt.inSkipEnumDedup, true, "E_")
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompress.CompressEnabled(), false, tt.inSkipEnumDedup, true, "E_", "E_")
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)

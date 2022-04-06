@@ -16,6 +16,7 @@ package ygen
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -44,7 +45,7 @@ type MappedType struct {
 	// (e.g., string) then only the order of the first is maintained. Since
 	// the generated code from the structs maintains only type validation,
 	// this is not currently a limitation.
-	UnionTypes map[string]int
+	UnionTypes map[string]*UnionSubtype
 	// IsEnumeratedValue specifies whether the NativeType that is returned
 	// is a generated enumerated value. Such entities are reflected as
 	// derived types with constant values, and are hence not represented
@@ -58,6 +59,16 @@ type MappedType struct {
 	// It is represented as a string pointer to ensure that default values
 	// of the empty string can be distinguished from unset defaults.
 	DefaultValue *string
+	// EnumeratedYANGTypeName stores the name that can be used to key into
+	// the EnumeratedYANGTypes map containing all of the enumeration
+	// definitions. This value should be populated when IsEnumeratedValue
+	// is true.
+	EnumeratedYANGTypeName string
+}
+
+type UnionSubtype struct {
+	Index          int
+	GlobalEnumName string
 }
 
 // IsYgenDefinedGoType returns true if the native type of a MappedType is a Go
@@ -166,12 +177,13 @@ func buildListKey(e *yang.Entry, compBehaviour genutil.CompressBehaviour, langMa
 	}
 
 	listattr := &YangListAttr{
-		Keys: make(map[string]*MappedType),
+		Keys:         make(map[string]*MappedType),
+		ListKeyNames: make(map[string]string),
 	}
 
 	var errs []error
 	keyNames := []string{}
-	usedKeyNames := map[string]bool{}
+	//usedKeyNames := map[string]bool{}
 	keys := strings.Fields(e.Key)
 	for _, k := range keys {
 		// Extract the key leaf itself from the Dir of the list element. Dir is populated
@@ -231,19 +243,22 @@ func buildListKey(e *yang.Entry, compBehaviour genutil.CompressBehaviour, langMa
 			errs = append(errs, err)
 			continue
 		}
-		kn := genutil.MakeNameUnique(keyName, usedKeyNames)
-		keyNames = append(keyNames, kn)
+		//kn := genutil.MakeNameUnique(keyName, usedKeyNames)
+		//keyNames = append(keyNames, kn)
+		keyNames = append(keyNames, k)
 
 		keyType, err := langMapper.KeyLeafType(keyleaf, compBehaviour)
 		if err != nil {
 			errs = append(errs, err)
 		}
 		if keyType != nil {
-			listattr.Keys[kn] = keyType
+			listattr.Keys[k] = keyType
+			listattr.ListKeyNames[k] = keyName
 		}
 
 	}
 
+	sort.Strings(keyNames)
 	listattr.OrderedKeyNames = keyNames
 
 	return listattr, errs

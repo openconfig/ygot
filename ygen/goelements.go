@@ -142,6 +142,21 @@ func (s *goGenState) LeafName(e *yang.Entry) (string, error) {
 	return genutil.EntryCamelCaseName(e), nil
 }
 
+// PackageName is not used by Go generation.
+func (s *goGenState) PackageName(*yang.Entry, genutil.CompressBehaviour, bool) (string, error) {
+	return "", nil
+}
+
+func (s *goGenState) ResolveLeafref(e *yang.Entry) (*yang.Entry, error) {
+	if e == nil {
+		return nil, fmt.Errorf("ygen: given nil entry for ResolveLeafref")
+	}
+	if e.Type != nil && e.Type.Kind == yang.Yleafref {
+		return s.schematree.resolveLeafrefTarget(e.Type.Path, e)
+	}
+	return e, nil
+}
+
 // resolveTypeArgs is a structure used as an input argument to the yangTypeToGoType
 // function which allows extra context to be handed on. This provides the ability
 // to use not only the YangType but also the yang.Entry that the type was part of
@@ -413,7 +428,7 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*M
 	// mapped type. A map is used such that other functions that rely checking
 	// whether a particular type is valid when creating mapping code can easily
 	// check, rather than iterating the slice of strings.
-	unionTypes := make(map[string]int)
+	unionTypes := make(map[string]*UnionSubtype)
 	for _, subtype := range args.yangType.Type {
 		errs = append(errs, s.goUnionSubTypes(subtype, args.contextEntry, unionTypes, unionMappedTypes, compressOCPaths)...)
 	}
@@ -448,7 +463,7 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths bool) (*M
 // The skipEnumDedup argument specifies whether the current code generation is
 // de-duplicating enumerations where they are used in more than one place in
 // the schema.
-func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths bool) []error {
+func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]*UnionSubtype, unionMappedTypes map[int]*MappedType, compressOCPaths bool) []error {
 	var errs []error
 	// If subtype.Type is not empty then this means that this type is defined to
 	// be a union itself.
@@ -503,7 +518,7 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 	// simply represent this as one string.
 	if _, ok := currentTypes[mtype.NativeType]; !ok {
 		index := len(currentTypes)
-		currentTypes[mtype.NativeType] = index
+		currentTypes[mtype.NativeType] = &UnionSubtype{Index: index}
 		unionMappedTypes[index] = mtype
 	}
 	return errs

@@ -114,7 +114,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		},
-		wantWrapper: &MappedType{UnionTypes: map[string]int{"string": 0, "uint64": 1}},
+		wantWrapper: &MappedType{UnionTypes: map[string]*UnionSubtype{"string": {Index: 0}, "uint64": {Index: 1}}},
 		wantSame:    true,
 	}, {
 		name: "union with only strings",
@@ -556,13 +556,13 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		},
-		wantWrapper: &MappedType{UnionTypes: map[string]int{"bool": 0, "string": 1}},
+		wantWrapper: &MappedType{UnionTypes: map[string]*UnionSubtype{"bool": {Index: 0}, "string": {Index: 1}}},
 		wantSame:    true,
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rpt := resolveProtoTypeArgs{basePackageName: "basePackage", enumPackageName: "enumPackage"}
+			rpt := resolveProtoTypeArgs{basePackageName: "basePackage", enumPackageName: "enumPackage", scalarTypeInSingleTypeUnion: true}
 			if tt.inResolveProtoTypeArgs != nil {
 				rpt = *tt.inResolveProtoTypeArgs
 			}
@@ -580,7 +580,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 			for _, e := range enumMapFromEntries(tt.inEntries) {
 				addEnumsToEnumMap(e, enumMap)
 			}
-			enumSet, _, errs := findEnumSet(enumMap, false, true, false, true, "basePackage.enumPackage.")
+			enumSet, _, errs := findEnumSet(enumMap, false, true, false, true, "", "basePackage.enumPackage.")
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
@@ -588,7 +588,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				return
 			}
 
-			s := newProtoGenState(st, enumSet)
+			s := newProtoGenState(st, enumSet, rpt)
 
 			for _, st := range tt.in {
 				gotWrapper, err := s.yangTypeToProtoType(st, rpt)
@@ -699,7 +699,8 @@ func TestProtoMsgName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newProtoGenState(nil, nil)
+			rpt := resolveProtoTypeArgs{basePackageName: "basePackage", enumPackageName: "enumPackage", scalarTypeInSingleTypeUnion: true}
+			s := newProtoGenState(nil, nil, rpt)
 			// Seed the proto message names with some known input.
 			if tt.inUniqueProtoMsgNames != nil {
 				s.uniqueProtoMsgNames = tt.inUniqueProtoMsgNames
@@ -834,7 +835,8 @@ func TestProtoPackageName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newProtoGenState(nil, nil)
+			rpt := resolveProtoTypeArgs{basePackageName: "basePackage", enumPackageName: "enumPackage", scalarTypeInSingleTypeUnion: true}
+			s := newProtoGenState(nil, nil, rpt)
 			if tt.inDefinedGlobals != nil {
 				s.definedGlobals = tt.inDefinedGlobals
 			}

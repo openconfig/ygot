@@ -74,6 +74,7 @@ type enumSetConfig struct {
 	skipEnumDedup        bool
 	shortenEnumLeafNames bool
 	enumPrefix           string
+	typedefEnumPrefix    string
 }
 
 // newEnumSet initializes a new empty enumSet instance.
@@ -110,7 +111,7 @@ func (e *enumSet) LookupIdentity(i *yang.Identity) (*MappedType, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &MappedType{NativeType: fmt.Sprintf("%s%s", e.config.enumPrefix, n), IsEnumeratedValue: true}, nil
+	return &MappedType{NativeType: fmt.Sprintf("%s%s", e.config.typedefEnumPrefix, n), IsEnumeratedValue: true}, nil
 }
 
 // enumeratedUnionEntry takes an input YANG union yang.Entry and returns the set of enumerated
@@ -141,6 +142,7 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry) ([]*yangEnum, error) {
 						IdentityBase: t.IdentityBase,
 					},
 				},
+				Kind: IdentityType,
 			}
 		case t.Enum != nil:
 			var enumName string
@@ -165,6 +167,7 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry) ([]*yangEnum, error) {
 					},
 					Annotation: map[string]interface{}{"valuePrefix": util.SchemaPathNoChoiceCase(e)},
 				},
+				Kind: UnionEnumerationType,
 			}
 		}
 
@@ -234,7 +237,7 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs) (*MappedType, 
 			}
 
 			return &MappedType{
-				NativeType:        fmt.Sprintf("%s%s", s.config.enumPrefix, tn),
+				NativeType:        fmt.Sprintf("%s%s", s.config.typedefEnumPrefix, tn),
 				IsEnumeratedValue: true,
 			}, nil
 		}
@@ -410,7 +413,7 @@ func enumIdentifier(e *yang.Entry, compressPaths bool) string {
 // into a common type.
 // The returned enumSet can be used to query for enum/identity names.
 // The returned map is the set of generated enums to be used for enum code generation.
-func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames bool, prefix string) (*enumSet, map[string]*yangEnum, []error) {
+func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames bool, prefix, typedefEnumPrefix string) (*enumSet, map[string]*yangEnum, []error) {
 	validEnums := make(map[string]*yang.Entry)
 	var enumPaths []string
 	var errs []error
@@ -469,6 +472,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 		skipEnumDedup:        skipEnumDedup,
 		shortenEnumLeafNames: shortenEnumLeafNames,
 		enumPrefix:           prefix,
+		typedefEnumPrefix:    typedefEnumPrefix,
 	})
 
 	// This is the first of two passes over the input enum entries.
@@ -561,6 +565,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 				genEnums[idBaseName] = &yangEnum{
 					name:  idBaseName,
 					entry: e,
+					Kind:  IdentityType,
 				}
 			}
 		case e.Type.Name == "enumeration":
@@ -579,6 +584,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 				genEnums[enumName] = &yangEnum{
 					name:  enumName,
 					entry: e,
+					Kind:  SimpleEnumerationType,
 				}
 			}
 		default:
@@ -592,6 +598,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 				genEnums[typeName] = &yangEnum{
 					name:  typeName,
 					entry: e,
+					Kind:  DerivedEnumerationType,
 				}
 			}
 		}

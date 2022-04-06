@@ -14,6 +14,7 @@
 
 package ygen
 
+/*
 import (
 	"fmt"
 	"sort"
@@ -659,7 +660,8 @@ func TestGenProto3Msg(t *testing.T) {
 			if errs != nil {
 				t.Fatalf("findEnumSet failed: %v", errs)
 			}
-			s := newProtoGenState(nil, enumSet)
+			rpt := resolveProtoTypeArgs{basePackageName: tt.inBasePackage, enumPackageName: tt.inEnumPackage, scalarTypeInSingleTypeUnion: true}
+			s := newProtoGenState(nil, enumSet, rpt)
 
 			// Seed the state with the supplied message names that have been provided.
 			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
@@ -2000,3 +2002,4 @@ func TestStripPackagePrefix(t *testing.T) {
 	}
 
 }
+*/

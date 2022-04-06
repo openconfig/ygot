@@ -45,7 +45,7 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 		want: []string{"string"},
 		wantMtypes: map[int]*MappedType{
-			0: {"string", nil, false, goZeroValues["string"], nil},
+			0: {"string", nil, false, goZeroValues["string"], nil, ""},
 		},
 	}, {
 		name: "union of int8, string",
@@ -58,8 +58,8 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 		want: []string{"int8", "string"},
 		wantMtypes: map[int]*MappedType{
-			0: {"int8", nil, false, goZeroValues["int8"], nil},
-			1: {"string", nil, false, goZeroValues["string"], nil},
+			0: {"int8", nil, false, goZeroValues["int8"], nil, ""},
+			1: {"string", nil, false, goZeroValues["string"], nil, ""},
 		},
 	}, {
 		name: "union of unions",
@@ -84,10 +84,10 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 		want: []string{"string", "int32", "uint64", "int16"},
 		wantMtypes: map[int]*MappedType{
-			0: {"string", nil, false, goZeroValues["string"], nil},
-			1: {"int32", nil, false, goZeroValues["int32"], nil},
-			2: {"uint64", nil, false, goZeroValues["uint64"], nil},
-			3: {"int16", nil, false, goZeroValues["int16"], nil},
+			0: {"string", nil, false, goZeroValues["string"], nil, ""},
+			1: {"int32", nil, false, goZeroValues["int32"], nil, ""},
+			2: {"uint64", nil, false, goZeroValues["uint64"], nil, ""},
+			3: {"int16", nil, false, goZeroValues["int16"], nil, ""},
 		},
 	}, {
 		name: "erroneous union without context",
@@ -178,8 +178,8 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 		want: []string{"E_Basemod_Id", "E_Basemod2_Id2"},
 		wantMtypes: map[int]*MappedType{
-			0: {"E_Basemod_Id", nil, true, "0", nil},
-			1: {"E_Basemod2_Id2", nil, true, "0", nil},
+			0: {"E_Basemod_Id", nil, true, "0", nil, ""},
+			1: {"E_Basemod2_Id2", nil, true, "0", nil, ""},
 		},
 	}, {
 		name: "union of single identityref",
@@ -237,24 +237,24 @@ func TestUnionSubTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			enumSet, _, errs := findEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, "E_")
+			enumSet, _, errs := findEnumSet(enumMapFromEntry(tt.inCtxEntry), false, false, false, true, "E_", "E_")
 			if errs != nil {
 				t.Fatal(errs)
 			}
 			s := newGoGenState(nil, enumSet)
 
 			mtypes := make(map[int]*MappedType)
-			ctypes := make(map[string]int)
+			ctypes := make(map[string]*UnionSubtype)
 			if errs := s.goUnionSubTypes(tt.in, tt.inCtxEntry, ctypes, mtypes, false); !tt.wantErr && errs != nil {
 				t.Errorf("unexpected errors: %v", errs)
 			}
 
 			for i, wt := range tt.want {
-				if unionidx, ok := ctypes[wt]; !ok {
+				if unionSubtype, ok := ctypes[wt]; !ok {
 					t.Errorf("could not find expected type in ctypes: %s", wt)
 					continue
-				} else if i != unionidx {
-					t.Errorf("index of type %s was not as expected (%d != %d)", wt, i, unionidx)
+				} else if i != unionSubtype.Index {
+					t.Errorf("index of type %s was not as expected (%d != %d)", wt, i, unionSubtype.Index)
 				}
 			}
 
@@ -377,7 +377,7 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType: "Module_Container_Leaf_Union",
-			UnionTypes: map[string]int{"string": 0, "int8": 1},
+			UnionTypes: map[string]*UnionSubtype{"string": {Index: 0}, "int8": {Index: 1}},
 			ZeroValue:  "nil",
 		},
 	}, {
@@ -391,7 +391,7 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType: "string",
-			UnionTypes: map[string]int{"string": 0},
+			UnionTypes: map[string]*UnionSubtype{"string": {Index: 0}},
 			ZeroValue:  `""`,
 		},
 	}, {
@@ -509,7 +509,7 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_UnionLeaf",
-			UnionTypes:        map[string]int{"E_BaseModule_UnionLeaf": 0},
+			UnionTypes:        map[string]*UnionSubtype{"E_BaseModule_UnionLeaf": {Index: 0}},
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 			DefaultValue:      ygot.String("BaseModule_UnionLeaf_BLUE"),
@@ -563,7 +563,7 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_UnionLeaf",
-			UnionTypes:        map[string]int{"E_BaseModule_UnionLeaf": 0},
+			UnionTypes:        map[string]*UnionSubtype{"E_BaseModule_UnionLeaf": {Index: 0}},
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 		},
@@ -686,7 +686,7 @@ func TestYangTypeToGoType(t *testing.T) {
 		},
 		want: &MappedType{
 			NativeType:        "E_BaseModule_BaseIdentity",
-			UnionTypes:        map[string]int{"E_BaseModule_BaseIdentity": 0},
+			UnionTypes:        map[string]*UnionSubtype{"E_BaseModule_BaseIdentity": {Index: 0}},
 			IsEnumeratedValue: true,
 			ZeroValue:         "0",
 			DefaultValue:      ygot.String("BaseModule_BaseIdentity_CHIPS"),
@@ -871,7 +871,7 @@ func TestYangTypeToGoType(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			enumMap := enumMapFromEntries(tt.inEnumEntries)
 			addEnumsToEnumMap(tt.ctx, enumMap)
-			enumSet, _, errs := findEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, "E_")
+			enumSet, _, errs := findEnumSet(enumMap, tt.inCompressPath, false, tt.inSkipEnumDedup, true, "E_", "E_")
 			if errs != nil {
 				if !tt.wantErr {
 					t.Errorf("findEnumSet failed: %v", errs)
@@ -1230,7 +1230,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		enumSet, _, errs := findEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, "E_")
+		enumSet, _, errs := findEnumSet(enumMapFromEntries(tt.inLeaves), tt.inCompressOCPaths, false, tt.inSkipEnumDedup, true, "E_", "E_")
 		if errs != nil {
 			t.Fatalf("findEnumSet failed: %v", errs)
 		}

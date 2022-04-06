@@ -3476,7 +3476,7 @@ func TestFindEnumSet(t *testing.T) {
 				wantEnumSet = tt.wantEnumSetUncompressed
 			}
 			t.Run(fmt.Sprintf("%s findEnumSet(compress:%v,skipEnumDedup:%v)", tt.name, compressed, tt.inSkipEnumDeduplication), func(t *testing.T) {
-				gotEnumSet, entries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames, "E_")
+				gotEnumSet, entries, errs := findEnumSet(tt.in, compressed, tt.inOmitUnderscores, tt.inSkipEnumDeduplication, tt.inShortenEnumLeafNames, "E_", "E_")
 
 				wantErrSubstr := tt.wantErrSubstr
 				if !compressed && tt.wantUncompressFailDueToClash {

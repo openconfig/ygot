@@ -51,7 +51,7 @@ func (y *Directory) isList() bool {
 
 // isChildOfModule determines whether the Directory represents a container
 // or list member that is the direct child of a module entry.
-func (y *Directory) isChildOfModule() bool {
+func (y *ParsedDirectory) isChildOfModule() bool {
 	if y.IsFakeRoot || len(y.Path) == 3 {
 		// If the message has a path length of 3, then it is a top-level entity
 		// within a module, since the  path is in the format []{"", <module>, <element>}.
@@ -72,6 +72,7 @@ type YangListAttr struct {
 	// make up the list key.
 	KeyElems        []*yang.Entry
 	OrderedKeyNames []string
+	ListKeyNames    map[string]string
 }
 
 // GetOrderedFieldNames returns the field names of a Directory in alphabetical order.
@@ -136,6 +137,23 @@ func goParsedDirectoryFieldNameMap(d *ParsedDirectory) map[string]string {
 	return uniqueNameMap
 }
 
+// GetOrderedPathDirectories returns an alphabetically-ordered slice of
+// Directory names and a map of Directories keyed by their paths, so that each
+// directory can be processed in path-alphabetical order. This helps produce
+// deterministic generated code, and minimize diffs when compared with expected
+// output (i.e., diffs don't appear simply due to reordering of the Directory
+// maps).
+func GetOrderedPathDirectories(directory map[string]*Directory) []string {
+	orderedDirPaths := make([]string, 0, len(directory))
+
+	for path := range directory {
+		orderedDirPaths = append(orderedDirPaths, path)
+	}
+	sort.Strings(orderedDirPaths)
+
+	return orderedDirPaths
+}
+
 // GetOrderedDirectories returns an alphabetically-ordered slice of Directory
 // names and a map of Directories keyed by their names instead of their paths,
 // so that each directory can be processed in alphabetical order. This helps
@@ -162,17 +180,21 @@ func GetOrderedDirectories(directory map[string]*Directory) ([]string, map[strin
 	return orderedDirNames, dirNameMap, nil
 }
 
-func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory, compBehaviour genutil.CompressBehaviour, absolutePaths bool) ([]string, map[string]*ParsedDirectory, error) {
-	names, dirs, err := GetOrderedDirectories(directory)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory, compBehaviour genutil.CompressBehaviour, absolutePaths, nestedStructs bool) ([]string, map[string]*ParsedDirectory, error) {
 	orderedPaths := []string{}
 	dirDets := map[string]*ParsedDirectory{}
-	for _, dirName := range names {
-		dir := dirs[dirName]
+	for _, dirPath := range GetOrderedPathDirectories(directory) {
+		dir := directory[dirPath]
 		dirDets[dir.Entry.Path()] = parseDir(dir)
+		packageName, err := langMapper.PackageName(dir.Entry, compBehaviour, nestedStructs)
+		if err != nil {
+			return nil, nil, err
+		}
+		dirDets[dir.Entry.Path()].PackageName = packageName
+		dirDets[dir.Entry.Path()].Type = DirectoryNode
+		if dir.Entry.IsList() {
+			dirDets[dir.Entry.Path()].Type = ListNode
+		}
 
 		dirDets[dir.Entry.Path()].Fields = make(map[string]*NodeDetails, len(dir.Fields))
 		for _, fn := range GetOrderedFieldNames(dir) {
@@ -188,12 +210,19 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 				return nil, nil, err
 			}
 
+			target, err := langMapper.ResolveLeafref(field)
+			if err != nil {
+				return nil, nil, err
+			}
+
 			nd := &NodeDetails{
 				YANGDetails: YANGNodeDetails{
-					Default: field.Default,
-					Path:    strings.Split(field.Path(), "/"),
-					Module:  mod,
-					Name:    field.Name,
+					Default:         field.DefaultValue(), // FIXME(wenbli): Test this
+					Path:            strings.Split(field.Path(), "/"),
+					PathStr:         field.Path(),
+					ResolvedPathStr: target.Path(),
+					Module:          mod,
+					Name:            field.Name,
 				},
 				MapPaths: mp,
 				Type:     DirectoryNode,
@@ -205,6 +234,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			}
 			nd.Name = name
 
+			// FIXME(wenbli): This should be a switch statement instead of if statements that could overwrite each other.
 			if isLeaf := field.IsLeaf() || field.IsLeafList(); isLeaf {
 				mtype, err := langMapper.LeafType(field, compBehaviour)
 				if err != nil {
@@ -223,7 +253,11 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 				nd.Type = ListNode
 			}
 
-			dirDets[dir.Entry.Path()].Fields[nd.Name] = nd
+			if util.IsAnydata(field) {
+				nd.Type = AnyDataNode
+			}
+
+			dirDets[dir.Entry.Path()].Fields[fn] = nd
 		}
 		orderedPaths = append(orderedPaths, dir.Entry.Path())
 	}

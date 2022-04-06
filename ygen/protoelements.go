@@ -49,19 +49,39 @@ type protoGenState struct {
 	// uniqueProtoPackages is a map, keyed by a YANG schema path, that allows
 	// a path to be resolved into the calculated Protobuf package name that
 	// is to be used for it.
-	uniqueProtoPackages map[string]string
+	uniqueProtoPackages  map[string]string
+	resolveProtoTypeArgs resolveProtoTypeArgs
 }
+
+/*
+// makeFieldNameUnique returns a unique name for the input name, with the
+// entity to be named identified by the "identifier" parameter, making this
+// function idempotent.
+func makeFieldNameUnique(name string, definedNames map[string]string, identifier string) string {
+	for {
+		if id, nameUsed := definedNames[name]; !nameUsed {
+			definedNames[name] = path
+			return name
+		} else if id == identifier {
+			return name
+		}
+		name = fmt.Sprintf("%s_", name)
+	}
+}
+*/
 
 // newProtoGenState creates a new protoGenState instance, initialised with the
 // default state required for code generation.
-func newProtoGenState(schematree *schemaTree, eSet *enumSet) *protoGenState {
+func newProtoGenState(schematree *schemaTree, eSet *enumSet, resolveProtoTypeArgs resolveProtoTypeArgs) *protoGenState {
 	return &protoGenState{
-		enumSet:              eSet,
-		schematree:           schematree,
-		definedGlobals:       map[string]bool{},
+		enumSet:        eSet,
+		schematree:     schematree,
+		definedGlobals: map[string]bool{},
+		//definedFieldNames:    map[string]map[string]bool{},
 		uniqueDirectoryNames: map[string]string{},
 		uniqueProtoMsgNames:  map[string]map[string]bool{},
 		uniqueProtoPackages:  map[string]string{},
+		resolveProtoTypeArgs: resolveProtoTypeArgs,
 	}
 }
 
@@ -78,15 +98,90 @@ func (s *protoGenState) DirectoryName(e *yang.Entry, cb genutil.CompressBehaviou
 }
 
 func (s *protoGenState) KeyLeafType(e *yang.Entry, cb genutil.CompressBehaviour) (*MappedType, error) {
-	return nil, nil
+	scalarType, err := s.yangTypeToProtoScalarType(resolveTypeArgs{
+		yangType:     e.Type,
+		contextEntry: e,
+	}, s.resolveProtoTypeArgs)
+	if err != nil {
+		return nil, fmt.Errorf("list %s included a key %s that did not have a valid proto type: %v", e.Path(), e.Name, e.Type)
+	}
+
+	return scalarType, nil
 }
 
 func (s *protoGenState) LeafType(e *yang.Entry, cb genutil.CompressBehaviour) (*MappedType, error) {
-	return nil, fmt.Errorf("unsupported")
+	protoType, err := s.yangTypeToProtoType(resolveTypeArgs{
+		yangType:     e.Type,
+		contextEntry: e,
+	}, resolveProtoTypeArgs{
+		basePackageName: s.resolveProtoTypeArgs.basePackageName,
+		enumPackageName: s.resolveProtoTypeArgs.enumPackageName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return protoType, err
 }
 
 func (s *protoGenState) LeafName(e *yang.Entry) (string, error) {
-	return "", fmt.Errorf("unsupported")
+	return safeProtoIdentifierName(e.Name), nil
+}
+
+func (s *protoGenState) ResolveLeafref(e *yang.Entry) (*yang.Entry, error) {
+	if e == nil {
+		return nil, fmt.Errorf("ygen: given nil entry for ResolveLeafref")
+	}
+	if e.Type != nil && e.Type.Kind == yang.Yleafref {
+		return s.schematree.resolveLeafrefTarget(e.Type.Path, e)
+	}
+	return e, nil
+}
+
+// PackageName takes a YANG directory's entry definition, the current generator
+// state, whether path compression is currently enabled, and whether nested messages
+// are to be output and determines the package name for the output protobuf. In the
+// case that nested messages are being output, the package name is derived based
+// on the top-level module that the message is within.
+func (s *protoGenState) PackageName(e *yang.Entry, compressBehaviour genutil.CompressBehaviour, nestedMessages bool) (string, error) {
+	compressPaths := compressBehaviour.CompressEnabled()
+	switch {
+	case IsFakeRoot(e):
+		// In this case, we explicitly leave the package name as nil, which is interpeted
+		// as meaning that the base package is used throughout the handling code.
+		return "", nil
+	case e.Parent == nil:
+		return "", fmt.Errorf("YANG schema element %s does not have a parent, protobuf messages are not generated for modules", e.Path())
+	}
+
+	// If we have nested messages enabled, the protobuf package name is defined
+	// based on the top-level message within the schema tree that is created -
+	// we therefore need to derive the name of this message.
+	if nestedMessages {
+		if compressPaths {
+			if e.Parent.Parent == nil {
+				// In the special case that the grandparent of this entry is nil, and
+				// compress paths is enabled, then we are a top-level schema element - so
+				// this message should be in the root package.
+				return "", nil
+			}
+			if e.IsList() && e.Parent.Parent.Parent == nil {
+				// If this is a list, and our great-grandparent is a module, then
+				// since the level above this node has been compressed out, then it
+				// is at the root.
+				return "", nil
+			}
+		}
+
+		if e.Parent != nil && e.Parent.Parent != nil {
+			var n *yang.Entry
+			for n = e.Parent; n.Parent.Parent != nil; n = n.Parent {
+			}
+			e = n
+		}
+	}
+
+	return s.protobufPackage(e, compressPaths), nil
 }
 
 // buildDirectoryDefinitions extracts the yang.Entry instances from a map of
@@ -142,6 +237,7 @@ func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveP
 	if mtype != nil {
 		// mtype is set to non-nil when this was a valid enumeration
 		// within a typedef.
+		mtype.EnumeratedYANGTypeName = mtype.NativeType
 		return mtype, nil
 	}
 
@@ -174,9 +270,14 @@ func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveP
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
 		}
+		mtype, err := s.enumSet.LookupEnum(args.yangType, args.contextEntry)
+		if err != nil {
+			return nil, err
+		}
 		return &MappedType{
-			NativeType:        yang.CamelCase(args.contextEntry.Name),
-			IsEnumeratedValue: true,
+			NativeType:             yang.CamelCase(args.contextEntry.Name),
+			IsEnumeratedValue:      true,
+			EnumeratedYANGTypeName: mtype.NativeType,
 		}, nil
 	case yang.Yidentityref:
 		// TODO(https://github.com/openconfig/ygot/issues/33) - refactor to allow
@@ -184,7 +285,12 @@ func (s *protoGenState) yangTypeToProtoType(args resolveTypeArgs, pargs resolveP
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
-		return s.protoIdentityName(args.contextEntry.Type.IdentityBase)
+		ident, err := s.protoIdentityName(args.contextEntry.Type.IdentityBase)
+		if err != nil {
+			return nil, err
+		}
+		ident.EnumeratedYANGTypeName = ident.NativeType
+		return ident, nil
 	case yang.Yunion:
 		return s.protoUnionType(args, pargs)
 	default:
@@ -210,6 +316,7 @@ func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs re
 	if mtype != nil {
 		// mtype is set to non-nil when this was a valid enumeration
 		// within a typedef.
+		mtype.EnumeratedYANGTypeName = mtype.NativeType
 		return mtype, nil
 	}
 	switch args.yangType.Kind {
@@ -241,15 +348,28 @@ func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs re
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map enumeration without context entry: %v", args)
 		}
+		mtype, err := s.enumSet.LookupEnum(args.yangType, args.contextEntry)
+		if err != nil {
+			return nil, err
+		}
+		//fmt.Println(mtype.NativeType, args.yangType)
+		//debug.PrintStack()
 		return &MappedType{
-			NativeType:        yang.CamelCase(args.contextEntry.Name),
-			IsEnumeratedValue: true,
+			NativeType:             yang.CamelCase(args.contextEntry.Name),
+			IsEnumeratedValue:      true,
+			EnumeratedYANGTypeName: mtype.NativeType,
 		}, nil
 	case yang.Yidentityref:
 		if args.contextEntry == nil {
 			return nil, fmt.Errorf("cannot map identityref without context entry: %v", args)
 		}
-		return s.protoIdentityName(args.contextEntry.Type.IdentityBase)
+		//return s.protoIdentityName(args.contextEntry.Type.IdentityBase)
+		ident, err := s.protoIdentityName(args.contextEntry.Type.IdentityBase)
+		if err != nil {
+			return nil, err
+		}
+		ident.EnumeratedYANGTypeName = ident.NativeType
+		return ident, nil
 	case yang.Yunion:
 		return s.protoUnionType(args, pargs)
 	default:
@@ -282,7 +402,8 @@ func (s *protoGenState) yangTypeToProtoScalarType(args resolveTypeArgs, pargs re
 // The MappedType's UnionTypes can be output through a template into the oneof.
 func (s *protoGenState) protoUnionType(args resolveTypeArgs, pargs resolveProtoTypeArgs) (*MappedType, error) {
 	unionTypes := make(map[string]*yang.YangType)
-	if errs := s.protoUnionSubTypes(args.yangType, args.contextEntry, unionTypes, pargs); errs != nil {
+	unionMappedTypes := make(map[string]*MappedType)
+	if errs := s.protoUnionSubTypes(args.yangType, args.contextEntry, unionTypes, unionMappedTypes, pargs); errs != nil {
 		return nil, fmt.Errorf("errors mapping element: %v", errs)
 	}
 
@@ -293,8 +414,9 @@ func (s *protoGenState) protoUnionType(args resolveTypeArgs, pargs resolveProtoT
 			// want to return the type that has been resolved.
 			if t.Kind == yang.Yidentityref || t.Kind == yang.Yenum {
 				return &MappedType{
-					NativeType:        st,
-					IsEnumeratedValue: true,
+					NativeType:             st,
+					IsEnumeratedValue:      true,
+					EnumeratedYANGTypeName: unionMappedTypes[st].EnumeratedYANGTypeName,
 				}, nil
 			}
 
@@ -331,9 +453,14 @@ func (s *protoGenState) protoUnionType(args resolveTypeArgs, pargs resolveProtoT
 	}
 
 	sort.Strings(keys)
-	rtypes := make(map[string]int)
+	rtypes := make(map[string]*UnionSubtype)
 	for _, k := range keys {
-		rtypes[k] = len(rtypes)
+		rtypes[k] = &UnionSubtype{
+			Index: len(rtypes),
+		}
+		if unionMappedTypes[k].IsEnumeratedValue {
+			rtypes[k].GlobalEnumName = unionMappedTypes[k].EnumeratedYANGTypeName
+		}
 	}
 
 	return &MappedType{
@@ -346,11 +473,11 @@ func (s *protoGenState) protoUnionType(args resolveTypeArgs, pargs resolveProtoT
 // with is required for mapping. The currentType map is updated as an in-out argument. The basePackageName and enumPackageName
 // are used to map enumerated typedefs and identityrefs to the correct type. It returns a slice of errors if they occur
 // mapping subtypes.
-func (s *protoGenState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]*yang.YangType, pargs resolveProtoTypeArgs) []error {
+func (s *protoGenState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]*yang.YangType, unionMappedTypes map[string]*MappedType, pargs resolveProtoTypeArgs) []error {
 	var errs []error
 	if util.IsUnionType(subtype) {
 		for _, st := range subtype.Type {
-			errs = append(errs, s.protoUnionSubTypes(st, ctx, currentTypes, pargs)...)
+			errs = append(errs, s.protoUnionSubTypes(st, ctx, currentTypes, unionMappedTypes, pargs)...)
 		}
 		return errs
 	}
@@ -368,6 +495,7 @@ func (s *protoGenState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Ent
 		//	NativeType:        n,
 		//	IsEnumeratedValue: true,
 		//}
+		n.EnumeratedYANGTypeName = n.NativeType
 		mtype = n
 	default:
 		var err error
@@ -381,6 +509,10 @@ func (s *protoGenState) protoUnionSubTypes(subtype *yang.YangType, ctx *yang.Ent
 	// base type that is included.
 	if _, ok := currentTypes[mtype.NativeType]; !ok {
 		currentTypes[mtype.NativeType] = subtype
+	}
+
+	if _, ok := unionMappedTypes[mtype.NativeType]; !ok {
+		unionMappedTypes[mtype.NativeType] = mtype
 	}
 
 	return errs

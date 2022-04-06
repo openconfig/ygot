@@ -1315,10 +1315,12 @@ func TestGetDefinitions(t *testing.T) {
 						Keys: map[string]*MappedType{
 							"value": {
 								NativeType: "AList_Value_Union",
-								UnionTypes: map[string]int{"E_AList_Value": 1, "uint32": 0},
+								UnionTypes: map[string]*UnionSubtype{"E_AList_Value": {Index: 1}, "uint32": {Index: 0}},
 								ZeroValue:  "nil",
 							},
 						},
+						OrderedKeyNames: []string{"value"},
+						ListKeyNames:    map[string]string{"value": "Value"},
 					},
 					Fields: map[string]*yang.Entry{
 						"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
@@ -1331,10 +1333,12 @@ func TestGetDefinitions(t *testing.T) {
 						Keys: map[string]*MappedType{
 							"value": {
 								NativeType: "BList_Value_Union",
-								UnionTypes: map[string]int{"E_BList_Value": 1, "uint32": 0},
+								UnionTypes: map[string]*UnionSubtype{"E_BList_Value": {Index: 1}, "uint32": {Index: 0}},
 								ZeroValue:  "nil",
 							},
 						},
+						OrderedKeyNames: []string{"value"},
+						ListKeyNames:    map[string]string{"value": "Value"},
 					},
 					Fields: map[string]*yang.Entry{
 						"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
@@ -1355,14 +1359,14 @@ func TestGetDefinitions(t *testing.T) {
 				"/enum-module/a-lists/a-list": {
 					"value": {
 						NativeType: "AList_Value_Union",
-						UnionTypes: map[string]int{"E_AList_Value": 1, "uint32": 0},
+						UnionTypes: map[string]*UnionSubtype{"E_AList_Value": {Index: 1}, "uint32": {Index: 0}},
 						ZeroValue:  "nil",
 					},
 				},
 				"/enum-module/b-lists/b-list": {
 					"value": {
 						NativeType: "BList_Value_Union",
-						UnionTypes: map[string]int{"E_BList_Value": 1, "uint32": 0},
+						UnionTypes: map[string]*UnionSubtype{"E_BList_Value": {Index: 1}, "uint32": {Index: 0}},
 						ZeroValue:  "nil",
 					},
 				},
@@ -1445,10 +1449,12 @@ func TestGetDefinitions(t *testing.T) {
 						Keys: map[string]*MappedType{
 							"value": {
 								NativeType: "AList_Value_Union",
-								UnionTypes: map[string]int{"E_AList_Value": 1, "uint32": 0},
+								UnionTypes: map[string]*UnionSubtype{"E_AList_Value": {Index: 1}, "uint32": {Index: 0}},
 								ZeroValue:  "nil",
 							},
 						},
+						OrderedKeyNames: []string{"value"},
+						ListKeyNames:    map[string]string{"value": "Value"},
 					},
 					Fields: map[string]*yang.Entry{}, // Key is only part of state and thus is excluded.
 					Path:   []string{"", "enum-module", "a-lists", "a-list"},
@@ -1459,10 +1465,12 @@ func TestGetDefinitions(t *testing.T) {
 						Keys: map[string]*MappedType{
 							"value": {
 								NativeType: "BList_Value_Union",
-								UnionTypes: map[string]int{"E_BList_Value": 1, "uint32": 0},
+								UnionTypes: map[string]*UnionSubtype{"E_BList_Value": {Index: 1}, "uint32": {Index: 0}},
 								ZeroValue:  "nil",
 							},
 						},
+						OrderedKeyNames: []string{"value"},
+						ListKeyNames:    map[string]string{"value": "Value"},
 					},
 					Fields: map[string]*yang.Entry{},
 					Path:   []string{"", "enum-module", "b-lists", "b-list"},
@@ -1680,10 +1688,12 @@ func TestGetDefinitions(t *testing.T) {
 						Keys: map[string]*MappedType{
 							"value": {
 								NativeType: "AList_Value_Union",
-								UnionTypes: map[string]int{"E_AList_Value": 1, "uint32": 0},
+								UnionTypes: map[string]*UnionSubtype{"E_AList_Value": {Index: 1}, "uint32": {Index: 0}},
 								ZeroValue:  "nil",
 							},
 						},
+						OrderedKeyNames: []string{"value"},
+						ListKeyNames:    map[string]string{"value": "Value"},
 					},
 					Fields: map[string]*yang.Entry{
 						"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
@@ -1696,10 +1706,12 @@ func TestGetDefinitions(t *testing.T) {
 						Keys: map[string]*MappedType{
 							"value": {
 								NativeType: "BList_Value_Union",
-								UnionTypes: map[string]int{"E_BList_Value": 1, "uint32": 0},
+								UnionTypes: map[string]*UnionSubtype{"E_BList_Value": {Index: 1}, "uint32": {Index: 0}},
 								ZeroValue:  "nil",
 							},
 						},
+						OrderedKeyNames: []string{"value"},
+						ListKeyNames:    map[string]string{"value": "Value"},
 					},
 					Fields: map[string]*yang.Entry{
 						"value": {Name: "value", Type: &yang.YangType{Kind: yang.Yunion}},
@@ -1726,14 +1738,14 @@ func TestGetDefinitions(t *testing.T) {
 				"/enum-module/a-lists/a-list": {
 					"value": {
 						NativeType: "AList_Value_Union",
-						UnionTypes: map[string]int{"E_AList_Value": 1, "uint32": 0},
+						UnionTypes: map[string]*UnionSubtype{"E_AList_Value": {Index: 1}, "uint32": {Index: 0}},
 						ZeroValue:  "nil",
 					},
 				},
 				"/enum-module/b-lists/b-list": {
 					"value": {
 						NativeType: "BList_Value_Union",
-						UnionTypes: map[string]int{"E_BList_Value": 1, "uint32": 0},
+						UnionTypes: map[string]*UnionSubtype{"E_BList_Value": {Index: 1}, "uint32": {Index: 0}},
 						ZeroValue:  "nil",
 					},
 				},
@@ -1827,7 +1839,7 @@ func TestGetDefinitions(t *testing.T) {
 		langMapper := newGoGenState(nil, nil)
 
 		t.Run(fmt.Sprintf("%s:GetDirectoriesAndLeafTypes(compressBehaviour:%v,GenerateFakeRoot:%v)", tt.name, c.TransformationOptions.CompressBehaviour, c.TransformationOptions.GenerateFakeRoot), func(t *testing.T) {
-			got, errs := c.GetDefinitions(tt.inFiles, tt.inIncludePaths, langMapper)
+			got, errs := c.GetDefinitions(tt.inFiles, tt.inIncludePaths, langMapper, false, false, false)
 			if errs != nil {
 				t.Fatal(errs)
 			}
@@ -2908,7 +2920,7 @@ func TestGenerateProto3(t *testing.T) {
 					if diffl, _ := testutil.GenerateUnifiedDiff(wantCode, gotCodeBuf.String()); diffl != "" {
 						diff = diffl
 					}
-					t.Fatalf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-want, +got):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
+					t.Errorf("%s: cg.GenerateProto3(%v, %v) for package %s, did not get expected code (code file: %v), diff(-want, +got):\n%s", tt.name, tt.inFiles, tt.inIncludePaths, pkg, wantFile, diff)
 				}
 			}
 
