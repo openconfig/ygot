@@ -148,6 +148,12 @@ func (t *OpenconfigOptions_Bgp) Validate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *OpenconfigOptions_Bgp) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigOptions_Bgp belongs.
+func (*OpenconfigOptions_Bgp) ΛBelongingModule() string {
+	return "openconfig-options"
+}
+
 // OpenconfigOptions_Bgp_Neighbors represents the /openconfig-options/bgp/neighbors YANG schema element.
 type OpenconfigOptions_Bgp_Neighbors struct {
 	Neighbor	map[string]*OpenconfigOptions_Bgp_Neighbors_Neighbor	`path:"neighbor" module:"openconfig-options"`
@@ -197,6 +203,12 @@ func (t *OpenconfigOptions_Bgp_Neighbors) Validate(opts ...ygot.ValidationOption
 // that are included in the generated code.
 func (t *OpenconfigOptions_Bgp_Neighbors) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigOptions_Bgp_Neighbors belongs.
+func (*OpenconfigOptions_Bgp_Neighbors) ΛBelongingModule() string {
+	return "openconfig-options"
+}
+
 // OpenconfigOptions_Bgp_Neighbors_Neighbor represents the /openconfig-options/bgp/neighbors/neighbor YANG schema element.
 type OpenconfigOptions_Bgp_Neighbors_Neighbor struct {
 	Config	*OpenconfigOptions_Bgp_Neighbors_Neighbor_Config	`path:"config" module:"openconfig-options"`
@@ -232,6 +244,12 @@ func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor) Validate(opts ...ygot.Validat
 // that are included in the generated code.
 func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigOptions_Bgp_Neighbors_Neighbor belongs.
+func (*OpenconfigOptions_Bgp_Neighbors_Neighbor) ΛBelongingModule() string {
+	return "openconfig-options"
+}
+
 // OpenconfigOptions_Bgp_Neighbors_Neighbor_Config represents the /openconfig-options/bgp/neighbors/neighbor/config YANG schema element.
 type OpenconfigOptions_Bgp_Neighbors_Neighbor_Config struct {
 	HoldTime	*uint32	`path:"hold-time" module:"openconfig-options"`
@@ -254,6 +272,12 @@ func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor_Config) Validate(opts ...ygot.
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor_Config) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigOptions_Bgp_Neighbors_Neighbor_Config belongs.
+func (*OpenconfigOptions_Bgp_Neighbors_Neighbor_Config) ΛBelongingModule() string {
+	return "openconfig-options"
+}
 
 // OpenconfigOptions_Bgp_Neighbors_Neighbor_State represents the /openconfig-options/bgp/neighbors/neighbor/state YANG schema element.
 type OpenconfigOptions_Bgp_Neighbors_Neighbor_State struct {
@@ -279,6 +303,12 @@ func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor_State) Validate(opts ...ygot.V
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor_State) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigOptions_Bgp_Neighbors_Neighbor_State belongs.
+func (*OpenconfigOptions_Bgp_Neighbors_Neighbor_State) ΛBelongingModule() string {
+	return "openconfig-options"
+}
 
 // OpenconfigOptions_Bgp_Neighbors_Neighbor_State_EnabledAddressFamily_Union is an interface that is implemented by valid types for the union
 // for the leaf /openconfig-options/bgp/neighbors/neighbor/state/enabled-address-family within the YANG schema.

@@ -951,7 +951,15 @@ func (*RFC7951JSONConfig) IsMarshal7951Arg() {}
 // to JSON described by RFC7951. The supplied args control options corresponding
 // to the method by which JSON is marshalled.
 func ConstructIETFJSON(s GoStruct, args *RFC7951JSONConfig) (map[string]interface{}, error) {
-	return structJSON(s, "", jsonOutputConfig{
+	var parentMod string
+	if hasBelongingModule(s) {
+		var err error
+		parentMod, err = belongingModuleName(s)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return structJSON(s, parentMod, jsonOutputConfig{
 		jType:         RFC7951,
 		rfc7951Config: args,
 	})
@@ -1000,7 +1008,16 @@ func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 			indent = string(v)
 		}
 	}
-	j, err := jsonValue(reflect.ValueOf(d), "", jsonOutputConfig{
+	var parentMod string
+	if s, ok := d.(GoStruct); ok && s != nil {
+		if hasBelongingModule(s) {
+			var err error
+			if parentMod, err = belongingModuleName(s); err != nil {
+				return nil, err
+			}
+		}
+	}
+	j, err := jsonValue(reflect.ValueOf(d), parentMod, jsonOutputConfig{
 		jType:         RFC7951,
 		rfc7951Config: rfcCfg,
 	})
@@ -1023,6 +1040,28 @@ func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 	}
 
 	return js, nil
+}
+
+func hasBelongingModule(s GoStruct) bool {
+	return reflect.ValueOf(s).MethodByName("ΛBelongingModule").IsValid()
+}
+
+// belongingModuleName returns the name of the belonging module of the input GoStruct.
+func belongingModuleName(s GoStruct) (string, error) {
+	belongingModuleMethod := reflect.ValueOf(s).MethodByName("ΛBelongingModule")
+	if !belongingModuleMethod.IsValid() {
+		return "", fmt.Errorf("type %T does not have a ΛBelongingModule function", s)
+	}
+
+	ret := belongingModuleMethod.Call(nil)
+	if len(ret) == 0 {
+		return "", fmt.Errorf("type %T ΛBelongingModule function had no return values", s)
+	}
+	moduleName, ok := ret[0].Interface().(string)
+	if !ok {
+		return "", fmt.Errorf("type %T's ΛBelongingModule function returned wrong type %T, want string", s, moduleName)
+	}
+	return moduleName, nil
 }
 
 // jsonOutputConfig is used to determine how constructJSON should generate

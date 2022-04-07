@@ -1728,6 +1728,24 @@ type ietfRenderExample struct {
 
 func (*ietfRenderExample) IsYANGGoStruct() {}
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// Container belongs.
+func (*ietfRenderExample) ΛBelongingModule() string {
+	return "f1mod"
+}
+
+type ietfRenderExampleNoBelongingModule struct {
+	F1        *string                                 `path:"f1" module:"f1mod"`
+	F2        *string                                 `path:"config/f2" module:"f2mod/f2mod"`
+	F3        *ietfRenderExampleChild                 `path:"f3" module:"f1mod"`
+	F6        *string                                 `path:"config/f6" module:"f1mod/f2mod"`
+	F7        *string                                 `path:"config/f7" module:"f2mod/f3mod"`
+	MixedList []interface{}                           `path:"mixed-list" module:"f1mod"`
+	EnumList  map[EnumTest]*ietfRenderExampleEnumList `path:"enum-list" module:"f1mod"`
+}
+
+func (*ietfRenderExampleNoBelongingModule) IsYANGGoStruct() {}
+
 type ietfRenderExampleChild struct {
 	F4 *string `path:"config/f4" module:"f42mod/f42mod"`
 	F5 *string `path:"f5" module:"f1mod"`
@@ -2658,6 +2676,49 @@ func TestConstructJSON(t *testing.T) {
 		},
 		inAppendMod: true,
 		wantIETF: map[string]interface{}{
+			"f1": "foo",
+			"config": map[string]interface{}{
+				"f2mod:f6": "mat",
+			},
+			"f2mod:config": map[string]interface{}{
+				"f2":       "bar",
+				"f3mod:f7": "bat",
+			},
+			"f3": map[string]interface{}{
+				"f42mod:config": map[string]interface{}{
+					"f4": "baz",
+				},
+				"f5": "hat",
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"f1": "foo",
+			"config": map[string]interface{}{
+				"f2": "bar",
+				"f6": "mat",
+				"f7": "bat",
+			},
+			"f3": map[string]interface{}{
+				"config": map[string]interface{}{
+					"f4": "baz",
+				},
+				"f5": "hat",
+			},
+		},
+	}, {
+		name: "module append example in GoStruct without BelongingModule method",
+		in: &ietfRenderExampleNoBelongingModule{
+			F1: String("foo"),
+			F2: String("bar"),
+			F3: &ietfRenderExampleChild{
+				F4: String("baz"),
+				F5: String("hat"),
+			},
+			F6: String("mat"),
+			F7: String("bat"),
+		},
+		inAppendMod: true,
+		wantIETF: map[string]interface{}{
 			"f1mod:f1": "foo",
 			"f1mod:config": map[string]interface{}{
 				"f2mod:f6": "mat",
@@ -3441,7 +3502,18 @@ func TestEncodeTypedValue(t *testing.T) {
 		},
 		inEnc: gnmipb.Encoding_JSON_IETF,
 		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`{
-  "f1mod:f1": "hello"
+  "f1": "hello"
+}`)}},
+	}, {
+		name: "struct val - ietf json different module",
+		inVal: &ietfRenderExample{
+			F2: String("hello"),
+		},
+		inEnc: gnmipb.Encoding_JSON_IETF,
+		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`{
+  "f2mod:config": {
+    "f2": "hello"
+  }
 }`)}},
 	}, {
 		name: "struct val - internal json",
@@ -3736,10 +3808,51 @@ func TestMarshal7951(t *testing.T) {
 		inArgs: []Marshal7951Arg{
 			&RFC7951JSONConfig{AppendModuleName: true},
 		},
+		want: `{"f1":"hello"}`,
+	}, {
+		desc: "append module names requested in GoStruct without BelongingModule method",
+		in: &ietfRenderExampleNoBelongingModule{
+			F1: String("hello"),
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{AppendModuleName: true},
+		},
 		want: `{"f1mod:f1":"hello"}`,
 	}, {
-		desc: "complex children",
+		desc: "complex children with module name prepend request",
 		in: &ietfRenderExample{
+			F2:        String("bar"),
+			MixedList: []interface{}{EnumTestVALONE, "test", 42},
+			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
+				EnumTestVALONE: {Key: EnumTestVALONE},
+			},
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{AppendModuleName: true},
+			JSONIndent("  "),
+		},
+		want: `{
+  "enum-list": [
+    {
+      "config": {
+        "key": "foo:VAL_ONE"
+      },
+      "key": "foo:VAL_ONE"
+    }
+  ],
+  "f2mod:config": {
+    "f2": "bar"
+  },
+  "mixed-list": [
+    "foo:VAL_ONE",
+    "test",
+    42
+  ]
+}`,
+	}, {
+		desc: "complex children with module name prepend request in GoStruct without BelongingModule method",
+		in: &ietfRenderExampleNoBelongingModule{
+			F2:        String("bar"),
 			MixedList: []interface{}{EnumTestVALONE, "test", 42},
 			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
 				EnumTestVALONE: {Key: EnumTestVALONE},
@@ -3762,11 +3875,15 @@ func TestMarshal7951(t *testing.T) {
     "foo:VAL_ONE",
     "test",
     42
-  ]
+  ],
+  "f2mod:config": {
+    "f2": "bar"
+  }
 }`,
 	}, {
 		desc: "complex children with PrependModuleNameIdentityref=true",
 		in: &ietfRenderExample{
+			F2:        String("bar"),
 			MixedList: []interface{}{EnumTestVALONE, "test", 42},
 			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
 				EnumTestVALONE: {Key: EnumTestVALONE},
@@ -3777,6 +3894,9 @@ func TestMarshal7951(t *testing.T) {
 			JSONIndent("  "),
 		},
 		want: `{
+  "config": {
+    "f2": "bar"
+  },
   "enum-list": [
     {
       "config": {
@@ -3794,6 +3914,7 @@ func TestMarshal7951(t *testing.T) {
 	}, {
 		desc: "complex children with AppendModuleName=true and PrependModuleNameIdentityref=true",
 		in: &ietfRenderExample{
+			F2:        String("bar"),
 			MixedList: []interface{}{EnumTestVALONE, "test", 42},
 			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
 				EnumTestVALONE: {Key: EnumTestVALONE},
@@ -3804,7 +3925,7 @@ func TestMarshal7951(t *testing.T) {
 			JSONIndent("  "),
 		},
 		want: `{
-  "f1mod:enum-list": [
+  "enum-list": [
     {
       "config": {
         "key": "foo:VAL_ONE"
@@ -3812,7 +3933,10 @@ func TestMarshal7951(t *testing.T) {
       "key": "foo:VAL_ONE"
     }
   ],
-  "f1mod:mixed-list": [
+  "f2mod:config": {
+    "f2": "bar"
+  },
+  "mixed-list": [
     "foo:VAL_ONE",
     "test",
     42
