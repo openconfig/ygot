@@ -1397,10 +1397,9 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 	if !IsFakeRoot(targetStruct.Entry) {
 		im, err := targetStruct.Entry.InstantiatingModule()
 		if err != nil {
-			errs = append(errs, fmt.Errorf("ygen: cannot find instantiating module for Directory %s: %v", targetStruct.Path, err))
-		} else {
-			structDef.BelongingModule = im
+			return GoStructCodeSnippet{}, append(errs, fmt.Errorf("ygen: cannot find instantiating module for Directory %s: %v", targetStruct.Path, err))
 		}
+		structDef.BelongingModule = im
 	}
 
 	// associatedListKeyStructs is a slice containing the key structures for any multi-keyed

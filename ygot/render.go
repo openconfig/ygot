@@ -669,7 +669,7 @@ func leavesToNotifications(leaves map[*path]interface{}, ts int64, pfx *gnmiPath
 // type if the value is a struct.
 func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue, error) {
 	switch v := val.(type) {
-	case GoStruct:
+	case ValidatedGoStruct:
 		return marshalStruct(v, enc)
 	case GoEnum:
 		en, err := EnumName(v)
@@ -731,7 +731,7 @@ func EncodeTypedValue(val interface{}, enc gnmipb.Encoding) (*gnmipb.TypedValue,
 
 // marshalStruct encodes the struct s according to the encoding specified by enc. It
 // is returned as a TypedValue gNMI message.
-func marshalStruct(s GoStruct, enc gnmipb.Encoding) (*gnmipb.TypedValue, error) {
+func marshalStruct(s ValidatedGoStruct, enc gnmipb.Encoding) (*gnmipb.TypedValue, error) {
 	if reflect.ValueOf(s).IsNil() {
 		return nil, nil
 	}
@@ -950,16 +950,8 @@ func (*RFC7951JSONConfig) IsMarshal7951Arg() {}
 // handing to json.Marshal. It complies with the convention for marshalling
 // to JSON described by RFC7951. The supplied args control options corresponding
 // to the method by which JSON is marshalled.
-func ConstructIETFJSON(s GoStruct, args *RFC7951JSONConfig) (map[string]interface{}, error) {
-	var parentMod string
-	if hasBelongingModule(s) {
-		var err error
-		parentMod, err = belongingModuleName(s)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return structJSON(s, parentMod, jsonOutputConfig{
+func ConstructIETFJSON(s ValidatedGoStruct, args *RFC7951JSONConfig) (map[string]interface{}, error) {
+	return structJSON(s, s.ΛBelongingModule(), jsonOutputConfig{
 		jType:         RFC7951,
 		rfc7951Config: args,
 	})
@@ -1009,13 +1001,8 @@ func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 		}
 	}
 	var parentMod string
-	if s, ok := d.(GoStruct); ok && s != nil {
-		if hasBelongingModule(s) {
-			var err error
-			if parentMod, err = belongingModuleName(s); err != nil {
-				return nil, err
-			}
-		}
+	if s, ok := d.(ValidatedGoStruct); ok && s != nil {
+		parentMod = s.ΛBelongingModule()
 	}
 	j, err := jsonValue(reflect.ValueOf(d), parentMod, jsonOutputConfig{
 		jType:         RFC7951,
@@ -1040,28 +1027,6 @@ func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 	}
 
 	return js, nil
-}
-
-func hasBelongingModule(s GoStruct) bool {
-	return reflect.ValueOf(s).MethodByName("ΛBelongingModule").IsValid()
-}
-
-// belongingModuleName returns the name of the belonging module of the input GoStruct.
-func belongingModuleName(s GoStruct) (string, error) {
-	belongingModuleMethod := reflect.ValueOf(s).MethodByName("ΛBelongingModule")
-	if !belongingModuleMethod.IsValid() {
-		return "", fmt.Errorf("type %T does not have a ΛBelongingModule function", s)
-	}
-
-	ret := belongingModuleMethod.Call(nil)
-	if len(ret) == 0 {
-		return "", fmt.Errorf("type %T ΛBelongingModule function had no return values", s)
-	}
-	moduleName, ok := ret[0].Interface().(string)
-	if !ok {
-		return "", fmt.Errorf("type %T's ΛBelongingModule function returned wrong type %T, want string", s, moduleName)
-	}
-	return moduleName, nil
 }
 
 // jsonOutputConfig is used to determine how constructJSON should generate

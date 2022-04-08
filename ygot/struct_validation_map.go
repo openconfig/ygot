@@ -446,7 +446,7 @@ func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
 
 // makeJSON renders the GoStruct s to map[string]interface{} according to the
 // JSON format specified. By default makeJSON returns internal format JSON.
-func makeJSON(s GoStruct, opts *EmitJSONConfig) (map[string]interface{}, error) {
+func makeJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (map[string]interface{}, error) {
 	f := Internal
 	if opts != nil {
 		f = opts.Format
@@ -478,7 +478,7 @@ func makeJSON(s GoStruct, opts *EmitJSONConfig) (map[string]interface{}, error) 
 // To create valid JSON-serialised YANG, it is expected that the existing JSON is in
 // the same format as is specified in the options. Where there are overlapping tree
 // elements in the serialised struct they are merged where possible.
-func MergeStructJSON(ns GoStruct, ej map[string]interface{}, opts *EmitJSONConfig) (map[string]interface{}, error) {
+func MergeStructJSON(ns ValidatedGoStruct, ej map[string]interface{}, opts *EmitJSONConfig) (map[string]interface{}, error) {
 	j, err := makeJSON(ns, opts)
 	if err != nil {
 		return nil, err
