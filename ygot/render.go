@@ -1001,7 +1001,7 @@ func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 		}
 	}
 	var parentMod string
-	if s, ok := d.(ValidatedGoStruct); ok && s != nil {
+	if s, ok := d.(ValidatedGoStruct); ok {
 		parentMod = s.ΛBelongingModule()
 	}
 	j, err := jsonValue(reflect.ValueOf(d), parentMod, jsonOutputConfig{
