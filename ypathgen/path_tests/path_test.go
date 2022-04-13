@@ -18,11 +18,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	oc "github.com/openconfig/ygot/exampleoc"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/ygot/ypathgen"
+	"google.golang.org/protobuf/proto"
 )
 
 // The device ID used throughout this test file.

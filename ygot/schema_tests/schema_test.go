@@ -21,7 +21,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
@@ -32,6 +31,7 @@ import (
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/uexampleoc"
 	"github.com/openconfig/ygot/ygot"
+	"google.golang.org/protobuf/encoding/prototext"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -293,8 +293,8 @@ func mustTypedValue(i interface{}) *gnmipb.TypedValue {
 func TestDiff(t *testing.T) {
 	tests := []struct {
 		desc             string
-		inOrig           ygot.GoStruct
-		inMod            ygot.GoStruct
+		inOrig           ygot.ValidatedGoStruct
+		inMod            ygot.ValidatedGoStruct
 		want             *gnmipb.Notification
 		wantErrSubstring string
 	}{{
@@ -377,7 +377,7 @@ func TestDiff(t *testing.T) {
 			}
 
 			if !testutil.NotificationSetEqual([]*gnmipb.Notification{got}, []*gnmipb.Notification{tt.want}) {
-				diff, err := testutil.GenerateUnifiedDiff(proto.MarshalTextString(got), proto.MarshalTextString(tt.want))
+				diff, err := testutil.GenerateUnifiedDiff(prototext.Format(got), prototext.Format(tt.want))
 				if err != nil {
 					diff = "unable to produce diff"
 				}
@@ -505,7 +505,7 @@ func TestNotificationOutput(t *testing.T) {
 			}
 
 			wantNoti := &gnmipb.Notification{}
-			if err := proto.UnmarshalText(string(wantTxtpb), wantNoti); err != nil {
+			if err := prototext.Unmarshal(wantTxtpb, wantNoti); err != nil {
 				t.Fatalf("cannot unmarshal wanted textproto, %v", err)
 			}
 
@@ -517,7 +517,7 @@ func TestNotificationOutput(t *testing.T) {
 			}
 
 			if !testutil.NotificationSetEqual(gotSet, []*gnmipb.Notification{wantNoti}) {
-				diff, err := testutil.GenerateUnifiedDiff(proto.MarshalTextString(wantNoti), proto.MarshalTextString(gotSet[0]))
+				diff, err := testutil.GenerateUnifiedDiff(prototext.Format(wantNoti), prototext.Format(gotSet[0]))
 				if err != nil {
 					t.Errorf("cannot diff generated protobufs, %v", err)
 				}
