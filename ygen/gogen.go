@@ -2074,10 +2074,10 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 	for _, keName := range keyElemNames {
 		keyField := goStructField{
 			Name: genutil.MakeNameUnique(genutil.EntryCamelCaseName(listField.Dir[keName]), usedKeyElemNames),
-			Type: listElem.ListAttr.Keys[keName].NativeType,
+			Type: listElem.ListAttr.Keys[keName].LangType.NativeType,
 			Tags: fmt.Sprintf(`path:"%s"`, keName),
 		}
-		keyField.IsScalarField = IsScalarField(listField.Dir[keName], listElem.ListAttr.Keys[keName])
+		keyField.IsScalarField = IsScalarField(listField.Dir[keName], listElem.ListAttr.Keys[keName].LangType)
 		listKeys = append(listKeys, keyField)
 	}
 

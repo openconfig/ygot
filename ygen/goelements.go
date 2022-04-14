@@ -145,11 +145,12 @@ type goGenState struct {
 	// where two entities re-use a union that has already been created (e.g.,
 	// a leafref to a union) then it is output only once in the generated code.
 	generatedUnions map[string]bool
+	genFakeRoot     bool
 }
 
 // newGoGenState creates a new goGenState instance, initialised with the
 // default state required for code generation.
-func newGoGenState(schematree *schemaTree, eSet *enumSet) *goGenState {
+func newGoGenState(schematree *schemaTree, eSet *enumSet, genFakeRoot bool) *goGenState {
 	return &goGenState{
 		enumSet:    eSet,
 		schematree: schematree,
@@ -161,6 +162,7 @@ func newGoGenState(schematree *schemaTree, eSet *enumSet) *goGenState {
 		},
 		uniqueDirectoryNames: map[string]string{},
 		generatedUnions:      map[string]bool{},
+		genFakeRoot:          genFakeRoot,
 	}
 }
 
@@ -226,20 +228,57 @@ func pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRoot bool) strin
 	return buf.String()
 }
 
-// goStructName generates the name to be used for a particular YANG schema
-// element in the generated Go code. If the compressOCPaths boolean is set to
-// true, schemapaths are compressed, otherwise the name is returned simply as
-// camel case. The genFakeRoot boolean specifies whether the fake root is to be
-// generated such that the struct name can consider the fake root entity
-// specifically.
-func (s *goGenState) goStructName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
-	uniqName := genutil.MakeNameUnique(pathToCamelCaseName(e, compressOCPaths, genFakeRoot), s.definedGlobals)
+// DirectoryName generates the final name to be used for a particular YANG
+// schema element in the generated Go code. If path compressing is active,
+// schemapaths are compressed, otherwise the name is returned simply as camel
+// case.
+// Although name conversion is lossy, name uniquification occurs at this stage
+// since all generated struct names reside in the package namespace.
+func (s *goGenState) DirectoryName(e *yang.Entry, compressBehaviour genutil.CompressBehaviour) (string, error) {
+	uniqName := genutil.MakeNameUnique(pathToCamelCaseName(e, compressBehaviour.CompressEnabled(), s.genFakeRoot), s.definedGlobals)
 
 	// Record the name of the struct that was unique such that it can be referenced
 	// by path.
 	s.uniqueDirectoryNames[e.Path()] = uniqName
 
-	return uniqName
+	return uniqName, nil
+}
+
+// FieldName maps the input entry's name to what the Go name of the field would be.
+// Since this conversion is lossy, a later step should resolve any naming
+// conflicts between different fields.
+func (s *goGenState) FieldName(e *yang.Entry) (string, error) {
+	return genutil.EntryCamelCaseName(e), nil
+}
+
+// LeafType maps the input leaf entry to a MappedType object containing the
+// type information about the field.
+func (s *goGenState) LeafType(e *yang.Entry, opts IROptions) (*MappedType, error) {
+	return s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+}
+
+// LeafType maps the input list key entry to a MappedType object containing the
+// type information about the key field.
+func (s *goGenState) KeyLeafType(e *yang.Entry, opts IROptions) (*MappedType, error) {
+	return s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+}
+
+// PackageName is not used by Go generation.
+func (s *goGenState) PackageName(*yang.Entry, genutil.CompressBehaviour, bool) (string, error) {
+	return "", nil
+}
+
+// SetEnumSet is used to supply a set of enumerated values to the
+// mapper such that leaves that have enumerated types can be looked up.
+func (s *goGenState) SetEnumSet(e *enumSet) {
+	s.enumSet = e
+}
+
+// SetSchemaTree is used to supply a copy of the YANG schema tree to
+// the mapped such that leaves of type leafref can be resolved to
+// their target leaves.
+func (s *goGenState) SetSchemaTree(st *schemaTree) {
+	s.schematree = st
 }
 
 // buildDirectoryDefinitions extracts the yang.Entry instances from a map of
@@ -254,16 +293,8 @@ func (s *goGenState) goStructName(e *yang.Entry, compressOCPaths, genFakeRoot bo
 // argument specifies whether leaves of type 'enumeration' which are used more
 // than once in the schema should use a common output type in the generated Go
 // code. By default a type is shared.
-func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour, genFakeRoot, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (map[string]*Directory, []error) {
-	return buildDirectoryDefinitions(entries, compBehaviour,
-		// For Go, we map the name of the struct to the path elements
-		// in CamelCase separated by underscores.
-		func(e *yang.Entry) string {
-			return s.goStructName(e, compBehaviour.CompressEnabled(), genFakeRoot)
-		},
-		func(keyleaf *yang.Entry) (*MappedType, error) {
-			return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, compBehaviour.CompressEnabled(), skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
-		})
+func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, opts IROptions) (map[string]*Directory, []error) {
+	return buildDirectoryDefinitions(s, entries, opts)
 }
 
 // yangTypeToGoType takes a yang.YangType (YANG type definition) and maps it

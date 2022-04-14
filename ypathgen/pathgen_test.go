@@ -1423,10 +1423,26 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 		"/root-module/list-container/list": {
 			Name: "List",
 			ListAttr: &ygen.YangListAttr{
-				Keys: map[string]*ygen.MappedType{
-					"key1":      {NativeType: "string"},
-					"key2":      {NativeType: "Binary"},
-					"union-key": {NativeType: "RootModule_List_UnionKey_Union", UnionTypes: map[string]int{"string": 0, "Binary": 1}},
+				Keys: map[string]*ygen.ListKey{
+					"key1": {
+						Name: "Key1",
+						LangType: &ygen.MappedType{
+							NativeType: "string",
+						},
+					},
+					"key2": {
+						Name: "Key2",
+						LangType: &ygen.MappedType{
+							NativeType: "Binary",
+						},
+					},
+					"union-key": {
+						Name: "UnionKey",
+						LangType: &ygen.MappedType{
+							NativeType: "RootModule_List_UnionKey_Union",
+							UnionTypes: map[string]int{"string": 0, "Binary": 1},
+						},
+					},
 				},
 				KeyElems: []*yang.Entry{{Name: "key1"}, {Name: "key2"}, {Name: "union-key"}},
 			},
@@ -1441,8 +1457,13 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 		"/root-module/list-container-with-state/list-with-state": {
 			Name: "ListWithState",
 			ListAttr: &ygen.YangListAttr{
-				Keys: map[string]*ygen.MappedType{
-					"key": {NativeType: "float64"},
+				Keys: map[string]*ygen.ListKey{
+					"key": {
+						Name: "Key",
+						LangType: &ygen.MappedType{
+							NativeType: "float64",
+						},
+					},
 				},
 				KeyElems: []*yang.Entry{{Name: "key"}},
 			},
@@ -2867,8 +2888,13 @@ func TestGenerateChildConstructor(t *testing.T) {
 		"/root-module/container/list-container/list": {
 			Name: "Container_List",
 			ListAttr: &ygen.YangListAttr{
-				Keys: map[string]*ygen.MappedType{
-					"key": {NativeType: "string"},
+				Keys: map[string]*ygen.ListKey{
+					"key": {
+						Name: "Key",
+						LangType: &ygen.MappedType{
+							NativeType: "string",
+						},
+					},
 				},
 				KeyElems: []*yang.Entry{{Name: "key"}},
 			},
@@ -3296,23 +3322,47 @@ func TestMakeKeyParams(t *testing.T) {
 	}, {
 		name: "simple string param",
 		in: &ygen.YangListAttr{
-			Keys:     map[string]*ygen.MappedType{"fluorine": {NativeType: "string"}},
+			Keys: map[string]*ygen.ListKey{
+				"fluorine": {
+					Name: "Fluorine",
+					LangType: &ygen.MappedType{
+						NativeType: "string",
+					},
+				},
+			},
 			KeyElems: []*yang.Entry{{Name: "fluorine"}},
 		},
 		wantKeyParams: []keyParam{{name: "fluorine", varName: "Fluorine", typeName: "string", typeDocString: "string"}},
 	}, {
 		name: "simple int param, also testing camel-case",
 		in: &ygen.YangListAttr{
-			Keys:     map[string]*ygen.MappedType{"cl-cl": {NativeType: "int"}},
+			Keys: map[string]*ygen.ListKey{
+				"cl-cl": {
+					Name: "ClCl",
+					LangType: &ygen.MappedType{
+						NativeType: "int",
+					},
+				},
+			},
 			KeyElems: []*yang.Entry{{Name: "cl-cl"}},
 		},
 		wantKeyParams: []keyParam{{name: "cl-cl", varName: "ClCl", typeName: "int", typeDocString: "int"}},
 	}, {
 		name: "name uniquification",
 		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.MappedType{
-				"cl-cl": {NativeType: "int"},
-				"clCl":  {NativeType: "int"},
+			Keys: map[string]*ygen.ListKey{
+				"cl-cl": {
+					Name: "ClCl",
+					LangType: &ygen.MappedType{
+						NativeType: "int",
+					},
+				},
+				"clCl": {
+					Name: "ClCl",
+					LangType: &ygen.MappedType{
+						NativeType: "int",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{{Name: "cl-cl"}, {Name: "clCl"}},
 		},
@@ -3323,32 +3373,71 @@ func TestMakeKeyParams(t *testing.T) {
 	}, {
 		name: "unsupported type",
 		in: &ygen.YangListAttr{
-			Keys:     map[string]*ygen.MappedType{"fluorine": {NativeType: "interface{}"}},
+			Keys: map[string]*ygen.ListKey{
+				"fluorine": {
+					Name: "Fluorine",
+					LangType: &ygen.MappedType{
+						NativeType: "interface{}",
+					},
+				},
+			},
 			KeyElems: []*yang.Entry{{Name: "fluorine"}},
 		},
 		wantKeyParams: []keyParam{{name: "fluorine", varName: "Fluorine", typeName: "string", typeDocString: "string"}},
 	}, {
 		name: "keyElems doesn't match keys",
 		in: &ygen.YangListAttr{
-			Keys:     map[string]*ygen.MappedType{"neon": {NativeType: "light"}},
+			Keys: map[string]*ygen.ListKey{
+				"neon": {
+					Name: "Neon",
+					LangType: &ygen.MappedType{
+						NativeType: "light",
+					},
+				},
+			},
 			KeyElems: []*yang.Entry{{Name: "cl-cl"}},
 		},
 		wantErrSubstring: "key doesn't have a mappedType: cl-cl",
 	}, {
 		name: "mappedType is nil",
 		in: &ygen.YangListAttr{
-			Keys:     map[string]*ygen.MappedType{"cl-cl": nil},
+			Keys: map[string]*ygen.ListKey{
+				"cl-cl": {
+					Name:     "ClCl",
+					LangType: nil,
+				},
+			},
 			KeyElems: []*yang.Entry{{Name: "cl-cl"}},
 		},
 		wantErrSubstring: "mappedType for key is nil: cl-cl",
 	}, {
 		name: "multiple parameters",
 		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.MappedType{
-				"bromine":  {NativeType: "complex128"},
-				"cl-cl":    {NativeType: "int"},
-				"fluorine": {NativeType: "string"},
-				"iodine":   {NativeType: "float64"},
+			Keys: map[string]*ygen.ListKey{
+				"bromine": {
+					Name: "Bromine",
+					LangType: &ygen.MappedType{
+						NativeType: "complex128",
+					},
+				},
+				"cl-cl": {
+					Name: "ClCl",
+					LangType: &ygen.MappedType{
+						NativeType: "int",
+					},
+				},
+				"fluorine": {
+					Name: "Fluorine",
+					LangType: &ygen.MappedType{
+						NativeType: "string",
+					},
+				},
+				"iodine": {
+					Name: "Iodine",
+					LangType: &ygen.MappedType{
+						NativeType: "float64",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{{Name: "fluorine"}, {Name: "cl-cl"}, {Name: "bromine"}, {Name: "iodine"}},
 		},
@@ -3361,9 +3450,21 @@ func TestMakeKeyParams(t *testing.T) {
 	}, {
 		name: "enumerated and union parameters",
 		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.MappedType{
-				"astatine":   {NativeType: "Halogen", IsEnumeratedValue: true},
-				"tennessine": {NativeType: "Ununseptium", UnionTypes: map[string]int{"int32": 1, "float64": 2, "interface{}": 3}},
+			Keys: map[string]*ygen.ListKey{
+				"astatine": {
+					Name: "Astatine",
+					LangType: &ygen.MappedType{
+						NativeType:        "Halogen",
+						IsEnumeratedValue: true,
+					},
+				},
+				"tennessine": {
+					Name: "Tennessine",
+					LangType: &ygen.MappedType{
+						NativeType: "Ununseptium",
+						UnionTypes: map[string]int{"int32": 1, "float64": 2, "interface{}": 3},
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{{Name: "astatine"}, {Name: "tennessine"}},
 		},
@@ -3374,9 +3475,19 @@ func TestMakeKeyParams(t *testing.T) {
 	}, {
 		name: "Binary and Empty",
 		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.MappedType{
-				"bromine": {NativeType: "Binary"},
-				"cl-cl":   {NativeType: "YANGEmpty"},
+			Keys: map[string]*ygen.ListKey{
+				"bromine": {
+					Name: "Bromine",
+					LangType: &ygen.MappedType{
+						NativeType: "Binary",
+					},
+				},
+				"cl-cl": {
+					Name: "ClCl",
+					LangType: &ygen.MappedType{
+						NativeType: "YANGEmpty",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{{Name: "cl-cl"}, {Name: "bromine"}},
 		},

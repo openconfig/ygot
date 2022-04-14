@@ -1,0 +1,11 @@
+module openconfig-simple-augment2 {
+  prefix "a";
+  namespace "urn:a";
+
+  import openconfig-simple { prefix "t"; }
+
+  augment "/t:parent/child/state" {
+    leaf zero { type string; }
+  }
+}
+
