@@ -90,6 +90,12 @@ func (t *OpenconfigSimple_Parent) PopulateDefaults() {
 	t.Child.PopulateDefaults()
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigSimple_Parent belongs.
+func (*OpenconfigSimple_Parent) ΛBelongingModule() string {
+	return "openconfig-simple"
+}
+
 // OpenconfigSimple_Parent_Child represents the /openconfig-simple/parent/child YANG schema element.
 type OpenconfigSimple_Parent_Child struct {
 	Config	*OpenconfigSimple_Parent_Child_Config	`path:"config" module:"openconfig-simple"`
@@ -111,6 +117,12 @@ func (t *OpenconfigSimple_Parent_Child) PopulateDefaults() {
 	ygot.BuildEmptyTree(t)
 	t.Config.PopulateDefaults()
 	t.State.PopulateDefaults()
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigSimple_Parent_Child belongs.
+func (*OpenconfigSimple_Parent_Child) ΛBelongingModule() string {
+	return "openconfig-simple"
 }
 
 // OpenconfigSimple_Parent_Child_Config represents the /openconfig-simple/parent/child/config YANG schema element.
@@ -181,6 +193,12 @@ func (t *OpenconfigSimple_Parent_Child_Config) PopulateDefaults() {
 		return
 	}
 	ygot.BuildEmptyTree(t)
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigSimple_Parent_Child_Config belongs.
+func (*OpenconfigSimple_Parent_Child_Config) ΛBelongingModule() string {
+	return "openconfig-simple"
 }
 
 // OpenconfigSimple_Parent_Child_State represents the /openconfig-simple/parent/child/state YANG schema element.
@@ -270,6 +288,12 @@ func (t *OpenconfigSimple_Parent_Child_State) PopulateDefaults() {
 	ygot.BuildEmptyTree(t)
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigSimple_Parent_Child_State belongs.
+func (*OpenconfigSimple_Parent_Child_State) ΛBelongingModule() string {
+	return "openconfig-simple"
+}
+
 // OpenconfigSimple_RemoteContainer represents the /openconfig-simple/remote-container YANG schema element.
 type OpenconfigSimple_RemoteContainer struct {
 	Config	*OpenconfigSimple_RemoteContainer_Config	`path:"config" module:"openconfig-simple"`
@@ -291,6 +315,12 @@ func (t *OpenconfigSimple_RemoteContainer) PopulateDefaults() {
 	ygot.BuildEmptyTree(t)
 	t.Config.PopulateDefaults()
 	t.State.PopulateDefaults()
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigSimple_RemoteContainer belongs.
+func (*OpenconfigSimple_RemoteContainer) ΛBelongingModule() string {
+	return "openconfig-simple"
 }
 
 // OpenconfigSimple_RemoteContainer_Config represents the /openconfig-simple/remote-container/config YANG schema element.
@@ -329,6 +359,12 @@ func (t *OpenconfigSimple_RemoteContainer_Config) PopulateDefaults() {
 	ygot.BuildEmptyTree(t)
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigSimple_RemoteContainer_Config belongs.
+func (*OpenconfigSimple_RemoteContainer_Config) ΛBelongingModule() string {
+	return "openconfig-simple"
+}
+
 // OpenconfigSimple_RemoteContainer_State represents the /openconfig-simple/remote-container/state YANG schema element.
 type OpenconfigSimple_RemoteContainer_State struct {
 	ALeaf	*string	`path:"a-leaf" module:"openconfig-simple"`
@@ -363,6 +399,12 @@ func (t *OpenconfigSimple_RemoteContainer_State) PopulateDefaults() {
 		return
 	}
 	ygot.BuildEmptyTree(t)
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// OpenconfigSimple_RemoteContainer_State belongs.
+func (*OpenconfigSimple_RemoteContainer_State) ΛBelongingModule() string {
+	return "openconfig-simple"
 }
 
 // E_OpenconfigSimple_Parent_Child_Config_Three is a derived int64 type which is used to represent

@@ -113,7 +113,7 @@ func UnzipSchema() (map[string]*yang.Entry, error) {
 // unmarshaled. The supplied options (opts) are used to control the behaviour
 // of the unmarshal function - for example, determining whether errors are
 // thrown for unknown fields in the input JSON.
-func Unmarshal(data []byte, destStruct ygot.GoStruct, opts ...ytypes.UnmarshalOpt) error {
+func Unmarshal(data []byte, destStruct ygot.ValidatedGoStruct, opts ...ytypes.UnmarshalOpt) error {
 	tn := reflect.TypeOf(destStruct).Elem().Name()
 	schema, ok := SchemaTree[tn]
 	if !ok {
@@ -175,6 +175,12 @@ func (t *Bgp) Validate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Bgp) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// Bgp belongs.
+func (*Bgp) ΛBelongingModule() string {
+	return "openconfig-options"
+}
+
 // Bgp_Neighbor represents the /openconfig-options/bgp/neighbors/neighbor YANG schema element.
 type Bgp_Neighbor struct {
 	EnabledAddressFamily	[]Bgp_Neighbor_EnabledAddressFamily_Union	`path:"state/enabled-address-family" module:"openconfig-options/openconfig-options"`
@@ -210,6 +216,12 @@ func (t *Bgp_Neighbor) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Bgp_Neighbor) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Bgp_Neighbor belongs.
+func (*Bgp_Neighbor) ΛBelongingModule() string {
+	return "openconfig-options"
+}
 
 // Bgp_Neighbor_EnabledAddressFamily_Union is an interface that is implemented by valid types for the union
 // for the leaf /openconfig-options/bgp/neighbors/neighbor/state/enabled-address-family within the YANG schema.
@@ -262,6 +274,12 @@ func (t *Device) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Device) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Device belongs.
+func (*Device) ΛBelongingModule() string {
+	return ""
+}
 
 // E_Neighbor_SessionState is a derived int64 type which is used to represent
 // the enumerated node Neighbor_SessionState. An additional value named

@@ -17,6 +17,7 @@ package ygen
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 	"text/template"
@@ -220,9 +221,10 @@ type goUnionInterface struct {
 
 // generatedGoStruct is used to repesent a Go structure to be handed to a template for output.
 type generatedGoStruct struct {
-	StructName string           // StructName is the name of the struct being output.
-	YANGPath   string           // YANGPath is the schema path of the struct being output.
-	Fields     []*goStructField // Fields is the slice of fields of the struct, described as goStructField structs.
+	StructName      string           // StructName is the name of the struct being output.
+	YANGPath        string           // YANGPath is the schema path of the struct being output.
+	Fields          []*goStructField // Fields is the slice of fields of the struct, described as goStructField structs.
+	BelongingModule string           // BelongingModule is the module in which namespace the GoStruct belongs.
 }
 
 // generatedGoMultiKeyListStruct is used to represent a struct used as a key of a YANG list that has multiple
@@ -454,7 +456,7 @@ func UnzipSchema() (map[string]*yang.Entry, error) {
 // unmarshaled. The supplied options (opts) are used to control the behaviour
 // of the unmarshal function - for example, determining whether errors are
 // thrown for unknown fields in the input JSON.
-func Unmarshal(data []byte, destStruct ygot.GoStruct, opts ...ytypes.UnmarshalOpt) error {
+func Unmarshal(data []byte, destStruct ygot.ValidatedGoStruct, opts ...ytypes.UnmarshalOpt) error {
 	tn := reflect.TypeOf(destStruct).Elem().Name()
 	schema, ok := SchemaTree[tn]
 	if !ok {
@@ -1037,6 +1039,17 @@ var ΛEnumTypes = map[string][]reflect.Type{
 func (t *{{ .StructName }}) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 `)
 
+	// goBelongingModuleTemplate provides a template to output a
+	// function that has a generated struct as receiver, and returns the
+	// name of the module in which namespace the generated struct belongs.
+	goBelongingModuleTemplate = mustMakeTemplate("belongingModuleMethod", `
+// ΛBelongingModule returns the name of the module in whose namespace
+// {{ .StructName }} belongs.
+func (*{{ .StructName }}) ΛBelongingModule() string {
+	return "{{ .BelongingModule }}"
+}
+`)
+
 	// schemaVarTemplate provides a template to output a constant byte
 	// slice which contains the serialised schema of the YANG modules for
 	// which code generation was performed.
@@ -1377,6 +1390,16 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 	structDef := generatedGoStruct{
 		StructName: targetStruct.Name,
 		YANGPath:   util.SlicePathToString(targetStruct.Path),
+	}
+
+	// Non-fakeroot GoStructs all have a module to which they belong per
+	// RFC7950 namespace rules. The fakeroot is assigned "".
+	if !IsFakeRoot(targetStruct.Entry) {
+		im, err := targetStruct.Entry.InstantiatingModule()
+		if err != nil {
+			return GoStructCodeSnippet{}, append(errs, fmt.Errorf("ygen: cannot find instantiating module for Directory %s: %v", targetStruct.Path, err))
+		}
+		structDef.BelongingModule = im
 	}
 
 	// associatedListKeyStructs is a slice containing the key structures for any multi-keyed
@@ -1806,6 +1829,10 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		}
 	}
 
+	if err := generateBelongingModuleFunction(&methodBuf, structDef); err != nil {
+		errs = append(errs, err)
+	}
+
 	return GoStructCodeSnippet{
 		StructName:  structDef.StructName,
 		StructDef:   structBuf.String(),
@@ -2223,6 +2250,12 @@ func generateEnumTypeMap(enumTypeMap map[string][]string) (string, error) {
 // enumTypeMap for a struct.
 func generateEnumTypeMapAccessor(b *bytes.Buffer, s generatedGoStruct) error {
 	return goEnumTypeMapAccessTemplate.Execute(b, s)
+}
+
+// generateBelongingModuleFunction generates a function which returns the
+// belonging module as a string.
+func generateBelongingModuleFunction(b io.Writer, s generatedGoStruct) error {
+	return goBelongingModuleTemplate.Execute(b, s)
 }
 
 // writeGoSchema generates Go code which serialises the rawSchema byte slice

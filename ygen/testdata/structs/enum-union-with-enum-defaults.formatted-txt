@@ -91,6 +91,12 @@ func (t *Outer) PopulateDefaults() {
 	t.Inner.PopulateDefaults()
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// Outer belongs.
+func (*Outer) ΛBelongingModule() string {
+	return "enum-union"
+}
+
 // Outer_Inner represents the /enum-union/outer/inner YANG schema element.
 type Outer_Inner struct {
 	Leaf1	Outer_Inner_Leaf1_Union	`path:"config/leaf1" module:"enum-union/enum-union"`
@@ -249,6 +255,12 @@ func (t *Outer_Inner) PopulateDefaults() {
 		var v string = "abc="
 		t.SingletonUnionString = &v
 	}
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Outer_Inner belongs.
+func (*Outer_Inner) ΛBelongingModule() string {
+	return "enum-union"
 }
 
 // Outer_Inner_Leaf1_Union is an interface that is implemented by valid types for the union
