@@ -414,10 +414,12 @@ type UnionUnsupported struct {
 
 var (
 	SchemaTree map[string]*yang.Entry
+	ΛEnumTypes map[string][]reflect.Type
 )
 
 func init() {
 	var err error
+	initΛEnumTypes()
 	if SchemaTree, err = UnzipSchema(); err != nil {
 		panic("schema error: " +  err.Error())
 	}
@@ -1017,7 +1019,8 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 // ΛEnumTypes is a map, keyed by a YANG schema path, of the enumerated types that
 // correspond with the leaf. The type is represented as a reflect.Type. The naming
 // of the map ensures that there are no clashes with valid YANG identifiers.
-var ΛEnumTypes = map[string][]reflect.Type{
+func initΛEnumTypes(){
+  ΛEnumTypes = map[string][]reflect.Type{
   {{- range $schemapath, $types := . }}
 	"{{ $schemapath }}": []reflect.Type{
 		{{- range $i, $t := $types }}
@@ -1025,6 +1028,7 @@ var ΛEnumTypes = map[string][]reflect.Type{
 		{{- end }}
 	},
 	{{- end }}
+  }
 }
 `)
 
