@@ -1206,12 +1206,17 @@ func TestGenerateIR(t *testing.T) {
 							Name: "TypedefEnum",
 							YANGDetails: YANGNodeDetails{
 								Name:     "typedef-enum",
-								Defaults: []string{"SUNDAY"},
+								Defaults: []string{"SATURDAY"},
 								Module:   "openconfig-complex",
 								Path:     "/openconfig-complex/model/a/single-key/config/typedef-enum",
 							},
-							Type:                LeafNode,
-							LangType:            &MappedType{NativeType: "E_Complex_WeekendDays", IsEnumeratedValue: true, ZeroValue: "0"},
+							Type: LeafNode,
+							LangType: &MappedType{
+								NativeType:        "E_Complex_WeekendDays",
+								IsEnumeratedValue: true,
+								ZeroValue:         "0",
+								DefaultValue:      ygot.String("SUNDAY"),
+							},
 							MappedPaths:         [][]string{{"config", "typedef-enum"}},
 							MappedModules:       [][]string{{"openconfig-complex", "openconfig-complex"}},
 							ShadowMappedPaths:   [][]string{{"state", "typedef-enum"}},
@@ -1314,8 +1319,7 @@ func TestGenerateIR(t *testing.T) {
 						"config",
 						"leaf-default-override",
 					},
-					TypeName:         "cyclone-scales",
-					TypeDefaultValue: "",
+					TypeName: "cyclone-scales",
 					ValToYANGDetails: []*ygot.EnumDefinition{
 						{
 							Name:           "NORMAL",
@@ -1328,10 +1332,9 @@ func TestGenerateIR(t *testing.T) {
 					},
 				},
 				"Complex_SOFTWARE": {
-					Name:             "Complex_SOFTWARE",
-					Kind:             IdentityType,
-					TypeName:         "identityref",
-					TypeDefaultValue: "",
+					Name:     "Complex_SOFTWARE",
+					Kind:     IdentityType,
+					TypeName: "identityref",
 					ValToYANGDetails: []*ygot.EnumDefinition{
 						{Name: "OS", DefiningModule: "openconfig-complex"},
 					},
@@ -1347,8 +1350,7 @@ func TestGenerateIR(t *testing.T) {
 						"config",
 						"key",
 					},
-					TypeName:         "days-of-week",
-					TypeDefaultValue: "",
+					TypeName: "days-of-week",
 					ValToYANGDetails: []*ygot.EnumDefinition{
 						{
 							Name:           "SATURDAY",
@@ -1371,8 +1373,7 @@ func TestGenerateIR(t *testing.T) {
 						"config",
 						"simple-union-enum",
 					},
-					TypeName:         "union",
-					TypeDefaultValue: "",
+					TypeName: "union",
 					ValToYANGDetails: []*ygot.EnumDefinition{
 						{
 							Name:           "ONE",
@@ -1399,8 +1400,7 @@ func TestGenerateIR(t *testing.T) {
 						"config",
 						"singleton-union-enum",
 					},
-					TypeName:         "union",
-					TypeDefaultValue: "",
+					TypeName: "union",
 					ValToYANGDetails: []*ygot.EnumDefinition{
 						{
 							Name:           "UN",

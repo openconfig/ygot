@@ -22,6 +22,7 @@ module openconfig-complex {
       enum SATURDAY;
       enum SUNDAY;
     }
+    default SUNDAY;
   }
 
   typedef days-of-week {
@@ -85,7 +86,7 @@ module openconfig-complex {
 
     leaf typedef-enum {
       type weekend-days;
-      default SUNDAY;
+      default SATURDAY;
     }
 
     leaf typedef-union-enum {

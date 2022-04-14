@@ -127,10 +127,6 @@ func GenerateIR(yangFiles, includePaths []string, newLangMapper NewLangMapperFn,
 			continue
 		}
 
-		if defaultValue, ok := enum.entry.SingleDefaultValue(); ok {
-			et.TypeDefaultValue = defaultValue
-		}
-
 		if a, ok := enum.entry.Annotation["valuePrefix"]; ok {
 			s, ok := a.([]string)
 			if !ok {

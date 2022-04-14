@@ -300,10 +300,6 @@ type EnumeratedYANGType struct {
 	ValuePrefix []string
 	// TypeName stores the original YANG type name for the enumeration.
 	TypeName string
-	// TypeDefaultValue stores the default value of the enumerated type.
-	// This is relevant when the type is a typedef. If empty, it means the
-	// enumerated type does not have a default value.
-	TypeDefaultValue string
 	// ValToYANGDetails stores the mapping between the
 	// int64 identifier for the enumeration value and its
 	// YANG-specific details (as defined by the ygot.EnumDefinition).
