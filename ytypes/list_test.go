@@ -2047,13 +2047,18 @@ type unionKeyTestStruct struct {
 	UnionKey map[testutil.TestUnion]*unionKeyTestStructChild `path:"union-key"`
 }
 
-func (*unionKeyTestStruct) IsYANGGoStruct() {}
+func (*unionKeyTestStruct) IsYANGGoStruct()                         {}
+func (*unionKeyTestStruct) Validate(...ygot.ValidationOption) error { return nil }
+func (*unionKeyTestStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*unionKeyTestStruct) ΛBelongingModule() string                { return "bar" }
 
 type unionKeyTestStructChild struct {
 	Key testutil.TestUnion `path:"key"`
 }
 
-func (*unionKeyTestStructChild) IsYANGGoStruct() {}
+func (*unionKeyTestStructChild) IsYANGGoStruct()                         {}
+func (*unionKeyTestStructChild) Validate(...ygot.ValidationOption) error { return nil }
+func (*unionKeyTestStructChild) ΛBelongingModule() string                { return "bar" }
 
 func (*unionKeyTestStructChild) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
@@ -2078,13 +2083,18 @@ type unionKeyTestStructSimple struct {
 	UnionKey map[testutil.TestUnion2]*unionKeyTestStructChildSimple `path:"union-key"`
 }
 
-func (*unionKeyTestStructSimple) IsYANGGoStruct() {}
+func (*unionKeyTestStructSimple) IsYANGGoStruct()                         {}
+func (*unionKeyTestStructSimple) Validate(...ygot.ValidationOption) error { return nil }
+func (*unionKeyTestStructSimple) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*unionKeyTestStructSimple) ΛBelongingModule() string                { return "bar" }
 
 type unionKeyTestStructChildSimple struct {
 	Key testutil.TestUnion2 `path:"key"`
 }
 
-func (*unionKeyTestStructChildSimple) IsYANGGoStruct() {}
+func (*unionKeyTestStructChildSimple) IsYANGGoStruct()                         {}
+func (*unionKeyTestStructChildSimple) Validate(...ygot.ValidationOption) error { return nil }
+func (*unionKeyTestStructChildSimple) ΛBelongingModule() string                { return "bar" }
 
 func (*unionKeyTestStructChildSimple) ΛEnumTypeMap() map[string][]reflect.Type {
 	return map[string][]reflect.Type{
@@ -2188,7 +2198,7 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		inParent         ygot.GoStruct
+		inParent         ygot.ValidatedGoStruct
 		inSchema         *yang.Entry
 		inUnmarshalOpts  []UnmarshalOpt
 		inJSON           string

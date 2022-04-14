@@ -16,6 +16,7 @@ package ytypes
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
@@ -42,7 +43,10 @@ type ContainerStruct struct {
 	ChildList        map[string]*ContainerStruct `path:"child-list"`
 }
 
-func (c *ContainerStruct) IsYANGGoStruct() {}
+func (*ContainerStruct) IsYANGGoStruct()                         {}
+func (*ContainerStruct) Validate(...ygot.ValidationOption) error { return nil }
+func (*ContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ContainerStruct) ΛBelongingModule() string                { return "bar" }
 
 func TestValidateContainerSchema(t *testing.T) {
 	validContainerSchema := &yang.Entry{
@@ -105,7 +109,10 @@ type BadStruct struct {
 	UnknownName *string `path:"unknown"`
 }
 
-func (*BadStruct) IsYANGGoStruct() {}
+func (*BadStruct) IsYANGGoStruct()                         {}
+func (*BadStruct) Validate(...ygot.ValidationOption) error { return nil }
+func (*BadStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*BadStruct) ΛBelongingModule() string                { return "bar" }
 
 func TestValidateContainer(t *testing.T) {
 	containerSchema := &yang.Entry{
@@ -214,7 +221,7 @@ func TestValidateContainer(t *testing.T) {
 			desc:    "bad value type",
 			schema:  containerSchema,
 			val:     int(1),
-			wantErr: `type int is not a GoStruct for schema container-schema`,
+			wantErr: `type int is not a ValidatedGoStruct for schema container-schema`,
 		},
 		{
 			desc:    "bad schema",

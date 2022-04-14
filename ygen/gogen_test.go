@@ -71,6 +71,26 @@ func TestGoCodeStructGeneration(t *testing.T) {
 		name: "simple single leaf mapping test",
 		inStructToMap: &Directory{
 			Name: "Tstruct",
+			Entry: &yang.Entry{
+				Name: "tstruct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"f1": {
 					Name: "f1",
@@ -155,6 +175,12 @@ func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Tstruct belongs.
+func (*Tstruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -182,12 +208,38 @@ func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Tstruct belongs.
+func (*Tstruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 	}, {
 		name: "struct with a multi-type union",
 		inStructToMap: &Directory{
 			Name: "InputStruct",
+			Entry: &yang.Entry{
+				Name: "input-struct",
+				Parent: &yang.Entry{
+					Name: "module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"u1": {
 					Name: "u1",
@@ -249,6 +301,12 @@ func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// InputStruct belongs.
+func (*InputStruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 			interfaces: `
 // InputStruct_U1_Union is an interface that is implemented by valid types for the union
@@ -316,6 +374,12 @@ func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// InputStruct belongs.
+func (*InputStruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 			interfaces: `
 // Module_InputStruct_U1_Union is an interface that is implemented by valid types for the union
@@ -363,6 +427,26 @@ func (t *InputStruct) To_Module_InputStruct_U1_Union(i interface{}) (Module_Inpu
 		name: "nested container in struct",
 		inStructToMap: &Directory{
 			Name: "InputStruct",
+			Entry: &yang.Entry{
+				Name: "input-struct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"c1": {
 					Name: "c1",
@@ -419,6 +503,12 @@ func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// InputStruct belongs.
+func (*InputStruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -445,6 +535,12 @@ func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// InputStruct belongs.
+func (*InputStruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 	}, {
@@ -545,6 +641,26 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 		name: "struct with missing struct referenced",
 		inStructToMap: &Directory{
 			Name: "AStruct",
+			Entry: &yang.Entry{
+				Name: "a-struct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"elem": {
 					Name: "elem",
@@ -582,6 +698,26 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 		name: "struct with missing list referenced",
 		inStructToMap: &Directory{
 			Name: "BStruct",
+			Entry: &yang.Entry{
+				Name: "b-struct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"list": {
 					Name:     "list",
@@ -620,6 +756,26 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 		name: "struct with keyless list",
 		inStructToMap: &Directory{
 			Name: "QStruct",
+			Entry: &yang.Entry{
+				Name: "q-struct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"a-list": {
 					Name:     "a-list",
@@ -684,6 +840,12 @@ func (t *QStruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// QStruct belongs.
+func (*QStruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -710,12 +872,38 @@ func (t *QStruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// QStruct belongs.
+func (*QStruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 	}, {
 		name: "struct with single key list",
 		inStructToMap: &Directory{
 			Name: "Tstruct",
+			Entry: &yang.Entry{
+				Name: "tstruct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"listWithKey": {
 					Name:     "listWithKey",
@@ -846,6 +1034,12 @@ func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Tstruct belongs.
+func (*Tstruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -918,12 +1112,38 @@ func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Tstruct belongs.
+func (*Tstruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 	}, {
 		name: "missing list definition element",
 		inStructToMap: &Directory{
 			Name: "Tstruct",
+			Entry: &yang.Entry{
+				Name: "tstruct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"listWithKey": {
 					Name:     "listWithKey",
@@ -971,6 +1191,26 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		name: "unknown kind",
 		inStructToMap: &Directory{
 			Name: "AStruct",
+			Entry: &yang.Entry{
+				Name: "tstruct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"anydata": {
 					Name: "anydata",
@@ -984,6 +1224,17 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		name: "unknown field type",
 		inStructToMap: &Directory{
 			Name: "AStruct",
+			Entry: &yang.Entry{
+				Name: "container",
+				Parent: &yang.Entry{
+					Name: "container-two",
+					Parent: &yang.Entry{
+						Name: "mod",
+						Node: &yang.Module{},
+					},
+				},
+				Node: &yang.Module{},
+			},
 			Fields: map[string]*yang.Entry{
 				"idd": {
 					Name: "idd",
@@ -1008,6 +1259,26 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		name: "struct with multi-key list",
 		inStructToMap: &Directory{
 			Name: "Tstruct",
+			Entry: &yang.Entry{
+				Name: "tstruct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"listWithKey": {
 					Name:     "listWithKey",
@@ -1166,6 +1437,12 @@ func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Tstruct belongs.
+func (*Tstruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -1250,12 +1527,38 @@ func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Tstruct belongs.
+func (*Tstruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 	}, {
 		name: "annotated struct",
 		inStructToMap: &Directory{
 			Name: "Tstruct",
+			Entry: &yang.Entry{
+				Name: "tstruct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"f1": {
 					Name: "f1",
@@ -1317,6 +1620,12 @@ func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Tstruct belongs.
+func (*Tstruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -1345,12 +1654,38 @@ func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Tstruct belongs.
+func (*Tstruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 	}, {
 		name: "struct with multi-key list - append and getters",
 		inStructToMap: &Directory{
 			Name: "Tstruct",
+			Entry: &yang.Entry{
+				Name: "tstruct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"listWithKey": {
 					Name:     "listWithKey",
@@ -1578,6 +1913,12 @@ func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Tstruct belongs.
+func (*Tstruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 		wantSame: true,
@@ -1585,6 +1926,26 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		name: "struct with single key list - append and getters",
 		inStructToMap: &Directory{
 			Name: "Tstruct",
+			Entry: &yang.Entry{
+				Name: "tstruct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"listWithKey": {
 					Name:     "listWithKey",
@@ -1783,6 +2144,12 @@ func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Tstruct belongs.
+func (*Tstruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 		wantSame: true,
@@ -1790,6 +2157,26 @@ func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes
 		name: "struct with child container - getters generated",
 		inStructToMap: &Directory{
 			Name: "InputStruct",
+			Entry: &yang.Entry{
+				Name: "input-struct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"c1": {
 					Name: "c1",
@@ -1881,6 +2268,12 @@ func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// InputStruct belongs.
+func (*InputStruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 		wantSame: true,
@@ -1888,6 +2281,41 @@ func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumT
 		name: "container with leaf getters",
 		inStructToMap: &Directory{
 			Name: "Container",
+			Entry: &yang.Entry{
+				Name: "bar",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "foo",
+					Kind: yang.DirectoryEntry,
+					Parent: &yang.Entry{
+						Name: "m1",
+						Node: &yang.Module{
+							Name: "m1",
+							Namespace: &yang.Value{
+								Name: "u:m1",
+							},
+							Modules: modules,
+						},
+					},
+					Node: &yang.Container{
+						Name: "foo",
+						Parent: &yang.Module{
+							Name: "m1",
+							Namespace: &yang.Value{
+								Name: "u:m1",
+							},
+							Modules: modules,
+						},
+					},
+				},
+				Node: &yang.Module{
+					Name: "m1",
+					Namespace: &yang.Value{
+						Name: "u:m1",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"leaf": {
 					Name: "leaf",
@@ -1991,6 +2419,12 @@ func (t *Container) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Container belongs.
+func (*Container) ΛBelongingModule() string {
+	return "m1"
+}
 `,
 		},
 		wantSame: true,
@@ -1998,6 +2432,41 @@ func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTyp
 		name: "leaf getter with default value",
 		inStructToMap: &Directory{
 			Name: "Container",
+			Entry: &yang.Entry{
+				Name: "bar",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "foo",
+					Kind: yang.DirectoryEntry,
+					Parent: &yang.Entry{
+						Name: "m1",
+						Node: &yang.Module{
+							Name: "m1",
+							Namespace: &yang.Value{
+								Name: "u:m1",
+							},
+							Modules: modules,
+						},
+					},
+					Node: &yang.Container{
+						Name: "foo",
+						Parent: &yang.Module{
+							Name: "m1",
+							Namespace: &yang.Value{
+								Name: "u:m1",
+							},
+							Modules: modules,
+						},
+					},
+				},
+				Node: &yang.Module{
+					Name: "m1",
+					Namespace: &yang.Value{
+						Name: "u:m1",
+					},
+					Modules: modules,
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"leaf": {
 					Name:    "leaf",
@@ -2106,6 +2575,12 @@ func (t *Container) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Container belongs.
+func (*Container) ΛBelongingModule() string {
+	return "m1"
+}
 `,
 		},
 		wantSame: true,

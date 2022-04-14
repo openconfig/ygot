@@ -90,6 +90,12 @@ func (t *Parent) PopulateDefaults() {
 	t.Child.PopulateDefaults()
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// Parent belongs.
+func (*Parent) ΛBelongingModule() string {
+	return "openconfig-leaflist-default"
+}
+
 // Parent_Child represents the /openconfig-leaflist-default/parent/child YANG schema element.
 type Parent_Child struct {
 	Four	[]Binary	`path:"config/four" module:"openconfig-leaflist-default/openconfig-leaflist-default"`
@@ -184,6 +190,12 @@ func (t *Parent_Child) PopulateDefaults() {
 	if t.Two ==  nil {
 		t.Two = []string{"foo", "foo", "bar", "bar", "baz", "baz"}
 	}
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Parent_Child belongs.
+func (*Parent_Child) ΛBelongingModule() string {
+	return "openconfig-leaflist-default"
 }
 
 // E_Child_Three is a derived int64 type which is used to represent

@@ -170,6 +170,6 @@ jobs:
         run: |
           checkstr=""
           for i in util ygot ygen ytypes ygot/pathtranslate testutil testcmp ypathgen; do
-            checkstr="$checkstr github.com/openconfig/ygot/$i"
+            checkstr="$checkstr github.com/openconfig/ygot/$i/..."
           done
           staticcheck $checkstr
