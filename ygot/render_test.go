@@ -1619,6 +1619,39 @@ type exampleTransportAddressBinary struct {
 
 func (*exampleTransportAddressBinary) IsExampleTransportAddress() {}
 
+// ucExampleDevice and the following structs are a set of structs used for more
+// complex testing in TestConstructIETFJSON, these structs are used to test for
+// YANG presence containers.
+
+type ucExampleDevice struct {
+	Bgp *ucExampleBgp `path:"bgp" yangPresence:"true"`
+}
+
+func (*ucExampleDevice) IsYANGGoStruct() {}
+
+type ucExampleBgp struct {
+	Global   *ucExampleBgpGlobal              `path:"global"`
+	Neighbor map[string]*ucExampleBgpNeighbor `path:"neighbor"`
+}
+
+func (*ucExampleBgp) IsYANGGoStruct() {}
+
+type ucExampleBgpGlobal struct {
+	As       *uint32 `path:"as"`
+	RouterID *string `path:"router-id"`
+}
+
+func (*ucExampleBgpGlobal) IsYANGGoStruct() {}
+
+type ucExampleBgpNeighbor struct {
+	Description     *string `path:"description"`
+	Enabled         *bool   `path:"enabled"`
+	NeighborAddress *string `path:"neighbor-address"`
+	PeerAs          *uint32 `path:"peer-as"`
+}
+
+func (*ucExampleBgpNeighbor) IsYANGGoStruct() {}
+
 // invalidGoStruct explicitly does not implement the GoStruct interface.
 type invalidGoStruct struct {
 	Value *string
@@ -2822,6 +2855,69 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantErr:     true,
 		wantJSONErr: true,
+	}, {
+		name: "device example with presence containers #1",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{},
+		},
+		wantIETF: map[string]interface{}{"bgp": map[string]interface{}{}},
+		wantSame: true,
+	}, {
+		name: "device example with presence containers #2",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{
+				Neighbor: map[string]*ucExampleBgpNeighbor{
+					"192.0.2.1": {
+						Description:     String("a neighbor"),
+						Enabled:         Bool(true),
+						NeighborAddress: String("192.0.2.1"),
+						PeerAs:          Uint32(29636),
+					},
+					"100.64.32.96": {
+						Description:     String("a second neighbor"),
+						Enabled:         Bool(false),
+						NeighborAddress: String("100.64.32.96"),
+						PeerAs:          Uint32(5413),
+					},
+				},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"bgp": map[string]interface{}{
+				"neighbor": []interface{}{
+					map[string]interface{}{
+						"description":      "a second neighbor",
+						"enabled":          false,
+						"neighbor-address": "100.64.32.96",
+						"peer-as":          5413,
+					},
+					map[string]interface{}{
+						"description":      "a neighbor",
+						"enabled":          true,
+						"neighbor-address": "192.0.2.1",
+						"peer-as":          29636,
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"bgp": map[string]interface{}{
+				"neighbor": map[string]interface{}{
+					"192.0.2.1": map[string]interface{}{
+						"description":      "a neighbor",
+						"enabled":          true,
+						"neighbor-address": "192.0.2.1",
+						"peer-as":          29636,
+					},
+					"100.64.32.96": map[string]interface{}{
+						"description":      "a second neighbor",
+						"enabled":          false,
+						"neighbor-address": "100.64.32.96",
+						"peer-as":          5413,
+					},
+				},
+			},
+		},
 	}, {
 		name:     "unset enum",
 		in:       &renderExample{EnumField: EnumTestUNSET},

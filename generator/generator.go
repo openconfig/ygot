@@ -86,6 +86,7 @@ var (
 	generateRename          = flag.Bool("generate_rename", false, "If set to true, rename methods are generated for lists within the Go code.")
 	addAnnotations          = flag.Bool("annotations", false, "If set to true, metadata annotations are added within the generated structs.")
 	annotationPrefix        = flag.String("annotation_prefix", ygen.DefaultAnnotationPrefix, "String to be appended to each metadata field within the generated structs if annoations is set to true.")
+	addYangPresence         = flag.Bool("yangpresence", false, "If set to true, a tag will be added to the field of a generated Go struct to indicate when a YANG presence container is being used.")
 	generateAppend          = flag.Bool("generate_append", false, "If set to true, append methods are generated for YANG lists (Go maps) within the Go code.")
 	generateGetters         = flag.Bool("generate_getters", false, "If set to true, getter methdos that retrieve or create an element are generated for YANG container (Go struct pointer) or list (Go map) fields within the generated code.")
 	generateDelete          = flag.Bool("generate_delete", false, "If set to true, delete methods are generated for YANG lists (Go maps) within the Go code.")
@@ -349,6 +350,7 @@ func main() {
 				GenerateRenameMethod:                *generateRename,
 				AddAnnotationFields:                 *addAnnotations,
 				AnnotationPrefix:                    *annotationPrefix,
+				AddYangPresence:                     *addYangPresence,
 				GenerateGetters:                     *generateGetters,
 				GenerateDeleteMethod:                *generateDelete,
 				GenerateAppendMethod:                *generateAppend,
