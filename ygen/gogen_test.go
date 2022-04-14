@@ -547,6 +547,29 @@ func (*InputStruct) ΛBelongingModule() string {
 		name: "nested container in struct with presence container",
 		inStructToMap: &Directory{
 			Name: "InputStruct",
+			Entry: &yang.Entry{
+				Name: "input-struct",
+				Parent: &yang.Entry{
+					Name: "root-module",
+					Node: &yang.Module{
+						Name: "exmod",
+						Namespace: &yang.Value{
+							Name: "u:exmod",
+						},
+						Modules: modules,
+					},
+				},
+				Node: &yang.Module{
+					Name: "exmod",
+					Namespace: &yang.Value{
+						Name: "u:exmod",
+					},
+					Modules: modules,
+				},
+				Extra: map[string][]interface{}{
+					"presence": {&yang.Value{Name: "presence c1"}},
+				},
+			},
 			Fields: map[string]*yang.Entry{
 				"c1": {
 					Name: "c1",
@@ -609,6 +632,12 @@ func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// InputStruct belongs.
+func (*InputStruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 		wantUncompressed: wantGoStructOut{
@@ -635,6 +664,12 @@ func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// InputStruct belongs.
+func (*InputStruct) ΛBelongingModule() string {
+	return "exmod"
+}
 `,
 		},
 	}, {
