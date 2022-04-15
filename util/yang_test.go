@@ -1024,18 +1024,26 @@ func TestIsYangPresence(t *testing.T) {
 		Yes *string `yangPresence:"true"`
 		No  *string
 	}
+	structFieldYes, ok := reflect.TypeOf(testStruct{}).FieldByName("Yes")
+	if !ok {
+		t.Fatalf("Cannot find field Yes in testStruct")
+	}
 
+	structFieldNo, ok := reflect.TypeOf(testStruct{}).FieldByName("No")
+	if !ok {
+		t.Fatalf("Cannot find field No in testStruct")
+	}
 	tests := []struct {
 		name string
 		in   reflect.StructField
 		want bool
 	}{{
 		name: "yangPresence container/field",
-		in:   reflect.TypeOf(testStruct{}).Field(0),
+		in:   structFieldYes,
 		want: true,
 	}, {
 		name: "standard field",
-		in:   reflect.TypeOf(testStruct{}).Field(1),
+		in:   structFieldNo,
 		want: false,
 	}}
 

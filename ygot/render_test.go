@@ -3042,6 +3042,13 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 	}, {
+		name: "device example with presence containers #3",
+		in: &ucExampleDevice{
+			Bgp: nil,
+		},
+		wantIETF: map[string]interface{}{},
+		wantSame: true,
+	}, {
 		name:     "unset enum",
 		in:       &renderExample{EnumField: EnumTestUNSET},
 		wantIETF: map[string]interface{}{},
