@@ -1359,7 +1359,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				if err != nil {
 					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
 				}
-				gogen := newGoGenState(st, nil, true)
+				gogen := newGoLangMapper(st, nil)
 				protogen := newProtoGenState(st, nil)
 
 				structs := make(map[string]*yang.Entry)
@@ -1378,7 +1378,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				var got map[string]*Directory
 				switch c.lang {
 				case golang:
-					got, errs = gogen.buildDirectoryDefinitions(structs, IROptions{
+					got, errs = buildDirectoryDefinitions(gogen, structs, IROptions{
 						ParseOptions: ParseOpts{
 							SkipEnumDeduplication: false,
 						},
@@ -1395,7 +1395,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 						UseConsistentNamesForProtoUnionEnums: false,
 					})
 				case protobuf:
-					got, errs = protogen.buildDirectoryDefinitions(structs, IROptions{
+					got, errs = buildDirectoryDefinitions(protogen, structs, IROptions{
 						ParseOptions: ParseOpts{
 							SkipEnumDeduplication: false,
 						},
@@ -2275,7 +2275,7 @@ func TestBuildListKey(t *testing.T) {
 				}
 				return
 			}
-			s := newGoGenState(st, enumSet, true)
+			s := newGoLangMapper(st, enumSet)
 
 			compressBehaviour := genutil.Uncompressed
 			if tt.inCompress {

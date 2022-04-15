@@ -443,7 +443,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}
 
 	// Store the returned schematree and enumSet within the state for this code generation.
-	gogen := newGoGenState(mdef.schematree, enumSet, cg.Config.TransformationOptions.GenerateFakeRoot)
+	gogen := newGoLangMapper(mdef.schematree, enumSet)
 
 	directoryMap, errs := buildDirectoryDefinitions(gogen, mdef.directoryEntries, opts)
 	if errs != nil {
@@ -581,7 +581,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 	}
 
 	// Store the returned schematree and enumSet within the state for this code generation.
-	gogen := newGoGenState(mdef.schematree, enumSet, cg.TransformationOptions.GenerateFakeRoot)
+	gogen := newGoLangMapper(mdef.schematree, enumSet)
 
 	directoryMap, errs := buildDirectoryDefinitions(gogen, mdef.directoryEntries, opts)
 	if errs != nil {
