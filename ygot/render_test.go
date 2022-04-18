@@ -1948,17 +1948,18 @@ func (t *unmarshalableJSON) UnmarshalJSON(d []byte) error {
 
 func TestConstructJSON(t *testing.T) {
 	tests := []struct {
-		name                     string
-		in                       ValidatedGoStruct
-		inAppendMod              bool
-		inPrependModIref         bool
-		inRewriteModuleNameRules map[string]string
-		inPreferShadowPath       bool
-		wantIETF                 map[string]interface{}
-		wantInternal             map[string]interface{}
-		wantSame                 bool
-		wantErr                  bool
-		wantJSONErr              bool
+		name                        string
+		in                          ValidatedGoStruct
+		inAppendMod                 bool
+		inPrependModIref            bool
+		inPrependModNonRootTopLevel bool
+		inRewriteModuleNameRules    map[string]string
+		inPreferShadowPath          bool
+		wantIETF                    map[string]interface{}
+		wantInternal                map[string]interface{}
+		wantSame                    bool
+		wantErr                     bool
+		wantJSONErr                 bool
 	}{{
 		name: "invalidGoStruct",
 		in: &invalidGoStructChild{
@@ -2799,6 +2800,50 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 	}, {
+		name: "module append example with prepending top-level module names",
+		in: &ietfRenderExample{
+			F1: String("foo"),
+			F2: String("bar"),
+			F3: &ietfRenderExampleChild{
+				F4: String("baz"),
+				F5: String("hat"),
+			},
+			F6: String("mat"),
+			F7: String("bat"),
+		},
+		inAppendMod:                 true,
+		inPrependModNonRootTopLevel: true,
+		wantIETF: map[string]interface{}{
+			"f1mod:f1": "foo",
+			"f1mod:config": map[string]interface{}{
+				"f2mod:f6": "mat",
+			},
+			"f2mod:config": map[string]interface{}{
+				"f2":       "bar",
+				"f3mod:f7": "bat",
+			},
+			"f1mod:f3": map[string]interface{}{
+				"f42mod:config": map[string]interface{}{
+					"f4": "baz",
+				},
+				"f5": "hat",
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"f1": "foo",
+			"config": map[string]interface{}{
+				"f2": "bar",
+				"f6": "mat",
+				"f7": "bat",
+			},
+			"f3": map[string]interface{}{
+				"config": map[string]interface{}{
+					"f4": "baz",
+				},
+				"f5": "hat",
+			},
+		},
+	}, {
 		name: "list at root",
 		in: &listAtRoot{
 			Foo: map[string]*listAtRootChild{
@@ -2967,10 +3012,11 @@ func TestConstructJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name+" ConstructIETFJSON", func(t *testing.T) {
 			gotietf, err := ConstructIETFJSON(tt.in, &RFC7951JSONConfig{
-				AppendModuleName:             tt.inAppendMod,
-				PrependModuleNameIdentityref: tt.inPrependModIref,
-				RewriteModuleNames:           tt.inRewriteModuleNameRules,
-				PreferShadowPath:             tt.inPreferShadowPath,
+				AppendModuleName:                 tt.inAppendMod,
+				PrependModuleNameNonRootTopLevel: tt.inPrependModNonRootTopLevel,
+				PrependModuleNameIdentityref:     tt.inPrependModIref,
+				RewriteModuleNames:               tt.inRewriteModuleNameRules,
+				PreferShadowPath:                 tt.inPreferShadowPath,
 			})
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("ConstructIETFJSON(%v): got unexpected error: %v, want error %v", tt.in, err, tt.wantErr)
@@ -3860,6 +3906,15 @@ func TestMarshal7951(t *testing.T) {
 		},
 		want: `{"f1":"hello"}`,
 	}, {
+		desc: "append module names with non-root top-level requested",
+		in: &ietfRenderExample{
+			F1: String("hello"),
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{AppendModuleName: true, PrependModuleNameNonRootTopLevel: true},
+		},
+		want: `{"f1mod:f1":"hello"}`,
+	}, {
 		desc: "complex children with module name prepend request",
 		in: &ietfRenderExample{
 			F2:        String("bar"),
@@ -3889,6 +3944,37 @@ func TestMarshal7951(t *testing.T) {
     "test",
     42
   ]
+}`,
+	}, {
+		desc: "complex children with module name prepend request with non-root top-level module prepend request",
+		in: &ietfRenderExample{
+			F2:        String("bar"),
+			MixedList: []interface{}{EnumTestVALONE, "test", 42},
+			EnumList: map[EnumTest]*ietfRenderExampleEnumList{
+				EnumTestVALONE: {Key: EnumTestVALONE},
+			},
+		},
+		inArgs: []Marshal7951Arg{
+			&RFC7951JSONConfig{AppendModuleName: true, PrependModuleNameNonRootTopLevel: true},
+			JSONIndent("  "),
+		},
+		want: `{
+  "f1mod:enum-list": [
+    {
+      "config": {
+        "key": "foo:VAL_ONE"
+      },
+      "key": "foo:VAL_ONE"
+    }
+  ],
+  "f1mod:mixed-list": [
+    "foo:VAL_ONE",
+    "test",
+    42
+  ],
+  "f2mod:config": {
+    "f2": "bar"
+  }
 }`,
 	}, {
 		desc: "complex children with PrependModuleNameIdentityref=true",
