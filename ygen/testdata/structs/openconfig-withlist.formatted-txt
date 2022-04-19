@@ -183,6 +183,12 @@ func (t *Model) RenameSingleKey(oldK, newK string) error {
 	return nil
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// Model belongs.
+func (*Model) ΛBelongingModule() string {
+	return "openconfig-withlist"
+}
+
 // Model_MultiKey represents the /openconfig-withlist/model/b/multi-key YANG schema element.
 type Model_MultiKey struct {
 	Key1	*uint32	`path:"config/key1|key1" module:"openconfig-withlist/openconfig-withlist|openconfig-withlist"`
@@ -210,6 +216,12 @@ func (t *Model_MultiKey) ΛListKeyMap() (map[string]interface{}, error) {
 	}, nil
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// Model_MultiKey belongs.
+func (*Model_MultiKey) ΛBelongingModule() string {
+	return "openconfig-withlist"
+}
+
 // Model_SingleKey represents the /openconfig-withlist/model/a/single-key YANG schema element.
 type Model_SingleKey struct {
 	Key	*string	`path:"config/key|key" module:"openconfig-withlist/openconfig-withlist|openconfig-withlist"`
@@ -229,4 +241,10 @@ func (t *Model_SingleKey) ΛListKeyMap() (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"key": *t.Key,
 	}, nil
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Model_SingleKey belongs.
+func (*Model_SingleKey) ΛBelongingModule() string {
+	return "openconfig-withlist"
 }

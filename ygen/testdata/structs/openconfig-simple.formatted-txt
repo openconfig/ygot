@@ -90,6 +90,12 @@ func (t *Parent) PopulateDefaults() {
 	t.Child.PopulateDefaults()
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// Parent belongs.
+func (*Parent) ΛBelongingModule() string {
+	return "openconfig-simple"
+}
+
 // Parent_Child represents the /openconfig-simple/parent/child YANG schema element.
 type Parent_Child struct {
 	Four	Binary	`path:"config/four" module:"openconfig-simple/openconfig-simple"`
@@ -177,6 +183,12 @@ func (t *Parent_Child) PopulateDefaults() {
 	ygot.BuildEmptyTree(t)
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// Parent_Child belongs.
+func (*Parent_Child) ΛBelongingModule() string {
+	return "openconfig-simple"
+}
+
 // RemoteContainer represents the /openconfig-simple/remote-container YANG schema element.
 type RemoteContainer struct {
 	ALeaf	*string	`path:"config/a-leaf" module:"openconfig-simple/openconfig-simple"`
@@ -211,6 +223,12 @@ func (t *RemoteContainer) PopulateDefaults() {
 		return
 	}
 	ygot.BuildEmptyTree(t)
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// RemoteContainer belongs.
+func (*RemoteContainer) ΛBelongingModule() string {
+	return "openconfig-simple"
 }
 
 // E_Child_Three is a derived int64 type which is used to represent

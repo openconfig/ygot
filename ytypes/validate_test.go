@@ -16,6 +16,7 @@ package ytypes
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -26,18 +27,27 @@ type Case1Leaf1ChoiceStruct struct {
 	Case1Leaf1 *string `path:"case1-leaf1"`
 }
 
-func (*Case1Leaf1ChoiceStruct) IsYANGGoStruct() {}
+func (*Case1Leaf1ChoiceStruct) IsYANGGoStruct()                         {}
+func (*Case1Leaf1ChoiceStruct) Validate(...ygot.ValidationOption) error { return nil }
+func (*Case1Leaf1ChoiceStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*Case1Leaf1ChoiceStruct) ΛBelongingModule() string                { return "bar" }
 
 type Leaf1ContainerStruct struct {
 	Leaf1Name *string `path:"config/leaf1|leaf1"`
 }
 
-func (*Leaf1ContainerStruct) IsYANGGoStruct() {}
+func (*Leaf1ContainerStruct) IsYANGGoStruct()                         {}
+func (*Leaf1ContainerStruct) Validate(...ygot.ValidationOption) error { return nil }
+func (*Leaf1ContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*Leaf1ContainerStruct) ΛBelongingModule() string                { return "bar" }
 
 type EmptyContainerStruct struct {
 }
 
-func (*EmptyContainerStruct) IsYANGGoStruct() {}
+func (*EmptyContainerStruct) IsYANGGoStruct()                         {}
+func (*EmptyContainerStruct) Validate(...ygot.ValidationOption) error { return nil }
+func (*EmptyContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*EmptyContainerStruct) ΛBelongingModule() string                { return "bar" }
 
 type FakeRootStruct struct {
 	LeafOne   *string `path:"leaf-one"`
@@ -45,9 +55,12 @@ type FakeRootStruct struct {
 	LeafThree *string `path:"leaf-three"`
 }
 
-func (*FakeRootStruct) IsYANGGoStruct() {}
+func (*FakeRootStruct) IsYANGGoStruct()                         {}
+func (*FakeRootStruct) Validate(...ygot.ValidationOption) error { return nil }
+func (*FakeRootStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*FakeRootStruct) ΛBelongingModule() string                { return "bar" }
 
-func customValidation(val ygot.GoStruct) error {
+func customValidation(val ygot.ValidatedGoStruct) error {
 	fakeRoot, ok := val.(*FakeRootStruct)
 	if !ok {
 		return fmt.Errorf("not valid fakeroot")

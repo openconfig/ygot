@@ -1,11 +1,11 @@
 {
-   "openconfig-network-instance:global": {
+   "global": {
       "config": {
          "as": 15169,
          "router-id": "192.0.2.42"
       }
    },
-   "openconfig-network-instance:neighbors": {
+   "neighbors": {
       "neighbor": [
          {
             "config": {

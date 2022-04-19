@@ -144,6 +144,12 @@ func (t *Top) NewEks(K E_Eks_K) (*Top_Eks, error){
 	return t.Eks[key], nil
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// Top belongs.
+func (*Top) ΛBelongingModule() string {
+	return "openconfig-list-enum-key"
+}
+
 // Top_Ekm represents the /openconfig-list-enum-key/top/multi-key/ekm YANG schema element.
 type Top_Ekm struct {
 	K1	E_Ekm_K1	`path:"config/k1|k1" module:"openconfig-list-enum-key/openconfig-list-enum-key|openconfig-list-enum-key"`
@@ -164,6 +170,12 @@ func (t *Top_Ekm) ΛListKeyMap() (map[string]interface{}, error) {
 		"k1": t.K1,
 		"k2": t.K2,
 	}, nil
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Top_Ekm belongs.
+func (*Top_Ekm) ΛBelongingModule() string {
+	return "openconfig-list-enum-key"
 }
 
 // Top_Ekm_K3_Union is an interface that is implemented by valid types for the union
@@ -212,6 +224,12 @@ func (t *Top_Eks) ΛListKeyMap() (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"k": t.K,
 	}, nil
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Top_Eks belongs.
+func (*Top_Eks) ΛBelongingModule() string {
+	return "openconfig-list-enum-key"
 }
 
 // E_Ekm_K1 is a derived int64 type which is used to represent
