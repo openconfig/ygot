@@ -183,7 +183,7 @@ func (t *Device) GetTarget() *Testschema_Target {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Device) Validate(opts ...ygot.ValidationOption) error {
+func (t *Device) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Device"], t, opts...); err != nil {
 		return err
 	}

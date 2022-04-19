@@ -517,11 +517,20 @@ func (*{{ .StructName }}) IsYANGGoStruct() {}
 	// from it.
 	goStructValidatorTemplate = mustMakeTemplate("structValidator", `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *{{ .StructName }}) Validate(opts ...ygot.ValidationOption) error {
+func (t *{{ .StructName }}) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["{{ .StructName }}"], t, opts...); err != nil {
 		return err
 	}
 	return nil
+}
+`)
+
+	// goStructValidatorProxyTemplate creates a proxy for the ΛValidate function with the
+	// user definable name.
+	goStructValidatorProxyTemplate = mustMakeTemplate("structValidatorProxy", `
+// Validate validates s against the YANG schema corresponding to its type.
+func (t *{{ .StructName }}) {{ .ValidateProxyFnName }}(opts ...ygot.ValidationOption) error {
+	return t.ΛValidate(opts...)
 }
 `)
 
@@ -1797,7 +1806,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 	}
 
 	if generateJSONSchema {
-		if err := generateValidator(&methodBuf, structDef); err != nil {
+		if err := generateValidator(&methodBuf, structDef, goOpts.ValidateFunctionName); err != nil {
 			errs = append(errs, err)
 		}
 
@@ -1832,8 +1841,22 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 //     }
 //     return nil
 //   }
-func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct) error {
-	return goStructValidatorTemplate.Execute(buf, structDef)
+func generateValidator(buf *bytes.Buffer, structDef generatedGoStruct, validateProxyFunctionName string) error {
+	var err error
+	if err = goStructValidatorTemplate.Execute(buf, structDef); err != nil {
+		return err
+	}
+	if validateProxyFunctionName != "" {
+		parameters := &struct {
+			ValidateProxyFnName string
+			StructName          string
+		}{
+			ValidateProxyFnName: validateProxyFunctionName,
+			StructName:          structDef.StructName,
+		}
+		err = goStructValidatorProxyTemplate.Execute(buf, parameters)
+	}
+	return err
 }
 
 // goTmplFieldDetails stores a goStructField along with additional details

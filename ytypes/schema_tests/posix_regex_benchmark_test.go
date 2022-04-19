@@ -33,7 +33,7 @@ func BenchmarkPOSIXPattern(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i != b.N; i++ {
-		if err := d.Validate(); err != nil {
+		if err := d.ΛValidate(); err != nil {
 			b.Fatalf("d.Validate() failed: %v", err)
 		}
 	}
