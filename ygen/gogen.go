@@ -1862,7 +1862,7 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 //
 // the validation function generated for the struct will be:
 //
-//   func (t *MyStruct) Validate(value interface{}) error {
+//   func (t *MyStruct) ΛValidate(value interface{}) error {
 //     if err := ytypes.Validate(schemaMap["MyStruct"], value); err != nil {
 //       return err
 //     }
