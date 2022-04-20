@@ -77,6 +77,14 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 				return nil, status.Errorf(codes.Unknown, "path %v points to a node with non-leaf schema %v", traversedPath, schema)
 			}
 		}
+		if args.delete {
+			if util.IsValueNil(root) {
+				return nil, nil
+			}
+			if val := reflect.ValueOf(root).Elem(); val.CanSet() {
+				val.Set(reflect.Zero(val.Type()))
+			}
+		}
 		return []*TreeNode{{
 			Path:   traversedPath,
 			Schema: schema,

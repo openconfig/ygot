@@ -2405,6 +2405,18 @@ func TestDeleteNode(t *testing.T) {
 		inPath:   mustPath("/outer"),
 		want:     &ListElemStruct1{Key1: ygot.String("hello")},
 	}, {
+		name:     "deleting a root non-leaf",
+		inSchema: simpleSchema(),
+		inRoot:   &ListElemStruct1{Key1: ygot.String("hello")},
+		inPath:   mustPath("/"),
+		want:     &ListElemStruct1{},
+	}, {
+		name:     "deleting a nil root non-leaf",
+		inSchema: simpleSchema(),
+		inRoot:   nil,
+		inPath:   mustPath("/"),
+		want:     nil,
+	}, {
 		name:     "deleting int32 leaf in inner node",
 		inSchema: simpleSchema(),
 		inRoot:   &ListElemStruct1{Key1: ygot.String("world"), Outer: &OuterContainerType1{Inner: &InnerContainerType1{Int32LeafName: ygot.Int32(5)}}},
