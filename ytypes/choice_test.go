@@ -16,6 +16,7 @@ package ytypes
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
@@ -28,14 +29,20 @@ type ChoiceStruct struct {
 	Case21Leaf1 *string `path:"case21-leaf"`
 }
 
-func (c *ChoiceStruct) IsYANGGoStruct() {}
+func (*ChoiceStruct) IsYANGGoStruct()                         {}
+func (*ChoiceStruct) Validate(...ygot.ValidationOption) error { return nil }
+func (*ChoiceStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ChoiceStruct) ΛBelongingModule() string                { return "bar" }
 
 type BadChoiceStruct struct {
 	StringLeaf    *string `path:"string-leaf"`
 	BadNoPathLeaf *int32  ``
 }
 
-func (*BadChoiceStruct) IsYANGGoStruct() {}
+func (*BadChoiceStruct) IsYANGGoStruct()                         {}
+func (*BadChoiceStruct) Validate(...ygot.ValidationOption) error { return nil }
+func (*BadChoiceStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*BadChoiceStruct) ΛBelongingModule() string                { return "bar" }
 
 type ChoiceEmptyEnumStringStruct struct {
 	EmptyLeaf  YANGEmpty `path:"empty-leaf"`
@@ -43,7 +50,10 @@ type ChoiceEmptyEnumStringStruct struct {
 	StringLeaf *string   `path:"string-leaf"`
 }
 
-func (*ChoiceEmptyEnumStringStruct) IsYANGGoStruct() {}
+func (*ChoiceEmptyEnumStringStruct) IsYANGGoStruct()                         {}
+func (*ChoiceEmptyEnumStringStruct) Validate(...ygot.ValidationOption) error { return nil }
+func (*ChoiceEmptyEnumStringStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ChoiceEmptyEnumStringStruct) ΛBelongingModule() string                { return "bar" }
 
 func TestValidateChoice(t *testing.T) {
 	containerWithChoiceSchema := &yang.Entry{

@@ -41,5 +41,5 @@ func (s *Schema) RootSchema() *yang.Entry {
 	return s.SchemaTree[reflect.TypeOf(s.Root).Elem().Name()]
 }
 
-// UnmarshalFunc defines a common signature for an RFC7951 to GoStruct unmarshalling function
-type UnmarshalFunc func([]byte, ygot.GoStruct, ...UnmarshalOpt) error
+// UnmarshalFunc defines a common signature for an RFC7951 to ValidatedGoStruct unmarshalling function
+type UnmarshalFunc func([]byte, ygot.ValidatedGoStruct, ...UnmarshalOpt) error

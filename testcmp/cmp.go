@@ -104,7 +104,7 @@ func GNMIUpdateComparer(a, b *gnmipb.Update, jsonSpec *ytypes.Schema) (*gnmipb.N
 		return nil, false, fmt.Errorf("cannot retrieve struct for path %s, err: %v", a.Path, err)
 	}
 
-	aStruct, ok := aInterface.(ygot.GoStruct)
+	aStruct, ok := aInterface.(ygot.ValidatedGoStruct)
 	if !ok {
 		return nil, false, fmt.Errorf("path %s with IETF JSON does not correspond to a struct", a.Path)
 	}
@@ -119,7 +119,7 @@ func GNMIUpdateComparer(a, b *gnmipb.Update, jsonSpec *ytypes.Schema) (*gnmipb.N
 		return nil, false, fmt.Errorf("cannot retrieve struct for path %s, err: %v", b.Path, err)
 	}
 
-	bStruct, ok := bInterface.(ygot.GoStruct)
+	bStruct, ok := bInterface.(ygot.ValidatedGoStruct)
 	if !ok {
 		return nil, false, fmt.Errorf("path %s with IETF JSON does not correspond to a struct", b.Path)
 	}
@@ -145,10 +145,10 @@ func GNMIUpdateComparer(a, b *gnmipb.Update, jsonSpec *ytypes.Schema) (*gnmipb.N
 	return diff, false, nil
 }
 
-// newStruct returns a new copy of the supplied ygot.GoStruct.
-func newStruct(t ygot.GoStruct) (ygot.GoStruct, error) {
+// newStruct returns a new copy of the supplied ygot.ValidatedGoStruct.
+func newStruct(t ygot.ValidatedGoStruct) (ygot.ValidatedGoStruct, error) {
 	ni := reflect.New(reflect.TypeOf(t).Elem())
-	n, ok := ni.Interface().(ygot.GoStruct)
+	n, ok := ni.Interface().(ygot.ValidatedGoStruct)
 	if !ok {
 		return nil, fmt.Errorf("cannot create new instance of %T", t)
 	}
@@ -156,8 +156,8 @@ func newStruct(t ygot.GoStruct) (ygot.GoStruct, error) {
 }
 
 // unmarshalStruct unmarshal the JSON IETF field of the supplied TypedValue into
-// the dst GoStruct using the supplied Unmarshal function.
-func unmarshalStruct(v *gnmipb.TypedValue, dst ygot.GoStruct, ufn ytypes.UnmarshalFunc) error {
+// the dst ValidatedGoStruct using the supplied Unmarshal function.
+func unmarshalStruct(v *gnmipb.TypedValue, dst ygot.ValidatedGoStruct, ufn ytypes.UnmarshalFunc) error {
 	jsonval, ok := v.GetValue().(*gnmipb.TypedValue_JsonIetfVal)
 	if !ok {
 		return fmt.Errorf("value did not contain IETF JSON")

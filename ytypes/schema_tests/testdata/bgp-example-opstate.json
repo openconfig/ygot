@@ -68,6 +68,11 @@
                         "peer-group": "PEER_GROUP_2"
                       },
                       "neighbor-address": "192.168.1.2",
+                      "timers": {
+                        "state": {
+                          "restart-time": 0
+                        }
+                      },
                       "transport": {
                         "state": {
                           "local-address": "192.168.1.1"
@@ -155,8 +160,7 @@
                             "ipv4-unicast": {
                               "prefix-limit": {
                                 "state": {
-                                  "max-prefixes": 20000,
-                                  "restart-timer": "0"
+                                  "max-prefixes": 20000
                                 }
                               }
                             },
@@ -196,8 +200,7 @@
                             "ipv4-unicast": {
                               "prefix-limit": {
                                 "state": {
-                                  "max-prefixes": 1000,
-                                  "restart-timer": "0"
+                                  "max-prefixes": 1000
                                 }
                               }
                             },

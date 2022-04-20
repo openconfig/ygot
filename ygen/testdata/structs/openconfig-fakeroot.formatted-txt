@@ -107,6 +107,12 @@ func (t *Device) NewInterface(Name string) (*Interface, error){
 	return t.Interface[key], nil
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// Device belongs.
+func (*Device) ΛBelongingModule() string {
+	return ""
+}
+
 // Interface represents the /openconfig-fakeroot/interfaces/interface YANG schema element.
 type Interface struct {
 	Name	*string	`path:"config/name|name" module:"openconfig-fakeroot/openconfig-fakeroot|openconfig-fakeroot"`
@@ -126,6 +132,12 @@ func (t *Interface) ΛListKeyMap() (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"name": *t.Name,
 	}, nil
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// Interface belongs.
+func (*Interface) ΛBelongingModule() string {
+	return "openconfig-fakeroot"
 }
 
 // System represents the /openconfig-fakeroot/system YANG schema element.
@@ -166,6 +178,12 @@ func (t *System) NewNtpServer(Name uint32) (*System_NtpServer, error){
 	return t.NtpServer[key], nil
 }
 
+// ΛBelongingModule returns the name of the module in whose namespace
+// System belongs.
+func (*System) ΛBelongingModule() string {
+	return "openconfig-fakeroot"
+}
+
 // System_NtpServer represents the /openconfig-fakeroot/system/ntp-servers/ntp-server YANG schema element.
 type System_NtpServer struct {
 	Name	*uint32	`path:"config/name|name" module:"openconfig-fakeroot/openconfig-fakeroot|openconfig-fakeroot"`
@@ -185,4 +203,10 @@ func (t *System_NtpServer) ΛListKeyMap() (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"name": *t.Name,
 	}, nil
+}
+
+// ΛBelongingModule returns the name of the module in whose namespace
+// System_NtpServer belongs.
+func (*System_NtpServer) ΛBelongingModule() string {
+	return "openconfig-fakeroot"
 }
