@@ -1663,7 +1663,9 @@ func (*exampleTransportAddressBinary) IsExampleTransportAddress() {}
 // YANG presence containers.
 
 type ucExampleDevice struct {
-	Bgp *ucExampleBgp `path:"bgp" yangPresence:"true"`
+	Bgp    *ucExampleBgp    `path:"bgp" yangPresence:"true"`
+	Isis   *ucExampleIsis   `path:"isis"`
+	System *ucExampleSystem `path:"system"`
 }
 
 func (*ucExampleDevice) IsYANGGoStruct()                         {}
@@ -1680,6 +1682,24 @@ func (*ucExampleBgp) IsYANGGoStruct()                         {}
 func (*ucExampleBgp) Validate(...ValidationOption) error      { return nil }
 func (*ucExampleBgp) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleBgp) ΛBelongingModule() string                { return "" }
+
+type ucExampleIsis struct {
+	Instance map[string]*ucExampleIsisInstance `path:"instance"`
+}
+
+func (*ucExampleIsis) IsYANGGoStruct()                         {}
+func (*ucExampleIsis) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleIsis) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleIsis) ΛBelongingModule() string                { return "" }
+
+type ucExampleSystem struct {
+	SshServer *ucExampleSystemSshServer `path:"ssh-server" yangPresence:"true"`
+}
+
+func (*ucExampleSystem) IsYANGGoStruct()                         {}
+func (*ucExampleSystem) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleSystem) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleSystem) ΛBelongingModule() string                { return "" }
 
 type ucExampleBgpGlobal struct {
 	As       *uint32 `path:"as"`
@@ -1702,6 +1722,45 @@ func (*ucExampleBgpNeighbor) IsYANGGoStruct()                         {}
 func (*ucExampleBgpNeighbor) Validate(...ValidationOption) error      { return nil }
 func (*ucExampleBgpNeighbor) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleBgpNeighbor) ΛBelongingModule() string                { return "" }
+
+type ucExampleIsisInstance struct {
+	Name     *string                        `path:"name"`
+	Enabled  *bool                          `path:"enabled"`
+	Overload *ucExampleIsisInstanceOverload `path:"overload" yangPresence:"true"`
+}
+
+func (*ucExampleIsisInstance) IsYANGGoStruct()                         {}
+func (*ucExampleIsisInstance) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleIsisInstance) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleIsisInstance) ΛBelongingModule() string                { return "" }
+
+type ucExampleSystemSshServer struct {
+	Instance map[string]*ucExampleSystemSshServer_Instance `path:"instance"`
+}
+
+func (*ucExampleSystemSshServer) IsYANGGoStruct()                         {}
+func (*ucExampleSystemSshServer) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleSystemSshServer) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleSystemSshServer) ΛBelongingModule() string                { return "" }
+
+type ucExampleIsisInstanceOverload struct {
+	AdvertiseExternal *bool `path:"advertise-external"`
+	AdvertiseInternal *bool `path:"advertise-internal"`
+}
+
+func (*ucExampleIsisInstanceOverload) IsYANGGoStruct()                         {}
+func (*ucExampleIsisInstanceOverload) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleIsisInstanceOverload) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleIsisInstanceOverload) ΛBelongingModule() string                { return "" }
+
+type ucExampleSystemSshServer_Instance struct {
+	Name *string `path:"name"`
+}
+
+func (*ucExampleSystemSshServer_Instance) IsYANGGoStruct()                         {}
+func (*ucExampleSystemSshServer_Instance) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleSystemSshServer_Instance) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleSystemSshServer_Instance) ΛBelongingModule() string                { return "" }
 
 // invalidGoStruct explicitly does not implement the ValidatedGoStruct interface.
 type invalidGoStruct struct {
@@ -2979,14 +3038,14 @@ func TestConstructJSON(t *testing.T) {
 		wantErr:     true,
 		wantJSONErr: true,
 	}, {
-		name: "device example with presence containers #1",
+		name: "uncompressed device example with presence containers with empty value",
 		in: &ucExampleDevice{
 			Bgp: &ucExampleBgp{},
 		},
 		wantIETF: map[string]interface{}{"bgp": map[string]interface{}{}},
 		wantSame: true,
 	}, {
-		name: "device example with presence containers #2",
+		name: "uncompressed device example with presence containers with data in tree",
 		in: &ucExampleDevice{
 			Bgp: &ucExampleBgp{
 				Neighbor: map[string]*ucExampleBgpNeighbor{
@@ -3042,12 +3101,120 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 	}, {
-		name: "device example with presence containers #3",
+		name: "uncompressed device example with presence containers with nil value",
 		in: &ucExampleDevice{
 			Bgp: nil,
 		},
 		wantIETF: map[string]interface{}{},
 		wantSame: true,
+	}, {
+		name: "uncompressed device example with presence containers in list",
+		in: &ucExampleDevice{
+			Isis: &ucExampleIsis{
+				Instance: map[string]*ucExampleIsisInstance{
+					"default": {
+						Name:     String("default"),
+						Enabled:  Bool(true),
+						Overload: &ucExampleIsisInstanceOverload{},
+					},
+					"instance1": {
+						Name:     String("instance1"),
+						Enabled:  Bool(false),
+						Overload: &ucExampleIsisInstanceOverload{AdvertiseExternal: Bool(true), AdvertiseInternal: Bool(false)},
+					},
+				},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"isis": map[string]interface{}{
+				"instance": []interface{}{
+					map[string]interface{}{
+						"name":     "default",
+						"enabled":  true,
+						"overload": map[string]interface{}{},
+					},
+					map[string]interface{}{
+						"name":    "instance1",
+						"enabled": false,
+						"overload": map[string]interface{}{
+							"advertise-external": true,
+							"advertise-internal": false,
+						},
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"isis": map[string]interface{}{
+				"instance": map[string]interface{}{
+					"default": map[string]interface{}{
+						"name":     "default",
+						"enabled":  true,
+						"overload": map[string]interface{}{},
+					},
+					"instance1": map[string]interface{}{
+						"name":    "instance1",
+						"enabled": false,
+						"overload": map[string]interface{}{
+							"advertise-external": true,
+							"advertise-internal": false,
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name: "uncompressed device example with presence container encapsulated in regular container",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{},
+			System: &ucExampleSystem{
+				SshServer: &ucExampleSystemSshServer{
+					Instance: map[string]*ucExampleSystemSshServer_Instance{
+						"mgmt": {
+							Name: String("system"),
+						},
+					},
+				},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"bgp": map[string]interface{}{},
+			"system": map[string]interface{}{
+				"ssh-server": map[string]interface{}{
+					"instance": []interface{}{
+						map[string]interface{}{
+							"name": "system",
+						},
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"bgp": map[string]interface{}{},
+			"system": map[string]interface{}{
+				"ssh-server": map[string]interface{}{
+					"instance": map[string]interface{}{
+						"mgmt": map[string]interface{}{
+							"name": "system",
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name: "uncompressed device example with presence container encapsulated in regular container eq nil value",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{},
+			System: &ucExampleSystem{
+				SshServer: nil,
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"bgp": map[string]interface{}{},
+		},
+		wantInternal: map[string]interface{}{
+			"bgp": map[string]interface{}{},
+		},
 	}, {
 		name:     "unset enum",
 		in:       &renderExample{EnumField: EnumTestUNSET},
