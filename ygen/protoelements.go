@@ -149,14 +149,6 @@ func (s *protoGenState) SetSchemaTree(st *schemaTree) {
 	s.schematree = st
 }
 
-// buildDirectoryDefinitions extracts the yang.Entry instances from a map of
-// entries that need struct definitions built for them. It resolves each
-// non-leaf yang.Entry to a Directory which contains the elements that are
-// needed for subsequent code generation.
-func (s *protoGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, opts IROptions) (map[string]*Directory, []error) {
-	return buildDirectoryDefinitions(s, entries, opts)
-}
-
 // resolveProtoTypeArgs specifies input parameters required for resolving types
 // from YANG to protobuf.
 // TODO(robjs): Consider embedding resolveProtoTypeArgs in this struct per
