@@ -162,9 +162,9 @@ type GoLangMapper struct {
 	simpleUnions bool
 }
 
-// newGoLangMapper creates a new GoLangMapper instance, initialised with the
+// NewGoLangMapper creates a new GoLangMapper instance, initialised with the
 // default state required for code generation.
-func newGoLangMapper(simpleUnions bool) *GoLangMapper {
+func NewGoLangMapper(simpleUnions bool) *GoLangMapper {
 	return &GoLangMapper{
 		definedGlobals: map[string]bool{
 			// Mark the name that is used for the binary type as a reserved name

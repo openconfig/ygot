@@ -443,7 +443,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	}
 
 	// Store the returned schematree and enumSet within the state for this code generation.
-	gogen := newGoLangMapper(cg.Config.GoOptions.GenerateSimpleUnions)
+	gogen := NewGoLangMapper(cg.Config.GoOptions.GenerateSimpleUnions)
 	gogen.SetEnumSet(enumSet)
 	gogen.SetSchemaTree(mdef.schematree)
 
@@ -583,7 +583,7 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 	}
 
 	// Store the returned schematree and enumSet within the state for this code generation.
-	gogen := newGoLangMapper(cg.GoOptions.GenerateSimpleUnions)
+	gogen := NewGoLangMapper(cg.GoOptions.GenerateSimpleUnions)
 	gogen.SetEnumSet(enumSet)
 	gogen.SetSchemaTree(mdef.schematree)
 

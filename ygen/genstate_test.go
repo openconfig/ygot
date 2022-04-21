@@ -1361,7 +1361,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				if err != nil {
 					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
 				}
-				gogen := newGoLangMapper(true)
+				gogen := NewGoLangMapper(true)
 				gogen.SetSchemaTree(st)
 				protogen := newProtoGenState(st, nil)
 
@@ -2278,7 +2278,7 @@ func TestBuildListKey(t *testing.T) {
 				}
 				return
 			}
-			s := newGoLangMapper(true)
+			s := NewGoLangMapper(true)
 			s.SetEnumSet(enumSet)
 			s.SetSchemaTree(st)
 

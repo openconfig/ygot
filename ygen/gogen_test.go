@@ -2528,7 +2528,7 @@ func (*Container) ΛBelongingModule() string {
 				tt.wantUncompressed = tt.wantCompressed
 			}
 			for compressed, want := range map[bool]wantGoStructOut{true: tt.wantCompressed, false: tt.wantUncompressed} {
-				s := newGoLangMapper(true)
+				s := NewGoLangMapper(true)
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 				// Always generate the JSON schema for this test.
