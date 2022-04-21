@@ -150,12 +150,6 @@ type GoLangMapper struct {
 	// entry, how to refer to it when generating code.
 	uniqueDirectoryNames map[string]string
 
-	// generatedUnions stores a map, keyed by the output name for a union,
-	// that has already been output in the generated code. This ensures that
-	// where two entities re-use a union that has already been created (e.g.,
-	// a leafref to a union) then it is output only once in the generated code.
-	generatedUnions map[string]bool
-
 	// simpleUnions specifies whether simple typedefs are used to represent
 	// union subtypes in the generated code instead of using wrapper types.
 	// NOTE: This flag will be removed as part of ygot's v1 release.
@@ -173,7 +167,6 @@ func newGoLangMapper(simpleUnions bool) *GoLangMapper {
 			ygot.EmptyTypeName:  true,
 		},
 		uniqueDirectoryNames: map[string]string{},
-		generatedUnions:      map[string]bool{},
 		simpleUnions:         simpleUnions,
 	}
 }

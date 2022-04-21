@@ -152,11 +152,6 @@ type GoStructCodeSnippet struct {
 	// used within the generated struct. Used when there are interfaces that
 	// represent multi-type unions generated.
 	Interfaces string
-	// enumTypeMap contains a map, keyed by a schema path (represented as a string)
-	// to the underlying type names selected for that leaf. A slice of strings
-	// is used for the type to handle cases where there is more than one enumerated
-	// type returned for a leaf.
-	enumTypeMap map[string][]string
 }
 
 // String returns the contents of the receiver GoStructCodeSnippet as a string.
@@ -166,24 +161,6 @@ func (g GoStructCodeSnippet) String() string {
 		genutil.WriteIfNotEmpty(&b, s)
 	}
 	return b.String()
-}
-
-// goEnumCodeSnippet is used to store the generated code snippets associated with
-// a particular Go enumerated entity (generated from an identity, typedef referencing
-// an enumerated value or leaf of type enumeration).
-type goEnumCodeSnippet struct {
-	// constDef stores the code snippet for the definition of the derived int64
-	// type, and set of constants corresponding to the enumerated values of the
-	// target YANG node.
-	constDef string
-	// valToString is a map of the int64 value used in the constant definition for
-	// the enumeration to its definition. The definition consists of the string
-	// name of the enumerated value in the YANG schema. In the case of identities
-	// it also stores the module within which the identity was defined. This map
-	// allows mapping of the enumerated value back to its original name.
-	valToString map[int64]ygot.EnumDefinition
-	// name is the name of the enumerated value, used for mapping purposes.
-	name string
 }
 
 // goStructField contains a definition of a field within a Go struct.
