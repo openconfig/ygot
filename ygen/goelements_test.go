@@ -390,7 +390,7 @@ func TestUnionSubTypes(t *testing.T) {
 			if errs != nil {
 				t.Fatal(errs)
 			}
-			s := newGoLangMapper(true)
+			s := NewGoLangMapper(true)
 			s.SetEnumSet(enumSet)
 
 			mtypes := make(map[int]*MappedType)
@@ -1022,7 +1022,7 @@ func TestYangTypeToGoType(t *testing.T) {
 				}
 				return
 			}
-			s := newGoLangMapper(true)
+			s := NewGoLangMapper(true)
 			s.SetEnumSet(enumSet)
 
 			if tt.inEntries != nil {
@@ -1194,7 +1194,7 @@ func TestStructName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, expected := range map[genutil.CompressBehaviour]string{genutil.Uncompressed: tt.wantUncompressed, genutil.PreferIntendedConfig: tt.wantCompressed} {
-			s := newGoLangMapper(true)
+			s := NewGoLangMapper(true)
 			if out, err := s.DirectoryName(tt.inElement, compress); err != nil {
 				t.Errorf("%s (compress: %v): got unexpected error: %v", tt.name, compress, err)
 			} else if out != expected {
@@ -1398,7 +1398,7 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 			if errs != nil {
 				t.Fatalf("findEnumSet failed: %v", errs)
 			}
-			s := newGoLangMapper(true)
+			s := NewGoLangMapper(true)
 			s.SetEnumSet(enumSet)
 
 			gotTypes := make(map[string]*MappedType)
@@ -2407,7 +2407,7 @@ func TestYangDefaultValueToGo(t *testing.T) {
 					}
 					return
 				}
-				s := newGoLangMapper(true)
+				s := NewGoLangMapper(true)
 				s.SetEnumSet(enumSet)
 
 				if tt.inEntries != nil {
@@ -2768,7 +2768,7 @@ func TestYangDefaultValueToGo(t *testing.T) {
 				}
 				return
 			}
-			s := newGoLangMapper(true)
+			s := NewGoLangMapper(true)
 			s.SetEnumSet(enumSet)
 
 			if tt.inEntries != nil {

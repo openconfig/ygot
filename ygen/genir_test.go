@@ -43,7 +43,7 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple.yang"),
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
-		inLangMapper: newGoLangMapper(true),
+		inLangMapper: NewGoLangMapper(true),
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
@@ -280,7 +280,7 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple.yang"),
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
-		inLangMapper: newGoLangMapper(true),
+		inLangMapper: NewGoLangMapper(true),
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferOperationalState,
@@ -517,7 +517,7 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple.yang"),
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
-		inLangMapper: newGoLangMapper(true),
+		inLangMapper: NewGoLangMapper(true),
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.Uncompressed,
@@ -928,7 +928,7 @@ func TestGenerateIR(t *testing.T) {
 		desc:             "exclude module test with compression",
 		inYANGFiles:      []string{filepath.Join(datapath, "excluded-module-noimport.yang")},
 		inExcludeModules: []string{"excluded-module-two"},
-		inLangMapper:     newGoLangMapper(true),
+		inLangMapper:     NewGoLangMapper(true),
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
@@ -978,7 +978,7 @@ func TestGenerateIR(t *testing.T) {
 	}, {
 		desc:         "complex openconfig test with compression",
 		inYANGFiles:  []string{filepath.Join(datapath, "openconfig-complex.yang")},
-		inLangMapper: newGoLangMapper(true),
+		inLangMapper: NewGoLangMapper(true),
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour:                    genutil.PreferIntendedConfig,
