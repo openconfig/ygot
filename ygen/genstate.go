@@ -209,12 +209,12 @@ func buildListKey(e *yang.Entry, langMapper LangMapper, opts IROptions) (*YangLi
 	}
 
 	listattr := &YangListAttr{
-		Keys: make(map[string]*ListKey),
+		Keys:             make(map[string]*ListKey),
+		ListKeyYANGNames: strings.Fields(e.Key),
 	}
 
 	var errs []error
-	keys := strings.Fields(e.Key)
-	for _, k := range keys {
+	for _, k := range listattr.ListKeyYANGNames {
 		// Extract the key leaf itself from the Dir of the list element. Dir is populated
 		// by goyang, and is a map keyed by leaf identifier with values of a *yang.Entry
 		// corresponding to the leaf.

@@ -1315,50 +1315,6 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 	return true
 }
 
-// generateGoDefaultValue returns a pointer to a Go literal that represents the
-// default value for the entry. If there is no default value for the field, nil
-// is returned.
-func generateGoDefaultValue(field *yang.Entry, mtype *MappedType, gogen *GoLangMapper, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, simpleUnions bool) (*string, error) {
-	// Set the default type to the mapped Go type.
-	defaultValues := field.DefaultValues()
-	if len(defaultValues) == 0 && mtype.DefaultValue != nil {
-		defaultValues = []string{*mtype.DefaultValue}
-	}
-	for i, defVal := range defaultValues {
-		var err error
-		if defaultValues[i], _, err = gogen.yangDefaultValueToGo(defVal, resolveTypeArgs{yangType: field.Type, contextEntry: field}, len(mtype.UnionTypes) == 1, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim); err != nil {
-			return nil, err
-		}
-	}
-	// TODO(wenbli): In ygot v1, we should no longer
-	// support the wrapper union generated code, so this if
-	// block would be obsolete.
-	if !simpleUnions {
-		defaultValues = goLeafDefaults(field, mtype)
-		if len(defaultValues) != 0 && len(mtype.UnionTypes) > 1 {
-			// If the default value is applied to a union type, we will generate
-			// non-compilable code when generating wrapper unions, so error out and inform
-			// the user instead of having the user find out that the code doesn't compile.
-			return nil, fmt.Errorf("path %q: default value not supported for wrapper union values, please generate using simplified union leaves", field.Path())
-		}
-	}
-
-	var defaultValue *string
-	if len(defaultValues) > 0 {
-		switch {
-		case field.ListAttr != nil: // field is a leaf-list
-			dv := fmt.Sprintf("[]%s{%s}", mtype.NativeType, strings.Join(defaultValues, ", "))
-			defaultValue = &dv
-		case len(defaultValues) == 1:
-			dv := defaultValues[0]
-			defaultValue = &dv
-		default:
-			return nil, fmt.Errorf("path: %q, unexpected multiple default values %v for a non-leaf-list field", field.Path(), defaultValues)
-		}
-	}
-	return defaultValue, nil
-}
-
 // writeGoStruct generates code snippets for targetStruct. The parameter goStructElements
 // contains other Directory structs for which code is being generated, that may be referenced
 // during the generation of the code corresponding to targetStruct (e.g., to determine a

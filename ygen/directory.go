@@ -72,6 +72,10 @@ type YangListAttr struct {
 	// keyElems is a slice containing the pointers to yang.Entry structs that
 	// make up the list key.
 	KeyElems []*yang.Entry
+	// ListKeyYANGNames is the ordered list of YANG names specified in the
+	// YANG list per Section 7.8.2 of RFC6020. Rely on this
+	// fact for determisitic ordering in output code and rendering.
+	ListKeyYANGNames []string
 }
 
 // GetOrderedFieldNames returns the field names of a Directory in alphabetical order.
@@ -166,16 +170,28 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 		if err != nil {
 			return nil, err
 		}
+
+		var belongingModule string
+		if !dir.IsFakeRoot {
+			var err error
+			if belongingModule, err = dir.Entry.InstantiatingModule(); err != nil {
+				return nil, fmt.Errorf("ygen: cannot find instantiating module for Directory %s: %v", dir.Path, err)
+			}
+		}
 		pd := &ParsedDirectory{
-			Name:        dir.Name,
-			PackageName: packageName,
-			IsFakeRoot:  dir.IsFakeRoot,
-			entry:       dir.Entry,
+			Name:            dir.Name,
+			Path:            util.SlicePathToString(dir.Path),
+			PackageName:     packageName,
+			IsFakeRoot:      dir.IsFakeRoot,
+			BelongingModule: belongingModule,
 		}
 		switch {
 		case dir.Entry.IsList():
 			pd.Type = List
-			pd.ListKeys = dir.ListAttr.Keys
+			if !util.IsUnkeyedList(dir.Entry) {
+				pd.ListKeys = dir.ListAttr.Keys
+				pd.ListKeyYANGNames = dir.ListAttr.ListKeyYANGNames
+			}
 		default:
 			pd.Type = Container
 		}
@@ -312,8 +328,8 @@ func findSchemaPath(parent *Directory, fieldName string, shadowSchemaPaths, abso
 // the input entry is a key to a list, and is of type leafref, then the corresponding target leaf's
 // path is also returned. If shadowSchemaPaths is set, then the path of the
 // field deprioritized via compression is returned instead of the prioritized paths.
-// The first returned path is the path of the direct child, with the shadow
-// child's path afterwards, and the key leafref, if any, last.
+// The first returned path is the path of the direct child, followed by the key
+// leafref path, if any.
 func findMapPaths(parent *Directory, fieldName string, compressPaths, shadowSchemaPaths, absolutePaths bool) ([][]string, [][]string, error) {
 	childPath, childModulePath, err := findSchemaPath(parent, fieldName, shadowSchemaPaths, absolutePaths)
 	if err != nil {

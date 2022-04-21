@@ -1011,6 +1011,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 							},
 						},
 					},
+					ListKeyYANGNames: []string{"key"},
 				},
 			},
 		},
@@ -1032,6 +1033,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 							},
 						},
 					},
+					ListKeyYANGNames: []string{"key"},
 				},
 			},
 			"/module/container/list/config": {
@@ -1359,7 +1361,8 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				if err != nil {
 					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
 				}
-				gogen := newGoLangMapper(st, nil)
+				gogen := newGoLangMapper(true)
+				gogen.SetSchemaTree(st)
 				protogen := newProtoGenState(st, nil)
 
 				structs := make(map[string]*yang.Entry)
@@ -2275,7 +2278,9 @@ func TestBuildListKey(t *testing.T) {
 				}
 				return
 			}
-			s := newGoLangMapper(st, enumSet)
+			s := newGoLangMapper(true)
+			s.SetEnumSet(enumSet)
+			s.SetSchemaTree(st)
 
 			compressBehaviour := genutil.Uncompressed
 			if tt.inCompress {

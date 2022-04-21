@@ -24,6 +24,7 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+// IROptions contains options used to customize IR generation.
 type IROptions struct {
 	// ParseOptions specifies the options for how the YANG schema is
 	// produced.
@@ -72,7 +73,7 @@ type IROptions struct {
 // applied to the schema whilst generating the IR.
 //
 // GenerateIR returns the complete ygen intermediate representation.
-func GenerateIR(yangFiles, includePaths []string, newLangMapper NewLangMapperFn, opts IROptions) (*IR, error) {
+func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IROptions) (*IR, error) {
 	// Extract the entities to be mapped into structs and enumerations in the output
 	// Go code. Extract the schematree from the modules provided such that it can be
 	// used to reference entities within the tree.
@@ -83,8 +84,6 @@ func GenerateIR(yangFiles, includePaths []string, newLangMapper NewLangMapperFn,
 	if errs != nil {
 		return nil, errs
 	}
-
-	langMapper := newLangMapper()
 
 	enumSet, genEnums, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.UseConsistentNamesForProtoUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
 	if errs != nil {
@@ -97,6 +96,13 @@ func GenerateIR(yangFiles, includePaths []string, newLangMapper NewLangMapperFn,
 	directoryMap, errs := buildDirectoryDefinitions(langMapper, mdef.directoryEntries, opts)
 	if errs != nil {
 		return nil, errs
+	}
+
+	var rootEntry *yang.Entry
+	for _, d := range directoryMap {
+		if d.IsFakeRoot {
+			rootEntry = d.Entry
+		}
 	}
 
 	dirDets, err := getOrderedDirDetails(langMapper, directoryMap, mdef.schematree, opts)
@@ -151,7 +157,7 @@ func GenerateIR(yangFiles, includePaths []string, newLangMapper NewLangMapperFn,
 			sort.Strings(valNames)
 
 			for _, v := range valNames {
-				et.ValToYANGDetails = append(et.ValToYANGDetails, &ygot.EnumDefinition{
+				et.ValToYANGDetails = append(et.ValToYANGDetails, ygot.EnumDefinition{
 					Name:           v,
 					DefiningModule: genutil.ParentModuleName(valLookup[v]),
 				})
@@ -166,7 +172,7 @@ func GenerateIR(yangFiles, includePaths []string, newLangMapper NewLangMapperFn,
 			}
 			sort.Ints(values)
 			for _, v := range values {
-				et.ValToYANGDetails = append(et.ValToYANGDetails, &ygot.EnumDefinition{
+				et.ValToYANGDetails = append(et.ValToYANGDetails, ygot.EnumDefinition{
 					Name: enum.entry.Type.Enum.ValueMap()[int64(v)],
 				})
 			}
@@ -183,6 +189,8 @@ func GenerateIR(yangFiles, includePaths []string, newLangMapper NewLangMapperFn,
 		Directories:   dirDets,
 		Enums:         enumDefinitionMap,
 		ModelData:     mdef.modelData,
+		opts:          opts,
+		fakeroot:      rootEntry,
 		parsedModules: mdef.modules,
 	}, nil
 }

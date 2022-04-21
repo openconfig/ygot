@@ -155,14 +155,17 @@ type GoLangMapper struct {
 	// where two entities re-use a union that has already been created (e.g.,
 	// a leafref to a union) then it is output only once in the generated code.
 	generatedUnions map[string]bool
+
+	// simpleUnions specifies whether simple typedefs are used to represent
+	// union subtypes in the generated code instead of using wrapper types.
+	// NOTE: This flag will be removed as part of ygot's v1 release.
+	simpleUnions bool
 }
 
 // newGoLangMapper creates a new GoLangMapper instance, initialised with the
 // default state required for code generation.
-func newGoLangMapper(schematree *schemaTree, eSet *enumSet) *GoLangMapper {
+func newGoLangMapper(simpleUnions bool) *GoLangMapper {
 	return &GoLangMapper{
-		enumSet:    eSet,
-		schematree: schematree,
 		definedGlobals: map[string]bool{
 			// Mark the name that is used for the binary type as a reserved name
 			// within the output structs.
@@ -171,6 +174,7 @@ func newGoLangMapper(schematree *schemaTree, eSet *enumSet) *GoLangMapper {
 		},
 		uniqueDirectoryNames: map[string]string{},
 		generatedUnions:      map[string]bool{},
+		simpleUnions:         simpleUnions,
 	}
 }
 
@@ -255,7 +259,18 @@ func (s *GoLangMapper) FieldName(e *yang.Entry) (string, error) {
 // LeafType maps the input leaf entry to a MappedType object containing the
 // type information about the field.
 func (s *GoLangMapper) LeafType(e *yang.Entry, opts IROptions) (*MappedType, error) {
-	return s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+	mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+	if err != nil {
+		return nil, err
+	}
+
+	defaultValue, err := generateGoDefaultValue(e, mtype, s, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim, s.simpleUnions)
+	if err != nil {
+		return nil, err
+	}
+
+	mtype.DefaultValue = defaultValue
+	return mtype, nil
 }
 
 // LeafType maps the input list key entry to a MappedType object containing the
@@ -536,6 +551,50 @@ func (s *GoLangMapper) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, 
 		unionMappedTypes[index] = mtype
 	}
 	return errs
+}
+
+// generateGoDefaultValue returns a pointer to a Go literal that represents the
+// default value for the entry. If there is no default value for the field, nil
+// is returned.
+func generateGoDefaultValue(field *yang.Entry, mtype *MappedType, gogen *GoLangMapper, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, simpleUnions bool) (*string, error) {
+	// Set the default type to the mapped Go type.
+	defaultValues := field.DefaultValues()
+	if len(defaultValues) == 0 && mtype.DefaultValue != nil {
+		defaultValues = []string{*mtype.DefaultValue}
+	}
+	for i, defVal := range defaultValues {
+		var err error
+		if defaultValues[i], _, err = gogen.yangDefaultValueToGo(defVal, resolveTypeArgs{yangType: field.Type, contextEntry: field}, len(mtype.UnionTypes) == 1, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim); err != nil {
+			return nil, err
+		}
+	}
+	// TODO(wenbli): In ygot v1, we should no longer
+	// support the wrapper union generated code, so this if
+	// block would be obsolete.
+	if !simpleUnions {
+		defaultValues = goLeafDefaults(field, mtype)
+		if len(defaultValues) != 0 && len(mtype.UnionTypes) > 1 {
+			// If the default value is applied to a union type, we will generate
+			// non-compilable code when generating wrapper unions, so error out and inform
+			// the user instead of having the user find out that the code doesn't compile.
+			return nil, fmt.Errorf("path %q: default value not supported for wrapper union values, please generate using simplified union leaves", field.Path())
+		}
+	}
+
+	var defaultValue *string
+	if len(defaultValues) > 0 {
+		switch {
+		case field.ListAttr != nil: // field is a leaf-list
+			dv := fmt.Sprintf("[]%s{%s}", mtype.NativeType, strings.Join(defaultValues, ", "))
+			defaultValue = &dv
+		case len(defaultValues) == 1:
+			dv := defaultValues[0]
+			defaultValue = &dv
+		default:
+			return nil, fmt.Errorf("path: %q, unexpected multiple default values %v for a non-leaf-list field", field.Path(), defaultValues)
+		}
+	}
+	return defaultValue, nil
 }
 
 // yangDefaultValueToGo takes a default value, and its associated type, schema
