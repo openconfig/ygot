@@ -389,18 +389,16 @@ func IsFakeRoot(e *yang.Entry) bool {
 // checkForBinaryKeys returns a non-empty list of errors if the input directory
 // has one or more binary types (including union types containing binary types)
 // as a list key.
-func checkForBinaryKeys(dir *Directory) []error {
+func checkForBinaryKeys(dir *ParsedDirectory) []error {
 	var errs []error
-	if dir.ListAttr != nil {
-		for _, t := range dir.ListAttr.Keys {
-			if t.LangType.NativeType == ygot.BinaryTypeName {
-				errs = append(errs, fmt.Errorf("list %s has a binary key -- this is unsupported", strings.Join(dir.Path, "/")))
-				continue
-			}
-			for typeName := range t.LangType.UnionTypes {
-				if typeName == ygot.BinaryTypeName {
-					errs = append(errs, fmt.Errorf("list %s has a union key containing a binary -- this is unsupported", strings.Join(dir.Path, "/")))
-				}
+	for _, k := range dir.ListKeys {
+		if k.LangType.NativeType == ygot.BinaryTypeName {
+			errs = append(errs, fmt.Errorf("list %s has a binary key -- this is unsupported", dir.Path))
+			continue
+		}
+		for typeName := range k.LangType.UnionTypes {
+			if typeName == ygot.BinaryTypeName {
+				errs = append(errs, fmt.Errorf("list %s has a union key containing a binary -- this is unsupported", dir.Path))
 			}
 		}
 	}
@@ -420,14 +418,6 @@ func checkForBinaryKeys(dir *Directory) []error {
 //	   within the specified models.
 // If errors are encountered during code generation, an error is returned.
 func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*GeneratedGoCode, util.Errors) {
-	// Extract the entities to be mapped into structs and enumerations in the output
-	// Go code. Extract the schematree from the modules provided such that it can be
-	// used to reference entities within the tree.
-	mdef, errs := mappedDefinitions(yangFiles, includePaths, &cg.Config)
-	if errs != nil {
-		return nil, errs
-	}
-
 	opts := IROptions{
 		ParseOptions:                         cg.Config.ParseOptions,
 		TransformationOptions:                cg.Config.TransformationOptions,
@@ -437,69 +427,108 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		UseConsistentNamesForProtoUnionEnums: false,
 	}
 
-	enumSet, goEnums, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.UseConsistentNamesForProtoUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
-	if errs != nil {
-		return nil, errs
-	}
-
-	// Store the returned schematree and enumSet within the state for this code generation.
-	gogen := newGoLangMapper(cg.Config.GoOptions.GenerateSimpleUnions)
-	gogen.SetEnumSet(enumSet)
-	gogen.SetSchemaTree(mdef.schematree)
-
-	directoryMap, errs := buildDirectoryDefinitions(gogen, mdef.directoryEntries, opts)
-	if errs != nil {
-		return nil, errs
+	var codegenErr util.Errors
+	ir, err := GenerateIR(yangFiles, includePaths, newGoLangMapper(cg.Config.GoOptions.GenerateSimpleUnions), opts)
+	if err != nil {
+		return nil, util.AppendErr(codegenErr, err)
 	}
 
 	var rootName string
-	if rootName = resolveRootName(cg.Config.TransformationOptions.FakeRootName, defaultRootName, cg.Config.TransformationOptions.GenerateFakeRoot); rootName != "" {
-		if r, ok := directoryMap[fmt.Sprintf("/%s", rootName)]; ok {
+	if cg.Config.TransformationOptions.GenerateFakeRoot {
+		rootName = cg.Config.TransformationOptions.FakeRootName
+		if rootName == "" {
+			rootName = defaultRootName
+		}
+		if r, ok := ir.Directories[fmt.Sprintf("/%s", rootName)]; ok {
 			rootName = r.Name
 		}
 	}
-
-	// Code generation begins
-	var codegenErr util.Errors
-	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config, rootName, mdef.modelData)
-
+	commonHeader, oneoffHeader, err := writeGoHeader(yangFiles, includePaths, cg.Config, rootName, ir.ModelData)
 	if err != nil {
 		return nil, util.AppendErr(codegenErr, err)
 	}
 
-	// Alphabetically order directories to produce deterministic output.
-	orderedDirNames, dirNameMap, err := GetOrderedDirectories(directoryMap)
-
-	if err != nil {
-		return nil, util.AppendErr(codegenErr, err)
-	}
-
-	// enumTypeMap stores the map of the path to type.
+	usedEnumeratedTypes := map[string]bool{}
+	// generatedUnions stores a map, keyed by the output name for a union,
+	// that has already been output in the generated code. This ensures that
+	// where two entities re-use a union that has already been created (e.g.,
+	// a leafref to a union) then it is output only once in the generated code.
+	generatedUnions := map[string]bool{}
 	enumTypeMap := map[string][]string{}
-	var structSnippets []GoStructCodeSnippet
-	for _, directoryName := range orderedDirNames {
-		if errs := checkForBinaryKeys(dirNameMap[directoryName]); len(errs) != 0 {
+	structSnippets := []GoStructCodeSnippet{}
+
+	isBuiltInType := func(fType string) bool {
+		_, ok := validGoBuiltinTypes[fType]
+		return ok
+	}
+
+	// Range through the directories to find the enumerated and union types that we
+	// need. We have to do this without writing the code out, since we require some
+	// knowledge of these types to do code generation along with the values.
+	for _, directoryPath := range ir.OrderedDirectoryPathsByName() {
+		dir := ir.Directories[directoryPath]
+
+		// Generate structs.
+		if errs := checkForBinaryKeys(dir); len(errs) != 0 {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
 		}
-		structOut, errs := writeGoStruct(dirNameMap[directoryName], directoryMap, gogen,
-			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.TransformationOptions.IgnoreShadowSchemaPaths, cg.Config.GenerateJSONSchema, cg.Config.ParseOptions.SkipEnumDeduplication, cg.Config.TransformationOptions.ShortenEnumLeafNames, cg.Config.TransformationOptions.UseDefiningModuleForTypedefEnumNames, cg.Config.TransformationOptions.EnumOrgPrefixesToTrim, cg.Config.GoOptions)
+		structOut, errs := writeGoStruct(dir, ir.Directories, generatedUnions, opts.TransformationOptions.IgnoreShadowSchemaPaths, cg.Config.GoOptions, cg.Config.GenerateJSONSchema)
 		if errs != nil {
 			codegenErr = util.AppendErrs(codegenErr, errs)
 			continue
 		}
 		structSnippets = append(structSnippets, structOut)
 
-		// Copy the contents of the enumTypeMap for the struct into the global
-		// map.
-		for p, t := range structOut.enumTypeMap {
-			enumTypeMap[p] = t
+		// Record down all the enum types we encounter in each field.
+
+		// definedUnionTypes keeps track of which unions we have
+		// already processed to avoid processing the same one twice.
+		definedUnionTypes := map[string]bool{}
+		for _, fn := range dir.OrderedFieldNames() {
+			field := dir.Fields[fn]
+
+			// Strip the module name from the path.
+			schemaPath := util.SlicePathToString(append([]string{""}, strings.Split(field.YANGDetails.Path, "/")[2:]...))
+			switch {
+			case field.LangType == nil:
+				// This is a directory, so we continue.
+				continue
+			case field.LangType.IsEnumeratedValue:
+				usedEnumeratedTypes[field.LangType.NativeType] = true
+				enumTypeMap[schemaPath] = []string{field.LangType.NativeType}
+			case len(field.LangType.UnionTypes) > 1:
+				if definedUnionTypes[field.LangType.NativeType] {
+					continue
+				}
+				definedUnionTypes[field.LangType.NativeType] = true
+
+				for ut := range field.LangType.UnionTypes {
+					if !isBuiltInType(ut) {
+						// non-builtin union types are always enumerated types.
+						usedEnumeratedTypes[ut] = true
+						if enumTypeMap[schemaPath] == nil {
+							enumTypeMap[schemaPath] = []string{}
+						}
+						enumTypeMap[schemaPath] = append(enumTypeMap[schemaPath], ut)
+					}
+				}
+				// Sort the enumerated types into schema order.
+				sort.Slice(enumTypeMap[schemaPath], func(i, j int) bool {
+					return field.LangType.UnionTypes[enumTypeMap[schemaPath][i]] < field.LangType.UnionTypes[enumTypeMap[schemaPath][j]]
+				})
+			}
 		}
 	}
 
-	enumSnippets, enumMap, errs := generateEnumCode(goEnums)
-	if errs != nil {
-		codegenErr = util.AppendErrs(codegenErr, errs)
+	processedEnums, err := genGoEnumeratedTypes(ir.Enums)
+	if err != nil {
+		return nil, append(codegenErr, err)
+	}
+
+	genum, err := writeGoEnumeratedTypes(processedEnums, usedEnumeratedTypes)
+	if err != nil {
+		return nil, append(codegenErr, err)
 	}
 
 	var rawSchema []byte
@@ -507,8 +536,7 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 	var enumTypeMapCode string
 	if cg.Config.GenerateJSONSchema {
 		var err error
-		rawSchema, err = buildJSONTree(mdef.modules, gogen.uniqueDirectoryNames, mdef.directoryEntries["/"],
-			cg.Config.TransformationOptions.CompressBehaviour.CompressEnabled(), cg.Config.IncludeDescriptions)
+		rawSchema, err = ir.SchemaTree(cg.Config.IncludeDescriptions)
 		if err != nil {
 			codegenErr = util.AppendErr(codegenErr, fmt.Errorf("error marshalling JSON schema: %v", err))
 		}
@@ -533,11 +561,103 @@ func (cg *YANGCodeGenerator) GenerateGoCode(yangFiles, includePaths []string) (*
 		CommonHeader:   commonHeader,
 		OneOffHeader:   oneoffHeader,
 		Structs:        structSnippets,
-		Enums:          enumSnippets,
-		EnumMap:        enumMap,
+		Enums:          genum.enums,
+		EnumMap:        genum.valMap,
 		JSONSchemaCode: jsonSchema,
 		RawJSONSchema:  rawSchema,
 		EnumTypeMap:    enumTypeMapCode,
+	}, nil
+}
+
+// goEnumeratedType contains the intermediate representation of an enumerated
+// type (identityref or enumeration) suitable for Go code generation.
+type goEnumeratedType struct {
+	Name       string
+	CodeValues map[int64]string
+	YANGValues map[int64]ygot.EnumDefinition
+}
+
+// enumGeneratedCode contains generated Go code for enumerated types.
+type enumGeneratedCode struct {
+	enums  []string
+	valMap string
+}
+
+// genGoEnumeratedTypes converts the input map of EnumeratedYANGType objects to
+// another intermediate representation suitable for Go code generation.
+func genGoEnumeratedTypes(enums map[string]*EnumeratedYANGType) (map[string]*goEnumeratedType, error) {
+	et := map[string]*goEnumeratedType{}
+	for _, e := range enums {
+		// initialised to be UNSET, such that it is possible to determine that the enumerated value
+		// was not modified.
+		values := map[int64]string{
+			0: "UNSET",
+		}
+
+		// origValues stores the original set of value names, these are not maintained to be
+		// Go-safe, and are rather used to map back to the original schema values if required.
+		// 0 is not populated within this map, such that the values can be used to check whether
+		// there was a valid entry in the original schema. The value is stored as a ygot
+		// EnumDefinition, which stores the name, and in the case of identity values, the
+		// module within which the identity was defined.
+		origValues := map[int64]ygot.EnumDefinition{}
+
+		switch e.Kind {
+		case IdentityType, SimpleEnumerationType, DerivedEnumerationType, UnionEnumerationType, DerivedUnionEnumerationType:
+			for i, v := range e.ValToYANGDetails {
+				values[int64(i)+1] = safeGoEnumeratedValueName(v.Name)
+				origValues[int64(i)+1] = v
+			}
+		default:
+			return nil, fmt.Errorf("unknown enumerated type %v", e.Kind)
+		}
+
+		et[e.Name] = &goEnumeratedType{
+			Name:       e.Name,
+			CodeValues: values,
+			YANGValues: origValues,
+		}
+	}
+	return et, nil
+}
+
+// writeGoEnumeratedTypes generates Go code for the input enumerations if they
+// are present in the usedEnums map.
+func writeGoEnumeratedTypes(enums map[string]*goEnumeratedType, usedEnums map[string]bool) (*enumGeneratedCode, error) {
+	orderedEnumNames := []string{}
+	for _, e := range enums {
+		orderedEnumNames = append(orderedEnumNames, e.Name)
+	}
+	sort.Strings(orderedEnumNames)
+
+	enumValMap := map[string]map[int64]ygot.EnumDefinition{}
+	enumSnippets := []string{}
+
+	for _, en := range orderedEnumNames {
+		e := enums[en]
+		if _, ok := usedEnums[fmt.Sprintf("%s%s", goEnumPrefix, e.Name)]; !ok {
+			// Don't output enumerated types that are not used in the code that we have
+			// such that we don't create generated code for a large array of types that
+			// just happen to be in modules that were included by other modules.
+			continue
+		}
+		enumOut, err := writeGoEnum(e)
+		if err != nil {
+			return nil, err
+		}
+		enumSnippets = append(enumSnippets, enumOut)
+		enumValMap[e.Name] = e.YANGValues
+	}
+
+	// Write the map of string -> int -> YANG enum name string out.
+	vmap, err := writeGoEnumMap(enumValMap)
+	if err != nil {
+		return nil, err
+	}
+
+	return &enumGeneratedCode{
+		enums:  enumSnippets,
+		valMap: vmap,
 	}, nil
 }
 
@@ -624,52 +744,6 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 		return nil, nil, errs
 	}
 	return directoryMap, leafTypeMap, nil
-}
-
-func generateEnumCode(goEnums map[string]*yangEnum) ([]string, string, util.Errors) {
-	// orderedEnumNames is used to get the enumerated types that have been
-	// identified in alphabetical order, such that they are returned in a
-	// deterministic order to the calling application. This ensures that
-	// the diffs are minimised, similarly to the purpose of GetOrderedDirectories.
-	var orderedEnumNames []string
-	enumNameMap := make(map[string]*yangEnum)
-
-	for _, goEnum := range goEnums {
-		orderedEnumNames = append(orderedEnumNames, goEnum.name)
-		enumNameMap[goEnum.name] = goEnum
-	}
-	sort.Strings(orderedEnumNames)
-
-	var enumSnippets []string
-	// enumValueMap is used to store a map of the different enumerations
-	// that are included in the generated code. It is keyed by the name
-	// of the generated enumeration type, with the values being a map,
-	// keyed by value number to the string that is used in the YANG schema
-	// for the enumeration. The value number is an int64 which is the value
-	// of the constant that represents the enumeration type.
-	enumValueMap := map[string]map[int64]ygot.EnumDefinition{}
-	errs := util.Errors{}
-	for _, enumName := range orderedEnumNames {
-		enumOut, err := writeGoEnum(enumNameMap[enumName])
-		if err != nil {
-			errs = util.AppendErr(errs, err)
-			continue
-		}
-		enumSnippets = append(enumSnippets, enumOut.constDef)
-		enumValueMap[enumOut.name] = enumOut.valToString
-	}
-
-	// Generate the constant map which provides mappings between the
-	// enums for which code was generated and their corresponding
-	// string values.
-	enumMap, err := generateEnumMap(enumValueMap)
-	if err != nil {
-		errs = util.AppendErr(errs, err)
-	}
-	if len(errs) == 0 {
-		errs = nil
-	}
-	return enumSnippets, enumMap, errs
 }
 
 // GenerateProto3 generates Protobuf 3 code for the input set of YANG files.
