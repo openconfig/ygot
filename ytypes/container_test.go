@@ -420,16 +420,16 @@ func TestUnmarshalContainer(t *testing.T) {
 		{
 			desc:   "success overwriting existing fields with presence container",
 			schema: containerSchema,
-			parent: &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(1), StateLeaf1Field: ygot.Int32(2), Container2Field: nil}},
+			parent: &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(1), StateLeaf1Field: ygot.Int32(2), Container2Field: &Container2Struct{Leaf3Field: ygot.Int32(3)}}},
 			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } , "container2-field": { "leaf3-field": 44 } } }`,
 			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43), Container2Field: &Container2Struct{Leaf3Field: ygot.Int32(44)}}},
 		},
 		{
-			desc:   "success overwriting existing fields with empty presence container",
+			desc:   "success overwriting existing fields, no-op on empty presence container",
 			schema: containerSchema,
-			parent: &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(1), StateLeaf1Field: ygot.Int32(2), Container2Field: nil}},
+			parent: &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(1), StateLeaf1Field: ygot.Int32(2), Container2Field: &Container2Struct{Leaf3Field: ygot.Int32(3)}}},
 			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } , "container2-field": {  } } }`,
-			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43), Container2Field: &Container2Struct{}}},
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43), Container2Field: &Container2Struct{Leaf3Field: ygot.Int32(3)}}},
 		},
 		{
 			desc:    "nil schema",

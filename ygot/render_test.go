@@ -3045,6 +3045,13 @@ func TestConstructJSON(t *testing.T) {
 		wantIETF: map[string]interface{}{"bgp": map[string]interface{}{}},
 		wantSame: true,
 	}, {
+		name: "uncompressed device example with presence containers with nil value",
+		in: &ucExampleDevice{
+			Bgp: nil,
+		},
+		wantIETF: map[string]interface{}{},
+		wantSame: true,
+	}, {
 		name: "uncompressed device example with presence containers with data in tree",
 		in: &ucExampleDevice{
 			Bgp: &ucExampleBgp{
@@ -3101,14 +3108,55 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 	}, {
-		name: "uncompressed device example with presence containers with nil value",
+		name: "uncompressed device example with presence containers in list with empty and nil value",
 		in: &ucExampleDevice{
-			Bgp: nil,
+			Isis: &ucExampleIsis{
+				Instance: map[string]*ucExampleIsisInstance{
+					"default": {
+						Name:     String("default"),
+						Enabled:  Bool(true),
+						Overload: &ucExampleIsisInstanceOverload{},
+					},
+					"instance1": {
+						Name:     String("instance1"),
+						Enabled:  Bool(false),
+						Overload: nil,
+					},
+				},
+			},
 		},
-		wantIETF: map[string]interface{}{},
-		wantSame: true,
+		wantIETF: map[string]interface{}{
+			"isis": map[string]interface{}{
+				"instance": []interface{}{
+					map[string]interface{}{
+						"name":     "default",
+						"enabled":  true,
+						"overload": map[string]interface{}{},
+					},
+					map[string]interface{}{
+						"name":    "instance1",
+						"enabled": false,
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"isis": map[string]interface{}{
+				"instance": map[string]interface{}{
+					"default": map[string]interface{}{
+						"name":     "default",
+						"enabled":  true,
+						"overload": map[string]interface{}{},
+					},
+					"instance1": map[string]interface{}{
+						"name":    "instance1",
+						"enabled": false,
+					},
+				},
+			},
+		},
 	}, {
-		name: "uncompressed device example with presence containers in list",
+		name: "uncompressed device example with presence containers in list with data in tree",
 		in: &ucExampleDevice{
 			Isis: &ucExampleIsis{
 				Instance: map[string]*ucExampleIsisInstance{
@@ -3164,7 +3212,34 @@ func TestConstructJSON(t *testing.T) {
 			},
 		},
 	}, {
-		name: "uncompressed device example with presence container encapsulated in regular container",
+		name: "uncompressed device example with presence container encapsulated in regular container with nil value",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{},
+			System: &ucExampleSystem{
+				SshServer: nil,
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"bgp": map[string]interface{}{},
+		},
+		wantSame: true,
+	}, {
+		name: "uncompressed device example with presence container encapsulated in regular container with empty value",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{},
+			System: &ucExampleSystem{
+				SshServer: &ucExampleSystemSshServer{},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"bgp": map[string]interface{}{},
+			"system": map[string]interface{}{
+				"ssh-server": map[string]interface{}{},
+			},
+		},
+		wantSame: true,
+	}, {
+		name: "uncompressed device example with presence container encapsulated in regular container with data in tree",
 		in: &ucExampleDevice{
 			Bgp: &ucExampleBgp{},
 			System: &ucExampleSystem{
@@ -3200,20 +3275,6 @@ func TestConstructJSON(t *testing.T) {
 					},
 				},
 			},
-		},
-	}, {
-		name: "uncompressed device example with presence container encapsulated in regular container eq nil value",
-		in: &ucExampleDevice{
-			Bgp: &ucExampleBgp{},
-			System: &ucExampleSystem{
-				SshServer: nil,
-			},
-		},
-		wantIETF: map[string]interface{}{
-			"bgp": map[string]interface{}{},
-		},
-		wantInternal: map[string]interface{}{
-			"bgp": map[string]interface{}{},
 		},
 	}, {
 		name:     "unset enum",
