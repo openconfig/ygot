@@ -158,7 +158,6 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 		// Skip annotation fields since they do not have a schema.
 		// TODO(robjs): Implement unmarshalling annotations.
 		if util.IsYgotAnnotation(ft) {
-			log.Infof("ignoring annotation field %s during unmarshalling, unsupported", ft.Name)
 			// We need to find the paths that we should have unmarshalled here to avoid
 			// throwing errors to users whilst there is a TODO above.
 			paths, err := pathTagFromField(ft)
