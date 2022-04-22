@@ -1,0 +1,38 @@
+module presence-container-example {
+  prefix "pc";
+  namespace "urn:pc";
+  description
+  "A simple test module with a YANG presence container";
+
+  grouping parent-config {
+    leaf one { type string; }
+    leaf three {
+      type enumeration {
+        enum ONE;
+        enum TWO;
+      }
+    }
+    leaf four {
+      type binary;
+    }
+  }
+
+  container parent {
+    description
+      "I am a parent container
+       that has 4 children.";
+    container child {
+      presence "This is an example presence container";
+      container config {
+        uses parent-config;
+      }
+      container state {
+        config false;
+        uses parent-config;
+        leaf two { type string; }
+      }
+    }
+  }
+}
+
+

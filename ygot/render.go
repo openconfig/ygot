@@ -1152,7 +1152,7 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			continue
 		}
 
-		if mp, ok := value.(map[string]interface{}); ok && len(mp) == 0 {
+		if mp, ok := value.(map[string]interface{}); ok && len(mp) == 0 && !util.IsYangPresence(fType) {
 			continue
 		}
 
