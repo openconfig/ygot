@@ -2769,15 +2769,15 @@ func TestConstructJSON(t *testing.T) {
 		},
 		inAppendMod: true,
 		wantIETF: map[string]interface{}{
-			"f1": "foo",
-			"config": map[string]interface{}{
+			"f1mod:f1": "foo",
+			"f1mod:config": map[string]interface{}{
 				"f2mod:f6": "mat",
 			},
 			"f2mod:config": map[string]interface{}{
 				"f2":       "bar",
 				"f3mod:f7": "bat",
 			},
-			"f3": map[string]interface{}{
+			"f1mod:f3": map[string]interface{}{
 				"f42mod:config": map[string]interface{}{
 					"f4": "baz",
 				},
@@ -3552,7 +3552,7 @@ func TestEncodeTypedValue(t *testing.T) {
 		},
 		inEnc: gnmipb.Encoding_JSON_IETF,
 		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`{
-  "f1": "hello"
+  "f1mod:f1": "hello"
 }`)}},
 	}, {
 		name: "struct val - ietf json different module",
@@ -3858,7 +3858,7 @@ func TestMarshal7951(t *testing.T) {
 		inArgs: []Marshal7951Arg{
 			&RFC7951JSONConfig{AppendModuleName: true},
 		},
-		want: `{"f1":"hello"}`,
+		want: `{"f1mod:f1":"hello"}`,
 	}, {
 		desc: "complex children with module name prepend request",
 		in: &ietfRenderExample{
@@ -3873,7 +3873,7 @@ func TestMarshal7951(t *testing.T) {
 			JSONIndent("  "),
 		},
 		want: `{
-  "enum-list": [
+  "f1mod:enum-list": [
     {
       "config": {
         "key": "foo:VAL_ONE"
@@ -3881,14 +3881,14 @@ func TestMarshal7951(t *testing.T) {
       "key": "foo:VAL_ONE"
     }
   ],
-  "f2mod:config": {
-    "f2": "bar"
-  },
-  "mixed-list": [
+  "f1mod:mixed-list": [
     "foo:VAL_ONE",
     "test",
     42
-  ]
+  ],
+  "f2mod:config": {
+    "f2": "bar"
+  }
 }`,
 	}, {
 		desc: "complex children with PrependModuleNameIdentityref=true",
@@ -3935,7 +3935,7 @@ func TestMarshal7951(t *testing.T) {
 			JSONIndent("  "),
 		},
 		want: `{
-  "enum-list": [
+  "f1mod:enum-list": [
     {
       "config": {
         "key": "foo:VAL_ONE"
@@ -3943,14 +3943,14 @@ func TestMarshal7951(t *testing.T) {
       "key": "foo:VAL_ONE"
     }
   ],
-  "f2mod:config": {
-    "f2": "bar"
-  },
-  "mixed-list": [
+  "f1mod:mixed-list": [
     "foo:VAL_ONE",
     "test",
     42
-  ]
+  ],
+  "f2mod:config": {
+    "f2": "bar"
+  }
 }`,
 	}}
 
