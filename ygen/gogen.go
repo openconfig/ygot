@@ -2025,6 +2025,7 @@ func yangListFieldToGoType(listField *NodeDetails, listFieldName string, parent 
 		keyField := goStructField{
 			Name: genutil.MakeNameUnique(listElem.ListKeys[keName].Name, usedKeyElemNames),
 			Type: listElem.ListKeys[keName].LangType.NativeType,
+			// The shortest mapped path for a list key must be the path to the key.
 			Tags: mappedPathTag(shortestPath(keyType.MappedPaths), ""),
 		}
 		keyField.IsScalarField = isScalarField(keyType)
