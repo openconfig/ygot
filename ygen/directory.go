@@ -74,7 +74,7 @@ type YangListAttr struct {
 	KeyElems []*yang.Entry
 	// ListKeyYANGNames is the ordered list of YANG names specified in the
 	// YANG list per Section 7.8.2 of RFC6020. ygot relies on this ordering
-	// fact for determisitic ordering in output code and rendering.
+	// for deterministic ordering in output code and rendering.
 	ListKeyYANGNames []string
 }
 

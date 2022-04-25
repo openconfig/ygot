@@ -38,8 +38,13 @@ import (
 //
 // Note: though the output names are meant to be usable within the output
 // language, it may not be the final name used in the generated code, for
-// example due to naming conflicts, which might be better resolved in a later
-// pass prior to code generation.
+// example due to naming conflicts, which are better resolved in a later
+// pass prior to code generation (see note below).
+//
+// NB: LangMapper's methods should be idempotent, such that the order in
+// which they're called and the number of times each is called per input
+// parameter does not affect the output. Do not depend on the same order of
+// method calls on langMapper by GenerateIR.
 type LangMapper interface {
 	// FieldName maps an input yang.Entry to the name that should be used
 	// in the intermediate representation. It is called for each field of
@@ -210,8 +215,9 @@ type ParsedDirectory struct {
 	// of the list's keys). It is keyed by the YANG name of the list key.
 	ListKeys map[string]*ListKey
 	// ListKeyYANGNames is the ordered list of YANG names specified in the
-	// YANG list per Section 7.8.2 of RFC6020. Rely on this
-	// fact for determisitic ordering in output code and rendering.
+	// YANG list per Section 7.8.2 of RFC6020. The consumer of the IR can
+	// rely on this ordering for deterministic ordering in output code and
+	// rendering.
 	ListKeyYANGNames []string
 	// PackageName is the package in which this directory node's generated
 	// code should reside.

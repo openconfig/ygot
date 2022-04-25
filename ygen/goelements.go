@@ -240,6 +240,8 @@ func pathToCamelCaseName(e *yang.Entry, compressOCPaths bool) string {
 // Although name conversion is lossy, name uniquification occurs at this stage
 // since all generated struct names reside in the package namespace.
 func (s *GoLangMapper) DirectoryName(e *yang.Entry, compressBehaviour genutil.CompressBehaviour) (string, error) {
+	// TODO(wenbli): Do not uniquify at this step -- rather do this in a
+	// later pass to avoid non-idempotent behaviour in GoLangMapper.
 	uniqName := genutil.MakeNameUnique(pathToCamelCaseName(e, compressBehaviour.CompressEnabled()), s.definedGlobals)
 
 	// Record the name of the struct that was unique such that it can be referenced
