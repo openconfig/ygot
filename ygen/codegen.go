@@ -692,7 +692,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		NestedDirectories:     true,
 		AbsoluteMapPaths:      true,
 		// If UseConsistentNamesForProtoUnionEnums=true, then also set
-		// appendEnumSuffixForSimpleUnionEnums=true for consistent union enum
+		// AppendEnumSuffixForSimpleUnionEnums=true for consistent union enum
 		// names.
 		AppendEnumSuffixForSimpleUnionEnums:  cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums,
 		UseConsistentNamesForProtoUnionEnums: cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums,
