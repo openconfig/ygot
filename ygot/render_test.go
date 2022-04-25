@@ -465,7 +465,7 @@ type pathElemMultiKey struct {
 }
 
 func (*pathElemMultiKey) IsYANGGoStruct()                         {}
-func (*pathElemMultiKey) ΛValidate(...ValidationOption) error      { return nil }
+func (*pathElemMultiKey) ΛValidate(...ValidationOption) error     { return nil }
 func (*pathElemMultiKey) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*pathElemMultiKey) ΛBelongingModule() string                { return "" }
 
@@ -794,7 +794,7 @@ type renderExample struct {
 // IsYANGGoStruct ensures that the renderExample type implements the ValidatedGoStruct
 // interface.
 func (*renderExample) IsYANGGoStruct()                         {}
-func (*renderExample) ΛValidate(...ValidationOption) error      { return nil }
+func (*renderExample) ΛValidate(...ValidationOption) error     { return nil }
 func (*renderExample) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*renderExample) ΛBelongingModule() string                { return "" }
 
@@ -851,7 +851,7 @@ type renderExampleChild struct {
 
 // IsYANGGoStruct implements the ValidatedGoStruct interface.
 func (*renderExampleChild) IsYANGGoStruct()                         {}
-func (*renderExampleChild) ΛValidate(...ValidationOption) error      { return nil }
+func (*renderExampleChild) ΛValidate(...ValidationOption) error     { return nil }
 func (*renderExampleChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*renderExampleChild) ΛBelongingModule() string                { return "" }
 
@@ -862,7 +862,7 @@ type renderExampleList struct {
 
 // IsYANGGoStruct implements the ValidatedGoStruct interface.
 func (*renderExampleList) IsYANGGoStruct()                         {}
-func (*renderExampleList) ΛValidate(...ValidationOption) error      { return nil }
+func (*renderExampleList) ΛValidate(...ValidationOption) error     { return nil }
 func (*renderExampleList) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*renderExampleList) ΛBelongingModule() string                { return "" }
 
@@ -878,7 +878,7 @@ type renderExampleEnumList struct {
 
 // IsYANGGoStruct implements the ValidatedGoStruct interface.
 func (*renderExampleEnumList) IsYANGGoStruct()                         {}
-func (*renderExampleEnumList) ΛValidate(...ValidationOption) error      { return nil }
+func (*renderExampleEnumList) ΛValidate(...ValidationOption) error     { return nil }
 func (*renderExampleEnumList) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*renderExampleEnumList) ΛBelongingModule() string                { return "" }
 
@@ -931,7 +931,7 @@ type pathElemExample struct {
 
 // IsYANGGoStruct ensures that pathElemExample implements GoStruct.
 func (*pathElemExample) IsYANGGoStruct()                         {}
-func (*pathElemExample) ΛValidate(...ValidationOption) error      { return nil }
+func (*pathElemExample) ΛValidate(...ValidationOption) error     { return nil }
 func (*pathElemExample) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*pathElemExample) ΛBelongingModule() string                { return "" }
 
@@ -943,7 +943,7 @@ type pathElemExampleChild struct {
 
 // IsYANGGoStruct ensures that pathElemExampleChild implements GoStruct.
 func (*pathElemExampleChild) IsYANGGoStruct()                         {}
-func (*pathElemExampleChild) ΛValidate(...ValidationOption) error      { return nil }
+func (*pathElemExampleChild) ΛValidate(...ValidationOption) error     { return nil }
 func (*pathElemExampleChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*pathElemExampleChild) ΛBelongingModule() string                { return "" }
 
@@ -965,7 +965,7 @@ type pathElemUnserialisable struct {
 
 // IsYANGGoStruct ensures that pathElemUnserialisable implements GoStruct.
 func (*pathElemUnserialisable) IsYANGGoStruct()                         {}
-func (*pathElemUnserialisable) ΛValidate(...ValidationOption) error      { return nil }
+func (*pathElemUnserialisable) ΛValidate(...ValidationOption) error     { return nil }
 func (*pathElemUnserialisable) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*pathElemUnserialisable) ΛBelongingModule() string                { return "" }
 
@@ -991,7 +991,7 @@ type pathElemExampleMultiKeyChild struct {
 // IsYANGGoStruct ensures that pathElemExampleMultiKeyChild implements the ValidatedGoStruct
 // interface.
 func (*pathElemExampleMultiKeyChild) IsYANGGoStruct()                         {}
-func (*pathElemExampleMultiKeyChild) ΛValidate(...ValidationOption) error      { return nil }
+func (*pathElemExampleMultiKeyChild) ΛValidate(...ValidationOption) error     { return nil }
 func (*pathElemExampleMultiKeyChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*pathElemExampleMultiKeyChild) ΛBelongingModule() string                { return "" }
 
@@ -1559,7 +1559,7 @@ type exampleDevice struct {
 }
 
 func (*exampleDevice) IsYANGGoStruct()                         {}
-func (*exampleDevice) ΛValidate(...ValidationOption) error      { return nil }
+func (*exampleDevice) ΛValidate(...ValidationOption) error     { return nil }
 func (*exampleDevice) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*exampleDevice) ΛBelongingModule() string                { return "" }
 
@@ -1569,7 +1569,7 @@ type exampleBgp struct {
 }
 
 func (*exampleBgp) IsYANGGoStruct()                         {}
-func (*exampleBgp) ΛValidate(...ValidationOption) error      { return nil }
+func (*exampleBgp) ΛValidate(...ValidationOption) error     { return nil }
 func (*exampleBgp) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*exampleBgp) ΛBelongingModule() string                { return "" }
 
@@ -1579,7 +1579,7 @@ type exampleBgpGlobal struct {
 }
 
 func (*exampleBgpGlobal) IsYANGGoStruct()                         {}
-func (*exampleBgpGlobal) ΛValidate(...ValidationOption) error      { return nil }
+func (*exampleBgpGlobal) ΛValidate(...ValidationOption) error     { return nil }
 func (*exampleBgpGlobal) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*exampleBgpGlobal) ΛBelongingModule() string                { return "" }
 
@@ -1597,7 +1597,7 @@ type exampleBgpNeighbor struct {
 }
 
 func (*exampleBgpNeighbor) IsYANGGoStruct()                         {}
-func (*exampleBgpNeighbor) ΛValidate(...ValidationOption) error      { return nil }
+func (*exampleBgpNeighbor) ΛValidate(...ValidationOption) error     { return nil }
 func (*exampleBgpNeighbor) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*exampleBgpNeighbor) ΛBelongingModule() string                { return "" }
 
@@ -1668,7 +1668,7 @@ type invalidGoStructChild struct {
 }
 
 func (*invalidGoStructChild) IsYANGGoStruct()                         {}
-func (*invalidGoStructChild) ΛValidate(...ValidationOption) error      { return nil }
+func (*invalidGoStructChild) ΛValidate(...ValidationOption) error     { return nil }
 func (*invalidGoStructChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*invalidGoStructChild) ΛBelongingModule() string                { return "" }
 
@@ -1678,7 +1678,7 @@ type invalidGoStructField struct {
 }
 
 func (*invalidGoStructField) IsYANGGoStruct()                         {}
-func (*invalidGoStructField) ΛValidate(...ValidationOption) error      { return nil }
+func (*invalidGoStructField) ΛValidate(...ValidationOption) error     { return nil }
 func (*invalidGoStructField) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*invalidGoStructField) ΛBelongingModule() string                { return "" }
 
@@ -1690,7 +1690,7 @@ type invalidGoStructEntity struct {
 }
 
 func (*invalidGoStructEntity) IsYANGGoStruct()                         {}
-func (*invalidGoStructEntity) ΛValidate(...ValidationOption) error      { return nil }
+func (*invalidGoStructEntity) ΛValidate(...ValidationOption) error     { return nil }
 func (*invalidGoStructEntity) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*invalidGoStructEntity) ΛBelongingModule() string                { return "" }
 
@@ -1699,7 +1699,7 @@ type invalidGoStructMapChild struct {
 }
 
 func (*invalidGoStructMapChild) IsYANGGoStruct()                         {}
-func (*invalidGoStructMapChild) ΛValidate(...ValidationOption) error      { return nil }
+func (*invalidGoStructMapChild) ΛValidate(...ValidationOption) error     { return nil }
 func (*invalidGoStructMapChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*invalidGoStructMapChild) ΛBelongingModule() string                { return "" }
 
@@ -1709,7 +1709,7 @@ type invalidGoStructMap struct {
 }
 
 func (*invalidGoStructMap) IsYANGGoStruct()                         {}
-func (*invalidGoStructMap) ΛValidate(...ValidationOption) error      { return nil }
+func (*invalidGoStructMap) ΛValidate(...ValidationOption) error     { return nil }
 func (*invalidGoStructMap) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*invalidGoStructMap) ΛBelongingModule() string                { return "" }
 
@@ -1718,7 +1718,7 @@ type structWithMultiKey struct {
 }
 
 func (*structWithMultiKey) IsYANGGoStruct()                         {}
-func (*structWithMultiKey) ΛValidate(...ValidationOption) error      { return nil }
+func (*structWithMultiKey) ΛValidate(...ValidationOption) error     { return nil }
 func (*structWithMultiKey) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*structWithMultiKey) ΛBelongingModule() string                { return "" }
 
@@ -1727,7 +1727,7 @@ type structWithMultiKeyInvalidModuleTag struct {
 }
 
 func (*structWithMultiKeyInvalidModuleTag) IsYANGGoStruct()                         {}
-func (*structWithMultiKeyInvalidModuleTag) ΛValidate(...ValidationOption) error      { return nil }
+func (*structWithMultiKeyInvalidModuleTag) ΛValidate(...ValidationOption) error     { return nil }
 func (*structWithMultiKeyInvalidModuleTag) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*structWithMultiKeyInvalidModuleTag) ΛBelongingModule() string                { return "" }
 
@@ -1736,7 +1736,7 @@ type structWithMultiKeyInvalidModuleTag2 struct {
 }
 
 func (*structWithMultiKeyInvalidModuleTag2) IsYANGGoStruct()                         {}
-func (*structWithMultiKeyInvalidModuleTag2) ΛValidate(...ValidationOption) error      { return nil }
+func (*structWithMultiKeyInvalidModuleTag2) ΛValidate(...ValidationOption) error     { return nil }
 func (*structWithMultiKeyInvalidModuleTag2) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*structWithMultiKeyInvalidModuleTag2) ΛBelongingModule() string                { return "" }
 
@@ -1745,7 +1745,7 @@ type structWithMultiKeyInvalidModuleTag3 struct {
 }
 
 func (*structWithMultiKeyInvalidModuleTag3) IsYANGGoStruct()                         {}
-func (*structWithMultiKeyInvalidModuleTag3) ΛValidate(...ValidationOption) error      { return nil }
+func (*structWithMultiKeyInvalidModuleTag3) ΛValidate(...ValidationOption) error     { return nil }
 func (*structWithMultiKeyInvalidModuleTag3) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*structWithMultiKeyInvalidModuleTag3) ΛBelongingModule() string                { return "" }
 
@@ -1754,7 +1754,7 @@ type structWithMultiKeyInvalidModuleTag4 struct {
 }
 
 func (*structWithMultiKeyInvalidModuleTag4) IsYANGGoStruct()                         {}
-func (*structWithMultiKeyInvalidModuleTag4) ΛValidate(...ValidationOption) error      { return nil }
+func (*structWithMultiKeyInvalidModuleTag4) ΛValidate(...ValidationOption) error     { return nil }
 func (*structWithMultiKeyInvalidModuleTag4) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*structWithMultiKeyInvalidModuleTag4) ΛBelongingModule() string                { return "" }
 
@@ -1763,7 +1763,7 @@ type structWithMultiKeyInvalidModuleTag5 struct {
 }
 
 func (*structWithMultiKeyInvalidModuleTag5) IsYANGGoStruct()                         {}
-func (*structWithMultiKeyInvalidModuleTag5) ΛValidate(...ValidationOption) error      { return nil }
+func (*structWithMultiKeyInvalidModuleTag5) ΛValidate(...ValidationOption) error     { return nil }
 func (*structWithMultiKeyInvalidModuleTag5) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*structWithMultiKeyInvalidModuleTag5) ΛBelongingModule() string                { return "" }
 
@@ -1778,7 +1778,7 @@ type structMultiKeyChild struct {
 }
 
 func (*structMultiKeyChild) IsYANGGoStruct()                         {}
-func (*structMultiKeyChild) ΛValidate(...ValidationOption) error      { return nil }
+func (*structMultiKeyChild) ΛValidate(...ValidationOption) error     { return nil }
 func (*structMultiKeyChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*structMultiKeyChild) ΛBelongingModule() string                { return "" }
 
@@ -1790,7 +1790,7 @@ type ietfRenderExampleEnumList struct {
 
 // IsYANGGoStruct implements the ValidatedGoStruct interface.
 func (*ietfRenderExampleEnumList) IsYANGGoStruct()                         {}
-func (*ietfRenderExampleEnumList) ΛValidate(...ValidationOption) error      { return nil }
+func (*ietfRenderExampleEnumList) ΛValidate(...ValidationOption) error     { return nil }
 func (*ietfRenderExampleEnumList) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ietfRenderExampleEnumList) ΛBelongingModule() string                { return "f1mod" }
 
@@ -1805,7 +1805,7 @@ type ietfRenderExample struct {
 }
 
 func (*ietfRenderExample) IsYANGGoStruct()                         {}
-func (*ietfRenderExample) ΛValidate(...ValidationOption) error      { return nil }
+func (*ietfRenderExample) ΛValidate(...ValidationOption) error     { return nil }
 func (*ietfRenderExample) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ietfRenderExample) ΛBelongingModule() string                { return "f1mod" }
 
@@ -1815,7 +1815,7 @@ type ietfRenderExampleChild struct {
 }
 
 func (*ietfRenderExampleChild) IsYANGGoStruct()                         {}
-func (*ietfRenderExampleChild) ΛValidate(...ValidationOption) error      { return nil }
+func (*ietfRenderExampleChild) ΛValidate(...ValidationOption) error     { return nil }
 func (*ietfRenderExampleChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ietfRenderExampleChild) ΛBelongingModule() string                { return "" }
 
@@ -1824,7 +1824,7 @@ type listAtRoot struct {
 }
 
 func (*listAtRoot) IsYANGGoStruct()                         {}
-func (*listAtRoot) ΛValidate(...ValidationOption) error      { return nil }
+func (*listAtRoot) ΛValidate(...ValidationOption) error     { return nil }
 func (*listAtRoot) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*listAtRoot) ΛBelongingModule() string                { return "" }
 
@@ -1833,7 +1833,7 @@ type listAtRootChild struct {
 }
 
 func (*listAtRootChild) IsYANGGoStruct()                         {}
-func (*listAtRootChild) ΛValidate(...ValidationOption) error      { return nil }
+func (*listAtRootChild) ΛValidate(...ValidationOption) error     { return nil }
 func (*listAtRootChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*listAtRootChild) ΛBelongingModule() string                { return "m1" }
 
@@ -1842,7 +1842,7 @@ type listAtRootEnumKeyed struct {
 }
 
 func (*listAtRootEnumKeyed) IsYANGGoStruct()                         {}
-func (*listAtRootEnumKeyed) ΛValidate(...ValidationOption) error      { return nil }
+func (*listAtRootEnumKeyed) ΛValidate(...ValidationOption) error     { return nil }
 func (*listAtRootEnumKeyed) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*listAtRootEnumKeyed) ΛBelongingModule() string                { return "" }
 
@@ -1851,7 +1851,7 @@ type listAtRootChildEnumKeyed struct {
 }
 
 func (*listAtRootChildEnumKeyed) IsYANGGoStruct()                         {}
-func (*listAtRootChildEnumKeyed) ΛValidate(...ValidationOption) error      { return nil }
+func (*listAtRootChildEnumKeyed) ΛValidate(...ValidationOption) error     { return nil }
 func (*listAtRootChildEnumKeyed) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*listAtRootChildEnumKeyed) ΛBelongingModule() string                { return "m1" }
 
@@ -1863,7 +1863,7 @@ type diffModAtRoot struct {
 }
 
 func (*diffModAtRoot) IsYANGGoStruct()                         {}
-func (*diffModAtRoot) ΛValidate(...ValidationOption) error      { return nil }
+func (*diffModAtRoot) ΛValidate(...ValidationOption) error     { return nil }
 func (*diffModAtRoot) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*diffModAtRoot) ΛBelongingModule() string                { return "" }
 
@@ -1874,7 +1874,7 @@ type diffModAtRootChild struct {
 }
 
 func (*diffModAtRootChild) IsYANGGoStruct()                         {}
-func (*diffModAtRootChild) ΛValidate(...ValidationOption) error      { return nil }
+func (*diffModAtRootChild) ΛValidate(...ValidationOption) error     { return nil }
 func (*diffModAtRootChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*diffModAtRootChild) ΛBelongingModule() string                { return "m1" }
 
@@ -1883,7 +1883,7 @@ type diffModAtRootElem struct {
 }
 
 func (*diffModAtRootElem) IsYANGGoStruct()                         {}
-func (*diffModAtRootElem) ΛValidate(...ValidationOption) error      { return nil }
+func (*diffModAtRootElem) ΛValidate(...ValidationOption) error     { return nil }
 func (*diffModAtRootElem) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*diffModAtRootElem) ΛBelongingModule() string                { return "m1" }
 
@@ -1892,7 +1892,7 @@ type diffModAtRootElemTwo struct {
 }
 
 func (*diffModAtRootElemTwo) IsYANGGoStruct()                         {}
-func (*diffModAtRootElemTwo) ΛValidate(...ValidationOption) error      { return nil }
+func (*diffModAtRootElemTwo) ΛValidate(...ValidationOption) error     { return nil }
 func (*diffModAtRootElemTwo) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*diffModAtRootElemTwo) ΛBelongingModule() string                { return "m1" }
 
@@ -1904,7 +1904,7 @@ type annotatedJSONTestStruct struct {
 }
 
 func (*annotatedJSONTestStruct) IsYANGGoStruct()                         {}
-func (*annotatedJSONTestStruct) ΛValidate(...ValidationOption) error      { return nil }
+func (*annotatedJSONTestStruct) ΛValidate(...ValidationOption) error     { return nil }
 func (*annotatedJSONTestStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*annotatedJSONTestStruct) ΛBelongingModule() string                { return "" }
 

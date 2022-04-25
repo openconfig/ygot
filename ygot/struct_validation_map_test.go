@@ -1405,7 +1405,7 @@ type copyTest struct {
 }
 
 func (*copyTest) IsYANGGoStruct()                         {}
-func (*copyTest) ΛValidate(...ValidationOption) error      { return nil }
+func (*copyTest) ΛValidate(...ValidationOption) error     { return nil }
 func (*copyTest) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*copyTest) ΛBelongingModule() string                { return "" }
 
@@ -1419,7 +1419,7 @@ type errorCopyTest struct {
 }
 
 func (*errorCopyTest) IsYANGGoStruct()                         {}
-func (*errorCopyTest) ΛValidate(...ValidationOption) error      { return nil }
+func (*errorCopyTest) ΛValidate(...ValidationOption) error     { return nil }
 func (*errorCopyTest) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*errorCopyTest) ΛBelongingModule() string                { return "" }
 
