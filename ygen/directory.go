@@ -141,6 +141,15 @@ func FindSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]
 	return schemaPaths, err
 }
 
+// FindShadowSchemaPath finds the relative or absolute schema path of a given field
+// of a Directory with preference to the shadow path. The Field is specified as a name
+// in order to guarantee its  existence before processing.
+// NOTE: No error is returned if fieldName is not found.
+func FindShadowSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]string, error) {
+	schemaPaths, _, err := findSchemaPath(parent, fieldName, true, absolutePaths)
+	return schemaPaths, err
+}
+
 // findSchemaPath finds the relative or absolute schema path of a given field
 // of a Directory, or the shadowed field path (i.e. field duplicated and
 // deprioritized via compression) of a Directory. The first returned slice
