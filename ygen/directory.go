@@ -221,9 +221,9 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 					Path:         field.Path(),
 					ResolvedPath: target.Path(),
 				},
-				MappedPaths:         mp,
+				MappedPaths:             mp,
 				MappedPathModules:       mm,
-				ShadowMappedPaths:   smp,
+				ShadowMappedPaths:       smp,
 				ShadowMappedPathModules: smm,
 			}
 
