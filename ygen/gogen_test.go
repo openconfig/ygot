@@ -150,6 +150,9 @@ func TestGoCodeStructGeneration(t *testing.T) {
 			},
 			Path: []string{"", "root-module", "tstruct"},
 		},
+		inGoOpts: GoOpts{
+			ValidateFunctionName: "ValidateProxyFunction",
+		},
 		wantCompressed: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
@@ -170,6 +173,11 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 		return err
 	}
 	return nil
+}
+
+// Validate validates s against the YANG schema corresponding to its type.
+func (t *Tstruct) ValidateProxyFunction(opts ...ygot.ValidationOption) error {
+	return t.ΛValidate(opts...)
 }
 
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
@@ -203,6 +211,11 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 		return err
 	}
 	return nil
+}
+
+// Validate validates s against the YANG schema corresponding to its type.
+func (t *Tstruct) ValidateProxyFunction(opts ...ygot.ValidationOption) error {
+	return t.ΛValidate(opts...)
 }
 
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
