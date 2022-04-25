@@ -202,11 +202,11 @@ type NodeDetails struct {
 	// used to annotation the output code with the field(s) that it
 	// corresponds to in the YANG schema.
 	MappedPaths [][]string
-	// MappedModules describes the path elements' belonging modules that
+	// MappedPathModules describes the path elements' belonging modules that
 	// the output node should be mapped to in the output code - these
 	// annotations can be used to annotation the output code with the
 	// field(s) that it corresponds to in the YANG schema.
-	MappedModules [][]string
+	MappedPathModules [][]string
 	// ShadowMappedPaths describes the shadow paths (if any) that the output
 	// node should be mapped to in the output code - these annotations can
 	// be used to annotation the output code with the field(s) that it
@@ -214,13 +214,13 @@ type NodeDetails struct {
 	// Shadow paths are paths that have sibling config/state values
 	// that have been compressed out due to path compression.
 	ShadowMappedPaths [][]string
-	// ShadowMappedModules describes the shadow path elements' belonging
+	// ShadowMappedPathModules describes the shadow path elements' belonging
 	// modules (if any) that the output node should be mapped to in the
 	// output code - these annotations can be used to annotation the output
 	// code with the field(s) that it corresponds to in the YANG schema.
 	// Shadow paths are paths that have sibling config/state values
 	// that have been compressed out due to path compression.
-	ShadowMappedModules [][]string
+	ShadowMappedPathModules [][]string
 }
 
 // NodeType describes the different types of node that can
@@ -248,7 +248,7 @@ const (
 type YANGNodeDetails struct {
 	// Name is the name of the node from the YANG schema.
 	Name string
-	// Default represents the 'default' value directly
+	// Defaults represents the 'default' value(s) directly
 	// specified in the YANG schema.
 	Defaults []string
 	// Module stores the name of the module that instantiates
@@ -300,8 +300,8 @@ type EnumeratedYANGType struct {
 	ValuePrefix []string
 	// TypeName stores the original YANG type name for the enumeration.
 	TypeName string
-	// ValToYANGDetails stores the mapping between the
-	// int64 identifier for the enumeration value and its
-	// YANG-specific details (as defined by the ygot.EnumDefinition).
+	// ValToYANGDetails stores the YANG-ordered set of enumeration value
+	// and its YANG-specific details (as defined by the
+	// ygot.EnumDefinition).
 	ValToYANGDetails []*ygot.EnumDefinition
 }

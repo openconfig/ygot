@@ -51,7 +51,7 @@ type protoGenState struct {
 	// is to be used for it.
 	uniqueProtoPackages map[string]string
 
-	// basePackageNAme is the name of the package within which all generated packages
+	// basePackageName is the name of the package within which all generated packages
 	// are to be generated.
 	basePackageName string
 	// enumPackageName is the name of the package within which global enumerated values

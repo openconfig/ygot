@@ -114,8 +114,9 @@ func GoFieldNameMap(directory *Directory) map[string]string {
 // expected output (i.e., diffs don't appear simply due to reordering of the
 // Directory maps). If the names of the directories are not unique, which is
 // unexpected, an error is returned.
-// TODO(wenbli): this function's purpose is to check for name conflicts. This
-// functionality doesn't belong during IR processing but rather with downstream
+// TODO(wenbli): Deprecate this after ygot uses the IR for code generation.
+// This function's purpose is to check for name conflicts. This functionality
+// doesn't belong during IR processing but rather with downstream
 // language-specific processing since it's possible that conflicts are allowed
 // (e.g. nested struct definitions).
 func GetOrderedDirectories(directory map[string]*Directory) ([]string, map[string]*Directory, error) {
@@ -221,9 +222,9 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 					ResolvedPath: target.Path(),
 				},
 				MappedPaths:         mp,
-				MappedModules:       mm,
+				MappedPathModules:       mm,
 				ShadowMappedPaths:   smp,
-				ShadowMappedModules: smm,
+				ShadowMappedPathModules: smm,
 			}
 
 			switch {
