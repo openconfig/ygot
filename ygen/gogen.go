@@ -1655,6 +1655,15 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 
 		metadataTagBuf.WriteString(` ygotAnnotation:"true"`)
 
+		if goOpts.AddYangPresence {
+			// TODO(wenovus):
+			// a presence container is an unimplemented keyword in goyang.
+			// if and when this changes, the field lookup below would need to change as well.
+			if field.IsContainer() && len(field.Extra["presence"]) > 0 {
+				tagBuf.WriteString(` yangPresence:"true"`)
+			}
+		}
+
 		fieldDef.Tags = tagBuf.String()
 
 		// Append the generated field definition to the set of fields of the struct.

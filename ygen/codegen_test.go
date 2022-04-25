@@ -1223,6 +1223,23 @@ func TestSimpleStructs(t *testing.T) {
 			},
 		},
 		wantErrSubstring: "has a union key containing a binary",
+	}, {
+		name:    "module with presence containers",
+		inFiles: []string{filepath.Join(datapath, "presence-container-example.yang")},
+		inConfig: GeneratorConfig{
+			TransformationOptions: TransformationOpts{
+				GenerateFakeRoot:           true,
+				FakeRootName:               "device",
+				EnumerationsUseUnderscores: true,
+			},
+			GoOptions: GoOpts{
+				GenerateSimpleUnions:    true,
+				GenerateLeafGetters:     true,
+				GeneratePopulateDefault: true,
+				AddYangPresence:         true,
+			},
+		},
+		wantStructsCodeFile: filepath.Join(TestRoot, "testdata/structs/presence-container-example.formatted-txt"),
 	}}
 
 	for _, tt := range tests {

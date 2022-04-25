@@ -118,8 +118,9 @@ func GoFieldNameMap(directory *Directory) map[string]string {
 // expected output (i.e., diffs don't appear simply due to reordering of the
 // Directory maps). If the names of the directories are not unique, which is
 // unexpected, an error is returned.
-// TODO(wenbli): this function's purpose is to check for name conflicts. This
-// functionality doesn't belong during IR processing but rather with downstream
+// TODO(wenbli): Deprecate this after ygot uses the IR for code generation.
+// This function's purpose is to check for name conflicts. This functionality
+// doesn't belong during IR processing but rather with downstream
 // language-specific processing since it's possible that conflicts are allowed
 // (e.g. nested struct definitions).
 func GetOrderedDirectories(directory map[string]*Directory) ([]string, map[string]*Directory, error) {
@@ -236,10 +237,10 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 					Path:         field.Path(),
 					ResolvedPath: target.Path(),
 				},
-				MappedPaths:         mp,
-				MappedModules:       mm,
-				ShadowMappedPaths:   smp,
-				ShadowMappedModules: smm,
+				MappedPaths:             mp,
+				MappedPathModules:       mm,
+				ShadowMappedPaths:       smp,
+				ShadowMappedPathModules: smm,
 			}
 
 			switch {
@@ -276,6 +277,15 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 // existence before processing.
 func FindSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]string, error) {
 	schemaPaths, _, err := findSchemaPath(parent, fieldName, false, absolutePaths)
+	return schemaPaths, err
+}
+
+// FindShadowSchemaPath finds the relative or absolute schema path of a given field
+// of a Directory with preference to the shadow path. The Field is specified as a name
+// in order to guarantee its  existence before processing.
+// NOTE: No error is returned if fieldName is not found.
+func FindShadowSchemaPath(parent *Directory, fieldName string, absolutePaths bool) ([]string, error) {
+	schemaPaths, _, err := findSchemaPath(parent, fieldName, true, absolutePaths)
 	return schemaPaths, err
 }
 
