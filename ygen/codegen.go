@@ -194,6 +194,13 @@ type GoOpts struct {
 	// AnnotationPrefix specifies the string which is prefixed to the name of
 	// annotation fields. It defaults to Λ.
 	AnnotationPrefix string
+	// AddYangPresence specifies whether tags should be added to the generated
+	// fields of a struct. When set to true, a struct tag will be added to the field
+	// when a YANG container is a presence container
+	// https://datatracker.ietf.org/doc/html/rfc6020#section-7.5.1
+	// a field tag of `yangPresence="true"` will only be added if the container is
+	// a YANG presence container, and will be omitted if this is not the case.
+	AddYangPresence bool
 	// GenerateGetters specifies whether GetOrCreate* methods should be created
 	// for struct pointer (YANG container) and map (YANG list) fields of generated
 	// structs.
@@ -763,7 +770,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		NestedDirectories:     true,
 		AbsoluteMapPaths:      true,
 		// If UseConsistentNamesForProtoUnionEnums=true, then also set
-		// appendEnumSuffixForSimpleUnionEnums=true for consistent union enum
+		// AppendEnumSuffixForSimpleUnionEnums=true for consistent union enum
 		// names.
 		AppendEnumSuffixForSimpleUnionEnums:  cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums,
 		UseConsistentNamesForProtoUnionEnums: cg.Config.ProtoOptions.UseConsistentNamesForProtoUnionEnums,

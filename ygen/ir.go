@@ -38,8 +38,13 @@ import (
 //
 // Note: though the output names are meant to be usable within the output
 // language, it may not be the final name used in the generated code, for
-// example due to naming conflicts, which might be better resolved in a later
-// pass prior to code generation.
+// example due to naming conflicts, which are better resolved in a later
+// pass prior to code generation (see note below).
+//
+// NB: LangMapper's methods should be idempotent, such that the order in
+// which they're called and the number of times each is called per input
+// parameter does not affect the output. Do not depend on the same order of
+// method calls on langMapper by GenerateIR.
 type LangMapper interface {
 	// FieldName maps an input yang.Entry to the name that should be used
 	// in the intermediate representation. It is called for each field of
@@ -210,8 +215,9 @@ type ParsedDirectory struct {
 	// of the list's keys). It is keyed by the YANG name of the list key.
 	ListKeys map[string]*ListKey
 	// ListKeyYANGNames is the ordered list of YANG names specified in the
-	// YANG list per Section 7.8.2 of RFC6020. Rely on this
-	// fact for determisitic ordering in output code and rendering.
+	// YANG list per Section 7.8.2 of RFC6020. The consumer of the IR can
+	// rely on this ordering for deterministic ordering in output code and
+	// rendering.
 	ListKeyYANGNames []string
 	// PackageName is the package in which this directory node's generated
 	// code should reside.
@@ -289,11 +295,11 @@ type NodeDetails struct {
 	// used to annotation the output code with the field(s) that it
 	// corresponds to in the YANG schema.
 	MappedPaths [][]string
-	// MappedModules describes the path elements' belonging modules that
+	// MappedPathModules describes the path elements' belonging modules that
 	// the output node should be mapped to in the output code - these
 	// annotations can be used to annotation the output code with the
 	// field(s) that it corresponds to in the YANG schema.
-	MappedModules [][]string
+	MappedPathModules [][]string
 	// ShadowMappedPaths describes the shadow paths (if any) that the output
 	// node should be mapped to in the output code - these annotations can
 	// be used to annotation the output code with the field(s) that it
@@ -301,13 +307,13 @@ type NodeDetails struct {
 	// Shadow paths are paths that have sibling config/state values
 	// that have been compressed out due to path compression.
 	ShadowMappedPaths [][]string
-	// ShadowMappedModules describes the shadow path elements' belonging
+	// ShadowMappedPathModules describes the shadow path elements' belonging
 	// modules (if any) that the output node should be mapped to in the
 	// output code - these annotations can be used to annotation the output
 	// code with the field(s) that it corresponds to in the YANG schema.
 	// Shadow paths are paths that have sibling config/state values
 	// that have been compressed out due to path compression.
-	ShadowMappedModules [][]string
+	ShadowMappedPathModules [][]string
 }
 
 // NodeType describes the different types of node that can
@@ -335,7 +341,7 @@ const (
 type YANGNodeDetails struct {
 	// Name is the name of the node from the YANG schema.
 	Name string
-	// Default represents the 'default' value directly
+	// Defaults represents the 'default' value(s) directly
 	// specified in the YANG schema.
 	Defaults []string
 	// Module stores the name of the module that instantiates
@@ -387,8 +393,8 @@ type EnumeratedYANGType struct {
 	ValuePrefix []string
 	// TypeName stores the original YANG type name for the enumeration.
 	TypeName string
-	// ValToYANGDetails stores the mapping between the
-	// int64 identifier for the enumeration value and its
-	// YANG-specific details (as defined by the ygot.EnumDefinition).
+	// ValToYANGDetails stores the YANG-ordered set of enumeration value
+	// and its YANG-specific details (as defined by the
+	// ygot.EnumDefinition).
 	ValToYANGDetails []ygot.EnumDefinition
 }

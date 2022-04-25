@@ -951,7 +951,7 @@ func (*RFC7951JSONConfig) IsMarshal7951Arg() {}
 // to JSON described by RFC7951. The supplied args control options corresponding
 // to the method by which JSON is marshalled.
 func ConstructIETFJSON(s ValidatedGoStruct, args *RFC7951JSONConfig) (map[string]interface{}, error) {
-	return structJSON(s, s.ΛBelongingModule(), jsonOutputConfig{
+	return structJSON(s, "", jsonOutputConfig{
 		jType:         RFC7951,
 		rfc7951Config: args,
 	})
@@ -1000,11 +1000,7 @@ func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 			indent = string(v)
 		}
 	}
-	var parentMod string
-	if s, ok := d.(ValidatedGoStruct); ok {
-		parentMod = s.ΛBelongingModule()
-	}
-	j, err := jsonValue(reflect.ValueOf(d), parentMod, jsonOutputConfig{
+	j, err := jsonValue(reflect.ValueOf(d), "", jsonOutputConfig{
 		jType:         RFC7951,
 		rfc7951Config: rfcCfg,
 	})
@@ -1156,7 +1152,7 @@ func structJSON(s GoStruct, parentMod string, args jsonOutputConfig) (map[string
 			continue
 		}
 
-		if mp, ok := value.(map[string]interface{}); ok && len(mp) == 0 {
+		if mp, ok := value.(map[string]interface{}); ok && len(mp) == 0 && !util.IsYangPresence(fType) {
 			continue
 		}
 
