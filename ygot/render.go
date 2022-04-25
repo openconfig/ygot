@@ -916,6 +916,14 @@ type RFC7951JSONConfig struct {
 	// elements that are defined within a different YANG module than their
 	// parent.
 	AppendModuleName bool
+	// PrependModuleNameNonRootTopLevel specifies that the top-level field
+	// names of a non-root ValidatedGoStruct being marshalled should always
+	// have their belonging-module names prepended in the JSON output,
+	// instead of only being present when its namespace differs from the
+	// namespace of its parent.
+	// NOTE: This flag is used to preserve pre-ygot@v0.17.0 behaviour in
+	// code that depends on it. This will be deprecated in the future.
+	PrependModuleNameNonRootTopLevel bool
 	// PrependModuleNameIdentityref determines whether the module name is
 	// prepended to identityref values. AppendModuleName (should be named
 	// PrependModuleName) subsumes and overrides this flag.
@@ -951,7 +959,11 @@ func (*RFC7951JSONConfig) IsMarshal7951Arg() {}
 // to JSON described by RFC7951. The supplied args control options corresponding
 // to the method by which JSON is marshalled.
 func ConstructIETFJSON(s ValidatedGoStruct, args *RFC7951JSONConfig) (map[string]interface{}, error) {
-	return structJSON(s, s.ΛBelongingModule(), jsonOutputConfig{
+	var parentMod string
+	if args == nil || !args.PrependModuleNameNonRootTopLevel {
+		parentMod = s.ΛBelongingModule()
+	}
+	return structJSON(s, parentMod, jsonOutputConfig{
 		jType:         RFC7951,
 		rfc7951Config: args,
 	})
@@ -1001,8 +1013,10 @@ func Marshal7951(d interface{}, args ...Marshal7951Arg) ([]byte, error) {
 		}
 	}
 	var parentMod string
-	if s, ok := d.(ValidatedGoStruct); ok {
-		parentMod = s.ΛBelongingModule()
+	if rfcCfg == nil || !rfcCfg.PrependModuleNameNonRootTopLevel {
+		if s, ok := d.(ValidatedGoStruct); ok {
+			parentMod = s.ΛBelongingModule()
+		}
 	}
 	j, err := jsonValue(reflect.ValueOf(d), parentMod, jsonOutputConfig{
 		jType:         RFC7951,
