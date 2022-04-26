@@ -26,6 +26,7 @@ import (
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygot"
 )
 
 // Directory stores information needed for outputting a data node of the
@@ -262,6 +263,16 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 				nd.Type = AnyDataNode
 			default:
 				nd.Type = ContainerNode
+				// TODO(wenovus):
+				// a presence container is an unimplemented keyword in goyang.
+				// if and when this changes, the field lookup below would need to change as well.
+				if len(field.Extra["presence"]) > 0 {
+					if v := field.Extra["presence"][0].(*yang.Value); v != nil {
+						nd.YANGDetails.PresenceStatement = ygot.String(v.Name)
+					} else {
+						return nil, fmt.Errorf("unable to retrieve presence statement, expected non-nil *yang.Value, got %v", dir.Entry.Extra["presence"][0])
+					}
+				}
 			}
 
 			pd.Fields[fn] = nd
