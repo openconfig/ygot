@@ -229,6 +229,26 @@ type ParsedDirectory struct {
 	// BelongingModule is the module in whose namespace the directory node
 	// belongs.
 	BelongingModule string
+	// RootModule is the module in which the YANG tree the node is attached
+	// to was instantiated (rather than the module that has the same
+	// namespace as the node).
+	//
+	// In this example, con has a RootModule of "openconfig-simple", while a
+	// BelongingModule of "openconfig-augment". The DefiningModule is
+	// "openconfig-augment".
+	//
+	//   module openconfig-augment {
+	//     import openconfig-simple { prefix "t"; }
+	//     augment "/t:parent/child/state" {
+	//       container con {
+	//         leaf zero { type string; }
+	//       }
+	//     }
+	//   }
+	RootModule string
+	// DefiningModule is the module that contains the textual definition of
+	// the field.
+	DefiningModule string
 }
 
 // OrderedFieldNames returns the YANG name of all fields belonging to the
@@ -338,23 +358,65 @@ const (
 
 // YANGNodeDetails stores the YANG-specific details of a node
 // within the schema.
+// TODO(wenbli): Split this out so that parts can be re-used by
+// ParsedDirectory.
 type YANGNodeDetails struct {
 	// Name is the name of the node from the YANG schema.
 	Name string
 	// Defaults represents the 'default' value(s) directly
 	// specified in the YANG schema.
 	Defaults []string
-	// Module stores the name of the module that instantiates
-	// the node.
-	Module string
-	// Path specifies the absolute YANG schema node path.
+	// BelongingModule is the module in whose namespace the node belongs.
+	BelongingModule string
+	// RootModule is the module in which the YANG tree the node is attached
+	// to was instantiated (rather than the module that has the same
+	// namespace as the node).
+	//
+	// In this example, leaf has a RootModule of "openconfig-simple", while a
+	// BelongingModule of "openconfig-augment". The DefiningModule is
+	// "openconfig-augment".
+	//
+	//   module openconfig-augment {
+	//     import openconfig-simple { prefix "t"; }
+	//     augment "/t:parent/child/state" {
+	//       leaf zero { type string; }
+	//     }
+	//   }
+	RootModule string
+	// DefiningModule is the module that contains the textual definition of
+	// the field.
+	DefiningModule string
+	// Path specifies the absolute YANG schema node path that can be used
+	// to index into the ParsedDirectory map in the IR. It includes the
+	// module name as well as choice/case elements.
 	Path string
+	// SchemaPath specifies the absolute YANG schema node path. It does not
+	// include the module name nor choice/case elements in the YANG file.
+	SchemaPath string
 	// ResolvedPath specifies the leafref-resolved absolute YANG schema
 	// node path.
 	ResolvedPath string
 	// PresenceStatement, if non-nil, indicates that this directory is a
 	// presence container. It contains the value of the presence statement.
 	PresenceStatement *string
+	// Description contains the description of the node.
+	Description string
+	// Kind is the keyword used to define the node.
+	Kind string
+	// Type is the YANG type which represents the node. It is only
+	// applicable for leaf or leaf-list nodes because only these nodes can
+	// have type statements.
+	Type *YANGType
+}
+
+// YANGType represents a YANG type.
+type YANGType struct {
+	// Name is the YANG type name of the type.
+	Name string
+	// TODO(wenbli): Add this.
+	// Module is the name of the module which defined the type. This is
+	// only applicable if the type were a typedef.
+	//Module string
 }
 
 // EnumeratedValueType is used to indicate the source YANG type

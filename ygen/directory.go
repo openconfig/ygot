@@ -103,7 +103,6 @@ func GoFieldNameMap(directory *Directory) map[string]string {
 	for _, fieldName := range orderedFieldNames {
 		uniqueNameMap[fieldName] = genutil.MakeNameUnique(genutil.EntryCamelCaseName(directory.Fields[fieldName]), uniqueGenFieldNames)
 	}
-
 	return uniqueNameMap
 }
 
@@ -169,11 +168,17 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 		}
 
 		var belongingModule string
+		var rootModule string
 		if !dir.IsFakeRoot {
 			var err error
 			if belongingModule, err = dir.Entry.InstantiatingModule(); err != nil {
 				return nil, fmt.Errorf("ygen: cannot find instantiating module for Directory %s: %v", dir.Path, err)
 			}
+			rootModule = util.SchemaTreeRoot(dir.Entry).Name
+		}
+		var definingModuleName string
+		if definingModule := yang.RootNode(dir.Entry.Node); definingModule != nil {
+			definingModuleName = definingModule.Name
 		}
 		pd := &ParsedDirectory{
 			Name:            dir.Name,
@@ -181,6 +186,8 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			PackageName:     packageName,
 			IsFakeRoot:      dir.IsFakeRoot,
 			BelongingModule: belongingModule,
+			DefiningModule:  definingModuleName,
+			RootModule:      rootModule,
 		}
 		switch {
 		case dir.Entry.IsList():
@@ -224,14 +231,23 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 				return nil, err
 			}
 
+			var definingModuleName string
+			if definingModule := yang.RootNode(field.Node); definingModule != nil {
+				definingModuleName = definingModule.Name
+			}
 			nd := &NodeDetails{
 				Name: name,
 				YANGDetails: YANGNodeDetails{
-					Name:         field.Name,
-					Defaults:     field.DefaultValues(),
-					Module:       mod,
-					Path:         field.Path(),
-					ResolvedPath: target.Path(),
+					Name:            field.Name,
+					Defaults:        field.DefaultValues(),
+					BelongingModule: mod,
+					RootModule:      util.SchemaTreeRoot(field).Name,
+					DefiningModule:  definingModuleName,
+					Path:            field.Path(),
+					SchemaPath:      util.SchemaTreePathNoModule(field),
+					ResolvedPath:    target.Path(),
+					Description:     field.Description,
+					Kind:            field.Node.Kind(),
 				},
 				MappedPaths:             mp,
 				MappedPathModules:       mm,
@@ -240,7 +256,12 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			}
 
 			switch {
-			case field.IsLeaf(), field.IsLeafList():
+			case field.IsLeafList():
+				// This is to fix a bug in goyang where Entry's Node object
+				// for leaf-lists is actually a leaf object.
+				nd.YANGDetails.Kind = "leaf-list"
+				fallthrough
+			case field.IsLeaf():
 				mtype, err := langMapper.LeafType(field, opts)
 				if err != nil {
 					return nil, err
@@ -252,6 +273,9 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 
 				nd.Type = t
 				nd.LangType = mtype
+				nd.YANGDetails.Type = &YANGType{
+					Name: field.Type.Name,
+				}
 			case field.IsList():
 				nd.Type = ListNode
 			case util.IsAnydata(field):

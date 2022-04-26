@@ -57,7 +57,7 @@ func TestGoCodeStructGeneration(t *testing.T) {
 					YANGDetails: YANGNodeDetails{
 						Name:         "f1",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/tstruct/f1",
 						ResolvedPath: "",
 					},
@@ -79,7 +79,7 @@ func TestGoCodeStructGeneration(t *testing.T) {
 					YANGDetails: YANGNodeDetails{
 						Name:         "f2",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/tstruct/f2",
 						ResolvedPath: "",
 					},
@@ -151,7 +151,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "f1",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/tstruct/f1",
 						ResolvedPath: "",
 					},
@@ -173,7 +173,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "f2",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/tstruct/f2",
 						ResolvedPath: "",
 					},
@@ -238,7 +238,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "u1",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/module/input-struct/u1",
 						ResolvedPath: "",
 					},
@@ -343,7 +343,7 @@ func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Uni
 					YANGDetails: YANGNodeDetails{
 						Name:         "c1",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/input-struct/c1",
 						ResolvedPath: "",
 					},
@@ -408,7 +408,7 @@ func (*InputStruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:              "c1",
 						Defaults:          nil,
-						Module:            "exmod",
+						RootModule:        "exmod",
 						Path:              "/root-module/input-struct/c1",
 						ResolvedPath:      "",
 						PresenceStatement: ygot.String("instantiated"),
@@ -476,7 +476,7 @@ func (*InputStruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "elem",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/a-struct/elem",
 						ResolvedPath: "",
 					},
@@ -502,7 +502,7 @@ func (*InputStruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "list",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/b-struct/list",
 						ResolvedPath: "",
 					},
@@ -528,7 +528,7 @@ func (*InputStruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "a-list",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/q-struct/a-list",
 						ResolvedPath: "",
 					},
@@ -592,7 +592,7 @@ func (*QStruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "list-with-key",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/tstruct/listWithKey",
 						ResolvedPath: "",
 					},
@@ -617,7 +617,7 @@ func (*QStruct) ΛBelongingModule() string {
 						YANGDetails: YANGNodeDetails{
 							Name:         "keyLeaf",
 							Defaults:     nil,
-							Module:       "exmod",
+							RootModule:   "exmod",
 							Path:         "/root-module/tstruct/listWithKey/keyLeaf",
 							ResolvedPath: "",
 						},
@@ -740,7 +740,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "list-with-key",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/tstruct/listWithKey",
 						ResolvedPath: "",
 					},
@@ -779,7 +779,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "idd",
 						Defaults:     nil,
-						Module:       "mod",
+						RootModule:   "mod",
 						Path:         "/mod/container-two/container/idd",
 						ResolvedPath: "",
 					},
@@ -805,7 +805,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "list-with-key",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/tstruct/listWithKey",
 						ResolvedPath: "",
 					},
@@ -830,7 +830,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						YANGDetails: YANGNodeDetails{
 							Name:         "keyLeafOne",
 							Defaults:     nil,
-							Module:       "exmod",
+							RootModule:   "exmod",
 							Path:         "/root-module/tstruct/listWithKey/keyLeafOne",
 							ResolvedPath: "",
 						},
@@ -850,7 +850,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						YANGDetails: YANGNodeDetails{
 							Name:         "keyLeafTwo",
 							Defaults:     nil,
-							Module:       "exmod",
+							RootModule:   "exmod",
 							Path:         "/root-module/tstruct/listWithKey/keyLeafTwo",
 							ResolvedPath: "",
 						},
@@ -993,7 +993,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "f1",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/tstruct/f1",
 						ResolvedPath: "",
 					},
@@ -1063,7 +1063,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "list-with-key",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/tstruct/listWithKey",
 						ResolvedPath: "",
 					},
@@ -1088,7 +1088,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						YANGDetails: YANGNodeDetails{
 							Name:         "keyLeafOne",
 							Defaults:     nil,
-							Module:       "exmod",
+							RootModule:   "exmod",
 							Path:         "/root-module/tstruct/listWithKey/keyLeafOne",
 							ResolvedPath: "",
 						},
@@ -1108,7 +1108,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						YANGDetails: YANGNodeDetails{
 							Name:         "keyLeafTwo",
 							Defaults:     nil,
-							Module:       "exmod",
+							RootModule:   "exmod",
 							Path:         "/root-module/tstruct/listWithKey/keyLeafTwo",
 							ResolvedPath: "",
 						},
@@ -1320,7 +1320,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "list-with-key",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/tstruct/listWithKey",
 						ResolvedPath: "",
 					},
@@ -1345,7 +1345,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						YANGDetails: YANGNodeDetails{
 							Name:         "keyLeaf",
 							Defaults:     nil,
-							Module:       "exmod",
+							RootModule:   "exmod",
 							Path:         "/root-module/tstruct/listWithKey/keyLeaf",
 							ResolvedPath: "",
 						},
@@ -1536,7 +1536,7 @@ func (*Tstruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "c1",
 						Defaults:     nil,
-						Module:       "exmod",
+						RootModule:   "exmod",
 						Path:         "/root-module/input-struct/c1",
 						ResolvedPath: "",
 					},
@@ -1635,7 +1635,7 @@ func (*InputStruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "leaf",
 						Defaults:     nil,
-						Module:       "m1",
+						RootModule:   "m1",
 						Path:         "/m1/foo/bar/leaf",
 						ResolvedPath: "",
 					},
@@ -1728,7 +1728,7 @@ func (*Container) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:         "leaf",
 						Defaults:     []string{"DEFAULT VALUE"},
-						Module:       "m1",
+						RootModule:   "m1",
 						Path:         "/m1/foo/bar/leaf",
 						ResolvedPath: "",
 					},
