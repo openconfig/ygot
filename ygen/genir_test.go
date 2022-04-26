@@ -44,7 +44,7 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
 		inLangMapperFn: func() LangMapper {
-			return newGoGenState(nil, nil, true)
+			return newGoLangMapper(nil, nil)
 		},
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
@@ -276,7 +276,7 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
 		inLangMapperFn: func() LangMapper {
-			return newGoGenState(nil, nil, true)
+			return newGoLangMapper(nil, nil)
 		},
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
@@ -508,7 +508,7 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
 		inLangMapperFn: func() LangMapper {
-			return newGoGenState(nil, nil, true)
+			return newGoLangMapper(nil, nil)
 		},
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
@@ -906,7 +906,7 @@ func TestGenerateIR(t *testing.T) {
 		inYANGFiles:      []string{filepath.Join(datapath, "excluded-module-noimport.yang")},
 		inExcludeModules: []string{"excluded-module-two"},
 		inLangMapperFn: func() LangMapper {
-			return newGoGenState(nil, nil, true)
+			return newGoLangMapper(nil, nil)
 		},
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
@@ -957,7 +957,7 @@ func TestGenerateIR(t *testing.T) {
 		desc:        "complex openconfig test with compression",
 		inYANGFiles: []string{filepath.Join(datapath, "openconfig-complex.yang")},
 		inLangMapperFn: func() LangMapper {
-			return newGoGenState(nil, nil, true)
+			return newGoLangMapper(nil, nil)
 		},
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
