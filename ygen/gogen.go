@@ -1582,27 +1582,24 @@ func writeGoStruct(targetStruct *ParsedDirectory, goStructElements map[string]*P
 
 		// Append a tag indicating the module that instantiates this field.
 		tagBuf.WriteString(` module:"`)
-		addSchemaPathsToBuffers(field.MappedModules, false)
+		addSchemaPathsToBuffers(field.MappedPathModules, false)
 
 		if ignoreShadowSchemaPaths {
 			if len(field.ShadowMappedPaths) > 0 {
 				tagBuf.WriteString(` shadow-path:"`)
 				addSchemaPathsToBuffers(field.ShadowMappedPaths, false)
 			}
-			if len(field.ShadowMappedModules) > 0 {
+			if len(field.ShadowMappedPathModules) > 0 {
 				// Append a tag indicating the module that instantiates this field.
 				tagBuf.WriteString(` shadow-module:"`)
-				addSchemaPathsToBuffers(field.ShadowMappedModules, false)
+				addSchemaPathsToBuffers(field.ShadowMappedPathModules, false)
 			}
 		}
 
 		metadataTagBuf.WriteString(` ygotAnnotation:"true"`)
 
 		if goOpts.AddYangPresence {
-			// TODO(wenovus):
-			// a presence container is an unimplemented keyword in goyang.
-			// if and when this changes, the field lookup below would need to change as well.
-			if field.IsContainer() && len(field.Extra["presence"]) > 0 {
+			if field.Type == ContainerNode && field.YANGDetails.PresenceStatement != nil {
 				tagBuf.WriteString(` yangPresence:"true"`)
 			}
 		}

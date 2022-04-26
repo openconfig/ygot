@@ -105,6 +105,10 @@ module openconfig-complex {
   }
 
   grouping top {
+    container example-presence {
+      presence "This is an example presence container";
+    }
+
     container model {
       container a {
         list single-key {
