@@ -118,7 +118,7 @@ func TestLeafref(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.in.Validate(); (err != nil) != tt.wantErr {
+			if err := tt.in.ΛValidate(); (err != nil) != tt.wantErr {
 				t.Fatalf("incorrect validation result, got: %v, wantErr? %v", err, tt.wantErr)
 			}
 		})

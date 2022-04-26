@@ -38,7 +38,7 @@ func benchmarkIntsSubints(b *testing.B, ints, subints int) {
 	r.Subinterface = ygot.Uint32(uint32(subints) - 1)
 
 	b.ResetTimer()
-	if err := d.Validate(); err != nil {
+	if err := d.ΛValidate(); err != nil {
 		b.FailNow()
 	}
 }

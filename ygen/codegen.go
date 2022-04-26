@@ -230,6 +230,8 @@ type GoOpts struct {
 	// GNMIProtoPath specifies the path to the generated gNMI protobuf, which
 	// is used to store the catalogue entries for generated modules.
 	GNMIProtoPath string
+	// ValidateFunctionName specifies the name of a function that proxies ΛValidate.
+	ValidateFunctionName string
 	// IncludeModelData specifies whether gNMI ModelData messages should be generated
 	// in the output code.
 	IncludeModelData bool

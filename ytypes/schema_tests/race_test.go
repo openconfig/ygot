@@ -43,7 +43,7 @@ func TestRace(t *testing.T) {
 	}, {
 		name: "Validate",
 		fn: func(d *oc.Device, t *testing.T) {
-			if err := d.Validate(); err != nil {
+			if err := d.ΛValidate(); err != nil {
 				t.Errorf("could not validate device - unexpected err, got: %v, want: nil", err)
 			}
 		},

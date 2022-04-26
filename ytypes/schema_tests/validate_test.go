@@ -99,17 +99,17 @@ func TestValidateInterface(t *testing.T) {
 	eth0.Type = oc.IETFInterfaces_InterfaceType_ethernetCsmacd
 
 	// Validate the fake root device.
-	if err := dev.Validate(); err != nil {
+	if err := dev.ΛValidate(); err != nil {
 		t.Errorf("root success: got %s, want nil", err)
 	}
 	// Validate an element in the device subtree.
-	if err := eth0.Validate(); err != nil {
+	if err := eth0.ΛValidate(); err != nil {
 		t.Errorf("eth0 success: got %s, want nil", err)
 	}
 
 	// Key in map != key field value in element. Key should be "eth0" here.
 	dev.Interface["bad_key"] = eth0
-	if err := dev.Validate(); err == nil {
+	if err := dev.ΛValidate(); err == nil {
 		t.Errorf("bad key: got nil, want error")
 	} else {
 		if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
@@ -129,7 +129,7 @@ func TestValidateInterface(t *testing.T) {
 	}
 
 	// Validate the vlan.
-	if err := vlan0.Validate(); err != nil {
+	if err := vlan0.ΛValidate(); err != nil {
 		t.Errorf("vlan0 success: got %s, want nil", err)
 	}
 
@@ -138,7 +138,7 @@ func TestValidateInterface(t *testing.T) {
 		VlanId: oc.UnionUint16(4095),
 	}
 	// Validate the vlan.
-	err = vlan0.Validate()
+	err = vlan0.ΛValidate()
 	if diff := errdiff.Substring(err, `/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: schema "": unsigned integer value 4095 is outside specified ranges`); diff != "" {
 		t.Errorf("did not get expected vlan-id error, %s", diff)
 	}
@@ -147,7 +147,7 @@ func TestValidateInterface(t *testing.T) {
 	}
 
 	// Validate that we get two errors.
-	if errs := dev.Validate(); len(errs.(util.Errors)) != 2 {
+	if errs := dev.ΛValidate(); len(errs.(util.Errors)) != 2 {
 		var b bytes.Buffer
 		for _, err := range errs.(util.Errors) {
 			b.WriteString(fmt.Sprintf("	[%s]\n", err))
@@ -167,17 +167,17 @@ func TestValidateInterfaceWrapperUnion(t *testing.T) {
 	eth0.Type = woc.IETFInterfaces_InterfaceType_ethernetCsmacd
 
 	// Validate the fake root device.
-	if err := dev.Validate(); err != nil {
+	if err := dev.ΛValidate(); err != nil {
 		t.Errorf("root success: got %s, want nil", err)
 	}
 	// Validate an element in the device subtree.
-	if err := eth0.Validate(); err != nil {
+	if err := eth0.ΛValidate(); err != nil {
 		t.Errorf("eth0 success: got %s, want nil", err)
 	}
 
 	// Key in map != key field value in element. Key should be "eth0" here.
 	dev.Interface["bad_key"] = eth0
-	err = dev.Validate()
+	err = dev.ΛValidate()
 	if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
 		t.Errorf("did not get expected vlan-id error, %s", diff)
 	}
@@ -198,7 +198,7 @@ func TestValidateInterfaceWrapperUnion(t *testing.T) {
 	}
 
 	// Validate the vlan.
-	if err := vlan0.Validate(); err != nil {
+	if err := vlan0.ΛValidate(); err != nil {
 		t.Errorf("vlan0 success: got %s, want nil", err)
 	}
 
@@ -209,7 +209,7 @@ func TestValidateInterfaceWrapperUnion(t *testing.T) {
 		},
 	}
 	// Validate the vlan.
-	if err := vlan0.Validate(); err == nil {
+	if err := vlan0.ΛValidate(); err == nil {
 		t.Errorf("bad vlan-id value: got nil, want error")
 	} else {
 		if diff := errdiff.Substring(err, `/device/interfaces/interface/subinterfaces/subinterface/vlan/config/vlan-id: schema "": unsigned integer value 4095 is outside specified ranges`); diff != "" {
@@ -219,7 +219,7 @@ func TestValidateInterfaceWrapperUnion(t *testing.T) {
 	}
 
 	// Validate that we get two errors.
-	if errs := dev.Validate(); len(errs.(util.Errors)) != 2 {
+	if errs := dev.ΛValidate(); len(errs.(util.Errors)) != 2 {
 		var b bytes.Buffer
 		for _, err := range errs.(util.Errors) {
 			b.WriteString(fmt.Sprintf("	[%s]\n", err))
@@ -239,17 +239,17 @@ func TestValidateInterfaceOpState(t *testing.T) {
 	eth0.Type = opstateoc.IETFInterfaces_InterfaceType_ethernetCsmacd
 
 	// Validate the fake root device.
-	if err := dev.Validate(); err != nil {
+	if err := dev.ΛValidate(); err != nil {
 		t.Errorf("root success: got %s, want nil", err)
 	}
 	// Validate an element in the device subtree.
-	if err := eth0.Validate(); err != nil {
+	if err := eth0.ΛValidate(); err != nil {
 		t.Errorf("eth0 success: got %s, want nil", err)
 	}
 
 	// Key in map != key field value in element. Key should be "eth0" here.
 	dev.Interface["bad_key"] = eth0
-	if err := dev.Validate(); err == nil {
+	if err := dev.ΛValidate(); err == nil {
 		t.Errorf("bad key: got nil, want error")
 	} else {
 		if diff := errdiff.Substring(err, "/device/interfaces/interface: key field Name: element key eth0 != map key bad_key"); diff != "" {
@@ -269,7 +269,7 @@ func TestValidateInterfaceOpState(t *testing.T) {
 	}
 
 	// Validate the vlan.
-	if err := vlan0.Validate(); err != nil {
+	if err := vlan0.ΛValidate(); err != nil {
 		t.Errorf("vlan0 success: got %s, want nil", err)
 	}
 
@@ -278,7 +278,7 @@ func TestValidateInterfaceOpState(t *testing.T) {
 		VlanId: opstateoc.UnionUint16(4095),
 	}
 	// Validate the vlan.
-	if err := vlan0.Validate(); err == nil {
+	if err := vlan0.ΛValidate(); err == nil {
 		t.Errorf("bad vlan-id value: got nil, want error")
 	} else {
 		if diff := errdiff.Substring(err, `/device/interfaces/interface/subinterfaces/subinterface/vlan/state/vlan-id: schema "": unsigned integer value 4095 is outside specified ranges`); diff != "" {
@@ -288,7 +288,7 @@ func TestValidateInterfaceOpState(t *testing.T) {
 	}
 
 	// Validate that we get two errors.
-	if errs := dev.Validate(); len(errs.(util.Errors)) != 2 {
+	if errs := dev.ΛValidate(); len(errs.(util.Errors)) != 2 {
 		var b bytes.Buffer
 		for _, err := range errs.(util.Errors) {
 			b.WriteString(fmt.Sprintf("	[%s]\n", err))
@@ -311,17 +311,17 @@ func TestValidateSystemDns(t *testing.T) {
 	}
 
 	// Validate the fake root device.
-	if err := dev.Validate(); err != nil {
+	if err := dev.ΛValidate(); err != nil {
 		t.Errorf("root success: got %s, want nil", err)
 	}
 	// Validate an element in the device subtree.
-	if err := dev.System.Validate(); err != nil {
+	if err := dev.System.ΛValidate(); err != nil {
 		t.Errorf("system success: got %s, want nil", err)
 	}
 
 	// Key in map != key field value in element.
 	dev.System.Dns.Server["bad_key"] = &oc.System_Dns_Server{Address: ygot.String("server1")}
-	if err := dev.Validate(); err == nil {
+	if err := dev.ΛValidate(); err == nil {
 		t.Errorf("bad key: got nil, want error")
 	} else {
 		testErrLog(t, "bad key", err)
@@ -342,11 +342,11 @@ func TestValidateSystemAaa(t *testing.T) {
 	}
 
 	// Validate the fake root device.
-	if err := dev.Validate(); err != nil {
+	if err := dev.ΛValidate(); err != nil {
 		t.Errorf("root success: got %s, want nil", err)
 	}
 	// Validate an element in the device subtree.
-	if err := dev.System.Validate(); err != nil {
+	if err := dev.System.ΛValidate(); err != nil {
 		t.Errorf("system success: got %s, want nil", err)
 	}
 }
@@ -367,11 +367,11 @@ func TestValidateSystemAaaWrapperUnion(t *testing.T) {
 	}
 
 	// Validate the fake root device.
-	if err := dev.Validate(); err != nil {
+	if err := dev.ΛValidate(); err != nil {
 		t.Errorf("root success: got %s, want nil", err)
 	}
 	// Validate an element in the device subtree.
-	if err := dev.System.Validate(); err != nil {
+	if err := dev.System.ΛValidate(); err != nil {
 		t.Errorf("system success: got %s, want nil", err)
 	}
 }
@@ -405,12 +405,12 @@ func TestValidateLLDP(t *testing.T) {
 	tlv.Value = []byte{42, 42}
 
 	// Validate the TLV
-	if err := tlv.Validate(); err != nil {
+	if err := tlv.ΛValidate(); err != nil {
 		t.Errorf("LLDP failure: got TLV validation errors: %s", err)
 	}
 
 	// Validate the fake root device.
-	if err := dev.Validate(); err != nil {
+	if err := dev.ΛValidate(); err != nil {
 		t.Errorf("LLDP failure: got device validation errors: %s", err)
 	}
 }
@@ -430,13 +430,13 @@ func TestValidateSystemNtp(t *testing.T) {
 	}
 
 	// Validate the fake root device.
-	if err := dev.Validate(); err != nil {
+	if err := dev.ΛValidate(); err != nil {
 		t.Errorf("root success: got %s, want nil", err)
 	}
 
 	// Key in map != key field value in element.
 	dev.System.Ntp.Server["10.10.10.10"].Version = ygot.Uint8(5)
-	if err := dev.Validate(); err == nil {
+	if err := dev.ΛValidate(); err == nil {
 		t.Errorf("bad version: got nil, want error")
 	} else {
 		testErrLog(t, "bad version", err)
@@ -464,13 +464,13 @@ func TestValidateNetworkInstance(t *testing.T) {
 	}
 
 	// Validate the fake root device.
-	if err := dev.Validate(); err != nil {
+	if err := dev.ΛValidate(); err != nil {
 		t.Errorf("root success: got %s, want nil", err)
 	}
 
 	// Key in map != key field value in element.
 	dev.NetworkInstance["instance1"].Protocol[instance1protocol1Key].Name = ygot.String("bad_name")
-	if err := dev.Validate(); err == nil {
+	if err := dev.ΛValidate(); err == nil {
 		t.Errorf("bad element key field: got nil, want error")
 	} else {
 		testErrLog(t, "bad element key field", err)
@@ -504,7 +504,7 @@ func TestValidateBGP(t *testing.T) {
 	}
 
 	// Validate the fake root device.
-	if err := d.Validate(); err != nil {
+	if err := d.ΛValidate(); err != nil {
 		t.Errorf("root success: got %s, want nil", err)
 	}
 }
@@ -521,7 +521,7 @@ func TestValidateLocalRoutes(t *testing.T) {
 	}
 
 	// Validate the local static route.
-	if err := lrs.Validate(); err != nil {
+	if err := lrs.ΛValidate(); err != nil {
 		t.Errorf("success: got %s, want nil", err)
 	}
 }
@@ -577,7 +577,7 @@ func TestValidateRoutingPolicy(t *testing.T) {
 	}
 
 	// Validate the fake root device.
-	if err := dev.Validate(); err != nil {
+	if err := dev.ΛValidate(); err != nil {
 		t.Errorf("root success: got %s, want nil", err)
 	}
 
@@ -592,7 +592,7 @@ func TestValidateRoutingPolicy(t *testing.T) {
 		IpPrefix:        ygot.String("255.255.255.0/20"),
 		MasklengthRange: ygot.String(badMaskLengthRange),
 	}
-	err := dev.Validate()
+	err := dev.ΛValidate()
 	if diff := errdiff.Substring(err, "does not match regular expression pattern"); diff != "" {
 		t.Errorf("did not get expected bad regex error, %s", diff)
 	} else {
@@ -806,16 +806,16 @@ func TestLeafrefCurrent(t *testing.T) {
 		Subinterface: ygot.Uint32(0),
 	}
 
-	if err := dev.Validate(); err != nil {
+	if err := dev.ΛValidate(); err != nil {
 		t.Fatalf("TestLeafrefCurrent: could not validate populated interfaces, got: %v, want: nil", err)
 	}
 
 	ni.Mpls.Global.Interface["eth0.0"].InterfaceRef.Subinterface = ygot.Uint32(1)
-	if err := dev.Validate(); err == nil {
+	if err := dev.ΛValidate(); err == nil {
 		t.Fatal("TestLeafrefCurrent: did not get expected error for non-existent subinterface, got: nil, want: error")
 	}
 
-	if err := dev.Validate(&ytypes.LeafrefOptions{IgnoreMissingData: true}); err != nil {
+	if err := dev.ΛValidate(&ytypes.LeafrefOptions{IgnoreMissingData: true}); err != nil {
 		t.Fatalf("TestLeafrefCurrent: did not get nil error when disabling leafref data validation, got: %v, want: nil", err)
 	}
 }
