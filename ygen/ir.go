@@ -259,6 +259,9 @@ type YANGNodeDetails struct {
 	// ResolvedPath specifies the leafref-resolved absolute YANG schema
 	// node path.
 	ResolvedPath string
+	// PresenceStatement, if non-nil, indicates that this directory is a
+	// presence container. It contains the value of the presence statement.
+	PresenceStatement *string
 }
 
 // EnumeratedValueType is used to indicate the source YANG type
