@@ -306,6 +306,20 @@ func TestUnmarshalContainer(t *testing.T) {
 				Name: "leaf2-field",
 				Type: &yang.YangType{Kind: yang.Yint32},
 			},
+			"container2-field": {
+				Name: "container2-field",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"leaf3-field": {
+						Kind: yang.LeafEntry,
+						Name: "leaf3-field",
+						Type: &yang.YangType{Kind: yang.Yint32},
+					},
+				},
+				Extra: map[string][]interface{}{
+					"presence": {&yang.Value{Name: "presence container2-field"}},
+				},
+			},
 		},
 	}
 	containerSchema := &yang.Entry{
@@ -318,26 +332,33 @@ func TestUnmarshalContainer(t *testing.T) {
 
 	populateParentField(nil, containerSchema)
 
+	type Container2Struct struct {
+		Leaf3Field *int32 `path:"leaf3-field"`
+	}
+
 	type ContainerStruct struct {
 		ConfigLeaf1Field *int32            `path:"config/leaf1-field"`
 		StateLeaf1Field  *int32            `path:"state/leaf1-field"`
 		Leaf2Field       *int32            `path:"leaf2-field"`
+		Container2Field  *Container2Struct `path:"container2-field" yangPresence:"true"`
 		Annotation       []ygot.Annotation `path:"@" ygotAnnotation:"true"`
 		AnnotationTwo    []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
 	}
 
 	type ContainerStructPreferState struct {
-		Leaf1Field    *int32            `path:"state/leaf1-field" shadow-path:"config/leaf1-field"`
-		Leaf2Field    *int32            `path:"leaf2-field"`
-		Annotation    []ygot.Annotation `path:"@" ygotAnnotation:"true"`
-		AnnotationTwo []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
+		Leaf1Field      *int32            `path:"state/leaf1-field" shadow-path:"config/leaf1-field"`
+		Leaf2Field      *int32            `path:"leaf2-field"`
+		Container2Field *Container2Struct `path:"container2-field" yangPresence:"true"`
+		Annotation      []ygot.Annotation `path:"@" ygotAnnotation:"true"`
+		AnnotationTwo   []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
 	}
 
 	type ContainerStructPreferStateNoShadow struct {
-		Leaf1Field    *int32            `path:"state/leaf1-field"`
-		Leaf2Field    *int32            `path:"leaf2-field"`
-		Annotation    []ygot.Annotation `path:"@" ygotAnnotation:"true"`
-		AnnotationTwo []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
+		Leaf1Field      *int32            `path:"state/leaf1-field"`
+		Leaf2Field      *int32            `path:"leaf2-field"`
+		Container2Field *Container2Struct `path:"container2-field" yangPresence:"true"`
+		Annotation      []ygot.Annotation `path:"@" ygotAnnotation:"true"`
+		AnnotationTwo   []ygot.Annotation `path:"@one|@two" ygotAnnotation:"true"`
 	}
 
 	type ParentContainerStruct struct {
@@ -373,14 +394,42 @@ func TestUnmarshalContainer(t *testing.T) {
 			schema: containerSchema,
 			parent: &ParentContainerStruct{},
 			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } } }`,
-			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43), Container2Field: nil}},
+		},
+		{
+			desc:   "success with presence container",
+			schema: containerSchema,
+			parent: &ParentContainerStruct{},
+			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } , "container2-field": { "leaf3-field": 44 } } }`,
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43), Container2Field: &Container2Struct{Leaf3Field: ygot.Int32(44)}}},
+		},
+		{
+			desc:   "success with empty presence container",
+			schema: containerSchema,
+			parent: &ParentContainerStruct{},
+			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } , "container2-field": {  } } }`,
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43), Container2Field: &Container2Struct{}}},
 		},
 		{
 			desc:   "success overwriting existing fields",
 			schema: containerSchema,
 			parent: &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(1), StateLeaf1Field: ygot.Int32(2)}},
 			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } } }`,
-			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43), Container2Field: nil}},
+		},
+		{
+			desc:   "success overwriting existing fields with presence container",
+			schema: containerSchema,
+			parent: &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(1), StateLeaf1Field: ygot.Int32(2), Container2Field: &Container2Struct{Leaf3Field: ygot.Int32(3)}}},
+			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } , "container2-field": { "leaf3-field": 44 } } }`,
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43), Container2Field: &Container2Struct{Leaf3Field: ygot.Int32(44)}}},
+		},
+		{
+			desc:   "success overwriting existing fields, no-op on empty presence container",
+			schema: containerSchema,
+			parent: &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(1), StateLeaf1Field: ygot.Int32(2), Container2Field: &Container2Struct{Leaf3Field: ygot.Int32(3)}}},
+			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 41 } , "state": { "leaf1-field": 42 } , "container2-field": {  } } }`,
+			want:   &ParentContainerStruct{ContainerField: &ContainerStruct{ConfigLeaf1Field: ygot.Int32(41), StateLeaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43), Container2Field: &Container2Struct{Leaf3Field: ygot.Int32(3)}}},
 		},
 		{
 			desc:    "nil schema",

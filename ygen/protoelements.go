@@ -50,6 +50,13 @@ type protoGenState struct {
 	// a path to be resolved into the calculated Protobuf package name that
 	// is to be used for it.
 	uniqueProtoPackages map[string]string
+
+	// basePackageName is the name of the package within which all generated packages
+	// are to be generated.
+	basePackageName string
+	// enumPackageName is the name of the package within which global enumerated values
+	// are defined (i.e., typedefs that contain enumerations, or YANG identities).
+	enumPackageName string
 }
 
 // newProtoGenState creates a new protoGenState instance, initialised with the
@@ -65,20 +72,81 @@ func newProtoGenState(schematree *schemaTree, eSet *enumSet) *protoGenState {
 	}
 }
 
-// buildDirectoryDefinitions extracts the yang.Entry instances from a map of
-// entries that need struct definitions built for them. It resolves each
-// non-leaf yang.Entry to a Directory which contains the elements that are
-// needed for subsequent code generation.
-func (s *protoGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour) (map[string]*Directory, []error) {
-	return buildDirectoryDefinitions(entries, compBehaviour,
-		// In the case of protobuf the message name is simply the camel
-		// case name that is specified.
-		func(e *yang.Entry) string {
-			return s.protoMsgName(e, compBehaviour.CompressEnabled())
-		},
-		// protobuf's key types are handled at a different place.
-		nil,
+// DirectoryName generates the proto message name to be used for a particular
+// YANG schema element in the generated code.
+// Since this conversion is lossy, a later step should resolve any naming
+// conflicts between different fields.
+func (s *protoGenState) DirectoryName(e *yang.Entry, cb genutil.CompressBehaviour) (string, error) {
+	return s.protoMsgName(e, cb.CompressEnabled()), nil
+}
+
+// FieldName maps the input entry's name to what the proto name of the field would be.
+// Since this conversion is lossy, a later step should resolve any naming
+// conflicts between different fields.
+func (s *protoGenState) FieldName(e *yang.Entry) (string, error) {
+	return safeProtoIdentifierName(e.Name), nil
+}
+
+// LeafType maps the input leaf entry to a MappedType object containing the
+// type information about the field.
+func (s *protoGenState) LeafType(e *yang.Entry, opts IROptions) (*MappedType, error) {
+	// TODO(wenbli): implement LeafType
+	return nil, nil
+}
+
+// LeafType maps the input list key entry to a MappedType object containing the
+// type information about the key field.
+func (s *protoGenState) KeyLeafType(e *yang.Entry, opts IROptions) (*MappedType, error) {
+	scalarType, err := s.yangTypeToProtoScalarType(resolveTypeArgs{
+		yangType:     e.Type,
+		contextEntry: e,
+	}, resolveProtoTypeArgs{
+		basePackageName: s.basePackageName,
+		enumPackageName: s.enumPackageName,
+		// When there is a union within a list key that has a single type within it
+		// e.g.,:
+		// list foo {
+		//   key "bar";
+		//   leaf bar {
+		//     type union {
+		//       type string { pattern "a.*" }
+		//			 type string { pattern "b.*" }
+		//     }
+		//   }
+		// }
+		// Then we want to use the scalar type rather than the wrapper type in
+		// this message since all keys must be set. We therefore signal this in
+		// the call to the type resolution.
+		scalarTypeInSingleTypeUnion: true,
+	},
+		opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames,
+		opts.UseConsistentNamesForProtoUnionEnums,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("list %s included a key %s that did not have a valid proto type: %v", e.Path(), e.Name, e.Type)
+	}
+
+	return scalarType, nil
+}
+
+// PackageName determines the package that the particular node should reside
+// in. This determines the namespace of the node.
+func (s *protoGenState) PackageName(*yang.Entry, genutil.CompressBehaviour, bool) (string, error) {
+	// TODO(wenbli): implement PackageName
+	return "", nil
+}
+
+// SetEnumSet is used to supply a set of enumerated values to the
+// mapper such that leaves that have enumerated types can be looked up.
+func (s *protoGenState) SetEnumSet(e *enumSet) {
+	s.enumSet = e
+}
+
+// SetSchemaTree is used to supply a copy of the YANG schema tree to
+// the mapped such that leaves of type leafref can be resolved to
+// their target leaves.
+func (s *protoGenState) SetSchemaTree(st *schemaTree) {
+	s.schematree = st
 }
 
 // resolveProtoTypeArgs specifies input parameters required for resolving types

@@ -1327,7 +1327,7 @@ func IsScalarField(field *yang.Entry, t *MappedType) bool {
 // generateGoDefaultValue returns a pointer to a Go literal that represents the
 // default value for the entry. If there is no default value for the field, nil
 // is returned.
-func generateGoDefaultValue(field *yang.Entry, mtype *MappedType, gogen *goGenState, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, simpleUnions bool) (*string, error) {
+func generateGoDefaultValue(field *yang.Entry, mtype *MappedType, gogen *GoLangMapper, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, simpleUnions bool) (*string, error) {
 	// Set the default type to the mapped Go type.
 	defaultValues := field.DefaultValues()
 	if len(defaultValues) == 0 && mtype.DefaultValue != nil {
@@ -1391,7 +1391,7 @@ func generateGoDefaultValue(field *yang.Entry, mtype *MappedType, gogen *goGenSt
 //	   of targetStruct (listKeys).
 //	3. Methods with the struct corresponding to targetStruct as a receiver, e.g., for each
 //	   list a NewListMember() method is generated.
-func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, gogen *goGenState, compressPaths, ignoreShadowSchemaPaths, generateJSONSchema, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, goOpts GoOpts) (GoStructCodeSnippet, []error) {
+func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directory, gogen *GoLangMapper, compressPaths, ignoreShadowSchemaPaths, generateJSONSchema, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, goOpts GoOpts) (GoStructCodeSnippet, []error) {
 	var errs []error
 
 	// structDef is used to store the attributes of the structure for which code is being
@@ -1707,6 +1707,15 @@ func writeGoStruct(targetStruct *Directory, goStructElements map[string]*Directo
 		}
 
 		metadataTagBuf.WriteString(` ygotAnnotation:"true"`)
+
+		if goOpts.AddYangPresence {
+			// TODO(wenovus):
+			// a presence container is an unimplemented keyword in goyang.
+			// if and when this changes, the field lookup below would need to change as well.
+			if field.IsContainer() && len(field.Extra["presence"]) > 0 {
+				tagBuf.WriteString(` yangPresence:"true"`)
+			}
+		}
 
 		fieldDef.Tags = tagBuf.String()
 
@@ -2086,7 +2095,7 @@ func generateGetListKey(buf *bytes.Buffer, s *Directory, nameMap map[string]*yan
 //	  type.
 // In the case that the list has multiple keys, the type generated as the key of the list is returned.
 // If errors are encountered during the type generation for the list, the error is returned.
-func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *Directory, goStructElements map[string]*Directory, gogen *goGenState) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
+func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *Directory, goStructElements map[string]*Directory, gogen *GoLangMapper) (string, *generatedGoMultiKeyListStruct, *generatedGoListMethod, error) {
 	// The list itself, since it is a container, has a struct associated with it. Retrieve
 	// this from the set of Directory structs for which code (a Go struct) will be
 	//  generated such that additional details can be used in the code generation.
@@ -2124,10 +2133,10 @@ func yangListFieldToGoType(listField *yang.Entry, listFieldName string, parent *
 	for _, keName := range keyElemNames {
 		keyField := goStructField{
 			Name: genutil.MakeNameUnique(genutil.EntryCamelCaseName(listField.Dir[keName]), usedKeyElemNames),
-			Type: listElem.ListAttr.Keys[keName].NativeType,
+			Type: listElem.ListAttr.Keys[keName].LangType.NativeType,
 			Tags: fmt.Sprintf(`path:"%s"`, keName),
 		}
-		keyField.IsScalarField = IsScalarField(listField.Dir[keName], listElem.ListAttr.Keys[keName])
+		keyField.IsScalarField = IsScalarField(listField.Dir[keName], listElem.ListAttr.Keys[keName].LangType)
 		listKeys = append(listKeys, keyField)
 	}
 

@@ -1019,6 +1019,41 @@ func TestIsYgotAnnotation(t *testing.T) {
 	}
 }
 
+func TestIsYangPresence(t *testing.T) {
+	type testStruct struct {
+		Yes *string `yangPresence:"true"`
+		No  *string
+	}
+	structFieldYes, ok := reflect.TypeOf(testStruct{}).FieldByName("Yes")
+	if !ok {
+		t.Fatalf("Cannot find field Yes in testStruct")
+	}
+
+	structFieldNo, ok := reflect.TypeOf(testStruct{}).FieldByName("No")
+	if !ok {
+		t.Fatalf("Cannot find field No in testStruct")
+	}
+	tests := []struct {
+		name string
+		in   reflect.StructField
+		want bool
+	}{{
+		name: "yangPresence container/field",
+		in:   structFieldYes,
+		want: true,
+	}, {
+		name: "standard field",
+		in:   structFieldNo,
+		want: false,
+	}}
+
+	for _, tt := range tests {
+		if got := IsYangPresence(tt.in); got != tt.want {
+			t.Errorf("%s: IsYangPresence(%#v): did not get expected result, got: %v, want: %v", tt.name, tt.in, got, tt.want)
+		}
+	}
+}
+
 // complexUnionTypeName is the name used to refer to the name of the union
 // type containing the slice of input types to the functions.
 const complexUnionTypeName = "complexUnionTypeName"

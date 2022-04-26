@@ -1002,10 +1002,13 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"key": {Name: "key", Type: &yang.YangType{Kind: yang.Ystring}},
 				},
 				ListAttr: &YangListAttr{
-					Keys: map[string]*MappedType{
+					Keys: map[string]*ListKey{
 						"key": {
-							NativeType: "string",
-							ZeroValue:  `""`,
+							Name: "Key",
+							LangType: &MappedType{
+								NativeType: "string",
+								ZeroValue:  `""`,
+							},
 						},
 					},
 				},
@@ -1020,10 +1023,13 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 					"state":  {Name: "state"},
 				},
 				ListAttr: &YangListAttr{
-					Keys: map[string]*MappedType{
+					Keys: map[string]*ListKey{
 						"key": {
-							NativeType: "string",
-							ZeroValue:  `""`,
+							Name: "Key",
+							LangType: &MappedType{
+								NativeType: "string",
+								ZeroValue:  `""`,
+							},
 						},
 					},
 				},
@@ -1353,7 +1359,7 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				if err != nil {
 					t.Fatalf("buildSchemaTree(%v), got unexpected err: %v", tt.in, err)
 				}
-				gogen := newGoGenState(st, nil)
+				gogen := newGoLangMapper(st, nil)
 				protogen := newProtoGenState(st, nil)
 
 				structs := make(map[string]*yang.Entry)
@@ -1372,9 +1378,39 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				var got map[string]*Directory
 				switch c.lang {
 				case golang:
-					got, errs = gogen.buildDirectoryDefinitions(structs, c.compressBehaviour, false, false, true, true, nil)
+					got, errs = buildDirectoryDefinitions(gogen, structs, IROptions{
+						ParseOptions: ParseOpts{
+							SkipEnumDeduplication: false,
+						},
+						TransformationOptions: TransformationOpts{
+							CompressBehaviour:                    c.compressBehaviour,
+							GenerateFakeRoot:                     false,
+							ShortenEnumLeafNames:                 true,
+							UseDefiningModuleForTypedefEnumNames: true,
+							EnumOrgPrefixesToTrim:                nil,
+						},
+						NestedDirectories:                    false,
+						AbsoluteMapPaths:                     false,
+						AppendEnumSuffixForSimpleUnionEnums:  true,
+						UseConsistentNamesForProtoUnionEnums: false,
+					})
 				case protobuf:
-					got, errs = protogen.buildDirectoryDefinitions(structs, c.compressBehaviour)
+					got, errs = buildDirectoryDefinitions(protogen, structs, IROptions{
+						ParseOptions: ParseOpts{
+							SkipEnumDeduplication: false,
+						},
+						TransformationOptions: TransformationOpts{
+							CompressBehaviour:                    c.compressBehaviour,
+							GenerateFakeRoot:                     false,
+							ShortenEnumLeafNames:                 true,
+							UseDefiningModuleForTypedefEnumNames: true,
+							EnumOrgPrefixesToTrim:                nil,
+						},
+						NestedDirectories:                    true,
+						AbsoluteMapPaths:                     true,
+						AppendEnumSuffixForSimpleUnionEnums:  true,
+						UseConsistentNamesForProtoUnionEnums: true,
+					})
 				}
 				if errs != nil {
 					t.Fatal(errs)
@@ -1563,13 +1599,17 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "string"},
+			Keys: map[string]*ListKey{
+				"keyleaf": {
+					Name: "Keyleaf",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{
 					Name: "keyleaf",
-					Type: &yang.YangType{Kind: yang.Ystring},
 				},
 			},
 		},
@@ -1608,8 +1648,13 @@ func TestBuildListKey(t *testing.T) {
 		},
 		inCompress: true,
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "E_Container_Keyleaf"},
+			Keys: map[string]*ListKey{
+				"keyleaf": {
+					Name: "Keyleaf",
+					LangType: &MappedType{
+						NativeType: "E_Container_Keyleaf",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{
@@ -1619,28 +1664,6 @@ func TestBuildListKey(t *testing.T) {
 						Enum: &yang.EnumType{},
 						Kind: yang.Yenum,
 					},
-				},
-			},
-		},
-	}, {
-		name: "basic list key test with nil resolve key name function",
-		in: &yang.Entry{
-			Name:     "list",
-			ListAttr: &yang.ListAttr{},
-			Key:      "keyleaf",
-			Dir: map[string]*yang.Entry{
-				"keyleaf": {
-					Name: "keyleaf",
-					Type: &yang.YangType{Kind: yang.Ystring},
-				},
-			},
-		},
-		inResolveKeyNameFuncNil: true,
-		want: YangListAttr{
-			KeyElems: []*yang.Entry{
-				{
-					Name: "keyleaf",
-					Type: &yang.YangType{Kind: yang.Ystring},
 				},
 			},
 		},
@@ -1656,9 +1679,19 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"k1": {NativeType: "string"},
-				"k2": {NativeType: "string"},
+			Keys: map[string]*ListKey{
+				"k1": {
+					Name: "K1",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
+				"k2": {
+					Name: "K2",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
@@ -1677,9 +1710,19 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"k1": {NativeType: "string"},
-				"k2": {NativeType: "string"},
+			Keys: map[string]*ListKey{
+				"k1": {
+					Name: "K1",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
+				"k2": {
+					Name: "K2",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
@@ -1698,9 +1741,19 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"k1": {NativeType: "string"},
-				"k2": {NativeType: "string"},
+			Keys: map[string]*ListKey{
+				"k1": {
+					Name: "K1",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
+				"k2": {
+					Name: "K2",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{Name: "k1", Type: &yang.YangType{Kind: yang.Ystring}},
@@ -1816,8 +1869,13 @@ func TestBuildListKey(t *testing.T) {
 		},
 		inCompress: true,
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleafref": {NativeType: "string"},
+			Keys: map[string]*ListKey{
+				"keyleafref": {
+					Name: "Keyleafref",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{
@@ -1844,9 +1902,19 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"key1": {NativeType: "string"},
-				"key2": {NativeType: "string"},
+			Keys: map[string]*ListKey{
+				"key1": {
+					Name: "Key1",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
+				"key2": {
+					Name: "Key2",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{
@@ -1897,9 +1965,19 @@ func TestBuildListKey(t *testing.T) {
 		},
 		inCompress: true,
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"key1": {NativeType: "string"},
-				"key2": {NativeType: "int8"},
+			Keys: map[string]*ListKey{
+				"key1": {
+					Name: "Key1",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
+				"key2": {
+					Name: "Key2",
+					LangType: &MappedType{
+						NativeType: "int8",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{
@@ -1939,8 +2017,13 @@ func TestBuildListKey(t *testing.T) {
 		},
 		inCompress: true,
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleafref": {NativeType: "string"},
+			Keys: map[string]*ListKey{
+				"keyleafref": {
+					Name: "Keyleafref",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{
@@ -2000,8 +2083,13 @@ func TestBuildListKey(t *testing.T) {
 			},
 		},
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleafref": {NativeType: "string"},
+			Keys: map[string]*ListKey{
+				"keyleafref": {
+					Name: "Keyleafref",
+					LangType: &MappedType{
+						NativeType: "string",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{
@@ -2069,8 +2157,13 @@ func TestBuildListKey(t *testing.T) {
 		}},
 		inCompress: true,
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "E_Container_EnumLeafLexicographicallyEarlier"},
+			Keys: map[string]*ListKey{
+				"keyleaf": {
+					Name: "Keyleaf",
+					LangType: &MappedType{
+						NativeType: "E_Container_EnumLeafLexicographicallyEarlier",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{
@@ -2143,8 +2236,13 @@ func TestBuildListKey(t *testing.T) {
 		inCompress:      true,
 		inSkipEnumDedup: true,
 		want: YangListAttr{
-			Keys: map[string]*MappedType{
-				"keyleaf": {NativeType: "E_Container_Keyleaf"},
+			Keys: map[string]*ListKey{
+				"keyleaf": {
+					Name: "Keyleaf",
+					LangType: &MappedType{
+						NativeType: "E_Container_Keyleaf",
+					},
+				},
 			},
 			KeyElems: []*yang.Entry{
 				{
@@ -2177,16 +2275,30 @@ func TestBuildListKey(t *testing.T) {
 				}
 				return
 			}
-			s := newGoGenState(st, enumSet)
+			s := newGoLangMapper(st, enumSet)
 
-			resolveKeyTypeName := func(keyleaf *yang.Entry) (*MappedType, error) {
-				return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, tt.inCompress, tt.inSkipEnumDedup, true, true, nil)
-			}
-			if tt.inResolveKeyNameFuncNil {
-				resolveKeyTypeName = nil
+			compressBehaviour := genutil.Uncompressed
+			if tt.inCompress {
+				compressBehaviour = genutil.PreferIntendedConfig
 			}
 
-			got, err := buildListKey(tt.in, tt.inCompress, resolveKeyTypeName)
+			got, err := buildListKey(tt.in, s, IROptions{
+				ParseOptions: ParseOpts{
+					SkipEnumDeduplication: tt.inSkipEnumDedup,
+				},
+				TransformationOptions: TransformationOpts{
+					CompressBehaviour:                    compressBehaviour,
+					GenerateFakeRoot:                     true,
+					ShortenEnumLeafNames:                 true,
+					UseDefiningModuleForTypedefEnumNames: true,
+					EnumOrgPrefixesToTrim:                nil,
+					EnumerationsUseUnderscores:           true,
+				},
+				NestedDirectories:                    false,
+				AbsoluteMapPaths:                     false,
+				AppendEnumSuffixForSimpleUnionEnums:  true,
+				UseConsistentNamesForProtoUnionEnums: false,
+			})
 			if err != nil && !tt.wantErr {
 				t.Errorf("%s: could not build list key successfully %v", tt.name, err)
 			}
@@ -2209,8 +2321,8 @@ func TestBuildListKey(t *testing.T) {
 					t.Errorf("%s: key %s is nil", tt.name, name)
 					continue
 				}
-				if elem.NativeType != gtype.NativeType {
-					t.Errorf("%s: key %s had the wrong type %s, want %s", tt.name, name, gtype.NativeType, elem.NativeType)
+				if elem.LangType.NativeType != gtype.LangType.NativeType {
+					t.Errorf("%s: key %s had the wrong type %s, want %s", tt.name, name, gtype.LangType.NativeType, elem.LangType.NativeType)
 				}
 			}
 		})

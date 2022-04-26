@@ -1658,6 +1658,110 @@ type exampleTransportAddressBinary struct {
 
 func (*exampleTransportAddressBinary) IsExampleTransportAddress() {}
 
+// ucExampleDevice and the following structs are a set of structs used for more
+// complex testing in TestConstructIETFJSON, these structs are used to test for
+// YANG presence containers.
+
+type ucExampleDevice struct {
+	Bgp    *ucExampleBgp    `path:"bgp" yangPresence:"true"`
+	Isis   *ucExampleIsis   `path:"isis"`
+	System *ucExampleSystem `path:"system"`
+}
+
+func (*ucExampleDevice) IsYANGGoStruct()                         {}
+func (*ucExampleDevice) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleDevice) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleDevice) ΛBelongingModule() string                { return "" }
+
+type ucExampleBgp struct {
+	Global   *ucExampleBgpGlobal              `path:"global"`
+	Neighbor map[string]*ucExampleBgpNeighbor `path:"neighbor"`
+}
+
+func (*ucExampleBgp) IsYANGGoStruct()                         {}
+func (*ucExampleBgp) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleBgp) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleBgp) ΛBelongingModule() string                { return "" }
+
+type ucExampleIsis struct {
+	Instance map[string]*ucExampleIsisInstance `path:"instance"`
+}
+
+func (*ucExampleIsis) IsYANGGoStruct()                         {}
+func (*ucExampleIsis) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleIsis) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleIsis) ΛBelongingModule() string                { return "" }
+
+type ucExampleSystem struct {
+	SshServer *ucExampleSystemSshServer `path:"ssh-server" yangPresence:"true"`
+}
+
+func (*ucExampleSystem) IsYANGGoStruct()                         {}
+func (*ucExampleSystem) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleSystem) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleSystem) ΛBelongingModule() string                { return "" }
+
+type ucExampleBgpGlobal struct {
+	As       *uint32 `path:"as"`
+	RouterID *string `path:"router-id"`
+}
+
+func (*ucExampleBgpGlobal) IsYANGGoStruct()                         {}
+func (*ucExampleBgpGlobal) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleBgpGlobal) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleBgpGlobal) ΛBelongingModule() string                { return "" }
+
+type ucExampleBgpNeighbor struct {
+	Description     *string `path:"description"`
+	Enabled         *bool   `path:"enabled"`
+	NeighborAddress *string `path:"neighbor-address"`
+	PeerAs          *uint32 `path:"peer-as"`
+}
+
+func (*ucExampleBgpNeighbor) IsYANGGoStruct()                         {}
+func (*ucExampleBgpNeighbor) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleBgpNeighbor) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleBgpNeighbor) ΛBelongingModule() string                { return "" }
+
+type ucExampleIsisInstance struct {
+	Name     *string                        `path:"name"`
+	Enabled  *bool                          `path:"enabled"`
+	Overload *ucExampleIsisInstanceOverload `path:"overload" yangPresence:"true"`
+}
+
+func (*ucExampleIsisInstance) IsYANGGoStruct()                         {}
+func (*ucExampleIsisInstance) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleIsisInstance) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleIsisInstance) ΛBelongingModule() string                { return "" }
+
+type ucExampleSystemSshServer struct {
+	Instance map[string]*ucExampleSystemSshServer_Instance `path:"instance"`
+}
+
+func (*ucExampleSystemSshServer) IsYANGGoStruct()                         {}
+func (*ucExampleSystemSshServer) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleSystemSshServer) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleSystemSshServer) ΛBelongingModule() string                { return "" }
+
+type ucExampleIsisInstanceOverload struct {
+	AdvertiseExternal *bool `path:"advertise-external"`
+	AdvertiseInternal *bool `path:"advertise-internal"`
+}
+
+func (*ucExampleIsisInstanceOverload) IsYANGGoStruct()                         {}
+func (*ucExampleIsisInstanceOverload) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleIsisInstanceOverload) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleIsisInstanceOverload) ΛBelongingModule() string                { return "" }
+
+type ucExampleSystemSshServer_Instance struct {
+	Name *string `path:"name"`
+}
+
+func (*ucExampleSystemSshServer_Instance) IsYANGGoStruct()                         {}
+func (*ucExampleSystemSshServer_Instance) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleSystemSshServer_Instance) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
+func (*ucExampleSystemSshServer_Instance) ΛBelongingModule() string                { return "" }
+
 // invalidGoStruct explicitly does not implement the ValidatedGoStruct interface.
 type invalidGoStruct struct {
 	Value *string
@@ -2769,15 +2873,15 @@ func TestConstructJSON(t *testing.T) {
 		},
 		inAppendMod: true,
 		wantIETF: map[string]interface{}{
-			"f1": "foo",
-			"config": map[string]interface{}{
+			"f1mod:f1": "foo",
+			"f1mod:config": map[string]interface{}{
 				"f2mod:f6": "mat",
 			},
 			"f2mod:config": map[string]interface{}{
 				"f2":       "bar",
 				"f3mod:f7": "bat",
 			},
-			"f3": map[string]interface{}{
+			"f1mod:f3": map[string]interface{}{
 				"f42mod:config": map[string]interface{}{
 					"f4": "baz",
 				},
@@ -2933,6 +3037,245 @@ func TestConstructJSON(t *testing.T) {
 		},
 		wantErr:     true,
 		wantJSONErr: true,
+	}, {
+		name: "uncompressed device example with presence containers with empty value",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{},
+		},
+		wantIETF: map[string]interface{}{"bgp": map[string]interface{}{}},
+		wantSame: true,
+	}, {
+		name: "uncompressed device example with presence containers with nil value",
+		in: &ucExampleDevice{
+			Bgp: nil,
+		},
+		wantIETF: map[string]interface{}{},
+		wantSame: true,
+	}, {
+		name: "uncompressed device example with presence containers with data in tree",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{
+				Neighbor: map[string]*ucExampleBgpNeighbor{
+					"192.0.2.1": {
+						Description:     String("a neighbor"),
+						Enabled:         Bool(true),
+						NeighborAddress: String("192.0.2.1"),
+						PeerAs:          Uint32(29636),
+					},
+					"100.64.32.96": {
+						Description:     String("a second neighbor"),
+						Enabled:         Bool(false),
+						NeighborAddress: String("100.64.32.96"),
+						PeerAs:          Uint32(5413),
+					},
+				},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"bgp": map[string]interface{}{
+				"neighbor": []interface{}{
+					map[string]interface{}{
+						"description":      "a second neighbor",
+						"enabled":          false,
+						"neighbor-address": "100.64.32.96",
+						"peer-as":          5413,
+					},
+					map[string]interface{}{
+						"description":      "a neighbor",
+						"enabled":          true,
+						"neighbor-address": "192.0.2.1",
+						"peer-as":          29636,
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"bgp": map[string]interface{}{
+				"neighbor": map[string]interface{}{
+					"192.0.2.1": map[string]interface{}{
+						"description":      "a neighbor",
+						"enabled":          true,
+						"neighbor-address": "192.0.2.1",
+						"peer-as":          29636,
+					},
+					"100.64.32.96": map[string]interface{}{
+						"description":      "a second neighbor",
+						"enabled":          false,
+						"neighbor-address": "100.64.32.96",
+						"peer-as":          5413,
+					},
+				},
+			},
+		},
+	}, {
+		name: "uncompressed device example with presence containers in list with empty and nil value",
+		in: &ucExampleDevice{
+			Isis: &ucExampleIsis{
+				Instance: map[string]*ucExampleIsisInstance{
+					"default": {
+						Name:     String("default"),
+						Enabled:  Bool(true),
+						Overload: &ucExampleIsisInstanceOverload{},
+					},
+					"instance1": {
+						Name:     String("instance1"),
+						Enabled:  Bool(false),
+						Overload: nil,
+					},
+				},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"isis": map[string]interface{}{
+				"instance": []interface{}{
+					map[string]interface{}{
+						"name":     "default",
+						"enabled":  true,
+						"overload": map[string]interface{}{},
+					},
+					map[string]interface{}{
+						"name":    "instance1",
+						"enabled": false,
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"isis": map[string]interface{}{
+				"instance": map[string]interface{}{
+					"default": map[string]interface{}{
+						"name":     "default",
+						"enabled":  true,
+						"overload": map[string]interface{}{},
+					},
+					"instance1": map[string]interface{}{
+						"name":    "instance1",
+						"enabled": false,
+					},
+				},
+			},
+		},
+	}, {
+		name: "uncompressed device example with presence containers in list with data in tree",
+		in: &ucExampleDevice{
+			Isis: &ucExampleIsis{
+				Instance: map[string]*ucExampleIsisInstance{
+					"default": {
+						Name:     String("default"),
+						Enabled:  Bool(true),
+						Overload: &ucExampleIsisInstanceOverload{},
+					},
+					"instance1": {
+						Name:     String("instance1"),
+						Enabled:  Bool(false),
+						Overload: &ucExampleIsisInstanceOverload{AdvertiseExternal: Bool(true), AdvertiseInternal: Bool(false)},
+					},
+				},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"isis": map[string]interface{}{
+				"instance": []interface{}{
+					map[string]interface{}{
+						"name":     "default",
+						"enabled":  true,
+						"overload": map[string]interface{}{},
+					},
+					map[string]interface{}{
+						"name":    "instance1",
+						"enabled": false,
+						"overload": map[string]interface{}{
+							"advertise-external": true,
+							"advertise-internal": false,
+						},
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"isis": map[string]interface{}{
+				"instance": map[string]interface{}{
+					"default": map[string]interface{}{
+						"name":     "default",
+						"enabled":  true,
+						"overload": map[string]interface{}{},
+					},
+					"instance1": map[string]interface{}{
+						"name":    "instance1",
+						"enabled": false,
+						"overload": map[string]interface{}{
+							"advertise-external": true,
+							"advertise-internal": false,
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name: "uncompressed device example with presence container encapsulated in regular container with nil value",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{},
+			System: &ucExampleSystem{
+				SshServer: nil,
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"bgp": map[string]interface{}{},
+		},
+		wantSame: true,
+	}, {
+		name: "uncompressed device example with presence container encapsulated in regular container with empty value",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{},
+			System: &ucExampleSystem{
+				SshServer: &ucExampleSystemSshServer{},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"bgp": map[string]interface{}{},
+			"system": map[string]interface{}{
+				"ssh-server": map[string]interface{}{},
+			},
+		},
+		wantSame: true,
+	}, {
+		name: "uncompressed device example with presence container encapsulated in regular container with data in tree",
+		in: &ucExampleDevice{
+			Bgp: &ucExampleBgp{},
+			System: &ucExampleSystem{
+				SshServer: &ucExampleSystemSshServer{
+					Instance: map[string]*ucExampleSystemSshServer_Instance{
+						"mgmt": {
+							Name: String("system"),
+						},
+					},
+				},
+			},
+		},
+		wantIETF: map[string]interface{}{
+			"bgp": map[string]interface{}{},
+			"system": map[string]interface{}{
+				"ssh-server": map[string]interface{}{
+					"instance": []interface{}{
+						map[string]interface{}{
+							"name": "system",
+						},
+					},
+				},
+			},
+		},
+		wantInternal: map[string]interface{}{
+			"bgp": map[string]interface{}{},
+			"system": map[string]interface{}{
+				"ssh-server": map[string]interface{}{
+					"instance": map[string]interface{}{
+						"mgmt": map[string]interface{}{
+							"name": "system",
+						},
+					},
+				},
+			},
+		},
 	}, {
 		name:     "unset enum",
 		in:       &renderExample{EnumField: EnumTestUNSET},
@@ -3552,7 +3895,7 @@ func TestEncodeTypedValue(t *testing.T) {
 		},
 		inEnc: gnmipb.Encoding_JSON_IETF,
 		want: &gnmipb.TypedValue{Value: &gnmipb.TypedValue_JsonIetfVal{[]byte(`{
-  "f1": "hello"
+  "f1mod:f1": "hello"
 }`)}},
 	}, {
 		name: "struct val - ietf json different module",
@@ -3858,7 +4201,7 @@ func TestMarshal7951(t *testing.T) {
 		inArgs: []Marshal7951Arg{
 			&RFC7951JSONConfig{AppendModuleName: true},
 		},
-		want: `{"f1":"hello"}`,
+		want: `{"f1mod:f1":"hello"}`,
 	}, {
 		desc: "complex children with module name prepend request",
 		in: &ietfRenderExample{
@@ -3873,7 +4216,7 @@ func TestMarshal7951(t *testing.T) {
 			JSONIndent("  "),
 		},
 		want: `{
-  "enum-list": [
+  "f1mod:enum-list": [
     {
       "config": {
         "key": "foo:VAL_ONE"
@@ -3881,14 +4224,14 @@ func TestMarshal7951(t *testing.T) {
       "key": "foo:VAL_ONE"
     }
   ],
-  "f2mod:config": {
-    "f2": "bar"
-  },
-  "mixed-list": [
+  "f1mod:mixed-list": [
     "foo:VAL_ONE",
     "test",
     42
-  ]
+  ],
+  "f2mod:config": {
+    "f2": "bar"
+  }
 }`,
 	}, {
 		desc: "complex children with PrependModuleNameIdentityref=true",
@@ -3935,7 +4278,7 @@ func TestMarshal7951(t *testing.T) {
 			JSONIndent("  "),
 		},
 		want: `{
-  "enum-list": [
+  "f1mod:enum-list": [
     {
       "config": {
         "key": "foo:VAL_ONE"
@@ -3943,14 +4286,14 @@ func TestMarshal7951(t *testing.T) {
       "key": "foo:VAL_ONE"
     }
   ],
-  "f2mod:config": {
-    "f2": "bar"
-  },
-  "mixed-list": [
+  "f1mod:mixed-list": [
     "foo:VAL_ONE",
     "test",
     42
-  ]
+  ],
+  "f2mod:config": {
+    "f2": "bar"
+  }
 }`,
 	}}
 
