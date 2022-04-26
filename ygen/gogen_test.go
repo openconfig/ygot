@@ -635,7 +635,7 @@ func (*InputStruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
 		return err
 	}
@@ -667,7 +667,7 @@ func (*InputStruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
 		return err
 	}

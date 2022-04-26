@@ -1669,7 +1669,7 @@ type ucExampleDevice struct {
 }
 
 func (*ucExampleDevice) IsYANGGoStruct()                         {}
-func (*ucExampleDevice) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleDevice) ΛValidate(...ValidationOption) error     { return nil }
 func (*ucExampleDevice) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleDevice) ΛBelongingModule() string                { return "" }
 
@@ -1679,7 +1679,7 @@ type ucExampleBgp struct {
 }
 
 func (*ucExampleBgp) IsYANGGoStruct()                         {}
-func (*ucExampleBgp) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleBgp) ΛValidate(...ValidationOption) error     { return nil }
 func (*ucExampleBgp) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleBgp) ΛBelongingModule() string                { return "" }
 
@@ -1688,7 +1688,7 @@ type ucExampleIsis struct {
 }
 
 func (*ucExampleIsis) IsYANGGoStruct()                         {}
-func (*ucExampleIsis) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleIsis) ΛValidate(...ValidationOption) error     { return nil }
 func (*ucExampleIsis) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleIsis) ΛBelongingModule() string                { return "" }
 
@@ -1697,7 +1697,7 @@ type ucExampleSystem struct {
 }
 
 func (*ucExampleSystem) IsYANGGoStruct()                         {}
-func (*ucExampleSystem) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleSystem) ΛValidate(...ValidationOption) error     { return nil }
 func (*ucExampleSystem) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleSystem) ΛBelongingModule() string                { return "" }
 
@@ -1707,7 +1707,7 @@ type ucExampleBgpGlobal struct {
 }
 
 func (*ucExampleBgpGlobal) IsYANGGoStruct()                         {}
-func (*ucExampleBgpGlobal) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleBgpGlobal) ΛValidate(...ValidationOption) error     { return nil }
 func (*ucExampleBgpGlobal) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleBgpGlobal) ΛBelongingModule() string                { return "" }
 
@@ -1719,7 +1719,7 @@ type ucExampleBgpNeighbor struct {
 }
 
 func (*ucExampleBgpNeighbor) IsYANGGoStruct()                         {}
-func (*ucExampleBgpNeighbor) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleBgpNeighbor) ΛValidate(...ValidationOption) error     { return nil }
 func (*ucExampleBgpNeighbor) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleBgpNeighbor) ΛBelongingModule() string                { return "" }
 
@@ -1730,7 +1730,7 @@ type ucExampleIsisInstance struct {
 }
 
 func (*ucExampleIsisInstance) IsYANGGoStruct()                         {}
-func (*ucExampleIsisInstance) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleIsisInstance) ΛValidate(...ValidationOption) error     { return nil }
 func (*ucExampleIsisInstance) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleIsisInstance) ΛBelongingModule() string                { return "" }
 
@@ -1739,7 +1739,7 @@ type ucExampleSystemSshServer struct {
 }
 
 func (*ucExampleSystemSshServer) IsYANGGoStruct()                         {}
-func (*ucExampleSystemSshServer) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleSystemSshServer) ΛValidate(...ValidationOption) error     { return nil }
 func (*ucExampleSystemSshServer) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleSystemSshServer) ΛBelongingModule() string                { return "" }
 
@@ -1749,7 +1749,7 @@ type ucExampleIsisInstanceOverload struct {
 }
 
 func (*ucExampleIsisInstanceOverload) IsYANGGoStruct()                         {}
-func (*ucExampleIsisInstanceOverload) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleIsisInstanceOverload) ΛValidate(...ValidationOption) error     { return nil }
 func (*ucExampleIsisInstanceOverload) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleIsisInstanceOverload) ΛBelongingModule() string                { return "" }
 
@@ -1758,7 +1758,7 @@ type ucExampleSystemSshServer_Instance struct {
 }
 
 func (*ucExampleSystemSshServer_Instance) IsYANGGoStruct()                         {}
-func (*ucExampleSystemSshServer_Instance) Validate(...ValidationOption) error      { return nil }
+func (*ucExampleSystemSshServer_Instance) ΛValidate(...ValidationOption) error     { return nil }
 func (*ucExampleSystemSshServer_Instance) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleSystemSshServer_Instance) ΛBelongingModule() string                { return "" }
 
