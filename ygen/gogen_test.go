@@ -100,6 +100,9 @@ func TestGoCodeStructGeneration(t *testing.T) {
 			Path:            "/root-module/tstruct",
 			BelongingModule: "exmod",
 		},
+		inGoOpts: GoOpts{
+			ValidateFunctionName: "ValidateProxyFunction",
+		},
 		want: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
@@ -115,11 +118,16 @@ func (*Tstruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
 	return nil
+}
+
+// Validate validates s against the YANG schema corresponding to its type.
+func (t *Tstruct) ValidateProxyFunction(opts ...ygot.ValidationOption) error {
+	return t.ΛValidate(opts...)
 }
 
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
@@ -202,7 +210,7 @@ func (*Tstruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -265,7 +273,7 @@ func (*InputStruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
 		return err
 	}
@@ -371,7 +379,7 @@ func (*InputStruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
 		return err
 	}
@@ -440,7 +448,7 @@ func (*InputStruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
 		return err
 	}
@@ -555,7 +563,7 @@ func (*QStruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *QStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *QStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["QStruct"], t, opts...); err != nil {
 		return err
 	}
@@ -703,7 +711,7 @@ func (t *Tstruct) RenameListWithKey(oldK, newK string) error {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -956,7 +964,7 @@ func (t *Tstruct) RenameListWithKey(oldK, newK Tstruct_ListWithKey_Key) error {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -1026,7 +1034,7 @@ func (*Tstruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -1283,7 +1291,7 @@ func (t *Tstruct) AppendListWithKey(v *Tstruct_ListWithKey) error {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -1499,7 +1507,7 @@ func (t *Tstruct) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -1599,7 +1607,7 @@ func (t *InputStruct) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
 		return err
 	}
@@ -1692,7 +1700,7 @@ func (t *Container) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Container) Validate(opts ...ygot.ValidationOption) error {
+func (t *Container) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Container"], t, opts...); err != nil {
 		return err
 	}
@@ -1789,7 +1797,7 @@ func (t *Container) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Container) Validate(opts ...ygot.ValidationOption) error {
+func (t *Container) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Container"], t, opts...); err != nil {
 		return err
 	}

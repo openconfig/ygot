@@ -43,10 +43,10 @@ type ContainerStruct struct {
 	ChildList        map[string]*ContainerStruct `path:"child-list"`
 }
 
-func (*ContainerStruct) IsYANGGoStruct()                         {}
-func (*ContainerStruct) Validate(...ygot.ValidationOption) error { return nil }
-func (*ContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
-func (*ContainerStruct) ΛBelongingModule() string                { return "bar" }
+func (*ContainerStruct) IsYANGGoStruct()                          {}
+func (*ContainerStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*ContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
+func (*ContainerStruct) ΛBelongingModule() string                 { return "bar" }
 
 func TestValidateContainerSchema(t *testing.T) {
 	validContainerSchema := &yang.Entry{
@@ -109,10 +109,10 @@ type BadStruct struct {
 	UnknownName *string `path:"unknown"`
 }
 
-func (*BadStruct) IsYANGGoStruct()                         {}
-func (*BadStruct) Validate(...ygot.ValidationOption) error { return nil }
-func (*BadStruct) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
-func (*BadStruct) ΛBelongingModule() string                { return "bar" }
+func (*BadStruct) IsYANGGoStruct()                          {}
+func (*BadStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*BadStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
+func (*BadStruct) ΛBelongingModule() string                 { return "bar" }
 
 func TestValidateContainer(t *testing.T) {
 	containerSchema := &yang.Entry{

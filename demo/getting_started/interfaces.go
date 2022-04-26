@@ -63,7 +63,7 @@ func main() {
 	i.Description = ygot.String("An Interface")
 
 	// We can then validate the contents of the interface that we created.
-	if err := d.Interface["eth0"].Validate(); err != nil {
+	if err := d.Interface["eth0"].ΛValidate(); err != nil {
 		panic(fmt.Sprintf("Interface validation failed: %v", err))
 	}
 
@@ -115,14 +115,14 @@ func main() {
 	}
 	ygot.BuildEmptyTree(subif)
 	_, err = subif.Ipv4.NewAddress("Not a valid address")
-	if err := invalidIf.Validate(); err == nil {
+	if err := invalidIf.ΛValidate(); err == nil {
 		panic(fmt.Sprintf("Did not find invalid address, got nil err: %v", err))
 	} else {
 		fmt.Printf("Got expected error: %v\n", err)
 	}
 
 	// We can also validate the device overall.
-	if err := d.Validate(); err != nil {
+	if err := d.ΛValidate(); err != nil {
 		panic(fmt.Sprintf("Device validation failed: %v", err))
 	}
 
