@@ -339,6 +339,7 @@ func main() {
 				ShortenEnumLeafNames:                 *shortenEnumLeafNames,
 				EnumOrgPrefixesToTrim:                enumOrgPrefixesToTrim,
 				UseDefiningModuleForTypedefEnumNames: *useDefiningModuleForTypedefEnumNames,
+				EnumerationsUseUnderscores:           true,
 			},
 			PackageName:         *packageName,
 			GenerateJSONSchema:  *generateSchema,

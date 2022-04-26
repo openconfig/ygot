@@ -1,0 +1,176 @@
+module openconfig-complex {
+  yang-version 1.1;
+  namespace "urn:occomplex";
+  prefix "oc";
+
+  description
+    "A complex test module that is used to verify code generation for a variety
+    of different schema features";
+
+  identity SOFTWARE;
+  identity OS { base SOFTWARE; }
+
+  typedef weekday {
+    type uint8 {
+      range 1..5;
+    }
+    default 5;
+  }
+
+  typedef weekend-days {
+    type enumeration {
+      enum SATURDAY;
+      enum SUNDAY;
+    }
+    default SUNDAY;
+  }
+
+  typedef days-of-week {
+    type union {
+      type weekday;
+      type weekend-days;
+    }
+  }
+
+  typedef cyclone-scales {
+    type union {
+      type uint8;
+      type enumeration {
+        enum NORMAL;
+        enum SUPER;
+      }
+    }
+    default SUPER;
+  }
+
+  grouping single-key-config {
+    leaf key { type days-of-week; }
+    leaf-list dates {
+      type weekday;
+      // Should have a single default value per
+      // https://datatracker.ietf.org/doc/html/rfc7950#section-7.7.2
+    }
+
+    leaf-list dates-with-defaults {
+      type weekday;
+      default 1;
+      default 2;
+    }
+
+    leaf iref {
+      type identityref { base "SOFTWARE"; }
+    }
+
+    leaf simple-union-enum {
+      type union {
+        type uint64;
+        type enumeration {
+          enum ONE;
+          enum TWO;
+          enum THREE;
+        }
+      }
+      default TWO;
+    }
+
+    leaf singleton-union-enum {
+      type union {
+        type enumeration {
+          enum UN;
+          enum DEUX;
+          enum TROIS;
+        }
+      }
+      default DEUX;
+    }
+
+    leaf typedef-enum {
+      type weekend-days;
+      default SATURDAY;
+    }
+
+    leaf typedef-union-enum {
+      type cyclone-scales;
+    }
+
+    leaf leaf-default-override {
+      type cyclone-scales;
+      default 3;
+    }
+  }
+
+  grouping multi-key-config {
+    leaf key1 { type uint32; }
+    leaf key2 { type uint64; }
+  }
+
+  grouping top {
+    container example-presence {
+      presence "This is an example presence container";
+    }
+
+    container model {
+      container a {
+        list single-key {
+          key "key";
+
+          leaf key {
+            type leafref {
+              path "../config/key";
+            }
+          }
+
+          container config {
+            uses single-key-config;
+          }
+
+          container state {
+            config false;
+            uses single-key-config;
+          }
+        }
+      }
+
+      leaf dateref {
+        type leafref {
+          path "../a/single-key/config/dates";
+        }
+      }
+
+      anydata anydata-leaf {
+        description "some anydata leaf";
+      }
+
+      container b {
+        list multi-key {
+          key "key1
+
+                key2"; // Test for irregular spacing
+
+          leaf key1 {
+            type leafref {
+              path "../config/key1";
+            }
+          }
+
+          leaf key2 {
+            type leafref {
+              path "../config/key2";
+            }
+          }
+
+          container config {
+            uses multi-key-config;
+          }
+
+          container state {
+            config false;
+            uses multi-key-config;
+          }
+        }
+      }
+    }
+  }
+
+  uses top;
+}

@@ -981,8 +981,13 @@ func (*QStruct) ΛBelongingModule() string {
 			"/root-module/tstruct/listWithKey": {
 				Name: "ListWithKey",
 				ListAttr: &YangListAttr{
-					Keys: map[string]*MappedType{
-						"keyLeaf": {NativeType: "string"},
+					Keys: map[string]*ListKey{
+						"keyLeaf": {
+							Name: "KeyLeaf",
+							LangType: &MappedType{
+								NativeType: "string",
+							},
+						},
 					},
 					KeyElems: []*yang.Entry{
 						{
@@ -1376,9 +1381,19 @@ func (*Tstruct) ΛBelongingModule() string {
 			"/root-module/tstruct/listWithKey": {
 				Name: "ListWithKey",
 				ListAttr: &YangListAttr{
-					Keys: map[string]*MappedType{
-						"keyLeafOne": {NativeType: "string"},
-						"keyLeafTwo": {NativeType: "int8"},
+					Keys: map[string]*ListKey{
+						"keyLeafOne": {
+							Name: "KeyLeafOne",
+							LangType: &MappedType{
+								NativeType: "string",
+							},
+						},
+						"keyLeafTwo": {
+							Name: "KeyLeafTwo",
+							LangType: &MappedType{
+								NativeType: "int8",
+							},
+						},
 					},
 				},
 				Path: []string{"", "root-module", "tstruct", "listWithKey"},
@@ -1783,9 +1798,19 @@ func (*Tstruct) ΛBelongingModule() string {
 			"/root-module/tstruct/listWithKey": {
 				Name: "ListWithKey",
 				ListAttr: &YangListAttr{
-					Keys: map[string]*MappedType{
-						"keyLeafOne": {NativeType: "string"},
-						"keyLeafTwo": {NativeType: "int8"},
+					Keys: map[string]*ListKey{
+						"keyLeafOne": {
+							Name: "KeyLeafOne",
+							LangType: &MappedType{
+								NativeType: "string",
+							},
+						},
+						"keyLeafTwo": {
+							Name: "KeyLeafTwo",
+							LangType: &MappedType{
+								NativeType: "int8",
+							},
+						},
 					},
 				},
 				Path: []string{"", "root-module", "tstruct", "listWithKey"},
@@ -2023,8 +2048,13 @@ func (*Tstruct) ΛBelongingModule() string {
 			"/root-module/tstruct/listWithKey": {
 				Name: "ListWithKey",
 				ListAttr: &YangListAttr{
-					Keys: map[string]*MappedType{
-						"keyLeaf": {NativeType: "string"},
+					Keys: map[string]*ListKey{
+						"keyLeaf": {
+							Name: "KeyLeaf",
+							LangType: &MappedType{
+								NativeType: "string",
+							},
+						},
 					},
 					KeyElems: []*yang.Entry{
 						{
@@ -2627,7 +2657,7 @@ func (*Container) ΛBelongingModule() string {
 				tt.wantUncompressed = tt.wantCompressed
 			}
 			for compressed, want := range map[bool]wantGoStructOut{true: tt.wantCompressed, false: tt.wantUncompressed} {
-				s := newGoGenState(nil, nil)
+				s := newGoGenState(nil, nil, true)
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
 				// Always generate the JSON schema for this test.

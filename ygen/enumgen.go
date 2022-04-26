@@ -104,6 +104,7 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 						IdentityBase: t.IdentityBase,
 					},
 				},
+				kind: IdentityType,
 			}
 		case t.Enum != nil:
 			var enumName string
@@ -127,6 +128,16 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 				return nil, err
 			}
 
+			var enumKind EnumeratedValueType
+			switch {
+			case len(enumNameSake.Type) > 0 && util.IsYANGBaseType(e.Type):
+				enumKind = UnionEnumerationType
+			case len(enumNameSake.Type) > 0:
+				enumKind = DerivedUnionEnumerationType
+			default:
+				enumKind = DerivedEnumerationType
+			}
+
 			en = &yangEnum{
 				name: enumName,
 				entry: &yang.Entry{
@@ -146,6 +157,7 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 						"skipGlobalProtoGeneration": useDefiningModuleForTypedefEnumNames && util.IsYANGBaseType(enumNameSake) && useConsistentNamesForProtoUnionEnums,
 					},
 				},
+				kind: enumKind,
 			}
 			if useDefiningModuleForTypedefEnumNames && useConsistentNamesForProtoUnionEnums {
 				delete(en.entry.Annotation, "valuePrefix")
@@ -550,6 +562,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 				genEnums[idBaseName] = &yangEnum{
 					name:  idBaseName,
 					entry: e,
+					kind:  IdentityType,
 				}
 			}
 		case e.Type.Name == "enumeration":
@@ -568,6 +581,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 				genEnums[enumName] = &yangEnum{
 					name:  enumName,
 					entry: e,
+					kind:  SimpleEnumerationType,
 				}
 			}
 		default:
@@ -581,6 +595,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 				genEnums[typeName] = &yangEnum{
 					name:  typeName,
 					entry: e,
+					kind:  DerivedEnumerationType,
 				}
 			}
 		}
