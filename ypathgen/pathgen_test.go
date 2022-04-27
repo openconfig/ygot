@@ -23,7 +23,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/gnmi/errdiff"
-	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygen"
 	"github.com/openconfig/ygot/ygot"
@@ -1210,14 +1209,6 @@ func TestGeneratePathCodeSplitModules(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-// addParents adds parent pointers for a schema tree.
-func addParents(e *yang.Entry) {
-	for _, c := range e.Dir {
-		c.Parent = e
-		addParents(c)
 	}
 }
 
