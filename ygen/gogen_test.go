@@ -38,119 +38,72 @@ type wantGoStructOut struct {
 // TestGoCodeStructGeneration tests the code generation from a known schema generates
 // the correct structures, key types and methods for a YANG container.
 func TestGoCodeStructGeneration(t *testing.T) {
-	modules := yang.NewModules()
-	modules.Modules["exmod"] = &yang.Module{
-		Name: "exmod",
-		Namespace: &yang.Value{
-			Name: "u:exmod",
-		},
-	}
-	modules.Modules["m1"] = &yang.Module{
-		Name: "m1",
-		Namespace: &yang.Value{
-			Name: "u:m1",
-		},
-	}
-
 	tests := []struct {
 		name          string
-		inStructToMap *Directory
-		// inMappableEntities is the set of other mappable entities that are
+		inStructToMap *ParsedDirectory
+		// inOtherStructMap is the set of other mappable entities that are
 		// in the same module as the struct to map
-		inMappableEntities map[string]*Directory
-		// inUniqueDirectoryNames is the set of names of structs that have been
-		// defined during the pre-processing of the module, it is used to
-		// determine the names of referenced lists and structs.
-		inUniqueDirectoryNames map[string]string
-		inGoOpts               GoOpts
-		inSkipEnumDedup        bool
-		wantCompressed         wantGoStructOut
-		wantUncompressed       wantGoStructOut
-		wantSame               bool
+		inOtherStructMap          map[string]*ParsedDirectory
+		inIgnoreShadowSchemaPaths bool
+		inGoOpts                  GoOpts
+		want                      wantGoStructOut
 	}{{
 		name: "simple single leaf mapping test",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "Tstruct",
-			Entry: &yang.Entry{
-				Name: "tstruct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Fields: map[string]*NodeDetails{
 				"f1": {
-					Name: "f1",
-					Type: &yang.YangType{Kind: yang.Yint8},
-					Parent: &yang.Entry{
-						Name: "tstruct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "F1",
+					YANGDetails: YANGNodeDetails{
+						Name:         "f1",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/tstruct/f1",
+						ResolvedPath: "",
 					},
-					Node: &yang.Leaf{
-						Name: "f1",
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
+					Type: LeafNode,
+					LangType: &MappedType{
+						NativeType:        "int8",
+						UnionTypes:        nil,
+						IsEnumeratedValue: false,
+						ZeroValue:         "0",
+						DefaultValue:      nil,
 					},
+					MappedPaths:             [][]string{{"f1"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 				"f2": {
-					Name:     "f2",
-					Type:     &yang.YangType{Kind: yang.Ystring},
-					ListAttr: &yang.ListAttr{},
-					Parent: &yang.Entry{
-						Name: "tstruct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "F2",
+					YANGDetails: YANGNodeDetails{
+						Name:         "f2",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/tstruct/f2",
+						ResolvedPath: "",
 					},
-					Node: &yang.Leaf{
-						Name: "f2",
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
+					Type: LeafListNode,
+					LangType: &MappedType{
+						NativeType:        "string",
+						UnionTypes:        nil,
+						IsEnumeratedValue: false,
+						ZeroValue:         `""`,
+						DefaultValue:      nil,
 					},
+					MappedPaths:             [][]string{{"f2"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       [][]string{{"g2"}},
+					ShadowMappedPathModules: [][]string{{"exmod2"}},
 				},
 			},
-			Path: []string{"", "root-module", "tstruct"},
+			Path:            "/root-module/tstruct",
+			BelongingModule: "exmod",
 		},
-		wantCompressed: wantGoStructOut{
+		inGoOpts: GoOpts{
+			ValidateFunctionName: "ValidateProxyFunction",
+		},
+		want: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
@@ -165,11 +118,16 @@ func (*Tstruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
 	return nil
+}
+
+// Validate validates s against the YANG schema corresponding to its type.
+func (t *Tstruct) ValidateProxyFunction(opts ...ygot.ValidationOption) error {
+	return t.ΛValidate(opts...)
 }
 
 // ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
@@ -183,12 +141,66 @@ func (*Tstruct) ΛBelongingModule() string {
 }
 `,
 		},
-		wantUncompressed: wantGoStructOut{
+	}, {
+		name: "simple single leaf mapping test outputting shadow paths",
+		inStructToMap: &ParsedDirectory{
+			Name: "Tstruct",
+			Fields: map[string]*NodeDetails{
+				"f1": {
+					Name: "F1",
+					YANGDetails: YANGNodeDetails{
+						Name:         "f1",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/tstruct/f1",
+						ResolvedPath: "",
+					},
+					Type: LeafNode,
+					LangType: &MappedType{
+						NativeType:        "int8",
+						UnionTypes:        nil,
+						IsEnumeratedValue: false,
+						ZeroValue:         "0",
+						DefaultValue:      nil,
+					},
+					MappedPaths:             [][]string{{"f1"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
+				},
+				"f2": {
+					Name: "F2",
+					YANGDetails: YANGNodeDetails{
+						Name:         "f2",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/tstruct/f2",
+						ResolvedPath: "",
+					},
+					Type: LeafListNode,
+					LangType: &MappedType{
+						NativeType:        "string",
+						UnionTypes:        nil,
+						IsEnumeratedValue: false,
+						ZeroValue:         `""`,
+						DefaultValue:      nil,
+					},
+					MappedPaths:             [][]string{{"f2"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       [][]string{{"g2"}},
+					ShadowMappedPathModules: [][]string{{"exmod2"}},
+				},
+			},
+			Path:            "/root-module/tstruct",
+			BelongingModule: "exmod",
+		},
+		inIgnoreShadowSchemaPaths: true,
+		want: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
 	F1	*int8	` + "`" + `path:"f1" module:"exmod"` + "`" + `
-	F2	[]string	` + "`" + `path:"f2" module:"exmod"` + "`" + `
+	F2	[]string	` + "`" + `path:"f2" module:"exmod" shadow-path:"g2" shadow-module:"exmod2"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -198,7 +210,7 @@ func (*Tstruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -218,66 +230,36 @@ func (*Tstruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "struct with a multi-type union",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "InputStruct",
-			Entry: &yang.Entry{
-				Name: "input-struct",
-				Parent: &yang.Entry{
-					Name: "module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Fields: map[string]*NodeDetails{
 				"u1": {
-					Name: "u1",
-					Parent: &yang.Entry{
-						Name: "input-struct",
-						Parent: &yang.Entry{
-							Name: "module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "U1",
+					YANGDetails: YANGNodeDetails{
+						Name:         "u1",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/module/input-struct/u1",
+						ResolvedPath: "",
 					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
+					Type: LeafNode,
+					LangType: &MappedType{
+						NativeType:        "InputStruct_U1_Union",
+						UnionTypes:        map[string]int{"string": 0, "int8": 1},
+						IsEnumeratedValue: false,
+						ZeroValue:         "nil",
+						DefaultValue:      nil,
 					},
-					Type: &yang.YangType{
-						Kind: yang.Yunion,
-						Type: []*yang.YangType{
-							{Kind: yang.Ystring},
-							{Kind: yang.Yint8},
-						},
-					},
+					MappedPaths:             [][]string{{"u1"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "module", "input-struct"},
+			Path:            "/module/input-struct",
+			BelongingModule: "exmod",
 		},
-		inUniqueDirectoryNames: map[string]string{"/module/input-struct": "InputStruct"},
-		wantCompressed: wantGoStructOut{
+		want: wantGoStructOut{
 			structs: `
 // InputStruct represents the /module/input-struct YANG schema element.
 type InputStruct struct {
@@ -291,7 +273,7 @@ func (*InputStruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
 		return err
 	}
@@ -350,136 +332,40 @@ func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Uni
 }
 `,
 		},
-		wantUncompressed: wantGoStructOut{
-			structs: `
-// InputStruct represents the /module/input-struct YANG schema element.
-type InputStruct struct {
-	U1	Module_InputStruct_U1_Union	` + "`" + `path:"u1" module:"exmod"` + "`" + `
-}
-
-// IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
-// interface. This allows functions that need to handle this struct to
-// identify it as being generated by ygen.
-func (*InputStruct) IsYANGGoStruct() {}
-`,
-			methods: `
-// Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
-// that are included in the generated code.
-func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
-
-// ΛBelongingModule returns the name of the module in whose namespace
-// InputStruct belongs.
-func (*InputStruct) ΛBelongingModule() string {
-	return "exmod"
-}
-`,
-			interfaces: `
-// Module_InputStruct_U1_Union is an interface that is implemented by valid types for the union
-// for the leaf /module/input-struct/u1 within the YANG schema.
-type Module_InputStruct_U1_Union interface {
-	Is_Module_InputStruct_U1_Union()
-}
-
-// Module_InputStruct_U1_Union_Int8 is used when /module/input-struct/u1
-// is to be set to a int8 value.
-type Module_InputStruct_U1_Union_Int8 struct {
-	Int8	int8
-}
-
-// Is_Module_InputStruct_U1_Union ensures that Module_InputStruct_U1_Union_Int8
-// implements the Module_InputStruct_U1_Union interface.
-func (*Module_InputStruct_U1_Union_Int8) Is_Module_InputStruct_U1_Union() {}
-
-// Module_InputStruct_U1_Union_String is used when /module/input-struct/u1
-// is to be set to a string value.
-type Module_InputStruct_U1_Union_String struct {
-	String	string
-}
-
-// Is_Module_InputStruct_U1_Union ensures that Module_InputStruct_U1_Union_String
-// implements the Module_InputStruct_U1_Union interface.
-func (*Module_InputStruct_U1_Union_String) Is_Module_InputStruct_U1_Union() {}
-
-// To_Module_InputStruct_U1_Union takes an input interface{} and attempts to convert it to a struct
-// which implements the Module_InputStruct_U1_Union union. It returns an error if the interface{} supplied
-// cannot be converted to a type within the union.
-func (t *InputStruct) To_Module_InputStruct_U1_Union(i interface{}) (Module_InputStruct_U1_Union, error) {
-	switch v := i.(type) {
-	case int8:
-		return &Module_InputStruct_U1_Union_Int8{v}, nil
-	case string:
-		return &Module_InputStruct_U1_Union_String{v}, nil
-	default:
-		return nil, fmt.Errorf("cannot convert %v to Module_InputStruct_U1_Union, unknown union type, got: %T, want any of [int8, string]", i, i)
-	}
-}
-`,
-		},
 	}, {
 		name: "nested container in struct",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "InputStruct",
-			Entry: &yang.Entry{
-				Name: "input-struct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Type: Container,
+			Fields: map[string]*NodeDetails{
 				"c1": {
-					Name: "c1",
-					Dir:  map[string]*yang.Entry{},
-					Kind: yang.DirectoryEntry,
-					Parent: &yang.Entry{
-						Name: "input-struct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "C1",
+					YANGDetails: YANGNodeDetails{
+						Name:         "c1",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/input-struct/c1",
+						ResolvedPath: "",
 					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
-					},
+					Type:                    ContainerNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"c1"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "input-struct"},
+			Path:            "/root-module/input-struct",
+			BelongingModule: "exmod",
 		},
-		inUniqueDirectoryNames: map[string]string{"/root-module/input-struct/c1": "InputStruct_C1"},
-		wantCompressed: wantGoStructOut{
+		inOtherStructMap: map[string]*ParsedDirectory{
+			"/root-module/input-struct/c1": {
+				Name:            "InputStruct_C1",
+				Path:            "/root-module/input-struct/c1",
+				BelongingModule: "exmod",
+			},
+		},
+		want: wantGoStructOut{
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
 type InputStruct struct {
@@ -493,39 +379,7 @@ func (*InputStruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
-// that are included in the generated code.
-func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
-
-// ΛBelongingModule returns the name of the module in whose namespace
-// InputStruct belongs.
-func (*InputStruct) ΛBelongingModule() string {
-	return "exmod"
-}
-`,
-		},
-		wantUncompressed: wantGoStructOut{
-			structs: `
-// InputStruct represents the /root-module/input-struct YANG schema element.
-type InputStruct struct {
-	C1	*InputStruct_C1	` + "`" + `path:"c1" module:"exmod"` + "`" + `
-}
-
-// IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
-// interface. This allows functions that need to handle this struct to
-// identify it as being generated by ygen.
-func (*InputStruct) IsYANGGoStruct() {}
-`,
-			methods: `
-// Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
 		return err
 	}
@@ -545,70 +399,42 @@ func (*InputStruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "nested container in struct with presence container",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "InputStruct",
-			Entry: &yang.Entry{
-				Name: "input-struct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-				Extra: map[string][]interface{}{
-					"presence": {&yang.Value{Name: "presence c1"}},
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Type: Container,
+			Fields: map[string]*NodeDetails{
 				"c1": {
-					Name: "c1",
-					Dir:  map[string]*yang.Entry{},
-					Kind: yang.DirectoryEntry,
-					Parent: &yang.Entry{
-						Name: "input-struct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "C1",
+					YANGDetails: YANGNodeDetails{
+						Name:              "c1",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/input-struct/c1",
+						ResolvedPath:      "",
+						PresenceStatement: ygot.String("instantiated"),
 					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
-					},
-					Extra: map[string][]interface{}{
-						"presence": {&yang.Value{Name: "presence c1"}},
-					},
+					Type:                    ContainerNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"c1"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "input-struct"},
+			Path:            "/root-module/input-struct",
+			BelongingModule: "exmod",
+		},
+		inOtherStructMap: map[string]*ParsedDirectory{
+			"/root-module/input-struct/c1": {
+				Name:            "InputStruct_C1",
+				Path:            "/root-module/input-struct/c1",
+				BelongingModule: "exmod",
+			},
 		},
 		inGoOpts: GoOpts{
 			AddYangPresence: true,
 		},
-		inUniqueDirectoryNames: map[string]string{"/root-module/input-struct/c1": "InputStruct_C1"},
-		wantCompressed: wantGoStructOut{
+		want: wantGoStructOut{
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
 type InputStruct struct {
@@ -622,39 +448,7 @@ func (*InputStruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
-// that are included in the generated code.
-func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
-
-// ΛBelongingModule returns the name of the module in whose namespace
-// InputStruct belongs.
-func (*InputStruct) ΛBelongingModule() string {
-	return "exmod"
-}
-`,
-		},
-		wantUncompressed: wantGoStructOut{
-			structs: `
-// InputStruct represents the /root-module/input-struct YANG schema element.
-type InputStruct struct {
-	C1	*InputStruct_C1	` + "`" + `path:"c1" module:"exmod" yangPresence:"true"` + "`" + `
-}
-
-// IsYANGGoStruct ensures that InputStruct implements the yang.GoStruct
-// interface. This allows functions that need to handle this struct to
-// identify it as being generated by ygen.
-func (*InputStruct) IsYANGGoStruct() {}
-`,
-			methods: `
-// Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
 		return err
 	}
@@ -674,184 +468,88 @@ func (*InputStruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "struct with missing struct referenced",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "AStruct",
-			Entry: &yang.Entry{
-				Name: "a-struct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Fields: map[string]*NodeDetails{
 				"elem": {
-					Name: "elem",
-					Dir:  map[string]*yang.Entry{},
-					Kind: yang.DirectoryEntry,
-					Parent: &yang.Entry{
-						Name: "a-struct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "Elem",
+					YANGDetails: YANGNodeDetails{
+						Name:         "elem",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/a-struct/elem",
+						ResolvedPath: "",
 					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
-					},
+					Type:                    ContainerNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"elem"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "a-struct"},
+			Path:            "/root-module/a-struct",
+			BelongingModule: "exmod",
 		},
-		wantCompressed:   wantGoStructOut{wantErr: true},
-		wantUncompressed: wantGoStructOut{wantErr: true},
+		want: wantGoStructOut{wantErr: true},
 	}, {
 		name: "struct with missing list referenced",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "BStruct",
-			Entry: &yang.Entry{
-				Name: "b-struct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Fields: map[string]*NodeDetails{
 				"list": {
-					Name:     "list",
-					Kind:     yang.DirectoryEntry,
-					Dir:      map[string]*yang.Entry{},
-					ListAttr: &yang.ListAttr{},
-					Parent: &yang.Entry{
-						Name: "b-struct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "List",
+					YANGDetails: YANGNodeDetails{
+						Name:         "list",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/b-struct/list",
+						ResolvedPath: "",
 					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
-					},
+					Type:                    ListNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"list"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "b-struct"},
+			Path:            "/root-module/b-struct",
+			BelongingModule: "exmod",
 		},
-		wantCompressed:   wantGoStructOut{wantErr: true},
-		wantUncompressed: wantGoStructOut{wantErr: true},
+		want: wantGoStructOut{wantErr: true},
 	}, {
 		name: "struct with keyless list",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "QStruct",
-			Entry: &yang.Entry{
-				Name: "q-struct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Fields: map[string]*NodeDetails{
 				"a-list": {
-					Name:     "a-list",
-					ListAttr: &yang.ListAttr{},
-					Kind:     yang.DirectoryEntry,
-					Dir:      map[string]*yang.Entry{},
-					Parent: &yang.Entry{
-						Name: "q-struct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "AList",
+					YANGDetails: YANGNodeDetails{
+						Name:         "a-list",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/q-struct/a-list",
+						ResolvedPath: "",
 					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
-					},
+					Type:                    ListNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"a-list"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "q-struct"},
+			Path:            "/root-module/q-struct",
+			BelongingModule: "exmod",
 		},
-		inMappableEntities: map[string]*Directory{
+		inOtherStructMap: map[string]*ParsedDirectory{
 			"/root-module/q-struct/a-list": {
-				Name: "QStruct_AList",
+				Name:            "QStruct_AList",
+				BelongingModule: "exmod",
 			},
 		},
-		inUniqueDirectoryNames: map[string]string{
-			"/root-module/q-struct/a-list": "QStruct_AList",
-		},
-		wantCompressed: wantGoStructOut{
+		want: wantGoStructOut{
 			structs: `
 // QStruct represents the /root-module/q-struct YANG schema element.
 type QStruct struct {
@@ -865,39 +563,7 @@ func (*QStruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *QStruct) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["QStruct"], t, opts...); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
-// that are included in the generated code.
-func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
-
-// ΛBelongingModule returns the name of the module in whose namespace
-// QStruct belongs.
-func (*QStruct) ΛBelongingModule() string {
-	return "exmod"
-}
-`,
-		},
-		wantUncompressed: wantGoStructOut{
-			structs: `
-// QStruct represents the /root-module/q-struct YANG schema element.
-type QStruct struct {
-	AList	[]*QStruct_AList	` + "`" + `path:"a-list" module:"exmod"` + "`" + `
-}
-
-// IsYANGGoStruct ensures that QStruct implements the yang.GoStruct
-// interface. This allows functions that need to handle this struct to
-// identify it as being generated by ygen.
-func (*QStruct) IsYANGGoStruct() {}
-`,
-			methods: `
-// Validate validates s against the YANG schema corresponding to its type.
-func (t *QStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *QStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["QStruct"], t, opts...); err != nil {
 		return err
 	}
@@ -917,89 +583,75 @@ func (*QStruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "struct with single key list",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "Tstruct",
-			Entry: &yang.Entry{
-				Name: "tstruct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Type: Container,
+			Fields: map[string]*NodeDetails{
 				"listWithKey": {
-					Name:     "listWithKey",
-					ListAttr: &yang.ListAttr{},
-					Key:      "keyLeaf",
-					Parent: &yang.Entry{
-						Name: "tstruct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "ListWithKey",
+					YANGDetails: YANGNodeDetails{
+						Name:         "list-with-key",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/tstruct/listWithKey",
+						ResolvedPath: "",
 					},
-					Kind: yang.DirectoryEntry,
-					Dir: map[string]*yang.Entry{
-						"keyLeaf": {
-							Name: "keyLeaf",
-							Type: &yang.YangType{Kind: yang.Ystring},
-						},
-					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
-					},
+					Type:                    ListNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"listWithKey"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "tstruct"},
+			Path:            "/root-module/tstruct",
+			BelongingModule: "exmod",
 		},
-		inMappableEntities: map[string]*Directory{
+		inOtherStructMap: map[string]*ParsedDirectory{
 			"/root-module/tstruct/listWithKey": {
 				Name: "ListWithKey",
-				ListAttr: &YangListAttr{
-					Keys: map[string]*MappedType{
-						"keyLeaf": {NativeType: "string"},
+				Type: List,
+				Fields: map[string]*NodeDetails{
+					"keyLeaf": {
+						Name: "keyLeaf",
+						YANGDetails: YANGNodeDetails{
+							Name:         "keyLeaf",
+							Defaults:     nil,
+							Module:       "exmod",
+							Path:         "/root-module/tstruct/listWithKey/keyLeaf",
+							ResolvedPath: "",
+						},
+						Type: LeafNode,
+						LangType: &MappedType{
+							NativeType: "string",
+							UnionTypes: nil,
+							ZeroValue:  `""`,
+						},
+						MappedPaths:             [][]string{{"keyLeaf"}},
+						MappedPathModules:       [][]string{{"exmod"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
 					},
-					KeyElems: []*yang.Entry{
-						{
-							Name: "keyLeaf",
+				},
+				ListKeys: map[string]*ListKey{
+					"keyLeaf": {
+						Name: "KeyLeaf",
+						LangType: &MappedType{
+							NativeType: "string",
+							UnionTypes: nil,
+							ZeroValue:  `""`,
 						},
 					},
 				},
-				Path: []string{"", "root-module", "tstruct", "listWithKey"},
+				ListKeyYANGNames: []string{"keyLeaf"},
+				Path:             "/root-module/tstruct/listWithKey",
+				BelongingModule:  "exmod",
 			},
-		},
-		inUniqueDirectoryNames: map[string]string{
-			"/root-module/tstruct/listWithKey": "ListWithKey",
 		},
 		inGoOpts: GoOpts{
 			GenerateRenameMethod: true,
 		},
-		wantCompressed: wantGoStructOut{
+		want: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
@@ -1059,85 +711,7 @@ func (t *Tstruct) RenameListWithKey(oldK, newK string) error {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
-// that are included in the generated code.
-func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
-
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
-func (*Tstruct) ΛBelongingModule() string {
-	return "exmod"
-}
-`,
-		},
-		wantUncompressed: wantGoStructOut{
-			structs: `
-// Tstruct represents the /root-module/tstruct YANG schema element.
-type Tstruct struct {
-	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
-}
-
-// IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
-// interface. This allows functions that need to handle this struct to
-// identify it as being generated by ygen.
-func (*Tstruct) IsYANGGoStruct() {}
-`,
-			methods: `
-// NewListWithKey creates a new entry in the ListWithKey list of the
-// Tstruct struct. The keys of the list are populated from the input
-// arguments.
-func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
-
-	// Initialise the list within the receiver struct if it has not already been
-	// created.
-	if t.ListWithKey == nil {
-		t.ListWithKey = make(map[string]*ListWithKey)
-	}
-
-	key := KeyLeaf
-
-	// Ensure that this key has not already been used in the
-	// list. Keyed YANG lists do not allow duplicate keys to
-	// be created.
-	if _, ok := t.ListWithKey[key]; ok {
-		return nil, fmt.Errorf("duplicate key %v for list ListWithKey", key)
-	}
-
-	t.ListWithKey[key] = &ListWithKey{
-		KeyLeaf: &KeyLeaf,
-	}
-
-	return t.ListWithKey[key], nil
-}
-
-// RenameListWithKey renames an entry in the list ListWithKey within
-// the Tstruct struct. The entry with key oldK is renamed to newK updating
-// the key within the value.
-func (t *Tstruct) RenameListWithKey(oldK, newK string) error {
-	if _, ok := t.ListWithKey[newK]; ok {
-		return fmt.Errorf("key %v already exists in ListWithKey", newK)
-	}
-
-	e, ok := t.ListWithKey[oldK]
-	if !ok {
-		return fmt.Errorf("key %v not found in ListWithKey", oldK)
-	}
-	e.KeyLeaf = &newK
-
-	t.ListWithKey[newK] = e
-	delete(t.ListWithKey, oldK)
-	return nil
-}
-
-// Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -1157,244 +731,172 @@ func (*Tstruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "missing list definition element",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "Tstruct",
-			Entry: &yang.Entry{
-				Name: "tstruct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Type: Container,
+			Fields: map[string]*NodeDetails{
 				"listWithKey": {
-					Name:     "listWithKey",
-					ListAttr: &yang.ListAttr{},
-					Key:      "keyLeaf",
-					Parent: &yang.Entry{
-						Name: "tstruct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "ListWithKey",
+					YANGDetails: YANGNodeDetails{
+						Name:         "list-with-key",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/tstruct/listWithKey",
+						ResolvedPath: "",
 					},
-					Kind: yang.DirectoryEntry,
-					Dir: map[string]*yang.Entry{
-						"keyLeaf": {
-							Name: "keyLeaf",
-							Type: &yang.YangType{Kind: yang.Ystring},
-						},
-					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
-					},
+					Type:                    ListNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"listWithKey"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "tstruct"},
+			Path:            "/root-module/tstruct",
+			BelongingModule: "exmod",
 		},
-		inMappableEntities: map[string]*Directory{
-			"/root-module/tstruct/listWithKey": {},
-		},
-		wantCompressed:   wantGoStructOut{wantErr: true},
-		wantUncompressed: wantGoStructOut{wantErr: true},
+		want: wantGoStructOut{wantErr: true},
 	}, {
 		name: "unknown kind",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "AStruct",
-			Entry: &yang.Entry{
-				Name: "tstruct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Fields: map[string]*NodeDetails{
 				"anydata": {
 					Name: "anydata",
-					Kind: yang.AnyDataEntry,
+					Type: AnyDataNode,
 				},
 			},
+			BelongingModule: "exmod",
 		},
-		wantCompressed:   wantGoStructOut{wantErr: true},
-		wantUncompressed: wantGoStructOut{wantErr: true},
+		want: wantGoStructOut{wantErr: true},
 	}, {
 		name: "unknown field type",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "AStruct",
-			Entry: &yang.Entry{
-				Name: "container",
-				Parent: &yang.Entry{
-					Name: "container-two",
-					Parent: &yang.Entry{
-						Name: "mod",
-						Node: &yang.Module{},
-					},
-				},
-				Node: &yang.Module{},
-			},
-			Fields: map[string]*yang.Entry{
+			Fields: map[string]*NodeDetails{
 				"idd": {
-					Name: "idd",
-					Type: &yang.YangType{Kind: yang.Yidentityref},
-					Parent: &yang.Entry{
-						Name: "container",
-						Parent: &yang.Entry{
-							Name: "container-two",
-							Parent: &yang.Entry{
-								Name: "mod",
-								Node: &yang.Module{},
-							},
-						},
+					Name: "Idd",
+					YANGDetails: YANGNodeDetails{
+						Name:         "idd",
+						Defaults:     nil,
+						Module:       "mod",
+						Path:         "/mod/container-two/container/idd",
+						ResolvedPath: "",
 					},
+					Type:                    InvalidNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"idd"}},
+					MappedPathModules:       [][]string{{"mod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "mod", "container-two", "container"},
+			Path: "/mod/container-two/container",
 		},
-		wantCompressed:   wantGoStructOut{wantErr: true},
-		wantUncompressed: wantGoStructOut{wantErr: true},
+		want: wantGoStructOut{wantErr: true},
 	}, {
 		name: "struct with multi-key list",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "Tstruct",
-			Entry: &yang.Entry{
-				Name: "tstruct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Type: Container,
+			Fields: map[string]*NodeDetails{
 				"listWithKey": {
-					Name:     "listWithKey",
-					ListAttr: &yang.ListAttr{},
-					Key:      "keyLeafOne keyLeafTwo",
-					Parent: &yang.Entry{
-						Name: "tstruct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "ListWithKey",
+					YANGDetails: YANGNodeDetails{
+						Name:         "list-with-key",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/tstruct/listWithKey",
+						ResolvedPath: "",
 					},
-					Kind: yang.DirectoryEntry,
-					Dir: map[string]*yang.Entry{
-						"keyLeafOne": {
-							Name: "keyLeafOne",
-							Node: &yang.Leaf{
-								Parent: &yang.Module{
-									Name: "exmod",
-									Namespace: &yang.Value{
-										Name: "u:exmod",
-									},
-									Modules: modules,
-								},
-							},
-						},
-						"keyLeafTwo": {
-							Name: "keyLeafTwo",
-							Node: &yang.Leaf{
-								Parent: &yang.Module{
-									Name: "exmod",
-									Namespace: &yang.Value{
-										Name: "u:exmod",
-									},
-									Modules: modules,
-								},
-							},
-						},
-					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
-					},
+					Type:                    ListNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"listWithKey"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "tstruct"},
+			Path:            "/root-module/tstruct",
+			BelongingModule: "exmod",
 		},
-		inMappableEntities: map[string]*Directory{
+		inOtherStructMap: map[string]*ParsedDirectory{
 			"/root-module/tstruct/listWithKey": {
-				Name: "ListWithKey",
-				ListAttr: &YangListAttr{
-					Keys: map[string]*MappedType{
-						"keyLeafOne": {NativeType: "string"},
-						"keyLeafTwo": {NativeType: "int8"},
+				Name: "Tstruct_ListWithKey",
+				Type: List,
+				Fields: map[string]*NodeDetails{
+					"keyLeafOne": {
+						Name: "keyLeafOne",
+						YANGDetails: YANGNodeDetails{
+							Name:         "keyLeafOne",
+							Defaults:     nil,
+							Module:       "exmod",
+							Path:         "/root-module/tstruct/listWithKey/keyLeafOne",
+							ResolvedPath: "",
+						},
+						Type: LeafNode,
+						LangType: &MappedType{
+							NativeType: "string",
+							UnionTypes: nil,
+							ZeroValue:  `""`,
+						},
+						MappedPaths:             [][]string{{"keyLeafOne"}},
+						MappedPathModules:       [][]string{{"exmod"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
+					},
+					"keyLeafTwo": {
+						Name: "keyLeafTwo",
+						YANGDetails: YANGNodeDetails{
+							Name:         "keyLeafTwo",
+							Defaults:     nil,
+							Module:       "exmod",
+							Path:         "/root-module/tstruct/listWithKey/keyLeafTwo",
+							ResolvedPath: "",
+						},
+						Type: LeafNode,
+						LangType: &MappedType{
+							NativeType: "int8",
+							UnionTypes: nil,
+							ZeroValue:  "0",
+						},
+						MappedPaths:             [][]string{{"keyLeafTwo"}},
+						MappedPathModules:       [][]string{{"exmod"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
 					},
 				},
-				Path: []string{"", "root-module", "tstruct", "listWithKey"},
+				ListKeys: map[string]*ListKey{
+					"keyLeafOne": {
+						Name: "KeyLeafOne",
+						LangType: &MappedType{
+							NativeType: "string",
+							UnionTypes: nil,
+							ZeroValue:  `""`,
+						},
+					},
+					"keyLeafTwo": {
+						Name: "KeyLeafTwo",
+						LangType: &MappedType{
+							NativeType: "int8",
+							UnionTypes: nil,
+							ZeroValue:  `""`,
+						},
+					},
+				},
+				ListKeyYANGNames: []string{"keyLeafOne", "keyLeafTwo"},
+				Path:             "/root-module/tstruct/listWithKey",
+				BelongingModule:  "exmod",
 			},
-		},
-		inUniqueDirectoryNames: map[string]string{
-			"/root-module/tstruct/listWithKey": "ListWithKey",
 		},
 		inGoOpts: GoOpts{
 			GenerateRenameMethod: true,
 		},
-		wantCompressed: wantGoStructOut{
+		want: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
+	ListWithKey	map[Tstruct_ListWithKey_Key]*Tstruct_ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -1413,12 +915,12 @@ type Tstruct_ListWithKey_Key struct {
 // NewListWithKey creates a new entry in the ListWithKey list of the
 // Tstruct struct. The keys of the list are populated from the input
 // arguments.
-func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithKey, error){
+func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*Tstruct_ListWithKey, error){
 
 	// Initialise the list within the receiver struct if it has not already been
 	// created.
 	if t.ListWithKey == nil {
-		t.ListWithKey = make(map[Tstruct_ListWithKey_Key]*ListWithKey)
+		t.ListWithKey = make(map[Tstruct_ListWithKey_Key]*Tstruct_ListWithKey)
 	}
 
 	key := Tstruct_ListWithKey_Key{
@@ -1433,7 +935,7 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 		return nil, fmt.Errorf("duplicate key %v for list ListWithKey", key)
 	}
 
-	t.ListWithKey[key] = &ListWithKey{
+	t.ListWithKey[key] = &Tstruct_ListWithKey{
 		KeyLeafOne: &KeyLeafOne,
 		KeyLeafTwo: &KeyLeafTwo,
 	}
@@ -1462,97 +964,7 @@ func (t *Tstruct) RenameListWithKey(oldK, newK Tstruct_ListWithKey_Key) error {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
-// that are included in the generated code.
-func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
-
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
-func (*Tstruct) ΛBelongingModule() string {
-	return "exmod"
-}
-`,
-		},
-		wantUncompressed: wantGoStructOut{
-			structs: `
-// Tstruct represents the /root-module/tstruct YANG schema element.
-type Tstruct struct {
-	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
-}
-
-// IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
-// interface. This allows functions that need to handle this struct to
-// identify it as being generated by ygen.
-func (*Tstruct) IsYANGGoStruct() {}
-`,
-			keys: `
-// Tstruct_ListWithKey_Key represents the key for list ListWithKey of element /root-module/tstruct.
-type Tstruct_ListWithKey_Key struct {
-	KeyLeafOne	string	` + "`" + `path:"keyLeafOne"` + "`" + `
-	KeyLeafTwo	int8	` + "`" + `path:"keyLeafTwo"` + "`" + `
-}
-`,
-			methods: `
-// NewListWithKey creates a new entry in the ListWithKey list of the
-// Tstruct struct. The keys of the list are populated from the input
-// arguments.
-func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithKey, error){
-
-	// Initialise the list within the receiver struct if it has not already been
-	// created.
-	if t.ListWithKey == nil {
-		t.ListWithKey = make(map[Tstruct_ListWithKey_Key]*ListWithKey)
-	}
-
-	key := Tstruct_ListWithKey_Key{
-		KeyLeafOne: KeyLeafOne,
-		KeyLeafTwo: KeyLeafTwo,
-	}
-
-	// Ensure that this key has not already been used in the
-	// list. Keyed YANG lists do not allow duplicate keys to
-	// be created.
-	if _, ok := t.ListWithKey[key]; ok {
-		return nil, fmt.Errorf("duplicate key %v for list ListWithKey", key)
-	}
-
-	t.ListWithKey[key] = &ListWithKey{
-		KeyLeafOne: &KeyLeafOne,
-		KeyLeafTwo: &KeyLeafTwo,
-	}
-
-	return t.ListWithKey[key], nil
-}
-
-// RenameListWithKey renames an entry in the list ListWithKey within
-// the Tstruct struct. The entry with key oldK is renamed to newK updating
-// the key within the value.
-func (t *Tstruct) RenameListWithKey(oldK, newK Tstruct_ListWithKey_Key) error {
-	if _, ok := t.ListWithKey[newK]; ok {
-		return fmt.Errorf("key %v already exists in ListWithKey", newK)
-	}
-
-	e, ok := t.ListWithKey[oldK]
-	if !ok {
-		return fmt.Errorf("key %v not found in ListWithKey", oldK)
-	}
-	e.KeyLeafOne = &newK.KeyLeafOne
-	e.KeyLeafTwo = &newK.KeyLeafTwo
-
-	t.ListWithKey[newK] = e
-	delete(t.ListWithKey, oldK)
-	return nil
-}
-
-// Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -1572,64 +984,41 @@ func (*Tstruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "annotated struct",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "Tstruct",
-			Entry: &yang.Entry{
-				Name: "tstruct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Type: Container,
+			Fields: map[string]*NodeDetails{
 				"f1": {
-					Name: "f1",
-					Type: &yang.YangType{Kind: yang.Yint8},
-					Parent: &yang.Entry{
-						Name: "tstruct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "F1",
+					YANGDetails: YANGNodeDetails{
+						Name:         "f1",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/tstruct/f1",
+						ResolvedPath: "",
 					},
-					Node: &yang.Leaf{
-						Name: "f1",
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
+					Type: LeafNode,
+					LangType: &MappedType{
+						NativeType:        "int8",
+						UnionTypes:        nil,
+						IsEnumeratedValue: false,
+						ZeroValue:         "0",
+						DefaultValue:      nil,
 					},
+					MappedPaths:             [][]string{{"f1"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "tstruct"},
+			Path:            "/root-module/tstruct",
+			BelongingModule: "exmod",
 		},
 		inGoOpts: GoOpts{
 			AddAnnotationFields: true,
 			AnnotationPrefix:    "Ω",
 		},
-		wantCompressed: wantGoStructOut{
+		want: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
@@ -1645,41 +1034,7 @@ func (*Tstruct) IsYANGGoStruct() {}
 `,
 			methods: `
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
-	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
-		return err
-	}
-	return nil
-}
-
-// ΛEnumTypeMap returns a map, keyed by YANG schema path, of the enumerated types
-// that are included in the generated code.
-func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
-
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
-func (*Tstruct) ΛBelongingModule() string {
-	return "exmod"
-}
-`,
-		},
-		wantUncompressed: wantGoStructOut{
-			structs: `
-// Tstruct represents the /root-module/tstruct YANG schema element.
-type Tstruct struct {
-	ΩMetadata	[]ygot.Annotation	` + "`" + `path:"@" ygotAnnotation:"true"` + "`" + `
-	F1	*int8	` + "`" + `path:"f1" module:"exmod"` + "`" + `
-	ΩF1	[]ygot.Annotation	` + "`" + `path:"@f1" ygotAnnotation:"true"` + "`" + `
-}
-
-// IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
-// interface. This allows functions that need to handle this struct to
-// identify it as being generated by ygen.
-func (*Tstruct) IsYANGGoStruct() {}
-`,
-			methods: `
-// Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -1699,111 +1054,109 @@ func (*Tstruct) ΛBelongingModule() string {
 		},
 	}, {
 		name: "struct with multi-key list - append and getters",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "Tstruct",
-			Entry: &yang.Entry{
-				Name: "tstruct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Type: Container,
+			Fields: map[string]*NodeDetails{
 				"listWithKey": {
-					Name:     "listWithKey",
-					ListAttr: &yang.ListAttr{},
-					Key:      "keyLeafOne keyLeafTwo",
-					Parent: &yang.Entry{
-						Name: "tstruct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "ListWithKey",
+					YANGDetails: YANGNodeDetails{
+						Name:         "list-with-key",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/tstruct/listWithKey",
+						ResolvedPath: "",
 					},
-					Kind: yang.DirectoryEntry,
-					Dir: map[string]*yang.Entry{
-						"keyLeafOne": {
-							Name: "keyLeafOne",
-							Node: &yang.Leaf{
-								Parent: &yang.Module{
-									Name: "exmod",
-									Namespace: &yang.Value{
-										Name: "u:exmod",
-									},
-									Modules: modules,
-								},
-							},
-						},
-						"keyLeafTwo": {
-							Name: "keyLeafTwo",
-							Node: &yang.Leaf{
-								Parent: &yang.Module{
-									Name: "exmod",
-									Namespace: &yang.Value{
-										Name: "u:exmod",
-									},
-									Modules: modules,
-								},
-							},
-						},
-					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
-					},
+					Type:                    ListNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"listWithKey"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "tstruct"},
+			Path:            "/root-module/tstruct",
+			BelongingModule: "exmod",
 		},
-		inMappableEntities: map[string]*Directory{
+		inOtherStructMap: map[string]*ParsedDirectory{
 			"/root-module/tstruct/listWithKey": {
-				Name: "ListWithKey",
-				ListAttr: &YangListAttr{
-					Keys: map[string]*MappedType{
-						"keyLeafOne": {NativeType: "string"},
-						"keyLeafTwo": {NativeType: "int8"},
+				Name: "Tstruct_ListWithKey",
+				Type: List,
+				Fields: map[string]*NodeDetails{
+					"keyLeafOne": {
+						Name: "keyLeafOne",
+						YANGDetails: YANGNodeDetails{
+							Name:         "keyLeafOne",
+							Defaults:     nil,
+							Module:       "exmod",
+							Path:         "/root-module/tstruct/listWithKey/keyLeafOne",
+							ResolvedPath: "",
+						},
+						Type: LeafNode,
+						LangType: &MappedType{
+							NativeType: "string",
+							UnionTypes: nil,
+							ZeroValue:  `""`,
+						},
+						MappedPaths:             [][]string{{"keyLeafOne"}},
+						MappedPathModules:       [][]string{{"exmod"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
+					},
+					"keyLeafTwo": {
+						Name: "keyLeafTwo",
+						YANGDetails: YANGNodeDetails{
+							Name:         "keyLeafTwo",
+							Defaults:     nil,
+							Module:       "exmod",
+							Path:         "/root-module/tstruct/listWithKey/keyLeafTwo",
+							ResolvedPath: "",
+						},
+						Type: LeafNode,
+						LangType: &MappedType{
+							NativeType: "int8",
+							UnionTypes: nil,
+							ZeroValue:  "0",
+						},
+						MappedPaths:             [][]string{{"keyLeafTwo"}},
+						MappedPathModules:       [][]string{{"exmod"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
 					},
 				},
-				Path: []string{"", "root-module", "tstruct", "listWithKey"},
+				ListKeys: map[string]*ListKey{
+					"keyLeafOne": {
+						Name: "KeyLeafOne",
+						LangType: &MappedType{
+							NativeType: "string",
+							UnionTypes: nil,
+							ZeroValue:  `""`,
+						},
+					},
+					"keyLeafTwo": {
+						Name: "KeyLeafTwo",
+						LangType: &MappedType{
+							NativeType: "int8",
+							UnionTypes: nil,
+							ZeroValue:  `""`,
+						},
+					},
+				},
+				ListKeyYANGNames: []string{"keyLeafOne", "keyLeafTwo"},
+				Path:             "/root-module/tstruct/listWithKey",
+				BelongingModule:  "exmod",
 			},
-		},
-		inUniqueDirectoryNames: map[string]string{
-			"/root-module/tstruct/listWithKey": "ListWithKey",
 		},
 		inGoOpts: GoOpts{
 			GenerateAppendMethod: true,
 			GenerateGetters:      true,
 			GenerateDeleteMethod: true,
 		},
-		wantCompressed: wantGoStructOut{
+		want: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[Tstruct_ListWithKey_Key]*ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
+	ListWithKey	map[Tstruct_ListWithKey_Key]*Tstruct_ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -1822,12 +1175,12 @@ type Tstruct_ListWithKey_Key struct {
 // NewListWithKey creates a new entry in the ListWithKey list of the
 // Tstruct struct. The keys of the list are populated from the input
 // arguments.
-func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithKey, error){
+func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*Tstruct_ListWithKey, error){
 
 	// Initialise the list within the receiver struct if it has not already been
 	// created.
 	if t.ListWithKey == nil {
-		t.ListWithKey = make(map[Tstruct_ListWithKey_Key]*ListWithKey)
+		t.ListWithKey = make(map[Tstruct_ListWithKey_Key]*Tstruct_ListWithKey)
 	}
 
 	key := Tstruct_ListWithKey_Key{
@@ -1842,7 +1195,7 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 		return nil, fmt.Errorf("duplicate key %v for list ListWithKey", key)
 	}
 
-	t.ListWithKey[key] = &ListWithKey{
+	t.ListWithKey[key] = &Tstruct_ListWithKey{
 		KeyLeafOne: &KeyLeafOne,
 		KeyLeafTwo: &KeyLeafTwo,
 	}
@@ -1853,7 +1206,7 @@ func (t *Tstruct) NewListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithK
 // GetOrCreateListWithKey retrieves the value with the specified keys from
 // the receiver Tstruct. If the entry does not exist, then it is created.
 // It returns the existing or new list member.
-func (t *Tstruct) GetOrCreateListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithKey){
+func (t *Tstruct) GetOrCreateListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*Tstruct_ListWithKey){
 
 	key := Tstruct_ListWithKey_Key{
 		KeyLeafOne: KeyLeafOne,
@@ -1876,7 +1229,7 @@ func (t *Tstruct) GetOrCreateListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*L
 // the ListWithKey map field of Tstruct. If the receiver is nil, or
 // the specified key is not present in the list, nil is returned such that Get*
 // methods may be safely chained.
-func (t *Tstruct) GetListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*ListWithKey){
+func (t *Tstruct) GetListWithKey(KeyLeafOne string, KeyLeafTwo int8) (*Tstruct_ListWithKey){
 
 	if t == nil {
 		return nil
@@ -1905,11 +1258,11 @@ func (t *Tstruct) DeleteListWithKey(KeyLeafOne string, KeyLeafTwo int8) {
 	delete(t.ListWithKey, key)
 }
 
-// AppendListWithKey appends the supplied ListWithKey struct to the
+// AppendListWithKey appends the supplied Tstruct_ListWithKey struct to the
 // list ListWithKey of Tstruct. If the key value(s) specified in
-// the supplied ListWithKey already exist in the list, an error is
+// the supplied Tstruct_ListWithKey already exist in the list, an error is
 // returned.
-func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
+func (t *Tstruct) AppendListWithKey(v *Tstruct_ListWithKey) error {
 	if v.KeyLeafOne == nil {
 		return fmt.Errorf("invalid nil key for KeyLeafOne")
 	}
@@ -1926,7 +1279,7 @@ func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
 	// Initialise the list within the receiver struct if it has not already been
 	// created.
 	if t.ListWithKey == nil {
-		t.ListWithKey = make(map[Tstruct_ListWithKey_Key]*ListWithKey)
+		t.ListWithKey = make(map[Tstruct_ListWithKey_Key]*Tstruct_ListWithKey)
 	}
 
 	if _, ok := t.ListWithKey[key]; ok {
@@ -1938,7 +1291,7 @@ func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -1956,87 +1309,72 @@ func (*Tstruct) ΛBelongingModule() string {
 }
 `,
 		},
-		wantSame: true,
 	}, {
 		name: "struct with single key list - append and getters",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "Tstruct",
-			Entry: &yang.Entry{
-				Name: "tstruct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Type: Container,
+			Fields: map[string]*NodeDetails{
 				"listWithKey": {
-					Name:     "listWithKey",
-					ListAttr: &yang.ListAttr{},
-					Key:      "keyLeaf",
-					Parent: &yang.Entry{
-						Name: "tstruct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "ListWithKey",
+					YANGDetails: YANGNodeDetails{
+						Name:         "list-with-key",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/tstruct/listWithKey",
+						ResolvedPath: "",
 					},
-					Kind: yang.DirectoryEntry,
-					Dir: map[string]*yang.Entry{
-						"keyLeaf": {
-							Name: "keyLeaf",
-							Type: &yang.YangType{Kind: yang.Ystring},
-						},
-					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
-					},
+					Type:                    ListNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"listWithKey"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "tstruct"},
+			Path:            "/root-module/tstruct",
+			BelongingModule: "exmod",
 		},
-		inMappableEntities: map[string]*Directory{
+		inOtherStructMap: map[string]*ParsedDirectory{
 			"/root-module/tstruct/listWithKey": {
-				Name: "ListWithKey",
-				ListAttr: &YangListAttr{
-					Keys: map[string]*MappedType{
-						"keyLeaf": {NativeType: "string"},
+				Name: "Tstruct_ListWithKey",
+				Type: List,
+				Fields: map[string]*NodeDetails{
+					"keyLeaf": {
+						Name: "keyLeaf",
+						YANGDetails: YANGNodeDetails{
+							Name:         "keyLeaf",
+							Defaults:     nil,
+							Module:       "exmod",
+							Path:         "/root-module/tstruct/listWithKey/keyLeaf",
+							ResolvedPath: "",
+						},
+						Type: LeafNode,
+						LangType: &MappedType{
+							NativeType: "string",
+							UnionTypes: nil,
+							ZeroValue:  `""`,
+						},
+						MappedPaths:             [][]string{{"keyLeaf"}},
+						MappedPathModules:       [][]string{{"exmod"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
 					},
-					KeyElems: []*yang.Entry{
-						{
-							Name: "keyLeaf",
+				},
+				ListKeys: map[string]*ListKey{
+					"keyLeaf": {
+						Name: "KeyLeaf",
+						LangType: &MappedType{
+							NativeType: "string",
+							UnionTypes: nil,
+							ZeroValue:  `""`,
 						},
 					},
 				},
-				Path: []string{"", "root-module", "tstruct", "listWithKey"},
+				ListKeyYANGNames: []string{"keyLeaf"},
+				Path:             "/root-module/tstruct/listWithKey",
+				BelongingModule:  "exmod",
 			},
-		},
-		inUniqueDirectoryNames: map[string]string{
-			"/root-module/tstruct/listWithKey": "ListWithKey",
 		},
 		inGoOpts: GoOpts{
 			GenerateAppendMethod:    true,
@@ -2044,11 +1382,11 @@ func (*Tstruct) ΛBelongingModule() string {
 			GenerateDeleteMethod:    true,
 			GeneratePopulateDefault: true,
 		},
-		wantCompressed: wantGoStructOut{
+		want: wantGoStructOut{
 			structs: `
 // Tstruct represents the /root-module/tstruct YANG schema element.
 type Tstruct struct {
-	ListWithKey	map[string]*ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
+	ListWithKey	map[string]*Tstruct_ListWithKey	` + "`" + `path:"listWithKey" module:"exmod"` + "`" + `
 }
 
 // IsYANGGoStruct ensures that Tstruct implements the yang.GoStruct
@@ -2060,12 +1398,12 @@ func (*Tstruct) IsYANGGoStruct() {}
 // NewListWithKey creates a new entry in the ListWithKey list of the
 // Tstruct struct. The keys of the list are populated from the input
 // arguments.
-func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
+func (t *Tstruct) NewListWithKey(KeyLeaf string) (*Tstruct_ListWithKey, error){
 
 	// Initialise the list within the receiver struct if it has not already been
 	// created.
 	if t.ListWithKey == nil {
-		t.ListWithKey = make(map[string]*ListWithKey)
+		t.ListWithKey = make(map[string]*Tstruct_ListWithKey)
 	}
 
 	key := KeyLeaf
@@ -2077,7 +1415,7 @@ func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
 		return nil, fmt.Errorf("duplicate key %v for list ListWithKey", key)
 	}
 
-	t.ListWithKey[key] = &ListWithKey{
+	t.ListWithKey[key] = &Tstruct_ListWithKey{
 		KeyLeaf: &KeyLeaf,
 	}
 
@@ -2087,7 +1425,7 @@ func (t *Tstruct) NewListWithKey(KeyLeaf string) (*ListWithKey, error){
 // GetOrCreateListWithKey retrieves the value with the specified keys from
 // the receiver Tstruct. If the entry does not exist, then it is created.
 // It returns the existing or new list member.
-func (t *Tstruct) GetOrCreateListWithKey(KeyLeaf string) (*ListWithKey){
+func (t *Tstruct) GetOrCreateListWithKey(KeyLeaf string) (*Tstruct_ListWithKey){
 
 	key := KeyLeaf
 
@@ -2107,7 +1445,7 @@ func (t *Tstruct) GetOrCreateListWithKey(KeyLeaf string) (*ListWithKey){
 // the ListWithKey map field of Tstruct. If the receiver is nil, or
 // the specified key is not present in the list, nil is returned such that Get*
 // methods may be safely chained.
-func (t *Tstruct) GetListWithKey(KeyLeaf string) (*ListWithKey){
+func (t *Tstruct) GetListWithKey(KeyLeaf string) (*Tstruct_ListWithKey){
 
 	if t == nil {
 		return nil
@@ -2130,11 +1468,11 @@ func (t *Tstruct) DeleteListWithKey(KeyLeaf string) {
 	delete(t.ListWithKey, key)
 }
 
-// AppendListWithKey appends the supplied ListWithKey struct to the
+// AppendListWithKey appends the supplied Tstruct_ListWithKey struct to the
 // list ListWithKey of Tstruct. If the key value(s) specified in
-// the supplied ListWithKey already exist in the list, an error is
+// the supplied Tstruct_ListWithKey already exist in the list, an error is
 // returned.
-func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
+func (t *Tstruct) AppendListWithKey(v *Tstruct_ListWithKey) error {
 	if v.KeyLeaf == nil {
 		return fmt.Errorf("invalid nil key received for KeyLeaf")
 	}
@@ -2144,7 +1482,7 @@ func (t *Tstruct) AppendListWithKey(v *ListWithKey) error {
 	// Initialise the list within the receiver struct if it has not already been
 	// created.
 	if t.ListWithKey == nil {
-		t.ListWithKey = make(map[string]*ListWithKey)
+		t.ListWithKey = make(map[string]*Tstruct_ListWithKey)
 	}
 
 	if _, ok := t.ListWithKey[key]; ok {
@@ -2169,7 +1507,7 @@ func (t *Tstruct) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Tstruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Tstruct"], t, opts...); err != nil {
 		return err
 	}
@@ -2187,68 +1525,44 @@ func (*Tstruct) ΛBelongingModule() string {
 }
 `,
 		},
-		wantSame: true,
 	}, {
 		name: "struct with child container - getters generated",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "InputStruct",
-			Entry: &yang.Entry{
-				Name: "input-struct",
-				Parent: &yang.Entry{
-					Name: "root-module",
-					Node: &yang.Module{
-						Name: "exmod",
-						Namespace: &yang.Value{
-							Name: "u:exmod",
-						},
-						Modules: modules,
-					},
-				},
-				Node: &yang.Module{
-					Name: "exmod",
-					Namespace: &yang.Value{
-						Name: "u:exmod",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Type: Container,
+			Fields: map[string]*NodeDetails{
 				"c1": {
-					Name: "c1",
-					Dir:  map[string]*yang.Entry{},
-					Kind: yang.DirectoryEntry,
-					Parent: &yang.Entry{
-						Name: "input-struct",
-						Parent: &yang.Entry{
-							Name: "root-module",
-							Node: &yang.Module{
-								Name: "exmod",
-								Namespace: &yang.Value{
-									Name: "u:exmod",
-								},
-								Modules: modules,
-							},
-						},
+					Name: "C1",
+					YANGDetails: YANGNodeDetails{
+						Name:         "c1",
+						Defaults:     nil,
+						Module:       "exmod",
+						Path:         "/root-module/input-struct/c1",
+						ResolvedPath: "",
 					},
-					Node: &yang.Leaf{
-						Parent: &yang.Module{
-							Name: "exmod",
-							Namespace: &yang.Value{
-								Name: "u:exmod",
-							},
-							Modules: modules,
-						},
-					},
+					Type:                    ContainerNode,
+					LangType:                nil,
+					MappedPaths:             [][]string{{"c1"}},
+					MappedPathModules:       [][]string{{"exmod"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"", "root-module", "input-struct"},
+			Path:            "/root-module/input-struct",
+			BelongingModule: "exmod",
 		},
-		inUniqueDirectoryNames: map[string]string{"/root-module/input-struct/c1": "InputStruct_C1"},
+		inOtherStructMap: map[string]*ParsedDirectory{
+			"/root-module/input-struct/c1": {
+				Name:            "InputStruct_C1",
+				Path:            "/root-module/input-struct/c1",
+				BelongingModule: "exmod",
+			},
+		},
 		inGoOpts: GoOpts{
 			GenerateGetters:         true,
 			GeneratePopulateDefault: true,
 		},
-		wantCompressed: wantGoStructOut{
+		want: wantGoStructOut{
 			structs: `
 // InputStruct represents the /root-module/input-struct YANG schema element.
 type InputStruct struct {
@@ -2293,7 +1607,7 @@ func (t *InputStruct) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *InputStruct) Validate(opts ...ygot.ValidationOption) error {
+func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["InputStruct"], t, opts...); err != nil {
 		return err
 	}
@@ -2311,102 +1625,44 @@ func (*InputStruct) ΛBelongingModule() string {
 }
 `,
 		},
-		wantSame: true,
 	}, {
 		name: "container with leaf getters",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "Container",
-			Entry: &yang.Entry{
-				Name: "bar",
-				Kind: yang.DirectoryEntry,
-				Parent: &yang.Entry{
-					Name: "foo",
-					Kind: yang.DirectoryEntry,
-					Parent: &yang.Entry{
-						Name: "m1",
-						Node: &yang.Module{
-							Name: "m1",
-							Namespace: &yang.Value{
-								Name: "u:m1",
-							},
-							Modules: modules,
-						},
-					},
-					Node: &yang.Container{
-						Name: "foo",
-						Parent: &yang.Module{
-							Name: "m1",
-							Namespace: &yang.Value{
-								Name: "u:m1",
-							},
-							Modules: modules,
-						},
-					},
-				},
-				Node: &yang.Module{
-					Name: "m1",
-					Namespace: &yang.Value{
-						Name: "u:m1",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Fields: map[string]*NodeDetails{
 				"leaf": {
-					Name: "leaf",
-					Kind: yang.LeafEntry,
-					Type: &yang.YangType{
-						Kind: yang.Ystring,
+					Name: "Leaf",
+					YANGDetails: YANGNodeDetails{
+						Name:         "leaf",
+						Defaults:     nil,
+						Module:       "m1",
+						Path:         "/m1/foo/bar/leaf",
+						ResolvedPath: "",
 					},
-					Parent: &yang.Entry{
-						Name: "bar",
-						Kind: yang.DirectoryEntry,
-						Parent: &yang.Entry{
-							Name: "foo",
-							Kind: yang.DirectoryEntry,
-							Parent: &yang.Entry{
-								Name: "m1",
-								Node: &yang.Module{
-									Name: "m1",
-									Namespace: &yang.Value{
-										Name: "u:m1",
-									},
-									Modules: modules,
-								},
-							},
-							Node: &yang.Container{
-								Name: "foo",
-								Parent: &yang.Module{
-									Name: "m1",
-									Namespace: &yang.Value{
-										Name: "u:m1",
-									},
-									Modules: modules,
-								},
-							},
-						},
+					Type: LeafNode,
+					LangType: &MappedType{
+						NativeType:        "string",
+						UnionTypes:        nil,
+						IsEnumeratedValue: false,
+						ZeroValue:         `""`,
+						DefaultValue:      nil,
 					},
-					Node: &yang.Leaf{
-						Name: "leaf",
-						Parent: &yang.Module{
-							Name: "m1",
-							Namespace: &yang.Value{
-								Name: "u:m1",
-							},
-							Modules: modules,
-						},
-					},
+					MappedPaths:             [][]string{{"bar", "leaf"}},
+					MappedPathModules:       [][]string{{"m1", "m1"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"m1", "foo", "bar"},
+			Path:            "/m1/foo",
+			BelongingModule: "m1",
 		},
 		inGoOpts: GoOpts{
 			GenerateLeafGetters:     true,
 			GeneratePopulateDefault: true,
 		},
-		wantCompressed: wantGoStructOut{
+		want: wantGoStructOut{
 			structs: `
-// Container represents the m1/foo/bar YANG schema element.
+// Container represents the /m1/foo YANG schema element.
 type Container struct {
 	Leaf	*string	` + "`" + `path:"bar/leaf" module:"m1/m1"` + "`" + `
 }
@@ -2444,7 +1700,7 @@ func (t *Container) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Container) Validate(opts ...ygot.ValidationOption) error {
+func (t *Container) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Container"], t, opts...); err != nil {
 		return err
 	}
@@ -2462,103 +1718,44 @@ func (*Container) ΛBelongingModule() string {
 }
 `,
 		},
-		wantSame: true,
 	}, {
 		name: "leaf getter with default value",
-		inStructToMap: &Directory{
+		inStructToMap: &ParsedDirectory{
 			Name: "Container",
-			Entry: &yang.Entry{
-				Name: "bar",
-				Kind: yang.DirectoryEntry,
-				Parent: &yang.Entry{
-					Name: "foo",
-					Kind: yang.DirectoryEntry,
-					Parent: &yang.Entry{
-						Name: "m1",
-						Node: &yang.Module{
-							Name: "m1",
-							Namespace: &yang.Value{
-								Name: "u:m1",
-							},
-							Modules: modules,
-						},
-					},
-					Node: &yang.Container{
-						Name: "foo",
-						Parent: &yang.Module{
-							Name: "m1",
-							Namespace: &yang.Value{
-								Name: "u:m1",
-							},
-							Modules: modules,
-						},
-					},
-				},
-				Node: &yang.Module{
-					Name: "m1",
-					Namespace: &yang.Value{
-						Name: "u:m1",
-					},
-					Modules: modules,
-				},
-			},
-			Fields: map[string]*yang.Entry{
+			Fields: map[string]*NodeDetails{
 				"leaf": {
-					Name:    "leaf",
-					Kind:    yang.LeafEntry,
-					Default: []string{"DEFAULT VALUE"},
-					Type: &yang.YangType{
-						Kind: yang.Ystring,
+					Name: "Leaf",
+					YANGDetails: YANGNodeDetails{
+						Name:         "leaf",
+						Defaults:     []string{"DEFAULT VALUE"},
+						Module:       "m1",
+						Path:         "/m1/foo/bar/leaf",
+						ResolvedPath: "",
 					},
-					Parent: &yang.Entry{
-						Name: "bar",
-						Kind: yang.DirectoryEntry,
-						Parent: &yang.Entry{
-							Name: "foo",
-							Kind: yang.DirectoryEntry,
-							Parent: &yang.Entry{
-								Name: "m1",
-								Node: &yang.Module{
-									Name: "m1",
-									Namespace: &yang.Value{
-										Name: "u:m1",
-									},
-									Modules: modules,
-								},
-							},
-							Node: &yang.Container{
-								Name: "foo",
-								Parent: &yang.Module{
-									Name: "m1",
-									Namespace: &yang.Value{
-										Name: "u:m1",
-									},
-									Modules: modules,
-								},
-							},
-						},
+					Type: LeafNode,
+					LangType: &MappedType{
+						NativeType:        "string",
+						UnionTypes:        nil,
+						IsEnumeratedValue: false,
+						ZeroValue:         `""`,
+						DefaultValue:      ygot.String(`"DEFAULT VALUE"`),
 					},
-					Node: &yang.Leaf{
-						Name: "leaf",
-						Parent: &yang.Module{
-							Name: "m1",
-							Namespace: &yang.Value{
-								Name: "u:m1",
-							},
-							Modules: modules,
-						},
-					},
+					MappedPaths:             [][]string{{"bar", "leaf"}},
+					MappedPathModules:       [][]string{{"m1", "m1"}},
+					ShadowMappedPaths:       nil,
+					ShadowMappedPathModules: nil,
 				},
 			},
-			Path: []string{"m1", "foo", "bar"},
+			Path:            "/m1/foo",
+			BelongingModule: "m1",
 		},
 		inGoOpts: GoOpts{
 			GenerateLeafGetters:     true,
 			GeneratePopulateDefault: true,
 		},
-		wantCompressed: wantGoStructOut{
+		want: wantGoStructOut{
 			structs: `
-// Container represents the m1/foo/bar YANG schema element.
+// Container represents the /m1/foo YANG schema element.
 type Container struct {
 	Leaf	*string	` + "`" + `path:"bar/leaf" module:"m1/m1"` + "`" + `
 }
@@ -2600,7 +1797,7 @@ func (t *Container) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Container) Validate(opts ...ygot.ValidationOption) error {
+func (t *Container) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Container"], t, opts...); err != nil {
 		return err
 	}
@@ -2618,78 +1815,73 @@ func (*Container) ΛBelongingModule() string {
 }
 `,
 		},
-		wantSame: true,
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if tt.wantSame {
-				tt.wantUncompressed = tt.wantCompressed
+			// Fill the current directory into the map to reduce test size.
+			if tt.inOtherStructMap == nil {
+				tt.inOtherStructMap = map[string]*ParsedDirectory{}
 			}
-			for compressed, want := range map[bool]wantGoStructOut{true: tt.wantCompressed, false: tt.wantUncompressed} {
-				s := newGoGenState(nil, nil)
-				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
+			tt.inOtherStructMap[tt.inStructToMap.Path] = tt.inStructToMap
+			// Always generate the JSON schema for this test.
+			generatedUnions := map[string]bool{}
+			got, errs := writeGoStruct(tt.inStructToMap, tt.inOtherStructMap, generatedUnions, tt.inIgnoreShadowSchemaPaths, tt.inGoOpts, true)
 
-				// Always generate the JSON schema for this test.
-				got, errs := writeGoStruct(tt.inStructToMap, tt.inMappableEntities, s, compressed, false, true, tt.inSkipEnumDedup, true, true, nil, tt.inGoOpts)
+			if len(errs) != 0 && !tt.want.wantErr {
+				t.Fatalf("%s writeGoStruct(targetStruct: %v): received unexpected errors: %v",
+					tt.name, tt.inStructToMap, errs)
+			}
 
-				if len(errs) != 0 && !want.wantErr {
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): received unexpected errors: %v",
-						tt.name, compressed, tt.inStructToMap, errs)
-					continue
+			if len(errs) == 0 && tt.want.wantErr {
+				t.Fatalf("%s writeGoStruct(targetStruct: %v): did not receive expected errors",
+					tt.name, tt.inStructToMap)
+			}
+
+			// If we wanted an error, then skip the rest of the tests as the generated code will not
+			// be correct.
+			if tt.want.wantErr {
+				return
+			}
+
+			if diff := pretty.Compare(tt.want.structs, got.StructDef); diff != "" {
+				if diffl, err := testutil.GenerateUnifiedDiff(tt.want.structs, got.StructDef); err == nil {
+					diff = diffl
 				}
+				t.Errorf("%s writeGoStruct(targetStruct: %v): struct generated code was not correct, diff (-want, +got):\n%s",
+					tt.name, tt.inStructToMap, diff)
+			}
 
-				if len(errs) == 0 && want.wantErr {
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): did not receive expected errors",
-						tt.name, compressed, tt.inStructToMap)
-					continue
+			if diff := pretty.Compare(tt.want.keys, got.ListKeys); diff != "" {
+				if diffl, err := testutil.GenerateUnifiedDiff(tt.want.keys, got.ListKeys); err == nil {
+					diff = diffl
 				}
+				t.Errorf("%s writeGoStruct(targetStruct: %v): structs generated as list keys incorrect, diff (-want, +got):\n%s",
+					tt.name, tt.inStructToMap, diff)
+			}
 
-				// If we wanted an error, then skip the rest of the tests as the generated code will not
-				// be correct.
-				if want.wantErr {
-					continue
+			if diff := pretty.Compare(tt.want.methods, got.Methods); diff != "" {
+				if diffl, err := testutil.GenerateUnifiedDiff(tt.want.methods, got.Methods); err == nil {
+					diff = diffl
 				}
+				t.Errorf("%s writeGoStruct(targetStruct: %v): generated methods incorrect, diff (-want, +got):\n%s",
+					tt.name, tt.inStructToMap, diff)
+			}
 
-				if diff := pretty.Compare(want.structs, got.StructDef); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(want.structs, got.StructDef); err == nil {
-						diff = diffl
-					}
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): struct generated code was not correct, diff (-want, +got):\n%s",
-						tt.name, compressed, tt.inStructToMap, diff)
+			if diff := pretty.Compare(tt.want.interfaces, got.Interfaces); diff != "" {
+				if diffl, err := testutil.GenerateUnifiedDiff(tt.want.interfaces, got.Interfaces); err == nil {
+					diff = diffl
 				}
-
-				if diff := pretty.Compare(want.keys, got.ListKeys); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(want.keys, got.ListKeys); err == nil {
-						diff = diffl
-					}
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): structs generated as list keys incorrect, diff (-want, +got):\n%s",
-						tt.name, compressed, tt.inStructToMap, diff)
-				}
-
-				if diff := pretty.Compare(want.methods, got.Methods); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(want.methods, got.Methods); err == nil {
-						diff = diffl
-					}
-					t.Errorf("%s writeGoStruct(compressPaths: %v, targetStruct: %v): generated methods incorrect, diff (-want, +got):\n%s",
-						tt.name, compressed, tt.inStructToMap, diff)
-				}
-
-				if diff := pretty.Compare(want.interfaces, got.Interfaces); diff != "" {
-					if diffl, err := testutil.GenerateUnifiedDiff(want.interfaces, got.Interfaces); err == nil {
-						diff = diffl
-					}
-					t.Errorf("%s: writeGoStruct(compressPaths: %v, targetStruct: %v): interfaces generated for struct incorrect, diff (-want, +got):\n%s",
-						tt.name, compressed, tt.inStructToMap, diff)
-				}
+				t.Errorf("%s: writeGoStruct(targetStruct: %v): interfaces generated for struct incorrect, diff (-want, +got):\n%s",
+					tt.name, tt.inStructToMap, diff)
 			}
 		})
 	}
 }
 
-// TestGoCodeEnumGeneration validates the enumerated type code generation from a YANG
+// TestGenGoEnumeratedTypes validates the enumerated type code generation from a YANG
 // module.
-func TestGoCodeEnumGeneration(t *testing.T) {
+func TestGenGoEnumeratedTypes(t *testing.T) {
 	// In order to create a mock enum within goyang, we must construct it using the
 	// relevant methods, since the field of the EnumType struct (toString) that we
 	// need to set is not publicly exported.
@@ -2709,37 +1901,91 @@ func TestGoCodeEnumGeneration(t *testing.T) {
 
 	tests := []struct {
 		name string
-		in   *yangEnum
-		want goEnumCodeSnippet
+		in   map[string]*EnumeratedYANGType
+		want map[string]*goEnumeratedType
 	}{{
-		name: "enum from identityref",
-		in: &yangEnum{
-			name: "EnumeratedValue",
-			entry: &yang.Entry{
-				Type: &yang.YangType{
-					IdentityBase: &yang.Identity{
-						Values: []*yang.Identity{{
-							Name: "VALUE_A",
-							Parent: &yang.Module{
-								Name: "mod",
-							},
-						}, {
-							Name: "VALUE_C",
-							Parent: &yang.Module{
-								Name: "mod2",
-							},
-						}, {
-							Name: "VALUE_B",
-							Parent: &yang.Module{
-								Name: "mod3",
-							},
-						}},
+		name: "enum",
+		in: map[string]*EnumeratedYANGType{
+			"foo": {
+				Name:     "EnumeratedValue",
+				Kind:     SimpleEnumerationType,
+				TypeName: "enumerated-value",
+				ValToYANGDetails: []ygot.EnumDefinition{
+					{
+						Name:           "VALUE_A",
+						DefiningModule: "",
+					},
+					{
+						Name:           "VALUE_B",
+						DefiningModule: "",
+					},
+					{
+						Name:           "VALUE_C",
+						DefiningModule: "",
 					},
 				},
 			},
 		},
-		want: goEnumCodeSnippet{
-			constDef: `
+		want: map[string]*goEnumeratedType{
+			"EnumeratedValue": {
+				Name: "EnumeratedValue",
+				CodeValues: map[int64]string{
+					0: "UNSET",
+					1: "VALUE_A",
+					2: "VALUE_B",
+					3: "VALUE_C",
+				},
+				YANGValues: map[int64]ygot.EnumDefinition{
+					1: {
+						Name:           "VALUE_A",
+						DefiningModule: "",
+					},
+					2: {
+						Name:           "VALUE_B",
+						DefiningModule: "",
+					},
+					3: {
+						Name:           "VALUE_C",
+						DefiningModule: "",
+					},
+				},
+			},
+		},
+	}}
+
+	for _, tt := range tests {
+		got, err := genGoEnumeratedTypes(tt.in)
+		if err != nil {
+			t.Errorf("%s: genGoEnumeratedTypes(%v): got unexpected error: %v",
+				tt.name, tt.in, err)
+			continue
+		}
+
+		if diff := cmp.Diff(tt.want, got); diff != "" {
+			t.Errorf("%s: genGoEnumeratedTypes(%v): got incorrect output, diff(-want, +got):\n%s",
+				tt.name, tt.in, diff)
+		}
+	}
+}
+
+// TestWriteGoEnum validates the enumerated type code generation from a parsed enum.
+func TestWriteGoEnum(t *testing.T) {
+	tests := []struct {
+		name string
+		in   *goEnumeratedType
+		want string
+	}{{
+		name: "enum from identityref",
+		in: &goEnumeratedType{
+			Name: "EnumeratedValue",
+			CodeValues: map[int64]string{
+				0: "UNSET",
+				1: "VALUE_A",
+				2: "VALUE_B",
+				3: "VALUE_C",
+			},
+		},
+		want: `
 // E_EnumeratedValue is a derived int64 type which is used to represent
 // the enumerated node EnumeratedValue. An additional value named
 // EnumeratedValue_UNSET is added to the enumeration which is used as
@@ -2771,109 +2017,6 @@ const (
 	EnumeratedValue_VALUE_C E_EnumeratedValue = 3
 )
 `,
-			name: "EnumeratedValue",
-			valToString: map[int64]ygot.EnumDefinition{
-				1: {Name: "VALUE_A", DefiningModule: "mod"},
-				2: {Name: "VALUE_B", DefiningModule: "mod3"},
-				3: {Name: "VALUE_C", DefiningModule: "mod2"},
-			},
-		},
-	}, {
-		name: "enum from enumeration",
-		in: &yangEnum{
-			name: "EnumeratedValueTwo",
-			entry: &yang.Entry{
-				Type: &yang.YangType{Enum: testYangEnums["enumOne"]},
-			},
-		},
-		want: goEnumCodeSnippet{
-			constDef: `
-// E_EnumeratedValueTwo is a derived int64 type which is used to represent
-// the enumerated node EnumeratedValueTwo. An additional value named
-// EnumeratedValueTwo_UNSET is added to the enumeration which is used as
-// the nil value, indicating that the enumeration was not explicitly set by
-// the program importing the generated structures.
-type E_EnumeratedValueTwo int64
-
-// IsYANGGoEnum ensures that EnumeratedValueTwo implements the yang.GoEnum
-// interface. This ensures that EnumeratedValueTwo can be identified as a
-// mapped type for a YANG enumeration.
-func (E_EnumeratedValueTwo) IsYANGGoEnum() {}
-
-// ΛMap returns the value lookup map associated with  EnumeratedValueTwo.
-func (E_EnumeratedValueTwo) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
-
-// String returns a logging-friendly string for E_EnumeratedValueTwo.
-func (e E_EnumeratedValueTwo) String() string {
-	return ygot.EnumLogString(e, int64(e), "E_EnumeratedValueTwo")
-}
-
-const (
-	// EnumeratedValueTwo_UNSET corresponds to the value UNSET of EnumeratedValueTwo
-	EnumeratedValueTwo_UNSET E_EnumeratedValueTwo = 0
-	// EnumeratedValueTwo_SPEED_2_5G corresponds to the value SPEED_2_5G of EnumeratedValueTwo
-	EnumeratedValueTwo_SPEED_2_5G E_EnumeratedValueTwo = 1
-	// EnumeratedValueTwo_SPEED_40G corresponds to the value SPEED_40G of EnumeratedValueTwo
-	EnumeratedValueTwo_SPEED_40G E_EnumeratedValueTwo = 2
-)
-`,
-			name: "EnumeratedValueTwo",
-			valToString: map[int64]ygot.EnumDefinition{
-				1: {Name: "SPEED_2.5G"},
-				2: {Name: "SPEED-40G"},
-			},
-		},
-	}, {
-		name: "enum from longer enumeration",
-		in: &yangEnum{
-			name: "BaseModule_Enumeration",
-			entry: &yang.Entry{
-				Type: &yang.YangType{Enum: testYangEnums["enumTwo"]},
-			},
-		},
-		want: goEnumCodeSnippet{
-			constDef: `
-// E_BaseModule_Enumeration is a derived int64 type which is used to represent
-// the enumerated node BaseModule_Enumeration. An additional value named
-// BaseModule_Enumeration_UNSET is added to the enumeration which is used as
-// the nil value, indicating that the enumeration was not explicitly set by
-// the program importing the generated structures.
-type E_BaseModule_Enumeration int64
-
-// IsYANGGoEnum ensures that BaseModule_Enumeration implements the yang.GoEnum
-// interface. This ensures that BaseModule_Enumeration can be identified as a
-// mapped type for a YANG enumeration.
-func (E_BaseModule_Enumeration) IsYANGGoEnum() {}
-
-// ΛMap returns the value lookup map associated with  BaseModule_Enumeration.
-func (E_BaseModule_Enumeration) ΛMap() map[string]map[int64]ygot.EnumDefinition { return ΛEnum; }
-
-// String returns a logging-friendly string for E_BaseModule_Enumeration.
-func (e E_BaseModule_Enumeration) String() string {
-	return ygot.EnumLogString(e, int64(e), "E_BaseModule_Enumeration")
-}
-
-const (
-	// BaseModule_Enumeration_UNSET corresponds to the value UNSET of BaseModule_Enumeration
-	BaseModule_Enumeration_UNSET E_BaseModule_Enumeration = 0
-	// BaseModule_Enumeration_VALUE_1 corresponds to the value VALUE_1 of BaseModule_Enumeration
-	BaseModule_Enumeration_VALUE_1 E_BaseModule_Enumeration = 1
-	// BaseModule_Enumeration_VALUE_2 corresponds to the value VALUE_2 of BaseModule_Enumeration
-	BaseModule_Enumeration_VALUE_2 E_BaseModule_Enumeration = 2
-	// BaseModule_Enumeration_VALUE_3 corresponds to the value VALUE_3 of BaseModule_Enumeration
-	BaseModule_Enumeration_VALUE_3 E_BaseModule_Enumeration = 3
-	// BaseModule_Enumeration_VALUE_4 corresponds to the value VALUE_4 of BaseModule_Enumeration
-	BaseModule_Enumeration_VALUE_4 E_BaseModule_Enumeration = 4
-)
-`,
-			name: "BaseModule_Enumeration",
-			valToString: map[int64]ygot.EnumDefinition{
-				1: {Name: "VALUE_1"},
-				2: {Name: "VALUE_2"},
-				3: {Name: "VALUE_3"},
-				4: {Name: "VALUE_4"},
-			},
-		},
 	}}
 
 	for _, tt := range tests {
@@ -2884,9 +2027,9 @@ const (
 			continue
 		}
 
-		if diff := pretty.Compare(tt.want, got); diff != "" {
+		if diff := cmp.Diff(tt.want, got); diff != "" {
 			fmt.Println(diff)
-			if diffl, err := testutil.GenerateUnifiedDiff(tt.want.constDef, got.constDef); err == nil {
+			if diffl, err := testutil.GenerateUnifiedDiff(tt.want, got); err == nil {
 				diff = diffl
 			}
 			t.Errorf("%s: writeGoEnum(%v): got incorrect output, diff(-want, +got):\n%s",
@@ -2895,7 +2038,7 @@ const (
 	}
 }
 
-func TestGenerateEnumMap(t *testing.T) {
+func TestWriteGoEnumMap(t *testing.T) {
 	tests := []struct {
 		name    string
 		inMap   map[string]map[int64]ygot.EnumDefinition
@@ -2954,7 +2097,7 @@ var ΛEnum = map[string]map[int64]ygot.EnumDefinition{
 	}}
 
 	for _, tt := range tests {
-		got, err := generateEnumMap(tt.inMap)
+		got, err := writeGoEnumMap(tt.inMap)
 
 		if err != nil {
 			if !tt.wantErr {

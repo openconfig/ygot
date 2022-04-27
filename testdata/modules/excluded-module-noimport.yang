@@ -1,0 +1,8 @@
+module excluded-module-noimport {
+  prefix "e";
+  namespace "urn:e";
+
+  import excluded-module-two { prefix "e2"; }
+
+  leaf e1 { type string; }
+}

@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -389,7 +390,8 @@ func TestUnionSubTypes(t *testing.T) {
 			if errs != nil {
 				t.Fatal(errs)
 			}
-			s := newGoGenState(nil, enumSet)
+			s := NewGoLangMapper(true)
+			s.SetEnumSet(enumSet)
 
 			mtypes := make(map[int]*MappedType)
 			ctypes := make(map[string]int)
@@ -1020,7 +1022,8 @@ func TestYangTypeToGoType(t *testing.T) {
 				}
 				return
 			}
-			s := newGoGenState(nil, enumSet)
+			s := NewGoLangMapper(true)
+			s.SetEnumSet(enumSet)
 
 			if tt.inEntries != nil {
 				st, err := buildSchemaTree(tt.inEntries)
@@ -1190,9 +1193,11 @@ func TestStructName(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		for compress, expected := range map[bool]string{false: tt.wantUncompressed, true: tt.wantCompressed} {
-			s := newGoGenState(nil, nil)
-			if out := s.goStructName(tt.inElement, compress, false); out != expected {
+		for compress, expected := range map[genutil.CompressBehaviour]string{genutil.Uncompressed: tt.wantUncompressed, genutil.PreferIntendedConfig: tt.wantCompressed} {
+			s := NewGoLangMapper(true)
+			if out, err := s.DirectoryName(tt.inElement, compress); err != nil {
+				t.Errorf("%s (compress: %v): got unexpected error: %v", tt.name, compress, err)
+			} else if out != expected {
 				t.Errorf("%s (compress: %v): shortName output invalid - got: %s, want: %s", tt.name, compress, out, expected)
 			}
 		}
@@ -1393,7 +1398,8 @@ func TestTypeResolutionManyToOne(t *testing.T) {
 			if errs != nil {
 				t.Fatalf("findEnumSet failed: %v", errs)
 			}
-			s := newGoGenState(nil, enumSet)
+			s := NewGoLangMapper(true)
+			s.SetEnumSet(enumSet)
 
 			gotTypes := make(map[string]*MappedType)
 			for _, leaf := range tt.inLeaves {
@@ -2401,7 +2407,8 @@ func TestYangDefaultValueToGo(t *testing.T) {
 					}
 					return
 				}
-				s := newGoGenState(nil, enumSet)
+				s := NewGoLangMapper(true)
+				s.SetEnumSet(enumSet)
 
 				if tt.inEntries != nil {
 					st, err := buildSchemaTree(tt.inEntries)
@@ -2761,7 +2768,8 @@ func TestYangDefaultValueToGo(t *testing.T) {
 				}
 				return
 			}
-			s := newGoGenState(nil, enumSet)
+			s := NewGoLangMapper(true)
+			s.SetEnumSet(enumSet)
 
 			if tt.inEntries != nil {
 				st, err := buildSchemaTree(tt.inEntries)

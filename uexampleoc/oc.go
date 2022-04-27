@@ -296,7 +296,7 @@ func (t *Device) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Device) Validate(opts ...ygot.ValidationOption) error {
+func (t *Device) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Device"], t, opts...); err != nil {
 		return err
 	}
@@ -447,7 +447,7 @@ func (t *OpenconfigInterfaces_Interfaces) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces"], t, opts...); err != nil {
 		return err
 	}
@@ -631,7 +631,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface) ΛListKeyMap() (map[string]i
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface"], t, opts...); err != nil {
 		return err
 	}
@@ -787,7 +787,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -873,7 +873,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet) PopulateDefaults() 
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_Ethernet"], t, opts...); err != nil {
 		return err
 	}
@@ -1051,7 +1051,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config) PopulateDefa
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_Ethernet_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -1306,7 +1306,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet_State) PopulateDefau
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_Ethernet_State"], t, opts...); err != nil {
 		return err
 	}
@@ -1706,7 +1706,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet_State_Counters) Popu
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet_State_Counters) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_Ethernet_State_Counters) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_Ethernet_State_Counters"], t, opts...); err != nil {
 		return err
 	}
@@ -1792,7 +1792,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_HoldTime) PopulateDefaults() 
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_HoldTime) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_HoldTime) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_HoldTime"], t, opts...); err != nil {
 		return err
 	}
@@ -1876,7 +1876,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_HoldTime_Config) PopulateDefa
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_HoldTime_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_HoldTime_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_HoldTime_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -1960,7 +1960,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_HoldTime_State) PopulateDefau
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_HoldTime_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_HoldTime_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_HoldTime_State"], t, opts...); err != nil {
 		return err
 	}
@@ -2319,7 +2319,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_State"], t, opts...); err != nil {
 		return err
 	}
@@ -2683,7 +2683,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_State_Counters) PopulateDefau
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_State_Counters) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_State_Counters) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_State_Counters"], t, opts...); err != nil {
 		return err
 	}
@@ -2836,7 +2836,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces) PopulateDefaul
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_Subinterfaces"], t, opts...); err != nil {
 		return err
 	}
@@ -2951,7 +2951,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface) �
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface"], t, opts...); err != nil {
 		return err
 	}
@@ -3054,7 +3054,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Co
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -3323,7 +3323,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_St
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_State"], t, opts...); err != nil {
 		return err
 	}
@@ -3688,7 +3688,7 @@ func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_St
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_State_Counters) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_State_Counters) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigInterfaces_Interfaces_Interface_Subinterfaces_Subinterface_State_Counters"], t, opts...); err != nil {
 		return err
 	}
@@ -3797,7 +3797,7 @@ func (t *OpenconfigLldp_Lldp) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp"], t, opts...); err != nil {
 		return err
 	}
@@ -3965,7 +3965,7 @@ func (t *OpenconfigLldp_Lldp_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -4116,7 +4116,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces"], t, opts...); err != nil {
 		return err
 	}
@@ -4254,7 +4254,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface) ΛListKeyMap() (map[string]in
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface"], t, opts...); err != nil {
 		return err
 	}
@@ -4334,7 +4334,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -4487,7 +4487,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors) PopulateDefaults() 
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors"], t, opts...); err != nil {
 		return err
 	}
@@ -4648,7 +4648,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor) ΛListKeyM
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor"], t, opts...); err != nil {
 		return err
 	}
@@ -4797,7 +4797,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilitie
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities"], t, opts...); err != nil {
 		return err
 	}
@@ -4910,7 +4910,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilitie
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities_Capability) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities_Capability) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities_Capability"], t, opts...); err != nil {
 		return err
 	}
@@ -4951,7 +4951,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilitie
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities_Capability_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities_Capability_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities_Capability_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -5028,7 +5028,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilitie
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities_Capability_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities_Capability_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Capabilities_Capability_State"], t, opts...); err != nil {
 		return err
 	}
@@ -5068,7 +5068,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Config) Pop
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -5256,7 +5256,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs)
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs"], t, opts...); err != nil {
 		return err
 	}
@@ -5417,7 +5417,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_Tlv) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_Tlv) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_Tlv"], t, opts...); err != nil {
 		return err
 	}
@@ -5458,7 +5458,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_Tlv_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_Tlv_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_Tlv_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -5571,7 +5571,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_Tlv_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_Tlv_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_CustomTlvs_Tlv_State"], t, opts...); err != nil {
 		return err
 	}
@@ -5845,7 +5845,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_State) Popu
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_Neighbors_Neighbor_State"], t, opts...); err != nil {
 		return err
 	}
@@ -5948,7 +5948,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_State"], t, opts...); err != nil {
 		return err
 	}
@@ -6132,7 +6132,7 @@ func (t *OpenconfigLldp_Lldp_Interfaces_Interface_State_Counters) PopulateDefaul
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_Interfaces_Interface_State_Counters) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_Interfaces_Interface_State_Counters) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_Interfaces_Interface_State_Counters"], t, opts...); err != nil {
 		return err
 	}
@@ -6325,7 +6325,7 @@ func (t *OpenconfigLldp_Lldp_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_State"], t, opts...); err != nil {
 		return err
 	}
@@ -6525,7 +6525,7 @@ func (t *OpenconfigLldp_Lldp_State_Counters) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigLldp_Lldp_State_Counters) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigLldp_Lldp_State_Counters) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigLldp_Lldp_State_Counters"], t, opts...); err != nil {
 		return err
 	}
@@ -6634,7 +6634,7 @@ func (t *OpenconfigMessages_Messages) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigMessages_Messages) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigMessages_Messages) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigMessages_Messages"], t, opts...); err != nil {
 		return err
 	}
@@ -6690,7 +6690,7 @@ func (t *OpenconfigMessages_Messages_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigMessages_Messages_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigMessages_Messages_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigMessages_Messages_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -6839,7 +6839,7 @@ func (t *OpenconfigMessages_Messages_DebugEntries) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigMessages_Messages_DebugEntries) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigMessages_Messages_DebugEntries) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigMessages_Messages_DebugEntries"], t, opts...); err != nil {
 		return err
 	}
@@ -6951,7 +6951,7 @@ func (t *OpenconfigMessages_Messages_DebugEntries_DebugService) ΛListKeyMap() (
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigMessages_Messages_DebugEntries_DebugService) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigMessages_Messages_DebugEntries_DebugService) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigMessages_Messages_DebugEntries_DebugService"], t, opts...); err != nil {
 		return err
 	}
@@ -7031,7 +7031,7 @@ func (t *OpenconfigMessages_Messages_DebugEntries_DebugService_Config) PopulateD
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigMessages_Messages_DebugEntries_DebugService_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigMessages_Messages_DebugEntries_DebugService_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigMessages_Messages_DebugEntries_DebugService_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -7111,7 +7111,7 @@ func (t *OpenconfigMessages_Messages_DebugEntries_DebugService_State) PopulateDe
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigMessages_Messages_DebugEntries_DebugService_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigMessages_Messages_DebugEntries_DebugService_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigMessages_Messages_DebugEntries_DebugService_State"], t, opts...); err != nil {
 		return err
 	}
@@ -7192,7 +7192,7 @@ func (t *OpenconfigMessages_Messages_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigMessages_Messages_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigMessages_Messages_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigMessages_Messages_State"], t, opts...); err != nil {
 		return err
 	}
@@ -7322,7 +7322,7 @@ func (t *OpenconfigMessages_Messages_State_Message) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigMessages_Messages_State_Message) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigMessages_Messages_State_Message) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigMessages_Messages_State_Message"], t, opts...); err != nil {
 		return err
 	}
@@ -7475,7 +7475,7 @@ func (t *OpenconfigPlatform_Components) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components"], t, opts...); err != nil {
 		return err
 	}
@@ -7910,7 +7910,7 @@ func (t *OpenconfigPlatform_Components_Component) ΛListKeyMap() (map[string]int
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component"], t, opts...); err != nil {
 		return err
 	}
@@ -7996,7 +7996,7 @@ func (t *OpenconfigPlatform_Components_Component_Backplane) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Backplane) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Backplane) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Backplane"], t, opts...); err != nil {
 		return err
 	}
@@ -8036,7 +8036,7 @@ func (t *OpenconfigPlatform_Components_Component_Backplane_Config) PopulateDefau
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Backplane_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Backplane_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Backplane_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -8076,7 +8076,7 @@ func (t *OpenconfigPlatform_Components_Component_Backplane_State) PopulateDefaul
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Backplane_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Backplane_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Backplane_State"], t, opts...); err != nil {
 		return err
 	}
@@ -8162,7 +8162,7 @@ func (t *OpenconfigPlatform_Components_Component_Chassis) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Chassis) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Chassis) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Chassis"], t, opts...); err != nil {
 		return err
 	}
@@ -8202,7 +8202,7 @@ func (t *OpenconfigPlatform_Components_Component_Chassis_Config) PopulateDefault
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Chassis_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Chassis_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Chassis_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -8242,7 +8242,7 @@ func (t *OpenconfigPlatform_Components_Component_Chassis_State) PopulateDefaults
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Chassis_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Chassis_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Chassis_State"], t, opts...); err != nil {
 		return err
 	}
@@ -8300,7 +8300,7 @@ func (t *OpenconfigPlatform_Components_Component_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -8386,7 +8386,7 @@ func (t *OpenconfigPlatform_Components_Component_Cpu) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Cpu) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Cpu) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Cpu"], t, opts...); err != nil {
 		return err
 	}
@@ -8426,7 +8426,7 @@ func (t *OpenconfigPlatform_Components_Component_Cpu_Config) PopulateDefaults() 
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Cpu_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Cpu_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Cpu_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -8466,7 +8466,7 @@ func (t *OpenconfigPlatform_Components_Component_Cpu_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Cpu_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Cpu_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Cpu_State"], t, opts...); err != nil {
 		return err
 	}
@@ -8552,7 +8552,7 @@ func (t *OpenconfigPlatform_Components_Component_Fabric) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Fabric) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Fabric) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Fabric"], t, opts...); err != nil {
 		return err
 	}
@@ -8592,7 +8592,7 @@ func (t *OpenconfigPlatform_Components_Component_Fabric_Config) PopulateDefaults
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Fabric_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Fabric_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Fabric_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -8632,7 +8632,7 @@ func (t *OpenconfigPlatform_Components_Component_Fabric_State) PopulateDefaults(
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Fabric_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Fabric_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Fabric_State"], t, opts...); err != nil {
 		return err
 	}
@@ -8718,7 +8718,7 @@ func (t *OpenconfigPlatform_Components_Component_Fan) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Fan) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Fan) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Fan"], t, opts...); err != nil {
 		return err
 	}
@@ -8758,7 +8758,7 @@ func (t *OpenconfigPlatform_Components_Component_Fan_Config) PopulateDefaults() 
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Fan_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Fan_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Fan_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -8798,7 +8798,7 @@ func (t *OpenconfigPlatform_Components_Component_Fan_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Fan_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Fan_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Fan_State"], t, opts...); err != nil {
 		return err
 	}
@@ -8884,7 +8884,7 @@ func (t *OpenconfigPlatform_Components_Component_IntegratedCircuit) PopulateDefa
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_IntegratedCircuit) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_IntegratedCircuit) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_IntegratedCircuit"], t, opts...); err != nil {
 		return err
 	}
@@ -8924,7 +8924,7 @@ func (t *OpenconfigPlatform_Components_Component_IntegratedCircuit_Config) Popul
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_IntegratedCircuit_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_IntegratedCircuit_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_IntegratedCircuit_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -8964,7 +8964,7 @@ func (t *OpenconfigPlatform_Components_Component_IntegratedCircuit_State) Popula
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_IntegratedCircuit_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_IntegratedCircuit_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_IntegratedCircuit_State"], t, opts...); err != nil {
 		return err
 	}
@@ -9050,7 +9050,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel) PopulateDefault
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel"], t, opts...); err != nil {
 		return err
 	}
@@ -9162,7 +9162,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_Config) Populate
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -9793,7 +9793,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State) PopulateD
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State"], t, opts...); err != nil {
 		return err
 	}
@@ -9960,7 +9960,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_CarrierFre
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_CarrierFrequencyOffset) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_CarrierFrequencyOffset) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_CarrierFrequencyOffset"], t, opts...); err != nil {
 		return err
 	}
@@ -10127,7 +10127,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ChromaticD
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ChromaticDispersion) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ChromaticDispersion) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_ChromaticDispersion"], t, opts...); err != nil {
 		return err
 	}
@@ -10293,7 +10293,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_Esnr) Popu
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_Esnr) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_Esnr) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_Esnr"], t, opts...); err != nil {
 		return err
 	}
@@ -10459,7 +10459,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_InputPower
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_InputPower) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_InputPower) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_InputPower"], t, opts...); err != nil {
 		return err
 	}
@@ -10626,7 +10626,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_LaserBiasC
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_LaserBiasCurrent) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_LaserBiasCurrent) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_LaserBiasCurrent"], t, opts...); err != nil {
 		return err
 	}
@@ -10793,7 +10793,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_Modulation
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulationErrorRatio) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulationErrorRatio) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulationErrorRatio"], t, opts...); err != nil {
 		return err
 	}
@@ -10960,7 +10960,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorB
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasXPhase) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasXPhase) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasXPhase"], t, opts...); err != nil {
 		return err
 	}
@@ -11127,7 +11127,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorB
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasXi) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasXi) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasXi"], t, opts...); err != nil {
 		return err
 	}
@@ -11294,7 +11294,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorB
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasXq) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasXq) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasXq"], t, opts...); err != nil {
 		return err
 	}
@@ -11461,7 +11461,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorB
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasYPhase) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasYPhase) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasYPhase"], t, opts...); err != nil {
 		return err
 	}
@@ -11628,7 +11628,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorB
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasYi) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasYi) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasYi"], t, opts...); err != nil {
 		return err
 	}
@@ -11795,7 +11795,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorB
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasYq) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasYq) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_ModulatorBiasYq"], t, opts...); err != nil {
 		return err
 	}
@@ -11961,7 +11961,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_Osnr) Popu
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_Osnr) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_Osnr) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_Osnr"], t, opts...); err != nil {
 		return err
 	}
@@ -12127,7 +12127,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_OutputPowe
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_OutputPower) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_OutputPower) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_OutputPower"], t, opts...); err != nil {
 		return err
 	}
@@ -12294,7 +12294,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_Polarizati
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_PolarizationDependentLoss) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_PolarizationDependentLoss) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_PolarizationDependentLoss"], t, opts...); err != nil {
 		return err
 	}
@@ -12461,7 +12461,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_Polarizati
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_PolarizationModeDispersion) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_PolarizationModeDispersion) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_PolarizationModeDispersion"], t, opts...); err != nil {
 		return err
 	}
@@ -12627,7 +12627,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_PostFecBer
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_PostFecBer) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_PostFecBer) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_PostFecBer"], t, opts...); err != nil {
 		return err
 	}
@@ -12793,7 +12793,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_PreFecBer)
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_PreFecBer) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_PreFecBer) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_PreFecBer"], t, opts...); err != nil {
 		return err
 	}
@@ -12959,7 +12959,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_QValue) Po
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_QValue) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_QValue) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_QValue"], t, opts...); err != nil {
 		return err
 	}
@@ -13126,7 +13126,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_SecondOrde
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_SecondOrderPolarizationModeDispersion) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_SecondOrderPolarizationModeDispersion) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_SecondOrderPolarizationModeDispersion"], t, opts...); err != nil {
 		return err
 	}
@@ -13292,7 +13292,7 @@ func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_SopRoc) Po
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_SopRoc) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_OpticalChannel_State_SopRoc) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_OpticalChannel_State_SopRoc"], t, opts...); err != nil {
 		return err
 	}
@@ -13401,7 +13401,7 @@ func (t *OpenconfigPlatform_Components_Component_Port) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Port) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Port) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Port"], t, opts...); err != nil {
 		return err
 	}
@@ -13464,7 +13464,7 @@ func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode) PopulateDefa
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Port_BreakoutMode"], t, opts...); err != nil {
 		return err
 	}
@@ -13617,7 +13617,7 @@ func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups) Popul
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups"], t, opts...); err != nil {
 		return err
 	}
@@ -13732,7 +13732,7 @@ func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group)
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group"], t, opts...); err != nil {
 		return err
 	}
@@ -13845,7 +13845,7 @@ func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -13958,7 +13958,7 @@ func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Port_BreakoutMode_Groups_Group_State"], t, opts...); err != nil {
 		return err
 	}
@@ -13998,7 +13998,7 @@ func (t *OpenconfigPlatform_Components_Component_Port_Config) PopulateDefaults()
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Port_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Port_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Port_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -14038,7 +14038,7 @@ func (t *OpenconfigPlatform_Components_Component_Port_State) PopulateDefaults() 
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Port_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Port_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Port_State"], t, opts...); err != nil {
 		return err
 	}
@@ -14124,7 +14124,7 @@ func (t *OpenconfigPlatform_Components_Component_PowerSupply) PopulateDefaults()
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_PowerSupply) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_PowerSupply) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_PowerSupply"], t, opts...); err != nil {
 		return err
 	}
@@ -14164,7 +14164,7 @@ func (t *OpenconfigPlatform_Components_Component_PowerSupply_Config) PopulateDef
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_PowerSupply_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_PowerSupply_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_PowerSupply_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -14204,7 +14204,7 @@ func (t *OpenconfigPlatform_Components_Component_PowerSupply_State) PopulateDefa
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_PowerSupply_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_PowerSupply_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_PowerSupply_State"], t, opts...); err != nil {
 		return err
 	}
@@ -14357,7 +14357,7 @@ func (t *OpenconfigPlatform_Components_Component_Properties) PopulateDefaults() 
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Properties) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Properties) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Properties"], t, opts...); err != nil {
 		return err
 	}
@@ -14472,7 +14472,7 @@ func (t *OpenconfigPlatform_Components_Component_Properties_Property) ΛListKeyM
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Properties_Property) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Properties_Property) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Properties_Property"], t, opts...); err != nil {
 		return err
 	}
@@ -14548,7 +14548,7 @@ func (t *OpenconfigPlatform_Components_Component_Properties_Property_Config) Pop
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Properties_Property_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Properties_Property_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Properties_Property_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -14697,7 +14697,7 @@ func (t *OpenconfigPlatform_Components_Component_Properties_Property_State) Popu
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Properties_Property_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Properties_Property_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Properties_Property_State"], t, opts...); err != nil {
 		return err
 	}
@@ -14838,7 +14838,7 @@ func (t *OpenconfigPlatform_Components_Component_SoftwareModule) PopulateDefault
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_SoftwareModule) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_SoftwareModule) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_SoftwareModule"], t, opts...); err != nil {
 		return err
 	}
@@ -14878,7 +14878,7 @@ func (t *OpenconfigPlatform_Components_Component_SoftwareModule_Config) Populate
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_SoftwareModule_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_SoftwareModule_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_SoftwareModule_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -14918,7 +14918,7 @@ func (t *OpenconfigPlatform_Components_Component_SoftwareModule_State) PopulateD
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_SoftwareModule_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_SoftwareModule_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_SoftwareModule_State"], t, opts...); err != nil {
 		return err
 	}
@@ -15494,7 +15494,7 @@ func (t *OpenconfigPlatform_Components_Component_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_State"], t, opts...); err != nil {
 		return err
 	}
@@ -15598,7 +15598,7 @@ func (t *OpenconfigPlatform_Components_Component_State_LastSwitchoverReason) Pop
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_State_LastSwitchoverReason) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_State_LastSwitchoverReason) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_State_LastSwitchoverReason"], t, opts...); err != nil {
 		return err
 	}
@@ -15674,7 +15674,7 @@ func (t *OpenconfigPlatform_Components_Component_State_Memory) PopulateDefaults(
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_State_Memory) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_State_Memory) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_State_Memory"], t, opts...); err != nil {
 		return err
 	}
@@ -15783,7 +15783,7 @@ func (t *OpenconfigPlatform_Components_Component_State_Pcie) PopulateDefaults() 
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_State_Pcie) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_State_Pcie) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_State_Pcie"], t, opts...); err != nil {
 		return err
 	}
@@ -15985,7 +15985,7 @@ func (t *OpenconfigPlatform_Components_Component_State_Pcie_CorrectableErrors) P
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_State_Pcie_CorrectableErrors) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_State_Pcie_CorrectableErrors) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_State_Pcie_CorrectableErrors"], t, opts...); err != nil {
 		return err
 	}
@@ -16349,7 +16349,7 @@ func (t *OpenconfigPlatform_Components_Component_State_Pcie_FatalErrors) Populat
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_State_Pcie_FatalErrors) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_State_Pcie_FatalErrors) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_State_Pcie_FatalErrors"], t, opts...); err != nil {
 		return err
 	}
@@ -16713,7 +16713,7 @@ func (t *OpenconfigPlatform_Components_Component_State_Pcie_NonFatalErrors) Popu
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_State_Pcie_NonFatalErrors) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_State_Pcie_NonFatalErrors) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_State_Pcie_NonFatalErrors"], t, opts...); err != nil {
 		return err
 	}
@@ -16933,7 +16933,7 @@ func (t *OpenconfigPlatform_Components_Component_State_Temperature) PopulateDefa
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_State_Temperature) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_State_Temperature) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_State_Temperature"], t, opts...); err != nil {
 		return err
 	}
@@ -17019,7 +17019,7 @@ func (t *OpenconfigPlatform_Components_Component_Storage) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Storage) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Storage) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Storage"], t, opts...); err != nil {
 		return err
 	}
@@ -17059,7 +17059,7 @@ func (t *OpenconfigPlatform_Components_Component_Storage_Config) PopulateDefault
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Storage_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Storage_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Storage_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -17099,7 +17099,7 @@ func (t *OpenconfigPlatform_Components_Component_Storage_State) PopulateDefaults
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Storage_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Storage_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Storage_State"], t, opts...); err != nil {
 		return err
 	}
@@ -17252,7 +17252,7 @@ func (t *OpenconfigPlatform_Components_Component_Subcomponents) PopulateDefaults
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Subcomponents) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Subcomponents) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Subcomponents"], t, opts...); err != nil {
 		return err
 	}
@@ -17367,7 +17367,7 @@ func (t *OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent) ΛL
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent"], t, opts...); err != nil {
 		return err
 	}
@@ -17425,7 +17425,7 @@ func (t *OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent_Conf
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -17483,7 +17483,7 @@ func (t *OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent_Stat
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Subcomponents_Subcomponent_State"], t, opts...); err != nil {
 		return err
 	}
@@ -17592,7 +17592,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver) PopulateDefaults()
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver"], t, opts...); err != nil {
 		return err
 	}
@@ -17722,7 +17722,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_Config) PopulateDef
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -17875,7 +17875,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels) P
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels"], t, opts...); err != nil {
 		return err
 	}
@@ -17991,7 +17991,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Ch
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel"], t, opts...); err != nil {
 		return err
 	}
@@ -18122,7 +18122,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Ch
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -18427,7 +18427,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Ch
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State"], t, opts...); err != nil {
 		return err
 	}
@@ -18594,7 +18594,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Ch
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_InputPower) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_InputPower) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_InputPower"], t, opts...); err != nil {
 		return err
 	}
@@ -18761,7 +18761,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Ch
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_LaserBiasCurrent) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_LaserBiasCurrent) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_LaserBiasCurrent"], t, opts...); err != nil {
 		return err
 	}
@@ -18928,7 +18928,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Ch
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_LaserTemperature) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_LaserTemperature) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_LaserTemperature"], t, opts...); err != nil {
 		return err
 	}
@@ -19095,7 +19095,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Ch
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_OutputPower) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_OutputPower) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_OutputPower"], t, opts...); err != nil {
 		return err
 	}
@@ -19262,7 +19262,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Ch
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_TargetFrequencyDeviation) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_TargetFrequencyDeviation) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_TargetFrequencyDeviation"], t, opts...); err != nil {
 		return err
 	}
@@ -19429,7 +19429,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Ch
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_TecCurrent) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_TecCurrent) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_PhysicalChannels_Channel_State_TecCurrent"], t, opts...); err != nil {
 		return err
 	}
@@ -20003,7 +20003,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_State) PopulateDefa
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_State"], t, opts...); err != nil {
 		return err
 	}
@@ -20169,7 +20169,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_State_InputPower) P
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_State_InputPower) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_State_InputPower) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_State_InputPower"], t, opts...); err != nil {
 		return err
 	}
@@ -20335,7 +20335,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_State_LaserBiasCurr
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_State_LaserBiasCurrent) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_State_LaserBiasCurrent) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_State_LaserBiasCurrent"], t, opts...); err != nil {
 		return err
 	}
@@ -20501,7 +20501,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_State_OutputPower) 
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_State_OutputPower) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_State_OutputPower) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_State_OutputPower"], t, opts...); err != nil {
 		return err
 	}
@@ -20667,7 +20667,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_State_PostFecBer) P
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_State_PostFecBer) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_State_PostFecBer) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_State_PostFecBer"], t, opts...); err != nil {
 		return err
 	}
@@ -20833,7 +20833,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_State_PreFecBer) Po
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_State_PreFecBer) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_State_PreFecBer) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_State_PreFecBer"], t, opts...); err != nil {
 		return err
 	}
@@ -20999,7 +20999,7 @@ func (t *OpenconfigPlatform_Components_Component_Transceiver_State_SupplyVoltage
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigPlatform_Components_Component_Transceiver_State_SupplyVoltage) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigPlatform_Components_Component_Transceiver_State_SupplyVoltage) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigPlatform_Components_Component_Transceiver_State_SupplyVoltage"], t, opts...); err != nil {
 		return err
 	}
@@ -21407,7 +21407,7 @@ func (t *OpenconfigSystem_System) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System"], t, opts...); err != nil {
 		return err
 	}
@@ -21583,7 +21583,7 @@ func (t *OpenconfigSystem_System_Aaa) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa"], t, opts...); err != nil {
 		return err
 	}
@@ -21690,7 +21690,7 @@ func (t *OpenconfigSystem_System_Aaa_Accounting) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Accounting) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Accounting) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Accounting"], t, opts...); err != nil {
 		return err
 	}
@@ -21748,7 +21748,7 @@ func (t *OpenconfigSystem_System_Aaa_Accounting_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Accounting_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Accounting_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Accounting_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -21929,7 +21929,7 @@ func (t *OpenconfigSystem_System_Aaa_Accounting_Events) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Accounting_Events) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Accounting_Events) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Accounting_Events"], t, opts...); err != nil {
 		return err
 	}
@@ -22041,7 +22041,7 @@ func (t *OpenconfigSystem_System_Aaa_Accounting_Events_Event) ΛListKeyMap() (ma
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Accounting_Events_Event) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Accounting_Events_Event) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Accounting_Events_Event"], t, opts...); err != nil {
 		return err
 	}
@@ -22117,7 +22117,7 @@ func (t *OpenconfigSystem_System_Aaa_Accounting_Events_Event_Config) PopulateDef
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Accounting_Events_Event_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Accounting_Events_Event_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Accounting_Events_Event_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -22193,7 +22193,7 @@ func (t *OpenconfigSystem_System_Aaa_Accounting_Events_Event_State) PopulateDefa
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Accounting_Events_Event_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Accounting_Events_Event_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Accounting_Events_Event_State"], t, opts...); err != nil {
 		return err
 	}
@@ -22251,7 +22251,7 @@ func (t *OpenconfigSystem_System_Aaa_Accounting_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Accounting_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Accounting_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Accounting_State"], t, opts...); err != nil {
 		return err
 	}
@@ -22415,7 +22415,7 @@ func (t *OpenconfigSystem_System_Aaa_Authentication) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authentication) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authentication) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authentication"], t, opts...); err != nil {
 		return err
 	}
@@ -22501,7 +22501,7 @@ func (t *OpenconfigSystem_System_Aaa_Authentication_AdminUser) PopulateDefaults(
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authentication_AdminUser) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authentication_AdminUser) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authentication_AdminUser"], t, opts...); err != nil {
 		return err
 	}
@@ -22577,7 +22577,7 @@ func (t *OpenconfigSystem_System_Aaa_Authentication_AdminUser_Config) PopulateDe
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authentication_AdminUser_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authentication_AdminUser_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authentication_AdminUser_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -22671,7 +22671,7 @@ func (t *OpenconfigSystem_System_Aaa_Authentication_AdminUser_State) PopulateDef
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authentication_AdminUser_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authentication_AdminUser_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authentication_AdminUser_State"], t, opts...); err != nil {
 		return err
 	}
@@ -22729,7 +22729,7 @@ func (t *OpenconfigSystem_System_Aaa_Authentication_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authentication_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authentication_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authentication_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -22819,7 +22819,7 @@ func (t *OpenconfigSystem_System_Aaa_Authentication_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authentication_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authentication_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authentication_State"], t, opts...); err != nil {
 		return err
 	}
@@ -23004,7 +23004,7 @@ func (t *OpenconfigSystem_System_Aaa_Authentication_Users) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authentication_Users) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authentication_Users) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authentication_Users"], t, opts...); err != nil {
 		return err
 	}
@@ -23119,7 +23119,7 @@ func (t *OpenconfigSystem_System_Aaa_Authentication_Users_User) ΛListKeyMap() (
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authentication_Users_User) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authentication_Users_User) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authentication_Users_User"], t, opts...); err != nil {
 		return err
 	}
@@ -23249,7 +23249,7 @@ func (t *OpenconfigSystem_System_Aaa_Authentication_Users_User_Config) PopulateD
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authentication_Users_User_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authentication_Users_User_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authentication_Users_User_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -23411,7 +23411,7 @@ func (t *OpenconfigSystem_System_Aaa_Authentication_Users_User_State) PopulateDe
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authentication_Users_User_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authentication_Users_User_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authentication_Users_User_State"], t, opts...); err != nil {
 		return err
 	}
@@ -23552,7 +23552,7 @@ func (t *OpenconfigSystem_System_Aaa_Authorization) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authorization) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authorization) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authorization"], t, opts...); err != nil {
 		return err
 	}
@@ -23610,7 +23610,7 @@ func (t *OpenconfigSystem_System_Aaa_Authorization_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authorization_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authorization_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authorization_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -23791,7 +23791,7 @@ func (t *OpenconfigSystem_System_Aaa_Authorization_Events) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authorization_Events) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authorization_Events) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authorization_Events"], t, opts...); err != nil {
 		return err
 	}
@@ -23903,7 +23903,7 @@ func (t *OpenconfigSystem_System_Aaa_Authorization_Events_Event) ΛListKeyMap() 
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authorization_Events_Event) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authorization_Events_Event) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authorization_Events_Event"], t, opts...); err != nil {
 		return err
 	}
@@ -23961,7 +23961,7 @@ func (t *OpenconfigSystem_System_Aaa_Authorization_Events_Event_Config) Populate
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authorization_Events_Event_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authorization_Events_Event_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authorization_Events_Event_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -24019,7 +24019,7 @@ func (t *OpenconfigSystem_System_Aaa_Authorization_Events_Event_State) PopulateD
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authorization_Events_Event_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authorization_Events_Event_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authorization_Events_Event_State"], t, opts...); err != nil {
 		return err
 	}
@@ -24077,7 +24077,7 @@ func (t *OpenconfigSystem_System_Aaa_Authorization_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Authorization_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Authorization_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Authorization_State"], t, opts...); err != nil {
 		return err
 	}
@@ -24149,7 +24149,7 @@ func (t *OpenconfigSystem_System_Aaa_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -24302,7 +24302,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups"], t, opts...); err != nil {
 		return err
 	}
@@ -24440,7 +24440,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup) ΛListKeyMap() (m
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup"], t, opts...); err != nil {
 		return err
 	}
@@ -24516,7 +24516,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Config) PopulateDe
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -24669,7 +24669,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers) PopulateD
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers"], t, opts...); err != nil {
 		return err
 	}
@@ -24830,7 +24830,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server) Λ
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server"], t, opts...); err != nil {
 		return err
 	}
@@ -24924,7 +24924,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Con
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -25010,7 +25010,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Rad
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius"], t, opts...); err != nil {
 		return err
 	}
@@ -25167,7 +25167,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Rad
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -25347,7 +25347,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Rad
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius_State"], t, opts...); err != nil {
 		return err
 	}
@@ -25460,7 +25460,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Rad
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius_State_Counters) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius_State_Counters) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Radius_State_Counters"], t, opts...); err != nil {
 		return err
 	}
@@ -25698,7 +25698,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Sta
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_State"], t, opts...); err != nil {
 		return err
 	}
@@ -25784,7 +25784,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tac
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tacacs) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tacacs) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tacacs"], t, opts...); err != nil {
 		return err
 	}
@@ -25901,7 +25901,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tac
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tacacs_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tacacs_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tacacs_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -26018,7 +26018,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tac
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tacacs_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tacacs_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_Servers_Server_Tacacs_State"], t, opts...); err != nil {
 		return err
 	}
@@ -26094,7 +26094,7 @@ func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_State) PopulateDef
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_ServerGroups_ServerGroup_State"], t, opts...); err != nil {
 		return err
 	}
@@ -26134,7 +26134,7 @@ func (t *OpenconfigSystem_System_Aaa_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Aaa_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Aaa_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Aaa_State"], t, opts...); err != nil {
 		return err
 	}
@@ -26287,7 +26287,7 @@ func (t *OpenconfigSystem_System_Alarms) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Alarms) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Alarms) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Alarms"], t, opts...); err != nil {
 		return err
 	}
@@ -26402,7 +26402,7 @@ func (t *OpenconfigSystem_System_Alarms_Alarm) ΛListKeyMap() (map[string]interf
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Alarms_Alarm) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Alarms_Alarm) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Alarms_Alarm"], t, opts...); err != nil {
 		return err
 	}
@@ -26442,7 +26442,7 @@ func (t *OpenconfigSystem_System_Alarms_Alarm_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Alarms_Alarm_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Alarms_Alarm_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Alarms_Alarm_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -26590,7 +26590,7 @@ func (t *OpenconfigSystem_System_Alarms_Alarm_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Alarms_Alarm_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Alarms_Alarm_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Alarms_Alarm_State"], t, opts...); err != nil {
 		return err
 	}
@@ -26707,7 +26707,7 @@ func (t *OpenconfigSystem_System_Clock) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Clock) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Clock) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Clock"], t, opts...); err != nil {
 		return err
 	}
@@ -26763,7 +26763,7 @@ func (t *OpenconfigSystem_System_Clock_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Clock_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Clock_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Clock_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -26821,7 +26821,7 @@ func (t *OpenconfigSystem_System_Clock_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Clock_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Clock_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Clock_State"], t, opts...); err != nil {
 		return err
 	}
@@ -26933,7 +26933,7 @@ func (t *OpenconfigSystem_System_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -27082,7 +27082,7 @@ func (t *OpenconfigSystem_System_Cpus) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Cpus) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Cpus) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Cpus"], t, opts...); err != nil {
 		return err
 	}
@@ -27169,7 +27169,7 @@ func (t *OpenconfigSystem_System_Cpus_Cpu) ΛListKeyMap() (map[string]interface{
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Cpus_Cpu) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Cpus_Cpu) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Cpus_Cpu"], t, opts...); err != nil {
 		return err
 	}
@@ -27442,7 +27442,7 @@ func (t *OpenconfigSystem_System_Cpus_Cpu_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Cpus_Cpu_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Cpus_Cpu_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Cpus_Cpu_State"], t, opts...); err != nil {
 		return err
 	}
@@ -27622,7 +27622,7 @@ func (t *OpenconfigSystem_System_Cpus_Cpu_State_HardwareInterrupt) PopulateDefau
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Cpus_Cpu_State_HardwareInterrupt) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Cpus_Cpu_State_HardwareInterrupt) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Cpus_Cpu_State_HardwareInterrupt"], t, opts...); err != nil {
 		return err
 	}
@@ -27788,7 +27788,7 @@ func (t *OpenconfigSystem_System_Cpus_Cpu_State_Idle) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Cpus_Cpu_State_Idle) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Cpus_Cpu_State_Idle) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Cpus_Cpu_State_Idle"], t, opts...); err != nil {
 		return err
 	}
@@ -27954,7 +27954,7 @@ func (t *OpenconfigSystem_System_Cpus_Cpu_State_Kernel) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Cpus_Cpu_State_Kernel) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Cpus_Cpu_State_Kernel) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Cpus_Cpu_State_Kernel"], t, opts...); err != nil {
 		return err
 	}
@@ -28120,7 +28120,7 @@ func (t *OpenconfigSystem_System_Cpus_Cpu_State_Nice) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Cpus_Cpu_State_Nice) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Cpus_Cpu_State_Nice) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Cpus_Cpu_State_Nice"], t, opts...); err != nil {
 		return err
 	}
@@ -28286,7 +28286,7 @@ func (t *OpenconfigSystem_System_Cpus_Cpu_State_SoftwareInterrupt) PopulateDefau
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Cpus_Cpu_State_SoftwareInterrupt) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Cpus_Cpu_State_SoftwareInterrupt) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Cpus_Cpu_State_SoftwareInterrupt"], t, opts...); err != nil {
 		return err
 	}
@@ -28452,7 +28452,7 @@ func (t *OpenconfigSystem_System_Cpus_Cpu_State_Total) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Cpus_Cpu_State_Total) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Cpus_Cpu_State_Total) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Cpus_Cpu_State_Total"], t, opts...); err != nil {
 		return err
 	}
@@ -28618,7 +28618,7 @@ func (t *OpenconfigSystem_System_Cpus_Cpu_State_User) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Cpus_Cpu_State_User) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Cpus_Cpu_State_User) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Cpus_Cpu_State_User"], t, opts...); err != nil {
 		return err
 	}
@@ -28784,7 +28784,7 @@ func (t *OpenconfigSystem_System_Cpus_Cpu_State_Wait) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Cpus_Cpu_State_Wait) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Cpus_Cpu_State_Wait) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Cpus_Cpu_State_Wait"], t, opts...); err != nil {
 		return err
 	}
@@ -28916,7 +28916,7 @@ func (t *OpenconfigSystem_System_Dns) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Dns) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Dns) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Dns"], t, opts...); err != nil {
 		return err
 	}
@@ -28972,7 +28972,7 @@ func (t *OpenconfigSystem_System_Dns_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Dns_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Dns_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Dns_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -29125,7 +29125,7 @@ func (t *OpenconfigSystem_System_Dns_HostEntries) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Dns_HostEntries) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Dns_HostEntries) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Dns_HostEntries"], t, opts...); err != nil {
 		return err
 	}
@@ -29240,7 +29240,7 @@ func (t *OpenconfigSystem_System_Dns_HostEntries_HostEntry) ΛListKeyMap() (map[
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Dns_HostEntries_HostEntry) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Dns_HostEntries_HostEntry) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Dns_HostEntries_HostEntry"], t, opts...); err != nil {
 		return err
 	}
@@ -29352,7 +29352,7 @@ func (t *OpenconfigSystem_System_Dns_HostEntries_HostEntry_Config) PopulateDefau
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Dns_HostEntries_HostEntry_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Dns_HostEntries_HostEntry_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Dns_HostEntries_HostEntry_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -29464,7 +29464,7 @@ func (t *OpenconfigSystem_System_Dns_HostEntries_HostEntry_State) PopulateDefaul
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Dns_HostEntries_HostEntry_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Dns_HostEntries_HostEntry_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Dns_HostEntries_HostEntry_State"], t, opts...); err != nil {
 		return err
 	}
@@ -29617,7 +29617,7 @@ func (t *OpenconfigSystem_System_Dns_Servers) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Dns_Servers) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Dns_Servers) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Dns_Servers"], t, opts...); err != nil {
 		return err
 	}
@@ -29732,7 +29732,7 @@ func (t *OpenconfigSystem_System_Dns_Servers_Server) ΛListKeyMap() (map[string]
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Dns_Servers_Server) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Dns_Servers_Server) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Dns_Servers_Server"], t, opts...); err != nil {
 		return err
 	}
@@ -29812,7 +29812,7 @@ func (t *OpenconfigSystem_System_Dns_Servers_Server_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Dns_Servers_Server_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Dns_Servers_Server_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Dns_Servers_Server_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -29892,7 +29892,7 @@ func (t *OpenconfigSystem_System_Dns_Servers_Server_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Dns_Servers_Server_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Dns_Servers_Server_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Dns_Servers_Server_State"], t, opts...); err != nil {
 		return err
 	}
@@ -29950,7 +29950,7 @@ func (t *OpenconfigSystem_System_Dns_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Dns_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Dns_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Dns_State"], t, opts...); err != nil {
 		return err
 	}
@@ -30013,7 +30013,7 @@ func (t *OpenconfigSystem_System_License) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_License) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_License) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_License"], t, opts...); err != nil {
 		return err
 	}
@@ -30166,7 +30166,7 @@ func (t *OpenconfigSystem_System_License_Licenses) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_License_Licenses) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_License_Licenses) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_License_Licenses"], t, opts...); err != nil {
 		return err
 	}
@@ -30281,7 +30281,7 @@ func (t *OpenconfigSystem_System_License_Licenses_License) ΛListKeyMap() (map[s
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_License_Licenses_License) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_License_Licenses_License) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_License_Licenses_License"], t, opts...); err != nil {
 		return err
 	}
@@ -30379,7 +30379,7 @@ func (t *OpenconfigSystem_System_License_Licenses_License_Config) PopulateDefaul
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_License_Licenses_License_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_License_Licenses_License_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_License_Licenses_License_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -30619,7 +30619,7 @@ func (t *OpenconfigSystem_System_License_Licenses_License_State) PopulateDefault
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_License_Licenses_License_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_License_Licenses_License_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_License_Licenses_License_State"], t, opts...); err != nil {
 		return err
 	}
@@ -30739,7 +30739,7 @@ func (t *OpenconfigSystem_System_Logging) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging"], t, opts...); err != nil {
 		return err
 	}
@@ -30848,7 +30848,7 @@ func (t *OpenconfigSystem_System_Logging_Console) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_Console) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_Console) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_Console"], t, opts...); err != nil {
 		return err
 	}
@@ -30888,7 +30888,7 @@ func (t *OpenconfigSystem_System_Logging_Console_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_Console_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_Console_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_Console_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -31057,7 +31057,7 @@ func (t *OpenconfigSystem_System_Logging_Console_Selectors) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_Console_Selectors) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_Console_Selectors) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_Console_Selectors"], t, opts...); err != nil {
 		return err
 	}
@@ -31188,7 +31188,7 @@ func (t *OpenconfigSystem_System_Logging_Console_Selectors_Selector) ΛListKeyMa
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_Console_Selectors_Selector) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_Console_Selectors_Selector) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_Console_Selectors_Selector"], t, opts...); err != nil {
 		return err
 	}
@@ -31264,7 +31264,7 @@ func (t *OpenconfigSystem_System_Logging_Console_Selectors_Selector_Config) Popu
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_Console_Selectors_Selector_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_Console_Selectors_Selector_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_Console_Selectors_Selector_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -31340,7 +31340,7 @@ func (t *OpenconfigSystem_System_Logging_Console_Selectors_Selector_State) Popul
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_Console_Selectors_Selector_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_Console_Selectors_Selector_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_Console_Selectors_Selector_State"], t, opts...); err != nil {
 		return err
 	}
@@ -31380,7 +31380,7 @@ func (t *OpenconfigSystem_System_Logging_Console_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_Console_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_Console_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_Console_State"], t, opts...); err != nil {
 		return err
 	}
@@ -31533,7 +31533,7 @@ func (t *OpenconfigSystem_System_Logging_RemoteServers) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_RemoteServers) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_RemoteServers) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_RemoteServers"], t, opts...); err != nil {
 		return err
 	}
@@ -31671,7 +31671,7 @@ func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer) ΛListKeyMa
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_RemoteServers_RemoteServer"], t, opts...); err != nil {
 		return err
 	}
@@ -31769,7 +31769,7 @@ func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Config) Popu
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -31938,7 +31938,7 @@ func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors) P
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors"], t, opts...); err != nil {
 		return err
 	}
@@ -32070,7 +32070,7 @@ func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Se
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Selector) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Selector) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Selector"], t, opts...); err != nil {
 		return err
 	}
@@ -32147,7 +32147,7 @@ func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Se
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Selector_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Selector_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Selector_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -32224,7 +32224,7 @@ func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Se
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Selector_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Selector_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_Selectors_Selector_State"], t, opts...); err != nil {
 		return err
 	}
@@ -32322,7 +32322,7 @@ func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_State) Popul
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Logging_RemoteServers_RemoteServer_State"], t, opts...); err != nil {
 		return err
 	}
@@ -32408,7 +32408,7 @@ func (t *OpenconfigSystem_System_Memory) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Memory) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Memory) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Memory"], t, opts...); err != nil {
 		return err
 	}
@@ -32448,7 +32448,7 @@ func (t *OpenconfigSystem_System_Memory_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Memory_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Memory_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Memory_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -32583,7 +32583,7 @@ func (t *OpenconfigSystem_System_Memory_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Memory_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Memory_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Memory_State"], t, opts...); err != nil {
 		return err
 	}
@@ -32677,7 +32677,7 @@ func (t *OpenconfigSystem_System_Memory_State_Counters) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Memory_State_Counters) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Memory_State_Counters) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Memory_State_Counters"], t, opts...); err != nil {
 		return err
 	}
@@ -32786,7 +32786,7 @@ func (t *OpenconfigSystem_System_Messages) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Messages) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Messages) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Messages"], t, opts...); err != nil {
 		return err
 	}
@@ -32844,7 +32844,7 @@ func (t *OpenconfigSystem_System_Messages_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Messages_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Messages_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Messages_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -32993,7 +32993,7 @@ func (t *OpenconfigSystem_System_Messages_DebugEntries) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Messages_DebugEntries) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Messages_DebugEntries) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Messages_DebugEntries"], t, opts...); err != nil {
 		return err
 	}
@@ -33105,7 +33105,7 @@ func (t *OpenconfigSystem_System_Messages_DebugEntries_DebugService) ΛListKeyMa
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Messages_DebugEntries_DebugService) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Messages_DebugEntries_DebugService) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Messages_DebugEntries_DebugService"], t, opts...); err != nil {
 		return err
 	}
@@ -33185,7 +33185,7 @@ func (t *OpenconfigSystem_System_Messages_DebugEntries_DebugService_Config) Popu
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Messages_DebugEntries_DebugService_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Messages_DebugEntries_DebugService_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Messages_DebugEntries_DebugService_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -33265,7 +33265,7 @@ func (t *OpenconfigSystem_System_Messages_DebugEntries_DebugService_State) Popul
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Messages_DebugEntries_DebugService_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Messages_DebugEntries_DebugService_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Messages_DebugEntries_DebugService_State"], t, opts...); err != nil {
 		return err
 	}
@@ -33346,7 +33346,7 @@ func (t *OpenconfigSystem_System_Messages_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Messages_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Messages_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Messages_State"], t, opts...); err != nil {
 		return err
 	}
@@ -33476,7 +33476,7 @@ func (t *OpenconfigSystem_System_Messages_State_Message) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Messages_State_Message) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Messages_State_Message) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Messages_State_Message"], t, opts...); err != nil {
 		return err
 	}
@@ -33629,7 +33629,7 @@ func (t *OpenconfigSystem_System_MountPoints) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_MountPoints) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_MountPoints) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_MountPoints"], t, opts...); err != nil {
 		return err
 	}
@@ -33721,7 +33721,7 @@ func (t *OpenconfigSystem_System_MountPoints_MountPoint) ΛListKeyMap() (map[str
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_MountPoints_MountPoint) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_MountPoints_MountPoint) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_MountPoints_MountPoint"], t, opts...); err != nil {
 		return err
 	}
@@ -33851,7 +33851,7 @@ func (t *OpenconfigSystem_System_MountPoints_MountPoint_State) PopulateDefaults(
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_MountPoints_MountPoint_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_MountPoints_MountPoint_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_MountPoints_MountPoint_State"], t, opts...); err != nil {
 		return err
 	}
@@ -33983,7 +33983,7 @@ func (t *OpenconfigSystem_System_Ntp) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Ntp) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Ntp) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Ntp"], t, opts...); err != nil {
 		return err
 	}
@@ -34083,7 +34083,7 @@ func (t *OpenconfigSystem_System_Ntp_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Ntp_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Ntp_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Ntp_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -34236,7 +34236,7 @@ func (t *OpenconfigSystem_System_Ntp_NtpKeys) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Ntp_NtpKeys) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Ntp_NtpKeys) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Ntp_NtpKeys"], t, opts...); err != nil {
 		return err
 	}
@@ -34351,7 +34351,7 @@ func (t *OpenconfigSystem_System_Ntp_NtpKeys_NtpKey) ΛListKeyMap() (map[string]
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Ntp_NtpKeys_NtpKey) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Ntp_NtpKeys_NtpKey) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Ntp_NtpKeys_NtpKey"], t, opts...); err != nil {
 		return err
 	}
@@ -34445,7 +34445,7 @@ func (t *OpenconfigSystem_System_Ntp_NtpKeys_NtpKey_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Ntp_NtpKeys_NtpKey_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Ntp_NtpKeys_NtpKey_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Ntp_NtpKeys_NtpKey_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -34539,7 +34539,7 @@ func (t *OpenconfigSystem_System_Ntp_NtpKeys_NtpKey_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Ntp_NtpKeys_NtpKey_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Ntp_NtpKeys_NtpKey_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Ntp_NtpKeys_NtpKey_State"], t, opts...); err != nil {
 		return err
 	}
@@ -34692,7 +34692,7 @@ func (t *OpenconfigSystem_System_Ntp_Servers) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Ntp_Servers) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Ntp_Servers) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Ntp_Servers"], t, opts...); err != nil {
 		return err
 	}
@@ -34807,7 +34807,7 @@ func (t *OpenconfigSystem_System_Ntp_Servers_Server) ΛListKeyMap() (map[string]
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Ntp_Servers_Server) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Ntp_Servers_Server) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Ntp_Servers_Server"], t, opts...); err != nil {
 		return err
 	}
@@ -34974,7 +34974,7 @@ func (t *OpenconfigSystem_System_Ntp_Servers_Server_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Ntp_Servers_Server_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Ntp_Servers_Server_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Ntp_Servers_Server_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -35231,7 +35231,7 @@ func (t *OpenconfigSystem_System_Ntp_Servers_Server_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Ntp_Servers_Server_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Ntp_Servers_Server_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Ntp_Servers_Server_State"], t, opts...); err != nil {
 		return err
 	}
@@ -35351,7 +35351,7 @@ func (t *OpenconfigSystem_System_Ntp_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Ntp_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Ntp_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Ntp_State"], t, opts...); err != nil {
 		return err
 	}
@@ -35504,7 +35504,7 @@ func (t *OpenconfigSystem_System_Processes) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Processes) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Processes) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Processes"], t, opts...); err != nil {
 		return err
 	}
@@ -35596,7 +35596,7 @@ func (t *OpenconfigSystem_System_Processes_Process) ΛListKeyMap() (map[string]i
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Processes_Process) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Processes_Process) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Processes_Process"], t, opts...); err != nil {
 		return err
 	}
@@ -35798,7 +35798,7 @@ func (t *OpenconfigSystem_System_Processes_Process_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_Processes_Process_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_Processes_Process_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_Processes_Process_State"], t, opts...); err != nil {
 		return err
 	}
@@ -35884,7 +35884,7 @@ func (t *OpenconfigSystem_System_SshServer) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_SshServer) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_SshServer) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_SshServer"], t, opts...); err != nil {
 		return err
 	}
@@ -36021,7 +36021,7 @@ func (t *OpenconfigSystem_System_SshServer_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_SshServer_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_SshServer_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_SshServer_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -36158,7 +36158,7 @@ func (t *OpenconfigSystem_System_SshServer_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_SshServer_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_SshServer_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_SshServer_State"], t, opts...); err != nil {
 		return err
 	}
@@ -36306,7 +36306,7 @@ func (t *OpenconfigSystem_System_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_State"], t, opts...); err != nil {
 		return err
 	}
@@ -36390,7 +36390,7 @@ func (t *OpenconfigSystem_System_TelnetServer) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_TelnetServer) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_TelnetServer) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_TelnetServer"], t, opts...); err != nil {
 		return err
 	}
@@ -36506,7 +36506,7 @@ func (t *OpenconfigSystem_System_TelnetServer_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_TelnetServer_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_TelnetServer_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_TelnetServer_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -36622,7 +36622,7 @@ func (t *OpenconfigSystem_System_TelnetServer_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigSystem_System_TelnetServer_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigSystem_System_TelnetServer_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigSystem_System_TelnetServer_State"], t, opts...); err != nil {
 		return err
 	}
@@ -36754,7 +36754,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice"], t, opts...); err != nil {
 		return err
 	}
@@ -36794,7 +36794,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_Config) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -36947,7 +36947,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels) PopulateDefaul
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels"], t, opts...); err != nil {
 		return err
 	}
@@ -37154,7 +37154,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel) ΛList
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel"], t, opts...); err != nil {
 		return err
 	}
@@ -37359,7 +37359,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Config)
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -37468,7 +37468,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet"], t, opts...); err != nil {
 		return err
 	}
@@ -37552,7 +37552,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -37662,7 +37662,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp"], t, opts...); err != nil {
 		return err
 	}
@@ -37747,7 +37747,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -37901,7 +37901,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors"], t, opts...); err != nil {
 		return err
 	}
@@ -38040,7 +38040,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor"], t, opts...); err != nil {
 		return err
 	}
@@ -38081,7 +38081,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -38270,7 +38270,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs"], t, opts...); err != nil {
 		return err
 	}
@@ -38432,7 +38432,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs_Tlv) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs_Tlv) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs_Tlv"], t, opts...); err != nil {
 		return err
 	}
@@ -38473,7 +38473,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs_Tlv_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs_Tlv_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs_Tlv_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -38586,7 +38586,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs_Tlv_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs_Tlv_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_CustomTlvs_Tlv_State"], t, opts...); err != nil {
 		return err
 	}
@@ -38861,7 +38861,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_Neighbors_Neighbor_State"], t, opts...); err != nil {
 		return err
 	}
@@ -38969,7 +38969,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_State"], t, opts...); err != nil {
 		return err
 	}
@@ -39154,7 +39154,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_State_Counters) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_State_Counters) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_Lldp_State_Counters"], t, opts...); err != nil {
 		return err
 	}
@@ -39834,7 +39834,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State"], t, opts...); err != nil {
 		return err
 	}
@@ -40001,7 +40001,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_Esnr) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_Esnr) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_Esnr"], t, opts...); err != nil {
 		return err
 	}
@@ -40168,7 +40168,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_PostFecBer) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_PostFecBer) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_PostFecBer"], t, opts...); err != nil {
 		return err
 	}
@@ -40335,7 +40335,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_PreFecBer) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_PreFecBer) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_PreFecBer"], t, opts...); err != nil {
 		return err
 	}
@@ -40502,7 +40502,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Etherne
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_QValue) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_QValue) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ethernet_State_QValue"], t, opts...); err != nil {
 		return err
 	}
@@ -40588,7 +40588,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress"], t, opts...); err != nil {
 		return err
 	}
@@ -40683,7 +40683,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -40778,7 +40778,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Ingress_State"], t, opts...); err != nil {
 		return err
 	}
@@ -40932,7 +40932,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Logical
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments"], t, opts...); err != nil {
 		return err
 	}
@@ -41048,7 +41048,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Logical
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments_Assignment) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments_Assignment) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments_Assignment"], t, opts...); err != nil {
 		return err
 	}
@@ -41233,7 +41233,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Logical
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments_Assignment_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments_Assignment_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments_Assignment_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -41418,7 +41418,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Logical
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments_Assignment_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments_Assignment_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_LogicalChannelAssignments_Assignment_State"], t, opts...); err != nil {
 		return err
 	}
@@ -41504,7 +41504,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn) Po
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn"], t, opts...); err != nil {
 		return err
 	}
@@ -41616,7 +41616,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_Con
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -42036,7 +42036,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_Sta
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State"], t, opts...); err != nil {
 		return err
 	}
@@ -42203,7 +42203,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_Sta
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_Esnr) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_Esnr) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_Esnr"], t, opts...); err != nil {
 		return err
 	}
@@ -42370,7 +42370,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_Sta
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_PostFecBer) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_PostFecBer) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_PostFecBer"], t, opts...); err != nil {
 		return err
 	}
@@ -42537,7 +42537,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_Sta
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_PreFecBer) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_PreFecBer) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_PreFecBer"], t, opts...); err != nil {
 		return err
 	}
@@ -42704,7 +42704,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_Sta
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_QValue) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_QValue) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_Otn_State_QValue"], t, opts...); err != nil {
 		return err
 	}
@@ -42927,7 +42927,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_State) 
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_LogicalChannels_Channel_State"], t, opts...); err != nil {
 		return err
 	}
@@ -43080,7 +43080,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes) PopulateDefau
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_OperationalModes"], t, opts...); err != nil {
 		return err
 	}
@@ -43195,7 +43195,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode) ΛListKe
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode"], t, opts...); err != nil {
 		return err
 	}
@@ -43235,7 +43235,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode_Config) P
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode_Config) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode_Config) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode_Config"], t, opts...); err != nil {
 		return err
 	}
@@ -43329,7 +43329,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode_State) Po
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_OperationalModes_Mode_State"], t, opts...); err != nil {
 		return err
 	}
@@ -43369,7 +43369,7 @@ func (t *OpenconfigTerminalDevice_TerminalDevice_State) PopulateDefaults() {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *OpenconfigTerminalDevice_TerminalDevice_State) Validate(opts ...ygot.ValidationOption) error {
+func (t *OpenconfigTerminalDevice_TerminalDevice_State) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["OpenconfigTerminalDevice_TerminalDevice_State"], t, opts...); err != nil {
 		return err
 	}

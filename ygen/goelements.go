@@ -28,6 +28,9 @@ import (
 	"github.com/openconfig/ygot/ytypes"
 )
 
+// TODO(wenbli): Split the contents of this file out into a separate package
+// once refactoring of Go generation has been completed.
+
 const (
 	// goEnumPrefix is the prefix that is used for type names in the output
 	// Go code, such that an enumeration's name is of the form
@@ -124,35 +127,39 @@ var (
 	}
 )
 
-// goGenState contains the functionality and state for generating Go names for
+// Ensure at compile time that the GoLangMapper implements the LangMapper interface.
+var _ LangMapper = &GoLangMapper{}
+
+// GoLangMapper contains the functionality and state for generating Go names for
 // the generated code.
-type goGenState struct {
+type GoLangMapper struct {
 	// enumSet contains the generated enum names which can be queried.
 	enumSet *enumSet
+
 	// schematree is a copy of the YANG schema tree, containing only leaf
 	// entries, such that schema paths can be referenced.
 	schematree *schemaTree
+
 	// definedGlobals specifies the global Go names used during code
 	// generation to avoid conflicts.
 	definedGlobals map[string]bool
+
 	// uniqueDirectoryNames is a map keyed by the path of a YANG entity representing a
 	// directory in the generated code whose value is the unique name that it
 	// was mapped to. This allows routines to determine, based on a particular YANG
 	// entry, how to refer to it when generating code.
 	uniqueDirectoryNames map[string]string
-	// generatedUnions stores a map, keyed by the output name for a union,
-	// that has already been output in the generated code. This ensures that
-	// where two entities re-use a union that has already been created (e.g.,
-	// a leafref to a union) then it is output only once in the generated code.
-	generatedUnions map[string]bool
+
+	// simpleUnions specifies whether simple typedefs are used to represent
+	// union subtypes in the generated code instead of using wrapper types.
+	// NOTE: This flag will be removed as part of ygot's v1 release.
+	simpleUnions bool
 }
 
-// newGoGenState creates a new goGenState instance, initialised with the
+// NewGoLangMapper creates a new GoLangMapper instance, initialised with the
 // default state required for code generation.
-func newGoGenState(schematree *schemaTree, eSet *enumSet) *goGenState {
-	return &goGenState{
-		enumSet:    eSet,
-		schematree: schematree,
+func NewGoLangMapper(simpleUnions bool) *GoLangMapper {
+	return &GoLangMapper{
 		definedGlobals: map[string]bool{
 			// Mark the name that is used for the binary type as a reserved name
 			// within the output structs.
@@ -160,7 +167,7 @@ func newGoGenState(schematree *schemaTree, eSet *enumSet) *goGenState {
 			ygot.EmptyTypeName:  true,
 		},
 		uniqueDirectoryNames: map[string]string{},
-		generatedUnions:      map[string]bool{},
+		simpleUnions:         simpleUnions,
 	}
 }
 
@@ -180,20 +187,13 @@ type resolveTypeArgs struct {
 	contextEntry *yang.Entry
 }
 
-// TODO(robjs): When adding support for other language outputs, we should restructure
-// the code such that we do not have genState receivers here, but rather pass in the
-// generated state as a parameter to the function that is being called.
-
 // pathToCamelCaseName takes an input yang.Entry and outputs its name as a Go
 // compatible name in the form PathElement1_PathElement2, performing schema
-// compression if required. The name is not checked for uniqueness. The
-// genFakeRoot boolean specifies whether the fake root exists within the schema
-// such that it can be handled specifically in the path generation.
-// TODO(wenbli): Move this to genutil.
-func pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
+// compression if required. The name is not checked for uniqueness.
+func pathToCamelCaseName(e *yang.Entry, compressOCPaths bool) string {
 	var pathElements []*yang.Entry
 
-	if genFakeRoot && IsFakeRoot(e) {
+	if IsFakeRoot(e) {
 		// Handle the special case of the root element if it exists.
 		pathElements = []*yang.Entry{e}
 	} else {
@@ -226,44 +226,70 @@ func pathToCamelCaseName(e *yang.Entry, compressOCPaths, genFakeRoot bool) strin
 	return buf.String()
 }
 
-// goStructName generates the name to be used for a particular YANG schema
-// element in the generated Go code. If the compressOCPaths boolean is set to
-// true, schemapaths are compressed, otherwise the name is returned simply as
-// camel case. The genFakeRoot boolean specifies whether the fake root is to be
-// generated such that the struct name can consider the fake root entity
-// specifically.
-func (s *goGenState) goStructName(e *yang.Entry, compressOCPaths, genFakeRoot bool) string {
-	uniqName := genutil.MakeNameUnique(pathToCamelCaseName(e, compressOCPaths, genFakeRoot), s.definedGlobals)
+// DirectoryName generates the final name to be used for a particular YANG
+// schema element in the generated Go code. If path compressing is active,
+// schemapaths are compressed, otherwise the name is returned simply as camel
+// case.
+// Although name conversion is lossy, name uniquification occurs at this stage
+// since all generated struct names reside in the package namespace.
+func (s *GoLangMapper) DirectoryName(e *yang.Entry, compressBehaviour genutil.CompressBehaviour) (string, error) {
+	// TODO(wenbli): Do not uniquify at this step -- rather do this in a
+	// later pass to avoid non-idempotent behaviour in GoLangMapper.
+	uniqName := genutil.MakeNameUnique(pathToCamelCaseName(e, compressBehaviour.CompressEnabled()), s.definedGlobals)
 
 	// Record the name of the struct that was unique such that it can be referenced
 	// by path.
 	s.uniqueDirectoryNames[e.Path()] = uniqName
 
-	return uniqName
+	return uniqName, nil
 }
 
-// buildDirectoryDefinitions extracts the yang.Entry instances from a map of
-// entries that need struct definitions built for them. It resolves each
-// non-leaf yang.Entry to a Directory which contains the elements that are
-// needed for subsequent code generation, with the relationships between the
-// elements being determined by the compress behaviour and genFakeRoot (whether
-// a fake root element is generated). The skipEnumDedup argument specifies to
-// the code generation whether to try to output a single type for an
-// enumeration that is logically defined once in the output code, but
-// instantiated in multiple places in the schema tree.  The skipEnumDedup
-// argument specifies whether leaves of type 'enumeration' which are used more
-// than once in the schema should use a common output type in the generated Go
-// code. By default a type is shared.
-func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, compBehaviour genutil.CompressBehaviour, genFakeRoot, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (map[string]*Directory, []error) {
-	return buildDirectoryDefinitions(entries, compBehaviour,
-		// For Go, we map the name of the struct to the path elements
-		// in CamelCase separated by underscores.
-		func(e *yang.Entry) string {
-			return s.goStructName(e, compBehaviour.CompressEnabled(), genFakeRoot)
-		},
-		func(keyleaf *yang.Entry) (*MappedType, error) {
-			return s.yangTypeToGoType(resolveTypeArgs{yangType: keyleaf.Type, contextEntry: keyleaf}, compBehaviour.CompressEnabled(), skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim)
-		})
+// FieldName maps the input entry's name to what the Go name of the field would be.
+// Since this conversion is lossy, a later step should resolve any naming
+// conflicts between different fields.
+func (s *GoLangMapper) FieldName(e *yang.Entry) (string, error) {
+	return genutil.EntryCamelCaseName(e), nil
+}
+
+// LeafType maps the input leaf entry to a MappedType object containing the
+// type information about the field.
+func (s *GoLangMapper) LeafType(e *yang.Entry, opts IROptions) (*MappedType, error) {
+	mtype, err := s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+	if err != nil {
+		return nil, err
+	}
+
+	defaultValue, err := generateGoDefaultValue(e, mtype, s, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim, s.simpleUnions)
+	if err != nil {
+		return nil, err
+	}
+
+	mtype.DefaultValue = defaultValue
+	return mtype, nil
+}
+
+// LeafType maps the input list key entry to a MappedType object containing the
+// type information about the key field.
+func (s *GoLangMapper) KeyLeafType(e *yang.Entry, opts IROptions) (*MappedType, error) {
+	return s.yangTypeToGoType(resolveTypeArgs{yangType: e.Type, contextEntry: e}, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+}
+
+// PackageName is not used by Go generation.
+func (s *GoLangMapper) PackageName(*yang.Entry, genutil.CompressBehaviour, bool) (string, error) {
+	return "", nil
+}
+
+// SetEnumSet is used to supply a set of enumerated values to the
+// mapper such that leaves that have enumerated types can be looked up.
+func (s *GoLangMapper) SetEnumSet(e *enumSet) {
+	s.enumSet = e
+}
+
+// SetSchemaTree is used to supply a copy of the YANG schema tree to
+// the mapped such that leaves of type leafref can be resolved to
+// their target leaves.
+func (s *GoLangMapper) SetSchemaTree(st *schemaTree) {
+	s.schematree = st
 }
 
 // yangTypeToGoType takes a yang.YangType (YANG type definition) and maps it
@@ -277,7 +303,7 @@ func (s *goGenState) buildDirectoryDefinitions(entries map[string]*yang.Entry, c
 // The skipEnumDedup argument specifies whether leaves of type enumeration that are
 // used more than once in the schema should share a common type. By default, a single
 // type for each leaf is created.
-func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*MappedType, error) {
+func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*MappedType, error) {
 	defVal := genutil.TypeDefaultValue(args.yangType)
 	// Handle the case of a typedef which is actually an enumeration.
 	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
@@ -425,7 +451,7 @@ func (s *goGenState) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, ski
 // but used in multiple places.
 //
 // goUnionType returns an error if mapping is not possible.
-func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*MappedType, error) {
+func (s *GoLangMapper) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (*MappedType, error) {
 	var errs []error
 	unionMappedTypes := make(map[int]*MappedType)
 
@@ -443,7 +469,7 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnum
 	}
 
 	resolvedType := &MappedType{
-		NativeType: fmt.Sprintf("%s_Union", pathToCamelCaseName(args.contextEntry, compressOCPaths, false)),
+		NativeType: fmt.Sprintf("%s_Union", pathToCamelCaseName(args.contextEntry, compressOCPaths)),
 		// Zero value is set to nil, other than in cases where there is
 		// a single type in the union.
 		ZeroValue:    "nil",
@@ -469,7 +495,7 @@ func (s *goGenState) goUnionType(args resolveTypeArgs, compressOCPaths, skipEnum
 // The skipEnumDedup argument specifies whether the current code generation is
 // de-duplicating enumerations where they are used in more than one place in
 // the schema.
-func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) []error {
+func (s *GoLangMapper) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, currentTypes map[string]int, unionMappedTypes map[int]*MappedType, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) []error {
 	var errs []error
 	// If subtype.Type is not empty then this means that this type is defined to
 	// be a union itself.
@@ -522,6 +548,50 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 	return errs
 }
 
+// generateGoDefaultValue returns a pointer to a Go literal that represents the
+// default value for the entry. If there is no default value for the field, nil
+// is returned.
+func generateGoDefaultValue(field *yang.Entry, mtype *MappedType, gogen *GoLangMapper, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string, simpleUnions bool) (*string, error) {
+	// Set the default type to the mapped Go type.
+	defaultValues := field.DefaultValues()
+	if len(defaultValues) == 0 && mtype.DefaultValue != nil {
+		defaultValues = []string{*mtype.DefaultValue}
+	}
+	for i, defVal := range defaultValues {
+		var err error
+		if defaultValues[i], _, err = gogen.yangDefaultValueToGo(defVal, resolveTypeArgs{yangType: field.Type, contextEntry: field}, len(mtype.UnionTypes) == 1, compressPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, enumOrgPrefixesToTrim); err != nil {
+			return nil, err
+		}
+	}
+	// TODO(wenbli): In ygot v1, we should no longer
+	// support the wrapper union generated code, so this if
+	// block would be obsolete.
+	if !simpleUnions {
+		defaultValues = goLeafDefaults(field, mtype)
+		if len(defaultValues) != 0 && len(mtype.UnionTypes) > 1 {
+			// If the default value is applied to a union type, we will generate
+			// non-compilable code when generating wrapper unions, so error out and inform
+			// the user instead of having the user find out that the code doesn't compile.
+			return nil, fmt.Errorf("path %q: default value not supported for wrapper union values, please generate using simplified union leaves", field.Path())
+		}
+	}
+
+	var defaultValue *string
+	if len(defaultValues) > 0 {
+		switch {
+		case field.ListAttr != nil: // field is a leaf-list
+			dv := fmt.Sprintf("[]%s{%s}", mtype.NativeType, strings.Join(defaultValues, ", "))
+			defaultValue = &dv
+		case len(defaultValues) == 1:
+			dv := defaultValues[0]
+			defaultValue = &dv
+		default:
+			return nil, fmt.Errorf("path: %q, unexpected multiple default values %v for a non-leaf-list field", field.Path(), defaultValues)
+		}
+	}
+	return defaultValue, nil
+}
+
 // yangDefaultValueToGo takes a default value, and its associated type, schema
 // entry, whether it is a union with a single type, and other generation flags,
 // and maps it to a Go snippet reference that would represent the value in the
@@ -543,7 +613,7 @@ func (s *goGenState) goUnionSubTypes(subtype *yang.YangType, ctx *yang.Entry, cu
 // The skipEnumDedup argument specifies whether leaves of type enumeration that are
 // used more than once in the schema should share a common type. By default, a single
 // type for each leaf is created.
-func (s *goGenState) yangDefaultValueToGo(value string, args resolveTypeArgs, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (string, yang.TypeKind, error) {
+func (s *GoLangMapper) yangDefaultValueToGo(value string, args resolveTypeArgs, isSingletonUnion, compressOCPaths, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames bool, enumOrgPrefixesToTrim []string) (string, yang.TypeKind, error) {
 	// Handle the case of a typedef which is actually an enumeration.
 	mtype, err := s.enumSet.enumeratedTypedefTypeName(args, goEnumPrefix, false, useDefiningModuleForTypedefEnumNames)
 	if err != nil {

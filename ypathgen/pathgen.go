@@ -241,6 +241,7 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 			ShortenEnumLeafNames:                 cg.ShortenEnumLeafNames,
 			EnumOrgPrefixesToTrim:                cg.EnumOrgPrefixesToTrim,
 			UseDefiningModuleForTypedefEnumNames: cg.UseDefiningModuleForTypedefEnumNames,
+			EnumerationsUseUnderscores:           true,
 		},
 		GoOptions: ygen.GoOpts{
 			AppendEnumSuffixForSimpleUnionEnums: cg.AppendEnumSuffixForSimpleUnionEnums,
@@ -1275,29 +1276,29 @@ func makeKeyParams(listAttr *ygen.YangListAttr, schemaStructPkgAccessor string) 
 	// the order of the keys, and not rely on the naming in that case.
 	goKeyNameMap := getGoKeyNameMap(listAttr.KeyElems)
 	for _, keyElem := range listAttr.KeyElems {
-		mappedType, ok := listAttr.Keys[keyElem.Name]
+		listKey, ok := listAttr.Keys[keyElem.Name]
 		switch {
 		case !ok:
 			return nil, fmt.Errorf("makeKeyParams: key doesn't have a mappedType: %s", keyElem.Name)
-		case mappedType == nil:
+		case listKey.LangType == nil:
 			return nil, fmt.Errorf("makeKeyParams: mappedType for key is nil: %s", keyElem.Name)
 		}
 
 		var typeName string
 		switch {
-		case mappedType.NativeType == "interface{}": // ygen-unsupported types
+		case listKey.LangType.NativeType == "interface{}": // ygen-unsupported types
 			typeName = "string"
-		case ygen.IsYgenDefinedGoType(mappedType):
-			typeName = schemaStructPkgAccessor + mappedType.NativeType
+		case ygen.IsYgenDefinedGoType(listKey.LangType):
+			typeName = schemaStructPkgAccessor + listKey.LangType.NativeType
 		default:
-			typeName = mappedType.NativeType
+			typeName = listKey.LangType.NativeType
 		}
 		varName := goKeyNameMap[keyElem.Name]
 
 		typeDocString := typeName
-		if len(mappedType.UnionTypes) > 1 {
+		if len(listKey.LangType.UnionTypes) > 1 {
 			var genTypes []string
-			for _, name := range mappedType.OrderedUnionTypes() {
+			for _, name := range listKey.LangType.OrderedUnionTypes() {
 				unionTypeName := name
 				if simpleName, ok := ygot.SimpleUnionBuiltinGoTypes[name]; ok {
 					unionTypeName = simpleName

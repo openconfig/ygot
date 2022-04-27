@@ -185,7 +185,7 @@ func (t *Device) GetTarget() *Testschema_Target {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Device) Validate(opts ...ygot.ValidationOption) error {
+func (t *Device) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Device"], t, opts...); err != nil {
 		return err
 	}
@@ -323,7 +323,7 @@ func (t *Refschema_Ref) AppendReference(v *Refschema_Ref_Reference) error {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Refschema_Ref) Validate(opts ...ygot.ValidationOption) error {
+func (t *Refschema_Ref) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Refschema_Ref"], t, opts...); err != nil {
 		return err
 	}
@@ -380,7 +380,7 @@ func (t *Refschema_Ref_Reference) ΛListKeyMap() (map[string]interface{}, error)
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Refschema_Ref_Reference) Validate(opts ...ygot.ValidationOption) error {
+func (t *Refschema_Ref_Reference) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Refschema_Ref_Reference"], t, opts...); err != nil {
 		return err
 	}
@@ -518,7 +518,7 @@ func (t *Testschema_Target) AppendEntity(v *Testschema_Target_Entity) error {
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Testschema_Target) Validate(opts ...ygot.ValidationOption) error {
+func (t *Testschema_Target) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Testschema_Target"], t, opts...); err != nil {
 		return err
 	}
@@ -575,7 +575,7 @@ func (t *Testschema_Target_Entity) ΛListKeyMap() (map[string]interface{}, error
 }
 
 // Validate validates s against the YANG schema corresponding to its type.
-func (t *Testschema_Target_Entity) Validate(opts ...ygot.ValidationOption) error {
+func (t *Testschema_Target_Entity) ΛValidate(opts ...ygot.ValidationOption) error {
 	if err := ytypes.Validate(SchemaTree["Testschema_Target_Entity"], t, opts...); err != nil {
 		return err
 	}

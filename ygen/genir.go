@@ -14,6 +14,17 @@
 
 package ygen
 
+import (
+	"fmt"
+	"sort"
+
+	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
+	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygot"
+)
+
+// IROptions contains options used to customize IR generation.
 type IROptions struct {
 	// ParseOptions specifies the options for how the YANG schema is
 	// produced.
@@ -22,6 +33,32 @@ type IROptions struct {
 	// Transformation options specifies any transformations that should
 	// be applied to the input YANG schema when producing the IR.
 	TransformationOptions TransformationOpts
+
+	// NestedDirectories specifies whether the generated directories should
+	// be nested in the IR.
+	NestedDirectories bool
+
+	// AbsoluteMapPaths specifies whether the path annotation provided for
+	// each field should be relative paths or absolute paths.
+	AbsoluteMapPaths bool
+
+	// AppendEnumSuffixForSimpleUnionEnums appends an "Enum" suffix to the
+	// enumeration name for simple (i.e. non-typedef) leaves which are
+	// unions with an enumeration inside. This makes all inlined
+	// enumerations within unions, whether typedef or not, have this
+	// suffix, achieving consistency. Since this flag is planned to be a
+	// v1 compatibility flag along with
+	// UseDefiningModuleForTypedefEnumNames, and will be removed in v1, it
+	// only applies when useDefiningModuleForTypedefEnumNames is also set
+	// to true.
+	// NOTE: This flag will be removed by v1 release.
+	AppendEnumSuffixForSimpleUnionEnums bool
+
+	// UseConsistentNamesForProtoUnionEnums, when set, avoids using the schema
+	// path as the name of enumerations under unions in generated proto
+	// code, and also appends a suffix to non-typedef union enums.
+	// NOTE: This flag will be removed by v1 release.
+	UseConsistentNamesForProtoUnionEnums bool
 }
 
 // GenerateIR creates the ygen intermediate representation for a set of
@@ -36,7 +73,124 @@ type IROptions struct {
 // applied to the schema whilst generating the IR.
 //
 // GenerateIR returns the complete ygen intermediate representation.
-func GenerateIR(yangFiles, includePaths []string, newLangMapper NewLangMapperFn, opts IROptions) (*IR, error) {
-	// TODO(robjs): Implementation of GenerateIR.
-	return nil, nil
+func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IROptions) (*IR, error) {
+	// Extract the entities to be mapped into structs and enumerations in the output
+	// Go code. Extract the schematree from the modules provided such that it can be
+	// used to reference entities within the tree.
+	mdef, errs := mappedDefinitions(yangFiles, includePaths, &GeneratorConfig{
+		ParseOptions:          opts.ParseOptions,
+		TransformationOptions: opts.TransformationOptions,
+	})
+	if errs != nil {
+		return nil, errs
+	}
+
+	enumSet, genEnums, errs := findEnumSet(mdef.enumEntries, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), !opts.TransformationOptions.EnumerationsUseUnderscores, opts.ParseOptions.SkipEnumDeduplication, opts.TransformationOptions.ShortenEnumLeafNames, opts.TransformationOptions.UseDefiningModuleForTypedefEnumNames, opts.AppendEnumSuffixForSimpleUnionEnums, opts.UseConsistentNamesForProtoUnionEnums, opts.TransformationOptions.EnumOrgPrefixesToTrim)
+	if errs != nil {
+		return nil, errs
+	}
+
+	langMapper.SetEnumSet(enumSet)
+	langMapper.SetSchemaTree(mdef.schematree)
+
+	directoryMap, errs := buildDirectoryDefinitions(langMapper, mdef.directoryEntries, opts)
+	if errs != nil {
+		return nil, errs
+	}
+
+	var rootEntry *yang.Entry
+	for _, d := range directoryMap {
+		if d.IsFakeRoot {
+			rootEntry = d.Entry
+		}
+	}
+
+	dirDets, err := getOrderedDirDetails(langMapper, directoryMap, mdef.schematree, opts)
+	if err != nil {
+		return nil, util.AppendErr(errs, err)
+	}
+
+	var enumDefinitionMap map[string]*EnumeratedYANGType
+	if len(genEnums) != 0 {
+		enumDefinitionMap = make(map[string]*EnumeratedYANGType, len(genEnums))
+	}
+	for _, enum := range genEnums {
+		et := &EnumeratedYANGType{
+			Name:     enum.name,
+			Kind:     enum.kind,
+			TypeName: enum.entry.Type.Name,
+		}
+		if _, ok := enumDefinitionMap[et.Name]; ok {
+			return nil, util.AppendErr(errs, fmt.Errorf("Enumeration already created: "+et.Name))
+		}
+
+		switch {
+		case len(enum.entry.Type.Type) != 0:
+			errs = append(errs, fmt.Errorf("unimplemented: support for multiple enumerations within a union for %v", enum.name))
+			continue
+		case et.Kind == UnknownEnumerationType:
+			errs = append(errs, fmt.Errorf("unknown type of enumerated value for %s, got: %v, type: %v", enum.name, enum, enum.entry.Type))
+			continue
+		}
+
+		if a, ok := enum.entry.Annotation["valuePrefix"]; ok {
+			s, ok := a.([]string)
+			if !ok {
+				errs = append(errs, fmt.Errorf("invalid annotation for valuePrefix of type %T, %v", a, a))
+				continue
+			}
+			et.ValuePrefix = s
+		}
+
+		switch {
+		case enum.entry.Type.IdentityBase != nil:
+			// enum corresponds to an identityref - hence the values are defined
+			// based on the values that the identity has. Since there is no explicit ordering
+			// in an identity, then we go through and put the values in alphabetical order in
+			// order to avoid reordering during code generation of the same entity.
+			valNames := []string{}
+			valLookup := map[string]*yang.Identity{}
+			for _, v := range enum.entry.Type.IdentityBase.Values {
+				valNames = append(valNames, v.Name)
+				valLookup[v.Name] = v
+			}
+			sort.Strings(valNames)
+
+			for _, v := range valNames {
+				et.ValToYANGDetails = append(et.ValToYANGDetails, ygot.EnumDefinition{
+					Name:           v,
+					DefiningModule: genutil.ParentModuleName(valLookup[v]),
+				})
+			}
+		default:
+			// The remaining enumerated types are all represented as an Enum type within the
+			// Goyang entry construct. The values are accessed in a map keyed by an int64
+			// and with a value of the name of the enumerated value - retrieved via ValueMap().
+			var values []int
+			for v := range enum.entry.Type.Enum.ValueMap() {
+				values = append(values, int(v))
+			}
+			sort.Ints(values)
+			for _, v := range values {
+				et.ValToYANGDetails = append(et.ValToYANGDetails, ygot.EnumDefinition{
+					Name: enum.entry.Type.Enum.ValueMap()[int64(v)],
+				})
+			}
+		}
+
+		enumDefinitionMap[et.Name] = et
+	}
+
+	if errs != nil {
+		return nil, errs
+	}
+
+	return &IR{
+		Directories:   dirDets,
+		Enums:         enumDefinitionMap,
+		ModelData:     mdef.modelData,
+		opts:          opts,
+		fakeroot:      rootEntry,
+		parsedModules: mdef.modules,
+	}, nil
 }
