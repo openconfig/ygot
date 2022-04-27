@@ -1221,213 +1221,373 @@ func addParents(e *yang.Entry) {
 	}
 }
 
-// getSchemaAndDirs is a helper returning a module tree to be tested, and its
-// corresponding Directory map with relevant fields filled out that would be
-// returned from ygen.GetDirectories().
-func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map[string]*ygen.MappedType) {
-	modules := yang.NewModules()
-	modules.Modules["root-module"] = &yang.Module{
-		Name: "root-module",
-		Namespace: &yang.Value{
-			Name: "u:root-module",
-		},
-	}
-
-	schema := &yang.Entry{
-		Name: "root-module",
-		Kind: yang.DirectoryEntry,
-		Node: &yang.Module{
-			Name: "root-module",
-			Namespace: &yang.Value{
-				Name: "u:root-module",
-			},
-			Modules: modules,
-		},
-		Dir: map[string]*yang.Entry{
-			"leaf": {
-				Name: "leaf",
-				Kind: yang.LeafEntry,
-				// Name is given here to test setting the YANGTypeName field.
-				Type: &yang.YangType{Name: "ieeefloat32", Kind: yang.Ybinary},
-			},
-			"leaf-with-default": {
-				Name: "leaf-with-default",
-				Kind: yang.LeafEntry,
-				Type: &yang.YangType{Name: "string", Kind: yang.Ystring, Default: "foo"},
-			},
-			"container": {
-				Name: "container",
-				Kind: yang.DirectoryEntry,
-				Dir: map[string]*yang.Entry{
+// getIR is a helper returning an IR to be tested, and its corresponding
+// Directory map with relevant fields filled out that would be returned from
+// ygen.GenerateIR().
+func getIR() *ygen.IR {
+	ir := &ygen.IR{
+		Directories: map[string]*ygen.ParsedDirectory{
+			"/root": {
+				Name:       "Root",
+				Type:       ygen.Container,
+				Path:       "/root",
+				IsFakeRoot: true,
+				Fields: map[string]*ygen.NodeDetails{
 					"leaf": {
-						Name:    "leaf",
-						Kind:    yang.LeafEntry,
-						Type:    &yang.YangType{Name: "int32", Kind: yang.Yint32},
-						Default: []string{"bar"},
-					},
-				},
-			},
-			"container-with-config": {
-				Name: "container-with-config",
-				Kind: yang.DirectoryEntry,
-				Dir: map[string]*yang.Entry{
-					"config": {
-						Name: "config",
-						Kind: yang.DirectoryEntry,
-						Dir: map[string]*yang.Entry{
-							"leaf": {
-								Name: "leaf",
-								Kind: yang.LeafEntry,
-								Type: &yang.YangType{Kind: yang.Ybinary},
-							},
+						Name: "Leaf",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "leaf",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/leaf",
+							SchemaPath:      "/leaf",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "leaf",
+							Type:            &ygen.YANGType{Name: "ieeefloat32"},
 						},
+						Type:                    ygen.LeafNode,
+						LangType:                &ygen.MappedType{NativeType: "Binary"},
+						MappedPaths:             [][]string{{"leaf"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
 					},
-					"state": {
-						Name:   "state",
-						Kind:   yang.DirectoryEntry,
-						Config: yang.TSFalse,
-						Dir: map[string]*yang.Entry{
-							"leaf": {
-								Name: "leaf",
-								Kind: yang.LeafEntry,
-								Type: &yang.YangType{Kind: yang.Ybinary},
-							},
-							"leaflist": {
-								Name:     "leaflist",
-								Kind:     yang.LeafEntry,
-								ListAttr: &yang.ListAttr{},
-								Type:     &yang.YangType{Kind: yang.Yuint32},
-							},
-							"leaflist2": {
-								Name:     "leaflist2",
-								Kind:     yang.LeafEntry,
-								ListAttr: &yang.ListAttr{},
-								Type:     &yang.YangType{Kind: yang.Ybinary},
-							},
+					"leaf-with-default": {
+						Name: "LeafWithDefault",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "leaf-with-default",
+							Defaults:        []string{"foo"},
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/leaf-with-default",
+							SchemaPath:      "/leaf-with-default",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "leaf",
+							Type:            &ygen.YANGType{Name: "string"},
 						},
+						Type:                    ygen.LeafNode,
+						LangType:                &ygen.MappedType{NativeType: "string", DefaultValue: ygot.String(`"foo"`)},
+						MappedPaths:             [][]string{{"leaf-with-default"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
 					},
-				},
-			},
-			"list-container": {
-				Name: "list-container",
-				Kind: yang.DirectoryEntry,
-				Dir: map[string]*yang.Entry{
+					"container": {
+						Name: "Container",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "container",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/container",
+							SchemaPath:      "/container",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "container",
+							Type:            nil,
+						},
+						Type:                    ygen.ContainerNode,
+						LangType:                nil,
+						MappedPaths:             [][]string{{"container"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
+					},
+					"container-with-config": {
+						Name: "ContainerWithConfig",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "container-with-config",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/container-with-config",
+							SchemaPath:      "/container-with-config",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "container",
+							Type:            nil,
+						},
+						Type:                    ygen.ContainerNode,
+						LangType:                nil,
+						MappedPaths:             [][]string{{"container-with-config"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
+					},
 					"list": {
-						Name:     "list",
-						Kind:     yang.DirectoryEntry,
-						ListAttr: &yang.ListAttr{},
-						Dir: map[string]*yang.Entry{
-							"key1": {
-								Name: "key1",
-								Kind: yang.LeafEntry,
-								Type: &yang.YangType{Kind: yang.Ystring},
-							},
-							"key2": {
-								Name: "key2",
-								Kind: yang.LeafEntry,
-								Type: &yang.YangType{Kind: yang.Ybinary},
-							},
-							"union-key": {
-								Name: "union-key",
-								Type: &yang.YangType{
-									Kind: yang.Yunion,
-									Type: []*yang.YangType{{
-										Name: "enumeration",
-										Kind: yang.Yenum,
-										Enum: &yang.EnumType{},
-									}, {
-										Kind: yang.Yuint32,
-									}},
-								},
-							},
+						Name: "List",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "list",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/list-container/list",
+							SchemaPath:      "/list-container/list",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "list",
+							Type:            nil,
 						},
+						Type:                    ygen.ListNode,
+						LangType:                nil,
+						MappedPaths:             [][]string{{"list-container", "list"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
 					},
-				},
-			},
-			"list-container-with-state": {
-				Name: "list-container-with-state",
-				Kind: yang.DirectoryEntry,
-				Dir: map[string]*yang.Entry{
+					// TODO(wenbli): Move this to a deeper level to test that the parent wildcard receivers are also generated.
 					"list-with-state": {
-						Name:     "list-with-state",
-						Kind:     yang.DirectoryEntry,
-						ListAttr: &yang.ListAttr{},
-						Dir: map[string]*yang.Entry{
-							"key": {
-								Name: "key",
-								Kind: yang.LeafEntry,
-								Type: &yang.YangType{
-									Kind: yang.Yleafref,
-									Path: "../state/key",
-								},
-							},
-							"state": {
-								Name: "state",
-								Kind: yang.DirectoryEntry,
-								Dir: map[string]*yang.Entry{
-									"key": {
-										Name: "key",
-										Kind: yang.LeafEntry,
-										Type: &yang.YangType{Kind: yang.Ydecimal64},
-									},
-								},
-							},
+						Name: "ListWithState",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "list-with-state",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/list-container-with-state/list-with-state",
+							SchemaPath:      "/list-container-with-state/list-with-state",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "list",
+							Type:            nil,
 						},
+						Type:                    ygen.ListNode,
+						LangType:                nil,
+						MappedPaths:             [][]string{{"list-container-with-state", "list-with-state"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
+					},
+					"keyless-list": {
+						Name: "KeylessList",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "keyless-list",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/keyless-list-container/keyless-list",
+							SchemaPath:      "/keyless-list-container/keyless-list",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "list",
+							Type:            nil,
+						},
+						Type:                    ygen.ListNode,
+						LangType:                nil,
+						MappedPaths:             [][]string{{"keyless-list-container", "keyless-list"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
 					},
 				},
 			},
-		},
-		Annotation: map[string]interface{}{"isCompressedSchema": true},
-	}
-	addParents(schema)
-
-	// Build fake root.
-	fakeRoot := ygen.MakeFakeRoot("root")
-	for k, v := range schema.Dir {
-		fakeRoot.Dir[k] = v
-	}
-
-	directories := map[string]*ygen.Directory{
-		"/root": {
-			Name: "Root",
-			Fields: map[string]*yang.Entry{
-				"leaf":                  schema.Dir["leaf"],
-				"leaf-with-default":     schema.Dir["leaf-with-default"],
-				"container":             schema.Dir["container"],
-				"container-with-config": schema.Dir["container-with-config"],
-				"list":                  schema.Dir["list-container"].Dir["list"],
-				"list-with-state":       schema.Dir["list-container-with-state"].Dir["list-with-state"],
+			"/root-module/container": {
+				Name: "Container",
+				Type: ygen.List,
+				Path: "/root-module/container",
+				Fields: map[string]*ygen.NodeDetails{
+					"leaf": {
+						Name: "Leaf",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "leaf",
+							Defaults:        []string{"foo"},
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/container/leaf",
+							SchemaPath:      "/container/leaf",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "leaf",
+							Type:            &ygen.YANGType{Name: "int32"},
+						},
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
+							NativeType: "int32",
+						},
+						MappedPaths:             [][]string{{"leaf"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
+					},
+				},
+				ListKeys:        nil,
+				PackageName:     "",
+				BelongingModule: "root-module",
+				RootModule:      "root-module",
+				DefiningModule:  "root-module",
 			},
-			Path:       []string{"", "root"},
-			Entry:      fakeRoot,
-			IsFakeRoot: true,
-		},
-		"/root-module/container": {
-			Name: "Container",
-			Fields: map[string]*yang.Entry{
-				"leaf": schema.Dir["container"].Dir["leaf"],
+			"/root-module/container-with-config": {
+				Name: "ContainerWithConfig",
+				Type: ygen.Container,
+				Path: "/root-module/container-with-config",
+				Fields: map[string]*ygen.NodeDetails{
+					"leaflist": {
+						Name: "Leaflist",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "leaflist",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/container-with-config/state/leaflist",
+							SchemaPath:      "/container-with-config/state/leaflist",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "leaf-list",
+							Type:            &ygen.YANGType{Name: "uint32"},
+						},
+						Type: ygen.LeafListNode,
+						LangType: &ygen.MappedType{
+							NativeType: "uint32",
+						},
+						MappedPaths:             [][]string{{"state", "leaflist"}},
+						MappedPathModules:       [][]string{{"root-module", "root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
+					},
+				},
+				ListKeys:        nil,
+				PackageName:     "",
+				BelongingModule: "root-module",
+				RootModule:      "root-module",
+				DefiningModule:  "root-module",
 			},
-			Path:  []string{"", "root-module", "container"},
-			Entry: schema.Dir["container"],
-		},
-		"/root-module/container-with-config": {
-			Name: "ContainerWithConfig",
-			Fields: map[string]*yang.Entry{
-				"leaf":      schema.Dir["container-with-config"].Dir["state"].Dir["leaf"],
-				"leaflist":  schema.Dir["container-with-config"].Dir["state"].Dir["leaflist"],
-				"leaflist2": schema.Dir["container-with-config"].Dir["state"].Dir["leaflist2"],
+			"/root-module/list-container-with-state/list-with-state": {
+				Name: "ListWithState",
+				Type: ygen.List,
+				Path: "/root-module/list-container-with-state/list-with-state",
+				Fields: map[string]*ygen.NodeDetails{
+					"key": {
+						Name: "Key",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "key",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/list-container-with-state/list-with-state/state/key",
+							SchemaPath:      "/list-container-with-state/list-with-state/state/key",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "key",
+							Type:            &ygen.YANGType{Name: "float64"},
+						},
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
+							NativeType: "float64",
+						},
+						MappedPaths:             [][]string{{"state", "key"}, {"key"}},
+						MappedPathModules:       [][]string{{"root-module", "root-module"}, {"root-module"}},
+						ShadowMappedPaths:       [][]string{{"config", "key"}, {"key"}},
+						ShadowMappedPathModules: [][]string{{"root-module", "root-module"}, {"root-module"}},
+					},
+				},
+				ListKeys: map[string]*ygen.ListKey{
+					"key": {
+						Name: "Key",
+						LangType: &ygen.MappedType{
+							NativeType: "float64",
+							ZeroValue:  "0",
+						},
+					},
+				},
+				ListKeyYANGNames: []string{"key"},
 			},
-			Path:  []string{"", "root-module", "container-with-config"},
-			Entry: schema.Dir["container-with-config"],
-		},
-		"/root-module/list-container/list": {
-			Name: "List",
-			ListAttr: &ygen.YangListAttr{
-				Keys: map[string]*ygen.ListKey{
+			"/root-module/list-container/list": {
+				Name: "List",
+				Type: ygen.List,
+				Path: "/root-module/list-container/list",
+				Fields: map[string]*ygen.NodeDetails{
+					"key1": {
+						Name: "Key1",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "key1",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/list-container/list/key1",
+							SchemaPath:      "/list-container/list/key1",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "leaf",
+							Type:            &ygen.YANGType{Name: "string"},
+						},
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
+							NativeType: "string",
+						},
+						MappedPaths:             [][]string{{"key1"}},
+						MappedPathModules:       [][]string{{"root-module", "root-module"}, {"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
+					},
+					"key2": {
+						Name: "Key2",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "key2",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/list-container/list/key2",
+							SchemaPath:      "/list-container/list/key2",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "leaf",
+							Type:            &ygen.YANGType{Name: "binary"},
+						},
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
+							NativeType: "Binary",
+						},
+						MappedPaths:             [][]string{{"key2"}},
+						MappedPathModules:       [][]string{{"root-module", "root-module"}, {"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
+					},
+					"union-key": {
+						Name: "UnionKey",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "union-key",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/list-container/list/union-key",
+							SchemaPath:      "/list-container/list/union-key",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "leaf",
+							Type:            &ygen.YANGType{Name: "union"},
+						},
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
+							NativeType: "RootModule_List_UnionKey_Union",
+							UnionTypes: map[string]int{"string": 0, "Binary": 1},
+						},
+						MappedPaths:             [][]string{{"union-key"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
+					},
+				},
+				ListKeys: map[string]*ygen.ListKey{
 					"key1": {
 						Name: "Key1",
 						LangType: &ygen.MappedType{
 							NativeType: "string",
+							ZeroValue:  `""`,
 						},
 					},
 					"key2": {
@@ -1441,128 +1601,137 @@ func getSchemaAndDirs() (*yang.Entry, map[string]*ygen.Directory, map[string]map
 						LangType: &ygen.MappedType{
 							NativeType: "RootModule_List_UnionKey_Union",
 							UnionTypes: map[string]int{"string": 0, "Binary": 1},
+							ZeroValue:  "nil",
 						},
 					},
 				},
-				KeyElems: []*yang.Entry{{Name: "key1"}, {Name: "key2"}, {Name: "union-key"}},
+				ListKeyYANGNames: []string{"key1", "key2", "union-key"},
+				PackageName:      "",
+				IsFakeRoot:       false,
+				BelongingModule:  "root-module",
+				RootModule:       "root-module",
+				DefiningModule:   "root-module",
 			},
-			Fields: map[string]*yang.Entry{
-				"key1":      schema.Dir["list-container"].Dir["list"].Dir["key1"],
-				"key2":      schema.Dir["list-container"].Dir["list"].Dir["key2"],
-				"union-key": schema.Dir["list-container"].Dir["list"].Dir["union-key"],
-			},
-			Path:  []string{"", "root-module", "list-container", "list"},
-			Entry: schema.Dir["list-container"],
-		},
-		"/root-module/list-container-with-state/list-with-state": {
-			Name: "ListWithState",
-			ListAttr: &ygen.YangListAttr{
-				Keys: map[string]*ygen.ListKey{
-					"key": {
-						Name: "Key",
+			"/root-module/keyless-list-container/keyless-list": {
+				Name: "KeylessList",
+				Type: ygen.List,
+				Path: "/root-module/keyless-list-container/keyless-list",
+				Fields: map[string]*ygen.NodeDetails{
+					"leaf": {
+						Name: "Leaf",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "leaf",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/keyless-list-container/keyless-list/leaf",
+							SchemaPath:      "/container/leaf",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "leaf",
+							Type:            &ygen.YANGType{Name: "int32"},
+						},
+						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
-							NativeType: "float64",
+							NativeType: "int32",
 						},
+						MappedPaths:             [][]string{{"leaf"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
 					},
 				},
-				KeyElems: []*yang.Entry{{Name: "key"}},
+				ListKeys:         nil,
+				ListKeyYANGNames: nil,
+				PackageName:      "",
+				IsFakeRoot:       false,
+				BelongingModule:  "root-module",
+				RootModule:       "root-module",
+				DefiningModule:   "root-module",
 			},
-			Fields: map[string]*yang.Entry{
-				"key": schema.Dir["list-container-with-state"].Dir["list-with-state"].Dir["key"],
-			},
-			Path:  []string{"", "root-module", "list-container-with-state", "list-with-state"},
-			Entry: schema.Dir["list-container-with-state"],
 		},
 	}
 
-	leafTypeMap := map[string]map[string]*ygen.MappedType{
-		"/root": {
-			"leaf":                  {NativeType: "Binary"},
-			"leaf-with-default":     {NativeType: "string", DefaultValue: ygot.String("foo")},
-			"container":             nil,
-			"container-with-config": nil,
-			"list":                  nil,
-			"list-with-state":       nil,
-		},
-		"/root-module/container": {
-			"leaf": {NativeType: "int32"},
-		},
-		"/root-module/container-with-config": {
-			"leaf":      {NativeType: "Binary"},
-			"leaflist":  {NativeType: "uint32"},
-			"leaflist2": {NativeType: "Binary"},
-		},
-		"/root-module/list-container/list": {
-			"key1":      {NativeType: "string"},
-			"key2":      {NativeType: "Binary"},
-			"union-key": {NativeType: "RootModule_List_UnionKey_Union", UnionTypes: map[string]int{"string": 0, "Binary": 1}},
-		},
-		"/root-module/list-container-with-state/list-with-state": {
-			"key": {NativeType: "float64"},
-		},
-	}
-
-	return schema, directories, leafTypeMap
+	return ir
 }
 
 func TestGetNodeDataMap(t *testing.T) {
-	_, directories, leafTypeMap := getSchemaAndDirs()
+	ir := getIR()
 
-	schema2 := &yang.Entry{
-		Name: "root-module",
-		Kind: yang.DirectoryEntry,
-		Dir: map[string]*yang.Entry{
-			"container": {
-				Name: "container",
-				Kind: yang.DirectoryEntry,
-				Dir: map[string]*yang.Entry{
-					"leaf": {
-						Name: "leaf",
-						Kind: yang.LeafEntry,
-						Type: &yang.YangType{Kind: yang.Ybinary},
+	badIr := &ygen.IR{
+		Directories: map[string]*ygen.ParsedDirectory{
+			"/root": {
+				Name:       "Root",
+				Type:       ygen.Container,
+				Path:       "/root",
+				IsFakeRoot: true,
+				Fields: map[string]*ygen.NodeDetails{
+					"container": {
+						Name: "Container",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "container",
+							Defaults:        nil,
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/bad-path/container",
+							SchemaPath:      "/container",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "container",
+							Type:            nil,
+						},
+						Type:                    ygen.ContainerNode,
+						LangType:                nil,
+						MappedPaths:             [][]string{{"container"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
 					},
 				},
 			},
-		},
-	}
-	addParents(schema2)
-	binaryContainerEntry := schema2.Dir["container"]
-
-	fakeRoot := ygen.MakeFakeRoot("root")
-	fakeRoot.Dir["container"] = binaryContainerEntry
-
-	directoryWithBinaryLeaf := map[string]*ygen.Directory{
-		"/root": {
-			Name: "Root",
-			Fields: map[string]*yang.Entry{
-				"container": binaryContainerEntry,
+			"/root-module/container": {
+				Name: "Container",
+				Type: ygen.List,
+				Path: "/root-module/container",
+				Fields: map[string]*ygen.NodeDetails{
+					"leaf": {
+						Name: "Leaf",
+						YANGDetails: ygen.YANGNodeDetails{
+							Name:            "leaf",
+							Defaults:        []string{"foo"},
+							BelongingModule: "root-module",
+							RootModule:      "root-module",
+							DefiningModule:  "root-module",
+							Path:            "/root-module/container/leaf",
+							SchemaPath:      "/container/leaf",
+							ResolvedPath:    "",
+							Description:     "",
+							Kind:            "leaf",
+							Type:            &ygen.YANGType{Name: "int32"},
+						},
+						Type: ygen.LeafNode,
+						LangType: &ygen.MappedType{
+							NativeType: "int32",
+						},
+						MappedPaths:             [][]string{{"leaf"}},
+						MappedPathModules:       [][]string{{"root-module"}},
+						ShadowMappedPaths:       nil,
+						ShadowMappedPathModules: nil,
+					},
+				},
+				ListKeys:        nil,
+				PackageName:     "",
+				BelongingModule: "root-module",
+				RootModule:      "root-module",
+				DefiningModule:  "root-module",
 			},
-			Path:  []string{"", "root"},
-			Entry: fakeRoot,
-		},
-		"/root-module/container": {
-			Name: "Container",
-			Fields: map[string]*yang.Entry{
-				"leaf": binaryContainerEntry.Dir["leaf"],
-			},
-			Path:  []string{"", "root-module", "container"},
-			Entry: binaryContainerEntry,
 		},
 	}
-
-	leafTypeMap2 := map[string]map[string]*ygen.MappedType{
-		"/root": {
-			"container": nil,
-		},
-		"/root-module/container": {
-			"leaf": {NativeType: "Binary"},
-		},
-	}
-
 	tests := []struct {
 		name                      string
-		inDirectories             map[string]*ygen.Directory
-		inLeafTypeMap             map[string]map[string]*ygen.MappedType
+		inIR                      *ygen.IR
 		inFakeRootName            string
 		inSchemaStructPkgAccessor string
 		inPathStructSuffix        string
@@ -1573,36 +1742,21 @@ func TestGetNodeDataMap(t *testing.T) {
 		wantSorted                []string
 		wantErrSubstrings         []string
 	}{{
-		name:          "scalar leaf",
-		inDirectories: map[string]*ygen.Directory{"/root-module/container": directories["/root-module/container"]},
-		inLeafTypeMap: map[string]map[string]*ygen.MappedType{
-			"/root-module/container": {
-				"leaf": leafTypeMap["/root-module/container"]["leaf"],
-			},
-		},
+		name:                      "non-existent field path",
+		inIR:                      badIr,
 		inFakeRootName:            "device",
-		inSchemaStructPkgAccessor: "struct.",
+		inSchemaStructPkgAccessor: "oc.",
 		inPathStructSuffix:        "Path",
-		wantNodeDataMap: NodeDataMap{
-			"Container_LeafPath": {
-				GoTypeName:            "int32",
-				LocalGoTypeName:       "int32",
-				GoFieldName:           "Leaf",
-				SubsumingGoStructName: "Container",
-				IsLeaf:                true,
-				IsScalarField:         true,
-				HasDefault:            true,
-				YANGTypeName:          "int32",
-			},
-		},
-		wantSorted: []string{"Container_LeafPath"},
+		wantErrSubstrings:         []string{`field with path "/bad-path/container" not found`},
 	}, {
-		name:                      "non-leaf and non-scalar leaf",
-		inDirectories:             directoryWithBinaryLeaf,
-		inLeafTypeMap:             leafTypeMap2,
-		inFakeRootName:            "device",
+		name:                      "big test with everything",
+		inIR:                      ir,
+		inFakeRootName:            "root",
 		inSchemaStructPkgAccessor: "struct.",
 		inPathStructSuffix:        "_Path",
+		inSplitByModule:           true,
+		inPackageName:             "device",
+		inPackageSuffix:           "path",
 		wantNodeDataMap: NodeDataMap{
 			"Container_Path": {
 				GoTypeName:            "*struct.Container",
@@ -1612,79 +1766,10 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                false,
 				IsScalarField:         false,
 				HasDefault:            false,
-			},
-			"Container_Leaf_Path": {
-				GoTypeName:            "struct.Binary",
-				LocalGoTypeName:       "Binary",
-				GoFieldName:           "Leaf",
-				SubsumingGoStructName: "Container",
-				IsLeaf:                true,
-				IsScalarField:         false,
-				HasDefault:            false,
-			},
-			"Root_Path": {
-				GoTypeName:            "*struct.Device",
-				LocalGoTypeName:       "*Device",
-				GoFieldName:           "",
-				SubsumingGoStructName: "Device",
-				IsLeaf:                false,
-				IsScalarField:         false,
-				HasDefault:            false,
-			},
-		},
-		wantSorted: []string{"Container_Leaf_Path", "Container_Path", "Root_Path"},
-	}, {
-		name:          "non-existent path",
-		inDirectories: map[string]*ygen.Directory{"/root-module/container": directories["/root-module/container"]},
-		inLeafTypeMap: map[string]map[string]*ygen.MappedType{
-			"/root": {
-				"container": nil,
-			},
-			"/you can't find me": {
-				"leaf": {NativeType: "Binary"},
-			},
-		},
-		inFakeRootName:            "device",
-		inSchemaStructPkgAccessor: "oc.",
-		inPathStructSuffix:        "Path",
-		wantErrSubstrings:         []string{`path "/root-module/container" does not exist`},
-	}, {
-		name:          "non-existent field",
-		inDirectories: map[string]*ygen.Directory{"/root-module/container": directories["/root-module/container"]},
-		inLeafTypeMap: map[string]map[string]*ygen.MappedType{
-			"/root": {
-				"container": nil,
-			},
-			"/root-module/container": {
-				"laugh": leafTypeMap["/root-module/container"]["leaf"],
-			},
-		},
-		inFakeRootName:            "device",
-		inSchemaStructPkgAccessor: "oc.",
-		inPathStructSuffix:        "Path",
-		wantErrSubstrings:         []string{`field name "leaf" does not exist`},
-	}, {
-		name:               "big test with everything",
-		inDirectories:      directories,
-		inLeafTypeMap:      leafTypeMap,
-		inFakeRootName:     "root",
-		inPathStructSuffix: "Path",
-		inSplitByModule:    true,
-		inPackageName:      "device",
-		inPackageSuffix:    "path",
-		wantNodeDataMap: NodeDataMap{
-			"ContainerPath": {
-				GoTypeName:            "*Container",
-				LocalGoTypeName:       "*Container",
-				GoFieldName:           "Container",
-				SubsumingGoStructName: "Container",
-				IsLeaf:                false,
-				IsScalarField:         false,
-				HasDefault:            false,
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"ContainerWithConfigPath": {
-				GoTypeName:            "*ContainerWithConfig",
+			"ContainerWithConfig_Path": {
+				GoTypeName:            "*struct.ContainerWithConfig",
 				LocalGoTypeName:       "*ContainerWithConfig",
 				GoFieldName:           "ContainerWithConfig",
 				SubsumingGoStructName: "ContainerWithConfig",
@@ -1693,17 +1778,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				HasDefault:            false,
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"ContainerWithConfig_LeafPath": {
-				GoTypeName:            "Binary",
-				LocalGoTypeName:       "Binary",
-				GoFieldName:           "Leaf",
-				SubsumingGoStructName: "ContainerWithConfig",
-				IsLeaf:                true,
-				IsScalarField:         false,
-				HasDefault:            false,
-				GoPathPackageName:     "rootmodulepath",
-			},
-			"ContainerWithConfig_LeaflistPath": {
+			"ContainerWithConfig_Leaflist_Path": {
 				GoTypeName:            "[]uint32",
 				LocalGoTypeName:       "[]uint32",
 				GoFieldName:           "Leaflist",
@@ -1711,19 +1786,10 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         false,
 				HasDefault:            false,
+				YANGTypeName:          "uint32",
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"ContainerWithConfig_Leaflist2Path": {
-				GoTypeName:            "[]Binary",
-				LocalGoTypeName:       "[]Binary",
-				GoFieldName:           "Leaflist2",
-				SubsumingGoStructName: "ContainerWithConfig",
-				IsLeaf:                true,
-				IsScalarField:         false,
-				HasDefault:            false,
-				GoPathPackageName:     "rootmodulepath",
-			},
-			"Container_LeafPath": {
+			"Container_Leaf_Path": {
 				GoTypeName:            "int32",
 				LocalGoTypeName:       "int32",
 				GoFieldName:           "Leaf",
@@ -1734,8 +1800,8 @@ func TestGetNodeDataMap(t *testing.T) {
 				YANGTypeName:          "int32",
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"LeafPath": {
-				GoTypeName:            "Binary",
+			"Leaf_Path": {
+				GoTypeName:            "struct.Binary",
 				LocalGoTypeName:       "Binary",
 				GoFieldName:           "Leaf",
 				SubsumingGoStructName: "Root",
@@ -1745,7 +1811,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				YANGTypeName:          "ieeefloat32",
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"LeafWithDefaultPath": {
+			"LeafWithDefault_Path": {
 				GoTypeName:            "string",
 				LocalGoTypeName:       "string",
 				GoFieldName:           "LeafWithDefault",
@@ -1756,8 +1822,8 @@ func TestGetNodeDataMap(t *testing.T) {
 				YANGTypeName:          "string",
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"ListPath": {
-				GoTypeName:            "*List",
+			"List_Path": {
+				GoTypeName:            "*struct.List",
 				LocalGoTypeName:       "*List",
 				GoFieldName:           "List",
 				SubsumingGoStructName: "List",
@@ -1766,8 +1832,8 @@ func TestGetNodeDataMap(t *testing.T) {
 				HasDefault:            false,
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"ListWithStatePath": {
-				GoTypeName:            "*ListWithState",
+			"ListWithState_Path": {
+				GoTypeName:            "*struct.ListWithState",
 				LocalGoTypeName:       "*ListWithState",
 				GoFieldName:           "ListWithState",
 				SubsumingGoStructName: "ListWithState",
@@ -1776,7 +1842,7 @@ func TestGetNodeDataMap(t *testing.T) {
 				HasDefault:            false,
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"ListWithState_KeyPath": {
+			"ListWithState_Key_Path": {
 				GoTypeName:            "float64",
 				LocalGoTypeName:       "float64",
 				GoFieldName:           "Key",
@@ -1784,9 +1850,10 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         true,
 				HasDefault:            false,
+				YANGTypeName:          "float64",
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"List_Key1Path": {
+			"List_Key1_Path": {
 				GoTypeName:            "string",
 				LocalGoTypeName:       "string",
 				GoFieldName:           "Key1",
@@ -1794,30 +1861,33 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsLeaf:                true,
 				IsScalarField:         true,
 				HasDefault:            false,
+				YANGTypeName:          "string",
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"List_Key2Path": {
-				GoTypeName:            "Binary",
+			"List_Key2_Path": {
+				GoTypeName:            "struct.Binary",
 				LocalGoTypeName:       "Binary",
 				GoFieldName:           "Key2",
 				SubsumingGoStructName: "List",
 				IsLeaf:                true,
 				IsScalarField:         false,
 				HasDefault:            false,
+				YANGTypeName:          "binary",
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"List_UnionKeyPath": {
-				GoTypeName:            "RootModule_List_UnionKey_Union",
+			"List_UnionKey_Path": {
+				GoTypeName:            "struct.RootModule_List_UnionKey_Union",
 				LocalGoTypeName:       "RootModule_List_UnionKey_Union",
 				GoFieldName:           "UnionKey",
 				SubsumingGoStructName: "List",
 				IsLeaf:                true,
 				IsScalarField:         false,
 				HasDefault:            false,
+				YANGTypeName:          "union",
 				GoPathPackageName:     "rootmodulepath",
 			},
-			"RootPath": {
-				GoTypeName:            "*Root",
+			"Root_Path": {
+				GoTypeName:            "*struct.Root",
 				LocalGoTypeName:       "*Root",
 				GoFieldName:           "",
 				SubsumingGoStructName: "Root",
@@ -1825,29 +1895,48 @@ func TestGetNodeDataMap(t *testing.T) {
 				IsScalarField:         false,
 				HasDefault:            false,
 				GoPathPackageName:     "device",
+			},
+			"KeylessList_Path": {
+				GoTypeName:            "*struct.KeylessList",
+				LocalGoTypeName:       "*KeylessList",
+				GoFieldName:           "KeylessList",
+				SubsumingGoStructName: "KeylessList",
+				YANGPath:              "/root-module/keyless-list-container/keyless-list",
+				GoPathPackageName:     "rootmodulepath",
+			},
+			"KeylessList_Leaf_Path": {
+				GoTypeName:            "int32",
+				LocalGoTypeName:       "int32",
+				GoFieldName:           "Leaf",
+				SubsumingGoStructName: "KeylessList",
+				IsLeaf:                true,
+				IsScalarField:         true,
+				YANGTypeName:          "int32",
+				YANGPath:              "/root-module/keyless-list-container/keyless-list/leaf",
+				GoPathPackageName:     "rootmodulepath",
 			}},
 		wantSorted: []string{
-			"ContainerPath",
-			"ContainerWithConfigPath",
-			"ContainerWithConfig_LeafPath",
-			"ContainerWithConfig_Leaflist2Path",
-			"ContainerWithConfig_LeaflistPath",
-			"Container_LeafPath",
-			"LeafPath",
-			"LeafWithDefaultPath",
-			"ListPath",
-			"ListWithStatePath",
-			"ListWithState_KeyPath",
-			"List_Key1Path",
-			"List_Key2Path",
-			"List_UnionKeyPath",
-			"RootPath",
+			"ContainerWithConfig_Leaflist_Path",
+			"ContainerWithConfig_Path",
+			"Container_Leaf_Path",
+			"Container_Path",
+			"KeylessList_Leaf_Path",
+			"KeylessList_Path",
+			"LeafWithDefault_Path",
+			"Leaf_Path",
+			"ListWithState_Key_Path",
+			"ListWithState_Path",
+			"List_Key1_Path",
+			"List_Key2_Path",
+			"List_Path",
+			"List_UnionKey_Path",
+			"Root_Path",
 		},
 	}}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, gotErrs := getNodeDataMap(tt.inDirectories, tt.inLeafTypeMap, tt.inFakeRootName, tt.inSchemaStructPkgAccessor, tt.inPathStructSuffix, tt.inPackageName, tt.inPackageSuffix, tt.inSplitByModule, false)
+			got, gotErrs := getNodeDataMap(tt.inIR, tt.inFakeRootName, tt.inSchemaStructPkgAccessor, tt.inPathStructSuffix, tt.inPackageName, tt.inPackageSuffix, tt.inSplitByModule, false)
 			// TODO(wenbli): Enhance gNMI's errdiff with checking a slice of substrings and use here.
 			var gotErrStrs []string
 			for _, err := range gotErrs {
@@ -1912,9 +2001,9 @@ const (
 	// wantListMethodsNonWildcard is the expected non-wildcard child constructor
 	// method for the test list node.
 	wantListMethodsNonWildcard = `
-// List (): 
+// List (list): 
 // ----------------------------------------
-// Defining module: ""
+// Defining module: "root-module"
 // Instantiating module: "root-module"
 // Path from parent: "list-container/list"
 // Path from root: "/list-container/list"
@@ -1933,9 +2022,9 @@ func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List
 `
 
 	wantListMethodsWildcardCommon = `
-// ListAnyKey2AnyUnionKey (): 
+// ListAnyKey2AnyUnionKey (list): 
 // ----------------------------------------
-// Defining module: ""
+// Defining module: "root-module"
 // Instantiating module: "root-module"
 // Path from parent: "list-container/list"
 // Path from root: "/list-container/list"
@@ -1952,9 +2041,9 @@ func (n *RootPath) ListAnyKey2AnyUnionKey(Key1 string) *ListPathAny {
 	}
 }
 
-// ListAnyKey1AnyUnionKey (): 
+// ListAnyKey1AnyUnionKey (list): 
 // ----------------------------------------
-// Defining module: ""
+// Defining module: "root-module"
 // Instantiating module: "root-module"
 // Path from parent: "list-container/list"
 // Path from root: "/list-container/list"
@@ -1971,9 +2060,9 @@ func (n *RootPath) ListAnyKey1AnyUnionKey(Key2 oc.Binary) *ListPathAny {
 	}
 }
 
-// ListAnyUnionKey (): 
+// ListAnyUnionKey (list): 
 // ----------------------------------------
-// Defining module: ""
+// Defining module: "root-module"
 // Instantiating module: "root-module"
 // Path from parent: "list-container/list"
 // Path from root: "/list-container/list"
@@ -1990,9 +2079,9 @@ func (n *RootPath) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListPathAny {
 	}
 }
 
-// ListAnyKey1AnyKey2 (): 
+// ListAnyKey1AnyKey2 (list): 
 // ----------------------------------------
-// Defining module: ""
+// Defining module: "root-module"
 // Instantiating module: "root-module"
 // Path from parent: "list-container/list"
 // Path from root: "/list-container/list"
@@ -2009,9 +2098,9 @@ func (n *RootPath) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union
 	}
 }
 
-// ListAnyKey2 (): 
+// ListAnyKey2 (list): 
 // ----------------------------------------
-// Defining module: ""
+// Defining module: "root-module"
 // Instantiating module: "root-module"
 // Path from parent: "list-container/list"
 // Path from root: "/list-container/list"
@@ -2028,9 +2117,9 @@ func (n *RootPath) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey
 	}
 }
 
-// ListAnyKey1 (): 
+// ListAnyKey1 (list): 
 // ----------------------------------------
-// Defining module: ""
+// Defining module: "root-module"
 // Instantiating module: "root-module"
 // Path from parent: "list-container/list"
 // Path from root: "/list-container/list"
@@ -2050,9 +2139,9 @@ func (n *RootPath) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_Union
 
 	// wantListMethods is the expected child constructor methods for the test list node.
 	wantListMethods = `
-// ListAny (): 
+// ListAny (list): 
 // ----------------------------------------
-// Defining module: ""
+// Defining module: "root-module"
 // Instantiating module: "root-module"
 // Path from parent: "list-container/list"
 // Path from root: "/list-container/list"
@@ -2073,9 +2162,9 @@ func (n *RootPath) ListAny() *ListPathAny {
 	// wantListMethodsSimplified is the expected child constructor methods for
 	// the test list node when SimplifyWildcardPaths=true.
 	wantListMethodsSimplified = `
-// ListAny (): 
+// ListAny (list): 
 // ----------------------------------------
-// Defining module: ""
+// Defining module: "root-module"
 // Instantiating module: "root-module"
 // Path from parent: "list-container/list"
 // Path from root: "/list-container/list"
@@ -2249,11 +2338,11 @@ type LeafWithDefaultPathAny struct {
 )
 
 func TestGenerateDirectorySnippet(t *testing.T) {
-	_, directories, _ := getSchemaAndDirs()
+	directories := getIR().Directories
 
 	tests := []struct {
 		name                      string
-		inDirectory               *ygen.Directory
+		inDirectory               *ygen.ParsedDirectory
 		inListBuilderKeyThreshold uint
 		inPathStructSuffix        string
 		inSplitByModule           bool
@@ -2282,16 +2371,6 @@ type ContainerWithConfigAny struct {
 	*ygot.NodePath
 }
 
-// ContainerWithConfig_Leaf represents the /root-module/container-with-config/state/leaf YANG schema element.
-type ContainerWithConfig_Leaf struct {
-	*ygot.NodePath
-}
-
-// ContainerWithConfig_LeafAny represents the wildcard version of the /root-module/container-with-config/state/leaf YANG schema element.
-type ContainerWithConfig_LeafAny struct {
-	*ygot.NodePath
-}
-
 // ContainerWithConfig_Leaflist represents the /root-module/container-with-config/state/leaflist YANG schema element.
 type ContainerWithConfig_Leaflist struct {
 	*ygot.NodePath
@@ -2301,38 +2380,8 @@ type ContainerWithConfig_Leaflist struct {
 type ContainerWithConfig_LeaflistAny struct {
 	*ygot.NodePath
 }
-
-// ContainerWithConfig_Leaflist2 represents the /root-module/container-with-config/state/leaflist2 YANG schema element.
-type ContainerWithConfig_Leaflist2 struct {
-	*ygot.NodePath
-}
-
-// ContainerWithConfig_Leaflist2Any represents the wildcard version of the /root-module/container-with-config/state/leaflist2 YANG schema element.
-type ContainerWithConfig_Leaflist2Any struct {
-	*ygot.NodePath
-}
 `,
 			ChildConstructors: `
-func (n *ContainerWithConfig) Leaf() *ContainerWithConfig_Leaf {
-	return &ContainerWithConfig_Leaf{
-		NodePath: ygot.NewNodePath(
-			[]string{"state", "leaf"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-func (n *ContainerWithConfigAny) Leaf() *ContainerWithConfig_LeafAny {
-	return &ContainerWithConfig_LeafAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"state", "leaf"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
 func (n *ContainerWithConfig) Leaflist() *ContainerWithConfig_Leaflist {
 	return &ContainerWithConfig_Leaflist{
 		NodePath: ygot.NewNodePath(
@@ -2352,26 +2401,6 @@ func (n *ContainerWithConfigAny) Leaflist() *ContainerWithConfig_LeaflistAny {
 		),
 	}
 }
-
-func (n *ContainerWithConfig) Leaflist2() *ContainerWithConfig_Leaflist2 {
-	return &ContainerWithConfig_Leaflist2{
-		NodePath: ygot.NewNodePath(
-			[]string{"state", "leaflist2"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-func (n *ContainerWithConfigAny) Leaflist2() *ContainerWithConfig_Leaflist2Any {
-	return &ContainerWithConfig_Leaflist2Any{
-		NodePath: ygot.NewNodePath(
-			[]string{"state", "leaflist2"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
 `,
 		}},
 		wantNoWildcard: []GoPathStructCodeSnippet{{
@@ -2383,46 +2412,16 @@ type ContainerWithConfig struct {
 	*ygot.NodePath
 }
 
-// ContainerWithConfig_Leaf represents the /root-module/container-with-config/state/leaf YANG schema element.
-type ContainerWithConfig_Leaf struct {
-	*ygot.NodePath
-}
-
 // ContainerWithConfig_Leaflist represents the /root-module/container-with-config/state/leaflist YANG schema element.
 type ContainerWithConfig_Leaflist struct {
 	*ygot.NodePath
 }
-
-// ContainerWithConfig_Leaflist2 represents the /root-module/container-with-config/state/leaflist2 YANG schema element.
-type ContainerWithConfig_Leaflist2 struct {
-	*ygot.NodePath
-}
 `,
 			ChildConstructors: `
-func (n *ContainerWithConfig) Leaf() *ContainerWithConfig_Leaf {
-	return &ContainerWithConfig_Leaf{
-		NodePath: ygot.NewNodePath(
-			[]string{"state", "leaf"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
 func (n *ContainerWithConfig) Leaflist() *ContainerWithConfig_Leaflist {
 	return &ContainerWithConfig_Leaflist{
 		NodePath: ygot.NewNodePath(
 			[]string{"state", "leaflist"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-func (n *ContainerWithConfig) Leaflist2() *ContainerWithConfig_Leaflist2 {
-	return &ContainerWithConfig_Leaflist2{
-		NodePath: ygot.NewNodePath(
-			[]string{"state", "leaflist2"},
 			map[string]interface{}{},
 			n,
 		),
@@ -2776,157 +2775,12 @@ func (n *ListWithStatePathAny) WithKey(Key float64) *ListWithStatePathAny {
 }
 
 func TestGenerateChildConstructor(t *testing.T) {
-	_, directories, _ := getSchemaAndDirs()
-
-	modules := yang.NewModules()
-	modules.Modules["root-module"] = &yang.Module{
-		Name: "root-module",
-		Namespace: &yang.Value{
-			Name: "u:root-module",
-		},
-	}
-
-	deepSchema := &yang.Entry{
-		Name: "root-module",
-		Kind: yang.DirectoryEntry,
-		Node: &yang.Module{
-			Name: "root-module",
-			Namespace: &yang.Value{
-				Name: "u:root-module",
-			},
-			Modules: modules,
-		},
-		Dir: map[string]*yang.Entry{
-			"container": {
-				Name: "container",
-				Kind: yang.DirectoryEntry,
-				Dir: map[string]*yang.Entry{
-					"leaf": {
-						Name: "leaf",
-						Kind: yang.LeafEntry,
-						Type: &yang.YangType{Kind: yang.Yint32},
-					},
-					"list-container": {
-						Name: "list-container",
-						Kind: yang.DirectoryEntry,
-						Dir: map[string]*yang.Entry{
-							"list": {
-								Name:     "list",
-								Kind:     yang.DirectoryEntry,
-								ListAttr: &yang.ListAttr{},
-								Dir: map[string]*yang.Entry{
-									"key": {
-										Name: "key",
-										Kind: yang.LeafEntry,
-										Type: &yang.YangType{Kind: yang.Ystring},
-									},
-								},
-							},
-						},
-					},
-					"keyless-list-container": {
-						Name: "keyless-list-container",
-						Kind: yang.DirectoryEntry,
-						Dir: map[string]*yang.Entry{
-							"keyless-list": {
-								Name:     "keyless-list",
-								Kind:     yang.DirectoryEntry,
-								ListAttr: &yang.ListAttr{},
-								Dir: map[string]*yang.Entry{
-									"val": {
-										Name: "val",
-										Kind: yang.LeafEntry,
-										Type: &yang.YangType{Kind: yang.Ystring},
-									},
-								},
-							},
-						},
-					},
-					"inner-container": {
-						Name: "inner-container",
-						Kind: yang.DirectoryEntry,
-						Dir: map[string]*yang.Entry{
-							"inner-leaf": {
-								Name: "inner-leaf",
-								Kind: yang.LeafEntry,
-								Type: &yang.YangType{Kind: yang.Yint32},
-							},
-						},
-					},
-				},
-			},
-		},
-		Annotation: map[string]interface{}{"isCompressedSchema": true},
-	}
-	addParents(deepSchema)
-
-	// Build fake root.
-	fakeRoot := ygen.MakeFakeRoot("root")
-	for k, v := range deepSchema.Dir {
-		fakeRoot.Dir[k] = v
-	}
-
-	deepSchemaDirectories := map[string]*ygen.Directory{
-		"/root": {
-			Name: "Root",
-			Fields: map[string]*yang.Entry{
-				"container": deepSchema.Dir["container"],
-			},
-			Path:  []string{"", "root"},
-			Entry: fakeRoot,
-		},
-		"/root-module/container": {
-			Name: "Container",
-			Fields: map[string]*yang.Entry{
-				"list":            deepSchema.Dir["container"].Dir["list-container"].Dir["list"],
-				"keyless-list":    deepSchema.Dir["container"].Dir["keyless-list-container"].Dir["keyless-list"],
-				"inner-container": deepSchema.Dir["container"].Dir["inner-container"],
-			},
-			Path:  []string{"", "root-module", "container"},
-			Entry: deepSchema.Dir["container"],
-		},
-		"/root-module/container/list-container/list": {
-			Name: "Container_List",
-			ListAttr: &ygen.YangListAttr{
-				Keys: map[string]*ygen.ListKey{
-					"key": {
-						Name: "Key",
-						LangType: &ygen.MappedType{
-							NativeType: "string",
-						},
-					},
-				},
-				KeyElems: []*yang.Entry{{Name: "key"}},
-			},
-			Fields: map[string]*yang.Entry{
-				"key": deepSchema.Dir["container"].Dir["list-container"].Dir["list"].Dir["key"],
-			},
-			Path:  []string{"", "root-module", "container", "list-container", "list"},
-			Entry: deepSchema.Dir["container"].Dir["list-container"],
-		},
-		"/root-module/container/keyless-list-container/keyless-list": {
-			Name:     "Container_KeylessList",
-			ListAttr: nil, // keyless list.
-			Fields: map[string]*yang.Entry{
-				"key": deepSchema.Dir["container"].Dir["keyless-list-container"].Dir["keyless-list"].Dir["key"],
-			},
-			Path:  []string{"", "root-module", "container", "keyless-list-container", "keyless-list"},
-			Entry: deepSchema.Dir["container"].Dir["keyless-list-container"],
-		},
-		"/root-module/container/inner-container": {
-			Name: "Container_InnerContainer",
-			Fields: map[string]*yang.Entry{
-				"leaf": deepSchema.Dir["container"].Dir["inner-container"].Dir["leaf"],
-			},
-			Path:  []string{"", "root-module", "container", "inner-container"},
-			Entry: deepSchema.Dir["container"].Dir["inner-container"],
-		},
-	}
+	directories := getIR().Directories
 
 	tests := []struct {
 		name                      string
-		inDirectory               *ygen.Directory
-		inDirectories             map[string]*ygen.Directory
+		inDirectory               *ygen.ParsedDirectory
+		inDirectories             map[string]*ygen.ParsedDirectory
 		inFieldName               string
 		inUniqueFieldName         string
 		inListBuilderKeyThreshold uint
@@ -3025,160 +2879,44 @@ func (n *RootPath) Leaf() *LeafPath {
 }
 `,
 	}, {
-		name:                    "container-with-config leaf method",
+		name:                    "container-with-config leaf-list method",
 		inDirectory:             directories["/root-module/container-with-config"],
 		inDirectories:           directories,
-		inFieldName:             "leaf",
-		inUniqueFieldName:       "Leaf",
+		inFieldName:             "leaflist",
+		inUniqueFieldName:       "Leaflist",
 		inPathStructSuffix:      "Path",
 		inGenerateWildcardPaths: true,
 		wantMethod: `
-func (n *ContainerWithConfigPath) Leaf() *ContainerWithConfig_LeafPath {
-	return &ContainerWithConfig_LeafPath{
+func (n *ContainerWithConfigPath) Leaflist() *ContainerWithConfig_LeaflistPath {
+	return &ContainerWithConfig_LeaflistPath{
 		NodePath: ygot.NewNodePath(
-			[]string{"state", "leaf"},
+			[]string{"state", "leaflist"},
 			map[string]interface{}{},
 			n,
 		),
 	}
 }
 
-func (n *ContainerWithConfigPathAny) Leaf() *ContainerWithConfig_LeafPathAny {
-	return &ContainerWithConfig_LeafPathAny{
+func (n *ContainerWithConfigPathAny) Leaflist() *ContainerWithConfig_LeaflistPathAny {
+	return &ContainerWithConfig_LeaflistPathAny{
 		NodePath: ygot.NewNodePath(
-			[]string{"state", "leaf"},
+			[]string{"state", "leaflist"},
 			map[string]interface{}{},
 			n,
 		),
 	}
-}
-`,
-	}, {
-		name:                    "2nd-level list methods",
-		inDirectory:             deepSchemaDirectories["/root-module/container"],
-		inDirectories:           deepSchemaDirectories,
-		inFieldName:             "list",
-		inUniqueFieldName:       "List",
-		inPathStructSuffix:      "Path",
-		inGenerateWildcardPaths: true,
-		wantMethod: `
-func (n *ContainerPath) ListAny() *Container_ListPathAny {
-	return &Container_ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key": "*"},
-			n,
-		),
-	}
-}
-
-func (n *ContainerPathAny) ListAny() *Container_ListPathAny {
-	return &Container_ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key": "*"},
-			n,
-		),
-	}
-}
-
-func (n *ContainerPath) List(Key string) *Container_ListPath {
-	return &Container_ListPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key": Key},
-			n,
-		),
-	}
-}
-
-func (n *ContainerPathAny) List(Key string) *Container_ListPathAny {
-	return &Container_ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key": Key},
-			n,
-		),
-	}
-}
-`,
-	}, {
-		name:                      "2nd-level list methods -- Builder API",
-		inDirectory:               deepSchemaDirectories["/root-module/container"],
-		inDirectories:             deepSchemaDirectories,
-		inFieldName:               "list",
-		inUniqueFieldName:         "List",
-		inListBuilderKeyThreshold: 1,
-		inPathStructSuffix:        "Path",
-		inGenerateWildcardPaths:   true,
-		wantMethod: `
-func (n *ContainerPath) ListAny() *Container_ListPathAny {
-	return &Container_ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key": "*"},
-			n,
-		),
-	}
-}
-
-func (n *ContainerPathAny) ListAny() *Container_ListPathAny {
-	return &Container_ListPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"list-container", "list"},
-			map[string]interface{}{"key": "*"},
-			n,
-		),
-	}
-}
-`,
-		wantListBuilderAPI: `
-// WithKey sets Container_ListPathAny's key "key" to the specified value.
-// Key: string
-func (n *Container_ListPathAny) WithKey(Key string) *Container_ListPathAny {
-	ygot.ModifyKey(n.NodePath, "key", Key)
-	return n
 }
 `,
 	}, {
 		name:                    "keyless list is skipped",
-		inDirectory:             deepSchemaDirectories["/root-module/container"],
-		inDirectories:           deepSchemaDirectories,
+		inDirectory:             directories["/root"],
+		inDirectories:           directories,
 		inFieldName:             "keyless-list",
-		inUniqueFieldName:       "List",
+		inUniqueFieldName:       "KeylessList",
 		inPathStructSuffix:      "Path",
 		inGenerateWildcardPaths: true,
 		testMethodDocComment:    true,
 		wantMethod:              ``,
-	}, {
-		name:                    "inner container",
-		inDirectory:             deepSchemaDirectories["/root-module/container"],
-		inDirectories:           deepSchemaDirectories,
-		inFieldName:             "inner-container",
-		inUniqueFieldName:       "InnerContainer",
-		inPathStructSuffix:      "Path",
-		inGenerateWildcardPaths: true,
-		wantMethod: `
-func (n *ContainerPath) InnerContainer() *Container_InnerContainerPath {
-	return &Container_InnerContainerPath{
-		NodePath: ygot.NewNodePath(
-			[]string{"inner-container"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-
-func (n *ContainerPathAny) InnerContainer() *Container_InnerContainerPathAny {
-	return &Container_InnerContainerPathAny{
-		NodePath: ygot.NewNodePath(
-			[]string{"inner-container"},
-			map[string]interface{}{},
-			n,
-		),
-	}
-}
-`,
 	}, {
 		name:                    "list with state method",
 		inDirectory:             directories["/root"],
@@ -3312,135 +3050,123 @@ func (n *ListPathAny) WithUnionKey(UnionKey oc.RootModule_List_UnionKey_Union) *
 func TestMakeKeyParams(t *testing.T) {
 	tests := []struct {
 		name             string
-		in               *ygen.YangListAttr
+		inKeys           map[string]*ygen.ListKey
+		inKeyNames       []string
 		wantKeyParams    []keyParam
 		wantErrSubstring string
 	}{{
 		name:             "empty listattr",
-		in:               &ygen.YangListAttr{},
+		inKeys:           nil,
+		inKeyNames:       nil,
 		wantErrSubstring: "invalid list - has no key",
 	}, {
 		name: "simple string param",
-		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.ListKey{
-				"fluorine": {
-					Name: "Fluorine",
-					LangType: &ygen.MappedType{
-						NativeType: "string",
-					},
+		inKeys: map[string]*ygen.ListKey{
+			"fluorine": {
+				Name: "Fluorine",
+				LangType: &ygen.MappedType{
+					NativeType: "string",
 				},
 			},
-			KeyElems: []*yang.Entry{{Name: "fluorine"}},
 		},
+		inKeyNames:    []string{"fluorine"},
 		wantKeyParams: []keyParam{{name: "fluorine", varName: "Fluorine", typeName: "string", typeDocString: "string"}},
 	}, {
 		name: "simple int param, also testing camel-case",
-		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.ListKey{
-				"cl-cl": {
-					Name: "ClCl",
-					LangType: &ygen.MappedType{
-						NativeType: "int",
-					},
+		inKeys: map[string]*ygen.ListKey{
+			"cl-cl": {
+				Name: "ClCl",
+				LangType: &ygen.MappedType{
+					NativeType: "int",
 				},
 			},
-			KeyElems: []*yang.Entry{{Name: "cl-cl"}},
 		},
+		inKeyNames:    []string{"cl-cl"},
 		wantKeyParams: []keyParam{{name: "cl-cl", varName: "ClCl", typeName: "int", typeDocString: "int"}},
 	}, {
 		name: "name uniquification",
-		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.ListKey{
-				"cl-cl": {
-					Name: "ClCl",
-					LangType: &ygen.MappedType{
-						NativeType: "int",
-					},
-				},
-				"clCl": {
-					Name: "ClCl",
-					LangType: &ygen.MappedType{
-						NativeType: "int",
-					},
+		inKeys: map[string]*ygen.ListKey{
+			"cl-cl": {
+				Name: "ClCl",
+				LangType: &ygen.MappedType{
+					NativeType: "int",
 				},
 			},
-			KeyElems: []*yang.Entry{{Name: "cl-cl"}, {Name: "clCl"}},
+			"clCl": {
+				Name: "ClCl",
+				LangType: &ygen.MappedType{
+					NativeType: "int",
+				},
+			},
 		},
+		inKeyNames: []string{"cl-cl", "clCl"},
 		wantKeyParams: []keyParam{
 			{name: "cl-cl", varName: "ClCl", typeName: "int", typeDocString: "int"},
 			{name: "clCl", varName: "ClCl_", typeName: "int", typeDocString: "int"},
 		},
 	}, {
 		name: "unsupported type",
-		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.ListKey{
-				"fluorine": {
-					Name: "Fluorine",
-					LangType: &ygen.MappedType{
-						NativeType: "interface{}",
-					},
+		inKeys: map[string]*ygen.ListKey{
+			"fluorine": {
+				Name: "Fluorine",
+				LangType: &ygen.MappedType{
+					NativeType: "interface{}",
 				},
 			},
-			KeyElems: []*yang.Entry{{Name: "fluorine"}},
 		},
+		inKeyNames:    []string{"fluorine"},
 		wantKeyParams: []keyParam{{name: "fluorine", varName: "Fluorine", typeName: "string", typeDocString: "string"}},
 	}, {
 		name: "keyElems doesn't match keys",
-		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.ListKey{
-				"neon": {
-					Name: "Neon",
-					LangType: &ygen.MappedType{
-						NativeType: "light",
-					},
+		inKeys: map[string]*ygen.ListKey{
+			"neon": {
+				Name: "Neon",
+				LangType: &ygen.MappedType{
+					NativeType: "light",
 				},
 			},
-			KeyElems: []*yang.Entry{{Name: "cl-cl"}},
 		},
-		wantErrSubstring: "key doesn't have a mappedType: cl-cl",
+		inKeyNames:       []string{"cl-cl"},
+		wantErrSubstring: `key "cl-cl" doesn't exist in key map`,
 	}, {
 		name: "mappedType is nil",
-		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.ListKey{
-				"cl-cl": {
-					Name:     "ClCl",
-					LangType: nil,
-				},
+		inKeys: map[string]*ygen.ListKey{
+			"cl-cl": {
+				Name:     "ClCl",
+				LangType: nil,
 			},
-			KeyElems: []*yang.Entry{{Name: "cl-cl"}},
 		},
+		inKeyNames:       []string{"cl-cl"},
 		wantErrSubstring: "mappedType for key is nil: cl-cl",
 	}, {
 		name: "multiple parameters",
-		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.ListKey{
-				"bromine": {
-					Name: "Bromine",
-					LangType: &ygen.MappedType{
-						NativeType: "complex128",
-					},
-				},
-				"cl-cl": {
-					Name: "ClCl",
-					LangType: &ygen.MappedType{
-						NativeType: "int",
-					},
-				},
-				"fluorine": {
-					Name: "Fluorine",
-					LangType: &ygen.MappedType{
-						NativeType: "string",
-					},
-				},
-				"iodine": {
-					Name: "Iodine",
-					LangType: &ygen.MappedType{
-						NativeType: "float64",
-					},
+		inKeys: map[string]*ygen.ListKey{
+			"bromine": {
+				Name: "Bromine",
+				LangType: &ygen.MappedType{
+					NativeType: "complex128",
 				},
 			},
-			KeyElems: []*yang.Entry{{Name: "fluorine"}, {Name: "cl-cl"}, {Name: "bromine"}, {Name: "iodine"}},
+			"cl-cl": {
+				Name: "ClCl",
+				LangType: &ygen.MappedType{
+					NativeType: "int",
+				},
+			},
+			"fluorine": {
+				Name: "Fluorine",
+				LangType: &ygen.MappedType{
+					NativeType: "string",
+				},
+			},
+			"iodine": {
+				Name: "Iodine",
+				LangType: &ygen.MappedType{
+					NativeType: "float64",
+				},
+			},
 		},
+		inKeyNames: []string{"fluorine", "cl-cl", "bromine", "iodine"},
 		wantKeyParams: []keyParam{
 			{name: "fluorine", varName: "Fluorine", typeName: "string", typeDocString: "string"},
 			{name: "cl-cl", varName: "ClCl", typeName: "int", typeDocString: "int"},
@@ -3449,48 +3175,44 @@ func TestMakeKeyParams(t *testing.T) {
 		},
 	}, {
 		name: "enumerated and union parameters",
-		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.ListKey{
-				"astatine": {
-					Name: "Astatine",
-					LangType: &ygen.MappedType{
-						NativeType:        "Halogen",
-						IsEnumeratedValue: true,
-					},
-				},
-				"tennessine": {
-					Name: "Tennessine",
-					LangType: &ygen.MappedType{
-						NativeType: "Ununseptium",
-						UnionTypes: map[string]int{"int32": 1, "float64": 2, "interface{}": 3},
-					},
+		inKeys: map[string]*ygen.ListKey{
+			"astatine": {
+				Name: "Astatine",
+				LangType: &ygen.MappedType{
+					NativeType:        "Halogen",
+					IsEnumeratedValue: true,
 				},
 			},
-			KeyElems: []*yang.Entry{{Name: "astatine"}, {Name: "tennessine"}},
+			"tennessine": {
+				Name: "Tennessine",
+				LangType: &ygen.MappedType{
+					NativeType: "Ununseptium",
+					UnionTypes: map[string]int{"int32": 1, "float64": 2, "interface{}": 3},
+				},
+			},
 		},
+		inKeyNames: []string{"astatine", "tennessine"},
 		wantKeyParams: []keyParam{
 			{name: "astatine", varName: "Astatine", typeName: "oc.Halogen", typeDocString: "oc.Halogen"},
 			{name: "tennessine", varName: "Tennessine", typeName: "oc.Ununseptium", typeDocString: "[oc.UnionInt32, oc.UnionFloat64, *oc.UnionUnsupported]"},
 		},
 	}, {
 		name: "Binary and Empty",
-		in: &ygen.YangListAttr{
-			Keys: map[string]*ygen.ListKey{
-				"bromine": {
-					Name: "Bromine",
-					LangType: &ygen.MappedType{
-						NativeType: "Binary",
-					},
-				},
-				"cl-cl": {
-					Name: "ClCl",
-					LangType: &ygen.MappedType{
-						NativeType: "YANGEmpty",
-					},
+		inKeys: map[string]*ygen.ListKey{
+			"bromine": {
+				Name: "Bromine",
+				LangType: &ygen.MappedType{
+					NativeType: "Binary",
 				},
 			},
-			KeyElems: []*yang.Entry{{Name: "cl-cl"}, {Name: "bromine"}},
+			"cl-cl": {
+				Name: "ClCl",
+				LangType: &ygen.MappedType{
+					NativeType: "YANGEmpty",
+				},
+			},
 		},
+		inKeyNames: []string{"cl-cl", "bromine"},
 		wantKeyParams: []keyParam{
 			{name: "cl-cl", varName: "ClCl", typeName: "oc.YANGEmpty", typeDocString: "oc.YANGEmpty"},
 			{name: "bromine", varName: "Bromine", typeName: "oc.Binary", typeDocString: "oc.Binary"},
@@ -3499,7 +3221,7 @@ func TestMakeKeyParams(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotKeyParams, err := makeKeyParams(tt.in, "oc.")
+			gotKeyParams, err := makeKeyParams(tt.inKeys, tt.inKeyNames, "oc.")
 			if diff := cmp.Diff(tt.wantKeyParams, gotKeyParams, cmp.AllowUnexported(keyParam{})); diff != "" {
 				t.Errorf("(-want, +got):\n%s", diff)
 			}
