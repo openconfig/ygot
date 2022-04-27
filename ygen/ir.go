@@ -15,6 +15,8 @@
 package ygen
 
 import (
+	"sort"
+
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/genutil"
@@ -31,15 +33,18 @@ import (
 // encapsulating the naming and designation of language-specific types for
 // the output language.
 
-type NewLangMapperFn func() LangMapper
-
 // LangMapper is the interface to be implemented by a language-specific
 // library and provided as an input to the IR production phase of ygen.
 //
 // Note: though the output names are meant to be usable within the output
 // language, it may not be the final name used in the generated code, for
-// example due to naming conflicts, which might be better resolved in a later
-// pass prior to code generation.
+// example due to naming conflicts, which are better resolved in a later
+// pass prior to code generation (see note below).
+//
+// NB: LangMapper's methods should be idempotent, such that the order in
+// which they're called and the number of times each is called per input
+// parameter does not affect the output. Do not depend on the same order of
+// method calls on langMapper by GenerateIR.
 type LangMapper interface {
 	// FieldName maps an input yang.Entry to the name that should be used
 	// in the intermediate representation. It is called for each field of
@@ -76,7 +81,8 @@ type LangMapper interface {
 	//EnumeratedValueName(string) (string, error)
 
 	// TODO(wenbli): Consider removing this from the IR since the prefix
-	// can depend on the type of the enumeration.
+	// can depend on the type of the enumeration, so it might make sense to
+	// have the code generation stage do this instead.
 	// EnumeratedTypePrefix specifies a prefix that should be used as a
 	// prefix to types that are mapped from the YANG schema. The prefix
 	// is applied only to the type name - and not to the values within
@@ -118,9 +124,75 @@ type IR struct {
 	// ModelData stores the metadata extracted from the input YANG modules.
 	ModelData []*gpb.ModelData
 
-	// parsedModules stores the list of YANG entries that are later used to
-	// create a serialized version of the AST if needed.
+	// opts stores the IROptions that were used to generate the IR.
+	opts IROptions
+
+	// parsedModules stores the list of YANG entries for creating a
+	// serialized version of the AST if needed.
 	parsedModules []*yang.Entry
+
+	// fakeroot stores the fake root's AST node for creating a serialized
+	// version of the AST if needed.
+	fakeroot *yang.Entry
+}
+
+// OrderedDirectoryPaths returns the absolute YANG paths of all ParsedDirectory
+// entries in the IR in lexicographical order.
+func (ir *IR) OrderedDirectoryPaths() []string {
+	if ir == nil {
+		return nil
+	}
+
+	paths := make([]string, 0, len(ir.Directories))
+	for path := range ir.Directories {
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	return paths
+}
+
+// OrderedDirectoryPathsByName returns the absolute YANG paths of all ParsedDirectory
+// entries in the IR in the lexicographical order of their candidate generated
+// names. Where there are duplicate names the path is used to tie-break.
+func (ir *IR) OrderedDirectoryPathsByName() []string {
+	if ir == nil {
+		return nil
+	}
+
+	paths := make([]string, 0, len(ir.Directories))
+	for path := range ir.Directories {
+		paths = append(paths, path)
+	}
+	sort.Slice(paths, func(i, j int) bool {
+		switch {
+		case ir.Directories[paths[i]].Name == ir.Directories[paths[j]].Name:
+			return paths[i] < paths[j]
+		default:
+			return ir.Directories[paths[i]].Name < ir.Directories[paths[j]].Name
+		}
+	})
+
+	return paths
+}
+
+// SchemaTree returns a JSON serialised tree of the schema for the set of
+// modules used to generate the IR. The JSON document that is returned is
+// always rooted on a yang.Entry which corresponds to the root item, and stores
+// all root-level enties (and their subtrees) within the input module set. All
+// YANG directories are annotated in the output JSON with the name of the type
+// they correspond to in the generated code, and the absolute schema path that
+// the entry corresponds to. In the case that there is not a fake root struct,
+// a synthetic root entry is used to store the schema tree.
+func (ir *IR) SchemaTree(inclDescriptions bool) ([]byte, error) {
+	dirNames := make(map[string]string, len(ir.Directories))
+	for p, d := range ir.Directories {
+		dirNames[p] = d.Name
+	}
+	rawSchema, err := buildJSONTree(ir.parsedModules, dirNames, ir.fakeroot, ir.opts.TransformationOptions.CompressBehaviour.CompressEnabled(), inclDescriptions)
+	if err != nil {
+		return nil, err
+	}
+	return rawSchema, nil
 }
 
 // ParsedDirectory describes an internal node within the generated
@@ -132,6 +204,8 @@ type ParsedDirectory struct {
 	// Type describes the type of directory that is being produced -
 	// such that YANG 'list' entries can have special handling.
 	Type DirType
+	// Path specifies the absolute YANG schema path of the node.
+	Path string
 	// Fields is the set of direct children of the node that are to be
 	// output. It is keyed by the YANG node identifier of the child field
 	// since there could be name conflicts at this processing stage.
@@ -140,6 +214,11 @@ type ParsedDirectory struct {
 	// are required in the output code (e.g., the characteristics
 	// of the list's keys). It is keyed by the YANG name of the list key.
 	ListKeys map[string]*ListKey
+	// ListKeyYANGNames is the ordered list of YANG names specified in the
+	// YANG list per Section 7.8.2 of RFC6020. The consumer of the IR can
+	// rely on this ordering for deterministic ordering in output code and
+	// rendering.
+	ListKeyYANGNames []string
 	// PackageName is the package in which this directory node's generated
 	// code should reside.
 	PackageName string
@@ -147,10 +226,24 @@ type ParsedDirectory struct {
 	// is the root entity and has been synthetically generated by
 	// ygen.
 	IsFakeRoot bool
+	// BelongingModule is the module in whose namespace the directory node
+	// belongs.
+	BelongingModule string
+}
 
-	// Entry is the yang.Entry that corresponds to the directory schema
-	// element.
-	entry *yang.Entry
+// OrderedFieldNames returns the YANG name of all fields belonging to the
+// ParsedDirectory in lexicographical order.
+func (d *ParsedDirectory) OrderedFieldNames() []string {
+	if d == nil {
+		return nil
+	}
+
+	fieldNames := make([]string, 0, len(d.Fields))
+	for fieldName := range d.Fields {
+		fieldNames = append(fieldNames, fieldName)
+	}
+	sort.Strings(fieldNames)
+	return fieldNames
 }
 
 type ListKey struct {
@@ -254,7 +347,7 @@ type YANGNodeDetails struct {
 	// Module stores the name of the module that instantiates
 	// the node.
 	Module string
-	// Path specifies the abolute YANG schema node path.
+	// Path specifies the absolute YANG schema node path.
 	Path string
 	// ResolvedPath specifies the leafref-resolved absolute YANG schema
 	// node path.
@@ -306,5 +399,5 @@ type EnumeratedYANGType struct {
 	// ValToYANGDetails stores the YANG-ordered set of enumeration value
 	// and its YANG-specific details (as defined by the
 	// ygot.EnumDefinition).
-	ValToYANGDetails []*ygot.EnumDefinition
+	ValToYANGDetails []ygot.EnumDefinition
 }
