@@ -229,17 +229,26 @@ type ParsedDirectory struct {
 	// BelongingModule is the module in whose namespace the directory node
 	// belongs.
 	BelongingModule string
-	// RootModule is the module in which the YANG tree the node is attached
-	// to was instantiated (rather than the module that has the same
-	// namespace as the node).
+	// RootModule is the module in which the root of the YANG tree that the
+	// node is attached to was instantiated (rather than the module that
+	// has the same namespace as the node).
 	//
-	// In this example, con has a RootModule of "openconfig-simple", while a
-	// BelongingModule of "openconfig-augment". The DefiningModule is
-	// "openconfig-augment".
+	// In this example, container 'con' has
+	// RootModule:      "openconfig-simple"
+	// BelongingModule: "openconfig-augment"
+	// DefiningModule:  "openconfig-grouping"
 	//
 	//   module openconfig-augment {
-	//     import openconfig-simple { prefix "t"; }
-	//     augment "/t:parent/child/state" {
+	//     import openconfig-simple { prefix "s"; }
+	//     import openconfig-grouping { prefix "g"; }
+	//
+	//     augment "/s:parent/child/state" {
+	//       uses g:group;
+	//     }
+	//   }
+	//
+	//   module openconfig-grouping {
+	//     grouping group {
 	//       container con {
 	//         leaf zero { type string; }
 	//       }
@@ -356,6 +365,25 @@ const (
 	AnyDataNode
 )
 
+func (n NodeType) String() string {
+	switch n {
+	case InvalidNode:
+		return "invalid"
+	case ContainerNode:
+		return "container"
+	case ListNode:
+		return "list"
+	case LeafNode:
+		return "leaf"
+	case LeafListNode:
+		return "leaf-list"
+	case AnyDataNode:
+		return "anydata"
+	default:
+		return "unknown"
+	}
+}
+
 // YANGNodeDetails stores the YANG-specific details of a node
 // within the schema.
 // TODO(wenbli): Split this out so that parts can be re-used by
@@ -368,17 +396,26 @@ type YANGNodeDetails struct {
 	Defaults []string
 	// BelongingModule is the module in whose namespace the node belongs.
 	BelongingModule string
-	// RootModule is the module in which the YANG tree the node is attached
-	// to was instantiated (rather than the module that has the same
-	// namespace as the node).
+	// RootModule is the module in which the root of the YANG tree that the
+	// node is attached to was instantiated (rather than the module that
+	// has the same namespace as the node).
 	//
-	// In this example, leaf has a RootModule of "openconfig-simple", while a
-	// BelongingModule of "openconfig-augment". The DefiningModule is
-	// "openconfig-augment".
+	// In this example, leaf 'zero' has
+	// RootModule:      "openconfig-simple"
+	// BelongingModule: "openconfig-augment"
+	// DefiningModule:  "openconfig-grouping"
 	//
 	//   module openconfig-augment {
-	//     import openconfig-simple { prefix "t"; }
-	//     augment "/t:parent/child/state" {
+	//     import openconfig-simple { prefix "s"; }
+	//     import openconfig-grouping { prefix "g"; }
+	//
+	//     augment "/s:parent/child/state" {
+	//       uses g:group;
+	//     }
+	//   }
+	//
+	//   module openconfig-grouping {
+	//     grouping group {
 	//       leaf zero { type string; }
 	//     }
 	//   }
@@ -394,15 +431,13 @@ type YANGNodeDetails struct {
 	// include the module name nor choice/case elements in the YANG file.
 	SchemaPath string
 	// ResolvedPath specifies the leafref-resolved absolute YANG schema
-	// node path.
+	// node path. This field is only populated if the field is a leafref.
 	ResolvedPath string
 	// PresenceStatement, if non-nil, indicates that this directory is a
 	// presence container. It contains the value of the presence statement.
 	PresenceStatement *string
 	// Description contains the description of the node.
 	Description string
-	// Kind is the keyword used to define the node.
-	Kind string
 	// Type is the YANG type which represents the node. It is only
 	// applicable for leaf or leaf-list nodes because only these nodes can
 	// have type statements.
