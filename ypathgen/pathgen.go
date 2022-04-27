@@ -948,7 +948,7 @@ func generateChildConstructors(methodBuf *strings.Builder, builderBuf *strings.B
 		MethodName:              goFieldName,
 		TypeName:                fieldTypeName,
 		SchemaName:              field.Name,
-		YANGNodeType:            field.YANGDetails.Kind,
+		YANGNodeType:            field.Type.String(),
 		YANGDescription:         strings.ReplaceAll(field.YANGDetails.Description, "\n", "\n// "),
 		DefiningModuleName:      field.YANGDetails.DefiningModule,
 		InstantiatingModuleName: field.YANGDetails.RootModule,
