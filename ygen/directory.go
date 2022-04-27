@@ -46,11 +46,6 @@ type Directory struct {
 	IsFakeRoot     bool                   // IsFakeRoot indicates that the struct is a fake root struct, so specific mapping rules should be implemented.
 }
 
-// isList returns true if the Directory describes a list.
-func (y *Directory) isList() bool {
-	return y.ListAttr != nil
-}
-
 // isChildOfModule determines whether the Directory represents a container
 // or list member that is the direct child of a module entry.
 func (y *Directory) isChildOfModule() bool {
