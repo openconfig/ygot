@@ -255,7 +255,7 @@ type ParsedDirectory struct {
 	//     }
 	//   }
 	RootModule string
-	// DefiningModule is the module that contains the textual definition of
+	// DefiningModule is the module that contains the text definition of
 	// the field.
 	DefiningModule string
 }
@@ -420,7 +420,7 @@ type YANGNodeDetails struct {
 	//     }
 	//   }
 	RootModule string
-	// DefiningModule is the module that contains the textual definition of
+	// DefiningModule is the module that contains the text definition of
 	// the field.
 	DefiningModule string
 	// Path specifies the absolute YANG schema node path that can be used
