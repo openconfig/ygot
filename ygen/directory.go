@@ -247,7 +247,6 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 					SchemaPath:      util.SchemaTreePathNoModule(field),
 					ResolvedPath:    target.Path(),
 					Description:     field.Description,
-					Kind:            field.Node.Kind(),
 				},
 				MappedPaths:             mp,
 				MappedPathModules:       mm,
@@ -256,12 +255,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			}
 
 			switch {
-			case field.IsLeafList():
-				// This is to fix a bug in goyang where Entry's Node object
-				// for leaf-lists is actually a leaf object.
-				nd.YANGDetails.Kind = "leaf-list"
-				fallthrough
-			case field.IsLeaf():
+			case field.IsLeaf(), field.IsLeafList():
 				mtype, err := langMapper.LeafType(field, opts)
 				if err != nil {
 					return nil, err
