@@ -227,11 +227,11 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			nd := &NodeDetails{
 				Name: name,
 				YANGDetails: YANGNodeDetails{
-					Name:                field.Name,
-					Defaults:            field.DefaultValues(),
-					Module:              mod,
-					Path:                field.Path(),
-					LeafrefResolvedPath: target.Path(),
+					Name:              field.Name,
+					Defaults:          field.DefaultValues(),
+					Module:            mod,
+					Path:              field.Path(),
+					LeafrefTargetPath: target.Path(),
 				},
 				MappedPaths:             mp,
 				MappedPathModules:       mm,
