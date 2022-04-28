@@ -90,8 +90,8 @@ func (t *Parent) PopulateDefaults() {
 	t.Child.PopulateDefaults()
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Parent belongs.
+// ΛBelongingModule returns the name of the module having the same XML
+// namespace as Parent.
 func (*Parent) ΛBelongingModule() string {
 	return "openconfig-leaflist-default"
 }
@@ -192,8 +192,8 @@ func (t *Parent_Child) PopulateDefaults() {
 	}
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Parent_Child belongs.
+// ΛBelongingModule returns the name of the module having the same XML
+// namespace as Parent_Child.
 func (*Parent_Child) ΛBelongingModule() string {
 	return "openconfig-leaflist-default"
 }

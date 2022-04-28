@@ -150,8 +150,8 @@ func (t *Device) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Device) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Device belongs.
+// ΛBelongingModule returns the name of the module having the same XML
+// namespace as Device.
 func (*Device) ΛBelongingModule() string {
 	return ""
 }
@@ -178,8 +178,8 @@ func (t *OpenconfigOptions_Bgp) ΛValidate(opts ...ygot.ValidationOption) error 
 // that are included in the generated code.
 func (t *OpenconfigOptions_Bgp) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigOptions_Bgp belongs.
+// ΛBelongingModule returns the name of the module having the same XML
+// namespace as OpenconfigOptions_Bgp.
 func (*OpenconfigOptions_Bgp) ΛBelongingModule() string {
 	return "openconfig-options"
 }
@@ -233,8 +233,8 @@ func (t *OpenconfigOptions_Bgp_Neighbors) ΛValidate(opts ...ygot.ValidationOpti
 // that are included in the generated code.
 func (t *OpenconfigOptions_Bgp_Neighbors) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigOptions_Bgp_Neighbors belongs.
+// ΛBelongingModule returns the name of the module having the same XML
+// namespace as OpenconfigOptions_Bgp_Neighbors.
 func (*OpenconfigOptions_Bgp_Neighbors) ΛBelongingModule() string {
 	return "openconfig-options"
 }
@@ -274,8 +274,8 @@ func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor) ΛValidate(opts ...ygot.Valid
 // that are included in the generated code.
 func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigOptions_Bgp_Neighbors_Neighbor belongs.
+// ΛBelongingModule returns the name of the module having the same XML
+// namespace as OpenconfigOptions_Bgp_Neighbors_Neighbor.
 func (*OpenconfigOptions_Bgp_Neighbors_Neighbor) ΛBelongingModule() string {
 	return "openconfig-options"
 }
@@ -303,8 +303,8 @@ func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor_Config) ΛValidate(opts ...ygo
 // that are included in the generated code.
 func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor_Config) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigOptions_Bgp_Neighbors_Neighbor_Config belongs.
+// ΛBelongingModule returns the name of the module having the same XML
+// namespace as OpenconfigOptions_Bgp_Neighbors_Neighbor_Config.
 func (*OpenconfigOptions_Bgp_Neighbors_Neighbor_Config) ΛBelongingModule() string {
 	return "openconfig-options"
 }
@@ -334,8 +334,8 @@ func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor_State) ΛValidate(opts ...ygot
 // that are included in the generated code.
 func (t *OpenconfigOptions_Bgp_Neighbors_Neighbor_State) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigOptions_Bgp_Neighbors_Neighbor_State belongs.
+// ΛBelongingModule returns the name of the module having the same XML
+// namespace as OpenconfigOptions_Bgp_Neighbors_Neighbor_State.
 func (*OpenconfigOptions_Bgp_Neighbors_Neighbor_State) ΛBelongingModule() string {
 	return "openconfig-options"
 }
