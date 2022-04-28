@@ -91,8 +91,8 @@ func (t *Outer) PopulateDefaults() {
 	t.Inner.PopulateDefaults()
 }
 
-// ΛBelongingModule returns the name of the module having the same XML
-// namespace as Outer.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Outer.
 func (*Outer) ΛBelongingModule() string {
 	return "enum-union"
 }
@@ -257,8 +257,8 @@ func (t *Outer_Inner) PopulateDefaults() {
 	}
 }
 
-// ΛBelongingModule returns the name of the module having the same XML
-// namespace as Outer_Inner.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Outer_Inner.
 func (*Outer_Inner) ΛBelongingModule() string {
 	return "enum-union"
 }

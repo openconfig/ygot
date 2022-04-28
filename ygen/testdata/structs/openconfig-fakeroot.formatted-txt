@@ -107,8 +107,8 @@ func (t *Device) NewInterface(Name string) (*Interface, error){
 	return t.Interface[key], nil
 }
 
-// ΛBelongingModule returns the name of the module having the same XML
-// namespace as Device.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Device.
 func (*Device) ΛBelongingModule() string {
 	return ""
 }
@@ -134,8 +134,8 @@ func (t *Interface) ΛListKeyMap() (map[string]interface{}, error) {
 	}, nil
 }
 
-// ΛBelongingModule returns the name of the module having the same XML
-// namespace as Interface.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Interface.
 func (*Interface) ΛBelongingModule() string {
 	return "openconfig-fakeroot"
 }
@@ -178,8 +178,8 @@ func (t *System) NewNtpServer(Name uint32) (*System_NtpServer, error){
 	return t.NtpServer[key], nil
 }
 
-// ΛBelongingModule returns the name of the module having the same XML
-// namespace as System.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of System.
 func (*System) ΛBelongingModule() string {
 	return "openconfig-fakeroot"
 }
@@ -205,8 +205,8 @@ func (t *System_NtpServer) ΛListKeyMap() (map[string]interface{}, error) {
 	}, nil
 }
 
-// ΛBelongingModule returns the name of the module having the same XML
-// namespace as System_NtpServer.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of System_NtpServer.
 func (*System_NtpServer) ΛBelongingModule() string {
 	return "openconfig-fakeroot"
 }

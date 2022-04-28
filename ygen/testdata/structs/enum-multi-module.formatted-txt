@@ -151,8 +151,8 @@ func (t *Parent) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Parent) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module having the same XML
-// namespace as Parent.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Parent.
 func (*Parent) ΛBelongingModule() string {
 	return "enum-multi-module"
 }
@@ -180,8 +180,8 @@ func (t *Parent_Child) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Parent_Child) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module having the same XML
-// namespace as Parent_Child.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Parent_Child.
 func (*Parent_Child) ΛBelongingModule() string {
 	return "enum-multi-module"
 }

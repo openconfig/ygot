@@ -144,8 +144,8 @@ func (t *Top) NewEks(K E_Eks_K) (*Top_Eks, error){
 	return t.Eks[key], nil
 }
 
-// ΛBelongingModule returns the name of the module having the same XML
-// namespace as Top.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Top.
 func (*Top) ΛBelongingModule() string {
 	return "openconfig-list-enum-key"
 }
@@ -172,8 +172,8 @@ func (t *Top_Ekm) ΛListKeyMap() (map[string]interface{}, error) {
 	}, nil
 }
 
-// ΛBelongingModule returns the name of the module having the same XML
-// namespace as Top_Ekm.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Top_Ekm.
 func (*Top_Ekm) ΛBelongingModule() string {
 	return "openconfig-list-enum-key"
 }
@@ -226,8 +226,8 @@ func (t *Top_Eks) ΛListKeyMap() (map[string]interface{}, error) {
 	}, nil
 }
 
-// ΛBelongingModule returns the name of the module having the same XML
-// namespace as Top_Eks.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Top_Eks.
 func (*Top_Eks) ΛBelongingModule() string {
 	return "openconfig-list-enum-key"
 }
