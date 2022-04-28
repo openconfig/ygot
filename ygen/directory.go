@@ -179,13 +179,13 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			definingModuleName = definingModule.Name
 		}
 		pd := &ParsedDirectory{
-			Name:            dir.Name,
-			Path:            util.SlicePathToString(dir.Path),
-			PackageName:     packageName,
-			IsFakeRoot:      dir.IsFakeRoot,
-			BelongingModule: belongingModule,
-			DefiningModule:  definingModuleName,
-			RootModule:      rootModule,
+			Name:              dir.Name,
+			Path:              util.SlicePathToString(dir.Path),
+			PackageName:       packageName,
+			IsFakeRoot:        dir.IsFakeRoot,
+			BelongingModule:   belongingModule,
+			DefiningModule:    definingModuleName,
+			RootElementModule: rootModule,
 		}
 		switch {
 		case dir.Entry.IsList():
@@ -236,15 +236,15 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			nd := &NodeDetails{
 				Name: name,
 				YANGDetails: YANGNodeDetails{
-					Name:            field.Name,
-					Defaults:        field.DefaultValues(),
-					BelongingModule: mod,
-					RootModule:      util.SchemaTreeRoot(field).Name,
-					DefiningModule:  definingModuleName,
-					Path:            field.Path(),
-					SchemaPath:      util.SchemaTreePathNoModule(field),
-					ResolvedPath:    target.Path(),
-					Description:     field.Description,
+					Name:              field.Name,
+					Defaults:          field.DefaultValues(),
+					BelongingModule:   mod,
+					RootElementModule: util.SchemaTreeRoot(field).Name,
+					DefiningModule:    definingModuleName,
+					Path:              field.Path(),
+					SchemaPath:        util.SchemaTreePathNoModule(field),
+					ResolvedPath:      target.Path(),
+					Description:       field.Description,
 				},
 				MappedPaths:             mp,
 				MappedPathModules:       mm,
