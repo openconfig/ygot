@@ -229,14 +229,14 @@ type ParsedDirectory struct {
 	// BelongingModule is the module in whose namespace the directory node
 	// belongs.
 	BelongingModule string
-	// RootModule is the module in which the root of the YANG tree that the
+	// RootElementModule is the module in which the root of the YANG tree that the
 	// node is attached to was instantiated (rather than the module that
 	// has the same namespace as the node).
 	//
 	// In this example, container 'con' has
-	// RootModule:      "openconfig-simple"
-	// BelongingModule: "openconfig-augment"
-	// DefiningModule:  "openconfig-grouping"
+	// RootElementModule: "openconfig-simple"
+	// BelongingModule:   "openconfig-augment"
+	// DefiningModule:    "openconfig-grouping"
 	//
 	//   module openconfig-augment {
 	//     import openconfig-simple { prefix "s"; }
@@ -254,8 +254,8 @@ type ParsedDirectory struct {
 	//       }
 	//     }
 	//   }
-	RootModule string
-	// DefiningModule is the module that contains the textual definition of
+	RootElementModule string
+	// DefiningModule is the module that contains the text definition of
 	// the field.
 	DefiningModule string
 }
@@ -396,14 +396,14 @@ type YANGNodeDetails struct {
 	Defaults []string
 	// BelongingModule is the module in whose namespace the node belongs.
 	BelongingModule string
-	// RootModule is the module in which the root of the YANG tree that the
+	// RootElementModule is the module in which the root of the YANG tree that the
 	// node is attached to was instantiated (rather than the module that
 	// has the same namespace as the node).
 	//
 	// In this example, leaf 'zero' has
-	// RootModule:      "openconfig-simple"
-	// BelongingModule: "openconfig-augment"
-	// DefiningModule:  "openconfig-grouping"
+	// RootElementModule: "openconfig-simple"
+	// BelongingModule:   "openconfig-augment"
+	// DefiningModule:    "openconfig-grouping"
 	//
 	//   module openconfig-augment {
 	//     import openconfig-simple { prefix "s"; }
@@ -419,8 +419,8 @@ type YANGNodeDetails struct {
 	//       leaf zero { type string; }
 	//     }
 	//   }
-	RootModule string
-	// DefiningModule is the module that contains the textual definition of
+	RootElementModule string
+	// DefiningModule is the module that contains the text definition of
 	// the field.
 	DefiningModule string
 	// Path specifies the absolute YANG schema node path that can be used
