@@ -231,7 +231,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 					Defaults:     field.DefaultValues(),
 					Module:       mod,
 					Path:         field.Path(),
-					ResolvedPath: target.Path(),
+					LeafrefResolvedPath: target.Path(),
 				},
 				MappedPaths:             mp,
 				MappedPathModules:       mm,

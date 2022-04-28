@@ -349,9 +349,9 @@ type YANGNodeDetails struct {
 	Module string
 	// Path specifies the absolute YANG schema node path.
 	Path string
-	// ResolvedPath specifies the leafref-resolved absolute YANG schema
+	// LeafrefResolvedPath specifies the leafref-resolved absolute YANG schema
 	// node path.
-	ResolvedPath string
+	LeafrefResolvedPath string
 	// PresenceStatement, if non-nil, indicates that this directory is a
 	// presence container. It contains the value of the presence statement.
 	PresenceStatement *string
