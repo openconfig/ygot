@@ -1227,16 +1227,16 @@ func getIR() *ygen.IR {
 					"leaf": {
 						Name: "Leaf",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "leaf",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/leaf",
-							SchemaPath:      "/leaf",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            &ygen.YANGType{Name: "ieeefloat32"},
+							Name:              "leaf",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/leaf",
+							SchemaPath:        "/leaf",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              &ygen.YANGType{Name: "ieeefloat32"},
 						},
 						Type:                    ygen.LeafNode,
 						LangType:                &ygen.MappedType{NativeType: "Binary"},
@@ -1248,16 +1248,16 @@ func getIR() *ygen.IR {
 					"leaf-with-default": {
 						Name: "LeafWithDefault",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "leaf-with-default",
-							Defaults:        []string{"foo"},
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/leaf-with-default",
-							SchemaPath:      "/leaf-with-default",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            &ygen.YANGType{Name: "string"},
+							Name:              "leaf-with-default",
+							Defaults:          []string{"foo"},
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/leaf-with-default",
+							SchemaPath:        "/leaf-with-default",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              &ygen.YANGType{Name: "string"},
 						},
 						Type:                    ygen.LeafNode,
 						LangType:                &ygen.MappedType{NativeType: "string", DefaultValue: ygot.String(`"foo"`)},
@@ -1269,16 +1269,16 @@ func getIR() *ygen.IR {
 					"container": {
 						Name: "Container",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "container",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/container",
-							SchemaPath:      "/container",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            nil,
+							Name:              "container",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/container",
+							SchemaPath:        "/container",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              nil,
 						},
 						Type:                    ygen.ContainerNode,
 						LangType:                nil,
@@ -1290,16 +1290,16 @@ func getIR() *ygen.IR {
 					"container-with-config": {
 						Name: "ContainerWithConfig",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "container-with-config",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/container-with-config",
-							SchemaPath:      "/container-with-config",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            nil,
+							Name:              "container-with-config",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/container-with-config",
+							SchemaPath:        "/container-with-config",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              nil,
 						},
 						Type:                    ygen.ContainerNode,
 						LangType:                nil,
@@ -1311,16 +1311,16 @@ func getIR() *ygen.IR {
 					"list": {
 						Name: "List",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "list",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/list-container/list",
-							SchemaPath:      "/list-container/list",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            nil,
+							Name:              "list",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/list-container/list",
+							SchemaPath:        "/list-container/list",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              nil,
 						},
 						Type:                    ygen.ListNode,
 						LangType:                nil,
@@ -1333,16 +1333,16 @@ func getIR() *ygen.IR {
 					"list-with-state": {
 						Name: "ListWithState",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "list-with-state",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/list-container-with-state/list-with-state",
-							SchemaPath:      "/list-container-with-state/list-with-state",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            nil,
+							Name:              "list-with-state",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/list-container-with-state/list-with-state",
+							SchemaPath:        "/list-container-with-state/list-with-state",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              nil,
 						},
 						Type:                    ygen.ListNode,
 						LangType:                nil,
@@ -1354,16 +1354,16 @@ func getIR() *ygen.IR {
 					"keyless-list": {
 						Name: "KeylessList",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "keyless-list",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/keyless-list-container/keyless-list",
-							SchemaPath:      "/keyless-list-container/keyless-list",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            nil,
+							Name:              "keyless-list",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/keyless-list-container/keyless-list",
+							SchemaPath:        "/keyless-list-container/keyless-list",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              nil,
 						},
 						Type:                    ygen.ListNode,
 						LangType:                nil,
@@ -1382,16 +1382,16 @@ func getIR() *ygen.IR {
 					"leaf": {
 						Name: "Leaf",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "leaf",
-							Defaults:        []string{"foo"},
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/container/leaf",
-							SchemaPath:      "/container/leaf",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            &ygen.YANGType{Name: "int32"},
+							Name:              "leaf",
+							Defaults:          []string{"foo"},
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/container/leaf",
+							SchemaPath:        "/container/leaf",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              &ygen.YANGType{Name: "int32"},
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -1403,11 +1403,11 @@ func getIR() *ygen.IR {
 						ShadowMappedPathModules: nil,
 					},
 				},
-				ListKeys:        nil,
-				PackageName:     "",
-				BelongingModule: "root-module",
-				RootModule:      "root-module",
-				DefiningModule:  "root-module",
+				ListKeys:          nil,
+				PackageName:       "",
+				BelongingModule:   "root-module",
+				RootElementModule: "root-module",
+				DefiningModule:    "root-module",
 			},
 			"/root-module/container-with-config": {
 				Name: "ContainerWithConfig",
@@ -1417,16 +1417,16 @@ func getIR() *ygen.IR {
 					"leaflist": {
 						Name: "Leaflist",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "leaflist",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/container-with-config/state/leaflist",
-							SchemaPath:      "/container-with-config/state/leaflist",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            &ygen.YANGType{Name: "uint32"},
+							Name:              "leaflist",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/container-with-config/state/leaflist",
+							SchemaPath:        "/container-with-config/state/leaflist",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              &ygen.YANGType{Name: "uint32"},
 						},
 						Type: ygen.LeafListNode,
 						LangType: &ygen.MappedType{
@@ -1438,11 +1438,11 @@ func getIR() *ygen.IR {
 						ShadowMappedPathModules: nil,
 					},
 				},
-				ListKeys:        nil,
-				PackageName:     "",
-				BelongingModule: "root-module",
-				RootModule:      "root-module",
-				DefiningModule:  "root-module",
+				ListKeys:          nil,
+				PackageName:       "",
+				BelongingModule:   "root-module",
+				RootElementModule: "root-module",
+				DefiningModule:    "root-module",
 			},
 			"/root-module/list-container-with-state/list-with-state": {
 				Name: "ListWithState",
@@ -1452,16 +1452,16 @@ func getIR() *ygen.IR {
 					"key": {
 						Name: "Key",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "key",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/list-container-with-state/list-with-state/state/key",
-							SchemaPath:      "/list-container-with-state/list-with-state/state/key",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            &ygen.YANGType{Name: "float64"},
+							Name:              "key",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/list-container-with-state/list-with-state/state/key",
+							SchemaPath:        "/list-container-with-state/list-with-state/state/key",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              &ygen.YANGType{Name: "float64"},
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -1492,16 +1492,16 @@ func getIR() *ygen.IR {
 					"key1": {
 						Name: "Key1",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "key1",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/list-container/list/key1",
-							SchemaPath:      "/list-container/list/key1",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            &ygen.YANGType{Name: "string"},
+							Name:              "key1",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/list-container/list/key1",
+							SchemaPath:        "/list-container/list/key1",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              &ygen.YANGType{Name: "string"},
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -1515,16 +1515,16 @@ func getIR() *ygen.IR {
 					"key2": {
 						Name: "Key2",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "key2",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/list-container/list/key2",
-							SchemaPath:      "/list-container/list/key2",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            &ygen.YANGType{Name: "binary"},
+							Name:              "key2",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/list-container/list/key2",
+							SchemaPath:        "/list-container/list/key2",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              &ygen.YANGType{Name: "binary"},
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -1538,20 +1538,20 @@ func getIR() *ygen.IR {
 					"union-key": {
 						Name: "UnionKey",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "union-key",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/list-container/list/union-key",
-							SchemaPath:      "/list-container/list/union-key",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            &ygen.YANGType{Name: "union"},
+							Name:              "union-key",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/list-container/list/union-key",
+							SchemaPath:        "/list-container/list/union-key",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              &ygen.YANGType{Name: "union"},
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
-							NativeType: "RootModule_List_UnionKey_Union",
+							NativeType: "RootElementModule_List_UnionKey_Union",
 							UnionTypes: map[string]int{"string": 0, "Binary": 1},
 						},
 						MappedPaths:             [][]string{{"union-key"}},
@@ -1577,18 +1577,18 @@ func getIR() *ygen.IR {
 					"union-key": {
 						Name: "UnionKey",
 						LangType: &ygen.MappedType{
-							NativeType: "RootModule_List_UnionKey_Union",
+							NativeType: "RootElementModule_List_UnionKey_Union",
 							UnionTypes: map[string]int{"string": 0, "Binary": 1},
 							ZeroValue:  "nil",
 						},
 					},
 				},
-				ListKeyYANGNames: []string{"key1", "key2", "union-key"},
-				PackageName:      "",
-				IsFakeRoot:       false,
-				BelongingModule:  "root-module",
-				RootModule:       "root-module",
-				DefiningModule:   "root-module",
+				ListKeyYANGNames:  []string{"key1", "key2", "union-key"},
+				PackageName:       "",
+				IsFakeRoot:        false,
+				BelongingModule:   "root-module",
+				RootElementModule: "root-module",
+				DefiningModule:    "root-module",
 			},
 			"/root-module/keyless-list-container/keyless-list": {
 				Name: "KeylessList",
@@ -1598,16 +1598,16 @@ func getIR() *ygen.IR {
 					"leaf": {
 						Name: "Leaf",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "leaf",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/keyless-list-container/keyless-list/leaf",
-							SchemaPath:      "/container/leaf",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            &ygen.YANGType{Name: "int32"},
+							Name:              "leaf",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/keyless-list-container/keyless-list/leaf",
+							SchemaPath:        "/container/leaf",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              &ygen.YANGType{Name: "int32"},
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -1619,13 +1619,13 @@ func getIR() *ygen.IR {
 						ShadowMappedPathModules: nil,
 					},
 				},
-				ListKeys:         nil,
-				ListKeyYANGNames: nil,
-				PackageName:      "",
-				IsFakeRoot:       false,
-				BelongingModule:  "root-module",
-				RootModule:       "root-module",
-				DefiningModule:   "root-module",
+				ListKeys:          nil,
+				ListKeyYANGNames:  nil,
+				PackageName:       "",
+				IsFakeRoot:        false,
+				BelongingModule:   "root-module",
+				RootElementModule: "root-module",
+				DefiningModule:    "root-module",
 			},
 		},
 	}
@@ -1647,16 +1647,16 @@ func TestGetNodeDataMap(t *testing.T) {
 					"container": {
 						Name: "Container",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "container",
-							Defaults:        nil,
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/bad-path/container",
-							SchemaPath:      "/container",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            nil,
+							Name:              "container",
+							Defaults:          nil,
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/bad-path/container",
+							SchemaPath:        "/container",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              nil,
 						},
 						Type:                    ygen.ContainerNode,
 						LangType:                nil,
@@ -1675,16 +1675,16 @@ func TestGetNodeDataMap(t *testing.T) {
 					"leaf": {
 						Name: "Leaf",
 						YANGDetails: ygen.YANGNodeDetails{
-							Name:            "leaf",
-							Defaults:        []string{"foo"},
-							BelongingModule: "root-module",
-							RootModule:      "root-module",
-							DefiningModule:  "root-module",
-							Path:            "/root-module/container/leaf",
-							SchemaPath:      "/container/leaf",
-							ResolvedPath:    "",
-							Description:     "",
-							Type:            &ygen.YANGType{Name: "int32"},
+							Name:              "leaf",
+							Defaults:          []string{"foo"},
+							BelongingModule:   "root-module",
+							RootElementModule: "root-module",
+							DefiningModule:    "root-module",
+							Path:              "/root-module/container/leaf",
+							SchemaPath:        "/container/leaf",
+							ResolvedPath:      "",
+							Description:       "",
+							Type:              &ygen.YANGType{Name: "int32"},
 						},
 						Type: ygen.LeafNode,
 						LangType: &ygen.MappedType{
@@ -1696,11 +1696,11 @@ func TestGetNodeDataMap(t *testing.T) {
 						ShadowMappedPathModules: nil,
 					},
 				},
-				ListKeys:        nil,
-				PackageName:     "",
-				BelongingModule: "root-module",
-				RootModule:      "root-module",
-				DefiningModule:  "root-module",
+				ListKeys:          nil,
+				PackageName:       "",
+				BelongingModule:   "root-module",
+				RootElementModule: "root-module",
+				DefiningModule:    "root-module",
 			},
 		},
 	}
@@ -1851,8 +1851,8 @@ func TestGetNodeDataMap(t *testing.T) {
 				GoPathPackageName:     "rootmodulepath",
 			},
 			"List_UnionKey_Path": {
-				GoTypeName:            "struct.RootModule_List_UnionKey_Union",
-				LocalGoTypeName:       "RootModule_List_UnionKey_Union",
+				GoTypeName:            "struct.RootElementModule_List_UnionKey_Union",
+				LocalGoTypeName:       "RootElementModule_List_UnionKey_Union",
 				GoFieldName:           "UnionKey",
 				SubsumingGoStructName: "List",
 				IsLeaf:                true,
@@ -1985,7 +1985,7 @@ const (
 // Key1: string
 // Key2: oc.Binary
 // UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPath {
+func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootElementModule_List_UnionKey_Union) *ListPath {
 	return &ListPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -2063,7 +2063,7 @@ func (n *RootPath) ListAnyUnionKey(Key1 string, Key2 oc.Binary) *ListPathAny {
 // Key1 (wildcarded): string
 // Key2 (wildcarded): oc.Binary
 // UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
+func (n *RootPath) ListAnyKey1AnyKey2(UnionKey oc.RootElementModule_List_UnionKey_Union) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -2082,7 +2082,7 @@ func (n *RootPath) ListAnyKey1AnyKey2(UnionKey oc.RootModule_List_UnionKey_Union
 // Key1: string
 // Key2 (wildcarded): oc.Binary
 // UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
+func (n *RootPath) ListAnyKey2(Key1 string, UnionKey oc.RootElementModule_List_UnionKey_Union) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -2101,7 +2101,7 @@ func (n *RootPath) ListAnyKey2(Key1 string, UnionKey oc.RootModule_List_UnionKey
 // Key1 (wildcarded): string
 // Key2: oc.Binary
 // UnionKey: [oc.UnionString, oc.Binary]
-func (n *RootPath) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
+func (n *RootPath) ListAnyKey1(Key2 oc.Binary, UnionKey oc.RootElementModule_List_UnionKey_Union) *ListPathAny {
 	return &ListPathAny{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -2632,7 +2632,7 @@ func (n *List) UnionKey() *List_UnionKey {
 			Deps:           []string{"rootmodulepath"},
 			StructBase:     wantFakeRootStructsNWC,
 			ChildConstructors: trimDocComments(wantNonListMethodsSplitModule) + `
-func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootModule_List_UnionKey_Union) *rootmodulepath.ListPath {
+func (n *RootPath) List(Key1 string, Key2 oc.Binary, UnionKey oc.RootElementModule_List_UnionKey_Union) *rootmodulepath.ListPath {
 	return &rootmodulepath.ListPath{
 		NodePath: ygot.NewNodePath(
 			[]string{"list-container", "list"},
@@ -2701,7 +2701,7 @@ func (n *ListPathAny) WithKey2(Key2 oc.Binary) *ListPathAny {
 	return n
 }
 
-func (n *ListPathAny) WithUnionKey(UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
+func (n *ListPathAny) WithUnionKey(UnionKey oc.RootElementModule_List_UnionKey_Union) *ListPathAny {
 	ygot.ModifyKey(n.NodePath, "union-key", UnionKey)
 	return n
 }
@@ -2991,7 +2991,7 @@ func (n *ListPathAny) WithKey2(Key2 oc.Binary) *ListPathAny {
 
 // WithUnionKey sets ListPathAny's key "union-key" to the specified value.
 // UnionKey: [oc.UnionString, oc.Binary]
-func (n *ListPathAny) WithUnionKey(UnionKey oc.RootModule_List_UnionKey_Union) *ListPathAny {
+func (n *ListPathAny) WithUnionKey(UnionKey oc.RootElementModule_List_UnionKey_Union) *ListPathAny {
 	ygot.ModifyKey(n.NodePath, "union-key", UnionKey)
 	return n
 }

@@ -620,7 +620,7 @@ func getNodeDataMap(ir *ygen.IR, fakeRootName, schemaStructPkgAccessor, pathStru
 				HasDefault:            false,
 				YANGTypeName:          "",
 				YANGPath:              "/",
-				GoPathPackageName:     goPackageName(dir.RootModule, splitByModule, trimOCPackage, true, packageName, packageSuffix),
+				GoPathPackageName:     goPackageName(dir.RootElementModule, splitByModule, trimOCPackage, true, packageName, packageSuffix),
 			}
 		}
 
@@ -674,7 +674,7 @@ func getNodeDataMap(ir *ygen.IR, fakeRootName, schemaStructPkgAccessor, pathStru
 				HasDefault:            isLeaf && (len(field.YANGDetails.Defaults) > 0 || mType.DefaultValue != nil),
 				YANGTypeName:          yangTypeName,
 				YANGPath:              field.YANGDetails.Path,
-				GoPathPackageName:     goPackageName(field.YANGDetails.RootModule, splitByModule, trimOCPackage, false, packageName, packageSuffix),
+				GoPathPackageName:     goPackageName(field.YANGDetails.RootElementModule, splitByModule, trimOCPackage, false, packageName, packageSuffix),
 			}
 		}
 	}
@@ -836,8 +836,8 @@ func generateDirectorySnippet(directory *ygen.ParsedDirectory, directories map[s
 		// Only the fake root could be importing a child path struct from another package.
 		// If it is, add that package as a dependency and set the accessor.
 		if directory.IsFakeRoot && (field.Type == ygen.ContainerNode || field.Type == ygen.ListNode) {
-			parentPackge := goPackageName(directory.RootModule, splitByModule, trimOCPkg, directory.IsFakeRoot, pkgName, pkgSuffix)
-			childPackage := goPackageName(field.YANGDetails.RootModule, splitByModule, trimOCPkg, false, pkgName, pkgSuffix)
+			parentPackge := goPackageName(directory.RootElementModule, splitByModule, trimOCPkg, directory.IsFakeRoot, pkgName, pkgSuffix)
+			childPackage := goPackageName(field.YANGDetails.RootElementModule, splitByModule, trimOCPkg, false, pkgName, pkgSuffix)
 			if parentPackge != childPackage {
 				deps[childPackage] = true
 				childPkgAccessor = childPackage + "."
@@ -884,7 +884,7 @@ func generateDirectorySnippet(directory *ygen.ParsedDirectory, directories map[s
 		PathStructName:    structData.TypeName,
 		StructBase:        structBuf.String(),
 		ChildConstructors: methodBuf.String(),
-		Package:           goPackageName(directory.RootModule, splitByModule, trimOCPkg, directory.IsFakeRoot, pkgName, pkgSuffix),
+		Package:           goPackageName(directory.RootElementModule, splitByModule, trimOCPkg, directory.IsFakeRoot, pkgName, pkgSuffix),
 	}
 	for dep := range deps {
 		snippet.Deps = append(snippet.Deps, dep)
@@ -951,7 +951,7 @@ func generateChildConstructors(methodBuf *strings.Builder, builderBuf *strings.B
 		YANGNodeType:            field.Type.String(),
 		YANGDescription:         strings.ReplaceAll(field.YANGDetails.Description, "\n", "\n// "),
 		DefiningModuleName:      field.YANGDetails.DefiningModule,
-		InstantiatingModuleName: field.YANGDetails.RootModule,
+		InstantiatingModuleName: field.YANGDetails.RootElementModule,
 		AbsPath:                 field.YANGDetails.SchemaPath,
 		Struct:                  structData,
 		RelPath:                 strings.Join(relPath, `/`),
