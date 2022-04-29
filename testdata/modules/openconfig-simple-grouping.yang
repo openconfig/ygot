@@ -1,0 +1,9 @@
+module openconfig-simple-grouping {
+  prefix "ocsg";
+  namespace "urn:ocsg";
+
+  grouping stuff {
+    leaf zero { type string; }
+  }
+}
+

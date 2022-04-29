@@ -3,9 +3,10 @@ module openconfig-simple-augment2 {
   namespace "urn:a";
 
   import openconfig-simple { prefix "t"; }
+  import openconfig-simple-grouping { prefix "g"; }
 
   augment "/t:parent/child/state" {
-    leaf zero { type string; }
+    uses g:stuff;
   }
 }
 

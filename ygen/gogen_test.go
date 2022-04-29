@@ -55,11 +55,11 @@ func TestGoCodeStructGeneration(t *testing.T) {
 				"f1": {
 					Name: "F1",
 					YANGDetails: YANGNodeDetails{
-						Name:         "f1",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/tstruct/f1",
-						ResolvedPath: "",
+						Name:              "f1",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/tstruct/f1",
+						ResolvedPath:      "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
@@ -77,11 +77,11 @@ func TestGoCodeStructGeneration(t *testing.T) {
 				"f2": {
 					Name: "F2",
 					YANGDetails: YANGNodeDetails{
-						Name:         "f2",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/tstruct/f2",
-						ResolvedPath: "",
+						Name:              "f2",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/tstruct/f2",
+						ResolvedPath:      "",
 					},
 					Type: LeafListNode,
 					LangType: &MappedType{
@@ -149,11 +149,11 @@ func (*Tstruct) ΛBelongingModule() string {
 				"f1": {
 					Name: "F1",
 					YANGDetails: YANGNodeDetails{
-						Name:         "f1",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/tstruct/f1",
-						ResolvedPath: "",
+						Name:              "f1",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/tstruct/f1",
+						ResolvedPath:      "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
@@ -171,11 +171,11 @@ func (*Tstruct) ΛBelongingModule() string {
 				"f2": {
 					Name: "F2",
 					YANGDetails: YANGNodeDetails{
-						Name:         "f2",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/tstruct/f2",
-						ResolvedPath: "",
+						Name:              "f2",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/tstruct/f2",
+						ResolvedPath:      "",
 					},
 					Type: LeafListNode,
 					LangType: &MappedType{
@@ -236,11 +236,11 @@ func (*Tstruct) ΛBelongingModule() string {
 				"u1": {
 					Name: "U1",
 					YANGDetails: YANGNodeDetails{
-						Name:         "u1",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/module/input-struct/u1",
-						ResolvedPath: "",
+						Name:              "u1",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/module/input-struct/u1",
+						ResolvedPath:      "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
@@ -341,11 +341,11 @@ func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Uni
 				"c1": {
 					Name: "C1",
 					YANGDetails: YANGNodeDetails{
-						Name:         "c1",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/input-struct/c1",
-						ResolvedPath: "",
+						Name:              "c1",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/input-struct/c1",
+						ResolvedPath:      "",
 					},
 					Type:                    ContainerNode,
 					LangType:                nil,
@@ -408,7 +408,7 @@ func (*InputStruct) ΛBelongingModule() string {
 					YANGDetails: YANGNodeDetails{
 						Name:              "c1",
 						Defaults:          nil,
-						Module:            "exmod",
+						RootElementModule: "exmod",
 						Path:              "/root-module/input-struct/c1",
 						ResolvedPath:      "",
 						PresenceStatement: ygot.String("instantiated"),
@@ -474,11 +474,11 @@ func (*InputStruct) ΛBelongingModule() string {
 				"elem": {
 					Name: "Elem",
 					YANGDetails: YANGNodeDetails{
-						Name:         "elem",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/a-struct/elem",
-						ResolvedPath: "",
+						Name:              "elem",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/a-struct/elem",
+						ResolvedPath:      "",
 					},
 					Type:                    ContainerNode,
 					LangType:                nil,
@@ -500,11 +500,11 @@ func (*InputStruct) ΛBelongingModule() string {
 				"list": {
 					Name: "List",
 					YANGDetails: YANGNodeDetails{
-						Name:         "list",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/b-struct/list",
-						ResolvedPath: "",
+						Name:              "list",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/b-struct/list",
+						ResolvedPath:      "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -526,11 +526,11 @@ func (*InputStruct) ΛBelongingModule() string {
 				"a-list": {
 					Name: "AList",
 					YANGDetails: YANGNodeDetails{
-						Name:         "a-list",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/q-struct/a-list",
-						ResolvedPath: "",
+						Name:              "a-list",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/q-struct/a-list",
+						ResolvedPath:      "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -590,11 +590,11 @@ func (*QStruct) ΛBelongingModule() string {
 				"listWithKey": {
 					Name: "ListWithKey",
 					YANGDetails: YANGNodeDetails{
-						Name:         "list-with-key",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/tstruct/listWithKey",
-						ResolvedPath: "",
+						Name:              "list-with-key",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/tstruct/listWithKey",
+						ResolvedPath:      "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -615,11 +615,11 @@ func (*QStruct) ΛBelongingModule() string {
 					"keyLeaf": {
 						Name: "keyLeaf",
 						YANGDetails: YANGNodeDetails{
-							Name:         "keyLeaf",
-							Defaults:     nil,
-							Module:       "exmod",
-							Path:         "/root-module/tstruct/listWithKey/keyLeaf",
-							ResolvedPath: "",
+							Name:              "keyLeaf",
+							Defaults:          nil,
+							RootElementModule: "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeaf",
+							ResolvedPath:      "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -738,11 +738,11 @@ func (*Tstruct) ΛBelongingModule() string {
 				"listWithKey": {
 					Name: "ListWithKey",
 					YANGDetails: YANGNodeDetails{
-						Name:         "list-with-key",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/tstruct/listWithKey",
-						ResolvedPath: "",
+						Name:              "list-with-key",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/tstruct/listWithKey",
+						ResolvedPath:      "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -777,11 +777,11 @@ func (*Tstruct) ΛBelongingModule() string {
 				"idd": {
 					Name: "Idd",
 					YANGDetails: YANGNodeDetails{
-						Name:         "idd",
-						Defaults:     nil,
-						Module:       "mod",
-						Path:         "/mod/container-two/container/idd",
-						ResolvedPath: "",
+						Name:              "idd",
+						Defaults:          nil,
+						RootElementModule: "mod",
+						Path:              "/mod/container-two/container/idd",
+						ResolvedPath:      "",
 					},
 					Type:                    InvalidNode,
 					LangType:                nil,
@@ -803,11 +803,11 @@ func (*Tstruct) ΛBelongingModule() string {
 				"listWithKey": {
 					Name: "ListWithKey",
 					YANGDetails: YANGNodeDetails{
-						Name:         "list-with-key",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/tstruct/listWithKey",
-						ResolvedPath: "",
+						Name:              "list-with-key",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/tstruct/listWithKey",
+						ResolvedPath:      "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -828,11 +828,11 @@ func (*Tstruct) ΛBelongingModule() string {
 					"keyLeafOne": {
 						Name: "keyLeafOne",
 						YANGDetails: YANGNodeDetails{
-							Name:         "keyLeafOne",
-							Defaults:     nil,
-							Module:       "exmod",
-							Path:         "/root-module/tstruct/listWithKey/keyLeafOne",
-							ResolvedPath: "",
+							Name:              "keyLeafOne",
+							Defaults:          nil,
+							RootElementModule: "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeafOne",
+							ResolvedPath:      "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -848,11 +848,11 @@ func (*Tstruct) ΛBelongingModule() string {
 					"keyLeafTwo": {
 						Name: "keyLeafTwo",
 						YANGDetails: YANGNodeDetails{
-							Name:         "keyLeafTwo",
-							Defaults:     nil,
-							Module:       "exmod",
-							Path:         "/root-module/tstruct/listWithKey/keyLeafTwo",
-							ResolvedPath: "",
+							Name:              "keyLeafTwo",
+							Defaults:          nil,
+							RootElementModule: "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeafTwo",
+							ResolvedPath:      "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -991,11 +991,11 @@ func (*Tstruct) ΛBelongingModule() string {
 				"f1": {
 					Name: "F1",
 					YANGDetails: YANGNodeDetails{
-						Name:         "f1",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/tstruct/f1",
-						ResolvedPath: "",
+						Name:              "f1",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/tstruct/f1",
+						ResolvedPath:      "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
@@ -1061,11 +1061,11 @@ func (*Tstruct) ΛBelongingModule() string {
 				"listWithKey": {
 					Name: "ListWithKey",
 					YANGDetails: YANGNodeDetails{
-						Name:         "list-with-key",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/tstruct/listWithKey",
-						ResolvedPath: "",
+						Name:              "list-with-key",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/tstruct/listWithKey",
+						ResolvedPath:      "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -1086,11 +1086,11 @@ func (*Tstruct) ΛBelongingModule() string {
 					"keyLeafOne": {
 						Name: "keyLeafOne",
 						YANGDetails: YANGNodeDetails{
-							Name:         "keyLeafOne",
-							Defaults:     nil,
-							Module:       "exmod",
-							Path:         "/root-module/tstruct/listWithKey/keyLeafOne",
-							ResolvedPath: "",
+							Name:              "keyLeafOne",
+							Defaults:          nil,
+							RootElementModule: "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeafOne",
+							ResolvedPath:      "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -1106,11 +1106,11 @@ func (*Tstruct) ΛBelongingModule() string {
 					"keyLeafTwo": {
 						Name: "keyLeafTwo",
 						YANGDetails: YANGNodeDetails{
-							Name:         "keyLeafTwo",
-							Defaults:     nil,
-							Module:       "exmod",
-							Path:         "/root-module/tstruct/listWithKey/keyLeafTwo",
-							ResolvedPath: "",
+							Name:              "keyLeafTwo",
+							Defaults:          nil,
+							RootElementModule: "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeafTwo",
+							ResolvedPath:      "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -1318,11 +1318,11 @@ func (*Tstruct) ΛBelongingModule() string {
 				"listWithKey": {
 					Name: "ListWithKey",
 					YANGDetails: YANGNodeDetails{
-						Name:         "list-with-key",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/tstruct/listWithKey",
-						ResolvedPath: "",
+						Name:              "list-with-key",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/tstruct/listWithKey",
+						ResolvedPath:      "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -1343,11 +1343,11 @@ func (*Tstruct) ΛBelongingModule() string {
 					"keyLeaf": {
 						Name: "keyLeaf",
 						YANGDetails: YANGNodeDetails{
-							Name:         "keyLeaf",
-							Defaults:     nil,
-							Module:       "exmod",
-							Path:         "/root-module/tstruct/listWithKey/keyLeaf",
-							ResolvedPath: "",
+							Name:              "keyLeaf",
+							Defaults:          nil,
+							RootElementModule: "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeaf",
+							ResolvedPath:      "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -1534,11 +1534,11 @@ func (*Tstruct) ΛBelongingModule() string {
 				"c1": {
 					Name: "C1",
 					YANGDetails: YANGNodeDetails{
-						Name:         "c1",
-						Defaults:     nil,
-						Module:       "exmod",
-						Path:         "/root-module/input-struct/c1",
-						ResolvedPath: "",
+						Name:              "c1",
+						Defaults:          nil,
+						RootElementModule: "exmod",
+						Path:              "/root-module/input-struct/c1",
+						ResolvedPath:      "",
 					},
 					Type:                    ContainerNode,
 					LangType:                nil,
@@ -1633,11 +1633,11 @@ func (*InputStruct) ΛBelongingModule() string {
 				"leaf": {
 					Name: "Leaf",
 					YANGDetails: YANGNodeDetails{
-						Name:         "leaf",
-						Defaults:     nil,
-						Module:       "m1",
-						Path:         "/m1/foo/bar/leaf",
-						ResolvedPath: "",
+						Name:              "leaf",
+						Defaults:          nil,
+						RootElementModule: "m1",
+						Path:              "/m1/foo/bar/leaf",
+						ResolvedPath:      "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
@@ -1726,11 +1726,11 @@ func (*Container) ΛBelongingModule() string {
 				"leaf": {
 					Name: "Leaf",
 					YANGDetails: YANGNodeDetails{
-						Name:         "leaf",
-						Defaults:     []string{"DEFAULT VALUE"},
-						Module:       "m1",
-						Path:         "/m1/foo/bar/leaf",
-						ResolvedPath: "",
+						Name:              "leaf",
+						Defaults:          []string{"DEFAULT VALUE"},
+						RootElementModule: "m1",
+						Path:              "/m1/foo/bar/leaf",
+						ResolvedPath:      "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{

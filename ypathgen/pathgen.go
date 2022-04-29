@@ -252,7 +252,6 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 		return nil, nil, errs
 	}
 
-	genCode := &GeneratedPathCode{}
 	errs = util.Errors{}
 
 	// Alphabetically order directories to produce deterministic output.
@@ -310,7 +309,6 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 		err := writeHeader(yangFiles, includePaths, name, cg, p)
 		util.AppendErr(errs, err)
 	}
-	genCode.Structs = structSnippets
 
 	if len(errs) == 0 {
 		errs = nil
