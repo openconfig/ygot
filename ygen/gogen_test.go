@@ -55,10 +55,10 @@ func TestGoCodeStructGeneration(t *testing.T) {
 				"f1": {
 					Name: "F1",
 					YANGDetails: YANGNodeDetails{
-						Name:                "f1",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/tstruct/f1",
+						Name:              "f1",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/tstruct/f1",
 						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,
@@ -77,10 +77,10 @@ func TestGoCodeStructGeneration(t *testing.T) {
 				"f2": {
 					Name: "F2",
 					YANGDetails: YANGNodeDetails{
-						Name:                "f2",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/tstruct/f2",
+						Name:              "f2",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/tstruct/f2",
 						LeafrefTargetPath: "",
 					},
 					Type: LeafListNode,
@@ -149,10 +149,10 @@ func (*Tstruct) ΛBelongingModule() string {
 				"f1": {
 					Name: "F1",
 					YANGDetails: YANGNodeDetails{
-						Name:                "f1",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/tstruct/f1",
+						Name:              "f1",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/tstruct/f1",
 						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,
@@ -171,10 +171,10 @@ func (*Tstruct) ΛBelongingModule() string {
 				"f2": {
 					Name: "F2",
 					YANGDetails: YANGNodeDetails{
-						Name:                "f2",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/tstruct/f2",
+						Name:              "f2",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/tstruct/f2",
 						LeafrefTargetPath: "",
 					},
 					Type: LeafListNode,
@@ -236,10 +236,10 @@ func (*Tstruct) ΛBelongingModule() string {
 				"u1": {
 					Name: "U1",
 					YANGDetails: YANGNodeDetails{
-						Name:                "u1",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/module/input-struct/u1",
+						Name:              "u1",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/module/input-struct/u1",
 						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,
@@ -341,10 +341,10 @@ func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Uni
 				"c1": {
 					Name: "C1",
 					YANGDetails: YANGNodeDetails{
-						Name:                "c1",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/input-struct/c1",
+						Name:              "c1",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/input-struct/c1",
 						LeafrefTargetPath: "",
 					},
 					Type:                    ContainerNode,
@@ -406,12 +406,12 @@ func (*InputStruct) ΛBelongingModule() string {
 				"c1": {
 					Name: "C1",
 					YANGDetails: YANGNodeDetails{
-						Name:                "c1",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/input-struct/c1",
+						Name:              "c1",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/input-struct/c1",
 						LeafrefTargetPath: "",
-						PresenceStatement:   ygot.String("instantiated"),
+						PresenceStatement: ygot.String("instantiated"),
 					},
 					Type:                    ContainerNode,
 					LangType:                nil,
@@ -474,10 +474,10 @@ func (*InputStruct) ΛBelongingModule() string {
 				"elem": {
 					Name: "Elem",
 					YANGDetails: YANGNodeDetails{
-						Name:                "elem",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/a-struct/elem",
+						Name:              "elem",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/a-struct/elem",
 						LeafrefTargetPath: "",
 					},
 					Type:                    ContainerNode,
@@ -500,10 +500,10 @@ func (*InputStruct) ΛBelongingModule() string {
 				"list": {
 					Name: "List",
 					YANGDetails: YANGNodeDetails{
-						Name:                "list",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/b-struct/list",
+						Name:              "list",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/b-struct/list",
 						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
@@ -526,10 +526,10 @@ func (*InputStruct) ΛBelongingModule() string {
 				"a-list": {
 					Name: "AList",
 					YANGDetails: YANGNodeDetails{
-						Name:                "a-list",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/q-struct/a-list",
+						Name:              "a-list",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/q-struct/a-list",
 						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
@@ -590,10 +590,10 @@ func (*QStruct) ΛBelongingModule() string {
 				"listWithKey": {
 					Name: "ListWithKey",
 					YANGDetails: YANGNodeDetails{
-						Name:                "list-with-key",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/tstruct/listWithKey",
+						Name:              "list-with-key",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/tstruct/listWithKey",
 						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
@@ -615,10 +615,10 @@ func (*QStruct) ΛBelongingModule() string {
 					"keyLeaf": {
 						Name: "keyLeaf",
 						YANGDetails: YANGNodeDetails{
-							Name:                "keyLeaf",
-							Defaults:            nil,
-							Module:              "exmod",
-							Path:                "/root-module/tstruct/listWithKey/keyLeaf",
+							Name:              "keyLeaf",
+							Defaults:          nil,
+							Module:            "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeaf",
 							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
@@ -738,10 +738,10 @@ func (*Tstruct) ΛBelongingModule() string {
 				"listWithKey": {
 					Name: "ListWithKey",
 					YANGDetails: YANGNodeDetails{
-						Name:                "list-with-key",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/tstruct/listWithKey",
+						Name:              "list-with-key",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/tstruct/listWithKey",
 						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
@@ -777,10 +777,10 @@ func (*Tstruct) ΛBelongingModule() string {
 				"idd": {
 					Name: "Idd",
 					YANGDetails: YANGNodeDetails{
-						Name:                "idd",
-						Defaults:            nil,
-						Module:              "mod",
-						Path:                "/mod/container-two/container/idd",
+						Name:              "idd",
+						Defaults:          nil,
+						Module:            "mod",
+						Path:              "/mod/container-two/container/idd",
 						LeafrefTargetPath: "",
 					},
 					Type:                    InvalidNode,
@@ -803,10 +803,10 @@ func (*Tstruct) ΛBelongingModule() string {
 				"listWithKey": {
 					Name: "ListWithKey",
 					YANGDetails: YANGNodeDetails{
-						Name:                "list-with-key",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/tstruct/listWithKey",
+						Name:              "list-with-key",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/tstruct/listWithKey",
 						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
@@ -828,10 +828,10 @@ func (*Tstruct) ΛBelongingModule() string {
 					"keyLeafOne": {
 						Name: "keyLeafOne",
 						YANGDetails: YANGNodeDetails{
-							Name:                "keyLeafOne",
-							Defaults:            nil,
-							Module:              "exmod",
-							Path:                "/root-module/tstruct/listWithKey/keyLeafOne",
+							Name:              "keyLeafOne",
+							Defaults:          nil,
+							Module:            "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeafOne",
 							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
@@ -848,10 +848,10 @@ func (*Tstruct) ΛBelongingModule() string {
 					"keyLeafTwo": {
 						Name: "keyLeafTwo",
 						YANGDetails: YANGNodeDetails{
-							Name:                "keyLeafTwo",
-							Defaults:            nil,
-							Module:              "exmod",
-							Path:                "/root-module/tstruct/listWithKey/keyLeafTwo",
+							Name:              "keyLeafTwo",
+							Defaults:          nil,
+							Module:            "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeafTwo",
 							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
@@ -991,10 +991,10 @@ func (*Tstruct) ΛBelongingModule() string {
 				"f1": {
 					Name: "F1",
 					YANGDetails: YANGNodeDetails{
-						Name:                "f1",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/tstruct/f1",
+						Name:              "f1",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/tstruct/f1",
 						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,
@@ -1061,10 +1061,10 @@ func (*Tstruct) ΛBelongingModule() string {
 				"listWithKey": {
 					Name: "ListWithKey",
 					YANGDetails: YANGNodeDetails{
-						Name:                "list-with-key",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/tstruct/listWithKey",
+						Name:              "list-with-key",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/tstruct/listWithKey",
 						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
@@ -1086,10 +1086,10 @@ func (*Tstruct) ΛBelongingModule() string {
 					"keyLeafOne": {
 						Name: "keyLeafOne",
 						YANGDetails: YANGNodeDetails{
-							Name:                "keyLeafOne",
-							Defaults:            nil,
-							Module:              "exmod",
-							Path:                "/root-module/tstruct/listWithKey/keyLeafOne",
+							Name:              "keyLeafOne",
+							Defaults:          nil,
+							Module:            "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeafOne",
 							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
@@ -1106,10 +1106,10 @@ func (*Tstruct) ΛBelongingModule() string {
 					"keyLeafTwo": {
 						Name: "keyLeafTwo",
 						YANGDetails: YANGNodeDetails{
-							Name:                "keyLeafTwo",
-							Defaults:            nil,
-							Module:              "exmod",
-							Path:                "/root-module/tstruct/listWithKey/keyLeafTwo",
+							Name:              "keyLeafTwo",
+							Defaults:          nil,
+							Module:            "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeafTwo",
 							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
@@ -1318,10 +1318,10 @@ func (*Tstruct) ΛBelongingModule() string {
 				"listWithKey": {
 					Name: "ListWithKey",
 					YANGDetails: YANGNodeDetails{
-						Name:                "list-with-key",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/tstruct/listWithKey",
+						Name:              "list-with-key",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/tstruct/listWithKey",
 						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
@@ -1343,10 +1343,10 @@ func (*Tstruct) ΛBelongingModule() string {
 					"keyLeaf": {
 						Name: "keyLeaf",
 						YANGDetails: YANGNodeDetails{
-							Name:                "keyLeaf",
-							Defaults:            nil,
-							Module:              "exmod",
-							Path:                "/root-module/tstruct/listWithKey/keyLeaf",
+							Name:              "keyLeaf",
+							Defaults:          nil,
+							Module:            "exmod",
+							Path:              "/root-module/tstruct/listWithKey/keyLeaf",
 							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
@@ -1534,10 +1534,10 @@ func (*Tstruct) ΛBelongingModule() string {
 				"c1": {
 					Name: "C1",
 					YANGDetails: YANGNodeDetails{
-						Name:                "c1",
-						Defaults:            nil,
-						Module:              "exmod",
-						Path:                "/root-module/input-struct/c1",
+						Name:              "c1",
+						Defaults:          nil,
+						Module:            "exmod",
+						Path:              "/root-module/input-struct/c1",
 						LeafrefTargetPath: "",
 					},
 					Type:                    ContainerNode,
@@ -1633,10 +1633,10 @@ func (*InputStruct) ΛBelongingModule() string {
 				"leaf": {
 					Name: "Leaf",
 					YANGDetails: YANGNodeDetails{
-						Name:                "leaf",
-						Defaults:            nil,
-						Module:              "m1",
-						Path:                "/m1/foo/bar/leaf",
+						Name:              "leaf",
+						Defaults:          nil,
+						Module:            "m1",
+						Path:              "/m1/foo/bar/leaf",
 						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,
@@ -1726,10 +1726,10 @@ func (*Container) ΛBelongingModule() string {
 				"leaf": {
 					Name: "Leaf",
 					YANGDetails: YANGNodeDetails{
-						Name:                "leaf",
-						Defaults:            []string{"DEFAULT VALUE"},
-						Module:              "m1",
-						Path:                "/m1/foo/bar/leaf",
+						Name:              "leaf",
+						Defaults:          []string{"DEFAULT VALUE"},
+						Module:            "m1",
+						Path:              "/m1/foo/bar/leaf",
 						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,

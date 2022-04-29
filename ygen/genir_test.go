@@ -65,10 +65,10 @@ func TestGenerateIR(t *testing.T) {
 						"parent": {
 							Name: "Parent",
 							YANGDetails: YANGNodeDetails{
-								Name:                "parent",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent",
+								Name:              "parent",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ContainerNode,
@@ -80,10 +80,10 @@ func TestGenerateIR(t *testing.T) {
 						"remote-container": {
 							Name: "RemoteContainer",
 							YANGDetails: YANGNodeDetails{
-								Name:                "remote-container",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/remote-container",
+								Name:              "remote-container",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/remote-container",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ContainerNode,
@@ -103,10 +103,10 @@ func TestGenerateIR(t *testing.T) {
 						"child": {
 							Name: "Child",
 							YANGDetails: YANGNodeDetails{
-								Name:                "child",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child",
+								Name:              "child",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ContainerNode,
@@ -141,10 +141,10 @@ func TestGenerateIR(t *testing.T) {
 						"one": {
 							Name: "One",
 							YANGDetails: YANGNodeDetails{
-								Name:                "one",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/config/one",
+								Name:              "one",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/config/one",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -163,10 +163,10 @@ func TestGenerateIR(t *testing.T) {
 						"two": {
 							Name: "Two",
 							YANGDetails: YANGNodeDetails{
-								Name:                "two",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/state/two",
+								Name:              "two",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/state/two",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -185,10 +185,10 @@ func TestGenerateIR(t *testing.T) {
 						"three": {
 							Name: "Three",
 							YANGDetails: YANGNodeDetails{
-								Name:                "three",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/config/three",
+								Name:              "three",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/config/three",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -207,10 +207,10 @@ func TestGenerateIR(t *testing.T) {
 						"four": {
 							Name: "Four",
 							YANGDetails: YANGNodeDetails{
-								Name:                "four",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/config/four",
+								Name:              "four",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/config/four",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -237,10 +237,10 @@ func TestGenerateIR(t *testing.T) {
 						"a-leaf": {
 							Name: "ALeaf",
 							YANGDetails: YANGNodeDetails{
-								Name:                "a-leaf",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/remote-container/config/a-leaf",
+								Name:              "a-leaf",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/remote-container/config/a-leaf",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -302,10 +302,10 @@ func TestGenerateIR(t *testing.T) {
 						"parent": {
 							Name: "Parent",
 							YANGDetails: YANGNodeDetails{
-								Name:                "parent",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent",
+								Name:              "parent",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ContainerNode,
@@ -317,10 +317,10 @@ func TestGenerateIR(t *testing.T) {
 						"remote-container": {
 							Name: "RemoteContainer",
 							YANGDetails: YANGNodeDetails{
-								Name:                "remote-container",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/remote-container",
+								Name:              "remote-container",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/remote-container",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ContainerNode,
@@ -340,10 +340,10 @@ func TestGenerateIR(t *testing.T) {
 						"child": {
 							Name: "Child",
 							YANGDetails: YANGNodeDetails{
-								Name:                "child",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child",
+								Name:              "child",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ContainerNode,
@@ -378,10 +378,10 @@ func TestGenerateIR(t *testing.T) {
 						"one": {
 							Name: "One",
 							YANGDetails: YANGNodeDetails{
-								Name:                "one",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/state/one",
+								Name:              "one",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/state/one",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -400,10 +400,10 @@ func TestGenerateIR(t *testing.T) {
 						"two": {
 							Name: "Two",
 							YANGDetails: YANGNodeDetails{
-								Name:                "two",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/state/two",
+								Name:              "two",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/state/two",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -422,10 +422,10 @@ func TestGenerateIR(t *testing.T) {
 						"three": {
 							Name: "Three",
 							YANGDetails: YANGNodeDetails{
-								Name:                "three",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/state/three",
+								Name:              "three",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/state/three",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -444,10 +444,10 @@ func TestGenerateIR(t *testing.T) {
 						"four": {
 							Name: "Four",
 							YANGDetails: YANGNodeDetails{
-								Name:                "four",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/state/four",
+								Name:              "four",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/state/four",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -474,10 +474,10 @@ func TestGenerateIR(t *testing.T) {
 						"a-leaf": {
 							Name: "ALeaf",
 							YANGDetails: YANGNodeDetails{
-								Name:                "a-leaf",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/remote-container/state/a-leaf",
+								Name:              "a-leaf",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/remote-container/state/a-leaf",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -539,10 +539,10 @@ func TestGenerateIR(t *testing.T) {
 						"parent": {
 							Name: "Parent",
 							YANGDetails: YANGNodeDetails{
-								Name:                "parent",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent",
+								Name:              "parent",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ContainerNode,
@@ -554,10 +554,10 @@ func TestGenerateIR(t *testing.T) {
 						"remote-container": {
 							Name: "RemoteContainer",
 							YANGDetails: YANGNodeDetails{
-								Name:                "remote-container",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/remote-container",
+								Name:              "remote-container",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/remote-container",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ContainerNode,
@@ -577,10 +577,10 @@ func TestGenerateIR(t *testing.T) {
 						"child": {
 							Name: "Child",
 							YANGDetails: YANGNodeDetails{
-								Name:                "child",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child",
+								Name:              "child",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ContainerNode,
@@ -633,10 +633,10 @@ func TestGenerateIR(t *testing.T) {
 						"four": {
 							Name: "Four",
 							YANGDetails: YANGNodeDetails{
-								Name:                "four",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/config/four",
+								Name:              "four",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/config/four",
 								LeafrefTargetPath: "",
 							},
 							Type: 3,
@@ -655,10 +655,10 @@ func TestGenerateIR(t *testing.T) {
 						"one": {
 							Name: "One",
 							YANGDetails: YANGNodeDetails{
-								Name:                "one",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/config/one",
+								Name:              "one",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/config/one",
 								LeafrefTargetPath: "",
 							},
 							Type: 3,
@@ -677,10 +677,10 @@ func TestGenerateIR(t *testing.T) {
 						"three": {
 							Name: "Three",
 							YANGDetails: YANGNodeDetails{
-								Name:                "three",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/config/three",
+								Name:              "three",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/config/three",
 								LeafrefTargetPath: "",
 							},
 							Type: 3,
@@ -709,10 +709,10 @@ func TestGenerateIR(t *testing.T) {
 						"four": {
 							Name: "Four",
 							YANGDetails: YANGNodeDetails{
-								Name:                "four",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/state/four",
+								Name:              "four",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/state/four",
 								LeafrefTargetPath: "",
 							},
 							Type: 3,
@@ -731,10 +731,10 @@ func TestGenerateIR(t *testing.T) {
 						"one": {
 							Name: "One",
 							YANGDetails: YANGNodeDetails{
-								Name:                "one",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/state/one",
+								Name:              "one",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/state/one",
 								LeafrefTargetPath: "",
 							},
 							Type: 3,
@@ -753,10 +753,10 @@ func TestGenerateIR(t *testing.T) {
 						"three": {
 							Name: "Three",
 							YANGDetails: YANGNodeDetails{
-								Name:                "three",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/state/three",
+								Name:              "three",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/state/three",
 								LeafrefTargetPath: "",
 							},
 							Type: 3,
@@ -775,10 +775,10 @@ func TestGenerateIR(t *testing.T) {
 						"two": {
 							Name: "Two",
 							YANGDetails: YANGNodeDetails{
-								Name:                "two",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/parent/child/state/two",
+								Name:              "two",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/parent/child/state/two",
 								LeafrefTargetPath: "",
 							},
 							Type: 3,
@@ -797,10 +797,10 @@ func TestGenerateIR(t *testing.T) {
 						"zero": {
 							Name: "Zero",
 							YANGDetails: YANGNodeDetails{
-								Name:                "zero",
-								Defaults:            nil,
-								Module:              "openconfig-simple-augment2",
-								Path:                "/openconfig-simple/parent/child/state/zero",
+								Name:              "zero",
+								Defaults:          nil,
+								Module:            "openconfig-simple-augment2",
+								Path:              "/openconfig-simple/parent/child/state/zero",
 								LeafrefTargetPath: "",
 							},
 							Type: 3,
@@ -861,10 +861,10 @@ func TestGenerateIR(t *testing.T) {
 						"a-leaf": {
 							Name: "ALeaf",
 							YANGDetails: YANGNodeDetails{
-								Name:                "a-leaf",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/remote-container/config/a-leaf",
+								Name:              "a-leaf",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/remote-container/config/a-leaf",
 								LeafrefTargetPath: "",
 							},
 							Type: 3,
@@ -891,10 +891,10 @@ func TestGenerateIR(t *testing.T) {
 						"a-leaf": {
 							Name: "ALeaf",
 							YANGDetails: YANGNodeDetails{
-								Name:                "a-leaf",
-								Defaults:            nil,
-								Module:              "openconfig-simple",
-								Path:                "/openconfig-simple/remote-container/state/a-leaf",
+								Name:              "a-leaf",
+								Defaults:          nil,
+								Module:            "openconfig-simple",
+								Path:              "/openconfig-simple/remote-container/state/a-leaf",
 								LeafrefTargetPath: "",
 							},
 							Type: 3,
@@ -949,10 +949,10 @@ func TestGenerateIR(t *testing.T) {
 						"e1": {
 							Name: "E1",
 							YANGDetails: YANGNodeDetails{
-								Name:                "e1",
-								Defaults:            nil,
-								Module:              "excluded-module-noimport",
-								Path:                "/excluded-module-noimport/e1",
+								Name:              "e1",
+								Defaults:          nil,
+								Module:            "excluded-module-noimport",
+								Path:              "/excluded-module-noimport/e1",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -1000,10 +1000,10 @@ func TestGenerateIR(t *testing.T) {
 						"model": {
 							Name: "Model",
 							YANGDetails: YANGNodeDetails{
-								Name:                "model",
-								Defaults:            nil,
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/model",
+								Name:              "model",
+								Defaults:          nil,
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/model",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ContainerNode,
@@ -1016,12 +1016,12 @@ func TestGenerateIR(t *testing.T) {
 						"example-presence": {
 							Name: "ExamplePresence",
 							YANGDetails: YANGNodeDetails{
-								Name:                "example-presence",
-								Defaults:            nil,
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/example-presence",
+								Name:              "example-presence",
+								Defaults:          nil,
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/example-presence",
 								LeafrefTargetPath: "",
-								PresenceStatement:   ygot.String("This is an example presence container"),
+								PresenceStatement: ygot.String("This is an example presence container"),
 							},
 							Type:                    ContainerNode,
 							LangType:                nil,
@@ -1051,10 +1051,10 @@ func TestGenerateIR(t *testing.T) {
 						"anydata-leaf": {
 							Name: "AnydataLeaf",
 							YANGDetails: YANGNodeDetails{
-								Name:                "anydata-leaf",
-								Defaults:            nil,
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/model/anydata-leaf",
+								Name:              "anydata-leaf",
+								Defaults:          nil,
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/model/anydata-leaf",
 								LeafrefTargetPath: "",
 							},
 							Type:                    AnyDataNode,
@@ -1067,10 +1067,10 @@ func TestGenerateIR(t *testing.T) {
 						"dateref": {
 							Name: "Dateref",
 							YANGDetails: YANGNodeDetails{
-								Name:                "dateref",
-								Defaults:            nil,
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/model/dateref",
+								Name:              "dateref",
+								Defaults:          nil,
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/model/dateref",
 								LeafrefTargetPath: "/openconfig-complex/model/a/single-key/config/dates",
 							},
 							Type: LeafNode,
@@ -1087,10 +1087,10 @@ func TestGenerateIR(t *testing.T) {
 						"multi-key": {
 							Name: "MultiKey",
 							YANGDetails: YANGNodeDetails{
-								Name:                "multi-key",
-								Defaults:            nil,
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/model/b/multi-key",
+								Name:              "multi-key",
+								Defaults:          nil,
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/model/b/multi-key",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ListNode,
@@ -1103,10 +1103,10 @@ func TestGenerateIR(t *testing.T) {
 						"single-key": {
 							Name: "SingleKey",
 							YANGDetails: YANGNodeDetails{
-								Name:                "single-key",
-								Defaults:            nil,
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/model/a/single-key",
+								Name:              "single-key",
+								Defaults:          nil,
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/model/a/single-key",
 								LeafrefTargetPath: "",
 							},
 							Type:                    ListNode,
@@ -1129,10 +1129,10 @@ func TestGenerateIR(t *testing.T) {
 						"dates": {
 							Name: "Dates",
 							YANGDetails: YANGNodeDetails{
-								Name:                "dates",
-								Defaults:            []string{"5"},
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/model/a/single-key/config/dates",
+								Name:              "dates",
+								Defaults:          []string{"5"},
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/model/a/single-key/config/dates",
 								LeafrefTargetPath: "",
 							},
 							Type:                    LeafListNode,
@@ -1145,10 +1145,10 @@ func TestGenerateIR(t *testing.T) {
 						"dates-with-defaults": {
 							Name: "DatesWithDefaults",
 							YANGDetails: YANGNodeDetails{
-								Name:                "dates-with-defaults",
-								Defaults:            []string{"1", "2"},
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/model/a/single-key/config/dates-with-defaults",
+								Name:              "dates-with-defaults",
+								Defaults:          []string{"1", "2"},
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/model/a/single-key/config/dates-with-defaults",
 								LeafrefTargetPath: "",
 							},
 							Type:                    LeafListNode,
@@ -1161,10 +1161,10 @@ func TestGenerateIR(t *testing.T) {
 						"iref": {
 							Name: "Iref",
 							YANGDetails: YANGNodeDetails{
-								Name:                "iref",
-								Defaults:            nil,
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/model/a/single-key/config/iref",
+								Name:              "iref",
+								Defaults:          nil,
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/model/a/single-key/config/iref",
 								LeafrefTargetPath: "",
 							},
 							Type:                    LeafNode,
@@ -1177,10 +1177,10 @@ func TestGenerateIR(t *testing.T) {
 						"key": {
 							Name: "Key",
 							YANGDetails: YANGNodeDetails{
-								Name:                "key",
-								Defaults:            nil,
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/model/a/single-key/config/key",
+								Name:              "key",
+								Defaults:          nil,
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/model/a/single-key/config/key",
 								LeafrefTargetPath: "",
 							},
 							Type: LeafNode,
@@ -1319,10 +1319,10 @@ func TestGenerateIR(t *testing.T) {
 						"key1": {
 							Name: "Key1",
 							YANGDetails: YANGNodeDetails{
-								Name:                "key1",
-								Defaults:            nil,
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/model/b/multi-key/config/key1",
+								Name:              "key1",
+								Defaults:          nil,
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/model/b/multi-key/config/key1",
 								LeafrefTargetPath: "",
 							},
 							Type:                    LeafNode,
@@ -1335,10 +1335,10 @@ func TestGenerateIR(t *testing.T) {
 						"key2": {
 							Name: "Key2",
 							YANGDetails: YANGNodeDetails{
-								Name:                "key2",
-								Defaults:            nil,
-								Module:              "openconfig-complex",
-								Path:                "/openconfig-complex/model/b/multi-key/config/key2",
+								Name:              "key2",
+								Defaults:          nil,
+								Module:            "openconfig-complex",
+								Path:              "/openconfig-complex/model/b/multi-key/config/key2",
 								LeafrefTargetPath: "",
 							},
 							Type:                    LeafNode,
