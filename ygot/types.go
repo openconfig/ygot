@@ -50,6 +50,11 @@ type ValidatedGoStruct interface {
 	// defined per https://datatracker.ietf.org/doc/html/rfc7951#section-4.
 	// If the GoStruct is the fakeroot, then the empty string will be
 	// returned.
+	//
+	// Strictly, this value is the name of the module having the same XML
+	// namespace as this node.
+	// For more information on YANG's XML namespaces see
+	// https://datatracker.ietf.org/doc/html/rfc7950#section-5.3
 	ΛBelongingModule() string
 }
 
