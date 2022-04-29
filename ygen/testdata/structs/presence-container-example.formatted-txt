@@ -90,8 +90,8 @@ func (t *Device) PopulateDefaults() {
 	t.Parent.PopulateDefaults()
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Device belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Device.
 func (*Device) ΛBelongingModule() string {
 	return ""
 }
@@ -117,8 +117,8 @@ func (t *PresenceContainerExample_Parent) PopulateDefaults() {
 	t.Child.PopulateDefaults()
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// PresenceContainerExample_Parent belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of PresenceContainerExample_Parent.
 func (*PresenceContainerExample_Parent) ΛBelongingModule() string {
 	return "presence-container-example"
 }
@@ -146,8 +146,8 @@ func (t *PresenceContainerExample_Parent_Child) PopulateDefaults() {
 	t.State.PopulateDefaults()
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// PresenceContainerExample_Parent_Child belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of PresenceContainerExample_Parent_Child.
 func (*PresenceContainerExample_Parent_Child) ΛBelongingModule() string {
 	return "presence-container-example"
 }
@@ -222,8 +222,8 @@ func (t *PresenceContainerExample_Parent_Child_Config) PopulateDefaults() {
 	ygot.BuildEmptyTree(t)
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// PresenceContainerExample_Parent_Child_Config belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of PresenceContainerExample_Parent_Child_Config.
 func (*PresenceContainerExample_Parent_Child_Config) ΛBelongingModule() string {
 	return "presence-container-example"
 }
@@ -315,8 +315,8 @@ func (t *PresenceContainerExample_Parent_Child_State) PopulateDefaults() {
 	ygot.BuildEmptyTree(t)
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// PresenceContainerExample_Parent_Child_State belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of PresenceContainerExample_Parent_Child_State.
 func (*PresenceContainerExample_Parent_Child_State) ΛBelongingModule() string {
 	return "presence-container-example"
 }

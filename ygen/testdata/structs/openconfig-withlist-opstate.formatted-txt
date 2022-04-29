@@ -183,8 +183,8 @@ func (t *Model) RenameSingleKey(oldK, newK string) error {
 	return nil
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Model belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Model.
 func (*Model) ΛBelongingModule() string {
 	return "openconfig-withlist"
 }
@@ -216,8 +216,8 @@ func (t *Model_MultiKey) ΛListKeyMap() (map[string]interface{}, error) {
 	}, nil
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Model_MultiKey belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Model_MultiKey.
 func (*Model_MultiKey) ΛBelongingModule() string {
 	return "openconfig-withlist"
 }
@@ -243,8 +243,8 @@ func (t *Model_SingleKey) ΛListKeyMap() (map[string]interface{}, error) {
 	}, nil
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Model_SingleKey belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Model_SingleKey.
 func (*Model_SingleKey) ΛBelongingModule() string {
 	return "openconfig-withlist"
 }

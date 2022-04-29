@@ -134,8 +134,8 @@ func (t *Tstruct) ValidateProxyFunction(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -221,8 +221,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -284,8 +284,8 @@ func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// InputStruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of InputStruct.
 func (*InputStruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -390,8 +390,8 @@ func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// InputStruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of InputStruct.
 func (*InputStruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -459,8 +459,8 @@ func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// InputStruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of InputStruct.
 func (*InputStruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -574,8 +574,8 @@ func (t *QStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// QStruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of QStruct.
 func (*QStruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -722,8 +722,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -975,8 +975,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -1045,8 +1045,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -1302,8 +1302,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -1518,8 +1518,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -1618,8 +1618,8 @@ func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// InputStruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of InputStruct.
 func (*InputStruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -1711,8 +1711,8 @@ func (t *Container) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Container belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Container.
 func (*Container) ΛBelongingModule() string {
 	return "m1"
 }
@@ -1808,8 +1808,8 @@ func (t *Container) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Container belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Container.
 func (*Container) ΛBelongingModule() string {
 	return "m1"
 }
