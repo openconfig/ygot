@@ -350,8 +350,8 @@ type YANGNodeDetails struct {
 	// Path specifies the absolute YANG schema node path.
 	Path string
 	// LeafrefTargetPath is the absolute YANG schema node path of the
-	// target node to which the leafref points. Note that this is *not* the
-	// recursively-resolved path.
+	// target node to which the leafref points via its path statement. Note
+	// that this is *not* the recursively-resolved path.
 	// This is populated only if the YANG node was a leafref.
 	LeafrefTargetPath string
 	// PresenceStatement, if non-nil, indicates that this directory is a
