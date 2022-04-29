@@ -1036,8 +1036,8 @@ func (t *{{ .StructName }}) ΛEnumTypeMap() map[string][]reflect.Type { return �
 	// ΛBelongingModule returns the name of the module having the same XML
 	// namespace as {{ .StructName }}.
 	goBelongingModuleTemplate = mustMakeTemplate("belongingModuleMethod", `
-// ΛBelongingModule returns the name of the module in whose namespace
-// {{ .StructName }} belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of {{ .StructName }}.
 func (*{{ .StructName }}) ΛBelongingModule() string {
 	return "{{ .BelongingModule }}"
 }

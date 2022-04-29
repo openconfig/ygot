@@ -435,9 +435,11 @@ type YANGNodeDetails struct {
 	// SchemaPath specifies the absolute YANG schema node path. It does not
 	// include the module name nor choice/case elements in the YANG file.
 	SchemaPath string
-	// ResolvedPath specifies the leafref-resolved absolute YANG schema
-	// node path. This field is only populated if the field is a leafref.
-	ResolvedPath string
+	// LeafrefTargetPath is the absolute YANG schema node path of the
+	// target node to which the leafref points via its path statement. Note
+	// that this is *not* the recursively-resolved path.
+	// This is populated only if the YANG node was a leafref.
+	LeafrefTargetPath string
 	// PresenceStatement, if non-nil, indicates that this directory is a
 	// presence container. It contains the value of the presence statement.
 	PresenceStatement *string

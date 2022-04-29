@@ -107,8 +107,8 @@ func (t *Fakeroot) NewEntry(Key string) (*RootEntities_Entry, error){
 	return t.Entry[key], nil
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Fakeroot belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Fakeroot.
 func (*Fakeroot) ΛBelongingModule() string {
 	return ""
 }
@@ -134,8 +134,8 @@ func (t *RootEntities_Entry) ΛListKeyMap() (map[string]interface{}, error) {
 	}, nil
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// RootEntities_Entry belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of RootEntities_Entry.
 func (*RootEntities_Entry) ΛBelongingModule() string {
 	return "root-entities"
 }

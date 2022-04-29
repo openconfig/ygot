@@ -90,8 +90,8 @@ func (t *OpenconfigSimple_Parent) PopulateDefaults() {
 	t.Child.PopulateDefaults()
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigSimple_Parent belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of OpenconfigSimple_Parent.
 func (*OpenconfigSimple_Parent) ΛBelongingModule() string {
 	return "openconfig-simple"
 }
@@ -119,8 +119,8 @@ func (t *OpenconfigSimple_Parent_Child) PopulateDefaults() {
 	t.State.PopulateDefaults()
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigSimple_Parent_Child belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of OpenconfigSimple_Parent_Child.
 func (*OpenconfigSimple_Parent_Child) ΛBelongingModule() string {
 	return "openconfig-simple"
 }
@@ -195,8 +195,8 @@ func (t *OpenconfigSimple_Parent_Child_Config) PopulateDefaults() {
 	ygot.BuildEmptyTree(t)
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigSimple_Parent_Child_Config belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of OpenconfigSimple_Parent_Child_Config.
 func (*OpenconfigSimple_Parent_Child_Config) ΛBelongingModule() string {
 	return "openconfig-simple"
 }
@@ -288,8 +288,8 @@ func (t *OpenconfigSimple_Parent_Child_State) PopulateDefaults() {
 	ygot.BuildEmptyTree(t)
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigSimple_Parent_Child_State belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of OpenconfigSimple_Parent_Child_State.
 func (*OpenconfigSimple_Parent_Child_State) ΛBelongingModule() string {
 	return "openconfig-simple"
 }
@@ -317,8 +317,8 @@ func (t *OpenconfigSimple_RemoteContainer) PopulateDefaults() {
 	t.State.PopulateDefaults()
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigSimple_RemoteContainer belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of OpenconfigSimple_RemoteContainer.
 func (*OpenconfigSimple_RemoteContainer) ΛBelongingModule() string {
 	return "openconfig-simple"
 }
@@ -359,8 +359,8 @@ func (t *OpenconfigSimple_RemoteContainer_Config) PopulateDefaults() {
 	ygot.BuildEmptyTree(t)
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigSimple_RemoteContainer_Config belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of OpenconfigSimple_RemoteContainer_Config.
 func (*OpenconfigSimple_RemoteContainer_Config) ΛBelongingModule() string {
 	return "openconfig-simple"
 }
@@ -401,8 +401,8 @@ func (t *OpenconfigSimple_RemoteContainer_State) PopulateDefaults() {
 	ygot.BuildEmptyTree(t)
 }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// OpenconfigSimple_RemoteContainer_State belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of OpenconfigSimple_RemoteContainer_State.
 func (*OpenconfigSimple_RemoteContainer_State) ΛBelongingModule() string {
 	return "openconfig-simple"
 }

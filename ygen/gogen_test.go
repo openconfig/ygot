@@ -59,7 +59,7 @@ func TestGoCodeStructGeneration(t *testing.T) {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/f1",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
@@ -81,7 +81,7 @@ func TestGoCodeStructGeneration(t *testing.T) {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/f2",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type: LeafListNode,
 					LangType: &MappedType{
@@ -134,8 +134,8 @@ func (t *Tstruct) ValidateProxyFunction(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -153,7 +153,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/f1",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
@@ -175,7 +175,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/f2",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type: LeafListNode,
 					LangType: &MappedType{
@@ -221,8 +221,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -240,7 +240,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/module/input-struct/u1",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
@@ -284,8 +284,8 @@ func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// InputStruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of InputStruct.
 func (*InputStruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -345,7 +345,7 @@ func (t *InputStruct) To_InputStruct_U1_Union(i interface{}) (InputStruct_U1_Uni
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/input-struct/c1",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type:                    ContainerNode,
 					LangType:                nil,
@@ -390,8 +390,8 @@ func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// InputStruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of InputStruct.
 func (*InputStruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -410,7 +410,7 @@ func (*InputStruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/input-struct/c1",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 						PresenceStatement: ygot.String("instantiated"),
 					},
 					Type:                    ContainerNode,
@@ -459,8 +459,8 @@ func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// InputStruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of InputStruct.
 func (*InputStruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -478,7 +478,7 @@ func (*InputStruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/a-struct/elem",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type:                    ContainerNode,
 					LangType:                nil,
@@ -504,7 +504,7 @@ func (*InputStruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/b-struct/list",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -530,7 +530,7 @@ func (*InputStruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/q-struct/a-list",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -574,8 +574,8 @@ func (t *QStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *QStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// QStruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of QStruct.
 func (*QStruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -594,7 +594,7 @@ func (*QStruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/listWithKey",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -619,7 +619,7 @@ func (*QStruct) ΛBelongingModule() string {
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeaf",
-							ResolvedPath:      "",
+							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -722,8 +722,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -742,7 +742,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/listWithKey",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -781,7 +781,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "mod",
 						Path:              "/mod/container-two/container/idd",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type:                    InvalidNode,
 					LangType:                nil,
@@ -807,7 +807,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/listWithKey",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -832,7 +832,7 @@ func (*Tstruct) ΛBelongingModule() string {
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeafOne",
-							ResolvedPath:      "",
+							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -852,7 +852,7 @@ func (*Tstruct) ΛBelongingModule() string {
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeafTwo",
-							ResolvedPath:      "",
+							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -975,8 +975,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -995,7 +995,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/f1",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
@@ -1045,8 +1045,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -1065,7 +1065,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/listWithKey",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -1090,7 +1090,7 @@ func (*Tstruct) ΛBelongingModule() string {
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeafOne",
-							ResolvedPath:      "",
+							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -1110,7 +1110,7 @@ func (*Tstruct) ΛBelongingModule() string {
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeafTwo",
-							ResolvedPath:      "",
+							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -1302,8 +1302,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -1322,7 +1322,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/tstruct/listWithKey",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type:                    ListNode,
 					LangType:                nil,
@@ -1347,7 +1347,7 @@ func (*Tstruct) ΛBelongingModule() string {
 							Defaults:          nil,
 							RootElementModule: "exmod",
 							Path:              "/root-module/tstruct/listWithKey/keyLeaf",
-							ResolvedPath:      "",
+							LeafrefTargetPath: "",
 						},
 						Type: LeafNode,
 						LangType: &MappedType{
@@ -1518,8 +1518,8 @@ func (t *Tstruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Tstruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Tstruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Tstruct.
 func (*Tstruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -1538,7 +1538,7 @@ func (*Tstruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "exmod",
 						Path:              "/root-module/input-struct/c1",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type:                    ContainerNode,
 					LangType:                nil,
@@ -1618,8 +1618,8 @@ func (t *InputStruct) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *InputStruct) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// InputStruct belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of InputStruct.
 func (*InputStruct) ΛBelongingModule() string {
 	return "exmod"
 }
@@ -1637,7 +1637,7 @@ func (*InputStruct) ΛBelongingModule() string {
 						Defaults:          nil,
 						RootElementModule: "m1",
 						Path:              "/m1/foo/bar/leaf",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
@@ -1711,8 +1711,8 @@ func (t *Container) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Container belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Container.
 func (*Container) ΛBelongingModule() string {
 	return "m1"
 }
@@ -1730,7 +1730,7 @@ func (*Container) ΛBelongingModule() string {
 						Defaults:          []string{"DEFAULT VALUE"},
 						RootElementModule: "m1",
 						Path:              "/m1/foo/bar/leaf",
-						ResolvedPath:      "",
+						LeafrefTargetPath: "",
 					},
 					Type: LeafNode,
 					LangType: &MappedType{
@@ -1808,8 +1808,8 @@ func (t *Container) ΛValidate(opts ...ygot.ValidationOption) error {
 // that are included in the generated code.
 func (t *Container) ΛEnumTypeMap() map[string][]reflect.Type { return ΛEnumTypes }
 
-// ΛBelongingModule returns the name of the module in whose namespace
-// Container belongs.
+// ΛBelongingModule returns the name of the module that defines the namespace
+// of Container.
 func (*Container) ΛBelongingModule() string {
 	return "m1"
 }
