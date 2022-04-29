@@ -582,7 +582,7 @@ func TestYangTypeToProtoType(t *testing.T) {
 				return
 			}
 
-			s := newProtoGenState(st, enumSet)
+			s := NewProtoLangMapper(st, enumSet)
 
 			for _, st := range tt.in {
 				gotWrapper, err := s.yangTypeToProtoType(st, rpt)
@@ -693,7 +693,7 @@ func TestProtoMsgName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newProtoGenState(nil, nil)
+			s := NewProtoLangMapper(nil, nil)
 			// Seed the proto message names with some known input.
 			if tt.inUniqueProtoMsgNames != nil {
 				s.uniqueProtoMsgNames = tt.inUniqueProtoMsgNames
@@ -828,7 +828,7 @@ func TestProtoPackageName(t *testing.T) {
 
 	for _, tt := range tests {
 		for compress, want := range map[bool]string{true: tt.wantCompress, false: tt.wantUncompress} {
-			s := newProtoGenState(nil, nil)
+			s := NewProtoLangMapper(nil, nil)
 			if tt.inDefinedGlobals != nil {
 				s.definedGlobals = tt.inDefinedGlobals
 			}

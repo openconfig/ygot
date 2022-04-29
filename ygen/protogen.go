@@ -307,7 +307,7 @@ type protoMsgConfig struct {
 //  It returns a generatedProto3Message pointer which includes the definition of the proto3 message, particularly the
 //  name of the package it is within, the code for the message, and any imports for packages that are referenced by
 //  the message.
-func writeProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *protoGenState, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
+func writeProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
 	if cfg.nestedMessages {
 		if !outputNestedMessage(msg, cfg.compressPaths) {
 			return nil, nil
@@ -343,7 +343,7 @@ func outputNestedMessage(msg *Directory, compressPaths bool) bool {
 //  - protogen: the current code generation state.
 //  - cfg: the configuration for the current code generation.
 // It returns a generated protobuf3 message.
-func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *protoGenState, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
+func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
 	var gerrs util.Errors
 	var childMsgs []*generatedProto3Message
 	// Find all the children of the current message that should be output.
@@ -423,7 +423,7 @@ func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *
 // are to be output and determines the package name for the output protobuf. In the
 // case that nested messages are being output, the package name is derived based
 // on the top-level module that the message is within.
-func protobufPackageForMsg(msg *Directory, protogen *protoGenState, compressPaths, nestedMessages bool) (string, error) {
+func protobufPackageForMsg(msg *Directory, protogen *ProtoLangMapper, compressPaths, nestedMessages bool) (string, error) {
 	switch {
 	case msg.IsFakeRoot:
 		// In this case, we explicitly leave the package name as nil, which is interpeted
@@ -467,7 +467,7 @@ func protobufPackageForMsg(msg *Directory, protogen *protoGenState, compressPath
 // writeProto3MsgSingleMsg generates a protobuf message definition. It takes the
 // arguments of writeProto3Message, outputting an individual message that outputs
 // a package definition and a single protobuf message.
-func writeProto3MsgSingleMsg(msg *Directory, msgs map[string]*Directory, protogen *protoGenState, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
+func writeProto3MsgSingleMsg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
 	pkg, err := protobufPackageForMsg(msg, protogen, cfg.compressPaths, cfg.nestedMessages)
 	if err != nil {
 		return nil, []error{err}
@@ -565,7 +565,7 @@ func genProto3MsgCode(cfg *protoMsgConfig, pkg string, msgDefs []*protoMsg, path
 // as a protoMsgConfig struct. The parentPkg argument specifies the name of the parent
 // package for the protobuf message(s) that are being generated, such that relative
 // paths can be used in the messages.
-func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *protoGenState, cfg *protoMsgConfig, parentPkg string, childMsgs []*generatedProto3Message) ([]*protoMsg, util.Errors) {
+func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig, parentPkg string, childMsgs []*generatedProto3Message) ([]*protoMsg, util.Errors) {
 	var errs util.Errors
 
 	var msgDefs []*protoMsg
@@ -682,7 +682,7 @@ type protoDefinitionArgs struct {
 	directory          *Directory            // directory is the Directory for which the proto output is being defined, in the case that the definition is for an directory entry.
 	definedDirectories map[string]*Directory // definedDirectories specifies the set of Directories that have been defined in the current code generation context.
 	definedFieldNames  map[string]bool       // definedFieldNames specifies the field names that have been defined in the context.
-	protogen           *protoGenState        // protogen is the current generator state.
+	protogen           *ProtoLangMapper      // protogen is the current generator state.
 	cfg                *protoMsgConfig
 	parentPkg          string // parentPackage stores the name of the protobuf package that the field's parent is within.
 }
