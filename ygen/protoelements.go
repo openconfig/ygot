@@ -531,7 +531,7 @@ func (s *ProtoLangMapper) protobufPackage(e *yang.Entry, compressPaths bool) str
 
 // protoIdentityName returns the name that should be used for an identityref base.
 func (s *ProtoLangMapper) protoIdentityName(pargs resolveProtoTypeArgs, i *yang.Identity) (string, error) {
-	n, err := s.enumSet.identityrefBaseTypeFromIdentity(i)
+	n, _, err := s.enumSet.identityrefBaseTypeFromIdentity(i)
 	if err != nil {
 		return "", err
 	}

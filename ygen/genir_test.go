@@ -316,7 +316,7 @@ func TestGenerateIR(t *testing.T) {
 				},
 			},
 			Enums: map[string]*EnumeratedYANGType{
-				"Child_Three": {
+				"/openconfig-simple/parent-config/three": {
 					Name:     "Child_Three",
 					Kind:     SimpleEnumerationType,
 					TypeName: "enumeration",
@@ -605,7 +605,7 @@ func TestGenerateIR(t *testing.T) {
 				},
 			},
 			Enums: map[string]*EnumeratedYANGType{
-				"ChildThree": {
+				"/openconfig-simple/parent-config/three": {
 					Name:     "ChildThree",
 					Kind:     SimpleEnumerationType,
 					TypeName: "enumeration",
@@ -1125,7 +1125,7 @@ func TestGenerateIR(t *testing.T) {
 				},
 			},
 			Enums: map[string]*EnumeratedYANGType{
-				"Simple_Parent_Child_Config_Three": {
+				"/openconfig-simple/parent-config/three": {
 					Name:             "Simple_Parent_Child_Config_Three",
 					Kind:             1,
 					TypeName:         "enumeration",
@@ -1679,7 +1679,7 @@ func TestGenerateIR(t *testing.T) {
 				},
 			},
 			Enums: map[string]*EnumeratedYANGType{
-				"Complex_CycloneScales_Enum": {
+				"/openconfig-complex/cyclone-scales": {
 					Name:     "Complex_CycloneScales_Enum",
 					Kind:     DerivedUnionEnumerationType,
 					TypeName: "cyclone-scales",
@@ -1694,7 +1694,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 					},
 				},
-				"Complex_SOFTWARE": {
+				"/openconfig-complex/SOFTWARE": {
 					Name:     "Complex_SOFTWARE",
 					Kind:     IdentityType,
 					TypeName: "identityref",
@@ -1702,7 +1702,7 @@ func TestGenerateIR(t *testing.T) {
 						{Name: "OS", DefiningModule: "openconfig-complex"},
 					},
 				},
-				"Complex_WeekendDays": {
+				"/openconfig-complex/weekend-days": {
 					Name:     "Complex_WeekendDays",
 					Kind:     DerivedEnumerationType,
 					TypeName: "weekend-days",
@@ -1717,7 +1717,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 					},
 				},
-				"SingleKey_SimpleUnionEnum_Enum": {
+				"/openconfig-complex/single-key-config/simple-union-enum": {
 					Name:     "SingleKey_SimpleUnionEnum_Enum",
 					Kind:     UnionEnumerationType,
 					TypeName: "union",
@@ -1736,7 +1736,7 @@ func TestGenerateIR(t *testing.T) {
 						},
 					},
 				},
-				"SingleKey_SingletonUnionEnum_Enum": {
+				"/openconfig-complex/single-key-config/singleton-union-enum": {
 					Name:     "SingleKey_SingletonUnionEnum_Enum",
 					Kind:     UnionEnumerationType,
 					TypeName: "union",
