@@ -17,8 +17,10 @@ package ygen
 import (
 	"testing"
 
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
 )
 
 func TestYangTypeToProtoType(t *testing.T) {
@@ -114,8 +116,11 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		},
-		wantWrapper: &MappedType{UnionTypes: map[string]int{"string": 0, "uint64": 1}},
-		wantSame:    true,
+		wantWrapper: &MappedType{
+			UnionTypes:     map[string]int{"string": 0, "uint64": 1},
+			UnionTypeInfos: map[string]MappedUnionSubtype{"string": {}, "uint64": {}},
+		},
+		wantSame: true,
 	}, {
 		name: "union with only strings",
 		in: []resolveTypeArgs{{
@@ -538,8 +543,11 @@ func TestYangTypeToProtoType(t *testing.T) {
 				},
 			},
 		},
-		wantWrapper: &MappedType{UnionTypes: map[string]int{"bool": 0, "string": 1}},
-		wantSame:    true,
+		wantWrapper: &MappedType{
+			UnionTypes:     map[string]int{"bool": 0, "string": 1},
+			UnionTypeInfos: map[string]MappedUnionSubtype{"bool": {}, "string": {}},
+		},
+		wantSame: true,
 	}}
 
 	for _, tt := range tests {
@@ -585,17 +593,47 @@ func TestYangTypeToProtoType(t *testing.T) {
 			s := NewProtoLangMapper(st, enumSet)
 
 			for _, st := range tt.in {
-				gotWrapper, err := s.yangTypeToProtoType(st, rpt)
+				gotWrapper, err := s.yangTypeToProtoType(st, rpt, IROptions{
+					TransformationOptions: TransformationOpts{
+						CompressBehaviour:                    genutil.Uncompressed,
+						IgnoreShadowSchemaPaths:              false,
+						GenerateFakeRoot:                     true,
+						ExcludeState:                         false,
+						ShortenEnumLeafNames:                 false,
+						EnumOrgPrefixesToTrim:                nil,
+						UseDefiningModuleForTypedefEnumNames: true,
+						EnumerationsUseUnderscores:           false,
+					},
+					NestedDirectories:                   true,
+					AbsoluteMapPaths:                    true,
+					AppendEnumSuffixForSimpleUnionEnums: true,
+				})
 				if (err != nil) != tt.wantErr {
 					t.Errorf("%s: yangTypeToProtoType(%v): got unexpected error, got: %v, want error: %v", tt.name, tt.in, err, tt.wantErr)
 					continue
 				}
 
-				if diff := pretty.Compare(gotWrapper, tt.wantWrapper); diff != "" {
+				// NOTE: We ignore testing "MappedType.EnumeratedYANGTypeKey" because it is a reference value,
+				// and is best tested in an integration test where we can ensure that this value actually points to an enum value in the enum map.
+				if diff := cmp.Diff(gotWrapper, tt.wantWrapper, cmpopts.IgnoreFields(MappedType{}, "EnumeratedYANGTypeKey")); diff != "" {
 					t.Errorf("%s: yangTypeToProtoType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 				}
 
-				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt)
+				gotScalar, err := s.yangTypeToProtoScalarType(st, rpt, IROptions{
+					TransformationOptions: TransformationOpts{
+						CompressBehaviour:                    genutil.Uncompressed,
+						IgnoreShadowSchemaPaths:              false,
+						GenerateFakeRoot:                     true,
+						ExcludeState:                         false,
+						ShortenEnumLeafNames:                 false,
+						EnumOrgPrefixesToTrim:                nil,
+						UseDefiningModuleForTypedefEnumNames: true,
+						EnumerationsUseUnderscores:           false,
+					},
+					NestedDirectories:                   false,
+					AbsoluteMapPaths:                    true,
+					AppendEnumSuffixForSimpleUnionEnums: true,
+				})
 				if (err != nil) != tt.wantErr {
 					t.Errorf("%s: yangTypeToProtoScalarType(%v, basePackage, enumPackage): got unexpected error: %v", tt.name, tt.in, err)
 				}
@@ -604,7 +642,9 @@ func TestYangTypeToProtoType(t *testing.T) {
 				if tt.wantSame {
 					wantScalar = tt.wantWrapper
 				}
-				if diff := pretty.Compare(gotScalar, wantScalar); diff != "" {
+				// NOTE: We ignore testing "MappedType.EnumeratedYANGTypeKey" because it is a reference value,
+				// and is best tested in an integration test where we can ensure that this value actually points to an enum value in the enum map.
+				if diff := cmp.Diff(gotScalar, wantScalar, cmpopts.IgnoreFields(MappedType{}, "EnumeratedYANGTypeKey")); diff != "" {
 					t.Errorf("%s: yangTypeToProtoScalarType(%v): did not get correct type, diff(-got,+want):\n%s", tt.name, tt.in, diff)
 				}
 			}

@@ -319,6 +319,8 @@ func (s *GoLangMapper) yangTypeToGoType(args resolveTypeArgs, compressOCPaths, s
 		// here.
 		mtype.ZeroValue = "0"
 		mtype.DefaultValue = defVal
+		// Erase this since we don't need it for Go's IR.
+		mtype.EnumeratedYANGTypeKey = ""
 
 		return mtype, nil
 	}

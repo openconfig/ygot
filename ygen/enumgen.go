@@ -226,14 +226,15 @@ func (s *enumSet) enumeratedTypedefTypeName(args resolveTypeArgs, prefix string,
 		}
 		enumIsTypedef := args.yangType.Kind == yang.Yenum && !util.IsYANGBaseType(definingType)
 		if !util.IsYANGBaseType(args.yangType) || (useDefiningModuleForTypedefEnumNames && enumIsTypedef) {
-			tn, _, err := s.typedefEnumeratedName(args, noUnderscores, useDefiningModuleForTypedefEnumNames)
+			tn, key, err := s.typedefEnumeratedName(args, noUnderscores, useDefiningModuleForTypedefEnumNames)
 			if err != nil {
 				return nil, err
 			}
 
 			return &MappedType{
-				NativeType:        fmt.Sprintf("%s%s", prefix, tn),
-				IsEnumeratedValue: true,
+				NativeType:            fmt.Sprintf("%s%s", prefix, tn),
+				IsEnumeratedValue:     true,
+				EnumeratedYANGTypeKey: key,
 			}, nil
 		}
 	}

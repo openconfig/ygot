@@ -103,7 +103,7 @@ module openconfig-complex {
 
   grouping multi-key-config {
     leaf key1 { type uint32; }
-    leaf key2 { type uint64; }
+    leaf key2 { type enumeration { enum RED; enum BLUE; } }
   }
 
   grouping top {

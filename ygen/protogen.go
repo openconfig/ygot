@@ -307,14 +307,14 @@ type protoMsgConfig struct {
 //  It returns a generatedProto3Message pointer which includes the definition of the proto3 message, particularly the
 //  name of the package it is within, the code for the message, and any imports for packages that are referenced by
 //  the message.
-func writeProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
+func writeProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig, opts IROptions) (*generatedProto3Message, util.Errors) {
 	if cfg.nestedMessages {
 		if !outputNestedMessage(msg, cfg.compressPaths) {
 			return nil, nil
 		}
-		return writeProto3MsgNested(msg, msgs, protogen, cfg)
+		return writeProto3MsgNested(msg, msgs, protogen, cfg, opts)
 	}
-	return writeProto3MsgSingleMsg(msg, msgs, protogen, cfg)
+	return writeProto3MsgSingleMsg(msg, msgs, protogen, cfg, opts)
 }
 
 // outputNestedMessage determines whether the message represented by the supplied
@@ -343,13 +343,13 @@ func outputNestedMessage(msg *Directory, compressPaths bool) bool {
 //  - protogen: the current code generation state.
 //  - cfg: the configuration for the current code generation.
 // It returns a generated protobuf3 message.
-func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
+func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig, opts IROptions) (*generatedProto3Message, util.Errors) {
 	var gerrs util.Errors
 	var childMsgs []*generatedProto3Message
 	// Find all the children of the current message that should be output.
 	for _, n := range msgs {
 		if util.IsDirectEntryChild(msg.Entry, n.Entry, cfg.compressPaths) {
-			cmsg, errs := writeProto3MsgNested(n, msgs, protogen, cfg)
+			cmsg, errs := writeProto3MsgNested(n, msgs, protogen, cfg, opts)
 			if errs != nil {
 				gerrs = append(gerrs, errs...)
 				continue
@@ -364,7 +364,7 @@ func writeProto3MsgNested(msg *Directory, msgs map[string]*Directory, protogen *
 	}
 
 	// Generate this message, and its associated messages.
-	msgDefs, errs := genProto3Msg(msg, msgs, protogen, cfg, pkg, childMsgs)
+	msgDefs, errs := genProto3Msg(msg, msgs, protogen, cfg, pkg, childMsgs, opts)
 	if errs != nil {
 		return nil, append(gerrs, errs...)
 	}
@@ -467,13 +467,13 @@ func protobufPackageForMsg(msg *Directory, protogen *ProtoLangMapper, compressPa
 // writeProto3MsgSingleMsg generates a protobuf message definition. It takes the
 // arguments of writeProto3Message, outputting an individual message that outputs
 // a package definition and a single protobuf message.
-func writeProto3MsgSingleMsg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig) (*generatedProto3Message, util.Errors) {
+func writeProto3MsgSingleMsg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig, opts IROptions) (*generatedProto3Message, util.Errors) {
 	pkg, err := protobufPackageForMsg(msg, protogen, cfg.compressPaths, cfg.nestedMessages)
 	if err != nil {
 		return nil, []error{err}
 	}
 
-	msgDefs, errs := genProto3Msg(msg, msgs, protogen, cfg, pkg, nil)
+	msgDefs, errs := genProto3Msg(msg, msgs, protogen, cfg, pkg, nil, opts)
 	if errs != nil {
 		return nil, errs
 	}
@@ -565,7 +565,7 @@ func genProto3MsgCode(cfg *protoMsgConfig, pkg string, msgDefs []*protoMsg, path
 // as a protoMsgConfig struct. The parentPkg argument specifies the name of the parent
 // package for the protobuf message(s) that are being generated, such that relative
 // paths can be used in the messages.
-func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig, parentPkg string, childMsgs []*generatedProto3Message) ([]*protoMsg, util.Errors) {
+func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLangMapper, cfg *protoMsgConfig, parentPkg string, childMsgs []*generatedProto3Message, opts IROptions) ([]*protoMsg, util.Errors) {
 	var errs util.Errors
 
 	var msgDefs []*protoMsg
@@ -622,7 +622,7 @@ func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLan
 		}
 		switch {
 		case field.IsList():
-			keyMsg, listImports, listErrs := addProtoListField(fieldDef, msgDef, defArgs)
+			keyMsg, listImports, listErrs := addProtoListField(fieldDef, msgDef, defArgs, opts)
 			if listErrs != nil {
 				errs = append(errs, listErrs...)
 				continue
@@ -639,7 +639,7 @@ func genProto3Msg(msg *Directory, msgs map[string]*Directory, protogen *ProtoLan
 			}
 			addNewKeys(imports, cImports)
 		case field.IsLeaf() || field.IsLeafList():
-			repeatedMsg, lImports, lErrs := addProtoLeafOrLeafListField(fieldDef, msgDef, defArgs)
+			repeatedMsg, lImports, lErrs := addProtoLeafOrLeafListField(fieldDef, msgDef, defArgs, opts)
 			if lErrs != nil {
 				errs = append(errs, lErrs...)
 				continue
@@ -692,8 +692,8 @@ type protoDefinitionArgs struct {
 // and nested messages are being output, the generated protobuf message for the key is appended to the supplied
 // message definition (msgDef). If nested messages are not being output, a definition of the key message is returned.
 // Along with the optional key message, it returns a list of the imports being used for the list.
-func addProtoListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDefinitionArgs) (*protoMsg, []string, util.Errors) {
-	listDef, keyMsg, err := protoListDefinition(args)
+func addProtoListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDefinitionArgs, opts IROptions) (*protoMsg, []string, util.Errors) {
+	listDef, keyMsg, err := protoListDefinition(args, opts)
 	if err != nil {
 		return nil, nil, []error{fmt.Errorf("could not define list %s: %v", args.field.Path(), err)}
 	}
@@ -759,11 +759,11 @@ func addProtoContainerField(fieldDef *protoMsgField, args *protoDefinitionArgs) 
 // generated for it, it is appended to the message definition supplied (msgDef) when nested messages are being output,
 // otherwise it is returned. In addition, it returns a slice of strings describing the imports that are required for
 // the message.
-func addProtoLeafOrLeafListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDefinitionArgs) (*protoMsg, []string, util.Errors) {
+func addProtoLeafOrLeafListField(fieldDef *protoMsgField, msgDef *protoMsg, args *protoDefinitionArgs, opts IROptions) (*protoMsg, []string, util.Errors) {
 	var imports []string
 	var repeatedMsg *protoMsg
 
-	d, err := protoLeafDefinition(fieldDef.Name, args)
+	d, err := protoLeafDefinition(fieldDef.Name, args, opts)
 	if err != nil {
 		return nil, nil, []error{fmt.Errorf("could not define field %s: %v", args.field.Path(), err)}
 	}
@@ -950,7 +950,7 @@ type protoMsgListField struct {
 // protoListDefinition takes an input field described by a yang.Entry, the generator context (the set of proto messages, and the generator
 // state), along with whether path compression is enabled and generates the proto message definition for the list. It returns the definition
 // of the field representing the list as a protoMsgListField and an optional message which stores the key of a keyed list.
-func protoListDefinition(args *protoDefinitionArgs) (*protoMsgListField, *protoMsg, error) {
+func protoListDefinition(args *protoDefinitionArgs, opts IROptions) (*protoMsgListField, *protoMsg, error) {
 	listMsg, ok := args.definedDirectories[args.field.Path()]
 	if !ok {
 		return nil, nil, fmt.Errorf("proto: could not resolve list %s into a defined message", args.field.Path())
@@ -989,7 +989,7 @@ func protoListDefinition(args *protoDefinitionArgs) (*protoMsgListField, *protoM
 			protogen:  args.protogen,
 			cfg:       args.cfg,
 			parentPkg: args.parentPkg,
-		})
+		}, opts)
 		if err != nil {
 			return nil, nil, fmt.Errorf("proto: could not build mapping for list entry %s: %v", args.field.Path(), err)
 		}
@@ -1015,14 +1015,14 @@ type protoDefinedLeaf struct {
 // protoLeafDefinition takes an input leafName, and a set of protoDefinitionArgs specifying the context
 // for the leaf definition, and returns a protoDefinedLeaf describing how it is to be mapped within the
 // protobuf parent message.
-func protoLeafDefinition(leafName string, args *protoDefinitionArgs) (*protoDefinedLeaf, error) {
+func protoLeafDefinition(leafName string, args *protoDefinitionArgs, opts IROptions) (*protoDefinedLeaf, error) {
 	protoType, err := args.protogen.yangTypeToProtoType(resolveTypeArgs{
 		yangType:     args.field.Type,
 		contextEntry: args.field,
 	}, resolveProtoTypeArgs{
 		basePackageName: args.cfg.basePackageName,
 		enumPackageName: args.cfg.enumPackageName,
-	})
+	}, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -1123,7 +1123,7 @@ func fieldTag(s string) (uint32, error) {
 // the key of a list for YANG lists. It takes a Directory pointer to the list being
 // described, the name of the list, the package name that the list is within, and the
 // current generator state. It returns the definition of the list key proto.
-func genListKeyProto(listPackage string, listName string, args *protoDefinitionArgs) (*protoMsg, error) {
+func genListKeyProto(listPackage string, listName string, args *protoDefinitionArgs, opts IROptions) (*protoMsg, error) {
 	n := fmt.Sprintf("%s%s", listName, protoListKeyMessageSuffix)
 	km := &protoMsg{
 		Name:     n,
@@ -1168,7 +1168,7 @@ func genListKeyProto(listPackage string, listName string, args *protoDefinitionA
 			// this message since all keys must be set. We therefore signal this in
 			// the call to the type resolution.
 			scalarTypeInSingleTypeUnion: true,
-		})
+		}, opts)
 		if err != nil {
 			return nil, fmt.Errorf("list %s included a key %s that did not have a valid proto type: %v", args.field.Path(), k, kf.Type)
 		}

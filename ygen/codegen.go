@@ -767,7 +767,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	opts := IROptions{
 		ParseOptions:                        cg.Config.ParseOptions,
 		TransformationOptions:               cg.Config.TransformationOptions,
-		NestedDirectories:                   true,
+		NestedDirectories:                   cg.Config.ProtoOptions.NestedMessages,
 		AbsoluteMapPaths:                    true,
 		AppendEnumSuffixForSimpleUnionEnums: true,
 	}
@@ -853,7 +853,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 			annotateSchemaPaths: cg.Config.ProtoOptions.AnnotateSchemaPaths,
 			annotateEnumNames:   cg.Config.ProtoOptions.AnnotateEnumNames,
 			nestedMessages:      cg.Config.ProtoOptions.NestedMessages,
-		})
+		}, opts)
 
 		if errs != nil {
 			yerr = util.AppendErrs(yerr, errs)

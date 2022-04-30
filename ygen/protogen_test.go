@@ -21,6 +21,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
+	"github.com/openconfig/ygot/genutil"
 	"github.com/openconfig/ygot/testutil"
 )
 
@@ -690,13 +691,32 @@ func TestGenProto3Msg(t *testing.T) {
 			// Seed the state with the supplied message names that have been provided.
 			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
+			compressBehaviour := genutil.Uncompressed
+			if tt.inCompressPaths {
+				compressBehaviour = genutil.PreferIntendedConfig
+			}
+
 			gotMsgs, errs := genProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
 				compressPaths:       tt.inCompressPaths,
 				basePackageName:     tt.inBasePackage,
 				enumPackageName:     tt.inEnumPackage,
 				baseImportPath:      tt.inBaseImportPath,
 				annotateSchemaPaths: tt.inAnnotateSchemaPaths,
-			}, tt.inParentPackage, tt.inChildMsgs)
+			}, tt.inParentPackage, tt.inChildMsgs, IROptions{
+				TransformationOptions: TransformationOpts{
+					CompressBehaviour:                    compressBehaviour,
+					IgnoreShadowSchemaPaths:              false,
+					GenerateFakeRoot:                     true,
+					ExcludeState:                         false,
+					ShortenEnumLeafNames:                 false,
+					EnumOrgPrefixesToTrim:                nil,
+					UseDefiningModuleForTypedefEnumNames: true,
+					EnumerationsUseUnderscores:           false,
+				},
+				NestedDirectories:                   true,
+				AbsoluteMapPaths:                    true,
+				AppendEnumSuffixForSimpleUnionEnums: true,
+			})
 
 			if (errs != nil) != tt.wantErr {
 				t.Errorf("s: genProtoMsg(%#v, %#v, *genState, %v, %v, %s, %s): did not get expected error status, got: %v, wanted err: %v", tt.name, tt.inMsg, tt.inMsgs, tt.inCompressPaths, tt.inBasePackage, tt.inEnumPackage, errs, tt.wantErr)
@@ -1450,12 +1470,31 @@ message MessageName {
 				// Seed the message names with the supplied input.
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
 
+				compressBehaviour := genutil.Uncompressed
+				if compress {
+					compressBehaviour = genutil.PreferIntendedConfig
+				}
+
 				got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
 					compressPaths:   compress,
 					basePackageName: tt.inBasePackageName,
 					enumPackageName: tt.inEnumPackageName,
 					baseImportPath:  tt.inBaseImportPath,
 					nestedMessages:  tt.inNestedMessages,
+				}, IROptions{
+					TransformationOptions: TransformationOpts{
+						CompressBehaviour:                    compressBehaviour,
+						IgnoreShadowSchemaPaths:              false,
+						GenerateFakeRoot:                     true,
+						ExcludeState:                         false,
+						ShortenEnumLeafNames:                 false,
+						EnumOrgPrefixesToTrim:                nil,
+						UseDefiningModuleForTypedefEnumNames: true,
+						EnumerationsUseUnderscores:           false,
+					},
+					NestedDirectories:                   true,
+					AbsoluteMapPaths:                    true,
+					AppendEnumSuffixForSimpleUnionEnums: true,
 				})
 
 				if (errs != nil) != wantErr[compress] {
@@ -1660,7 +1699,21 @@ func TestGenListKeyProto(t *testing.T) {
 	}}
 
 	for _, tt := range tests {
-		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs)
+		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs, IROptions{
+			TransformationOptions: TransformationOpts{
+				CompressBehaviour:                    genutil.Uncompressed,
+				IgnoreShadowSchemaPaths:              false,
+				GenerateFakeRoot:                     true,
+				ExcludeState:                         false,
+				ShortenEnumLeafNames:                 false,
+				EnumOrgPrefixesToTrim:                nil,
+				UseDefiningModuleForTypedefEnumNames: true,
+				EnumerationsUseUnderscores:           false,
+			},
+			NestedDirectories:                   true,
+			AbsoluteMapPaths:                    true,
+			AppendEnumSuffixForSimpleUnionEnums: true,
+		})
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: genListKeyProto(%s, %s, %#v): got unexpected error returned, got: %v, want err: %v", tt.name, tt.inListPackage, tt.inListName, tt.inArgs, err, tt.wantErr)
 		}
