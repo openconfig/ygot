@@ -58,7 +58,13 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 		want: []string{"string"},
 		wantMtypes: map[int]*MappedType{
-			0: {"string", nil, false, goZeroValues["string"], nil},
+			0: {
+				NativeType:        "string",
+				UnionTypes:        nil,
+				IsEnumeratedValue: false,
+				ZeroValue:         goZeroValues["string"],
+				DefaultValue:      nil,
+			},
 		},
 	}, {
 		name: "union of int8, string",
@@ -75,8 +81,20 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 		want: []string{"int8", "string"},
 		wantMtypes: map[int]*MappedType{
-			0: {"int8", nil, false, goZeroValues["int8"], nil},
-			1: {"string", nil, false, goZeroValues["string"], nil},
+			0: {
+				NativeType:        "int8",
+				UnionTypes:        nil,
+				IsEnumeratedValue: false,
+				ZeroValue:         goZeroValues["int8"],
+				DefaultValue:      nil,
+			},
+			1: {
+				NativeType:        "string",
+				UnionTypes:        nil,
+				IsEnumeratedValue: false,
+				ZeroValue:         goZeroValues["string"],
+				DefaultValue:      nil,
+			},
 		},
 	}, {
 		name: "union of unions",
@@ -105,10 +123,34 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 		want: []string{"string", "int32", "uint64", "int16"},
 		wantMtypes: map[int]*MappedType{
-			0: {"string", nil, false, goZeroValues["string"], nil},
-			1: {"int32", nil, false, goZeroValues["int32"], nil},
-			2: {"uint64", nil, false, goZeroValues["uint64"], nil},
-			3: {"int16", nil, false, goZeroValues["int16"], nil},
+			0: {
+				NativeType:        "string",
+				UnionTypes:        nil,
+				IsEnumeratedValue: false,
+				ZeroValue:         goZeroValues["string"],
+				DefaultValue:      nil,
+			},
+			1: {
+				NativeType:        "int32",
+				UnionTypes:        nil,
+				IsEnumeratedValue: false,
+				ZeroValue:         goZeroValues["int32"],
+				DefaultValue:      nil,
+			},
+			2: {
+				NativeType:        "uint64",
+				UnionTypes:        nil,
+				IsEnumeratedValue: false,
+				ZeroValue:         goZeroValues["uint64"],
+				DefaultValue:      nil,
+			},
+			3: {
+				NativeType:        "int16",
+				UnionTypes:        nil,
+				IsEnumeratedValue: false,
+				ZeroValue:         goZeroValues["int16"],
+				DefaultValue:      nil,
+			},
 		},
 	}, {
 		name: "erroneous union without context",
@@ -342,8 +384,20 @@ func TestUnionSubTypes(t *testing.T) {
 		},
 		want: []string{"E_Basemod_Id", "E_Basemod2_Id2"},
 		wantMtypes: map[int]*MappedType{
-			0: {"E_Basemod_Id", nil, true, "0", nil},
-			1: {"E_Basemod2_Id2", nil, true, "0", nil},
+			0: {
+				NativeType:        "E_Basemod_Id",
+				UnionTypes:        nil,
+				IsEnumeratedValue: true,
+				ZeroValue:         "0",
+				DefaultValue:      nil,
+			},
+			1: {
+				NativeType:        "E_Basemod2_Id2",
+				UnionTypes:        nil,
+				IsEnumeratedValue: true,
+				ZeroValue:         "0",
+				DefaultValue:      nil,
+			},
 		},
 	}, {
 		name: "union of single identityref",

@@ -39,11 +39,11 @@ type MappedType struct {
 	// NativeType is the candidate language-specific type name which is to
 	// be used for the mapped entity.
 	NativeType string
-	// EnumeratedYANGTypeName stores a globally-unique name that can be
-	// used to key into IR.EnumeratedYANGTypes containing all of the
-	// enumeration definitions. This value should be populated when
+	// EnumeratedYANGTypeKey stores a globally-unique key that can be
+	// used to key into IR's EnumeratedYANGTypes map containing all of the
+	// enumeration definitions. This value should only be populated when
 	// IsEnumeratedValue is true.
-	//EnumeratedYANGTypeName string
+	//EnumeratedYANGTypeKey string
 	// UnionTypes is a map, keyed by the generated type name, of the types
 	// specified as valid for a union. The value of the map indicates the
 	// order of the type, since order is important for unions in YANG.
@@ -52,6 +52,9 @@ type MappedType struct {
 	// the generated code from the structs maintains only type validation,
 	// this is not currently a limitation.
 	UnionTypes map[string]int
+	// UnionTypeInfos stores more information about each union subtype that
+	// can be populated if needed during the code generation pass.
+	UnionTypeInfos map[string]MappedUnionSubtype
 	// IsEnumeratedValue specifies whether the NativeType that is returned
 	// is a generated enumerated value. Such entities are reflected as
 	// derived types with constant values, and are hence not represented
@@ -65,6 +68,16 @@ type MappedType struct {
 	// It is represented as a string pointer to ensure that default values
 	// of the empty string can be distinguished from unset defaults.
 	DefaultValue *string
+}
+
+// MappedUnionSubtype stores information associated with a union subtype within
+// a MappedType.
+type MappedUnionSubtype struct {
+	// EnumeratedYANGTypeKey stores a globally-unique key that can be
+	// used to key into IR's EnumeratedYANGTypes map containing all of the
+	// enumeration definitions. This value should only be populated when
+	// the union subtype is an enumerated type
+	//EnumeratedYANGTypeKey string
 }
 
 // IsYgenDefinedGoType returns true if the native type of a MappedType is a Go
