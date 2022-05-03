@@ -1095,10 +1095,12 @@ func (*LeafContainerStruct) To_UnionLeafTypeSimple(i interface{}) (UnionLeafType
 
 func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 	tests := []struct {
-		desc    string
-		json    string
-		want    LeafContainerStruct
-		wantErr string
+		desc              string
+		json              string
+		reverseShadowPath bool
+		opts              []UnmarshalOpt
+		want              LeafContainerStruct
+		wantErr           string
 	}{
 		{
 			desc: "nil success",
@@ -1119,6 +1121,18 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 			desc: "state int8 success ignoring",
 			json: `{"state" : { "inner-int8-leaf" : -42} }`,
 			want: LeafContainerStruct{},
+		},
+		{
+			desc: "config int8 ignoring path with preferShadowPath",
+			json: `{"config" : { "inner-int8-leaf" : -42} }`,
+			opts: []UnmarshalOpt{&PreferShadowPath{}},
+			want: LeafContainerStruct{},
+		},
+		{
+			desc: "state int8 success with shadow path",
+			json: `{"state" : { "inner-int8-leaf" : -42} }`,
+			opts: []UnmarshalOpt{&PreferShadowPath{}},
+			want: LeafContainerStruct{Int8LeafConfig: ygot.Int8(-42)},
 		},
 		{
 			desc:    "non-existent state fail ignoring",
@@ -1650,7 +1664,7 @@ func TestUnmarshalLeafJSONEncoding(t *testing.T) {
 				t.Fatalf("%s : %s", tt.desc, err)
 			}
 
-			err := Unmarshal(containerSchema, &parent, jsonTree)
+			err := Unmarshal(containerSchema, &parent, jsonTree, tt.opts...)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s (#%d): Unmarshal got error: %v, want error: %v", tt.desc, idx, got, want)
 			}

@@ -39,6 +39,10 @@ type IgnoreExtraFields struct{}
 // IsUnmarshalOpt marks IgnoreExtraFields as a valid UnmarshalOpt.
 func (*IgnoreExtraFields) IsUnmarshalOpt() {}
 
+// IsUnmarshalOpt marks PreferShadowPath as a valid UnmarshalOpt.
+// See PreferShadowPath's definition in node.go.
+func (*PreferShadowPath) IsUnmarshalOpt() {}
+
 // Unmarshal recursively unmarshals JSON data tree in value into the given
 // parent, using the given schema. Any values already in the parent that are
 // not present in value are preserved. If provided schema is a leaf or leaf
@@ -85,9 +89,9 @@ func unmarshalGeneric(schema *yang.Entry, parent interface{}, value interface{},
 
 	switch {
 	case schema.IsLeaf():
-		return unmarshalLeaf(schema, parent, value, enc)
+		return unmarshalLeaf(schema, parent, value, enc, opts...)
 	case schema.IsLeafList():
-		return unmarshalLeafList(schema, parent, value, enc)
+		return unmarshalLeafList(schema, parent, value, enc, opts...)
 	case schema.IsList():
 		return unmarshalList(schema, parent, value, enc, opts...)
 	case schema.IsChoice():
@@ -103,6 +107,17 @@ func unmarshalGeneric(schema *yang.Entry, parent interface{}, value interface{},
 func hasIgnoreExtraFields(opts []UnmarshalOpt) bool {
 	for _, o := range opts {
 		if _, ok := o.(*IgnoreExtraFields); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// hasPreferShadowPath determines whether the supplied slice of UnmarshalOpts
+// contains the PreferShadowPath option.
+func hasPreferShadowPath(opts []UnmarshalOpt) bool {
+	for _, o := range opts {
+		if _, ok := o.(*PreferShadowPath); ok {
 			return true
 		}
 	}

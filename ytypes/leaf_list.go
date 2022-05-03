@@ -88,7 +88,7 @@ func validateLeafListSchema(schema *yang.Entry) error {
 //   enc is the encoding type used to encode the value
 //   value is a JSON array if enc is JSONEncoding, represented as Go slice
 //   value is a gNMI TypedValue if enc is GNMIEncoding, represented as TypedValue_LeafListVal
-func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}, enc Encoding) error {
+func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	if util.IsValueNil(value) {
 		if enc == JSONEncoding {
 			return nil
@@ -100,7 +100,7 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 		return err
 	}
 
-	fieldName, _, err := schemaToStructFieldName(schema, parent)
+	fieldName, _, err := schemaToStructFieldName(schema, parent, hasPreferShadowPath(opts))
 	if err != nil {
 		return err
 	}
@@ -127,7 +127,7 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 		// A new leaf-list update specifies the entire leaf-list, so we should clear its contents if it is non-nil.
 		clearSliceField(parent, fieldName)
 		for _, v := range sa.LeaflistVal.GetElement() {
-			if err := unmarshalGeneric(&leafSchema, parent, v, enc); err != nil {
+			if err := unmarshalGeneric(&leafSchema, parent, v, enc, opts...); err != nil {
 				return err
 			}
 		}
@@ -140,7 +140,7 @@ func unmarshalLeafList(schema *yang.Entry, parent interface{}, value interface{}
 		// A new leaf-list update specifies the entire leaf-list, so we should clear its contents if it is non-nil.
 		clearSliceField(parent, fieldName)
 		for _, leaf := range leafList {
-			if err := unmarshalGeneric(&leafSchema, parent, leaf, enc); err != nil {
+			if err := unmarshalGeneric(&leafSchema, parent, leaf, enc, opts...); err != nil {
 				return err
 			}
 		}

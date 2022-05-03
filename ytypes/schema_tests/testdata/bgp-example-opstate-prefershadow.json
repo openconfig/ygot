@@ -33,7 +33,7 @@
                           },
                           "ibgp": {
                             "state": {
-                              "maximum-paths": 32
+                              "maximum-paths": 33
                             }
                           }
                         }
@@ -45,7 +45,7 @@
                           "enabled": true
                         },
                         "use-multiple-paths": {
-                          "ebgp": {
+                          "ibgp": {
                             "state": {
                               "maximum-paths": 32
                             }

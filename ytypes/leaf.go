@@ -336,7 +336,7 @@ type Binary []byte
 // unmarshalLeaf unmarshals a scalar value (determined by json.Unmarshal) into
 // the parent containing the leaf.
 //   schema points to the schema for the leaf type.
-func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, enc Encoding) error {
+func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, enc Encoding, opts ...UnmarshalOpt) error {
 	if util.IsValueNil(value) {
 		if enc == JSONEncoding {
 			return nil
@@ -351,7 +351,7 @@ func unmarshalLeaf(inSchema *yang.Entry, parent interface{}, value interface{}, 
 
 	util.DbgPrint("unmarshalLeaf value %v, type %T, into parent type %T, schema name %s", util.ValueStrDebug(value), value, parent, inSchema.Name)
 
-	fieldName, _, err := schemaToStructFieldName(inSchema, parent)
+	fieldName, _, err := schemaToStructFieldName(inSchema, parent, hasPreferShadowPath(opts))
 	if err != nil {
 		return err
 	}

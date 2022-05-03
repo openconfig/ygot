@@ -65,9 +65,37 @@ func ShadowSchemaPaths(f reflect.StructField) [][]string {
 // leafref; the schema *yang.Entry for the field is given by
 // schema.Dir["config"].Dir["a"].
 func RelativeSchemaPath(f reflect.StructField) ([]string, error) {
-	pathTag, ok := f.Tag.Lookup("path")
-	if !ok || pathTag == "" {
-		return nil, fmt.Errorf("field %s did not specify a path", f.Name)
+	return RelativeSchemaPath2(f, false)
+}
+
+// RelativeSchemaPath2 returns a path to the schema for the struct field f.
+// Its difference with RelativeSchemaPath is in the existence of the
+// preferShadowPath parameter. When it is false, its behaviour is the same, but
+// when true, it checks the "shadow-path" tag first for matches. If this tag
+// doesn't exist, it assumes that there are no shadow paths for this field and
+// uses the "path" tag.
+//
+// Paths are embedded in the "path" struct tag and can be either simple:
+//   e.g. "path:a"
+// or composite (if path compression is used) e.g.
+//   e.g. "path:config/a|a"
+// In the latter case, this function returns {"config", "a"}, because only the
+// longer path exists in the data tree and we want the schema for that node.
+// This case is found in OpenConfig leaf-ref cases where the key of a list is a
+// leafref; the schema *yang.Entry for the field is given by
+// schema.Dir["config"].Dir["a"].
+func RelativeSchemaPath2(f reflect.StructField, preferShadowPath bool) ([]string, error) {
+	var pathTag string
+	var ok bool
+	if preferShadowPath {
+		pathTag, ok = f.Tag.Lookup("shadow-path")
+	}
+	if !ok {
+		if pathTag, ok = f.Tag.Lookup("path"); !ok || pathTag == "" {
+			return nil, fmt.Errorf("field %s did not specify a path", f.Name)
+		}
+	} else if pathTag == "" {
+		return nil, fmt.Errorf("field %s did not specify a shadow-path", f.Name)
 	}
 
 	paths := strings.Split(pathTag, "|")

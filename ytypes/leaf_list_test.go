@@ -482,17 +482,44 @@ func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 				ListAttr: yang.NewDefaultListAttr(),
 				Type:     &yang.YangType{Kind: yang.Yenum},
 			},
+			"state": {
+				Name: "state",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"inner-enum-leaf-list": {
+						Name:     "inner-enum-leaf-list",
+						Kind:     yang.LeafEntry,
+						ListAttr: yang.NewDefaultListAttr(),
+						Type:     &yang.YangType{Kind: yang.Yenum},
+					},
+				},
+			},
+			"config": {
+				Name: "config",
+				Kind: yang.DirectoryEntry,
+				Dir: map[string]*yang.Entry{
+					"inner-enum-leaf-list": {
+						Name:     "inner-enum-leaf-list",
+						Kind:     yang.LeafEntry,
+						ListAttr: yang.NewDefaultListAttr(),
+						Type:     &yang.YangType{Kind: yang.Yenum},
+					},
+				},
+			},
 		},
 	}
+	addParents(containerWithLeafListSchema)
 	type ContainerStruct struct {
-		Int32LeafList []*int32   `path:"int32-leaf-list"`
-		EnumLeafList  []EnumType `path:"enum-leaf-list"`
+		Int32LeafList     []*int32   `path:"int32-leaf-list"`
+		EnumLeafList      []EnumType `path:"enum-leaf-list"`
+		InnerEnumLeafList []EnumType `path:"state/inner-enum-leaf-list" shadow-path:"config/inner-enum-leaf-list"`
 	}
 
 	tests := []struct {
 		desc    string
 		json    string
 		in      ContainerStruct
+		opts    []UnmarshalOpt
 		want    ContainerStruct
 		wantErr string
 	}{
@@ -518,6 +545,28 @@ func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 			want: ContainerStruct{EnumLeafList: []EnumType{42}},
 		},
 		{
+			desc: "inner enum success",
+			json: `{ "state" : { "inner-enum-leaf-list" : ["E_VALUE_FORTY_TWO"] } }`,
+			want: ContainerStruct{InnerEnumLeafList: []EnumType{42}},
+		},
+		{
+			desc: "inner enum success ignoring shadow path",
+			json: `{ "config" : { "inner-enum-leaf-list" : ["E_VALUE_FORTY_TWO"] } }`,
+			want: ContainerStruct{},
+		},
+		{
+			desc: "inner enum success ignoring path with preferShadowPath",
+			json: `{ "state" : { "inner-enum-leaf-list" : ["E_VALUE_FORTY_TWO"] } }`,
+			opts: []UnmarshalOpt{&PreferShadowPath{}},
+			want: ContainerStruct{},
+		},
+		{
+			desc: "inner enum shadow path success",
+			json: `{ "config" : { "inner-enum-leaf-list" : ["E_VALUE_FORTY_TWO"] } }`,
+			opts: []UnmarshalOpt{&PreferShadowPath{}},
+			want: ContainerStruct{InnerEnumLeafList: []EnumType{42}},
+		},
+		{
 			desc:    "bad field name",
 			json:    `{ "bad field" : [42] }`,
 			wantErr: `parent container container (type *ytypes.ContainerStruct): JSON contains unexpected field bad field`,
@@ -538,7 +587,7 @@ func TestUnmarshalLeafListJSONEncoding(t *testing.T) {
 				}
 			}
 
-			err := Unmarshal(containerWithLeafListSchema, &tt.in, jsonTree)
+			err := Unmarshal(containerWithLeafListSchema, &tt.in, jsonTree, tt.opts...)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("%s: Unmarshal got error: %v, want error: %v", tt.desc, got, want)
 			}
