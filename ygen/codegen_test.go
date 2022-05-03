@@ -2081,8 +2081,11 @@ func TestGenerateProto3(t *testing.T) {
 		wantOutputFiles map[string]string
 		wantErr         bool
 	}{{
-		name:    "simple protobuf test with compression",
-		inFiles: []string{filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang")},
+		name: "simple protobuf test with compression",
+		inFiles: []string{
+			filepath.Join(TestRoot, "testdata", "proto", "proto-test-a.yang"),
+			filepath.Join(TestRoot, "testdata", "proto", "openconfig-codegen-extensions.yang"),
+		},
 		inConfig: GeneratorConfig{
 			TransformationOptions: TransformationOpts{
 				CompressBehaviour: genutil.PreferIntendedConfig,

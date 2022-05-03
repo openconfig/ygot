@@ -3,6 +3,7 @@
 //
 // Input schema modules:
 //  - testdata/proto/proto-test-a.yang
+//  - testdata/proto/openconfig-codegen-extensions.yang
 syntax = "proto3";
 
 package openconfig.parent;
@@ -11,7 +12,7 @@ import "github.com/openconfig/ygot/proto/ywrapper/ywrapper.proto";
 
 // Child represents the /proto-test-a/parent/child YANG schema element.
 message Child {
-  ywrapper.BoolValue boolean = 135159880;
+  ywrapper.BoolValue boolean = 201;
   ywrapper.IntValue integer = 367917455;
   repeated ywrapper.StringValue leaf_list = 370551192;
   ywrapper.StringValue leaf_with_dashes = 503746721;

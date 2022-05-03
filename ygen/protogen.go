@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -93,6 +94,13 @@ const (
 	// genutil.MakeNameUnique which would append "_" to the name of the key we explicitly
 	// append _ plus the string defined in protoMatchingListNameKeySuffix to the list name.
 	protoMatchingListNameKeySuffix = "key"
+)
+
+// Names from https://github.com/openconfig/public/blob/master/release/models/extensions/openconfig-codegen-extensions.yang
+const (
+	codegenExtModuleName = "openconfig-codegen-extensions"
+	fieldNumExtName      = "field-number"
+	offsetExtName        = "field-number-offset"
 )
 
 // protoMsgField describes a field of a protobuf message.
@@ -1099,8 +1107,44 @@ func safeProtoIdentifierName(name string) string {
 }
 
 // protoTagForEntry returns a protobuf tag value for the entry e.
+// If the entry has user-specified field numberings, then use that instead:
+// https://github.com/openconfig/ygot/blob/master/docs/yang-to-protobuf-transformations-spec.md#field-numbering
 func protoTagForEntry(e *yang.Entry) (uint32, error) {
-	return fieldTag(e.Path())
+	var fieldNum uint32
+	exts, err := yang.MatchingEntryExtensions(e, codegenExtModuleName, fieldNumExtName)
+	if err != nil {
+		return 0, err
+	}
+	switch len(exts) {
+	case 0:
+		return fieldTag(e.Path())
+	case 1:
+		num, err := strconv.ParseUint(exts[0].Argument, 10, 32)
+		if err != nil || num == 0 {
+			return 0, fmt.Errorf("could not parse %s:%s %q as a non-zero integer: %s", codegenExtModuleName, fieldNumExtName, exts[0].Argument, err)
+		}
+		fieldNum = uint32(num)
+	default:
+		return 0, fmt.Errorf("more than one %s:%s defined", codegenExtModuleName, fieldNumExtName)
+	}
+
+	exts, err = yang.MatchingEntryExtensions(e, codegenExtModuleName, offsetExtName)
+	if err != nil {
+		return 0, err
+	}
+	for _, ext := range exts {
+		num, err := strconv.ParseUint(ext.Argument, 10, 32)
+		if err != nil {
+			return 0, fmt.Errorf("could not parse %s:%s %q as an uint: %s", codegenExtModuleName, offsetExtName, ext.Argument, err)
+		}
+		// Allow for multiple offsets to accumulate.
+		fieldNum += uint32(num)
+	}
+
+	if fieldNum > 1000 || fieldNum < 1 {
+		return 0, fmt.Errorf("%s: %d not in reserved range of 1-1000 for %s:%s", e.Path(), fieldNum, codegenExtModuleName, offsetExtName)
+	}
+	return fieldNum, nil
 }
 
 // fieldTag takes an input string and calculates a FNV hash for the value. If the
