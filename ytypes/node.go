@@ -15,6 +15,7 @@
 package ytypes
 
 import (
+	"encoding/json"
 	"reflect"
 
 	"github.com/openconfig/goyang/pkg/yang"
@@ -71,9 +72,25 @@ func retrieveNode(schema *yang.Entry, root interface{}, path, traversedPath *gpb
 	switch {
 	case path == nil || len(path.Elem) == 0:
 		// When args.val is non-nil and the schema isn't nil, further check whether
-		// the node has a non-leaf schema. Setting a non-leaf schema isn't allowed.
-		if !util.IsValueNil(args.val) && schema != nil {
-			if !(schema.IsLeaf() || schema.IsLeafList()) {
+		// the node has a non-leaf schema. Setting a non-leaf schema when the payload
+		// isn't JSON isn't allowed.
+		if !util.IsValueNil(args.val) && schema != nil && !(schema.IsLeaf() || schema.IsLeafList()) {
+			// When the payload is JSON, however, we are able to unmarshal into the root element.
+			// Note: handling for unmarshalling leaf nodes is done in another location since
+			// we need to know the parent struct of the leaf.
+			if args.val.(*gpb.TypedValue).GetJsonIetfVal() != nil {
+				var jsonTree interface{}
+				if err := json.Unmarshal(args.val.(*gpb.TypedValue).GetJsonIetfVal(), &jsonTree); err != nil {
+					return nil, status.Errorf(codes.Unknown, "failed to update struct %T with value %v; %v", root, args.val, err)
+				}
+				var opts []UnmarshalOpt
+				if args.preferShadowPath {
+					opts = append(opts, &PreferShadowPath{})
+				}
+				if err := Unmarshal(schema, root, jsonTree, opts...); err != nil {
+					return nil, status.Errorf(codes.Unknown, "failed to update struct %T with value %v; %v", root, args.val, err)
+				}
+			} else {
 				return nil, status.Errorf(codes.Unknown, "path %v points to a node with non-leaf schema %v", traversedPath, schema)
 			}
 		}
@@ -119,9 +136,7 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 	for i := 0; i < v.NumField(); i++ {
 		fv, ft := v.Field(i), v.Type().Field(i)
 
-		// TODO(low priority): ChildSchema should return the shadow
-		// schema if we're traversing a shadow path.
-		cschema, err := util.ChildSchema(schema, ft)
+		cschema, err := util.ChildSchema2(schema, ft, args.preferShadowPath)
 		if !util.IsYgotAnnotation(ft) {
 			switch {
 			case err != nil:
@@ -146,7 +161,8 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 
 			// If the current node is a shadow leaf, this means the input path is a shadow path
 			// that the GoStruct recognizes, but doesn't have space for. We will therefore
-			// silently ignore this path.
+			// stop processing at this point, in other words avoid modifying any child struct
+			// elements beyond this point.
 			if shadowLeaf {
 				switch {
 				case cschema == nil:
@@ -189,14 +205,33 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 					// With GNMIEncoding, unmarshalGeneric can only unmarshal leaf or leaf list
 					// nodes. Schema provided must be the schema of the leaf or leaf list node.
 					// root must be the reference of container leaf/leaf list belongs to.
-					encoding := GNMIEncoding
-					if args.tolerateJSONInconsistenciesForVal {
+					var val interface{}
+					var encoding Encoding
+					switch {
+					case args.val.(*gpb.TypedValue).GetJsonIetfVal() != nil:
+						encoding = JSONEncoding
+						if err := json.Unmarshal(args.val.(*gpb.TypedValue).GetJsonIetfVal(), &val); err != nil {
+							return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
+						}
+					case args.tolerateJSONInconsistenciesForVal:
 						encoding = gNMIEncodingWithJSONTolerance
+						val = args.val
+					default:
+						encoding = GNMIEncoding
+						val = args.val
 					}
-					if err := unmarshalGeneric(cschema, root, args.val, encoding); err != nil {
+					var opts []UnmarshalOpt
+					if args.preferShadowPath {
+						opts = append(opts, &PreferShadowPath{})
+					}
+					if err := unmarshalGeneric(cschema, root, val, encoding, opts...); err != nil {
 						return nil, status.Errorf(codes.Unknown, "failed to update struct field %s in %T with value %v; %v", ft.Name, root, args.val, err)
 					}
 				}
+				// With JSONEncoding, we can unmarshal container nodes or list elements.
+				// Handling for this is forwarded to existing handling in retrieveNode
+				// since unlike leaf or leaf-list nodes, we can unmarshal directly into
+				// the struct rather than having to use the parent struct.
 			}
 
 			return retrieveNode(cschema, fv.Interface(), util.TrimGNMIPathPrefix(path, p[0:to]), np, args)
