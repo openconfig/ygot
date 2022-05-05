@@ -638,6 +638,15 @@ func TestUnmarshal(t *testing.T) {
 			outjsonFilePath: "bgp-example-opstate.json",
 		},
 		{
+			desc:         "bgp with prefer_operational_state, with schema ignoring normal paths with PreferShadowPath=true",
+			jsonFilePath: "bgp-example-opstate-with-shadow.json",
+			parent:       &opstateoc.Device{},
+			unmarshalFn:  opstateoc.Unmarshal,
+			opts:         []ytypes.UnmarshalOpt{&ytypes.PreferShadowPath{}},
+			// This JSON file is different because it unmarshalled what's in the "config" containers rather than what's in the "state" containers.
+			outjsonFilePath: "bgp-example-opstate-prefershadow.json",
+		},
+		{
 			desc:              "interfaces",
 			jsonFilePath:      "interfaces-example.json",
 			parent:            &oc.Device{},

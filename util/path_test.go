@@ -28,20 +28,29 @@ import (
 
 func TestRelativeSchemaPath(t *testing.T) {
 	tests := []struct {
-		desc      string
-		fieldName string
-		want      []string
-		wantErr   string
+		desc                 string
+		fieldName            string
+		want                 []string
+		wantPreferShadowPath []string
+		wantErr              string
 	}{
 		{
-			desc:      "Good",
-			fieldName: "Good",
-			want:      []string{"config", "a"},
+			desc:                 "Good",
+			fieldName:            "Good",
+			want:                 []string{"config", "a"},
+			wantPreferShadowPath: []string{"config", "a"},
 		},
 		{
-			desc:      "Single",
-			fieldName: "Single",
-			want:      []string{"a"},
+			desc:                 "Single",
+			fieldName:            "Single",
+			want:                 []string{"a"},
+			wantPreferShadowPath: []string{"a"},
+		},
+		{
+			desc:                 "Both path and shadow-path",
+			fieldName:            "Both",
+			want:                 []string{"config", "a"},
+			wantPreferShadowPath: []string{"state", "a"},
 		},
 		{
 			desc:      "NoPath",
@@ -58,22 +67,28 @@ func TestRelativeSchemaPath(t *testing.T) {
 	pct := reflect.TypeOf(PathContainerType{})
 
 	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
+		testcase := func(preferShadowPath bool, want []string) {
 			ft, ok := pct.FieldByName(tt.fieldName)
 			if !ok {
 				t.Fatal("could not find field A")
 			}
-			sp, err := RelativeSchemaPath(ft)
+			sp, err := relativeSchemaPath(ft, preferShadowPath)
 			if got, want := errToString(err), tt.wantErr; got != want {
 				t.Errorf("error: %s, want error: %s", got, want)
 			}
 			testErrLog(t, tt.desc, err)
 			if err == nil {
-				got, want := sp, tt.want
+				got, want := sp, want
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("(-want, +got):\n%s", diff)
 				}
 			}
+		}
+		t.Run(tt.desc, func(t *testing.T) {
+			testcase(false, tt.want)
+		})
+		t.Run(tt.desc+"_shadowpath", func(t *testing.T) {
+			testcase(true, tt.wantPreferShadowPath)
 		})
 	}
 }
@@ -84,6 +99,7 @@ type PathContainerType struct {
 	Single    *int32 `path:"a"`
 	NoPath    *int32
 	EmptyPath *int32 `path:""`
+	Both      *int32 `path:"a|config/a" shadow-path:"a|state/a"`
 }
 
 // IsYANGGoStruct implements the GoStruct interface method.

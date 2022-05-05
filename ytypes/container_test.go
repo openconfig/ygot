@@ -482,6 +482,22 @@ func TestUnmarshalContainer(t *testing.T) {
 			want:   &ParentContainerStructPreferState{ContainerField: &ContainerStructPreferState{Leaf2Field: ygot.Int32(43)}},
 		},
 		{
+			desc:   "success ignoring path with preferShadowPath",
+			schema: containerSchema,
+			parent: &ParentContainerStructPreferState{},
+			json:   `{ "container-field": { "leaf2-field": 43, "state": { "leaf1-field": 42 } } }`,
+			opts:   []UnmarshalOpt{&PreferShadowPath{}},
+			want:   &ParentContainerStructPreferState{ContainerField: &ContainerStructPreferState{Leaf2Field: ygot.Int32(43)}},
+		},
+		{
+			desc:   "success unmarshalling shadow path",
+			schema: containerSchema,
+			parent: &ParentContainerStructPreferState{},
+			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 42 } } }`,
+			opts:   []UnmarshalOpt{&PreferShadowPath{}},
+			want:   &ParentContainerStructPreferState{ContainerField: &ContainerStructPreferState{Leaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
+		},
+		{
 			desc:    "fail ignoring config without shadow-path",
 			schema:  containerSchema,
 			parent:  &ParentContainerStructPreferStateNoShadow{},
