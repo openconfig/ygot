@@ -136,7 +136,11 @@ func retrieveNodeContainer(schema *yang.Entry, root interface{}, path *gpb.Path,
 	for i := 0; i < v.NumField(); i++ {
 		fv, ft := v.Field(i), v.Type().Field(i)
 
-		cschema, err := util.ChildSchema2(schema, ft, args.preferShadowPath)
+		childSchemaFn := util.ChildSchema
+		if args.preferShadowPath {
+			childSchemaFn = util.ChildSchemaPreferShadow
+		}
+		cschema, err := childSchemaFn(schema, ft)
 		if !util.IsYgotAnnotation(ft) {
 			switch {
 			case err != nil:

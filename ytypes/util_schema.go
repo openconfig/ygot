@@ -307,7 +307,11 @@ func schemaToStructFieldName(schema *yang.Entry, parent interface{}, preferShado
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		fieldName := f.Name
-		p, err := util.RelativeSchemaPath2(f, preferShadowPath)
+		relativeSchemaPathFn := util.RelativeSchemaPath
+		if preferShadowPath {
+			relativeSchemaPathFn = util.RelativeSchemaPathPreferShadow
+		}
+		p, err := relativeSchemaPathFn(f)
 		if err != nil {
 			return "", nil, err
 		}
