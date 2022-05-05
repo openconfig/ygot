@@ -171,7 +171,11 @@ func unmarshalStruct(schema *yang.Entry, parent interface{}, jsonTree map[string
 			continue
 		}
 
-		cschema, err := util.ChildSchema2(schema, ft, hasPreferShadowPath(opts))
+		childSchemaFn := util.ChildSchema
+		if hasPreferShadowPath(opts) {
+			childSchemaFn = util.ChildSchemaPreferShadow
+		}
+		cschema, err := childSchemaFn(schema, ft)
 		if err != nil {
 			return err
 		}

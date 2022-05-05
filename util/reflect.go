@@ -458,24 +458,32 @@ func DeepEqualDerefPtrs(a, b interface{}) bool {
 // if the struct tag is invalid, or nil if tag is valid but the schema is not
 // found in the tree at the specified path.
 func ChildSchema(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error) {
-	return ChildSchema2(schema, f, false)
+	return childSchema(schema, f, false)
 }
 
-// ChildSchema2 returns the schema for the struct field f, if f contains a valid
+// ChildSchemaPreferShadow returns the shadow schema (if exists) or schema for
+// the struct field f, if f contains a valid "shadow-path" or "path" tag and
+// the schema path is found in the schema tree. It returns an error if the
+// struct tag is invalid, or nil if tag is valid but the schema is not found in
+// the tree at the specified path.
+func ChildSchemaPreferShadow(schema *yang.Entry, f reflect.StructField) (*yang.Entry, error) {
+	return childSchema(schema, f, true)
+}
+
+// childSchema returns the schema for the struct field f, if f contains a valid
 // path tag and the schema path is found in the schema tree. It returns an error
 // if the struct tag is invalid, or nil if tag is valid but the schema is not
 // found in the tree at the specified path.
 //
-// ChildSchema2's difference with ChildSchema is in the existence of the
-// preferShadowPath parameter. When it is false, its behaviour is the same, but
-// when true, it checks the "shadow-path" tag first for matches. If this tag
-// doesn't exist, it assumes that there are no shadow paths for this field and
-// uses the "path" tag.
-func ChildSchema2(schema *yang.Entry, f reflect.StructField, preferShadowPath bool) (*yang.Entry, error) {
+// If preferShadowPath is false, the path values from the "path" tag are used.
+// If preferShadowPath is true and the field has a "shadow-path" tag, then the
+// path values from the "shadow-path" tag are used; if the field doesn't have
+// the "shadow-path" tag, then the path values from the "path" tag are used.
+func childSchema(schema *yang.Entry, f reflect.StructField, preferShadowPath bool) (*yang.Entry, error) {
 	pathTag, _ := f.Tag.Lookup("path")
 	shadowPathTag, _ := f.Tag.Lookup("shadow-path")
 	DbgSchema("childSchema for schema %s, field %s, path tag %s, shadow-path tag\n", schema.Name, f.Name, pathTag, shadowPathTag)
-	p, err := RelativeSchemaPath2(f, preferShadowPath)
+	p, err := relativeSchemaPath(f, preferShadowPath)
 	if err != nil {
 		return nil, err
 	}
