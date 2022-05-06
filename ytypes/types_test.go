@@ -43,7 +43,7 @@ func TestSchema(t *testing.T) {
 			SchemaTree: map[string]*yang.Entry{
 				"schemaRoot": {Name: "test"},
 			},
-			Unmarshal: func([]byte, validatedGoStruct, ...UnmarshalOpt) error { return nil },
+			Unmarshal: func([]byte, ygot.GoStruct, ...UnmarshalOpt) error { return nil },
 		},
 		wantRootSchema: &yang.Entry{Name: "test"},
 		wantValid:      true,
@@ -56,7 +56,7 @@ func TestSchema(t *testing.T) {
 		in: &Schema{
 			Root:       &schemaRoot{},
 			SchemaTree: map[string]*yang.Entry{},
-			Unmarshal:  func([]byte, validatedGoStruct, ...UnmarshalOpt) error { return nil },
+			Unmarshal:  func([]byte, ygot.GoStruct, ...UnmarshalOpt) error { return nil },
 		},
 		wantRootSchema: nil,
 		wantValid:      true,

@@ -2053,7 +2053,7 @@ func (t *unmarshalableJSON) UnmarshalJSON(d []byte) error {
 func TestConstructJSON(t *testing.T) {
 	tests := []struct {
 		name                     string
-		in                       validatedGoStruct
+		in                       GoStruct
 		inAppendMod              bool
 		inPrependModIref         bool
 		inRewriteModuleNameRules map[string]string

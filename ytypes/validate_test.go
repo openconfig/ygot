@@ -60,7 +60,7 @@ func (*FakeRootStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
 func (*FakeRootStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*FakeRootStruct) ΛBelongingModule() string                 { return "bar" }
 
-func customValidation(val validatedGoStruct) error {
+func customValidation(val ygot.GoStruct) error {
 	fakeRoot, ok := val.(*FakeRootStruct)
 	if !ok {
 		return fmt.Errorf("not valid fakeroot")

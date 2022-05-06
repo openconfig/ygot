@@ -22,13 +22,14 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
+	"github.com/openconfig/ygot/ygot"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-7.5.
 
 // validateContainer validates each of the values in the map, keyed by the list
 // Key value, against the given list schema.
-func validateContainer(schema *yang.Entry, value validatedGoStruct) util.Errors {
+func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 	var errors []error
 	if util.IsValueNil(value) {
 		return nil
