@@ -20,7 +20,6 @@ import (
 
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/util"
-	"github.com/openconfig/ygot/ygot"
 )
 
 // Refer to: https://tools.ietf.org/html/rfc6020#section-7.9.
@@ -31,7 +30,7 @@ import (
 // named in the data tree, the function recurses until it reaches a named
 // element in such cases. It returns all the field names that were selected in
 // the data tree from the Choice schema.
-func validateChoice(schema *yang.Entry, structValue ygot.ValidatedGoStruct) (selected []string, errors []error) {
+func validateChoice(schema *yang.Entry, structValue validatedGoStruct) (selected []string, errors []error) {
 	util.DbgPrint("validateChoice with value %s, schema name %s\n", util.ValueStrDebug(structValue), schema.Name)
 	// Validate that multiple cases are not selected. Since choice is always
 	// inside a container, there's no need to validate each individual field
@@ -80,7 +79,7 @@ func IsCaseSelected(schema *yang.Entry, value interface{}) (selected []string, e
 	for _, elemSchema := range schema.Dir {
 		// If element is a choice, recurse down to the next named element.
 		if elemSchema.IsChoice() {
-			return validateChoice(elemSchema, value.(ygot.ValidatedGoStruct))
+			return validateChoice(elemSchema, value.(validatedGoStruct))
 		}
 	}
 

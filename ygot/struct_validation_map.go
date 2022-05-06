@@ -398,9 +398,9 @@ type EmitJSONConfig struct {
 	ValidationOpts []ValidationOption
 }
 
-// EmitJSON takes an input ValidatedGoStruct (produced by ygen with validation enabled)
+// EmitJSON takes an input validatedGoStruct (produced by ygen with validation enabled)
 // and serialises it to a JSON string. By default, produces the Internal format JSON.
-func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
+func EmitJSON(s validatedGoStruct, opts *EmitJSONConfig) (string, error) {
 	var (
 		vopts          []ValidationOption
 		skipValidation bool
@@ -446,7 +446,7 @@ func EmitJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (string, error) {
 
 // makeJSON renders the GoStruct s to map[string]interface{} according to the
 // JSON format specified. By default makeJSON returns internal format JSON.
-func makeJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (map[string]interface{}, error) {
+func makeJSON(s validatedGoStruct, opts *EmitJSONConfig) (map[string]interface{}, error) {
 	f := Internal
 	if opts != nil {
 		f = opts.Format
@@ -478,7 +478,7 @@ func makeJSON(s ValidatedGoStruct, opts *EmitJSONConfig) (map[string]interface{}
 // To create valid JSON-serialised YANG, it is expected that the existing JSON is in
 // the same format as is specified in the options. Where there are overlapping tree
 // elements in the serialised struct they are merged where possible.
-func MergeStructJSON(ns ValidatedGoStruct, ej map[string]interface{}, opts *EmitJSONConfig) (map[string]interface{}, error) {
+func MergeStructJSON(ns validatedGoStruct, ej map[string]interface{}, opts *EmitJSONConfig) (map[string]interface{}, error) {
 	j, err := makeJSON(ns, opts)
 	if err != nil {
 		return nil, err
@@ -554,8 +554,8 @@ type MergeOverwriteExistingFields struct{}
 // IsMergeOpt marks MergeStructOpt as a MergeOpt.
 func (*MergeOverwriteExistingFields) IsMergeOpt() {}
 
-// MergeStructs takes two input ValidatedGoStructs and merges their contents,
-// returning a new ValidatedGoStruct. If the input structs a and b are of
+// MergeStructs takes two input validatedGoStructs and merges their contents,
+// returning a new validatedGoStruct. If the input structs a and b are of
 // different types, an error is returned.
 //
 // Where two structs contain maps or slices that are populated in both a and b,
@@ -563,7 +563,7 @@ func (*MergeOverwriteExistingFields) IsMergeOpt() {}
 // if unequal; however, an error is returned for slices if their elements are
 // overlapping but not equal. If a leaf is populated in both a and b, an error
 // is returned if the value of the leaf is not equal.
-func MergeStructs(a, b ValidatedGoStruct, opts ...MergeOpt) (ValidatedGoStruct, error) {
+func MergeStructs(a, b validatedGoStruct, opts ...MergeOpt) (validatedGoStruct, error) {
 	if reflect.TypeOf(a) != reflect.TypeOf(b) {
 		return nil, fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", a, b)
 	}
@@ -573,8 +573,8 @@ func MergeStructs(a, b ValidatedGoStruct, opts ...MergeOpt) (ValidatedGoStruct, 
 		return nil, err
 	}
 	// This conversion is safe as DeepCopy will use the same underlying type as
-	// `a`, which was passed in as a ValidatedGoStruct.
-	dst := tn.(ValidatedGoStruct)
+	// `a`, which was passed in as a validatedGoStruct.
+	dst := tn.(validatedGoStruct)
 
 	if err := MergeStructInto(dst, b, opts...); err != nil {
 		return nil, fmt.Errorf("error merging b to new struct: %v", err)
@@ -583,11 +583,11 @@ func MergeStructs(a, b ValidatedGoStruct, opts ...MergeOpt) (ValidatedGoStruct, 
 	return dst, nil
 }
 
-// MergeStructInto takes the provided input ValidatedGoStructs and merges the
+// MergeStructInto takes the provided input validatedGoStructs and merges the
 // contents from src into dst. Unlike MergeStructs, the supplied dst is mutated.
 //
 // The merge semantics are the same as those for MergeStructs.
-func MergeStructInto(dst, src ValidatedGoStruct, opts ...MergeOpt) error {
+func MergeStructInto(dst, src validatedGoStruct, opts ...MergeOpt) error {
 	if reflect.TypeOf(dst) != reflect.TypeOf(src) {
 		return fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", dst, src)
 	}

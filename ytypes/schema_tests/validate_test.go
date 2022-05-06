@@ -604,7 +604,7 @@ func TestUnmarshal(t *testing.T) {
 	tests := []struct {
 		desc              string
 		jsonFilePath      string
-		parent            ygot.ValidatedGoStruct
+		parent            validatedGoStruct
 		opts              []ytypes.UnmarshalOpt
 		unmarshalFn       ytypes.UnmarshalFunc
 		wantValidationErr string

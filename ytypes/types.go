@@ -21,10 +21,35 @@ import (
 	"github.com/openconfig/ygot/ygot"
 )
 
+// validatedGoStruct is an interface implemented by all Go structs (YANG
+// container or lists).
+type validatedGoStruct interface {
+	// GoStruct ensures that the interface for a standard GoStruct
+	// is embedded.
+	ygot.GoStruct
+	// Validate compares the contents of the implementing struct against
+	// the YANG schema, and returns an error if the struct's contents
+	// are not valid, or nil if the struct complies with the schema.
+	ΛValidate(...ygot.ValidationOption) error
+	// ΛEnumTypeMap returns the set of enumerated types that are contained
+	// in the generated code.
+	ΛEnumTypeMap() map[string][]reflect.Type
+	// ΛBelongingModule returns the module in which the GoStruct was
+	// defined per https://datatracker.ietf.org/doc/html/rfc7951#section-4.
+	// If the GoStruct is the fakeroot, then the empty string will be
+	// returned.
+	//
+	// Strictly, this value is the name of the module having the same XML
+	// namespace as this node.
+	// For more information on YANG's XML namespaces see
+	// https://datatracker.ietf.org/doc/html/rfc7950#section-5.3
+	ΛBelongingModule() string
+}
+
 // Schema specifies the common types that are part of a generated ygot schema, such that
 // it can be referenced and handled in calling application code.
 type Schema struct {
-	Root       ygot.ValidatedGoStruct // Root is the ValidatedGoStruct that acts as the root for a schema, it is nil if there is no generated fakeroot.
+	Root       validatedGoStruct      // Root is the validatedGoStruct that acts as the root for a schema, it is nil if there is no generated fakeroot.
 	SchemaTree map[string]*yang.Entry // SchemaTree is the extracted schematree for the generated schema.
 	Unmarshal  UnmarshalFunc          // Unmarshal is a function that can unmarshal RFC7951 JSON into the specified Root type.
 }
@@ -41,5 +66,5 @@ func (s *Schema) RootSchema() *yang.Entry {
 	return s.SchemaTree[reflect.TypeOf(s.Root).Elem().Name()]
 }
 
-// UnmarshalFunc defines a common signature for an RFC7951 to ValidatedGoStruct unmarshalling function
-type UnmarshalFunc func([]byte, ygot.ValidatedGoStruct, ...UnmarshalOpt) error
+// UnmarshalFunc defines a common signature for an RFC7951 to validatedGoStruct unmarshalling function
+type UnmarshalFunc func([]byte, validatedGoStruct, ...UnmarshalOpt) error
