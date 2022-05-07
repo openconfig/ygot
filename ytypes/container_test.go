@@ -45,6 +45,7 @@ type ContainerStruct struct {
 
 func (*ContainerStruct) IsYANGGoStruct()                          {}
 func (*ContainerStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*ContainerStruct) Validate(...ygot.ValidationOption) error  { return nil }
 func (*ContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*ContainerStruct) ΛBelongingModule() string                 { return "bar" }
 
@@ -111,6 +112,7 @@ type BadStruct struct {
 
 func (*BadStruct) IsYANGGoStruct()                          {}
 func (*BadStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*BadStruct) Validate(...ygot.ValidationOption) error  { return nil }
 func (*BadStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*BadStruct) ΛBelongingModule() string                 { return "bar" }
 

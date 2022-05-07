@@ -29,6 +29,7 @@ type Case1Leaf1ChoiceStruct struct {
 
 func (*Case1Leaf1ChoiceStruct) IsYANGGoStruct()                          {}
 func (*Case1Leaf1ChoiceStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*Case1Leaf1ChoiceStruct) Validate(...ygot.ValidationOption) error  { return nil }
 func (*Case1Leaf1ChoiceStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*Case1Leaf1ChoiceStruct) ΛBelongingModule() string                 { return "bar" }
 
@@ -38,6 +39,7 @@ type Leaf1ContainerStruct struct {
 
 func (*Leaf1ContainerStruct) IsYANGGoStruct()                          {}
 func (*Leaf1ContainerStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*Leaf1ContainerStruct) Validate(...ygot.ValidationOption) error  { return nil }
 func (*Leaf1ContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*Leaf1ContainerStruct) ΛBelongingModule() string                 { return "bar" }
 
@@ -46,6 +48,7 @@ type EmptyContainerStruct struct {
 
 func (*EmptyContainerStruct) IsYANGGoStruct()                          {}
 func (*EmptyContainerStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*EmptyContainerStruct) Validate(...ygot.ValidationOption) error  { return nil }
 func (*EmptyContainerStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*EmptyContainerStruct) ΛBelongingModule() string                 { return "bar" }
 
@@ -57,6 +60,7 @@ type FakeRootStruct struct {
 
 func (*FakeRootStruct) IsYANGGoStruct()                          {}
 func (*FakeRootStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*FakeRootStruct) Validate(...ygot.ValidationOption) error  { return nil }
 func (*FakeRootStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*FakeRootStruct) ΛBelongingModule() string                 { return "bar" }
 

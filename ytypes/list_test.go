@@ -2072,6 +2072,7 @@ type unionKeyTestStruct struct {
 
 func (*unionKeyTestStruct) IsYANGGoStruct()                          {}
 func (*unionKeyTestStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*unionKeyTestStruct) Validate(...ygot.ValidationOption) error  { return nil }
 func (*unionKeyTestStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*unionKeyTestStruct) ΛBelongingModule() string                 { return "bar" }
 
@@ -2081,6 +2082,7 @@ type unionKeyTestStructChild struct {
 
 func (*unionKeyTestStructChild) IsYANGGoStruct()                          {}
 func (*unionKeyTestStructChild) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*unionKeyTestStructChild) Validate(...ygot.ValidationOption) error  { return nil }
 func (*unionKeyTestStructChild) ΛBelongingModule() string                 { return "bar" }
 
 func (*unionKeyTestStructChild) ΛEnumTypeMap() map[string][]reflect.Type {
@@ -2108,6 +2110,7 @@ type unionKeyTestStructSimple struct {
 
 func (*unionKeyTestStructSimple) IsYANGGoStruct()                          {}
 func (*unionKeyTestStructSimple) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*unionKeyTestStructSimple) Validate(...ygot.ValidationOption) error  { return nil }
 func (*unionKeyTestStructSimple) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*unionKeyTestStructSimple) ΛBelongingModule() string                 { return "bar" }
 
@@ -2117,6 +2120,7 @@ type unionKeyTestStructChildSimple struct {
 
 func (*unionKeyTestStructChildSimple) IsYANGGoStruct()                          {}
 func (*unionKeyTestStructChildSimple) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*unionKeyTestStructChildSimple) Validate(...ygot.ValidationOption) error  { return nil }
 func (*unionKeyTestStructChildSimple) ΛBelongingModule() string                 { return "bar" }
 
 func (*unionKeyTestStructChildSimple) ΛEnumTypeMap() map[string][]reflect.Type {

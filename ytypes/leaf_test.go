@@ -315,6 +315,7 @@ type UnionContainer struct {
 
 func (*UnionContainer) IsYANGGoStruct()                          {}
 func (*UnionContainer) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*UnionContainer) Validate(...ygot.ValidationOption) error  { return nil }
 func (*UnionContainer) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*UnionContainer) ΛBelongingModule() string                 { return "bar" }
 
@@ -351,6 +352,7 @@ type UnionContainerCompressed struct {
 
 func (*UnionContainerCompressed) IsYANGGoStruct()                          {}
 func (*UnionContainerCompressed) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*UnionContainerCompressed) Validate(...ygot.ValidationOption) error  { return nil }
 func (*UnionContainerCompressed) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*UnionContainerCompressed) ΛBelongingModule() string                 { return "bar" }
 
@@ -360,6 +362,7 @@ type UnionContainerSingleEnum struct {
 
 func (*UnionContainerSingleEnum) IsYANGGoStruct()                          {}
 func (*UnionContainerSingleEnum) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*UnionContainerSingleEnum) Validate(...ygot.ValidationOption) error  { return nil }
 func (*UnionContainerSingleEnum) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*UnionContainerSingleEnum) ΛBelongingModule() string                 { return "bar" }
 
@@ -627,6 +630,7 @@ type Leaf1Container struct {
 
 func (*Leaf1Container) IsYANGGoStruct()                          {}
 func (*Leaf1Container) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*Leaf1Container) Validate(...ygot.ValidationOption) error  { return nil }
 func (*Leaf1Container) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*Leaf1Container) ΛBelongingModule() string                 { return "bar" }
 
@@ -638,6 +642,7 @@ type PredicateSchema struct {
 
 func (*PredicateSchema) IsYANGGoStruct()                          {}
 func (*PredicateSchema) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*PredicateSchema) Validate(...ygot.ValidationOption) error  { return nil }
 func (*PredicateSchema) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*PredicateSchema) ΛBelongingModule() string                 { return "bar" }
 
@@ -647,6 +652,7 @@ type PredicateSchemaList struct {
 
 func (*PredicateSchemaList) IsYANGGoStruct()                          {}
 func (*PredicateSchemaList) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*PredicateSchemaList) Validate(...ygot.ValidationOption) error  { return nil }
 func (*PredicateSchemaList) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*PredicateSchemaList) ΛBelongingModule() string                 { return "bar" }
 

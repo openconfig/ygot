@@ -26,6 +26,7 @@ import (
 type schemaRoot struct{}
 
 func (s *schemaRoot) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (s *schemaRoot) Validate(...ygot.ValidationOption) error  { return nil }
 func (s *schemaRoot) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (s *schemaRoot) IsYANGGoStruct()                          {}
 func (*schemaRoot) ΛBelongingModule() string                   { return "" }

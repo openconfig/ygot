@@ -31,6 +31,7 @@ type ChoiceStruct struct {
 
 func (*ChoiceStruct) IsYANGGoStruct()                          {}
 func (*ChoiceStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*ChoiceStruct) Validate(...ygot.ValidationOption) error  { return nil }
 func (*ChoiceStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*ChoiceStruct) ΛBelongingModule() string                 { return "bar" }
 
@@ -41,6 +42,7 @@ type BadChoiceStruct struct {
 
 func (*BadChoiceStruct) IsYANGGoStruct()                          {}
 func (*BadChoiceStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*BadChoiceStruct) Validate(...ygot.ValidationOption) error  { return nil }
 func (*BadChoiceStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*BadChoiceStruct) ΛBelongingModule() string                 { return "bar" }
 
@@ -52,6 +54,7 @@ type ChoiceEmptyEnumStringStruct struct {
 
 func (*ChoiceEmptyEnumStringStruct) IsYANGGoStruct()                          {}
 func (*ChoiceEmptyEnumStringStruct) ΛValidate(...ygot.ValidationOption) error { return nil }
+func (*ChoiceEmptyEnumStringStruct) Validate(...ygot.ValidationOption) error  { return nil }
 func (*ChoiceEmptyEnumStringStruct) ΛEnumTypeMap() map[string][]reflect.Type  { return nil }
 func (*ChoiceEmptyEnumStringStruct) ΛBelongingModule() string                 { return "bar" }
 
