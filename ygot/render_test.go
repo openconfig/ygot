@@ -791,7 +791,7 @@ type renderExample struct {
 	EnumLeafList        []EnumTest                          `path:"enum-leaflist"`
 }
 
-// IsYANGGoStruct ensures that the renderExample type implements the validatedGoStruct
+// IsYANGGoStruct ensures that the renderExample type implements the GoStruct
 // interface.
 func (*renderExample) IsYANGGoStruct()                         {}
 func (*renderExample) ΛValidate(...ValidationOption) error     { return nil }
@@ -849,7 +849,7 @@ type renderExampleChild struct {
 	Empty YANGEmpty `path:"empty"`
 }
 
-// IsYANGGoStruct implements the validatedGoStruct interface.
+// IsYANGGoStruct implements the GoStruct interface.
 func (*renderExampleChild) IsYANGGoStruct()                         {}
 func (*renderExampleChild) ΛValidate(...ValidationOption) error     { return nil }
 func (*renderExampleChild) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
@@ -860,7 +860,7 @@ type renderExampleList struct {
 	Val *string `path:"val|state/val"`
 }
 
-// IsYANGGoStruct implements the validatedGoStruct interface.
+// IsYANGGoStruct implements the GoStruct interface.
 func (*renderExampleList) IsYANGGoStruct()                         {}
 func (*renderExampleList) ΛValidate(...ValidationOption) error     { return nil }
 func (*renderExampleList) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
@@ -876,7 +876,7 @@ type renderExampleEnumList struct {
 	Key EnumTest `path:"config/key|key"`
 }
 
-// IsYANGGoStruct implements the validatedGoStruct interface.
+// IsYANGGoStruct implements the GoStruct interface.
 func (*renderExampleEnumList) IsYANGGoStruct()                         {}
 func (*renderExampleEnumList) ΛValidate(...ValidationOption) error     { return nil }
 func (*renderExampleEnumList) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
@@ -988,7 +988,7 @@ type pathElemExampleMultiKeyChild struct {
 	Baz *uint8  `path:"baz"`
 }
 
-// IsYANGGoStruct ensures that pathElemExampleMultiKeyChild implements the validatedGoStruct
+// IsYANGGoStruct ensures that pathElemExampleMultiKeyChild implements the GoStruct
 // interface.
 func (*pathElemExampleMultiKeyChild) IsYANGGoStruct()                         {}
 func (*pathElemExampleMultiKeyChild) ΛValidate(...ValidationOption) error     { return nil }
@@ -1762,7 +1762,7 @@ func (*ucExampleSystemSshServer_Instance) ΛValidate(...ValidationOption) error 
 func (*ucExampleSystemSshServer_Instance) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*ucExampleSystemSshServer_Instance) ΛBelongingModule() string                { return "" }
 
-// invalidGoStruct explicitly does not implement the validatedGoStruct interface.
+// invalidGoStruct explicitly does not implement the GoStruct interface.
 type invalidGoStruct struct {
 	Value *string
 }
@@ -1892,7 +1892,7 @@ type ietfRenderExampleEnumList struct {
 	Key EnumTest `path:"config/key|key" module:"f1mod/f1mod|f1mod"`
 }
 
-// IsYANGGoStruct implements the validatedGoStruct interface.
+// IsYANGGoStruct implements the GoStruct interface.
 func (*ietfRenderExampleEnumList) IsYANGGoStruct()                         {}
 func (*ietfRenderExampleEnumList) ΛValidate(...ValidationOption) error     { return nil }
 func (*ietfRenderExampleEnumList) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
