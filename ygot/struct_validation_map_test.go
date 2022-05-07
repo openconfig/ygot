@@ -2370,7 +2370,7 @@ func TestMergeStructInto(t *testing.T) {
 			t.Errorf("%s: DeepCopy(%v): unexpected error with testdata, %v", tt.name, tt.inA, err)
 			continue
 		}
-		err = MergeStructInto(got.(GoStruct), tt.inB, tt.inOpts...)
+		err = MergeStructInto(got, tt.inB, tt.inOpts...)
 		if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
 			t.Errorf("%s: MergeStructInto(%v, %v): did not get expected error status, %s", tt.name, tt.inA, tt.inB, diff)
 		}

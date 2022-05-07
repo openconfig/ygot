@@ -573,13 +573,10 @@ func MergeStructs(a, b GoStruct, opts ...MergeOpt) (GoStruct, error) {
 		return nil, fmt.Errorf("cannot merge structs that are not of matching types, %T != %T", a, b)
 	}
 
-	tn, err := DeepCopy(a)
+	dst, err := DeepCopy(a)
 	if err != nil {
 		return nil, err
 	}
-	// This conversion is safe as DeepCopy will use the same underlying type as
-	// `a`, which was passed in as a GoStruct.
-	dst := tn.(GoStruct)
 
 	if err := MergeStructInto(dst, b, opts...); err != nil {
 		return nil, fmt.Errorf("error merging b to new struct: %v", err)
