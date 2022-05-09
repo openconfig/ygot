@@ -2221,7 +2221,7 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		inParent         ygot.ValidatedGoStruct
+		inParent         ygot.GoStruct
 		inSchema         *yang.Entry
 		inUnmarshalOpts  []UnmarshalOpt
 		inJSON           string

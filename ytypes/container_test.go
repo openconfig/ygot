@@ -221,7 +221,7 @@ func TestValidateContainer(t *testing.T) {
 			desc:    "bad value type",
 			schema:  containerSchema,
 			val:     int(1),
-			wantErr: `type int is not a ValidatedGoStruct for schema container-schema`,
+			wantErr: `type int is not a GoStruct for schema container-schema`,
 		},
 		{
 			desc:    "bad schema",

@@ -29,7 +29,7 @@ import (
 
 // validateContainer validates each of the values in the map, keyed by the list
 // Key value, against the given list schema.
-func validateContainer(schema *yang.Entry, value ygot.ValidatedGoStruct) util.Errors {
+func validateContainer(schema *yang.Entry, value ygot.GoStruct) util.Errors {
 	var errors []error
 	if util.IsValueNil(value) {
 		return nil

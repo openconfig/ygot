@@ -24,9 +24,6 @@ import (
 // the expectations of the interface - such as the fields being tagged with
 // appropriate metadata (tags) that allow mapping of the struct into a YANG
 // schematree.
-//
-// Deprecated: ValidatedGoStruct contains all methods that are supported by all
-// generated GoStructs regardless of generation flags.
 type GoStruct interface {
 	// IsYANGGoStruct is a marker method that indicates that the struct
 	// implements the GoStruct interface.
@@ -34,7 +31,8 @@ type GoStruct interface {
 }
 
 // ValidatedGoStruct is an interface implemented by all Go structs (YANG
-// container or lists).
+// container or lists), *except* when the default validate_fn_name generation
+// flag is overridden.
 type ValidatedGoStruct interface {
 	// GoStruct ensures that the interface for a standard GoStruct
 	// is embedded.
@@ -42,7 +40,7 @@ type ValidatedGoStruct interface {
 	// Validate compares the contents of the implementing struct against
 	// the YANG schema, and returns an error if the struct's contents
 	// are not valid, or nil if the struct complies with the schema.
-	ΛValidate(...ValidationOption) error
+	Validate(...ValidationOption) error
 	// ΛEnumTypeMap returns the set of enumerated types that are contained
 	// in the generated code.
 	ΛEnumTypeMap() map[string][]reflect.Type
@@ -56,6 +54,19 @@ type ValidatedGoStruct interface {
 	// For more information on YANG's XML namespaces see
 	// https://datatracker.ietf.org/doc/html/rfc7950#section-5.3
 	ΛBelongingModule() string
+}
+
+// validatedGoStruct is an interface used for validating GoStructs.
+// This interface is implemented by all Go structs (YANG container or lists),
+// regardless of generation flag.
+type validatedGoStruct interface {
+	// GoStruct ensures that the interface for a standard GoStruct
+	// is embedded.
+	GoStruct
+	// ΛValidate compares the contents of the implementing struct against
+	// the YANG schema, and returns an error if the struct's contents
+	// are not valid, or nil if the struct complies with the schema.
+	ΛValidate(...ValidationOption) error
 }
 
 // ValidationOption is an interface that is implemented for each struct

@@ -293,8 +293,8 @@ func mustTypedValue(i interface{}) *gnmipb.TypedValue {
 func TestDiff(t *testing.T) {
 	tests := []struct {
 		desc             string
-		inOrig           ygot.ValidatedGoStruct
-		inMod            ygot.ValidatedGoStruct
+		inOrig           ygot.GoStruct
+		inMod            ygot.GoStruct
 		want             *gnmipb.Notification
 		wantErrSubstring string
 	}{{
@@ -391,7 +391,7 @@ func TestDiff(t *testing.T) {
 func TestJSONOutput(t *testing.T) {
 	tests := []struct {
 		name     string
-		in       ygot.ValidatedGoStruct
+		in       ygot.GoStruct
 		wantFile string
 	}{{
 		name: "unset enumeration",
@@ -444,7 +444,7 @@ func TestJSONOutput(t *testing.T) {
 func TestNotificationOutput(t *testing.T) {
 	tests := []struct {
 		name       string
-		in         ygot.ValidatedGoStruct
+		in         ygot.GoStruct
 		wantTextpb string
 	}{{
 		name: "int64 from root",

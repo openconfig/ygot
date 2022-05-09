@@ -42,7 +42,7 @@ func TestGetNodeFull(t *testing.T) {
 	rootSchema := oc.SchemaTree[reflect.TypeOf(oc.Device{}).Name()]
 	tests := []struct {
 		name             string
-		inRoot           ygot.ValidatedGoStruct
+		inRoot           ygot.GoStruct
 		inSchema         *yang.Entry
 		inPath           *gpb.Path
 		inOpts           []ytypes.GetNodeOpt
