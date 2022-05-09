@@ -57,6 +57,8 @@ type ValidatedGoStruct interface {
 }
 
 // validatedGoStruct is an interface used for validating GoStructs.
+// This interface is implemented by all Go structs (YANG container or lists),
+// regardless of generation flag.
 type validatedGoStruct interface {
 	// GoStruct ensures that the interface for a standard GoStruct
 	// is embedded.
