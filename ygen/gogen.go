@@ -435,7 +435,7 @@ func UnzipSchema() (map[string]*yang.Entry, error) {
 // unmarshaled. The supplied options (opts) are used to control the behaviour
 // of the unmarshal function - for example, determining whether errors are
 // thrown for unknown fields in the input JSON.
-func Unmarshal(data []byte, destStruct ygot.ValidatedGoStruct, opts ...ytypes.UnmarshalOpt) error {
+func Unmarshal(data []byte, destStruct ygot.GoStruct, opts ...ytypes.UnmarshalOpt) error {
 	tn := reflect.TypeOf(destStruct).Elem().Name()
 	schema, ok := SchemaTree[tn]
 	if !ok {

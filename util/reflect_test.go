@@ -1605,7 +1605,7 @@ func (*ListElemStruct3) IsYANGGoStruct() {}
 
 // ContainerStruct3 is a container type for testing.
 type ContainerStruct3 struct {
-	StructKeyList map[EnumType]*ListElemStruct3 `path:"simple-key-list"`
+	StructKeyList map[EnumType]*ListElemStruct3 `path:"simple-key-list" shadow-path:"shadow-simple-key-list"`
 }
 
 // IsYANGGoStruct implements the GoStruct interface method.
@@ -1730,6 +1730,25 @@ func multipathSchema() (*yang.Entry, *yang.Entry) {
 					},
 				},
 			},
+			"shadow-simple-key-list": {
+				Name:     "shadow-simple-key-list",
+				Kind:     yang.DirectoryEntry,
+				ListAttr: yang.NewDefaultListAttr(),
+				Key:      "enum-key",
+				Config:   yang.TSTrue,
+				Dir: map[string]*yang.Entry{
+					"enum-key": {
+						Name: "enum-key",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Yenum},
+					},
+					"value": {
+						Name: "value",
+						Kind: yang.LeafEntry,
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
+				},
+			},
 		},
 	}
 	return containerWithLeafListSchema, containerWithEnumSchema
@@ -1797,16 +1816,23 @@ func TestChildSchema(t *testing.T) {
 	}
 
 	tests := []struct {
-		desc      string
-		inSchema  *yang.Entry
-		inField   reflect.StructField
-		wantEntry *yang.Entry
-		wantErr   bool
+		desc               string
+		inSchema           *yang.Entry
+		inField            reflect.StructField
+		inPreferShadowPath bool
+		wantEntry          *yang.Entry
+		wantErr            bool
 	}{{
 		desc:      "basic",
 		inSchema:  containerWithEnumSchema,
 		inField:   simpleKeyListField3,
 		wantEntry: containerWithEnumSchema.Dir["simple-key-list"],
+	}, {
+		desc:               "basic shadowpath",
+		inSchema:           containerWithEnumSchema,
+		inField:            simpleKeyListField3,
+		inPreferShadowPath: true,
+		wantEntry:          containerWithEnumSchema.Dir["shadow-simple-key-list"],
 	}, {
 		desc:      "longpath",
 		inSchema:  containerWithLeafListSchema,
@@ -1826,7 +1852,7 @@ func TestChildSchema(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			gotEntry, gotErr := ChildSchema(tt.inSchema, tt.inField)
+			gotEntry, gotErr := childSchema(tt.inSchema, tt.inField, tt.inPreferShadowPath)
 			if (gotErr != nil) != tt.wantErr {
 				t.Fatalf("gotErr: %v, wantErr: %v", gotErr, tt.wantErr)
 			}

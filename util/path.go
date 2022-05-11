@@ -65,9 +65,53 @@ func ShadowSchemaPaths(f reflect.StructField) [][]string {
 // leafref; the schema *yang.Entry for the field is given by
 // schema.Dir["config"].Dir["a"].
 func RelativeSchemaPath(f reflect.StructField) ([]string, error) {
-	pathTag, ok := f.Tag.Lookup("path")
-	if !ok || pathTag == "" {
-		return nil, fmt.Errorf("field %s did not specify a path", f.Name)
+	return relativeSchemaPath(f, false)
+}
+
+// RelativeSchemaPathPreferShadow returns a shadow path (if exists) or path to
+// the schema for the struct field f.
+//
+// Paths are embedded in the "shadow-path" and "path" struct tags and can be
+// either simple:
+//   e.g. "path:a"
+// or composite (if path compression is used) e.g.
+//   e.g. "path:config/a|a"
+// In the latter case, this function returns {"config", "a"}, because only the
+// longer path exists in the data tree and we want the schema for that node.
+// This case is found in OpenConfig leaf-ref cases where the key of a list is a
+// leafref; the schema *yang.Entry for the field is given by
+// schema.Dir["config"].Dir["a"].
+func RelativeSchemaPathPreferShadow(f reflect.StructField) ([]string, error) {
+	return relativeSchemaPath(f, true)
+}
+
+// relativeSchemaPath returns a path to the schema for the struct field f.
+// Paths are embedded in the "path" struct tag and can be either simple:
+//   e.g. "path:a"
+// or composite (if path compression is used) e.g.
+//   e.g. "path:config/a|a"
+// In the latter case, this function returns {"config", "a"}, because only the
+// longer path exists in the data tree and we want the schema for that node.
+// This case is found in OpenConfig leaf-ref cases where the key of a list is a
+// leafref; the schema *yang.Entry for the field is given by
+// schema.Dir["config"].Dir["a"].
+//
+// If preferShadowPath is false, the path values from the "path" tag are used.
+// If preferShadowPath is true and the field has a "shadow-path" tag, then the
+// path values from the "shadow-path" tag are used; if the field doesn't have
+// the "shadow-path" tag, then the path values from the "path" tag are used.
+func relativeSchemaPath(f reflect.StructField, preferShadowPath bool) ([]string, error) {
+	var pathTag string
+	var ok bool
+	if preferShadowPath {
+		pathTag, ok = f.Tag.Lookup("shadow-path")
+	}
+	if !ok {
+		if pathTag, ok = f.Tag.Lookup("path"); !ok || pathTag == "" {
+			return nil, fmt.Errorf("field %s did not specify a path", f.Name)
+		}
+	} else if pathTag == "" {
+		return nil, fmt.Errorf("field %s did not specify a shadow-path", f.Name)
 	}
 
 	paths := strings.Split(pathTag, "|")

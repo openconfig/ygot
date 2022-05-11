@@ -221,7 +221,7 @@ func TestValidateContainer(t *testing.T) {
 			desc:    "bad value type",
 			schema:  containerSchema,
 			val:     int(1),
-			wantErr: `type int is not a ValidatedGoStruct for schema container-schema`,
+			wantErr: `type int is not a GoStruct for schema container-schema`,
 		},
 		{
 			desc:    "bad schema",
@@ -480,6 +480,22 @@ func TestUnmarshalContainer(t *testing.T) {
 			parent: &ParentContainerStructPreferState{},
 			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 42 } } }`,
 			want:   &ParentContainerStructPreferState{ContainerField: &ContainerStructPreferState{Leaf2Field: ygot.Int32(43)}},
+		},
+		{
+			desc:   "success ignoring path with preferShadowPath",
+			schema: containerSchema,
+			parent: &ParentContainerStructPreferState{},
+			json:   `{ "container-field": { "leaf2-field": 43, "state": { "leaf1-field": 42 } } }`,
+			opts:   []UnmarshalOpt{&PreferShadowPath{}},
+			want:   &ParentContainerStructPreferState{ContainerField: &ContainerStructPreferState{Leaf2Field: ygot.Int32(43)}},
+		},
+		{
+			desc:   "success unmarshalling shadow path",
+			schema: containerSchema,
+			parent: &ParentContainerStructPreferState{},
+			json:   `{ "container-field": { "leaf2-field": 43, "config": { "leaf1-field": 42 } } }`,
+			opts:   []UnmarshalOpt{&PreferShadowPath{}},
+			want:   &ParentContainerStructPreferState{ContainerField: &ContainerStructPreferState{Leaf1Field: ygot.Int32(42), Leaf2Field: ygot.Int32(43)}},
 		},
 		{
 			desc:    "fail ignoring config without shadow-path",

@@ -27,10 +27,20 @@ import (
 // If no such JSON subtree exists, it returns nil, nil.
 // If more than one path has a JSON subtree, the function returns an error if
 // the two subtrees are unequal.
-func getJSONTreeValForField(parentSchema, schema *yang.Entry, f reflect.StructField, tree interface{}) (interface{}, error) {
-	ps, err := dataTreePaths(parentSchema, schema, f)
-	if err != nil {
-		return nil, err
+// If preferShadowPath=true, then the shadow-path tag is examined first for the
+// matching subtree.
+func getJSONTreeValForField(parentSchema, schema *yang.Entry, f reflect.StructField, tree interface{}, preferShadowPath bool) (interface{}, error) {
+	var ps [][]string
+	var err error
+	if preferShadowPath {
+		if ps, err = shadowDataTreePaths(parentSchema, schema, f); err != nil {
+			return nil, err
+		}
+	}
+	if len(ps) == 0 {
+		if ps, err = dataTreePaths(parentSchema, schema, f); err != nil {
+			return nil, err
+		}
 	}
 	var out interface{}
 	var outPath []string

@@ -111,7 +111,7 @@ func CreateDemoDeviceInstance() (*oc.Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Since ygot.MergeStructs returns an ygot.ValidatedGoStruct interface, we
+	// Since ygot.MergeStructs returns an ygot.GoStruct interface, we
 	// must type assert it back to *oc.Device.
 	return mergedDev.(*oc.Device), nil
 }

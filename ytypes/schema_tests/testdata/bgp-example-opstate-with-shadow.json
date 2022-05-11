@@ -29,6 +29,9 @@
                           "ebgp": {
                             "config": {
                               "maximum-paths": 32
+                            },
+                            "state": {
+                              "maximum-paths": 32
                             }
                           },
                           "ibgp": {
@@ -53,18 +56,12 @@
                         },
                         "use-multiple-paths": {
                           "ebgp": {
-                            "config": {
-                              "maximum-paths": 32
-                            },
                             "state": {
                               "maximum-paths": 32
                             }
                           },
                           "ibgp": {
                             "config": {
-                              "maximum-paths": 32
-                            },
-                            "state": {
                               "maximum-paths": 32
                             }
                           }

@@ -1,0 +1,266 @@
+{
+  "openconfig-network-instance:network-instances": {
+    "network-instance": [
+      {
+        "name": "DEFAULT",
+        "state": {
+          "name": "DEFAULT"
+        },
+        "protocols": {
+          "protocol": [
+            {
+              "name": "BGP",
+              "identifier": "openconfig-policy-types:BGP",
+              "state": {
+                "name": "BGP",
+                "identifier": "openconfig-policy-types:BGP"
+              },
+              "bgp": {
+                "global": {
+                  "afi-safis": {
+                    "afi-safi": [
+                      {
+                        "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
+                        "state": {
+                          "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
+                          "enabled": true
+                        },
+                        "use-multiple-paths": {
+                          "ebgp": {
+                            "state": {
+                              "maximum-paths": 32
+                            }
+                          },
+                          "ibgp": {
+                            "state": {
+                              "maximum-paths": 33
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "afi-safi-name": "openconfig-bgp-types:IPV6_UNICAST",
+                        "state": {
+                          "afi-safi-name": "openconfig-bgp-types:IPV6_UNICAST",
+                          "enabled": true
+                        },
+                        "use-multiple-paths": {
+                          "ibgp": {
+                            "state": {
+                              "maximum-paths": 32
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "state": {
+                    "as": 11111,
+                    "router-id": "10.10.10.10"
+                  }
+                },
+                "neighbors": {
+                  "neighbor": [
+                    {
+                      "state": {
+                        "description": "desc1",
+                        "neighbor-address": "192.168.1.2",
+                        "peer-group": "PEER_GROUP_2"
+                      },
+                      "neighbor-address": "192.168.1.2",
+                      "timers": {
+                        "state": {
+                          "restart-time": 0
+                        }
+                      },
+                      "transport": {
+                        "state": {
+                          "local-address": "192.168.1.1"
+                        }
+                      }
+                    },
+                    {
+                      "afi-safis": {
+                        "afi-safi": [
+                          {
+                            "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
+                            "apply-policy": {
+                              "state": {
+                                "export-policy": [
+                                  "LOOPBACK-TO-BGP"
+                                ],
+                                "import-policy": [
+                                  "PASS"
+                                ]
+                              }
+                            },
+                            "state": {
+                              "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
+                              "enabled": true
+                            }
+                          }
+                        ]
+                      },
+                      "state": {
+                        "description": "netlab-core1",
+                        "neighbor-address": "192.168.1.254",
+                        "peer-as": 11113
+                      },
+                      "neighbor-address": "192.168.1.254"
+                    },
+                    {
+                      "state": {
+                        "description": "desc2",
+                        "neighbor-address": "192.168.2.0",
+                        "peer-group": "PEER_GROUP_1"
+                      },
+                      "neighbor-address": "192.168.2.0",
+                      "transport": {
+                        "state": {
+                          "local-address": "192.168.2.1"
+                        }
+                      }
+                    },
+                    {
+                      "state": {
+                        "description": "desc2",
+                        "neighbor-address": "192.168.2.2",
+                        "peer-group": "PEER_GROUP_1"
+                      },
+                      "neighbor-address": "192.168.2.2",
+                      "transport": {
+                        "state": {
+                          "local-address": "192.168.2.3"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "peer-groups": {
+                  "peer-group": [
+                    {
+                      "afi-safis": {
+                        "afi-safi": [
+                          {
+                            "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
+                            "apply-policy": {
+                              "state": {
+                                "export-policy": [
+                                  "PASS-ALL"
+                                ],
+                                "import-policy": [
+                                  "IMPORT_POLICY_1"
+                                ]
+                              }
+                            },
+                            "state": {
+                              "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
+                              "enabled": true
+                            },
+                            "ipv4-unicast": {
+                              "prefix-limit": {
+                                "state": {
+                                  "max-prefixes": 20000
+                                }
+                              }
+                            },
+                            "use-multiple-paths": {
+                              "state": {
+                                "enabled": true
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "state": {
+                        "peer-as": 11112,
+                        "peer-group-name": "PEER_GROUP_1"
+                      },
+                      "peer-group-name": "PEER_GROUP_1"
+                    },
+                    {
+                      "afi-safis": {
+                        "afi-safi": [
+                          {
+                            "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
+                            "apply-policy": {
+                              "state": {
+                                "export-policy": [
+                                  "ENTITY_TYPE_1"
+                                ],
+                                "import-policy": [
+                                  "PASS-ALL"
+                                ]
+                              }
+                            },
+                            "state": {
+                              "afi-safi-name": "openconfig-bgp-types:IPV4_UNICAST",
+                              "enabled": true
+                            },
+                            "ipv4-unicast": {
+                              "prefix-limit": {
+                                "state": {
+                                  "max-prefixes": 1000
+                                }
+                              }
+                            },
+                            "use-multiple-paths": {
+                              "state": {
+                                "enabled": true
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      "state": {
+                        "peer-as": 65514,
+                        "peer-group-name": "PEER_GROUP_2"
+                      },
+                      "peer-group-name": "PEER_GROUP_2"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "openconfig-routing-policy:routing-policy": {
+    "policy-definitions": {
+      "policy-definition": [
+        {
+          "state": {
+            "name": "ENTITY_TYPE_1"
+          },
+          "name": "ENTITY_TYPE_1"
+        },
+        {
+          "state": {
+            "name": "LOOPBACK-TO-BGP"
+          },
+          "name": "LOOPBACK-TO-BGP"
+        },
+        {
+          "state": {
+            "name": "IMPORT_POLICY_1"
+          },
+          "name": "IMPORT_POLICY_1"
+        },
+        {
+          "state": {
+            "name": "PASS"
+          },
+          "name": "PASS"
+        },
+        {
+          "state": {
+            "name": "PASS-ALL"
+          },
+          "name": "PASS-ALL"
+        }
+      ]
+    }
+  }
+}

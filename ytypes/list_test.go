@@ -631,6 +631,29 @@ func TestUnmarshalKeyedList(t *testing.T) {
 			want:   &ContainerStructPreferConfig{},
 		},
 		{
+			desc:   "success ignoring path with preferShadowPath",
+			json:   `{ "config": { "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] } }`,
+			opts:   []UnmarshalOpt{&PreferShadowPath{}},
+			schema: containerWithPreferConfigSchema,
+			parent: &ContainerStructPreferConfig{},
+			want:   &ContainerStructPreferConfig{},
+		},
+		{
+			desc:   "success unmarshalling shadow path",
+			json:   `{ "state": { "key-list" : [ { "key" : "forty-two", "leaf-field" : 42} ] } }`,
+			opts:   []UnmarshalOpt{&PreferShadowPath{}},
+			schema: containerWithPreferConfigSchema,
+			parent: &ContainerStructPreferConfig{},
+			want: &ContainerStructPreferConfig{
+				KeyList: map[string]*ListElemStruct{
+					"forty-two": {
+						Key:       ygot.String("forty-two"),
+						LeafField: ygot.Int32(42),
+					},
+				},
+			},
+		},
+		{
 			desc:    "bad field",
 			json:    `{ "key-list" : [ { "key" : "forty-two", "bad-field" : 42} ] }`,
 			schema:  containerWithLeafListSchema,
@@ -2198,7 +2221,7 @@ func TestUnmarshalUnionKeyedList(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		inParent         ygot.ValidatedGoStruct
+		inParent         ygot.GoStruct
 		inSchema         *yang.Entry
 		inUnmarshalOpts  []UnmarshalOpt
 		inJSON           string

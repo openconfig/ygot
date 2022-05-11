@@ -283,9 +283,11 @@ func checkDataTreeAgainstPaths(jsonTree map[string]interface{}, dataPaths [][]st
 
 // schemaToStructFieldName returns the string name of the field, which must be
 // contained in parent (a struct ptr), given the schema for the field.
+// If preferShadowPath=true, then the shadow-path tag is examined first for the
+// matching field.
 // It returns empty string and nil error if the field does not exist in the
 // parent struct.
-func schemaToStructFieldName(schema *yang.Entry, parent interface{}) (string, *yang.Entry, error) {
+func schemaToStructFieldName(schema *yang.Entry, parent interface{}, preferShadowPath bool) (string, *yang.Entry, error) {
 
 	v := reflect.ValueOf(parent)
 	if util.IsNilOrInvalidValue(v) {
@@ -305,7 +307,11 @@ func schemaToStructFieldName(schema *yang.Entry, parent interface{}) (string, *y
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
 		fieldName := f.Name
-		p, err := util.RelativeSchemaPath(f)
+		relativeSchemaPathFn := util.RelativeSchemaPath
+		if preferShadowPath {
+			relativeSchemaPathFn = util.RelativeSchemaPathPreferShadow
+		}
+		p, err := relativeSchemaPathFn(f)
 		if err != nil {
 			return "", nil, err
 		}

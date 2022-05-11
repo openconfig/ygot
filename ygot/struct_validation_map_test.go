@@ -605,7 +605,7 @@ type mapStructInvalid struct {
 // IsYANGGoStruct implements the GoStruct interface.
 func (*mapStructInvalid) IsYANGGoStruct() {}
 
-// Validate implements the ValidatedGoStruct interface.
+// Validate implements the GoStruct interface.
 func (*mapStructInvalid) ΛValidate(...ValidationOption) error {
 	return fmt.Errorf("invalid")
 }
@@ -621,7 +621,7 @@ type mapStructNoPaths struct {
 // IsYANGGoStruct implements the GoStruct interface.
 func (*mapStructNoPaths) IsYANGGoStruct() {}
 
-// Validate implements the ValidatedGoStruct interface.
+// Validate implements the GoStruct interface.
 func (*mapStructNoPaths) ΛValidate(...ValidationOption) error     { return nil }
 func (*mapStructNoPaths) ΛEnumTypeMap() map[string][]reflect.Type { return nil }
 func (*mapStructNoPaths) ΛBelongingModule() string                { return "" }
@@ -631,7 +631,7 @@ func (*mapStructNoPaths) ΛBelongingModule() string                { return "" }
 func TestEmitJSON(t *testing.T) {
 	tests := []struct {
 		name         string
-		inStruct     ValidatedGoStruct
+		inStruct     GoStruct
 		inConfig     *EmitJSONConfig
 		wantJSONPath string
 		wantErr      string
@@ -1218,7 +1218,7 @@ func (*mergeTestListChild) ΛBelongingModule() string                { return "b
 func TestMergeStructJSON(t *testing.T) {
 	tests := []struct {
 		name     string
-		inStruct ValidatedGoStruct
+		inStruct GoStruct
 		inJSON   map[string]interface{}
 		inOpts   *EmitJSONConfig
 		wantJSON map[string]interface{}
@@ -1938,10 +1938,10 @@ func (e *ExampleAnnotation) UnmarshalJSON([]byte) error {
 // MergeStructInto. Used to capture the common cases between the two functions.
 var mergeStructTests = []struct {
 	name    string
-	inA     ValidatedGoStruct
-	inB     ValidatedGoStruct
+	inA     GoStruct
+	inB     GoStruct
 	inOpts  []MergeOpt
-	want    ValidatedGoStruct
+	want    GoStruct
 	wantErr string
 }{{
 	name: "simple struct merge, a empty",
@@ -2338,10 +2338,10 @@ func TestMergeStructs(t *testing.T) {
 	// it does not mutate any inputs.
 	tests := append(mergeStructTests, struct {
 		name    string
-		inA     ValidatedGoStruct
-		inB     ValidatedGoStruct
+		inA     GoStruct
+		inB     GoStruct
 		inOpts  []MergeOpt
-		want    ValidatedGoStruct
+		want    GoStruct
 		wantErr string
 	}{
 		name:    "error, bad data in A",
@@ -2370,7 +2370,7 @@ func TestMergeStructInto(t *testing.T) {
 			t.Errorf("%s: DeepCopy(%v): unexpected error with testdata, %v", tt.name, tt.inA, err)
 			continue
 		}
-		err = MergeStructInto(got.(ValidatedGoStruct), tt.inB, tt.inOpts...)
+		err = MergeStructInto(got, tt.inB, tt.inOpts...)
 		if diff := errdiff.Substring(err, tt.wantErr); diff != "" {
 			t.Errorf("%s: MergeStructInto(%v, %v): did not get expected error status, %s", tt.name, tt.inA, tt.inB, diff)
 		}
@@ -2589,7 +2589,7 @@ func TestBuildEmptyTreeMerge(t *testing.T) {
 		inStructB   *buildEmptyTreeMergeTest
 		inBuildSonA bool
 		inBuildSonB bool
-		want        ValidatedGoStruct
+		want        GoStruct
 		wantErr     bool
 	}{{
 		name: "check with no build empty",
