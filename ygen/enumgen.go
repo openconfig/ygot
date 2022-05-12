@@ -130,7 +130,7 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 
 			var enumKind EnumeratedValueType
 			switch {
-			case len(enumNameSake.Type) > 0 && util.IsYANGBaseType(e.Type):
+			case len(enumNameSake.Type) > 0 && util.IsYANGBaseType(enumNameSake):
 				enumKind = UnionEnumerationType
 			case len(enumNameSake.Type) > 0:
 				enumKind = DerivedUnionEnumerationType
@@ -143,7 +143,7 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 				entry: &yang.Entry{
 					Name: e.Name,
 					Type: &yang.YangType{
-						Name: e.Type.Name,
+						Name: enumNameSake.Name,
 						Kind: yang.Yenum,
 						Enum: t.Enum,
 					},
