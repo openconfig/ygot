@@ -118,6 +118,10 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 			return nil, util.AppendErr(errs, fmt.Errorf("Enumeration already created: "+et.Name))
 		}
 
+		if defaultValue, ok := enum.entry.SingleDefaultValue(); ok {
+			et.TypeDefaultValue = defaultValue
+		}
+
 		switch {
 		case len(enum.entry.Type.Type) != 0:
 			errs = append(errs, fmt.Errorf("unimplemented: support for multiple enumerations within a union for %v", enum.name))
@@ -129,6 +133,7 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 
 		switch {
 		case enum.entry.Type.IdentityBase != nil:
+			et.identityBaseName = enum.entry.Type.IdentityBase.Name
 			// enum corresponds to an identityref - hence the values are defined
 			// based on the values that the identity has. Since there is no explicit ordering
 			// in an identity, then we go through and put the values in alphabetical order in
@@ -158,7 +163,8 @@ func GenerateIR(yangFiles, includePaths []string, langMapper LangMapper, opts IR
 			sort.Ints(values)
 			for _, v := range values {
 				et.ValToYANGDetails = append(et.ValToYANGDetails, ygot.EnumDefinition{
-					Name: enum.entry.Type.Enum.ValueMap()[int64(v)],
+					Name:  enum.entry.Type.Enum.ValueMap()[int64(v)],
+					Value: v,
 				})
 			}
 		}
