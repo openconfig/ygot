@@ -757,6 +757,23 @@ func (dcg *DirectoryGenConfig) GetDirectoriesAndLeafTypes(yangFiles, includePath
 // It returns a GeneratedProto3 struct containing the messages that are to be
 // output, along with any associated values (e.g., enumerations).
 func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*GeneratedProto3, util.Errors) {
+	basePackageName := cg.Config.PackageName
+	if basePackageName == "" {
+		basePackageName = DefaultBasePackageName
+	}
+	enumPackageName := cg.Config.ProtoOptions.EnumPackageName
+	if enumPackageName == "" {
+		enumPackageName = DefaultEnumPackageName
+	}
+	ywrapperPath := cg.Config.ProtoOptions.YwrapperPath
+	if ywrapperPath == "" {
+		ywrapperPath = DefaultYwrapperPath
+	}
+	yextPath := cg.Config.ProtoOptions.YextPath
+	if yextPath == "" {
+		yextPath = DefaultYextPath
+	}
+
 	mdef, errs := mappedDefinitions(yangFiles, includePaths, &cg.Config)
 	if errs != nil {
 		return nil, errs
@@ -783,7 +800,9 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	}
 
 	// Store the returned schematree and enumSet within the state for this code generation.
-	protogen := NewProtoLangMapper(mdef.schematree, enumSet)
+	protogen := NewProtoLangMapper(basePackageName, enumPackageName)
+	protogen.SetSchemaTree(mdef.schematree)
+	protogen.SetEnumSet(enumSet)
 
 	protoMsgs, errs := buildDirectoryDefinitions(protogen, mdef.directoryEntries, opts)
 	if errs != nil {
@@ -812,23 +831,6 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 		msgMap[k] = m
 	}
 	sort.Strings(msgPaths)
-
-	basePackageName := cg.Config.PackageName
-	if basePackageName == "" {
-		basePackageName = DefaultBasePackageName
-	}
-	enumPackageName := cg.Config.ProtoOptions.EnumPackageName
-	if enumPackageName == "" {
-		enumPackageName = DefaultEnumPackageName
-	}
-	ywrapperPath := cg.Config.ProtoOptions.YwrapperPath
-	if ywrapperPath == "" {
-		ywrapperPath = DefaultYwrapperPath
-	}
-	yextPath := cg.Config.ProtoOptions.YextPath
-	if yextPath == "" {
-		yextPath = DefaultYextPath
-	}
 
 	// Only create the enums package if there are enums that are within the schema.
 	if len(protoEnums) > 0 {

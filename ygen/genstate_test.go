@@ -1363,7 +1363,8 @@ func TestBuildDirectoryDefinitions(t *testing.T) {
 				}
 				gogen := NewGoLangMapper(true)
 				gogen.SetSchemaTree(st)
-				protogen := NewProtoLangMapper(st, nil)
+				protogen := NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
+				protogen.SetSchemaTree(st)
 
 				structs := make(map[string]*yang.Entry)
 				enums := make(map[string]*yang.Entry)

@@ -686,7 +686,8 @@ func TestGenProto3Msg(t *testing.T) {
 			if errs != nil {
 				t.Fatalf("findEnumSet failed: %v", errs)
 			}
-			s := NewProtoLangMapper(nil, enumSet)
+			s := NewProtoLangMapper(tt.inBasePackage, tt.inEnumPackage)
+			s.SetEnumSet(enumSet)
 
 			// Seed the state with the supplied message names that have been provided.
 			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
@@ -1465,7 +1466,8 @@ message MessageName {
 				if errs != nil {
 					t.Fatalf("findEnumSet failed: %v", errs)
 				}
-				s := NewProtoLangMapper(nil, enumSet)
+				s := NewProtoLangMapper(tt.inBasePackageName, tt.inEnumPackageName)
+				s.SetEnumSet(enumSet)
 
 				// Seed the message names with the supplied input.
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames

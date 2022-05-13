@@ -2679,10 +2679,7 @@ func TestGenerateIR(t *testing.T) {
 		desc:        "complex openconfig test with compression using ProtoLangMapper with nested directories",
 		inYANGFiles: []string{filepath.Join(datapath, "openconfig-complex.yang")},
 		inLangMapper: func() LangMapper {
-			lm := NewProtoLangMapper(nil, nil)
-			lm.basePackageName = DefaultBasePackageName
-			lm.enumPackageName = DefaultEnumPackageName
-			return lm
+			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
 		}(),
 		inOpts: IROptions{
 			NestedDirectories: true,
@@ -2702,10 +2699,7 @@ func TestGenerateIR(t *testing.T) {
 		desc:        "complex openconfig test with compression using ProtoLangMapper",
 		inYANGFiles: []string{filepath.Join(datapath, "openconfig-complex.yang")},
 		inLangMapper: func() LangMapper {
-			lm := NewProtoLangMapper(nil, nil)
-			lm.basePackageName = DefaultBasePackageName
-			lm.enumPackageName = DefaultEnumPackageName
-			return lm
+			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
 		}(),
 		inOpts: IROptions{
 			NestedDirectories: false,
@@ -2728,10 +2722,7 @@ func TestGenerateIR(t *testing.T) {
 			filepath.Join(datapath, "openconfig-simple-augment2.yang"),
 		},
 		inLangMapper: func() LangMapper {
-			lm := NewProtoLangMapper(nil, nil)
-			lm.basePackageName = DefaultBasePackageName
-			lm.enumPackageName = DefaultEnumPackageName
-			return lm
+			return NewProtoLangMapper(DefaultBasePackageName, DefaultEnumPackageName)
 		}(),
 		inOpts: IROptions{
 			TransformationOptions: TransformationOpts{
