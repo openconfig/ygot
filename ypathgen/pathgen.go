@@ -243,10 +243,9 @@ func (cg *GenConfig) GeneratePathCode(yangFiles, includePaths []string) (map[str
 			UseDefiningModuleForTypedefEnumNames: cg.UseDefiningModuleForTypedefEnumNames,
 			EnumerationsUseUnderscores:           true,
 		},
-		NestedDirectories:                    false,
-		AbsoluteMapPaths:                     false,
-		AppendEnumSuffixForSimpleUnionEnums:  cg.AppendEnumSuffixForSimpleUnionEnums,
-		UseConsistentNamesForProtoUnionEnums: false,
+		NestedDirectories:                   false,
+		AbsoluteMapPaths:                    false,
+		AppendEnumSuffixForSimpleUnionEnums: cg.AppendEnumSuffixForSimpleUnionEnums,
 	}
 
 	var errs util.Errors

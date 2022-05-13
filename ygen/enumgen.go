@@ -83,7 +83,7 @@ func newEnumSet() *enumSet {
 // value is calculated based on the original context, whether path compression is enabled based
 // on the compressPaths boolean, and whether the name should not include underscores, as per the
 // noUnderscores boolean.
-func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, useConsistentNamesForProtoUnionEnums bool, enumOrgPrefixesToTrim []string) ([]*yangEnum, error) {
+func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums bool, enumOrgPrefixesToTrim []string) ([]*yangEnum, error) {
 	var es []*yangEnum
 
 	for _, t := range util.EnumeratedUnionTypes(e.Type.Type) {
@@ -148,19 +148,14 @@ func (s *enumSet) enumeratedUnionEntry(e *yang.Entry, compressPaths, noUnderscor
 						Enum: t.Enum,
 					},
 					Annotation: map[string]interface{}{
-						"valuePrefix": util.SchemaPathNoChoiceCase(e),
 						// We skip generating the enum in the global proto enum file when the
 						// enumeration is a non-typedef enumeration within a non-typedef union
 						// type, and with consistent name generation.
-						// TODO(wenbli): Once the enum name flags are removed, this code
-						// should be deleted.
-						"skipGlobalProtoGeneration": useDefiningModuleForTypedefEnumNames && util.IsYANGBaseType(enumNameSake) && useConsistentNamesForProtoUnionEnums,
+						// TODO(wenbli): Once the IR is used, this code should be deleted.
+						"skipGlobalProtoGeneration": util.IsYANGBaseType(enumNameSake),
 					},
 				},
 				kind: enumKind,
-			}
-			if useDefiningModuleForTypedefEnumNames && useConsistentNamesForProtoUnionEnums {
-				delete(en.entry.Annotation, "valuePrefix")
 			}
 		}
 
@@ -417,7 +412,7 @@ func enumIdentifier(e *yang.Entry, compressPaths bool) string {
 // into a common type.
 // The returned enumSet can be used to query for enum/identity names.
 // The returned map is the set of generated enums to be used for enum code generation.
-func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, useConsistentNamesForProtoUnionEnums bool, enumOrgPrefixesToTrim []string) (*enumSet, map[string]*yangEnum, []error) {
+func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums bool, enumOrgPrefixesToTrim []string) (*enumSet, map[string]*yangEnum, []error) {
 	validEnums := make(map[string]*yang.Entry)
 	var enumPaths []string
 	var errs []error
@@ -534,7 +529,7 @@ func findEnumSet(entries map[string]*yang.Entry, compressPaths, noUnderscores, s
 		case e.Type.Name == "union", len(e.Type.Type) > 0 && !util.IsYANGBaseType(e.Type):
 			// Calculate any enumerated types that exist within a union, whether it
 			// is a directly defined union, or a non-builtin typedef.
-			es, err := s.enumSet.enumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, useConsistentNamesForProtoUnionEnums, enumOrgPrefixesToTrim)
+			es, err := s.enumSet.enumeratedUnionEntry(e, compressPaths, noUnderscores, skipEnumDedup, shortenEnumLeafNames, useDefiningModuleForTypedefEnumNames, appendEnumSuffixForSimpleUnionEnums, enumOrgPrefixesToTrim)
 			if err != nil {
 				errs = append(errs, err)
 				continue

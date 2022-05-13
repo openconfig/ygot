@@ -495,9 +495,6 @@ type EnumeratedYANGType struct {
 	// generation mechanism to select how different enumerated
 	// value types are output.
 	Kind EnumeratedValueType
-	// ValuePrefix stores any prefix that has been annotated by the IR generation
-	// that specifies what prefix should be prepended to value names within the type.
-	ValuePrefix []string
 	// TypeName stores the original YANG type name for the enumeration.
 	TypeName string
 	// ValToYANGDetails stores the YANG-ordered set of enumeration value
