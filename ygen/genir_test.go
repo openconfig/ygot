@@ -658,7 +658,7 @@ func protoIR(nestedDirectories bool) *IR {
 							SchemaPath:        "/model/b/multi-key/config/key1",
 							LeafrefTargetPath: "",
 							Description:       "",
-							Type:              &YANGType{Name: "uint32"},
+							Type:              &YANGType{Name: "union"},
 						},
 						Type:     LeafNode,
 						LangType: &MappedType{NativeType: "ywrapper.UintValue"},
@@ -2519,10 +2519,14 @@ func TestGenerateIR(t *testing.T) {
 								SchemaPath:        "/model/b/multi-key/config/key1",
 								LeafrefTargetPath: "",
 								Description:       "",
-								Type:              &YANGType{Name: "uint32"},
+								Type:              &YANGType{Name: "union"},
 							},
-							Type:                    LeafNode,
-							LangType:                &MappedType{NativeType: "uint32", ZeroValue: "0"},
+							Type: LeafNode,
+							LangType: &MappedType{
+								NativeType: "uint32",
+								UnionTypes: map[string]int{"uint32": 0},
+								ZeroValue:  "0",
+							},
 							MappedPaths:             [][]string{{"config", "key1"}, {"key1"}},
 							MappedPathModules:       [][]string{{"openconfig-complex", "openconfig-complex"}, {"openconfig-complex"}},
 							ShadowMappedPaths:       [][]string{{"state", "key1"}, {"key1"}},
@@ -2552,8 +2556,12 @@ func TestGenerateIR(t *testing.T) {
 					},
 					ListKeys: map[string]*ListKey{
 						"key1": {
-							Name:     "Key1",
-							LangType: &MappedType{NativeType: "uint32", ZeroValue: "0"},
+							Name: "Key1",
+							LangType: &MappedType{
+								NativeType: "uint32",
+								UnionTypes: map[string]int{"uint32": 0},
+								ZeroValue:  "0",
+							},
 						},
 						"key2": {
 							Name:     "Key2",

@@ -1510,7 +1510,6 @@ message MessageName {
 }
 */
 
-/*
 func TestGenListKeyProto(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -1519,33 +1518,39 @@ func TestGenListKeyProto(t *testing.T) {
 		inArgs        *protoDefinitionArgs
 		wantMsg       *protoMsg
 		wantErr       bool
-	{{
+	}{{
 		name:          "simple list key proto",
 		inListPackage: "pkg",
 		inListName:    "list",
 		inArgs: &protoDefinitionArgs{
-			field: &yang.Entry{
-				Name:     "list",
-				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{},
-				Key:      "key",
-				Dir:      map[string]*yang.Entry{},
+			field: &NodeDetails{
+				Name: "list",
+				Type: ListNode,
+				YANGDetails: YANGNodeDetails{
+					Path: "/list",
+				},
 			},
-			directory: &Directory{
+			directory: &ParsedDirectory{
 				Name: "List",
-				Fields: map[string]*yang.Entry{
+				Type: List,
+				Fields: map[string]*NodeDetails{
 					"key": {
 						Name: "key",
-						Type: &yang.YangType{
-							Kind: yang.Ystring,
+						LangType: &MappedType{
+							NativeType: "string",
+						},
+						YANGDetails: YANGNodeDetails{
+							Path: "/list/key",
 						},
 					},
 				},
-			},
-			definedDirectories: map[string]*Directory{},
-			protogen: &ProtoLangMapper{
-				uniqueDirectoryNames: map[string]string{
-					"/list": "List",
+				ListKeys: map[string]*ListKey{
+					"key": {
+						Name: "key",
+						LangType: &MappedType{
+							NativeType: "string",
+						},
+					},
 				},
 			},
 			cfg: &protoMsgConfig{
@@ -1573,34 +1578,51 @@ func TestGenListKeyProto(t *testing.T) {
 		inListPackage: "pkg",
 		inListName:    "list",
 		inArgs: &protoDefinitionArgs{
-			field: &yang.Entry{
-				Name:     "list",
-				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{},
-				Key:      "key",
-				Dir:      map[string]*yang.Entry{},
+			field: &NodeDetails{
+				Name: "list",
+				Type: ListNode,
+				YANGDetails: YANGNodeDetails{
+					Path: "/list",
+				},
 			},
-			directory: &Directory{
+			directory: &ParsedDirectory{
 				Name: "List",
-				Fields: map[string]*yang.Entry{
+				Type: List,
+				Fields: map[string]*NodeDetails{
 					"key": {
 						Name: "key",
-						Type: &yang.YangType{
-							Kind: yang.Yunion,
-							Type: []*yang.YangType{
-								{Kind: yang.Ystring},
-								{Kind: yang.Yint8},
+						LangType: &MappedType{
+							UnionTypes: map[string]int{
+								"string": 0,
+								"sint64": 1,
+							},
+							UnionTypeInfos: map[string]MappedUnionSubtype{
+								"string": {},
+								"sint64": {},
+							},
+						},
+						YANGDetails: YANGNodeDetails{
+							Path: "/key",
+						},
+					},
+				},
+				ListKeys: map[string]*ListKey{
+					"key": {
+						Name: "key",
+						LangType: &MappedType{
+							UnionTypes: map[string]int{
+								"string": 0,
+								"sint64": 1,
+							},
+							UnionTypeInfos: map[string]MappedUnionSubtype{
+								"string": {},
+								"sint64": {},
 							},
 						},
 					},
 				},
 			},
-			definedDirectories: map[string]*Directory{},
-			protogen: &ProtoLangMapper{
-				uniqueDirectoryNames: map[string]string{
-					"/list": "List",
-				},
-			},
+			ir: &IR{},
 			cfg: &protoMsgConfig{
 				compressPaths:   false,
 				basePackageName: "base",
@@ -1630,87 +1652,19 @@ func TestGenListKeyProto(t *testing.T) {
 			}},
 			Imports: []string{"base/path/base/pkg/pkg.proto"},
 		},
-	}, {
-		name:          "list with union key - two string",
-		inListPackage: "pkg",
-		inListName:    "list",
-		inArgs: &protoDefinitionArgs{
-			field: &yang.Entry{
-				Name:     "list",
-				Kind:     yang.DirectoryEntry,
-				ListAttr: &yang.ListAttr{},
-				Key:      "key",
-				Dir:      map[string]*yang.Entry{},
-			},
-			directory: &Directory{
-				Name: "List",
-				Fields: map[string]*yang.Entry{
-					"key": {
-						Name: "key",
-						Type: &yang.YangType{
-							Kind: yang.Yunion,
-							Type: []*yang.YangType{
-								{Kind: yang.Ystring, POSIXPattern: []string{"^b.*$"}},
-								{Kind: yang.Ystring, POSIXPattern: []string{"^a.*$"}},
-							},
-						},
-					},
-				},
-			},
-			definedDirectories: map[string]*Directory{},
-			protogen: &ProtoLangMapper{
-				uniqueDirectoryNames: map[string]string{
-					"/list": "List",
-				},
-			},
-			cfg: &protoMsgConfig{
-				compressPaths:   false,
-				basePackageName: "base",
-				baseImportPath:  "base/path",
-			},
-		},
-		wantMsg: &protoMsg{
-			Name:     "listKey",
-			YANGPath: "/list",
-			Fields: []*protoMsgField{{
-				Tag:  1,
-				Name: "key",
-				Type: "string",
-			}, {
-				Tag:  2,
-				Name: "list",
-				Type: "pkg.list",
-			}},
-			Imports: []string{"base/path/base/pkg/pkg.proto"},
-		},
 	}}
 
 	for _, tt := range tests {
-		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs, IROptions{
-			TransformationOptions: TransformationOpts{
-				CompressBehaviour:                    genutil.Uncompressed,
-				IgnoreShadowSchemaPaths:              false,
-				GenerateFakeRoot:                     true,
-				ExcludeState:                         false,
-				ShortenEnumLeafNames:                 false,
-				EnumOrgPrefixesToTrim:                nil,
-				UseDefiningModuleForTypedefEnumNames: true,
-				EnumerationsUseUnderscores:           false,
-			},
-			NestedDirectories:                   true,
-			AbsoluteMapPaths:                    true,
-			AppendEnumSuffixForSimpleUnionEnums: true,
-		})
+		got, err := genListKeyProto(tt.inListPackage, tt.inListName, tt.inArgs)
 		if (err != nil) != tt.wantErr {
 			t.Errorf("%s: genListKeyProto(%s, %s, %#v): got unexpected error returned, got: %v, want err: %v", tt.name, tt.inListPackage, tt.inListName, tt.inArgs, err, tt.wantErr)
 		}
 
-		if diff := pretty.Compare(got, tt.wantMsg); diff != "" {
+		if diff := cmp.Diff(got, tt.wantMsg, cmpopts.EquateEmpty()); diff != "" {
 			t.Errorf("%s: genListKeyProto(%s, %s, %#v): did not get expected return message, diff(-got,+want):\n%s", tt.name, tt.inListPackage, tt.inListName, tt.inArgs, diff)
 		}
 	}
 }
-*/
 
 func TestWriteProtoEnums(t *testing.T) {
 	// Create mock enumerations within goyang since we cannot create them in-line.

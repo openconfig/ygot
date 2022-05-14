@@ -102,7 +102,16 @@ module openconfig-complex {
   }
 
   grouping multi-key-config {
-    leaf key1 { type uint32; }
+    leaf key1 {
+      type union {
+        type uint32 {
+          range "10..20";
+        }
+        type uint32 {
+          range "1..4";
+        }
+      }
+    }
     leaf key2 { type enumeration { enum RED; enum BLUE; } }
   }
 
