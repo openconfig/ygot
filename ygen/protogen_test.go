@@ -18,6 +18,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/openconfig/ygot/ygot"
 )
 
 func protoMsgEq(a, b *protoMsg) bool {
@@ -1841,29 +1843,17 @@ enum SecondEnum {
 		}
 	}
 }
+*/
 
 func TestUnionFieldToOneOf(t *testing.T) {
-	// Create mock enumerations within goyang since we cannot create them in-line.
-	testEnums := map[string][]string{
-		"enumOne": {"SPEED_2.5G", "SPEED_40G"},
-	}
-	testYANGEnums := map[string]*yang.EnumType{}
-
-	for name, values := range testEnums {
-		enum := yang.NewEnumType()
-		for i, v := range values {
-			enum.Set(v, int64(i))
-		}
-		testYANGEnums[name] = enum
-	}
-
 	tests := []struct {
 		name    string
 		inName  string
-		inEntry *yang.Entry
-		// inPath is populated with in.Entry.Path() if not set.
+		inField *NodeDetails
+		// inPath is populated with field.YANGDetails.Path if not set.
 		inPath              string
 		inMappedType        *MappedType
+		inEnums             map[string]*EnumeratedYANGType
 		inAnnotateEnumNames bool
 		wantFields          []*protoMsgField
 		wantEnums           map[string]*protoMsgEnum
@@ -1872,12 +1862,16 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}{{
 		name:   "simple string union",
 		inName: "FieldName",
-		inEntry: &yang.Entry{
+		inField: &NodeDetails{
 			Name: "field-name",
-			Type: &yang.YangType{
-				Type: []*yang.YangType{
-					{Kind: yang.Ystring},
-					{Kind: yang.Yint8},
+			Type: LeafNode,
+			YANGDetails: YANGNodeDetails{
+				Path: "/field-name",
+			},
+			LangType: &MappedType{
+				UnionTypeInfos: map[string]MappedUnionSubtype{
+					"string": {},
+					"sint64": {},
 				},
 			},
 		},
@@ -1900,12 +1894,13 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}, {
 		name:   "simple string union with a non-empty path argument",
 		inName: "FieldName",
-		inEntry: &yang.Entry{
+		inField: &NodeDetails{
 			Name: "field-name",
-			Type: &yang.YangType{
-				Type: []*yang.YangType{
-					{Kind: yang.Ystring},
-					{Kind: yang.Yint8},
+			Type: LeafNode,
+			LangType: &MappedType{
+				UnionTypeInfos: map[string]MappedUnionSubtype{
+					"string": {},
+					"sint64": {},
 				},
 			},
 		},
@@ -1929,12 +1924,16 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}, {
 		name:   "decimal64 union",
 		inName: "FieldName",
-		inEntry: &yang.Entry{
+		inField: &NodeDetails{
 			Name: "field-name",
-			Type: &yang.YangType{
-				Type: []*yang.YangType{
-					{Kind: yang.Ystring},
-					{Kind: yang.Ydecimal64},
+			Type: LeafNode,
+			YANGDetails: YANGNodeDetails{
+				Path: "/field-name",
+			},
+			LangType: &MappedType{
+				UnionTypeInfos: map[string]MappedUnionSubtype{
+					"string":             {},
+					"ywrapper.Decimal64": {},
 				},
 			},
 		},
@@ -1957,18 +1956,18 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}, {
 		name:   "union with an enumeration",
 		inName: "FieldName",
-		inEntry: &yang.Entry{
+		inField: &NodeDetails{
 			Name: "field-name",
-			Type: &yang.YangType{
-				Name: "union",
-				Kind: yang.Yunion,
-				Type: []*yang.YangType{
-					{
-						Name: "enumeration",
-						Kind: yang.Yenum,
-						Enum: testYANGEnums["enumOne"],
+			Type: LeafNode,
+			YANGDetails: YANGNodeDetails{
+				Path: "/field-name",
+			},
+			LangType: &MappedType{
+				UnionTypeInfos: map[string]MappedUnionSubtype{
+					"SomeEnumType": {
+						EnumeratedYANGTypeKey: "/field-name|enum",
 					},
-					{Kind: yang.Ystring},
+					"string": {},
 				},
 			},
 		},
@@ -1976,6 +1975,20 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			UnionTypes: map[string]int{
 				"SomeEnumType": 0,
 				"string":       1,
+			},
+		},
+		inEnums: map[string]*EnumeratedYANGType{
+			"/field-name|enum": {
+				Name:     "SomeEnumType",
+				Kind:     SimpleEnumerationType,
+				TypeName: "enumeration",
+				ValToYANGDetails: []ygot.EnumDefinition{{
+					Name:  "SPEED_2.5G",
+					Value: 0,
+				}, {
+					Name:  "SPEED_40G",
+					Value: 1,
+				}},
 			},
 		},
 		inAnnotateEnumNames: true,
@@ -1989,7 +2002,7 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			Type: "string",
 		}},
 		wantEnums: map[string]*protoMsgEnum{
-			"FieldNameEnum": {
+			"SomeEnumType": {
 				Values: map[int64]protoEnumValue{
 					0: {ProtoLabel: "UNSET"},
 					1: {ProtoLabel: "SPEED_2_5G", YANGLabel: "SPEED_2.5G"},
@@ -2000,18 +2013,18 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}, {
 		name:   "union with an enumeration, but union is typedef",
 		inName: "FieldName",
-		inEntry: &yang.Entry{
+		inField: &NodeDetails{
 			Name: "field-name",
-			Type: &yang.YangType{
-				Name: "derived-union",
-				Kind: yang.Yunion,
-				Type: []*yang.YangType{
-					{
-						Name: "enumeration",
-						Kind: yang.Yenum,
-						Enum: testYANGEnums["enumOne"],
+			Type: LeafNode,
+			YANGDetails: YANGNodeDetails{
+				Path: "/field-name",
+			},
+			LangType: &MappedType{
+				UnionTypeInfos: map[string]MappedUnionSubtype{
+					"SomeEnumType": {
+						EnumeratedYANGTypeKey: "/field-name|enum",
 					},
-					{Kind: yang.Ystring},
+					"string": {},
 				},
 			},
 		},
@@ -2019,6 +2032,20 @@ func TestUnionFieldToOneOf(t *testing.T) {
 			UnionTypes: map[string]int{
 				"SomeEnumType": 0,
 				"string":       1,
+			},
+		},
+		inEnums: map[string]*EnumeratedYANGType{
+			"/field-name|enum": {
+				Name:     "SomeEnumType",
+				Kind:     DerivedUnionEnumerationType,
+				TypeName: "derived-union",
+				ValToYANGDetails: []ygot.EnumDefinition{{
+					Name:  "SPEED_2.5G",
+					Value: 0,
+				}, {
+					Name:  "SPEED_40G",
+					Value: 1,
+				}},
 			},
 		},
 		inAnnotateEnumNames: true,
@@ -2035,16 +2062,18 @@ func TestUnionFieldToOneOf(t *testing.T) {
 	}, {
 		name:   "leaflist of union",
 		inName: "FieldName",
-		inEntry: &yang.Entry{
+		inField: &NodeDetails{
 			Name: "field-name",
-			Type: &yang.YangType{
-				Type: []*yang.YangType{
-					{Kind: yang.Ystring},
-					{Kind: yang.Yuint8},
+			Type: LeafListNode,
+			YANGDetails: YANGNodeDetails{
+				Path: "/parent/field-name",
+			},
+			LangType: &MappedType{
+				UnionTypeInfos: map[string]MappedUnionSubtype{
+					"string": {},
+					"sint64": {},
 				},
 			},
-			Parent:   &yang.Entry{Name: "parent"},
-			ListAttr: &yang.ListAttr{},
 		},
 		inMappedType: &MappedType{
 			UnionTypes: map[string]int{
@@ -2069,31 +2098,30 @@ func TestUnionFieldToOneOf(t *testing.T) {
 
 	for _, tt := range tests {
 		if tt.inPath == "" {
-			tt.inPath = tt.inEntry.Path()
+			tt.inPath = tt.inField.YANGDetails.Path
 		}
-		got, err := unionFieldToOneOf(tt.inName, tt.inEntry, tt.inPath, tt.inMappedType, tt.inAnnotateEnumNames)
+		got, err := unionFieldToOneOf(tt.inName, tt.inField, tt.inPath, tt.inMappedType, tt.inEnums, tt.inAnnotateEnumNames)
 		if (err != nil) != tt.wantErr {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, err, tt.wantErr)
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected error, got: %v, wanted err: %v", tt.name, tt.inName, tt.inField, tt.inMappedType, tt.inAnnotateEnumNames, err, tt.wantErr)
 		}
 
 		if err != nil {
 			continue
 		}
 
-		if diff := pretty.Compare(got.oneOfFields, tt.wantFields); diff != "" {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected set of fields, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, diff)
+		if diff := cmp.Diff(got.oneOfFields, tt.wantFields); diff != "" {
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected set of fields, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inField, tt.inMappedType, tt.inAnnotateEnumNames, diff)
 		}
 
-		if diff := pretty.Compare(got.enums, tt.wantEnums); diff != "" {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected set of enums, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, diff)
+		if diff := cmp.Diff(got.enums, tt.wantEnums, cmpopts.EquateEmpty()); diff != "" {
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected set of enums, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inField, tt.inMappedType, tt.inAnnotateEnumNames, diff)
 		}
 
-		if diff := pretty.Compare(got.repeatedMsg, tt.wantRepeatedMsg); diff != "" {
-			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected repeated message, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inEntry, tt.inMappedType, tt.inAnnotateEnumNames, diff)
+		if diff := cmp.Diff(got.repeatedMsg, tt.wantRepeatedMsg); diff != "" {
+			t.Errorf("%s: unionFieldToOneOf(%s, %v, %v, %v): did not get expected repeated message, diff(-got,+want):\n%s", tt.name, tt.inName, tt.inField, tt.inMappedType, tt.inAnnotateEnumNames, diff)
 		}
 	}
 }
-*/
 
 func TestStripPackagePrefix(t *testing.T) {
 	tests := []struct {
