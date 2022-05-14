@@ -15,10 +15,12 @@
 package ygen
 
 import (
+	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/ygot"
 )
 
@@ -1708,6 +1710,7 @@ func TestGenListKeyProto(t *testing.T) {
 		}
 	}
 }
+*/
 
 func TestWriteProtoEnums(t *testing.T) {
 	// Create mock enumerations within goyang since we cannot create them in-line.
@@ -1727,41 +1730,41 @@ func TestWriteProtoEnums(t *testing.T) {
 
 	tests := []struct {
 		name                string
-		inEnums             map[string]*yangEnum
+		inEnums             map[string]*EnumeratedYANGType
 		inAnnotateEnumNames bool
 		wantEnums           []string
 		wantErr             bool
 	}{{
 		name: "skipped enumeration type",
-		inEnums: map[string]*yangEnum{
-			"e": {
-				name: "e",
-				entry: &yang.Entry{
-					Name: "e",
-					Type: &yang.YangType{
-						Name: "enumeration",
-						Kind: yang.Yenum,
-					},
-				},
+		inEnums: map[string]*EnumeratedYANGType{
+			"/field-name|enum": {
+				Name:     "SomeEnumType",
+				Kind:     SimpleEnumerationType,
+				TypeName: "enumeration",
+				ValToYANGDetails: []ygot.EnumDefinition{{
+					Name:  "SPEED_2.5G",
+					Value: 0,
+				}, {
+					Name:  "SPEED_40G",
+					Value: 1,
+				}},
 			},
 		},
 		wantEnums: []string{},
 	}, {
 		name: "enum for identityref",
-		inEnums: map[string]*yangEnum{
-			"EnumeratedValue": {
-				name: "EnumeratedValue",
-				entry: &yang.Entry{
-					Type: &yang.YangType{
-						IdentityBase: &yang.Identity{
-							Name: "IdentityValue",
-							Values: []*yang.Identity{
-								{Name: "VALUE_A", Parent: &yang.Module{Name: "mod"}},
-								{Name: "VALUE_B", Parent: &yang.Module{Name: "mod2"}},
-							},
-						},
-					},
-				},
+		inEnums: map[string]*EnumeratedYANGType{
+			"/field-name|enum": {
+				Name:             "EnumeratedValue",
+				Kind:             IdentityType,
+				identityBaseName: "IdentityValue",
+				ValToYANGDetails: []ygot.EnumDefinition{{
+					Name:           "VALUE_A",
+					DefiningModule: "mod",
+				}, {
+					Name:           "VALUE_B",
+					DefiningModule: "mod2",
+				}},
 			},
 		},
 		wantEnums: []string{
@@ -1776,34 +1779,30 @@ enum EnumeratedValue {
 		},
 	}, {
 		name: "enum for typedef enumeration",
-		inEnums: map[string]*yangEnum{
+		inEnums: map[string]*EnumeratedYANGType{
 			"e": {
-				name: "EnumName",
-				entry: &yang.Entry{
-					Name: "e",
-					Type: &yang.YangType{
-						Name: "typedef",
-						Kind: yang.Yenum,
-						Enum: testYANGEnums["enumOne"],
-					},
-					Annotation: map[string]interface{}{
-						"valuePrefix": []string{"enum-name"},
-					},
-				},
+				Name:     "EnumName",
+				Kind:     DerivedEnumerationType,
+				TypeName: "typedef",
+				ValToYANGDetails: []ygot.EnumDefinition{{
+					Name:  "SPEED_2.5G",
+					Value: 0,
+				}, {
+					Name:  "SPEED_40G",
+					Value: 1,
+				}},
 			},
 			"f": {
-				name: "SecondEnum",
-				entry: &yang.Entry{
-					Name: "f",
-					Type: &yang.YangType{
-						Name: "derived",
-						Kind: yang.Yenum,
-						Enum: testYANGEnums["enumTwo"],
-					},
-					Annotation: map[string]interface{}{
-						"valuePrefix": []string{"secondenum"},
-					},
-				},
+				Name:     "SecondEnum",
+				Kind:     DerivedEnumerationType,
+				TypeName: "derived",
+				ValToYANGDetails: []ygot.EnumDefinition{{
+					Name:  "VALUE_1",
+					Value: 0,
+				}, {
+					Name:  "VALUE_2",
+					Value: 1,
+				}},
 			},
 		},
 		inAnnotateEnumNames: true,
@@ -1838,12 +1837,11 @@ enum SecondEnum {
 
 		// Sort the returned output to avoid test flakes.
 		sort.Strings(got)
-		if diff := pretty.Compare(got, tt.wantEnums); diff != "" {
+		if diff := cmp.Diff(got, tt.wantEnums, cmpopts.EquateEmpty()); diff != "" {
 			t.Errorf("%s: writeProtoEnums(%v): did not get expected output, diff(-got,+want):\n%s", tt.name, tt.inEnums, diff)
 		}
 	}
 }
-*/
 
 func TestUnionFieldToOneOf(t *testing.T) {
 	tests := []struct {
