@@ -1511,17 +1511,6 @@ func enumMapFromEntry(entry *yang.Entry) map[string]*yang.Entry {
 	return enumMap
 }
 
-// enumMapFromEntries recursively finds enumerated values from a directory and
-// returns an enumMap. The input enumMap is intended for findEnumSet.
-func enumMapFromDirectory(dir *Directory) map[string]*yang.Entry {
-	enumMap := map[string]*yang.Entry{}
-	addEnumsToEnumMap(dir.Entry, enumMap)
-	for _, e := range dir.Fields {
-		addEnumsToEnumMap(e, enumMap)
-	}
-	return enumMap
-}
-
 // addEnumsToEnumMap recursively finds enumerated values and adds them to the
 // input enumMap. The input enumMap is intended for findEnumSet, so that tests
 // that need generated enumerated names have an easy time generating them, and
