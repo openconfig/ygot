@@ -16,10 +16,9 @@ package ygen
 
 import (
 	"testing"
-
-	"github.com/google/go-cmp/cmp"
 )
 
+/*
 func protoMsgEq(a, b *protoMsg) bool {
 	if a.Name != b.Name {
 		return false
@@ -45,7 +44,6 @@ func protoMsgEq(a, b *protoMsg) bool {
 	return cmp.Equal(fieldMap(a.Fields), fieldMap(b.Fields))
 }
 
-/*
 func TestGenProto3Msg(t *testing.T) {
 	modules := yang.NewModules()
 	modules.Modules["mod"] = &yang.Module{
