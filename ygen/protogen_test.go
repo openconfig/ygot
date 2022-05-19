@@ -20,13 +20,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
-	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
-	"google.golang.org/protobuf/testing/protocmp"
 )
 
+/*
 func protoMsgEq(a, b *protoMsg) bool {
 	if a.Name != b.Name {
 		return false
@@ -727,64 +725,53 @@ func TestSafeProtoName(t *testing.T) {
 	}
 }
 
+/*
 func TestWriteProtoMsg(t *testing.T) {
+	// A definition of an enumerated type.
+	enumeratedLeafDef := yang.NewEnumType()
+	enumeratedLeafDef.Set("ONE", int64(1))
+	enumeratedLeafDef.Set("FORTYTWO", int64(42))
+
 	tests := []struct {
-		name string
-		// inMsg should be used if msg is the same between compressed and uncompressed.
-		inMsg           *ParsedDirectory
-		inMsgCompress   *ParsedDirectory
-		inMsgUncompress *ParsedDirectory
-		inIR            *IR
-		// inIR should be used if IR is the same between compressed and uncompressed.
-		inIRCompress      *IR
-		inIRUncompress    *IR
-		inBasePackageName string
-		inEnumPackageName string
-		inBaseImportPath  string
-		inNestedMessages  bool
-		wantCompress      *generatedProto3Message
-		wantUncompress    *generatedProto3Message
-		wantCompressErr   bool
-		wantUncompressErr bool
+		name                   string
+		inMsg                  *Directory
+		inMsgs                 map[string]*Directory
+		inBasePackageName      string
+		inEnumPackageName      string
+		inBaseImportPath       string
+		inUniqueDirectoryNames map[string]string
+		inNestedMessages       bool
+		wantCompress           *generatedProto3Message
+		wantUncompress         *generatedProto3Message
+		wantCompressErr        bool
+		wantUncompressErr      bool
 	}{{
 		name: "simple message with scalar fields",
-		inMsgCompress: &ParsedDirectory{
+		inMsg: &Directory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
-				"field-one": {
-					Name: "field_one",
-					Type: LeafNode,
-					LangType: &MappedType{
-						NativeType: "ywrapper.StringValue",
-					},
-					YANGDetails: YANGNodeDetails{
-						Name: "field-one",
-						Path: "/field-one",
+			Entry: &yang.Entry{
+				Name: "message-name",
+				Kind: yang.DirectoryEntry,
+				Dir:  map[string]*yang.Entry{},
+				Parent: &yang.Entry{
+					Name: "container",
+					Kind: yang.DirectoryEntry,
+					Dir:  map[string]*yang.Entry{},
+					Parent: &yang.Entry{
+						Name: "module",
+						Kind: yang.DirectoryEntry,
+						Dir:  map[string]*yang.Entry{},
 					},
 				},
+				Node: &yang.Container{Name: "message-name"},
 			},
-			PackageName: "container",
-			Path:        "/module/container/message-name",
-		},
-		inMsgUncompress: &ParsedDirectory{
-			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*yang.Entry{
 				"field-one": {
-					Name: "field_one",
-					Type: LeafNode,
-					LangType: &MappedType{
-						NativeType: "ywrapper.StringValue",
-					},
-					YANGDetails: YANGNodeDetails{
-						Name: "field-one",
-						Path: "/field-one",
-					},
+					Name: "field-one",
+					Type: &yang.YangType{Kind: yang.Ystring},
 				},
 			},
-			PackageName: "module.container",
-			Path:        "/module/container/message-name",
+			Path: []string{"", "module", "container", "message-name"},
 		},
 		inBasePackageName: "base",
 		inEnumPackageName: "enums",
@@ -806,55 +793,47 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with other messages embedded",
-		inMsgCompress: &ParsedDirectory{
+		inMsg: &Directory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Entry: &yang.Entry{
+				Name: "message-name",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
+				},
+			},
+			Fields: map[string]*yang.Entry{
 				"child": {
 					Name: "child",
-					Type: ContainerNode,
-					YANGDetails: YANGNodeDetails{
-						Name: "child",
-						Path: "/module/message-name/child",
+					Kind: yang.DirectoryEntry,
+					Dir:  map[string]*yang.Entry{},
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "module",
+							Kind: yang.DirectoryEntry,
+						},
 					},
 				},
 			},
-			Path:        "/module/message-name",
-			PackageName: "",
+			Path: []string{"", "module", "message-name"},
 		},
-		inMsgUncompress: &ParsedDirectory{
-			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
-				"child": {
+		inMsgs: map[string]*Directory{
+			"/module/message-name/child": {
+				Name: "Child",
+				Entry: &yang.Entry{
 					Name: "child",
-					Type: ContainerNode,
-					YANGDetails: YANGNodeDetails{
-						Name: "child",
-						Path: "/module/message-name/child",
+					Kind: yang.DirectoryEntry,
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "module",
+							Kind: yang.DirectoryEntry,
+						},
 					},
-				},
-			},
-			Path:        "/module/message-name",
-			PackageName: "module",
-		},
-		inIRCompress: &IR{
-			Directories: map[string]*ParsedDirectory{
-				"/module/message-name/child": {
-					Name:        "Child",
-					Type:        Container,
-					Path:        "/module/message-name/child",
-					PackageName: "message_name",
-				},
-			},
-		},
-		inIRUncompress: &IR{
-			Directories: map[string]*ParsedDirectory{
-				"/module/message-name/child": {
-					Name:        "Child",
-					Type:        Container,
-					Path:        "/module/message-name/child",
-					PackageName: "module.message_name",
 				},
 			},
 		},
@@ -880,81 +859,54 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with other messages embedded - with nested messages",
-		inMsgCompress: &ParsedDirectory{
+		inMsg: &Directory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Entry: &yang.Entry{
+				Name: "message-name",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
+				},
+			},
+			Fields: map[string]*yang.Entry{
 				"child": {
 					Name: "child",
-					Type: ContainerNode,
-					YANGDetails: YANGNodeDetails{
-						Name: "child",
-						Path: "/module/message-name/child",
-					},
-				},
-			},
-			Path:        "/module/message-name",
-			PackageName: "",
-		},
-		inIRCompress: &IR{
-			Directories: map[string]*ParsedDirectory{
-				"/module/message-name/child": {
-					Name: "Child",
-					Type: Container,
-					Fields: map[string]*NodeDetails{
-						"leaf": {
-							Name: "leaf",
-							Type: LeafNode,
-							LangType: &MappedType{
-								NativeType: "ywrapper.StringValue",
-							},
-							YANGDetails: YANGNodeDetails{
-								Name: "leaf",
-								Path: "/leaf",
-							},
+					Kind: yang.DirectoryEntry,
+					Dir:  map[string]*yang.Entry{},
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "module",
+							Kind: yang.DirectoryEntry,
 						},
 					},
-					Path:        "/module/message-name/child",
-					PackageName: "",
 				},
 			},
+			Path: []string{"", "module", "message-name"},
 		},
-		inMsgUncompress: &ParsedDirectory{
-			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
-				"child": {
+		inMsgs: map[string]*Directory{
+			"/module/message-name/child": {
+				Name: "Child",
+				Entry: &yang.Entry{
 					Name: "child",
-					Type: ContainerNode,
-					YANGDetails: YANGNodeDetails{
-						Name: "child",
-						Path: "/module/message-name/child",
-					},
-				},
-			},
-			Path:        "/module/message-name",
-			PackageName: "module",
-		},
-		inIRUncompress: &IR{
-			Directories: map[string]*ParsedDirectory{
-				"/module/message-name/child": {
-					Name: "Child",
-					Type: Container,
-					Fields: map[string]*NodeDetails{
-						"leaf": {
-							Name: "leaf",
-							Type: LeafNode,
-							LangType: &MappedType{
-								NativeType: "ywrapper.StringValue",
-							},
-							YANGDetails: YANGNodeDetails{
-								Name: "leaf",
-								Path: "/leaf",
-							},
+					Kind: yang.DirectoryEntry,
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "module",
+							Kind: yang.DirectoryEntry,
 						},
 					},
-					Path:        "/module/message-name/child",
-					PackageName: "module",
+				},
+				Path: []string{"", "module", "message-name", "child"},
+				Fields: map[string]*yang.Entry{
+					"leaf": {
+						Name: "leaf",
+						Type: &yang.YangType{Kind: yang.Ystring},
+					},
 				},
 			},
 		},
@@ -983,66 +935,40 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with an enumeration leaf",
-		inMsgCompress: &ParsedDirectory{
+		inMsg: &Directory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
-				"enum": {
-					Name: "enum",
-					Type: LeafNode,
-					LangType: &MappedType{
-						NativeType:            "Enum",
-						IsEnumeratedValue:     true,
-						EnumeratedYANGTypeKey: "/module/message-name/enum",
-					},
-					YANGDetails: YANGNodeDetails{
-						Name: "enum",
-						Path: "/module/message-name/enum",
-					},
+			Entry: &yang.Entry{
+				Name: "message-name",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
 				},
 			},
-			Path:        "/module/message-name",
-			PackageName: "",
-		},
-		inMsgUncompress: &ParsedDirectory{
-			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*yang.Entry{
 				"enum": {
 					Name: "enum",
-					Type: LeafNode,
-					LangType: &MappedType{
-						NativeType:            "Enum",
-						IsEnumeratedValue:     true,
-						EnumeratedYANGTypeKey: "/module/message-name/enum",
-					},
-					YANGDetails: YANGNodeDetails{
-						Name: "enum",
-						Path: "/module/message-name/enum",
-					},
-				},
-			},
-			Path:        "/module/message-name",
-			PackageName: "module",
-		},
-		inIR: &IR{
-			Enums: map[string]*EnumeratedYANGType{
-				"/module/message-name/enum": {
-					Name:     "ModuleMessageNameEnum",
-					Kind:     SimpleEnumerationType,
-					TypeName: "enumeration",
-					ValToYANGDetails: []ygot.EnumDefinition{
-						{
-							Name:  "ONE",
-							Value: 1,
+					Kind: yang.LeafEntry,
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Parent: &yang.Entry{
+							Name: "module",
 						},
-						{
-							Name:  "FORTYTWO",
-							Value: 42,
+					},
+					Type: &yang.YangType{
+						Name: "enumeration",
+						Kind: yang.Yenum,
+						Enum: enumeratedLeafDef,
+					},
+					Node: &yang.Container{
+						Name: "message-name",
+						Parent: &yang.Module{
+							Name: "module",
 						},
 					},
 				},
 			},
+			Path: []string{"", "module", "message-name"},
 		},
 		inBasePackageName: "base",
 		inEnumPackageName: "enums",
@@ -1074,96 +1000,87 @@ message MessageName {
 		},
 	}, {
 		name: "simple message with a list",
-		inMsgUncompress: &ParsedDirectory{
+		inMsg: &Directory{
 			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Entry: &yang.Entry{
+				Name: "a-message",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
+				},
+			},
+			Fields: map[string]*yang.Entry{
 				"list": {
-					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
-						Name: "list",
-						Path: "/module/a-message/surrounding-container/list",
-					},
-				},
-			},
-			Path:        "/module/a-message",
-			PackageName: "module",
-		},
-		inIRUncompress: &IR{
-			Directories: map[string]*ParsedDirectory{
-				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
+					Name:     "list",
+					Kind:     yang.DirectoryEntry,
+					ListAttr: &yang.ListAttr{},
+					Key:      "keyfield",
+					Dir: map[string]*yang.Entry{
 						"keyfield": {
 							Name: "keyfield",
-							Type: LeafNode,
-							YANGDetails: YANGNodeDetails{
-								Name: "keyfield",
-								Path: "/keyfield",
+							Type: &yang.YangType{
+								Kind: yang.Ystring,
 							},
 						},
 					},
-					ListKeys: map[string]*ListKey{
-						"keyfield": {
-							Name: "keyfield",
-							LangType: &MappedType{
-								NativeType: "string",
+					Parent: &yang.Entry{
+						Name: "surrounding-container",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "a-message",
+							Kind: yang.DirectoryEntry,
+							Parent: &yang.Entry{
+								Name: "module",
+								Kind: yang.DirectoryEntry,
 							},
 						},
 					},
-					Path:        "/module/a-message/surrounding-container/list",
-					PackageName: "module.a_message.surrounding_container",
 				},
 			},
 		},
-		inMsgCompress: &ParsedDirectory{
-			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
-				"list": {
-					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
-						Name: "list",
-						Path: "/module/a-message/surrounding-container/list",
-					},
-				},
-			},
-			Path:        "/module/a-message",
-			PackageName: "",
-		},
-		inIRCompress: &IR{
-			Directories: map[string]*ParsedDirectory{
-				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
+		inMsgs: map[string]*Directory{
+			"/module/a-message/surrounding-container/list": {
+				Name: "List",
+				Entry: &yang.Entry{
+					Name:     "list",
+					Kind:     yang.DirectoryEntry,
+					ListAttr: &yang.ListAttr{},
+					Key:      "keyfield",
+					Dir: map[string]*yang.Entry{
 						"keyfield": {
 							Name: "keyfield",
-							Type: LeafNode,
-							YANGDetails: YANGNodeDetails{
-								Name: "keyfield",
-								Path: "/keyfield",
+							Type: &yang.YangType{
+								Kind: yang.Ystring,
 							},
 						},
 					},
-					ListKeys: map[string]*ListKey{
-						"keyfield": {
-							Name: "keyfield",
-							LangType: &MappedType{
-								NativeType: "string",
+					Parent: &yang.Entry{
+						Name: "surrounding-container",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "a-message",
+							Kind: yang.DirectoryEntry,
+							Parent: &yang.Entry{
+								Name: "module",
+								Kind: yang.DirectoryEntry,
 							},
 						},
 					},
-					Path:        "/module/a-message/surrounding-container/list",
-					PackageName: "a_message",
+				},
+				Fields: map[string]*yang.Entry{
+					"keyfield": {
+						Name: "keyfield",
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
 				},
 			},
 		},
-		inBasePackageName: "base",
-		inEnumPackageName: "enums",
+		inBasePackageName:      "base",
+		inEnumPackageName:      "enums",
+		inUniqueDirectoryNames: map[string]string{"/module/a-message/surrounding-container/list": "List"},
 		wantCompress: &generatedProto3Message{
 			PackageName: "",
 			MessageCode: `
@@ -1173,7 +1090,7 @@ message ListKey {
   a_message.List list = 2;
 }
 
-// AMessage represents the /module/a-message YANG schema element.
+// AMessage represents the  YANG schema element.
 message AMessage {
   repeated ListKey list = 486198550;
 }`,
@@ -1188,7 +1105,7 @@ message ListKey {
   a_message.surrounding_container.List list = 2;
 }
 
-// AMessage represents the /module/a-message YANG schema element.
+// AMessage represents the  YANG schema element.
 message AMessage {
   repeated ListKey list = 486198550;
 }`,
@@ -1196,109 +1113,93 @@ message AMessage {
 		},
 	}, {
 		name: "simple message with a list - nested messages",
-		inMsgUncompress: &ParsedDirectory{
+		inMsg: &Directory{
 			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Entry: &yang.Entry{
+				Name: "a-message",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
+				},
+			},
+			Fields: map[string]*yang.Entry{
 				"list": {
-					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
-						Name: "list",
-						Path: "/module/a-message/surrounding-container/list",
-					},
-				},
-			},
-			Path:        "/module/a-message",
-			PackageName: "module",
-		},
-		inIRUncompress: &IR{
-			Directories: map[string]*ParsedDirectory{
-				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
+					Name:     "list",
+					Kind:     yang.DirectoryEntry,
+					ListAttr: &yang.ListAttr{},
+					Key:      "keyfield",
+					Dir: map[string]*yang.Entry{
 						"keyfield": {
 							Name: "keyfield",
-							Type: LeafNode,
-							LangType: &MappedType{
-								NativeType: "ywrapper.StringValue",
-							},
-							YANGDetails: YANGNodeDetails{
-								Name: "keyfield",
-								Path: "/keyfield",
+							Type: &yang.YangType{
+								Kind: yang.Ystring,
 							},
 						},
 					},
-					ListKeys: map[string]*ListKey{
-						"keyfield": {
-							Name: "keyfield",
-							LangType: &MappedType{
-								NativeType: "string",
+					Parent: &yang.Entry{
+						Name: "surrounding-container",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "a-message",
+							Kind: yang.DirectoryEntry,
+							Parent: &yang.Entry{
+								Name: "module",
+								Kind: yang.DirectoryEntry,
 							},
 						},
 					},
-					Path:        "/module/a-message/surrounding-container/list",
-					PackageName: "module",
 				},
 			},
+			Path: []string{"", "module", "a-message"},
 		},
-		inMsgCompress: &ParsedDirectory{
-			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
-				"list": {
-					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
-						Name: "list",
-						Path: "/module/a-message/surrounding-container/list",
-					},
-				},
-			},
-			Path:        "/module/a-message",
-			PackageName: "",
-		},
-		inIRCompress: &IR{
-			Directories: map[string]*ParsedDirectory{
-				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
+		inMsgs: map[string]*Directory{
+			"/module/a-message/surrounding-container/list": {
+				Name: "List",
+				Entry: &yang.Entry{
+					Name:     "list",
+					Kind:     yang.DirectoryEntry,
+					ListAttr: &yang.ListAttr{},
+					Key:      "keyfield",
+					Dir: map[string]*yang.Entry{
 						"keyfield": {
 							Name: "keyfield",
-							Type: LeafNode,
-							LangType: &MappedType{
-								NativeType: "ywrapper.StringValue",
-							},
-							YANGDetails: YANGNodeDetails{
-								Name: "keyfield",
-								Path: "/keyfield",
+							Type: &yang.YangType{
+								Kind: yang.Ystring,
 							},
 						},
 					},
-					ListKeys: map[string]*ListKey{
-						"keyfield": {
-							Name: "keyfield",
-							LangType: &MappedType{
-								NativeType: "string",
+					Parent: &yang.Entry{
+						Name: "surrounding-container",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "a-message",
+							Kind: yang.DirectoryEntry,
+							Parent: &yang.Entry{
+								Name: "module",
+								Kind: yang.DirectoryEntry,
 							},
 						},
 					},
-					Path:        "/module/a-message/surrounding-container/list",
-					PackageName: "a_message",
+				},
+				Fields: map[string]*yang.Entry{
+					"keyfield": {
+						Name: "keyfield",
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
 				},
 			},
 		},
-		inBasePackageName: "base",
-		inEnumPackageName: "enums",
-		inNestedMessages:  true,
+		inBasePackageName:      "base",
+		inEnumPackageName:      "enums",
+		inNestedMessages:       true,
+		inUniqueDirectoryNames: map[string]string{"/module/a-message/surrounding-container/list": "List"},
 		wantCompress: &generatedProto3Message{
 			PackageName: "",
 			MessageCode: `
 message AMessage {
-  message List {
-  }
   message ListKey {
     string keyfield = 1;
     List list = 2;
@@ -1310,8 +1211,6 @@ message AMessage {
 			PackageName: "module",
 			MessageCode: `
 message AMessage {
-  message List {
-  }
   message ListKey {
     string keyfield = 1;
     List list = 2;
@@ -1321,94 +1220,91 @@ message AMessage {
 		},
 	}, {
 		name: "simple message with unkeyed list - nested messages",
-		inMsgUncompress: &ParsedDirectory{
+		inMsg: &Directory{
 			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
-				"list": {
-					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
-						Name: "list",
-						Path: "/module/a-message/surrounding-container/list",
-					},
+			Entry: &yang.Entry{
+				Name: "a-message",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
 				},
 			},
-			Path:        "/module/a-message",
-			PackageName: "module",
-		},
-		inIRUncompress: &IR{
-			Directories: map[string]*ParsedDirectory{
-				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
+			Fields: map[string]*yang.Entry{
+				"list": {
+					Name:     "list",
+					Kind:     yang.DirectoryEntry,
+					ListAttr: &yang.ListAttr{},
+					Dir: map[string]*yang.Entry{
 						"keyfield": {
 							Name: "keyfield",
-							Type: LeafNode,
-							LangType: &MappedType{
-								NativeType: "ywrapper.StringValue",
-							},
-							YANGDetails: YANGNodeDetails{
-								Name: "keyfield",
-								Path: "/keyfield",
+							Type: &yang.YangType{
+								Kind: yang.Ystring,
 							},
 						},
 					},
-					Path:        "/module/a-message/surrounding-container/list",
-					PackageName: "module.a_message.surrounding_container",
-				},
-			},
-		},
-		inMsgCompress: &ParsedDirectory{
-			Name: "AMessage",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
-				"list": {
-					Name: "list",
-					Type: ListNode,
-					YANGDetails: YANGNodeDetails{
-						Name: "list",
-						Path: "/module/a-message/surrounding-container/list",
-					},
-				},
-			},
-			Path:        "/module/a-message",
-			PackageName: "",
-		},
-		inIRCompress: &IR{
-			Directories: map[string]*ParsedDirectory{
-				"/module/a-message/surrounding-container/list": {
-					Name: "List",
-					Type: List,
-					Fields: map[string]*NodeDetails{
-						"keyfield": {
-							Name: "keyfield",
-							Type: LeafNode,
-							LangType: &MappedType{
-								NativeType: "ywrapper.StringValue",
-							},
-							YANGDetails: YANGNodeDetails{
-								Name: "keyfield",
-								Path: "/keyfield",
+					Parent: &yang.Entry{
+						Name: "surrounding-container",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "a-message",
+							Kind: yang.DirectoryEntry,
+							Parent: &yang.Entry{
+								Name: "module",
+								Kind: yang.DirectoryEntry,
 							},
 						},
 					},
-					Path:        "/module/a-message/surrounding-container/list",
-					PackageName: "a_message",
+				},
+			},
+			Path: []string{"", "module", "a-message"},
+		},
+		inMsgs: map[string]*Directory{
+			"/module/a-message/surrounding-container/list": {
+				Name: "List",
+				Entry: &yang.Entry{
+					Name:     "list",
+					Kind:     yang.DirectoryEntry,
+					ListAttr: &yang.ListAttr{},
+					Dir: map[string]*yang.Entry{
+						"keyfield": {
+							Name: "keyfield",
+							Type: &yang.YangType{
+								Kind: yang.Ystring,
+							},
+						},
+					},
+					Parent: &yang.Entry{
+						Name: "surrounding-container",
+						Kind: yang.DirectoryEntry,
+						Parent: &yang.Entry{
+							Name: "a-message",
+							Kind: yang.DirectoryEntry,
+							Parent: &yang.Entry{
+								Name: "module",
+								Kind: yang.DirectoryEntry,
+							},
+						},
+					},
+				},
+				Fields: map[string]*yang.Entry{
+					"keyfield": {
+						Name: "keyfield",
+						Type: &yang.YangType{
+							Kind: yang.Ystring,
+						},
+					},
 				},
 			},
 		},
-		inBasePackageName: "base",
-		inEnumPackageName: "enums",
-		inNestedMessages:  true,
+		inBasePackageName:      "base",
+		inEnumPackageName:      "enums",
+		inNestedMessages:       true,
+		inUniqueDirectoryNames: map[string]string{"/module/a-message/surrounding-container/list": "List"},
 		wantCompress: &generatedProto3Message{
 			PackageName: "",
 			MessageCode: `
 message AMessage {
-  message List {
-    ywrapper.StringValue keyfield = 411968747;
-  }
   repeated List list = 486198550;
 }`,
 		},
@@ -1416,18 +1312,15 @@ message AMessage {
 			PackageName: "module",
 			MessageCode: `
 message AMessage {
-  message List {
-    ywrapper.StringValue keyfield = 411968747;
-  }
   repeated List list = 486198550;
 }`,
 		},
 	}, {
 		name: "message skipped due to path length",
-		inMsg: &ParsedDirectory{
-			Name: "MessageName",
-			Type: Container,
-			Path: "one/two",
+		inMsg: &Directory{
+			Name:  "messagename",
+			Path:  []string{"one", "two"},
+			Entry: &yang.Entry{},
 		},
 		inBasePackageName: "base",
 		inEnumPackageName: "enums",
@@ -1436,66 +1329,43 @@ message AMessage {
 		wantUncompress:    nil,
 	}, {
 		name: "simple message with an identityref leaf",
-		inMsgUncompress: &ParsedDirectory{
+		inMsg: &Directory{
 			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
-				"identityref": {
-					Name: "identityref",
-					Type: LeafNode,
-					LangType: &MappedType{
-						NativeType:            "base.enums.TestModuleFooIdentity",
-						IsEnumeratedValue:     true,
-						EnumeratedYANGTypeKey: "/module/foo-identity",
-					},
-					YANGDetails: YANGNodeDetails{
-						Name: "identityref",
-						Path: "/module/message-name/identityref",
-					},
+			Entry: &yang.Entry{
+				Name: "message-name",
+				Kind: yang.DirectoryEntry,
+				Parent: &yang.Entry{
+					Name: "module",
+					Kind: yang.DirectoryEntry,
 				},
 			},
-			PackageName: "module",
-			Path:        "/module-name/message-name",
-		},
-		inMsgCompress: &ParsedDirectory{
-			Name: "MessageName",
-			Type: Container,
-			Fields: map[string]*NodeDetails{
+			Fields: map[string]*yang.Entry{
 				"identityref": {
 					Name: "identityref",
-					Type: LeafNode,
-					LangType: &MappedType{
-						NativeType:            "base.enums.TestModuleFooIdentity",
-						IsEnumeratedValue:     true,
-						EnumeratedYANGTypeKey: "/module/foo-identity",
-					},
-					YANGDetails: YANGNodeDetails{
-						Name: "identityref",
-						Path: "/module/message-name/identityref",
-					},
-				},
-			},
-			PackageName: "",
-			Path:        "/module-name/message-name",
-		},
-		inIR: &IR{
-			Enums: map[string]*EnumeratedYANGType{
-				"/module/foo-identity": {
-					Name:     "TestModuleFooIdentity",
-					Kind:     IdentityType,
-					TypeName: "identityref",
-					ValToYANGDetails: []ygot.EnumDefinition{
-						{
-							Name:           "ONE",
-							DefiningModule: "test-module",
+					Kind: yang.LeafEntry,
+					Parent: &yang.Entry{
+						Name: "message-name",
+						Parent: &yang.Entry{
+							Name: "module",
 						},
-						{
-							Name:           "TWO",
-							DefiningModule: "test-module",
+					},
+					Type: &yang.YangType{
+						Name: "identityref",
+						Kind: yang.Yidentityref,
+						IdentityBase: &yang.Identity{
+							Name: "foo-identity",
+							Values: []*yang.Identity{
+								{Name: "ONE"},
+								{Name: "TWO"},
+							},
+							Parent: &yang.Module{
+								Name: "test-module",
+							},
 						},
 					},
 				},
 			},
+			Path: []string{"", "module-name", "message-name"},
 		},
 		inBasePackageName: "base",
 		inEnumPackageName: "enums",
@@ -1521,39 +1391,47 @@ message MessageName {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			for _, compress := range []bool{false, true} {
-				inMsg := tt.inMsg
-				inIR := tt.inIR
-				want := tt.wantUncompress
-				wantErr := tt.wantUncompressErr
+			wantErr := map[bool]bool{true: tt.wantCompressErr, false: tt.wantUncompressErr}
+			for compress, want := range map[bool]*generatedProto3Message{true: tt.wantCompress, false: tt.wantUncompress} {
+				enumSet, _, errs := findEnumSet(enumMapFromDirectory(tt.inMsg), compress, true, false, true, true, true, nil)
+				if errs != nil {
+					t.Fatalf("findEnumSet failed: %v", errs)
+				}
+				s := NewProtoLangMapper(tt.inBasePackageName, tt.inEnumPackageName)
+				s.SetEnumSet(enumSet)
+
+				// Seed the message names with the supplied input.
+				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
+
+				compressBehaviour := genutil.Uncompressed
 				if compress {
-					if inMsg == nil {
-						inMsg = tt.inMsgCompress
-					}
-					if inIR == nil {
-						inIR = tt.inIRCompress
-					}
-					want = tt.wantCompress
-					wantErr = tt.wantCompressErr
-				} else {
-					if inMsg == nil {
-						inMsg = tt.inMsgUncompress
-					}
-					if inIR == nil {
-						inIR = tt.inIRUncompress
-					}
+					compressBehaviour = genutil.PreferIntendedConfig
 				}
 
-				got, errs := writeProto3Msg(inMsg, inIR, &protoMsgConfig{
+				got, errs := writeProto3Msg(tt.inMsg, tt.inMsgs, s, &protoMsgConfig{
 					compressPaths:   compress,
 					basePackageName: tt.inBasePackageName,
 					enumPackageName: tt.inEnumPackageName,
 					baseImportPath:  tt.inBaseImportPath,
 					nestedMessages:  tt.inNestedMessages,
+				}, IROptions{
+					TransformationOptions: TransformationOpts{
+						CompressBehaviour:                    compressBehaviour,
+						IgnoreShadowSchemaPaths:              false,
+						GenerateFakeRoot:                     true,
+						ExcludeState:                         false,
+						ShortenEnumLeafNames:                 false,
+						EnumOrgPrefixesToTrim:                nil,
+						UseDefiningModuleForTypedefEnumNames: true,
+						EnumerationsUseUnderscores:           false,
+					},
+					NestedDirectories:                   true,
+					AbsoluteMapPaths:                    true,
+					AppendEnumSuffixForSimpleUnionEnums: true,
 				})
 
-				if (errs != nil) != wantErr {
-					t.Errorf("%s: writeProto3Msg(%v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, inMsg, inIR, compress, errs, wantErr)
+				if (errs != nil) != wantErr[compress] {
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected error return status, got: %v, wanted error: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, errs, wantErr[compress])
 				}
 
 				if errs != nil || got == nil {
@@ -1561,23 +1439,24 @@ message MessageName {
 				}
 
 				if got.PackageName != want.PackageName {
-					t.Errorf("%s: writeProto3Msg(%v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, inMsg, inIR, compress, got.PackageName, want.PackageName)
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected package name, got: %v, want: %v", tt.name, tt.inMsg, tt.inMsgs, s, compress, got.PackageName, want.PackageName)
 				}
 
 				if diff := cmp.Diff(want.RequiredImports, got.RequiredImports); diff != "" {
-					t.Errorf("%s: writeProto3Msg(%v, %v, %v): did not get expected set of imports, (-want, +got,):\n%s", tt.name, inMsg, inIR, compress, diff)
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected set of imports, (-want, +got,):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
 				}
 
 				if diff := pretty.Compare(got.MessageCode, want.MessageCode); diff != "" {
 					if diffl, err := testutil.GenerateUnifiedDiff(want.MessageCode, got.MessageCode); err == nil {
 						diff = diffl
 					}
-					t.Errorf("%s: writeProto3Msg(%v, %v, %v): did not get expected message returned, diff(-want, +got):\n%s", tt.name, inMsg, inIR, compress, diff)
+					t.Errorf("%s: writeProto3Msg(%v, %v, %v, %v): did not get expected message returned, diff(-want, +got):\n%s", tt.name, tt.inMsg, tt.inMsgs, s, compress, diff)
 				}
 			}
 		})
 	}
 }
+*/
 
 func TestGenListKeyProto(t *testing.T) {
 	tests := []struct {
