@@ -20,7 +20,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/goyang/pkg/yang"
 	"github.com/openconfig/ygot/testutil"
 	"github.com/openconfig/ygot/ygot"
@@ -1568,7 +1567,7 @@ message MessageName {
 					t.Errorf("%s: writeProto3Msg(%v, %v, %v): did not get expected set of imports, (-want, +got,):\n%s", tt.name, inMsg, inIR, compress, diff)
 				}
 
-				if diff := pretty.Compare(got.MessageCode, want.MessageCode); diff != "" {
+				if diff := cmp.Diff(got.MessageCode, want.MessageCode); diff != "" {
 					if diffl, err := testutil.GenerateUnifiedDiff(want.MessageCode, got.MessageCode); err == nil {
 						diff = diffl
 					}
