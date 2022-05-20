@@ -1288,9 +1288,9 @@ func writeGoHeader(yangFiles, includePaths []string, cfg GeneratorConfig, rootNa
 	return common.String(), oneoff.String(), nil
 }
 
-// isScalarField determines which fields should be converted to pointers when
+// IsScalarField determines which fields should be converted to pointers when
 // outputting structs; this is done to allow checks against nil.
-func isScalarField(field *NodeDetails) bool {
+func IsScalarField(field *NodeDetails) bool {
 	switch {
 	// A non-singleton-leaf always has a generated type for which nil is valid.
 	case field.Type != LeafNode:
@@ -1303,26 +1303,6 @@ func isScalarField(field *NodeDetails) bool {
 		return false
 	// an unmapped type (interface{}), byte slice, or a leaflist can also use nil already, so they should also not be pointers.
 	case field.LangType.NativeType == ygot.BinaryTypeName, field.LangType.NativeType == ygot.EmptyTypeName, field.LangType.NativeType == "interface{}":
-		return false
-	}
-	return true
-}
-
-// IsScalarField determines which fields should be converted to pointers when
-// outputting structs; this is done to allow checks against nil.
-func IsScalarField(field *yang.Entry, t *MappedType) bool {
-	switch {
-	// A non-leaf has a generated type which are always stored by pointers.
-	case field.Kind != yang.LeafEntry:
-		return false
-	// A union shouldn't be a pointer since its field type is an interface;
-	case len(t.UnionTypes) >= 2:
-		return false
-	// an enumerated value shouldn't be a pointer either since its has an UNSET value;
-	case t.IsEnumeratedValue:
-		return false
-	// an unmapped type (interface{}), byte slice, or a leaflist can also use nil already, so they should also not be pointers.
-	case t.NativeType == ygot.BinaryTypeName, t.NativeType == ygot.EmptyTypeName, t.NativeType == "interface{}", field.ListAttr != nil:
 		return false
 	}
 	return true
@@ -1410,7 +1390,7 @@ func writeGoStruct(targetStruct *ParsedDirectory, goStructElements map[string]*P
 		})
 	}
 
-	uniqueGenFieldNames := make(map[string]bool, len(targetStruct.Fields))
+	goFieldNameMap := GoFieldNameMap(targetStruct)
 	// Alphabetically order fields to produce deterministic output.
 	for _, fName := range targetStruct.OrderedFieldNames() {
 		// Iterate through the fields of the struct that we are generating code for.
@@ -1420,7 +1400,7 @@ func writeGoStruct(targetStruct *ParsedDirectory, goStructElements map[string]*P
 		var fieldDef *goStructField
 
 		field := targetStruct.Fields[fName]
-		fieldName := genutil.MakeNameUnique(field.Name, uniqueGenFieldNames)
+		fieldName := goFieldNameMap[fName]
 		definedNameMap[fName] = &yangFieldMap{YANGName: fName, GoName: fieldName}
 
 		switch field.Type {
@@ -1537,7 +1517,7 @@ func writeGoStruct(targetStruct *ParsedDirectory, goStructElements map[string]*P
 				zeroValue = "nil"
 			}
 
-			scalarField := isScalarField(field)
+			scalarField := IsScalarField(field)
 
 			definedNameMap[fName].IsPtr = scalarField
 
@@ -2064,7 +2044,7 @@ func yangListFieldToGoType(listField *NodeDetails, listFieldName string, parent 
 			// The shortest mapped path for a list key must be the path to the key.
 			Tags: mappedPathTag(shortestPath(keyType.MappedPaths), ""),
 		}
-		keyField.IsScalarField = isScalarField(keyType)
+		keyField.IsScalarField = IsScalarField(keyType)
 		listKeys = append(listKeys, keyField)
 	}
 

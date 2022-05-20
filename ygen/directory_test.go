@@ -98,7 +98,7 @@ func TestGetOrderedFieldNames(t *testing.T) {
 func TestGoFieldNameMap(t *testing.T) {
 	tests := []struct {
 		name string
-		in   *Directory
+		in   *ParsedDirectory
 		want map[string]string
 	}{{
 		name: "nil directory",
@@ -106,22 +106,22 @@ func TestGoFieldNameMap(t *testing.T) {
 		want: nil,
 	}, {
 		name: "empty directory",
-		in: &Directory{
-			Fields: map[string]*yang.Entry{},
+		in: &ParsedDirectory{
+			Fields: map[string]*NodeDetails{},
 		},
 		want: map[string]string{},
 	}, {
 		name: "directory with one field",
-		in: &Directory{
-			Fields: map[string]*yang.Entry{
-				"a": {Name: "a"},
+		in: &ParsedDirectory{
+			Fields: map[string]*NodeDetails{
+				"a": {Name: "A"},
 			},
 		},
 		want: map[string]string{"a": "A"},
 	}, {
 		name: "directory with multiple fields",
-		in: &Directory{
-			Fields: map[string]*yang.Entry{
+		in: &ParsedDirectory{
+			Fields: map[string]*NodeDetails{
 				"a": {Name: "a"},
 				"b": {Name: "b"},
 				"c": {Name: "c"},
@@ -132,39 +132,29 @@ func TestGoFieldNameMap(t *testing.T) {
 			},
 		},
 		want: map[string]string{
-			"a": "A",
-			"b": "B",
-			"c": "C",
-			"d": "D",
-			"e": "E",
-			"f": "F",
-			"g": "G",
+			"a": "a",
+			"b": "b",
+			"c": "c",
+			"d": "d",
+			"e": "e",
+			"f": "f",
+			"g": "g",
 		},
 	}, {
 		name: "directory with multiple fields and longer names and a camel case collision",
-		in: &Directory{
-			Fields: map[string]*yang.Entry{
-				"th-e":  {Name: "th-e"},
-				"quick": {Name: "quick"},
-				"brown": {Name: "brown"},
-				"fox":   {Name: "fox"},
-				"jumps": {Name: "jumps"},
-				"over":  {Name: "over"},
-				"thE":   {Name: "thE"},
-				"lazy":  {Name: "lazy"},
-				"dog":   {Name: "dog"},
+		in: &ParsedDirectory{
+			Fields: map[string]*NodeDetails{
+				"th-e":  {Name: "ThE"},
+				"quick": {Name: "Quick"},
+				"thE":   {Name: "ThE"},
+				"th-E":  {Name: "ThE"},
 			},
 		},
 		want: map[string]string{
-			"brown": "Brown",
-			"dog":   "Dog",
-			"fox":   "Fox",
-			"jumps": "Jumps",
-			"lazy":  "Lazy",
-			"over":  "Over",
 			"quick": "Quick",
-			"th-e":  "ThE",
-			"thE":   "ThE_",
+			"th-e":  "ThE_",
+			"thE":   "ThE__",
+			"th-E":  "ThE",
 		},
 	}}
 
