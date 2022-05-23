@@ -260,6 +260,12 @@ type ParsedDirectory struct {
 	// DefiningModule is the module that contains the text definition of
 	// the field.
 	DefiningModule string
+	// ConfigFalse represents whether the node is state data as opposed to
+	// configuration data.
+	// The meaning of "config" is exactly the same as the "config"
+	// statement in YANG:
+	// https://datatracker.ietf.org/doc/html/rfc7950#section-7.21.1
+	ConfigFalse bool
 }
 
 // OrderedFieldNames returns the YANG name of all fields belonging to the
