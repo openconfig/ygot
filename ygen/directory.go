@@ -186,6 +186,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 			BelongingModule:   belongingModule,
 			DefiningModule:    definingModuleName,
 			RootElementModule: rootModule,
+			ConfigFalse:       !util.IsConfig(dir.Entry),
 		}
 		switch {
 		case dir.Entry.IsList():

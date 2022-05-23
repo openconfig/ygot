@@ -260,6 +260,9 @@ type ParsedDirectory struct {
 	// DefiningModule is the module that contains the text definition of
 	// the field.
 	DefiningModule string
+	// ConfigFalse represents whether the node is state data as opposed to
+	// configuration data.
+	ConfigFalse bool
 }
 
 // OrderedFieldNames returns the YANG name of all fields belonging to the

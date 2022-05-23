@@ -1002,6 +1002,7 @@ func TestGenerateIR(t *testing.T) {
 					BelongingModule:   "openconfig-simple",
 					RootElementModule: "openconfig-simple",
 					DefiningModule:    "openconfig-simple",
+					ConfigFalse:       true,
 				},
 				"/openconfig-simple/remote-container": {
 					Name: "OpenconfigSimple_RemoteContainer",
@@ -1122,6 +1123,7 @@ func TestGenerateIR(t *testing.T) {
 					BelongingModule:   "openconfig-simple",
 					RootElementModule: "openconfig-simple",
 					DefiningModule:    "openconfig-remote",
+					ConfigFalse:       true,
 				},
 			},
 			Enums: map[string]*EnumeratedYANGType{
