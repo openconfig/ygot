@@ -202,6 +202,7 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 		pd.Fields = make(map[string]*NodeDetails, len(dir.Fields))
 		for _, fn := range GetOrderedFieldNames(dir) {
 			field := dir.Fields[fn]
+			shadowField, hasShadowField := dir.ShadowedFields[fn]
 
 			mp, mm, err := findMapPaths(dir, fn, opts.TransformationOptions.CompressBehaviour.CompressEnabled(), false, opts.AbsoluteMapPaths)
 			if err != nil {
@@ -251,6 +252,9 @@ func getOrderedDirDetails(langMapper LangMapper, directory map[string]*Directory
 				MappedPathModules:       mm,
 				ShadowMappedPaths:       smp,
 				ShadowMappedPathModules: smm,
+			}
+			if hasShadowField {
+				nd.YANGDetails.ShadowSchemaPath = util.SchemaTreePathNoModule(shadowField)
 			}
 
 			switch {
