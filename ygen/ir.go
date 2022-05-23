@@ -262,6 +262,9 @@ type ParsedDirectory struct {
 	DefiningModule string
 	// ConfigFalse represents whether the node is state data as opposed to
 	// configuration data.
+	// The meaning of "config" is exactly the same as the "config"
+	// statement in YANG:
+	// https://datatracker.ietf.org/doc/html/rfc7950#section-7.21.1
 	ConfigFalse bool
 }
 
