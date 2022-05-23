@@ -441,9 +441,17 @@ type YANGNodeDetails struct {
 	// SchemaPath specifies the absolute YANG schema node path. It does not
 	// include the module name nor choice/case elements in the YANG file.
 	SchemaPath string
-	// ShadowSchemaPath specifies the absolute YANG schema node path of the
-	// shadowed sibling node. It does not include the module name nor
-	// choice/case elements in the YANG file.
+	// ShadowSchemaPath, which specifies the absolute YANG schema node path
+	// of the "shadowed" sibling node, is included when a leaf exists in
+	// both 'intended' and 'applied' state of an OpenConfig schema (see
+	// https://datatracker.ietf.org/doc/html/draft-openconfig-netmod-opstate-01)
+	// and hence is within the 'config' and 'state' containers of the
+	// schema. ShadowSchemaPath is populated only when the -compress
+	// generator flag is used, and indicates the path of the node not
+	// represented in the generated IR based on the preference to prefer
+	// intended or applied leaves.
+	// Similar to SchemaPath, it does not include the module name nor
+	// choice/case elements.
 	ShadowSchemaPath string
 	// LeafrefTargetPath is the absolute YANG schema node path of the
 	// target node to which the leafref points via its path statement. Note
