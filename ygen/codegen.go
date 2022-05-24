@@ -781,7 +781,7 @@ func (cg *YANGCodeGenerator) GenerateProto3(yangFiles, includePaths []string) (*
 	}
 
 	// Store the returned schematree and enumSet within the state for this code generation.
-	protogen := newProtoGenState(mdef.schematree, enumSet)
+	protogen := NewProtoLangMapper(mdef.schematree, enumSet)
 
 	protoMsgs, errs := buildDirectoryDefinitions(protogen, mdef.directoryEntries, opts)
 	if errs != nil {

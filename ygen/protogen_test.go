@@ -685,7 +685,7 @@ func TestGenProto3Msg(t *testing.T) {
 			if errs != nil {
 				t.Fatalf("findEnumSet failed: %v", errs)
 			}
-			s := newProtoGenState(nil, enumSet)
+			s := NewProtoLangMapper(nil, enumSet)
 
 			// Seed the state with the supplied message names that have been provided.
 			s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
@@ -1445,7 +1445,7 @@ message MessageName {
 				if errs != nil {
 					t.Fatalf("findEnumSet failed: %v", errs)
 				}
-				s := newProtoGenState(nil, enumSet)
+				s := NewProtoLangMapper(nil, enumSet)
 
 				// Seed the message names with the supplied input.
 				s.uniqueDirectoryNames = tt.inUniqueDirectoryNames
@@ -1517,7 +1517,7 @@ func TestGenListKeyProto(t *testing.T) {
 				},
 			},
 			definedDirectories: map[string]*Directory{},
-			protogen: &protoGenState{
+			protogen: &ProtoLangMapper{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
 				},
@@ -1570,7 +1570,7 @@ func TestGenListKeyProto(t *testing.T) {
 				},
 			},
 			definedDirectories: map[string]*Directory{},
-			protogen: &protoGenState{
+			protogen: &ProtoLangMapper{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
 				},
@@ -1632,7 +1632,7 @@ func TestGenListKeyProto(t *testing.T) {
 				},
 			},
 			definedDirectories: map[string]*Directory{},
-			protogen: &protoGenState{
+			protogen: &ProtoLangMapper{
 				uniqueDirectoryNames: map[string]string{
 					"/list": "List",
 				},
